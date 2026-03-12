@@ -1,21 +1,41 @@
+"use client"
+import { useState } from 'react'
+import { supabase } from '@/lib/supabase'
+
 export default function Register() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleRegister = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    const { error } = await supabase.auth.signUp({ email, password })
+    if (error) alert(error.message)
+    else alert('¡Revisa tu correo para confirmar tu cuenta!')
+    setLoading(false)
+  }
+
   return (
-    <div className="min-h-screen bg-[#f8f6f6] flex flex-col lg:flex-row">
-      <section className="hidden lg:flex lg:w-5/12 bg-[#1A202C] p-12 flex-col justify-between text-white">
-        <div>
-          <h2 className="text-3xl font-bold text-[#ec5b13] mb-6">SkyLog</h2>
-          <h1 className="text-4xl font-bold leading-tight">Vuela con total tranquilidad legal.</h1>
-        </div>
-        <p className="italic text-slate-400">"La mejor herramienta para cumplir con la RAC 100."</p>
-      </section>
-      <section className="flex-1 p-8 lg:p-20 flex flex-col justify-center">
-        <h2 className="text-2xl font-bold mb-6">Crea tu cuenta de operador</h2>
-        <form className="space-y-4">
-          <input className="w-full p-3 border rounded-lg" placeholder="Nombre completo" type="text" />
-          <input className="w-full p-3 border rounded-lg" placeholder="Correo" type="email" />
-          <button className="w-full py-4 bg-[#ec5b13] text-white font-bold rounded-lg">Iniciar prueba gratuita</button>
-        </form>
-      </section>
+    <div className="p-10 max-w-md mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Registro SkyLog</h1>
+      <form onSubmit={handleRegister} className="space-y-4">
+        <input 
+          type="email" 
+          placeholder="Tu correo" 
+          className="w-full p-2 border" 
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <input 
+          type="password" 
+          placeholder="Tu contraseña" 
+          className="w-full p-2 border" 
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button className="bg-[#ec5b13] text-white w-full py-2">
+          {loading ? 'Cargando...' : 'Registrarse'}
+        </button>
+      </form>
     </div>
-  );
+  )
 }

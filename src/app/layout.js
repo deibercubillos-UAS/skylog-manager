@@ -2,7 +2,7 @@ import "./globals.css";
 
 export const metadata = {
   title: "SkyLog Manager",
-  description: "Gestión aeronáutica para drones",
+  description: "Bitácora de vuelo para drones",
 };
 
 export default function RootLayout({ children }) {

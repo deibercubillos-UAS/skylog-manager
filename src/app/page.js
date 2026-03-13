@@ -20,7 +20,7 @@ export default function LandingPage() {
               <a className="text-sm font-medium text-slate-600 hover:text-[#ec5b13] transition-colors" href="#pricing">Pricing</a>
             </nav>
             <div className="flex items-center gap-4">
-              <Link href="/register" className="hidden sm:block text-sm font-semibold text-slate-700 px-4 py-2 hover:bg-slate-100 rounded-lg">Log In</Link>
+              <Link href="/register" className="hidden sm:block text-sm font-semibold text-slate-700 px-4 py-2 hover:bg-slate-100 rounded-lg transition-all">Log In</Link>
               <Link href="/register" className="bg-[#ec5b13] hover:bg-orange-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-lg shadow-orange-500/20 transition-all">
                 Start Free Trial
               </Link>
@@ -55,14 +55,6 @@ export default function LandingPage() {
                 <button className="bg-white border border-slate-200 text-slate-700 px-8 py-4 rounded-lg text-lg font-bold hover:bg-slate-50 transition-all">
                   Ver Demo
                 </button>
-              </div>
-              <div className="flex items-center gap-4 text-slate-500">
-                <div className="flex -space-x-2">
-                   <div className="w-10 h-10 rounded-full border-2 border-white bg-slate-300"></div>
-                   <div className="w-10 h-10 rounded-full border-2 border-white bg-slate-400"></div>
-                   <div className="w-10 h-10 rounded-full border-2 border-white bg-slate-500"></div>
-                </div>
-                <p className="text-sm font-medium">Trusted by 500+ certified drone operators</p>
               </div>
             </div>
 
@@ -102,7 +94,7 @@ export default function LandingPage() {
       </section>
 
       {/* 3. KEY BENEFITS */}
-      <section className="py-20 bg-white border-y border-slate-200">
+      <section id="features" className="py-20 bg-white border-y border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-black text-[#1A202C] mb-4">Key Benefits</h2>
           <p className="text-slate-600 max-w-2xl mx-auto mb-16">Ensuring your operations are safe and compliant with our advanced automation tools.</p>
@@ -126,157 +118,42 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 4. FEATURE SHOWCASE */}
-      <section id="features" className="py-24 space-y-32">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row items-center gap-16">
-            <div className="flex-1 space-y-6">
-              <div className="inline-block p-2 bg-[#ec5b13]/10 rounded-lg text-[#ec5b13]">
-                <span className="material-symbols-outlined">map</span>
-              </div>
-              <h3 className="text-3xl font-black text-[#1A202C]">Digital Logbook with GPS</h3>
-              <p className="text-slate-600 text-lg leading-relaxed">
-                Automated recording of flight paths, duration, and telemetry. Sync directly from your ground control station to our cloud infrastructure for instant compliance updates.
-              </p>
-              <ul className="space-y-3">
-                <li className="flex items-center gap-3 text-slate-700 font-medium">
-                  <span className="material-symbols-outlined text-[#ec5b13]">check_circle</span>
-                  Auto-sync from DJI, Autel, and Parrot
-                </li>
-                <li className="flex items-center gap-3 text-slate-700 font-medium">
-                  <span className="material-symbols-outlined text-[#ec5b13]">check_circle</span>
-                  Geofencing alerts & Airspace checking
-                </li>
-              </ul>
-            </div>
-            <div className="flex-1 bg-slate-200 rounded-2xl overflow-hidden shadow-2xl h-[400px]">
-               <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&q=80&w=1000" className="w-full h-full object-cover" alt="Map View" />
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row-reverse items-center gap-16">
-            <div className="flex-1 space-y-6">
-              <div className="inline-block p-2 bg-[#ec5b13]/10 rounded-lg text-[#ec5b13]">
-                <span className="material-symbols-outlined">badge</span>
-              </div>
-              <h3 className="text-3xl font-black text-[#1A202C]">Pilot Management</h3>
-              <p className="text-slate-600 text-lg leading-relaxed">
-                Track certifications, medical records, and flight currency for your entire team. Automated notifications when pilot credentials are about to expire.
-              </p>
-              <div className="bg-white p-4 rounded-xl border border-slate-200 flex items-center gap-4">
-                 <div className="w-12 h-12 bg-slate-100 rounded-full"></div>
-                 <div className="flex-1 h-4 bg-slate-100 rounded"></div>
-                 <span className="px-2 py-1 bg-orange-100 text-[#ec5b13] text-[10px] font-bold rounded">EXPIRES SOON</span>
-              </div>
-            </div>
-            <div className="flex-1 bg-[#1A202C] p-12 rounded-2xl grid grid-cols-2 gap-6">
-               <div className="text-center p-6 bg-white/5 rounded-xl border border-white/10 text-white">
-                  <p className="text-3xl font-black">42</p>
-                  <p className="text-[10px] uppercase font-bold text-slate-400">Drones</p>
-               </div>
-               <div className="text-center p-6 bg-[#ec5b13]/20 rounded-xl border border-[#ec5b13]/30 text-white">
-                  <p className="text-3xl font-black text-[#ec5b13]">12</p>
-                  <p className="text-[10px] uppercase font-bold text-slate-400">Pilots</p>
-               </div>
-               <div className="text-center p-6 bg-white/5 rounded-xl border border-white/10 text-white">
-                  <p className="text-3xl font-black">350h</p>
-                  <p className="text-[10px] uppercase font-bold text-slate-400">Flight Time</p>
-               </div>
-               <div className="text-center p-6 bg-green-500/10 rounded-xl border border-green-500/20 text-green-500">
-                  <p className="text-3xl font-black">100%</p>
-                  <p className="text-[10px] uppercase font-bold text-slate-400">Safety</p>
-               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. PRICING SECTION */}
+      {/* 4. PRICING SECTION */}
       <section id="pricing" className="py-24 bg-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-black text-[#1A202C] mb-4">Pricing Plans</h2>
           <p className="text-slate-600 mb-16">Scale your drone operations with the right tools.</p>
           <div className="grid md:grid-cols-3 gap-8">
-            {/* Free */}
-            <div className="bg-white p-8 rounded-2xl border border-slate-200 flex flex-col text-left hover:shadow-xl transition-all">
+            <div className="bg-white p-8 rounded-2xl border border-slate-200 flex flex-col text-left">
               <h3 className="text-xl font-bold mb-2">Plan Piloto</h3>
-              <div className="text-4xl font-black mb-6">$0<span className="text-sm text-slate-400 font-medium">/mo</span></div>
-              <ul className="space-y-4 mb-10 flex-1">
-                <li className="flex gap-2 text-sm text-slate-600"><span className="material-symbols-outlined text-[#ec5b13]">check</span> 1 Drone & 1 Piloto</li>
-                <li className="flex gap-2 text-sm text-slate-600"><span className="material-symbols-outlined text-[#ec5b13]">check</span> Bitácora Básica</li>
-              </ul>
+              <div className="text-4xl font-black mb-6">$0</div>
               <Link href="/register" className="w-full py-3 text-center border-2 border-[#ec5b13] text-[#ec5b13] font-bold rounded-xl">Empezar Gratis</Link>
             </div>
-            {/* Pro */}
             <div className="bg-white p-8 rounded-2xl border-2 border-[#ec5b13] flex flex-col text-left shadow-2xl relative scale-105 z-10">
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#ec5b13] text-white px-4 py-1 rounded-full text-xs font-black uppercase">Most Popular</div>
               <h3 className="text-xl font-bold mb-2 text-[#ec5b13]">Plan Operador</h3>
-              <div className="text-4xl font-black mb-6 text-[#1A202C]">$29<span className="text-sm text-slate-400 font-medium">/mo</span></div>
-              <ul className="space-y-4 mb-10 flex-1">
-                <li className="flex gap-2 text-sm text-slate-600"><span className="material-symbols-outlined text-[#ec5b13]">check</span> Hasta 5 Drones</li>
-                <li className="flex gap-2 text-sm text-slate-600"><span className="material-symbols-outlined text-[#ec5b13]">check</span> SORA Analysis Pro</li>
-                <li className="flex gap-2 text-sm text-slate-600"><span className="material-symbols-outlined text-[#ec5b13]">check</span> Reportes RAC Oficiales</li>
-              </ul>
+              <div className="text-4xl font-black mb-6 text-[#1A202C]">$29</div>
               <Link href="/register" className="w-full py-3 text-center bg-[#ec5b13] text-white font-bold rounded-xl shadow-lg shadow-orange-500/30 transition-all hover:scale-105">Probar 14 días gratis</Link>
             </div>
-            {/* Enterprise */}
-            <div className="bg-white p-8 rounded-2xl border border-slate-200 flex flex-col text-left hover:shadow-xl transition-all">
+            <div className="bg-white p-8 rounded-2xl border border-slate-200 flex flex-col text-left">
               <h3 className="text-xl font-bold mb-2">Enterprise</h3>
               <div className="text-4xl font-black mb-6 text-[#1A202C]">Custom</div>
-              <ul className="space-y-4 mb-10 flex-1">
-                <li className="flex gap-2 text-sm text-slate-600"><span className="material-symbols-outlined text-[#ec5b13]">check</span> Drones Ilimitados</li>
-                <li className="flex gap-2 text-sm text-slate-600"><span className="material-symbols-outlined text-[#ec5b13]">check</span> API e Integraciones</li>
-                <li className="flex gap-2 text-sm text-slate-600"><span className="material-symbols-outlined text-[#ec5b13]">check</span> Manager Dedicado</li>
-              </ul>
               <button className="w-full py-3 text-center bg-[#1A202C] text-white font-bold rounded-xl transition-all">Contact Sales</button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 6. FOOTER */}
-      <footer className="bg-[#1A202C] text-white pt-20 pb-10 border-t border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16 text-center md:text-left">
-            <div className="col-span-1 md:col-span-1 flex flex-col items-center md:items-start">
-              <div className="flex items-center gap-2 mb-6">
-                <span className="material-symbols-outlined text-[#ec5b13] text-3xl">precision_manufacturing</span>
-                <span className="text-xl font-bold tracking-tight">SkyLog</span>
-              </div>
-              <p className="text-slate-400 text-sm leading-relaxed mb-6">Built for safety, designed for efficiency. Aeronautical compliance made easy.</p>
-            </div>
-            <div className="space-y-4">
-              <h4 className="font-bold text-[#ec5b13]">Product</h4>
-              <nav className="flex flex-col space-y-2 text-sm text-slate-400">
-                <a href="#" className="hover:text-white transition-colors">Features</a>
-                <a href="#" className="hover:text-white transition-colors">Fleet Management</a>
-                <a href="#" className="hover:text-white transition-colors">SORA Wizard</a>
-              </nav>
-            </div>
-            <div className="space-y-4">
-              <h4 className="font-bold text-[#ec5b13]">Legal</h4>
-              <nav className="flex flex-col space-y-2 text-sm text-slate-400">
-                <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-                <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-                <a href="#" className="hover:text-white transition-colors">RAC Compliance</a>
-              </nav>
-            </div>
-            <div className="flex flex-col items-center md:items-end justify-center">
-              <div className="p-4 bg-white/5 border border-white/10 rounded-xl">
-                 <p className="text-[10px] font-bold uppercase tracking-widest text-[#ec5b13]">Certified UAS Partner</p>
-                 <p className="text-xs font-bold text-white mt-1">Aeronautical Standards Guaranteed</p>
-              </div>
-            </div>
+      {/* 5. FOOTER */}
+      <footer className="bg-[#1A202C] text-white py-12 border-t border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <span className="material-symbols-outlined text-[#ec5b13] text-3xl">precision_manufacturing</span>
+            <span className="text-xl font-bold tracking-tight">SkyLog</span>
           </div>
-          <div className="pt-10 border-t border-slate-800 text-center text-xs text-slate-500">
-            © 2024 SkyLog Manager. RAC (FAA/EASA/Aerocivil) Compliant.
-          </div>
+          <p className="text-slate-500 text-xs">© 2024 SkyLog Manager. RAC (Aerocivil) Compliant.</p>
         </div>
       </footer>
     </div>
   );
-}git add .
-git commit -m "FIX: Configurando variables de entorno para Vercel"
-git push origin main
+}

@@ -3,4 +3,12 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Este if evita que la aplicación explote si faltan las variables
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn("⚠️ Falta configurar las variables de Supabase. Revisa Vercel Settings.")
+}
+
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co', 
+  supabaseAnonKey || 'placeholder'
+)

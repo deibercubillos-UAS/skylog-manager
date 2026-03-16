@@ -1,87 +1,108 @@
-"use client"
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-import Link from 'next/link'
-
 export default function DashboardPage() {
-  const [stats, setStats] = useState({ drones: 0, pilots: 0, flights: 0 })
-  const [recentFlights, setRecentFlights] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      const [drones, pilots, flights, recent] = await Promise.all([
-        supabase.from('aircraft').select('*', { count: 'exact', head: true }),
-        supabase.from('pilots').select('*', { count: 'exact', head: true }),
-        supabase.from('flights').select('*', { count: 'exact', head: true }),
-        supabase.from('flights').select('*, aircraft(model), pilots(name)').order('created_at', { ascending: false }).limit(5)
-      ])
-      
-      setStats({ drones: drones.count || 0, pilots: pilots.count || 0, flights: flights.count || 0 })
-      setRecentFlights(recent.data || [])
-      setLoading(false)
-    }
-    fetchStats()
-  }, [])
-
   return (
-    <div className="flex-1 overflow-y-auto p-8 space-y-8 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-black text-[#1A202C]">Panel de Control</h1>
-          <p className="text-slate-500">Resumen operativo de tu flota UAS</p>
-        </div>
-        <Link href="/dashboard/flights" className="bg-[#ec5b13] text-white px-6 py-3 rounded-2xl font-black shadow-lg hover:scale-105 transition-all text-sm">
-          + REGISTRAR MISIÓN
-        </Link>
-      </div>
-
+    <div className="space-y-8 animate-in fade-in duration-500">
+      
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard label="Aeronaves" value={stats.drones} icon="drone" color="text-orange-500 bg-orange-50" />
-        <StatCard label="Pilotos" value={stats.pilots} icon="group" color="text-blue-500 bg-blue-50" />
-        <StatCard label="Vuelos" value={stats.flights} icon="flight_takeoff" color="text-green-500 bg-green-50" />
-        <StatCard label="Horas" value={`${(stats.flights * 0.8).toFixed(1)}h`} icon="timer" color="text-purple-500 bg-purple-50" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <KPICard title="Total Horas" value="245.8h" trend="+5.2%" color="emerald" />
+        <KPICard title="Flota Operativa" value="8/10" statusDots={[1,1,1,1,1,1,1,1,0,0]} />
+        <KPICard title="Pilotos Certificados" value="12" subtitle="Activos" />
+        <KPICard title="Seguro (Vencimiento)" value="15 Días" warning={true} />
       </div>
 
-      {/* Recent Activity */}
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-          <h3 className="font-black text-xs uppercase tracking-widest text-slate-400">Últimos Registros</h3>
-          <Link href="/dashboard/flights" className="text-xs font-bold text-[#ec5b13] hover:underline">Ver Bitácora Completa</Link>
+      {/* Gráficos Mockup */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-left">
+          <h3 className="font-black text-slate-800 mb-6 uppercase text-xs tracking-widest">Actividad Mensual</h3>
+          <div className="h-48 w-full flex items-end gap-2 px-2">
+            {[40, 60, 55, 85, 70, 90, 50].map((h, i) => (
+              <div key={i} style={{ height: `${h}%` }} className="flex-1 bg-[#ec5b13]/20 hover:bg-[#ec5b13] transition-all rounded-t-lg cursor-pointer"></div>
+            ))}
+          </div>
+        </div>
+        
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-left">
+          <h3 className="font-black text-slate-800 mb-6 uppercase text-xs tracking-widest">Tipos de Misión</h3>
+          <div className="space-y-4">
+            <ProgressLine label="Fotogrametría" percent={45} color="bg-[#ec5b13]" />
+            <ProgressLine label="Inspección" percent={30} color="bg-[#1A202C]" />
+            <ProgressLine label="Rescate" percent={15} color="bg-emerald-500" />
+          </div>
+        </div>
+      </div>
+
+      {/* Tabla de Actividad Reciente */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+          <h3 className="font-black text-slate-800 uppercase text-xs tracking-widest text-left">Actividad Reciente</h3>
+          <button className="text-[10px] font-bold text-[#ec5b13] hover:underline uppercase">Ver todo</button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <tbody className="divide-y divide-slate-50">
-              {recentFlights.map(f => (
-                <tr key={f.id} className="hover:bg-slate-50 transition-all">
-                  <td className="p-6">
-                    <p className="text-sm font-bold text-[#1A202C]">{f.aircraft?.model}</p>
-                    <p className="text-[10px] text-slate-400 uppercase font-medium">{new Date(f.flight_date).toLocaleDateString()}</p>
-                  </td>
-                  <td className="p-6 text-sm text-slate-600">{f.pilots?.name}</td>
-                  <td className="p-6">
-                    <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase">Completado</span>
-                  </td>
-                </tr>
-              ))}
+            <thead className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-tighter">
+              <tr>
+                <th className="px-6 py-4">Fecha / Hora</th>
+                <th className="px-6 py-4">Piloto</th>
+                <th className="px-6 py-4">Aeronave</th>
+                <th className="px-6 py-4">Duración</th>
+                <th className="px-6 py-4 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              <ActivityRow date="24 Oct, 14:20" pilot="Carlos R." drone="Matrice 300 #04" time="01h 45m" />
+              <ActivityRow date="24 Oct, 11:05" pilot="Elena M." drone="Mavic 3 Ent." time="42m" />
             </tbody>
           </table>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-function StatCard({ label, value, icon, color }) {
+// --- Componentes Internos para limpieza ---
+
+function KPICard({ title, value, trend, subtitle, statusDots, warning }) {
   return (
-    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-4 ${color}`}>
-        <span className="material-symbols-outlined">{icon}</span>
+    <div className={`bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-left ${warning ? 'ring-2 ring-orange-500/20' : ''}`}>
+      <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">{title}</p>
+      <div className="flex items-baseline justify-between">
+        <span className={`text-3xl font-black ${warning ? 'text-orange-600' : 'text-slate-900'}`}>{value}</span>
+        {trend && <span className="text-emerald-500 text-xs font-bold">{trend}</span>}
+        {subtitle && <span className="text-slate-400 text-xs">{subtitle}</span>}
       </div>
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</p>
-      <p className="text-3xl font-black text-[#1A202C]">{value}</p>
+      {statusDots && (
+        <div className="flex gap-1 mt-2">
+          {statusDots.map((d, i) => <span key={i} className={`size-1.5 rounded-full ${d ? 'bg-emerald-500' : 'bg-red-500'}`}></span>)}
+        </div>
+      )}
     </div>
-  )
+  );
+}
+
+function ProgressLine({ label, percent, color }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-[10px] font-bold uppercase tracking-tighter">
+        <span className="text-slate-500">{label}</span>
+        <span>{percent}%</span>
+      </div>
+      <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+        <div className={`${color} h-full transition-all`} style={{ width: `${percent}%` }}></div>
+      </div>
+    </div>
+  );
+}
+
+function ActivityRow({ date, pilot, drone, time }) {
+  return (
+    <tr className="hover:bg-slate-50 transition-colors">
+      <td className="px-6 py-4 text-xs font-medium">{date}</td>
+      <td className="px-6 py-4 text-xs font-bold text-slate-700">{pilot}</td>
+      <td className="px-6 py-4 text-xs text-slate-500">{drone}</td>
+      <td className="px-6 py-4 text-xs font-mono">{time}</td>
+      <td className="px-6 py-4 text-right">
+        <button className="material-symbols-outlined text-slate-400 hover:text-[#ec5b13] text-lg">visibility</button>
+      </td>
+    </tr>
+  );
 }

@@ -1,50 +1,73 @@
 'use client';
 export const dynamic = 'force-dynamic';
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import AircraftCard from '@/components/AircraftCard';
+import AddAircraftPanel from '@/components/AddAircraftPanel';
 
 export default function FleetPage() {
-  const [drones, setDrones] = useState([])
-  const [model, setModel] = useState('')
-  const [serial, setSerial] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [fleet, setFleet] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
-  const fetchDrones = async () => {
-    const { data } = await supabase.from('aircraft').select('*')
-    setDrones(data || [])
-  }
+  const fetchFleet = async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from('aircraft')
+      .select('*')
+      .eq('owner_id', user.id)
+      .order('created_at', { ascending: false });
+    
+    if (!error) setFleet(data);
+    setLoading(false);
+  };
 
-  useEffect(() => { fetchDrones() }, [])
-
-  const addDrone = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    const { error } = await supabase.from('aircraft').insert([{ model, serial_number: serial, owner_id: user.id }])
-    if (error) alert(error.message)
-    else { setModel(''); setSerial(''); fetchDrones() }
-    setLoading(false)
-  }
+  useEffect(() => { fetchFleet(); }, []);
 
   return (
-    <div className="p-8 overflow-y-auto">
-      <h1 className="text-3xl font-black mb-8">Gestión de Flota</h1>
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-10 max-w-2xl">
-        <h2 className="font-bold mb-4 uppercase text-xs tracking-widest text-slate-400">Registrar Aeronave</h2>
-        <form onSubmit={addDrone} className="space-y-4">
-          <input type="text" placeholder="Modelo" className="w-full p-3 bg-slate-50 rounded-xl border-none" value={model} onChange={(e) => setModel(e.target.value)} required />
-          <input type="text" placeholder="S/N" className="w-full p-3 bg-slate-50 rounded-xl border-none" value={serial} onChange={(e) => setSerial(e.target.value)} required />
-          <button className="w-full bg-[#ec5b13] text-white py-3 rounded-xl font-bold shadow-lg">AÑADIR DRONE</button>
-        </form>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {drones.map(d => (
-          <div key={d.id} className="bg-white p-4 rounded-2xl border border-slate-200 flex items-center gap-4">
-            <span className="material-symbols-outlined text-[#ec5b13] bg-orange-50 p-3 rounded-xl">drone</span>
-            <div><p className="font-bold">{d.model}</p><p className="text-xs text-slate-400">S/N: {d.serial_number}</p></div>
+    <div className="flex h-full -m-8 overflow-hidden relative">
+      <div className="flex-1 overflow-y-auto p-8 space-y-8">
+        
+        {/* Header de Flota */}
+        <div className="flex justify-between items-end">
+          <div className="text-left">
+            <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Gestión de Flota</h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">Supervisión técnica de aeronaves y estados operativos.</p>
           </div>
-        ))}
+          <div className="flex gap-3">
+            <button 
+              onClick={() => setIsPanelOpen(true)}
+              className="bg-[#ec5b13] hover:bg-orange-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-[#ec5b13]/20 transition-all"
+            >
+              <span className="material-symbols-outlined text-[20px]">add</span>
+              Registrar Nueva Aeronave
+            </button>
+          </div>
+        </div>
+
+        {/* Galería */}
+        {loading ? (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 animate-pulse">
+            {[1,2,3,4].map(i => <div key={i} className="h-44 bg-slate-200 rounded-xl"></div>)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {fleet.map(drone => (
+              <AircraftCard key={drone.id} aircraft={drone} />
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Panel Lateral */}
+      {isPanelOpen && (
+        <AddAircraftPanel 
+          onClose={() => setIsPanelOpen(false)} 
+          onSuccess={() => { setIsPanelOpen(false); fetchFleet(); }} 
+        />
+      )}
     </div>
-  )
+  );
 }

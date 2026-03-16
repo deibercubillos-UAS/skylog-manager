@@ -1,50 +1,69 @@
 'use client';
+import { useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
-export default function AddAircraftPanel({ onClose }) {
+export default function AddAircraftPanel({ onClose, onSuccess }) {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    model: '', serial_number: '', mtow: '', status: 'Operativo', total_hours: 0
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const { error } = await supabase
+      .from('aircraft')
+      .insert([{ ...formData, owner_id: user.id, health: 0 }]);
+
+    if (error) alert(error.message);
+    else onSuccess();
+    setLoading(false);
+  };
+
   return (
-    <aside className="w-96 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col fixed inset-y-0 right-0 z-50 shadow-2xl animate-in slide-in-from-right">
-      <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+    <aside className="w-96 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col shadow-2xl animate-in slide-in-from-right duration-300 z-50">
+      <div className="p-6 border-b border-slate-100 flex justify-between items-center">
         <h3 className="text-lg font-bold">Nueva Aeronave</h3>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+        <button onClick={onClose} className="text-slate-400 hover:text-red-500 transition-colors">
           <span className="material-symbols-outlined">close</span>
         </button>
       </div>
 
-      <div className="flex px-6 pt-4 border-b border-slate-100 dark:border-slate-800 gap-6">
-        <button className="pb-3 text-sm font-bold text-primary border-b-2 border-primary">General</button>
-        <button className="pb-3 text-sm font-medium text-slate-400 hover:text-slate-600">Técnico</button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 text-left">
         <div className="space-y-4">
           <div>
-            <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Marca / Modelo</label>
-            <input className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg text-sm p-2" placeholder="Ej: Autel Evo II RTK" type="text"/>
+            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Marca / Modelo</label>
+            <input required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#ec5b13]/20" 
+              placeholder="Ej: DJI Matrice 350" onChange={e => setFormData({...formData, model: e.target.value})} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">S/N</label>
-              <input className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg text-sm p-2" placeholder="Serial" type="text"/>
+              <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">S/N</label>
+              <input required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm outline-none" 
+                placeholder="Serial" onChange={e => setFormData({...formData, serial_number: e.target.value})} />
             </div>
             <div>
-              <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">MTOW (kg)</label>
-              <input className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg text-sm p-2" placeholder="0.0" type="number"/>
+              <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">MTOW (kg)</label>
+              <input required type="number" step="0.01" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm outline-none" 
+                placeholder="0.0" onChange={e => setFormData({...formData, mtow: e.target.value})} />
             </div>
           </div>
         </div>
 
-        <div className="space-y-4 pt-4">
-          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Carga de Documentación</h4>
-          <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 flex flex-col items-center justify-center text-center hover:border-primary hover:bg-primary/5 transition-all group cursor-pointer">
-            <span className="material-symbols-outlined text-slate-300 group-hover:text-primary mb-2 text-4xl">cloud_upload</span>
-            <p className="text-xs font-medium text-slate-500">Arrastra aquí el registro DAN</p>
-          </div>
+        {/* Dropzone visual */}
+        <div className="p-8 border-2 border-dashed border-slate-200 rounded-2xl text-center hover:border-[#ec5b13] transition-colors group cursor-pointer">
+          <span className="material-symbols-outlined text-4xl text-slate-300 group-hover:text-[#ec5b13] mb-2">cloud_upload</span>
+          <p className="text-[10px] font-bold text-slate-400 uppercase">Cargar DAN o Seguro</p>
         </div>
-      </div>
+      </form>
 
-      <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex gap-3">
-        <button onClick={onClose} className="flex-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-2 rounded-lg text-sm font-bold">Cancelar</button>
-        <button className="flex-1 bg-primary text-white py-2 rounded-lg text-sm font-bold shadow-lg shadow-primary/20">Guardar</button>
+      <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex gap-3">
+        <button type="button" onClick={onClose} className="flex-1 py-3 text-sm font-bold text-slate-500">Cancelar</button>
+        <button onClick={handleSubmit} disabled={loading} className="flex-1 py-3 bg-[#ec5b13] text-white rounded-xl text-sm font-bold shadow-lg shadow-[#ec5b13]/20">
+          {loading ? 'Guardando...' : 'Guardar Aeronave'}
+        </button>
       </div>
     </aside>
   );

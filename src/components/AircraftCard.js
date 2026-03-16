@@ -22,10 +22,7 @@ export default function AircraftCard({ drone }) {
             <h3 className="font-bold text-lg">{drone.model}</h3>
             <p className="text-primary text-xs font-semibold">{drone.alias}</p>
           </div>
-          <div 
-            className="w-12 h-12 rounded-full border-4 border-primary/20 flex items-center justify-center text-[10px] font-bold"
-            style={{ borderTopColor: '#ec5b13' }} // Simulación de progreso
-          >
+          <div className="circular-progress flex items-center justify-center text-[10px] font-bold" style={{ '--value': drone.health }}>
             {drone.health}%
           </div>
         </div>
@@ -44,9 +41,9 @@ export default function AircraftCard({ drone }) {
             <p className="text-sm font-medium">{drone.mtow} kg</p>
           </div>
           <div>
-            <p className="text-[10px] text-slate-400 uppercase font-bold">Estado Técnico</p>
+            <p className="text-[10px] text-slate-400 uppercase font-bold">Estado</p>
             <p className={`text-sm font-bold ${isMaintenance ? 'text-red-500' : 'text-primary'}`}>
-              {isMaintenance ? 'Revisión' : 'Ok'}
+              {isMaintenance ? 'Mantenimiento' : 'Operativo'}
             </p>
           </div>
         </div>

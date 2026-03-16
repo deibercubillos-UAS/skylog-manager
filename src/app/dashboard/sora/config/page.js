@@ -7,6 +7,7 @@ export default function SoraConfigPage() {
   const [items, setItems] = useState([]);
   const [newCategory, setNewCategory] = useState('Mitigación Terrestre');
   const [newLabel, setNewLabel] = useState('');
+  const [newScore, setNewScore] = useState(1);
   const [loading, setLoading] = useState(true);
 
   const fetchItems = async () => {
@@ -22,72 +23,56 @@ export default function SoraConfigPage() {
     e.preventDefault();
     if (!newLabel) return;
     const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from('sora_templates').insert([{ owner_id: user.id, category: newCategory, label: newLabel }]);
+    await supabase.from('sora_templates').insert([{ owner_id: user.id, category: newCategory, label: newLabel, score: parseInt(newScore) }]);
     setNewLabel('');
     fetchItems();
   };
 
-  const deleteItem = async (id) => {
-    await supabase.from('sora_templates').delete().eq('id', id);
-    fetchItems();
-  };
-
-  const grouped = items.reduce((acc, item) => {
-    if (!acc[item.category]) acc[item.category] = [];
-    acc[item.category].push(item);
-    return acc;
-  }, {});
-
   return (
     <div className="max-w-5xl mx-auto text-left animate-in fade-in duration-500">
       <header className="mb-8">
-        <h2 className="text-3xl font-black text-slate-900 uppercase">Configuración de Riesgos SORA</h2>
-        <p className="text-slate-500">Define las barreras de seguridad y mitigaciones requeridas para tus misiones SAIL.</p>
+        <h2 className="text-3xl font-black text-slate-900 uppercase">Configurador de Matriz SORA</h2>
+        <p className="text-slate-500">Define riesgos y asigna puntajes de criticidad para tus misiones.</p>
       </header>
 
-      <div className="bg-white border border-slate-200 rounded-[2.5rem] p-10 shadow-sm space-y-10">
-        <form onSubmit={addItem} className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-[#1A202C] p-8 rounded-3xl text-white">
-          <div className="space-y-2 text-left">
-            <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Barrera de Riesgo</label>
-            <select className="w-full bg-slate-800 border-none rounded-xl px-4 py-3 text-sm outline-none" value={newCategory} onChange={e => setNewCategory(e.target.value)}>
-              <option>Mitigación Terrestre (GRC)</option>
-              <option>Mitigación Aérea (ARC)</option>
-              <option>Contención Estratégica</option>
-              <option>Protocolos de Emergencia</option>
+      <div className="bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-sm space-y-8">
+        <form onSubmit={addItem} className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-900 p-6 rounded-3xl">
+          <div className="space-y-1">
+            <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Categoría</label>
+            <select className="w-full bg-slate-800 text-white border-none rounded-xl py-3 px-4 text-xs outline-none" value={newCategory} onChange={e => setNewCategory(e.target.value)}>
+              <option>Riesgo Terrestre (GRC)</option>
+              <option>Riesgo Aéreo (ARC)</option>
+              <option>Mitigación Operativa</option>
             </select>
           </div>
-          <div className="space-y-2 md:col-span-2 text-left">
-            <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Descripción de la Mitigación</label>
-            <div className="flex gap-3">
-              <input type="text" className="flex-1 bg-slate-800 border-none rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#ec5b13]" placeholder="Ej: Uso de paracaídas certificado M2..." value={newLabel} onChange={e => setNewLabel(e.target.value)} />
-              <button type="submit" className="bg-[#ec5b13] px-6 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">Añadir</button>
+          <div className="md:col-span-2 space-y-1">
+            <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Descripción del Riesgo</label>
+            <input type="text" className="w-full bg-slate-800 text-white border-none rounded-xl py-3 px-4 text-xs outline-none" placeholder="Ej: Operación sobre personas..." value={newLabel} onChange={e => setNewLabel(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Puntaje (1-10)</label>
+            <div className="flex gap-2">
+              <input type="number" min="1" max="10" className="w-full bg-slate-800 text-white border-none rounded-xl py-3 px-4 text-xs outline-none" value={newScore} onChange={e => setNewScore(e.target.value)} />
+              <button type="submit" className="bg-[#ec5b13] text-white px-4 rounded-xl font-black text-[10px] uppercase shadow-lg hover:scale-105 transition-all">Añadir</button>
             </div>
           </div>
         </form>
 
-        <div className="space-y-8">
-          {Object.keys(grouped).length > 0 ? Object.keys(grouped).map(cat => (
-            <div key={cat} className="space-y-4">
-              <h3 className="text-xs font-black uppercase text-[#ec5b13] tracking-[0.3em] flex items-center gap-4">
-                <span className="shrink-0">{cat}</span>
-                <span className="h-px bg-slate-100 w-full"></span>
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {grouped[cat].map(item => (
-                  <div key={item.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
-                    <span className="text-sm font-bold text-slate-600">{item.label}</span>
-                    <button onClick={() => deleteItem(item.id)} className="text-slate-300 hover:text-red-500 transition-colors">
-                      <span className="material-symbols-outlined text-lg">cancel</span>
-                    </button>
-                  </div>
-                ))}
+        <div className="grid grid-cols-1 gap-3">
+          {items.map(item => (
+            <div key={item.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="flex flex-col">
+                <span className="text-[9px] font-black text-[#ec5b13] uppercase tracking-widest">{item.category}</span>
+                <span className="text-sm font-bold text-slate-700">{item.label}</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="bg-slate-200 px-3 py-1 rounded-full text-[10px] font-black">SCORE: {item.score}</div>
+                <button onClick={async () => { await supabase.from('sora_templates').delete().eq('id', item.id); fetchItems(); }} className="text-slate-300 hover:text-red-500">
+                  <span className="material-symbols-outlined">delete</span>
+                </button>
               </div>
             </div>
-          )) : (
-            <div className="py-20 text-center text-slate-300 border-2 border-dashed border-slate-100 rounded-3xl italic text-sm uppercase font-bold">
-              No hay mitigaciones SORA definidas.
-            </div>
-          )}
+          ))}
         </div>
       </div>
     </div>

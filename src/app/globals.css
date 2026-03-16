@@ -1,3 +1,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --primary: #ec5b13;
+}
+
+body {
+  font-family: 'Public Sans', sans-serif;
+  @apply bg-[#f8f6f6] text-slate-900;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}

@@ -35,19 +35,13 @@ export default function Navbar() {
 
           {/* Lado Derecho: Botones de Acción */}
           <div className="flex items-center gap-3">
-            <Link 
-              href="/login" 
-              className="px-5 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"
-            >
-              Ingreso
-            </Link>
-            <Link 
-              href="/registro" 
-              className="bg-primary hover:bg-orange-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5"
-            >
-              Prueba Gratis
-            </Link>
-          </div>
+  <Link href="/login" className="px-5 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all">
+    Ingreso
+  </Link>
+  <Link href="/registro" className="bg-primary hover:bg-orange-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5">
+    Prueba Gratis
+  </Link>
+</div>
 
         </div>
       </div>

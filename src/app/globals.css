@@ -1,21 +1,44 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-.material-symbols-outlined {
-  /* Forzamos que se comporte como fuente de icono */
-  font-family: 'Material Symbols Outlined' !important;
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  /* Bloqueamos el tamaño para que no estire el contenedor */
-  max-width: 24px;
-  max-height: 24px;
-  overflow: hidden; 
-  white-space: nowrap;
+/* Definición de colores del proyecto */
+@theme {
+  --color-primary: #ec5b13;
+  --color-navy: #1A202C;
+  --color-background-light: #f8f6f6;
+}
+
+/* Base de la aplicación */
+:root {
+  background-color: #f8f6f6;
+  color: #1a202c;
 }
 
 body {
+  margin: 0;
+  padding: 0;
   font-family: 'Public Sans', sans-serif;
-  @apply bg-[#f8f6f6];
+}
+
+/* ARREGLO DEFINITIVO PARA ICONOS */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined' !important;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  
+  /* Bloqueo de dimensiones para que el texto largo no rompa nada */
+  width: 24px !important;
+  height: 24px !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
 }

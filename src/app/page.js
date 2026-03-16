@@ -111,8 +111,8 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-navy dark:bg-background-dark text-white pt-20 pb-10 border-t border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <footer className="bg-navy dark:bg-background-dark text-white pt-20 pb-10 border-t border-slate-800 text-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
            <p className="text-slate-500 text-sm">© 2024 SkyLog Manager. All rights reserved.</p>
         </div>
       </footer>
@@ -120,7 +120,6 @@ export default function LandingPage() {
   );
 }
 
-// Sub-componentes para mantener limpio el código
 function BenefitCard({ icon, title, desc }) {
   return (
     <div className="p-8 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-colors bg-background-light dark:bg-slate-900/50">
@@ -152,6 +151,4 @@ function PricingCard({ title, price, features, highlighted = false }) {
       </button>
     </div>
   );
-}git add .
-git commit -m "Update: Nueva Landing Page profesional"
-git push origin main
+}

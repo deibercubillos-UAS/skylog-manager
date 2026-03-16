@@ -1,130 +1,67 @@
-"use client"
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+'use client';
+export const dynamic = 'force-dynamic';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
-export default function ChecklistPage() {
-  const router = useRouter()
-  const [drones, setDrones] = useState([])
-  const [selectedDrone, setSelectedDrone] = useState('')
-  const [loading, setLoading] = useState(false)
-  
-  // Lista de items de seguridad (Basado en estándares aeronáuticos)
-  const [items, setItems] = useState({
-    propellers: false,
-    motors: false,
-    battery: false,
-    gps: false,
-    area_clear: false,
-    sd_card: false
-  })
+export default function ChecklistConfigPage() {
+  const [items, setItems] = useState([]);
+  const [newItem, setNewItem] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchDrones = async () => {
-      const { data } = await supabase.from('aircraft').select('id, model')
-      setDrones(data || [])
-    }
-    fetchDrones()
-  }, [])
+  const fetchItems = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data } = await supabase.from('checklist_templates').select('*').eq('owner_id', user.id).order('created_at', { ascending: true });
+    setItems(data || []);
+    setLoading(false);
+  };
 
-  // Calcular progreso
-  const totalItems = Object.keys(items).length
-  const checkedItems = Object.values(items).filter(val => val).length
-  const progress = Math.round((checkedItems / totalItems) * 100)
-  const isComplete = checkedItems === totalItems
+  useEffect(() => { fetchItems(); }, []);
 
-  const handleToggle = (key) => {
-    setItems({ ...items, [key]: !items[key] })
-  }
+  const addItem = async () => {
+    if (!newItem) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from('checklist_templates').insert([{ owner_id: user.id, label: newItem }]);
+    setNewItem('');
+    fetchItems();
+  };
 
-  const saveChecklist = async () => {
-    if (!selectedDrone) return alert("Selecciona una aeronave primero")
-    setLoading(true)
-    
-    const { data: { user } } = await supabase.auth.getUser()
-    const { error } = await supabase.from('preflight_checks').insert([{
-      owner_id: user.id,
-      aircraft_id: selectedDrone,
-      details: items,
-      status: 'passed'
-    }])
-
-    if (error) alert(error.message)
-    else {
-      alert("✅ Verificación completada. ¡Buen vuelo!")
-      router.push('/dashboard/flights') // Ir a registrar el vuelo después del checklist
-    }
-    setLoading(false)
-  }
+  const deleteItem = async (id) => {
+    await supabase.from('checklist_templates').delete().eq('id', id);
+    fetchItems();
+  };
 
   return (
-    <div className="min-h-screen bg-[#0a0d14] text-white p-6 pb-24">
-      <div className="max-w-md mx-auto space-y-6">
-        
-        {/* Cabecera Técnica */}
-        <div className="flex items-center justify-between bg-[#161b26] p-4 rounded-2xl border border-slate-800">
-          <div>
-            <h1 className="text-xl font-black text-[#ec5b13]">CHECKLIST PRE-VUELO</h1>
-            <p className="text-xs text-slate-400">Protocolo de Seguridad v2.4</p>
-          </div>
-          <div className="text-right">
-            <span className="text-2xl font-black text-[#ec5b13]">{progress}%</span>
-          </div>
+    <div className="max-w-4xl mx-auto text-left animate-in fade-in duration-500">
+      <header className="mb-8">
+        <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Configurador de Checklist</h2>
+        <p className="text-slate-500">Personaliza los puntos de seguridad que tus clientes exigen para cada operación.</p>
+      </header>
+
+      <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm space-y-6">
+        <div className="flex gap-4">
+          <input 
+            type="text" 
+            className="flex-1 bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#ec5b13]/20" 
+            placeholder="Ej: Verificar estado de la pista de aterrizaje..."
+            value={newItem}
+            onChange={(e) => setNewItem(e.target.value)}
+          />
+          <button onClick={addItem} className="bg-[#ec5b13] text-white px-6 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg">Agregar</button>
         </div>
 
-        {/* Selección de Drone */}
-        <select 
-          className="w-full p-4 bg-[#161b26] border border-slate-700 rounded-xl text-sm font-bold outline-none focus:border-[#ec5b13]"
-          onChange={(e) => setSelectedDrone(e.target.value)}
-        >
-          <option value="">SELECCIONAR AERONAVE...</option>
-          {drones.map(d => <option key={d.id} value={d.id}>{d.model}</option>)}
-        </select>
-
-        {/* Items del Checklist */}
-        <div className="space-y-3">
-          <CheckItem label="Hélices sin fisuras y ajustadas" active={items.propellers} onToggle={() => handleToggle('propellers')} icon="build" />
-          <CheckItem label="Motores giran libremente" active={items.motors} onToggle={() => handleToggle('motors')} icon="settings" />
-          <CheckItem label="Batería superior al 90%" active={items.battery} onToggle={() => handleToggle('battery')} icon="battery_charging_full" />
-          <CheckItem label="Mínimo 12 Satélites GPS" active={items.gps} onToggle={() => handleToggle('gps')} icon="gps_fixed" />
-          <CheckItem label="Área de despegue despejada" active={items.area_clear} onToggle={() => handleToggle('area_clear')} icon="grid_view" />
-          <CheckItem label="Tarjeta SD con espacio" active={items.sd_card} onToggle={() => handleToggle('sd_card')} icon="sd_card" />
+        <div className="space-y-3 pt-6 border-t border-slate-100">
+          <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Puntos de verificación activos</h3>
+          {loading ? <p className="animate-pulse">Cargando...</p> : items.map((item) => (
+            <div key={item.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
+              <span className="text-sm font-bold text-slate-700">{item.label}</span>
+              <button onClick={() => deleteItem(item.id)} className="text-slate-300 hover:text-red-500 transition-colors">
+                <span className="material-symbols-outlined text-lg">delete</span>
+              </button>
+            </div>
+          ))}
+          {items.length === 0 && !loading && <p className="text-center py-10 text-slate-400 italic">No hay ítems configurados. Agrega el primero arriba.</p>}
         </div>
-
-        {/* Botón de Acción Final */}
-        <div className="fixed bottom-0 left-0 right-0 p-6 bg-[#0a0d14]/80 backdrop-blur-md border-t border-slate-800">
-          <button 
-            onClick={saveChecklist}
-            disabled={!isComplete || loading}
-            className={`w-full py-4 rounded-2xl font-black text-lg tracking-widest transition-all ${
-              isComplete ? 'bg-[#ec5b13] text-white shadow-lg shadow-orange-500/20' : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-            }`}
-          >
-            {loading ? 'GUARDANDO...' : 'AUTORIZAR DESPEGUE'}
-          </button>
-        </div>
-
       </div>
     </div>
-  )
-}
-
-// Componente pequeño para cada fila del checklist
-function CheckItem({ label, active, onToggle, icon }) {
-  return (
-    <button 
-      onClick={onToggle}
-      className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
-        active ? 'bg-[#ec5b13]/10 border-[#ec5b13]' : 'bg-[#161b26] border-slate-800'
-      }`}
-    >
-      <div className="flex items-center gap-3">
-        <span className={`material-symbols-outlined ${active ? 'text-[#ec5b13]' : 'text-slate-500'}`}>{icon}</span>
-        <span className={`text-sm font-medium ${active ? 'text-white' : 'text-slate-400'}`}>{label}</span>
-      </div>
-      <span className={`material-symbols-outlined ${active ? 'text-[#ec5b13]' : 'text-slate-700'}`}>
-        {active ? 'check_circle' : 'radio_button_unchecked'}
-      </span>
-    </button>
-  )
+  );
 }

@@ -15,6 +15,7 @@ export default function DashboardLayout({ children }) {
     { name: 'Análisis SORA', icon: 'shield', href: '/dashboard/sora' },
     { name: 'Mantenimiento', icon: 'build', href: '/dashboard/maintenance' },
     { name: 'Reportes PDF', icon: 'description', href: '/dashboard/reports' },
+    { name: "Personalizar Checklist", icon: "fact_check", href: "/dashboard/checklist" },
     { name: 'Configuración', icon: 'settings', href: '/dashboard/settings' },
   ];
 

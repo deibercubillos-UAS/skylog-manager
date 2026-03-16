@@ -7,17 +7,17 @@ export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const menuItems = [
-    { name: 'Dashboard', icon: 'dashboard', href: '/dashboard' },
-    { name: 'Mis Pilotos', icon: 'person', href: '/dashboard/pilots' },
-    { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/fleet' },
-    { name: 'Bitácora de Vuelos', icon: 'menu_book', href: '/dashboard/logbook' },
-    { name: 'Análisis SORA', icon: 'shield', href: '/dashboard/sora' },
-    { name: 'Mantenimiento', icon: 'build', href: '/dashboard/maintenance' },
-    { name: 'Reportes PDF', icon: 'description', href: '/dashboard/reports' },
-    { name: "Personalizar Checklist", icon: "fact_check", href: "/dashboard/checklist" },
-    { name: 'Configuración', icon: 'settings', href: '/dashboard/settings' },
-  ];
+const menuItems = [
+  { name: 'Dashboard', icon: 'dashboard', href: '/dashboard' },
+  { name: 'Mis Pilotos', icon: 'person', href: '/dashboard/pilots' },
+  { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/fleet' },
+  { name: 'Bitácora de Vuelos', icon: 'menu_book', href: '/dashboard/logbook' },
+  { name: 'Análisis SORA', icon: 'shield', href: '/dashboard/sora' },
+  { name: 'Mantenimiento', icon: 'build', href: '/dashboard/maintenance' },
+  { name: 'Personalizar Checklist', icon: 'fact_check', href: '/dashboard/checklist' }, // <-- AGREGA ESTA LÍNEA
+  { name: 'Reportes PDF', icon: 'description', href: '/dashboard/reports' },
+  { name: 'Configuración', icon: 'settings', href: '/dashboard/settings' },
+];
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

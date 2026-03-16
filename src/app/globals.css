@@ -1,14 +1,18 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-:root {
-  --primary: #ec5b13;
+/* Definimos los colores del tema para la versión 4 */
+@theme {
+  --color-primary: #ec5b13;
+  --color-background-light: #f8f6f6;
+  --color-background-dark: #221610;
+  --color-navy: #1a202c;
 }
 
+/* Estilos base sin usar @apply para evitar errores de compilación */
 body {
   font-family: 'Public Sans', sans-serif;
-  @apply bg-[#f8f6f6] text-slate-900;
+  background-color: #f8f6f6;
+  color: #0f172a; /* Este es el slate-900 */
 }
 
 .material-symbols-outlined {

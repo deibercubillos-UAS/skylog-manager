@@ -25,15 +25,13 @@ export default function Navbar() {
             <Link href="#nosotros" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-primary transition-colors">
               Nosotros
             </Link>
-            <Link href="#precios" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-primary transition-colors">
+            <Link href="precios" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-primary transition-colors">
               Precios
             </Link>
             <Link href="#contacto" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-primary transition-colors">
               Contáctanos
             </Link>
-            <Link href="/precios" className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-primary transition-colors">
-             Precios
-            </Link>
+        
           </nav>
 
           {/* Lado Derecho: Botones de Acción */}

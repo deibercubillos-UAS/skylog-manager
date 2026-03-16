@@ -12,6 +12,16 @@ export default function NewFlightPage() {
   const [drones, setDrones] = useState([]);
   const [userProfile, setUserProfile] = useState(null);
 
+  // ESTADO DEL CHECKLIST
+  const [checklist, setChecklist] = useState({
+    compass: false,
+    propellers: false,
+    battery: false,
+    signal: false,
+    area_clear: false,
+    notam: false
+  });
+
   // ESTADO DEL FORMULARIO
   const [formData, setFormData] = useState({
     aircraft_id: '',
@@ -19,13 +29,13 @@ export default function NewFlightPage() {
     location: '',
     takeoff_time: '09:00',
     landing_time: '09:45',
-    max_altitude: 120,
-    max_distance: 850,
     incidents: false,
     notes: ''
   });
 
-  // 1. Cargar datos iniciales (Drones y Usuario)
+  // Validar si el checklist está completo
+  const isSafeToFly = Object.values(checklist).every(item => item === true);
+
   useEffect(() => {
     async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -38,29 +48,29 @@ export default function NewFlightPage() {
     loadData();
   }, []);
 
-  // 2. Cálculo de Duración
   const calculateDuration = () => {
     const start = formData.takeoff_time.split(':');
     const end = formData.landing_time.split(':');
     const startDate = new Date(0, 0, 0, start[0], start[1]);
     const endDate = new Date(0, 0, 0, end[0], end[1]);
     let diff = endDate.getTime() - startDate.getTime();
-    
-    if (diff < 0) diff += 24 * 60 * 60 * 1000; // Manejo de vuelos medianoche
-
+    if (diff < 0) diff += 24 * 60 * 60 * 1000;
     const hours = Math.floor(diff / 1000 / 60 / 60);
     const minutes = Math.floor((diff / 1000 / 60) % 60);
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
   };
 
-  // 3. Envío a Supabase
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isSafeToFly) {
+      alert("⚠️ ALERTA DE SEGURIDAD: Debe completar todos los puntos del Checklist antes de autorizar el vuelo.");
+      return;
+    }
     setLoading(true);
 
     const { error } = await supabase.from('flights').insert([{
       owner_id: userProfile.id,
-      pilot_id: userProfile.id, // Por defecto el usuario logueado
+      pilot_id: userProfile.id,
       aircraft_id: formData.aircraft_id,
       flight_date: new Date().toISOString().split('T')[0],
       takeoff_time: formData.takeoff_time,
@@ -71,150 +81,118 @@ export default function NewFlightPage() {
       notes: formData.notes
     }]);
 
-    if (error) {
-      alert("Error al registrar: " + error.message);
-    } else {
-      alert("Vuelo registrado exitosamente en la bitácora oficial.");
+    if (!error) {
+      alert("Vuelo AUTORIZADO y registrado exitosamente.");
       router.push('/dashboard/logbook');
     }
     setLoading(false);
   };
 
   return (
-    <div className="flex flex-col h-full -m-8 bg-slate-50 dark:bg-background-dark/95 animate-in fade-in duration-500">
+    <div className="flex flex-col h-full -m-8 bg-slate-50 animate-in fade-in duration-500">
       
-      {/* HEADER DINÁMICO */}
-      <header className="bg-white dark:bg-[#1A202C] border-b border-slate-200 px-8 py-6 sticky top-0 z-10 text-left">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <header className="bg-white border-b border-slate-200 px-8 py-6 sticky top-0 z-10 text-left">
+        <div className="flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase mb-1">
-              <Link href="/dashboard/logbook" className="hover:text-[#ec5b13]">Registros</Link>
-              <span className="material-symbols-outlined text-[10px]">chevron_right</span>
-              <span>Nuevo Registro</span>
-            </div>
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Nuevo Registro de Vuelo</h2>
-            <div className="flex items-center gap-4 mt-1">
-              <span className="text-slate-400 font-mono text-xs uppercase font-bold tracking-tighter">Borrador Autoguardado</span>
-              <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-black rounded uppercase tracking-wider">En Progreso</span>
-            </div>
+            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Autorización de Vuelo</h2>
+            <p className="text-slate-500 text-xs font-bold uppercase mt-1">Checklist de Seguridad RAC 100</p>
           </div>
-          <Link href="/dashboard/logbook" className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm border border-slate-200 transition-all">
-            <span className="material-symbols-outlined text-lg">arrow_back</span> Volver
-          </Link>
+          <div className={`px-4 py-2 rounded-lg font-black text-xs uppercase tracking-widest flex items-center gap-2 border-2 ${
+            isSafeToFly ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200'
+          }`}>
+            <span className="material-symbols-outlined text-sm">{isSafeToFly ? 'verified' : 'gavel'}</span>
+            {isSafeToFly ? 'Vuelo Autorizado' : 'Pendiente de Seguridad'}
+          </div>
         </div>
       </header>
 
-      {/* FORMULARIO GRID */}
       <div className="p-8 max-w-7xl mx-auto w-full">
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-left">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8 text-left">
           
-          {/* SECCIÓN 1: IDENTIFICACIÓN */}
-          <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-            <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-              <span className="material-symbols-outlined text-[#ec5b13]">badge</span>
-              <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter">1. Identificación</h3>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Aeronave (Nombre + S/N)</label>
-                <select 
-                  required
-                  className="w-full rounded-xl border-slate-200 bg-slate-50 py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-[#ec5b13]/20 outline-none"
-                  value={formData.aircraft_id}
-                  onChange={(e) => setFormData({...formData, aircraft_id: e.target.value})}
-                >
-                  <option value="">Seleccionar Drone...</option>
-                  {drones.map(d => (
-                    <option key={d.id} value={d.id}>{d.model} - SN: {d.serial_number}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Piloto al Mando</label>
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <div className="size-8 rounded-full bg-[#1A202C] flex items-center justify-center text-white font-black text-xs">
-                    {userProfile?.email?.slice(0,2).toUpperCase()}
-                  </div>
-                  <span className="text-sm font-bold text-slate-700">{userProfile?.email} (Yo)</span>
+          {/* COLUMNA IZQUIERDA: DATOS (2/3) */}
+          <div className="lg:col-span-2 space-y-8">
+            <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+              <h3 className="text-sm font-black uppercase text-slate-400 border-b border-slate-50 pb-2">Información de Misión</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Aeronave</label>
+                  <select required className="w-full rounded-xl border-slate-200 bg-slate-50 py-3 px-4 text-sm font-bold" value={formData.aircraft_id} onChange={(e) => setFormData({...formData, aircraft_id: e.target.value})}>
+                    <option value="">Seleccionar Drone...</option>
+                    {drones.map(d => <option key={d.id} value={d.id}>{d.model} - {d.serial_number}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Ubicación</label>
+                  <input required className="w-full rounded-xl border-slate-200 bg-slate-50 py-3 px-4 text-sm font-bold" placeholder="Coordenadas o Ciudad" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} />
                 </div>
               </div>
-            </div>
-          </section>
-
-          {/* SECCIÓN 2: TIEMPO Y UBICACIÓN */}
-          <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-            <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-              <span className="material-symbols-outlined text-[#ec5b13]">schedule</span>
-              <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter">2. Tiempo y Ubicación</h3>
-            </div>
-            <div className="space-y-4">
-              <input 
-                required
-                className="w-full rounded-xl border-slate-200 bg-slate-50 py-3 px-4 text-sm font-bold outline-none" 
-                placeholder="Ubicación del Despegue (Coordenadas o Ciudad)"
-                value={formData.location}
-                onChange={(e) => setFormData({...formData, location: e.target.value})}
-              />
               <div className="grid grid-cols-2 gap-4">
-                <input 
-                  type="time" 
-                  className="rounded-xl border-slate-200 bg-slate-50 p-3 font-mono font-bold" 
-                  value={formData.takeoff_time}
-                  onChange={(e) => setFormData({...formData, takeoff_time: e.target.value})}
-                />
-                <input 
-                  type="time" 
-                  className="rounded-xl border-slate-200 bg-slate-50 p-3 font-mono font-bold" 
-                  value={formData.landing_time}
-                  onChange={(e) => setFormData({...formData, landing_time: e.target.value})}
-                />
+                <input type="time" className="rounded-xl border-slate-200 bg-slate-50 p-3 font-mono font-bold" value={formData.takeoff_time} onChange={(e) => setFormData({...formData, takeoff_time: e.target.value})} />
+                <input type="time" className="rounded-xl border-slate-200 bg-slate-50 p-3 font-mono font-bold" value={formData.landing_time} onChange={(e) => setFormData({...formData, landing_time: e.target.value})} />
               </div>
-              <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl flex items-center justify-between">
-                <span className="text-xs font-black text-[#ec5b13] uppercase">Duración de Vuelo</span>
-                <span className="text-2xl font-black text-[#ec5b13] font-mono">{calculateDuration()}</span>
-              </div>
-            </div>
-          </section>
+            </section>
 
-          {/* SECCIÓN 3: SEGURIDAD Y NOTAS (Full Width) */}
-          <section className="lg:col-span-2 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-[#ec5b13]">security</span>
-                <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter">3. Seguridad y Observaciones</h3>
-              </div>
-              <div className="flex items-center gap-4 bg-slate-50 p-2 px-4 rounded-xl border border-slate-100">
-                <span className="text-xs font-black text-slate-500 uppercase">¿Hubo Incidentes?</span>
-                <input 
-                  type="checkbox" 
-                  className="size-5 text-[#ec5b13] rounded border-slate-300 focus:ring-[#ec5b13]"
-                  checked={formData.incidents}
-                  onChange={(e) => setFormData({...formData, incidents: e.target.checked})}
-                />
-              </div>
-            </div>
-            <textarea 
-              rows="4"
-              className="w-full rounded-2xl border-slate-200 bg-slate-50 p-4 text-sm font-medium outline-none focus:ring-2 focus:ring-[#ec5b13]/10"
-              placeholder="Describa el desarrollo de la misión, interferencias o anomalías..."
-              value={formData.notes}
-              onChange={(e) => setFormData({...formData, notes: e.target.value})}
-            />
-          </section>
-
-          {/* BOTÓN FINAL */}
-          <div className="lg:col-span-2 flex justify-end gap-4 pb-12">
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="px-10 py-4 bg-[#ec5b13] hover:bg-orange-600 text-white font-black uppercase text-xs tracking-[0.2em] rounded-2xl shadow-xl shadow-orange-500/20 transition-all flex items-center gap-3 active:scale-95"
-            >
-              <span className="material-symbols-outlined">send</span>
-              {loading ? 'Procesando...' : 'Finalizar y Registrar Vuelo'}
-            </button>
+            <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+              <h3 className="text-sm font-black uppercase text-slate-400 border-b border-slate-50 pb-2 mb-4">Observaciones Técnicas</h3>
+              <textarea rows="4" className="w-full rounded-xl border-slate-200 bg-slate-50 p-4 text-sm font-medium outline-none" placeholder="Anomalías, clima o interferencias..." value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} />
+            </section>
           </div>
+
+          {/* COLUMNA DERECHA: CHECKLIST (1/3) */}
+          <div className="space-y-6">
+            <section className="bg-slate-900 text-white p-6 rounded-2xl shadow-xl space-y-6">
+              <div className="flex items-center gap-3 border-b border-slate-700 pb-4">
+                <span className="material-symbols-outlined text-[#ec5b13]">fact_check</span>
+                <h3 className="text-sm font-black uppercase tracking-widest">Pre-Flight Checklist</h3>
+              </div>
+              
+              <div className="space-y-4">
+                <CheckItem id="compass" label="Brújula Calibrada" checked={checklist.compass} onChange={(val) => setChecklist({...checklist, compass: val})} />
+                <CheckItem id="propellers" label="Hélices en buen estado" checked={checklist.propellers} onChange={(val) => setChecklist({...checklist, propellers: val})} />
+                <CheckItem id="battery" label="Batería > 90% Carga" checked={checklist.battery} onChange={(val) => setChecklist({...checklist, battery: val})} />
+                <CheckItem id="signal" label="Enlace RC/GCS Estable" checked={checklist.signal} onChange={(val) => setChecklist({...checklist, signal: val})} />
+                <CheckItem id="area" label="Área de Despegue Libre" checked={checklist.area_clear} onChange={(val) => setChecklist({...checklist, area_clear: val})} />
+                <CheckItem id="notam" label="Verificación de NoFlyZone" checked={checklist.notam} onChange={(val) => setChecklist({...checklist, notam: val})} />
+              </div>
+
+              <div className="pt-4">
+                <button 
+                  type="submit" 
+                  disabled={!isSafeToFly || loading}
+                  className={`w-full py-4 rounded-xl font-black uppercase text-xs tracking-widest transition-all ${
+                    isSafeToFly 
+                    ? 'bg-[#ec5b13] hover:bg-orange-600 shadow-lg shadow-orange-500/30' 
+                    : 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50'
+                  }`}
+                >
+                  {loading ? 'Procesando...' : 'Finalizar y Autorizar'}
+                </button>
+                {!isSafeToFly && (
+                  <p className="text-[10px] text-red-400 font-bold uppercase mt-3 text-center animate-pulse">Checklist Incompleto</p>
+                )}
+              </div>
+            </section>
+          </div>
+
         </form>
       </div>
     </div>
+  );
+}
+
+// Componente Interno para los items del Checklist
+function CheckItem({ id, label, checked, onChange }) {
+  return (
+    <label className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
+      checked ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-slate-800 border-slate-700'
+    }`}>
+      <span className={`text-xs font-bold ${checked ? 'text-emerald-400' : 'text-slate-400'}`}>{label}</span>
+      <input 
+        type="checkbox" 
+        className="size-5 rounded border-slate-600 text-[#ec5b13] focus:ring-0" 
+        checked={checked} 
+        onChange={(e) => onChange(e.target.checked)}
+      />
+    </label>
   );
 }

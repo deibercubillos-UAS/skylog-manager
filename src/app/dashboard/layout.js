@@ -10,7 +10,7 @@ export default function DashboardLayout({ children }) {
   const menuItems = [
     { name: 'Dashboard', icon: 'dashboard', href: '/dashboard' },
     { name: 'Mis Pilotos', icon: 'person', href: '/dashboard/pilots' },
-    { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/dashboard/fleet' },
+    { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/fleet' },
     { name: 'Bitácora de Vuelos', icon: 'menu_book', href: '/dashboard/logbook' },
     { name: 'Análisis SORA', icon: 'shield', href: '/dashboard/sora' },
     { name: 'Mantenimiento', icon: 'build', href: '/dashboard/maintenance' },
@@ -25,8 +25,6 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f8f6f6]">
-      
-      {/* Sidebar fijo a la izquierda */}
       <aside className="w-64 bg-[#1A202C] flex flex-col h-full border-r border-slate-700 shrink-0">
         <div className="p-6 flex items-center gap-3">
           <div className="bg-[#ec5b13] rounded-lg p-1.5 flex items-center justify-center shrink-0">
@@ -37,7 +35,6 @@ export default function DashboardLayout({ children }) {
             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Fleet Admin</p>
           </div>
         </div>
-
         <nav className="flex-1 px-3 mt-4 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
@@ -53,7 +50,6 @@ export default function DashboardLayout({ children }) {
             );
           })}
         </nav>
-
         <div className="p-4 border-t border-slate-800">
           <div className="flex items-center gap-3 mb-4 p-2 text-left">
             <div className="size-10 rounded-full bg-slate-700 overflow-hidden border border-slate-600">
@@ -70,7 +66,6 @@ export default function DashboardLayout({ children }) {
         </div>
       </aside>
 
-      {/* Contenido Principal */}
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 z-10 shrink-0">
           <div className="flex-1 max-w-xl text-left">
@@ -80,10 +75,11 @@ export default function DashboardLayout({ children }) {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <button className="bg-[#ec5b13] text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg">NUEVO VUELO</button>
+            <Link href="/dashboard/logbook/new" className="bg-[#ec5b13] hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-lg transition-all flex items-center gap-2 uppercase tracking-widest">
+               <span className="material-symbols-outlined !text-sm">add</span> NUEVO VUELO
+            </Link>
           </div>
         </header>
-
         <div className="flex-1 overflow-y-auto p-8 bg-[#f8f6f6]">
           {children}
         </div>

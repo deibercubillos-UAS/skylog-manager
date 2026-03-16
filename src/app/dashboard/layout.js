@@ -55,6 +55,10 @@ export default function DashboardLayout({ children }) {
                   {item.icon}
                 </span>
                 <span className="text-sm font-medium">{item.name}</span>
+                <span className={`material-symbols-outlined w-8 text-center text-xl ${isActive ? 'text-[#ec5b13]' : 'text-slate-400'}`}>
+                 {item.icon}
+                </span>
+                <span className="text-sm font-medium">{item.name}</span>
               </Link>
             );
           })}

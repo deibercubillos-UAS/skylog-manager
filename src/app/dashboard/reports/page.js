@@ -8,222 +8,170 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(false);
   const [pilots, setPilots] = useState([]);
   const [aircrafts, setAircrafts] = useState([]);
+  const [reportFlights, setReportFlights] = useState([]);
   
-  // Estados de configuración del reporte
-  const [reportConfig, setReportConfig] = useState({
-    type: 'Bitácora de Vuelo Mensual (RAC 100)',
-    dateFrom: '2023-10-01',
-    dateTo: '2023-10-31',
+  // Estado de filtros
+  const [config, setConfig] = useState({
+    dateFrom: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0], // 1ro del mes
+    dateTo: new Date().toISOString().split('T')[0], // Hoy
     pilotId: 'all',
     aircraftId: 'all',
-    includeSignature: true,
-    includeLogo: true
   });
 
+  // 1. Cargar selectores iniciales
   useEffect(() => {
-    async function loadFilters() {
+    async function loadData() {
       const { data: p } = await supabase.from('pilots').select('id, name');
       const { data: a } = await supabase.from('aircraft').select('id, model, serial_number');
       setPilots(p || []);
       setAircrafts(a || []);
     }
-    loadFilters();
+    loadData();
   }, []);
+
+  // 2. Función para obtener vuelos reales basados en filtros
+  const fetchReportData = async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    let query = supabase
+      .from('flights')
+      .select('*, pilots(name), aircraft(model, serial_number)')
+      .eq('owner_id', user.id)
+      .gte('flight_date', config.dateFrom)
+      .lte('flight_date', config.dateTo)
+      .order('flight_date', { ascending: true });
+
+    if (config.pilotId !== 'all') query = query.eq('pilot_id', config.pilotId);
+    if (config.aircraftId !== 'all') query = query.eq('aircraft_id', config.aircraftId);
+
+    const { data, error } = await query;
+    if (!error) setReportFlights(data || []);
+    setLoading(false);
+  };
+
+  // Ejecutar búsqueda cuando cambian los filtros principales
+  useEffect(() => { fetchReportData(); }, [config]);
 
   return (
     <div className="flex h-screen -m-8 overflow-hidden bg-slate-200 dark:bg-slate-950">
       
-      {/* SIDEBAR DE CONFIGURACIÓN (25%) */}
-      <aside className="w-1/4 min-w-[320px] bg-[#1A202C] text-white flex flex-col border-r border-slate-700 overflow-y-auto custom-scrollbar">
+      {/* CONFIGURACIÓN (IZQUIERDA) */}
+      <aside className="w-1/4 min-w-[320px] bg-[#1A202C] text-white flex flex-col border-r border-slate-700 overflow-y-auto">
         <div className="p-6 border-b border-slate-700 text-left">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="bg-[#ec5b13] rounded-lg p-2 flex items-center justify-center">
-              <span className="material-symbols-outlined text-white">analytics</span>
-            </div>
-            <div>
-              <h1 className="text-lg font-bold tracking-tight">Report Generator</h1>
-              <p className="text-slate-400 text-[10px] uppercase font-bold tracking-widest">Configuración Técnica</p>
-            </div>
-          </div>
+          <h1 className="text-lg font-bold tracking-tight">Configuración de Reporte</h1>
+          <p className="text-slate-400 text-[10px] uppercase font-bold tracking-widest">Filtros Aeronáuticos</p>
         </div>
 
         <div className="p-6 space-y-8 flex-1 text-left">
-          {/* Paso 1 */}
+          {/* Fechas */}
           <div className="space-y-3">
-            <label className="text-xs font-bold text-slate-400 uppercase flex items-center gap-2">
-              <span className="text-[#ec5b13]">01.</span> Tipo de Reporte
-            </label>
-            <select 
-              className="w-full bg-slate-800 border-slate-700 rounded-xl text-sm py-3 px-4 outline-none focus:ring-2 focus:ring-[#ec5b13]/50"
-              value={reportConfig.type}
-              onChange={(e) => setReportConfig({...reportConfig, type: e.target.value})}
-            >
-              <option>Bitácora de Vuelo Mensual (RAC 100)</option>
-              <option>Historial Técnico de Aeronave</option>
-              <option>Resumen de Horas de Piloto</option>
+            <label className="text-xs font-bold text-slate-400 uppercase">Rango de Operación</label>
+            <div className="grid grid-cols-2 gap-2">
+              <input type="date" className="bg-slate-800 border-slate-700 rounded-lg text-xs p-2 outline-none" 
+                value={config.dateFrom} onChange={(e) => setConfig({...config, dateFrom: e.target.value})} />
+              <input type="date" className="bg-slate-800 border-slate-700 rounded-lg text-xs p-2 outline-none" 
+                value={config.dateTo} onChange={(e) => setConfig({...config, dateTo: e.target.value})} />
+            </div>
+          </div>
+
+          {/* Piloto */}
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-slate-400 uppercase">Filtrar por Piloto</label>
+            <select className="w-full bg-slate-800 border-slate-700 rounded-lg text-xs py-2.5 px-3 outline-none"
+              value={config.pilotId} onChange={(e) => setConfig({...config, pilotId: e.target.value})}>
+              <option value="all">Todos los Pilotos</option>
+              {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
 
-          {/* Paso 2 */}
+          {/* Aeronave */}
           <div className="space-y-3">
-            <label className="text-xs font-bold text-slate-400 uppercase flex items-center gap-2">
-              <span className="text-[#ec5b13]">02.</span> Rango de Fechas
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <input type="date" className="bg-slate-800 border-slate-700 rounded-lg text-xs p-2 outline-none" value={reportConfig.dateFrom} />
-              <input type="date" className="bg-slate-800 border-slate-700 rounded-lg text-xs p-2 outline-none" value={reportConfig.dateTo} />
-            </div>
-          </div>
-
-          {/* Paso 3 */}
-          <div className="space-y-4">
-            <label className="text-xs font-bold text-slate-400 uppercase flex items-center gap-2">
-              <span className="text-[#ec5b13]">03.</span> Filtros Específicos
-            </label>
-            <div className="space-y-3">
-              <select className="w-full bg-slate-800 border-slate-700 rounded-lg text-xs py-2.5 px-3 outline-none">
-                <option value="all">Todos los Pilotos</option>
-                {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-              <select className="w-full bg-slate-800 border-slate-700 rounded-lg text-xs py-2.5 px-3 outline-none">
-                <option value="all">Todas las Aeronaves</option>
-                {aircrafts.map(a => <option key={a.id} value={a.id}>{a.model} ({a.serial_number})</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* Opciones Adicionales */}
-          <div className="space-y-4 pt-2">
-            <Toggle label="Incluir Firma Digital" checked={reportConfig.includeSignature} />
-            <Toggle label="Logo Corporativo" checked={reportConfig.includeLogo} />
+            <label className="text-xs font-bold text-slate-400 uppercase">Filtrar por Aeronave</label>
+            <select className="w-full bg-slate-800 border-slate-700 rounded-lg text-xs py-2.5 px-3 outline-none"
+              value={config.aircraftId} onChange={(e) => setConfig({...config, aircraftId: e.target.value})}>
+              <option value="all">Todas las Aeronaves</option>
+              {aircrafts.map(a => <option key={a.id} value={a.id}>{a.model} ({a.serial_number})</option>)}
+            </select>
           </div>
         </div>
 
-        {/* Acciones Finales */}
-        <div className="p-6 bg-slate-900/50 space-y-4">
-          <button className="w-full bg-[#ec5b13] hover:bg-[#e04f0d] text-white font-black py-4 rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm uppercase tracking-widest">
+        <div className="p-6 bg-slate-900/50">
+          <button className="w-full bg-[#ec5b13] hover:bg-[#e04f0d] text-white font-black py-4 rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2 text-xs uppercase tracking-widest">
             <span className="material-symbols-outlined">picture_as_pdf</span>
-            Descargar PDF
+            Generar PDF Oficial
           </button>
         </div>
       </aside>
 
-      {/* ÁREA DE VISTA PREVIA (75%) */}
-      <main className="flex-1 overflow-y-auto flex flex-col items-center custom-scrollbar">
-        {/* Toolbar de Preview */}
-        <div className="w-full bg-white border-b border-slate-300 px-8 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-          <div className="flex gap-4 text-slate-400">
-            <span className="material-symbols-outlined cursor-pointer hover:text-[#ec5b13]">zoom_in</span>
-            <span className="material-symbols-outlined cursor-pointer hover:text-[#ec5b13]">zoom_out</span>
-            <span className="material-symbols-outlined cursor-pointer hover:text-[#ec5b13]">print</span>
+      {/* VISTA PREVIA (DERECHA) */}
+      <main className="flex-1 overflow-y-auto flex flex-col items-center p-12 custom-scrollbar">
+        <div className="bg-white text-slate-900 w-full max-w-[800px] aspect-[1/1.414] shadow-2xl rounded-sm p-12 flex flex-col border border-slate-300 text-left">
+          
+          {/* Header del PDF */}
+          <div className="flex justify-between items-start border-b-2 border-slate-800 pb-8 mb-8">
+            <div className="flex items-center gap-4">
+              <div className="size-14 bg-[#1A202C] rounded-lg flex items-center justify-center text-white">
+                <span className="material-symbols-outlined text-3xl">flight_takeoff</span>
+              </div>
+              <div>
+                <h2 className="text-xl font-black uppercase leading-tight">SkyLog Manager</h2>
+                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Reporte Generado por Sistema Certificado</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <h3 className="text-md font-black uppercase text-[#1A202C]">Bitácora de Vuelo RAC 100</h3>
+              <p className="text-[9px] font-bold text-slate-500">PERIODO: {config.dateFrom} AL {config.dateTo}</p>
+            </div>
           </div>
-          <div className="text-sm font-bold text-slate-500 uppercase tracking-tighter">
-            Vista Previa de Impresión (A4)
+
+          {/* Tabla de Vuelos Reales */}
+          <div className="flex-1 overflow-hidden">
+            <table className="w-full text-left border-collapse border border-slate-300">
+              <thead>
+                <tr className="bg-[#1A202C] text-white text-[9px] font-black uppercase tracking-widest">
+                  <th className="p-2 border border-slate-600">Fecha</th>
+                  <th className="p-2 border border-slate-600">Aeronave</th>
+                  <th className="p-2 border border-slate-600">Piloto</th>
+                  <th className="p-2 border border-slate-600">Misión</th>
+                  <th className="p-2 border border-slate-600 text-center">Duración</th>
+                </tr>
+              </thead>
+              <tbody className="text-[9px]">
+                {loading ? (
+                  <tr><td colSpan="5" className="p-10 text-center italic text-slate-400">Consultando registros en base de datos...</td></tr>
+                ) : reportFlights.length > 0 ? (
+                  reportFlights.map((f) => (
+                    <tr key={f.id} className="border-b border-slate-200">
+                      <td className="p-2 font-bold">{f.flight_date}</td>
+                      <td className="p-2 uppercase">{f.aircraft?.model}</td>
+                      <td className="p-2 font-medium">{f.pilots?.name}</td>
+                      <td className="p-2 text-slate-500">{f.mission_type}</td>
+                      <td className="p-2 text-center font-mono font-bold">01:00:00</td> {/* Aquí puedes calcular landing_time - takeoff_time */}
+                    </tr>
+                  ))
+                ) : (
+                  <tr><td colSpan="5" className="p-20 text-center text-slate-300 italic uppercase tracking-widest">No se encontraron registros para este periodo</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
-          <div className="text-xs font-bold text-slate-400">Página 1 de 1</div>
-        </div>
 
-        {/* HOJA VIRTUAL */}
-        <div className="p-12 w-full max-w-[850px]">
-          <div className="bg-white text-slate-900 aspect-[1/1.414] shadow-2xl rounded-sm p-12 flex flex-col border border-slate-300 text-left">
-            
-            {/* Header Documento */}
-            <div className="flex justify-between items-start border-b-2 border-slate-800 pb-8 mb-8">
-              <div className="flex items-center gap-4">
-                <div className="size-16 bg-[#1A202C] rounded-lg flex items-center justify-center text-white">
-                  <span className="material-symbols-outlined text-4xl">flight_takeoff</span>
-                </div>
-                <div>
-                  <h2 className="text-2xl font-black tracking-tight uppercase leading-tight">SkyLog Manager</h2>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Operaciones Aéreas No Tripuladas</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <h3 className="text-lg font-black uppercase text-[#1A202C]">Reporte Oficial de Vuelo</h3>
-                <p className="text-[10px] font-bold text-slate-500">REF: {new Date().getFullYear()}-LOG-{Math.floor(Math.random() * 1000)}</p>
-                <p className="text-[10px] font-bold text-slate-500">Generado: {new Date().toLocaleDateString()}</p>
+          {/* Footer del PDF */}
+          <div className="mt-10 pt-6 border-t-2 border-slate-100 flex justify-between items-end">
+            <div className="w-1/3">
+              <div className="bg-[#1A202C] text-white p-3 rounded">
+                <p className="text-[8px] opacity-60 font-bold uppercase">Total Vuelos en Reporte</p>
+                <p className="text-xl font-black">{reportFlights.length}</p>
               </div>
             </div>
-
-            {/* Datos Operador */}
-            <div className="grid grid-cols-2 gap-8 mb-10">
-              <div className="bg-slate-50 p-4 rounded border border-slate-200">
-                <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Operador / Compañía</span>
-                <p className="font-bold text-sm">Nombre del Usuario Registrado</p>
-                <p className="text-xs text-slate-500 italic">Operador Certificado RAC 100</p>
-              </div>
-              <div className="bg-slate-50 p-4 rounded border border-slate-200">
-                <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Periodo del Reporte</span>
-                <p className="text-xs font-bold">{reportConfig.dateFrom} AL {reportConfig.dateTo}</p>
-                <p className="text-xs text-slate-500 font-medium">Estado: Certificado Digitalmente</p>
-              </div>
-            </div>
-
-            {/* Tabla de Datos */}
-            <div className="flex-1 overflow-hidden border border-slate-800">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-[#1A202C] text-white text-[9px] font-black uppercase tracking-widest">
-                    <th className="p-3 border-r border-slate-700">Fecha</th>
-                    <th className="p-3 border-r border-slate-700">Aeronave (S/N)</th>
-                    <th className="p-3 border-r border-slate-700">Piloto</th>
-                    <th className="p-3 border-r border-slate-700">Tipo Misión</th>
-                    <th className="p-3 text-center">Duración</th>
-                  </tr>
-                </thead>
-                <tbody className="text-[10px] divide-y divide-slate-200">
-                  <tr className="bg-slate-50 font-medium">
-                    <td className="p-3">04/10/2023</td>
-                    <td className="p-3 font-bold uppercase">M300 RTK (HK-202X)</td>
-                    <td className="p-3">Cap. Juan Pérez</td>
-                    <td className="p-3">Inspección de Infraestructura</td>
-                    <td className="p-3 text-center font-bold">01:45:00</td>
-                  </tr>
-                  {/* Se pueden mapear aquí los vuelos reales de Supabase en el futuro */}
-                </tbody>
-              </table>
-              <div className="p-10 text-center text-slate-300 text-xs italic">
-                -- Fin de los registros correspondientes al periodo seleccionado --
-              </div>
-            </div>
-
-            {/* Firma y Resumen */}
-            <div className="mt-12 pt-8 border-t-2 border-slate-100 flex justify-between items-end">
-              <div className="w-1/3">
-                <span className="text-[9px] font-black text-slate-400 uppercase block mb-2">Resumen Operativo</span>
-                <div className="bg-[#1A202C] text-white p-4 rounded">
-                  <p className="text-[10px] opacity-60 font-bold uppercase">Horas Totales</p>
-                  <p className="text-xl font-black font-mono">01:45:00</p>
-                </div>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="w-48 border-b border-slate-400 h-16 flex items-end justify-center mb-2">
-                  <span className="text-[10px] text-slate-300 italic">Firma Digital SkyLog</span>
-                </div>
-                <p className="text-[10px] font-black uppercase text-slate-800">Responsable de Operaciones</p>
-                <p className="text-[9px] text-slate-500">ID Aeronáutico Registrado</p>
-              </div>
-            </div>
-
-            <div className="mt-8 flex justify-between text-[8px] text-slate-400 font-bold uppercase tracking-widest">
-              <p>Este reporte es una representación oficial de SkyLog Manager UAS</p>
-              <p>v2.4.1 - Certified System</p>
+            <div className="text-center">
+              <div className="w-40 border-b border-slate-400 h-12 mb-2"></div>
+              <p className="text-[9px] font-black uppercase">Responsable de Operaciones</p>
             </div>
           </div>
         </div>
       </main>
-    </div>
-  );
-}
-
-// Componentes Auxiliares
-function Toggle({ label, checked }) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-[11px] font-bold text-slate-300 uppercase tracking-tight">{label}</span>
-      <div className={`w-9 h-5 rounded-full relative transition-colors ${checked ? 'bg-[#ec5b13]' : 'bg-slate-700'}`}>
-        <div className={`absolute top-1 size-3 bg-white rounded-full transition-all ${checked ? 'right-1' : 'left-1'}`}></div>
-      </div>
     </div>
   );
 }

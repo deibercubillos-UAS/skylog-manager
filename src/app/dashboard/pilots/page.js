@@ -103,13 +103,13 @@ export default function PilotsPage() {
         />
       )}
 
-      {editingPilot && (
-    <EditPilotPanel 
-    pilot={editingPilot} 
-    onClose={() => setEditingPilot(null)} 
-    onSuccess={() => {
-      setEditingPilot(null);
-      fetchData(); // Refresca la lista
-    }} 
-  />
-)}
+      {activePanel === 'edit' && editingPilot && (
+        <EditPilotPanel 
+          pilot={editingPilot} 
+          onClose={() => setActivePanel(null)} 
+          onSuccess={() => { setActivePanel(null); fetchData(); }} 
+        />
+      )}
+    </div>
+  );
+}

@@ -15,12 +15,11 @@ export default function DashboardLayout({ children }) {
   const menuItems = [
     { name: 'Dashboard', icon: 'dashboard', href: '/dashboard' },
     { name: 'Mis Pilotos', icon: 'person', href: '/dashboard/pilots' },
-    { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/dashboard/fleet' },
-    { name: 'Suscripción', icon: 'payments', href: '/dashboard/subscription' },
+    { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/fleet' },
     { name: 'Bitácora de Vuelos', icon: 'menu_book', href: '/dashboard/logbook' },
-    { name: 'Análisis SORA', icon: 'shield', href: '/dashboard/sora' },
+    // UNIFICAMOS AQUÍ:
+    { name: 'Protocolos Seguridad', icon: 'security', href: '/dashboard/safety-config' },
     { name: 'Mantenimiento', icon: 'build', href: '/dashboard/maintenance' },
-    { name: 'Reportes SMS', icon: 'report_problem', href: '/dashboard/sms' },
     { name: 'Reportes PDF', icon: 'description', href: '/dashboard/reports' },
     { name: 'Configuración', icon: 'settings', href: '/dashboard/settings' },
   ];

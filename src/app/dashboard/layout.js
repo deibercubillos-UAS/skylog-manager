@@ -55,18 +55,16 @@ export default function DashboardLayout({ children }) {
   return (
     <div className="flex h-screen overflow-hidden bg-[#f8f6f6] font-display">
         <aside className="w-64 bg-[#1A202C] flex flex-col h-full border-r border-slate-700 shrink-0">
-        <div className="flex h-screen overflow-hidden bg-[#f8f6f6] font-display">
-        <div className="p-6 flex items-center gap-3 border-b border-white/5 mb-4">
-        <div className="size-10 flex items-center justify-center shrink-0">
-          <img src="/logo.png" alt="BitaFly" className="h-full w-auto object-contain" />
-        </div>
-        <div className="text-left overflow-hidden">
-          <h1 className="text-white text-xl font-black leading-tight tracking-tighter">BitaFly</h1>
-          git add .
-git commit -m "Brand: Actualizado nombre a BitaFly e implementado logo personalizado en todo el sitio"
-git push origin main<p className="text-[#ec5b13] text-[9px] font-black uppercase tracking-widest truncate">Plan {userPlan.toUpperCase()}</p>
+          <div className="p-6 flex items-center gap-3 border-b border-white/5 mb-4">
+            <div className="size-10 flex items-center justify-center shrink-0">
+              <img src="/logo.png" alt="BitaFly" className="h-full w-auto object-contain" />
+            </div>
+            <div className="text-left overflow-hidden">
+              <h1 className="text-white text-xl font-black leading-tight tracking-tighter">BitaFly</h1>
+              <p className="text-[#ec5b13] text-[9px] font-black uppercase tracking-widest truncate">Plan {userPlan.toUpperCase()}</p>
+            </div>
           </div>
-        </div>
+        
         <nav className="flex-1 px-3 mt-4 space-y-1 overflow-y-auto">
           {filteredItems.map((item) => (
             <Link key={item.href} href={item.href}

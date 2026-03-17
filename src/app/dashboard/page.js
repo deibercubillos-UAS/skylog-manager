@@ -8,169 +8,135 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
     stats: { hours: 0, fleet: "0/0", pilots: 0, alerts: 0 },
-    recentFlights: [],
-    missionStats: { photogrammetry: 0, inspection: 0, mapping: 0, rescue: 0 }
+    monthlyActivity: [0, 0, 0, 0, 0, 0], // Últimos 6 meses
+    missionDistribution: {}
   });
 
   useEffect(() => {
-    async function getDashboardData() {
+    async function fetchRealData() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // 1. KPI: Aeronaves y Horas
-        const { data: aircraft } = await supabase
-          .from('aircraft')
-          .select('total_hours, status')
-          .eq('owner_id', user.id);
-
+        // 1. Obtener Aeronaves y Horas
+        const { data: aircraft } = await supabase.from('aircraft').select('total_hours, status').eq('owner_id', user.id);
         const totalH = aircraft?.reduce((acc, a) => acc + (a.total_hours || 0), 0) || 0;
         const operational = aircraft?.filter(a => a.status === 'Operativo').length || 0;
 
-        // 2. KPI: Pilotos
-        const { count: pilotsCount } = await supabase
-          .from('pilots')
-          .select('*', { count: 'exact', head: true })
-          .eq('owner_id', user.id);
-
-        // 3. Vuelos Recientes y Estadísticas de Misión
+        // 2. Obtener Vuelos para Gráficos
         const { data: flights } = await supabase
           .from('flights')
-          .select('*, pilots(name), aircraft(model)')
-          .eq('owner_id', user.id)
-          .order('flight_date', { ascending: false })
-          .limit(5);
+          .select('flight_date, mission_type')
+          .eq('owner_id', user.id);
 
-        // 4. Conteo de misiones (Simulado basado en registros)
-        const missionCounts = { photogrammetry: 45, inspection: 30, mapping: 15, rescue: 10 };
+        // --- LÓGICA DE GRÁFICO DE BARRAS (Últimos 6 meses) ---
+        const months = [0, 0, 0, 0, 0, 0];
+        const now = new Date();
+        flights?.forEach(f => {
+          const fDate = new Date(f.flight_date);
+          const monthDiff = (now.getFullYear() - fDate.getFullYear()) * 12 + (now.getMonth() - fDate.getMonth());
+          if (monthDiff >= 0 && monthDiff < 6) {
+            months[5 - monthDiff]++; // Invertimos para que el actual sea el último
+          }
+        });
+
+        // --- LÓGICA DE DISTRIBUCIÓN DE MISIONES ---
+        const missions = {};
+        flights?.forEach(f => {
+          missions[f.mission_type] = (missions[f.mission_type] || 0) + 1;
+        });
+        // Convertir a porcentajes
+        const totalFlights = flights?.length || 1;
+        Object.keys(missions).forEach(key => {
+          missions[key] = Math.round((missions[key] / totalFlights) * 100);
+        });
 
         setData({
           stats: {
             hours: totalH.toFixed(1),
             fleet: `${operational}/${aircraft?.length || 0}`,
-            pilots: pilotsCount || 0,
-            alerts: 2 // Ejemplo estático de alertas de mantenimiento
+            pilots: 0, // Aquí podrías añadir el conteo de la tabla pilots
+            alerts: 0
           },
-          recentFlights: flights || [],
-          missionStats: missionCounts
+          monthlyActivity: months,
+          missionDistribution: missions
         });
       } catch (error) {
-        console.error("Error cargando dashboard:", error);
+        console.error("Error cargando estadísticas reales:", error);
       } finally {
         setLoading(false);
       }
     }
-    getDashboardData();
+    fetchRealData();
   }, []);
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ec5b13]"></div>
-    </div>
-  );
+  if (loading) return <div className="p-10 animate-pulse font-black text-slate-400">CALCULANDO MÉTRICAS REALES...</div>;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 text-left">
       
-      {/* SECCIÓN 1: KPI CARDS */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <KPICard title="Total Horas" value={`${data.stats.hours}h`} trend="+5.2%" />
-        <KPICard title="Flota Operativa" value={data.stats.fleet} subtitle="Aeronaves Listas" />
-        <KPICard title="Pilotos" value={data.stats.pilots} subtitle="Comandantes Activos" />
-        <KPICard title="Alertas" value={data.stats.alerts} warning={data.stats.alerts > 0} />
+        <KPICard title="Total Horas" value={`${data.stats.hours}h`} trend="Real" />
+        <KPICard title="Flota Operativa" value={data.stats.fleet} subtitle="Disponibles" />
+        <KPICard title="Actividad Mensual" value={data.monthlyActivity[5]} subtitle="Vuelos este mes" />
+        <KPICard title="Alertas" value="0" warning={false} />
       </div>
 
-      {/* SECCIÓN 2: GRÁFICOS */}
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Gráfico de Barras: Actividad Mensual */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <h3 className="font-black text-slate-800 mb-6 uppercase text-[10px] tracking-widest">Actividad Mensual (Horas)</h3>
-          <div className="h-48 w-full flex items-end gap-3 px-2">
-            {[40, 65, 50, 85, 70, 95, 60].map((h, i) => (
-              <div key={i} className="group relative flex-1">
-                <div style={{ height: `${h}%` }} className="bg-[#ec5b13]/20 group-hover:bg-[#ec5b13] transition-all rounded-t-lg"></div>
-                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-slate-400">M{i+1}</span>
-              </div>
-            ))}
+        {/* Gráfico de Barras Real */}
+        <div className="lg:col-span-2 bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+          <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-8">Volumen de Vuelos (6 Meses)</h3>
+          <div className="h-48 w-full flex items-end gap-4 px-2">
+            {data.monthlyActivity.map((count, i) => {
+              const height = count > 0 ? Math.min((count / Math.max(...data.monthlyActivity)) * 100, 100) : 5;
+              return (
+                <div key={i} className="group relative flex-1">
+                  <div style={{ height: `${height}%` }} className="bg-[#ec5b13]/20 group-hover:bg-[#ec5b13] transition-all rounded-t-xl cursor-help">
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                      {count} vuelos
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Distribución de Misiones */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <h3 className="font-black text-slate-800 mb-6 uppercase text-[10px] tracking-widest">Tipos de Misión</h3>
-          <div className="space-y-5">
-            <ProgressBar label="Fotogrametría" percent={data.missionStats.photogrammetry} color="bg-[#ec5b13]" />
-            <ProgressBar label="Inspección" percent={data.missionStats.inspection} color="bg-[#1A202C]" />
-            <ProgressBar label="Mapeo" percent={data.missionStats.mapping} color="bg-emerald-500" />
-            <ProgressBar label="Rescate" percent={data.missionStats.rescue} color="bg-blue-500" />
+        {/* Misiones Reales */}
+        <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+          <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-8">Especialidad de Misión</h3>
+          <div className="space-y-6">
+            {Object.keys(data.missionDistribution).length > 0 ? (
+              Object.entries(data.missionDistribution).map(([name, percent]) => (
+                <div key={name} className="space-y-2">
+                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                    <span className="text-slate-500">{name}</span>
+                    <span className="text-[#ec5b13]">{percent}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div style={{ width: `${percent}%` }} className="bg-[#ec5b13] h-full transition-all duration-1000"></div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-slate-400 italic py-10 text-center uppercase font-bold">Sin datos de misión</p>
+            )}
           </div>
-        </div>
-      </div>
-
-      {/* SECCIÓN 3: TABLA DE VUELOS RECIENTES */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-          <h3 className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Actividad Reciente</h3>
-          <button className="text-[10px] font-bold text-[#ec5b13] hover:underline uppercase">Ver Bitácora Completa</button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-tighter">
-              <tr>
-                <th className="px-6 py-4">Fecha</th>
-                <th className="px-6 py-4">Piloto</th>
-                <th className="px-6 py-4">Aeronave</th>
-                <th className="px-6 py-4">Misión</th>
-                <th className="px-6 py-4 text-right">Estado</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-sm">
-              {data.recentFlights.length > 0 ? (
-                data.recentFlights.map((flight) => (
-                  <tr key={flight.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-600">{flight.flight_date}</td>
-                    <td className="px-6 py-4 font-bold text-slate-900">{flight.pilots?.name || 'N/A'}</td>
-                    <td className="px-6 py-4 text-slate-500">{flight.aircraft?.model || 'Desconocido'}</td>
-                    <td className="px-6 py-4 text-slate-500">{flight.mission_type}</td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full uppercase">Completado</span>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr><td colSpan="5" className="px-6 py-8 text-center text-slate-400 italic">No hay vuelos registrados aún.</td></tr>
-              )}
-            </tbody>
-          </table>
         </div>
       </div>
     </div>
   );
 }
 
-// COMPONENTES AUXILIARES
 function KPICard({ title, value, trend, subtitle, warning }) {
   return (
-    <div className={`bg-white p-6 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-md ${warning ? 'border-orange-500 bg-orange-50' : ''}`}>
-      <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">{title}</p>
+    <div className={`bg-white p-6 rounded-[1.5rem] border border-slate-200 shadow-sm ${warning ? 'border-orange-500 bg-orange-50' : ''}`}>
+      <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">{title}</p>
       <div className="flex items-baseline justify-between">
-        <span className={`text-3xl font-black ${warning ? 'text-orange-600' : 'text-slate-900'}`}>{value}</span>
-        {trend && <span className="text-emerald-500 text-xs font-bold uppercase">{trend}</span>}
-        {subtitle && <span className="text-slate-400 text-xs font-medium">{subtitle}</span>}
-      </div>
-    </div>
-  );
-}
-
-function ProgressBar({ label, percent, color }) {
-  return (
-    <div className="space-y-1">
-      <div className="flex justify-between text-[10px] font-black uppercase tracking-tighter">
-        <span className="text-slate-500">{label}</span>
-        <span className="text-slate-900">{percent}%</span>
-      </div>
-      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-        <div className={`${color} h-full transition-all duration-1000`} style={{ width: `${percent}%` }}></div>
+        <span className="text-3xl font-black text-slate-900">{value}</span>
+        {trend && <span className="text-emerald-500 text-[10px] font-black uppercase">{trend}</span>}
+        {subtitle && <span className="text-slate-400 text-[10px] font-bold uppercase">{subtitle}</span>}
       </div>
     </div>
   );

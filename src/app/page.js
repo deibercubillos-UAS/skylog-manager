@@ -60,31 +60,38 @@ export default function LandingPage() {
         </section>
 
         {/* --- KEY BENEFITS SECTION --- */}
-        <section id="caracteristicas" className="py-24 bg-white dark:bg-background-dark border-y border-slate-200 dark:border-slate-800 text-left">
+       <section id="caracteristicas" className="py-24 bg-white dark:bg-background-dark border-y border-slate-200 dark:border-slate-800 text-left">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-black text-navy dark:text-white mb-4">Beneficios Clave</h2>
-              <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">Garantizamos que tus operaciones sean seguras y cumplan con la normativa mediante herramientas de automatización avanzada.</p>
+              <h2 className="text-3xl md:text-4xl font-black text-[#1A202C] dark:text-white mb-4">Potencia tu Operación</h2>
+              <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">Tecnología diseñada para adaptarse a los estándares de tus clientes más exigentes.</p>
             </div>
+            
             <div className="grid md:grid-cols-3 gap-8">
+              {/* Beneficio 1: Cumplimiento */}
               <BenefitCard 
                 icon="verified_user" 
-                title="Cumplimiento 100% RAC" 
-                desc="Mantente al día con las regulaciones de la Aerocivil automáticamente. Generación de bitácoras y reportes oficiales en un clic."
+                title="Cumplimiento RAC 100" 
+                desc="Generación automática de bitácoras oficiales y reportes técnicos bajo los estándares de la Aerocivil y autoridades regionales."
               />
+
+              {/* Beneficio 2: PERSONALIZACIÓN (NUEVO) */}
               <BenefitCard 
-                icon="gpp_maybe" 
-                title="Seguridad SORA" 
-                desc="Realiza evaluaciones de riesgo SORA para cada misión. Mitiga riesgos y obtén autorizaciones de vuelo más rápido."
+                icon="tune" 
+                title="Protocolos Flexibles" 
+                desc="Personaliza tus Checklists y análisis de riesgos SORA según los requerimientos específicos de cada cliente o tipo de misión."
               />
+
+              {/* Beneficio 3: Salud de Flota */}
               <BenefitCard 
-                icon="build_circle" 
-                title="Salud de Flota" 
-                desc="Recibe alertas automáticas de mantenimiento programado y ciclos de batería. Evita fallos técnicos en misiones críticas."
+                icon="monitor_heart" 
+                title="Mantenimiento Inteligente" 
+                desc="Control predictivo de salud de la flota, ciclos de batería y alertas de servicio basadas en horas reales de vuelo."
               />
             </div>
           </div>
         </section>
+
 
         {/* --- FEATURE SHOWCASE --- */}
         <section className="py-24 overflow-hidden text-left">

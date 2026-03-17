@@ -3,141 +3,206 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
-    stats: { hours: 0, fleet: "0/0", pilots: 0, alerts: 0 },
-    monthlyActivity: [0, 0, 0, 0, 0, 0], // Últimos 6 meses
-    missionDistribution: {}
+    stats: { hours: 0, operational: 0, totalDrones: 0, pilots: 0, smsAlerts: 0 },
+    chartData: [0, 0, 0, 0, 0, 0],
+    missions: {},
+    recentActivity: [],
+    criticalAlerts: []
   });
 
   useEffect(() => {
-    async function fetchRealData() {
+    async function fetchDashboardData() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // 1. Obtener Aeronaves y Horas
-        const { data: aircraft } = await supabase.from('aircraft').select('total_hours, status').eq('owner_id', user.id);
+        // 1. Obtener Datos de Aeronaves (Horas y Salud)
+        const { data: aircraft } = await supabase.from('aircraft').select('*').eq('owner_id', user.id);
         const totalH = aircraft?.reduce((acc, a) => acc + (a.total_hours || 0), 0) || 0;
-        const operational = aircraft?.filter(a => a.status === 'Operativo').length || 0;
+        const opCount = aircraft?.filter(a => a.status === 'Operativo').length || 0;
 
-        // 2. Obtener Vuelos para Gráficos
+        // 2. Obtener Pilotos y Vencimientos
+        const { data: pilots } = await supabase.from('pilots').select('*').eq('owner_id', user.id);
+        
+        // 3. Obtener Vuelos (Para Gráficos y Tabla)
         const { data: flights } = await supabase
           .from('flights')
-          .select('flight_date, mission_type')
-          .eq('owner_id', user.id);
+          .select('*, pilots(name), aircraft(model)')
+          .eq('owner_id', user.id)
+          .order('created_at', { ascending: false });
 
-        // --- LÓGICA DE GRÁFICO DE BARRAS (Últimos 6 meses) ---
-        const months = [0, 0, 0, 0, 0, 0];
-        const now = new Date();
-        flights?.forEach(f => {
-          const fDate = new Date(f.flight_date);
-          const monthDiff = (now.getFullYear() - fDate.getFullYear()) * 12 + (now.getMonth() - fDate.getMonth());
-          if (monthDiff >= 0 && monthDiff < 6) {
-            months[5 - monthDiff]++; // Invertimos para que el actual sea el último
+        // --- LÓGICA DE ALERTAS CRÍTICAS ---
+        const alerts = [];
+        // Alerta: Médicos por vencer (30 días)
+        const thirtyDaysNode = new Date();
+        thirtyDaysNode.setDate(thirtyDaysNode.getDate() + 30);
+        pilots?.forEach(p => {
+          if (new Date(p.medical_expiry) < thirtyDaysNode) {
+            alerts.push({ id: `p-${p.id}`, type: 'medical', title: p.name, desc: 'Certificado Médico próximo a vencer', val: p.medical_expiry });
+          }
+        });
+        // Alerta: Mantenimiento por horas (90% del intervalo)
+        aircraft?.forEach(a => {
+          const hoursLeft = (a.maintenance_interval_hours || 50) - (a.total_hours % (a.maintenance_interval_hours || 50));
+          if (hoursLeft < 5) {
+            alerts.push({ id: `a-${a.id}`, type: 'maint', title: a.model, desc: 'Mantenimiento preventivo urgente', val: `${hoursLeft.toFixed(1)}h restantes` });
           }
         });
 
-        // --- LÓGICA DE DISTRIBUCIÓN DE MISIONES ---
-        const missions = {};
+        // --- LÓGICA DE GRÁFICO MENSUAL (Vuelos por mes) ---
+        const monthlyCounts = [0, 0, 0, 0, 0, 0];
+        const now = new Date();
         flights?.forEach(f => {
-          missions[f.mission_type] = (missions[f.mission_type] || 0) + 1;
+          const fDate = new Date(f.flight_date);
+          const diff = (now.getFullYear() - fDate.getFullYear()) * 12 + (now.getMonth() - fDate.getMonth());
+          if (diff >= 0 && diff < 6) monthlyCounts[5 - diff]++;
         });
-        // Convertir a porcentajes
-        const totalFlights = flights?.length || 1;
-        Object.keys(missions).forEach(key => {
-          missions[key] = Math.round((missions[key] / totalFlights) * 100);
+
+        // --- DISTRIBUCIÓN DE MISIONES ---
+        const missionMap = {};
+        flights?.forEach(f => {
+          if (f.mission_type) missionMap[f.mission_type] = (missionMap[f.mission_type] || 0) + 1;
         });
 
         setData({
           stats: {
             hours: totalH.toFixed(1),
-            fleet: `${operational}/${aircraft?.length || 0}`,
-            pilots: 0, // Aquí podrías añadir el conteo de la tabla pilots
-            alerts: 0
+            operational: opCount,
+            totalDrones: aircraft?.length || 0,
+            pilots: pilots?.length || 0,
+            smsAlerts: alerts.length
           },
-          monthlyActivity: months,
-          missionDistribution: missions
+          chartData: monthlyCounts,
+          missions: missionMap,
+          recentActivity: flights?.slice(0, 5) || [],
+          criticalAlerts: alerts.slice(0, 3)
         });
-      } catch (error) {
-        console.error("Error cargando estadísticas reales:", error);
+
+      } catch (err) {
+        console.error("Error Dashboard:", err);
       } finally {
         setLoading(false);
       }
     }
-    fetchRealData();
+    fetchDashboardData();
   }, []);
 
-  if (loading) return <div className="p-10 animate-pulse font-black text-slate-400">CALCULANDO MÉTRICAS REALES...</div>;
+  if (loading) return <div className="p-20 text-center animate-pulse font-black text-slate-300 uppercase tracking-widest">Sincronizando Centro de Mando...</div>;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 text-left">
+    <div className="space-y-8 animate-in fade-in duration-700 text-left pb-10">
       
-      {/* KPI Cards */}
+      {/* 1. KPI ROW */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <KPICard title="Total Horas" value={`${data.stats.hours}h`} trend="Real" />
-        <KPICard title="Flota Operativa" value={data.stats.fleet} subtitle="Disponibles" />
-        <KPICard title="Actividad Mensual" value={data.monthlyActivity[5]} subtitle="Vuelos este mes" />
-        <KPICard title="Alertas" value="0" warning={false} />
+        <KPICard title="Horas de Vuelo" value={`${data.stats.hours}h`} icon="timer" />
+        <KPICard title="Flota Operativa" value={`${data.stats.operational}/${data.stats.totalDrones}`} icon="precision_manufacturing" />
+        <KPICard title="Tripulación" value={data.stats.pilots} icon="group" />
+        <KPICard title="Alertas Seguridad" value={data.stats.smsAlerts} icon="gavel" warning={data.stats.smsAlerts > 0} />
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Gráfico de Barras Real */}
-        <div className="lg:col-span-2 bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
-          <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-8">Volumen de Vuelos (6 Meses)</h3>
-          <div className="h-48 w-full flex items-end gap-4 px-2">
-            {data.monthlyActivity.map((count, i) => {
-              const height = count > 0 ? Math.min((count / Math.max(...data.monthlyActivity)) * 100, 100) : 5;
-              return (
-                <div key={i} className="group relative flex-1">
-                  <div style={{ height: `${height}%` }} className="bg-[#ec5b13]/20 group-hover:bg-[#ec5b13] transition-all rounded-t-xl cursor-help">
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                      {count} vuelos
-                    </div>
+      <div className="grid lg:grid-cols-3 gap-8">
+        
+        {/* 2. GRÁFICO DE ACTIVIDAD */}
+        <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col">
+          <div className="flex justify-between items-center mb-10">
+            <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest">Volumen de Operaciones (6 meses)</h3>
+            <span className="text-[10px] font-bold bg-slate-100 px-3 py-1 rounded-full text-slate-500 uppercase">Tiempo Real</span>
+          </div>
+          <div className="flex-1 flex items-end gap-4 h-48 px-2">
+            {data.chartData.map((count, i) => (
+              <div key={i} className="flex-1 group relative">
+                <div 
+                  style={{ height: `${count > 0 ? (count / Math.max(...data.chartData)) * 100 : 5}%` }} 
+                  className="bg-[#ec5b13]/20 group-hover:bg-[#ec5b13] transition-all rounded-t-2xl cursor-help"
+                >
+                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity font-black">
+                    {count} Vuelos
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Misiones Reales */}
-        <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
-          <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-8">Especialidad de Misión</h3>
-          <div className="space-y-6">
-            {Object.keys(data.missionDistribution).length > 0 ? (
-              Object.entries(data.missionDistribution).map(([name, percent]) => (
-                <div key={name} className="space-y-2">
-                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                    <span className="text-slate-500">{name}</span>
-                    <span className="text-[#ec5b13]">{percent}%</span>
-                  </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div style={{ width: `${percent}%` }} className="bg-[#ec5b13] h-full transition-all duration-1000"></div>
-                  </div>
+        {/* 3. ALERTAS CRÍTICAS */}
+        <div className="bg-[#1A202C] p-8 rounded-[2.5rem] shadow-xl text-white">
+          <h3 className="text-xs font-black uppercase text-[#ec5b13] tracking-widest mb-6 border-b border-white/5 pb-4">Alertas del Sistema</h3>
+          <div className="space-y-4">
+            {data.criticalAlerts.length > 0 ? data.criticalAlerts.map(alert => (
+              <div key={alert.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-start gap-3">
+                <span className="material-symbols-outlined text-orange-500 text-lg">
+                  {alert.type === 'medical' ? 'medical_services' : 'build'}
+                </span>
+                <div>
+                  <p className="text-xs font-black uppercase leading-tight">{alert.title}</p>
+                  <p className="text-[10px] text-slate-400 mt-1">{alert.desc}</p>
+                  <p className="text-[10px] text-orange-400 font-bold mt-2">{alert.val}</p>
                 </div>
-              ))
-            ) : (
-              <p className="text-xs text-slate-400 italic py-10 text-center uppercase font-bold">Sin datos de misión</p>
+              </div>
+            )) : (
+              <div className="py-10 text-center space-y-3">
+                <span className="material-symbols-outlined text-emerald-500 text-4xl">check_circle</span>
+                <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Sistemas en Verde</p>
+              </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* 4. ÚLTIMOS VUELOS */}
+      <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+          <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest">Actividad Reciente</h3>
+          <Link href="/dashboard/logbook" className="text-[10px] font-black text-[#ec5b13] uppercase hover:underline">Ver Bitácora</Link>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                <th className="px-8 py-4">Vuelo ID</th>
+                <th className="px-8 py-4">Piloto</th>
+                <th className="px-8 py-4">Drone</th>
+                <th className="px-8 py-4">Misión</th>
+                <th className="px-8 py-4 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {data.recentActivity.map(f => (
+                <tr key={f.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-8 py-5 text-xs font-black text-[#ec5b13] font-mono">{f.flight_number}</td>
+                  <td className="px-8 py-5 text-sm font-bold text-slate-700">{f.pilots?.name}</td>
+                  <td className="px-8 py-5 text-xs text-slate-500">{f.aircraft?.model}</td>
+                  <td className="px-8 py-5">
+                    <span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase text-slate-500">
+                      {f.mission_type}
+                    </span>
+                  </td>
+                  <td className="px-8 py-5 text-right">
+                    <button className="material-symbols-outlined text-slate-300 hover:text-navy text-lg">visibility</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   );
 }
 
-function KPICard({ title, value, trend, subtitle, warning }) {
+function KPICard({ title, value, icon, warning }) {
   return (
-    <div className={`bg-white p-6 rounded-[1.5rem] border border-slate-200 shadow-sm ${warning ? 'border-orange-500 bg-orange-50' : ''}`}>
-      <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">{title}</p>
-      <div className="flex items-baseline justify-between">
-        <span className="text-3xl font-black text-slate-900">{value}</span>
-        {trend && <span className="text-emerald-500 text-[10px] font-black uppercase">{trend}</span>}
-        {subtitle && <span className="text-slate-400 text-[10px] font-bold uppercase">{subtitle}</span>}
+    <div className={`bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col justify-between transition-all hover:shadow-md ${warning ? 'ring-2 ring-red-500/20 bg-red-50/30' : ''}`}>
+      <div className="flex justify-between items-start mb-4">
+        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-tight">{title}</span>
+        <span className={`material-symbols-outlined ${warning ? 'text-red-500' : 'text-[#ec5b13]'}`}>{icon}</span>
       </div>
+      <span className={`text-4xl font-black tracking-tighter ${warning ? 'text-red-600' : 'text-slate-900'}`}>{value}</span>
     </div>
   );
 }

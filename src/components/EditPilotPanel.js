@@ -47,6 +47,7 @@ export default function EditPilotPanel({ pilot, onClose, onSuccess }) {
           certificate_url: docs.license,
           medical_url: docs.medical,
           updated_at: new Date().toISOString()
+          // ELIMINAMOS OWNER_ID DE AQUÍ PARA QUE NO FALLE EL RLS
         })
         .eq('id', pilot.id)
         .select();
@@ -54,13 +55,13 @@ export default function EditPilotPanel({ pilot, onClose, onSuccess }) {
       if (error) throw error;
 
       if (data && data.length > 0) {
-        alert("✅ Piloto actualizado correctamente.");
+        alert("✅ " + formData.name + " actualizado correctamente por nivel Administrativo.");
         onSuccess();
       } else {
-        alert("⚠️ No se pudo actualizar: Verifica tus permisos.");
+        alert("⚠️ El servidor no procesó el cambio. Revisa el rol de tu cuenta.");
       }
     } catch (err) {
-      alert("Error crítico: " + err.message);
+      alert("Error de permisos: " + err.message);
     } finally {
       setLoading(false);
     }

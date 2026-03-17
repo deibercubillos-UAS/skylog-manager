@@ -151,46 +151,106 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="precios" className="py-24 bg-slate-50 dark:bg-slate-900/50 text-left">
+        {/* --- SECCIÓN DE PRECIOS ACTUALIZADA --- */}
+        <section id="precios" className="py-24 bg-slate-50 dark:bg-[#110a07] text-left">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-black text-[#1A202C] dark:text-white mb-4">Planes de Suscripción</h2>
-              <p className="text-slate-600">Escala tu operación con las herramientas adecuadas.</p>
+              <h2 className="text-4xl font-black text-[#1A202C] dark:text-white mb-4 uppercase tracking-tighter">Planes de Operación</h2>
+              <p className="text-slate-500 max-w-2xl mx-auto font-medium">Soluciones escalables desde pilotos independientes hasta flotas corporativas de nivel nacional.</p>
             </div>
-            
-            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-              {/* Tarjeta Plan Piloto */}
-              <div className="bg-white p-8 rounded-3xl border border-slate-200 flex flex-col h-full shadow-sm">
-                <h3 className="text-lg font-bold mb-2">Plan Piloto</h3>
-                <div className="text-4xl font-black mb-6">$0</div>
-                <ul className="space-y-4 mb-8 flex-1 text-sm text-slate-500">
-                  <li className="flex items-center gap-2"><span className="material-symbols-outlined text-primary text-lg">check</span> 1 Drone & 1 Piloto</li>
-                  <li className="flex items-center gap-2"><span className="material-symbols-outlined text-primary text-lg">check</span> Bitácora básica</li>
-                </ul>
-                <Link href="/registro" className="w-full py-3 rounded-xl border-2 border-primary text-primary font-black text-xs uppercase text-center">Empezar Gratis</Link>
-              </div>
 
-              {/* Tarjeta Plan Operador (Destacado) */}
-              <div className="bg-white p-8 rounded-3xl border-2 border-primary relative shadow-2xl scale-105 z-10 flex flex-col h-full">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-white px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Popular</div>
-                <h3 className="text-lg font-bold mb-2">Plan Operador</h3>
-                <div className="text-4xl font-black mb-6">$29</div>
-                <ul className="space-y-4 mb-8 flex-1 text-sm text-slate-600">
-                  <li className="flex items-center gap-2"><span className="material-symbols-outlined text-primary text-lg">verified</span> SORA & Checklists Pro</li>
-                  <li className="flex items-center gap-2"><span className="material-symbols-outlined text-primary text-lg">verified</span> Reportes PDF ilimitados</li>
-                </ul>
-                <Link href="/registro" className="w-full py-3 rounded-xl bg-primary text-white font-black text-xs uppercase text-center shadow-lg shadow-orange-500/30">Probar 14 días</Link>
-              </div>
+            {/* Grid de 4 Planes */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-20">
+              
+              {/* PLAN PILOTO */}
+              <PricingCard 
+                title="Piloto"
+                price="0"
+                perfil="1 Piloto (Uso individual)"
+                flota="1 Drone"
+                features={[
+                  "Acceso completo a la plataforma",
+                  "Bitácora digital ilimitada",
+                  "Gestión de perfiles y baterías",
+                  "Carga de RCE e Idoneidad"
+                ]}
+                buttonText="Empezar Gratis"
+              />
 
-              {/* Tarjeta Plan Enterprise */}
-              <div className="bg-white p-8 rounded-3xl border border-slate-200 flex flex-col h-full shadow-sm">
-                <h3 className="text-lg font-bold mb-2">Plan Enterprise</h3>
-                <div className="text-4xl font-black mb-6">Custom</div>
-                <ul className="space-y-4 mb-8 flex-1 text-sm text-slate-500">
-                  <li className="flex items-center gap-2"><span className="material-symbols-outlined text-primary text-lg">check</span> Flotas Ilimitadas</li>
-                  <li className="flex items-center gap-2"><span className="material-symbols-outlined text-primary text-lg">check</span> Soporte 24/7</li>
-                </ul>
-                <button className="w-full py-3 rounded-xl bg-[#1A202C] text-white font-black text-xs uppercase text-center">Contactar</button>
+              {/* PLAN ESCUADRILLA */}
+              <PricingCard 
+                title="Escuadrilla"
+                price="49"
+                perfil="7 Roles (Jefe + SMS + 5 Pilotos)"
+                flota="Hasta 15 Drones"
+                features={[
+                  "Asignación de misiones específicas",
+                  "Alertas de mantenimiento auto",
+                  "Reportes para auditorías",
+                  "Panel de estadísticas grupales"
+                ]}
+                buttonText="Probar Escuadrilla"
+                recommended
+              />
+
+              {/* PLAN FLOTA */}
+              <PricingCard 
+                title="Flota"
+                price="129"
+                perfil="Hasta 20 Pilotos"
+                flota="Drones Ilimitados"
+                features={[
+                  "Ciclos de vida (Motores/Baterías)",
+                  "Dashboards de rendimiento AV",
+                  "Exportación masiva de datos",
+                  "Soporte prioritario"
+                ]}
+                buttonText="Solicitar Flota"
+              />
+
+              {/* PLAN ENTERPRISE */}
+              <PricingCard 
+                title="Enterprise"
+                price="Custom"
+                perfil="Personalización total"
+                flota="Ilimitado"
+                features={[
+                  "White Label (Logo/Colores/Dominio)",
+                  "Acceso a API para ERP/CRM",
+                  "Módulos desarrollados a medida",
+                  "Servidor y cifrado dedicado"
+                ]}
+                buttonText="Contactar Ventas"
+                dark
+              />
+            </div>
+
+            {/* --- TABLA COMPARATIVA --- */}
+            <div className="mt-20 overflow-hidden bg-white dark:bg-[#1A202C] rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl">
+              <div className="p-8 border-b border-slate-100 dark:border-slate-800">
+                <h3 className="text-xl font-black uppercase text-[#1A202C] dark:text-white">Comparativa Técnica Detallada</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-black/20 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <th className="px-8 py-5">Funcionalidad</th>
+                      <th className="px-6 py-5 text-center">Piloto</th>
+                      <th className="px-6 py-5 text-center text-[#ec5b13]">Escuadrilla</th>
+                      <th className="px-6 py-5 text-center">Flota</th>
+                      <th className="px-6 py-5 text-center">Enterprise</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                    <ComparisonRow label="Registro de Aeronaves" v1="1" v2="15" v3="Ilimitado" v4="Ilimitado" />
+                    <ComparisonRow label="Usuarios / Pilotos" v1="1" v2="7" v3="20" v4="Ilimitado" />
+                    <ComparisonRow label="Checklist Personalizado" v1={true} v2={true} v3={true} v4={true} />
+                    <ComparisonRow label="Alertas de Mantenimiento" v1={false} v2={true} v3={true} v4={true} />
+                    <ComparisonRow label="Análisis SORA Sail I-IV" v1={false} v2={true} v3={true} v4={true} />
+                    <ComparisonRow label="API & Integraciones" v1={false} v2={false} v3={false} v4={true} />
+                    <ComparisonRow label="Dominio Propio" v1={false} v2={false} v3={false} v4={true} />
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -252,5 +312,63 @@ function StatBox({ label, value, color = "text-white" }) {
       <span className={`text-3xl font-black ${color}`}>{value}</span>
       <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest">{label}</span>
     </div>
+  );
+}
+function PricingCard({ title, price, perfil, flota, features, buttonText, recommended, dark }) {
+  return (
+    <div className={`p-8 rounded-[2rem] border flex flex-col transition-all duration-500 ${
+      recommended 
+      ? 'border-[#ec5b13] shadow-2xl scale-105 z-10 bg-white dark:bg-slate-900 ring-8 ring-orange-500/5' 
+      : dark ? 'bg-[#1A202C] border-slate-700 text-white' : 'bg-white border-slate-200 shadow-sm'
+    }`}>
+      {recommended && (
+        <span className="bg-[#ec5b13] text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full self-center mb-4">Recomendado</span>
+      )}
+      <h3 className={`text-xl font-black uppercase mb-1 ${dark ? 'text-[#ec5b13]' : 'text-navy'}`}>{title}</h3>
+      <div className="flex items-baseline gap-1 mb-6">
+        <span className="text-4xl font-black">{price !== 'Custom' ? `$${price}` : price}</span>
+        {price !== 'Custom' && <span className="text-slate-400 text-xs font-bold uppercase">/ mes</span>}
+      </div>
+      
+      <div className="space-y-4 mb-8 text-xs border-y border-slate-100 dark:border-white/5 py-4">
+        <p className="flex items-center gap-2 font-bold"><span className="material-symbols-outlined text-sm text-[#ec5b13]">group</span> {perfil}</p>
+        <p className="flex items-center gap-2 font-bold"><span className="material-symbols-outlined text-sm text-[#ec5b13]">flight</span> {flota}</p>
+      </div>
+
+      <ul className="space-y-3 mb-10 flex-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+        {features.map((f, i) => (
+          <li key={i} className="flex items-start gap-2 leading-tight">
+            <span className="material-symbols-outlined text-[#ec5b13] text-base shrink-0">check_circle</span> {f}
+          </li>
+        ))}
+      </ul>
+      
+      <Link href="/registro" className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-center transition-all ${
+        recommended ? 'bg-[#ec5b13] text-white shadow-lg' : dark ? 'bg-white text-navy' : 'border-2 border-slate-100 hover:bg-slate-50'
+      }`}>
+        {buttonText}
+      </Link>
+    </div>
+  );
+}
+
+function ComparisonRow({ label, v1, v2, v3, v4 }) {
+  const check = <span className="material-symbols-outlined text-[#ec5b13] font-black">done</span>;
+  const cross = <span className="material-symbols-outlined text-slate-200">close</span>;
+  
+  const format = (val) => {
+    if (val === true) return check;
+    if (val === false) return cross;
+    return val;
+  };
+
+  return (
+    <tr className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+      <td className="px-8 py-4 font-bold text-slate-700 dark:text-slate-300">{label}</td>
+      <td className="px-6 py-4 text-center">{format(v1)}</td>
+      <td className="px-6 py-4 text-center font-black text-[#ec5b13]">{format(v2)}</td>
+      <td className="px-6 py-4 text-center">{format(v3)}</td>
+      <td className="px-6 py-4 text-center">{format(v4)}</td>
+    </tr>
   );
 }

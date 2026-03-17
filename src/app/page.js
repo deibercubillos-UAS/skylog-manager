@@ -285,7 +285,7 @@ export default function LandingPage() {
                     icon="chat" 
                     title="WhatsApp de Soporte" 
                     detail="+57 300 000 0000" 
-                    link="https://wa.me/573000000000"
+                    link="https://wa.me/573213569836"
                   />
                   <ContactItem 
                     icon="location_on" 

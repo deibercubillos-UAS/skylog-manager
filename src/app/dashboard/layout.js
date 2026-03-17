@@ -10,7 +10,7 @@ export default function DashboardLayout({ children }) {
 const menuItems = [
   { name: 'Dashboard', icon: 'dashboard', href: '/dashboard' },
   { name: 'Mis Pilotos', icon: 'person', href: '/dashboard/pilots' },
-  { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/fleet' },
+  { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/dashboard/fleet' },
   { name: 'Bitácora de Vuelos', icon: 'menu_book', href: '/dashboard/logbook' },
   { name: 'Análisis SORA', icon: 'shield', href: '/dashboard/sora' },
   { name: 'Mantenimiento', icon: 'build', href: '/dashboard/maintenance' },

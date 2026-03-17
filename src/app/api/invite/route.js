@@ -8,7 +8,7 @@ export async function POST(req) {
     const { email, role, orgName, inviterName } = await req.json();
 
     const data = await resend.emails.send({
-      from: 'SkyLog Manager <no-reply@bitafly.com>',, // Luego podrás usar tu propio dominio
+      from: 'SkyLog Manager <no-reply@bitafly.com>',
       to: [email],
       subject: `🚁 Invitación para unirse a la flota de ${orgName}`,
       html: `
@@ -17,7 +17,7 @@ export async function POST(req) {
           <p><strong>${inviterName}</strong> te ha invitado a unirte a su equipo en <strong>SkyLog Manager</strong> como <strong>${role}</strong>.</p>
           <p>Con SkyLog podrás gestionar tus vuelos, cumplir con la normativa RAC 100 y mantener tu bitácora digital al día.</p>
           <div style="margin-top: 30px;">
-            <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://tu-sitio.vercel.app'}/registro?email=${email}" 
+            <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com'}/registro?email=${email}" 
                style="background-color: #ec5b13; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
               Aceptar Invitación y Registrarme
             </a>

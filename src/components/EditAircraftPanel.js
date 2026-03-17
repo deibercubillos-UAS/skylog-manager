@@ -1,82 +1,107 @@
 'use client';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import FileUpload from './FileUpload';
 
-export default function AircraftCard({ aircraft }) {
-  // LÓGICA DE ALERTAS
-  const hoursRemaining = (aircraft.maintenance_interval_hours || 50) - (aircraft.total_hours % (aircraft.maintenance_interval_hours || 50));
+export default function EditAircraftPanel({ aircraft, onClose, onSuccess }) {
+  const [loading, setLoading] = useState(false);
+  const [imageUrl, setImageUrl] = useState(aircraft?.image_url || '');
   
-  const today = new Date();
-  const nextServiceDate = aircraft.next_maintenance_date ? new Date(aircraft.next_maintenance_date) : null;
-  const daysRemaining = nextServiceDate ? Math.ceil((nextServiceDate - today) / (1000 * 60 * 60 * 24)) : 999;
+  // Estado del formulario con todos los campos técnicos
+  const [formData, setFormData] = useState({
+    model: aircraft?.model || '',
+    serial_number: aircraft?.serial_number || '',
+    mtow: aircraft?.mtow || 0,
+    maintenance_interval_hours: aircraft?.maintenance_interval_hours || 50,
+    next_maintenance_date: aircraft?.next_maintenance_date || '',
+    status: aircraft?.status || 'Operativo'
+  });
 
-  // Criterios de Alerta (Punto Rojo)
-  const isNearMaintenance = hoursRemaining <= 5 || daysRemaining <= 7;
-  const isMaintenanceOverdue = aircraft.status === 'Mantenimiento' || hoursRemaining <= 0 || daysRemaining <= 0;
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from('aircraft')
+        .update({
+          ...formData,
+          image_url: imageUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', aircraft.id);
+
+      if (error) throw error;
+
+      alert("✅ Datos técnicos actualizados correctamente.");
+      onSuccess();
+    } catch (err) {
+      alert("Error al actualizar: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex group hover:shadow-md transition-all text-left relative h-44">
-      
-      {/* INDICADOR DE ALERTA (PUNTO ROJO) */}
-      {(isNearMaintenance || isMaintenanceOverdue) && (
-        <div className="absolute top-2 right-2 z-30 flex items-center gap-1 bg-red-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-lg">
-          <span className="size-1.5 bg-white rounded-full"></span>
-          INSPECCIÓN REQUERIDA
+    <aside className="fixed inset-y-0 right-0 w-96 bg-white dark:bg-slate-900 border-l border-slate-200 shadow-2xl z-[100] p-8 flex flex-col text-left animate-in slide-in-from-right duration-300 overflow-y-auto custom-scrollbar">
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900">Ficha Técnica</h3>
+          <p className="text-[10px] text-[#ec5b13] font-bold uppercase tracking-widest">Editar Drone</p>
         </div>
-      )}
-
-      {/* Imagen */}
-      <div className="w-44 bg-slate-100 dark:bg-slate-900 relative shrink-0">
-        <img 
-          src={aircraft.image_url || 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=400'} 
-          alt={aircraft.model}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+        <button onClick={onClose} className="material-symbols-outlined text-slate-300 hover:text-red-500 transition-colors">close</button>
       </div>
 
-      {/* Info Técnica */}
-      <div className="flex-1 p-4 flex flex-col justify-between">
-        <div className="flex justify-between items-start">
-          <div className="overflow-hidden">
-            <h3 className="font-black text-slate-900 dark:text-white text-base leading-tight truncate">{aircraft.model}</h3>
-            <p className="text-[#ec5b13] text-[9px] font-black uppercase tracking-widest">{aircraft.serial_number}</p>
-          </div>
-          
-          {/* Círculo de Salud dinámico basado en las horas reales */}
-          <div 
-            className="size-10 rounded-full flex items-center justify-center text-[9px] font-black border-4 border-slate-50 relative shrink-0"
-            style={{ 
-              background: `conic-gradient(${isNearMaintenance ? '#ef4444' : '#ec5b13'} ${(1 - (hoursRemaining / (aircraft.maintenance_interval_hours || 50))) * 100}%, #f1f5f9 0)` 
-            }}
-          >
-            <div className="absolute inset-0.5 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center">
-              {Math.round((1 - (hoursRemaining / (aircraft.maintenance_interval_hours || 50))) * 100)}%
+      <form onSubmit={handleUpdate} className="space-y-6 pb-10">
+        
+        {/* FOTO DEL DRON */}
+        <div className="space-y-3">
+          <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Imagen de Referencia</label>
+          {imageUrl && (
+            <div className="h-32 w-full rounded-2xl overflow-hidden border border-slate-100 mb-2 shadow-inner">
+              <img src={imageUrl} alt="Drone" className="w-full h-full object-cover" />
             </div>
+          )}
+          <FileUpload bucket="documents" path="aircraft_photos" label={imageUrl ? "Cambiar Foto" : "Subir Foto"} onUploadSuccess={setImageUrl} />
+        </div>
+
+        {/* IDENTIFICACIÓN BÁSICA */}
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Marca / Modelo</label>
+            <input required value={formData.model} className="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm font-bold outline-none focus:ring-2 focus:ring-[#ec5b13]/20" onChange={e => setFormData({...formData, model: e.target.value})} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Número de Serie (S/N)</label>
+            <input required value={formData.serial_number} className="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm font-mono outline-none" onChange={e => setFormData({...formData, serial_number: e.target.value})} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[9px] font-black text-slate-400 uppercase ml-1">MTOW - Peso Máx. Despegue (Kg)</label>
+            <input type="number" step="0.01" value={formData.mtow} className="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm font-bold outline-none" onChange={e => setFormData({...formData, mtow: e.target.value})} />
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-slate-50 pt-3 mt-2">
-          <StatMini label="Horas Totales" value={`${aircraft.total_hours?.toFixed(1)} h`} />
-          <StatMini label="MTOW" value={`${aircraft.mtow || 0} kg`} />
-          <StatMini 
-            label="Mantenimiento" 
-            value={daysRemaining < 30 ? `En ${daysRemaining} días` : 'Programado'} 
-            color={daysRemaining <= 7 ? 'text-red-500' : 'text-slate-500'}
-          />
-          <StatMini 
-            label="Horas Restantes" 
-            value={`${hoursRemaining.toFixed(1)} h`}
-            color={hoursRemaining <= 5 ? 'text-red-500' : 'text-[#ec5b13]'}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
+        {/* PLAN DE MANTENIMIENTO */}
+        <div className="bg-orange-50 p-5 rounded-[1.5rem] border border-orange-100 space-y-4 shadow-sm">
+          <h4 className="text-[10px] font-black text-[#ec5b13] uppercase tracking-widest flex items-center gap-2">
+            <span className="material-symbols-outlined text-sm">build_circle</span> Programación Técnica
+          </h4>
+          
+          <div className="space-y-1">
+            <label className="text-[9px] font-bold text-orange-400 uppercase ml-1">Cada cuántas horas requiere servicio</label>
+            <input type="number" value={formData.maintenance_interval_hours} className="w-full bg-white border-none rounded-xl p-3 text-sm font-black outline-none focus:ring-2 focus:ring-orange-200" onChange={e => setFormData({...formData, maintenance_interval_hours: e.target.value})} />
+          </div>
 
-function StatMini({ label, value, color = "text-slate-700" }) {
-  return (
-    <div className="overflow-hidden">
-      <p className="text-[8px] text-slate-400 uppercase font-black tracking-tighter">{label}</p>
-      <p className={`text-[11px] font-bold truncate ${color}`}>{value}</p>
-    </div>
+          <div className="space-y-1">
+            <label className="text-[9px] font-bold text-orange-400 uppercase ml-1">Fecha de próxima inspección anual</label>
+            <input type="date" value={formData.next_maintenance_date} className="w-full bg-white border-none rounded-xl p-3 text-sm font-black outline-none focus:ring-2 focus:ring-orange-200" onChange={e => setFormData({...formData, next_maintenance_date: e.target.value})} />
+          </div>
+        </div>
+
+        <button type="submit" disabled={loading} className="w-full py-5 bg-[#ec5b13] text-white font-black rounded-2xl shadow-lg shadow-orange-500/20 uppercase text-xs tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-95">
+          {loading ? 'Sincronizando...' : 'Guardar Ficha Técnica'}
+        </button>
+      </form>
+    </aside>
   );
 }

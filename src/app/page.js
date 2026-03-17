@@ -151,6 +151,51 @@ export default function LandingPage() {
           </div>
         </section>
 
+        <section id="precios" className="py-24 bg-slate-50 dark:bg-slate-900/50 text-left">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-black text-[#1A202C] dark:text-white mb-4">Planes de Suscripción</h2>
+              <p className="text-slate-600">Escala tu operación con las herramientas adecuadas.</p>
+            </div>
+            
+            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+              {/* Tarjeta Plan Piloto */}
+              <div className="bg-white p-8 rounded-3xl border border-slate-200 flex flex-col h-full shadow-sm">
+                <h3 className="text-lg font-bold mb-2">Plan Piloto</h3>
+                <div className="text-4xl font-black mb-6">$0</div>
+                <ul className="space-y-4 mb-8 flex-1 text-sm text-slate-500">
+                  <li className="flex items-center gap-2"><span className="material-symbols-outlined text-primary text-lg">check</span> 1 Drone & 1 Piloto</li>
+                  <li className="flex items-center gap-2"><span className="material-symbols-outlined text-primary text-lg">check</span> Bitácora básica</li>
+                </ul>
+                <Link href="/registro" className="w-full py-3 rounded-xl border-2 border-primary text-primary font-black text-xs uppercase text-center">Empezar Gratis</Link>
+              </div>
+
+              {/* Tarjeta Plan Operador (Destacado) */}
+              <div className="bg-white p-8 rounded-3xl border-2 border-primary relative shadow-2xl scale-105 z-10 flex flex-col h-full">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-white px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Popular</div>
+                <h3 className="text-lg font-bold mb-2">Plan Operador</h3>
+                <div className="text-4xl font-black mb-6">$29</div>
+                <ul className="space-y-4 mb-8 flex-1 text-sm text-slate-600">
+                  <li className="flex items-center gap-2"><span className="material-symbols-outlined text-primary text-lg">verified</span> SORA & Checklists Pro</li>
+                  <li className="flex items-center gap-2"><span className="material-symbols-outlined text-primary text-lg">verified</span> Reportes PDF ilimitados</li>
+                </ul>
+                <Link href="/registro" className="w-full py-3 rounded-xl bg-primary text-white font-black text-xs uppercase text-center shadow-lg shadow-orange-500/30">Probar 14 días</Link>
+              </div>
+
+              {/* Tarjeta Plan Enterprise */}
+              <div className="bg-white p-8 rounded-3xl border border-slate-200 flex flex-col h-full shadow-sm">
+                <h3 className="text-lg font-bold mb-2">Plan Enterprise</h3>
+                <div className="text-4xl font-black mb-6">Custom</div>
+                <ul className="space-y-4 mb-8 flex-1 text-sm text-slate-500">
+                  <li className="flex items-center gap-2"><span className="material-symbols-outlined text-primary text-lg">check</span> Flotas Ilimitadas</li>
+                  <li className="flex items-center gap-2"><span className="material-symbols-outlined text-primary text-lg">check</span> Soporte 24/7</li>
+                </ul>
+                <button className="w-full py-3 rounded-xl bg-[#1A202C] text-white font-black text-xs uppercase text-center">Contactar</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
       </main>
 
       {/* --- FOOTER --- */}

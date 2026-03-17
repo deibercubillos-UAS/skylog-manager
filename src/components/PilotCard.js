@@ -23,7 +23,7 @@ export default function PilotCard({ pilot }) {
         <div className="flex justify-between items-start mb-2">
           <div>
             <h3 className="font-bold text-slate-900 dark:text-white text-lg leading-tight">{pilot.name}</h3>
-            <p className="text-[#ec5b13] text-[10px] font-black uppercase tracking-[0.1em]">{pilot.pilot_role || 'Piloto de Mando'}</p>
+            <p className="text-[#ec5b13] text-[10px] font-black uppercase tracking-[0.1em]">{pilot.pilot_role}</p>
           </div>
           <button className="material-symbols-outlined text-slate-400 hover:text-[#ec5b13] text-lg transition-colors">edit</button>
         </div>
@@ -39,6 +39,22 @@ export default function PilotCard({ pilot }) {
               {pilot.medical_expiry}
             </p>
           </div>
+           {/* NUEVA SECCIÓN DE DOCUMENTOS DESCARGABLES */}
+          <div className="flex gap-2">
+            {pilot.certificate_url && (
+              <a href={pilot.certificate_url} target="_blank" rel="noreferrer" title="Ver Licencia" 
+                className="size-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 hover:text-[#ec5b13] transition-colors">
+                <span className="material-symbols-outlined text-lg">badge</span>
+              </a>
+            )}
+            {pilot.medical_url && (
+              <a href={pilot.medical_url} target="_blank" rel="noreferrer" title="Ver Certificado Médico" 
+                className="size-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 hover:text-blue-500 transition-colors">
+                <span className="material-symbols-outlined text-lg">medical_services</span>
+              </a>
+            )}
+          </div>
+        </div>
         </div>
       </div>
     </div>

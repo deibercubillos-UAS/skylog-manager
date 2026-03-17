@@ -1,204 +1,177 @@
 'use client';
-import Link from 'next/link';
-import Navbar from '@/components/Navbar';
+export const dynamic = 'force-dynamic';
 
-export default function LandingPage() {
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+
+export default function DashboardPage() {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState({
+    stats: { hours: 0, fleet: "0/0", pilots: 0, alerts: 0 },
+    recentFlights: [],
+    missionStats: { photogrammetry: 0, inspection: 0, mapping: 0, rescue: 0 }
+  });
+
+  useEffect(() => {
+    async function getDashboardData() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // 1. KPI: Aeronaves y Horas
+        const { data: aircraft } = await supabase
+          .from('aircraft')
+          .select('total_hours, status')
+          .eq('owner_id', user.id);
+
+        const totalH = aircraft?.reduce((acc, a) => acc + (a.total_hours || 0), 0) || 0;
+        const operational = aircraft?.filter(a => a.status === 'Operativo').length || 0;
+
+        // 2. KPI: Pilotos
+        const { count: pilotsCount } = await supabase
+          .from('pilots')
+          .select('*', { count: 'exact', head: true })
+          .eq('owner_id', user.id);
+
+        // 3. Vuelos Recientes y Estadísticas de Misión
+        const { data: flights } = await supabase
+          .from('flights')
+          .select('*, pilots(name), aircraft(model)')
+          .eq('owner_id', user.id)
+          .order('flight_date', { ascending: false })
+          .limit(5);
+
+        // 4. Conteo de misiones (Simulado basado en registros)
+        const missionCounts = { photogrammetry: 45, inspection: 30, mapping: 15, rescue: 10 };
+
+        setData({
+          stats: {
+            hours: totalH.toFixed(1),
+            fleet: `${operational}/${aircraft?.length || 0}`,
+            pilots: pilotsCount || 0,
+            alerts: 2 // Ejemplo estático de alertas de mantenimiento
+          },
+          recentFlights: flights || [],
+          missionStats: missionCounts
+        });
+      } catch (error) {
+        console.error("Error cargando dashboard:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    getDashboardData();
+  }, []);
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ec5b13]"></div>
+    </div>
+  );
+
   return (
-    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display transition-colors duration-300">
+    <div className="space-y-8 animate-in fade-in duration-500 text-left">
       
-      {/* Reutilizamos el Navbar que ya tenemos configurado */}
-      <Navbar />
+      {/* SECCIÓN 1: KPI CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <KPICard title="Total Horas" value={`${data.stats.hours}h`} trend="+5.2%" />
+        <KPICard title="Flota Operativa" value={data.stats.fleet} subtitle="Aeronaves Listas" />
+        <KPICard title="Pilotos" value={data.stats.pilots} subtitle="Comandantes Activos" />
+        <KPICard title="Alertas" value={data.stats.alerts} warning={data.stats.alerts > 0} />
+      </div>
 
-      <main>
-        {/* --- HERO SECTION --- */}
-        <section className="relative overflow-hidden pt-16 pb-20 lg:pt-24 lg:pb-32 text-left">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <div className="flex flex-col gap-8">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 w-fit">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                  </span>
-                  <span className="text-xs font-black uppercase tracking-wider text-primary">Novedad: RAC 2024 Compliance</span>
-                </div>
-                <h1 className="text-4xl md:text-5xl lg:text-7xl font-black text-navy dark:text-white leading-[1.1] tracking-tight">
-                  La Bitácora Digital que garantiza tu <span className="text-primary">cumplimiento legal.</span>
-                </h1>
-                <p className="text-lg text-slate-600 dark:text-slate-400 max-w-xl">
-                  Gestiona pilotos, drones y análisis SORA bajo estándares RAC con facilidad. La plataforma definitiva para operadores profesionales que buscan seguridad y control total.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Link href="/registro" className="bg-primary hover:bg-orange-600 text-white px-8 py-4 rounded-xl text-lg font-black shadow-xl shadow-primary/30 flex items-center justify-center gap-2 group transition-all">
-                    Comenzar Prueba de 14 días
-                    <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
-                  </Link>
-                  <button className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-8 py-4 rounded-xl text-lg font-bold hover:bg-slate-50 transition-all">
-                    Ver Demo
-                  </button>
-                </div>
+      {/* SECCIÓN 2: GRÁFICOS */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Gráfico de Barras: Actividad Mensual */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <h3 className="font-black text-slate-800 mb-6 uppercase text-[10px] tracking-widest">Actividad Mensual (Horas)</h3>
+          <div className="h-48 w-full flex items-end gap-3 px-2">
+            {[40, 65, 50, 85, 70, 95, 60].map((h, i) => (
+              <div key={i} className="group relative flex-1">
+                <div style={{ height: `${h}%` }} className="bg-[#ec5b13]/20 group-hover:bg-[#ec5b13] transition-all rounded-t-lg"></div>
+                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-slate-400">M{i+1}</span>
               </div>
-
-              <div className="relative">
-                <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full transform -rotate-12"></div>
-                <div className="relative bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700">
-                  <img alt="Enterprise Drone" className="w-full aspect-video object-cover" src="https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=800" />
-                  <div className="absolute top-4 right-4 bg-navy/90 text-white p-4 rounded-xl backdrop-blur shadow-lg border border-white/10 max-w-[200px] text-left">
-                    <p className="text-[10px] uppercase font-black tracking-widest text-primary mb-1">Live Telemetry</p>
-                    <div className="flex items-center justify-between gap-4 mb-2">
-                      <span className="text-xs font-bold">Altitude</span>
-                      <span className="text-sm font-mono font-black">120.4m</span>
-                    </div>
-                    <div className="w-full bg-white/20 h-1 rounded-full">
-                      <div className="bg-primary w-2/3 h-1 rounded-full"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* --- KEY BENEFITS SECTION --- */}
-        <section id="caracteristicas" className="py-24 bg-white dark:bg-background-dark border-y border-slate-200 dark:border-slate-800 text-left">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-black text-navy dark:text-white mb-4">Beneficios Clave</h2>
-              <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">Garantizamos que tus operaciones sean seguras y cumplan con la normativa mediante herramientas de automatización avanzada.</p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-8">
-              <BenefitCard 
-                icon="verified_user" 
-                title="Cumplimiento 100% RAC" 
-                desc="Mantente al día con las regulaciones de la Aerocivil automáticamente. Generación de bitácoras y reportes oficiales en un clic."
-              />
-              <BenefitCard 
-                icon="gpp_maybe" 
-                title="Seguridad SORA" 
-                desc="Realiza evaluaciones de riesgo SORA para cada misión. Mitiga riesgos y obtén autorizaciones de vuelo más rápido."
-              />
-              <BenefitCard 
-                icon="build_circle" 
-                title="Salud de Flota" 
-                desc="Recibe alertas automáticas de mantenimiento programado y ciclos de batería. Evita fallos técnicos en misiones críticas."
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* --- FEATURE SHOWCASE --- */}
-        <section className="py-24 overflow-hidden text-left">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-32">
-            
-            {/* Feature 1 */}
-            <div className="flex flex-col lg:flex-row items-center gap-16">
-              <div className="flex-1 space-y-6">
-                <div className="inline-block p-2 bg-primary/10 rounded-lg">
-                  <span className="material-symbols-outlined text-primary">map</span>
-                </div>
-                <h3 className="text-3xl font-black text-navy dark:text-white leading-tight">Bitácora Digital con Telemetría</h3>
-                <p className="text-slate-600 dark:text-slate-400 text-lg leading-relaxed">
-                  Registro automático de rutas de vuelo, duración y telemetría. Sincroniza directamente desde tu estación de control a nuestra nube para actualizaciones instantáneas.
-                </p>
-                <ul className="space-y-4">
-                  <li className="flex items-center gap-3 text-slate-700 dark:text-slate-300 font-bold">
-                    <span className="material-symbols-outlined text-primary">check_circle</span> Sincronización con DJI, Autel y Parrot
-                  </li>
-                  <li className="flex items-center gap-3 text-slate-700 dark:text-slate-300 font-bold">
-                    <span className="material-symbols-outlined text-primary">check_circle</span> Alertas de Geofencing y espacio aéreo
-                  </li>
-                </ul>
-              </div>
-              <div className="flex-1">
-                <img src="https://images.unsplash.com/photo-1527977966376-1c8418f9f108?q=80&w=800" className="rounded-3xl shadow-2xl border border-slate-200" alt="Map View" />
-              </div>
-            </div>
-
-            {/* Feature 2 */}
-            <div className="flex flex-col lg:flex-row-reverse items-center gap-16">
-              <div className="flex-1 space-y-6">
-                <div className="inline-block p-2 bg-primary/10 rounded-lg">
-                  <span className="material-symbols-outlined text-primary">badge</span>
-                </div>
-                <h3 className="text-3xl font-black text-navy dark:text-white leading-tight">Gestión de Pilotos y Credenciales</h3>
-                <p className="text-slate-600 dark:text-slate-400 text-lg leading-relaxed">
-                  Rastrea certificaciones, exámenes médicos y vigencia de licencias de todo tu equipo. Notificaciones automáticas antes de cualquier vencimiento legal.
-                </p>
-                <div className="p-5 bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-100 flex items-center gap-4">
-                  <div className="size-12 rounded-full bg-slate-200"></div>
-                  <div className="flex-1">
-                    <div className="h-3 w-24 bg-slate-200 rounded mb-2"></div>
-                    <div className="h-2 w-32 bg-slate-100 rounded"></div>
-                  </div>
-                  <span className="px-3 py-1 bg-red-100 text-red-600 text-[10px] font-black rounded-full uppercase">Expira Pronto</span>
-                </div>
-              </div>
-              <div className="flex-1 grid grid-cols-2 gap-4">
-                <StatBox label="Drones" value="42" />
-                <StatBox label="Pilotos" value="12" color="text-primary" />
-                <StatBox label="Horas Vuelo" value="350h" />
-                <StatBox label="Safety Rate" value="100%" color="text-green-500" />
-              </div>
-            </div>
-
-          </div>
-        </section>
-
-      </main>
-
-      {/* --- FOOTER --- */}
-      <footer className="bg-navy text-white pt-20 pb-10 text-left">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-            <div className="col-span-2">
-              <div className="flex items-center gap-2 mb-6">
-                <span className="material-symbols-outlined text-primary text-3xl">precision_manufacturing</span>
-                <span className="text-xl font-black tracking-tight uppercase">SkyLog Manager</span>
-              </div>
-              <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
-                La plataforma líder en cumplimiento aeronáutico para operaciones profesionales con drones. Construida para la seguridad, diseñada para la eficiencia.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-black mb-6 uppercase text-xs tracking-widest text-[#ec5b13]">Certificaciones</h4>
-              <div className="p-4 bg-white/5 border border-white/10 rounded-xl flex items-center gap-3">
-                <span className="material-symbols-outlined text-primary text-3xl">verified</span>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Partner Certificado</p>
-                  <p className="text-xs font-bold">Cumplimiento RAC Garantizado</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="pt-10 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-            <p>© 2024 SkyLog Manager. All rights reserved.</p>
-            <div className="flex gap-8">
-              <span>RAC (Aerocivil / FAA) Compliant</span>
-              <span>SORA Methodology Certified</span>
-            </div>
+            ))}
           </div>
         </div>
-      </footer>
+
+        {/* Distribución de Misiones */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <h3 className="font-black text-slate-800 mb-6 uppercase text-[10px] tracking-widest">Tipos de Misión</h3>
+          <div className="space-y-5">
+            <ProgressBar label="Fotogrametría" percent={data.missionStats.photogrammetry} color="bg-[#ec5b13]" />
+            <ProgressBar label="Inspección" percent={data.missionStats.inspection} color="bg-[#1A202C]" />
+            <ProgressBar label="Mapeo" percent={data.missionStats.mapping} color="bg-emerald-500" />
+            <ProgressBar label="Rescate" percent={data.missionStats.rescue} color="bg-blue-500" />
+          </div>
+        </div>
+      </div>
+
+      {/* SECCIÓN 3: TABLA DE VUELOS RECIENTES */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+          <h3 className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Actividad Reciente</h3>
+          <button className="text-[10px] font-bold text-[#ec5b13] hover:underline uppercase">Ver Bitácora Completa</button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-tighter">
+              <tr>
+                <th className="px-6 py-4">Fecha</th>
+                <th className="px-6 py-4">Piloto</th>
+                <th className="px-6 py-4">Aeronave</th>
+                <th className="px-6 py-4">Misión</th>
+                <th className="px-6 py-4 text-right">Estado</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-sm">
+              {data.recentFlights.length > 0 ? (
+                data.recentFlights.map((flight) => (
+                  <tr key={flight.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-slate-600">{flight.flight_date}</td>
+                    <td className="px-6 py-4 font-bold text-slate-900">{flight.pilots?.name || 'N/A'}</td>
+                    <td className="px-6 py-4 text-slate-500">{flight.aircraft?.model || 'Desconocido'}</td>
+                    <td className="px-6 py-4 text-slate-500">{flight.mission_type}</td>
+                    <td className="px-6 py-4 text-right">
+                      <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full uppercase">Completado</span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr><td colSpan="5" className="px-6 py-8 text-center text-slate-400 italic">No hay vuelos registrados aún.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
 
-// Componentes Auxiliares
-function BenefitCard({ icon, title, desc }) {
+// COMPONENTES AUXILIARES
+function KPICard({ title, value, trend, subtitle, warning }) {
   return (
-    <div className="p-8 rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-all bg-slate-50 dark:bg-slate-900/50 hover:shadow-xl">
-      <span className="material-symbols-outlined text-4xl text-primary mb-6">{icon}</span>
-      <h3 className="text-xl font-black mb-3 text-navy dark:text-white">{title}</h3>
-      <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">{desc}</p>
+    <div className={`bg-white p-6 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-md ${warning ? 'border-orange-500 bg-orange-50' : ''}`}>
+      <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">{title}</p>
+      <div className="flex items-baseline justify-between">
+        <span className={`text-3xl font-black ${warning ? 'text-orange-600' : 'text-slate-900'}`}>{value}</span>
+        {trend && <span className="text-emerald-500 text-xs font-bold uppercase">{trend}</span>}
+        {subtitle && <span className="text-slate-400 text-xs font-medium">{subtitle}</span>}
+      </div>
     </div>
   );
 }
 
-function StatBox({ label, value, color = "text-white" }) {
+function ProgressBar({ label, percent, color }) {
   return (
-    <div className="aspect-square bg-white/5 rounded-2xl border border-white/5 flex flex-col items-center justify-center gap-2">
-      <span className={`text-3xl font-black ${color}`}>{value}</span>
-      <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest">{label}</span>
+    <div className="space-y-1">
+      <div className="flex justify-between text-[10px] font-black uppercase tracking-tighter">
+        <span className="text-slate-500">{label}</span>
+        <span className="text-slate-900">{percent}%</span>
+      </div>
+      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+        <div className={`${color} h-full transition-all duration-1000`} style={{ width: `${percent}%` }}></div>
+      </div>
     </div>
   );
 }

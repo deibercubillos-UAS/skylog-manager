@@ -29,7 +29,7 @@ export default function NewFlightPage() {
       const { data: { user } } = await supabase.auth.getUser();
       
       const { data: aircraft } = await supabase.from('aircraft').select('*').eq('owner_id', user.id);
-      const { data: pilots } = await supabase.from('pilots').select('*').eq('owner_id', user.id);
+      const { data: pilotsList } = await supabase.from('pilots').select('*').eq('owner_id', user.id);
       const { data: missions } = await supabase.from('mission_types').select('*').eq('owner_id', user.id);
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       const { data: c } = await supabase.from('checklist_templates').select('*').eq('owner_id', user.id);
@@ -39,7 +39,7 @@ export default function NewFlightPage() {
       const { count } = await supabase.from('flights').select('*', { count: 'exact', head: true }).eq('owner_id', user.id);
       const nextNum = `${profile.flight_prefix || 'SKL'}-${(count + 1).toString().padStart(4, '0')}`;
 
-      setData({ drones: aircraft || [], pilots: pilots || [], missions: missions || [], profile });
+      setData({ drones: aircraft || [], pilots: pilotsList  || [], missions: missions || [], profile });
       setSafetyItems({ checklist: c || [], sora: s || [] });
       setFormData(prev => ({ ...prev, flight_number: nextNum, pilot_id: user.id }));
     }

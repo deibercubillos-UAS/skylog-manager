@@ -34,7 +34,7 @@ export default function RegisterPage() {
       alert("¡Cuenta creada! Redirigiendo al Dashboard...");
       // Esperamos un segundo para que la DB termine de procesar el trigger
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        window.location.href = '/dashboard/select-plan';
       }, 1500);
     }
   };

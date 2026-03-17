@@ -258,6 +258,96 @@ export default function LandingPage() {
 
       </main>
 
+        {/* --- SECCIÓN DE CONTACTO --- */}
+        <section id="contacto" className="py-24 bg-white dark:bg-background-dark text-left">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid lg:grid-cols-2 gap-16 items-start">
+              
+              {/* Columna Izquierda: Info de Contacto */}
+              <div className="space-y-8">
+                <div>
+                  <h2 className="text-4xl font-black text-navy dark:text-white uppercase tracking-tighter mb-4">
+                    Hablemos de tu <span className="text-primary">Operación</span>
+                  </h2>
+                  <p className="text-slate-500 text-lg max-w-md">
+                    ¿Necesitas una implementación corporativa o soporte técnico especializado? Nuestro equipo de expertos en normativa UAS está listo para ayudarte.
+                  </p>
+                </div>
+
+                <div className="space-y-6">
+                  <ContactItem 
+                    icon="mail" 
+                    title="Correo Electrónico" 
+                    detail="soporte@skylogmanager.com" 
+                    link="mailto:soporte@skylogmanager.com"
+                  />
+                  <ContactItem 
+                    icon="chat" 
+                    title="WhatsApp de Soporte" 
+                    detail="+57 300 000 0000" 
+                    link="https://wa.me/573000000000"
+                  />
+                  <ContactItem 
+                    icon="location_on" 
+                    title="Ubicación Central" 
+                    detail="Bogotá, Colombia - Operaciones Regionales" 
+                  />
+                </div>
+
+                {/* Badge de Soporte 24/7 */}
+                <div className="p-6 bg-slate-50 dark:bg-white/5 rounded-3xl border border-slate-100 dark:border-white/5 flex items-center gap-4">
+                  <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <span className="material-symbols-outlined font-black">support_agent</span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Soporte Técnico</p>
+                    <p className="text-sm font-bold text-navy dark:text-white">Disponibilidad 24/7 para planes Flota y Enterprise</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Columna Derecha: Formulario */}
+              <div className="bg-navy p-8 md:p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+                {/* Decoración de fondo */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl rounded-full -mr-16 -mt-16"></div>
+                
+                <form className="relative z-10 space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Nombre Completo</label>
+                      <input type="text" className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:ring-2 focus:ring-primary transition-all" placeholder="Ej: Juan Pérez" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Correo Corporativo</label>
+                      <input type="email" className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:ring-2 focus:ring-primary transition-all" placeholder="juan@empresa.com" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Tipo de Consulta</label>
+                    <select className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:ring-2 focus:ring-primary transition-all appearance-none">
+                      <option className="bg-navy">Información de Planes</option>
+                      <option className="bg-navy">Soporte Técnico</option>
+                      <option className="bg-navy">Implementación Enterprise</option>
+                      <option className="bg-navy">Otro</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Mensaje o Requerimiento</label>
+                    <textarea rows="4" className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm outline-none focus:ring-2 focus:ring-primary transition-all" placeholder="Cuéntanos sobre tu flota y necesidades..."></textarea>
+                  </div>
+
+                  <button type="submit" className="w-full bg-primary hover:bg-orange-600 text-white font-black uppercase text-xs tracking-[0.2em] py-5 rounded-2xl shadow-xl shadow-orange-500/20 transition-all transform active:scale-95">
+                    Enviar Mensaje
+                  </button>
+                </form>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
       {/* --- FOOTER --- */}
       <footer className="bg-navy text-white pt-20 pb-10 text-left">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -371,4 +461,20 @@ function ComparisonRow({ label, v1, v2, v3, v4 }) {
       <td className="px-6 py-4 text-center">{format(v4)}</td>
     </tr>
   );
+}
+
+function ContactItem({ icon, title, detail, link }) {
+  const content = (
+    <div className="flex items-center gap-4 group">
+      <div className="size-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-all border border-slate-100 dark:border-white/5">
+        <span className="material-symbols-outlined text-xl">{icon}</span>
+      </div>
+      <div>
+        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none mb-1">{title}</p>
+        <p className="text-sm font-bold text-navy dark:text-white">{detail}</p>
+      </div>
+    </div>
+  );
+
+  return link ? <a href={link} target="_blank" rel="noopener noreferrer">{content}</a> : content;
 }

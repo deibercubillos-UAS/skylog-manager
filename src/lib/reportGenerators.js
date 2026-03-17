@@ -2,42 +2,49 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
-// 1. GENERADOR DE PDF
+// 1. GENERADOR DE PDF PROFESIONAL
 export const downloadPDF = (reportType, data, config) => {
-  const doc = new jsPDF();
-  const title = `REPORTE OFICIAL: ${reportType.toUpperCase()}`;
+  const doc = jsPDF({ orientation: 'landscape' }); // Horizontal para que quepa todo
   
-  // Encabezado
-  doc.setFontSize(18);
-  doc.setTextColor(26, 32, 44); // Color Navy
-  doc.text("SkyLog Manager UAS", 14, 20);
+  // Encabezado con marca BitaFly
+  doc.setFillColor(26, 32, 44); // Navy deep
+  doc.rect(0, 0, 300, 30, 'F');
+  
+  doc.setFontSize(22);
+  doc.setTextColor(255, 255, 255);
+  doc.text("BitaFly Manager - Reporte Oficial", 15, 20);
   
   doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text(`Periodo: ${config.dateFrom} a ${config.dateTo}`, 14, 30);
-  doc.text(`Tipo: ${reportType}`, 14, 35);
+  doc.setTextColor(236, 91, 19); // Naranja primario
+  doc.text(reportType.toUpperCase(), 240, 20);
 
-  // Tabla de datos
+  // Info del periodo
+  doc.setTextColor(100);
+  doc.setFontSize(10);
+  doc.text(`Periodo de auditoría: ${config.dateFrom} a ${config.dateTo}`, 15, 40);
+
+  // Estructurar Tabla
   const tableColumn = Object.keys(data[0] || {});
   const tableRows = data.map(item => Object.values(item));
 
   doc.autoTable({
-    head: [tableColumn],
+    head: [tableColumn.map(c => c.replace('_', ' ').toUpperCase())],
     body: tableRows,
     startY: 45,
-    theme: 'grid',
-    headStyles: { fillStyle: [236, 91, 19] }, // Color Primary Naranja
+    theme: 'striped',
+    headStyles: { fillColor: [236, 91, 19], fontSize: 8 },
+    bodyStyles: { fontSize: 7 },
   });
 
-  doc.save(`SkyLog_${reportType}_${config.dateTo}.pdf`);
+  doc.save(`BitaFly_Reporte_${reportType}_${new Date().getTime()}.pdf`);
 };
 
 // 2. GENERADOR DE EXCEL
 export const downloadExcel = (reportType, data) => {
   const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte");
-  XLSX.writeFile(workbook, `SkyLog_${reportType}.xlsx`);
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Registros");
+  XLSX.writeFile(workbook, `BitaFly_${reportType}.xlsx`);
 };
 
 // 3. GENERADOR DE CSV
@@ -48,9 +55,6 @@ export const downloadCSV = (reportType, data) => {
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
   link.setAttribute("href", url);
-  link.setAttribute("download", `SkyLog_${reportType}.csv`);
-  link.style.visibility = 'hidden';
-  document.body.appendChild(link);
+  link.setAttribute("download", `BitaFly_${reportType}.csv`);
   link.click();
-  document.body.removeChild(link);
 };

@@ -26,6 +26,13 @@ export const PLAN_CONFIG = {
 };
 
 // Función para verificar permisos por rol
+export const canAddResource = (planKey, currentCount, type) => {
+  const plan = PLAN_CONFIG[planKey] || PLAN_CONFIG.piloto;
+  const limit = type === 'drone' ? plan.maxDrones : plan.maxPilots;
+  return currentCount < limit;
+};
+
+// Función para verificar permisos por rol
 export const hasPermission = (role, action) => {
   const permissions = {
     admin: ['all'],

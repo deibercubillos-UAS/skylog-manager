@@ -22,13 +22,16 @@ export default function Navbar() {
 
           {/* Centro: Menú de Navegación (Nosotros eliminado) */}
           <nav className="hidden md:flex items-center space-x-10">
-            <Link href="#caracteristicas" className="text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-[#ec5b13] transition-colors">
+            <Link href="/#caracteristicas" className="text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-[#ec5b13] transition-colors">
               Características
             </Link>
-            <Link href="/precios" className="text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-[#ec5b13] transition-colors">
+            
+            {/* ESTE ES EL CAMBIO CLAVE */}
+            <Link href="/#precios" className="text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-[#ec5b13] transition-colors">
               Precios
             </Link>
-            <Link href="#contacto" className="text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-[#ec5b13] transition-colors">
+            
+            <Link href="/#contacto" className="text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-[#ec5b13] transition-colors">
               Contacto
             </Link>
           </nav>

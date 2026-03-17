@@ -15,7 +15,7 @@ export default function DashboardLayout({ children }) {
   const menuItems = [
     { name: 'Dashboard', icon: 'dashboard', href: '/dashboard' },
     { name: 'Mis Pilotos', icon: 'person', href: '/dashboard/pilots' },
-    { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/fleet' },
+    { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/dashboard/fleet' },
     { name: 'Bitácora de Vuelos', icon: 'menu_book', href: '/dashboard/logbook' },
     // UNIFICAMOS AQUÍ:
     { name: 'Protocolos Seguridad', icon: 'security', href: '/dashboard/safety-config' },

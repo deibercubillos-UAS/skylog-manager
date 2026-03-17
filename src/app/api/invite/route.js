@@ -8,7 +8,7 @@ export async function POST(req) {
     const { email, role, orgName, inviterName } = await req.json();
 
     const data = await resend.emails.send({
-      from: 'SkyLog Manager <onboarding@resend.dev>', // Luego podrás usar tu propio dominio
+      from: 'SkyLog Manager <no-reply@bitafly.com>',, // Luego podrás usar tu propio dominio
       to: [email],
       subject: `🚁 Invitación para unirse a la flota de ${orgName}`,
       html: `

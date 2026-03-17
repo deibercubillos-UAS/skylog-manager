@@ -54,6 +54,15 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f8f6f6] font-display">
+      <div className="p-6 flex items-center gap-3 border-b border-white/5 mb-4">
+        <div className="size-10 flex items-center justify-center shrink-0">
+          <img src="/logo.png" alt="BitaFly" className="h-full w-auto object-contain" />
+        </div>
+        <div className="text-left overflow-hidden">
+          <h1 className="text-white text-xl font-black leading-tight tracking-tighter">BitaFly</h1>
+          <p className="text-[#ec5b13] text-[8px] font-black uppercase tracking-widest truncate">Fleet Admin</p>
+        </div>
+      </div>
       <aside className="w-64 bg-[#1A202C] flex flex-col h-full border-r border-slate-700 shrink-0">
         <div className="p-6 flex items-center gap-3">
           <div className="bg-[#ec5b13] rounded-lg p-1.5 flex items-center justify-center shrink-0">

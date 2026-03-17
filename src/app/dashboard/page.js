@@ -9,7 +9,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
     stats: { hours: 0, operational: 0, totalDrones: 0, pilots: 0, smsAlerts: 0 },
-    chartData: [0, 0, 0, 0, 0, 0],
+    chartData: [], // Ahora incluiremos el nombre del mes y el conteo
     missions: {},
     recentActivity: [],
     criticalAlerts: []
@@ -21,52 +21,54 @@ export default function DashboardPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // 1. Obtener Datos de Aeronaves (Horas y Salud)
+        // 1. Aeronaves
         const { data: aircraft } = await supabase.from('aircraft').select('*').eq('owner_id', user.id);
         const totalH = aircraft?.reduce((acc, a) => acc + (a.total_hours || 0), 0) || 0;
         const opCount = aircraft?.filter(a => a.status === 'Operativo').length || 0;
 
-        // 2. Obtener Pilotos y Vencimientos
+        // 2. Pilotos
         const { data: pilots } = await supabase.from('pilots').select('*').eq('owner_id', user.id);
         
-        // 3. Obtener Vuelos (Para Gráficos y Tabla)
+        // 3. Vuelos
         const { data: flights } = await supabase
           .from('flights')
           .select('*, pilots(name), aircraft(model)')
           .eq('owner_id', user.id)
           .order('created_at', { ascending: false });
 
-        // --- LÓGICA DE ALERTAS CRÍTICAS ---
-        const alerts = [];
-        // Alerta: Médicos por vencer (30 días)
-        const thirtyDaysNode = new Date();
-        thirtyDaysNode.setDate(thirtyDaysNode.getDate() + 30);
-        pilots?.forEach(p => {
-          if (new Date(p.medical_expiry) < thirtyDaysNode) {
-            alerts.push({ id: `p-${p.id}`, type: 'medical', title: p.name, desc: 'Certificado Médico próximo a vencer', val: p.medical_expiry });
-          }
-        });
-        // Alerta: Mantenimiento por horas (90% del intervalo)
-        aircraft?.forEach(a => {
-          const hoursLeft = (a.maintenance_interval_hours || 50) - (a.total_hours % (a.maintenance_interval_hours || 50));
-          if (hoursLeft < 5) {
-            alerts.push({ id: `a-${a.id}`, type: 'maint', title: a.model, desc: 'Mantenimiento preventivo urgente', val: `${hoursLeft.toFixed(1)}h restantes` });
-          }
-        });
+        // --- LÓGICA DE GRÁFICO DE BARRAS (Últimos 6 meses reales) ---
+        const last6Months = [];
+        const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date();
+          d.setMonth(d.getMonth() - i);
+          last6Months.push({
+            monthName: monthNames[d.getMonth()],
+            monthIdx: d.getMonth(),
+            year: d.getFullYear(),
+            count: 0
+          });
+        }
 
-        // --- LÓGICA DE GRÁFICO MENSUAL (Vuelos por mes) ---
-        const monthlyCounts = [0, 0, 0, 0, 0, 0];
-        const now = new Date();
         flights?.forEach(f => {
           const fDate = new Date(f.flight_date);
-          const diff = (now.getFullYear() - fDate.getFullYear()) * 12 + (now.getMonth() - fDate.getMonth());
-          if (diff >= 0 && diff < 6) monthlyCounts[5 - diff]++;
+          last6Months.forEach(m => {
+            if (fDate.getMonth() === m.monthIdx && fDate.getFullYear() === m.year) {
+              m.count++;
+            }
+          });
         });
 
-        // --- DISTRIBUCIÓN DE MISIONES ---
-        const missionMap = {};
-        flights?.forEach(f => {
-          if (f.mission_type) missionMap[f.mission_type] = (missionMap[f.mission_type] || 0) + 1;
+        // --- ALERTAS ---
+        const alerts = [];
+        const thirtyDaysOut = new Date();
+        thirtyDaysOut.setDate(thirtyDaysOut.getDate() + 30);
+        
+        pilots?.forEach(p => {
+          if (p.medical_expiry && new Date(p.medical_expiry) < thirtyDaysOut) {
+            alerts.push({ id: `p-${p.id}`, type: 'medical', title: p.name, desc: 'Médico por vencer', val: p.medical_expiry });
+          }
         });
 
         setData({
@@ -77,14 +79,14 @@ export default function DashboardPage() {
             pilots: pilots?.length || 0,
             smsAlerts: alerts.length
           },
-          chartData: monthlyCounts,
-          missions: missionMap,
+          chartData: last6Months,
+          missions: {},
           recentActivity: flights?.slice(0, 5) || [],
           criticalAlerts: alerts.slice(0, 3)
         });
 
       } catch (err) {
-        console.error("Error Dashboard:", err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -92,12 +94,15 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, []);
 
-  if (loading) return <div className="p-20 text-center animate-pulse font-black text-slate-300 uppercase tracking-widest">Sincronizando Centro de Mando...</div>;
+  if (loading) return <div className="p-20 text-center animate-pulse font-black text-slate-300 uppercase tracking-widest">Sincronizando BitaFly...</div>;
+
+  // Encontrar el valor máximo para escalar las barras
+  const maxVuelos = Math.max(...data.chartData.map(m => m.count), 1);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 text-left pb-10">
       
-      {/* 1. KPI ROW */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KPICard title="Horas de Vuelo" value={`${data.stats.hours}h`} icon="timer" />
         <KPICard title="Flota Operativa" value={`${data.stats.operational}/${data.stats.totalDrones}`} icon="precision_manufacturing" />
@@ -107,31 +112,41 @@ export default function DashboardPage() {
 
       <div className="grid lg:grid-cols-3 gap-8">
         
-        {/* 2. GRÁFICO DE ACTIVIDAD */}
+        {/* GRÁFICO DE ACTIVIDAD CORREGIDO */}
         <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col">
           <div className="flex justify-between items-center mb-10">
             <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest">Volumen de Operaciones (6 meses)</h3>
-            <span className="text-[10px] font-bold bg-slate-100 px-3 py-1 rounded-full text-slate-500 uppercase">Tiempo Real</span>
+            <span className="text-[9px] font-black bg-orange-50 text-[#ec5b13] px-3 py-1 rounded-full uppercase tracking-tighter">Historial de Misiones</span>
           </div>
-          <div className="flex-1 flex items-end gap-4 h-48 px-2">
-            {data.chartData.map((count, i) => (
-              <div key={i} className="flex-1 group relative">
-                <div 
-                  style={{ height: `${count > 0 ? (count / Math.max(...data.chartData)) * 100 : 5}%` }} 
-                  className="bg-[#ec5b13]/20 group-hover:bg-[#ec5b13] transition-all rounded-t-2xl cursor-help"
-                >
-                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity font-black">
-                    {count} Vuelos
+          
+          <div className="flex-1 flex items-end gap-4 h-56 px-2">
+            {data.chartData.map((m, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-4 group">
+                {/* La Barra */}
+                <div className="w-full relative flex items-end justify-center h-48">
+                  <div 
+                    style={{ height: `${(m.count / maxVuelos) * 100}%`, minHeight: m.count > 0 ? '10%' : '2px' }} 
+                    className={`w-full max-w-[40px] rounded-t-xl transition-all duration-1000 shadow-sm ${m.count > 0 ? 'bg-[#ec5b13]' : 'bg-slate-100'}`}
+                  >
+                    {m.count > 0 && (
+                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity font-black">
+                        {m.count}
+                      </div>
+                    )}
                   </div>
                 </div>
+                {/* Etiqueta del Mes */}
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-tighter">
+                  {m.monthName}
+                </span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* 3. ALERTAS CRÍTICAS */}
+        {/* ALERTAS CRÍTICAS */}
         <div className="bg-[#1A202C] p-8 rounded-[2.5rem] shadow-xl text-white">
-          <h3 className="text-xs font-black uppercase text-[#ec5b13] tracking-widest mb-6 border-b border-white/5 pb-4">Alertas del Sistema</h3>
+          <h3 className="text-xs font-black uppercase text-[#ec5b13] tracking-widest mb-6 border-b border-white/5 pb-4">Centro de Alertas</h3>
           <div className="space-y-4">
             {data.criticalAlerts.length > 0 ? data.criticalAlerts.map(alert => (
               <div key={alert.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-start gap-3">
@@ -141,20 +156,22 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-xs font-black uppercase leading-tight">{alert.title}</p>
                   <p className="text-[10px] text-slate-400 mt-1">{alert.desc}</p>
-                  <p className="text-[10px] text-orange-400 font-bold mt-2">{alert.val}</p>
+                  <p className="text-[10px] text-orange-400 font-bold mt-2 font-mono">{alert.val}</p>
                 </div>
               </div>
             )) : (
-              <div className="py-10 text-center space-y-3">
-                <span className="material-symbols-outlined text-emerald-500 text-4xl">check_circle</span>
-                <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Sistemas en Verde</p>
+              <div className="py-14 text-center space-y-4">
+                <div className="size-12 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto">
+                  <span className="material-symbols-outlined text-emerald-500">done_all</span>
+                </div>
+                <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">Flota en estado Óptimo</p>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* 4. ÚLTIMOS VUELOS */}
+      {/* TABLA ACTIVIDAD */}
       <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-8 border-b border-slate-50 flex justify-between items-center">
           <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest">Actividad Reciente</h3>
@@ -164,11 +181,10 @@ export default function DashboardPage() {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-tighter">
-                <th className="px-8 py-4">Vuelo ID</th>
-                <th className="px-8 py-4">Piloto</th>
-                <th className="px-8 py-4">Drone</th>
-                <th className="px-8 py-4">Misión</th>
-                <th className="px-8 py-4 text-right">Acciones</th>
+                <th className="px-8 py-4">ID</th>
+                <th className="px-8 py-4">Tripulación</th>
+                <th className="px-8 py-4">Aeronave</th>
+                <th className="px-8 py-4 text-right">Estado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -177,13 +193,10 @@ export default function DashboardPage() {
                   <td className="px-8 py-5 text-xs font-black text-[#ec5b13] font-mono">{f.flight_number}</td>
                   <td className="px-8 py-5 text-sm font-bold text-slate-700">{f.pilots?.name}</td>
                   <td className="px-8 py-5 text-xs text-slate-500">{f.aircraft?.model}</td>
-                  <td className="px-8 py-5">
-                    <span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase text-slate-500">
-                      {f.mission_type}
-                    </span>
-                  </td>
                   <td className="px-8 py-5 text-right">
-                    <button className="material-symbols-outlined text-slate-300 hover:text-navy text-lg">visibility</button>
+                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase">
+                      Cerrado
+                    </span>
                   </td>
                 </tr>
               ))}

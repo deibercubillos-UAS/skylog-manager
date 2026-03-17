@@ -60,6 +60,14 @@ const menuItems = [
               <p className="text-white text-sm font-medium truncate">Admin SkyLog</p>
               <p className="text-slate-500 text-[10px] uppercase font-bold">Operaciones</p>
             </div>
+            // Dentro de src/app/dashboard/layout.js
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-sm font-medium truncate">Admin SkyLog</p>
+              <div className="flex items-center gap-1">
+                <span className="size-1.5 rounded-full bg-blue-400 animate-pulse"></span>
+                <p className="text-blue-400 text-[9px] font-black uppercase tracking-widest">Plan Piloto</p>
+              </div>
+            </div>
           </div>
           <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-red-900/20 text-slate-300 text-[10px] font-bold rounded-lg uppercase transition-all">
             <span className="material-symbols-outlined !text-sm">logout</span> Cerrar Sesión

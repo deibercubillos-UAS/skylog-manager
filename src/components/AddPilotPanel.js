@@ -13,6 +13,15 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     
+    const { data: profile } = await supabase.from('profiles').select('subscription_plan').eq('id', user.id).single();
+    const { count } = await supabase.from('pilots').select('*', { count: 'exact', head: true }).eq('owner_id', user.id);
+
+    if (profile.subscription_plan === 'piloto' && count >= 1) {
+      alert("⚠️ LÍMITE DE PLAN: El Plan Piloto es de uso individual (1 piloto). Sube a Plan Escuadrilla para trabajar en equipo.");
+      setLoading(false);
+      return;
+    }
+
     const { error } = await supabase
       .from('pilots')
       .insert([{ ...formData, owner_id: user.id }]);

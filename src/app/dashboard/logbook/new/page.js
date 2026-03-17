@@ -53,11 +53,12 @@ export default function NewFlightPage() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     
-    const { error } = await supabase.from('flights').insert([{
-      ...formData,
-      owner_id: user.id,
-      flight_date: new Date().toISOString().split('T')[0]
-    }]);
+   const { error } = await supabase.from('flights').insert([{
+  ...formData, // Esto ya incluye aircraft_id, location, etc.
+  flight_number: formData.flight_number, // <--- ESTA ES LA LÍNEA CRÍTICA
+  owner_id: user.id,
+  flight_date: new Date().toISOString().split('T')[0]
+}]);
 
     if (!error) router.push('/dashboard/logbook');
     else alert(error.message);

@@ -1,69 +1,106 @@
 'use client';
 
 export default function AircraftCard({ aircraft }) {
-  const isMaintenance = aircraft.status === 'Mantenimiento';
+  // --- LÓGICA DE CÁLCULO DE ESTADO REAL ---
+  const today = new Date();
+  const nextDate = aircraft.next_maintenance_date ? new Date(aircraft.next_maintenance_date) : null;
   
-  // Cálculo del color del círculo de progreso
-  const progressColor = aircraft.health > 90 ? '#ef4444' : '#ec5b13'; // Rojo si es crítico
+  // Cálculo de horas para el ciclo actual
+  const interval = aircraft.maintenance_interval_hours || 50;
+  const hoursInCycle = aircraft.total_hours % interval;
+  const hoursRemaining = interval - hoursInCycle;
+
+  // Determinar FLAGS de alerta
+  const isExpiredByDate = nextDate && nextDate < today;
+  const isExpiredByHours = hoursRemaining <= 0;
+  const isWarningHours = hoursRemaining <= 5 && hoursRemaining > 0; // Alerta 5 horas antes
+  
+  // ESTADO FINAL
+  let statusLabel = "Operativo";
+  let statusColor = "bg-green-100 text-green-700 border-green-200";
+  let dotColor = "bg-green-500";
+
+  if (isExpiredByDate || isExpiredByHours || aircraft.status === 'Mantenimiento') {
+    statusLabel = "Mantenimiento Requerido";
+    statusColor = "bg-red-100 text-red-700 border-red-200";
+    dotColor = "bg-red-500";
+  } else if (isWarningHours) {
+    statusLabel = "Inspección Próxima";
+    statusColor = "bg-amber-100 text-amber-700 border-amber-200";
+    dotColor = "bg-amber-500";
+  }
+
+  // Porcentaje de salud técnica
+  const healthPercent = Math.max(0, Math.min(100, (hoursRemaining / interval) * 100));
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex group hover:shadow-md transition-all text-left">
-      {/* Imagen y Estado */}
+    <div className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex group hover:shadow-md transition-all text-left h-48">
+      
+      {/* IMAGEN Y BADGE DINÁMICO */}
       <div className="w-48 bg-slate-100 dark:bg-slate-900 relative shrink-0">
-        <div className={`absolute top-3 left-3 px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider z-10 ${
-          isMaintenance ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
-        }`}>
-          {aircraft.status}
+        <div className={`absolute top-3 left-3 px-3 py-1 border rounded-full text-[9px] font-black uppercase tracking-widest z-10 shadow-sm ${statusColor}`}>
+          {statusLabel}
         </div>
         <div 
-          className="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+          className="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
           style={{ backgroundImage: `url(${aircraft.image_url || 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=400'})` }}
         ></div>
       </div>
 
-      {/* Información Técnica */}
-      <div className="flex-1 p-5 flex flex-col">
-        <div className="flex justify-between items-start mb-4">
+      {/* INFORMACIÓN TÉCNICA */}
+      <div className="flex-1 p-6 flex flex-col justify-between">
+        <div className="flex justify-between items-start">
           <div>
-            <h3 className="font-bold text-slate-900 dark:text-white text-lg leading-tight">{aircraft.model}</h3>
-            <p className="text-[#ec5b13] text-xs font-black uppercase tracking-widest">{aircraft.serial_number.slice(-8)}</p>
+            <h3 className="font-black text-slate-900 dark:text-white text-lg leading-tight uppercase tracking-tighter">
+              {aircraft.model}
+            </h3>
+            <p className="text-[#ec5b13] text-[10px] font-black uppercase tracking-[0.2em] mt-1">
+              S/N: {aircraft.serial_number}
+            </p>
           </div>
           
-          {/* Círculo de Progreso (CSS puro) */}
-          <div 
-            className="size-12 rounded-full flex items-center justify-center text-[10px] font-black border-4 border-slate-100 relative"
-            style={{ 
-              background: `conic-gradient(${progressColor} ${aircraft.health}% , transparent 0)` 
-            }}
-          >
-            <div className="absolute inset-0.5 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center">
-              {aircraft.health}%
-            </div>
+          {/* Indicador de Salud Circular */}
+          <div className="size-12 rounded-full border-4 border-slate-100 dark:border-slate-700 flex items-center justify-center relative">
+             <svg className="size-full -rotate-90">
+                <circle 
+                  cx="24" cy="24" r="18" fill="none" 
+                  stroke={isExpiredByHours || isExpiredByDate ? "#ef4444" : "#ec5b13"} 
+                  strokeWidth="4" 
+                  strokeDasharray="113" 
+                  strokeDashoffset={113 - (113 * healthPercent) / 100}
+                  className="transition-all duration-1000"
+                />
+             </svg>
+             <span className="absolute text-[9px] font-black">{Math.round(healthPercent)}%</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-y-4 gap-x-2 mt-auto">
-          <Stat label="Serial Number" value={aircraft.serial_number} />
-          <Stat label="Total Hours" value={`${aircraft.total_hours} h`} />
-          <Stat label="MTOW" value={`${aircraft.mtow} kg`} />
-          <Stat 
-            label="Next Service" 
-            value={isMaintenance ? 'INMEDIATO' : '25.5 h'} 
-            highlight={isMaintenance}
-          />
+        {/* MÉTRICAS DE VUELO */}
+        <div className="grid grid-cols-3 gap-4 border-t border-slate-50 dark:border-slate-700 pt-4">
+          <div>
+            <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Total Horas</p>
+            <p className="text-xs font-bold text-slate-700 dark:text-slate-300 font-mono">{aircraft.total_hours?.toFixed(1)}h</p>
+          </div>
+          <div>
+            <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">MTOW</p>
+            <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{aircraft.mtow || 0}kg</p>
+          </div>
+          <div>
+            <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Próx. Servicio</p>
+            <p className={`text-xs font-black font-mono ${isExpiredByHours ? 'text-red-500' : 'text-[#ec5b13]'}`}>
+              {hoursRemaining.toFixed(1)}h
+            </p>
+          </div>
+        </div>
+
+        {/* ESTATUS DE SENSORES */}
+        <div className="flex items-center gap-2 mt-2">
+           <span className={`size-1.5 rounded-full ${dotColor} animate-pulse`}></span>
+           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+             {isExpiredByDate ? `Vencido el ${aircraft.next_maintenance_date}` : 'Sistemas de Vuelo OK'}
+           </span>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value, highlight }) {
-  return (
-    <div className="overflow-hidden">
-      <p className="text-[9px] text-slate-400 uppercase font-black tracking-tighter truncate">{label}</p>
-      <p className={`text-xs font-bold truncate ${highlight ? 'text-red-500 animate-pulse' : 'text-slate-700 dark:text-slate-300'}`}>
-        {value}
-      </p>
     </div>
   );
 }

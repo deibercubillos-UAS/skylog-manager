@@ -5,10 +5,18 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const authHeader = request.headers.get('Authorization');
 
-    if (!userId) return NextResponse.json({ error: "Sesión no válida" }, { status: 401 });
+    if (!userId || !authHeader) {
+      return NextResponse.json({ error: "Sesión no detectada" }, { status: 401 });
+    }
 
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+    // Inicializamos Supabase con el token del usuario para que el RLS funcione
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      { global: { headers: { Authorization: authHeader } } }
+    );
 
     const [aircraft, pilots, flights] = await Promise.all([
       supabase.from('aircraft').select('*').eq('owner_id', userId),
@@ -17,8 +25,8 @@ export async function GET(request) {
     ]);
 
     const drones = aircraft.data || [];
-    const totalHours = drones.reduce((acc, a) => acc + (a.total_hours || 0), 0);
     const opCount = drones.filter(a => a.status === 'Operativo').length;
+    const totalHours = drones.reduce((acc, a) => acc + (a.total_hours || 0), 0);
 
     return NextResponse.json({
       stats: {
@@ -28,9 +36,10 @@ export async function GET(request) {
         smsAlerts: 0
       },
       chart: { labels: ["Ene", "Feb", "Mar", "Abr", "May", "Jun"], data: [0, 0, 0, 0, 0, 0] },
-      criticalAlerts: [],
-      recentActivity: (flights.data || []).slice(0, 5)
+      recentActivity: (flights.data || []).slice(0, 5),
+      criticalAlerts: []
     });
+
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

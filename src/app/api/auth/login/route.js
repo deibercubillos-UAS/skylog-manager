@@ -1,4 +1,3 @@
-// src/app/api/auth/login/route.js
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
@@ -6,15 +5,14 @@ export async function POST(request) {
   try {
     const { email, password } = await request.json();
 
-    // Backend: Inicializamos Supabase con la Service Role Key (opcional) o Anon
+    // Backend: Conexión segura a Supabase
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
 
-    // Lógica de negocio: Validar credenciales
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      email: email,
       password: password,
     });
 
@@ -22,11 +20,9 @@ export async function POST(request) {
       return NextResponse.json({ error: error.message }, { status: 401 });
     }
 
-    // El backend responde con el éxito
     return NextResponse.json({ 
-      user: data.user, 
       session: data.session,
-      message: "Autenticación exitosa" 
+      message: "Backend validado" 
     }, { status: 200 });
 
   } catch (err) {

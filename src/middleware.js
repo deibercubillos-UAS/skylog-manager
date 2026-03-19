@@ -3,9 +3,7 @@ import { NextResponse } from 'next/server'
 
 export async function middleware(request) {
   let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+    request: { headers: request.headers },
   })
 
   const supabase = createServerClient(
@@ -13,14 +11,10 @@ export async function middleware(request) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
+        getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          response = NextResponse.next({
-            request,
-          })
+          response = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           )
@@ -29,28 +23,25 @@ export async function middleware(request) {
     }
   )
 
-  // 1. Verificar si el usuario está logueado
   const { data: { user } } = await supabase.auth.getUser()
 
-  // 2. PROTECCIÓN: Si intenta entrar a /dashboard y NO hay usuario, mandarlo a /login
+  // Si no hay usuario y va a una ruta protegida -> Login
   if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
   }
 
-  // 3. PROTECCIÓN EXTRA: Si ya está logueado e intenta ir a /login, mandarlo al dashboard
+  // Si hay usuario e intenta ir al login -> Dashboard
   if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/registro')) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
   }
 
   return response
 }
 
-// Configuración para que el portero solo vigile estas rutas
 export const config = {
-  matcher: [
-    '/dashboard/:path*',
-    '/fleet/:path*',
-    '/login',
-    '/registro'
-  ],
+  matcher: ['/dashboard/:path*', '/login', '/registro'],
 }

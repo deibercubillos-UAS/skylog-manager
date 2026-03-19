@@ -22,25 +22,21 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password }),
+      // Usamos el cliente directamente para que Supabase gestione las COOKIES
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password,
       });
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Error de servidor");
+      if (error) throw error;
 
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: result.session.access_token,
-        refresh_token: result.session.refresh_token,
-      });
-
-      if (!sessionError) {
+      if (data.user) {
+        console.log("Login exitoso, redirigiendo...");
+        // Usamos window.location para asegurar que el Middleware refresque
         window.location.href = '/dashboard';
       }
     } catch (err) {
-      alert("Falla de acceso: " + err.message);
+      alert("Error de acceso: " + err.message);
     } finally {
       setLoading(false);
     }

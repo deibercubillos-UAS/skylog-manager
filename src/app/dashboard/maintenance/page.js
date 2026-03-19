@@ -4,84 +4,84 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import MaintenanceDroneCard from '@/components/MaintenanceDroneCard';
-import AddMaintenancePanel from '@/components/AddMaintenancePanel'; // Importamos el nuevo panel
+import AddMaintenancePanel from '@/components/AddMaintenancePanel';
 
 export default function MaintenancePage() {
-  const [drones, setDrones] = useState([]);
-  const [logs, setLogs] = useState([]);
+  const [data, setData] = useState({ drones: [], logs: [], kpis: {} });
   const [loading, setLoading] = useState(true);
-  const [showPanel, setShowPanel] = useState(false); // Estado para el panel
+  const [showPanel, setShowPanel] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    // Cargar Drones
-    const { data: dronesData } = await supabase.from('aircraft').select('*').eq('owner_id', user.id);
-    setDrones(dronesData || []);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-    // Cargar Logs de Mantenimiento Reales
-    const { data: logsData } = await supabase
-      .from('maintenance_logs')
-      .select('*, aircraft(model)')
-      .eq('owner_id', user.id)
-      .order('maintenance_date', { ascending: false });
-    setLogs(logsData || []);
-
-    setLoading(false);
+      const res = await fetch(`/api/maintenance?userId=${session.user.id}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const result = await res.json();
+      if (!result.error) setData(result);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
 
+  if (loading) return <div className="p-20 text-center animate-pulse font-black text-slate-300 uppercase">Sincronizando Salud de Flota...</div>;
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 relative">
-      <div className="flex justify-between items-end">
-        <div className="text-left">
-          <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Fleet Health</h2>
-          <p className="text-slate-500 mt-1">Monitoreo predictivo de componentes.</p>
+    <div className="space-y-10 text-left animate-in fade-in duration-500 relative">
+      <header className="flex justify-between items-end">
+        <div>
+          <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Fleet Health</h2>
+          <p className="text-slate-500 text-sm font-medium">Control preventivo y correctivo de aeronaves.</p>
         </div>
-        {/* ACTIVAMOS EL BOTÓN AQUÍ */}
-        <button 
-          onClick={() => setShowPanel(true)}
-          className="bg-[#ec5b13] hover:bg-orange-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-all"
-        >
-          <span className="material-symbols-outlined">add_circle</span>
-          REGISTRAR MANTENIMIENTO
+        <button onClick={() => setShowPanel(true)} className="bg-[#ec5b13] text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2">
+           <span className="material-symbols-outlined text-sm">add_circle</span> Nuevo Registro
         </button>
+      </header>
+
+      {/* KPIs dinámicos del Backend */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <KPICard title="Alertas Críticas" value={data.kpis.critical} icon="error_outline" color="text-red-500" />
+        <KPICard title="Horas Totales" value={`${data.kpis.totalHours}h`} icon="timer" color="text-emerald-500" />
+        <KPICard title="Tareas Pendientes" value={data.kpis.pendingTasks} icon="assignment" color="text-[#ec5b13]" />
       </div>
 
-      {/* ... (Tus KPIs y Grid de Cards se mantienen igual) ... */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {data.drones.map(d => (
+          <MaintenanceDroneCard key={d.id} drone={d} />
+        ))}
+      </div>
 
-      {/* Tabla con datos reales de la base de datos */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-        <div className="p-6 border-b bg-slate-50/50">
-          <h3 className="font-black text-xs uppercase tracking-widest text-slate-500 text-left">Historial Técnico Real</h3>
+      {/* Historial Técnico */}
+      <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
+        <div className="p-8 border-b border-slate-50 bg-slate-50/30">
+          <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest">Historial de Intervenciones</h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-tighter">
-              <tr>
-                <th className="px-6 py-4">Fecha</th>
-                <th className="px-6 py-4">Aeronave</th>
-                <th className="px-6 py-4">Tipo</th>
-                <th className="px-6 py-4">Técnico</th>
-                <th className="px-6 py-4 text-right">Acciones</th>
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                <th className="px-8 py-4">Fecha</th>
+                <th className="px-8 py-4">Drone</th>
+                <th className="px-8 py-4">Tipo</th>
+                <th className="px-8 py-4">Técnico</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {logs.map(log => (
-                <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 font-mono font-bold text-xs">{log.maintenance_date}</td>
-                  <td className="px-6 py-4 font-bold">{log.aircraft?.model}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                      log.maintenance_type === 'REPAIR' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
-                    }`}>{log.maintenance_type}</span>
+              {data.logs.map(log => (
+                <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-8 py-5 text-xs font-bold text-slate-600">{log.maintenance_date}</td>
+                  <td className="px-8 py-5 text-sm font-black text-slate-800">{log.aircraft?.model}</td>
+                  <td className="px-8 py-5">
+                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${log.maintenance_type === 'REPAIR' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'}`}>{log.maintenance_type}</span>
                   </td>
-                  <td className="px-6 py-4 text-slate-500 font-medium">{log.technician}</td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="material-symbols-outlined text-slate-300 hover:text-[#ec5b13]">info</button>
-                  </td>
+                  <td className="px-8 py-5 text-xs text-slate-500 font-bold uppercase">{log.technician}</td>
                 </tr>
               ))}
             </tbody>
@@ -89,13 +89,19 @@ export default function MaintenancePage() {
         </div>
       </div>
 
-      {/* PANEL LATERAL CONDICIONAL */}
-      {showPanel && (
-        <AddMaintenancePanel 
-          onClose={() => setShowPanel(false)} 
-          onSuccess={() => { setShowPanel(false); fetchData(); }} 
-        />
-      )}
+      {showPanel && <AddMaintenancePanel onClose={() => setShowPanel(false)} onSuccess={() => { setShowPanel(false); fetchData(); }} />}
+    </div>
+  );
+}
+
+function KPICard({ title, value, icon, color }) {
+  return (
+    <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col justify-between">
+      <div className="flex justify-between items-start mb-4">
+        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{title}</span>
+        <span className={`material-symbols-outlined ${color}`}>{icon}</span>
+      </div>
+      <span className="text-4xl font-black text-slate-900 tracking-tighter">{value}</span>
     </div>
   );
 }

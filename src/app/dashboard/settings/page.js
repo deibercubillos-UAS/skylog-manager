@@ -15,7 +15,13 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [profile, setProfile] = useState({});
+  const [profile, setProfile] = useState({
+  full_name: '',
+  company_name: '',
+  role: '',
+  operator_id: '',
+  flight_prefix: 'SKL' // <--- Asegúrate de que esta línea esté presente
+});
 
   // Cargar datos vía API
   const loadProfile = async () => {

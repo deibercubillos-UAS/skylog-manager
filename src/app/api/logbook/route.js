@@ -36,7 +36,7 @@ export async function POST(request) {
       global: { headers: { Authorization: authHeader } }
     });
 
-    // Inserción oficial del registro de vuelo
+    // Inserción incluyendo los detalles del checklist y SORA
     const { data, error } = await supabase
       .from('flights')
       .insert([{ 
@@ -48,7 +48,7 @@ export async function POST(request) {
 
     if (error) throw error;
     
-    return NextResponse.json({ message: "Vuelo registrado y horas de aeronave actualizadas", data: data[0] }, { status: 201 });
+    return NextResponse.json({ message: "Vuelo autorizado y registrado", data: data[0] }, { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

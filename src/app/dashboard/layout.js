@@ -1,13 +1,15 @@
-'use client';
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+"use client";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
   
+  // ESTADOS DE SEGURIDAD Y PERFIL
+  const [authLoading, setAuthLoading] = useState(true);
   const [userPlan, setUserPlan] = useState('piloto');
   const [userRole, setUserRole] = useState('piloto');
   const [profile, setProfile] = useState(null);
@@ -15,7 +17,7 @@ export default function DashboardLayout({ children }) {
   const menuItems = [
     { name: 'Dashboard', icon: 'dashboard', href: '/dashboard' },
     { name: 'Mis Pilotos', icon: 'person', href: '/dashboard/pilots' },
-    { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/dashboard/fleet' },
+    { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/fleet' },
     { name: 'Suscripción', icon: 'payments', href: '/dashboard/subscription' },
     { name: 'Bitácora de Vuelos', icon: 'menu_book', href: '/dashboard/logbook' },
     { name: 'Protocolos Seguridad', icon: 'security', href: '/dashboard/safety-config' },
@@ -26,19 +28,32 @@ export default function DashboardLayout({ children }) {
   ];
 
   useEffect(() => {
-    async function loadData() {
+    async function checkAuthAndLoadData() {
+      // 1. Verificar sesión activa (Doble escudo de seguridad)
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      
+      if (!user) {
+        window.location.href = '/login';
+        return;
+      }
+
+      // 2. Si hay usuario, cargar perfil desde nuestra API
+      try {
         const res = await fetch(`/api/user/profile?userId=${user.id}`);
         const data = await res.json();
+        
         if (!data.error) {
           setProfile(data);
           setUserRole(data.role || 'piloto');
           setUserPlan(data.subscription_plan || 'piloto');
         }
+      } catch (err) {
+        console.error("Error cargando perfil:", err);
+      } finally {
+        setAuthLoading(false); // Terminamos la carga de seguridad
       }
     }
-    loadData();
+    checkAuthAndLoadData();
   }, []);
 
   const handleLogout = async () => {
@@ -46,6 +61,7 @@ export default function DashboardLayout({ children }) {
     window.location.href = '/login';
   };
 
+  // Filtrado de seguridad del menú por Rol
   const filteredItems = menuItems.filter(item => {
     if (userRole === 'admin') return true;
     if (userRole === 'gerente_sms') return ['Dashboard', 'Protocolos Seguridad', 'Reportes SMS', 'Reportes PDF', 'Configuración'].includes(item.name);
@@ -53,8 +69,20 @@ export default function DashboardLayout({ children }) {
     return !['Reportes SMS', 'Protocolos Seguridad'].includes(item.name);
   });
 
+  // Pantalla de protección mientras se valida la sesión
+  if (authLoading) {
+    return (
+      <div className="h-screen w-full bg-[#f8f6f6] flex flex-col items-center justify-center space-y-4">
+        <img src="/logo.png" className="size-20 animate-pulse object-contain" alt="BitaFly" />
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Validando Credenciales BitaFly...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#f8f6f6] font-display text-left">
+      
+      {/* --- SideNavBar BitaFly --- */}
       <aside className="w-64 bg-[#1A202C] flex flex-col h-full border-r border-slate-700 shrink-0 shadow-2xl">
         <div className="p-6 flex items-center gap-3 border-b border-white/5 mb-4">
           <img src="/logo.png" className="size-10 object-contain" alt="Logo" />
@@ -82,11 +110,11 @@ export default function DashboardLayout({ children }) {
 
         <div className="p-4 border-t border-slate-800 bg-[#141a26]">
           <div className="flex items-center gap-3 mb-4 p-2">
-            <div className="size-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-black text-xs">
-              {profile?.full_name?.slice(0,1).toUpperCase() || 'U'}
+            <div className="size-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-black text-xs uppercase">
+              {profile?.full_name?.slice(0,1) || 'U'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white text-xs font-black truncate">{profile?.full_name || 'Tripulante'}</p>
+              <p className="text-white text-xs font-black truncate">{profile?.full_name || 'Usuario'}</p>
               <p className="text-slate-500 text-[9px] uppercase font-black tracking-widest">{userRole.replace('_', ' ')}</p>
             </div>
           </div>
@@ -96,6 +124,7 @@ export default function DashboardLayout({ children }) {
         </div>
       </aside>
 
+      {/* --- Main Area --- */}
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 z-10">
           <div className="flex-1 text-left">
@@ -105,6 +134,7 @@ export default function DashboardLayout({ children }) {
             Nuevo Vuelo
           </Link>
         </header>
+
         <div className="flex-1 overflow-y-auto p-8 bg-[#f8f6f6]">
           {children}
         </div>

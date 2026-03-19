@@ -1,7 +1,8 @@
-import jsPDF from 'jspdf';
+import jsPDF from 'jsPDF';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
+// 1. GENERADOR DE PDF PROFESIONAL CON TOTALES (Vuelos y Horas)
 export const downloadPDF = (reportType, data, config) => {
   try {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
@@ -12,22 +13,27 @@ export const downloadPDF = (reportType, data, config) => {
     doc.setFontSize(20);
     doc.setTextColor(255, 255, 255);
     doc.text("BitaFly Manager - Reporte Oficial", 15, 16);
+    
     doc.setFontSize(9);
     doc.setTextColor(236, 91, 19); 
-    doc.text(`TIPO: ${reportType.toUpperCase()}`, 240, 16);
+    doc.text(`CATEGORÍA: ${reportType.toUpperCase()}`, 240, 16);
 
     // --- Info de Auditoría ---
     doc.setTextColor(80, 80, 80);
     doc.setFontSize(8);
     doc.text(`Generado: ${new Date().toLocaleString()}`, 15, 32);
-    doc.text(`Rango: ${config.dateFrom} al ${config.dateTo}`, 15, 36);
+    doc.text(`Periodo: ${config.dateFrom} al ${config.dateTo}`, 15, 36);
 
     const headers = [Object.keys(data[0] || {})];
     const body = data.map(item => Object.values(item));
 
-    // --- LÓGICA DE TOTAL (Solo si existe la columna DURACION) ---
+    // --- LÓGICA DE TOTALES (Vuelos + Duración) ---
     let footerRows = [];
     if (data.length > 0 && data[0].DURACION) {
+      // 1. Contar vuelos
+      const totalCount = data.length;
+
+      // 2. Sumar minutos
       const totalMinutes = data.reduce((acc, row) => {
         if (row.DURACION && row.DURACION.includes(':')) {
           const [h, m] = row.DURACION.split(':').map(Number);
@@ -35,8 +41,11 @@ export const downloadPDF = (reportType, data, config) => {
         }
         return acc;
       }, 0);
+
       const totalTime = `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`;
-      footerRows = [['', '', '', '', '', 'TOTAL ACUMULADO:', totalTime]];
+      
+      // Creamos la fila de totales adaptada al ancho
+      footerRows = [['', '', '', 'RESUMEN TOTAL:', `Cantidad: ${totalCount} registros`, 'Tiempo Acumulado:', totalTime]];
     }
 
     autoTable(doc, {
@@ -60,6 +69,7 @@ export const downloadPDF = (reportType, data, config) => {
   }
 };
 
+// 2. GENERADOR DE EXCEL
 export const downloadExcel = (reportType, data) => {
   const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
@@ -67,6 +77,7 @@ export const downloadExcel = (reportType, data) => {
   XLSX.writeFile(workbook, `BitaFly_${reportType}.xlsx`);
 };
 
+// 3. GENERADOR DE CSV
 export const downloadCSV = (reportType, data) => {
   const worksheet = XLSX.utils.json_to_sheet(data);
   const csv = XLSX.utils.sheet_to_csv(worksheet);

@@ -1,4 +1,4 @@
-import jsPDF from 'jsPDF';
+import jsPDF from 'jspdf'; // CORREGIDO: Todo en minúsculas
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
@@ -30,10 +30,7 @@ export const downloadPDF = (reportType, data, config) => {
     // --- LÓGICA DE TOTALES (Vuelos + Duración) ---
     let footerRows = [];
     if (data.length > 0 && data[0].DURACION) {
-      // 1. Contar vuelos
       const totalCount = data.length;
-
-      // 2. Sumar minutos
       const totalMinutes = data.reduce((acc, row) => {
         if (row.DURACION && row.DURACION.includes(':')) {
           const [h, m] = row.DURACION.split(':').map(Number);
@@ -41,10 +38,7 @@ export const downloadPDF = (reportType, data, config) => {
         }
         return acc;
       }, 0);
-
       const totalTime = `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`;
-      
-      // Creamos la fila de totales adaptada al ancho
       footerRows = [['', '', '', 'RESUMEN TOTAL:', `Cantidad: ${totalCount} registros`, 'Tiempo Acumulado:', totalTime]];
     }
 

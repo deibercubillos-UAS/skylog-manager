@@ -65,18 +65,35 @@ export default function SafetyConfigPage() {
 
   const handleDelete = async (id) => {
     if (!canModify) return alert("No tienes permisos para eliminar.");
-    if (!confirm("¿Eliminar este requerimiento de seguridad de forma permanente?")) return;
+    if (!id) return; // Seguridad extra
+    
+    if (!confirm("¿Eliminar este requerimiento de seguridad?")) return;
 
-    const { data: { session } } = await supabase.auth.getSession();
-    const res = await fetch(`/api/safety-config/${id}?type=${activeTab}&userId=${session.user.id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${session.access_token}` }
-    });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user?.id) {
+        alert("Sesión expirada. Por favor reingresa.");
+        return;
+      }
 
-    if (res.ok) fetchData();
-    else {
-      const err = await res.json();
-      alert(err.error);
+      const res = await fetch(`/api/safety-config/${id}?type=${activeTab}&userId=${session.user.id}`, {
+        method: 'DELETE',
+        headers: { 
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (res.ok) {
+        fetchData(); // Refrescar lista
+      } else {
+        const err = await res.json();
+        alert("Error del servidor: " + err.error);
+      }
+    } catch (error) {
+      console.error("Error en borrado:", error);
+      alert("Error de conexión al intentar eliminar.");
     }
   };
 

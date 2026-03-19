@@ -5,7 +5,7 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
-    const reportType = searchParams.get('type'); // vuelos, aeronaves, sms
+    const reportType = searchParams.get('type'); 
     const dateFrom = searchParams.get('from');
     const dateTo = searchParams.get('to');
     const pilotId = searchParams.get('pilotId');
@@ -18,33 +18,37 @@ export async function GET(request) {
       global: { headers: { Authorization: authHeader } }
     });
 
-    let query;
-    if (reportType === 'sms') {
-      query = supabase.from('sms_reports').select('*, flights(flight_number)');
-    } else {
-      query = supabase.from('flights').select('*, pilots(name), aircraft(model, serial_number)');
-    }
-
-    // Filtros base
+    let query = supabase.from('flights').select('*, pilots(name), aircraft(model, serial_number)');
     query = query.eq('owner_id', userId).gte('flight_date', dateFrom).lte('flight_date', dateTo);
 
-    // Filtros opcionales
     if (pilotId && pilotId !== 'all') query = query.eq('pilot_id', pilotId);
     if (aircraftId && aircraftId !== 'all') query = query.eq('aircraft_id', aircraftId);
 
     const { data, error } = await query.order('flight_date', { ascending: true });
     if (error) throw error;
 
-    // --- APLANAMIENTO DE DATOS EN EL SERVIDOR ---
-    const flattenedData = data.map(row => ({
-      FECHA: row.flight_date || row.occurrence_date?.slice(0, 10),
-      ID_REF: row.flight_number || row.flights?.flight_number || 'N/A',
-      DETALLE: row.mission_type || row.severity || 'Operación',
-      PILOTO: row.pilots?.name || 'Sistema',
-      EQUIPO: row.aircraft?.model || 'UAS',
-      S_N: row.aircraft?.serial_number || 'N/A',
-      UBICACION: row.location || 'Base'
-    }));
+    // APLANAMIENTO CON CÁLCULO DE TIEMPO
+    const flattenedData = data.map(row => {
+      // Calcular duración en minutos
+      let durationStr = "00:00";
+      if (row.takeoff_time && row.landing_time) {
+        const [h1, m1] = row.takeoff_time.split(':').map(Number);
+        const [h2, m2] = row.landing_time.split(':').map(Number);
+        let totalMin = (h2 * 60 + m2) - (h1 * 60 + m1);
+        if (totalMin < 0) totalMin += 1440; // Cruce de medianoche
+        durationStr = `${Math.floor(totalMin / 60).toString().padStart(2, '0')}:${(totalMin % 60).toString().padStart(2, '0')}`;
+      }
+
+      return {
+        FECHA: row.flight_date,
+        ID_VUELO: row.flight_number || 'N/A',
+        TRIPULANTE: row.pilots?.name || 'N/A',
+        AERONAVE: row.aircraft?.model || 'N/A',
+        S_N: row.aircraft?.serial_number || 'N/A',
+        MISION: row.mission_type || 'N/A',
+        DURACION: durationStr
+      };
+    });
 
     return NextResponse.json(flattenedData);
   } catch (err) {

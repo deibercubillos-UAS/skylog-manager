@@ -1,9 +1,9 @@
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable'; // Importación directa de la función
+import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
-// 1. GENERADOR DE PDF PROFESIONAL
-export const downloadPDF = (reportType, data, config, lastMaintenance = null) => {
+// 1. GENERADOR DE PDF PROFESIONAL CON TOTALES
+export const downloadPDF = (reportType, data, config) => {
   try {
     const doc = new jsPDF({
       orientation: 'landscape',
@@ -11,17 +11,24 @@ export const downloadPDF = (reportType, data, config, lastMaintenance = null) =>
       format: 'a4'
     });
 
-    // --- Header Estético Navy ---
-    doc.setFillColor(26, 32, 44); 
+    // Calcular sumatoria total de tiempo (HH:MM)
+    const totalMinutes = data.reduce((acc, row) => {
+      const [h, m] = row.DURACION.split(':').map(Number);
+      return acc + (h * 60 + m);
+    }, 0);
+    const totalTimeFormatted = `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`;
+
+    // --- Header Estético BitaFly ---
+    doc.setFillColor(26, 32, 44); // Navy Deep
     doc.rect(0, 0, 297, 25, 'F');
     
     doc.setFontSize(20);
     doc.setTextColor(255, 255, 255);
-    doc.text("BitaFly Manager - Reporte Oficial", 15, 16);
+    doc.text("BitaFly Manager - Reporte Operativo", 15, 16);
     
     doc.setFontSize(9);
-    doc.setTextColor(236, 91, 19); // Naranja BitaFly
-    doc.text(`CATEGORÍA: ${reportType.toUpperCase()}`, 240, 16);
+    doc.setTextColor(236, 91, 19); 
+    doc.text(`TIPO: ${reportType.toUpperCase()}`, 240, 16);
 
     // --- Información de Auditoría ---
     doc.setTextColor(80, 80, 80);
@@ -29,22 +36,10 @@ export const downloadPDF = (reportType, data, config, lastMaintenance = null) =>
     doc.text(`Generado: ${new Date().toLocaleString()}`, 15, 32);
     doc.text(`Filtros: ${config.dateFrom} al ${config.dateTo}`, 15, 36);
 
-    if (lastMaintenance) {
-      doc.setFont(undefined, 'bold');
-      doc.text(`Último Mantenimiento: ${lastMaintenance.maintenance_date}`, 190, 32);
-      doc.setFont(undefined, 'normal');
-    }
-
-    // --- Preparación de Columnas y Filas ---
-    if (!data || data.length === 0) {
-        alert("No hay datos para incluir en el PDF");
-        return;
-    }
-
     const headers = [Object.keys(data[0])];
     const body = data.map(item => Object.values(item));
 
-    // --- GENERACIÓN DE LA TABLA (USANDO LA FUNCIÓN DIRECTA) ---
+    // --- GENERACIÓN DE LA TABLA CON FILA DE TOTAL ---
     autoTable(doc, {
       head: headers,
       body: body,
@@ -53,24 +48,17 @@ export const downloadPDF = (reportType, data, config, lastMaintenance = null) =>
       styles: { fontSize: 7, cellPadding: 2 },
       headStyles: { fillColor: [236, 91, 19], textColor: [255, 255, 255], fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [245, 245, 245] },
+      // FILA DE TOTAL AL FINAL DEL PDF
+      foot: [['', '', '', '', '', 'TOTAL ACUMULADO:', totalTimeFormatted]],
+      footStyles: { fillColor: [26, 32, 44], textColor: [255, 255, 255], fontStyle: 'bold' },
       margin: { left: 15, right: 15 }
     });
 
-    // --- Pie de página ---
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(8);
-      doc.setTextColor(150);
-      doc.text(`BitaFly Aviation - Página ${i} de ${pageCount}`, 15, 202);
-    }
-
-    doc.save(`BitaFly_Reporte_${reportType}.pdf`);
+    doc.save(`BitaFly_${reportType}_Oficial.pdf`);
     return true;
-
   } catch (err) {
-    console.error("Error crítico en PDF:", err);
-    alert("Falla en el motor de PDF: " + err.message);
+    console.error("Error PDF:", err);
+    alert("Falla en PDF: " + err.message);
     return false;
   }
 };

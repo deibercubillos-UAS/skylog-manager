@@ -37,7 +37,7 @@ export default function MaintenancePage() {
     <div className="space-y-10 text-left animate-in fade-in duration-500 relative">
       <header className="flex justify-between items-end">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Fleet Health</h2>
+          <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Flota</h2>
           <p className="text-slate-500 text-sm font-medium">Control preventivo y correctivo de aeronaves.</p>
         </div>
         <button onClick={() => setShowPanel(true)} className="bg-[#ec5b13] text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2">

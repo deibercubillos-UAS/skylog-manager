@@ -29,4 +29,35 @@ export async function PATCH(request, { params }) {
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
+}export async function DELETE(request, { params }) {
+  try {
+    const { id } = params;
+    const authHeader = request.headers.get('Authorization');
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // 1. Validar Rol (Solo Admin, Gerente SMS o Jefe de Pilotos)
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single();
+    const authorizedRoles = ['admin', 'gerente_sms', 'jefe_pilotos'];
+    
+    if (!authorizedRoles.includes(profile.role)) {
+      return NextResponse.json({ error: "No tiene permisos para dar de baja tripulantes" }, { status: 403 });
+    }
+
+    // 2. BORRADO LÓGICO: Solo cambiamos el estado a Inactivo
+    const { error } = await supabase
+      .from('pilots')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return NextResponse.json({ message: "Piloto dado de baja exitosamente" });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }

@@ -69,6 +69,35 @@ export default function PilotCard({ pilot, onEdit, canEdit }) {
           </div>
         </div>
       </div>
+      
+      <div className="flex gap-2 shrink-0 ml-4">
+        {canEdit && (
+          <>
+            <button 
+              onClick={() => onEdit(pilot)}
+              className="size-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-500 transition-all"
+              title="Editar"
+            >
+              <span className="material-symbols-outlined text-lg">edit</span>
+            </button>
+
+            {/* NUEVO BOTÓN DE ELIMINAR (BAJA) */}
+            <button 
+              onClick={() => {
+                if(confirm(`¿Está seguro de dar de baja al piloto ${pilot.name}? El historial de vuelos se conservará.`)) {
+                  onDelete(pilot.id);
+                }
+              }}
+              className="size-8 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center text-red-400 hover:bg-red-500 hover:text-white transition-all"
+              title="Dar de baja"
+            >
+              <span className="material-symbols-outlined text-lg">delete</span>
+            </button>
+          </>
+        )}
+        {/* ... botones de documentos ... */}
+      </div>
+      
     </div>
   );
 }

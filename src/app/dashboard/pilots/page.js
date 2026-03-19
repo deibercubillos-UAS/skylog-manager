@@ -15,6 +15,27 @@ export default function PilotsPage() {
   const [activePanel, setActivePanel] = useState(null);
   const [editingPilot, setEditingPilot] = useState(null);
 
+  const handleDelete = async (id) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/pilots/${id}?userId=${session.user.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+
+      if (res.ok) {
+        alert("✅ Piloto movido al archivo histórico.");
+        fetchData(); // Refresca la lista
+      } else {
+        const err = await res.json();
+        alert(err.error);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -62,11 +83,15 @@ export default function PilotsPage() {
         <div className="p-20 text-center font-black text-slate-300 animate-pulse">SINCRONIZANDO EQUIPO...</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {pilots.map(p => (
-            <PilotCard key={p.id} pilot={p} canEdit={canModify} onEdit={(pilot) => { setEditingPilot(pilot); setActivePanel('edit'); }} />
+          {pilots.filter(p => p.is_active !== false).map(p => (
+            <PilotCard 
+              key={p.id} 
+              pilot={p} 
+              canEdit={canModify} 
+              onEdit={openEdit}
+              onDelete={handleDelete} // <--- NUEVA PROP
+            />
           ))}
-        </div>
-      )}
 
       {/* RENDER DE PANELES (Estos también deben actualizarse para llamar a las APIs) */}
       {activePanel === 'invite' && <InvitePilotPanel onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}

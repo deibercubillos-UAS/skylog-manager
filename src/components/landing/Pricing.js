@@ -89,14 +89,15 @@ export default function Pricing() {
 
 function PricingCard({ title, price, perfil, flota, features, buttonText, recommended, dark }) {
   
-  const handleAction = () => {
+const handleAction = () => {
     if (price === '0') {
       window.location.href = '/registro';
     } else if (price === 'Custom') {
       window.location.href = '/#contacto';
     } else {
-      // LLAMADA A EPAYCO
-      openEpaycoCheckout(title, price);
+      // Redirigir al registro llevando el plan seleccionado en la URL
+      const planSlug = title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      window.location.href = `/registro?intent=${planSlug}&price=${price}`;
     }
   };
 

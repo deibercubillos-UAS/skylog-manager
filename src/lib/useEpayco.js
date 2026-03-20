@@ -1,12 +1,17 @@
-export const openEpaycoCheckout = (planName, price) => {
+export const openEpaycoCheckout = (planName, price, userEmail = "") => {
   if (typeof window !== 'undefined' && window.ePayco) {
     const handler = window.ePayco.checkout.configure({
       key: process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY,
-      test: true // Cambia a false cuando ya tengas llaves de producción
+      test: true 
     });
 
-    // Convertimos precios a Pesos Colombianos (COP) aproximados para la prueba
-    const amount = price === '49' ? 199000 : price === '129' ? 490000 : 0;
+    // Definición de precios en COP
+    const prices = {
+      '49': 199000,
+      '129': 490000
+    };
+
+    const amount = prices[price] || 0;
 
     handler.open({
       name: `BitaFly - ${planName}`,
@@ -18,10 +23,10 @@ export const openEpaycoCheckout = (planName, price) => {
       country: "co",
       lang: "es",
       external: "false",
+      extra1: planName, // Usamos esto para saber qué plan activar luego
+      email_billing: userEmail, // Pasa el email del usuario logueado
       confirmation: `${window.location.origin}/api/payments/confirmation`,
       response: `${window.location.origin}/dashboard/subscription/response`,
     });
-  } else {
-    alert("La pasarela de pagos se está cargando. Intenta de nuevo en un segundo.");
   }
 };

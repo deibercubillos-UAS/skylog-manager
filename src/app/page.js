@@ -4,6 +4,7 @@ import Features from '@/components/landing/Features';
 import Pricing from '@/components/landing/Pricing';
 import Contact from '@/components/landing/Contact';
 import Footer from '@/components/landing/Footer';
+import Users from '@/components/landing/Users';
 
 export default function LandingPage() {
   return (
@@ -11,6 +12,7 @@ export default function LandingPage() {
       <Navbar />
       <Hero />
       <Features />
+      <Users /> {/* <-- NUEVA SECCIÓN AGREGADA AQUÍ */}
       <Pricing />
       <Contact />
       <Footer />

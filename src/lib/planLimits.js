@@ -95,3 +95,8 @@ export const hasPermission = (role, action) => {
   const userPerms = permissions[role] || permissions['piloto'];
   return userPerms.includes('all') || userPerms.includes(action);
 };
+
+export const EPAYCO_LINKS = {
+  escuadrilla: "https://payco.link/tuid-escuadrilla", // Reemplaza con tu link real
+  flota: "https://payco.link/tuid-flota",           // Reemplaza con tu link real
+};

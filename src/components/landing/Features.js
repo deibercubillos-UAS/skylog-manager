@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link'; // <--- ESTA ES LA LÍNEA QUE FALTABA
 
 export default function Features() {
   const features = [
@@ -68,20 +69,17 @@ export default function Features() {
         {/* Grid de Características */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((f) => (
-            <div key={f.id} className="group relative p-10 rounded-[2.5rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-[#ec5b13]/50 transition-all hover:shadow-2xl overflow-hidden">
-              {/* Badge de Categoría */}
+            <div key={f.id} className="group relative p-10 rounded-[2.5rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-[#ec5b13]/50 transition-all hover:shadow-2xl overflow-hidden text-left">
               <span className="absolute top-6 right-8 text-[8px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest group-hover:text-[#ec5b13] transition-colors">
                 {f.tag}
               </span>
 
-              {/* Icono con Efecto de Resplandor */}
               <div className="size-14 rounded-2xl bg-white dark:bg-slate-900 shadow-sm flex items-center justify-center mb-8 group-hover:bg-[#ec5b13] group-hover:text-white transition-all">
                 <span className="material-symbols-outlined text-3xl transition-transform group-hover:scale-110">
                   {f.icon}
                 </span>
               </div>
 
-              {/* Texto */}
               <h3 className="text-xl font-black text-[#1A202C] dark:text-white uppercase tracking-tight mb-3">
                 {f.title}
               </h3>
@@ -89,7 +87,6 @@ export default function Features() {
                 {f.desc}
               </p>
 
-              {/* Decoración HUD inferior */}
               <div className="mt-8 pt-6 border-t border-slate-200 dark:border-white/5 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
                  <span className="text-[10px] font-black text-[#ec5b13] uppercase tracking-tighter">Módulo Activo</span>
                  <span className="material-symbols-outlined text-sm text-slate-400">arrow_forward</span>
@@ -103,7 +100,7 @@ export default function Features() {
           <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none" style={{backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '20px 20px'}}></div>
           <div className="relative z-10 text-left">
             <h4 className="text-xl font-black uppercase tracking-tighter">¿Listo para digitalizar tu escuadrilla?</h4>
-            <p className="text-slate-400 text-sm mt-1">Configura tu organización en menos de 5 minutos.</p>
+            <p className="text-slate-400 text-sm mt-1 uppercase font-bold text-[10px] tracking-widest">Configura tu organización en menos de 5 minutos.</p>
           </div>
           <Link href="/registro" className="relative z-10 bg-[#ec5b13] hover:bg-orange-600 text-white px-10 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all active:scale-95 shadow-lg shadow-orange-500/20">
             Empezar Ahora
@@ -111,5 +108,15 @@ export default function Features() {
         </div>
       </div>
     </section>
+  );
+}
+
+function BenefitCard({ icon, title, desc }) {
+  return (
+    <div className="p-10 rounded-[2.5rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-[#ec5b13]/50 transition-all group">
+      <span className="material-symbols-outlined text-5xl text-[#ec5b13] mb-8 group-hover:scale-110 transition-transform">{icon}</span>
+      <h3 className="text-xl font-black mb-4 uppercase text-[#1A202C] dark:text-white">{title}</h3>
+      <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{desc}</p>
+    </div>
   );
 }

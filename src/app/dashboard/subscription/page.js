@@ -81,8 +81,11 @@ export default function SubscriptionPage() {
           </div>
 
           <div className="relative z-10">
-            <Link href="/#precios" className="block w-full py-4 bg-white text-[#1A202C] rounded-2xl font-black text-xs uppercase tracking-widest text-center hover:bg-slate-50 transition-all shadow-lg">
-              {data?.planSlug === 'piloto' ? 'Mejorar Cuenta' : 'Administrar Plan'}
+            <Link 
+              href="/dashboard/subscription/manage" 
+              className="block w-full py-4 bg-white text-[#1A202C] rounded-2xl font-black text-xs uppercase tracking-widest text-center hover:bg-slate-50 transition-all shadow-lg"
+            >
+              Administrar Suscripción
             </Link>
           </div>
         </div>

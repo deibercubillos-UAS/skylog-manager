@@ -9,7 +9,7 @@ export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnu
 
     // IDS DE LOS PLANES QUE CREASTE EN EL DASHBOARD DE EPAYCO (Paso Crítico)
     const PLAN_IDS = {
-      escuadrilla_mensual: "ID_PLAN_ESCUADRILLA_MENSUAL",
+      escuadrilla_mensual: "2e2aa67391a6c81cbefbaeab54c4dc22",
       escuadrilla_anual:   "ID_PLAN_ESCUADRILLA_ANUAL",
       flota_mensual:       "ID_PLAN_FLOTA_MENSUAL",
       flota_anual:         "ID_PLAN_FLOTA_ANUAL"

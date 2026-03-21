@@ -16,11 +16,21 @@ export default function TokenPayPage() {
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
-        setPlanInfo({ id: params.get('planId'), name: params.get('name') });
+        const id = params.get('planId');
+        const name = params.get('name');
+
+        if (!id) {
+            alert("Error: No se seleccionó un plan válido. Volviendo...");
+            window.location.href = '/dashboard/subscription/manage';
+            return;
+        }
+
+        setPlanId(id);
+        setPlanName(name);
         
         async function getUser() {
-            const { data } = await supabase.auth.getUser();
-            if (data?.user) setUser(data.user);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) setUser(user);
         }
         getUser();
     }, []);

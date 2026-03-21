@@ -2,8 +2,8 @@
 
 // 1. DICCIONARIO DE IDS (REEMPLAZA CON LOS DE TU PANEL DE EPAYCO)
 export const BITAFLY_PLANS = {
-  escuadrilla_mensual: "pruebas_epayco",
-  escuadrilla_anual:   "plan_escuadrilla_anual",
+  escuadrilla_mensual: "plan_escuadrilla_mensual",
+  escuadrilla_anual:   "plan_escuadrilla_mensual",
   flota_mensual:       "plan_escuadrilla_mensual",
   flota_anual:         "plan_escuadrilla_mensual"
 };

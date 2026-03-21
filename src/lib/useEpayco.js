@@ -4,51 +4,43 @@ export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnu
   if (typeof window !== 'undefined' && window.ePayco) {
     const handler = window.ePayco.checkout.configure({
       key: process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY,
-      test: true // Cambiar a 'false' para producción
+      test: true // Cambiar a false en producción
     });
 
-    // --- CÁLCULO DE PRECIOS EN COP ---
-    // Definimos una TRM fija de 4.000 para consistencia (puedes ajustarla)
-    const TRM = 4000;
-    let amountUSD = parseFloat(priceUSD);
-    
-    // Si es anual, aplicamos el 20% de descuento al total de 12 meses
-    // Formula: (Precio Mensual * 12) * 0.8
-    let finalAmountCOP = 0;
-    if (isAnnual) {
-      finalAmountCOP = (amountUSD * 12 * 0.8) * TRM;
-    } else {
-      finalAmountCOP = amountUSD * TRM;
-    }
+    // IDS DE LOS PLANES QUE CREASTE EN EL DASHBOARD DE EPAYCO (Paso Crítico)
+    const PLAN_IDS = {
+      escuadrilla_mensual: "ID_PLAN_ESCUADRILLA_MENSUAL",
+      escuadrilla_anual:   "ID_PLAN_ESCUADRILLA_ANUAL",
+      flota_mensual:       "ID_PLAN_FLOTA_MENSUAL",
+      flota_anual:         "ID_PLAN_FLOTA_ANUAL"
+    };
 
-    const planSlug = planName.toLowerCase();
-    const description = `BitaFly UAS - Plan ${planName} (${isAnnual ? 'Anual' : 'Mensual'})`;
+    const key = `${planName.toLowerCase()}_${isAnnual ? 'anual' : 'mensual'}`;
+    const selectedPlanId = PLAN_IDS[key];
 
     const data = {
-      name: "BitaFly Manager",
-      description: description,
+      // --- LÓGICA DE TOKENIZACIÓN Y SUSCRIPCIÓN ---
+      id_plan: selectedPlanId, 
+      name: `Suscripción BitaFly - ${planName}`,
+      description: `Plan Recurrente ${planName} (${isAnnual ? 'Anual' : 'Mensual'})`,
       currency: "cop",
-      amount: finalAmountCOP.toString(),
-      tax_base: "0",
-      tax: "0",
       country: "co",
       lang: "es",
       external: "false",
-
-      // ATRIBUTOS PARA EL WEBHOOK (Paso de datos al servidor)
-      extra1: planSlug,            // Plan: escuadrilla / flota
-      extra2: userId,              // ID único del usuario en Supabase
+      
+      // Datos para vincular al usuario en el Webhook
+      extra1: planName.toLowerCase(), // Plan slug
+      extra2: userId,                 // ID Supabase
       extra3: isAnnual ? 'anual' : 'mensual',
       
       email_billing: userEmail,
       
-      // URLs de retorno configuradas para bitafly.com
+      // URLs de comunicación
       confirmation: `${window.location.origin}/api/payments/confirmation`,
       response: `${window.location.origin}/dashboard/subscription/response`,
     };
 
+    // Abre el modal que tokeniza la tarjeta y crea la suscripción en ePayco
     handler.open(data);
-  } else {
-    alert("Iniciando pasarela de pagos... Por favor, pulsa de nuevo en 2 segundos.");
   }
 };

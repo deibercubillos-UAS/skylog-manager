@@ -6,42 +6,44 @@ export async function POST(request) {
     const formData = await request.formData();
     const data = Object.fromEntries(formData.entries());
 
-    // 1. Extraer info enviada por ePayco
+    // 1. Datos del pago y tokenización
     const status = data.x_cod_response; // 1 = Aceptada
-    const planSolicitado = data.x_extra1; // escuadrilla o flota
-    const userId = data.x_extra2;        // ID de Supabase
-    const ciclo = data.x_extra3;         // mensual o anual
-
-    // 2. Conectar a Supabase con permisos de sistema (Service Role)
+    const userId = data.x_extra2;       // Nuestro ID de usuario
+    const plan = data.x_extra1;         // Escuadrilla o Flota
+    const customerId = data.x_id_invoice; // ID de factura/cliente en epayco
+    
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    // 3. Si el pago es exitoso, activamos el plan
+    // 2. Si el pago es exitoso, activamos el plan y guardamos el token de cliente
     if (status === "1") {
-      console.log(`✅ Pago exitoso: Activando ${planSolicitado} (${ciclo}) para usuario ${userId}`);
-
       const { error } = await supabaseAdmin
         .from('profiles')
         .update({ 
-          subscription_plan: planSolicitado,
+          subscription_plan: plan,
+          epayco_customer_id: customerId, // Guardamos la referencia para cobros futuros
           updated_at: new Date().toISOString()
         })
         .eq('id', userId);
 
       if (error) throw error;
+      console.log(`✅ Tokenización exitosa para usuario ${userId}`);
     } 
     
-    // 4. Si el pago falla (para suscripciones recurrentes futuras)
+    // 3. Si falla el pago recurrente (meses posteriores)
     else if (status === "2" || status === "4") {
-      console.log(`❌ Pago fallido para usuario ${userId}. Reintentando o bajando a Piloto.`);
+      await supabaseAdmin
+        .from('profiles')
+        .update({ subscription_plan: 'piloto' })
+        .eq('id', userId);
     }
 
     return NextResponse.json({ message: "OK" }, { status: 200 });
 
   } catch (err) {
-    console.error("Error en Webhook:", err.message);
+    console.error("Error Webhook:", err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

@@ -11,9 +11,7 @@ export const BITAFLY_PLANS = {
 // 2. FUNCIÓN DE INICIALIZACIÓN
 export const initEpayco = () => {
   if (typeof window !== 'undefined' && window.ePayco) {
-    // Usamos la variable de entorno NEXT_PUBLIC para que sea accesible
     window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
-    console.log("ePayco P_KEY configurada");
     return true;
   }
   return false;

@@ -15,7 +15,7 @@ export const openEpaycoCheckout = (planName, price, userEmail = "", userId = "",
     const planSlug = planName.toLowerCase();
 
     if (planSlug.includes('escuadrilla')) {
-      finalAmount = isAnnual ? 1.428.000 : 119.000;
+      finalAmount = isAnnual ? 1428000 : 119000;
     } else if (planSlug.includes('flota')) {
       finalAmount = isAnnual ? 5040000 : 525000;
     }

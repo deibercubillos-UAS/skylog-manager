@@ -1,56 +1,49 @@
 // src/lib/useEpayco.js
 
-export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnual) => {
-  // Verificación de seguridad: Solo ejecutar en el navegador y si ePayco existe
+// 1. DICCIONARIO DE IDS (REEMPLAZA CON LOS DE TU PANEL DE EPAYCO)
+export const BITAFLY_PLANS = {
+  escuadrilla_mensual: "pruebas_epayco",
+  escuadrilla_anual:   "plan_escuadrilla_anual",
+  flota_mensual:       "plan_escuadrilla_mensual",
+  flota_anual:         "plan_escuadrilla_mensual"
+};
+
+// 2. FUNCIÓN DE INICIALIZACIÓN
+export const initEpayco = () => {
+  if (typeof window !== 'undefined' && window.ePayco) {
+    window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
+    return true;
+  }
+  return false;
+};
+
+// 3. MOTOR DE APERTURA (TOKENIZACIÓN)
+export const openEpaycoCheckout = (planName, userEmail, userId, isAnnual) => {
   if (typeof window === 'undefined' || !window.ePayco) {
-    console.error("ePayco SDK no está listo.");
-    alert("La pasarela de pagos se está cargando. Por favor, intenta de nuevo en un segundo.");
+    alert("Cargando pasarela de pagos... Reintenta en un segundo.");
     return;
   }
 
-  try {
-    const handler = window.ePayco.checkout.configure({
-      key: process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY,
-      test: true // Cambiar a false en producción
-    });
+  const handler = window.ePayco.checkout.configure({
+    key: process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY,
+    test: true 
+  });
 
-    // REEMPLAZA ESTOS IDS CON TUS IDS REALES DE EPAYCO
-    const PLAN_IDS = {
-      escuadrilla_mensual: "pruebas_epayco",
-      escuadrilla_anual:   "plan_escuadrilla_anual",
-      flota_mensual:       "plan_escuadrilla_mensual",
-      flota_anual:         "plan_escuadrilla_mensual"
-    };
+  const key = `${planName.toLowerCase()}_${isAnnual ? 'anual' : 'mensual'}`;
+  const selectedPlanId = BITAFLY_PLANS[key];
 
-    export const initEpayco = () => {
-      if (typeof window !== 'undefined' && window.ePayco) {
-        window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
-        return true;
-      }
-      return false;
-    };
-
-    const key = `${planName.toLowerCase()}_${isAnnual ? 'anual' : 'mensual'}`;
-    const selectedPlanId = PLAN_IDS[key];
-
-    const data = {
-      id_plan: selectedPlanId || "", // Si no hay ID, ePayco mostrará error en el modal pero no romperá BitaFly
-      name: `Suscripción BitaFly - ${planName}`,
-      description: `Plan Recurrente ${planName} (${isAnnual ? 'Anual' : 'Mensual'})`,
-      currency: "cop",
-      country: "co",
-      lang: "es",
-      external: "false",
-      extra1: planName.toLowerCase(), 
-      extra2: userId || "", // Aseguramos que no sea null
-      email_billing: userEmail || "",
-      confirmation: `${window.location.origin}/api/payments/confirmation`,
-      response: `${window.location.origin}/dashboard/subscription/response`,
-    };
-
-    handler.open(data);
-  } catch (error) {
-    console.error("Error al abrir ePayco:", error);
-    alert("Hubo un problema al iniciar la pasarela de pagos.");
-  }
+  handler.open({
+    id_plan: selectedPlanId || "",
+    name: `BitaFly - ${planName}`,
+    description: `Suscripción ${isAnnual ? 'Anual' : 'Mensual'}`,
+    currency: "cop",
+    country: "co",
+    lang: "es",
+    external: "false",
+    extra1: planName.toLowerCase(), 
+    extra2: userId, 
+    email_billing: userEmail,
+    confirmation: `${window.location.origin}/api/payments/confirmation`,
+    response: `${window.location.origin}/dashboard/subscription/response`,
+  });
 };

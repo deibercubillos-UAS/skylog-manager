@@ -164,7 +164,6 @@ export default function ManageSubscriptionPage() {
       </footer>
     </div>
   );
-}
 
 // COMPONENTE DE TARJETA DE PLAN ACTUALIZADO
 function UpgradeCard({ title, price, isActive, features, onAction, recommended }) {

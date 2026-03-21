@@ -16,10 +16,10 @@ export default function RootLayout({ children }) {
       </head>
       <body className="antialiased">
         {children}
-        {/* CARGA DE LIBRERÍA EPAYCO */}
+        {/* CAMBIO: Usamos epayco.min.js para Tokenización Directa */}
         <Script 
-          src="https://checkout.epayco.co/checkout.js" 
-          strategy="afterInteractive" 
+          src="https://js.epayco.co/epayco.min.js" 
+          strategy="beforeInteractive" 
         />
       </body>
     </html>

@@ -22,6 +22,14 @@ export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnu
       flota_anual:         "plan_escuadrilla_mensual"
     };
 
+    export const initEpayco = () => {
+      if (typeof window !== 'undefined' && window.ePayco) {
+        window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
+        return true;
+      }
+      return false;
+    };
+
     const key = `${planName.toLowerCase()}_${isAnnual ? 'anual' : 'mensual'}`;
     const selectedPlanId = PLAN_IDS[key];
 

@@ -39,7 +39,12 @@ export default function ManageSubscriptionPage() {
 
   const handleUpgrade = async (planName) => {
     // CAMBIO CRÍTICO: Obtenemos el usuario directamente de la sesión si el perfil falla
-    const { data: { user } } = await supabase.auth.getUser();
+    const { BITAFLY_PLANS } = require('@/lib/useEpayco');
+    const key = `${planName.toLowerCase()}_${isAnnual ? 'anual' : 'mensual'}`;
+    const epaycoId = BITAFLY_PLANS[key];
+
+    window.location.href = `/dashboard/subscription/pay?planId=${epaycoId}&name=${planName}`;
+    };
     
     if (!user) {
       alert("⚠️ Error: Sesión no detectada. Por favor, cierra sesión e ingresa nuevamente.");

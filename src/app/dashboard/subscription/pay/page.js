@@ -9,8 +9,8 @@ import Script from 'next/script';
 
 export default function TokenPayPage() {
     const [loading, setLoading] = useState(false);
-    const [jqueryLoaded, setJqueryLoaded] = useState(false); // Estado 1
-    const [epaycoLoaded, setEpaycoLoaded] = useState(false); // Estado 2
+    const [jqueryLoaded, setJqueryLoaded] = useState(false);
+    const [epaycoLoaded, setEpaycoLoaded] = useState(false);
     const [user, setUser] = useState(null);
     const [planInfo, setPlanInfo] = useState({ id: '', name: '' });
 
@@ -29,19 +29,21 @@ export default function TokenPayPage() {
         e.preventDefault();
         
         if (!window.ePayco || !window.jQuery) {
-            alert("Los sistemas de seguridad están terminando de cargar. Espera 2 segundos.");
+            alert("Sincronizando seguridad... Por favor espera un segundo.");
             return;
         }
 
         setLoading(true);
-        initEpayco();
+        initEpayco(); // Setea la Public Key
 
-        // Referencia obligatoria por el SDK
-        const $form = window.jQuery(e.target);
+        // El SDK requiere el elemento del formulario directamente vía jQuery
+        const $form = window.jQuery('#payment-form');
 
         window.ePayco.token.create($form, async (error, token) => {
             if (error) {
-                alert("Error en tarjeta: " + (error.description || "Verifique los datos"));
+                // ePayco devuelve el error detallado aquí
+                console.error("Error Token:", error);
+                alert("Error en validación: " + (error.description || "Verifica los datos de la tarjeta e email"));
                 setLoading(false);
             } else {
                 try {
@@ -62,11 +64,11 @@ export default function TokenPayPage() {
                         alert("🚀 ¡Suscripción Activada con éxito!");
                         window.location.href = '/dashboard/subscription';
                     } else {
-                        alert("Error: " + result.error);
+                        alert("Error en Servidor: " + result.error);
                         setLoading(false);
                     }
                 } catch (err) {
-                    alert("Falla de red en el servidor de pagos.");
+                    alert("Falla de red en el proceso de alta.");
                     setLoading(false);
                 }
             }
@@ -76,32 +78,25 @@ export default function TokenPayPage() {
     return (
         <main className="min-h-screen bg-[#f8f6f6] flex flex-col lg:flex-row font-display text-left">
             
-            {/* PASO 1: CARGAR JQUERY */}
+            {/* CARGA SECUENCIAL DE LIBRERÍAS */}
             <Script 
                 src="https://code.jquery.com/jquery-3.7.1.min.js"
-                id="jquery-lib"
                 strategy="afterInteractive"
-                onLoad={() => {
-                    console.log("1. jQuery cargado");
-                    setJqueryLoaded(true);
-                }}
+                onLoad={() => setJqueryLoaded(true)}
             />
 
-            {/* PASO 2: CARGAR EPAYCO SOLO SI JQUERY YA EXISTE */}
             {jqueryLoaded && (
                 <Script 
                     src="https://checkout.epayco.co/epayco.min.js"
-                    id="epayco-lib"
                     strategy="afterInteractive"
                     onLoad={() => {
-                        console.log("2. ePayco SDK cargado");
                         initEpayco();
                         setEpaycoLoaded(true);
                     }}
                 />
             )}
 
-            <AuthSidePanel title={`Finalizar suscripción ${planInfo.name || ''}`} />
+            <AuthSidePanel title={`Activación de ${planInfo.name || 'Plan'}`} />
             
             <section className="flex-1 p-8 md:p-20 flex flex-col justify-center">
                 <div className="max-w-md w-full mx-auto space-y-10">
@@ -112,13 +107,26 @@ export default function TokenPayPage() {
                     
                     <form onSubmit={handlePayment} id="payment-form" className="space-y-6">
                         <div className="space-y-1">
-                            <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Titular</label>
-                            <input type="text" data-epayco="card[name]" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#ec5b13]/20 font-bold" placeholder="COMO APARECE EN TARJETA" />
+                            <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Titular de la tarjeta</label>
+                            <input type="text" data-epayco="card[name]" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#ec5b13]/20 font-bold" placeholder="NOMBRE COMPLETO" />
+                        </div>
+
+                        {/* --- CAMBIO CRÍTICO: CAMPO DE EMAIL PARA EL TOKEN --- */}
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Email del Titular</label>
+                            <input 
+                                type="email" 
+                                data-epayco="card[email]" 
+                                defaultValue={user?.email || ""} 
+                                required 
+                                className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#ec5b13]/20 font-bold" 
+                                placeholder="tu@email.com" 
+                            />
                         </div>
 
                         <div className="space-y-1">
                             <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Número de Tarjeta</label>
-                            <input type="text" data-epayco="card[number]" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-mono font-bold" placeholder="0000 0000 0000 0000" />
+                            <input type="text" data-epayco="card[number]" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-mono font-bold" placeholder="**** **** **** ****" />
                         </div>
 
                         <div className="grid grid-cols-3 gap-4">
@@ -135,15 +143,6 @@ export default function TokenPayPage() {
                             >
                                 {loading ? "Procesando Seguridad..." : "Activar Pago Mensual"}
                             </button>
-                            
-                            {!epaycoLoaded && (
-                                <div className="flex items-center justify-center gap-3 mt-6">
-                                    <div className="animate-spin size-4 border-2 border-[#ec5b13] border-t-transparent rounded-full"></div>
-                                    <p className="text-[10px] text-slate-400 uppercase font-black animate-pulse">
-                                        {!jqueryLoaded ? "Cargando Motor Base..." : "Iniciando Protocolos ePayco..."}
-                                    </p>
-                                </div>
-                            )}
                         </div>
                     </form>
                 </div>

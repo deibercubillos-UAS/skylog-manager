@@ -17,10 +17,6 @@ export default function RootLayout({ children }) {
       <body className="antialiased">
         {children}
         {/* CAMBIO: Usamos epayco.min.js para Tokenización Directa */}
-        <Script 
-          src="https://js.epayco.co/epayco.min.js" 
-          strategy="beforeInteractive" 
-        />
       </body>
     </html>
   );

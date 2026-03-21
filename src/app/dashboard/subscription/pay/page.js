@@ -15,10 +15,7 @@ export default function TokenPayPage() {
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
-        setPlanInfo({ 
-            id: params.get('planId'), 
-            name: params.get('name') 
-        });
+        setPlanInfo({ id: params.get('planId'), name: params.get('name') });
         
         async function getUser() {
             const { data } = await supabase.auth.getUser();
@@ -26,35 +23,30 @@ export default function TokenPayPage() {
         }
         getUser();
 
-        // Verificador de seguridad para activar el botón si las librerías ya existen
-        const checkLibs = setInterval(() => {
-            if (window.ePayco && window.$) {
+        // Verificador de "Fuerza Bruta": Si las librerías aparecen, activamos el botón
+        const interval = setInterval(() => {
+            if (window.ePayco && window.jQuery) {
                 initEpayco();
                 setLibsReady(true);
-                clearInterval(checkLibs);
+                clearInterval(interval);
             }
-        }, 1000);
-
-        return () => clearInterval(checkLibs);
+        }, 500);
+        return () => clearInterval(interval);
     }, []);
 
     const handlePayment = async (e) => {
         e.preventDefault();
-        
-        if (!window.ePayco || !window.$) {
-            alert("Las libreries de seguridad aún no cargan. Por favor espera un momento.");
-            return;
-        }
+        if (!libsReady) return;
 
         setLoading(true);
         initEpayco();
 
-        // Convertimos el formulario a un objeto de jQuery como exige el SDK de ePayco
-        const $form = window.$('#payment-form');
+        // Referencia al formulario usando jQuery como pide el SDK
+        const $form = window.jQuery('#payment-form');
 
         window.ePayco.token.create($form, async (error, token) => {
             if (error) {
-                alert("Error en tarjeta: " + (error.description || "Datos inválidos"));
+                alert("Error en validación: " + (error.description || "Verifique los datos de la tarjeta"));
                 setLoading(false);
             } else {
                 try {
@@ -71,16 +63,15 @@ export default function TokenPayPage() {
                     });
 
                     const result = await response.json();
-
                     if (response.ok) {
-                        alert("🚀 ¡Suscripción Activada exitosamente!");
+                        alert("🚀 Suscripción procesada con éxito.");
                         window.location.href = '/dashboard/subscription';
                     } else {
-                        alert("Falla: " + (result.error || "Error en el servidor"));
+                        alert("Error: " + result.error);
                         setLoading(false);
                     }
                 } catch (err) {
-                    alert("Error de conexión con BitaFly Cloud.");
+                    alert("Falla de comunicación con el servidor.");
                     setLoading(false);
                 }
             }
@@ -89,54 +80,51 @@ export default function TokenPayPage() {
 
     return (
         <main className="min-h-screen bg-[#f8f6f6] flex flex-col lg:flex-row font-display text-left">
-            {/* 1. CARGAMOS JQUERY PRIMERO (Requisito de ePayco SDK) */}
+            {/* CARGA DE LIBRERÍAS CON URLS OFICIALES */}
             <Script 
                 src="https://code.jquery.com/jquery-3.7.1.min.js" 
-                strategy="beforeInteractive"
+                strategy="beforeInteractive" 
             />
-            
-            {/* 2. CARGAMOS EL SDK DE EPAYCO DESPUÉS */}
             <Script 
                 src="https://checkout.epayco.co/epayco.min.js"
                 strategy="afterInteractive"
                 onReady={() => {
-                    console.log("Librerías listas");
                     initEpayco();
                     setLibsReady(true);
                 }}
             />
 
-            <AuthSidePanel title={`Configurar pago: ${planInfo.name || 'Plan'}`} />
+            <AuthSidePanel title={`Activación de ${planInfo.name || 'Suscripción'}`} />
             
             <section className="flex-1 p-8 md:p-20 flex flex-col justify-center">
-                <div className="max-w-md w-full mx-auto space-y-10 text-left">
+                <div className="max-w-md w-full mx-auto space-y-10">
                     <header>
                         <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Método de Pago</h2>
-                        <p className="text-slate-500 text-sm font-bold uppercase text-[10px]">Suscripción recurrente vía ePayco</p>
+                        <p className="text-slate-500 text-sm font-bold uppercase text-[10px]">Introduce los datos de tu tarjeta de crédito</p>
                     </header>
                     
                     <form onSubmit={handlePayment} id="payment-form" className="space-y-6">
                         <div className="space-y-1">
-                            <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Nombre en Tarjeta</label>
-                            <input type="text" data-epayco="card[name]" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#ec5b13]/20 font-bold" placeholder="TITULAR" />
+                            <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Titular</label>
+                            <input type="text" data-epayco="card[name]" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#ec5b13]/20 font-bold" placeholder="NOMBRE COMPLETO" />
                         </div>
 
                         <div className="space-y-1">
                             <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Número de Tarjeta</label>
-                            <input type="text" data-epayco="card[number]" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-mono font-bold" placeholder="**** **** **** ****" />
+                            <input type="text" data-epayco="card[number]" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-mono font-bold" placeholder="0000 0000 0000 0000" />
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4 text-left">
-                            <div>
-                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Mes (MM)</label>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black uppercase text-slate-400">Mes (MM)</label>
                                 <input type="text" data-epayco="card[exp_month]" maxLength="2" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-bold" placeholder="01" />
                             </div>
-                            <div>
-                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Año (YYYY)</label>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black uppercase text-slate-400">Año (YYYY)</label>
                                 <input type="text" data-epayco="card[exp_year]" maxLength="4" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-bold" placeholder="2026" />
                             </div>
-                            <div>
-                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">CVC</label>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black uppercase text-slate-400">CVC</label>
                                 <input type="text" data-epayco="card[cvc]" maxLength="4" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-bold" placeholder="***" />
                             </div>
                         </div>
@@ -147,12 +135,12 @@ export default function TokenPayPage() {
                                 disabled={loading || !libsReady} 
                                 className="w-full py-5 bg-[#ec5b13] text-white font-black rounded-2xl shadow-xl uppercase text-xs tracking-[0.2em] transition-all hover:bg-orange-600 active:scale-95 disabled:opacity-20"
                             >
-                                {loading ? "Verificando..." : "Activar Pago Mensual"}
+                                {loading ? "Procesando Seguridad..." : "Activar Plan Mensual"}
                             </button>
                             
                             {!libsReady && (
-                                <p className="text-[9px] text-center text-slate-400 mt-6 uppercase font-black animate-pulse">
-                                    Conectando con servidores de pago...
+                                <p className="text-[9px] text-center text-slate-400 mt-6 uppercase font-black animate-pulse tracking-widest">
+                                    Conectando con ePayco Secure Gateway...
                                 </p>
                             )}
                         </div>

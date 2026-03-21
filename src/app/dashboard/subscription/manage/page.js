@@ -24,7 +24,7 @@ export default function ManageSubscriptionPage() {
   useEffect(() => { loadData(); }, []);
 
   const handleUpgrade = (planName, price) => {
-    openEpaycoCheckout(planName, price, profile.email);
+    openEpaycoCheckout(planName, price, profile.email, profile.id, isAnnual);
   };
 
   const handleCancel = async () => {

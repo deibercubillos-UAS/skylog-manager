@@ -5,7 +5,6 @@ import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { initEpayco } from '@/lib/useEpayco';
 import AuthSidePanel from '@/components/AuthSidePanel';
-import Script from 'next/script';
 
 function PaymentForm() {
     const [loading, setLoading] = useState(false);
@@ -13,10 +12,7 @@ function PaymentForm() {
     const [user, setUser] = useState(null);
     const [planId, setPlanId] = useState('');
     const [planName, setPlanName] = useState('');
-
-    const [cardData, setCardData] = useState({
-        name: '', number: '', exp_month: '', exp_year: '', cvc: '', email: ''
-    });
+    const [cardData, setCardData] = useState({ name: '', number: '', exp_month: '', exp_year: '', cvc: '', email: '' });
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -32,8 +28,9 @@ function PaymentForm() {
         };
         loadUser();
 
+        // Verificador de carga de scripts externos
         const check = setInterval(() => {
-            if (window.ePayco && window.jQuery) {
+            if (typeof window !== 'undefined' && window.ePayco && window.jQuery) {
                 window.$ = window.jQuery;
                 initEpayco();
                 setReady(true);
@@ -45,6 +42,7 @@ function PaymentForm() {
 
     const handlePayment = async (e) => {
         e.preventDefault();
+        if (!ready) return;
         setLoading(true);
 
         const tokenParams = {
@@ -58,7 +56,7 @@ function PaymentForm() {
 
         window.ePayco.token.create(tokenParams, async (error, token) => {
             if (error) {
-                alert("Error: " + (error.description || "Datos de tarjeta inválidos"));
+                alert("Error: " + (error.description || "Datos inválidos"));
                 setLoading(false);
             } else {
                 const response = await fetch('/api/payments/subscribe', {
@@ -87,34 +85,23 @@ function PaymentForm() {
 
     return (
         <div className="max-w-md w-full mx-auto space-y-10">
-            <Script src="https://code.jquery.com/jquery-3.7.1.min.js" strategy="beforeInteractive" />
-            <Script src="https://checkout.epayco.co/epayco.min.js" strategy="beforeInteractive" />
-
             <header className="text-left">
                 <h2 className="text-3xl font-black text-slate-900 uppercase">Método de Pago</h2>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
-                    Plan: <span className="text-[#ec5b13]">{planName}</span>
-                </p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Plan: <span className="text-[#ec5b13]">{planName}</span></p>
             </header>
             
             <form onSubmit={handlePayment} className="space-y-6 text-left">
-                <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Nombre en Tarjeta</label>
-                    <input required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none" onChange={e => setCardData({...cardData, name: e.target.value.toUpperCase()})} />
-                </div>
-                <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Número de Tarjeta</label>
-                    <input required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none" onChange={e => setCardData({...cardData, number: e.target.value})} />
-                </div>
+                <input required placeholder="NOMBRE EN TARJETA" className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none" onChange={e => setCardData({...cardData, name: e.target.value.toUpperCase()})} />
+                <input required placeholder="NÚMERO DE TARJETA" className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-mono" onChange={e => setCardData({...cardData, number: e.target.value})} />
                 <div className="grid grid-cols-3 gap-4">
                     <input required placeholder="MM" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center" onChange={e => setCardData({...cardData, exp_month: e.target.value})} />
                     <input required placeholder="YYYY" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center" onChange={e => setCardData({...cardData, exp_year: e.target.value})} />
                     <input required placeholder="CVC" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center" onChange={e => setCardData({...cardData, cvc: e.target.value})} />
                 </div>
-                <button type="submit" disabled={loading || !ready} className="w-full py-5 bg-[#ec5b13] text-white font-black rounded-2xl shadow-xl uppercase text-xs tracking-widest disabled:opacity-20 transition-all">
-                    {loading ? "Procesando..." : "Autorizar Pago"}
+                <button type="submit" disabled={loading || !ready} className="w-full py-5 bg-[#ec5b13] text-white font-black rounded-2xl shadow-xl uppercase text-xs tracking-widest disabled:opacity-20">
+                    {loading ? "Procesando..." : "Autorizar Suscripción"}
                 </button>
-                {!ready && <p className="text-[9px] text-center text-slate-400 uppercase animate-pulse">Sincronizando pasarela segura...</p>}
+                {!ready && <p className="text-[9px] text-center text-slate-400 uppercase animate-pulse">Sincronizando pasarela...</p>}
             </form>
         </div>
     );

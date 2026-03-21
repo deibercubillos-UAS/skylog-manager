@@ -1,67 +1,54 @@
 // src/lib/useEpayco.js
 
-export const openEpaycoCheckout = (planName, price, userEmail = "", userId = "", isAnnual = false) => {
+export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnual) => {
   if (typeof window !== 'undefined' && window.ePayco) {
     const handler = window.ePayco.checkout.configure({
       key: process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY,
-      test: true // Cambiar a false para producción
+      test: true // Cambiar a 'false' para producción
     });
 
-    // --- CONFIGURACIÓN DE PRECIOS (VALORES EN COP) ---
-    // Mensuales: Escuadrilla ($199k), Flota ($525k)
-    // Anuales (con 20% ahorro): Escuadrilla ($1.91M), Flota ($5.04M)
+    // --- CÁLCULO DE PRECIOS EN COP ---
+    // Definimos una TRM fija de 4.000 para consistencia (puedes ajustarla)
+    const TRM = 4000;
+    let amountUSD = parseFloat(priceUSD);
     
-    let finalAmount = 0;
-    const planSlug = planName.toLowerCase();
-
-    if (planSlug.includes('escuadrilla')) {
-      finalAmount = isAnnual ? 1428000 : 119000;
-    } else if (planSlug.includes('flota')) {
-      finalAmount = isAnnual ? 5040000 : 525000;
+    // Si es anual, aplicamos el 20% de descuento al total de 12 meses
+    // Formula: (Precio Mensual * 12) * 0.8
+    let finalAmountCOP = 0;
+    if (isAnnual) {
+      finalAmountCOP = (amountUSD * 12 * 0.8) * TRM;
+    } else {
+      finalAmountCOP = amountUSD * TRM;
     }
 
-   const epaycoPlanIds = {
-      'escuadrilla_mensual': 'https://subscription-landing.epayco.co/plan/9be09237237867acf0c4d53',
-      'escuadrilla_anual':   'https://subscription-landing.epayco.co/plan/9be09237237867acf0c4d53',
-      'flota_mensual':       'ID_QUE_TE_DIO_EPAYCO_3',
-      'flota_anual':         'ID_QUE_TE_DIO_EPAYCO_4'
-    };
-
-    const planKey = `${planName.toLowerCase()}_${isAnnual ? 'anual' : 'mensual'}`;
-    const selectedPlanId = epaycoPlanIds[planKey];
+    const planSlug = planName.toLowerCase();
+    const description = `BitaFly UAS - Plan ${planName} (${isAnnual ? 'Anual' : 'Mensual'})`;
 
     const data = {
-      // Configuración básica
-      name: `BitaFly Manager`,
+      name: "BitaFly Manager",
       description: description,
       currency: "cop",
-      amount: finalAmount.toString(),
+      amount: finalAmountCOP.toString(),
       tax_base: "0",
       tax: "0",
       country: "co",
       lang: "es",
       external: "false",
-      id_plan: selectedPlanId,
 
-      // --- ATRIBUTOS PARA EL BACKEND (Webhook) ---
-      extra1: planName.toLowerCase(),            // Nombre del plan (escuadrilla/flota)
-      extra2: userId,              // ID del usuario de Supabase
-      extra3: isAnnual ? 'anual' : 'mensual', // Ciclo de cobro
+      // ATRIBUTOS PARA EL WEBHOOK (Paso de datos al servidor)
+      extra1: planSlug,            // Plan: escuadrilla / flota
+      extra2: userId,              // ID único del usuario en Supabase
+      extra3: isAnnual ? 'anual' : 'mensual',
       
-      // Datos del cliente
       email_billing: userEmail,
       
-      // URLs de retorno
+      // URLs de retorno configuradas para bitafly.com
       confirmation: `${window.location.origin}/api/payments/confirmation`,
       response: `${window.location.origin}/dashboard/subscription/response`,
-
-      
     };
-    
 
     handler.open(data);
   } else {
-    console.error("ePayco SDK no cargado. Verifica src/app/layout.js");
-    alert("Cargando pasarela de pagos... por favor intenta en 2 segundos.");
+    alert("Iniciando pasarela de pagos... Por favor, pulsa de nuevo en 2 segundos.");
   }
 };

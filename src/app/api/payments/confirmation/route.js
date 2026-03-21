@@ -6,52 +6,42 @@ export async function POST(request) {
     const formData = await request.formData();
     const data = Object.fromEntries(formData.entries());
 
-    // 1. Datos del Pago
-    const status = data.x_cod_response; // 1=Aceptada, 2=Rechazada, 4=Fallida
-    const email = data.x_customer_email;
-    const planSolicitado = data.x_extra1?.toLowerCase(); // 'escuadrilla' o 'flota'
-    const userId = data.x_extra2; // <--- USAR ID ES MÁS SEGURO QUE EL EMAIL
-    const cycle = data.x_extra3; // 'anual' o 'mensual'
-    console.log(`Pago ${status} de BitaFly. Ciclo: ${cycle}`);
+    // 1. Extraer info enviada por ePayco
+    const status = data.x_cod_response; // 1 = Aceptada
+    const planSolicitado = data.x_extra1; // escuadrilla o flota
+    const userId = data.x_extra2;        // ID de Supabase
+    const ciclo = data.x_extra3;         // mensual o anual
 
+    // 2. Conectar a Supabase con permisos de sistema (Service Role)
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    // 2. CASO: PAGO EXITOSO (Activar o Mantener Plan)
+    // 3. Si el pago es exitoso, activamos el plan
     if (status === "1") {
-      console.log(`✅ Activando plan ${planSolicitado} para el usuario ${userId || email}`);
-      
+      console.log(`✅ Pago exitoso: Activando ${planSolicitado} (${ciclo}) para usuario ${userId}`);
+
       const { error } = await supabaseAdmin
         .from('profiles')
         .update({ 
           subscription_plan: planSolicitado,
           updated_at: new Date().toISOString()
         })
-        .eq(userId ? 'id' : 'email', userId || email); // Busca por ID si existe, si no por Email
+        .eq('id', userId);
 
       if (error) throw error;
     } 
     
-    // 3. CASO: PAGO RECHAZADO O FALLIDO (Bajar a Plan Piloto)
-    // Esto es vital para las suscripciones recurrentes que fallan el segundo mes
+    // 4. Si el pago falla (para suscripciones recurrentes futuras)
     else if (status === "2" || status === "4") {
-      console.log(`❌ Pago fallido para ${email}. Revocando acceso PRO.`);
-      
-      await supabaseAdmin
-        .from('profiles')
-        .update({ 
-          subscription_plan: 'piloto',
-          updated_at: new Date().toISOString()
-        })
-        .eq(userId ? 'id' : 'email', userId || email);
+      console.log(`❌ Pago fallido para usuario ${userId}. Reintentando o bajando a Piloto.`);
     }
 
-    return NextResponse.json({ message: "Webhook procesado" }, { status: 200 });
+    return NextResponse.json({ message: "OK" }, { status: 200 });
 
   } catch (err) {
-    console.error("Error en Webhook:", err);
+    console.error("Error en Webhook:", err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

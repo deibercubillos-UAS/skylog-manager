@@ -25,7 +25,10 @@ export default function ManageSubscriptionPage() {
   useEffect(() => { loadData(); }, []);
 
   const handleUpgrade = (planName, price) => {
-    if (!profile) return;
+    if (!profile) 
+      alert("Error: No se detectó la sesión del usuario. Reintenta loguearte.");
+      return;
+    }
     openEpaycoCheckout(planName, price, profile.email, profile.id, isAnnual);
   };
 

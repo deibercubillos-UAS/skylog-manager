@@ -16,10 +16,10 @@ export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnu
 
     // REEMPLAZA ESTOS IDS CON TUS IDS REALES DE EPAYCO
     const PLAN_IDS = {
-      escuadrilla_mensual: "2e2aa67391a6c81cbefbaeab54c4dc22",
-      escuadrilla_anual:   "ID_PLAN_2",
-      flota_mensual:       "ID_PLAN_3",
-      flota_anual:         "ID_PLAN_4"
+      escuadrilla_mensual: "78431",
+      escuadrilla_anual:   "78430",
+      flota_mensual:       "78429",
+      flota_anual:         "78432"
     };
 
     const key = `${planName.toLowerCase()}_${isAnnual ? 'anual' : 'mensual'}`;

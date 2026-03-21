@@ -12,25 +12,23 @@ export default function TokenPayPage() {
     const [jqueryLoaded, setJqueryLoaded] = useState(false);
     const [epaycoLoaded, setEpaycoLoaded] = useState(false);
     const [user, setUser] = useState(null);
-    const [planInfo, setPlanInfo] = useState({ id: '', name: '' });
+    
+    // VARIABLES CORREGIDAS
+    const [planId, setPlanId] = useState('');
+    const [planName, setPlanName] = useState('');
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const id = params.get('planId');
         const name = params.get('name');
 
-        if (!id) {
-            alert("Error: No se seleccionó un plan válido. Volviendo...");
-            window.location.href = '/dashboard/subscription/manage';
-            return;
-        }
-
-        setPlanId(id);
-        setPlanName(name);
+        // Guardamos los datos del plan en el estado
+        if (id) setPlanId(id);
+        if (name) setPlanName(name);
         
         async function getUser() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) setUser(user);
+            const { data } = await supabase.auth.getUser();
+            if (data?.user) setUser(data.user);
         }
         getUser();
     }, []);
@@ -44,16 +42,14 @@ export default function TokenPayPage() {
         }
 
         setLoading(true);
-        initEpayco(); // Setea la Public Key
+        initEpayco(); 
 
-        // El SDK requiere el elemento del formulario directamente vía jQuery
         const $form = window.jQuery('#payment-form');
 
         window.ePayco.token.create($form, async (error, token) => {
             if (error) {
-                // ePayco devuelve el error detallado aquí
                 console.error("Error Token:", error);
-                alert("Error en validación: " + (error.description || "Verifica los datos de la tarjeta e email"));
+                alert("Error en validación: " + (error.description || "Verifica los datos de la tarjeta"));
                 setLoading(false);
             } else {
                 try {
@@ -62,7 +58,7 @@ export default function TokenPayPage() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             token: token.id,
-                            planId: planInfo.id,
+                            planId: planId, // Usamos la variable corregida
                             name: user?.user_metadata?.full_name || "Usuario BitaFly",
                             email: user?.email,
                             userId: user?.id
@@ -88,7 +84,6 @@ export default function TokenPayPage() {
     return (
         <main className="min-h-screen bg-[#f8f6f6] flex flex-col lg:flex-row font-display text-left">
             
-            {/* CARGA SECUENCIAL DE LIBRERÍAS */}
             <Script 
                 src="https://code.jquery.com/jquery-3.7.1.min.js"
                 strategy="afterInteractive"
@@ -106,13 +101,13 @@ export default function TokenPayPage() {
                 />
             )}
 
-            <AuthSidePanel title={`Activación de ${planInfo.name || 'Plan'}`} />
+            <AuthSidePanel title={`Activación de ${planName || 'Plan'}`} />
             
             <section className="flex-1 p-8 md:p-20 flex flex-col justify-center">
                 <div className="max-w-md w-full mx-auto space-y-10">
                     <header>
                         <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Método de Pago</h2>
-                        <p className="text-slate-500 text-sm font-bold uppercase text-[10px] tracking-widest mt-1">Conexión Segura ePayco</p>
+                        <p className="text-slate-500 text-sm font-bold uppercase text-[10px] tracking-widest">Conexión Segura ePayco</p>
                     </header>
                     
                     <form onSubmit={handlePayment} id="payment-form" className="space-y-6">
@@ -121,7 +116,6 @@ export default function TokenPayPage() {
                             <input type="text" data-epayco="card[name]" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-[#ec5b13]/20 font-bold" placeholder="NOMBRE COMPLETO" />
                         </div>
 
-                        {/* --- CAMBIO CRÍTICO: CAMPO DE EMAIL PARA EL TOKEN --- */}
                         <div className="space-y-1">
                             <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Email del Titular</label>
                             <input 

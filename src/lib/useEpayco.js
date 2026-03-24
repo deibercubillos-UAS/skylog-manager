@@ -1,11 +1,13 @@
-// 2. FUNCIÓN DE INICIALIZACIÓN
+// src/lib/useEpayco.js
 export const initEpayco = () => {
   if (typeof window !== 'undefined' && window.ePayco) {
+    // Inicialización con Public Key y Merchant ID
     window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
     return true;
   }
   return false;
 };
+
 
 // 1. DICCIONARIO DE IDS (REEMPLAZA CON LOS DE TU PANEL DE EPAYCO)
 export const BITAFLY_PLANS = {

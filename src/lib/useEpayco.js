@@ -1,14 +1,13 @@
 // src/lib/useEpayco.js
+
 export const initEpayco = () => {
   if (typeof window !== 'undefined' && window.ePayco) {
-    // IMPORTANTE: Aquí debe ir la PUBLIC_KEY (no la P_KEY)
     window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
+    console.log("✅ ePayco P_KEY configurada");
     return true;
   }
   return false;
 };
-
-
 
 // 1. DICCIONARIO DE IDS (REEMPLAZA CON LOS DE TU PANEL DE EPAYCO)
 export const BITAFLY_PLANS = {

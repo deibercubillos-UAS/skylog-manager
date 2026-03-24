@@ -1,114 +1,116 @@
 'use client';
-export const dynamic = 'force-dynamic';
+
 import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
-import { initEpayco } from '@/lib/useEpayco';
+import { useSearchParams } from 'next/navigation';
 import AuthSidePanel from '@/components/AuthSidePanel';
-import Script from 'next/script';
+import Link from 'next/link';
 
-function PaymentForm() {
+// Sub-componente que maneja la lógica del formulario
+function PaymentFormContent() {
+    const searchParams = useSearchParams();
     const [loading, setLoading] = useState(false);
     const [isReady, setIsReady] = useState(false);
     const [user, setUser] = useState(null);
-    const [planId, setPlanId] = useState('');
-    const [planName, setPlanName] = useState('');
+    
+    const planId = searchParams.get('planId') || '';
+    const planName = searchParams.get('name') || 'Suscripción';
 
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        setPlanId(params.get('planId') || '');
-        setPlanName(params.get('name') || '');
-        
-        async function getUser() {
+        async function loadUser() {
             const { data } = await supabase.auth.getUser();
             if (data?.user) setUser(data.user);
         }
-        getUser();
+        loadUser();
 
-        // Verificador de librerías y configuración (Importante)
-        const loadLibs = () => {
+        // Verificador de carga de las librerías externas (jQuery y ePayco)
+        const checkLibs = setInterval(() => {
             if (window.ePayco && window.jQuery) {
-                console.log("Librerías de pago cargadas con éxito");
-                initEpayco();
+                window.$ = window.jQuery;
+                window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
                 setIsReady(true);
+                clearInterval(checkLibs);
             }
-        };
+        }, 1000);
 
-        loadLibs();
+        return () => clearInterval(checkLibs);
     }, []);
 
     const handlePayment = async (e) => {
         e.preventDefault();
-        if (!isReady) {
-            alert("Los sistemas de pago se están cargando. Intenta en unos segundos.");
-            return;
-        }
+        if (!isReady || loading) return;
         
         setLoading(true);
 
-        // 1. Llamada a la API de tokenización (si la necesitas)
-        // ... (Debería estar AQUÍ) ...
-        
-        // 2. Creación del objeto de datos para ePayco (Verifica que no falte nada)
         const $form = window.jQuery('#payment-form');
-        window.ePayco.token.create($form, async (error, token) => { // <<-- LA LLAMADA CLAVE
+
+        window.ePayco.token.create($form, async (error, token) => {
             if (error || !token || !token.id) {
-                console.error("Error ePayco: ", error);
-                alert("Error al procesar los datos: " + (error?.description || error?.message || "Error desconocido"));
+                alert("Error en validación: " + (error?.description || "Datos de tarjeta incompletos"));
                 setLoading(false);
-                return; // Salimos para que no envíe el formulario sin token
-            }
+            } else {
+                try {
+                    const response = await fetch('/api/payments/subscribe', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            token: token.id,
+                            planId: planId,
+                            name: user?.user_metadata?.full_name || user?.email,
+                            email: user?.email,
+                            userId: user?.id,
+                        })
+                    });
 
-            try {
-                // 3. Llamada a la API de suscripción con EL TOKEN
-                const response = await fetch('/api/payments/subscribe', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        token: token.id,  // <---- ESTE ES EL TOKEN (Importante)
-                        planId: planId,
-                        name: user?.user_metadata?.full_name || user?.email || "Usuario",
-                        email: user?.email,
-                        userId: user?.id,
-                    })
-                });
-            
-                if (!response.ok) throw new Error("Error en el servidor: " + response.status);
-
-                const result = await response.json();
-                alert("¡Suscripción procesada! Acceso desbloqueado.");
-                window.location.href = '/dashboard/subscription';
-            } catch (err) {
-                console.error("Error en la suscripción", err);
-                alert("Error al procesar el pago: " + err.message);
-                setLoading(false);
+                    if (response.ok) {
+                        alert("🚀 Suscripción Activada con éxito");
+                        window.location.href = '/dashboard/subscription';
+                    } else {
+                        const result = await response.json();
+                        alert("Error: " + result.error);
+                        setLoading(false);
+                    }
+                } catch (err) {
+                    alert("Falla de red con el servidor de pagos.");
+                    setLoading(false);
+                }
             }
         });
     };
 
     return (
-        <main className="min-h-screen bg-[#f8f6f6] flex flex-col lg:flex-row font-display">
-            <AuthSidePanel title="Control de pagos" />
-            <section className="flex-1 p-8 md:p-20 flex flex-col justify-center">
-                <div className="max-w-md w-full mx-auto space-y-10">
-                    <header>
-                        <h2 className="text-3xl font-black uppercase">Suscripción Plan {planName}</h2>
-                        <p className="text-sm text-slate-500">Ingresa tu información de pago.</p>
-                    </header>
-                    
-                    <form onSubmit={handlePayment} id="payment-form" className="space-y-6">
-                        <input type="text" data-epayco="card[name]" required className="w-full p-4 bg-white border rounded-xl" placeholder="Nombre del titular" />
-                        <input type="email" data-epayco="card[email]" defaultValue={user?.email || ''} required className="w-full p-4 bg-white border rounded-xl" placeholder="Correo Electrónico" />
-                        <input type="text" data-epayco="card[number]" required className="w-full p-4 bg-white border rounded-xl font-mono" placeholder="Número de tarjeta" />
-                        <div className="grid grid-cols-3 gap-4">
-                            <input type="text" data-epayco="card[exp_month]" maxLength="2" required className="w-full p-4 bg-white border rounded-xl text-center" placeholder="MM" />
-                            <input type="text" data-epayco="card[exp_year]" maxLength="4" required className="w-full p-4 bg-white border rounded-xl text-center" placeholder="AAAA" />
-                            <input type="text" data-epayco="card[cvc]" maxLength="4" required className="w-full p-4 bg-white border rounded-xl text-center" placeholder="CVC" />
-                        </div>
-                        <button type="submit" disabled={loading || !isReady} className="w-full py-4 bg-[#ec5b13] text-white font-black rounded-xl uppercase" >
-                            {loading ? 'Procesando...' : 'Activar Pago'}
-                        </button>
-                    </form>
+        <div className="max-w-md w-full mx-auto space-y-10 text-left">
+            <header>
+                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Método de Pago</h2>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Plan: <span className="text-[#ec5b13]">{planName}</span></p>
+            </header>
+            
+            <form onSubmit={handlePayment} id="payment-form" className="space-y-6">
+                <input type="text" data-epayco="card[name]" required className="w-full p-4 bg-white border rounded-2xl outline-none" placeholder="TITULAR TARJETA" />
+                <input type="email" data-epayco="card[email]" defaultValue={user?.email || ''} required className="w-full p-4 bg-white border rounded-2xl outline-none" placeholder="EMAIL" />
+                <input type="text" data-epayco="card[number]" required className="w-full p-4 bg-white border rounded-2xl font-mono" placeholder="NÚMERO DE TARJETA" />
+                <div className="grid grid-cols-3 gap-4">
+                    <input type="text" data-epayco="card[exp_month]" maxLength="2" required className="w-full p-4 bg-white border rounded-2xl text-center" placeholder="MM" />
+                    <input type="text" data-epayco="card[exp_year]" maxLength="4" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center" placeholder="YYYY" />
+                    <input type="text" data-epayco="card[cvc]" maxLength="4" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center" placeholder="CVC" />
                 </div>
+                <button type="submit" disabled={loading || !isReady} className="w-full py-5 bg-[#ec5b13] text-white font-black rounded-2xl shadow-xl uppercase text-xs tracking-widest disabled:opacity-30">
+                    {loading ? "PROCESANDO..." : "ACTIVAR SUSCRIPCIÓN"}
+                </button>
+            </form>
+        </div>
+    );
+}
+
+// Componente Principal de la página
+export default function TokenPayPage() {
+    return (
+        <main className="min-h-screen bg-[#f8f6f6] flex flex-col lg:flex-row font-display">
+            <AuthSidePanel title="Pasarela de pago BitaFly" />
+            <section className="flex-1 p-8 md:p-20 flex flex-col justify-center">
+                <Suspense fallback={<div className="text-center font-black animate-pulse">SINCROZINANDO...</div>}>
+                    <PaymentFormContent />
+                </Suspense>
             </section>
         </main>
     );

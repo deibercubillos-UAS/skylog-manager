@@ -1,3 +1,4 @@
+// 2. FUNCIÓN DE INICIALIZACIÓN
 export const initEpayco = () => {
   if (typeof window !== 'undefined' && window.ePayco) {
     window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
@@ -15,13 +16,6 @@ export const BITAFLY_PLANS = {
 };
 
 // 2. FUNCIÓN DE INICIALIZACIÓN
-export const initEpayco = () => {
-  if (typeof window !== 'undefined' && window.ePayco) {
-    window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
-    return true;
-  }
-  return false;
-};
 
 // 3. MOTOR DE APERTURA (TOKENIZACIÓN)
 export const openEpaycoCheckout = (planName, userEmail, userId, isAnnual) => {

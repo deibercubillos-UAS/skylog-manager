@@ -4,9 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSearchParams } from 'next/navigation';
 import AuthSidePanel from '@/components/AuthSidePanel';
-import Link from 'next/link';
 
-// Sub-componente que maneja la lógica del formulario
 function PaymentFormContent() {
     const searchParams = useSearchParams();
     const [loading, setLoading] = useState(false);
@@ -17,23 +15,38 @@ function PaymentFormContent() {
     const planName = searchParams.get('name') || 'Suscripción';
 
     useEffect(() => {
-        async function loadUser() {
+        const loadUser = async () => {
             const { data } = await supabase.auth.getUser();
             if (data?.user) setUser(data.user);
-        }
+        };
         loadUser();
 
-        // Verificador de carga de las librerías externas (jQuery y ePayco)
-        const checkLibs = setInterval(() => {
-            if (window.ePayco && window.jQuery) {
-                window.$ = window.jQuery;
-                window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
-                setIsReady(true);
-                clearInterval(checkLibs);
-            }
-        }, 1000);
+        // --- CARGA FORZADA DE LIBRERÍAS ---
+        const scriptJquery = document.createElement('script');
+        scriptJquery.src = "https://code.jquery.com/jquery-3.7.1.min.js";
+        scriptJquery.async = true;
+        document.head.appendChild(scriptJquery);
 
-        return () => clearInterval(checkLibs);
+        scriptJquery.onload = () => {
+            window.$ = window.jQuery;
+            const scriptEpayco = document.createElement('script');
+            scriptEpayco.src = "https://checkout.epayco.co/epayco.min.js";
+            scriptEpayco.async = true;
+            document.head.appendChild(scriptEpayco);
+
+            scriptEpayco.onload = () => {
+                if (window.ePayco) {
+                    window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
+                    setIsReady(true);
+                    console.log("✅ Pasarela BitaFly lista");
+                }
+            };
+        };
+
+        return () => {
+            // Limpieza opcional al desmontar
+            if (scriptJquery.parentNode) document.head.removeChild(scriptJquery);
+        };
     }, []);
 
     const handlePayment = async (e) => {
@@ -41,12 +54,22 @@ function PaymentFormContent() {
         if (!isReady || loading) return;
         
         setLoading(true);
+        window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
 
-        const $form = window.jQuery('#payment-form');
+        // Captura de datos del formulario directamente
+        const form = e.target;
+        const dataToTokenize = {
+            "card[number]": form.querySelector('input[placeholder*="NÚMERO"]').value.replace(/\s/g, ''),
+            "card[exp_month]": form.querySelector('input[placeholder="MM"]').value,
+            "card[exp_year]": form.querySelector('input[placeholder="YYYY"]').value,
+            "card[cvc]": form.querySelector('input[placeholder="CVC"]').value,
+            "card[name]": form.querySelector('input[placeholder*="TITULAR"]').value,
+            "card[email]": user?.email
+        };
 
-        window.ePayco.token.create($form, async (error, token) => {
+        window.ePayco.token.create(dataToTokenize, async (error, token) => {
             if (error || !token || !token.id) {
-                alert("Error en validación: " + (error?.description || "Datos de tarjeta incompletos"));
+                alert("Error en tarjeta: " + (error?.description || "Verifique los datos e intente de nuevo."));
                 setLoading(false);
             } else {
                 try {
@@ -56,14 +79,14 @@ function PaymentFormContent() {
                         body: JSON.stringify({
                             token: token.id,
                             planId: planId,
-                            name: user?.user_metadata?.full_name || user?.email,
-                            email: user?.email,
-                            userId: user?.id,
+                            name: dataToTokenize["card[name]"],
+                            email: user.email,
+                            userId: user.id,
                         })
                     });
 
                     if (response.ok) {
-                        alert("🚀 Suscripción Activada con éxito");
+                        alert("🚀 ¡Suscripción Activada!");
                         window.location.href = '/dashboard/subscription';
                     } else {
                         const result = await response.json();
@@ -71,7 +94,7 @@ function PaymentFormContent() {
                         setLoading(false);
                     }
                 } catch (err) {
-                    alert("Falla de red con el servidor de pagos.");
+                    alert("Falla de conexión con el servidor.");
                     setLoading(false);
                 }
             }
@@ -81,34 +104,49 @@ function PaymentFormContent() {
     return (
         <div className="max-w-md w-full mx-auto space-y-10 text-left">
             <header>
-                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Método de Pago</h2>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Plan: <span className="text-[#ec5b13]">{planName}</span></p>
+                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Método de Pago</h2>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Plan: <span className="text-[#ec5b13]">{planName}</span></p>
             </header>
             
-            <form onSubmit={handlePayment} id="payment-form" className="space-y-6">
-                <input type="text" data-epayco="card[name]" required className="w-full p-4 bg-white border rounded-2xl outline-none" placeholder="TITULAR TARJETA" />
-                <input type="email" data-epayco="card[email]" defaultValue={user?.email || ''} required className="w-full p-4 bg-white border rounded-2xl outline-none" placeholder="EMAIL" />
-                <input type="text" data-epayco="card[number]" required className="w-full p-4 bg-white border rounded-2xl font-mono" placeholder="NÚMERO DE TARJETA" />
-                <div className="grid grid-cols-3 gap-4">
-                    <input type="text" data-epayco="card[exp_month]" maxLength="2" required className="w-full p-4 bg-white border rounded-2xl text-center" placeholder="MM" />
-                    <input type="text" data-epayco="card[exp_year]" maxLength="4" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center" placeholder="YYYY" />
-                    <input type="text" data-epayco="card[cvc]" maxLength="4" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center" placeholder="CVC" />
+            <form onSubmit={handlePayment} className="space-y-6">
+                <input required placeholder="TITULAR DE LA TARJETA" className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-bold text-sm" />
+                <input required placeholder="NÚMERO DE LA TARJETA" className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-mono text-sm" />
+                
+                <div className="grid grid-cols-3 gap-4 text-left">
+                    <div>
+                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Mes</label>
+                        <input required placeholder="MM" maxLength="2" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-bold" />
+                    </div>
+                    <div>
+                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Año</label>
+                        <input required placeholder="YYYY" maxLength="4" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-bold" />
+                    </div>
+                    <div>
+                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">CVC</label>
+                        <input required placeholder="CVC" maxLength="4" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-bold" />
+                    </div>
                 </div>
-                <button type="submit" disabled={loading || !isReady} className="w-full py-5 bg-[#ec5b13] text-white font-black rounded-2xl shadow-xl uppercase text-xs tracking-widest disabled:opacity-30">
-                    {loading ? "PROCESANDO..." : "ACTIVAR SUSCRIPCIÓN"}
-                </button>
+
+                <div className="pt-4">
+                    <button 
+                        type="submit" 
+                        disabled={loading || !isReady} 
+                        className="w-full py-5 bg-[#ec5b13] text-white font-black rounded-2xl shadow-xl uppercase text-xs tracking-widest disabled:opacity-20 hover:bg-orange-600 transition-all active:scale-95"
+                    >
+                        {loading ? "PROCESANDO..." : isReady ? "ACTIVAR SUSCRIPCIÓN" : "ESPERANDO SEGURIDAD..."}
+                    </button>
+                </div>
             </form>
         </div>
     );
 }
 
-// Componente Principal de la página
 export default function TokenPayPage() {
     return (
         <main className="min-h-screen bg-[#f8f6f6] flex flex-col lg:flex-row font-display">
-            <AuthSidePanel title="Pasarela de pago BitaFly" />
+            <AuthSidePanel title="Pasarela segura BitaFly UAS" />
             <section className="flex-1 p-8 md:p-20 flex flex-col justify-center">
-                <Suspense fallback={<div className="text-center font-black animate-pulse">SINCROZINANDO...</div>}>
+                <Suspense fallback={<div className="text-center font-black animate-pulse uppercase text-xs">Cargando Módulo de Pago...</div>}>
                     <PaymentFormContent />
                 </Suspense>
             </section>

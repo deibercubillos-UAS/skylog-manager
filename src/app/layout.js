@@ -1,8 +1,7 @@
 import "./globals.css";
-import Script from 'next/script';
 
 export const metadata = {
-  title: "BitaFly Manager - Aviation Log",
+  title: "BitaFly Manager",
   description: "Gestión aeronáutica profesional UAS",
 };
 
@@ -16,7 +15,6 @@ export default function RootLayout({ children }) {
       </head>
       <body className="antialiased">
         {children}
-        {/* CAMBIO: Usamos epayco.min.js para Tokenización Directa */}
       </body>
     </html>
   );

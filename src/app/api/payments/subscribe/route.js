@@ -11,11 +11,18 @@ const epayco = require('epayco-sdk-node')({
 export async function POST(request) {
     try {
         const body = await request.json();
-        // Extraemos 'token' (coincidiendo con el frontend)
         const { token, planId, name, email, userId } = body;
 
-        if (!token) return NextResponse.json({ error: "Faltan datos: token_tarjeta" }, { status: 400 });
-        if (!planId || !userId) return NextResponse.json({ error: "Faltan datos: cuenta_plan" }, { status: 400 });
+        // Validación estricta de campos para evitar error 400
+        const missing = [];
+        if (!token) missing.push("token");
+        if (!planId) missing.push("planId");
+        if (!userId) missing.push("userId");
+        if (!email) missing.push("email");
+
+        if (missing.length > 0) {
+            return NextResponse.json({ error: `Faltan campos: ${missing.join(', ')}` }, { status: 400 });
+        }
 
         // 1. Crear Cliente
         const customer = await epayco.customers.create({

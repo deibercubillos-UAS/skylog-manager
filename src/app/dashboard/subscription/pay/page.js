@@ -59,15 +59,17 @@ function PaymentFormContent() {
         if (!isReady || loading) return;
         setLoading(true);
 
-        // Forzar inicialización justo antes de la captura
         window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
         const $form = window.jQuery('#epayco-form');
 
         window.ePayco.token.create($form, async (error, token) => {
-            // Depuración en consola para ver la respuesta real de ePayco
+            // DEPURACIÓN: Verificamos qué entrega ePayco
             console.log("Respuesta SDK ePayco:", { error, token });
 
-            if (error || !token || !token.id) {
+            // CORRECCIÓN: Algunos SDK devuelven el token como string y otros como objeto {id: '...'}
+            const tokenId = typeof token === 'object' ? token.id : token;
+
+            if (error || !tokenId) {
                 alert("Error de validación: " + (error?.description || "Verifique los datos de la tarjeta"));
                 setLoading(false);
             } else {
@@ -76,7 +78,7 @@ function PaymentFormContent() {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            token: token.id,
+                            token: tokenId, // Enviamos el ID extraído correctamente
                             planId: planId,
                             name: user?.user_metadata?.full_name || user?.email,
                             email: user?.email,
@@ -86,14 +88,14 @@ function PaymentFormContent() {
 
                     const result = await response.json();
                     if (response.ok) {
-                        alert("🚀 Suscripción Activada");
+                        alert("🚀 ¡Suscripción Activada con éxito!");
                         window.location.href = '/dashboard/subscription';
                     } else {
                         alert("Error Servidor: " + result.error);
                         setLoading(false);
                     }
                 } catch (err) {
-                    alert("Error de conexión");
+                    alert("Falla de comunicación con el servidor.");
                     setLoading(false);
                 }
             }
@@ -103,7 +105,7 @@ function PaymentFormContent() {
     return (
         <div className="max-w-md w-full mx-auto space-y-10 text-left animate-in fade-in">
             <header>
-                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Método de Pago</h2>
+                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Método de Pago</h2>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Plan: <span className="text-[#ec5b13]">{planName}</span></p>
             </header>
             
@@ -123,7 +125,7 @@ function PaymentFormContent() {
                     <input type="text" data-epayco="card[number]" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-mono text-sm font-bold" placeholder="0000 0000 0000 0000" />
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-4 text-left">
                     <div>
                         <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Mes</label>
                         <input type="text" data-epayco="card[exp_month]" maxLength="2" required placeholder="MM" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-bold" />
@@ -140,9 +142,8 @@ function PaymentFormContent() {
 
                 <div className="pt-4">
                     <button type="submit" disabled={loading || !isReady} className="w-full py-5 bg-[#ec5b13] text-white font-black rounded-2xl shadow-xl uppercase text-xs tracking-widest disabled:opacity-20 active:scale-95 transition-all">
-                        {loading ? "PROCESANDO..." : "ACTUALIZAR Y SUSCRIBIR"}
+                        {loading ? "PROCESANDO..." : isReady ? "AUTORIZAR Y SUSCRIBIR" : "SINCRONIZANDO..."}
                     </button>
-                    {!isReady && <p className="text-[9px] text-center text-slate-400 uppercase animate-pulse mt-4 font-bold">Iniciando pasarela segura...</p>}
                 </div>
             </form>
         </div>

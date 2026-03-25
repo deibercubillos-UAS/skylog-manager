@@ -16,7 +16,7 @@ export async function POST(request) {
             }
             return json;
         } else {
-            throw new Error(`Error 404/405: El servidor de ePayco no encontró la ruta o el método para ${stepName}.`);
+            throw new Error(`Error de comunicación (Status ${response.status}). La URL no respondió en formato JSON.`);
         }
     };
 
@@ -30,7 +30,7 @@ export async function POST(request) {
         const forwarded = request.headers.get('x-forwarded-for');
         const ip = forwarded ? forwarded.split(',')[0].trim() : '127.0.0.1';
 
-        // --- PASO 1: LOGIN (OBTENER TOKEN UNIFICADO) ---
+        // --- PASO 1: LOGIN (PARA RECURRING API) ---
         const authData = await safeFetch('https://api.secure.payco.co/v1/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -38,23 +38,20 @@ export async function POST(request) {
         }, "Autenticación");
 
         const bearerToken = authData.token || authData.bearer_token || (authData.data ? authData.data.token : null);
-        const secureHeaders = { 
-            'Authorization': `Bearer ${bearerToken}`, 
-            'Content-Type': 'application/json' 
-        };
+        const bearerHeaders = { 'Authorization': `Bearer ${bearerToken}`, 'Content-Type': 'application/json' };
 
-        // --- PASO 2: CREAR OBTENER CLIENTE ---
+        // --- PASO 2: CREAR CLIENTE (USANDO BEARER) ---
         const customer = await safeFetch('https://api.secure.payco.co/payment/v1/customer/create', {
             method: 'POST', 
-            headers: secureHeaders,
+            headers: bearerHeaders,
             body: JSON.stringify({ token_card: token, name, email, default: true })
         }, "Creación de Cliente");
         const customerId = customer.data.customerId;
 
-        // --- PASO 3: CREAR SUSCRIPCIÓN ---
+        // --- PASO 3: CREAR SUSCRIPCIÓN (USANDO BEARER) ---
         const subscription = await safeFetch('https://api.secure.payco.co/recurring/v1/subscription/create', {
             method: 'POST', 
-            headers: secureHeaders,
+            headers: bearerHeaders,
             body: JSON.stringify({
                 id_plan: planId,
                 customer: customerId,
@@ -64,15 +61,21 @@ export async function POST(request) {
             })
         }, "Alta de Suscripción");
 
-        // --- PASO 4: EJECUTAR COBRO (RUTA RECURRENTE OFICIAL) ---
-        // Usamos la ruta /recurring/v1/subscription/charge que es la que corresponde al Bearer Token
-        const chargeResult = await safeFetch('https://api.secure.payco.co/recurring/v1/subscription/charge', {
+        // --- PASO 4: EJECUTAR COBRO (USANDO HEADERS DE LLAVE PARA EVITAR 404/405) ---
+        // Según documentación técnica, el cobro manual de suscripción requiere public-key y private-key en el header
+        const chargeResult = await safeFetch('https://api.secure.payco.co/payment/v1/charge/subscription', {
             method: 'POST', 
-            headers: secureHeaders,
+            headers: {
+                'public-key': publicKey,
+                'private-key': privateKey,
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify({ 
                 id_plan: planId, 
                 customer: customerId, 
                 token_card: token, 
+                doc_type: "CC",
+                doc_number: "1234567",
                 ip: ip,
                 test: "1" 
             })
@@ -81,7 +84,7 @@ export async function POST(request) {
         // --- 5. VALIDACIÓN Y ACTUALIZACIÓN ---
         if (!chargeResult.success || String(chargeResult.data?.cod_respuesta) !== "1") {
             return NextResponse.json({ 
-                error: `Pago rechazado: ${chargeResult.data?.respuesta || 'Falla técnica'}` 
+                error: `Pago rechazado: ${chargeResult.data?.respuesta || 'Falla técnica bancaria'}` 
             }, { status: 402 });
         }
 
@@ -98,7 +101,7 @@ export async function POST(request) {
         return NextResponse.json({ success: true });
 
     } catch (err) {
-        console.error("ERROR DETECTADO:", err.message);
+        console.error("DETALLE ERROR BITAFLY:", err.message);
         return NextResponse.json({ error: `Fallo en [${currentStep}]: ${err.message}` }, { status: 500 });
     }
 }

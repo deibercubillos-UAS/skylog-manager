@@ -12,11 +12,12 @@ export async function POST(request) {
         if (contentType && contentType.indexOf("application/json") !== -1) {
             const json = await response.json();
             if (response.status >= 400) {
-                throw new Error(`[ePayco Error ${response.status}]: ${json.message || json.description || 'Error desconocido'}`);
+                throw new Error(`[ePayco Error ${response.status}]: ${json.message || json.description || 'Error en parámetros'}`);
             }
             return json;
         } else {
-            throw new Error(`El servidor de ePayco respondió con un formato inválido (HTML). Revisa que el ID del Plan sea correcto.`);
+            // Si devuelve HTML, capturamos el estatus para diagnosticar
+            throw new Error(`Error de comunicación (Status ${response.status}). La URL de ePayco no respondió correctamente.`);
         }
     };
 
@@ -35,7 +36,7 @@ export async function POST(request) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ public_key: publicKey, private_key: privateKey })
-        }, "Autenticación con ePayco");
+        }, "Autenticación");
 
         const bearerToken = authData.token || authData.bearer_token || (authData.data ? authData.data.token : null);
         const secureHeaders = { 'Authorization': `Bearer ${bearerToken}`, 'Content-Type': 'application/json' };
@@ -48,7 +49,6 @@ export async function POST(request) {
         const customerId = customer.data.customerId;
 
         // PASO 3: CREAR SUSCRIPCIÓN
-        // --- AQUÍ ES DONDE SUELE DAR ERROR 404 SI EL PLANID ESTÁ MAL ---
         const subscription = await safeFetch('https://api.secure.payco.co/recurring/v1/subscription/create', {
             method: 'POST', headers: secureHeaders,
             body: JSON.stringify({
@@ -58,20 +58,36 @@ export async function POST(request) {
                 doc_type: "CC",
                 doc_number: "12345678"
             })
-        }, "Vinculación de Plan/Suscripción");
+        }, "Vinculación de Plan");
 
-        // PASO 4: EJECUTAR COBRO INICIAL
-        const chargeResult = await safeFetch('https://api.secure.payco.co/recurring/v1/subscription/charge', {
-            method: 'POST', headers: secureHeaders,
-            body: JSON.stringify({ id_plan: planId, customer: customerId, token_card: token, ip: ip })
+        // PASO 4: EJECUTAR COBRO (URL CORREGIDA A /payment/v1/charge/subscription)
+        // Esta es la URL oficial para procesar el cobro de una suscripción creada
+        const chargeResult = await safeFetch('https://api.secure.payco.co/payment/v1/charge/subscription', {
+            method: 'POST', 
+            headers: secureHeaders,
+            body: JSON.stringify({ 
+                id_plan: planId, 
+                customer: customerId, 
+                token_card: token, 
+                doc_type: "CC",
+                doc_number: "12345678",
+                ip: ip 
+            })
         }, "Ejecución de Cobro");
 
+        // 5. VALIDACIÓN DE ÉXITO
         if (!chargeResult.success || String(chargeResult.data?.cod_respuesta) !== "1") {
-            return NextResponse.json({ error: `Pago rechazado: ${chargeResult.data?.respuesta || 'Falla en tarjeta'}` }, { status: 402 });
+            return NextResponse.json({ 
+                error: `Pago rechazado: ${chargeResult.data?.respuesta || 'Falla en validación bancaria'}` 
+            }, { status: 402 });
         }
 
-        // PASO 5: ACTUALIZAR SUPABASE
-        const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        // 6. ACTUALIZAR SUPABASE (SERVICE ROLE)
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+
         const planKey = planId.toLowerCase().includes('escuadrilla') ? 'escuadrilla' : 'flota';
 
         await supabaseAdmin.from('profiles').update({ 
@@ -84,6 +100,7 @@ export async function POST(request) {
         return NextResponse.json({ success: true });
 
     } catch (err) {
-        return NextResponse.json({ error: `Fallo en [${currentStep}]: ${err.message}` }, { status: 500 });
+        console.error("DETALLE DE ERROR:", err.message);
+        return NextResponse.json({ error: `Fallo en ${currentStep}: ${err.message}` }, { status: 500 });
     }
 }

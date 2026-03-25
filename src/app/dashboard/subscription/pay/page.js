@@ -1,68 +1,69 @@
 'use client';
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useSearchParams } from 'next/navigation';
+import { initEpayco } from '@/lib/useEpayco';
 import AuthSidePanel from '@/components/AuthSidePanel';
+import Script from 'next/script';
 
-function PaymentFormContent() {
-    const searchParams = useSearchParams();
+function PaymentForm() {
     const [loading, setLoading] = useState(false);
     const [isReady, setIsReady] = useState(false);
     const [user, setUser] = useState(null);
+    const [planInfo, setPlanInfo] = useState({ id: '', name: '' });
     
-    const planId = searchParams.get('planId') || '';
-    const planName = searchParams.get('name') || 'Suscripción';
+    // Captura de datos en tiempo real
+    const [card, setCard] = useState({
+        name: '', email: '', number: '', mm: '', yy: '', cvc: ''
+    });
 
     useEffect(() => {
-        const loadUser = async () => {
+        const params = new URLSearchParams(window.location.search);
+        setPlanInfo({ id: params.get('planId') || '', name: params.get('name') || '' });
+        
+        async function loadUser() {
             const { data } = await supabase.auth.getUser();
-            if (data?.user) setUser(data.user);
-        };
+            if (data?.user) {
+                setUser(data.user);
+                setCard(prev => ({ ...prev, email: data.user.email, name: data.user.user_metadata?.full_name || '' }));
+            }
+        }
         loadUser();
 
-        // Cargador manual de scripts para asegurar disponibilidad
-        const setup = () => {
+        const timer = setInterval(() => {
             if (window.ePayco && window.jQuery) {
                 window.$ = window.jQuery;
-                window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
+                initEpayco();
                 setIsReady(true);
-                return;
+                clearInterval(timer);
             }
-            const jq = document.createElement('script');
-            jq.src = "https://code.jquery.com/jquery-3.7.1.min.js";
-            document.head.appendChild(jq);
-            jq.onload = () => {
-                window.$ = window.jQuery;
-                const ep = document.createElement('script');
-                ep.src = "https://checkout.epayco.co/epayco.min.js";
-                document.head.appendChild(ep);
-                ep.onload = () => {
-                    if (window.ePayco) {
-                        window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
-                        setIsReady(true);
-                    }
-                };
-            };
-        };
-        setup();
+        }, 1000);
+        return () => clearInterval(timer);
     }, []);
 
     const handlePayment = async (e) => {
         e.preventDefault();
-        if (!isReady || loading) return;
         setLoading(true);
 
-        // RE-INICIALIZACIÓN DE EMERGENCIA (Soluciona error 'words')
+        // Aseguramos la llave pública
         window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
 
-        const $form = window.jQuery('#epayco-form');
+        // --- CONSTRUCCIÓN DEL OBJETO DE DATOS (MÉTODO MÁS ESTABLE) ---
+        // Pasamos los nombres de las llaves EXACTOS que espera el SDK de ePayco
+        const dataToTokenize = {
+            "card[number]": card.number.replace(/\s/g, ''),
+            "card[exp_month]": card.mm,
+            "card[exp_year]": card.yy,
+            "card[cvc]": card.cvc,
+            "card[name]": card.name,
+            "card[email]": card.email
+        };
 
-        window.ePayco.token.create($form, async (error, token) => {
-            // VALIDACIÓN DEFENSIVA: No leer .id si token es null
-            if (error || !token || typeof token !== 'object' || !token.id) {
-                console.error("Fallo Tokenización:", error);
-                alert("Error de seguridad: " + (error?.description || "Los datos de la tarjeta no pudieron ser procesados. Revisa el número y fechas."));
+        window.ePayco.token.create(dataToTokenize, async (error, token) => {
+            if (error || !token || !token.id) {
+                console.error("Detalle Error ePayco:", error);
+                alert("Error: " + (error?.description || "Los datos de la tarjeta son inválidos o falta información."));
                 setLoading(false);
             } else {
                 try {
@@ -71,23 +72,23 @@ function PaymentFormContent() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             token: token.id,
-                            planId: planId,
-                            name: user?.user_metadata?.full_name || user?.email,
-                            email: user.email,
-                            userId: user.id,
+                            planId: planInfo.id,
+                            name: card.name,
+                            email: card.email,
+                            userId: user.id
                         })
                     });
 
                     const result = await response.json();
                     if (response.ok) {
-                        alert("🚀 ¡Suscripción Activada!");
+                        alert("🚀 ¡Suscripción Activada con éxito!");
                         window.location.href = '/dashboard/subscription';
                     } else {
-                        alert("Falla técnica: " + result.error);
+                        alert("Falla en Servidor: " + result.error);
                         setLoading(false);
                     }
                 } catch (err) {
-                    alert("Error de conexión con el centro de pagos.");
+                    alert("Error de conexión.");
                     setLoading(false);
                 }
             }
@@ -96,31 +97,42 @@ function PaymentFormContent() {
 
     return (
         <div className="max-w-md w-full mx-auto space-y-10 text-left animate-in fade-in">
+            <Script src="https://code.jquery.com/jquery-3.7.1.min.js" strategy="beforeInteractive" />
+            <Script src="https://checkout.epayco.co/epayco.min.js" strategy="beforeInteractive" />
+
             <header>
                 <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Método de Pago</h2>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Plan: <span className="text-[#ec5b13]">{planName}</span></p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">
+                    Activando: <span className="text-[#ec5b13]">{planInfo.name}</span>
+                </p>
             </header>
             
-            <form onSubmit={handlePayment} id="epayco-form" className="space-y-6">
+            <form onSubmit={handlePayment} className="space-y-6">
                 <div className="space-y-1">
                     <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Titular</label>
-                    <input type="text" data-epayco="card[name]" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-bold text-sm" placeholder="NOMBRE COMPLETO" />
+                    <input required value={card.name} className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-bold" 
+                    onChange={e => setCard({...card, name: e.target.value.toUpperCase()})} />
                 </div>
                 <div className="space-y-1">
                     <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Email</label>
-                    <input type="email" data-epayco="card[email]" defaultValue={user?.email || ''} required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-bold text-sm" />
+                    <input required type="email" value={card.email} className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-bold" 
+                    onChange={e => setCard({...card, email: e.target.value})} />
                 </div>
                 <div className="space-y-1">
                     <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Número de Tarjeta</label>
-                    <input type="text" data-epayco="card[number]" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-mono text-sm" placeholder="0000 0000 0000 0000" />
+                    <input required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-mono" placeholder="4111 1111 1111 1111"
+                    onChange={e => {
+                        let val = e.target.value.replace(/\D/g, '').match(/.{1,4}/g)?.join(' ') || '';
+                        setCard({...card, number: val.substring(0, 19)});
+                    }} value={card.number} />
                 </div>
                 <div className="grid grid-cols-3 gap-4">
-                    <input type="text" data-epayco="card[exp_month]" maxLength="2" required placeholder="MM" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-bold" />
-                    <input type="text" data-epayco="card[exp_year]" maxLength="4" required placeholder="YYYY" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-bold" />
-                    <input type="text" data-epayco="card[cvc]" maxLength="4" required placeholder="CVC" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-bold" />
+                    <input required placeholder="MM" maxLength="2" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-black" onChange={e => setCard({...card, mm: e.target.value})} />
+                    <input required placeholder="YYYY" maxLength="4" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-black" onChange={e => setCard({...card, yy: e.target.value})} />
+                    <input required placeholder="CVC" maxLength="4" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-black" onChange={e => setCard({...card, cvc: e.target.value})} />
                 </div>
                 <button type="submit" disabled={loading || !isReady} className="w-full py-5 bg-[#ec5b13] text-white font-black rounded-2xl shadow-xl uppercase text-xs tracking-widest disabled:opacity-20 active:scale-95 transition-all">
-                    {loading ? "PROCESANDO SEGURIDAD..." : "ACTUALIZAR Y SUSCRIBIR"}
+                    {loading ? "Procesando seguridad..." : "Activar Pago Mensual"}
                 </button>
             </form>
         </div>
@@ -128,12 +140,12 @@ function PaymentFormContent() {
 }
 
 export default function TokenPayPage() {
-    return (
-        <main className="min-h-screen bg-[#f8f6f6] flex flex-col lg:flex-row font-display">
-            <AuthSidePanel title="Pasarela de pago segura BitaFly" />
-            <section className="flex-1 p-8 md:p-20 flex flex-col justify-center">
-                <Suspense fallback={<p>Cargando...</p>}><PaymentFormContent /></Suspense>
-            </section>
-        </main>
-    );
+  return (
+    <main className="min-h-screen bg-[#f8f6f6] flex flex-col lg:flex-row font-display">
+      <AuthSidePanel title="Seguridad Bancaria BitaFly" />
+      <section className="flex-1 p-8 md:p-20 flex flex-col justify-center">
+        <Suspense fallback={<p>Cargando...</p>}><PaymentForm /></Suspense>
+      </section>
+    </main>
+  );
 }

@@ -3,52 +3,42 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
     try {
-        // 1. Leer los datos enviados por ePayco (Form Data con prefijo x_)
+        // ePayco envía los datos como FormData (x-www-form-urlencoded)
         const formData = await request.formData();
         const data = Object.fromEntries(formData.entries());
 
-        console.log("🔔 Webhook Recibido de ePayco:", data.x_id_invoice);
+        console.log("=== WEBHOOK BITAFLY RECIBIDO ===");
+        console.log("ID Factura:", data.x_id_invoice);
+        console.log("Respuesta Cod:", data.x_cod_response);
+        console.log("Email:", data.x_customer_email);
 
-        // 2. Extraer variables clave
-        const status = String(data.x_cod_response); // 1=Aceptada, 2=Rechazada, 4=Fallida
-        const userId = data.x_extra2;               // El ID que enviamos desde el front
-        const planSolicitado = data.x_extra1;       // escuadrilla o flota
-        const subscriptionId = data.x_id_invoice;   // ID de suscripción en ePayco
+        const status = String(data.x_cod_response); 
+        const userId = data.x_extra2; // ID de Supabase que enviamos
+        const planSolicitado = data.x_extra1; // escuadrilla o flota
 
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_ROLE_KEY
         );
 
-        // 3. CASO: PAGO ACEPTADO (Activación)
+        // Si el pago es exitoso (1)
         if (status === "1") {
-            console.log(`✅ Activando ${planSolicitado} para usuario ${userId}`);
-            await supabaseAdmin
+            const { error } = await supabaseAdmin
                 .from('profiles')
                 .update({ 
                     subscription_plan: planSolicitado,
-                    epayco_subscription_id: subscriptionId,
+                    epayco_subscription_id: data.x_id_invoice,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', userId);
-        } 
-        // 4. CASO: PAGO RECHAZADO, FALLIDO O CANCELADO (Degradación)
-        else {
-            console.log(`❌ Pago/Suscripción Inactiva (Status: ${status}). Volviendo a Piloto.`);
-            await supabaseAdmin
-                .from('profiles')
-                .update({ 
-                    subscription_plan: 'piloto',
-                    epayco_subscription_id: null,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', userId);
+
+            if (error) console.error("Error DB:", error.message);
+            else console.log("✅ Plan actualizado con éxito via Webhook");
         }
 
-        return NextResponse.json({ message: "Webhook procesado" }, { status: 200 });
-
+        return NextResponse.json({ message: "OK" });
     } catch (err) {
-        console.error("💥 Error Crítico Webhook:", err.message);
+        console.error("❌ Error en Webhook:", err.message);
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }

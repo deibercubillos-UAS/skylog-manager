@@ -16,7 +16,7 @@ export async function POST(request) {
             }
             return json;
         } else {
-            throw new Error(`Error de comunicación (Status ${response.status}). La URL de ePayco no respondió correctamente.`);
+            throw new Error(`Error de comunicación (Status ${response.status}). Formato de respuesta no válido.`);
         }
     };
 
@@ -59,8 +59,8 @@ export async function POST(request) {
             })
         }, "Vinculación de Plan");
 
-        // PASO 4: EJECUTAR COBRO (URL CORREGIDA SEGÚN RECURRING API)
-        const chargeResult = await safeFetch('https://api.secure.payco.co/recurring/v1/subscription/charge', {
+        // PASO 4: EJECUTAR COBRO (URL CORREGIDA: /recurring/v1/charge)
+        const chargeResult = await safeFetch('https://api.secure.payco.co/recurring/v1/charge', {
             method: 'POST', 
             headers: secureHeaders,
             body: JSON.stringify({ 
@@ -74,7 +74,6 @@ export async function POST(request) {
         }, "Ejecución de Cobro");
 
         // 5. VALIDACIÓN DE ÉXITO
-        // ePayco devuelve cod_respuesta como número o string
         if (!chargeResult.success || String(chargeResult.data?.cod_respuesta) !== "1") {
             return NextResponse.json({ 
                 error: `Pago rechazado: ${chargeResult.data?.respuesta || 'Falla en validación bancaria'}` 

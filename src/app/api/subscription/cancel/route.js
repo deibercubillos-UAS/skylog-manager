@@ -4,13 +4,26 @@ import { NextResponse } from 'next/server';
 export async function POST(request) {
   try {
     const { userId } = await request.json();
-    const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const authHeader = request.headers.get('Authorization');
 
-    // 1. Obtener ID de Suscripción de la DB
-    const { data: profile } = await supabaseAdmin.from('profiles').select('epayco_subscription_id').eq('id', userId).single();
+    if (!userId || !authHeader) {
+      return NextResponse.json({ error: "Sesión inválida" }, { status: 401 });
+    }
+
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    // 1. Obtener el ID de la suscripción activa del usuario
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('epayco_subscription_id')
+      .eq('id', userId)
+      .single();
 
     if (profile?.epayco_subscription_id) {
-      // 2. AUTH EPAYCO
+      // 2. LOGIN EN EPAYCO (Para obtener permiso de cancelación)
       const authRes = await fetch('https://api.secure.payco.co/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -20,29 +33,38 @@ export async function POST(request) {
         })
       });
       const authData = await authRes.json();
-      const token = authData.token || authData.data?.token;
+      const bearerToken = authData.token || authData.data?.token;
 
-      // 3. CANCELAR EN SERVIDOR EPAYCO
+      // 3. LLAMADA DE CANCELACIÓN A EPAYCO (Equivalente al código de la asesora)
+      // Usamos la ruta REST oficial para suscripciones
       await fetch('https://api.secure.payco.co/recurring/v1/subscription/cancel', {
         method: 'POST',
         headers: { 
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${bearerToken}`,
           'Content-Type': 'application/json' 
         },
         body: JSON.stringify({ id: profile.epayco_subscription_id })
       });
+      
+      console.log(`Suscripción ${profile.epayco_subscription_id} cancelada en ePayco`);
     }
 
-    // 4. BAJAR A PLAN PILOTO SIEMPRE (Aunque ePayco falle, liberamos al usuario en nuestra DB)
-    await supabaseAdmin.from('profiles').update({ 
-      subscription_plan: 'piloto',
-      epayco_subscription_id: null,
-      updated_at: new Date().toISOString()
-    }).eq('id', userId);
+    // 4. ACTUALIZAR SUPABASE (Bajar a Plan Piloto)
+    const { error: dbError } = await supabaseAdmin
+      .from('profiles')
+      .update({ 
+        subscription_plan: 'piloto',
+        epayco_subscription_id: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
 
-    return NextResponse.json({ message: "Suscripción cancelada." });
+    if (dbError) throw dbError;
+
+    return NextResponse.json({ message: "Suscripción cancelada exitosamente." });
 
   } catch (err) {
+    console.error("Error en cancelación:", err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

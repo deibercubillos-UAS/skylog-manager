@@ -6,28 +6,22 @@ export async function POST(request) {
         const body = await request.json();
         const { token, planId, name, email, userId } = body;
 
+        // Capturamos la IP del cliente (Requisito obligatorio para el cobro)
+        const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
+
         const publicKey = process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY?.trim();
         const privateKey = process.env.EPAYCO_PRIVATE_KEY?.trim();
 
-        // 1. LOGIN PARA OBTENER BEARER TOKEN
+        // 1. LOGIN EN EPAYCO PARA OBTENER TOKEN
         const authRes = await fetch('https://api.secure.payco.co/v1/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                public_key: publicKey,
-                private_key: privateKey
-            })
+            body: JSON.stringify({ public_key: publicKey, private_key: privateKey })
         });
-
         const authData = await authRes.json();
-        
-        // ePayco puede devolver el token como 'token' o 'bearer_token' dependiendo de la versión
         const bearerToken = authData.token || authData.bearer_token || (authData.data ? authData.data.token : null);
 
-        if (!bearerToken) {
-            console.error("Respuesta inesperada de Auth ePayco:", authData);
-            return NextResponse.json({ error: `Fallo de autenticación: ${authData.message || 'Token no recibido'}` }, { status: 500 });
-        }
+        if (!bearerToken) throw new Error("Fallo de autenticación en ePayco");
 
         const secureHeaders = {
             'Authorization': `Bearer ${bearerToken}`,
@@ -38,19 +32,10 @@ export async function POST(request) {
         const customerRes = await fetch('https://api.secure.payco.co/payment/v1/customer/create', {
             method: 'POST',
             headers: secureHeaders,
-            body: JSON.stringify({
-                token_card: token,
-                name: name,
-                email: email,
-                default: true
-            })
+            body: JSON.stringify({ token_card: token, name, email, default: true })
         });
-
         const customer = await customerRes.json();
-        if (!customer.success) {
-            return NextResponse.json({ error: `ePayco Cliente: ${customer.message || 'Error desconocido'}` }, { status: 500 });
-        }
-
+        if (!customer.success) throw new Error("Error Cliente: " + customer.message);
         const customerId = customer.data.customerId;
 
         // 3. CREAR SUSCRIPCIÓN
@@ -62,18 +47,39 @@ export async function POST(request) {
                 customer: customerId,
                 token_card: token,
                 doc_type: "CC",
+                doc_number: "12345678"
+            })
+        });
+        const subscription = await subRes.json();
+        if (!subscription.success) throw new Error("Error Suscripción: " + subscription.message);
+
+        // 4. EJECUTAR COBRO (La lógica de la imagen: subscriptions.charge)
+        // Esto verifica si la tarjeta realmente tiene dinero y autoriza la transacción
+        const chargeRes = await fetch('https://api.secure.payco.co/recurring/v1/subscription/charge', {
+            method: 'POST',
+            headers: secureHeaders,
+            body: JSON.stringify({
+                id_plan: planId,
+                customer: customerId,
+                token_card: token,
+                doc_type: "CC",
                 doc_number: "12345678",
-                url_confirmation: `${process.env.NEXT_PUBLIC_SITE_URL}/api/payments/confirmation`,
-                method_confirmation: "POST"
+                ip: ip // IP obligatoria
             })
         });
 
-        const subscription = await subRes.json();
-        if (!subscription.success) {
-            return NextResponse.json({ error: `ePayco Suscripción: ${subscription.message || 'Error desconocido'}` }, { status: 500 });
+        const chargeResult = await chargeRes.json();
+
+        // 5. VALIDAR SI EL COBRO FUE EXITOSO
+        // Si el estado no es 'Aceptada' (usualmente cod_respuesta 1), lanzamos error y NO actualizamos la DB
+        if (!chargeResult.success || chargeResult.data.cod_respuesta !== 1) {
+            console.error("Transacción Rechazada:", chargeResult);
+            return NextResponse.json({ 
+                error: `Pago rechazado: ${chargeResult.data?.respuesta || 'Verifique los fondos de su tarjeta'}` 
+            }, { status: 402 }); // 402 = Payment Required
         }
 
-        // 4. ACTUALIZAR SUPABASE
+        // 6. ACTUALIZAR SUPABASE (Solo si el cobro fue exitoso)
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -93,7 +99,7 @@ export async function POST(request) {
 
         if (dbError) throw dbError;
 
-        return NextResponse.json({ success: true, message: "Suscripción BitaFly Activa" });
+        return NextResponse.json({ success: true, message: "Pago exitoso y plan activado" });
 
     } catch (err) {
         console.error("CRITICAL_BACKEND_ERROR:", err.message);

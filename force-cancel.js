@@ -1,44 +1,55 @@
 // force-cancel.js
-const PUBLIC_KEY = 'TU_PUBLIC_KEY'; // Pon tu llave pública de ePayco
-const PRIVATE_KEY = 'TU_PRIVATE_KEY'; // Pon tu llave privada de ePayco
+const PUBLIC_KEY = 'c40acc8a877f180bf312c79aae0503f7'; // Sacada de tu imagen de Postman
+const PRIVATE_KEY = 'b13e95ea247b7cbe1f41724a1cb86d91'; // Sacada de tu imagen de Postman
 const SUBSCRIPTION_ID = '9c35a7f5e495c14c205ffd6'; // El ID que quieres borrar
 
 async function runForceCancel() {
-    console.log("🚀 Iniciando cancelación forzada...");
+    console.log("🚀 Iniciando protocolo de cancelación BitaFly...");
 
     try {
-        // 1. Login en ePayco
+        // PASO 1: LOGIN (Basado en Pág. 9 del PDF)
         const authRes = await fetch('https://api.secure.payco.co/v1/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ public_key: PUBLIC_KEY, private_key: PRIVATE_KEY })
+            body: JSON.stringify({
+                public_key: PUBLIC_KEY,
+                private_key: PRIVATE_KEY
+            })
         });
+
         const authData = await authRes.json();
-        const token = authData.token || authData.data?.token;
+        console.log("Respuesta Auth:", authData);
 
-        if (!token) throw new Error("No se pudo autenticar con ePayco");
+        const token = authData.token || authData.bearer_token || (authData.data ? authData.data.token : null);
 
-        // 2. Cancelar Suscripción
-        console.log(`📡 Enviando orden de cancelación para: ${SUBSCRIPTION_ID}`);
+        if (!token) {
+            throw new Error("No se obtuvo el Bearer Token. Revisa si tus llaves están en modo TEST o PRODUCCIÓN.");
+        }
+
+        // PASO 2: CANCELACIÓN (Basado en Pág. 33 del PDF)
+        console.log(`📡 Enviando baja para suscripción: ${SUBSCRIPTION_ID}`);
+        
         const cancelRes = await fetch('https://api.secure.payco.co/recurring/v1/subscription/cancel', {
             method: 'POST',
             headers: { 
                 'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json' 
+                'Content-Type': 'application/json',
+                'type': 'sdk-jwt' // <--- ESTA CABECERA ES OBLIGATORIA SEGÚN POSTMAN
             },
             body: JSON.stringify({ id: SUBSCRIPTION_ID })
         });
 
         const result = await cancelRes.json();
-        console.log("Resultado de ePayco:", result);
+        console.log("Resultado Final ePayco:", result);
 
-        if (result.success) {
-            console.log("✅ ÉXITO: Suscripción eliminada del sistema de cobros.");
+        if (result.success || result.status) {
+            console.log("✅ ÉXITO: Suscripción cancelada correctamente.");
         } else {
-            console.log("⚠️ AVISO: ePayco no pudo cancelarla (quizás ya estaba inactiva).");
+            console.log("❌ FALLA: ePayco rechazó la cancelación. Posiblemente el ID no existe o ya está inactiva.");
         }
+
     } catch (err) {
-        console.error("❌ ERROR:", err.message);
+        console.error("💥 ERROR CRÍTICO:", err.message);
     }
 }
 

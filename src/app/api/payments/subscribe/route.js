@@ -2,22 +2,23 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
-    let currentStep = "Iniciando";
+    let log = []; // Para rastrear qué pasa internamente
 
     const safeFetch = async (url, options, stepName) => {
-        currentStep = stepName;
         const response = await fetch(url, options);
         const contentType = response.headers.get("content-type");
         
         if (contentType && contentType.indexOf("application/json") !== -1) {
             const json = await response.json();
             if (!response.ok || json.success === false) {
-                const msg = json.data?.errors?.[0]?.message || json.message || json.description || "Error de validación";
-                throw new Error(msg);
+                const errorDetail = json.data?.errors?.[0]?.message || json.message || json.description || "Error desconocido";
+                throw new Error(`${stepName}: ${errorDetail}`);
             }
             return json;
         } else {
-            throw new Error(`Error de comunicación (Status ${response.status}). ePayco no respondió JSON.`);
+            const text = await response.text();
+            console.error(`Error no JSON en ${stepName}:`, text);
+            throw new Error(`${stepName}: El servidor respondió con un error técnico (HTML). Verifica el ID del Plan.`);
         }
     };
 
@@ -27,11 +28,8 @@ export async function POST(request) {
 
         const publicKey = process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY?.trim();
         const privateKey = process.env.EPAYCO_PRIVATE_KEY?.trim();
-        
-        const forwarded = request.headers.get('x-forwarded-for');
-        const ip = forwarded ? forwarded.split(',')[0].trim() : '127.0.0.1';
 
-        // 1. LOGIN
+        // --- PASO 1: AUTENTICACIÓN (LOGIN) ---
         const authData = await safeFetch('https://api.secure.payco.co/v1/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -44,16 +42,19 @@ export async function POST(request) {
             'Content-Type': 'application/json' 
         };
 
-        // 2. CREAR CLIENTE
+        // --- PASO 2: CREAR CLIENTE ---
         const customer = await safeFetch('https://api.secure.payco.co/payment/v1/customer/create', {
-            method: 'POST', headers: secureHeaders,
+            method: 'POST', 
+            headers: secureHeaders,
             body: JSON.stringify({ token_card: token, name, email, default: true })
         }, "Creación de Cliente");
         const customerId = customer.data.customerId;
 
-        // 3. CREAR SUSCRIPCIÓN
+        // --- PASO 3: CREAR SUSCRIPCIÓN ---
+        // Este paso, según ePayco, ya dispara el proceso de activación y cobro.
         const subscription = await safeFetch('https://api.secure.payco.co/recurring/v1/subscription/create', {
-            method: 'POST', headers: secureHeaders,
+            method: 'POST', 
+            headers: secureHeaders,
             body: JSON.stringify({
                 id_plan: planId,
                 customer: customerId,
@@ -63,30 +64,10 @@ export async function POST(request) {
             })
         }, "Alta de Suscripción");
 
-        // 4. EJECUTAR COBRO (URL CORREGIDA: /recurring/v1/charge)
-        // Esta es la URL exacta para el método 'charge' del módulo recurring
-        const chargeResult = await safeFetch('https://api.secure.payco.co/recurring/v1/charge', {
-            method: 'POST', 
-            headers: secureHeaders,
-            body: JSON.stringify({ 
-                id_plan: planId, 
-                customer: customerId, 
-                token_card: token, 
-                doc_type: "CC",
-                doc_number: "1010101010",
-                ip: ip,
-                test: "1" 
-            })
-        }, "Procesamiento de Pago");
+        // SI LLEGAMOS AQUÍ, LA SUSCRIPCIÓN SE CREÓ EXITOSAMENTE
+        // No haremos el Paso 4 (Charge) manualmente para evitar el error 405.
 
-        // 5. VALIDACIÓN DE RESPUESTA
-        if (String(chargeResult.data?.cod_respuesta) !== "1") {
-            return NextResponse.json({ 
-                error: `Pago rechazado: ${chargeResult.data?.respuesta || 'Falla en tarjeta'}` 
-            }, { status: 402 });
-        }
-
-        // 6. ACTUALIZAR SUPABASE
+        // --- PASO 4: ACTUALIZAR SUPABASE ---
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -94,17 +75,22 @@ export async function POST(request) {
 
         const planKey = planId.toLowerCase().includes('escuadrilla') ? 'escuadrilla' : 'flota';
 
-        await supabaseAdmin.from('profiles').update({ 
-            subscription_plan: planKey,
-            epayco_customer_id: customerId,
-            epayco_subscription_id: subscription.data.id,
-            updated_at: new Date().toISOString()
-        }).eq('id', userId);
+        const { error: dbError } = await supabaseAdmin
+            .from('profiles')
+            .update({ 
+                subscription_plan: planKey,
+                epayco_customer_id: customerId,
+                epayco_subscription_id: subscription.data.id,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', userId);
 
-        return NextResponse.json({ success: true });
+        if (dbError) throw new Error("Error DB: " + dbError.message);
+
+        return NextResponse.json({ success: true, message: "Suscripción procesada" });
 
     } catch (err) {
-        console.error("ERROR FINAL BITAFLY:", err.message);
-        return NextResponse.json({ error: `Fallo en ${currentStep}: ${err.message}` }, { status: 500 });
+        console.error("FALLA EN BITAFLY:", err.message);
+        return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }

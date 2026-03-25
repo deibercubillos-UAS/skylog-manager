@@ -6,22 +6,25 @@ export async function POST(request) {
         const body = await request.json();
         const { token, planId, name, email, userId } = body;
 
-        // Capturamos la IP del cliente (Requisito obligatorio para el cobro)
-        const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
+        // Limpieza de IP: ePayco no acepta listas de IPs, solo una.
+        const forwarded = request.headers.get('x-forwarded-for');
+        const ip = forwarded ? forwarded.split(',')[0].trim() : '127.0.0.1';
 
         const publicKey = process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY?.trim();
         const privateKey = process.env.EPAYCO_PRIVATE_KEY?.trim();
 
-        // 1. LOGIN EN EPAYCO PARA OBTENER TOKEN
+        // 1. LOGIN EPAYCO
         const authRes = await fetch('https://api.secure.payco.co/v1/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ public_key: publicKey, private_key: privateKey })
         });
+        
+        if (!authRes.ok) throw new Error("Falla en comunicación inicial con ePayco");
         const authData = await authRes.json();
         const bearerToken = authData.token || authData.bearer_token || (authData.data ? authData.data.token : null);
 
-        if (!bearerToken) throw new Error("Fallo de autenticación en ePayco");
+        if (!bearerToken) throw new Error("No se pudo obtener token de sesión de ePayco");
 
         const secureHeaders = {
             'Authorization': `Bearer ${bearerToken}`,
@@ -35,7 +38,7 @@ export async function POST(request) {
             body: JSON.stringify({ token_card: token, name, email, default: true })
         });
         const customer = await customerRes.json();
-        if (!customer.success) throw new Error("Error Cliente: " + customer.message);
+        if (!customer.success) throw new Error("ePayco Cliente: " + customer.message);
         const customerId = customer.data.customerId;
 
         // 3. CREAR SUSCRIPCIÓN
@@ -51,10 +54,9 @@ export async function POST(request) {
             })
         });
         const subscription = await subRes.json();
-        if (!subscription.success) throw new Error("Error Suscripción: " + subscription.message);
+        if (!subscription.success) throw new Error("ePayco Suscripción: " + subscription.message);
 
-        // 4. EJECUTAR COBRO (La lógica de la imagen: subscriptions.charge)
-        // Esto verifica si la tarjeta realmente tiene dinero y autoriza la transacción
+        // 4. EJECUTAR COBRO (subscriptions.charge)
         const chargeRes = await fetch('https://api.secure.payco.co/recurring/v1/subscription/charge', {
             method: 'POST',
             headers: secureHeaders,
@@ -62,24 +64,21 @@ export async function POST(request) {
                 id_plan: planId,
                 customer: customerId,
                 token_card: token,
-                doc_type: "CC",
-                doc_number: "12345678",
-                ip: ip // IP obligatoria
+                ip: ip
             })
         });
 
         const chargeResult = await chargeRes.json();
 
-        // 5. VALIDAR SI EL COBRO FUE EXITOSO
-        // Si el estado no es 'Aceptada' (usualmente cod_respuesta 1), lanzamos error y NO actualizamos la DB
-        if (!chargeResult.success || chargeResult.data.cod_respuesta !== 1) {
-            console.error("Transacción Rechazada:", chargeResult);
+        // 5. VALIDACIÓN DE RESPUESTA DE PAGO
+        // El código 1 es 'Aceptada' en ePayco
+        if (!chargeResult.success || String(chargeResult.data?.cod_respuesta) !== "1") {
             return NextResponse.json({ 
-                error: `Pago rechazado: ${chargeResult.data?.respuesta || 'Verifique los fondos de su tarjeta'}` 
-            }, { status: 402 }); // 402 = Payment Required
+                error: `Transacción ${chargeResult.data?.respuesta || 'Rechazada'}. Verifique los fondos de su tarjeta.` 
+            }, { status: 402 });
         }
 
-        // 6. ACTUALIZAR SUPABASE (Solo si el cobro fue exitoso)
+        // 6. ACTUALIZAR BASE DE DATOS
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -99,10 +98,10 @@ export async function POST(request) {
 
         if (dbError) throw dbError;
 
-        return NextResponse.json({ success: true, message: "Pago exitoso y plan activado" });
+        return NextResponse.json({ success: true });
 
     } catch (err) {
-        console.error("CRITICAL_BACKEND_ERROR:", err.message);
+        console.error("Error en proceso de suscripción:", err.message);
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }

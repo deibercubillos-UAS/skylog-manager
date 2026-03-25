@@ -13,14 +13,9 @@ export async function POST(request) {
         const body = await request.json();
         const { token, planId, name, email, userId } = body;
 
-        // Log de depuración para ver en Vercel
-        console.log("PAYMENT_DEBUG: Recibido ->", { hasToken: !!token, planId, userId });
+        if (!token) return NextResponse.json({ error: "token_tarjeta_vacio" }, { status: 400 });
 
-        if (!token) {
-            return NextResponse.json({ error: "Faltan datos: token_tarjeta vacío" }, { status: 400 });
-        }
-
-        // 1. Crear Cliente en ePayco
+        // 1. Crear Cliente
         const customer = await epayco.customers.create({
             token_card: token,
             name: name || "Usuario BitaFly",
@@ -28,7 +23,7 @@ export async function POST(request) {
             default: true
         });
 
-        if (!customer.success) throw new Error("Error Cliente ePayco: " + customer.message);
+        if (!customer.success) throw new Error("ePayco Customer: " + customer.message);
 
         // 2. Crear Suscripción
         const subscription = await epayco.subscriptions.create({
@@ -39,32 +34,21 @@ export async function POST(request) {
             doc_number: "12345678"
         });
 
-        if (!subscription.success) throw new Error("Error Suscripción ePayco: " + subscription.message);
+        if (!subscription.success) throw new Error("ePayco Sub: " + subscription.message);
 
-        // 3. Actualizar Perfil en Supabase
-        const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.SUPABASE_SERVICE_ROLE_KEY
-        );
-
+        // 3. DB Update
+        const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
         const planKey = planId.toLowerCase().includes('escuadrilla') ? 'escuadrilla' : 'flota';
 
-        const { error: dbError } = await supabaseAdmin
-            .from('profiles')
-            .update({ 
-                subscription_plan: planKey,
-                epayco_customer_id: customer.data.customerId,
-                epayco_subscription_id: subscription.data.id,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', userId);
+        await supabaseAdmin.from('profiles').update({ 
+            subscription_plan: planKey,
+            epayco_customer_id: customer.data.customerId,
+            epayco_subscription_id: subscription.data.id,
+            updated_at: new Date().toISOString()
+        }).eq('id', userId);
 
-        if (dbError) throw dbError;
-
-        return NextResponse.json({ success: true, message: "Suscripción activada" });
-
+        return NextResponse.json({ success: true });
     } catch (err) {
-        console.error("PAYMENT_ERROR:", err.message);
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }

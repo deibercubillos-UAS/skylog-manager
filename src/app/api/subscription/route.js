@@ -43,5 +43,28 @@ export async function GET(request) {
   } catch (err) {
     console.error("Error en API Subscription:", err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
-  }
+  
+    const handleCancel = async () => {
+    if (!confirm("¿Seguro que deseas cancelar? Volverás al Plan Piloto.")) return;
+    
+    setActionLoading('cancel');
+    try {
+      const response = await fetch('/api/subscription/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: profile.id })
+      });
+
+      if (response.ok) {
+        alert("✅ Suscripción cancelada. Tu cuenta ha sido degradada al Plan Piloto.");
+        window.location.reload(); // Recargamos para ver los cambios
+      } else {
+        throw new Error("Falla en servidor");
+      }
+    } catch (e) {
+      alert("Error al cancelar la suscripción.");
+    } finally {
+      setActionLoading(null);
+    }
+  };}
 }

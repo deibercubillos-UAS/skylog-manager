@@ -1,25 +1,17 @@
-   // src/lib/useEpayco.js
+       // src/lib/useEpayco.js
 
 export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnual) => {
-  // 1. Obtener llaves (Priorizando variables de entorno)
   const EPAYCO_KEY = process.env.NEXT_PUBLIC_EPAYCO_P_KEY;
-  const MERCHANT_ID = process.env.NEXT_PUBLIC_EPAYCO_CUST_ID || "1577037";
-
-  if (!EPAYCO_KEY) {
-    console.error("❌ ERROR: NEXT_PUBLIC_EPAYCO_P_KEY no detectada.");
-    alert("Error de configuración: La llave de pago no está cargada. Contacta a soporte.");
-    return;
-  }
+  const MERCHANT_ID = process.env.NEXT_PUBLIC_EPAYCO_CUST_ID;
 
   if (typeof window !== 'undefined' && window.ePayco) {
     
-    // CONFIGURACIÓN INICIAL
     const handler = window.ePayco.checkout.configure({
       key: EPAYCO_KEY,
-      test: true // Mantenlo en true para pruebas con tarjetas de test
+      test: true 
     });
 
-    // 1. DICCIONARIO DE IDS (REEMPLAZA CON LOS DE TU PANEL DE EPAYCO)
+     // 1. DICCIONARIO DE IDS (REEMPLAZA CON LOS DE TU PANEL DE EPAYCO)
     const PLAN_IDS = {
       escuadrilla_mensual: "plan_escuadrilla_mensual",
       escuadrilla_anual:   "plan_escuadrilla_mensual",
@@ -32,28 +24,39 @@ export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnu
     const data = {
       id_plan: PLAN_IDS[key] || "",
       name: `BitaFly - ${planName}`,
-      description: `Suscripción ${isAnnual ? 'Anual' : 'Mensual'} BitaFly`,
+      description: `Suscripción ${isAnnual ? 'Anual' : 'Mensual'} BitaFly UAS`,
       currency: "cop",
       country: "co",
       lang: "es",
-      external: "false",
-
-      // Atributos de identidad
+      
+      // --- CAMBIO CLAVE: REDIRECCIÓN EXTERNA ---
+      external: "true", 
+      
+      // Identificación de comercio
       p_cust_id_cliente: MERCHANT_ID,
       p_key: EPAYCO_KEY,
       
-      // Metadatos para el Webhook
+      // Metadatos para el Webhook de BitaFly
       extra1: planName.toLowerCase(), 
       extra2: userId, 
       
       email_billing: userEmail,
+      
+      // URLs oficiales (Asegúrate de que no tengan espacios)
       confirmation: `https://bitafly.com/api/payments/confirmation`,
       response: `https://bitafly.com/dashboard/subscription/response`,
     };
 
-    console.log("🚀 Iniciando Checkout con Key:", EPAYCO_KEY);
+    console.log("🚀 Redirigiendo a Pasarela Segura ePayco...");
     handler.open(data);
   } else {
-    alert("El motor de pagos se está cargando. Reintenta en un segundo.");
+    alert("Iniciando conexión con ePayco... Reintenta en un segundo.");
   }
+};
+
+export const BITAFLY_PLANS = {
+  escuadrilla_mensual: "plan_escuadrilla_mensual",
+  escuadrilla_anual:   "plan_escuadrilla_anual",
+  flota_mensual:       "plan_flota_mensual",
+  flota_anual:         "plan_flota_anual"
 };

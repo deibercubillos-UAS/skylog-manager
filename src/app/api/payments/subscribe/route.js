@@ -6,42 +6,44 @@ export async function POST(request) {
         const body = await request.json();
         const { token, planId, name, email, userId } = body;
 
-        // Limpiamos llaves de cualquier espacio invisible
+        // 1. CARGAR TODAS LAS LLAVES (Sin espacios)
         const publicKey = process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY?.trim();
         const privateKey = process.env.EPAYCO_PRIVATE_KEY?.trim();
+        const pKey = process.env.EPAYCO_P_KEY?.trim();
+        const custId = process.env.NEXT_PUBLIC_EPAYCO_CUST_ID?.trim();
 
-        // 1. LOGIN EPAYCO (Obtener Token de Sesión Fresco)
+        // 2. LOGIN PARA TOKEN DE SESIÓN
         const authRes = await fetch('https://api.secure.payco.co/v1/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ public_key: publicKey, private_key: privateKey })
         });
-        
         const authData = await authRes.json();
-        const bearerToken = authData.token || authData.bearer_token || (authData.data ? authData.data.token : null);
-
-        if (!bearerToken) {
-            console.error("Respuesta ePayco Auth:", authData);
-            throw new Error("No se pudo autenticar con ePayco. Revisa tus API Keys.");
-        }
+        const bearerToken = authData.token || authData.data?.token;
 
         const secureHeaders = {
             'Authorization': `Bearer ${bearerToken}`,
             'Content-Type': 'application/json'
         };
 
-        // 2. CREAR CLIENTE
+        // 3. CREAR CLIENTE (Aquí es donde ePayco usa el P_CUST_ID internamente)
         const customerRes = await fetch('https://api.secure.payco.co/payment/v1/customer/create', {
             method: 'POST',
             headers: secureHeaders,
-            body: JSON.stringify({ token_card: token, name, email, default: true })
+            body: JSON.stringify({
+                token_card: token,
+                name: name,
+                email: email,
+                default: true
+            })
         });
         const customer = await customerRes.json();
-        if (!customer.success) throw new Error("Cliente: " + (customer.message || "Error de tokenización"));
-
+        if (!customer.success) throw new Error("ePayco Cliente: " + customer.message);
+        
         const customerId = customer.data.customerId;
 
-        // 3. CREAR SUSCRIPCIÓN
+        // 4. CREAR SUSCRIPCIÓN RECURRENTE
+        // Al incluir el customerId y el planId, ePayco debería reflejarlo en tu panel
         const subRes = await fetch('https://api.secure.payco.co/recurring/v1/subscription/create', {
             method: 'POST',
             headers: secureHeaders,
@@ -50,13 +52,20 @@ export async function POST(request) {
                 customer: customerId,
                 token_card: token,
                 doc_type: "CC",
-                doc_number: "1010101010"
+                doc_number: "1010101010",
+                // Enviamos datos extra para asegurar vinculación
+                address: "Calle 123",
+                phone: "3000000000"
             })
         });
         const subscription = await subRes.json();
-        if (!subscription.success) throw new Error("Suscripción: " + subscription.message);
+        
+        if (!subscription.success) {
+            console.error("Error ePayco Sub:", subscription);
+            throw new Error("ePayco Suscripción: " + subscription.message);
+        }
 
-        // 4. ACTUALIZAR SUPABASE
+        // 5. ACTUALIZAR SUPABASE
         const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
         const planKey = planId.toLowerCase().includes('escuadrilla') ? 'escuadrilla' : 'flota';
 
@@ -70,7 +79,7 @@ export async function POST(request) {
         return NextResponse.json({ success: true });
 
     } catch (err) {
-        console.error("ERROR_SUBSCRIPTION:", err.message);
+        console.error("DETALLE ERROR BACKEND:", err.message);
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }

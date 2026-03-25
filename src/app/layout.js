@@ -1,7 +1,8 @@
 import "./globals.css";
+import Script from 'next/script';
 
 export const metadata = {
-  title: "BitaFly Manager",
+  title: "BitaFly Manager - Aviation Log",
   description: "Gestión aeronáutica profesional UAS",
 };
 
@@ -15,6 +16,11 @@ export default function RootLayout({ children }) {
       </head>
       <body className="antialiased">
         {children}
+        {/* LIBRERÍA OFICIAL PARA CHECKOUT PRO */}
+        <Script 
+          src="https://checkout.epayco.co/checkout.js" 
+          strategy="afterInteractive" 
+        />
       </body>
     </html>
   );

@@ -54,6 +54,14 @@ export default function RegisterPage() {
         });
       }
 
+      if (intent && price) {
+        // CAMBIO: Enviamos a /manage en lugar de /pay
+        alert(`✅ Cuenta BitaFly creada. Redirigiendo para activar tu ${intent.toUpperCase()}...`);
+        window.location.href = `/dashboard/subscription/manage?pay=${intent}&price=${price}`;
+      } else {
+        window.location.href = '/dashboard/select-plan';
+      }
+
       // 3. LÓGICA DE REDIRECCIÓN INTELIGENTE
       const params = new URLSearchParams(window.location.search);
       const intent = params.get('intent');

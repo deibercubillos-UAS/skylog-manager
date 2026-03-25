@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSearchParams } from 'next/navigation';
 import AuthSidePanel from '@/components/AuthSidePanel';
+import Script from 'next/script';
 
 function PaymentFormContent() {
     const searchParams = useSearchParams();
@@ -15,38 +16,21 @@ function PaymentFormContent() {
     const planName = searchParams.get('name') || 'Suscripción';
 
     useEffect(() => {
-        const loadUser = async () => {
+        async function loadUser() {
             const { data } = await supabase.auth.getUser();
             if (data?.user) setUser(data.user);
-        };
+        }
         loadUser();
 
-        // --- CARGA FORZADA DE LIBRERÍAS ---
-        const scriptJquery = document.createElement('script');
-        scriptJquery.src = "https://code.jquery.com/jquery-3.7.1.min.js";
-        scriptJquery.async = true;
-        document.head.appendChild(scriptJquery);
-
-        scriptJquery.onload = () => {
-            window.$ = window.jQuery;
-            const scriptEpayco = document.createElement('script');
-            scriptEpayco.src = "https://checkout.epayco.co/epayco.min.js";
-            scriptEpayco.async = true;
-            document.head.appendChild(scriptEpayco);
-
-            scriptEpayco.onload = () => {
-                if (window.ePayco) {
-                    window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
-                    setIsReady(true);
-                    console.log("✅ Pasarela BitaFly lista");
-                }
-            };
-        };
-
-        return () => {
-            // Limpieza opcional al desmontar
-            if (scriptJquery.parentNode) document.head.removeChild(scriptJquery);
-        };
+        const checkInterval = setInterval(() => {
+            if (window.ePayco && window.jQuery) {
+                window.$ = window.jQuery;
+                window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
+                setIsReady(true);
+                clearInterval(checkInterval);
+            }
+        }, 500);
+        return () => clearInterval(checkInterval);
     }, []);
 
     const handlePayment = async (e) => {
@@ -54,22 +38,13 @@ function PaymentFormContent() {
         if (!isReady || loading) return;
         
         setLoading(true);
-        window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
 
-        // Captura de datos del formulario directamente
-        const form = e.target;
-        const dataToTokenize = {
-            "card[number]": form.querySelector('input[placeholder*="NÚMERO"]').value.replace(/\s/g, ''),
-            "card[exp_month]": form.querySelector('input[placeholder="MM"]').value,
-            "card[exp_year]": form.querySelector('input[placeholder="YYYY"]').value,
-            "card[cvc]": form.querySelector('input[placeholder="CVC"]').value,
-            "card[name]": form.querySelector('input[placeholder*="TITULAR"]').value,
-            "card[email]": user?.email
-        };
+        // Usamos el selector de jQuery sobre el ID del formulario
+        const $form = window.jQuery('#epayco-token-form');
 
-        window.ePayco.token.create(dataToTokenize, async (error, token) => {
-            if (error || !token || !token.id) {
-                alert("Error en tarjeta: " + (error?.description || "Verifique los datos e intente de nuevo."));
+        window.ePayco.token.create($form, async (error, token) => {
+            if (error) {
+                alert("Error: " + (error.description || "Verifique los datos del formulario"));
                 setLoading(false);
             } else {
                 try {
@@ -79,14 +54,14 @@ function PaymentFormContent() {
                         body: JSON.stringify({
                             token: token.id,
                             planId: planId,
-                            name: dataToTokenize["card[name]"],
-                            email: user.email,
-                            userId: user.id,
+                            name: user?.user_metadata?.full_name || user?.email,
+                            email: user?.email,
+                            userId: user?.id,
                         })
                     });
 
                     if (response.ok) {
-                        alert("🚀 ¡Suscripción Activada!");
+                        alert("🚀 Suscripción Activada");
                         window.location.href = '/dashboard/subscription';
                     } else {
                         const result = await response.json();
@@ -94,7 +69,7 @@ function PaymentFormContent() {
                         setLoading(false);
                     }
                 } catch (err) {
-                    alert("Falla de conexión con el servidor.");
+                    alert("Falla de red.");
                     setLoading(false);
                 }
             }
@@ -102,40 +77,43 @@ function PaymentFormContent() {
     };
 
     return (
-        <div className="max-w-md w-full mx-auto space-y-10 text-left">
+        <div className="max-w-md w-full mx-auto space-y-10 text-left animate-in fade-in duration-500">
+            <Script src="https://code.jquery.com/jquery-3.7.1.min.js" strategy="beforeInteractive" />
+            <Script src="https://checkout.epayco.co/epayco.min.js" strategy="afterInteractive" />
+
             <header>
-                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Método de Pago</h2>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Plan: <span className="text-[#ec5b13]">{planName}</span></p>
+                <h2 className="text-3xl font-black text-slate-900 uppercase">Método de Pago</h2>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Plan: <span className="text-[#ec5b13]">{planName}</span></p>
             </header>
             
-            <form onSubmit={handlePayment} className="space-y-6">
-                <input required placeholder="TITULAR DE LA TARJETA" className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-bold text-sm" />
-                <input required placeholder="NÚMERO DE LA TARJETA" className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-mono text-sm" />
-                
-                <div className="grid grid-cols-3 gap-4 text-left">
-                    <div>
-                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Mes</label>
-                        <input required placeholder="MM" maxLength="2" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-bold" />
-                    </div>
-                    <div>
-                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Año</label>
-                        <input required placeholder="YYYY" maxLength="4" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-bold" />
-                    </div>
-                    <div>
-                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">CVC</label>
-                        <input required placeholder="CVC" maxLength="4" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-bold" />
-                    </div>
+            {/* FORMULARIO ESTRÍCTO CON ATRIBUTOS DATA-EPAYCO */}
+            <form onSubmit={handlePayment} id="epayco-token-form" className="space-y-6">
+                <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Titular</label>
+                    <input type="text" data-epayco="card[name]" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-bold" placeholder="NOMBRE COMPLETO" />
                 </div>
 
-                <div className="pt-4">
-                    <button 
-                        type="submit" 
-                        disabled={loading || !isReady} 
-                        className="w-full py-5 bg-[#ec5b13] text-white font-black rounded-2xl shadow-xl uppercase text-xs tracking-widest disabled:opacity-20 hover:bg-orange-600 transition-all active:scale-95"
-                    >
-                        {loading ? "PROCESANDO..." : isReady ? "ACTIVAR SUSCRIPCIÓN" : "ESPERANDO SEGURIDAD..."}
-                    </button>
+                <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Email</label>
+                    <input type="email" data-epayco="card[email]" defaultValue={user?.email || ''} required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-bold" />
                 </div>
+
+                <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Número de Tarjeta</label>
+                    <input type="text" data-epayco="card[number]" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-mono" placeholder="0000 0000 0000 0000" />
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                    <input type="text" data-epayco="card[exp_month]" maxLength="2" required placeholder="MM" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-bold" />
+                    <input type="text" data-epayco="card[exp_year]" maxLength="4" required placeholder="YYYY" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-bold" />
+                    <input type="text" data-epayco="card[cvc]" maxLength="4" required placeholder="CVC" className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-center font-bold" />
+                </div>
+
+                <button type="submit" disabled={loading || !isReady} className="w-full py-5 bg-[#ec5b13] text-white font-black rounded-2xl shadow-xl uppercase text-xs tracking-widest disabled:opacity-20 transition-all active:scale-95">
+                    {loading ? "PROCESANDO..." : "ACTIVAR PAGO RECURRENTE"}
+                </button>
+
+                {!isReady && <p className="text-[9px] text-center text-slate-400 uppercase animate-pulse">Sincronizando seguridad...</p>}
             </form>
         </div>
     );
@@ -144,11 +122,9 @@ function PaymentFormContent() {
 export default function TokenPayPage() {
     return (
         <main className="min-h-screen bg-[#f8f6f6] flex flex-col lg:flex-row font-display">
-            <AuthSidePanel title="Pasarela segura BitaFly UAS" />
+            <AuthSidePanel title="Pasarela segura BitaFly" />
             <section className="flex-1 p-8 md:p-20 flex flex-col justify-center">
-                <Suspense fallback={<div className="text-center font-black animate-pulse uppercase text-xs">Cargando Módulo de Pago...</div>}>
-                    <PaymentFormContent />
-                </Suspense>
+                <Suspense fallback={<p>Cargando...</p>}><PaymentFormContent /></Suspense>
             </section>
         </main>
     );

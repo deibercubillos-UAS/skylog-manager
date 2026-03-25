@@ -6,36 +6,41 @@ export async function POST(request) {
         const body = await request.json();
         const { token, planId, name, email, userId } = body;
 
-        // 1. OBTENER LLAVES
-        const publicKey = process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY;
-        const privateKey = process.env.EPAYCO_PRIVATE_KEY;
+        // 1. OBTENER LLAVES (Aseguramos que no tengan espacios)
+        const publicKey = process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY?.trim();
+        const privateKey = process.env.EPAYCO_PRIVATE_KEY?.trim();
 
-        // 2. PASO RECOMENDADO POR ASESOR: LOGIN PARA OBTENER TOKEN DE SESIÓN
-        // Este token tiene un tiempo de expiración corto (60 min)
+        if (!publicKey || !privateKey) {
+            throw new Error("Llaves de ePayco no configuradas en el servidor.");
+        }
+
+        // 2. NUEVO MÉTODO DE LOGIN (Enviando llaves en el BODY)
         const authRes = await fetch('https://api.secure.payco.co/v1/auth/login', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Basic ${Buffer.from(publicKey + ':' + privateKey).toString('base64')}`
-            }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                public_key: publicKey,
+                private_key: privateKey
+            })
         });
 
         const authData = await authRes.json();
         
+        // Verificación del token de sesión
         if (!authData.token) {
-            console.error("Falla en Auth ePayco:", authData);
-            throw new Error("No se pudo iniciar sesión en ePayco: " + (authData.message || "Credenciales inválidas"));
+            console.error("Respuesta ePayco Auth:", authData);
+            throw new Error("ePayco Auth: " + (authData.message || "Error de llaves"));
         }
 
         const bearerToken = authData.token;
 
-        // 3. CONFIGURAR HEADERS CON EL NUEVO TOKEN DE SESIÓN
+        // 3. CONFIGURAR HEADERS PARA LAS OPERACIONES
         const secureHeaders = {
             'Authorization': `Bearer ${bearerToken}`,
             'Content-Type': 'application/json'
         };
 
-        // 4. CREAR CLIENTE EN EPAYCO
+        // 4. CREAR CLIENTE
         const customerRes = await fetch('https://api.secure.payco.co/payment/v1/customer/create', {
             method: 'POST',
             headers: secureHeaders,
@@ -52,7 +57,7 @@ export async function POST(request) {
 
         const customerId = customer.data.customerId;
 
-        // 5. CREAR SUSCRIPCIÓN RECURRENTE
+        // 5. CREAR SUSCRIPCIÓN
         const subRes = await fetch('https://api.secure.payco.co/recurring/v1/subscription/create', {
             method: 'POST',
             headers: secureHeaders,
@@ -70,7 +75,7 @@ export async function POST(request) {
         const subscription = await subRes.json();
         if (!subscription.success) throw new Error("ePayco Suscripción: " + subscription.message);
 
-        // 6. ACTUALIZAR PERFIL EN SUPABASE (Service Role)
+        // 6. ACTUALIZAR SUPABASE
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -88,10 +93,10 @@ export async function POST(request) {
             })
             .eq('id', userId);
 
-        return NextResponse.json({ success: true, message: "BitaFly Pro Activado" });
+        return NextResponse.json({ success: true, message: "Plan Activado" });
 
     } catch (err) {
-        console.error("ERROR SMS/PAYMENT:", err.message);
+        console.error("CRITICAL_PAYMENT_ERROR:", err.message);
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }

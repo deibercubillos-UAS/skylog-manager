@@ -12,11 +12,11 @@ export async function POST(request) {
         if (contentType && contentType.indexOf("application/json") !== -1) {
             const json = await response.json();
             if (response.status >= 400) {
-                throw new Error(`[ePayco ${response.status}]: ${json.message || json.description || 'Error de validación'}`);
+                throw new Error(`[ePayco ${response.status}]: ${json.message || json.description || 'Error de parámetros'}`);
             }
             return json;
         } else {
-            throw new Error(`Error de red (Status ${response.status}). El servidor de ePayco no envió JSON.`);
+            throw new Error(`Error de comunicación (Status ${response.status}). URL o Método no permitido.`);
         }
     };
 
@@ -59,9 +59,9 @@ export async function POST(request) {
             })
         }, "Alta de Suscripción");
 
-        // 4. EJECUTAR COBRO (URL EXACTA DE RECURRENCIA)
-        // Usamos la URL que el SDK de Node utiliza internamente para 'subscriptions.charge'
-        const chargeResult = await safeFetch('https://api.secure.payco.co/recurring/v1/subscription/charge', {
+        // 4. EJECUTAR COBRO (URL CORREGIDA: /recurring/v1/charge)
+        // Esta es la ruta exacta que ePayco usa para la función charge()
+        const chargeResult = await safeFetch('https://api.secure.payco.co/recurring/v1/charge', {
             method: 'POST', 
             headers: secureHeaders,
             body: JSON.stringify({ 
@@ -70,18 +70,19 @@ export async function POST(request) {
                 token_card: token, 
                 doc_type: "CC",
                 doc_number: "12345678",
-                ip: ip 
+                ip: ip,
+                test: "1" // Forzamos modo test para las pruebas
             })
         }, "Procesamiento de Pago");
 
         // 5. VALIDACIÓN DE RESPUESTA BANCARIA
-        // cod_respuesta 1 = Aceptada
         if (!chargeResult.success || String(chargeResult.data?.cod_respuesta) !== "1") {
-            const motivo = chargeResult.data?.respuesta || "Transacción declinada por el banco";
-            return NextResponse.json({ error: `Pago no procesado: ${motivo}` }, { status: 402 });
+            return NextResponse.json({ 
+                error: `Pago rechazado: ${chargeResult.data?.respuesta || 'Falla en validación bancaria'}` 
+            }, { status: 402 });
         }
 
-        // 6. ACTUALIZAR BASE DE DATOS (Solo si el cobro fue exitoso)
+        // 6. ACTUALIZAR SUPABASE
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -96,10 +97,10 @@ export async function POST(request) {
             updated_at: new Date().toISOString()
         }).eq('id', userId);
 
-        return NextResponse.json({ success: true, message: "BitaFly Pro Activado" });
+        return NextResponse.json({ success: true });
 
     } catch (err) {
-        console.error("DETALLE ERROR:", err.message);
+        console.error("LOG ERROR:", err.message);
         return NextResponse.json({ error: `Fallo en ${currentStep}: ${err.message}` }, { status: 500 });
     }
 }

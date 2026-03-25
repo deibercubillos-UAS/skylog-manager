@@ -6,15 +6,10 @@ export async function POST(request) {
         const body = await request.json();
         const { token, planId, name, email, userId } = body;
 
-        // 1. OBTENER LLAVES (Aseguramos que no tengan espacios)
         const publicKey = process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY?.trim();
         const privateKey = process.env.EPAYCO_PRIVATE_KEY?.trim();
 
-        if (!publicKey || !privateKey) {
-            throw new Error("Llaves de ePayco no configuradas en el servidor.");
-        }
-
-        // 2. NUEVO MÉTODO DE LOGIN (Enviando llaves en el BODY)
+        // 1. LOGIN PARA OBTENER BEARER TOKEN
         const authRes = await fetch('https://api.secure.payco.co/v1/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -26,21 +21,20 @@ export async function POST(request) {
 
         const authData = await authRes.json();
         
-        // Verificación del token de sesión
-        if (!authData.token) {
-            console.error("Respuesta ePayco Auth:", authData);
-            throw new Error("ePayco Auth: " + (authData.message || "Error de llaves"));
+        // ePayco puede devolver el token como 'token' o 'bearer_token' dependiendo de la versión
+        const bearerToken = authData.token || authData.bearer_token || (authData.data ? authData.data.token : null);
+
+        if (!bearerToken) {
+            console.error("Respuesta inesperada de Auth ePayco:", authData);
+            return NextResponse.json({ error: `Fallo de autenticación: ${authData.message || 'Token no recibido'}` }, { status: 500 });
         }
 
-        const bearerToken = authData.token;
-
-        // 3. CONFIGURAR HEADERS PARA LAS OPERACIONES
         const secureHeaders = {
             'Authorization': `Bearer ${bearerToken}`,
             'Content-Type': 'application/json'
         };
 
-        // 4. CREAR CLIENTE
+        // 2. CREAR CLIENTE
         const customerRes = await fetch('https://api.secure.payco.co/payment/v1/customer/create', {
             method: 'POST',
             headers: secureHeaders,
@@ -53,11 +47,13 @@ export async function POST(request) {
         });
 
         const customer = await customerRes.json();
-        if (!customer.success) throw new Error("ePayco Cliente: " + customer.message);
+        if (!customer.success) {
+            return NextResponse.json({ error: `ePayco Cliente: ${customer.message || 'Error desconocido'}` }, { status: 500 });
+        }
 
         const customerId = customer.data.customerId;
 
-        // 5. CREAR SUSCRIPCIÓN
+        // 3. CREAR SUSCRIPCIÓN
         const subRes = await fetch('https://api.secure.payco.co/recurring/v1/subscription/create', {
             method: 'POST',
             headers: secureHeaders,
@@ -73,9 +69,11 @@ export async function POST(request) {
         });
 
         const subscription = await subRes.json();
-        if (!subscription.success) throw new Error("ePayco Suscripción: " + subscription.message);
+        if (!subscription.success) {
+            return NextResponse.json({ error: `ePayco Suscripción: ${subscription.message || 'Error desconocido'}` }, { status: 500 });
+        }
 
-        // 6. ACTUALIZAR SUPABASE
+        // 4. ACTUALIZAR SUPABASE
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -83,7 +81,7 @@ export async function POST(request) {
 
         const planKey = planId.toLowerCase().includes('escuadrilla') ? 'escuadrilla' : 'flota';
 
-        await supabaseAdmin
+        const { error: dbError } = await supabaseAdmin
             .from('profiles')
             .update({ 
                 subscription_plan: planKey,
@@ -93,10 +91,12 @@ export async function POST(request) {
             })
             .eq('id', userId);
 
-        return NextResponse.json({ success: true, message: "Plan Activado" });
+        if (dbError) throw dbError;
+
+        return NextResponse.json({ success: true, message: "Suscripción BitaFly Activa" });
 
     } catch (err) {
-        console.error("CRITICAL_PAYMENT_ERROR:", err.message);
+        console.error("CRITICAL_BACKEND_ERROR:", err.message);
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }

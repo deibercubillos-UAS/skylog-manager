@@ -5,7 +5,6 @@ import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { initEpayco } from '@/lib/useEpayco';
 import AuthSidePanel from '@/components/AuthSidePanel';
-import Script from 'next/script';
 
 function PaymentForm() {
     const [loading, setLoading] = useState(false);
@@ -22,25 +21,46 @@ function PaymentForm() {
         
         async function loadUser() {
             const { data } = await supabase.auth.getUser();
-            if (data?.user) {
-                setUser(data.user);
-            }
+            if (data?.user) setUser(data.user);
         }
         loadUser();
 
-        // Verificador de carga de las librerías jQuery y ePayco
-        const check = setInterval(() => {
+        // --- CARGA SECUENCIAL MANUAL ---
+        const injectScripts = () => {
             if (window.ePayco && window.jQuery) {
                 window.$ = window.jQuery;
                 initEpayco();
                 setReady(true);
-                clearInterval(check);
+                return;
             }
-        }, 500);
-        return () => clearInterval(check);
+
+            const jquery = document.createElement('script');
+            jquery.src = "https://code.jquery.com/jquery-3.7.1.min.js";
+            jquery.async = true;
+            document.head.appendChild(jquery);
+
+            jquery.onload = () => {
+                window.jQuery = window.jQuery || window.$;
+                window.$ = window.jQuery;
+                
+                const epayco = document.createElement('script');
+                epayco.src = "https://checkout.epayco.co/epayco.min.js";
+                epayco.async = true;
+                document.head.appendChild(epayco);
+
+                epayco.onload = () => {
+                    if (window.ePayco) {
+                        initEpayco();
+                        setReady(true);
+                        console.log("✅ Motor de Pagos BitaFly Activado");
+                    }
+                };
+            };
+        };
+
+        injectScripts();
     }, []);
 
-    // Formateador visual de tarjeta: 0000 0000 0000 0000
     const handleCardNumberChange = (e) => {
         let value = e.target.value.replace(/\D/g, ''); 
         let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
@@ -49,17 +69,17 @@ function PaymentForm() {
 
     const handlePayment = async (e) => {
         e.preventDefault();
+        if (!ready) return;
         setLoading(true);
 
+        // Forzamos la llave pública antes de la acción
         window.ePayco.setPublicKey(process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY);
 
-        // Referencia directa al formulario para ePayco
         const $form = window.jQuery('#epayco-form');
 
         window.ePayco.token.create($form, async (error, token) => {
             if (error) {
-                console.error("Error SDK:", error);
-                alert("Error: " + (error.description || "Datos de tarjeta no legibles"));
+                alert("Error: " + (error.description || "Verifique los datos de la tarjeta"));
                 setLoading(false);
             } else {
                 try {
@@ -77,14 +97,14 @@ function PaymentForm() {
 
                     const result = await response.json();
                     if (response.ok) {
-                        alert("🚀 ¡Suscripción Activada!");
+                        alert("🚀 Suscripción Exitosa");
                         window.location.href = '/dashboard/subscription';
                     } else {
-                        alert("Falla en Servidor: " + result.error);
+                        alert("Error: " + result.error);
                         setLoading(false);
                     }
                 } catch (err) {
-                    alert("Error de red con el servidor.");
+                    alert("Falla de conexión.");
                     setLoading(false);
                 }
             }
@@ -92,39 +112,28 @@ function PaymentForm() {
     };
 
     return (
-        <div className="max-w-md w-full mx-auto space-y-10 text-left animate-in fade-in">
-            <Script src="https://code.jquery.com/jquery-3.7.1.min.js" strategy="beforeInteractive" />
-            <Script src="https://checkout.epayco.co/epayco.min.js" strategy="beforeInteractive" />
-
+        <div className="max-w-md w-full mx-auto space-y-10 text-left animate-in fade-in duration-500">
             <header>
-                <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">Método de Pago</h2>
+                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Método de Pago</h2>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">
-                    Activación de Plan: <span className="text-[#ec5b13]">{planName}</span>
+                    Activando: <span className="text-[#ec5b13]">{planName}</span>
                 </p>
             </header>
             
             <form onSubmit={handlePayment} id="epayco-form" className="space-y-6">
                 <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Titular de la tarjeta</label>
+                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Titular</label>
                     <input type="text" data-epayco="card[name]" required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-bold" placeholder="NOMBRE COMPLETO" />
                 </div>
 
                 <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Email de facturación</label>
-                    <input type="email" data-epayco="card[email]" defaultValue={user?.email || ""} required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-bold" />
+                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Email</label>
+                    <input type="email" data-epayco="card[email]" defaultValue={user?.email || ""} required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-bold text-slate-500" />
                 </div>
 
                 <div className="space-y-1">
                     <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Número de Tarjeta</label>
-                    <input 
-                        type="text" 
-                        data-epayco="card[number]" 
-                        value={cardNumber}
-                        onChange={handleCardNumberChange}
-                        required 
-                        className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-mono text-lg font-black" 
-                        placeholder="0000 0000 0000 0000" 
-                    />
+                    <input type="text" data-epayco="card[number]" value={cardNumber} onChange={handleCardNumberChange} required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-mono text-lg font-black" placeholder="0000 0000 0000 0000" />
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
@@ -138,7 +147,7 @@ function PaymentForm() {
                     disabled={loading || !ready} 
                     className="w-full py-5 bg-[#ec5b13] text-white font-black rounded-2xl shadow-xl uppercase text-xs tracking-widest active:scale-95 disabled:opacity-20 transition-all"
                 >
-                    {loading ? "Procesando..." : "Activar Pago Mensual"}
+                    {loading ? "PROCESANDO..." : ready ? "ACTIVAR PAGO MENSUAL" : "SINCRONIZANDO..."}
                 </button>
             </form>
         </div>
@@ -148,9 +157,9 @@ function PaymentForm() {
 export default function TokenPayPage() {
   return (
     <main className="min-h-screen bg-[#f8f6f6] flex flex-col lg:flex-row font-display">
-      <AuthSidePanel title="Pasarela Segura BitaFly" />
+      <AuthSidePanel title="Seguridad Bancaria BitaFly" />
       <section className="flex-1 p-8 md:p-20 flex flex-col justify-center">
-        <Suspense fallback={<p className="text-center font-black animate-pulse uppercase text-xs">Cargando...</p>}>
+        <Suspense fallback={<p className="text-center font-black animate-pulse">CARGANDO...</p>}>
           <PaymentForm />
         </Suspense>
       </section>

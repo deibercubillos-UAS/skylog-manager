@@ -12,11 +12,11 @@ export async function POST(request) {
         if (contentType && contentType.indexOf("application/json") !== -1) {
             const json = await response.json();
             if (response.status >= 400) {
-                throw new Error(`[ePayco Error ${response.status}]: ${json.message || json.description || 'Error de parámetros'}`);
+                throw new Error(`[ePayco ${response.status}]: ${json.message || json.description || 'Error de validación'}`);
             }
             return json;
         } else {
-            throw new Error(`Error de comunicación (Status ${response.status}). Formato de respuesta no válido.`);
+            throw new Error(`Error de red (Status ${response.status}). El servidor de ePayco no envió JSON.`);
         }
     };
 
@@ -30,7 +30,7 @@ export async function POST(request) {
         const publicKey = process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY?.trim();
         const privateKey = process.env.EPAYCO_PRIVATE_KEY?.trim();
 
-        // PASO 1: AUTENTICACIÓN
+        // 1. LOGIN
         const authData = await safeFetch('https://api.secure.payco.co/v1/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -40,14 +40,14 @@ export async function POST(request) {
         const bearerToken = authData.token || authData.bearer_token || (authData.data ? authData.data.token : null);
         const secureHeaders = { 'Authorization': `Bearer ${bearerToken}`, 'Content-Type': 'application/json' };
 
-        // PASO 2: CREAR CLIENTE
+        // 2. CREAR CLIENTE
         const customer = await safeFetch('https://api.secure.payco.co/payment/v1/customer/create', {
             method: 'POST', headers: secureHeaders,
             body: JSON.stringify({ token_card: token, name, email, default: true })
         }, "Creación de Cliente");
         const customerId = customer.data.customerId;
 
-        // PASO 3: CREAR SUSCRIPCIÓN
+        // 3. CREAR SUSCRIPCIÓN
         const subscription = await safeFetch('https://api.secure.payco.co/recurring/v1/subscription/create', {
             method: 'POST', headers: secureHeaders,
             body: JSON.stringify({
@@ -57,10 +57,11 @@ export async function POST(request) {
                 doc_type: "CC",
                 doc_number: "12345678"
             })
-        }, "Vinculación de Plan");
+        }, "Alta de Suscripción");
 
-        // PASO 4: EJECUTAR COBRO (URL CORREGIDA: /recurring/v1/charge)
-        const chargeResult = await safeFetch('https://api.secure.payco.co/recurring/v1/charge', {
+        // 4. EJECUTAR COBRO (URL EXACTA DE RECURRENCIA)
+        // Usamos la URL que el SDK de Node utiliza internamente para 'subscriptions.charge'
+        const chargeResult = await safeFetch('https://api.secure.payco.co/recurring/v1/subscription/charge', {
             method: 'POST', 
             headers: secureHeaders,
             body: JSON.stringify({ 
@@ -71,16 +72,16 @@ export async function POST(request) {
                 doc_number: "12345678",
                 ip: ip 
             })
-        }, "Ejecución de Cobro");
+        }, "Procesamiento de Pago");
 
-        // 5. VALIDACIÓN DE ÉXITO
+        // 5. VALIDACIÓN DE RESPUESTA BANCARIA
+        // cod_respuesta 1 = Aceptada
         if (!chargeResult.success || String(chargeResult.data?.cod_respuesta) !== "1") {
-            return NextResponse.json({ 
-                error: `Pago rechazado: ${chargeResult.data?.respuesta || 'Falla en validación bancaria'}` 
-            }, { status: 402 });
+            const motivo = chargeResult.data?.respuesta || "Transacción declinada por el banco";
+            return NextResponse.json({ error: `Pago no procesado: ${motivo}` }, { status: 402 });
         }
 
-        // 6. ACTUALIZAR SUPABASE
+        // 6. ACTUALIZAR BASE DE DATOS (Solo si el cobro fue exitoso)
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -95,10 +96,10 @@ export async function POST(request) {
             updated_at: new Date().toISOString()
         }).eq('id', userId);
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, message: "BitaFly Pro Activado" });
 
     } catch (err) {
-        console.error("DETALLE DE ERROR:", err.message);
+        console.error("DETALLE ERROR:", err.message);
         return NextResponse.json({ error: `Fallo en ${currentStep}: ${err.message}` }, { status: 500 });
     }
 }

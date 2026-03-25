@@ -11,14 +11,13 @@ export async function POST(request) {
         
         if (contentType && contentType.indexOf("application/json") !== -1) {
             const json = await response.json();
-            // Si el status es error, extraemos el detalle técnico de ePayco
             if (!response.ok || json.success === false) {
-                const detail = json.data?.errors?.[0]?.message || json.message || json.description || "Error de validación";
-                throw new Error(`[ePayco]: ${detail}`);
+                const msg = json.data?.errors?.[0]?.message || json.message || json.description || "Error de ePayco";
+                throw new Error(msg);
             }
             return json;
         } else {
-            throw new Error(`Error de comunicación (Status ${response.status}). El servidor no envió JSON.`);
+            throw new Error(`Error de red (Status ${response.status}). ePayco no respondió JSON.`);
         }
     };
 
@@ -32,7 +31,7 @@ export async function POST(request) {
         const forwarded = request.headers.get('x-forwarded-for');
         const ip = forwarded ? forwarded.split(',')[0].trim() : '127.0.0.1';
 
-        // 1. LOGIN
+        // 1. LOGIN PARA OBTENER TOKEN BEARER
         const authData = await safeFetch('https://api.secure.payco.co/v1/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -40,56 +39,52 @@ export async function POST(request) {
         }, "Autenticación");
 
         const bearerToken = authData.token || authData.bearer_token || (authData.data ? authData.data.token : null);
-        const bearerHeaders = { 'Authorization': `Bearer ${bearerToken}`, 'Content-Type': 'application/json' };
+        const secureHeaders = { 
+            'Authorization': `Bearer ${bearerToken}`, 
+            'Content-Type': 'application/json' 
+        };
 
         // 2. CREAR CLIENTE
         const customer = await safeFetch('https://api.secure.payco.co/payment/v1/customer/create', {
-            method: 'POST', 
-            headers: bearerHeaders,
+            method: 'POST', headers: secureHeaders,
             body: JSON.stringify({ token_card: token, name, email, default: true })
         }, "Creación de Cliente");
         const customerId = customer.data.customerId;
 
         // 3. CREAR SUSCRIPCIÓN
-        // Aumentamos la longitud del doc_number para evitar errores de validación
         const subscription = await safeFetch('https://api.secure.payco.co/recurring/v1/subscription/create', {
-            method: 'POST', 
-            headers: bearerHeaders,
+            method: 'POST', headers: secureHeaders,
             body: JSON.stringify({
                 id_plan: planId,
                 customer: customerId,
                 token_card: token,
                 doc_type: "CC",
-                doc_number: "1010101010" 
+                doc_number: "1010101010"
             })
         }, "Alta de Suscripción");
 
-        // 4. EJECUTAR COBRO
-        const chargeResult = await safeFetch('https://api.secure.payco.co/payment/v1/charge/subscription', {
+        // 4. EJECUTAR COBRO (URL CORREGIDA Y USANDO BEARER TOKEN)
+        // Esta es la ruta compañera de la creación bajo el módulo 'recurring'
+        const chargeResult = await safeFetch('https://api.secure.payco.co/recurring/v1/subscription/charge', {
             method: 'POST', 
-            headers: {
-                'public-key': publicKey,
-                'private-key': privateKey,
-                'Content-Type': 'application/json'
-            },
+            headers: secureHeaders,
             body: JSON.stringify({ 
                 id_plan: planId, 
                 customer: customerId, 
                 token_card: token, 
-                doc_type: "CC",
-                doc_number: "1010101010",
                 ip: ip,
                 test: "1" 
             })
         }, "Procesamiento de Pago");
 
-        if (!chargeResult.success || String(chargeResult.data?.cod_respuesta) !== "1") {
+        // 5. VALIDACIÓN DE COBRO
+        if (String(chargeResult.data?.cod_respuesta) !== "1") {
             return NextResponse.json({ 
-                error: `Pago rechazado: ${chargeResult.data?.respuesta || 'Falla en validación'}` 
+                error: `Pago rechazado: ${chargeResult.data?.respuesta || 'Falla en tarjeta'}` 
             }, { status: 402 });
         }
 
-        // 5. ACTUALIZAR SUPABASE
+        // 6. ACTUALIZAR SUPABASE
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -107,7 +102,7 @@ export async function POST(request) {
         return NextResponse.json({ success: true });
 
     } catch (err) {
-        console.error("ERROR DETALLADO:", err.message);
+        console.error("ERROR FINAL:", err.message);
         return NextResponse.json({ error: `Fallo en ${currentStep}: ${err.message}` }, { status: 500 });
     }
 }

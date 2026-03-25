@@ -6,21 +6,27 @@ export async function POST(request) {
         const body = await request.json();
         const { token, planId, name, email, userId } = body;
 
-        if (!token || !planId || !userId) {
-            return NextResponse.json({ error: "Faltan datos obligatorios" }, { status: 400 });
+        // 1. VALIDACIÓN DE LLAVES (Seguridad de entorno)
+        const publicKey = process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY;
+        const privateKey = process.env.EPAYCO_PRIVATE_KEY;
+
+        if (!publicKey || !privateKey) {
+            console.error("❌ ERROR: Faltan llaves de ePayco en las variables de entorno.");
+            return NextResponse.json({ error: "Configuración de servidor incompleta" }, { status: 500 });
         }
 
-        // 1. AUTENTICACIÓN CON EPAYCO (Obtener Token de Sesión)
-        // Usamos Basic Auth con tus llaves para identificarnos ante ePayco
-        const authKey = Buffer.from(`${process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY}:${process.env.EPAYCO_PRIVATE_KEY}`).toString('base64');
-        
-        // 2. CREAR CLIENTE EN EPAYCO
+        // 2. CONFIGURAR HEADERS SEGÚN ESTÁNDAR EPAYCO
+        const headers = {
+            'public-key': publicKey,
+            'private-key': privateKey,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        };
+
+        // 3. CREAR CLIENTE EN EPAYCO
         const customerRes = await fetch('https://api.secure.payco.co/payment/v1/customer/create', {
             method: 'POST',
-            headers: {
-                'Authorization': `Basic ${authKey}`,
-                'Content-Type': 'application/json'
-            },
+            headers: headers,
             body: JSON.stringify({
                 token_card: token,
                 name: name,
@@ -30,32 +36,35 @@ export async function POST(request) {
         });
 
         const customer = await customerRes.json();
-        if (!customer.success) throw new Error("Error ePayco Cliente: " + customer.message);
+        if (!customer.success) {
+            console.error("Error ePayco Cliente:", customer);
+            throw new Error("ePayco Cliente: " + customer.message);
+        }
 
         const customerId = customer.data.customerId;
 
-        // 3. CREAR SUSCRIPCIÓN RECURRENTE
+        // 4. CREAR SUSCRIPCIÓN RECURRENTE
         const subRes = await fetch('https://api.secure.payco.co/recurring/v1/subscription/create', {
             method: 'POST',
-            headers: {
-                'Authorization': `Basic ${authKey}`,
-                'Content-Type': 'application/json'
-            },
+            headers: headers,
             body: JSON.stringify({
                 id_plan: planId,
                 customer: customerId,
                 token_card: token,
                 doc_type: "CC",
-                doc_number: "12345678",
+                doc_number: "12345678", // Campo genérico para pruebas
                 url_confirmation: `${process.env.NEXT_PUBLIC_SITE_URL}/api/payments/confirmation`,
                 method_confirmation: "POST"
             })
         });
 
         const subscription = await subRes.json();
-        if (!subscription.success) throw new Error("Error ePayco Suscripción: " + subscription.message);
+        if (!subscription.success) {
+            console.error("Error ePayco Suscripción:", subscription);
+            throw new Error("ePayco Suscripción: " + subscription.message);
+        }
 
-        // 4. ACTUALIZAR PERFIL EN SUPABASE
+        // 5. ACTUALIZAR PERFIL EN SUPABASE
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -75,7 +84,7 @@ export async function POST(request) {
 
         if (dbError) throw dbError;
 
-        return NextResponse.json({ success: true, message: "BitaFly Pro Activado" });
+        return NextResponse.json({ success: true, message: "Suscripción BitaFly Activa" });
 
     } catch (err) {
         console.error("FALLA TÉCNICA BACKEND:", err.message);

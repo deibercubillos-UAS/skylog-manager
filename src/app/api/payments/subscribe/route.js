@@ -12,11 +12,10 @@ export async function POST(request) {
         if (contentType && contentType.indexOf("application/json") !== -1) {
             const json = await response.json();
             if (response.status >= 400) {
-                throw new Error(`[ePayco Error ${response.status}]: ${json.message || json.description || 'Error en parámetros'}`);
+                throw new Error(`[ePayco Error ${response.status}]: ${json.message || json.description || 'Error de parámetros'}`);
             }
             return json;
         } else {
-            // Si devuelve HTML, capturamos el estatus para diagnosticar
             throw new Error(`Error de comunicación (Status ${response.status}). La URL de ePayco no respondió correctamente.`);
         }
     };
@@ -60,9 +59,8 @@ export async function POST(request) {
             })
         }, "Vinculación de Plan");
 
-        // PASO 4: EJECUTAR COBRO (URL CORREGIDA A /payment/v1/charge/subscription)
-        // Esta es la URL oficial para procesar el cobro de una suscripción creada
-        const chargeResult = await safeFetch('https://api.secure.payco.co/payment/v1/charge/subscription', {
+        // PASO 4: EJECUTAR COBRO (URL CORREGIDA SEGÚN RECURRING API)
+        const chargeResult = await safeFetch('https://api.secure.payco.co/recurring/v1/subscription/charge', {
             method: 'POST', 
             headers: secureHeaders,
             body: JSON.stringify({ 
@@ -76,13 +74,14 @@ export async function POST(request) {
         }, "Ejecución de Cobro");
 
         // 5. VALIDACIÓN DE ÉXITO
+        // ePayco devuelve cod_respuesta como número o string
         if (!chargeResult.success || String(chargeResult.data?.cod_respuesta) !== "1") {
             return NextResponse.json({ 
                 error: `Pago rechazado: ${chargeResult.data?.respuesta || 'Falla en validación bancaria'}` 
             }, { status: 402 });
         }
 
-        // 6. ACTUALIZAR SUPABASE (SERVICE ROLE)
+        // 6. ACTUALIZAR SUPABASE
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_ROLE_KEY

@@ -12,11 +12,11 @@ export async function POST(request) {
         if (contentType && contentType.indexOf("application/json") !== -1) {
             const json = await response.json();
             if (response.status >= 400) {
-                throw new Error(`[ePayco ${response.status}]: ${json.message || json.description || 'Error de parámetros'}`);
+                throw new Error(`[ePayco ${response.status}]: ${json.message || json.description || 'Error de validación'}`);
             }
             return json;
         } else {
-            throw new Error(`Error de comunicación (Status ${response.status}). URL o Método no permitido.`);
+            throw new Error(`Error de comunicación (Status ${response.status}). El servidor de ePayco no respondió con JSON.`);
         }
     };
 
@@ -30,7 +30,7 @@ export async function POST(request) {
         const publicKey = process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY?.trim();
         const privateKey = process.env.EPAYCO_PRIVATE_KEY?.trim();
 
-        // 1. LOGIN
+        // 1. AUTENTICACIÓN
         const authData = await safeFetch('https://api.secure.payco.co/v1/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -59,9 +59,9 @@ export async function POST(request) {
             })
         }, "Alta de Suscripción");
 
-        // 4. EJECUTAR COBRO (URL CORREGIDA: /recurring/v1/charge)
-        // Esta es la ruta exacta que ePayco usa para la función charge()
-        const chargeResult = await safeFetch('https://api.secure.payco.co/recurring/v1/charge', {
+        // 4. EJECUTAR COBRO (URL CORREGIDA: /payment/v1/charge/subscription)
+        // Esta es la ruta real de la API REST para el comando 'subscriptions.charge'
+        const chargeResult = await safeFetch('https://api.secure.payco.co/payment/v1/charge/subscription', {
             method: 'POST', 
             headers: secureHeaders,
             body: JSON.stringify({ 
@@ -71,11 +71,11 @@ export async function POST(request) {
                 doc_type: "CC",
                 doc_number: "12345678",
                 ip: ip,
-                test: "1" // Forzamos modo test para las pruebas
+                test: "1" 
             })
         }, "Procesamiento de Pago");
 
-        // 5. VALIDACIÓN DE RESPUESTA BANCARIA
+        // 5. VALIDACIÓN DE RESPUESTA
         if (!chargeResult.success || String(chargeResult.data?.cod_respuesta) !== "1") {
             return NextResponse.json({ 
                 error: `Pago rechazado: ${chargeResult.data?.respuesta || 'Falla en validación bancaria'}` 
@@ -100,7 +100,7 @@ export async function POST(request) {
         return NextResponse.json({ success: true });
 
     } catch (err) {
-        console.error("LOG ERROR:", err.message);
+        console.error("DEBUG ERROR:", err.message);
         return NextResponse.json({ error: `Fallo en ${currentStep}: ${err.message}` }, { status: 500 });
     }
 }

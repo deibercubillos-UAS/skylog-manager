@@ -12,12 +12,12 @@ export async function POST(request) {
         if (contentType && contentType.indexOf("application/json") !== -1) {
             const json = await response.json();
             if (!response.ok || json.success === false) {
-                const msg = json.data?.errors?.[0]?.message || json.message || json.description || "Error de ePayco";
+                const msg = json.data?.errors?.[0]?.message || json.message || json.description || "Error de validación";
                 throw new Error(msg);
             }
             return json;
         } else {
-            throw new Error(`Error de red (Status ${response.status}). ePayco no respondió JSON.`);
+            throw new Error(`Error de comunicación (Status ${response.status}). ePayco no respondió JSON.`);
         }
     };
 
@@ -31,7 +31,7 @@ export async function POST(request) {
         const forwarded = request.headers.get('x-forwarded-for');
         const ip = forwarded ? forwarded.split(',')[0].trim() : '127.0.0.1';
 
-        // 1. LOGIN PARA OBTENER TOKEN BEARER
+        // 1. LOGIN
         const authData = await safeFetch('https://api.secure.payco.co/v1/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -63,21 +63,23 @@ export async function POST(request) {
             })
         }, "Alta de Suscripción");
 
-        // 4. EJECUTAR COBRO (URL CORREGIDA Y USANDO BEARER TOKEN)
-        // Esta es la ruta compañera de la creación bajo el módulo 'recurring'
-        const chargeResult = await safeFetch('https://api.secure.payco.co/recurring/v1/subscription/charge', {
+        // 4. EJECUTAR COBRO (URL CORREGIDA: /recurring/v1/charge)
+        // Esta es la URL exacta para el método 'charge' del módulo recurring
+        const chargeResult = await safeFetch('https://api.secure.payco.co/recurring/v1/charge', {
             method: 'POST', 
             headers: secureHeaders,
             body: JSON.stringify({ 
                 id_plan: planId, 
                 customer: customerId, 
                 token_card: token, 
+                doc_type: "CC",
+                doc_number: "1010101010",
                 ip: ip,
                 test: "1" 
             })
         }, "Procesamiento de Pago");
 
-        // 5. VALIDACIÓN DE COBRO
+        // 5. VALIDACIÓN DE RESPUESTA
         if (String(chargeResult.data?.cod_respuesta) !== "1") {
             return NextResponse.json({ 
                 error: `Pago rechazado: ${chargeResult.data?.respuesta || 'Falla en tarjeta'}` 
@@ -102,7 +104,7 @@ export async function POST(request) {
         return NextResponse.json({ success: true });
 
     } catch (err) {
-        console.error("ERROR FINAL:", err.message);
+        console.error("ERROR FINAL BITAFLY:", err.message);
         return NextResponse.json({ error: `Fallo en ${currentStep}: ${err.message}` }, { status: 500 });
     }
 }

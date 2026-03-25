@@ -2,62 +2,62 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
+    let currentStep = "Iniciando";
+
+    // Función auxiliar para procesar respuestas de ePayco
+    const processResponse = async (response, stepName) => {
+        currentStep = stepName;
+        const json = await response.json();
+        
+        // ePayco usa 'status' o 'success'. Validamos ambos.
+        const isOk = response.ok && (json.status === true || json.success === true || json.status === 'success');
+        
+        if (!isOk) {
+            const errorMsg = json.message || json.description || json.data?.errors?.[0]?.message || "Error desconocido";
+            throw new Error(errorMsg);
+        }
+        return json;
+    };
+
     try {
         const body = await request.json();
         const { token, planId, name, email, userId } = body;
 
-        // 1. CARGAR LLAVES DE LA API REST (Únicas válidas para este login)
         const publicKey = process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY?.trim();
         const privateKey = process.env.EPAYCO_PRIVATE_KEY?.trim();
+        
+        const forwarded = request.headers.get('x-forwarded-for');
+        const ip = forwarded ? forwarded.split(',')[0].trim() : '127.0.0.1';
 
-        if (!publicKey || !privateKey) {
-            throw new Error("Faltan llaves PUBLIC_KEY o PRIVATE_KEY en el servidor.");
-        }
-
-        // 2. LOGIN EN EPAYCO (Obtener Token Bearer)
-        // El servidor de ePayco exige public_key y private_key en el body
+        // --- PASO 1: LOGIN (OBTENER TOKEN DE SESIÓN) ---
         const authRes = await fetch('https://api.secure.payco.co/v1/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                public_key: publicKey,
-                private_key: privateKey
-            })
+            body: JSON.stringify({ public_key: publicKey, private_key: privateKey })
         });
-
-        const authData = await authRes.json();
         
-        // Verificamos si el token llegó
-        const bearerToken = authData.token || authData.data?.token;
+        const authData = await processResponse(authRes, "Autenticación");
+        
+        // Extraemos el token de donde sea que ePayco lo envíe
+        const bearerToken = authData.token || authData.data?.token || authData.bearer_token;
 
-        if (!bearerToken) {
-            console.error("Respuesta ePayco Auth Fallida:", authData);
-            throw new Error(`ePayco Auth: ${authData.message || 'Error de llaves'}`);
-        }
+        if (!bearerToken) throw new Error("Token de sesión no encontrado en la respuesta");
 
-        // Definimos los encabezados seguros para los siguientes pasos
-        const secureHeaders = {
-            'Authorization': `Bearer ${bearerToken}`,
-            'Content-Type': 'application/json'
+        const secureHeaders = { 
+            'Authorization': `Bearer ${bearerToken}`, 
+            'Content-Type': 'application/json' 
         };
 
-        // 3. CREAR CLIENTE EN EPAYCO
+        // --- PASO 2: CREAR CLIENTE ---
         const customerRes = await fetch('https://api.secure.payco.co/payment/v1/customer/create', {
             method: 'POST',
             headers: secureHeaders,
-            body: JSON.stringify({
-                token_card: token,
-                name: name,
-                email: email,
-                default: true
-            })
+            body: JSON.stringify({ token_card: token, name, email, default: true })
         });
-        const customer = await customerRes.json();
-        if (!customer.success) throw new Error("ePayco Cliente: " + customer.message);
-        
-        const customerId = customer.data.customerId;
+        const customerData = await processResponse(customerRes, "Creación de Cliente");
+        const customerId = customerData.data.customerId;
 
-        // 4. CREAR SUSCRIPCIÓN RECURRENTE
+        // --- PASO 3: CREAR SUSCRIPCIÓN ---
         const subRes = await fetch('https://api.secure.payco.co/recurring/v1/subscription/create', {
             method: 'POST',
             headers: secureHeaders,
@@ -66,16 +66,14 @@ export async function POST(request) {
                 customer: customerId,
                 token_card: token,
                 doc_type: "CC",
-                doc_number: "1010101010"
+                doc_number: "1010101010",
+                url_confirmation: `https://bitafly.com/api/payments/confirmation`,
+                method_confirmation: "POST"
             })
         });
-        const subscription = await subRes.json();
-        
-        if (!subscription.success) {
-            throw new Error("ePayco Suscripción: " + subscription.message);
-        }
+        const subData = await processResponse(subRes, "Alta de Suscripción");
 
-        // 5. ACTUALIZAR SUPABASE (ADMIN ROLE)
+        // --- PASO 4: ACTUALIZAR SUPABASE ---
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -88,17 +86,17 @@ export async function POST(request) {
             .update({ 
                 subscription_plan: planKey,
                 epayco_customer_id: customerId,
-                epayco_subscription_id: subscription.data.id,
+                epayco_subscription_id: subData.data.id,
                 updated_at: new Date().toISOString()
             })
             .eq('id', userId);
 
-        if (dbError) throw dbError;
+        if (dbError) throw new Error("Error en base de datos: " + dbError.message);
 
-        return NextResponse.json({ success: true, message: "Suscripción BitaFly Activa" });
+        return NextResponse.json({ success: true, message: "BitaFly Pro Activado" });
 
     } catch (err) {
-        console.error("CRITICAL_BACKEND_ERROR:", err.message);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        console.error("FALLA TÉCNICA:", err.message);
+        return NextResponse.json({ error: `Fallo en [${currentStep}]: ${err.message}` }, { status: 500 });
     }
 }

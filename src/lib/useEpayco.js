@@ -1,11 +1,12 @@
-// src/lib/useEpayco.js
     
+// src/lib/useEpayco.js
+
 export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnual) => {
   if (typeof window !== 'undefined' && window.ePayco) {
     
-    // USAMOS EL MERCHANT ID (1577037) PARA LA CONFIGURACIÓN INICIAL
+    // CONFIGURACIÓN USANDO P_KEY (Necesaria para Checkout Pro)
     const handler = window.ePayco.checkout.configure({
-      key: process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY,
+      key: process.env.NEXT_PUBLIC_EPAYCO_P_KEY, // <-- CAMBIO A P_KEY
       test: true 
     });
 
@@ -22,19 +23,22 @@ export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnu
     const data = {
       id_plan: PLAN_IDS[key] || "",
       name: `BitaFly - ${planName}`,
-      description: `Suscripción ${isAnnual ? 'Anual' : 'Mensual'} BitaFly UAS`,
+      description: `Suscripción ${isAnnual ? 'Anual' : 'Mensual'} BitaFly`,
       currency: "cop",
       country: "co",
       lang: "es",
       external: "false",
 
-      // ATRIBUTO CRÍTICO: Vinculación directa por ID de Comercio
-      p_cust_id_cliente: "1577037", 
+      // Identificación obligatoria
+      p_cust_id_cliente: process.env.NEXT_PUBLIC_EPAYCO_CUST_ID,
+      p_key: process.env.NEXT_PUBLIC_EPAYCO_P_KEY,
       
+      // Metadatos para el Webhook
       extra1: planName.toLowerCase(), 
       extra2: userId, 
-      email_billing: userEmail,
+      extra3: isAnnual ? 'anual' : 'mensual',
       
+      email_billing: userEmail,
       confirmation: `https://bitafly.com/api/payments/confirmation`,
       response: `https://bitafly.com/dashboard/subscription/response`,
     };

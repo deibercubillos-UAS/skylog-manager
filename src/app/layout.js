@@ -20,4 +20,4 @@ export default function RootLayout({ children }) {
               </body>
     </html>
   );
-}
+}// Force build de version estable

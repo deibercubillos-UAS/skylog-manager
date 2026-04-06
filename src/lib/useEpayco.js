@@ -1,7 +1,7 @@
 // src/lib/useEpayco.js
 
 export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnual) => {
-  const P_KEY = process.env.NEXT_PUBLIC_EPAYCO_P_KEY;
+  const P_KEY = process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY;
   const CUST_ID = process.env.NEXT_PUBLIC_EPAYCO_CUST_ID;
 
   if (typeof window !== 'undefined' && window.ePayco) {

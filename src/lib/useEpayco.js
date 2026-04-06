@@ -1,16 +1,16 @@
-// src/lib/useEpayco.js
 
 export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnual) => {
-  // 1. Extraer llaves asegurando que existan
+  // Forzamos la lectura directa
   const P_KEY = process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY;
-  const CUST_ID = "1577037"; // Tu ID de comercio fijo para evitar errores
+  const CUST_ID = process.env.NEXT_PUBLIC_EPAYCO_CUST_ID || "1577037";
 
-  if (!P_KEY) {
-    console.error("❌ ERROR: NEXT_PUBLIC_EPAYCO_PUBLIC_KEY no está definida en Vercel.");
-    alert("Error de configuración: No se encontró la llave pública de ePayco.");
+  // LOG DE SEGURIDAD (Muestra los primeros 5 caracteres para confirmar que llegó)
+  console.log("🔍 Verificando Llave en Navegador:", P_KEY ? `Detectada (${P_KEY.substring(0,5)}...)` : "❌ NO DETECTADA");
+
+  if (!P_KEY || P_KEY === "undefined") {
+    alert("Error Crítico: La llave pública de ePayco no está configurada en Vercel. Realiza un Redeploy.");
     return;
   }
-
   if (typeof window !== 'undefined' && window.ePayco) {
     
     // CONFIGURACIÓN INICIAL DEL HANDLER

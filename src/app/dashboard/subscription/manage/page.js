@@ -77,9 +77,14 @@ export default function ManageSubscriptionPage() {
   }, []);
 
   const handleUpgrade = (planName) => {
-    if (!profile?.id || !isEpaycoLoaded) return alert("Sincronizando seguridad...");
-    openEpaycoCheckout(planName, "0", profile.email, profile.id, isAnnual);
-  };
+  const key = `${planName.toLowerCase()}_${isAnnual ? 'anual' : 'mensual'}`;
+  const epaycoId = BITAFLY_PLANS[key];
+
+  if (!epaycoId) return alert("ID de plan no encontrado.");
+
+  // Redirigimos a la página de formulario de tarjeta
+  window.location.href = `/dashboard/subscription/pay?planId=${epaycoId}&name=${planName}`;
+};
 
   const handleCancel = async () => {
     if (!confirm("¿Deseas volver al Plan Piloto?")) return;

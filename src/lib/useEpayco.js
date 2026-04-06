@@ -2,7 +2,7 @@
 
 export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnual) => {
   // 1. Extraer llaves asegurando que existan
-  const P_KEY = process.env.NEXT_P_EPAYCO_PUBLIC_KEY;
+  const P_KEY = process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY;
   const CUST_ID = "1577037"; // Tu ID de comercio fijo para evitar errores
 
   if (!P_KEY) {

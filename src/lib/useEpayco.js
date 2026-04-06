@@ -1,58 +1,64 @@
 // src/lib/useEpayco.js
 
 export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnual) => {
-  const EPAYCO_KEY = process.env.NEXT_PUBLIC_EPAYCO_P_KEY;
+  const EPAYCO_P_KEY = process.env.NEXT_PUBLIC_EPAYCO_P_KEY;
   const MERCHANT_ID = process.env.NEXT_PUBLIC_EPAYCO_CUST_ID;
 
   if (typeof window !== 'undefined' && window.ePayco) {
     
     const handler = window.ePayco.checkout.configure({
-      key: EPAYCO_KEY,
-      test: true // Mantenlo en TRUE para pruebas
+      key: EPAYCO_P_KEY,
+      test: true 
     });
 
-    // --- REVISIÓN DE IDS (Basado en tu link anterior) ---
     const PLAN_IDS = {
       escuadrilla_mensual: "9be072c0f069fb47008f626", 
-      escuadrilla_anual:   "TU_ID_ANUAL_AQUI", // Búscalo en tu panel
-      flota_mensual:       "TU_ID_FLOTA_MENS_AQUI",
-      flota_anual:         "TU_ID_FLOTA_ANUAL_AQUI"
+      escuadrilla_anual:   "9be0e74f1778c85f40392bd", // Reemplazar con ID Real
+      flota_mensual:       "9be0e7df6630f6a394f7096", // Reemplazar con ID Real
+      flota_anual:         "9be0e81b6727c738608e137"  // Reemplazar con ID Real
     };
 
     const key = `${planName.toLowerCase()}_${isAnnual ? 'anual' : 'mensual'}`;
     const selectedPlanId = PLAN_IDS[key];
 
+    // CÁLCULO DE MONTO EN COP (Obligatorio para evitar error undefined)
+    let amountCOP = 0;
+    if (planName.toLowerCase().includes('escuadrilla')) {
+        amountCOP = isAnnual ? 1910000 : 199000;
+    } else if (planName.toLowerCase().includes('flota')) {
+        amountCOP = isAnnual ? 5040000 : 525000;
+    }
+
     const data = {
-      // --- CLAVE PARA SUSCRIPCIÓN REAL ---
-      // Al NO enviar "amount", ePayco entiende que debe usar los valores del Plan
+      // Atributos de Suscripción
       id_plan: selectedPlanId,
+      amount: amountCOP.toString(),
       
+      // Información Visual
       name: `BitaFly - ${planName}`,
-      description: `Activación de Suscripción Recurrente BitaFly`,
+      description: `Suscripción Recurrente ${isAnnual ? 'Anual' : 'Mensual'} BitaFly UAS`,
       currency: "cop",
       
-      // Configuración de interfaz
+      // Configuración Técnica
       country: "co",
       lang: "es",
-      external: "true", // Redirección para evitar bloqueos de token
-      
-      // Identificación de tu comercio
+      external: "true", 
       p_cust_id_cliente: MERCHANT_ID,
-      p_key: EPAYCO_KEY,
+      p_key: EPAYCO_P_KEY,
       
-      // Metadatos para que tu Webhook sepa a quién activar
+      // Metadatos Webhook
       extra1: planName.toLowerCase(), 
       extra2: userId, 
+      extra3: isAnnual ? 'anual' : 'mensual',
       
-      // Datos obligatorios del pagador
       email_billing: userEmail,
-      
-      // URLs de BitaFly
       confirmation: `https://bitafly.com/api/payments/confirmation`,
       response: `https://bitafly.com/dashboard/subscription/response`,
     };
 
-    console.log("🎯 Disparando Suscripción para ID Plan:", selectedPlanId);
+    console.log("🚀 Iniciando Checkout Seguro para:", key);
     handler.open(data);
+  } else {
+    alert("Sincronizando con ePayco... Reintenta en 2 segundos.");
   }
 };

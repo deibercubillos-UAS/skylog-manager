@@ -17,11 +17,7 @@ export default function RootLayout({ children }) {
       <body className="antialiased">
         {children}
         {/* LIBRERÍA OFICIAL PARA CHECKOUT PRO */}
-        <Script 
-          src="https://checkout.epayco.co/checkout.js" 
-          strategy="afterInteractive" 
-        />
-      </body>
+              </body>
     </html>
   );
 }

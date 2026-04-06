@@ -22,7 +22,7 @@ export default function ManageSubscriptionPage() {
           if (!data.error) setProfile(data);
         }
       } catch (err) {
-        console.error("Error:", err);
+        console.error("Error cargando perfil:", err);
       } finally {
         setLoading(false);
       }
@@ -30,84 +30,47 @@ export default function ManageSubscriptionPage() {
     loadData();
   }, []);
 
-  // AUTO-DISPARO: Si viene del registro con intención de compra
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const planToPay = params.get('pay');
-    
-    if (planToPay && profile && !loading) {
-      // Pequeña espera para que el script de ePayco cargue
-      setTimeout(() => {
-        handleUpgrade(planToPay);
-        // Limpiamos la URL para no repetir el popup al refrescar
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }, 1500);
-    }
-  }, [profile, loading]);
-
   const handleUpgrade = async (planName) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return alert("Sesión no válida.");
-    // Abrir el modal de ePayco directamente (Método Checkout Pro)
     openEpaycoCheckout(planName, "0", user.email, user.id, isAnnual);
   };
 
-import { createClient } from '@supabase/supabase-js';
-import { NextResponse } from 'next/server';
-
-export async function POST(request) {
-  try {
-    const { userId } = await request.json();
-    const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-
-    const { data: profile } = await supabaseAdmin.from('profiles').select('epayco_subscription_id').eq('id', userId).single();
-
-    if (profile?.epayco_subscription_id) {
-      const authRes = await fetch('https://api.secure.payco.co/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          public_key: process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY,
-          private_key: process.env.EPAYCO_PRIVATE_KEY
-        })
-      });
-      const authData = await authRes.json();
-      const token = authData.bearer_token || authData.token;
-
-      await fetch('https://api.secure.payco.co/recurring/v1/subscription/cancel', {
+  const handleCancel = async () => {
+    if (!confirm("¿Dar de baja la suscripción y volver al Plan Piloto?")) return;
+    setActionLoading('cancel');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/subscription/cancel', {
         method: 'POST',
         headers: { 
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'type': 'sdk-jwt' 
+          'Authorization': `Bearer ${session?.access_token}` 
         },
-        body: JSON.stringify({ id: profile.epayco_subscription_id })
+        body: JSON.stringify({ userId: profile.id })
       });
+      if (res.ok) {
+        alert("✅ Suscripción cancelada.");
+        window.location.href = '/dashboard/subscription';
+      }
+    } catch (e) {
+      alert("Error al procesar la baja.");
+    } finally {
+      setActionLoading(null);
     }
+  };
 
-    await supabaseAdmin.from('profiles').update({ 
-      subscription_plan: 'piloto',
-      epayco_subscription_id: null,
-      updated_at: new Date().toISOString()
-    }).eq('id', userId);
-
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
-}
-
-  if (loading) return <div className="p-20 text-center animate-pulse font-black text-slate-300 uppercase tracking-widest">Estableciendo conexión...</div>;
+  if (loading) return <div className="p-20 text-center animate-pulse font-black text-slate-300 uppercase">Sincronizando BitaFly Hub...</div>;
 
   return (
     <div className="max-w-6xl mx-auto space-y-10 text-left animate-in fade-in duration-500 pb-20 font-display">
       <header className="flex flex-col md:flex-row justify-between items-center md:items-end gap-6 text-left">
         <div>
           <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">Mi Membresía</h2>
-          <p className="text-slate-500 text-sm mt-2 font-medium italic">Gestión de facturación y límites técnicos.</p>
+          <p className="text-slate-500 text-sm mt-2 font-medium italic">Configura tu potencia operativa y ciclos de facturación.</p>
         </div>
 
-        <div className="flex bg-slate-200 p-1.5 rounded-2xl border border-slate-300 shadow-inner">
+        <div className="flex bg-slate-200 p-1.5 rounded-2xl border border-slate-300 shadow-inner shrink-0">
           <button onClick={() => setIsAnnual(false)} className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${!isAnnual ? 'bg-white shadow-md text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>Mensual</button>
           <button onClick={() => setIsAnnual(true)} className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-2 ${isAnnual ? 'bg-white shadow-md text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>
             Anual <span className="bg-orange-100 text-[#ec5b13] px-2 py-0.5 rounded-full font-black animate-pulse">ahorra 20%</span>
@@ -116,21 +79,45 @@ export async function POST(request) {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <UpgradeCard title="Escuadrilla" price={isAnnual ? "39" : "49"} isActive={profile?.subscription_plan === 'escuadrilla'} features={["Hasta 15 Drones", "Hasta 7 Pilotos", "Alertas Mantenimiento", "Reportes PDF"]} onAction={() => handleUpgrade('Escuadrilla')} />
-        <UpgradeCard title="Flota" price={isAnnual ? "103" : "129"} isActive={profile?.subscription_plan === 'flota'} recommended={true} features={["Drones Ilimitados", "Hasta 20 Pilotos", "Ciclos de Vida AV", "Exportación XLS/CSV"]} onAction={() => handleUpgrade('Flota')} />
+        <UpgradeCard 
+          title="Escuadrilla" 
+          price={isAnnual ? "39" : "49"} 
+          isActive={profile?.subscription_plan === 'escuadrilla'}
+          features={["Hasta 15 Drones", "Hasta 7 Pilotos", "Alertas Mantenimiento", "Reportes PDF"]}
+          onAction={() => handleUpgrade('Escuadrilla')}
+        />
+        <UpgradeCard 
+          title="Flota" 
+          price={isAnnual ? "103" : "129"} 
+          isActive={profile?.subscription_plan === 'flota'}
+          recommended={true}
+          features={["Drones Ilimitados", "Hasta 20 Pilotos", "Ciclos de Vida AV", "Exportación XLS/CSV"]}
+          onAction={() => handleUpgrade('Flota')}
+        />
         
         <div className="bg-white border border-slate-200 rounded-[2.5rem] p-8 flex flex-col justify-between shadow-sm relative overflow-hidden">
-          <div className="text-left text-slate-900">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Plan Actual</p>
-            <h3 className="text-2xl font-black uppercase">{profile?.subscription_plan || 'Piloto'}</h3>
+          <div className="relative z-10 text-left text-slate-900">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Estatus del Plan</p>
+            <h3 className="text-2xl font-black uppercase">{profile?.subscription_plan === 'piloto' ? 'Plan Piloto Free' : 'Suscripción Activa'}</h3>
           </div>
           {profile?.subscription_plan !== 'piloto' && (
             <button onClick={handleCancel} disabled={actionLoading === 'cancel'} className="mt-8 w-full py-4 border-2 border-red-50 text-red-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-sm">
-              Cancelar Suscripción
+              {actionLoading === 'cancel' ? 'Procesando...' : 'Cancelar Suscripción'}
             </button>
           )}
         </div>
       </div>
+
+      <footer className="bg-[#1A202C] rounded-[2.5rem] p-10 text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl relative overflow-hidden text-left">
+        <div className="text-left relative z-10">
+          <div className="flex items-center gap-3 mb-2 text-[#ec5b13]">
+            <span className="material-symbols-outlined font-black">support_agent</span>
+            <h4 className="text-lg font-black uppercase">¿Necesitas ayuda?</h4>
+          </div>
+          <p className="text-slate-400 text-sm font-medium max-w-xl leading-relaxed">Nuestro equipo técnico está disponible para ayudarte con tu facturación.</p>
+        </div>
+        <Link href="/#contacto" className="bg-white text-[#1A202C] px-10 py-4 rounded-2xl font-black text-[10px] uppercase hover:bg-[#ec5b13] hover:text-white transition-all shadow-lg">Contactar Soporte</Link>
+      </footer>
     </div>
   );
 }

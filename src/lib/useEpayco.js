@@ -1,24 +1,17 @@
 // src/lib/useEpayco.js
 
 export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnual) => {
-  // 1. Validar Llaves
   const P_KEY = process.env.NEXT_PUBLIC_EPAYCO_P_KEY;
-  const CUST_ID = process.env.NEXT_PUBLIC_EPAYCO_CUST_ID || "1577037";
-
-  if (!P_KEY) {
-    alert("Error crítico: Llave de ePayco no configurada en el servidor.");
-    return;
-  }
+  const CUST_ID = process.env.NEXT_PUBLIC_EPAYCO_CUST_ID;
 
   if (typeof window !== 'undefined' && window.ePayco) {
     
-    // Configuración del handler
     const handler = window.ePayco.checkout.configure({
       key: P_KEY,
       test: true 
     });
 
-    // 2. Mapeo de IDs de Planes (Asegúrate que coincidan con tu panel)
+    // --- REVISIÓN DE IDS TÉCNICOS ---
     const PLAN_IDS = {
       escuadrilla_mensual: "9be072c0f069fb47008f626", 
       escuadrilla_anual:   "9be0e74f1778c85f40392bd", 
@@ -29,8 +22,7 @@ export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnu
     const key = `${planName.toLowerCase()}_${isAnnual ? 'anual' : 'mensual'}`;
     const selectedPlanId = PLAN_IDS[key];
 
-    // 3. CÁLCULO DE MONTO FORZADO (Evita el error 'undefined')
-    // TRM estimada 4000 COP
+    // Monto exacto (ePayco lo requiere para el primer cobro de la suscripción)
     let amountValue = 0;
     if (planName.toLowerCase().includes('escuadrilla')) {
       amountValue = isAnnual ? 1910000 : 199000;
@@ -39,14 +31,17 @@ export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnu
     }
 
     const data = {
-      // Atributos de Suscripción
-      id_plan: selectedPlanId || "",
-      amount: amountValue.toString(), // <--- ESTO YA NO SERÁ UNDEFINED
-      
-      // Info visual
-      name: `BitaFly - Plan ${planName}`,
-      description: `Suscripción ${isAnnual ? 'Anual' : 'Mensual'} BitaFly UAS`,
+      // --- CAMPOS PARA FORZAR SUSCRIPCIÓN ---
+      id_plan: selectedPlanId,
+      amount: amountValue.toString(),
       currency: "cop",
+      type_checkout: "subscription", // <--- NUEVO: Indica que es suscripción
+      
+      // Bloqueamos PSE y Efectivo porque NO permiten cobro recurrente
+      methodsDisable: ["pse", "cash", "efecty"], 
+
+      name: `Suscripción BitaFly ${planName}`,
+      description: `Plan ${isAnnual ? 'Anual' : 'Mensual'} - Cobro Recurrente Automático`,
       
       // Configuración de red
       country: "co",
@@ -65,9 +60,9 @@ export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnu
       response: `https://bitafly.com/dashboard/subscription/response`,
     };
 
-    console.log("🚀 Enviando a ePayco:", data);
+    console.log("🎯 Disparando Suscripción Real para:", selectedPlanId);
     handler.open(data);
   } else {
-    alert("La pasarela de pagos se está cargando. Intenta de nuevo en 2 segundos.");
+    alert("Iniciando pasarela de pagos... Reintenta en un momento.");
   }
 };

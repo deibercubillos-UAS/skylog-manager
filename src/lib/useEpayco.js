@@ -1,52 +1,61 @@
 // src/lib/useEpayco.js
 
 export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnual) => {
-  const EPAYCO_P_KEY = process.env.NEXT_PUBLIC_EPAYCO_P_KEY;
-  const MERCHANT_ID = process.env.NEXT_PUBLIC_EPAYCO_CUST_ID;
+  // 1. Validar Llaves
+  const P_KEY = process.env.NEXT_PUBLIC_EPAYCO_P_KEY;
+  const CUST_ID = process.env.NEXT_PUBLIC_EPAYCO_CUST_ID || "1577037";
+
+  if (!P_KEY) {
+    alert("Error crítico: Llave de ePayco no configurada en el servidor.");
+    return;
+  }
 
   if (typeof window !== 'undefined' && window.ePayco) {
     
+    // Configuración del handler
     const handler = window.ePayco.checkout.configure({
-      key: EPAYCO_P_KEY,
+      key: P_KEY,
       test: true 
     });
 
+    // 2. Mapeo de IDs de Planes (Asegúrate que coincidan con tu panel)
     const PLAN_IDS = {
       escuadrilla_mensual: "9be072c0f069fb47008f626", 
-      escuadrilla_anual:   "9be0e74f1778c85f40392bd", // Reemplazar con ID Real
-      flota_mensual:       "9be0e7df6630f6a394f7096", // Reemplazar con ID Real
-      flota_anual:         "9be0e81b6727c738608e137"  // Reemplazar con ID Real
+      escuadrilla_anual:   "9be0e74f1778c85f40392bd", 
+      flota_mensual:       "9be0e7df6630f6a394f7096", 
+      flota_anual:         "9be0e81b6727c738608e137" 
     };
 
     const key = `${planName.toLowerCase()}_${isAnnual ? 'anual' : 'mensual'}`;
     const selectedPlanId = PLAN_IDS[key];
 
-    // CÁLCULO DE MONTO EN COP (Obligatorio para evitar error undefined)
-    let amountCOP = 0;
+    // 3. CÁLCULO DE MONTO FORZADO (Evita el error 'undefined')
+    // TRM estimada 4000 COP
+    let amountValue = 0;
     if (planName.toLowerCase().includes('escuadrilla')) {
-        amountCOP = isAnnual ? 1910000 : 199000;
-    } else if (planName.toLowerCase().includes('flota')) {
-        amountCOP = isAnnual ? 5040000 : 525000;
+      amountValue = isAnnual ? 1910000 : 199000;
+    } else {
+      amountValue = isAnnual ? 5040000 : 525000;
     }
 
     const data = {
       // Atributos de Suscripción
-      id_plan: selectedPlanId,
-      amount: amountCOP.toString(),
+      id_plan: selectedPlanId || "",
+      amount: amountValue.toString(), // <--- ESTO YA NO SERÁ UNDEFINED
       
-      // Información Visual
-      name: `BitaFly - ${planName}`,
-      description: `Suscripción Recurrente ${isAnnual ? 'Anual' : 'Mensual'} BitaFly UAS`,
+      // Info visual
+      name: `BitaFly - Plan ${planName}`,
+      description: `Suscripción ${isAnnual ? 'Anual' : 'Mensual'} BitaFly UAS`,
       currency: "cop",
       
-      // Configuración Técnica
+      // Configuración de red
       country: "co",
       lang: "es",
       external: "true", 
-      p_cust_id_cliente: MERCHANT_ID,
-      p_key: EPAYCO_P_KEY,
+      p_cust_id_cliente: CUST_ID,
+      p_key: P_KEY,
       
-      // Metadatos Webhook
+      // Metadatos para el Webhook
       extra1: planName.toLowerCase(), 
       extra2: userId, 
       extra3: isAnnual ? 'anual' : 'mensual',
@@ -56,9 +65,9 @@ export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnu
       response: `https://bitafly.com/dashboard/subscription/response`,
     };
 
-    console.log("🚀 Iniciando Checkout Seguro para:", key);
+    console.log("🚀 Enviando a ePayco:", data);
     handler.open(data);
   } else {
-    alert("Sincronizando con ePayco... Reintenta en 2 segundos.");
+    alert("La pasarela de pagos se está cargando. Intenta de nuevo en 2 segundos.");
   }
 };

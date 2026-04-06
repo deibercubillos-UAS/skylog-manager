@@ -52,12 +52,14 @@ export default function ManageSubscriptionPage() {
     openEpaycoCheckout(planName, "0", user.email, user.id, isAnnual);
   };
 
-  const handleCancel = async () => {
-    if (!confirm("¿Deseas volver al Plan Piloto?")) return;
+ const handleCancel = async () => {
+    if (!confirm("¿Seguro que deseas cancelar? Volverás al Plan Piloto y se detendrán los cobros recurrentes.")) return;
+    
     setActionLoading('cancel');
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      await fetch('/api/subscription/cancel', {
+      
+      const response = await fetch('/api/subscription/cancel', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -65,9 +67,17 @@ export default function ManageSubscriptionPage() {
         },
         body: JSON.stringify({ userId: profile?.id })
       });
-      window.location.href = '/dashboard/subscription';
+
+      if (response.ok) {
+        alert("✅ Tu suscripción ha sido cancelada exitosamente.");
+        // Redirigimos para refrescar todo el Dashboard
+        window.location.href = '/dashboard/subscription';
+      } else {
+        const result = await response.json();
+        throw new Error(result.error || "Falla en servidor");
+      }
     } catch (e) {
-      alert("Error al procesar.");
+      alert("Error: " + e.message);
     } finally {
       setActionLoading(null);
     }

@@ -6,11 +6,9 @@ export async function POST(request) {
     const { userId } = await request.json();
     const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-    // 1. Obtener el ID de suscripción real de la base de datos
     const { data: profile } = await supabaseAdmin.from('profiles').select('epayco_subscription_id').eq('id', userId).single();
 
     if (profile?.epayco_subscription_id) {
-      // 2. Login técnico en ePayco para obtener permiso
       const authRes = await fetch('https://api.secure.payco.co/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -22,7 +20,6 @@ export async function POST(request) {
       const authData = await authRes.json();
       const token = authData.bearer_token || authData.token;
 
-      // 3. Cancelar en ePayco usando el ID guardado
       await fetch('https://api.secure.payco.co/recurring/v1/subscription/cancel', {
         method: 'POST',
         headers: { 
@@ -34,7 +31,6 @@ export async function POST(request) {
       });
     }
 
-    // 4. Limpiar siempre en Supabase
     await supabaseAdmin.from('profiles').update({ 
       subscription_plan: 'piloto',
       epayco_subscription_id: null,

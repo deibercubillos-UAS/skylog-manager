@@ -9,7 +9,7 @@ export async function POST(request) {
         const status = String(data.x_cod_response); 
         const userId = data.x_extra2; 
         const planSolicitado = data.x_extra1;
-        const subscriptionId = data.x_id_invoice; // ID CRÍTICO PARA PODER CANCELAR LUEGO
+        const subscriptionId = data.x_id_invoice; // ID de ePayco para cancelar
 
         if (status === "1") {
             const supabaseAdmin = createClient(
@@ -19,7 +19,7 @@ export async function POST(request) {
 
             await supabaseAdmin.from('profiles').update({ 
                 subscription_plan: planSolicitado,
-                epayco_subscription_id: subscriptionId, // GUARDADO EN DB
+                epayco_subscription_id: subscriptionId,
                 updated_at: new Date().toISOString()
             }).eq('id', userId);
         }

@@ -29,54 +29,77 @@ export default function ManageSubscriptionPage() {
     }
     loadData();
 
-    // --- CARGADOR ROBUSTO (Resuelve ERR_CONNECTION_RESET) ---
-    const loadEpayco = () => {
+    // --- CARGADOR ROBUSTO (Usa checkout.epayco.co) ---
+    const loadScripts = () => {
       if (window.ePayco) {
         setIsEpaycoLoaded(true);
         return;
       }
 
-      const script = document.createElement('script');
-      // Probamos con la URL de JS principal que es más estable ante firewalls
-      script.src = "https://js.epayco.co/checkout.js"; 
-      script.async = true;
-      
-      script.onload = () => {
-        console.log("✅ ePayco cargado exitosamente");
-        setIsEpaycoLoaded(true);
-      };
+      // 1. Cargar jQuery primero
+      const jquery = document.createElement('script');
+      jquery.src = "https://code.jquery.com/jquery-3.7.1.min.js";
+      jquery.id = "jquery-script";
+      document.head.appendChild(jquery);
 
-      script.onerror = () => {
-        console.error("❌ Falló carga de js.epayco, intentando mirror...");
-        // Si falla la primera, intentamos con el segundo dominio oficial
-        const backupScript = document.createElement('script');
-        backupScript.src = "https://checkout.epayco.co/checkout.js";
-        backupScript.onload = () => setIsEpaycoLoaded(true);
-        document.body.appendChild(backupScript);
-      };
+      jquery.onload = () => {
+        window.$ = window.jQuery;
+        
+        // 2. Cargar ePayco desde el dominio correcto: checkout.epayco.co
+        const epayco = document.createElement('script');
+        epayco.src = "https://checkout.epayco.co/checkout.js"; 
+        epayco.id = "epayco-script";
+        epayco.async = true;
+        
+        epayco.onload = () => {
+          console.log("✅ ePayco SDK listo en bitafly.com");
+          setIsEpaycoLoaded(true);
+        };
 
-      document.body.appendChild(script);
+        epayco.onerror = () => {
+          console.error("❌ Error de red cargando ePayco");
+          alert("Error de conexión con la pasarela de pagos. Por favor deshabilite cualquier AdBlocker.");
+        };
+
+        document.head.appendChild(epayco);
+      };
     };
 
-    loadEpayco();
+    loadScripts();
+
+    // Limpieza al desmontar
+    return () => {
+        const s1 = document.getElementById("jquery-script");
+        const s2 = document.getElementById("epayco-script");
+        if (s1) s1.remove();
+        if (s2) s2.remove();
+    };
   }, []);
 
   const handleUpgrade = (planName) => {
-    if (!profile?.id) return alert("Cargando perfil...");
-    if (!isEpaycoLoaded) return alert("La conexión con la pasarela se reinició. Por favor, refresca la página (F5).");
-    
-    // Ejecutamos el Checkout Pro
+    if (!profile?.id || !isEpaycoLoaded) return alert("Sincronizando seguridad...");
     openEpaycoCheckout(planName, "0", profile.email, profile.id, isAnnual);
   };
 
-  if (loading) return <div className="p-20 text-center animate-pulse font-black text-slate-300 uppercase tracking-widest">Sincronizando BitaFly...</div>;
+  const handleCancel = async () => {
+    if (!confirm("¿Deseas volver al Plan Piloto?")) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    await fetch('/api/subscription/cancel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ userId: profile.id })
+    });
+    window.location.href = '/dashboard/subscription';
+  };
+
+  if (loading) return <div className="p-20 text-center animate-pulse font-black text-slate-300 uppercase tracking-widest">Estableciendo conexión...</div>;
 
   return (
     <div className="max-w-6xl mx-auto space-y-10 text-left animate-in fade-in duration-500 pb-20 font-display">
       <header className="flex flex-col md:flex-row justify-between items-center md:items-end gap-6 text-left">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none text-left">Gestión de Membresía</h2>
-          <p className="text-slate-500 text-sm mt-2 font-medium italic">Configuración de facturación recurrente BitaFly UAS.</p>
+          <h2 className="text-4xl font-black text-slate-900 uppercase leading-none">Mi Membresía</h2>
+          <p className="text-slate-500 text-sm mt-2">Configuración de facturación recurrente BitaFly UAS.</p>
         </div>
 
         <div className="flex bg-slate-200 p-1.5 rounded-2xl border border-slate-300 shadow-inner">
@@ -87,22 +110,18 @@ export default function ManageSubscriptionPage() {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 text-left">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <UpgradeCard title="Escuadrilla" price={isAnnual ? "39" : "49"} isActive={profile?.subscription_plan === 'escuadrilla'} features={["Hasta 15 Drones", "Hasta 7 Pilotos", "Alertas Mantenimiento", "Reportes PDF"]} onAction={() => handleUpgrade('Escuadrilla')} />
-        <UpgradeCard title="Flota" price={isAnnual ? "103" : "129"} isActive={profile?.subscription_plan === 'flota'} recommended={true} features={["Drones Ilimitados", "Hasta 20 Pilotos", "Ciclos de Vida AV", "Exportación XLS/CSV"]} onAction={() => handleUpgrade('Flota')} />
+        <UpgradeCard title="Flota" price={isAnnual ? "103" : "129"} isActive={profile?.subscription_plan === 'flota'} recommended={true} features={["Drones ∞", "20 Pilotos", "Ciclos de Vida", "XLS/CSV"]} onAction={() => handleUpgrade('Flota')} />
         
-        <div className="bg-white border border-slate-200 rounded-[2.5rem] p-8 flex flex-col justify-between shadow-sm">
-          <div className="text-left">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-left">Estatus Actual</p>
-            <h3 className="text-2xl font-black uppercase text-left">{profile?.subscription_plan || 'Piloto'}</h3>
+        <div className="bg-white border border-slate-200 rounded-[2.5rem] p-8 flex flex-col justify-between shadow-sm relative overflow-hidden">
+          <div className="text-left text-slate-900">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Plan Actual</p>
+            <h3 className="text-2xl font-black uppercase">{profile?.subscription_plan || 'Piloto'}</h3>
           </div>
           <div className="mt-10">
-             {!isEpaycoLoaded && (
-                <div className="flex items-center gap-2">
-                   <div className="size-2 bg-[#ec5b13] rounded-full animate-ping"></div>
-                   <p className="text-[9px] text-[#ec5b13] font-black uppercase tracking-widest">Reconectando pasarela...</p>
-                </div>
-             )}
+            {profile?.subscription_plan !== 'piloto' && <button onClick={handleCancel} className="w-full py-4 border-2 border-red-50 text-red-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all">Cancelar Plan</button>}
+            {!isEpaycoLoaded && <p className="text-[9px] text-[#ec5b13] font-black uppercase animate-pulse">Sincronizando Seguridad...</p>}
           </div>
         </div>
       </div>
@@ -112,29 +131,13 @@ export default function ManageSubscriptionPage() {
 
 function UpgradeCard({ title, price, isActive, features, onAction, recommended }) {
   return (
-    <div className={`p-8 rounded-[2.5rem] border-2 bg-white flex flex-col justify-between transition-all duration-500 ${isActive ? 'border-[#ec5b13] bg-orange-50/20 shadow-inner' : 'border-slate-100 hover:border-slate-300 shadow-sm'}`}>
+    <div className={`p-8 rounded-[2.5rem] border-2 bg-white flex flex-col justify-between transition-all duration-500 ${isActive ? 'border-[#ec5b13] bg-orange-50/20 shadow-inner' : 'border-slate-100 hover:border-slate-300'}`}>
       <div className="text-left">
-        <div className="flex justify-between items-start mb-6">
-          <h3 className={`text-xl font-black uppercase ${isActive ? 'text-[#ec5b13]' : 'text-slate-900'}`}>{title}</h3>
-          {recommended && !isActive && <span className="bg-slate-900 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase">Popular</span>}
-        </div>
-        <div className="mb-8 flex items-baseline gap-1 text-left">
-          <span className="text-5xl font-black text-slate-900">${price}</span>
-          <span className="text-slate-400 text-xs font-bold uppercase">/ mes</span>
-        </div>
-        <ul className="space-y-4 mb-10 text-left">
-          {features.map((f, i) => (
-            <li key={i} className="flex items-center gap-3 text-xs font-bold text-slate-600 leading-tight">
-              <span className={`material-symbols-outlined text-lg ${isActive ? 'text-[#ec5b13]' : 'text-slate-400'}`}>check_circle</span> {f}
-            </li>
-          ))}
-        </ul>
+        <h3 className={`text-xl font-black uppercase mb-6 ${isActive ? 'text-[#ec5b13]' : 'text-slate-900'}`}>{title}</h3>
+        <div className="mb-8 flex items-baseline gap-1 font-black text-5xl text-slate-900">${price}<span className="text-slate-400 text-xs font-bold uppercase">/ mes</span></div>
+        <ul className="space-y-4 mb-10">{features.map((f, i) => (<li key={i} className="flex items-center gap-3 text-xs font-bold text-slate-600 leading-tight"><span className={`material-symbols-outlined text-lg ${isActive ? 'text-[#ec5b13]' : 'text-slate-400'}`}>check_circle</span> {f}</li>))}</ul>
       </div>
-      {!isActive ? (
-        <button onClick={onAction} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-[#ec5b13] transition-all shadow-xl">Suscribirme</button>
-      ) : (
-        <div className="w-full py-4 bg-emerald-50 text-emerald-600 rounded-2xl font-black text-[10px] uppercase text-center border border-emerald-100">Plan Activo</div>
-      )}
+      {!isActive ? <button onClick={onAction} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-[#ec5b13] transition-all shadow-xl">Suscribirme</button> : <div className="w-full py-4 bg-emerald-50 text-emerald-600 rounded-2xl font-black text-[10px] uppercase text-center border border-emerald-100">Plan Activo</div>}
     </div>
   );
 }

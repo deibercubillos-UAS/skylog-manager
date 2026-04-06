@@ -3,40 +3,39 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
     try {
-        // ePayco envía los datos como FormData (x-www-form-urlencoded)
         const formData = await request.formData();
         const data = Object.fromEntries(formData.entries());
 
-        console.log("=== WEBHOOK BITAFLY RECIBIDO ===");
-        console.log("ID Factura:", data.x_id_invoice);
-        console.log("Respuesta Cod:", data.x_cod_response);
-        console.log("Email:", data.x_customer_email);
+        // 1. Extraer variables de ePayco (vienen con prefijo x_)
+        const status = String(data.x_cod_response); // 1 = Aceptada
+        const userId = data.x_extra2;               // El ID de Supabase
+        const planSolicitado = data.x_extra1;       // escuadrilla o flota
+        const subscriptionId = data.x_id_invoice;   // ID de suscripción de ePayco
 
-        const status = String(data.x_cod_response); 
-        const userId = data.x_extra2; // ID de Supabase que enviamos
-        const planSolicitado = data.x_extra1; // escuadrilla o flota
+        console.log(`🔔 Webhook: Pago ${status} para usuario ${userId}`);
 
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_ROLE_KEY
         );
 
-        // Si el pago es exitoso (1)
+        // 2. Si el pago es exitoso (1), activamos el plan
         if (status === "1") {
             const { error } = await supabaseAdmin
                 .from('profiles')
                 .update({ 
                     subscription_plan: planSolicitado,
-                    epayco_subscription_id: data.x_id_invoice,
+                    epayco_subscription_id: subscriptionId,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', userId);
 
-            if (error) console.error("Error DB:", error.message);
-            else console.log("✅ Plan actualizado con éxito via Webhook");
+            if (error) throw error;
+            console.log("✅ Plan actualizado en BitaFly");
         }
 
         return NextResponse.json({ message: "OK" });
+
     } catch (err) {
         console.error("❌ Error en Webhook:", err.message);
         return NextResponse.json({ error: err.message }, { status: 500 });

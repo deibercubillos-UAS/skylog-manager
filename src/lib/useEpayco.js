@@ -8,45 +8,38 @@ export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnu
     
     const handler = window.ePayco.checkout.configure({
       key: EPAYCO_KEY,
-      test: true // Cambiar a false en producción
+      test: true 
     });
 
-    // 1. IDS DE PLANES (Deben coincidir con tu panel de ePayco)
+    // --- REEMPLAZA ESTOS CON LOS IDS TÉCNICOS DE TU PANEL DE EPAYCO ---
+    // (El que me pasaste termina en 008f626)
     const PLAN_IDS = {
-      escuadrilla_mensual: "plan_escuadrilla_mensual", 
-      escuadrilla_anual:   "plan_escuadrilla_mensual",
-      flota_mensual:       "plan_escuadrilla_mensual",
-      flota_anual:         "plan_escuadrilla_mensual"
+      escuadrilla_mensual: "9be072c0f069fb47008f626", // ID REAL que me enviaste
+      escuadrilla_anual:   "ID_ANUAL_DE_TU_PANEL",   
+      flota_mensual:       "ID_FLOTA_MENS_DE_TU_PANEL",
+      flota_anual:         "ID_FLOTA_ANUAL_DE_TU_PANEL"
     };
 
     const key = `${planName.toLowerCase()}_${isAnnual ? 'anual' : 'mensual'}`;
     const selectedPlanId = PLAN_IDS[key];
 
-    // 2. CÁLCULO DE MONTO EN COP (Obligatorio para evitar el error de undefined)
-    // Valores aproximados en COP para la validación inicial
-    let amountCOP = 0;
-    if (planName.toLowerCase().includes('escuadrilla')) {
-        amountCOP = isAnnual ? 1910000 : 199000;
-    } else if (planName.toLowerCase().includes('flota')) {
-        amountCOP = isAnnual ? 5040000 : 525000;
-    }
+    // Monto exacto que tiene el plan en ePayco (para que no de error de rango)
+    const amount = planName.toLowerCase().includes('escuadrilla') ? '199000' : '525000';
 
     const data = {
-      // Atributos de la suscripción
       id_plan: selectedPlanId,
-      amount: amountCOP.toString(), // <--- SOLUCIÓN AL ERROR UNDEFINED
-      name: `BitaFly - ${planName}`,
-      description: `Suscripción ${isAnnual ? 'Anual' : 'Mensual'} BitaFly UAS`,
+      name: `Plan ${planName} Mensual`, // Ajustado para coincidir con ePayco
+      description: `Suscripción Mensual BitaFly UAS`,
       currency: "cop",
+      amount: amount, 
       
-      // Configuración técnica
       country: "co",
       lang: "es",
       external: "true", 
       p_cust_id_cliente: MERCHANT_ID,
       p_key: EPAYCO_KEY,
       
-      // Metadatos para el Webhook de BitaFly
+      // Metadatos para tu Webhook
       extra1: planName.toLowerCase(), 
       extra2: userId, 
       extra3: isAnnual ? 'anual' : 'mensual',
@@ -56,9 +49,7 @@ export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnu
       response: `https://bitafly.com/dashboard/subscription/response`,
     };
 
-    console.log("🚀 Iniciando Checkout BitaFly:", { plan: selectedPlanId, monto: amountCOP });
+    console.log("🚀 Sincronizando con Plan ID:", selectedPlanId);
     handler.open(data);
-  } else {
-    alert("Sincronizando con ePayco... Reintenta en un momento.");
   }
 };

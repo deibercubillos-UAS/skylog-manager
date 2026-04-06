@@ -8,48 +8,51 @@ export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnu
     
     const handler = window.ePayco.checkout.configure({
       key: EPAYCO_KEY,
-      test: true 
+      test: true // Mantenlo en TRUE para pruebas
     });
 
-    // --- REEMPLAZA ESTOS CON LOS IDS TÉCNICOS DE TU PANEL DE EPAYCO ---
-    // (El que me pasaste termina en 008f626)
+    // --- REVISIÓN DE IDS (Basado en tu link anterior) ---
     const PLAN_IDS = {
-      escuadrilla_mensual: "9be072c0f069fb47008f626", // ID REAL que me enviaste
-      escuadrilla_anual:   "ID_ANUAL_DE_TU_PANEL",   
-      flota_mensual:       "ID_FLOTA_MENS_DE_TU_PANEL",
-      flota_anual:         "ID_FLOTA_ANUAL_DE_TU_PANEL"
+      escuadrilla_mensual: "9be072c0f069fb47008f626", 
+      escuadrilla_anual:   "TU_ID_ANUAL_AQUI", // Búscalo en tu panel
+      flota_mensual:       "TU_ID_FLOTA_MENS_AQUI",
+      flota_anual:         "TU_ID_FLOTA_ANUAL_AQUI"
     };
 
     const key = `${planName.toLowerCase()}_${isAnnual ? 'anual' : 'mensual'}`;
     const selectedPlanId = PLAN_IDS[key];
 
-    // Monto exacto que tiene el plan en ePayco (para que no de error de rango)
-    const amount = planName.toLowerCase().includes('escuadrilla') ? '199000' : '525000';
-
     const data = {
+      // --- CLAVE PARA SUSCRIPCIÓN REAL ---
+      // Al NO enviar "amount", ePayco entiende que debe usar los valores del Plan
       id_plan: selectedPlanId,
-      name: `Plan ${planName} Mensual`, // Ajustado para coincidir con ePayco
-      description: `Suscripción Mensual BitaFly UAS`,
-      currency: "cop",
-      amount: amount, 
       
+      name: `BitaFly - ${planName}`,
+      description: `Activación de Suscripción Recurrente BitaFly`,
+      currency: "cop",
+      
+      // Configuración de interfaz
       country: "co",
       lang: "es",
-      external: "true", 
+      external: "true", // Redirección para evitar bloqueos de token
+      
+      // Identificación de tu comercio
       p_cust_id_cliente: MERCHANT_ID,
       p_key: EPAYCO_KEY,
       
-      // Metadatos para tu Webhook
+      // Metadatos para que tu Webhook sepa a quién activar
       extra1: planName.toLowerCase(), 
       extra2: userId, 
-      extra3: isAnnual ? 'anual' : 'mensual',
       
+      // Datos obligatorios del pagador
       email_billing: userEmail,
+      
+      // URLs de BitaFly
       confirmation: `https://bitafly.com/api/payments/confirmation`,
       response: `https://bitafly.com/dashboard/subscription/response`,
     };
 
-    console.log("🚀 Sincronizando con Plan ID:", selectedPlanId);
+    console.log("🎯 Disparando Suscripción para ID Plan:", selectedPlanId);
     handler.open(data);
   }
 };

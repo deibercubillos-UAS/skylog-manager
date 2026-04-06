@@ -1,15 +1,25 @@
 // src/lib/useEpayco.js
 
-export const openEpaycoCheckout = (planName, userEmail, userId, isAnnual) => {
+export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnual) => {
+  // 1. Extraer llaves asegurando que existan
+  const P_KEY = process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY;
+  const CUST_ID = "1577037"; // Tu ID de comercio fijo para evitar errores
+
+  if (!P_KEY) {
+    console.error("❌ ERROR: NEXT_PUBLIC_EPAYCO_PUBLIC_KEY no está definida en Vercel.");
+    alert("Error de configuración: No se encontró la llave pública de ePayco.");
+    return;
+  }
+
   if (typeof window !== 'undefined' && window.ePayco) {
     
-    // 1. CONFIGURACIÓN DEL COMERCIO
+    // CONFIGURACIÓN INICIAL DEL HANDLER
     const handler = window.ePayco.checkout.configure({
-      key: process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY, // Usa tu Public Key larga
-      test: true // Cambiar a false en producción
+      key: P_KEY,
+      test: true 
     });
 
-    // 2. IDS DE TUS PLANES (Asegúrate que coincidan con tu panel ePayco)
+    // IDS TÉCNICOS (Deben coincidir con tu panel de ePayco -> Suscripciones -> Planes)
     const PLAN_IDS = {
       escuadrilla_mensual: "plan_escuadrilla_mensual", 
       escuadrilla_anual:   "plan_escuadrilla_mensual", 
@@ -20,30 +30,35 @@ export const openEpaycoCheckout = (planName, userEmail, userId, isAnnual) => {
     const key = `${planName.toLowerCase()}_${isAnnual ? 'anual' : 'mensual'}`;
     const selectedPlanId = PLAN_IDS[key];
 
-    // 3. DATOS DE LA SUSCRIPCIÓN
+    // Cálculo de monto inicial en COP (Simbólico para validación)
+    const amount = isAnnual ? "20000" : "10000";
+
     const data = {
       id_plan: selectedPlanId,
-      name: `BitaFly - ${planName}`,
-      description: `Suscripción Recurrente BitaFly UAS`,
+      name: `BitaFly - Plan ${planName}`,
+      description: `Suscripción BitaFly UAS - Cobro Recurrente`,
       currency: "cop",
+      amount: amount,
       type_checkout: "subscription",
-      external: "true", // Abre en ventana aparte para evitar errores de red
+      external: "true", 
       
-      // Metadatos para que el Webhook sepa quién paga
+      // Identificación de BitaFly
+      p_cust_id_cliente: CUST_ID,
+      p_key: P_KEY,
+      
+      // Metadatos para el Webhook
       extra1: planName.toLowerCase(), 
       extra2: userId, 
+      extra3: isAnnual ? 'anual' : 'mensual',
       
       email_billing: userEmail,
-      p_cust_id_cliente: "1577037", // Tu ID de Comercio
-      
-      // URLs de BitaFly
       confirmation: `https://bitafly.com/api/payments/confirmation`,
       response: `https://bitafly.com/dashboard/subscription/response`,
     };
 
-    console.log("🚀 Redirigiendo a pasarela ePayco para el plan:", selectedPlanId);
+    console.log("🚀 Abriendo Checkout Pro BitaFly...");
     handler.open(data);
   } else {
-    alert("Iniciando conexión segura... Reintenta en 2 segundos.");
+    alert("Iniciando pasarela de pagos... Reintenta en un momento.");
   }
 };

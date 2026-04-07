@@ -25,16 +25,43 @@ export async function POST(request) {
         const { data: { user } } = await supabase.auth.getUser();
         const body = await request.json();
 
-        // Guardamos exactamente lo que viene del formulario
         const { data, error } = await supabase.from('flight_authorizations').insert([{
             owner_id: user.id,
             pilot_id: body.pilot_id,
             aircraft_id: body.aircraft_id,
             location: body.location,
             scheduled_at: body.scheduled_at,
-            mission_id: body.mission_id, // <-- ID Manual
+            mission_id: body.mission_id,
             status: 'autorizado'
         }]).select();
+
+        if (error) throw error;
+        return NextResponse.json(data[0]);
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}
+
+// NUEVO: MÉTODO PARA EDITAR MISIONES EXISTENTES
+export async function PATCH(request) {
+    try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        const body = await request.json();
+
+        const { data, error } = await supabase
+            .from('flight_authorizations')
+            .update({
+                pilot_id: body.pilot_id,
+                aircraft_id: body.aircraft_id,
+                location: body.location,
+                scheduled_at: body.scheduled_at,
+                mission_id: body.mission_id,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', body.id)
+            .eq('owner_id', user.id)
+            .select();
 
         if (error) throw error;
         return NextResponse.json(data[0]);

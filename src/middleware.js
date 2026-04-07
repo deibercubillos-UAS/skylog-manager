@@ -25,31 +25,22 @@ export async function middleware(request) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Si no hay usuario y va a una ruta protegida -> Login
+  // --- LÓGICA DE EXCEPCIÓN PARA EL WEBHOOK ---
+  // Si la petición va al webhook de pagos, dejamos pasar a ePayco libremente
+  if (request.nextUrl.pathname === '/api/payments/confirmation') {
+    return response;
+  }
+
+  // Protección estándar del Dashboard
   if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // Si hay usuario e intenta ir al login -> Dashboard
-  if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/registro')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
-  }
-
   return response
 }
 
-
 export const config = {
-  matcher: [
-    /*
-     * Protege todo menos:
-     * - api/payments/confirmation (ePayco necesita entrar libremente)
-     * - login, registro y la landing
-     */
-    '/((?!api/payments/confirmation|login|registro|_next/static|_next/image|favicon.ico|logo.png).*)',
-  ],
+  matcher: ['/dashboard/:path*', '/login', '/registro', '/api/payments/confirmation'],
 }

@@ -1,7 +1,9 @@
+// FILE: jsconfig.json
 {
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "skipLibCheck": true // Añade esta línea
   }
 }

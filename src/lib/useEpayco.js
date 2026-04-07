@@ -12,7 +12,7 @@ export const openEpaycoCheckout = (planName, priceUSD, userEmail, userId, isAnnu
     });
 
     const PLAN_IDS = {
-      escuadrilla_mensual: "9be072c0f069fb47008f626", 
+      escuadrilla_mensual: "plan_escuadrilla_mensual", 
       escuadrilla_anual:   "9be0e74f1778c85f40392bd", 
       flota_mensual:       "9be0e7df6630f6a394f7096", 
       flota_anual:         "9be0e81b6727c738608e137" 

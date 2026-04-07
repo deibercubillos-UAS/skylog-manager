@@ -14,6 +14,7 @@ export default function DashboardLayout({ children }) {
     { name: 'Dashboard', icon: 'dashboard', href: '/dashboard' },
     { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/dashboard/fleet' },
     { name: 'Tripulación', icon: 'person', href: '/dashboard/pilots' },
+    { name: 'Programar Misión', icon: 'assignment_turned_in', href: '/dashboard/authorizations' },
   ];
 
   // Mapeo de formularios activables

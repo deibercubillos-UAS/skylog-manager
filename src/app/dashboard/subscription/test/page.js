@@ -1,48 +1,52 @@
 'use client';
 import { useState } from 'react';
 
-export default function StaticTestPage() {
-    const [res, setRes] = useState(null);
+export default function TokenTestPage() {
+    const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    const runTest = async () => {
+    const startTest = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/payments/static-token');
-            const data = await response.json();
-            console.log("%c💎 RESULTADO EPAYCO:", "color: yellow; background: black; font-size: 16px;", data);
-            setRes(data);
+            const res = await fetch('/api/payments/static-token');
+            const data = await res.json();
+            console.log("💎 LOG EPAYCO:", data);
+            setResult(data);
         } catch (e) {
-            setRes({ error: "Error de conexión" });
+            setResult({ error: "Error de red" });
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="p-10 max-w-2xl mx-auto text-left">
-            <h2 className="text-2xl font-black uppercase mb-4">Prueba Estática de Tokenización</h2>
-            <p className="mb-8 text-slate-500 text-sm italic">Este botón usa los datos de tarjeta del manual de ePayco (4575...).</p>
-            
+        <div className="p-10 max-w-xl mx-auto text-left font-sans">
+            <h1 className="text-2xl font-black uppercase mb-2">BitaFly Pay Engine</h1>
+            <p className="text-slate-500 text-sm mb-8">Fase 1: Prueba de Tokenización Estática</p>
+
             <button 
-                onClick={runTest} 
+                onClick={startTest} 
                 disabled={loading}
-                className="bg-[#ec5b13] text-white px-10 py-5 rounded-2xl font-black shadow-xl uppercase tracking-widest active:scale-95 transition-all"
+                className="w-full py-5 bg-black text-white font-black rounded-2xl shadow-xl hover:bg-slate-800 transition-all active:scale-95"
             >
-                {loading ? "PROCESANDO SDK..." : "LANZAR PRUEBA ESTÁTICA"}
+                {loading ? "CONSULTANDO EPAYCO..." : "GENERAR TOKEN (DATOS FIJOS)"}
             </button>
 
-            {res && (
-                <div className="mt-10 p-8 bg-black rounded-[2rem] border border-slate-800 shadow-2xl">
-                    <p className="text-orange-500 font-mono text-xs mb-4">// RESPUESTA DEL SERVIDOR:</p>
-                    {res.token_id && (
-                        <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl">
-                            <span className="text-slate-400 text-[10px] uppercase font-bold block">Token ID Generado:</span>
-                            <span className="text-white font-mono text-xl break-all">{res.token_id}</span>
+            {result && (
+                <div className="mt-10 p-6 bg-slate-900 rounded-3xl border border-slate-700">
+                    <p className="text-emerald-400 text-xs font-mono mb-4">// RESPUESTA RECIBIDA:</p>
+                    
+                    {result.token_id !== "No generado" ? (
+                        <div className="mb-6">
+                            <span className="text-slate-400 text-[10px] uppercase font-bold">TOKEN ID:</span>
+                            <h2 className="text-white text-xl font-mono break-all">{result.token_id}</h2>
                         </div>
+                    ) : (
+                        <p className="text-red-400 font-bold mb-4">Error: {result.respuesta_cruda?.message || "Revisa la respuesta cruda"}</p>
                     )}
-                    <pre className="text-emerald-400 font-mono text-[10px] overflow-auto max-h-60">
-                        {JSON.stringify(res, null, 2)}
+
+                    <pre className="text-[10px] text-slate-400 overflow-auto bg-black/30 p-4 rounded-xl">
+                        {JSON.stringify(result, null, 2)}
                     </pre>
                 </div>
             )}

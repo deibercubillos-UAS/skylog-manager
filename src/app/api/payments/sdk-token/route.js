@@ -2,47 +2,56 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
     try {
-        // --- CARGA SEGURA DEL SDK (Solución al error 't is not a function') ---
-        const epaycoModule = require('epayco-sdk-node');
-        const epaycoInit = typeof epaycoModule === 'function' ? epaycoModule : epaycoModule.default;
+        const PUBLIC_KEY = process.env.EPAYCO_PUBLIC_KEY;
 
-        // --- CONFIGURACIÓN SEGÚN MANUAL ---
-        const epayco = epaycoInit({
-            apiKey: process.env.EPAYCO_PUBLIC_KEY,
-            privateKey: process.env.EPAYCO_PRIVATE_KEY,
-            lang: 'ES',
-            test: true
-        });
+        if (!PUBLIC_KEY) {
+            return NextResponse.json({ error: "Falta EPAYCO_PUBLIC_KEY en Vercel" }, { status: 500 });
+        }
 
-        // --- DATOS ESTÁTICOS DEL MANUAL ---
+        // --- DATOS ESTÁTICOS SOLICITADOS (Manual ePayco) ---
         const credit_info = {
             "card[number]": "4575623182290326",
-            "card[exp_year]": "2025",
+            "card[exp_year]": "2027",
             "card[exp_month]": "12",
             "card[cvc]": "123",
             "hasCvv": true
         };
 
-        // --- CREACIÓN DEL TOKEN (Prometificada para Next.js) ---
-        const token = await new Promise((resolve, reject) => {
-            epayco.token.create(credit_info)
-                .then(res => resolve(res))
-                .catch(err => reject(err));
+        console.log("Iniciando Tokenización Estática...");
+
+        // Llamada directa a la API de ePayco (lo que el SDK hace internamente)
+        const response = await fetch("https://api.secure.payco.co/v1/tokenize-card", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "public_key": PUBLIC_KEY
+            },
+            body: JSON.stringify(credit_info)
         });
 
-        console.log("Token generado satisfactoriamente:", token);
+        const result = await response.json();
 
-        return NextResponse.json({
-            success: true,
-            token_id: token.id || (token.data && token.data.id) || "ERROR_NO_ID",
-            sdk_response: token
-        });
+        // El SDK devuelve el objeto directamente. Nosotros lo envolvemos para la UI.
+        if (result.id || (result.data && result.data.id)) {
+            const tokenId = result.id || result.data.id;
+            return NextResponse.json({
+                success: true,
+                token_id: tokenId,
+                sdk_response: result
+            });
+        }
 
-    } catch (err) {
-        console.error("Error en SDK:", err.message);
         return NextResponse.json({ 
             success: false, 
-            error: "Fallo en el servidor", 
+            error: result.description || result.message || "ePayco rechazó los datos",
+            sdk_response: result
+        }, { status: 400 });
+
+    } catch (err) {
+        console.error("Error Crítico:", err.message);
+        return NextResponse.json({ 
+            success: false, 
+            error: "Fallo técnico en servidor", 
             detalle: err.message 
         }, { status: 500 });
     }

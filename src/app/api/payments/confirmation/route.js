@@ -3,27 +3,26 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
     try {
+        // 1. Recibir datos de ePayco (Form Data)
         const formData = await request.formData();
         const data = Object.fromEntries(formData.entries());
 
-        // LOG PARA DEPURACIÓN (Lo verás en Vercel Logs)
-        console.log("=== WEBHOOK BITAFLY: NUEVO MENSAJE ===");
-        console.log("Usuario ID (extra2):", data.x_extra2);
-        console.log("Plan (extra1):", data.x_extra1);
-        console.log("Estado Pago (cod_response):", data.x_cod_response);
+        // 2. Extraer variables clave enviadas desde ePayco
+        const status = String(data.x_cod_response); // 1 = Aceptada
+        const userId = data.x_extra2;               // ID del usuario de BitaFly
+        const planSolicitado = data.x_extra1;       // escuadrilla o flota
+        const subscriptionId = data.x_id_invoice;   // ID técnico de suscripción
 
-        const status = String(data.x_cod_response); 
-        const userId = data.x_extra2; 
-        const planSolicitado = data.x_extra1;
-        const subscriptionId = data.x_id_invoice;
+        console.log(`🔔 WEBHOOK RECIBIDO: Usuario ${userId}, Estado ${status}, Plan ${planSolicitado}`);
 
-        // 1. Solo si el pago fue aprobado (Código 1)
-        if (status === "1" && userId) {
+        // 3. Si el pago es exitoso (1)
+        if (status === "1") {
             const supabaseAdmin = createClient(
                 process.env.NEXT_PUBLIC_SUPABASE_URL,
-                process.env.SUPABASE_SERVICE_ROLE_KEY // Asegúrate que esté en Vercel
+                process.env.SUPABASE_SERVICE_ROLE_KEY // Llave maestra
             );
 
+            // Actualizamos el plan del usuario
             const { error } = await supabaseAdmin
                 .from('profiles')
                 .update({ 
@@ -34,16 +33,17 @@ export async function POST(request) {
                 .eq('id', userId);
 
             if (error) {
-                console.error("❌ Error de Supabase:", error.message);
-            } else {
-                console.log(`✅ EXITO: Plan ${planSolicitado} activado para ${userId}`);
+                console.error("❌ Error actualizando DB:", error.message);
+                return NextResponse.json({ error: error.message }, { status: 500 });
             }
+            
+            console.log("✅ Plan actualizado exitosamente vía Webhook");
         }
 
-        return NextResponse.json({ message: "Procesado" });
+        return NextResponse.json({ message: "Recibido correctamente" }, { status: 200 });
 
     } catch (err) {
-        console.error("❌ ERROR CRÍTICO WEBHOOK:", err.message);
+        console.error("💥 Error en Webhook:", err.message);
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }

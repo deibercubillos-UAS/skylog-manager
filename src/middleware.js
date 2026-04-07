@@ -42,6 +42,14 @@ export async function middleware(request) {
   return response
 }
 
+
 export const config = {
-  matcher: ['/dashboard/:path*', '/login', '/registro'],
+  matcher: [
+    /*
+     * Protege todo menos:
+     * - api/payments/confirmation (ePayco necesita entrar libremente)
+     * - login, registro y la landing
+     */
+    '/((?!api/payments/confirmation|login|registro|_next/static|_next/image|favicon.ico|logo.png).*)',
+  ],
 }

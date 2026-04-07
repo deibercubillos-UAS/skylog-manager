@@ -1,61 +1,84 @@
 'use client';
 import { useState } from 'react';
 
-export default function PaymentTestPage() {
-    const [card, setCard] = useState({ number: '', name: '', exp: '', cvc: '', docNumber: '' });
+export default function TokenTestPage() {
+    const [card, setCard] = useState({ number: '', exp_month: '', exp_year: '', cvc: '' });
     const [loading, setLoading] = useState(false);
+    const [tokenResult, setTokenResult] = useState(null);
 
-    const handleFullPayment = async () => {
+    const handleTokenize = async (e) => {
+        e.preventDefault();
         setLoading(true);
-        const [month, year] = card.exp.split('/');
-        
-        const payload = {
-            planId: 'plan_escuadrilla_mensual',
-            cardInfo: {
-                number: card.number.replace(/\s/g, ''),
-                exp_year: "20" + year,
-                exp_month: month,
-                cvc: card.cvc
-            },
-            customerInfo: { name: card.name, lastName: 'User', docType: 'CC', docNumber: card.docNumber }
-        };
+        setTokenResult(null);
+
+        console.log("📡 Iniciando petición de tokenización...");
 
         try {
-            const res = await fetch('/api/payments/subscribe-sdk', {
+            const res = await fetch('/api/payments/debug-token', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(card)
             });
-            const result = await res.json();
-            console.log("🔍 RESPUESTA:", result);
 
-            if (res.ok && result.success) {
-                alert("🚀 PROCESO EXITOSO - Revisa Consola");
+            const result = await res.json();
+            
+            // LOG CLAVE: Aquí verás el número de token
+            console.log("💎 RESPUESTA DEL SERVIDOR:", result);
+            setTokenResult(result);
+
+            if (result.ok && (result.data.id || result.data.data?.id)) {
+                const id = result.data.id || result.data.data?.id;
+                console.log("%c🚀 TOKEN GENERADO: " + id, "color: #ec5b13; font-size: 20px; font-weight: bold;");
+                alert("¡Token creado con éxito! Revisa la consola (F12)");
             } else {
-                alert("❌ FALLO: " + result.error);
+                console.error("❌ ERROR DE EPAYCO:", result.data);
+                alert("Fallo: " + (result.data.description || "Revisa la consola"));
             }
-        } catch (e) {
-            alert("💥 CRASH: " + e.message);
+        } catch (error) {
+            console.error("💥 CRASH:", error);
+            alert("Error de conexión");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="p-10 max-w-xl mx-auto space-y-6 text-left">
-            <h2 className="text-2xl font-black uppercase">Debug ePayco REST</h2>
-            <div className="bg-white p-8 rounded-3xl border shadow-xl space-y-4">
-                <input className="w-full p-4 bg-slate-50 rounded-xl" placeholder="Nombre" onChange={e => setCard({...card, name: e.target.value})} />
-                <input className="w-full p-4 bg-slate-50 rounded-xl" placeholder="Tarjeta" onChange={e => setCard({...card, number: e.target.value})} />
-                <div className="grid grid-cols-3 gap-2">
-                    <input className="p-4 bg-slate-50 rounded-xl" placeholder="MM/AA" onChange={e => setCard({...card, exp: e.target.value})} />
-                    <input className="p-4 bg-slate-50 rounded-xl" placeholder="CVC" onChange={e => setCard({...card, cvc: e.target.value})} />
-                    <input className="p-4 bg-slate-50 rounded-xl" placeholder="Cédula" onChange={e => setCard({...card, docNumber: e.target.value})} />
+        <div className="p-10 max-w-xl mx-auto text-left">
+            <h2 className="text-2xl font-black uppercase mb-6">Paso 1: Generar Token</h2>
+            <form onSubmit={handleTokenize} className="bg-white p-8 rounded-3xl border shadow-xl space-y-4">
+                <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400">Número de Tarjeta</label>
+                    <input required className="w-full p-4 bg-slate-50 rounded-xl font-mono" 
+                           onChange={e => setCard({...card, number: e.target.value.replace(/\s/g, '')})} />
                 </div>
-                <button onClick={handleFullPayment} disabled={loading} className="w-full py-5 bg-black text-white font-black rounded-2xl">
-                    {loading ? 'PROCESANDO...' : 'PROBAR PAGO'}
+                <div className="grid grid-cols-3 gap-4">
+                    <div>
+                        <label className="text-[10px] font-black uppercase text-slate-400">Mes (MM)</label>
+                        <input required placeholder="01" className="w-full p-4 bg-slate-50 rounded-xl" 
+                               onChange={e => setCard({...card, exp_month: e.target.value})} />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-black uppercase text-slate-400">Año (AAAA)</label>
+                        <input required placeholder="2025" className="w-full p-4 bg-slate-50 rounded-xl" 
+                               onChange={e => setCard({...card, exp_year: e.target.value})} />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-black uppercase text-slate-400">CVC</label>
+                        <input required className="w-full p-4 bg-slate-50 rounded-xl" 
+                               onChange={e => setCard({...card, cvc: e.target.value})} />
+                    </div>
+                </div>
+                <button type="submit" disabled={loading} className="w-full py-5 bg-[#ec5b13] text-white font-black rounded-2xl uppercase tracking-widest">
+                    {loading ? 'Tokenizando...' : 'Generar Token ID'}
                 </button>
-            </div>
+            </form>
+
+            {tokenResult && (
+                <div className="mt-8 p-4 bg-slate-900 rounded-2xl text-emerald-400 font-mono text-xs overflow-auto">
+                    <p>// Respuesta JSON:</p>
+                    <pre>{JSON.stringify(tokenResult, null, 2)}</pre>
+                </div>
+            )}
         </div>
     );
 }

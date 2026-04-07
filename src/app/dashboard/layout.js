@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 export default function DashboardLayout({ children }) {
@@ -13,7 +13,6 @@ export default function DashboardLayout({ children }) {
     { name: 'Dashboard', icon: 'dashboard', href: '/dashboard' },
     { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/dashboard/fleet' },
     { name: 'Tripulación', icon: 'person', href: '/dashboard/pilots' },
-    { name: 'Vuelo Diario (F-OPS)', icon: 'flight_takeoff', href: '/dashboard/logbook/daily' },
     { name: 'Bitácora (Historial)', icon: 'menu_book', href: '/dashboard/logbook' },
     { name: 'Configuración Formatos', icon: 'settings_applications', href: '/dashboard/settings/forms' },
     { name: 'Suscripción', icon: 'payments', href: '/dashboard/subscription/manage' },
@@ -30,12 +29,7 @@ export default function DashboardLayout({ children }) {
     checkUser();
   }, []);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/login';
-  };
-
-  if (authLoading) return <div className="h-screen flex items-center justify-center font-black uppercase tracking-widest text-slate-300">Iniciando BitaFly...</div>;
+  if (authLoading) return <div className="h-screen flex items-center justify-center font-black uppercase tracking-widest text-slate-300 italic">Iniciando BitaFly...</div>;
 
   return (
     <div className="flex h-screen bg-[#f8f6f6] text-left">
@@ -53,10 +47,23 @@ export default function DashboardLayout({ children }) {
           ))}
         </nav>
         <div className="p-4 border-t border-white/5">
-          <button onClick={handleLogout} className="w-full py-2 bg-white/5 text-[10px] font-black uppercase rounded-lg text-slate-400 hover:text-red-400 transition-all">Salir del Sistema</button>
+          <button onClick={async () => { await supabase.auth.signOut(); window.location.href = '/login'; }} className="w-full py-2 bg-white/5 text-[10px] font-black uppercase rounded-lg text-slate-400 hover:text-red-400 transition-all">Salir del Sistema</button>
         </div>
       </aside>
-      <main className="flex-1 overflow-y-auto p-10">{children}</main>
+      
+      <main className="flex-1 flex flex-col overflow-hidden">
+        {/* HEADER GLOBAL PERSISTENTE */}
+        <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-10 shrink-0 z-50 shadow-sm">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">BitaFly Operational Control Center</span>
+            <Link href="/dashboard/logbook/daily" className="bg-[#ec5b13] hover:bg-orange-600 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95">
+                <span className="material-symbols-outlined text-sm">add_circle</span> Nueva Operación
+            </Link>
+        </header>
+
+        <div className="flex-1 overflow-y-auto p-10">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }

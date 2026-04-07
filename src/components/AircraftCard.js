@@ -55,7 +55,7 @@ export default function AircraftCard({ aircraft }) {
               {aircraft.model}
             </h3>
             <p className="text-[#ec5b13] text-[10px] font-black uppercase tracking-[0.2em] mt-1">
-              S/N: {aircraft.serial_number}
+              S/N: {aircraft.serial_number} | RUAS: {aircraft.ruas || "N/A"}
             </p>
           </div>
           

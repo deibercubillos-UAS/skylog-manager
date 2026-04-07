@@ -5,8 +5,8 @@ export async function POST(request) {
     try {
         const body = await request.json();
         
-        // --- FORMATO EXACTO SOLICITADO ---
-        const infoParaEpayco = {
+        // El formato de corchetes que me indicaste
+        const cardData = {
             "card[number]": body.number.replace(/\s/g, ''),
             "card[exp_year]": body.exp_year.toString(),
             "card[exp_month]": body.exp_month.toString().padStart(2, '0'),
@@ -14,20 +14,19 @@ export async function POST(request) {
             "hasCvv": true
         };
 
-        console.log("Enviando a ePayco con llaves literales:", infoParaEpayco);
+        // Ruta estándar que usa el SDK internamente
+        const res = await epaycoRequest("/v1/tokenize-card", "POST", cardData);
 
-        // Probamos el endpoint que suele usar el SDK
-        const result = await epaycoRequest("/v1/tokenize-card", "POST", infoParaEpayco);
-
-        // Si el anterior falla (devuelve error o no tiene id), probamos la variante con diagonal
-        if (!result.id && !result.data?.id) {
-            console.log("Variante 1 falló, probando /v1/tokenize/card...");
-            const resultAlt = await epaycoRequest("/v1/tokenize/card", "POST", infoParaEpayco);
-            return NextResponse.json(resultAlt);
+        if (res.error) {
+            return NextResponse.json({ 
+                error: `Error en ${res.step}`, 
+                status: res.status, 
+                mensaje: res.msg 
+            }, { status: 400 });
         }
 
-        return NextResponse.json(result);
+        return NextResponse.json(res.data);
     } catch (err) {
-        return NextResponse.json({ error: "Crash Servidor", detalle: err.message }, { status: 500 });
+        return NextResponse.json({ error: "Excepción en Servidor BitaFly", detalle: err.message }, { status: 500 });
     }
 }

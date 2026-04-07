@@ -4,14 +4,12 @@ import { useState } from 'react';
 export default function TokenTestPage() {
     const [card, setCard] = useState({ number: '', exp_month: '', exp_year: '', cvc: '' });
     const [loading, setLoading] = useState(false);
-    const [tokenResult, setTokenResult] = useState(null);
+    const [debug, setDebug] = useState(null);
 
     const handleTokenize = async (e) => {
         e.preventDefault();
         setLoading(true);
-        setTokenResult(null);
-
-        console.log("📡 Iniciando petición de tokenización...");
+        setDebug("Enviando...");
 
         try {
             const res = await fetch('/api/payments/debug-token', {
@@ -21,22 +19,17 @@ export default function TokenTestPage() {
             });
 
             const result = await res.json();
-            
-            // LOG CLAVE: Aquí verás el número de token
-            console.log("💎 RESPUESTA DEL SERVIDOR:", result);
-            setTokenResult(result);
+            console.log("🔍 RESPUESTA COMPLETA:", result);
+            setDebug(result);
 
-            if (result.ok && (result.data.id || result.data.data?.id)) {
-                const id = result.data.id || result.data.data?.id;
-                console.log("%c🚀 TOKEN GENERADO: " + id, "color: #ec5b13; font-size: 20px; font-weight: bold;");
-                alert("¡Token creado con éxito! Revisa la consola (F12)");
+            if (res.ok && (result.id || result.data?.id)) {
+                console.log("%c🚀 TOKEN: " + (result.id || result.data?.id), "color: cyan; font-size: 20px;");
+                alert("¡Token Generado! Mira la consola.");
             } else {
-                console.error("❌ ERROR DE EPAYCO:", result.data);
-                alert("Fallo: " + (result.data.description || "Revisa la consola"));
+                alert(`Error: ${result.error || 'Desconocido'}`);
             }
         } catch (error) {
-            console.error("💥 CRASH:", error);
-            alert("Error de conexión");
+            setDebug("Error de red");
         } finally {
             setLoading(false);
         }
@@ -44,41 +37,26 @@ export default function TokenTestPage() {
 
     return (
         <div className="p-10 max-w-xl mx-auto text-left">
-            <h2 className="text-2xl font-black uppercase mb-6">Paso 1: Generar Token</h2>
+            <h2 className="text-2xl font-black uppercase mb-6">Módulo de Tokenización 1.0</h2>
             <form onSubmit={handleTokenize} className="bg-white p-8 rounded-3xl border shadow-xl space-y-4">
-                <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400">Número de Tarjeta</label>
-                    <input required className="w-full p-4 bg-slate-50 rounded-xl font-mono" 
-                           onChange={e => setCard({...card, number: e.target.value.replace(/\s/g, '')})} />
-                </div>
+                <input required placeholder="Tarjeta (Sin espacios)" className="w-full p-4 bg-slate-50 rounded-xl" 
+                       onChange={e => setCard({...card, number: e.target.value})} />
                 <div className="grid grid-cols-3 gap-4">
-                    <div>
-                        <label className="text-[10px] font-black uppercase text-slate-400">Mes (MM)</label>
-                        <input required placeholder="01" className="w-full p-4 bg-slate-50 rounded-xl" 
-                               onChange={e => setCard({...card, exp_month: e.target.value})} />
-                    </div>
-                    <div>
-                        <label className="text-[10px] font-black uppercase text-slate-400">Año (AAAA)</label>
-                        <input required placeholder="2025" className="w-full p-4 bg-slate-50 rounded-xl" 
-                               onChange={e => setCard({...card, exp_year: e.target.value})} />
-                    </div>
-                    <div>
-                        <label className="text-[10px] font-black uppercase text-slate-400">CVC</label>
-                        <input required className="w-full p-4 bg-slate-50 rounded-xl" 
-                               onChange={e => setCard({...card, cvc: e.target.value})} />
-                    </div>
+                    <input required placeholder="MM" className="p-4 bg-slate-50 rounded-xl" onChange={e => setCard({...card, exp_month: e.target.value})} />
+                    <input required placeholder="AAAA" className="p-4 bg-slate-50 rounded-xl" onChange={e => setCard({...card, exp_year: e.target.value})} />
+                    <input required placeholder="CVC" className="p-4 bg-slate-50 rounded-xl" onChange={e => setCard({...card, cvc: e.target.value})} />
                 </div>
-                <button type="submit" disabled={loading} className="w-full py-5 bg-[#ec5b13] text-white font-black rounded-2xl uppercase tracking-widest">
-                    {loading ? 'Tokenizando...' : 'Generar Token ID'}
+                <button type="submit" disabled={loading} className="w-full py-5 bg-black text-white font-black rounded-2xl">
+                    GENERAR TOKEN
                 </button>
             </form>
 
-            {tokenResult && (
-                <div className="mt-8 p-4 bg-slate-900 rounded-2xl text-emerald-400 font-mono text-xs overflow-auto">
-                    <p>// Respuesta JSON:</p>
-                    <pre>{JSON.stringify(tokenResult, null, 2)}</pre>
-                </div>
-            )}
+            <div className="mt-8 p-6 bg-slate-900 rounded-2xl">
+                <p className="text-xs font-mono text-slate-500 mb-2">// LOG DE RESPUESTA:</p>
+                <pre className="text-[10px] text-emerald-400 overflow-auto">
+                    {JSON.stringify(debug, null, 2)}
+                </pre>
+            </div>
         </div>
     );
 }

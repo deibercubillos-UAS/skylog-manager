@@ -5,8 +5,7 @@ export async function POST(request) {
     try {
         const body = await request.json();
         
-        // En la API REST, este es el formato exacto para tokenizar
-        const response = await epaycoRequest("/v1/tokenize-card", "POST", {
+        const res = await epaycoRequest("/v1/tokenize-card", "POST", {
             number: body.number,
             exp_year: body.exp_year,
             exp_month: body.exp_month,
@@ -14,9 +13,16 @@ export async function POST(request) {
             hasCvv: true
         });
 
-        console.log("Respuesta cruda ePayco:", response);
-        return NextResponse.json(response);
+        if (res.error) {
+            return NextResponse.json({ 
+                error: `Fallo en ${res.step}`, 
+                status: res.status, 
+                detalle: res.msg 
+            }, { status: 400 });
+        }
+
+        return NextResponse.json(res.data);
     } catch (err) {
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return NextResponse.json({ error: "Excepción Servidor", msg: err.message }, { status: 500 });
     }
 }

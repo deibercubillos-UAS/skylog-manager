@@ -4,7 +4,8 @@ export async function epaycoRequest(endpoint, method, data) {
     const publicKey = process.env.EPAYCO_PUBLIC_KEY?.trim();
     const privateKey = process.env.EPAYCO_PRIVATE_KEY?.trim();
 
-    // A. LOGIN - Para obtener el Bearer Token (JWT)
+    // --- SUB-PASO A: LOGIN ---
+    console.log("Intentando Login en ePayco...");
     const authRes = await fetch(`${BASE_URL}/v1/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -12,28 +13,31 @@ export async function epaycoRequest(endpoint, method, data) {
     });
 
     if (!authRes.ok) {
-        throw new Error("Fallo de autenticación con llaves API REST.");
+        const text = await authRes.text();
+        return { error: true, step: "LOGIN", status: authRes.status, msg: text.slice(0, 100) };
     }
 
-    const auth = await authRes.json();
-    const token = auth.bearer_token || auth.token;
+    const authData = await authRes.json();
+    const bearerToken = authData.bearer_token || authData.token;
 
-    // B. PETICIÓN AL ENDPOINT
+    // --- SUB-PASO B: PETICIÓN REAL ---
+    console.log(`Petición a ${endpoint}...`);
     const response = await fetch(`${BASE_URL}${endpoint}`, {
         method: method,
         headers: {
-            "Authorization": `Bearer ${token}`,
+            "Authorization": `Bearer ${bearerToken}`,
             "Content-Type": "application/json",
             "type": "sdk-jwt"
         },
         body: JSON.stringify(data)
     });
 
-    // Capturamos la respuesta cruda para diagnosticar
-    const result = await response.json();
-    return { 
-        status: response.status, 
-        ok: response.ok,
-        data: result 
-    };
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+        const json = await response.json();
+        return { error: false, data: json };
+    } else {
+        const html = await response.text();
+        return { error: true, step: "ENDPOINT", status: response.status, msg: html.slice(0, 100) };
+    }
 }

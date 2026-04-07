@@ -2,9 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 
 export async function middleware(request) {
-  let response = NextResponse.next({
-    request: { headers: request.headers },
-  })
+  let response = NextResponse.next({ request: { headers: request.headers } })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -25,17 +23,14 @@ export async function middleware(request) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // --- LÓGICA DE EXCEPCIÓN PARA EL WEBHOOK ---
-  // Si la petición va al webhook de pagos, dejamos pasar a ePayco libremente
+  // EXCEPCIÓN: El Webhook es público
   if (request.nextUrl.pathname === '/api/payments/confirmation') {
     return response;
   }
 
-  // Protección estándar del Dashboard
+  // Protección Dashboard
   if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   return response

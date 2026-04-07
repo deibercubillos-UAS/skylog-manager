@@ -6,19 +6,19 @@ export async function POST(request) {
     try {
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return NextResponse.json({ error: "Sesión expirada" }, { status: 401 });
+        if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
         const body = await request.json();
         const { cardInfo, planId, customerInfo } = body;
 
-        // PASO 1: Tokenizar Tarjeta
-        const tokenRes = await epaycoRequest(null, "POST", cardInfo, true);
-        if (!tokenRes.success && !tokenRes.status) {
-            return NextResponse.json({ error: "Error de Tarjeta: " + (tokenRes.message || "Datos inválidos") }, { status: 400 });
+        // PASO 1: Tokenizar (En REST API, el endpoint es este)
+        const tokenRes = await epaycoRequest("/v1/tokenize-card", "POST", cardInfo);
+        if (!tokenRes.id && !tokenRes.data?.id) {
+            throw new Error(tokenRes.description || "Error al procesar tarjeta");
         }
         const tokenId = tokenRes.id || tokenRes.data.id;
 
-        // PASO 2: Crear/Vincular Cliente
+        // PASO 2: Crear Cliente
         const customerRes = await epaycoRequest("/payment/v1/customer/create", "POST", {
             token_card: tokenId,
             name: customerInfo.name,
@@ -26,9 +26,13 @@ export async function POST(request) {
             email: user.email,
             default: true
         });
+        
+        if (!customerRes.success && !customerRes.status) {
+             throw new Error(customerRes.message || "Error al crear cliente");
+        }
         const customerId = customerRes.data?.customerId || customerRes.customerId;
 
-        // PASO 3: Crear Suscripción
+        // PASO 3: Crear Suscripción (Ruta oficial: /recurring/v1/subscription/create)
         const subRes = await epaycoRequest("/recurring/v1/subscription/create", "POST", {
             id_plan: planId,
             customer: customerId,
@@ -50,10 +54,11 @@ export async function POST(request) {
 
             return NextResponse.json({ success: true });
         } else {
-            return NextResponse.json({ error: "Suscripción: " + subRes.message }, { status: 400 });
+            throw new Error(subRes.message || "No se pudo activar la suscripción");
         }
 
     } catch (err) {
-        return NextResponse.json({ error: "Fallo en Servidor: " + err.message }, { status: 500 });
+        console.error("ERROR_DETALLE:", err.message);
+        return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }

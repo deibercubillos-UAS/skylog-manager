@@ -5,47 +5,29 @@ export async function POST(request) {
     try {
         const body = await request.json();
         
-        const cardData = {
-            number: body.number.replace(/\s/g, ''),
-            exp_year: body.exp_year.toString(),
-            exp_month: body.exp_month.toString().padStart(2, '0'),
-            cvc: body.cvc.toString(),
-            hasCvv: true
+        // --- FORMATO EXACTO SOLICITADO ---
+        const infoParaEpayco = {
+            "card[number]": body.number.replace(/\s/g, ''),
+            "card[exp_year]": body.exp_year.toString(),
+            "card[exp_month]": body.exp_month.toString().padStart(2, '0'),
+            "card[cvc]": body.cvc.toString(),
+            "hasCvv": true
         };
 
-        // LISTA DE POSIBLES ENDPOINTS SEGÚN DOCUMENTACIÓN
-        const endpoints = [
-            "/v1/token/card",
-            "/token/card",
-            "/v1/tokenize/card"
-        ];
+        console.log("Enviando a ePayco con llaves literales:", infoParaEpayco);
 
-        let lastResult = null;
+        // Probamos el endpoint que suele usar el SDK
+        const result = await epaycoRequest("/v1/tokenize-card", "POST", infoParaEpayco);
 
-        for (const url of endpoints) {
-            console.log(`Probando ruta: ${url}`);
-            const res = await epaycoRequest(url, "POST", cardData);
-            
-            if (!res.error) {
-                console.log(`✅ ¡ÉXITO! La ruta correcta es: ${url}`);
-                return NextResponse.json({
-                    ruta_exitosa: url,
-                    token_id: res.data.id || res.data.data?.id,
-                    respuesta: res.data
-                });
-            }
-            lastResult = res;
+        // Si el anterior falla (devuelve error o no tiene id), probamos la variante con diagonal
+        if (!result.id && !result.data?.id) {
+            console.log("Variante 1 falló, probando /v1/tokenize/card...");
+            const resultAlt = await epaycoRequest("/v1/tokenize/card", "POST", infoParaEpayco);
+            return NextResponse.json(resultAlt);
         }
 
-        // Si llegamos aquí, todas fallaron
-        return NextResponse.json({ 
-            error: "Ninguna ruta de tokenización funcionó (404 en todas).",
-            intentos: endpoints,
-            ultimo_detalle: lastResult.msg,
-            ultimo_status: lastResult.status
-        }, { status: 400 });
-
+        return NextResponse.json(result);
     } catch (err) {
-        return NextResponse.json({ error: "Error fatal en servidor", detalle: err.message }, { status: 500 });
+        return NextResponse.json({ error: "Crash Servidor", detalle: err.message }, { status: 500 });
     }
 }

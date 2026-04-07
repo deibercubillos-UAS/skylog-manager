@@ -2,57 +2,57 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
     try {
-        // Truco para cargar librerías CommonJS en Next.js sin que se rompan
-        const epaycoModule = require('epayco-sdk-node');
-        const epaycoInit = typeof epaycoModule === 'function' ? epaycoModule : epaycoModule.default;
-
-        const epayco = epaycoInit({
-            apiKey: process.env.EPAYCO_PUBLIC_KEY,
-            privateKey: process.env.EPAYCO_PRIVATE_KEY,
-            lang: 'ES',
-            test: true
-        });
-
         const body = await request.json();
-
-        // --- FORMATO EXACTO DEL MANUAL ---
-        const credit_info = {
-            "card[number]": body.number.replace(/\s/g, ''),
-            "card[exp_year]": body.exp_year.toString(),
-            "card[exp_month]": body.exp_month.toString().padStart(2, '0'),
-            "card[cvc]": body.cvc.toString(),
+        
+        // El endpoint oficial de tokenización para servidores es:
+        const EPAYCO_TOKEN_URL = "https://api.secure.payco.co/v1/tokenize-card";
+        
+        // ePayco requiere estos datos exactos
+        const cardData = {
+            "number": body.number.replace(/\s/g, ''),
+            "exp_year": body.exp_year.toString(),
+            "exp_month": body.exp_month.toString().padStart(2, '0'),
+            "cvc": body.cvc.toString(),
             "hasCvv": true
         };
 
-        console.log("Enviando info al SDK de ePayco...");
+        console.log("Enviando datos a ePayco Tokenizer...");
 
-        // Usamos una Promesa para capturar la respuesta del SDK
-        const token = await new Promise((resolve, reject) => {
-            epayco.token.create(credit_info)
-                .then(res => resolve(res))
-                .catch(err => reject(err));
+        const response = await fetch(EPAYCO_TOKEN_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                // EN EL PASO 1 (TOKEN), ePayco usa la PUBLIC_KEY como Header
+                "public_key": process.env.NEXT_PUBLIC_EPAYCO_P_KEY 
+            },
+            body: JSON.stringify(cardData)
         });
 
-        console.log("Respuesta del SDK:", token);
+        const result = await response.json();
 
-        // Si el token es exitoso, devolvemos el ID
-        if (token.id || (token.data && token.data.id)) {
+        // Si ePayco nos devuelve el ID, el éxito es total
+        if (result.id || (result.data && result.data.id)) {
+            const tokenId = result.id || result.data.id;
+            console.log("✅ TOKEN GENERADO CON ÉXITO:", tokenId);
             return NextResponse.json({
                 success: true,
-                token_id: token.id || token.data.id,
-                log: "Token creado satisfactoriamente",
-                data_completa: token
+                token_id: tokenId,
+                respuesta: result
             });
         }
 
-        return NextResponse.json({ 
-            success: false, 
-            error: token.description || token.message || "Error en tokenización",
-            sdk_res: token 
+        // Si ePayco responde con error (ej: tarjeta inválida)
+        return NextResponse.json({
+            success: false,
+            error: result.description || result.message || "Error en la tarjeta",
+            debug: result
         }, { status: 400 });
 
     } catch (err) {
-        console.error("Crash en API BitaFly:", err.message);
-        return NextResponse.json({ error: "Fallo Servidor", detalle: err.message }, { status: 500 });
+        console.error("Fallo técnico en servidor:", err.message);
+        return NextResponse.json({ 
+            error: "Fallo en servidor BitaFly", 
+            detalle: err.message 
+        }, { status: 500 });
     }
 }

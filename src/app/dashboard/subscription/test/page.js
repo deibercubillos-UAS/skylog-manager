@@ -36,10 +36,10 @@ export default function PaymentTestPage() {
         const payload = {
             planId: planData.id,
             cardInfo: {
-                "card[number]": card.number.replace(/\s/g, ''),
-                "card[exp_year]": "20" + year,
-                "card[exp_month]": month,
-                "card[cvc]": card.cvc,
+                number: card.number.replace(/\s/g, ''),
+                exp_year: "20" + year,
+                exp_month: month,
+                cvc: card.cvc,
                 "hasCvv": true
             },
             customerInfo: { name: card.name, lastName: 'User', docType: 'CC', docNumber: card.docNumber }

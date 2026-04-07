@@ -11,14 +11,25 @@ export async function POST(request) {
         const body = await request.json();
         const { cardInfo, planId, customerInfo } = body;
 
-        // PASO 1: Tokenizar Tarjeta (Ruta REST pura)
-        const tokenRes = await epaycoRequest("/v1/tokenize-card", "POST", cardInfo);
+        // --- PASO 1: TOKENIZACIÓN (Standard JSON) ---
+        console.log("Paso 1: Tokenizando tarjeta...");
+        const tokenRes = await epaycoRequest("/v1/tokenize-card", "POST", {
+            "number": cardInfo.number,
+            "exp_year": cardInfo.exp_year,
+            "exp_month": cardInfo.exp_month,
+            "cvc": cardInfo.cvc,
+            "hasCvv": true
+        });
+
         if (!tokenRes.id && !tokenRes.data?.id) {
-            throw new Error(tokenRes.description || "Tarjeta rechazada por la red");
+            console.error("Fallo Token:", tokenRes);
+            return NextResponse.json({ error: tokenRes.description || "Tarjeta rechazada" }, { status: 400 });
         }
         const tokenId = tokenRes.id || tokenRes.data.id;
+        console.log("✅ Token creado:", tokenId);
 
-        // PASO 2: Crear Cliente
+        // --- PASO 2: CLIENTE ---
+        console.log("Paso 2: Creando cliente...");
         const customerRes = await epaycoRequest("/payment/v1/customer/create", "POST", {
             token_card: tokenId,
             name: customerInfo.name,
@@ -26,9 +37,16 @@ export async function POST(request) {
             email: user.email,
             default: true
         });
+        
         const customerId = customerRes.data?.customerId || customerRes.customerId;
+        if (!customerId) {
+            console.error("Fallo Cliente:", customerRes);
+            return NextResponse.json({ error: "No se pudo crear el cliente en ePayco" }, { status: 400 });
+        }
+        console.log("✅ Cliente creado:", customerId);
 
-        // PASO 3: Suscripción (Endpoint de Recurrencia)
+        // --- PASO 3: SUSCRIPCIÓN ---
+        console.log("Paso 3: Creando suscripción...");
         const subRes = await epaycoRequest("/recurring/v1/subscription/create", "POST", {
             id_plan: planId,
             customer: customerId,
@@ -40,7 +58,9 @@ export async function POST(request) {
         });
 
         if (subRes.success || subRes.status) {
+            console.log("✅ Suscripción exitosa:", subRes.data?.id || subRes.id);
             const planSlug = planId.includes('escuadrilla') ? 'escuadrilla' : 'flota';
+            
             await supabase.from('profiles').update({
                 subscription_plan: planSlug,
                 epayco_customer_id: customerId,
@@ -48,12 +68,14 @@ export async function POST(request) {
                 updated_at: new Date().toISOString()
             }).eq('id', user.id);
 
-            return NextResponse.json({ success: true });
+            return NextResponse.json({ success: true, tokenId, customerId });
         } else {
-            throw new Error(subRes.message || "Error al crear la suscripción");
+            console.error("Fallo Sub:", subRes);
+            return NextResponse.json({ error: subRes.message || "Error en suscripción" }, { status: 400 });
         }
 
     } catch (err) {
+        console.error("CRITICAL ERROR IN ROUTE:", err.message);
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }

@@ -1,74 +1,68 @@
 'use client';
 export const dynamic = 'force-dynamic';
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import AircraftCard from '@/components/AircraftCard';
+import BatteryCard from '@/components/BatteryCard';
 import AddAircraftPanel from '@/components/AddAircraftPanel';
-import EditAircraftPanel from '@/components/EditAircraftPanel';
+import AddBatteryPanel from '@/components/AddBatteryPanel';
 
 export default function FleetPage() {
   const [fleet, setFleet] = useState([]);
+  const [batteries, setBatteries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [userProfile, setUserProfile] = useState(null);
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [editingDrone, setEditingDrone] = useState(null);
+  const [activePanel, setActivePanel] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const profRes = await fetch(`/api/user/profile?userId=${session.user.id}`);
-      const profData = await profRes.json();
-      setUserProfile(profData);
-
-      const res = await fetch(`/api/fleet?userId=${session.user.id}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
-      const data = await res.json();
-      setFleet(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Error:", err);
-    } finally {
-      setLoading(false);
-    }
+    const { data: { user } } = await supabase.auth.getUser();
+    const [dRes, bRes] = await Promise.all([
+      supabase.from('aircraft').select('*').eq('owner_id', user.id).order('created_at', { ascending: false }),
+      supabase.from('batteries').select('*').eq('owner_id', user.id).order('created_at', { ascending: false })
+    ]);
+    setFleet(dRes.data || []);
+    setBatteries(bRes.data || []);
+    setLoading(false);
   };
 
   useEffect(() => { fetchData(); }, []);
 
+  if (loading) return <div className="p-20 text-center animate-pulse font-black uppercase">Sincronizando Flota...</div>;
+
   return (
-    <div className="space-y-8 text-left animate-in fade-in duration-500 relative h-full">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-          <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Mi Flota</h2>
-          <p className="text-slate-500 text-sm mt-2 font-medium uppercase tracking-widest text-[10px]">
-            {fleet.length} Unidades registradas
-          </p>
-        </div>
-        <button onClick={() => setIsAddOpen(true)} className="bg-[#ec5b13] text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2">
-          <span className="material-symbols-outlined text-base">add</span> Registrar Drone
-        </button>
-      </header>
-
-      {loading ? (
-        <div className="p-20 text-center font-black text-slate-300 animate-pulse">SINCRONIZANDO ACTIVOS...</div>
-      ) : (
+    <div className="space-y-16 text-left animate-in fade-in duration-500">
+      
+      {/* SECCIÓN 1: AERONAVES */}
+      <section className="space-y-6">
+        <header className="flex justify-between items-end border-b border-slate-200 pb-4">
+          <div>
+            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Aeronaves UAS</h2>
+            <p className="text-slate-400 text-[10px] font-black uppercase mt-2 tracking-widest">{fleet.length} UNIDADES OPERATIVAS</p>
+          </div>
+          <button onClick={() => setActivePanel('drone')} className="bg-[#1A202C] text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">+ Nuevo Drone</button>
+        </header>
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {fleet.map(drone => (
-            <div key={drone.id} className="relative group">
-              <AircraftCard aircraft={drone} />
-              <button onClick={() => setEditingDrone(drone)} className="absolute top-4 right-4 bg-white/90 backdrop-blur p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all text-[#ec5b13] hover:bg-[#ec5b13] hover:text-white z-20">
-                <span className="material-symbols-outlined text-lg">edit</span>
-              </button>
-            </div>
-          ))}
+          {fleet.map(drone => <AircraftCard key={drone.id} aircraft={drone} />)}
         </div>
-      )}
+      </section>
 
-      {isAddOpen && <AddAircraftPanel onClose={() => setIsAddOpen(false)} onSuccess={() => { setIsAddOpen(false); fetchData(); }} currentPlan={userProfile?.subscription_plan} />}
-      {editingDrone && <EditAircraftPanel aircraft={editingDrone} onClose={() => setEditingDrone(null)} onSuccess={() => { setEditingDrone(null); fetchData(); }} />}
+      {/* SECCIÓN 2: BATERÍAS */}
+      <section className="space-y-6">
+        <header className="flex justify-between items-end border-b border-slate-200 pb-4">
+          <div>
+            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Gestión de Energía</h2>
+            <p className="text-slate-400 text-[10px] font-black uppercase mt-2 tracking-widest">{batteries.length} BATERÍAS EN INVENTARIO</p>
+          </div>
+          <button onClick={() => setActivePanel('battery')} className="bg-[#1A202C] text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">+ Nueva Batería</button>
+        </header>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {batteries.map(bat => <BatteryCard key={bat.id} battery={bat} onEdit={() => alert("Función editar en desarrollo")} />)}
+        </div>
+      </section>
+
+      {/* RENDERIZADO DE PANELES */}
+      {activePanel === 'drone' && <AddAircraftPanel onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}
+      {activePanel === 'battery' && <AddBatteryPanel onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}
     </div>
   );
 }

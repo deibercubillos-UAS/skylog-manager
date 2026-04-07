@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 'use client';
 export const dynamic = 'force-dynamic';
 
@@ -21,12 +20,10 @@ export default function FleetPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      // Cargar Perfil
       const profRes = await fetch(`/api/user/profile?userId=${session.user.id}`);
       const profData = await profRes.json();
       setUserProfile(profData);
 
-      // Cargar Flota vía API
       const res = await fetch(`/api/fleet?userId=${session.user.id}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
@@ -70,7 +67,6 @@ export default function FleetPage() {
         </div>
       )}
 
-      {/* PANELES */}
       {isAddOpen && <AddAircraftPanel onClose={() => setIsAddOpen(false)} onSuccess={() => { setIsAddOpen(false); fetchData(); }} currentPlan={userProfile?.subscription_plan} />}
       {editingDrone && <EditAircraftPanel aircraft={editingDrone} onClose={() => setEditingDrone(null)} onSuccess={() => { setEditingDrone(null); fetchData(); }} />}
     </div>

@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 'use client';
 export const dynamic = 'force-dynamic';
 
@@ -75,7 +74,7 @@ export default function PilotsPage() {
       </header>
 
       {loading ? (
-        <div className="p-20 text-center animate-pulse text-slate-300 font-black uppercase">Sincronizando...</div>
+        <div className="p-20 text-center animate-pulse text-slate-400 font-black uppercase">Sincronizando...</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {pilots.filter(p => p.is_active !== false).map(p => (
@@ -90,7 +89,6 @@ export default function PilotsPage() {
         </div>
       )}
 
-      {/* RENDERIZADO DE PANELES */}
       {activePanel === 'invite' && <InvitePilotPanel onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}
       {activePanel === 'manual' && <AddManualPilotPanel onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} currentPlan={userProfile?.subscription_plan} currentCount={pilots.length} />}
       {activePanel === 'edit' && editingPilot && <EditPilotPanel pilot={editingPilot} onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}

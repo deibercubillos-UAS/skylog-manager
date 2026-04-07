@@ -12,6 +12,7 @@ export async function POST(request) {
         const { data, error } = await supabase.from('battery_logs').insert([{
             owner_id: user.id,
             aircraft_id: body.aircraft_id,
+            flight_id: body.flight_id, // <-- Nuevo vínculo
             battery_model: body.battery_model,
             battery_sn: body.battery_sn,
             charge_percentage: body.charge_percentage,

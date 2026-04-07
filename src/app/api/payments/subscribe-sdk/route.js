@@ -6,15 +6,15 @@ export async function POST(request) {
     try {
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+        if (!user) return NextResponse.json({ error: "Sesión expirada" }, { status: 401 });
 
         const body = await request.json();
         const { cardInfo, planId, customerInfo } = body;
 
-        // PASO 1: Tokenizar (En REST API, el endpoint es este)
+        // PASO 1: Tokenizar Tarjeta (Ruta REST pura)
         const tokenRes = await epaycoRequest("/v1/tokenize-card", "POST", cardInfo);
         if (!tokenRes.id && !tokenRes.data?.id) {
-            throw new Error(tokenRes.description || "Error al procesar tarjeta");
+            throw new Error(tokenRes.description || "Tarjeta rechazada por la red");
         }
         const tokenId = tokenRes.id || tokenRes.data.id;
 
@@ -26,13 +26,9 @@ export async function POST(request) {
             email: user.email,
             default: true
         });
-        
-        if (!customerRes.success && !customerRes.status) {
-             throw new Error(customerRes.message || "Error al crear cliente");
-        }
         const customerId = customerRes.data?.customerId || customerRes.customerId;
 
-        // PASO 3: Crear Suscripción (Ruta oficial: /recurring/v1/subscription/create)
+        // PASO 3: Suscripción (Endpoint de Recurrencia)
         const subRes = await epaycoRequest("/recurring/v1/subscription/create", "POST", {
             id_plan: planId,
             customer: customerId,
@@ -54,11 +50,10 @@ export async function POST(request) {
 
             return NextResponse.json({ success: true });
         } else {
-            throw new Error(subRes.message || "No se pudo activar la suscripción");
+            throw new Error(subRes.message || "Error al crear la suscripción");
         }
 
     } catch (err) {
-        console.error("ERROR_DETALLE:", err.message);
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }

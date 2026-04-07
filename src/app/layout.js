@@ -18,7 +18,6 @@ export default function RootLayout({ children }) {
         {children}
         {/* LIBRERÍA OFICIAL DE CHECKOUT PRO - Más estable para suscripciones */}
         <Script 
-          src="https://checkout.epayco.co/checkout.js" 
           strategy="afterInteractive" 
         />
       </body>

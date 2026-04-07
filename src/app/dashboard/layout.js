@@ -26,7 +26,7 @@ export default function DashboardLayout({ children }) {
     { name: 'Reportes SMS', icon: 'report_problem', href: '/dashboard/sms' },
     { name: 'Reportes PDF', icon: 'description', href: '/dashboard/reports' },
     { name: 'Configuración', icon: 'settings', href: '/dashboard/settings' },
-    { name: 'Constructor de Formatos', icon: 'design_services', href: '/dashboard/settings/forms' },
+    { name: 'Configuración formatos', icon: 'settings_applications', href: '/dashboard/settings/forms' },
   ];
 
   useEffect(() => {

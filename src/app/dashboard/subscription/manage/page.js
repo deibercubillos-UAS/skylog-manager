@@ -3,22 +3,16 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import SubscriptionCheckout from '@/components/SubscriptionCheckout';
-import Link from 'next/link';
 
 export default function ManageSubscriptionPage() {
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState(null);
-    const [isAnnual, setIsAnnual] = useState(false);
-    const [showCheckout, setShowCheckout] = useState(false);
-    const [selectedPlanId, setSelectedPlanId] = useState('');
 
     useEffect(() => {
         async function loadData() {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
-                const res = await fetch(`/api/user/profile?userId=${user.id}`);
-                const data = await res.json();
+                const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
                 setProfile(data);
             }
             setLoading(false);
@@ -26,92 +20,30 @@ export default function ManageSubscriptionPage() {
         loadData();
     }, []);
 
-    const startCheckout = (planName) => {
-        // En esta fase de prueba, todos apuntan al mismo ID de ePayco
-        const TEST_PLAN_ID = 'plan_escuadrilla_mensual'; 
-        setSelectedPlanId(TEST_PLAN_ID);
-        setShowCheckout(true);
-    };
-
-    if (loading) return <div className="p-20 text-center animate-pulse font-black text-slate-300 uppercase tracking-widest">Sincronizando BitaFly...</div>;
-
-    if (showCheckout) {
-        return (
-            <div className="max-w-6xl mx-auto py-10">
-                <button 
-                    onClick={() => setShowCheckout(false)}
-                    className="mb-8 flex items-center gap-2 text-slate-400 hover:text-[#ec5b13] font-black uppercase text-[10px] tracking-widest transition-all"
-                >
-                    <span className="material-symbols-outlined text-sm">arrow_back</span>
-                    Volver a Planes
-                </button>
-                <SubscriptionCheckout 
-                    planId={selectedPlanId} 
-                    onSuccess={() => window.location.href = '/dashboard/subscription'} 
-                />
-            </div>
-        );
-    }
+    if (loading) return <div className="p-20 text-center animate-pulse font-black">Cargando perfil...</div>;
 
     return (
-        <div className="max-w-6xl mx-auto space-y-10 text-left animate-in fade-in duration-500 pb-20 font-display">
-            <header className="flex flex-col md:flex-row justify-between items-center md:items-end gap-6 text-left">
-                <div className="w-full">
-                    <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">Mi Membresía</h2>
-                    <p className="text-slate-500 text-sm mt-2 font-medium italic text-left">Configura tu plan de operación recurrente bajo el estándar ePayco SDK.</p>
-                </div>
-
-                <div className="flex bg-slate-200 p-1.5 rounded-2xl border border-slate-300 shrink-0">
-                    <button onClick={() => setIsAnnual(false)} className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${!isAnnual ? 'bg-white shadow-md text-slate-900' : 'text-slate-500'}`}>Mensual</button>
-                    <button onClick={() => setIsAnnual(true)} className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-2 ${isAnnual ? 'bg-white shadow-md text-slate-900' : 'text-slate-500'}`}>
-                        Anual <span className="bg-orange-100 text-[#ec5b13] px-2 py-0.5 rounded-full font-black animate-pulse">ahorra 20%</span>
-                    </button>
-                </div>
+        <div className="max-w-4xl mx-auto space-y-10 text-left animate-in fade-in duration-500 pb-20">
+            <header>
+                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Mi Suscripción</h2>
+                <p className="text-slate-500 text-sm mt-1 font-medium">Gestión manual de membresía aeronáutica.</p>
             </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl">
-                <UpgradeCard 
-                    title="Escuadrilla" 
-                    price={isAnnual ? "39" : "49"} 
-                    isActive={profile?.subscription_plan === 'escuadrilla'} 
-                    onAction={() => startCheckout('Escuadrilla')} 
-                />
-                <UpgradeCard 
-                    title="Flota" 
-                    price={isAnnual ? "103" : "129"} 
-                    isActive={profile?.subscription_plan === 'flota'} 
-                    onAction={() => startCheckout('Flota')} 
-                    recommended 
-                />
-            </div>
-        </div>
-    );
-}
-
-function UpgradeCard({ title, price, isActive, onAction, recommended }) {
-    return (
-        <div className={`p-8 rounded-[2.5rem] border-2 bg-white flex flex-col justify-between transition-all duration-500 ${isActive ? 'border-[#ec5b13] bg-orange-50/20 shadow-inner' : 'border-slate-100 hover:border-slate-300'}`}>
-            <div className="text-left">
-                <div className="flex justify-between items-start mb-6">
-                    <h3 className={`text-xl font-black uppercase ${isActive ? 'text-[#ec5b13]' : 'text-slate-900'}`}>{title}</h3>
-                    {recommended && !isActive && <span className="bg-slate-900 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest">Enterprise</span>}
+            <div className="bg-[#1A202C] text-white p-10 rounded-[3rem] shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-10 opacity-10">
+                    <span className="material-symbols-outlined text-9xl text-orange-500">verified</span>
                 </div>
-                <div className="mb-8 flex items-baseline gap-1 font-black text-5xl text-slate-900">
-                    ${price}<span className="text-slate-400 text-xs font-bold uppercase">/ mes</span>
+                <div className="relative z-10">
+                    <p className="text-[#ec5b13] text-[10px] font-black uppercase tracking-[0.3em] mb-2">Plan Actual</p>
+                    <h3 className="text-5xl font-black uppercase tracking-tighter mb-6">{profile?.subscription_plan || 'PILOTO'}</h3>
+                    <p className="text-slate-400 max-w-md text-sm leading-relaxed mb-8">
+                        Para cambios de plan, facturación corporativa o soporte técnico, por favor contacta a nuestro centro de mando.
+                    </p>
+                    <button className="bg-white text-[#1A202C] px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-500 hover:text-white transition-all">
+                        Contactar Soporte
+                    </button>
                 </div>
             </div>
-            {!isActive ? (
-                <button 
-                    onClick={onAction} 
-                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase hover:bg-[#ec5b13] transition-all shadow-xl shadow-slate-900/20"
-                >
-                    Suscribirme Ahora
-                </button>
-            ) : (
-                <div className="w-full py-4 bg-emerald-50 text-emerald-600 rounded-2xl font-black text-[10px] uppercase text-center border border-emerald-100">
-                    Plan Actual Activo
-                </div>
-            )}
         </div>
     );
 }

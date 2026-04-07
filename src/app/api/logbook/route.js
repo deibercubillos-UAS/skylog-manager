@@ -1,55 +1,22 @@
-import { createClient } from '@supabase/supabase-js';
+import { validateRole } from '@/lib/rbac';
+import { createClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
 
 export async function GET(request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const authHeader = request.headers.get('Authorization');
-
-    if (!userId || !authHeader) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } }
-    });
+    // Validamos que el usuario pertenezca a la organización
+    const { profile } = await validateRole(['admin', 'gerente_sms', 'jefe_pilotos', 'piloto']);
+    const supabase = await createClient();
 
     const { data, error } = await supabase
       .from('flights')
-      .select('*, pilots(name), aircraft(model, serial_number)')
-      .eq('owner_id', userId)
+      .select('*, pilots(name), aircraft(model)')
+      .eq('organization_id', profile.organization_id) // Filtro estricto por empresa
       .order('flight_date', { ascending: false });
 
     if (error) throw error;
     return NextResponse.json(data);
   } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
-}
-
-export async function POST(request) {
-  try {
-    const body = await request.json();
-    const authHeader = request.headers.get('Authorization');
-    const { userId, flightData } = body;
-
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    // Inserción incluyendo los detalles del checklist y SORA
-    const { data, error } = await supabase
-      .from('flights')
-      .insert([{ 
-        ...flightData, 
-        owner_id: userId,
-        created_at: new Date().toISOString()
-      }])
-      .select();
-
-    if (error) throw error;
-    
-    return NextResponse.json({ message: "Vuelo autorizado y registrado", data: data[0] }, { status: 201 });
-  } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err.message }, { status: 403 });
   }
 }

@@ -91,7 +91,7 @@ export default function EditPilotPanel({ pilot, onClose, onSuccess }) {
           </div>
 
           <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Licencia / DAN</label>
+            <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Número de registro CIPU</label>
             <input required value={formData.license_number} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none" onChange={e => setFormData({...formData, license_number: e.target.value})} />
           </div>
 

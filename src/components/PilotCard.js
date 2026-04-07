@@ -44,7 +44,7 @@ export default function PilotCard({ pilot, onEdit, onDelete, canEdit }) {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-[9px] text-slate-400 uppercase font-black tracking-tighter">Licencia</p>
+            <p className="text-[9px] text-slate-400 uppercase font-black tracking-tighter">CIPU</p>
             <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{pilot.license_number || 'N/A'}</p>
           </div>
           <div>

@@ -50,7 +50,7 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-4">
           <input required className="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm font-bold" placeholder="Nombre Completo" onChange={e => setFormData({...formData, name: e.target.value})} />
-          <input required className="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm font-bold" placeholder="Número de Licencia / DAN" onChange={e => setFormData({...formData, license_number: e.target.value})} />
+          <input required className="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm font-bold" placeholder="Número de Número de registro CIPU" onChange={e => setFormData({...formData, license_number: e.target.value})} />
           
           <div>
             <label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Vencimiento Médico</label>

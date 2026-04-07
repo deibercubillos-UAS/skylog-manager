@@ -5,28 +5,34 @@ export async function POST(request) {
     try {
         const body = await request.json();
         
-        // El formato de corchetes que me indicaste
-        const cardData = {
+        // Formato exacto que pide ePayco para el Paso 1
+        const cardInfo = {
             "card[number]": body.number.replace(/\s/g, ''),
             "card[exp_year]": body.exp_year.toString(),
             "card[exp_month]": body.exp_month.toString().padStart(2, '0'),
             "card[cvc]": body.cvc.toString(),
-            "hasCvv": true
+            "hasCvv": "true"
         };
 
-        // Ruta estándar que usa el SDK internamente
-        const res = await epaycoRequest("/v1/tokenize-card", "POST", cardData);
+        console.log("Iniciando Tokenización modo SDK...");
+        const result = await epaycoRequest(null, "POST", cardInfo, true);
 
-        if (res.error) {
-            return NextResponse.json({ 
-                error: `Error en ${res.step}`, 
-                status: res.status, 
-                mensaje: res.msg 
-            }, { status: 400 });
+        // Si ePayco nos devuelve el objeto con el ID, hemos tenido éxito
+        if (result.id || (result.data && result.data.id)) {
+            return NextResponse.json({
+                success: true,
+                token_id: result.id || result.data.id,
+                respuesta_cruda: result
+            });
         }
 
-        return NextResponse.json(res.data);
+        return NextResponse.json({ 
+            success: false, 
+            error: result.description || result.message || "Error desconocido en ePayco",
+            debug: result
+        }, { status: 400 });
+
     } catch (err) {
-        return NextResponse.json({ error: "Excepción en Servidor BitaFly", detalle: err.message }, { status: 500 });
+        return NextResponse.json({ error: "Fallo en servidor BitaFly", detalle: err.message }, { status: 500 });
     }
 }

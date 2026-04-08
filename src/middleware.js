@@ -9,13 +9,16 @@ export async function middleware(request) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
-        getAll() { return request.cookies.getAll() },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+        get(name) { return request.cookies.get(name)?.value },
+        set(name, value, options) {
+          request.cookies.set({ name, value, ...options })
           response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
+          response.cookies.set({ name, value, ...options })
+        },
+        remove(name, options) {
+          request.cookies.set({ name, value: '', ...options })
+          response = NextResponse.next({ request })
+          response.cookies.set({ name, value: '', ...options })
         },
       },
     }
@@ -23,12 +26,13 @@ export async function middleware(request) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // EXCEPCIÓN: El Webhook es público
-  if (request.nextUrl.pathname === '/api/payments/confirmation') {
-    return response;
+  // Protección Master Panel
+  if (request.nextUrl.pathname.startsWith('/admin/master')) {
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
+    if (profile?.role !== 'superadmin') return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // Protección Dashboard
+  // Protección Dashboard general
   if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
@@ -37,5 +41,5 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/login', '/registro', '/api/payments/confirmation'],
+  matcher: ['/dashboard/:path*', '/admin/:path*', '/login', '/registro'],
 }

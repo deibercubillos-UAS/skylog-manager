@@ -32,6 +32,18 @@ export default function FleetPage() {
     setLoading(false);
   };
 
+  const handleDelete = async (id, table) => {
+    if (!confirm("¿Está seguro de eliminar este activo? Esta acción no se puede deshacer.")) return;
+    
+    const { error } = await supabase.from(table).delete().eq('id', id);
+    if (error) {
+        alert("Error de permisos: Solo el personal autorizado puede eliminar activos.");
+    } else {
+        fetchData(); // Refrescar lista
+    }
+};
+
+
   useEffect(() => { fetchData(); }, []);
 
   if (loading) return <div className="p-20 text-center font-black animate-pulse uppercase text-slate-400">Actualizando Inventario...</div>;
@@ -65,9 +77,23 @@ export default function FleetPage() {
           <button onClick={() => setActivePanel('add_battery')} className="bg-[#1A202C] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-orange-600 transition-all">+ Nueva Batería</button>
         </header>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {data.batteries.map(bat => (
-            <BatteryCard key={bat.id} battery={bat} onEdit={(b) => setEditingBattery(b)} />
-          ))}
+          {data.fleet.map(drone => (
+    <AircraftCard 
+        key={drone.id} 
+        aircraft={drone} 
+        onEdit={(d) => setEditingDrone(d)} 
+        onDelete={(id) => handleDelete(id, 'aircraft')} 
+    />
+))}
+
+        {data.batteries.map(bat => (
+            <BatteryCard 
+                key={bat.id} 
+                battery={bat} 
+                onEdit={(b) => setEditingBattery(b)} 
+                onDelete={(id) => handleDelete(id, 'batteries')} 
+            />
+        ))}
         </div>
       </section>
 

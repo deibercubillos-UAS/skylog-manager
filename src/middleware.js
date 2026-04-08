@@ -26,13 +26,20 @@ export async function middleware(request) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Protección Master Panel
-  if (request.nextUrl.pathname.startsWith('/admin/master')) {
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
-    if (profile?.role !== 'superadmin') return NextResponse.redirect(new URL('/dashboard', request.url))
+  // 1. Si intenta entrar a /admin/master y no hay usuario, login
+  if (request.nextUrl.pathname.startsWith('/admin') && !user) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Protección Dashboard general
+  // 2. Si hay usuario, verificar el rol directamente en la DB para el Panel Master
+  if (request.nextUrl.pathname.startsWith('/admin/master') && user) {
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (profile?.role !== 'superadmin') {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+  }
+
+  // 3. Protección estándar Dashboard
   if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
     return NextResponse.redirect(new URL('/login', request.url))
   }

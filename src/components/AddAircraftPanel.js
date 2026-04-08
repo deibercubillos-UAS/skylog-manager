@@ -4,48 +4,45 @@ import { supabase } from '@/lib/supabase';
 
 export default function AddAircraftPanel({ onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({ brand: '', model: '', serial_number: '', ruas: '', mtow: 0 });
+  const [form, setForm] = useState({ brand: '', model: '', serial_number: '', ruas: '' });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
 
-    const { error } = await supabase.from('aircraft').insert([{ 
-      ...formData, 
-      owner_id: user.id, 
-      status: 'Operativo' 
-    }]);
+      const { error } = await supabase.from('aircraft').insert([{ 
+        ...form, 
+        owner_id: user.id,
+        organization_id: prof.organization_id, // <--- LLAVE MAESTRA
+        status: 'Operativo',
+        total_hours: 0
+      }]);
 
-    if (!error) onSuccess();
-    else alert(error.message);
-    setLoading(false);
+      if (error) throw error;
+      alert("✅ Aeronave registrada en la flota.");
+      onSuccess();
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <aside className="fixed inset-y-0 right-0 w-96 bg-white shadow-2xl z-[100] p-8 flex flex-col text-left animate-in slide-in-from-right duration-300">
-      <h3 className="text-xl font-black uppercase mb-6 tracking-tighter">Registrar Aeronave</h3>
+    <aside className="fixed inset-y-0 right-0 w-96 bg-white shadow-2xl z-[150] p-8 flex flex-col text-left animate-in slide-in-from-right">
+      <h3 className="text-xl font-black uppercase mb-6">Registrar Aeronave</h3>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1">
-          <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Marca / Fabricante</label>
-          <input required className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold" placeholder="Ej: DJI, Autel..." onChange={e => setFormData({...formData, brand: e.target.value})} />
-        </div>
-        <div className="space-y-1">
-          <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Modelo</label>
-          <input required className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold" placeholder="Ej: Mavic 3 Enterprise" onChange={e => setFormData({...formData, model: e.target.value})} />
-        </div>
-        <div className="space-y-1">
-          <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Número de Serie (S/N)</label>
-          <input required className="w-full p-3 bg-slate-50 rounded-xl border-none font-mono" placeholder="S/N" onChange={e => setFormData({...formData, serial_number: e.target.value})} />
-        </div>
-        <div className="space-y-1">
-          <label className="text-[9px] font-black text-slate-400 uppercase ml-1">RUAS (Opcional)</label>
-          <input className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold" placeholder="Registro Aerocivil" onChange={e => setFormData({...formData, ruas: e.target.value})} />
-        </div>
-        <button type="submit" disabled={loading} className="w-full py-4 bg-[#ec5b13] text-white font-black rounded-2xl shadow-lg uppercase text-[10px] tracking-widest mt-6">
+        <input required className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold" placeholder="Marca" onChange={e => setForm({...form, brand: e.target.value})} />
+        <input required className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold" placeholder="Modelo" onChange={e => setForm({...form, model: e.target.value})} />
+        <input required className="w-full p-3 bg-slate-50 rounded-xl border-none font-mono" placeholder="S/N" onChange={e => setForm({...form, serial_number: e.target.value})} />
+        <input className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold" placeholder="RUAS" onChange={e => setForm({...form, ruas: e.target.value})} />
+        <button disabled={loading} className="w-full py-4 bg-orange-600 text-white font-black rounded-xl uppercase text-xs">
           {loading ? 'Validando...' : 'Finalizar Registro'}
         </button>
-        <button type="button" onClick={onClose} className="w-full py-3 text-slate-400 font-bold uppercase text-[9px]">Cancelar</button>
+        <button type="button" onClick={onClose} className="w-full py-2 text-slate-400 font-bold uppercase text-[9px]">Cancelar</button>
       </form>
     </aside>
   );

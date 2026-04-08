@@ -10,43 +10,30 @@ export async function GET() {
         const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
         const orgId = profile?.organization_id;
 
-        if (!orgId) return NextResponse.json({ stats: { hours: "0.0" }, chart: [], alerts: [] });
-
         const [aircraftRes, pilotsRes, flightsRes] = await Promise.all([
             supabase.from('aircraft').select('*').eq('organization_id', orgId),
             supabase.from('pilots').select('*').eq('organization_id', orgId),
             supabase.from('flights').select('*').eq('organization_id', orgId)
         ]);
 
-        // 1. Gráfico de Misiones (Últimos 6 meses reales)
+        // GRÁFICO: Agrupar por flight_date (No created_at)
         const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
         const chartData = [];
         for (let i = 5; i >= 0; i--) {
             const d = new Date();
             d.setMonth(d.getMonth() - i);
             const count = flightsRes.data?.filter(f => {
-                const fDate = new Date(f.created_at);
+                const fDate = new Date(f.flight_date || f.created_at);
                 return fDate.getMonth() === d.getMonth() && fDate.getFullYear() === d.getFullYear();
             }).length || 0;
             chartData.push({ label: months[d.getMonth()], count });
         }
 
-        // 2. Alertas Reales (Vencimientos)
+        // ALERTAS: Lógica de 50 horas de mantenimiento
         const alerts = [];
-        const today = new Date();
-        const warningDate = new Date();
-        warningDate.setDate(today.getDate() + 30);
-
-        pilotsRes.data?.forEach(p => {
-            if (p.medical_expiry) {
-                const expiry = new Date(p.medical_expiry);
-                if (expiry < today) alerts.push({ type: 'CRÍTICO', msg: `MÉDICO VENCIDO: ${p.name}`, val: p.medical_expiry });
-                else if (expiry < warningDate) alerts.push({ type: 'AVISO', msg: `MÉDICO PRÓXIMO: ${p.name}`, val: p.medical_expiry });
-            }
-        });
-
         aircraftRes.data?.forEach(a => {
-            if ((a.total_hours % 50) > 45) alerts.push({ type: 'TÉCNICO', msg: `MANTENIMIENTO: ${a.model}`, val: "Cerca de 50h" });
+            const remaining = 50 - (parseFloat(a.total_hours || 0) % 50);
+            if (remaining < 5) alerts.push({ type: 'CRÍTICO', msg: `MANTENIMIENTO: ${a.model}`, val: `${remaining.toFixed(1)}h restantes` });
         });
 
         return NextResponse.json({
@@ -57,11 +44,8 @@ export async function GET() {
                 alertsCount: alerts.length
             },
             chart: chartData,
-            alerts: alerts.slice(0, 5),
+            alerts: alerts,
             recentActivity: flightsRes.data?.slice(0, 5) || []
         });
-
-    } catch (err) {
-        return NextResponse.json({ error: err.message }, { status: 500 });
-    }
+    } catch (err) { return NextResponse.json({ error: err.message }, { status: 500 }); }
 }

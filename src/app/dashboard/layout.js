@@ -12,77 +12,66 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     async function loadData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { window.location.href = '/login'; return; }
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      const { data: org } = await supabase.from('organizations').select('*').eq('id', prof?.organization_id).single();
-      setData({ profile: prof, org });
-      setLoading(false);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { window.location.href = '/login'; return; }
+
+        // Paso 1: Obtener Perfil
+        const { data: prof, error: pErr } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (pErr) throw pErr;
+
+        // Paso 2: Obtener Organización solo si existe el ID
+        let organization = null;
+        if (prof?.organization_id) {
+          const { data: org, error: oErr } = await supabase
+            .from('organizations')
+            .select('*')
+            .eq('id', prof.organization_id)
+            .single();
+          if (!oErr) organization = org;
+        }
+
+        setData({ profile: prof, org: organization });
+      } catch (err) {
+        console.error("Layout Load Error:", err.message);
+      } finally {
+        setLoading(false);
+      }
     }
     loadData();
   }, []);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/login';
-  };
-
-  if (loading) return <div className="h-screen flex items-center justify-center bg-slate-900 text-white font-black uppercase animate-pulse">Iniciando Bitafly...</div>;
-
-  const menu = [
-    { name: 'Dashboard', icon: 'dashboard', href: '/dashboard' },
-    { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/dashboard/fleet' },
-    { name: 'Tripulación', icon: 'person', href: '/dashboard/pilots' },
-    { name: 'Mantenimiento', icon: 'build', href: '/dashboard/maintenance' },
-  ];
+  if (loading) return <div className="h-screen flex items-center justify-center bg-[#1A202C] text-white font-black animate-pulse">AUTORIZANDO ACCESO...</div>;
 
   return (
     <div className="flex h-screen bg-[#f8f6f6] font-display overflow-hidden text-left">
-      {/* SIDEBAR */}
       <aside className={`fixed inset-y-0 left-0 z-[100] w-64 bg-[#1A202C] text-white flex flex-col transition-transform lg:translate-x-0 lg:static ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 border-b border-white/5">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="size-8 bg-orange-600 rounded-lg flex items-center justify-center font-black">B</div>
-            <h1 className="text-xl font-black uppercase tracking-tighter">BitaFly</h1>
-          </div>
-          <div className="p-3 bg-white/5 rounded-xl border border-white/10">
-            <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Plan: <span className="text-orange-400">{data.profile?.subscription_plan}</span></p>
-            <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-1">ID: <span className="text-white font-mono">{data.org?.unique_code}</span></p>
+          <h1 className="text-2xl font-black text-orange-500 tracking-tighter mb-4">BITAFLY</h1>
+          <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-[10px] space-y-1">
+            <p className="text-slate-500 font-bold uppercase">Plan: <span className="text-orange-400">{data.profile?.subscription_plan || 'PILOTO'}</span></p>
+            <p className="text-slate-500 font-bold uppercase">ID: <span className="text-white font-mono">{data.org?.unique_code || 'N/A'}</span></p>
           </div>
         </div>
-
         <nav className="flex-1 p-4 space-y-1">
-          {menu.map(item => (
-            <Link key={item.href} href={item.href} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === item.href ? 'bg-orange-600 text-white' : 'text-slate-400 hover:bg-white/5'}`}>
-              <span className="material-symbols-outlined text-lg">{item.icon}</span>{item.name}
-            </Link>
-          ))}
-          {['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'].includes(data.profile?.role) && (
-            <Link href="/dashboard/authorizations" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-black text-orange-400 hover:bg-orange-400/10">
-              <span className="material-symbols-outlined">calendar_month</span>Programación
-            </Link>
-          )}
+          <Link href="/dashboard" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold ${pathname === '/dashboard' ? 'bg-orange-600' : 'hover:bg-white/5'}`}>Dashboard</Link>
+          <Link href="/dashboard/fleet" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold ${pathname === '/dashboard/fleet' ? 'bg-orange-600' : 'hover:bg-white/5'}`}>Mi Flota</Link>
+          <Link href="/dashboard/pilots" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold ${pathname === '/dashboard/pilots' ? 'bg-orange-600' : 'hover:bg-white/5'}`}>Tripulación</Link>
         </nav>
-
         <div className="p-4 border-t border-white/5">
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black text-red-400 hover:bg-red-400/10">
-            <span className="material-symbols-outlined">logout</span>Cerrar Sesión
-          </button>
+          <button onClick={() => supabase.auth.signOut().then(() => window.location.href='/login')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black text-red-400 hover:bg-red-400/10">Cerrar Sesión</button>
         </div>
       </aside>
-
-      {/* CONTENIDO */}
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white border-b flex items-center justify-between px-8">
-          <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="lg:hidden p-2 text-slate-600"><span className="material-symbols-outlined">menu</span></button>
-          <span className="font-black text-xs uppercase text-slate-400 tracking-widest">{data.org?.company_name}</span>
-          <div className="flex items-center gap-4">
-             <div className="text-right">
-                <p className="text-[10px] font-black text-slate-900 leading-none uppercase">{data.profile?.full_name}</p>
-                <p className="text-[8px] font-bold text-orange-500 uppercase mt-1">{data.profile?.role?.replace('_', ' ')}</p>
-             </div>
-             <div className="size-8 rounded-full bg-slate-200 border-2 border-white shadow-sm"></div>
-          </div>
+          <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="lg:hidden material-symbols-outlined">menu</button>
+          <span className="font-black text-[10px] uppercase text-slate-400 tracking-widest">{data.org?.company_name || 'Individual'}</span>
+          <span className="text-[10px] font-black uppercase text-slate-900">{data.profile?.full_name}</span>
         </header>
         <div className="flex-1 overflow-y-auto p-8">{children}</div>
       </main>

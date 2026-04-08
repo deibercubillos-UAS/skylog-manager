@@ -1,149 +1,116 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import EditAuthorizationPanel from '@/components/EditAuthorizationPanel';
 
 export default function MissionControlPage() {
     const [missions, setMissions] = useState([]);
     const [pilots, setPilots] = useState([]);
     const [drones, setDrones] = useState([]);
+    const [org, setOrg] = useState({ flight_prefix: 'BIT' });
+    const [userRole, setUserRole] = useState('');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [editingMission, setEditingMission] = useState(null);
-    const [orgPrefix, setOrgPrefix] = useState('BIT');
-
     const [form, setForm] = useState({ pilot_id: '', aircraft_id: '', location: '', scheduled_at: '' });
 
     const loadData = async () => {
-        setLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
-        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+        const { data: prof } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).single();
+        setUserRole(prof.role);
+
+        const [mRes, pRes, dRes, oRes] = await Promise.all([
+            fetch('/api/flights/authorize'),
+            supabase.from('pilots').select('*').eq('organization_id', prof.organization_id),
+            supabase.from('aircraft').select('*').eq('organization_id', prof.organization_id).eq('status', 'Operativo'),
+            supabase.from('organizations').select('*').eq('id', prof.organization_id).single()
+        ]);
         
-        if (prof?.organization_id) {
-            const [mRes, pRes, dRes] = await Promise.all([
-                fetch('/api/flights/authorize'),
-                supabase.from('pilots').select('*').eq('organization_id', prof.organization_id),
-                supabase.from('aircraft').select('*').eq('organization_id', prof.organization_id).eq('status', 'Operativo')
-            ]);
-            
-            const mData = await mRes.json();
-            setMissions(Array.isArray(mData) ? mData : []);
-            setPilots(pRes.data || []);
-            setDrones(dRes.data || []);
-            setOrgPrefix(prof.organization_id.substring(0, 3).toUpperCase());
-        }
+        const mData = await mRes.json();
+        setMissions(Array.isArray(mData) ? mData : []);
+        setPilots(pRes.data || []);
+        setDrones(dRes.data || []);
+        setOrg(oRes.data);
         setLoading(false);
     };
 
     useEffect(() => { loadData(); }, []);
 
+    const updatePrefix = async (newVal) => {
+        const prefix = newVal.toUpperCase().substring(0, 3);
+        const { error } = await supabase.from('organizations').update({ flight_prefix: prefix }).eq('id', org.id);
+        if (!error) {
+            setOrg({ ...org, flight_prefix: prefix });
+            loadData(); // Recargar para actualizar el ID visual
+        }
+    };
+
     const handleCreate = async (e) => {
         e.preventDefault();
         setSaving(true);
-        const mID = `${orgPrefix}-${(missions.length + 1).toString().padStart(3, '0')}`;
-        
         const res = await fetch('/api/flights/authorize', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...form, mission_id: mID })
+            body: JSON.stringify(form)
         });
-
         if (res.ok) {
-            alert("🚀 MISIÓN AUTORIZADA");
             setForm({ pilot_id: '', aircraft_id: '', location: '', scheduled_at: '' });
             loadData();
         }
         setSaving(false);
     };
 
-    if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">ABRIENDO CANAL DE MANDO...</div>;
+    if (loading) return <div className="p-20 text-center font-black animate-pulse uppercase">Sincronizando...</div>;
 
     return (
-        <div className="max-w-6xl mx-auto space-y-8 text-left animate-in fade-in duration-500 pb-20">
-            <header>
-                <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Programación de Operaciones</h2>
-                <p className="text-slate-500 text-sm">Emisión de órdenes de vuelo y control de escuadrilla.</p>
+        <div className="max-w-6xl mx-auto space-y-8 text-left pb-20">
+            <header className="flex justify-between items-center">
+                <div>
+                    <h2 className="text-3xl font-black uppercase tracking-tighter">Programación</h2>
+                    <p className="text-slate-500 text-sm">Contador actual: {org.flight_prefix}</p>
+                </div>
+                {['admin', 'superadmin'].includes(userRole) && (
+                    <div className="flex items-center gap-2 bg-white p-2 rounded-xl border">
+                        <label className="text-[9px] font-black uppercase text-slate-400">Prefijo:</label>
+                        <input maxLength="3" className="w-16 p-1 text-center font-black bg-slate-50 rounded uppercase text-orange-600" 
+                               value={org.flight_prefix} onChange={(e) => updatePrefix(e.target.value)} />
+                    </div>
+                )}
             </header>
 
-            {/* PANEL DE ACCIÓN (DARK MODE STYLE) */}
-            <section className="bg-[#1A202C] p-8 rounded-[2.5rem] text-white shadow-2xl">
-                <h3 className="text-orange-500 text-[10px] font-black uppercase tracking-[0.2em] mb-6">Nueva Autorización (ID: {orgPrefix}-{(missions.length + 1).toString().padStart(3, '0')})</h3>
+            <section className="bg-[#1A202C] p-8 rounded-[2.5rem] text-white shadow-2xl animate-in slide-in-from-top duration-500">
+                <h3 className="text-orange-500 text-[10px] font-black uppercase tracking-[0.2em] mb-6">Autorizar Misión</h3>
                 <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                    <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase">Piloto</label>
-                        <select required className="w-full bg-slate-800 border-none rounded-xl p-3 text-xs font-bold text-white" value={form.pilot_id} onChange={e => setForm({...form, pilot_id: e.target.value})}>
-                            <option value="">PIC...</option>
-                            {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase">Aeronave</label>
-                        <select required className="w-full bg-slate-800 border-none rounded-xl p-3 text-xs font-bold text-white" value={form.aircraft_id} onChange={e => setForm({...form, aircraft_id: e.target.value})}>
-                            <option value="">UAS...</option>
-                            {drones.map(d => <option key={d.id} value={d.id}>{d.model}</option>)}
-                        </select>
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase">Lugar</label>
-                        <input required className="w-full bg-slate-800 border-none rounded-xl p-3 text-xs font-bold text-white" placeholder="Zona G" value={form.location} onChange={e => setForm({...form, location: e.target.value})} />
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase">Fecha</label>
-                        <input required type="date" className="w-full bg-slate-800 border-none rounded-xl p-3 text-xs font-bold text-white" value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})} />
-                    </div>
-                    <button type="submit" disabled={saving} className="bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg active:scale-95 transition-all">
+                    <select required className="w-full bg-slate-800 p-3 rounded-xl border-none text-white text-xs font-bold" value={form.pilot_id} onChange={e => setForm({...form, pilot_id: e.target.value})}>
+                        <option value="">PIC...</option>
+                        {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                    <select required className="w-full bg-slate-800 p-3 rounded-xl border-none text-white text-xs font-bold" value={form.aircraft_id} onChange={e => setForm({...form, aircraft_id: e.target.value})}>
+                        <option value="">UAS...</option>
+                        {drones.map(d => <option key={d.id} value={d.id}>{d.model}</option>)}
+                    </select>
+                    <input required className="w-full bg-slate-800 p-3 rounded-xl border-none text-white text-xs" placeholder="Lugar" value={form.location} onChange={e => setForm({...form, location: e.target.value})} />
+                    <input required type="date" className="w-full bg-slate-800 p-3 rounded-xl border-none text-white text-xs" value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})} />
+                    <button type="submit" disabled={saving} className="bg-orange-600 p-3 rounded-xl font-black uppercase text-[10px] hover:bg-orange-700 transition-all">
                         {saving ? '...' : 'AUTORIZAR'}
                     </button>
                 </form>
             </section>
 
-            {/* TABLA DE MISIONES */}
-            <section className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase">
-                                <th className="px-8 py-4">ID OP</th>
-                                <th className="px-8 py-4">PIC / UAS</th>
-                                <th className="px-8 py-4">Ubicación</th>
-                                <th className="px-8 py-4">Estatus</th>
-                                <th className="px-8 py-4 text-right">Acción</th>
+            <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden">
+                <table className="w-full text-left">
+                    <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
+                        <tr><th className="p-5">ID OP</th><th className="p-5">PIC / UAS</th><th className="p-5">Lugar</th><th className="p-5">Fecha</th></tr>
+                    </thead>
+                    <tbody className="divide-y text-sm">
+                        {missions.map(m => (
+                            <tr key={m.id} className="hover:bg-slate-50">
+                                <td className="p-5 font-black text-orange-600 font-mono">{m.mission_id}</td>
+                                <td className="p-5"><p className="font-bold">{m.pilots?.name}</p><p className="text-[10px] uppercase text-slate-400">{m.aircraft?.model}</p></td>
+                                <td className="p-5 font-medium">{m.location}</td>
+                                <td className="p-5 text-slate-500">{m.scheduled_at}</td>
                             </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {missions.map(m => (
-                                <tr key={m.id} className="hover:bg-slate-50/50 transition-colors">
-                                    <td className="px-8 py-5 text-xs font-black text-orange-600 font-mono">{m.mission_id}</td>
-                                    <td className="px-8 py-5">
-                                        <p className="text-sm font-bold text-slate-800">{m.pilots?.name}</p>
-                                        <p className="text-[10px] text-slate-400 font-black uppercase">{m.aircraft?.model}</p>
-                                    </td>
-                                    <td className="px-8 py-5 text-xs font-bold text-slate-500">{m.location}</td>
-                                    <td className="px-8 py-5">
-                                        <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase bg-orange-50 text-orange-600 border border-orange-100">
-                                            Vuelo Pendiente
-                                        </span>
-                                    </td>
-                                    <td className="px-8 py-5 text-right">
-                                        <button onClick={() => setEditingMission(m)} className="material-symbols-outlined text-slate-300 hover:text-orange-600 transition-all">edit_square</button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    {missions.length === 0 && <div className="p-20 text-center text-slate-400 italic font-bold">No hay órdenes de vuelo activas.</div>}
-                </div>
-            </section>
-
-            {editingMission && (
-                <EditAuthorizationPanel 
-                    mission={editingMission} 
-                    pilots={pilots} 
-                    drones={drones} 
-                    onClose={() => setEditingMission(null)} 
-                    onSuccess={() => { setEditingMission(null); loadData(); }} 
-                />
-            )}
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }

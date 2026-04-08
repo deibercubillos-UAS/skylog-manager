@@ -11,78 +11,85 @@ export default function MissionControlPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [editingMission, setEditingMission] = useState(null);
-
-    // Ajustes de Nomenclatura Global
     const [prefix, setPrefix] = useState('BIT');
-    const [nextNumber, setNextNumber] = useState('001');
-    
-    // Formulario de Misión
     const [form, setForm] = useState({ pilot_id: '', aircraft_id: '', location: '', scheduled_at: '' });
 
     const loadData = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        const [mRes, pRes, dRes, profRes] = await Promise.all([
-            fetch('/api/flights/authorize'),
-            supabase.from('pilots').select('*').eq('is_active', true),
-            supabase.from('aircraft').select('*').eq('status', 'Operativo'),
-            supabase.from('profiles').select('flight_prefix').eq('id', user.id).single()
-        ]);
-        const mData = await mRes.json();
-        setMissions(Array.isArray(mData) ? mData : []);
-        setPilots(pRes.data || []);
-        setDrones(dRes.data || []);
-        setPrefix(profRes.data?.flight_prefix || 'BIT');
-        setNextNumber(((mData.length || 0) + 1).toString().padStart(3, '0'));
-        setLoading(false);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            const [mRes, pRes, dRes, profRes] = await Promise.all([
+                fetch('/api/flights/authorize'),
+                supabase.from('pilots').select('*').eq('is_active', true),
+                supabase.from('aircraft').select('*').eq('status', 'Operativo'),
+                supabase.from('profiles').select('flight_prefix').eq('id', user.id).single()
+            ]);
+            
+            const mData = await mRes.json();
+            setMissions(Array.isArray(mData) ? mData : []);
+            setPilots(pRes.data || []);
+            setDrones(dRes.data || []);
+            setPrefix(profRes.data?.flight_prefix || 'BIT');
+        } catch (err) {
+            console.error("Error cargando datos:", err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => { loadData(); }, []);
 
-    const updateGlobalPrefix = async (newPrefix) => {
-        const val = newPrefix.toUpperCase().substring(0, 3);
-        setPrefix(val);
-        const { data: { user } } = await supabase.auth.getUser();
-        await supabase.from('profiles').update({ flight_prefix: val }).eq('id', user.id);
-    };
-
     const handleCreate = async (e) => {
         e.preventDefault();
+        if (!form.pilot_id || !form.aircraft_id) return alert("Por favor seleccione piloto y aeronave.");
+        
         setSaving(true);
-        const missionId = `${prefix}-${nextNumber}`;
-        const res = await fetch('/api/flights/authorize', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...form, mission_id: missionId })
-        });
-        if (res.ok) {
-            alert("🚀 Misión Autorizada.");
-            setForm({ ...form, location: '', scheduled_at: '' });
-            loadData();
+        const missionId = `${prefix}-${(missions.length + 1).toString().padStart(3, '0')}`;
+        
+        try {
+            const res = await fetch('/api/flights/authorize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    pilot_id: form.pilot_id,
+                    aircraft_id: form.aircraft_id,
+                    location: form.location,
+                    scheduled_at: form.scheduled_at,
+                    mission_id: missionId 
+                })
+            });
+
+            const result = await res.json();
+
+            if (res.ok) {
+                alert("🚀 Misión Autorizada Correctamente.");
+                setForm({ pilot_id: '', aircraft_id: '', location: '', scheduled_at: '' });
+                loadData();
+            } else {
+                throw new Error(result.error || "Error desconocido en el servidor");
+            }
+        } catch (err) {
+            alert("⚠️ FALLA DE AUTORIZACIÓN: " + err.message);
+        } finally {
+            setSaving(false);
         }
-        setSaving(false);
     };
 
-    if (loading) return <div className="p-20 text-center animate-pulse font-black text-slate-300">Sincronizando Mando Central...</div>;
+    if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-300">Sincronizando Torre de Control...</div>;
 
     return (
         <div className="max-w-6xl mx-auto space-y-8 text-left animate-in fade-in duration-500 pb-20">
-            
-            {/* CABECERA: CONFIGURACIÓN DE PREFIJO */}
             <header className="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm gap-4">
                 <div className="text-left">
                     <h2 className="text-2xl font-black uppercase tracking-tighter">Programación de Misiones</h2>
                     <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Control Operativo UAS</p>
                 </div>
-                <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-2xl border border-slate-100">
-                    <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Prefijo Corporativo:</label>
-                    <input maxLength="3" className="w-20 p-2 bg-white rounded-xl border border-slate-200 text-center font-black text-[#ec5b13] uppercase" 
-                           value={prefix} onChange={e => updateGlobalPrefix(e.target.value)} />
+                <div className="bg-[#ec5b13]/10 px-4 py-2 rounded-xl border border-[#ec5b13]/20">
+                   <p className="text-[9px] font-black text-[#ec5b13] uppercase">Prefijo Actual: {prefix}</p>
                 </div>
             </header>
 
-            {/* FORMULARIO DE EMISIÓN */}
             <section className="bg-[#1A202C] p-8 rounded-[2.5rem] text-white shadow-2xl">
-                <h3 className="text-[#ec5b13] text-[10px] font-black uppercase tracking-[0.2em] mb-6">Autorizar Nueva Operación (ID: {prefix}-{nextNumber})</h3>
+                <h3 className="text-[#ec5b13] text-[10px] font-black uppercase tracking-[0.2em] mb-6">Nueva Orden de Operaciones</h3>
                 <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end text-left">
                     <div className="space-y-1">
                         <label className="text-[9px] font-black text-slate-500 uppercase">Piloto UAS</label>
@@ -107,17 +114,16 @@ export default function MissionControlPage() {
                         <input required type="date" className="w-full bg-slate-800 border-none rounded-xl p-3 text-xs font-bold text-white" value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})} />
                     </div>
                     <button type="submit" disabled={saving} className="bg-[#ec5b13] hover:bg-orange-600 text-white py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all shadow-lg shadow-orange-500/20 active:scale-95">
-                        Autorizar
+                        {saving ? 'PROCESANDO...' : 'AUTORIZAR'}
                     </button>
                 </form>
             </section>
 
-            {/* TABLA DE CONTROL */}
             <section className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                        <thead>
-                            <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase">
+                        <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase">
+                            <tr>
                                 <th className="px-8 py-4">ID Misión</th>
                                 <th className="px-8 py-4">Tripulación y Drone</th>
                                 <th className="px-8 py-4">Fecha Programada</th>
@@ -126,7 +132,9 @@ export default function MissionControlPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {missions.map(m => (
+                            {missions.length === 0 ? (
+                                <tr><td colSpan="5" className="p-10 text-center text-slate-400 italic">No hay misiones programadas.</td></tr>
+                            ) : missions.map(m => (
                                 <tr key={m.id} className="hover:bg-slate-50/50 transition-colors">
                                     <td className="px-8 py-5 text-xs font-black text-[#ec5b13] font-mono">{m.mission_id}</td>
                                     <td className="px-8 py-5">
@@ -135,8 +143,8 @@ export default function MissionControlPage() {
                                     </td>
                                     <td className="px-8 py-5 text-xs font-bold text-slate-500">{m.scheduled_at.split('T')[0]}</td>
                                     <td className="px-8 py-5">
-                                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border ${m.is_completed ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
-                                            {m.is_completed ? 'Vuelo Realizado' : 'Pendiente'}
+                                        <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase bg-orange-50 text-orange-600 border border-orange-100">
+                                            Autorizado
                                         </span>
                                     </td>
                                     <td className="px-8 py-5 text-right">

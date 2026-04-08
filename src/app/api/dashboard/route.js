@@ -7,53 +7,46 @@ export async function GET() {
     try {
         const supabase = await createClientSSR();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
         const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
         const orgId = profile?.organization_id;
 
-        if (!orgId) return NextResponse.json({ error: "No Org" });
+        if (!orgId) return NextResponse.json({ stats: { hours: "0.0" }, chart: [], alerts: [] });
 
         const [aircraftRes, pilotsRes, flightsRes] = await Promise.all([
             supabase.from('aircraft').select('*').eq('organization_id', orgId),
             supabase.from('pilots').select('*').eq('organization_id', orgId),
-            supabase.from('flights').select('*').eq('organization_id', orgId).order('created_at', { ascending: false })
+            supabase.from('flights').select('*').eq('organization_id', orgId)
         ]);
 
-        // --- LÓGICA DE GRÁFICO (Últimos 6 meses) ---
+        // 1. Gráfico de Misiones (Últimos 6 meses reales)
         const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-        const last6Months = [];
+        const chartData = [];
         for (let i = 5; i >= 0; i--) {
             const d = new Date();
             d.setMonth(d.getMonth() - i);
-            const mLabel = months[d.getMonth()];
             const count = flightsRes.data?.filter(f => {
                 const fDate = new Date(f.created_at);
                 return fDate.getMonth() === d.getMonth() && fDate.getFullYear() === d.getFullYear();
             }).length || 0;
-            last6Months.push({ label: mLabel, count });
+            chartData.push({ label: months[d.getMonth()], count });
         }
 
-        // --- LÓGICA DE ALERTAS DE COMPLIANCE ---
+        // 2. Alertas Reales (Vencimientos)
         const alerts = [];
         const today = new Date();
-        const nextMonth = new Date();
-        nextMonth.setDate(today.getDate() + 30);
+        const warningDate = new Date();
+        warningDate.setDate(today.getDate() + 30);
 
-        // 1. Alertas Médicas
         pilotsRes.data?.forEach(p => {
             if (p.medical_expiry) {
                 const expiry = new Date(p.medical_expiry);
-                if (expiry < today) alerts.push({ type: 'CRÍTICO', msg: `Médico Vencido: ${p.name}`, val: p.medical_expiry });
-                else if (expiry < nextMonth) alerts.push({ type: 'AVISO', msg: `Médico por vencer: ${p.name}`, val: p.medical_expiry });
+                if (expiry < today) alerts.push({ type: 'CRÍTICO', msg: `MÉDICO VENCIDO: ${p.name}`, val: p.medical_expiry });
+                else if (expiry < warningDate) alerts.push({ type: 'AVISO', msg: `MÉDICO PRÓXIMO: ${p.name}`, val: p.medical_expiry });
             }
         });
 
-        // 2. Alertas de Mantenimiento (Cada 50h por defecto)
         aircraftRes.data?.forEach(a => {
-            const hours = parseFloat(a.total_hours || 0);
-            const nextMaint = 50 - (hours % 50);
-            if (nextMaint < 5) alerts.push({ type: 'TÉCNICO', msg: `Mantenimiento Urgente: ${a.model}`, val: `${nextMaint.toFixed(1)}h restantes` });
+            if ((a.total_hours % 50) > 45) alerts.push({ type: 'TÉCNICO', msg: `MANTENIMIENTO: ${a.model}`, val: "Cerca de 50h" });
         });
 
         return NextResponse.json({
@@ -63,7 +56,7 @@ export async function GET() {
                 pilotCount: pilotsRes.data?.length || 0,
                 alertsCount: alerts.length
             },
-            chart: last6Months,
+            chart: chartData,
             alerts: alerts.slice(0, 5),
             recentActivity: flightsRes.data?.slice(0, 5) || []
         });

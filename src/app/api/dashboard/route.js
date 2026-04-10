@@ -12,50 +12,55 @@ export async function GET() {
         const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
         const orgId = profile?.organization_id;
 
-        if (!orgId) return NextResponse.json({ stats: { hours: "0.0" }, chart: [], alerts: [] });
-
-        // CONSULTAS PARALELAS CON JOINS (Aquí estaba el error del resumen)
         const [aircraftRes, pilotsRes, flightsRes] = await Promise.all([
             supabase.from('aircraft').select('*').eq('organization_id', orgId),
             supabase.from('pilots').select('*').eq('organization_id', orgId),
             supabase.from('flights')
-                .select('*, pilots:pilot_id(name), aircraft:aircraft_id(model)') // <--- JOINS ACTIVADOS
+                .select('*, pilots:pilot_id(name), aircraft:aircraft_id(model)')
                 .eq('organization_id', orgId)
                 .order('flight_date', { ascending: false })
         ]);
 
-        // 1. Lógica de Gráfico (6 meses)
-        const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        // --- LÓGICA DE GRÁFICO RESILIENTE ---
+        const monthsNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
         const chartData = [];
         const now = new Date();
+
         for (let i = 5; i >= 0; i--) {
-            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const mIdx = d.getMonth();
-            const year = d.getFullYear();
+            const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const targetMonth = (targetDate.getMonth() + 1).toString().padStart(2, '0');
+            const targetYear = targetDate.getFullYear().toString();
+
+            // Filtramos usando strings para evitar errores de zona horaria
             const count = flightsRes.data?.filter(f => {
-                const fDate = new Date(f.flight_date);
-                return fDate.getMonth() === mIdx && fDate.getFullYear() === year;
+                if (!f.flight_date) return false;
+                const [fYear, fMonth] = f.flight_date.split('-');
+                return fYear === targetYear && fMonth === targetMonth;
             }).length || 0;
-            chartData.push({ label: months[mIdx], count });
+
+            chartData.push({ 
+                label: monthsNames[targetDate.getMonth()], 
+                count: count 
+            });
         }
 
-        // 2. Lógica de Alertas
+        // --- LÓGICA DE ALERTAS ---
         const alerts = [];
-        const today = new Date();
-        const warningWindow = new Date();
-        warningWindow.setDate(today.getDate() + 30);
+        const today = new Date().toISOString().split('T')[0];
+        const nextMonth = new Date();
+        nextMonth.setDate(nextMonth.getDate() + 30);
+        const warningLimit = nextMonth.toISOString().split('T')[0];
 
         pilotsRes.data?.forEach(p => {
             if (p.medical_expiry) {
-                const exp = new Date(p.medical_expiry);
-                if (exp < today) alerts.push({ type: 'CRÍTICO', msg: `MÉDICO VENCIDO: ${p.name}`, val: p.medical_expiry });
-                else if (exp < warningWindow) alerts.push({ type: 'AVISO', msg: `MÉDICO PRÓXIMO: ${p.name}`, val: p.medical_expiry });
+                if (p.medical_expiry < today) alerts.push({ type: 'CRÍTICO', msg: `MÉDICO VENCIDO: ${p.name}`, val: p.medical_expiry });
+                else if (p.medical_expiry < warningLimit) alerts.push({ type: 'AVISO', msg: `MÉDICO PRÓXIMO: ${p.name}`, val: p.medical_expiry });
             }
         });
 
         aircraftRes.data?.forEach(a => {
-            const remaining = 50 - (parseFloat(a.total_hours || 0) % 50);
-            if (remaining < 5) alerts.push({ type: 'TÉCNICO', msg: `MANTENIMIENTO: ${a.model}`, val: `${remaining.toFixed(1)}h para servicio` });
+            const rem = 50 - (parseFloat(a.total_hours || 0) % 50);
+            if (rem < 5) alerts.push({ type: 'TÉCNICO', msg: `MANTENIMIENTO: ${a.model}`, val: `${rem.toFixed(1)}h restantes` });
         });
 
         return NextResponse.json({

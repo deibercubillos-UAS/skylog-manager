@@ -38,26 +38,26 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex-1 flex items-end justify-around gap-2">
                         {data?.chart?.map((m, i) => {
-                            // Cálculo exacto del porcentaje de altura
-                            const barHeight = Math.round((m.count / maxVal) * 100);
-                            return (
-                                <div key={i} className="flex-1 flex flex-col items-center gap-4 group relative">
-                                    <div 
-                                        className="w-full max-w-[45px] bg-orange-500/10 border-t-4 border-orange-500 rounded-t-xl transition-all duration-1000 ease-out group-hover:bg-orange-600/40 animate-grow-up"
-                                        style={{ 
-                                            height: m.count > 0 ? `${(m.count / maxVal) * 100}%` : '4px',
-                                            transformOrigin: 'bottom' 
-                                        }}
-                                    ></div>
-                                    <span className="text-[9px] font-black text-slate-400 uppercase">{m.label}</span>
-                                    {m.count > 0 && (
-                                        <span className="absolute -top-8 text-[11px] font-black text-orange-600 animate-in slide-in-from-bottom-2">
-                                            {m.count}
-                                        </span>
-                                    )}
-                                </div>
-                            );
-                        })}
+    // Escala matemática: (valor actual / valor máximo) * 100
+    const barHeight = maxVal > 0 ? (m.count / maxVal) * 100 : 0;
+    
+    return (
+        <div key={i} className="flex-1 flex flex-col items-center gap-4 group relative">
+            <div 
+                className="w-full max-w-[45px] bg-orange-500/10 border-t-4 border-orange-500 rounded-t-xl transition-all duration-1000 ease-out group-hover:bg-orange-600/40"
+                style={{ height: m.count > 0 ? `${barHeight}%` : '4px' }}
+            ></div>
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                {m.label}
+            </span>
+            {m.count > 0 && (
+                <span className="absolute -top-8 text-[11px] font-black text-orange-600 animate-in zoom-in">
+                    {m.count}
+                </span>
+            )}
+        </div>
+    );
+})}
                     </div>
                 </div>
 

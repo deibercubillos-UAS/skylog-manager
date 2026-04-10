@@ -73,7 +73,6 @@ useEffect(() => {
             </header>
 
             <form onSubmit={handleUpdate} className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                
                 {/* COLUMNA IZQUIERDA: FOTO Y CREDENCIALES */}
                 <div className="space-y-6">
                     <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col items-center text-center">
@@ -85,10 +84,11 @@ useEffect(() => {
                             )}
                         </div>
                         <div className="mt-4 w-full">
-                            <FileUpload 
+                          <FileUpload 
                                 path="crew/avatars" 
                                 label="Cambiar Foto de Perfil" 
-                                onUploadSuccess={(url) => setProfile({...profile, avatar_url: url})} 
+                                // Esto SOLO actualiza la variable en memoria, no guarda en DB aún
+                                onUploadSuccess={(url) => setProfile(prev => ({ ...prev, avatar_url: url }))} 
                             />
                         </div>
                         <h3 className="font-black text-slate-900 uppercase leading-tight">{profile.full_name}</h3>

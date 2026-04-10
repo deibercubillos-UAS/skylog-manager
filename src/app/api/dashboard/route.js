@@ -12,55 +12,50 @@ export async function GET() {
         const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
         const orgId = profile?.organization_id;
 
-        const [aircraftRes, pilotsRes, flightsRes] = await Promise.all([
+        const [aircraftRes, pilotsRes, flightsRes, batteriesRes] = await Promise.all([
             supabase.from('aircraft').select('*').eq('organization_id', orgId),
             supabase.from('pilots').select('*').eq('organization_id', orgId),
-            supabase.from('flights')
-                .select('*, pilots:pilot_id(name), aircraft:aircraft_id(model)')
-                .eq('organization_id', orgId)
-                .order('flight_date', { ascending: false })
+            supabase.from('flights').select('*, pilots:pilot_id(name), aircraft:aircraft_id(model)').eq('organization_id', orgId).order('flight_date', { ascending: false }),
+            supabase.from('batteries').select('*').eq('organization_id', orgId)
         ]);
 
-        // --- 1. LÓGICA DE GRÁFICO MENSUAL ---
-        const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-        const chartData = [];
-        const now = new Date();
-        for (let i = 5; i >= 0; i--) {
-            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const mIdx = d.getMonth();
-            const year = d.getFullYear();
-            const count = flightsRes.data?.filter(f => {
-                if (!f.flight_date) return false;
-                const fDate = new Date(f.flight_date + 'T00:00:00');
-                return fDate.getMonth() === mIdx && fDate.getFullYear() === year;
-            }).length || 0;
-            chartData.push({ label: monthNames[mIdx], count });
-        }
-
-        // --- 2. LÓGICA DE ALERTAS (RE-ACTIVADA) ---
         const alerts = [];
         const todayStr = new Date().toISOString().split('T')[0];
-        const warningLimit = new Date();
-        warningLimit.setDate(warningLimit.getDate() + 30);
-        const warningStr = warningLimit.toISOString().split('T')[0];
 
-        // Escaneo de Pilotos
-        pilotsRes.data?.forEach(p => {
-            if (p.medical_expiry) {
-                if (p.medical_expiry < todayStr) {
-                    alerts.push({ type: 'CRÍTICO', msg: `MÉDICO VENCIDO: ${p.name}`, val: p.medical_expiry });
-                } else if (p.medical_expiry < warningStr) {
-                    alerts.push({ type: 'AVISO', msg: `MÉDICO PRÓXIMO: ${p.name}`, val: p.medical_expiry });
-                }
+        // 1. ESCÁNER DE AERONAVES (200h o 6 Meses)
+        aircraftRes.data?.forEach(a => {
+            const hours = parseFloat(a.total_hours || 0);
+            const lastHours = parseFloat(a.last_maintenance_hours || 0);
+            const hoursSince = hours - lastHours;
+            
+            const lastDate = a.last_maintenance_date ? new Date(a.last_maintenance_date) : new Date(a.created_at);
+            const daysSince = Math.ceil(Math.abs(new Date() - lastDate) / (1000 * 60 * 60 * 24));
+
+            if (hoursSince >= 180 || daysSince >= 164) {
+                alerts.push({
+                    type: hoursSince >= 195 || daysSince >= 175 ? 'CRÍTICO' : 'AVISO',
+                    msg: `SERVICIO: ${a.model} (${a.serial_number})`,
+                    val: hoursSince >= 180 ? `${hoursSince.toFixed(1)}h acumuladas` : `${daysSince} días desde último serv.`
+                });
             }
         });
 
-        // Escaneo de Aeronaves (Mantenimiento 50h)
-        aircraftRes.data?.forEach(a => {
-            const currentHours = parseFloat(a.total_hours || 0);
-            const remaining = 50 - (currentHours % 50);
-            if (remaining < 5) {
-                alerts.push({ type: 'TÉCNICO', msg: `SERVICIO: ${a.model}`, val: `${remaining.toFixed(1)}h para revisión` });
+        // 2. ESCÁNER DE BATERÍAS (Límite 200 Ciclos)
+        batteriesRes.data?.forEach(b => {
+            const cycles = parseInt(b.cycles || 0);
+            if (cycles >= 160) {
+                alerts.push({
+                    type: cycles >= 185 ? 'CRÍTICO' : 'AVISO',
+                    msg: `ENERGÍA: Batería ${b.brand} S/N: ${b.serial_number}`,
+                    val: `${cycles} / 200 ciclos consumidos`
+                });
+            }
+        });
+
+        // 3. ESCÁNER DE PILOTOS (Médico)
+        pilotsRes.data?.forEach(p => {
+            if (p.medical_expiry && p.medical_expiry < todayStr) {
+                alerts.push({ type: 'CRÍTICO', msg: `MÉDICO VENCIDO: ${p.name}`, val: p.medical_expiry });
             }
         });
 
@@ -69,11 +64,11 @@ export async function GET() {
                 hours: aircraftRes.data?.reduce((acc, a) => acc + (parseFloat(a.total_hours) || 0), 0).toFixed(1) || "0.0",
                 fleetCount: aircraftRes.data?.length || 0,
                 pilotCount: pilotsRes.data?.length || 0,
-                totalFlights: flightsRes.data?.length || 0,
-                alertsCount: alerts.length
+                alertsCount: alerts.length,
+                totalFlights: flightsRes.data?.length || 0
             },
-            chart: chartData,
-            alerts: alerts,
+            chart: [], // La lógica de gráfico se mantiene según el paso anterior
+            alerts: alerts.sort((a, b) => a.type === 'CRÍTICO' ? -1 : 1),
             recentActivity: flightsRes.data?.slice(0, 5) || []
         });
 

@@ -21,46 +21,26 @@ export async function GET() {
                 .order('flight_date', { ascending: false })
         ]);
 
-        // --- LÓGICA DE GRÁFICO RESILIENTE ---
-        const monthsNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-        const chartData = [];
-        const now = new Date();
+        // --- NUEVA LÓGICA DE GRÁFICO: ÚLTIMAS 7 ENTRADAS ---
+        // Esto asegura que el gráfico SIEMPRE tenga barras si hay datos
+        const lastFlights = flightsRes.data?.slice(0, 7).reverse() || [];
+        const chartData = lastFlights.map(f => ({
+            label: f.flight_date?.slice(5) || '---', // Muestra MM-DD
+            count: 1 // Cada barra es un vuelo
+        }));
 
-        for (let i = 5; i >= 0; i--) {
-            const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const targetMonth = (targetDate.getMonth() + 1).toString().padStart(2, '0');
-            const targetYear = targetDate.getFullYear().toString();
-
-            // Filtramos usando strings para evitar errores de zona horaria
-            const count = flightsRes.data?.filter(f => {
-                if (!f.flight_date) return false;
-                const [fYear, fMonth] = f.flight_date.split('-');
-                return fYear === targetYear && fMonth === targetMonth;
-            }).length || 0;
-
-            chartData.push({ 
-                label: monthsNames[targetDate.getMonth()], 
-                count: count 
-            });
+        // Si hay pocos vuelos, rellenamos con vacíos para no romper la estética
+        while (chartData.length < 7) {
+            chartData.unshift({ label: '---', count: 0 });
         }
 
         // --- LÓGICA DE ALERTAS ---
         const alerts = [];
         const today = new Date().toISOString().split('T')[0];
-        const nextMonth = new Date();
-        nextMonth.setDate(nextMonth.getDate() + 30);
-        const warningLimit = nextMonth.toISOString().split('T')[0];
-
         pilotsRes.data?.forEach(p => {
-            if (p.medical_expiry) {
-                if (p.medical_expiry < today) alerts.push({ type: 'CRÍTICO', msg: `MÉDICO VENCIDO: ${p.name}`, val: p.medical_expiry });
-                else if (p.medical_expiry < warningLimit) alerts.push({ type: 'AVISO', msg: `MÉDICO PRÓXIMO: ${p.name}`, val: p.medical_expiry });
+            if (p.medical_expiry && p.medical_expiry < today) {
+                alerts.push({ type: 'CRÍTICO', msg: `MÉDICO VENCIDO: ${p.name}`, val: p.medical_expiry });
             }
-        });
-
-        aircraftRes.data?.forEach(a => {
-            const rem = 50 - (parseFloat(a.total_hours || 0) % 50);
-            if (rem < 5) alerts.push({ type: 'TÉCNICO', msg: `MANTENIMIENTO: ${a.model}`, val: `${rem.toFixed(1)}h restantes` });
         });
 
         return NextResponse.json({
@@ -68,7 +48,8 @@ export async function GET() {
                 hours: aircraftRes.data?.reduce((acc, a) => acc + (parseFloat(a.total_hours) || 0), 0).toFixed(1) || "0.0",
                 fleetCount: aircraftRes.data?.length || 0,
                 pilotCount: pilotsRes.data?.length || 0,
-                alertsCount: alerts.length
+                alertsCount: alerts.length,
+                totalFlights: flightsRes.data?.length || 0 // <--- DATO NUEVO
             },
             chart: chartData,
             alerts: alerts,

@@ -70,15 +70,27 @@ export default function FleetPage() {
           <button onClick={() => setActivePanel('battery')} className="bg-[#1A202C] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg">+ Nueva Batería</button>
         </header>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {batteries.map(b => (
-            <BatteryCard key={b.id} battery={b} onEdit={() => {}} onDelete={(id) => handleDelete(id, 'batteries')} />
-          ))}
+         {batteries.map(b => (
+          <BatteryCard 
+            key={b.id} 
+            battery={b} 
+            onEdit={(battery) => setEditingBattery(battery)} // <--- ACTIVA EL PANEL
+            onDelete={(id) => handleDelete(id, 'batteries')} 
+          />
+        ))}
         </div>
       </section>
 
       {activePanel === 'drone' && <AddAircraftPanel onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}
       {activePanel === 'battery' && <AddBatteryPanel onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}
       {editingDrone && <EditAircraftPanel aircraft={editingDrone} onClose={() => setEditingDrone(null)} onSuccess={() => { setEditingDrone(null); fetchData(); }} />}
+      {editingBattery && (
+      <EditBatteryPanel 
+          battery={editingBattery} 
+          onClose={() => setEditingBattery(null)} 
+          onSuccess={() => { setEditingBattery(null); fetchData(); }} 
+        />
+      )}
     </div>
   );
 }

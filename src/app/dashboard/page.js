@@ -15,7 +15,7 @@ export default function DashboardPage() {
 
     if (loading) return <div className="p-20 text-center font-black animate-pulse uppercase text-slate-400 tracking-widest">AUTORIZANDO PANEL MAESTRO...</div>;
 
-    const maxMissions = Math.max(...(data?.chart?.map(m => m.count) || [1]), 1);
+    const maxCount = Math.max(...(data?.chart?.map(m => m.count) || [1]), 1);
 
     return (
         <div className="space-y-10 animate-in fade-in duration-700 text-left pb-20">
@@ -38,9 +38,9 @@ export default function DashboardPage() {
                         {data?.chart?.map((m, i) => (
                             <div key={i} className="flex-1 flex flex-col items-center gap-6 group relative">
                                 <div 
-                                    style={{ height: `${(m.count / maxMissions) * 100}%`, minHeight: m.count > 0 ? '10%' : '4px' }} 
-                                    className="w-full max-w-[45px] bg-orange-500/10 border-t-4 border-orange-500 rounded-t-xl transition-all group-hover:bg-orange-600/40 group-hover:shadow-lg"
-                                ></div>
+                                style={{ height: `${(m.count / maxCount) * 100}%`, minHeight: m.count > 0 ? '8%' : '4px' }} 
+                                className="w-full max-w-[45px] bg-orange-500/10 border-t-4 border-orange-500 rounded-t-xl transition-all duration-1000 group-hover:bg-orange-600/40"
+                            ></div>
                                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{m.label}</span>
                                 {m.count > 0 && <span className="absolute -top-8 text-[11px] font-black text-orange-600">{m.count}</span>}
                             </div>

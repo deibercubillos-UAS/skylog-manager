@@ -8,7 +8,7 @@ export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const [data, setData] = useState({ profile: null, org: null });
   const [loading, setLoading] = useState(true);
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     async function loadData() {
@@ -55,7 +55,11 @@ export default function DashboardLayout({ children }) {
     <div className="flex h-screen bg-[#f8f6f6] font-display overflow-hidden text-left">
       
       {/* SIDEBAR DINÁMICO */}
-      <aside className={`fixed inset-y-0 left-0 z-[150] w-64 bg-[#1A202C] text-white flex flex-col transition-transform duration-300 ease-in-out border-r border-white/5 lg:translate-x-0 lg:static ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`
+          fixed inset-y-0 left-0 z-[150] w-64 bg-[#1A202C] text-white flex flex-col 
+          transition-transform duration-300 ease-in-out border-r border-white/5
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
         <div className="p-8 border-b border-white/5">
           <h1 className="text-2xl font-black text-orange-500 tracking-tighter leading-none">BITAFLY</h1>
           <div className="mt-6 p-4 bg-white/5 rounded-2xl border border-white/10 space-y-2">
@@ -98,16 +102,19 @@ export default function DashboardLayout({ children }) {
       )}
 
       {/* CONTENIDO PRINCIPAL */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 md:h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shrink-0 sticky top-0 z-[100]">
-  {/* LADO IZQUIERDO: Menú y Empresa */}
+      <main className={`
+          flex-1 flex flex-col overflow-hidden transition-all duration-300
+          ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'}
+      `}>
+       <header className="h-16 md:h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shrink-0 sticky top-0 z-[100]">
+  {/* LADO IZQUIERDO: Toggle y Empresa */}
   <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
     <button 
       onClick={() => setSidebarOpen(!isSidebarOpen)}
-      className="p-2 rounded-xl bg-slate-50 text-slate-600 lg:hidden active:scale-95 transition-all shrink-0"
+      className="p-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 active:scale-95 transition-all shrink-0"
     >
       <span className="material-symbols-outlined leading-none">
-        {isSidebarOpen ? 'close' : 'menu'}
+        {isSidebarOpen ? 'menu_open' : 'menu'}
       </span>
     </button>
     
@@ -119,7 +126,6 @@ export default function DashboardLayout({ children }) {
     </div>
   </div>
   
-  {/* LADO DERECHO: Nueva Operación y Perfil (Oculto en mobile) */}
   <div className="flex items-center gap-3 md:gap-6">
     <Link href="/dashboard/logbook/new" className="bg-orange-600 hover:bg-orange-700 text-white px-4 md:px-6 py-2 md:py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95">
       <span className="material-symbols-outlined text-sm md:text-base">add_circle</span> 
@@ -127,16 +133,23 @@ export default function DashboardLayout({ children }) {
       <span className="sm:hidden">Nuevo</span>
     </Link>
 
-    {/* PERFIL: Solo visible desde tablets en adelante */}
-    <div className="hidden md:flex items-center gap-3 border-l border-slate-100 pl-6">
-       <div className="text-right">
-          <p className="text-[10px] font-black text-slate-900 leading-none">{data.profile?.full_name}</p>
+    {/* PERFIL CLICKABLE */}
+    <Link 
+        href="/dashboard/settings/profile" 
+        className="flex items-center gap-3 border-l border-slate-100 pl-4 md:pl-6 group hover:opacity-80 transition-all"
+    >
+       <div className="hidden md:block text-right">
+          <p className="text-[10px] font-black text-slate-900 leading-none group-hover:text-orange-600 transition-colors">{data.profile?.full_name}</p>
           <p className="text-[8px] font-bold text-orange-500 uppercase mt-1">{data.profile?.role?.replace('_', ' ')}</p>
        </div>
-       <div className="size-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center">
-          <span className="material-symbols-outlined text-slate-400 text-xl">person</span>
+       <div className="size-8 md:size-10 rounded-full bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden ring-2 ring-transparent group-hover:ring-orange-500/20 transition-all">
+          {data.profile?.avatar_url ? (
+              <img src={data.profile.avatar_url} className="size-full object-cover" alt="Perfil" />
+          ) : (
+              <span className="material-symbols-outlined text-slate-400 text-xl md:text-2xl">person</span>
+          )}
        </div>
-    </div>
+    </Link>
   </div>
 </header>
         <div className="flex-1 overflow-y-auto p-10">{children}</div>

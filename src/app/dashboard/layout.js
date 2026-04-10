@@ -16,22 +16,12 @@ export default function DashboardLayout({ children }) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { window.location.href = '/login'; return; }
         
-        // 1. Obtener el perfil primero
         const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        
-        // 2. Obtener la organización usando el ID correcto (organization_id)
-        if (prof?.organization_id) {
-          const { data: org } = await supabase
-            .from('organizations')
-            .select('*')
-            .eq('id', prof.organization_id)
-            .single();
-          setData({ profile: prof, org });
-        } else {
-          setData({ profile: prof, org: null });
-        }
+        const { data: org } = await supabase.from('organizations').select('*').eq('id', prof?.organization_id).single();
+
+        setData({ profile: prof, org });
       } catch (err) {
-        console.error("Layout Handshake Error:", err);
+        console.error("Layout Load Error");
       } finally {
         setLoading(false);
       }
@@ -39,48 +29,79 @@ export default function DashboardLayout({ children }) {
     loadData();
   }, []);
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-slate-900 text-white font-black animate-pulse uppercase">Iniciando Enlace de Datos...</div>;
+  if (loading) return <div className="h-screen flex items-center justify-center bg-[#1A202C] text-white font-black animate-pulse">BITAFLY OS...</div>;
+
+  const navLinks = [
+    { name: 'Dashboard', icon: 'dashboard', href: '/dashboard' },
+    { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/dashboard/fleet' },
+    { name: 'Tripulación', icon: 'person', href: '/dashboard/pilots' },
+    { name: 'Mantenimiento', icon: 'build', href: '/dashboard/maintenance' },
+  ];
+
+  const rolesDirectivos = ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'];
 
   return (
     <div className="flex h-screen bg-[#f8f6f6] font-display overflow-hidden text-left">
+      {/* SIDEBAR */}
       <aside className={`fixed inset-y-0 left-0 z-[110] w-64 bg-[#1A202C] text-white flex flex-col transition-transform lg:translate-x-0 lg:static ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="p-6 border-b border-white/5">
-          <h1 className="text-2xl font-black text-orange-500 tracking-tighter">BITAFLY</h1>
-          <div className="mt-4 p-3 bg-white/5 rounded-2xl border border-white/10">
-             <p className="text-[8px] font-black uppercase text-slate-500">Plan / ID</p>
-             <p className="text-[10px] font-black text-orange-400 uppercase leading-none mt-1">{data.profile?.subscription_plan || 'PILOTO'}</p>
-             <p className="text-[10px] font-mono text-white font-bold mt-1">{data.org?.unique_code || '---'}</p>
+        <div className="p-8 border-b border-white/5">
+          <h1 className="text-2xl font-black text-orange-500 tracking-tighter leading-none">BITAFLY</h1>
+          <p className="text-[9px] font-black text-slate-500 uppercase mt-1 tracking-widest">Aviation Manager</p>
+          
+          <div className="mt-8 p-4 bg-white/5 rounded-2xl border border-white/10 space-y-3">
+             <div>
+                <p className="text-[7px] font-black uppercase text-slate-500 tracking-widest">Plan Activo</p>
+                <p className="text-[10px] font-black text-orange-400 uppercase">{data.profile?.subscription_plan || 'PILOTO'}</p>
+             </div>
+             <div>
+                <p className="text-[7px] font-black uppercase text-slate-500 tracking-widest">ID Organización</p>
+                <p className="text-[10px] font-mono text-white font-bold">{data.org?.unique_code || '---'}</p>
+             </div>
           </div>
         </div>
-        <nav className="flex-1 p-4 space-y-1">
-          <Link href="/dashboard" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold ${pathname === '/dashboard' ? 'bg-orange-600' : 'hover:bg-white/5'}`}>Dashboard</Link>
-          <Link href="/dashboard/fleet" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold ${pathname === '/dashboard/fleet' ? 'bg-orange-600' : 'hover:bg-white/5'}`}>Mi Flota</Link>
-          <Link href="/dashboard/pilots" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold ${pathname === '/dashboard/pilots' ? 'bg-orange-600' : 'hover:bg-white/5'}`}>Tripulación</Link>
-          {['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'].includes(data.profile?.role) && (
-            <Link href="/dashboard/authorizations" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold ${pathname === '/dashboard/authorizations' ? 'bg-slate-700' : 'hover:bg-white/5'}`}>Programación</Link>
+
+        <nav className="flex-1 p-4 space-y-2 mt-4">
+          {navLinks.map(link => (
+            <Link key={link.href} href={link.href} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === link.href ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' : 'text-slate-400 hover:bg-white/5'}`}>
+              <span className="material-symbols-outlined text-lg">{link.icon}</span>{link.name}
+            </Link>
+          ))}
+          
+          {rolesDirectivos.includes(data.profile?.role) && (
+            <>
+              <div className="pt-4 pb-2 px-4"><p className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Mando</p></div>
+              <Link href="/dashboard/authorizations" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === '/dashboard/authorizations' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-white/5'}`}>
+                <span className="material-symbols-outlined text-lg">event_available</span>Programación
+              </Link>
+            </>
           )}
         </nav>
+
         <div className="p-4 border-t border-white/5">
-          <button onClick={() => supabase.auth.signOut().then(() => window.location.href='/login')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black text-red-400 hover:bg-red-400/10">Cerrar Sesión</button>
+          <button onClick={() => supabase.auth.signOut().then(() => window.location.href='/login')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black text-red-400 hover:bg-red-400/10 transition-colors uppercase tracking-widest">
+            <span className="material-symbols-outlined text-lg">logout</span>Cerrar Sesión
+          </button>
         </div>
       </aside>
 
+      {/* MAIN CONTENT */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-20 bg-white border-b flex items-center justify-between px-8 shrink-0">
+        <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
           <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="lg:hidden p-2"><span className="material-symbols-outlined">menu</span></button>
+            <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="lg:hidden p-2 text-slate-600"><span className="material-symbols-outlined">menu</span></button>
             <div className="text-left">
-              <p className="text-[10px] font-black text-slate-400 uppercase leading-none">Organización</p>
-              <h2 className="text-sm font-black text-slate-900 uppercase">{data.org?.company_name || 'Individual'}</h2>
+              <p className="text-[9px] font-black text-slate-400 uppercase leading-none tracking-widest">Organización</p>
+              <h2 className="text-sm font-black text-slate-900 uppercase mt-1">{data.org?.company_name || 'Individual'}</h2>
             </div>
           </div>
+          
           <div className="flex items-center gap-6">
-            <Link href="/dashboard/logbook/daily" className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2">
+            <Link href="/dashboard/logbook/new" className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-600/20 transition-all flex items-center gap-2 active:scale-95">
               <span className="material-symbols-outlined text-sm">add_circle</span> Nueva Operación
             </Link>
-            <div className="text-right">
+            <div className="hidden md:block text-right border-l border-slate-100 pl-6">
                <p className="text-[10px] font-black text-slate-900 leading-none">{data.profile?.full_name}</p>
-               <p className="text-[8px] font-bold text-orange-500 uppercase">{data.profile?.role?.replace('_', ' ')}</p>
+               <p className="text-[8px] font-bold text-orange-500 uppercase mt-1 tracking-tighter">{data.profile?.role?.replace('_', ' ')}</p>
             </div>
           </div>
         </header>

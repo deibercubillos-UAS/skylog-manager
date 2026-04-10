@@ -61,10 +61,12 @@ export default function AircraftCard({ aircraft, onEdit, onDelete }) {
                     {statusText}
                 </p>
                 <p className="text-[10px] font-bold text-slate-700">
-                    {isTimeCritical ? `${LIMIT_DAYS - daysSinceMaint} días` : `${(LIMIT_HOURS - hoursSinceMaint).toFixed(1)} horas`} <span className="font-medium text-slate-400">restantes</span>
+                    {isTimeCritical ? `${LIMIT_DAYS - daysSinceMaint} días` : `${(LIMIT_HOURS - hoursSinceMaint).toFixed(2)} horas`} <span className="font-medium text-slate-400">restantes</span>
                 </p>
             </div>
-            <p className="text-[10px] font-bold text-slate-900 font-mono">{currentHours}h <span className="text-[8px] text-slate-400 uppercase">Total</span></p>
+           <p className="text-[10px] font-bold text-slate-900 font-mono">
+              {hours.toFixed(2)}h <span className="text-[8px] text-slate-400 uppercase tracking-tighter">Total Time</span>
+          </p>
           </div>
           {/* BARRA DE PROGRESO TÉCNICO */}
           <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-50">

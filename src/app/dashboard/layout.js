@@ -21,7 +21,7 @@ export default function DashboardLayout({ children }) {
 
         setData({ profile: prof, org });
       } catch (err) {
-        console.error("Layout Load Error");
+        console.error("Layout Error");
       } finally {
         setLoading(false);
       }
@@ -29,56 +29,60 @@ export default function DashboardLayout({ children }) {
     loadData();
   }, []);
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-[#1A202C] text-white font-black animate-pulse">BITAFLY OS...</div>;
+  if (loading) return <div className="h-screen flex items-center justify-center bg-[#1A202C] text-white font-black animate-pulse">CARGANDO BITAFLY...</div>;
 
   const navLinks = [
     { name: 'Dashboard', icon: 'dashboard', href: '/dashboard' },
     { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/dashboard/fleet' },
     { name: 'Tripulación', icon: 'person', href: '/dashboard/pilots' },
     { name: 'Mantenimiento', icon: 'build', href: '/dashboard/maintenance' },
+    { name: 'Programación', icon: 'event_available', href: '/dashboard/authorizations' },
+    { name: 'Bitácora', icon: 'menu_book', href: '/dashboard/logbook' },
   ];
 
-  const rolesDirectivos = ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'];
+  const footerLinks = [
+    { name: 'Configuración', icon: 'settings', href: '/dashboard/settings' },
+    { name: 'Mi Perfil', icon: 'account_circle', href: '/dashboard/settings/profile' }, // Ajusta según tu ruta de perfil
+    { name: 'Suscripción', icon: 'payments', href: '/dashboard/subscription' },
+  ];
 
   return (
     <div className="flex h-screen bg-[#f8f6f6] font-display overflow-hidden text-left">
-      {/* SIDEBAR */}
+      {/* SIDEBAR MASTER */}
       <aside className={`fixed inset-y-0 left-0 z-[110] w-64 bg-[#1A202C] text-white flex flex-col transition-transform lg:translate-x-0 lg:static ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-8 border-b border-white/5">
           <h1 className="text-2xl font-black text-orange-500 tracking-tighter leading-none">BITAFLY</h1>
-          <p className="text-[9px] font-black text-slate-500 uppercase mt-1 tracking-widest">Aviation Manager</p>
-          
-          <div className="mt-8 p-4 bg-white/5 rounded-2xl border border-white/10 space-y-3">
-             <div>
-                <p className="text-[7px] font-black uppercase text-slate-500 tracking-widest">Plan Activo</p>
-                <p className="text-[10px] font-black text-orange-400 uppercase">{data.profile?.subscription_plan || 'PILOTO'}</p>
+          <div className="mt-6 p-4 bg-white/5 rounded-2xl border border-white/10 space-y-2">
+             <div className="flex justify-between items-center">
+                <p className="text-[7px] font-black uppercase text-slate-500 tracking-widest">Plan</p>
+                <p className="text-[9px] font-black text-orange-400 uppercase">{data.profile?.subscription_plan || 'PILOTO'}</p>
              </div>
-             <div>
-                <p className="text-[7px] font-black uppercase text-slate-500 tracking-widest">ID Organización</p>
-                <p className="text-[10px] font-mono text-white font-bold">{data.org?.unique_code || '---'}</p>
+             <div className="flex justify-between items-center">
+                <p className="text-[7px] font-black uppercase text-slate-500 tracking-widest">Org ID</p>
+                <p className="text-[9px] font-mono text-white">{data.org?.unique_code || '---'}</p>
              </div>
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2 mt-4">
+        {/* NAVEGACIÓN OPERATIVA */}
+        <nav className="flex-1 p-4 space-y-1 mt-2 overflow-y-auto custom-scrollbar">
           {navLinks.map(link => (
-            <Link key={link.href} href={link.href} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === link.href ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' : 'text-slate-400 hover:bg-white/5'}`}>
+            <Link key={link.href} href={link.href} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${pathname === link.href ? 'bg-orange-600 text-white' : 'text-slate-400 hover:bg-white/5'}`}>
               <span className="material-symbols-outlined text-lg">{link.icon}</span>{link.name}
             </Link>
           ))}
-          
-          {rolesDirectivos.includes(data.profile?.role) && (
-            <>
-              <div className="pt-4 pb-2 px-4"><p className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Mando</p></div>
-              <Link href="/dashboard/authorizations" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === '/dashboard/authorizations' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-white/5'}`}>
-                <span className="material-symbols-outlined text-lg">event_available</span>Programación
-              </Link>
-            </>
-          )}
         </nav>
 
-        <div className="p-4 border-t border-white/5">
-          <button onClick={() => supabase.auth.signOut().then(() => window.location.href='/login')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black text-red-400 hover:bg-red-400/10 transition-colors uppercase tracking-widest">
+        {/* NAVEGACIÓN ADMINISTRATIVA (FOOTER SIDEBAR) */}
+        <div className="p-4 border-t border-white/5 bg-black/10">
+          <div className="space-y-1 mb-4">
+             {footerLinks.map(link => (
+                <Link key={link.href} href={link.href} className={`flex items-center gap-3 px-4 py-2 rounded-xl text-xs font-bold transition-all ${pathname === link.href ? 'text-orange-500' : 'text-slate-500 hover:text-slate-300'}`}>
+                   <span className="material-symbols-outlined text-base">{link.icon}</span>{link.name}
+                </Link>
+             ))}
+          </div>
+          <button onClick={() => supabase.auth.signOut().then(() => window.location.href='/login')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-black text-red-500 hover:bg-red-400/10 transition-colors uppercase tracking-widest">
             <span className="material-symbols-outlined text-lg">logout</span>Cerrar Sesión
           </button>
         </div>
@@ -96,12 +100,17 @@ export default function DashboardLayout({ children }) {
           </div>
           
           <div className="flex items-center gap-6">
-            <Link href="/dashboard/logbook/new" className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-600/20 transition-all flex items-center gap-2 active:scale-95">
+            <Link href="/dashboard/logbook/new" className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95">
               <span className="material-symbols-outlined text-sm">add_circle</span> Nueva Operación
             </Link>
-            <div className="hidden md:block text-right border-l border-slate-100 pl-6">
-               <p className="text-[10px] font-black text-slate-900 leading-none">{data.profile?.full_name}</p>
-               <p className="text-[8px] font-bold text-orange-500 uppercase mt-1 tracking-tighter">{data.profile?.role?.replace('_', ' ')}</p>
+            <div className="hidden md:flex items-center gap-3 border-l border-slate-100 pl-6">
+               <div className="text-right">
+                  <p className="text-[10px] font-black text-slate-900 leading-none">{data.profile?.full_name}</p>
+                  <p className="text-[8px] font-bold text-orange-500 uppercase mt-1">{data.profile?.role?.replace('_', ' ')}</p>
+               </div>
+               <div className="size-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-slate-400 text-xl">person</span>
+               </div>
             </div>
           </div>
         </header>

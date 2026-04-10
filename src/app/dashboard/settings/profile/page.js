@@ -26,12 +26,37 @@ useEffect(() => {
 }, []);
 
     const handleUpdate = async (e) => {
-        e.preventDefault();
-        setUpdating(true);
-        const { error } = await supabase.from('profiles').update(profile).eq('id', profile.id);
-        if (!error) alert("✅ Perfil Actualizado");
+    e.preventDefault();
+    setUpdating(true);
+    try {
+        // Extraemos solo los campos que pertenecen a la tabla 'profiles'
+        const updateData = {
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+            full_name: `${profile.first_name} ${profile.last_name}`,
+            phone: profile.phone,
+            city: profile.city,
+            address: profile.address,
+            license_number: profile.license_number,
+            medical_expiry: profile.medical_expiry,
+            avatar_url: profile.avatar_url,
+            emergency_contact_name: profile.emergency_contact_name,
+            emergency_contact_phone: profile.emergency_contact_phone
+        };
+
+        const { error } = await supabase
+            .from('profiles')
+            .update(updateData)
+            .eq('id', profile.id);
+
+        if (error) throw error;
+        alert("✅ Expediente guardado exitosamente");
+    } catch (err) {
+        alert("⚠️ Error al guardar: " + err.message);
+    } finally {
         setUpdating(false);
-    };
+    }
+};
 
     if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">CARGANDO EXPEDIENTE...</div>;
 

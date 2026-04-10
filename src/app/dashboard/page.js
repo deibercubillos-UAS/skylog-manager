@@ -43,8 +43,11 @@ export default function DashboardPage() {
                             return (
                                 <div key={i} className="flex-1 flex flex-col items-center gap-4 group relative">
                                     <div 
-                                        className="w-full max-w-[40px] bg-orange-500/10 border-t-4 border-orange-500 rounded-t-xl transition-all duration-1000 ease-out group-hover:bg-orange-600/30"
-                                        style={{ height: m.count > 0 ? `${barHeight}%` : '4px' }}
+                                        className="w-full max-w-[45px] bg-orange-500/10 border-t-4 border-orange-500 rounded-t-xl transition-all duration-1000 ease-out group-hover:bg-orange-600/40 animate-grow-up"
+                                        style={{ 
+                                            height: m.count > 0 ? `${(m.count / maxVal) * 100}%` : '4px',
+                                            transformOrigin: 'bottom' 
+                                        }}
                                     ></div>
                                     <span className="text-[9px] font-black text-slate-400 uppercase">{m.label}</span>
                                     {m.count > 0 && (
@@ -101,19 +104,18 @@ export default function DashboardPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {data?.recentActivity?.length > 0 ? data.recentActivity.map(f => (
-                                <tr key={f.id} className="hover:bg-slate-50 transition-all group">
-                                    <td className="px-8 py-6 text-xs font-black font-mono text-orange-600">{f.flight_number || 'N/A'}</td>
-                                    <td className="px-8 py-6 text-xs font-bold text-slate-700">{f.pilots?.name || 'No asignado'}</td>
-                                    <td className="px-8 py-6 text-[10px] font-black uppercase text-slate-400">{f.aircraft?.model || 'N/R'}</td>
-                                    <td className="px-8 py-6 text-right">
-                                        <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">Registrado</span>
-                                    </td>
-                                </tr>
-                            )) : (
-                                <tr><td colSpan="4" className="p-10 text-center text-slate-400 text-xs italic font-bold">Sin actividad registrada.</td></tr>
-                            )}
-                        </tbody>
+    {data?.recentActivity?.map(f => (
+        <tr key={f.id} className="hover:bg-slate-50 transition-all group">
+            <td className="px-8 py-6 text-xs font-black font-mono text-orange-600">{f.flight_number || 'N/A'}</td>
+            {/* AQUÍ ESTÁN LOS DATOS QUE FALTABAN */}
+            <td className="px-8 py-6 text-xs font-bold text-slate-700">{f.pilots?.name || 'No registrado'}</td>
+            <td className="px-8 py-6 text-[10px] font-black uppercase text-slate-400">{f.aircraft?.model || 'Desconocido'}</td>
+            <td className="px-8 py-6 text-right">
+                <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase border border-emerald-100">Registrado</span>
+            </td>
+        </tr>
+    ))}
+</tbody>
                     </table>
                 </div>
             </div>

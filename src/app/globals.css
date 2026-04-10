@@ -28,3 +28,11 @@ body {
 html {
   scroll-behavior: smooth;
 }
+
+@keyframes grow-up {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+.animate-grow-up {
+  animation: grow-up 1s ease-out forwards;
+}

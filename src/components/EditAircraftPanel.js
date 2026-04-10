@@ -16,7 +16,7 @@ export default function EditAircraftPanel({ aircraft, onClose, onSuccess }) {
       serial_number: form.serial_number,
       ruas: form.ruas,
       image_url: form.image_url,
-      total_hours: form.total_hours
+      total_hours: parseFloat(form.total_hours) // <--- ESTO ES VITAL
     }).eq('id', aircraft.id);
 
     if (!error) onSuccess();
@@ -43,8 +43,18 @@ export default function EditAircraftPanel({ aircraft, onClose, onSuccess }) {
         </div>
 
         <div>
-          <label className="text-[10px] font-black uppercase text-slate-400">Número de Serie</label>
-          <input required className="w-full p-3 bg-slate-50 rounded-xl border-none font-mono text-sm mt-1 uppercase" value={form.serial_number} onChange={e => setForm({...form, serial_number: e.target.value})} />
+          <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Ajustar Horas Totales</label>
+          <div className="relative mt-1">
+            <input 
+              type="number" 
+              step="0.1" 
+              className="w-full p-3 bg-slate-50 rounded-xl border-none font-black text-lg text-orange-600 pr-12" 
+              value={form.total_hours} 
+              onChange={e => setForm({...form, total_hours: e.target.value})} 
+            />
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">HRS</span>
+          </div>
+          <p className="text-[8px] text-slate-400 mt-1 uppercase ml-1">Modificación manual para corrección de bitácora</p>
         </div>
 
         <button disabled={loading} className="w-full py-4 bg-orange-600 text-white font-black rounded-xl uppercase text-xs shadow-lg mt-6">

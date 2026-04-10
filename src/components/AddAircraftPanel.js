@@ -5,7 +5,8 @@ import FileUpload from './FileUpload';
 
 export default function AddAircraftPanel({ onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ brand: '', model: '', serial_number: '', ruas: '', image_url: '' });
+  const [form, setForm] = useState({ brand: '', model: '', serial_number: '', ruas: '', image_url: '', total_hours: 0 });
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,6 +49,18 @@ export default function AddAircraftPanel({ onClose, onSuccess }) {
           <label className="text-[10px] font-black uppercase text-slate-400">S/N y RUAS</label>
           <input required className="w-full p-3 bg-slate-50 rounded-xl border-none font-mono text-sm mt-1 uppercase" placeholder="Número de Serie" onChange={e => setForm({...form, serial_number: e.target.value})} />
           <input className="w-full p-3 bg-white border-2 border-orange-100 rounded-xl font-bold text-sm mt-2 text-orange-600" placeholder="Registro RUAS (Opcional)" onChange={e => setForm({...form, ruas: e.target.value})} />
+        </div>
+
+        <div>
+          <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Horas Iniciales (T.T)</label>
+          <input 
+            type="number" 
+            step="0.1" 
+            className="w-full p-3 bg-white border-2 border-slate-100 rounded-xl font-black text-orange-600 mt-1" 
+            placeholder="0.0" 
+            onChange={e => setForm({...form, total_hours: e.target.value})} 
+          />
+          <p className="text-[8px] text-slate-400 mt-1 uppercase ml-1">Tiempo de vuelo acumulado hasta hoy</p>
         </div>
 
         <button disabled={loading} className="w-full py-4 bg-orange-600 text-white font-black rounded-xl uppercase text-xs shadow-lg mt-6">

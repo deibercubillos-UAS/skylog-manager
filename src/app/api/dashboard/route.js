@@ -21,38 +21,34 @@ export async function GET() {
                 .order('flight_date', { ascending: false })
         ]);
 
-        // --- NUEVA LÓGICA DE GRÁFICO: ÚLTIMAS 7 ENTRADAS ---
-        // Esto asegura que el gráfico SIEMPRE tenga barras si hay datos
-        const lastFlights = flightsRes.data?.slice(0, 7).reverse() || [];
-        const chartData = lastFlights.map(f => ({
-            label: f.flight_date?.slice(5) || '---', // Muestra MM-DD
-            count: 1 // Cada barra es un vuelo
-        }));
+        // --- LÓGICA DE GRÁFICO POR MESES ---
+        const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        const chartData = [];
+        const now = new Date();
 
-        // Si hay pocos vuelos, rellenamos con vacíos para no romper la estética
-        while (chartData.length < 7) {
-            chartData.unshift({ label: '---', count: 0 });
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const mIdx = d.getMonth();
+            const year = d.getFullYear();
+
+            // Filtrado por coincidencia de Mes y Año
+            const count = flightsRes.data?.filter(f => {
+                if (!f.flight_date) return false;
+                const fDate = new Date(f.flight_date + 'T00:00:00'); // Forzamos ISO local
+                return fDate.getMonth() === mIdx && fDate.getFullYear() === year;
+            }).length || 0;
+
+            chartData.push({ label: monthNames[mIdx], count });
         }
-
-        // --- LÓGICA DE ALERTAS ---
-        const alerts = [];
-        const today = new Date().toISOString().split('T')[0];
-        pilotsRes.data?.forEach(p => {
-            if (p.medical_expiry && p.medical_expiry < today) {
-                alerts.push({ type: 'CRÍTICO', msg: `MÉDICO VENCIDO: ${p.name}`, val: p.medical_expiry });
-            }
-        });
 
         return NextResponse.json({
             stats: {
                 hours: aircraftRes.data?.reduce((acc, a) => acc + (parseFloat(a.total_hours) || 0), 0).toFixed(1) || "0.0",
                 fleetCount: aircraftRes.data?.length || 0,
                 pilotCount: pilotsRes.data?.length || 0,
-                alertsCount: alerts.length,
-                totalFlights: flightsRes.data?.length || 0 // <--- DATO NUEVO
+                totalFlights: flightsRes.data?.length || 0
             },
             chart: chartData,
-            alerts: alerts,
             recentActivity: flightsRes.data?.slice(0, 5) || []
         });
 

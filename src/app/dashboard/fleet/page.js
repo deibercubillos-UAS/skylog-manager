@@ -53,7 +53,7 @@ export default function FleetPage() {
           </div>
           <button onClick={() => setActivePanel('drone')} className="bg-[#1A202C] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg">+ Nuevo Drone</button>
         </header>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
           {drones.map(d => (
             <AircraftCard key={d.id} aircraft={d} onEdit={setEditingDrone} onDelete={(id) => handleDelete(id, 'aircraft')} />
           ))}
@@ -69,7 +69,7 @@ export default function FleetPage() {
           </div>
           <button onClick={() => setActivePanel('battery')} className="bg-[#1A202C] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg">+ Nueva Batería</button>
         </header>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {batteries.map(b => (
             <BatteryCard key={b.id} battery={b} onEdit={() => {}} onDelete={(id) => handleDelete(id, 'batteries')} />
           ))}

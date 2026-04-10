@@ -67,31 +67,30 @@ export default function DashboardPage() {
     </div>
 </div>
                 {/* 3. ALERTAS DE COMPLIANCE */}
-                <div className="bg-[#1A202C] p-8 md:p-10 rounded-[2.5rem] shadow-2xl text-white flex flex-col h-[380px] md:h-[450px] border border-white/5">
-                    <h3 className="text-xs font-black uppercase text-orange-500 mb-8 tracking-widest flex items-center gap-2">
-                        <span className="material-symbols-outlined text-lg">gavel</span> Compliance
-                    </h3>
-                    <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1">
-                        {data?.alerts && data.alerts.length > 0 ? data.alerts.map((a, i) => (
-                            <div key={i} className="p-4 rounded-2xl border border-white/10 bg-white/5 flex items-start gap-4">
-                                <span className={`material-symbols-outlined text-sm ${a.type === 'CRÍTICO' ? 'text-red-500' : 'text-orange-500'}`}>
-                                    {a.type === 'CRÍTICO' ? 'report' : 'notification_important'}
-                                </span>
-                                <div>
-                                    <p className="text-[10px] font-black leading-tight uppercase">{a.msg}</p>
-                                    <p className="text-[9px] text-slate-500 font-bold mt-2 uppercase">{a.val}</p>
-                                </div>
-                            </div>
-                        )) : (
-                            <div className="h-full flex flex-col items-center justify-center opacity-20">
-                                <span className="material-symbols-outlined text-6xl">verified</span>
-                                <p className="text-[10px] font-black uppercase mt-4 tracking-widest text-center">Operación Segura</p>
-                            </div>
-                        )}
-                    </div>
+              <div className="bg-[#1A202C] p-8 md:p-10 rounded-[2.5rem] shadow-2xl text-white flex flex-col h-[400px] border border-white/5">
+    <h3 className="text-xs font-black uppercase text-orange-500 mb-8 tracking-widest flex items-center gap-2">
+        <span className="material-symbols-outlined text-lg">gavel</span> Compliance
+    </h3>
+    <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1">
+        {data?.alerts && data.alerts.length > 0 ? data.alerts.map((a, i) => (
+            <div key={i} className={`p-4 rounded-2xl border flex items-start gap-4 transition-all hover:scale-[1.02] bg-white/5`} 
+                 style={{ borderColor: a.type === 'CRÍTICO' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(245, 158, 11, 0.4)' }}>
+                <span className="material-symbols-outlined text-sm" style={{ color: a.type === 'CRÍTICO' ? '#ef4444' : '#f59e0b' }}>
+                    {a.type === 'CRÍTICO' ? 'report' : 'notification_important'}
+                </span>
+                <div>
+                    <p className="text-[11px] font-black leading-tight uppercase tracking-tight">{a.msg}</p>
+                    <p className="text-[9px] text-slate-500 font-bold mt-2 uppercase">{a.val}</p>
                 </div>
             </div>
-
+        )) : (
+            <div className="h-full flex flex-col items-center justify-center opacity-20">
+                <span className="material-symbols-outlined text-6xl">verified</span>
+                <p className="text-[10px] font-black uppercase mt-4 tracking-widest text-center">Operación Segura</p>
+            </div>
+        )}
+    </div>
+</div>
             {/* 4. BITÁCORA RECIENTE (HIDDEN ON MOBILE) */}
             <div className="hidden md:block bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden text-left">
                 <div className="p-8 border-b flex justify-between items-center bg-slate-50/30">

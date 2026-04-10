@@ -1,21 +1,29 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-
+import FileUpload from '@/components/FileUpload';
 export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [profile, setProfile] = useState(null);
 
-    useEffect(() => {
-        async function getProfile() {
-            const { data: { user } } = await supabase.auth.getUser();
-            const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-            setProfile(data);
-            setLoading(false);
+    // REEMPLACE EL BLOQUE useEffect (Líneas 10 a 18 aprox) POR ESTE:
+useEffect(() => {
+    async function loadFullProfile() {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        // Traemos Perfil y Organización en una sola carga
+        const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        setProfile(prof);
+
+        if (prof?.organization_id) {
+            const { data: orgData } = await supabase.from('organizations').select('company_name, unique_code').eq('id', prof.organization_id).single();
+            setProfile(prev => ({ ...prev, company_name: orgData?.company_name, unique_code: orgData?.unique_code }));
         }
-        getProfile();
-    }, []);
+        setLoading(false);
+    }
+    loadFullProfile();
+}, []);
 
     const handleUpdate = async (e) => {
         e.preventDefault();
@@ -50,6 +58,13 @@ export default function ProfilePage() {
                             ) : (
                                 <span className="material-symbols-outlined text-5xl text-slate-300">person</span>
                             )}
+                        </div>
+                        <div className="mt-4 w-full">
+                            <FileUpload 
+                                path="crew/avatars" 
+                                label="Cambiar Foto de Perfil" 
+                                onUploadSuccess={(url) => setProfile({...profile, avatar_url: url})} 
+                            />
                         </div>
                         <h3 className="font-black text-slate-900 uppercase leading-tight">{profile.full_name}</h3>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{profile.email}</p>
@@ -89,6 +104,13 @@ export default function ProfilePage() {
                             <div className="space-y-1">
                                 <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Ciudad</label>
                                 <input className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={profile.city || ''} onChange={e => setProfile({...profile, city: e.target.value})} />
+                            </div>
+                            <div className="col-span-2 p-4 bg-orange-50 rounded-2xl border border-orange-100 mt-2">
+                                <p className="text-[9px] font-black text-orange-600 uppercase tracking-widest">Organización Actual</p>
+                                <div className="flex justify-between items-center mt-1">
+                                    <h3 className="text-sm font-black text-slate-900 uppercase">{profile.company_name || 'Individual'}</h3>
+                                    <span className="text-[10px] font-mono font-bold bg-white px-2 py-1 rounded border border-orange-200">ID: {profile.unique_code || '---'}</span>
+                                </div>
                             </div>
                         </div>
 

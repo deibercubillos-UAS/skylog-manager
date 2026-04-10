@@ -20,7 +20,7 @@ export default function DashboardPage() {
     return (
         <div className="space-y-10 animate-in fade-in duration-700 text-left pb-20">
             {/* KPIs PRINCIPALES */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
                 <KPICard title="Horas de Vuelo" value={`${data?.stats?.hours}h`} icon="timer" color="text-slate-900" />
                 <KPICard title="Flota Lista" value={data?.stats?.fleetCount} icon="precision_manufacturing" color="text-orange-500" />
                 <KPICard title="Tripulación" value={data?.stats?.pilotCount} icon="group" color="text-slate-900" />
@@ -77,12 +77,12 @@ export default function DashboardPage() {
 
 function KPICard({ title, value, icon, warning, color }) {
     return (
-        <div className={`bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col justify-between transition-all hover:-translate-y-1 ${warning ? 'ring-2 ring-red-500/30 bg-red-50/5' : ''}`}>
-            <div className="flex justify-between items-start mb-4">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">{title}</span>
-                <span className={`material-symbols-outlined ${warning ? 'text-red-500 animate-pulse' : 'text-orange-500'}`}>{icon}</span>
+        <div className={`bg-white p-4 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 shadow-sm flex flex-col justify-between transition-all hover:-translate-y-1 ${warning ? 'ring-2 ring-red-500/30 bg-red-50/5' : ''}`}>
+            <div className="flex justify-between items-start mb-2 md:mb-4">
+                <span className="text-[7px] md:text-[9px] font-black uppercase text-slate-400 tracking-widest leading-none">{title}</span>
+                <span className={`material-symbols-outlined text-sm md:text-2xl ${warning ? 'text-red-500 animate-pulse' : 'text-orange-500'}`}>{icon}</span>
             </div>
-            <span className={`text-4xl font-black tracking-tighter ${warning ? 'text-red-600' : color}`}>{value || 0}</span>
+            <span className={`text-xl md:text-4xl font-black tracking-tighter ${warning ? 'text-red-600' : color}`}>{value || 0}</span>
         </div>
     );
 }

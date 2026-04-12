@@ -1,55 +1,27 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClientSSR } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
 
-export async function GET(request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const authHeader = request.headers.get('Authorization');
+export const dynamic = 'force-dynamic';
 
-    if (!userId || !authHeader) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+export async function GET() {
+    try {
+        const supabase = await createClientSSR();
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
 
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } }
-    });
+        const { data, error } = await supabase
+            .from('flights')
+            .select(`
+                *,
+                pilots:pilot_id(name),
+                aircraft:aircraft_id(model, serial_number)
+            `)
+            .eq('organization_id', prof.organization_id)
+            .order('flight_date', { ascending: false });
 
-    const { data, error } = await supabase
-      .from('flights')
-      .select('*, pilots(name), aircraft(model, serial_number)')
-      .eq('owner_id', userId)
-      .order('flight_date', { ascending: false });
-
-    if (error) throw error;
-    return NextResponse.json(data);
-  } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
-}
-
-export async function POST(request) {
-  try {
-    const body = await request.json();
-    const authHeader = request.headers.get('Authorization');
-    const { userId, flightData } = body;
-
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    // Inserción incluyendo los detalles del checklist y SORA
-    const { data, error } = await supabase
-      .from('flights')
-      .insert([{ 
-        ...flightData, 
-        owner_id: userId,
-        created_at: new Date().toISOString()
-      }])
-      .select();
-
-    if (error) throw error;
-    
-    return NextResponse.json({ message: "Vuelo autorizado y registrado", data: data[0] }, { status: 201 });
-  } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
+        if (error) throw error;
+        return NextResponse.json(data || []);
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
 }

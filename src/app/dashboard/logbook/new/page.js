@@ -91,11 +91,12 @@ export default function NewOperationPage() {
 
             // INSERCIÓN CORREGIDA: Incluyendo mission_id
             const { data: flight, error: fErr } = await supabase.from('flights').insert([{ 
-                ...form,
+                ...form, // contiene battery_id, takeoff_time, etc.
+                auth_id: selectedAuth.id, 
                 pilot_id: selectedAuth.pilot_id, 
                 aircraft_id: selectedAuth.aircraft_id, 
                 location: selectedAuth.location, 
-                mission_id: selectedAuth.mission_id, // <--- AHORA SÍ EXISTIRÁ EN LA DB
+                mission_id: selectedAuth.mission_id, // <--- ESTO ASEGURA QUE APAREZCA EN LA BITÁCORA
                 flight_date: new Date().toISOString().split('T')[0], 
                 organization_id: selectedAuth.organization_id, 
                 owner_id: user.id 

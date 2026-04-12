@@ -45,39 +45,51 @@ export default function FinalizeFlightPage() {
     };
 
     const handleCloseFlight = async (e) => {
-        e.preventDefault();
-        if (!form.landing_time) return alert("Por favor ingrese la hora de aterrizaje.");
-        
-        setSaving(true);
-        try {
-            // Cálculo de duración (Horas decimales)
-            const t1 = selectedFlight.takeoff_time;
-            const t2 = form.landing_time;
-            const [h1, m1] = t1.split(':').map(Number);
-            const [h2, m2] = t2.split(':').map(Number);
-            let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-            if (diff < 0) diff += 1440; // Manejo de cruce de medianoche
-            const totalHours = (diff / 60).toFixed(2);
+    e.preventDefault();
+    if (!form.landing_time || !selectedFlight) return alert("Faltan datos");
+    
+    setSaving(true);
+    try {
+        // 1. Cálculo de duración precisa
+        const [h1, m1] = selectedFlight.takeoff_time.split(':').map(Number);
+        const [h2, m2] = form.landing_time.split(':').map(Number);
+        let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+        if (diff < 0) diff += 1440; 
+        const duration = parseFloat((diff / 60).toFixed(2));
 
-            const { error } = await supabase.from('flights').update({
-                landing_time: form.landing_time,
-                safety_report: form.safety_report,
-                notes: form.notes,
-                total_time: parseFloat(totalHours)
-            }).eq('id', form.flight_id);
+        // 2. Actualizar el registro del vuelo
+        const { error: logError } = await supabase.from('flights').update({
+            landing_time: form.landing_time,
+            safety_report: form.safety_report,
+            notes: form.notes,
+            total_time: duration
+        }).eq('id', form.flight_id);
 
-            if (!error) {
-                // Actualizar horas totales del drone automáticamente
-                const newTotal = parseFloat(selectedFlight.aircraft.total_hours || 0) + parseFloat(totalHours);
-                await supabase.from('aircraft').update({ total_hours: newTotal }).eq('id', selectedFlight.aircraft_id);
+        if (logError) throw logError;
 
-                alert("✅ BITÁCORA CERRADA\nDuración del vuelo: " + totalHours + " horas.");
-                router.push('/dashboard/logbook');
-            }
-        } catch (err) {
-            alert("Error al cerrar: " + err.message);
-        } finally { setSaving(false); }
-    };
+        // 3. ACTUALIZAR HORAS DE LA FLOTA (Corrección de lógica)
+        // Obtenemos las horas actuales del drone directamente para evitar desfases
+        const { data: droneData } = await supabase
+            .from('aircraft')
+            .select('total_hours')
+            .eq('id', selectedFlight.aircraft_id)
+            .single();
+
+        const currentDroneHours = parseFloat(droneData?.total_hours || 0);
+        const { error: airError } = await supabase
+            .from('aircraft')
+            .update({ total_hours: currentDroneHours + duration })
+            .eq('id', selectedFlight.aircraft_id);
+
+        if (airError) throw airError;
+
+        alert("✅ OPERACIÓN FINALIZADA\nID: " + selectedFlight.mission_id + "\nTiempo: " + duration + " horas.");
+        router.push('/dashboard/logbook');
+
+    } catch (err) {
+        alert("⚠️ Error de Sincronización: " + err.message);
+    } finally { setSaving(false); }
+};
 
     if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">LOCALIZANDO AERONAVE...</div>;
 

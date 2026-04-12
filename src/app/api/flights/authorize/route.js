@@ -34,9 +34,24 @@ export async function PATCH(request) {
     try {
         const supabase = await createClientSSR();
         const body = await request.json();
-        const { id, ...updateData } = body;
-        const { data, error } = await supabase.from('flight_authorizations').update(updateData).eq('id', id).select();
+        const { id, pilot_id, aircraft_id, location, scheduled_at, mission_type } = body;
+
+        const { data, error } = await supabase
+            .from('flight_authorizations')
+            .update({
+                pilot_id,
+                aircraft_id,
+                location,
+                scheduled_at,
+                mission_type,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id)
+            .select();
+
         if (error) throw error;
         return NextResponse.json(data[0]);
-    } catch (err) { return NextResponse.json({ error: err.message }, { status: 500 }); }
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
 }

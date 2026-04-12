@@ -178,15 +178,18 @@ export default function MissionControlPage() {
                     </tbody>
                 </table>
             </div>
-       {editingMission && (
+       {editingMission && missions.length > 0 && (
+    <div className="fixed inset-0 z-[200] flex justify-end">
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setEditingMission(null)} />
         <EditAuthorizationPanel 
             mission={editingMission} 
             pilots={pilots} 
             drones={drones} 
             onClose={() => setEditingMission(null)} 
-            onSuccess={() => { setEditingMission(null); loadData(); }} 
+            onSuccess={() => { 
+                setEditingMission(null); 
+                loadData(); 
+            }} 
         />
-    )}
-        </div>
-    );
-}
+    </div>
+)}

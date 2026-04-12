@@ -40,13 +40,40 @@ export default function MissionControlPage() {
             setDrones(dRes.data || []);
             setOrg(oRes.data);
         } catch (err) {
-            console.error("Error en Torre de Control:", err);
+            console.error("Error cargando Torre de Control:", err);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => { loadData(); }, []);
+
+    // --- LÓGICA DE VALIDACIÓN TÉCNICA (SEMÁFORO) ---
+    const getPilotStatus = () => {
+        const p = pilots.find(x => x.id === form.pilot_id);
+        if (!p || !p.medical_expiry) return null;
+        const today = new Date();
+        const expiry = new Date(p.medical_expiry);
+        const diff = (expiry - today) / (1000 * 60 * 60 * 24);
+        if (diff < 0) return { type: 'ERROR', msg: 'MÉDICO VENCIDO' };
+        if (diff < 30) return { type: 'WARN', msg: `VENCE EN ${Math.round(diff)} DÍAS` };
+        return { type: 'OK', msg: 'APTO PARA OPERACIÓN' };
+    };
+
+    const getDroneStatus = () => {
+        const d = drones.find(x => x.id === form.aircraft_id);
+        if (!d) return null;
+        const currentHours = parseFloat(d.total_hours || 0);
+        const lastHours = parseFloat(d.last_maintenance_hours || 0);
+        const hoursUsed = currentHours - lastHours;
+        const remaining = 200 - hoursUsed;
+        if (remaining <= 0) return { type: 'ERROR', msg: 'MANTENIMIENTO REQUERIDO' };
+        if (remaining <= 20) return { type: 'WARN', msg: `${remaining.toFixed(1)}H PARA SERVICIO` };
+        return { type: 'OK', msg: 'AERONAVE OPERATIVA' };
+    };
+
+    const pStatus = getPilotStatus();
+    const dStatus = getDroneStatus();
 
     const updatePrefix = async (val) => {
         const newPrefix = val.toUpperCase().substring(0, 3);
@@ -56,6 +83,7 @@ export default function MissionControlPage() {
 
     const handleAuthorize = async (e) => {
         e.preventDefault();
+        if (pStatus?.type === 'ERROR' || dStatus?.type === 'ERROR') return alert("🚫 BLOQUEO: Elementos vencidos");
         setSaving(true);
         try {
             const res = await fetch('/api/flights/authorize', {
@@ -68,8 +96,6 @@ export default function MissionControlPage() {
                 setForm({ pilot_id: '', aircraft_id: '', location: '', scheduled_at: '', mission_type: 'Operación Comercial' });
                 loadData();
             }
-        } catch (err) {
-            alert("Error de conexión");
         } finally {
             setSaving(false);
         }
@@ -80,55 +106,71 @@ export default function MissionControlPage() {
         loadData();
     };
 
-    if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">ABRIENDO FRECUENCIA...</div>;
+    if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400 uppercase">Estableciendo Frecuencia...</div>;
 
     return (
         <div className="max-w-6xl mx-auto space-y-8 text-left pb-20 animate-in fade-in duration-500">
             <header className="flex justify-between items-center">
-                <h2 className="text-3xl font-black uppercase tracking-tighter">Programación</h2>
+                <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Programación</h2>
                 <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border shadow-sm">
                     <span className="text-[9px] font-black text-slate-400 uppercase">Prefijo:</span>
-                    <input className="w-16 p-1 text-center font-black bg-slate-100 rounded-lg text-orange-600 uppercase border-none focus:ring-2 focus:ring-orange-500" 
+                    <input className="w-16 p-1 text-center font-black bg-slate-50 rounded-lg text-orange-600 uppercase border-none focus:ring-2 focus:ring-orange-500" 
                            value={org?.flight_prefix || ''} onChange={(e) => updatePrefix(e.target.value)} />
                 </div>
             </header>
 
-            {/* FORMULARIO DE AUTORIZACIÓN */}
-            <section className="bg-[#1A202C] p-8 rounded-[3rem] text-white shadow-2xl">
-                <form onSubmit={handleAuthorize} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+            {/* PANEL DE MANDO CENTRAL (ESTILO OSCURO RECOBRADO) */}
+            <section className="bg-[#1A202C] p-10 rounded-[3rem] text-white shadow-2xl space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className={`p-4 rounded-2xl border transition-all ${!pStatus ? 'border-white/10' : pStatus.type === 'ERROR' ? 'bg-red-500/20 border-red-500' : pStatus.type === 'WARN' ? 'bg-orange-500/20 border-orange-500' : 'bg-emerald-500/10 border-emerald-500/30'}`}>
+                        <p className="text-[8px] font-black uppercase text-slate-500">Estatus Piloto</p>
+                        <p className="text-[10px] font-bold mt-1 uppercase">{pStatus ? pStatus.msg : 'Seleccione PIC'}</p>
+                    </div>
+                    <div className={`p-4 rounded-2xl border transition-all ${!dStatus ? 'border-white/10' : dStatus.type === 'ERROR' ? 'bg-red-500/20 border-red-500' : dStatus.type === 'WARN' ? 'bg-orange-500/20 border-orange-500' : 'bg-emerald-500/10 border-emerald-500/30'}`}>
+                        <p className="text-[8px] font-black uppercase text-slate-500">Estatus Aeronave</p>
+                        <p className="text-[10px] font-bold mt-1 uppercase">{dStatus ? dStatus.msg : 'Seleccione UAS'}</p>
+                    </div>
+                </div>
+
+                <form onSubmit={handleAuthorize} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase">Piloto</label>
-                        <select required className="w-full bg-slate-800 p-3 rounded-xl border-none text-white text-xs" value={form.pilot_id} onChange={e => setForm({...form, pilot_id: e.target.value})}>
-                            <option value="">PIC...</option>
+                        <label className="text-[9px] font-black text-slate-500 uppercase">PIC (Piloto al Mando)</label>
+                        <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.pilot_id} onChange={e => setForm({...form, pilot_id: e.target.value})}>
+                            <option value="">Seleccionar...</option>
                             {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                     </div>
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase">Drone</label>
-                        <select required className="w-full bg-slate-800 p-3 rounded-xl border-none text-white text-xs" value={form.aircraft_id} onChange={e => setForm({...form, aircraft_id: e.target.value})}>
-                            <option value="">UAS...</option>
-                            {drones.map(d => <option key={d.id} value={d.id}>{d.model}</option>)}
+                        <label className="text-[9px] font-black text-slate-500 uppercase">UAS (Aeronave)</label>
+                        <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.aircraft_id} onChange={e => setForm({...form, aircraft_id: e.target.value})}>
+                            <option value="">Seleccionar...</option>
+                            {drones.map(d => <option key={d.id} value={d.id}>{d.model} ({d.serial_number})</option>)}
                         </select>
                     </div>
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase">Lugar</label>
-                        <input required className="w-full bg-slate-800 p-3 rounded-xl border-none text-white text-xs" placeholder="Zona G" value={form.location} onChange={e => setForm({...form, location: e.target.value})} />
+                        <label className="text-[9px] font-black text-slate-500 uppercase">Tipo de Misión</label>
+                        <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.mission_type} onChange={e => setForm({...form, mission_type: e.target.value})}>
+                            <option value="Operación Comercial">Operación Comercial</option>
+                            <option value="Inspección Técnica">Inspección Técnica</option>
+                            <option value="Entrenamiento">Entrenamiento</option>
+                            <option value="Búsqueda y Rescate">Búsqueda y Rescate</option>
+                        </select>
                     </div>
-                    <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase">Fecha</label>
-                        <input required type="date" className="w-full bg-slate-800 p-3 rounded-xl border-none text-white text-xs font-bold" value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})} />
+                    <div className="md:col-span-2 grid grid-cols-2 gap-4">
+                        <input required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" placeholder="Lugar de Operación" value={form.location} onChange={e => setForm({...form, location: e.target.value})} />
+                        <input required type="date" className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})} />
                     </div>
-                    <button type="submit" disabled={saving} className="bg-orange-600 hover:bg-orange-700 text-white p-3 rounded-xl font-black text-[10px] shadow-lg transition-all active:scale-95">
-                        {saving ? '...' : 'AUTORIZAR'}
+                    <button type="submit" disabled={saving} className="bg-orange-600 hover:bg-orange-700 text-white p-4 rounded-2xl font-black uppercase text-xs shadow-xl transition-all active:scale-95">
+                        {saving ? '...' : 'EMITIR ORDEN'}
                     </button>
                 </form>
             </section>
 
-            {/* TABLA DE MISIONES */}
+            {/* TABLA DE ÓRDENES (RECOBRADA) */}
             <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
                 <table className="w-full text-left">
                     <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
-                        <tr><th className="p-5">Misión</th><th className="p-5">PIC / UAS</th><th className="p-5">Estado</th><th className="p-5 text-right">Acción</th></tr>
+                        <tr><th className="p-5">Orden</th><th className="p-5">Tripulación / Equipo</th><th className="p-5">Estado</th><th className="p-5 text-right">Acción</th></tr>
                     </thead>
                     <tbody className="divide-y text-sm">
                         {missions.map(m => (
@@ -142,8 +184,8 @@ export default function MissionControlPage() {
                                 </td>
                                 <td className="p-5 text-right space-x-2">
                                     <button onClick={() => setEditingMission(m)} className="material-symbols-outlined text-slate-300 hover:text-orange-600 transition-colors">edit_square</button>
-                                    <button onClick={() => updateStatus(m.id, 'realizado')} className="material-symbols-outlined text-emerald-500 hover:scale-110 transition-all">check_circle</button>
-                                    <button onClick={() => updateStatus(m.id, 'cancelado')} className="material-symbols-outlined text-red-400 hover:scale-110 transition-all">cancel</button>
+                                    <button onClick={() => updateStatus(m.id, 'realizado')} title="Marcar Realizado" className="material-symbols-outlined text-emerald-500 hover:scale-110 transition-all">check_circle</button>
+                                    <button onClick={() => updateStatus(m.id, 'cancelado')} title="Cancelar" className="material-symbols-outlined text-red-400 hover:scale-110 transition-all">cancel</button>
                                 </td>
                             </tr>
                         ))}
@@ -151,7 +193,7 @@ export default function MissionControlPage() {
                 </table>
             </div>
 
-            {/* MODAL DE EDICIÓN CON OVERLAY INTEGRADO */}
+            {/* PANEL DE EDICIÓN */}
             {editingMission && (
                 <div className="fixed inset-0 z-[200] flex justify-end">
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setEditingMission(null)} />
@@ -160,10 +202,7 @@ export default function MissionControlPage() {
                         pilots={pilots} 
                         drones={drones} 
                         onClose={() => setEditingMission(null)} 
-                        onSuccess={() => { 
-                            setEditingMission(null); 
-                            loadData(); 
-                        }} 
+                        onSuccess={() => { setEditingMission(null); loadData(); }} 
                     />
                 </div>
             )}

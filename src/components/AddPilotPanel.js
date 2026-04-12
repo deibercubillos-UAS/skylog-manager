@@ -78,6 +78,22 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
             </div>
         </div>
 
+        <div>
+          <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Cargo Operativo en la Empresa</label>
+          <select 
+              required 
+              className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm mt-1 outline-none focus:ring-2 focus:ring-orange-500" 
+              value={form.pilot_role} 
+              onChange={e => setForm({...form, pilot_role: e.target.value})}
+          >
+              <option value="Piloto">Piloto Estándar</option>
+              <option value="Jefe de Pilotos">Jefe de Pilotos</option>
+              <option value="Gerente SMS">Gerente SMS</option>
+              <option value="Gerente General">Gerente General</option>
+          </select>
+          <p className="text-[8px] text-slate-400 mt-1 uppercase ml-1 italic">Define el nivel de responsabilidad en la organización</p>
+      </div>
+
         {/* DOCUMENTOS */}
         <div className="space-y-3">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Documentación Adjunta (PDF/JPG)</p>

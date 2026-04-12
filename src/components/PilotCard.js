@@ -17,8 +17,13 @@ export default function PilotCard({ pilot, canManage, onEdit, onDelete }) {
       </div>
 
       <div>
-        <h4 className="font-black text-slate-800 uppercase text-sm">{pilot.name}</h4>
-        <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">{pilot.pilot_role || 'Piloto'}</p>
+          <h4 className="font-black text-slate-800 uppercase text-sm leading-tight">{pilot.name}</h4>
+          <div className="flex items-center gap-2 mt-1">
+              <span className="size-1.5 rounded-full bg-orange-600 animate-pulse"></span>
+              <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">
+                  {pilot.pilot_role || 'Piloto'}
+              </p>
+          </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 border-t pt-4">

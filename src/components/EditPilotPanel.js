@@ -102,6 +102,20 @@ export default function EditPilotPanel({ pilot, onClose, onSuccess }) {
             </div>
         </div>
 
+        <div className="space-y-1 mt-4">
+          <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Cargo / Responsabilidad</label>
+          <select 
+              className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm text-orange-600 outline-none focus:ring-2 focus:ring-orange-500" 
+              value={form.pilot_role || 'Piloto'} 
+              onChange={e => setForm({...form, pilot_role: e.target.value})}
+          >
+              <option value="Piloto">Piloto Estándar</option>
+              <option value="Jefe de Pilotos">Jefe de Pilotos</option>
+              <option value="Gerente SMS">Gerente SMS</option>
+              <option value="Gerente General">Gerente General</option>
+          </select>
+      </div>
+
         {/* SECCIÓN 4: GESTIÓN DOCUMENTAL */}
         <div className="space-y-3">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Actualizar Documentos (PDF/JPG)</p>

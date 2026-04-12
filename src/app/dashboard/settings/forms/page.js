@@ -85,8 +85,18 @@ export default function FormSettings() {
 
             <div className="flex flex-wrap gap-4 items-center justify-between">
                 <div className="flex bg-slate-100 p-1 rounded-2xl">
-                    {['health', 'briefing', 'preflight'].map(t => (
-                        <button key={t} onClick={() => setType(t)} className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${type === t ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-400'}`}>{t}</button>
+                    {[
+                        { id: 'health', label: 'SALUD' },
+                        { id: 'preflight', label: 'PRE-VUELO' },
+                        { id: 'briefing', label: 'BRIEFING' }
+                    ].map(t => (
+                        <button 
+                            key={t.id} 
+                            onClick={() => setType(t.id)} 
+                            className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${type === t.id ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                        >
+                            {t.label}
+                        </button>
                     ))}
                 </div>
 

@@ -12,7 +12,8 @@ export default function NewOperationPage() {
     const [resources, setResources] = useState({ auths: [], batteries: [] });
     const [healthDone, setHealthDone] = useState(false);
     const [healthEnabled, setHealthEnabled] = useState(true);
-    
+    const stepNames = {data: 'OPERATIVA', health: 'SALUD', preflight: 'PRE-VUELO', briefing: 'BRIEFING'};
+
     // FLUJO: data -> health -> preflight -> briefing
     const [step, setStep] = useState('data'); 
     const [dynamicLabels, setDynamicLabels] = useState([]);
@@ -144,7 +145,13 @@ export default function NewOperationPage() {
             <header className="h-20 bg-white border-b flex items-center justify-between px-6 shrink-0">
                 <div className="flex items-center gap-4">
                     <div className="size-10 bg-orange-600 rounded-xl flex items-center justify-center text-white font-black">B</div>
-                    <h2 className="text-sm font-black uppercase">Protocolo de Despacho</h2>
+                    <div className="text-left">
+                        <h2 className="text-sm font-black uppercase leading-none">Protocolo de Despacho</h2>
+                        {/* Esta es la línea que inyecta el nombre en español */}
+                        <p className="text-[10px] font-bold text-orange-600 uppercase mt-1">
+                            Fase: {stepNames[step]}
+                        </p>
+                    </div>
                 </div>
                 <button onClick={() => router.back()} className="material-symbols-outlined text-slate-400">close</button>
             </header>
@@ -182,7 +189,7 @@ export default function NewOperationPage() {
                     {step !== 'data' && (
                         <div className="space-y-8 animate-in slide-in-from-right">
                             <div className="flex justify-between items-center">
-                                <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-800">Validación: {step.toUpperCase()}</h3>
+                                <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-800">VALIDACIÓN: {stepNames[step]}</h3>
                                 <button onClick={() => setStep('data')} className="text-[10px] font-black text-slate-400 uppercase underline">Corregir Datos</button>
                             </div>
                             
@@ -196,7 +203,9 @@ export default function NewOperationPage() {
                                 <button onClick={() => setShowCancelModal(true)} className="flex-1 py-5 bg-red-50 text-red-600 rounded-[2rem] font-black uppercase text-xs border border-red-100">Vuelo Cancelado</button>
                                 
                                 {step !== 'briefing' ? (
-                                    <button onClick={handleNextStep} className="flex-[2] py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs shadow-xl">Siguiente Protocolo</button>
+                                    <button onClick={handleNextStep} className="flex-[2] py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs shadow-xl">
+                                        SIGUIENTE: {step === 'health' ? 'PRE-VUELO' : 'BRIEFING'}
+                                    </button>
                                 ) : (
                                     <button 
                                         disabled={!dynamicLabels.every(l => checks.briefing[l.field_number] === true) || saving}

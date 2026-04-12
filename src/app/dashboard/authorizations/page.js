@@ -9,6 +9,7 @@ export default function MissionControlPage() {
     const [org, setOrg] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [editingMission, setEditingMission] = useState(null);
     
     // FORMULARIO EXTENDIDO
     const [form, setForm] = useState({ 
@@ -160,12 +161,32 @@ export default function MissionControlPage() {
                                 <td className="p-5 font-black text-orange-600 font-mono">{m.mission_id}</td>
                                 <td className="p-5"><b>{m.pilots?.name}</b><br/><span className="text-[10px] text-slate-400 uppercase">{m.aircraft?.model}</span></td>
                                 <td className="p-5 font-bold text-slate-500">{m.mission_type}</td>
-                                <td className="p-5"><span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${m.status === 'realizado' ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>{m.status}</span></td>
+                                <td className="p-5">
+                                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${m.status === 'realizado' ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>{m.status}</span>
+                                </td>
+                                {/* BOTÓN DE EDICIÓN */}
+                                <td className="p-5 text-right">
+                                    <button 
+                                        onClick={() => setEditingMission(m)}
+                                        className="material-symbols-outlined text-slate-300 hover:text-orange-600 transition-colors"
+                                    >
+                                        edit_square
+                                    </button>
+                                </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
+       {editingMission && (
+        <EditAuthorizationPanel 
+            mission={editingMission} 
+            pilots={pilots} 
+            drones={drones} 
+            onClose={() => setEditingMission(null)} 
+            onSuccess={() => { setEditingMission(null); loadData(); }} 
+        />
+    )}
         </div>
     );
 }

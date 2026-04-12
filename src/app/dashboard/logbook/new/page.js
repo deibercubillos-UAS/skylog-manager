@@ -91,16 +91,11 @@ export default function NewOperationPage() {
     const handleFinalize = async () => {
         setSaving(true);
         try {
-            const selectedAuth = resources.auths.find(a => a.id === form.auth_id);
             const { data: { user } } = await supabase.auth.getUser();
-            
-            // 1. Registro de Salud si aplica
-            if (!healthDone && activeTab === 'health') {
-                await supabase.from('daily_health_checks').insert([{ user_id: user.id, organization_id: selectedAuth.organization_id }]);
-            }
+            const selectedAuth = resources.auths.find(a => a.id === form.auth_id);
 
-            // 2. Registro de Vuelo Oficial
-            const { error: fErr } = await supabase.from('flights').insert([{
+            // 1. Crear el Vuelo principal
+            const { data: flight, error: fErr } = await supabase.from('flights').insert([{
                 ...form,
                 pilot_id: selectedAuth.pilot_id,
                 aircraft_id: selectedAuth.aircraft_id,
@@ -109,15 +104,25 @@ export default function NewOperationPage() {
                 flight_date: new Date().toISOString().split('T')[0],
                 organization_id: selectedAuth.organization_id,
                 owner_id: user.id
-            }]);
+            }]).select().single();
 
-            if (!fErr) {
-                await supabase.from('flight_authorizations').update({ status: 'realizado' }).eq('id', form.auth_id);
-                alert("🚀 DESPEGUE AUTORIZADO - Bitácora de vuelo iniciada.");
-                router.push('/dashboard/logbook');
-            }
+            if (fErr) throw fErr;
+
+            // 2. Guardar resultados en tablas independientes (Diferenciación lógica)
+            await Promise.all([
+                supabase.from('results_health').insert([{ flight_id: flight.id, checks: checks.health }]),
+                supabase.from('results_briefing').insert([{ flight_id: flight.id, checks: checks.checks_briefing }]), // Usar los nombres de su estado
+                supabase.from('results_preflight').insert([{ flight_id: flight.id, checks: checks.checks_preflight }])
+            ]);
+
+            // 3. Marcar autorización como realizada
+            await supabase.from('flight_authorizations').update({ status: 'realizado' }).eq('id', form.auth_id);
+            
+            alert("🚀 DESPEGUE AUTORIZADO");
+            router.push('/dashboard/logbook');
+
         } catch (err) {
-            alert("Error en despacho: " + err.message);
+            alert("Falla en despacho: " + err.message);
         } finally { setSaving(false); }
     };
 

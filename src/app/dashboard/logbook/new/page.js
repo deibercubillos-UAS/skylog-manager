@@ -50,21 +50,27 @@ export default function NewOperationPage() {
 
     // 2. CARGA DE ETIQUETAS DINÁMICAS SEGÚN EL TAB ACTIVO
     useEffect(() => {
-        async function loadLabels() {
+        async function loadDynamicLabels() {
+            if (!form.auth_id && activeTab === 'preflight') return;
+            
             const { data: { user } } = await supabase.auth.getUser();
             const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
             
-            const { data: defs } = await supabase
+            const selectedMission = resources.auths.find(a => a.id === form.auth_id);
+            const modelToFilter = (activeTab === 'preflight' && selectedMission) ? selectedMission.aircraft.model : 'General';
+
+            const { data } = await supabase
                 .from('form_definitions')
                 .select('*')
                 .eq('organization_id', prof.organization_id)
                 .eq('form_type', activeTab)
+                .eq('aircraft_model', modelToFilter)
                 .order('field_number', { ascending: true });
             
-            setDynamicLabels(defs || []);
+            setDynamicLabels(data || []);
         }
-        if (!loading) loadLabels();
-    }, [activeTab, loading]);
+        loadDynamicLabels();
+    }, [activeTab, form.auth_id, resources.auths]);
 
     // Lógica para marcar/desmarcar
     const handleCheck = (fieldNumber) => {

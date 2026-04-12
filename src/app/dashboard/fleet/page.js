@@ -46,7 +46,7 @@ export default function FleetPage() {
   useEffect(() => { fetchData(); }, []);
 
   if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">CARGANDO INVENTARIO...</div>;
-
+R
   return (
     <div className="space-y-16 text-left animate-in fade-in duration-500 pb-20">
       <section>

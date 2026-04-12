@@ -28,10 +28,21 @@ export default function NewOperationPage() {
                 const { data: { user } } = await supabase.auth.getUser();
                 const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
                 const [auths, batteries, health] = await Promise.all([
-                    supabase.from('flight_authorizations').select('*, pilots:pilot_id(name), aircraft:aircraft_id(model)').eq('organization_id', prof.organization_id).eq('status', 'pendiente'),
-                    supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).eq('status', 'Operativo'),
-                    supabase.from('daily_health_checks').select('*').eq('user_id', user.id).eq('check_date', new Date().toISOString().split('T')[0])
-                ]);
+    supabase.from('flight_authorizations')
+        .select('*, pilots:pilot_id(name), aircraft:aircraft_id(model)')
+        .eq('organization_id', prof.organization_id)
+        .eq('status', 'autorizado'), // <--- CAMBIO CLAVE: De 'pendiente' a 'autorizado'
+    
+    supabase.from('batteries')
+        .select('*')
+        .eq('organization_id', prof.organization_id)
+        .eq('status', 'Operativo'),
+        
+    supabase.from('daily_health_checks')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('check_date', new Date().toISOString().split('T')[0])
+]);
                 setResources({ auths: auths.data || [], batteries: batteries.data || [] });
                 if (health.data?.length > 0) setHealthDone(true);
             } finally { setLoading(false); }

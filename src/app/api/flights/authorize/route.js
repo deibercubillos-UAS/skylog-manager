@@ -19,11 +19,25 @@ export async function POST(request) {
         const { data: { user } } = await supabase.auth.getUser();
         const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
         const { data: org } = await supabase.from('organizations').select('flight_prefix').eq('id', prof.organization_id).single();
+
         const body = await request.json();
         const prefix = org.flight_prefix || 'BIT';
-        const { count } = await supabase.from('flight_authorizations').select('*', { count: 'exact', head: true }).eq('organization_id', prof.organization_id).ilike('mission_id', `${prefix}-%`);
+
+        const { count } = await supabase.from('flight_authorizations')
+            .select('*', { count: 'exact', head: true })
+            .eq('organization_id', prof.organization_id)
+            .ilike('mission_id', `${prefix}-%`);
+
         const missionId = `${prefix}-${(count + 1).toString().padStart(3, '0')}`;
-        const { data, error } = await supabase.from('flight_authorizations').insert([{ ...body, mission_id: missionId, organization_id: prof.organization_id, scheduled_by: user.id }]).select();
+
+        const { data, error } = await supabase.from('flight_authorizations').insert([{
+            ...body,
+            mission_id: missionId,
+            organization_id: prof.organization_id,
+            scheduled_by: user.id,
+            status: 'autorizado' // <--- DEBE SER EXACTAMENTE IGUAL AL FILTRO DE DESPACHO
+        }]).select();
+
         if (error) throw error;
         return NextResponse.json(data[0]);
     } catch (err) { return NextResponse.json({ error: err.message }, { status: 500 }); }

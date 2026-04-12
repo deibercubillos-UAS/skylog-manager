@@ -9,6 +9,7 @@ export default function DashboardLayout({ children }) {
   const [data, setData] = useState({ profile: null, org: null });
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [activeFlight, setActiveFlight] = useState(null);
 
   useEffect(() => {
     async function loadData() {
@@ -19,7 +20,17 @@ export default function DashboardLayout({ children }) {
         const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         const { data: org } = await supabase.from('organizations').select('*').eq('id', prof?.organization_id).single();
 
+        // BUSCAMOS SI HAY UN VUELO ACTIVO (Sin hora de aterrizaje)
+        const { data: flight } = await supabase
+            .from('flights')
+            .select('id')
+            .is('landing_time', null)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
         setData({ profile: prof, org });
+        setActiveFlight(flight); // <--- GUARDAMOS EL VUELO ENCONTRADO
       } catch (err) {
         console.error("Layout Load Error");
       } finally {
@@ -27,7 +38,7 @@ export default function DashboardLayout({ children }) {
       }
     }
     loadData();
-  }, []);
+}, [pathname]); // <--- IMPORTANTE: Añadimos pathname para que refresque al navegar
 
   // Cierra el menú automáticamente al navegar en móviles
   useEffect(() => {
@@ -126,31 +137,53 @@ export default function DashboardLayout({ children }) {
     </div>
   </div>
   
-  <div className="flex items-center gap-3 md:gap-6">
-    <Link href="/dashboard/logbook/new" className="bg-orange-600 hover:bg-orange-700 text-white px-4 md:px-6 py-2 md:py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95">
+  {/* LADO DERECHO: Acciones y Perfil */}
+<div className="flex items-center gap-2 md:gap-6">
+  
+  {/* CONTENEDOR DE BOTONES OPERATIVOS */}
+  <div className="flex items-center gap-2">
+    
+    {/* BOTÓN 1: TÉRMINO DE VUELO (Solo si activeFlight existe) */}
+    {activeFlight && (
+      <Link 
+        href={`/dashboard/logbook/finalize?id=${activeFlight.id}`} 
+        className="bg-slate-900 hover:bg-black text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg border border-white/10 transition-all flex items-center gap-2 active:scale-95"
+      >
+        <span className="material-symbols-outlined text-sm md:text-base text-orange-500">flight_land</span> 
+        <span className="hidden sm:inline">Término de Vuelo</span>
+        <span className="sm:hidden">Finalizar</span>
+      </Link>
+    )}
+
+    {/* BOTÓN 2: NUEVA OPERACIÓN */}
+    <Link 
+      href="/dashboard/logbook/new" 
+      className="bg-orange-600 hover:bg-orange-700 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
+    >
       <span className="material-symbols-outlined text-sm md:text-base">add_circle</span> 
       <span className="hidden sm:inline">Nueva Operación</span>
       <span className="sm:hidden">Nuevo</span>
     </Link>
-
-    {/* PERFIL CLICKABLE */}
-    <Link 
-        href="/dashboard/settings/profile" 
-        className="flex items-center gap-3 border-l border-slate-100 pl-4 md:pl-6 group hover:opacity-80 transition-all"
-    >
-       <div className="hidden md:block text-right">
-          <p className="text-[10px] font-black text-slate-900 leading-none group-hover:text-orange-600 transition-colors">{data.profile?.full_name}</p>
-          <p className="text-[8px] font-bold text-orange-500 uppercase mt-1">{data.profile?.role?.replace('_', ' ')}</p>
-       </div>
-       <div className="size-8 md:size-10 rounded-full bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden ring-2 ring-transparent group-hover:ring-orange-500/20 transition-all">
-          {data.profile?.avatar_url ? (
-              <img src={data.profile.avatar_url} className="size-full object-cover" alt="Perfil" />
-          ) : (
-              <span className="material-symbols-outlined text-slate-400 text-xl md:text-2xl">person</span>
-          )}
-       </div>
-    </Link>
   </div>
+
+  {/* PERFIL CLICKABLE (Separado por línea en desktop) */}
+  <Link 
+      href="/dashboard/settings/profile" 
+      className="flex items-center gap-3 border-l border-slate-100 pl-2 md:pl-6 group hover:opacity-80 transition-all"
+  >
+     <div className="hidden md:block text-right">
+        <p className="text-[10px] font-black text-slate-900 leading-none group-hover:text-orange-600 transition-colors">{data.profile?.full_name}</p>
+        <p className="text-[8px] font-bold text-orange-500 uppercase mt-1">{data.profile?.role?.replace('_', ' ')}</p>
+     </div>
+     <div className="size-8 md:size-10 rounded-full bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+        {data.profile?.avatar_url ? (
+            <img src={data.profile.avatar_url} className="size-full object-cover" alt="Perfil" />
+        ) : (
+            <span className="material-symbols-outlined text-slate-400 text-xl">person</span>
+        )}
+     </div>
+  </Link>
+</div>
 </header>
         <div className="flex-1 overflow-y-auto p-10">{children}</div>
       </main>

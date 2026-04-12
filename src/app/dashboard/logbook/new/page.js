@@ -135,7 +135,25 @@ export default function NewOperationPage() {
     if (loading) return <div className="h-screen flex items-center justify-center bg-[#f8f6f6] font-black animate-pulse">AUTORIZANDO SISTEMAS...</div>;
 
     return (
-        <div className="flex h-screen -m-10 bg-[#f8f6f6] text-left overflow-hidden">
+    <>
+        {/* BLOQUEO PARA CELULARES (Visible solo en pantallas menores a 1024px) */}
+        <div className="lg:hidden flex flex-col items-center justify-center h-full min-h-[70vh] p-10 text-center animate-in fade-in duration-500">
+            <div className="size-20 bg-orange-100 rounded-3xl flex items-center justify-center text-orange-600 mb-6 shadow-lg shadow-orange-500/10">
+                <span className="material-symbols-outlined text-5xl">desktop_windows</span>
+            </div>
+            <h2 className="text-2xl font-black uppercase tracking-tighter text-slate-900 leading-tight">
+                Acceso Restringido
+            </h2>
+            <p className="text-slate-500 text-sm mt-4 font-medium leading-relaxed max-w-xs uppercase tracking-widest text-[10px]">
+                Para garantizar la seguridad operacional y el correcto diligenciamiento de los protocolos RAC 100, esta sección solo está disponible desde un <span className="text-orange-600 font-black">Computador de Escritorio o Tablet</span>.
+            </p>
+            <Link href="/dashboard" className="mt-10 px-8 py-3 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest">
+                Volver al Mando
+            </Link>
+        </div>
+
+        {/* CONTENIDO PRINCIPAL (Oculto en mobile, visible en LG en adelante) */}
+        <div className="hidden lg:flex h-screen -m-10 bg-[#f8f6f6] text-left overflow-hidden">
             {/* LADO IZQUIERDO: FORMULARIO TÉCNICO */}
             <div className="flex-1 overflow-y-auto p-10 space-y-8">
                 <header className="flex justify-between items-center bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
@@ -147,27 +165,28 @@ export default function NewOperationPage() {
                 </header>
 
                 <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-200 space-y-6">
+                    {/* ... (Todo su código anterior del Formulario se mantiene aquí adentro) ... */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-1">
-                            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Seleccionar Misión Programada</label>
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Misión Programada</label>
                             <select className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm focus:ring-2 focus:ring-orange-500 outline-none" value={form.auth_id} onChange={e => setForm({...form, auth_id: e.target.value})}>
                                 <option value="">-- Misiones Pendientes --</option>
                                 {resources.auths.map(a => <option key={a.id} value={a.id}>{a.mission_id} - {a.location}</option>)}
                             </select>
                         </div>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Fuente de Energía (Batería)</label>
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Fuente de Energía</label>
                             <select className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm focus:ring-2 focus:ring-orange-500 outline-none" value={form.battery_id} onChange={e => setForm({...form, battery_id: e.target.value})}>
                                 <option value="">-- Seleccionar Batería --</option>
                                 {resources.batteries.map(b => <option key={b.id} value={b.id}>{b.brand} {b.model} ({b.serial_number})</option>)}
                             </select>
                         </div>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Hora de Despegue (Local)</label>
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Hora de Despegue</label>
                             <input type="time" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" onChange={e => setForm({...form, takeoff_time: e.target.value})} />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Condición Meteorológica</label>
+                            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Condición Visual</label>
                             <select className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" onChange={e => setForm({...form, visual_condition: e.target.value})}>
                                 <option value="VMC">VMC (Visual)</option>
                                 <option value="IMC">IMC (Instrumental)</option>
@@ -179,8 +198,8 @@ export default function NewOperationPage() {
 
                 {form.auth_id && (
                     <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-bottom-4 duration-500">
-                        <div className="p-6 bg-orange-600 text-white rounded-[2rem] shadow-lg shadow-orange-600/20">
-                           <p className="text-[8px] font-black uppercase opacity-60 tracking-widest">Aeronave Confirmada</p>
+                        <div className="p-6 bg-orange-600 text-white rounded-[2rem] shadow-lg">
+                           <p className="text-[8px] font-black uppercase opacity-60 tracking-widest">Aeronave</p>
                            <p className="text-lg font-black">{resources.auths.find(a => a.id === form.auth_id)?.aircraft?.model}</p>
                         </div>
                         <div className="p-6 bg-slate-900 text-white rounded-[2rem] shadow-lg">
@@ -191,17 +210,17 @@ export default function NewOperationPage() {
                 )}
             </div>
 
-            {/* LADO DERECHO: SIDEBAR DE PROTOCOLOS DINÁMICOS */}
+            {/* SIDEBAR DE PROTOCOLOS DINÁMICOS */}
             <aside className="w-[450px] bg-[#1A202C] text-white p-10 flex flex-col shadow-2xl border-l border-white/5">
-                <div className="mb-10">
+                <div className="mb-10 text-left">
                     <h3 className="text-xl font-black uppercase tracking-tighter">Seguridad Operacional</h3>
-                    <p className="text-orange-500 text-[9px] font-black uppercase mt-1 tracking-widest">Validación de Protocolos RAC</p>
+                    <p className="text-orange-500 text-[9px] font-black uppercase mt-1">Validación de Protocolos RAC</p>
                 </div>
                 
                 <div className="flex bg-white/5 p-1 rounded-xl mb-10">
-                    <button onClick={() => setActiveTab('briefing')} className={`flex-1 py-2 text-[9px] font-black uppercase rounded-lg transition-all ${activeTab === 'briefing' ? 'bg-orange-600 text-white' : 'text-slate-500'}`}>Briefing</button>
-                    <button onClick={() => setActiveTab('preflight')} className={`flex-1 py-2 text-[9px] font-black uppercase rounded-lg transition-all ${activeTab === 'preflight' ? 'bg-orange-600 text-white' : 'text-slate-500'}`}>Prevuelo</button>
-                    {!healthDone && <button onClick={() => setActiveTab('health')} className={`flex-1 py-2 text-[9px] font-black uppercase rounded-lg transition-all ${activeTab === 'health' ? 'bg-orange-600 text-white' : 'text-slate-500'}`}>Salud</button>}
+                    <button onClick={() => setActiveTab('briefing')} className={`flex-1 py-2 text-[9px] font-black uppercase rounded-lg transition-all ${activeTab === 'briefing' ? 'bg-orange-600' : 'text-slate-500'}`}>Briefing</button>
+                    <button onClick={() => setActiveTab('preflight')} className={`flex-1 py-2 text-[9px] font-black uppercase rounded-lg transition-all ${activeTab === 'preflight' ? 'bg-orange-600' : 'text-slate-500'}`}>Prevuelo</button>
+                    {!healthDone && <button onClick={() => setActiveTab('health')} className={`flex-1 py-2 text-[9px] font-black uppercase rounded-lg transition-all ${activeTab === 'health' ? 'bg-orange-600' : 'text-slate-500'}`}>Salud</button>}
                 </div>
 
                 <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar pr-2">
@@ -214,7 +233,7 @@ export default function NewOperationPage() {
                         />
                     )) : (
                         <div className="text-center py-10 border-2 border-dashed border-white/10 rounded-3xl opacity-30">
-                            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Sin requerimientos<br/>configurados</p>
+                            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Sin configuración</p>
                         </div>
                     )}
                 </div>
@@ -225,14 +244,13 @@ export default function NewOperationPage() {
                         onClick={handleFinalize}
                         className={`w-full py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-2xl transition-all ${isAuthorized() ? 'bg-orange-600 text-white hover:scale-[1.02] active:scale-95' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
                     >
-                        {saving ? 'PROCESANDO...' : isAuthorized() ? 'AUTORIZADO VOLAR' : 'PENDIENTE DATOS'}
+                        {saving ? 'PROCESANDO...' : isAuthorized() ? 'AUTORIZADO VOLAR' : 'COMPLETAR PASOS'}
                     </button>
-                    <p className="text-[7px] text-center mt-4 text-slate-500 uppercase font-black tracking-[0.3em]">BitaFly UAS System - Mission Critical</p>
                 </div>
             </aside>
         </div>
-    );
-}
+    </>
+);
 
 function CheckItem({ label, checked, onChange }) {
     return (

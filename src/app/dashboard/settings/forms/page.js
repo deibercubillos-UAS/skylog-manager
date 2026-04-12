@@ -63,7 +63,7 @@ export default function FormSettings() {
             <header className="flex justify-between items-end border-b pb-6">
                 <div>
                     <h2 className="text-3xl font-black uppercase tracking-tighter">Editor de Protocolos</h2>
-                    <p className="text-slate-500 text-sm italic">Mapeo de slots para optimización de base de datos.</p>
+                    <p className="text-slate-500 text-sm italic">Ingrese los datos, segpun corresponda en su Manual de Operaciones y MCM</p>
                 </div>
                 <button onClick={handleSave} disabled={saving} className="bg-orange-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all">
                     {saving ? 'PROCESANDO...' : 'GUARDAR CAMBIOS'}

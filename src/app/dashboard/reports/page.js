@@ -6,26 +6,45 @@ import FileUpload from '@/components/FileUpload';
 
 export default function ReportsPage() {
     const [loading, setLoading] = useState(false);
+    const [savingCode, setSavingCode] = useState(false);
     const [orgData, setOrgData] = useState(null);
     const [config, setConfig] = useState({
         from: '', to: '', version: '1.0',
         reportDate: new Date().toISOString().split('T')[0],
-        formCode: 'F-OPS-002'
+        formCode: '' // Se llenará desde la DB
     });
 
     const loadOrg = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
         const { data: org } = await supabase.from('organizations').select('*').eq('id', prof.organization_id).single();
+        
         setOrgData(org);
+        // Sincronizamos el código guardado en la DB con el estado del formulario
+        setConfig(prev => ({ ...prev, formCode: org?.form_code_master || 'F-OPS-002' }));
     };
 
     useEffect(() => { loadOrg(); }, []);
 
+    // FUNCIÓN PARA GUARDAR EL CÓDIGO PERMANENTEMENTE
+    const saveDefaultFormCode = async () => {
+        setSavingCode(true);
+        try {
+            const { error } = await supabase
+                .from('organizations')
+                .update({ form_code_master: config.formCode })
+                .eq('id', orgData.id);
+            
+            if (!error) alert("✅ Código de formato guardado como predeterminado.");
+        } catch (e) {
+            alert("Error al guardar código");
+        } finally { setSavingCode(false); }
+    };
+
     const updateLogo = async (url) => {
         await supabase.from('organizations').update({ logo_url: url }).eq('id', orgData.id);
         loadOrg();
-        alert("✅ Logo de empresa actualizado para reportes.");
+        alert("✅ Logo actualizado.");
     };
 
     const handleGenerate = async () => {
@@ -51,7 +70,6 @@ export default function ReportsPage() {
                     <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Centro de Reportes</h2>
                     <p className="text-slate-500 text-sm">Configuración de exportación oficial RAC 100.</p>
                 </div>
-                {/* BOTÓN DE LOGO COMPACTO */}
                 <div className="w-48">
                     <FileUpload path="org/logos" label="Logo de Empresa" onUploadSuccess={updateLogo} />
                 </div>
@@ -73,10 +91,26 @@ export default function ReportsPage() {
                             <input type="date" className="p-3 bg-slate-50 rounded-xl text-xs font-bold" onChange={e => setConfig({...config, to: e.target.value})} />
                         </div>
                     </div>
+                    
                     <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Código del Formato</label>
-                        <input placeholder="Ej: F-OPS-002" className="w-full p-3 bg-slate-50 rounded-xl text-xs font-black uppercase" value={config.formCode} onChange={e => setConfig({...config, formCode: e.target.value})} />
+                        <div className="flex gap-2">
+                            <input 
+                                placeholder="Ej: F-OPS-002" 
+                                className="flex-1 p-3 bg-slate-50 rounded-xl text-xs font-black uppercase border-2 border-transparent focus:border-orange-500 transition-all outline-none" 
+                                value={config.formCode} 
+                                onChange={e => setConfig({...config, formCode: e.target.value})} 
+                            />
+                            <button 
+                                onClick={saveDefaultFormCode}
+                                className="bg-slate-900 text-white px-3 rounded-xl hover:bg-orange-600 transition-all shadow-sm"
+                                title="Guardar como predeterminado"
+                            >
+                                <span className="material-symbols-outlined text-sm">{savingCode ? 'sync' : 'save'}</span>
+                            </button>
+                        </div>
                     </div>
+
                     <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Versión / Fecha Cabecera</label>
                         <div className="grid grid-cols-2 gap-2">

@@ -50,44 +50,47 @@ export default function FinalizeFlightPage() {
     
     setSaving(true);
     try {
-        // 1. Cálculo de duración (Horas decimales)
+        // 1. Calcular duración del vuelo actual
         const [h1, m1] = selectedFlight.takeoff_time.split(':').map(Number);
         const [h2, m2] = form.landing_time.split(':').map(Number);
         let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
         if (diff < 0) diff += 1440; 
-        const duration = parseFloat((diff / 60).toFixed(2));
+        const durationOfThisFlight = parseFloat((diff / 60).toFixed(2));
 
-        // 2. Obtener horas actuales del drone (Fresh data)
-        const { data: drone } = await supabase
+        // 2. OBTENER HORAS ACTUALES DEL DRONE DIRECTO DE LA DB (Evita el error de sobreescritura)
+        const { data: droneDB, error: fetchError } = await supabase
             .from('aircraft')
             .select('total_hours')
             .eq('id', selectedFlight.aircraft_id)
             .single();
 
-        const newTotalHours = parseFloat(drone?.total_hours || 0) + duration;
+        if (fetchError) throw fetchError;
 
-        // 3. ACTUALIZACIÓN SIMULTÁNEA (Vuelo + Drone)
-        const [resFlight, resDrone] = await Promise.all([
-            supabase.from('flights').update({
-                landing_time: form.landing_time,
-                safety_report: form.safety_report,
-                notes: form.notes,
-                total_time: duration
-            }).eq('id', form.flight_id),
-            
-            supabase.from('aircraft').update({ 
-                total_hours: newTotalHours 
-            }).eq('id', selectedFlight.aircraft_id)
-        ]);
+        // 3. CALCULAR EL NUEVO TOTAL (Suma real)
+        const currentTotalHours = parseFloat(droneDB?.total_hours || 0);
+        const finalTotalHours = parseFloat((currentTotalHours + durationOfThisFlight).toFixed(2));
 
-        if (resFlight.error) throw resFlight.error;
-        if (resDrone.error) throw resDrone.error;
+        // 4. ACTUALIZACIÓN ATÓMICA
+        const { error: logError } = await supabase.from('flights').update({
+            landing_time: form.landing_time,
+            safety_report: form.safety_report,
+            notes: form.notes,
+            total_time: durationOfThisFlight // Guarda solo lo que voló hoy en el log
+        }).eq('id', form.flight_id);
 
-        alert("✅ OPERACIÓN CERRADA\nMisión: " + selectedFlight.mission_id + "\nTiempo sumado: " + duration + "h");
-        window.location.href = '/dashboard/logbook'; // Forzamos redirección para limpiar caché
+        if (logError) throw logError;
+
+        const { error: airError } = await supabase.from('aircraft').update({ 
+            total_hours: finalTotalHours // Guarda el acumulado histórico en el drone
+        }).eq('id', selectedFlight.aircraft_id);
+
+        if (airError) throw airError;
+
+        alert(`✅ OPERACIÓN CERRADA\nAnterior: ${currentTotalHours}h\nVolado: ${durationOfThisFlight}h\nNuevo Total: ${finalTotalHours}h`);
+        router.push('/dashboard/logbook');
 
     } catch (err) {
-        alert("⚠️ Error crítico: " + err.message);
+        alert("⚠️ Error de cálculo: " + err.message);
     } finally { setSaving(false); }
 };
 

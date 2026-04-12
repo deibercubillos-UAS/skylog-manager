@@ -86,7 +86,7 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
               value={form.pilot_role} 
               onChange={e => setForm({...form, pilot_role: e.target.value})}
           >
-              <option value="Piloto">Piloto Estándar</option>
+              <option value="Piloto">Piloto</option>
               <option value="Jefe de Pilotos">Jefe de Pilotos</option>
               <option value="Gerente SMS">Gerente SMS</option>
               <option value="Gerente General">Gerente General</option>

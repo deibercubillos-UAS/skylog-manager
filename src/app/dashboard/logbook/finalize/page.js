@@ -1,7 +1,9 @@
 'use client';
+export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 export default function FinalizeFlightPage() {
     const router = useRouter();
@@ -11,6 +13,7 @@ export default function FinalizeFlightPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [openFlights, setOpenFlights] = useState([]);
+    const [selectedFlight, setSelectedFlight] = useState(null);
     const [form, setForm] = useState({
         flight_id: '', landing_time: '', safety_report: false, notes: ''
     });
@@ -20,86 +23,140 @@ export default function FinalizeFlightPage() {
             const { data: { user } } = await supabase.auth.getUser();
             const { data } = await supabase
                 .from('flights')
-                .select('*, aircraft(model)')
+                .select('*, aircraft(model, serial_number), pilots(name)')
                 .is('landing_time', null)
                 .order('created_at', { ascending: false });
             
             setOpenFlights(data || []);
-            if (flightIdParam) setForm(prev => ({ ...prev, flight_id: flightIdParam }));
-            else if (data?.length > 0) setForm(prev => ({ ...prev, flight_id: data[0].id }));
             
+            const targetId = flightIdParam || (data?.length > 0 ? data[0].id : '');
+            if (targetId) {
+                setForm(prev => ({ ...prev, flight_id: targetId }));
+                setSelectedFlight(data?.find(f => f.id === targetId));
+            }
             setLoading(false);
         }
         loadOpenFlights();
     }, [flightIdParam]);
 
+    const handleSelectChange = (id) => {
+        setForm(prev => ({ ...prev, flight_id: id }));
+        setSelectedFlight(openFlights.find(f => f.id === id));
+    };
+
     const handleCloseFlight = async (e) => {
         e.preventDefault();
+        if (!form.landing_time) return alert("Por favor ingrese la hora de aterrizaje.");
+        
         setSaving(true);
         try {
-            // 1. Calcular duración (Simplificado)
-            const flight = openFlights.find(f => f.id === form.flight_id);
-            const t1 = flight.takeoff_time;
+            // Cálculo de duración (Horas decimales)
+            const t1 = selectedFlight.takeoff_time;
             const t2 = form.landing_time;
-            
-            // 2. Actualizar el vuelo
+            const [h1, m1] = t1.split(':').map(Number);
+            const [h2, m2] = t2.split(':').map(Number);
+            let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+            if (diff < 0) diff += 1440; // Manejo de cruce de medianoche
+            const totalHours = (diff / 60).toFixed(2);
+
             const { error } = await supabase.from('flights').update({
                 landing_time: form.landing_time,
                 safety_report: form.safety_report,
-                notes: form.notes
+                notes: form.notes,
+                total_time: parseFloat(totalHours)
             }).eq('id', form.flight_id);
 
             if (!error) {
-                alert("✅ BITÁCORA CERRADA EXITOSAMENTE");
+                // Actualizar horas totales del drone automáticamente
+                const newTotal = parseFloat(selectedFlight.aircraft.total_hours || 0) + parseFloat(totalHours);
+                await supabase.from('aircraft').update({ total_hours: newTotal }).eq('id', selectedFlight.aircraft_id);
+
+                alert("✅ BITÁCORA CERRADA\nDuración del vuelo: " + totalHours + " horas.");
                 router.push('/dashboard/logbook');
             }
+        } catch (err) {
+            alert("Error al cerrar: " + err.message);
         } finally { setSaving(false); }
     };
 
-    if (loading) return <div className="p-20 text-center font-black animate-pulse">LOCALIZANDO AERONAVE...</div>;
+    if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">LOCALIZANDO AERONAVE...</div>;
+
+    if (openFlights.length === 0) return (
+        <div className="p-10 text-center space-y-6">
+            <div className="size-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-300">
+                <span className="material-symbols-outlined text-4xl">flight_land</span>
+            </div>
+            <h2 className="text-xl font-black uppercase text-slate-900">No hay vuelos activos</h2>
+            <p className="text-sm text-slate-500 uppercase font-bold text-[10px]">Todos los registros están cerrados.</p>
+            <Link href="/dashboard/logbook/new" className="inline-block px-8 py-3 bg-orange-600 text-white rounded-xl font-black text-[10px] uppercase">Iniciar Nueva Operación</Link>
+        </div>
+    );
 
     return (
-        <div className="max-w-2xl mx-auto space-y-8 text-left animate-in fade-in duration-500 pb-20">
-            <header>
-                <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Fin de Vuelo</h2>
-                <p className="text-slate-500 text-sm">Registro de aterrizaje y reporte de seguridad.</p>
+        <div className="max-w-xl mx-auto space-y-6 text-left pb-20 animate-in fade-in duration-500">
+            <header className="px-2">
+                <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">Cierre de Vuelo</h2>
+                <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">Registro de Aterrizaje F-OPS-001</p>
             </header>
 
-            <form onSubmit={handleCloseFlight} className="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-100 space-y-8">
-                <div className="space-y-4">
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Seleccionar Vuelo en Curso</label>
-                        <select required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={form.flight_id} onChange={e => setForm({...form, flight_id: e.target.value})}>
+            {/* CONTEXTO DE LA MISIÓN (CARD) */}
+            {selectedFlight && (
+                <div className="bg-[#1A202C] p-6 rounded-[2.5rem] text-white shadow-xl border border-white/5 space-y-4 mx-2">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-[8px] font-black text-orange-500 uppercase tracking-widest">Misión en Curso</p>
+                            <h3 className="text-lg font-black uppercase">{selectedFlight.mission_id}</h3>
+                        </div>
+                        <span className="px-3 py-1 bg-orange-600 text-[9px] font-black rounded-full animate-pulse">EN VUELO</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-4">
+                        <div>
+                            <p className="text-[7px] font-black text-slate-500 uppercase">Aeronave / S/N</p>
+                            <p className="text-[11px] font-bold truncate">{selectedFlight.aircraft?.model}</p>
+                        </div>
+                        <div>
+                            <p className="text-[7px] font-black text-slate-500 uppercase">Hora Despegue</p>
+                            <p className="text-[11px] font-bold text-orange-400">{selectedFlight.takeoff_time}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <form onSubmit={handleCloseFlight} className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] shadow-sm border border-slate-200 space-y-8 mx-2">
+                <div className="space-y-6">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Cambiar Vuelo</label>
+                        <select className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={form.flight_id} onChange={e => handleSelectChange(e.target.value)}>
                             {openFlights.map(f => (
-                                <option key={f.id} value={f.id}>{f.mission_id} - {f.aircraft?.model} (Despegue: {f.takeoff_time})</option>
+                                <option key={f.id} value={f.id}>{f.mission_id} - {f.aircraft?.model}</option>
                             ))}
                         </select>
                     </div>
 
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Hora de Aterrizaje (Formato 24h)</label>
-                        <input required type="time" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-lg" onChange={e => setForm({...form, landing_time: e.target.value})} />
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Hora de Aterrizaje (24H)</label>
+                        <input required type="time" className="w-full p-5 bg-slate-100 rounded-3xl border-none font-black text-2xl text-slate-900" onChange={e => setForm({...form, landing_time: e.target.value})} />
                     </div>
 
-                    <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 flex items-center justify-between">
-                        <div>
-                            <p className="text-xs font-black text-slate-900 uppercase">¿Reporte de Seguridad?</p>
-                            <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">¿Hubo alguna novedad o incidente?</p>
+                    <div className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="text-center sm:text-left">
+                            <p className="text-xs font-black text-slate-900 uppercase">¿Reporte SMS?</p>
+                            <p className="text-[8px] text-slate-400 font-bold uppercase mt-1">¿Hubo incidentes en el aterrizaje?</p>
                         </div>
-                        <div className="flex bg-white p-1 rounded-xl border">
-                            <button type="button" onClick={() => setForm({...form, safety_report: false})} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${!form.safety_report ? 'bg-emerald-500 text-white' : 'text-slate-400'}`}>No</button>
-                            <button type="button" onClick={() => setForm({...form, safety_report: true})} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${form.safety_report ? 'bg-red-500 text-white' : 'text-slate-400'}`}>Sí</button>
+                        <div className="flex bg-white p-1.5 rounded-2xl border shadow-sm w-full sm:w-auto">
+                            <button type="button" onClick={() => setForm({...form, safety_report: false})} className={`flex-1 sm:px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${!form.safety_report ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-slate-400'}`}>No</button>
+                            <button type="button" onClick={() => setForm({...form, safety_report: true})} className={`flex-1 sm:px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${form.safety_report ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'text-slate-400'}`}>Sí</button>
                         </div>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Observaciones Finales</label>
-                        <textarea rows="4" className="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm font-medium" placeholder="Estado del equipo, nivel de batería final, etc..." onChange={e => setForm({...form, notes: e.target.value})} />
+                        <textarea rows="4" className="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm font-medium focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Estado final del equipo..." onChange={e => setForm({...form, notes: e.target.value})} />
                     </div>
                 </div>
 
                 <button disabled={saving} type="submit" className="w-full py-5 bg-slate-900 text-white font-black rounded-[2rem] shadow-xl uppercase text-xs tracking-widest active:scale-95 transition-all">
-                    {saving ? 'PROCESANDO...' : 'CERRAR BITÁCORA DE VUELO'}
+                    {saving ? 'CERRANDO...' : 'FINALIZAR MISIÓN'}
                 </button>
             </form>
         </div>

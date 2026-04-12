@@ -38,7 +38,13 @@ export default function FileUpload({ path, onUploadSuccess, label }) {
     <div className="space-y-2">
       <label className="text-[10px] font-black uppercase text-slate-400">{label}</label>
       <div className="relative border-2 border-dashed rounded-2xl p-4 hover:bg-orange-50 transition-all cursor-pointer">
-        <input type="file" accept="image/*" onChange={handleUpload} disabled={uploading} className="absolute inset-0 opacity-0 cursor-pointer" />
+        <input 
+          type="file" 
+          accept=".pdf, .jpg, .jpeg, .png" // <--- AHORA PERMITE PDF
+          onChange={handleUpload} 
+          disabled={uploading} 
+          className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+        />
         <p className="text-center text-[10px] font-bold text-slate-500">
           {uploading ? 'SUBIENDO...' : 'CLIC PARA CARGAR IMAGEN'}
         </p>

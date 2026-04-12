@@ -29,25 +29,54 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
   const [inviteEmail, setInviteEmail] = useState('');
 
   const handleManualSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+      e.preventDefault();
+      setLoading(true);
+      try {
+          const { data: { user } } = await supabase.auth.getUser();
+          // 1. Obtener datos de la organización e invitador para el correo
+          const { data: prof } = await supabase.from('profiles').select('organization_id, full_name').eq('id', user.id).single();
+          const { data: org } = await supabase.from('organizations').select('company_name, unique_code').eq('id', prof.organization_id).single();
 
-      const cleanData = {
-        ...form,
-        owner_id: user.id,
-        organization_id: prof.organization_id,
-        medical_expiry: form.medical_expiry === '' ? null : form.medical_expiry,
-      };
+          const cleanData = {
+              ...form,
+              owner_id: user.id,
+              organization_id: prof.organization_id,
+              medical_expiry: form.medical_expiry === '' ? null : form.medical_expiry,
+          };
 
-      const { error } = await supabase.from('pilots').insert([cleanData]);
-      if (error) throw error;
-      alert("✅ Tripulante registrado en el sistema.");
-      onSuccess();
-    } catch (err) { alert("⚠️ Error: " + err.message); }
-    finally { setLoading(false); }
+          // 2. Crear el registro técnico en la tabla 'pilots'
+          const { error: dbError } = await supabase.from('pilots').insert([cleanData]);
+          if (dbError) throw dbError;
+
+          // 3. DISPARAR INVITACIÓN AUTOMÁTICA (Backend Sync)
+          await fetch('/api/invite', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  email: form.email,
+                  role: form.pilot_role,
+                  orgName: org.company_name,
+                  inviterName: prof.full_name,
+                  orgCode: org.unique_code
+              })
+          });
+
+          // 4. Registrar en la tabla de invitaciones para seguimiento
+          await supabase.from('invitations').insert([{
+              email: form.email,
+              role: form.pilot_role,
+              organization_id: prof.organization_id,
+              invited_by: user.id,
+              status: 'creado_manualmente'
+          }]);
+
+          alert(`✅ Tripulante registrado.\n🚀 Se ha enviado un correo de acceso a ${form.email}`);
+          onSuccess();
+      } catch (err) { 
+          alert("⚠️ Error en el proceso: " + err.message); 
+      } finally { 
+          setLoading(false); 
+      }
   };
 
   const handleSendInvite = async (e) => {

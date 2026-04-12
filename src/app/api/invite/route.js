@@ -14,8 +14,8 @@ export async function POST(req) {
       html: `
         <div style="font-family: sans-serif; padding: 20px; color: #1A202C;">
           <h2 style="color: #ec5b13;">¡Hola!</h2>
-          <p><strong>${inviterName}</strong> te ha invitado a unirte a su equipo en <strong>SkyLog Manager</strong> como <strong>${role}</strong>.</p>
-          <p>Con SkyLog podrás gestionar tus vuelos, cumplir con la normativa RAC 100 y mantener tu bitácora digital al día.</p>
+          <p><strong>${inviterName}</strong> te ha invitado a unirte a su equipo en <strong>BitaFly</strong> como <strong>${role}</strong>.</p>
+          <p>Con BitaFly podrás gestionar tus vuelos, cumplir con la normativa RAC 100 y mantener tu bitácora digital al día.</p>
           <div style="margin-top: 30px;">
             <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com'}/registro?email=${email}" 
                style="background-color: #ec5b13; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">

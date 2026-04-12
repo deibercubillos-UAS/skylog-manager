@@ -53,7 +53,13 @@ export default function PilotsPage() {
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{pilots.length} OPERADORES ACTIVOS</p>
         </div>
         {canManage && (
-          <button onClick={() => setShowAdd(true)} className="bg-orange-600 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-slate-900 transition-all">+ Registrar Piloto</button>
+          <button 
+            onClick={() => setShowAdd(true)} 
+            className="hidden md:flex bg-orange-600 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-slate-900 transition-all items-center gap-2"
+          >
+            <span className="material-symbols-outlined text-sm">person_add</span>
+            Registrar Piloto
+          </button>
         )}
       </header>
 

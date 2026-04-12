@@ -9,9 +9,19 @@ export default function PilotCard({ pilot, canManage, onEdit, onDelete }) {
           <span className="material-symbols-outlined text-3xl">person</span>
         </div>
         {canManage && (
-          <div className="flex gap-1">
-            <button onClick={() => onEdit(pilot)} className="size-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:text-orange-600"><span className="material-symbols-outlined text-lg">edit</span></button>
-            <button onClick={() => onDelete(pilot.id)} className="size-8 rounded-lg bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-600 hover:text-white"><span className="material-symbols-outlined text-lg">delete</span></button>
+          <div className="hidden md:flex gap-2 shrink-0">
+            <button 
+              onClick={() => onEdit(pilot)} 
+              className="size-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-orange-600 transition-all"
+            >
+              <span className="material-symbols-outlined text-lg">edit</span>
+            </button>
+            <button 
+              onClick={() => onDelete(pilot.id)} 
+              className="size-8 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center text-red-400 hover:bg-red-600 hover:text-white transition-all"
+            >
+              <span className="material-symbols-outlined text-lg">delete</span>
+            </button>
           </div>
         )}
       </div>

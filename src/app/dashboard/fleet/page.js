@@ -9,8 +9,8 @@ import EditAircraftPanel from '@/components/EditAircraftPanel';
 import EditBatteryPanel from '@/components/EditBatteryPanel';
 
 export default function FleetPage() {
-  const [drones, setDrones] = useState([]);
-  const [batteries, setBatteries] = useState([]);
+  const [drones, setDrones] = useState([]); // Iniciamos como array vacío
+  const [batteries, setBatteries] = useState([]); // Iniciamos como array vacío
   const [loading, setLoading] = useState(true);
   const [activePanel, setActivePanel] = useState(null);
   const [editingDrone, setEditingDrone] = useState(null);
@@ -20,6 +20,8 @@ export default function FleetPage() {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
       
       if (prof?.organization_id) {
@@ -27,11 +29,12 @@ export default function FleetPage() {
           supabase.from('aircraft').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
           supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false })
         ]);
+        
         setDrones(resDrones.data || []);
         setBatteries(resBatteries.data || []);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Fetch Error:", err);
     } finally {
       setLoading(false);
     }
@@ -39,26 +42,28 @@ export default function FleetPage() {
 
   const handleDelete = async (id, table) => {
     if (!confirm("¿Eliminar este activo permanentemente?")) return;
-    const { error } = await supabase.from(table).delete().eq('id', id);
-    if (!error) fetchData();
+    try {
+      await supabase.from(table).delete().eq('id', id);
+      fetchData();
+    } catch (e) { alert("Error al eliminar"); }
   };
 
   useEffect(() => { fetchData(); }, []);
 
-  if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">CARGANDO INVENTARIO...</div>;
-R
+  if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">ESTABLECIENDO CONEXIÓN TÉCNICA...</div>;
+
   return (
     <div className="space-y-16 text-left animate-in fade-in duration-500 pb-20">
       <section>
         <header className="flex justify-between items-end border-b pb-4 mb-8">
           <div>
             <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Aeronaves</h2>
-            <p className="text-slate-400 text-[10px] font-black uppercase">{drones.length} Unidades</p>
+            <p className="text-slate-400 text-[10px] font-black uppercase">{(drones || []).length} Unidades</p>
           </div>
           <button onClick={() => setActivePanel('drone')} className="bg-[#1A202C] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg">+ Nuevo Drone</button>
         </header>
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {drones.map(d => (
+          {(drones || []).map(d => (
             <AircraftCard key={d.id} aircraft={d} onEdit={setEditingDrone} onDelete={(id) => handleDelete(id, 'aircraft')} />
           ))}
         </div>
@@ -68,12 +73,12 @@ R
         <header className="flex justify-between items-end border-b pb-4 mb-8">
           <div>
             <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Baterías</h2>
-            <p className="text-slate-400 text-[10px] font-black uppercase">{batteries.length} Células</p>
+            <p className="text-slate-400 text-[10px] font-black uppercase">{(batteries || []).length} Células</p>
           </div>
           <button onClick={() => setActivePanel('battery')} className="bg-[#1A202C] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg">+ Nueva Batería</button>
         </header>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {batteries.map(b => (
+          {(batteries || []).map(b => (
             <BatteryCard key={b.id} battery={b} onEdit={setEditingBattery} onDelete={(id) => handleDelete(id, 'batteries')} />
           ))}
         </div>

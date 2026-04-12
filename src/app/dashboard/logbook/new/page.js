@@ -11,6 +11,7 @@ export default function NewOperationPage() {
     const [saving, setSaving] = useState(false);
     const [resources, setResources] = useState({ auths: [], batteries: [] });
     const [healthDone, setHealthDone] = useState(false);
+    const [healthEnabled, setHealthEnabled] = useState(true);
     
     // FLUJO: data -> health -> preflight -> briefing
     const [step, setStep] = useState('data'); 
@@ -27,6 +28,8 @@ export default function NewOperationPage() {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+                const { data: orgData } = await supabase.from('organizations').select('enable_health_check').eq('id', prof.organization_id).single();
+                setHealthEnabled(orgData?.enable_health_check ?? true);
                 const [auths, batteries, health] = await Promise.all([
     supabase.from('flight_authorizations')
         .select('*, pilots:pilot_id(name), aircraft:aircraft_id(model)')
@@ -64,11 +67,25 @@ export default function NewOperationPage() {
     }, [step, form.auth_id]);
 
     const handleCheck = (num, value) => {
-        setChecks(prev => ({ ...prev, [step]: { ...prev[step], [num]: value } }));
+    const newChecks = { ...checks[step], [num]: value };
+    setChecks(prev => ({ ...prev, [step]: newChecks }));
+
+    const isLastItem = dynamicLabels[dynamicLabels.length - 1].field_number === num;
+        if (value === true && isLastItem) {
+            setTimeout(() => {
+                if (step === 'health') setStep('preflight');
+                // Si salud está desactivada, el flujo ya estará en preflight, así que saltará a briefing
+                else if (step === 'preflight') setStep('briefing');
+            }, 600);
+        }
     };
 
     const handleNextStep = () => {
-        if (step === 'data') setStep(healthDone ? 'preflight' : 'health');
+        if (step === 'data') {
+            // SI salud está desactivada O ya se hizo hoy, saltar a preflight
+            if (!healthEnabled || healthDone) setStep('preflight');
+            else setStep('health');
+        }
         else if (step === 'health') setStep('preflight');
         else if (step === 'preflight') setStep('briefing');
     };

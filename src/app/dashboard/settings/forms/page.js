@@ -10,6 +10,7 @@ export default function FormSettings() {
     const [labels, setLabels] = useState({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [healthEnabled, setHealthEnabled] = useState(true);
 
     const LIMITS = { health: 30, briefing: 50, preflight: 70 };
 
@@ -23,6 +24,9 @@ export default function FormSettings() {
             const { data: drones } = await supabase.from('aircraft').select('model').eq('organization_id', prof.organization_id);
             const uniqueModels = [...new Set(drones?.map(d => d.model))];
             setModels(uniqueModels);
+
+            const { data: orgSettings } = await supabase.from('organizations').select('enable_health_check').eq('id', prof.organization_id).single();
+            setHealthEnabled(orgSettings?.enable_health_check ?? true);
 
             // Cargar etiquetas actuales
             const query = supabase.from('form_definitions').select('*').eq('organization_id', prof.organization_id).eq('form_type', type);
@@ -57,6 +61,14 @@ export default function FormSettings() {
         setSaving(false);
     };
 
+    const toggleHealthSetting = async () => {
+        const newStatus = !healthEnabled;
+        setHealthEnabled(newStatus);
+        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', (await supabase.auth.getUser()).data.user.id).single();
+        await supabase.from('organizations').update({ enable_health_check: newStatus }).eq('id', prof.organization_id);
+        alert(newStatus ? "🟢 Protocolo de Salud ACTIVADO" : "⚪ Protocolo de Salud DESACTIVADO");
+    };
+
     if (loading) return <div className="p-20 text-center font-black animate-pulse">SINCRONIZANDO DICCIONARIO...</div>;
 
     return (
@@ -77,6 +89,21 @@ export default function FormSettings() {
                         <button key={t} onClick={() => setType(t)} className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${type === t ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-400'}`}>{t}</button>
                     ))}
                 </div>
+
+                {type === 'health' && (
+                    <div className="flex items-center gap-4 bg-orange-50 p-4 rounded-2xl border border-orange-100 mb-6">
+                        <div className="flex-1">
+                            <p className="text-xs font-black text-slate-900 uppercase">Estado del Protocolo de Salud</p>
+                            <p className="text-[10px] text-slate-500 font-medium mt-1">Si se desactiva, no se solicitará a los pilotos antes del vuelo.</p>
+                        </div>
+                        <button 
+                            onClick={toggleHealthSetting}
+                            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${healthEnabled ? 'bg-orange-600 text-white' : 'bg-slate-300 text-slate-600'}`}
+                        >
+                            {healthEnabled ? 'Activo' : 'Inactivo'}
+                        </button>
+                    </div>
+                )}
 
                 {type === 'preflight' && (
                     <select className="bg-white border-2 border-orange-100 p-3 rounded-2xl font-black text-[10px] uppercase text-orange-600 outline-none" value={selectedModel} onChange={e => setSelectedModel(e.target.value)}>

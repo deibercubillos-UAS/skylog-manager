@@ -5,14 +5,14 @@ export const generateMasterReport = (data, config) => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const { orgName, logoUrl, version, reportDate, formCode } = config;
 
-    // 1. CABECERA TÉCNICA (Marco Blanco)
+    // --- 1. CABECERA TÉCNICA ESTRUCTURADA ---
     doc.setDrawColor(0);
     doc.setLineWidth(0.4);
-    doc.rect(10, 10, 277, 25); // Marco exterior
+    doc.rect(10, 10, 277, 25); // Marco Exterior
 
-    // Divisores verticales
-    doc.line(65, 10, 65, 35);  // Tras el logo
-    doc.line(225, 10, 225, 35); // Antes del control
+    // Divisores Verticales Principales
+    doc.line(65, 10, 65, 35);   // Límite Logo
+    doc.line(225, 10, 225, 35); // Límite Control Documental
 
     // LADO IZQUIERDO: Logo Corporativo
     if (logoUrl) {
@@ -24,19 +24,27 @@ export const generateMasterReport = (data, config) => {
         }
     }
 
-    // CENTRO: Título del Documento
+    // CENTRO: DIVISIÓN EN DOS (Empresa + Título)
+    doc.line(65, 22.5, 225, 22.5); // Línea Horizontal Divisoria Central
+    
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text("FORMATO MASTER DE VUELO", 145, 25, { align: 'center' });
+    
+    // Fila Superior: Nombre de la Empresa
+    doc.setFontSize(11);
+    doc.text(orgName ? orgName.toUpperCase() : "BITAFLY UAS", 145, 18, { align: 'center' });
+    
+    // Fila Inferior: Título del Formato
+    doc.setFontSize(14);
+    doc.text("FORMATO MASTER DE VUELO", 145, 30, { align: 'center' });
 
-    // LADO DERECHO: Control Documental (3 Filas)
+    // LADO DERECHO: Control Documental
     doc.setFontSize(7);
     doc.line(225, 18, 287, 18); // Divisor fila 1-2
     doc.line(225, 26, 287, 26); // Divisor fila 2-3
     
     doc.text(`VERSIÓN: ${version || '1.0'}`, 227, 15);
     doc.text(`FECHA: ${reportDate || '---'}`, 227, 23);
-    doc.text(`FORMATO: ${formCode || 'N/A'}`, 227, 31); // SUSTITUYE A ORIGINAL
+    doc.text(`FORMATO: ${formCode || 'N/A'}`, 227, 31);
 
     // 2. TABLA DE REGISTROS (Ajustada para mayor legibilidad)
     autoTable(doc, {

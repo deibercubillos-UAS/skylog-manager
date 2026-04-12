@@ -61,8 +61,8 @@ export default function FlightLogPage() {
                   <tr key={f.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-8 py-5 text-sm font-bold text-slate-800">{f.flight_date}</td>
                     <td className="px-8 py-5">
-                      <span className="font-mono text-xs font-black text-[#ec5b13] bg-orange-50 px-2 py-1 rounded border border-orange-100">
-                        {f.flight_number}
+                      <span className="font-mono text-xs font-black text-orange-600 bg-orange-50 px-2 py-1 rounded border border-orange-100">
+                        {f.mission_id || '---'} 
                       </span>
                     </td>
                     <td className="px-8 py-5">

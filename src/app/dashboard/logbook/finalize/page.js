@@ -50,44 +50,44 @@ export default function FinalizeFlightPage() {
     
     setSaving(true);
     try {
-        // 1. Cálculo de duración precisa
+        // 1. Cálculo de duración (Horas decimales)
         const [h1, m1] = selectedFlight.takeoff_time.split(':').map(Number);
         const [h2, m2] = form.landing_time.split(':').map(Number);
         let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
         if (diff < 0) diff += 1440; 
         const duration = parseFloat((diff / 60).toFixed(2));
 
-        // 2. Actualizar el registro del vuelo
-        const { error: logError } = await supabase.from('flights').update({
-            landing_time: form.landing_time,
-            safety_report: form.safety_report,
-            notes: form.notes,
-            total_time: duration
-        }).eq('id', form.flight_id);
-
-        if (logError) throw logError;
-
-        // 3. ACTUALIZAR HORAS DE LA FLOTA (Corrección de lógica)
-        // Obtenemos las horas actuales del drone directamente para evitar desfases
-        const { data: droneData } = await supabase
+        // 2. Obtener horas actuales del drone (Fresh data)
+        const { data: drone } = await supabase
             .from('aircraft')
             .select('total_hours')
             .eq('id', selectedFlight.aircraft_id)
             .single();
 
-        const currentDroneHours = parseFloat(droneData?.total_hours || 0);
-        const { error: airError } = await supabase
-            .from('aircraft')
-            .update({ total_hours: currentDroneHours + duration })
-            .eq('id', selectedFlight.aircraft_id);
+        const newTotalHours = parseFloat(drone?.total_hours || 0) + duration;
 
-        if (airError) throw airError;
+        // 3. ACTUALIZACIÓN SIMULTÁNEA (Vuelo + Drone)
+        const [resFlight, resDrone] = await Promise.all([
+            supabase.from('flights').update({
+                landing_time: form.landing_time,
+                safety_report: form.safety_report,
+                notes: form.notes,
+                total_time: duration
+            }).eq('id', form.flight_id),
+            
+            supabase.from('aircraft').update({ 
+                total_hours: newTotalHours 
+            }).eq('id', selectedFlight.aircraft_id)
+        ]);
 
-        alert("✅ OPERACIÓN FINALIZADA\nID: " + selectedFlight.mission_id + "\nTiempo: " + duration + " horas.");
-        router.push('/dashboard/logbook');
+        if (resFlight.error) throw resFlight.error;
+        if (resDrone.error) throw resDrone.error;
+
+        alert("✅ OPERACIÓN CERRADA\nMisión: " + selectedFlight.mission_id + "\nTiempo sumado: " + duration + "h");
+        window.location.href = '/dashboard/logbook'; // Forzamos redirección para limpiar caché
 
     } catch (err) {
-        alert("⚠️ Error de Sincronización: " + err.message);
+        alert("⚠️ Error crítico: " + err.message);
     } finally { setSaving(false); }
 };
 

@@ -14,7 +14,7 @@ export async function GET() {
             .select(`
                 *,
                 pilots:pilot_id(name),
-                aircraft:aircraft_id(model, serial_number)
+                aircraft:aircraft_id(model, serial_number, total_hours)
             `)
             .eq('organization_id', prof.organization_id)
             .order('flight_date', { ascending: false });

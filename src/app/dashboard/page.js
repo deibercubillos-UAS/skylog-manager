@@ -109,15 +109,27 @@ export default function DashboardPage() {
                         <tbody className="divide-y divide-slate-100">
                             {data?.recentActivity && data.recentActivity.length > 0 ? data.recentActivity.map(f => (
                                 <tr key={f.id} className="hover:bg-slate-50 transition-all group">
-                                    <td className="px-8 py-6 text-xs font-black font-mono text-orange-600">{f.flight_number || 'N/A'}</td>
-                                    <td className="px-8 py-6 text-xs font-bold text-slate-700">{f.pilots?.name || 'No registrado'}</td>
-                                    <td className="px-8 py-6 text-[10px] font-black uppercase text-slate-400">{f.aircraft?.model || 'N/R'}</td>
+                                    {/* CORRECCIÓN: Usar mission_id en lugar de flight_number */}
+                                    <td className="px-8 py-6 text-xs font-black font-mono text-orange-600">
+                                        {f.mission_id || 'N/A'}
+                                    </td>
+                                    
+                                    <td className="px-8 py-6 text-xs font-bold text-slate-700">
+                                        {f.pilots?.name || 'No registrado'}
+                                    </td>
+                                    
+                                    <td className="px-8 py-6 text-[10px] font-black uppercase text-slate-400">
+                                        {f.aircraft?.model || 'N/R'}
+                                    </td>
+                                    
                                     <td className="px-8 py-6 text-right">
-                                        <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">Registrado</span>
+                                        <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase border border-emerald-100 shadow-sm">
+                                            Registrado
+                                        </span>
                                     </td>
                                 </tr>
                             )) : (
-                                <tr><td colSpan="4" className="p-10 text-center text-slate-400 text-xs italic font-bold">Sin actividad registrada.</td></tr>
+                                <tr><td colSpan="4" className="p-10 text-center text-slate-400 text-xs italic font-bold">Sin actividad operativa.</td></tr>
                             )}
                         </tbody>
                     </table>

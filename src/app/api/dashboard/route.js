@@ -16,9 +16,9 @@ export async function GET() {
             supabase.from('aircraft').select('*').eq('organization_id', orgId),
             supabase.from('pilots').select('*').eq('organization_id', orgId),
             supabase.from('flights')
-                .select('*, pilots:pilot_id(name), aircraft:aircraft_id(model)')
+                .select('*, pilots:pilot_id(name), aircraft:aircraft_id(model)') // El * ya incluye mission_id
                 .eq('organization_id', orgId)
-                .order('flight_date', { ascending: false }),
+                .order('created_at', { ascending: false }),
             supabase.from('batteries').select('*').eq('organization_id', orgId)
         ]);
 

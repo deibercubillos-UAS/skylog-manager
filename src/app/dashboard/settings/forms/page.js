@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import Link from 'next/link'; // Importar Link para el botón de retorno
 
 export default function FormSettings() {
     const [type, setType] = useState('briefing');
@@ -102,4 +103,25 @@ export default function FormSettings() {
             </div>
         </div>
     );
+    return (
+        <>
+            {/* BLOQUEO PARA CELULARES */}
+            <div className="lg:hidden flex flex-col items-center justify-center min-h-[70vh] p-10 text-center animate-in fade-in">
+                <div className="size-20 bg-orange-100 rounded-3xl flex items-center justify-center text-orange-600 mb-6 shadow-lg">
+                    <span className="material-symbols-outlined text-5xl">desktop_windows</span>
+                </div>
+                <h2 className="text-2xl font-black uppercase tracking-tighter text-slate-900 leading-tight">Configuración Restringida</h2>
+                <p className="text-slate-500 text-sm mt-4 font-medium max-w-xs uppercase tracking-widest text-[10px]">
+                    El mapeo de slots y protocolos de flota requiere una pantalla de alta resolución para garantizar la precisión. Por favor, use un <span className="text-orange-600 font-black">Computador</span>.
+                </p>
+                <Link href="/dashboard" className="mt-10 px-8 py-3 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest">Volver al Mando</Link>
+            </div>
+
+            {/* CONTENIDO SOLO PARA PC */}
+            <div className="hidden lg:block max-w-4xl mx-auto p-10 space-y-8 text-left animate-in fade-in duration-500">
+                {/* ... (Todo su código anterior del Editor de Formatos se mantiene aquí adentro) ... */}
+            </div>
+        </>
+    );
 }
+

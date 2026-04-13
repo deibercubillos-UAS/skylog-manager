@@ -76,5 +76,49 @@ export const generateMasterReport = (data, config) => {
         margin: { left: 10, right: 10 }
     });
 
-    doc.save(`${formCode || 'MASTER'}_VUELO_${orgName}.pdf`);
+    // --- 3. BLOQUE DE FIRMAS Y RESPONSABILIDAD ---
+    const finalY = doc.lastAutoTable.finalY + 25; // Espacio tras la tabla
+    const pageHeight = doc.internal.pageSize.height;
+
+    // Verificar si las firmas caben en la página actual, si no, crear una nueva
+    if (finalY + 30 > pageHeight) {
+        doc.addPage();
+        doc.setPage(doc.internal.getNumberOfPages());
+    }
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.3);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+
+    // FIRMA 1: JEFE DE PILOTOS (Izquierda)
+    doc.line(30, finalY, 110, finalY); // Línea
+    doc.text("FIRMA JEFE DE PILOTOS", 70, finalY + 5, { align: 'center' });
+    doc.setFont("helvetica", "normal");
+    doc.text("Responsable de Operaciones UAS", 70, finalY + 9, { align: 'center' });
+
+    // FIRMA 2: GERENTE GENERAL (Derecha)
+    doc.setFont("helvetica", "bold");
+    doc.line(187, finalY, 267, finalY); // Línea
+    doc.text("FIRMA GERENTE GENERAL", 227, finalY + 5, { align: 'center' });
+    doc.setFont("helvetica", "normal");
+    doc.text("Representante Legal", 227, finalY + 9, { align: 'center' });
+
+    // SELLO (Opcional - Espacio central)
+    doc.setDrawColor(200);
+    doc.rect(130, finalY - 10, 35, 20); // Recuadro para sello seco/húmedo
+    doc.setFontSize(6);
+    doc.setTextColor(150);
+    doc.text("ESPACIO PARA SELLO", 147.5, finalY + 2, { align: 'center' });
+
+    // --- 4. NUMERACIÓN DE PÁGINAS ---
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(7);
+        doc.setTextColor(100);
+        doc.text(`Página ${i} de ${totalPages} - BitaFly Aviation Manager`, 148, 200, { align: 'center' });
+    }
+
+    doc.save(`${formCode || 'F-OPS-002'}_VUELO_${orgName}.pdf`);
 };

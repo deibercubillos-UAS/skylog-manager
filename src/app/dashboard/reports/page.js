@@ -18,72 +18,138 @@ export default function ReportsPage() {
         formCodePilot: 'F-HUM-005'
     });
 
-    useEffect(() => {
-        async function init() {
-            const { data: { user } } = await supabase.auth.getUser();
-            const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
-            const { data: org } = await supabase.from('organizations').select('*').eq('id', prof.organization_id).single();
-            const { data: crew } = await supabase.from('pilots').select('id, name').eq('organization_id', prof.organization_id);
-            
-            setOrgData(org);
-            setPilots(crew || []);
-            setConfig(prev => ({ 
-                ...prev, 
-                formCodeMaster: org?.form_code_master || 'F-OPS-002',
-                formCodeBattery: org?.form_code_batteries || 'F-MNT-003',
-                formCodePilot: org?.form_code_pilots || 'F-HUM-005'
-            }));
-        }
-        init();
-    }, []);
+    const init = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+        const { data: org } = await supabase.from('organizations').select('*').eq('id', prof.organization_id).single();
+        const { data: crew } = await supabase.from('pilots').select('id, name').eq('organization_id', prof.organization_id);
+        
+        setOrgData(org);
+        setPilots(crew || []);
+        setConfig(prev => ({ 
+            ...prev, 
+            formCodeMaster: org?.form_code_master || 'F-OPS-002',
+            formCodeBattery: org?.form_code_batteries || 'F-MNT-003',
+            formCodePilot: org?.form_code_pilots || 'F-HUM-005'
+        }));
+    };
 
-    const downloadPilotLog = async () => {
-        if (!config.from || !config.to || !selectedPilot) return alert("Seleccione fechas y piloto");
+    useEffect(() => { init(); }, []);
+
+    const updateLogo = async (url) => {
+        await supabase.from('organizations').update({ logo_url: url }).eq('id', orgData.id);
+        init();
+        alert("✅ Logo actualizado");
+    };
+
+    const downloadReport = async (type) => {
+        if (!config.from || !config.to) return alert("Seleccione fechas");
         setLoading(true);
         try {
-            const res = await fetch(`/api/reports/pilots?from=${config.from}&to=${config.to}&pilotId=${selectedPilot}`);
-            const data = await res.json();
-            if (data.length === 0) return alert("No hay vuelos para este piloto en el periodo");
+            let url = `/api/reports/${type}?from=${config.from}&to=${config.to}`;
+            if (type === 'pilots') url += `&pilotId=${selectedPilot}`;
             
-            generatePilotReport(data, {
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            const commonConfig = {
                 orgName: orgData?.company_name,
                 logoUrl: orgData?.logo_url,
                 version: config.version,
                 reportDate: config.reportDate,
-                formCode: config.formCodePilot
-            });
-        } finally { setLoading(false); }
+            };
+
+            if (type === 'master') generateMasterReport(data, { ...commonConfig, formCode: config.formCodeMaster });
+            if (type === 'batteries') generateBatteryReport(data, { ...commonConfig, formCode: config.formCodeBattery });
+            if (type === 'pilots') generatePilotReport(data, { ...commonConfig, formCode: config.formCodePilot });
+
+        } catch (e) { alert("Error al generar reporte"); }
+        finally { setLoading(false); }
     };
 
-    // ... Funciones downloadMaster y downloadBatteries se mantienen igual ...
-
     return (
-        <div className="max-w-5xl mx-auto space-y-10 text-left animate-in fade-in duration-700 pb-20">
-            {/* Header y Filtros Globales (Iguales a los anteriores) */}
-            
-            <div className="grid grid-cols-1 gap-8">
-                {/* REPORTE 1 y 2 (Ya los tiene) */}
+        <div className="max-w-5xl mx-auto space-y-10 text-left pb-20 animate-in fade-in duration-700">
+            <header className="flex justify-between items-end border-b pb-6">
+                <div>
+                    <h2 className="text-3xl font-black uppercase tracking-tighter">Centro de Reportes</h2>
+                    <p className="text-slate-500 text-sm italic">Sistemas de exportación aeronáutica oficial.</p>
+                </div>
+                <div className="w-48">
+                    <FileUpload path="org/logos" label="Actualizar Logo" onUploadSuccess={updateLogo} />
+                </div>
+            </header>
 
-                {/* REPORTE 3: BITÁCORA DE PILOTO */}
+            {/* FILTROS GLOBALES */}
+            <div className="bg-[#1A202C] p-8 rounded-[2.5rem] text-white grid grid-cols-1 md:grid-cols-2 gap-8 shadow-xl">
+                <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase text-orange-500 ml-1">Periodo de Auditoría (Desde / Hasta)</label>
+                    <div className="grid grid-cols-2 gap-3">
+                        <input type="date" className="p-3 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white" onChange={e => setConfig({...config, from: e.target.value})} />
+                        <input type="date" className="p-3 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white" onChange={e => setConfig({...config, to: e.target.value})} />
+                    </div>
+                </div>
+                <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase text-orange-500 ml-1">Control de Cabecera (Versión / Fecha Reporte)</label>
+                    <div className="grid grid-cols-2 gap-3">
+                        <input className="p-3 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white" value={config.version} onChange={e => setConfig({...config, version: e.target.value})} />
+                        <input type="date" className="p-3 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white" value={config.reportDate} onChange={e => setConfig({...config, reportDate: e.target.value})} />
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6">
+                {/* REPORTE 1: MASTER */}
+                <ReportCard 
+                    icon="analytics" title="Máster de Vuelo" desc="Historial completo de la flota y operaciones."
+                    formCode={config.formCodeMaster} 
+                    onCodeChange={(val) => setConfig({...config, formCodeMaster: val})}
+                    onDownload={() => downloadReport('master')}
+                    loading={loading}
+                />
+
+                {/* REPORTE 2: BATERÍAS */}
+                <ReportCard 
+                    icon="battery_charging_full" title="Registro de Baterías" desc="Trazabilidad de ciclos y energía por misión."
+                    formCode={config.formCodeBattery} 
+                    onCodeChange={(val) => setConfig({...config, formCodeBattery: val})}
+                    onDownload={() => downloadReport('batteries')}
+                    loading={loading}
+                />
+
+                {/* REPORTE 3: PILOTOS */}
                 <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-8">
-                    <div className="size-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white shrink-0"><span className="material-symbols-outlined text-3xl">badge</span></div>
-                    <div className="flex-1 space-y-3">
+                    <div className="size-16 bg-orange-600 rounded-2xl flex items-center justify-center text-white shrink-0"><span className="material-symbols-outlined text-3xl">badge</span></div>
+                    <div className="flex-1 space-y-4">
                         <h3 className="text-xl font-black uppercase tracking-tight">Bitácora de Piloto</h3>
-                        <p className="text-xs text-slate-500">Reporte individual de horas y experiencia por tripulante.</p>
                         <select 
-                            className="w-full md:w-64 p-3 bg-slate-50 rounded-xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-blue-500"
-                            value={selectedPilot}
-                            onChange={(e) => setSelectedPilot(e.target.value)}
+                            className="w-full md:w-64 p-3 bg-slate-50 rounded-xl text-[10px] font-black uppercase border-2 border-slate-100"
+                            value={selectedPilot} onChange={(e) => setSelectedPilot(e.target.value)}
                         >
                             <option value="">-- Seleccionar Piloto --</option>
                             {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                     </div>
                     <div className="w-full md:w-auto flex flex-col gap-2">
-                        <input className="p-3 bg-slate-100 rounded-xl text-[10px] font-black uppercase text-center" value={config.formCodePilot} onChange={e => setConfig({...config, formCodePilot: e.target.value})} />
-                        <button onClick={downloadPilotLog} disabled={loading} className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-slate-900 transition-all">Descargar PDF</button>
+                        <input className="p-3 bg-slate-100 rounded-xl text-[10px] font-black uppercase text-center w-32" value={config.formCodePilot} onChange={e => setConfig({...config, formCodePilot: e.target.value})} />
+                        <button onClick={() => downloadReport('pilots')} disabled={loading} className="px-8 py-4 bg-orange-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-slate-900 transition-all">Descargar PDF</button>
                     </div>
                 </div>
+            </div>
+        </div>
+    );
+}
+
+function ReportCard({ icon, title, desc, formCode, onCodeChange, onDownload, loading }) {
+    return (
+        <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-8">
+            <div className="size-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white shrink-0"><span className="material-symbols-outlined text-3xl">{icon}</span></div>
+            <div className="flex-1">
+                <h3 className="text-xl font-black uppercase tracking-tight">{title}</h3>
+                <p className="text-xs text-slate-500 mt-1">{desc}</p>
+            </div>
+            <div className="w-full md:w-auto flex flex-col gap-2">
+                <input className="p-3 bg-slate-100 rounded-xl text-[10px] font-black uppercase text-center w-32" value={formCode} onChange={e => onCodeChange(e.target.value)} />
+                <button onClick={onDownload} disabled={loading} className="px-8 py-4 bg-[#1A202C] text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-orange-600 transition-all">Descargar PDF</button>
             </div>
         </div>
     );

@@ -104,13 +104,6 @@ export const generateMasterReport = (data, config) => {
     doc.setFont("helvetica", "normal");
     doc.text("Representante Legal", 227, finalY + 9, { align: 'center' });
 
-    // SELLO (Opcional - Espacio central)
-    doc.setDrawColor(200);
-    doc.rect(130, finalY - 10, 35, 20); // Recuadro para sello seco/húmedo
-    doc.setFontSize(6);
-    doc.setTextColor(150);
-    doc.text("ESPACIO PARA SELLO", 147.5, finalY + 2, { align: 'center' });
-
     // --- 4. NUMERACIÓN DE PÁGINAS ---
     const totalPages = doc.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
@@ -121,4 +114,59 @@ export const generateMasterReport = (data, config) => {
     }
 
     doc.save(`${formCode || 'F-OPS-002'}_VUELO_${orgName}.pdf`);
+};
+
+export const generateBatteryReport = (data, config) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const { orgName, logoUrl, version, reportDate, formCode } = config;
+
+    // --- 1. CABECERA TÉCNICA ---
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.4);
+    doc.rect(10, 10, 277, 25); 
+    doc.line(65, 10, 65, 35);
+    doc.line(225, 10, 225, 35);
+    doc.line(65, 22.5, 225, 22.5);
+
+    if (logoUrl) { try { doc.addImage(logoUrl, 'PNG', 15, 12, 45, 20); } catch (e) {} }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(orgName ? orgName.toUpperCase() : "BITAFLY UAS", 145, 18, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text("REGISTRO OPERACIONAL DE BATERÍAS", 145, 30, { align: 'center' });
+
+    doc.setFontSize(7);
+    doc.line(225, 18, 287, 18);
+    doc.line(225, 26, 287, 26);
+    doc.text(`VERSIÓN: ${version}`, 227, 15);
+    doc.text(`FECHA: ${reportDate}`, 227, 23);
+    doc.text(`FORMATO: ${formCode}`, 227, 31);
+
+    // --- 2. TABLA TÉCNICA DE ENERGÍA ---
+    autoTable(doc, {
+        startY: 40,
+        head: [['S/N BATERÍA', 'MARCA', 'DRON USADO', 'CICLOS ACUM.', 'VUELO ID', 'UBICACIÓN', 'CONDICIÓN']],
+        body: data.map(f => [
+            f.battery?.serial_number || 'N/A',
+            f.battery?.brand || 'N/A',
+            f.aircraft?.model || 'N/A',
+            f.battery?.cycles || '0',
+            f.mission_id || 'N/A',
+            f.location || 'N/A',
+            f.visual_condition || 'VMC'
+        ]),
+        styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', lineWidth: 0.2 },
+        margin: { left: 10, right: 10 }
+    });
+
+    // --- 3. FIRMAS (Reutilizando lógica) ---
+    const finalY = doc.lastAutoTable.finalY + 30;
+    doc.line(30, finalY, 110, finalY);
+    doc.text("FIRMA JEFE DE PILOTOS", 70, finalY + 5, { align: 'center' });
+    doc.line(187, finalY, 267, finalY);
+    doc.text("FIRMA GERENTE GENERAL", 227, finalY + 5, { align: 'center' });
+
+    doc.save(`${formCode}_ENERGIA_${orgName}.pdf`);
 };

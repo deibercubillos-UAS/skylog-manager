@@ -48,13 +48,15 @@ export default function DashboardLayout({ children }) {
   if (loading) return <div className="h-screen flex items-center justify-center bg-[#1A202C] text-white font-black animate-pulse">CARGANDO BITAFLY...</div>;
 
   const navLinks = [
-    { name: 'Dashboard', icon: 'dashboard', href: '/dashboard' },
-    { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/dashboard/fleet' },
-    { name: 'Tripulación', icon: 'person', href: '/dashboard/pilots' },
-    { name: 'Mantenimiento', icon: 'build', href: '/dashboard/maintenance' },
-    { name: 'Programación', icon: 'event_available', href: '/dashboard/authorizations' },
-    { name: 'Bitácora', icon: 'menu_book', href: '/dashboard/logbook' },
-  ];
+  { name: 'Dashboard', icon: 'dashboard', href: '/dashboard' },
+  { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/dashboard/fleet' },
+  { name: 'Tripulación', icon: 'person', href: '/dashboard/pilots' },
+  { name: 'Mantenimiento', icon: 'build', href: '/dashboard/maintenance' },
+  { name: 'Programación', icon: 'event_available', href: '/dashboard/authorizations' },
+  { name: 'Bitácora', icon: 'menu_book', href: '/dashboard/logbook' },
+  // NUEVO ACCESO AL CENTRO DE REPORTES
+  { name: 'Reportes', icon: 'assessment', href: '/dashboard/reports' }, 
+];
 
   const footerLinks = [
     { name: 'Configuración', icon: 'settings', href: '/dashboard/settings' },

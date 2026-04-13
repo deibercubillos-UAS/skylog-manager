@@ -170,3 +170,68 @@ export const generateBatteryReport = (data, config) => {
 
     doc.save(`${formCode}_ENERGIA_${orgName}.pdf`);
 };
+
+export const generatePilotReport = (data, config) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const { orgName, logoUrl, version, reportDate, formCode } = config;
+    const pilotName = data[0]?.pilots?.name || "N/A";
+    const pilotCIPU = data[0]?.pilots?.license_number || "---";
+
+    // --- 1. CABECERA TÉCNICA ---
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.4);
+    doc.rect(10, 10, 277, 25); 
+    doc.line(65, 10, 65, 35);
+    doc.line(225, 10, 225, 35);
+    doc.line(65, 22.5, 225, 22.5);
+
+    if (logoUrl) { try { doc.addImage(logoUrl, 'PNG', 15, 12, 45, 20); } catch (e) {} }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(`PILOTO: ${pilotName.toUpperCase()} | CIPU: ${pilotCIPU}`, 145, 18, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text("BITÁCORA DE EXPERIENCIA DE VUELO", 145, 30, { align: 'center' });
+
+    doc.setFontSize(7);
+    doc.line(225, 18, 287, 18);
+    doc.line(225, 26, 287, 26);
+    doc.text(`VERSIÓN: ${version}`, 227, 15);
+    doc.text(`FECHA: ${reportDate}`, 227, 23);
+    doc.text(`FORMATO: ${formCode}`, 227, 31);
+
+    // --- 2. TABLA DE EXPERIENCIA ---
+    let totalAcumulado = 0;
+    autoTable(doc, {
+        startY: 40,
+        head: [['FECHA', 'MISIÓN ID', 'MODELO UAS', 'S/N EQUIPO', 'UBICACIÓN', 'DEP', 'ARR', 'DURACIÓN (H)', 'OBSERVACIONES']],
+        body: data.map(f => {
+            totalAcumulado += parseFloat(f.total_time || 0);
+            return [
+                f.flight_date,
+                f.mission_id,
+                f.aircraft?.model || 'N/A',
+                f.aircraft?.serial_number || 'N/A',
+                f.location,
+                f.takeoff_time,
+                f.landing_time,
+                f.total_time?.toFixed(2) || '0.00',
+                f.notes || ''
+            ];
+        }),
+        foot: [['', '', '', '', '', '', 'TOTAL PERIODO:', totalAcumulado.toFixed(2) + ' H', '']],
+        styles: { fontSize: 7, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center' },
+        footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+        margin: { left: 10, right: 10 }
+    });
+
+    // --- 3. FIRMAS ---
+    const finalY = doc.lastAutoTable.finalY + 25;
+    doc.line(30, finalY, 110, finalY);
+    doc.text("FIRMA DEL PILOTO", 70, finalY + 5, { align: 'center' });
+    doc.line(187, finalY, 267, finalY);
+    doc.text("FIRMA JEFE DE PILOTOS / CERTIFICADOR", 227, finalY + 5, { align: 'center' });
+
+    doc.save(`${formCode}_PILOTO_${pilotName.replace(' ', '_')}.pdf`);
+};

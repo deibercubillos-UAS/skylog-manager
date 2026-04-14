@@ -3,62 +3,71 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export default function AddMaintenancePanel({ onClose, onSuccess }) {
-  const [loading, setLoading] = useState(false);
-  const [drones, setDrones] = useState([]);
-  const [form, setForm] = useState({ aircraft_id: '', maintenance_type: 'ROUTINE', technician: '', description: '' });
-
-  useEffect(() => {
-    async function loadDrones() {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`/api/fleet?userId=${session.user.id}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
-      const data = await res.json();
-      setDrones(data || []);
-    }
-    loadDrones();
-  }, []);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-
-    const res = await fetch('/api/maintenance', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({ userId: session.user.id, logData: form })
+    const [drones, setDrones] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [form, setForm] = useState({ 
+        aircraft_id: '', 
+        technician_name: '', 
+        maintenance_type: 'PREVENTIVO', 
+        description: '', 
+        hours_at_service: 0 
     });
 
-    if (res.ok) {
-      alert("✅ Intervención registrada exitosamente.");
-      onSuccess();
-    } else {
-      alert("Falla al registrar mantenimiento.");
-    }
-    setLoading(false);
-  };
+    useEffect(() => {
+        async function loadDrones() {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+            if (prof?.organization_id) {
+                const { data } = await supabase.from('aircraft').select('*').eq('organization_id', prof.organization_id);
+                setDrones(data || []);
+            }
+        }
+        loadDrones();
+    }, []);
 
-  return (
-    <aside className="fixed inset-y-0 right-0 w-96 bg-white shadow-2xl z-50 p-8 flex flex-col text-left animate-in slide-in-from-right duration-300">
-      <h3 className="text-xl font-black uppercase mb-8 tracking-tighter">Registrar Tarea</h3>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <select required className="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm font-bold outline-none" onChange={e => setForm({...form, aircraft_id: e.target.value})}>
-          <option value="">Seleccionar Drone...</option>
-          {drones.map(d => <option key={d.id} value={d.id}>{d.model}</option>)}
-        </select>
-        <div className="grid grid-cols-3 gap-2">
-            {['ROUTINE', 'REPAIR', 'UPDATE'].map(t => (
-                <button key={t} type="button" onClick={() => setForm({...form, maintenance_type: t})} className={`py-2 text-[10px] font-black rounded-lg border ${form.maintenance_type === t ? 'bg-[#ec5b13] border-[#ec5b13] text-white' : 'text-slate-400'}`}>{t}</button>
-            ))}
-        </div>
-        <input required className="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm font-bold" placeholder="Ingeniero / Técnico" onChange={e => setForm({...form, technician: e.target.value})} />
-        <textarea required rows="4" className="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm" placeholder="Descripción de la tarea..." onChange={e => setForm({...form, description: e.target.value})} />
-        <button disabled={loading} className="w-full py-5 bg-[#ec5b13] text-white font-black rounded-2xl shadow-lg uppercase text-xs tracking-widest">{loading ? 'Procesando...' : 'Guardar en Bitácora Técnica'}</button>
-      </form>
-    </aside>
-  );
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+
+            const { error } = await supabase.from('maintenance_logs').insert([{
+                ...form,
+                organization_id: prof.organization_id,
+                hours_at_service: parseFloat(form.hours_at_service)
+            }]);
+
+            if (error) throw error;
+            onSuccess();
+        } catch (err) {
+            alert("Error: " + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <aside className="fixed inset-y-0 right-0 w-96 bg-white shadow-2xl z-[250] p-10 flex flex-col text-left animate-in slide-in-from-right">
+            <h3 className="text-xl font-black uppercase mb-8">Registrar Mantenimiento</h3>
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <select required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" onChange={e => setForm({...form, aircraft_id: e.target.value})}>
+                    <option value="">Seleccionar Drone...</option>
+                    {drones.map(d => <option key={d.id} value={d.id}>{d.model} ({d.serial_number})</option>)}
+                </select>
+                <select required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={form.maintenance_type} onChange={e => setForm({...form, maintenance_type: e.target.value})}>
+                    <option value="PREVENTIVO">Mantenimiento Preventivo</option>
+                    <option value="CORRECTIVO">Reparación Correctiva</option>
+                    <option value="ACTUALIZACIÓN">Actualización de Software</option>
+                </select>
+                <input required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" placeholder="Nombre del Técnico" onChange={e => setForm({...form, technician_name: e.target.value})} />
+                <input required type="number" step="0.01" className="w-full p-4 bg-white border-2 border-orange-100 rounded-2xl font-black text-sm" placeholder="Horas en servicio (0.00)" onChange={e => setForm({...form, hours_at_service: e.target.value})} />
+                <textarea required rows="4" className="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm font-medium" placeholder="Descripción de la tarea..." onChange={e => setForm({...form, description: e.target.value})} />
+                <button disabled={loading} className="w-full py-5 bg-orange-600 text-white font-black rounded-2xl shadow-xl uppercase text-xs">
+                    {loading ? 'Sincronizando...' : 'Guardar en Bitácora'}
+                </button>
+                <button type="button" onClick={onClose} className="w-full py-2 text-slate-400 font-bold uppercase text-[9px]">Cancelar</button>
+            </form>
+        </aside>
+    );
 }

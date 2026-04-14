@@ -58,6 +58,7 @@ export default function DashboardLayout({ children }) {
   { name: 'Reportes', icon: 'assessment', href: '/dashboard/reports' },
   // NUEVO MÓDULO SMS
   { name: 'Seguridad', icon: 'health_and_safety', href: '/dashboard/safety' }, 
+  { name: 'Auditoría', icon: 'fact_check', href: '/dashboard/audit' },
 ];
 
   const footerLinks = [

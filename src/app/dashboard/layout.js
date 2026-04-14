@@ -73,19 +73,24 @@ export default function DashboardLayout({ children }) {
           transition-transform duration-300 ease-in-out border-r border-white/5
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <div className="p-8 border-b border-white/5">
-          <h1 className="text-2xl font-black text-orange-500 tracking-tighter leading-none">BITAFLY</h1>
-          <div className="mt-6 p-4 bg-white/5 rounded-2xl border border-white/10 space-y-2">
-             <div className="flex justify-between items-center">
-                <p className="text-[7px] font-black uppercase text-slate-500 tracking-widest">Plan</p>
-                <p className="text-[9px] font-black text-orange-400 uppercase">{data.profile?.subscription_plan || 'PILOTO'}</p>
-             </div>
-             <div className="flex justify-between items-center">
-                <p className="text-[7px] font-black uppercase text-slate-500 tracking-widest">Org ID</p>
-                <p className="text-[9px] font-mono text-white">{data.org?.unique_code || '---'}</p>
-             </div>
-          </div>
-        </div>
+        {/* BLOQUE DE ESTATUS COMPACTO */}
+          <div className="mt-4 p-3 bg-white/5 rounded-xl border border-white/10 flex items-center justify-between gap-2">
+            <div className="flex flex-col min-w-0">
+                <span className="text-[6px] font-black text-slate-500 uppercase tracking-tighter">Plan</span>
+                <span className="text-[9px] font-black text-orange-400 uppercase truncate">
+                  {data.profile?.subscription_plan || 'PILOTO'}
+                </span>
+           </div>
+   
+   <div className="w-px h-6 bg-white/10 shrink-0"></div> {/* Divisor vertical */}
+   
+   <div className="flex flex-col text-right">
+      <span className="text-[6px] font-black text-slate-500 uppercase tracking-tighter">Org ID</span>
+      <span className="text-[9px] font-mono font-bold text-white leading-none">
+        {data.org?.unique_code || '---'}
+      </span>
+   </div>
+</div>
 
         <nav className="flex-1 p-4 space-y-1 mt-2 overflow-y-auto custom-scrollbar">
           {navLinks.map(link => (

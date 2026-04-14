@@ -55,8 +55,9 @@ export default function DashboardLayout({ children }) {
   { name: 'Mantenimiento', icon: 'build', href: '/dashboard/maintenance' },
   { name: 'Programación', icon: 'event_available', href: '/dashboard/authorizations' },
   { name: 'Bitácora', icon: 'menu_book', href: '/dashboard/logbook' },
-  // NUEVO ACCESO AL CENTRO DE REPORTES
-  { name: 'Reportes', icon: 'assessment', href: '/dashboard/reports' }, 
+  { name: 'Reportes', icon: 'assessment', href: '/dashboard/reports' },
+  // NUEVO MÓDULO SMS
+  { name: 'Seguridad', icon: 'health_and_safety', href: '/dashboard/safety' }, 
 ];
 
   const footerLinks = [

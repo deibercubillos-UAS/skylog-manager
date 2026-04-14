@@ -1,67 +1,48 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClientSSR } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
 
-export async function GET(request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const authHeader = request.headers.get('Authorization');
+export const dynamic = 'force-dynamic';
 
-    if (!userId || !authHeader) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+export async function GET() {
+    try {
+        const supabase = await createClientSSR();
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
 
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } }
-    });
+        const { data, error } = await supabase
+            .from('maintenance_logs')
+            .select('*, aircraft(model, serial_number)')
+            .eq('organization_id', prof.organization_id)
+            .order('created_at', { ascending: false });
 
-    // Consultamos Drones y Logs en paralelo
-    const [aircraftRes, logsRes] = await Promise.all([
-      supabase.from('aircraft').select('*').eq('owner_id', userId),
-      supabase.from('maintenance_logs').select('*, aircraft(model)').eq('owner_id', userId).order('maintenance_date', { ascending: false })
-    ]);
-
-    const drones = aircraftRes.data || [];
-    const logs = logsRes.data || [];
-
-    // Cálculo de KPIs en el Servidor
-    const criticalCount = drones.filter(d => {
-        const interval = d.maintenance_interval_hours || 50;
-        return (d.total_hours % interval) > (interval * 0.9);
-    }).length;
-
-    const totalFleetHours = drones.reduce((acc, d) => acc + (d.total_hours || 0), 0);
-
-    return NextResponse.json({
-      drones,
-      logs,
-      kpis: {
-        critical: criticalCount,
-        totalHours: totalFleetHours.toFixed(1),
-        pendingTasks: 12 // Dato simulado por ahora
-      }
-    });
-  } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
+        if (error) throw error;
+        return NextResponse.json(data || []);
+    } catch (err) { return NextResponse.json({ error: err.message }, { status: 500 }); }
 }
 
 export async function POST(request) {
     try {
-      const body = await request.json();
-      const authHeader = request.headers.get('Authorization');
-      const { userId, logData } = body;
-  
-      const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
-        global: { headers: { Authorization: authHeader } }
-      });
-  
-      const { data, error } = await supabase
-        .from('maintenance_logs')
-        .insert([{ ...logData, owner_id: userId }])
-        .select();
-  
-      if (error) throw error;
-      return NextResponse.json(data[0], { status: 201 });
-    } catch (err) {
-      return NextResponse.json({ error: err.message }, { status: 500 });
-    }
+        const supabase = await createClientSSR();
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+        
+        const body = await request.json();
+        const today = new Date().toISOString().split('T')[0];
+
+        // 1. Registrar el Mantenimiento
+        const { data: log, error: mErr } = await supabase.from('maintenance_logs').insert([{
+            ...body,
+            organization_id: prof.organization_id
+        }]).select().single();
+
+        if (mErr) throw mErr;
+
+        // 2. REINICIAR CONTADORES EN EL DRONE (Lógica Maestra)
+        await supabase.from('aircraft').update({
+            last_maintenance_date: today,
+            last_maintenance_hours: body.hours_at_service
+        }).eq('id', body.aircraft_id);
+
+        return NextResponse.json(log);
+    } catch (err) { return NextResponse.json({ error: err.message }, { status: 500 }); }
 }

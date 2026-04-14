@@ -138,6 +138,21 @@ const filteredLinks = navLinks.filter(link => link.roles.includes(role));
             </div>
           </div>
 
+          {data.profile?.role === 'superadmin' && (
+    <div className="px-4 mb-4">
+        <Link 
+            href="/admin/master" 
+            className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-purple-600/20 border border-purple-500/30 text-purple-400 hover:bg-purple-600 hover:text-white transition-all shadow-lg group"
+        >
+            <span className="material-symbols-outlined text-lg group-hover:animate-spin">settings_accessibility</span>
+            <div className="text-left">
+                <p className="text-[10px] font-black uppercase leading-none">Master Control</p>
+                <p className="text-[8px] font-bold opacity-70 uppercase mt-1">Gestión Global SaaS</p>
+            </div>
+        </Link>
+    </div>
+)}
+
           {/* BOTÓN SALIR: Siempre visible o compacto */}
           <button 
             onClick={() => supabase.auth.signOut().then(() => window.location.href='/login')} 

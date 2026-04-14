@@ -144,6 +144,13 @@ export default function MasterPanel() {
                                 <input type="date" className="w-full bg-slate-800 p-3 rounded-xl border-none text-white font-bold mt-1" value={edit.last_payment_date || ''} onChange={e => setEdit({...edit, last_payment_date: e.target.value})} />
                             </div>
                         </div>
+                        
+<button 
+    onClick={() => alert(`SIMULACIÓN DE ROL: ${u.role}\n\nEste usuario visualiza:\n${getCapabilities(u.role)}`)}
+    className="ml-2 bg-slate-700 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase"
+>
+    Ver Permisos
+</button>
 
                         <div className="flex gap-4 pt-6">
                             <button onClick={handleSave} className="flex-1 bg-orange-600 py-4 rounded-2xl font-black uppercase text-xs shadow-lg shadow-orange-500/20 active:scale-95 transition-all">Guardar Cambios</button>
@@ -154,4 +161,15 @@ export default function MasterPanel() {
             )}
         </div>
     );
+}
+
+function getCapabilities(role) {
+    const caps = {
+        superadmin: "- Acceso Total\n- Gestión de Pagos\n- Configuración Global",
+        admin: "- Gestión de su Empresa\n- Contratación\n- Reportes Oficiales",
+        gerente_sms: "- Auditoría\n- Riesgos SORA\n- Vencimientos Médicos",
+        jefe_pilotos: "- Gestión de Flota\n- Programación de Vuelos\n- Hoja de Vida Pilotos",
+        piloto: "- Registro de Vuelo Diario\n- Ver sus misiones asignadas"
+    };
+    return caps[role] || "Acceso Básico";
 }

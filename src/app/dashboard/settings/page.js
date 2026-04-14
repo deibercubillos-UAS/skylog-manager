@@ -1,130 +1,150 @@
 'use client';
 export const dynamic = 'force-dynamic';
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-
-// Componentes independientes que ya creamos
-import ProfileSettings from '@/components/settings/ProfileSettings';
-import CompanySettings from '@/components/settings/CompanySettings';
-import CertificationsSettings from '@/components/settings/CertificationsSettings';
-import NotificationSettings from '@/components/settings/NotificationSettings';
-import SecuritySettings from '@/components/settings/SecuritySettings';
+import FileUpload from '@/components/FileUpload';
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState('profile');
-  const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
-  const [profile, setProfile] = useState({
-  full_name: '',
-  company_name: '',
-  role: '',
-  operator_id: '',
-  flight_prefix: 'SKL' // <--- Asegúrate de que esta línea esté presente
-});
+    const [loading, setLoading] = useState(true);
+    const [updating, setUpdating] = useState(false);
+    const [org, setOrg] = useState(null);
 
-  // Cargar datos vía API
-  const loadProfile = async () => {
-    setLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const res = await fetch(`/api/user/profile?userId=${user.id}`);
-        const data = await res.json();
-        if (!data.error) setProfile(data);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    useEffect(() => {
+        async function loadOrgData() {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+            const { data: orgData } = await supabase.from('organizations').select('*').eq('id', prof.organization_id).single();
+            setOrg(orgData);
+            setLoading(false);
+        }
+        loadOrgData();
+    }, []);
 
-  useEffect(() => { loadProfile(); }, []);
+    const handleUpdate = async (e) => {
+        e.preventDefault();
+        setUpdating(true);
+        try {
+            const { error } = await supabase
+                .from('organizations')
+                .update({
+                    company_name: org.company_name,
+                    tax_id: org.tax_id,
+                    address: org.address,
+                    phone: org.phone,
+                    operator_email: org.operator_email,
+                    legal_rep: org.legal_rep,
+                    dan_number: org.dan_number,
+                    flight_prefix: org.flight_prefix
+                })
+                .eq('id', org.id);
 
-  // GUARDAR CAMBIOS VÍA API (BACKEND DESACOPLADO)
-  const handleSave = async () => {
-    setUpdating(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+            if (error) throw error;
+            alert("✅ Datos de la organización actualizados.");
+        } catch (err) {
+            alert("Error: " + err.message);
+        } finally {
+            setUpdating(false);
+        }
+    };
 
-      const response = await fetch('/api/user/profile', {
-        method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          userId: session.user.id,
-          updateData: profile
-        }),
-      });
+    const updateLogo = async (url) => {
+        await supabase.from('organizations').update({ logo_url: url }).eq('id', org.id);
+        setOrg({ ...org, logo_url: url });
+        alert("✅ Logo corporativo actualizado.");
+    };
 
-      const result = await response.json();
+    if (loading) return <div className="p-20 text-center font-black animate-pulse">CARGANDO DATOS CORPORATIVOS...</div>;
 
-      if (!response.ok) throw new Error(result.error);
-      
-      alert("✅ Configuración de BitaFly actualizada.");
-    } catch (err) {
-      alert("Error al guardar: " + err.message);
-    } finally {
-      setUpdating(false);
-    }
-  };
+    return (
+        <div className="max-w-4xl mx-auto space-y-10 text-left animate-in fade-in duration-700 pb-20">
+            <header className="flex justify-between items-end border-b pb-6">
+                <div>
+                    <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Configuración</h2>
+                    <p className="text-slate-500 text-sm">Gestión de identidad legal y operativa de la empresa.</p>
+                </div>
+            </header>
 
-  if (loading) return <div className="p-20 text-center font-black text-slate-300 uppercase animate-pulse">Sincronizando Ajustes...</div>;
+            <form onSubmit={handleUpdate} className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                
+                {/* COLUMNA IZQUIERDA: LOGO Y CÓDIGO */}
+                <div className="space-y-6">
+                    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col items-center text-center">
+                        <div className="size-32 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden mb-6">
+                            {org.logo_url ? (
+                                <img src={org.logo_url} className="size-full object-contain p-2" alt="Logo" />
+                            ) : (
+                                <span className="material-symbols-outlined text-4xl text-slate-300">business</span>
+                            )}
+                        </div>
+                        <FileUpload path="org/logos" label="Cargar Logo PNG" onUploadSuccess={updateLogo} />
+                    </div>
 
-  return (
-    <div className="max-w-6xl mx-auto space-y-10 text-left animate-in fade-in duration-500">
-      <header>
-        <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">Configuración</h2>
-        <p className="text-slate-500 text-sm mt-2 font-medium">Gestión de identidad corporativa y operativa.</p>
-      </header>
+                    <div className="bg-[#1A202C] p-6 rounded-[2rem] text-white">
+                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">ID Único de Vinculación</p>
+                        <p className="text-xl font-mono font-black text-orange-500 mt-1">{org.unique_code}</p>
+                        <p className="text-[7px] text-slate-400 mt-4 uppercase leading-tight italic">
+                            Comparta este código con sus pilotos para que se vinculen a su organización.
+                        </p>
+                    </div>
+                </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* NAVEGACIÓN IZQUIERDA */}
-        <div className="space-y-2">
-          <TabBtn id="profile" icon="person" label="Perfil Personal" activeTab={activeTab} setActiveTab={setActiveTab} />
-          <TabBtn id="company" icon="business" label="Organización & Empresa" activeTab={activeTab} setActiveTab={setActiveTab} />
-          <TabBtn id="certs" icon="verified" label="Certificaciones UAS" activeTab={activeTab} setActiveTab={setActiveTab} />
-          <TabBtn id="notif" icon="notifications" label="Notificaciones" activeTab={activeTab} setActiveTab={setActiveTab} />
-          <TabBtn id="security" icon="security" label="Seguridad" activeTab={activeTab} setActiveTab={setActiveTab} />
+                {/* COLUMNA DERECHA: FORMULARIO LEGAL */}
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm space-y-8">
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <h4 className="col-span-2 text-[10px] font-black text-orange-600 uppercase tracking-[0.2em] border-b pb-2">Información Legal</h4>
+                            
+                            <div className="col-span-2 space-y-1">
+                                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Razón Social</label>
+                                <input required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.company_name || ''} onChange={e => setOrg({...org, company_name: e.target.value})} />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">NIT / RUT</label>
+                                <input className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.tax_id || ''} onChange={e => setOrg({...org, tax_id: e.target.value})} />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">N° Explotador (DAN)</label>
+                                <input className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.dan_number || ''} onChange={e => setOrg({...org, dan_number: e.target.value})} />
+                            </div>
+
+                            <div className="col-span-2 space-y-1">
+                                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Representante Legal</label>
+                                <input className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.legal_rep || ''} onChange={e => setOrg({...org, legal_rep: e.target.value})} />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                            <h4 className="col-span-2 text-[10px] font-black text-orange-600 uppercase tracking-[0.2em] border-b pb-2">Contacto Corporativo</h4>
+                            
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Correo Electrónico</label>
+                                <input type="email" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.operator_email || ''} onChange={e => setOrg({...org, operator_email: e.target.value})} />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Teléfono</label>
+                                <input className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.phone || ''} onChange={e => setOrg({...org, phone: e.target.value})} />
+                            </div>
+
+                            <div className="col-span-2 space-y-1">
+                                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Dirección Física</label>
+                                <input className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.address || ''} onChange={e => setOrg({...org, address: e.target.value})} />
+                            </div>
+                        </div>
+
+                        <button 
+                            disabled={updating}
+                            type="submit" 
+                            className="w-full py-5 bg-slate-900 text-white font-black rounded-[2rem] shadow-xl uppercase text-xs tracking-widest transition-all hover:bg-orange-600 active:scale-95"
+                        >
+                            {updating ? 'GUARDANDO...' : 'ACTUALIZAR IDENTIDAD CORPORATIVA'}
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
-
-        {/* CONTENIDO DERECHA */}
-        <div className="lg:col-span-2">
-          <div className="bg-white border border-slate-200 rounded-[2.5rem] p-10 shadow-sm">
-            {activeTab === 'profile' && <ProfileSettings profile={profile} setProfile={setProfile} />}
-            {activeTab === 'company' && <CompanySettings profile={profile} setProfile={setProfile} />}
-            {activeTab === 'certs' && <CertificationsSettings />}
-            {activeTab === 'notif' && <NotificationSettings />}
-            {activeTab === 'security' && <SecuritySettings />}
-
-            <div className="mt-12 pt-8 border-t border-slate-50">
-              <button 
-                onClick={handleSave} 
-                disabled={updating}
-                className="w-full bg-[#ec5b13] text-white py-5 rounded-[1.5rem] font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-orange-500/20 transition-all hover:scale-[1.02] active:scale-95"
-              >
-                {updating ? 'Guardando en Servidor...' : 'Guardar todos los cambios'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TabBtn({ id, icon, label, activeTab, setActiveTab }) {
-  const isActive = activeTab === id;
-  return (
-    <button onClick={() => setActiveTab(id)} className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all border ${
-      isActive ? 'bg-[#ec5b13] border-[#ec5b13] text-white shadow-lg' : 'bg-white border-slate-100 text-slate-400 hover:bg-slate-50'
-    }`}>
-      <span className="material-symbols-outlined text-xl">{icon}</span>
-      <span className={`text-sm ${isActive ? 'font-black' : 'font-bold'}`}>{label}</span>
-    </button>
-  );
+    );
 }

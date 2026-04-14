@@ -10,6 +10,7 @@ export default function DashboardLayout({ children }) {
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [activeFlight, setActiveFlight] = useState(null);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -100,16 +101,44 @@ export default function DashboardLayout({ children }) {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-white/5 bg-black/10">
-          <div className="space-y-1 mb-4">
-             {footerLinks.map(link => (
-                <Link key={link.href} href={link.href} className={`flex items-center gap-3 px-4 py-2 rounded-xl text-xs font-bold transition-all ${pathname === link.href ? 'text-orange-500' : 'text-slate-500 hover:text-slate-300'}`}>
-                   <span className="material-symbols-outlined text-base">{link.icon}</span>{link.name}
-                </Link>
-             ))}
+        <div className="p-4 border-t border-white/5 bg-black/10 transition-all duration-500">
+          {/* BOTÓN DE CONTROL: Gestión Administrativa */}
+          <button 
+            onClick={() => setIsAdminOpen(!isAdminOpen)}
+            className="w-full flex items-center justify-between px-4 py-2 rounded-xl text-[10px] font-black uppercase text-slate-500 hover:text-slate-300 transition-all group"
+          >
+            <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-sm">settings_suggest</span>
+                <span>Administración</span>
+            </div>
+            <span className={`material-symbols-outlined text-xs transition-transform duration-300 ${isAdminOpen ? 'rotate-180' : ''}`}>
+                expand_less
+            </span>
+          </button>
+
+          {/* GRUPO COLAPSABLE */}
+          <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isAdminOpen ? 'max-h-40 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+            <div className="space-y-1 pb-2">
+              {footerLinks.map(link => (
+                  <Link 
+                    key={link.href} 
+                    href={link.href} 
+                    className={`flex items-center gap-3 px-4 py-2 rounded-xl text-xs font-bold transition-all ${pathname === link.href ? 'text-orange-500' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    <span className="material-symbols-outlined text-base">{link.icon}</span>
+                    {link.name}
+                  </Link>
+              ))}
+            </div>
           </div>
-          <button onClick={() => supabase.auth.signOut().then(() => window.location.href='/login')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-black text-red-400 hover:bg-red-400/10 transition-colors uppercase tracking-widest">
-            <span className="material-symbols-outlined text-lg">logout</span>Cerrar Sesión
+
+          {/* BOTÓN SALIR: Siempre visible o compacto */}
+          <button 
+            onClick={() => supabase.auth.signOut().then(() => window.location.href='/login')} 
+            className="w-full flex items-center gap-3 px-4 py-3 mt-1 rounded-xl text-[10px] font-black text-red-500/70 hover:text-red-500 hover:bg-red-500/10 transition-all uppercase tracking-widest"
+          >
+            <span className="material-symbols-outlined text-lg">logout</span>
+            <span>Cerrar Sesión</span>
           </button>
         </div>
       </aside>

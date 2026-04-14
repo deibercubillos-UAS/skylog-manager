@@ -48,18 +48,22 @@ export default function DashboardLayout({ children }) {
 
   if (loading) return <div className="h-screen flex items-center justify-center bg-[#1A202C] text-white font-black animate-pulse">CARGANDO BITAFLY...</div>;
 
-  const navLinks = [
-  { name: 'Dashboard', icon: 'dashboard', href: '/dashboard' },
-  { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/dashboard/fleet' },
-  { name: 'Tripulación', icon: 'person', href: '/dashboard/pilots' },
-  { name: 'Mantenimiento', icon: 'build', href: '/dashboard/maintenance' },
-  { name: 'Programación', icon: 'event_available', href: '/dashboard/authorizations' },
-  { name: 'Bitácora', icon: 'menu_book', href: '/dashboard/logbook' },
-  { name: 'Reportes', icon: 'assessment', href: '/dashboard/reports' },
-  // NUEVO MÓDULO SMS
-  { name: 'Seguridad', icon: 'health_and_safety', href: '/dashboard/safety' }, 
-  { name: 'Auditoría', icon: 'fact_check', href: '/dashboard/audit' },
+  const role = data.profile?.role;
+
+const navLinks = [
+  { name: 'Dashboard', icon: 'dashboard', href: '/dashboard', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/dashboard/fleet', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Tripulación', icon: 'person', href: '/dashboard/pilots', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Mantenimiento', icon: 'build', href: '/dashboard/maintenance', roles: ['superadmin', 'jefe_pilotos', 'gerente_sms'] },
+  { name: 'Programación', icon: 'event_available', href: '/dashboard/authorizations', roles: ['superadmin', 'jefe_pilotos'] },
+  { name: 'Bitácora', icon: 'menu_book', href: '/dashboard/logbook', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Reportes', icon: 'assessment', href: '/dashboard/reports', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'] },
+  { name: 'Seguridad', icon: 'health_and_safety', href: '/dashboard/safety', roles: ['superadmin', 'gerente_sms'] },
+  { name: 'Auditoría', icon: 'fact_check', href: '/dashboard/audit', roles: ['superadmin', 'admin', 'gerente_sms'] },
 ];
+
+// FILTRAR LINKS BASADO EN EL ROL
+const filteredLinks = navLinks.filter(link => link.roles.includes(role));
 
   const footerLinks = [
     { name: 'Configuración', icon: 'settings', href: '/dashboard/settings' },

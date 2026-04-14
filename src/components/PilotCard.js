@@ -8,18 +8,14 @@ export default function PilotCard({ pilot, canManage, onEdit, onDelete }) {
         <div className="size-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
           <span className="material-symbols-outlined text-3xl">person</span>
         </div>
+        
+        {/* LOS BOTONES DE ACCIÓN SOLO SE RENDERIZAN SI canManage ES TRUE */}
         {canManage && (
-          <div className="hidden md:flex gap-2 shrink-0">
-            <button 
-              onClick={() => onEdit(pilot)} 
-              className="size-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-orange-600 transition-all"
-            >
+          <div className="flex gap-1">
+            <button onClick={() => onEdit(pilot)} className="size-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:text-orange-600 transition-colors">
               <span className="material-symbols-outlined text-lg">edit</span>
             </button>
-            <button 
-              onClick={() => onDelete(pilot.id)} 
-              className="size-8 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center text-red-400 hover:bg-red-600 hover:text-white transition-all"
-            >
+            <button onClick={() => onDelete(pilot.id)} className="size-8 rounded-lg bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-600 hover:text-white transition-colors">
               <span className="material-symbols-outlined text-lg">delete</span>
             </button>
           </div>
@@ -27,19 +23,14 @@ export default function PilotCard({ pilot, canManage, onEdit, onDelete }) {
       </div>
 
       <div>
-          <h4 className="font-black text-slate-800 uppercase text-sm leading-tight">{pilot.name}</h4>
-          <div className="flex items-center gap-2 mt-1">
-              <span className="size-1.5 rounded-full bg-orange-600 animate-pulse"></span>
-              <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">
-                  {pilot.pilot_role || 'Piloto'}
-              </p>
-          </div>
+        <h4 className="font-black text-slate-800 uppercase text-sm">{pilot.name}</h4>
+        <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">{pilot.pilot_role || 'Piloto'}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 border-t pt-4">
         <div>
           <p className="text-[8px] font-black text-slate-400 uppercase">CIPU / Licencia</p>
-          <p className="text-[11px] font-bold text-slate-700">{pilot.license_number || 'N/A'}</p>
+          <p className="text-[11px] font-bold text-slate-700 truncate">{pilot.license_number || 'N/A'}</p>
         </div>
         <div>
           <p className="text-[8px] font-black text-slate-400 uppercase">Vencimiento Médico</p>

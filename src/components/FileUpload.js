@@ -14,7 +14,7 @@ export default function FileUpload({ path, onUploadSuccess, label }) {
 
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${path}/${fileName}`;
+      const filePath = `${prof.organization_id}/${path}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from(BUCKET)

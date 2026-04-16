@@ -28,3 +28,10 @@ export async function middleware(request) {
 export const config = {
   matcher: ['/dashboard/:path*', '/admin/:path*'],
 }
+
+if (request.nextUrl.pathname.startsWith('/admin/master')) {
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (profile?.role !== 'superadmin') {
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+}

@@ -1,9 +1,8 @@
+// src/lib/supabaseServer.js
 import { createServerClient } from '@supabase/ssr'
-import { createClient as createJSClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
-// Cliente estándar para APIs y Dashboard (Next.js 14)
-export function createClient() {
+export async function createClient() {
   const cookieStore = cookies()
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,17 +10,9 @@ export function createClient() {
     {
       cookies: {
         get(name) { return cookieStore.get(name)?.value },
-        set(name, value, options) { cookieStore.set({ name, value, ...options }) },
-        remove(name, options) { cookieStore.set({ name, value: '', ...options }) },
+        set(name, value, options) { try { cookieStore.set({ name, value, ...options }) } catch (e) {} },
+        remove(name, options) { try { cookieStore.set({ name, value: '', ...options }) } catch (e) {} },
       },
     }
-  )
-}
-
-// Cliente Maestro para el Panel Master (Bypassa RLS)
-export function createAdminClient() {
-  return createJSClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
   )
 }

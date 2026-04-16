@@ -9,29 +9,36 @@ export async function middleware(request) {
     {
       cookies: {
         get(name) { return request.cookies.get(name)?.value },
-        set(name, value, options) { request.cookies.set({ name, value, ...options }) },
-        remove(name, options) { request.cookies.set({ name, value: '', ...options }) },
+        set(name, value, options) {
+          request.cookies.set({ name, value, ...options })
+          response = NextResponse.next({ request })
+        },
+        remove(name, options) {
+          request.cookies.set({ name, value: '', ...options })
+          response = NextResponse.next({ request })
+        },
       },
     }
   )
+
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Si no hay sesión, al login
+  // Protección de rutas DASHBOARD y ADMIN
   if (!user && (request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/admin'))) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // ELIMINAMOS LA REDIRECCIÓN DE ROL AQUÍ PARA EVITAR EL BUCLE
+  // Protección específica para SuperAdmin (Master Panel)
+  if (user && request.nextUrl.pathname.startsWith('/admin/master')) {
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (profile?.role !== 'superadmin') {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+  }
+
   return response
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/admin/:path*'],
-}
-
-if (request.nextUrl.pathname.startsWith('/admin/master')) {
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-    if (profile?.role !== 'superadmin') {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
+  matcher: ['/dashboard/:path*', '/admin/:path*', '/login', '/registro'],
 }

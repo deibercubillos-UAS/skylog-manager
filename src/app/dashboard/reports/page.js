@@ -129,11 +129,46 @@ export default function ReportsPage() {
                             {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                     </div>
+                
                     <div className="w-full md:w-auto flex flex-col gap-2">
                         <input className="p-3 bg-slate-100 rounded-xl text-[10px] font-black uppercase text-center w-32" value={config.formCodePilot} onChange={e => setConfig({...config, formCodePilot: e.target.value})} />
                         <button onClick={() => downloadReport('pilots')} disabled={loading} className="px-8 py-4 bg-orange-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-slate-900 transition-all">Descargar PDF</button>
                     </div>
                 </div>
+
+                <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-8 mt-6 transition-all hover:border-orange-500/30">
+    <div className="size-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white shrink-0">
+        <span className="material-symbols-outlined text-3xl">folder_shared</span>
+    </div>
+    <div className="flex-1 space-y-3">
+        <h3 className="text-xl font-black uppercase tracking-tight">Expediente de Tripulante</h3>
+        <p className="text-xs text-slate-500">Hoja de vida completa con anexos digitales y certificados.</p>
+        <select 
+            className="w-full md:w-64 p-3 bg-slate-50 rounded-xl text-[10px] font-black uppercase border-2 border-slate-100"
+            value={selectedPilot} onChange={(e) => setSelectedPilot(e.target.value)}
+        >
+            <option value="">-- Seleccionar Tripulante --</option>
+            {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+    </div>
+    <button 
+        onClick={async () => {
+            if(!selectedPilot) return alert("Seleccione un tripulante");
+            setLoading(true);
+            try {
+                const res = await fetch(`/api/reports/crew/expediente?pilotId=${selectedPilot}`);
+                const pilotData = await res.json();
+                generatePilotDossier(pilotData, {
+                    orgName: orgData?.company_name,
+                    logoUrl: orgData?.logo_url,
+                    reportDate: config.reportDate
+                });
+            } finally { setLoading(false); }
+        }}
+        disabled={loading}
+        className="px-8 py-4 bg-orange-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-slate-900 transition-all"
+    > Descargar Expediente </button>
+</div>
             </div>
         </div>
     );

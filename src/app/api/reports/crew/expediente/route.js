@@ -8,13 +8,12 @@ export async function GET(request) {
         const { searchParams } = new URL(request.url);
         const pilotId = searchParams.get('pilotId');
 
-        if (!pilotId) return NextResponse.json({ error: "ID de piloto requerido" }, { status: 400 });
-
         const supabase = await createClientSSR();
         const { data: { user } } = await supabase.auth.getUser();
         const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
 
-        const { data, error } = await supabase
+        // 1. Obtener datos del piloto
+        const { data: pilot, error } = await supabase
             .from('pilots')
             .select('*')
             .eq('organization_id', prof.organization_id)
@@ -22,7 +21,17 @@ export async function GET(request) {
             .single();
 
         if (error) throw error;
-        return NextResponse.json(data);
+
+        // 2. Calcular Horas Totales desde la tabla de vuelos
+        const { data: flights } = await supabase
+            .from('flights')
+            .select('total_time')
+            .eq('pilot_id', pilotId);
+        
+        const totalHours = flights?.reduce((acc, f) => acc + (parseFloat(f.total_time) || 0), 0) || 0;
+
+        // Retornamos el piloto con el agregado de horas
+        return NextResponse.json({ ...pilot, total_hours_accumulated: totalHours });
     } catch (err) {
         return NextResponse.json({ error: err.message }, { status: 500 });
     }

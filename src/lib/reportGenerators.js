@@ -277,15 +277,3 @@ export const generatePilotDossier = (pilot, config) => {
 
     doc.save(`EXPEDIENTE_${pilot.name.replace(/\s+/g, '_')}.pdf`);
 };
-
-    // --- SECCIÓN DE FIRMAS ---
-    const signY = 265;
-    doc.setDrawColor(0);
-    doc.line(20, signY, 80, signY);
-    doc.text("FIRMA DEL PILOTO", 50, signY + 5, { align: 'center' });
-    
-    doc.line(130, signY, 190, signY);
-    doc.text("FIRMA JEFE DE PILOTOS", 160, signY + 5, { align: 'center' });
-
-    doc.save(`EXPEDIENTE_${pilot.name.replace(/\s+/g, '_')}.pdf`);
-};

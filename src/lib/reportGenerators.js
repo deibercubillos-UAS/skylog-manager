@@ -213,10 +213,10 @@ export const generatePilotDossier = (pilot, config) => {
         startY: doc.lastAutoTable.finalY + 5,
         head: [['03. ANEXOS DIGITALES', 'ESTADO', 'VÍNCULO DE VERIFICACIÓN']],
         body: [
-            ['Cédula de Ciudadanía', pilot.id_doc_url ? 'CARGADO' : 'PENDIENTE', pilot.id_doc_url ? 'CLIC PARA VER ARCHIVO' : '---'],
-            ['Diploma Curso Piloto', pilot.pilot_course_url ? 'CARGADO' : 'PENDIENTE', pilot.pilot_course_url ? 'CLIC PARA VER ARCHIVO' : '---'],
-            ['Certificado Examen Teórico', pilot.theoretical_exam_url ? 'CARGADO' : 'PENDIENTE', pilot.theoretical_exam_url ? 'CLIC PARA VER ARCHIVO' : '---'],
-            ['Certificado Médico Vigente', pilot.medical_cert_url ? 'CARGADO' : 'PENDIENTE', pilot.medical_cert_url ? 'CLIC PARA VER ARCHIVO' : '---']
+            ['Cédula de Ciudadanía', pilot.id_doc_url ? 'CARGADO' : 'PENDIENTE', pilot.id_doc_url ? ' ' : '---'],
+            ['Diploma Curso Piloto', pilot.pilot_course_url ? 'CARGADO' : 'PENDIENTE', pilot.pilot_course_url ? ' ' : '---'],
+            ['Certificado Examen Teórico', pilot.theoretical_exam_url ? 'CARGADO' : 'PENDIENTE', pilot.theoretical_exam_url ? ' ' : '---'],
+            ['Certificado Médico Vigente', pilot.medical_cert_url ? 'CARGADO' : 'PENDIENTE', pilot.medical_cert_url ? ' ' : '---']
         ],
         theme: 'grid',
         styles: { fontSize: 8, cellPadding: 3 },
@@ -238,7 +238,7 @@ export const generatePilotDossier = (pilot, config) => {
         }
     });
 
-    // --- 5. CONTACTO DE EMERGENCIA ---
+   // --- 5. CONTACTO DE EMERGENCIA ---
     autoTable(doc, {
         startY: doc.lastAutoTable.finalY + 5,
         head: [['04. CONTACTO EN CASO DE EMERGENCIA', '']],
@@ -251,6 +251,32 @@ export const generatePilotDossier = (pilot, config) => {
         headStyles: { fillColor: [185, 28, 28], textColor: [255, 255, 255], fontStyle: 'bold' },
         columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } }
     });
+
+    // --- 6. RESUMEN DE EXPERIENCIA (NUEVO) ---
+    autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 5,
+        head: [['05. EXPERIENCIA DE VUELO ACUMULADA', '']],
+        body: [
+            ['Horas Totales Certificadas (en Bitafly):', (pilot.total_hours_accumulated || 0).toFixed(2) + ' Horas']
+        ],
+        theme: 'plain',
+        styles: { fontSize: 10, cellPadding: 3 },
+        headStyles: { fillColor: [0, 80, 158], textColor: [255, 255, 255], fontStyle: 'bold' }, // Color azul aviación
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 70 } }
+    });
+
+    // --- SECCIÓN DE FIRMAS (Ajustada de posición) ---
+    const signY = 265;
+    doc.setDrawColor(0);
+    doc.setFontSize(8);
+    doc.line(20, signY, 80, signY);
+    doc.text("FIRMA DEL PILOTO", 50, signY + 5, { align: 'center' });
+    
+    doc.line(130, signY, 190, signY);
+    doc.text("FIRMA JEFE DE PILOTOS", 160, signY + 5, { align: 'center' });
+
+    doc.save(`EXPEDIENTE_${pilot.name.replace(/\s+/g, '_')}.pdf`);
+};
 
     // --- SECCIÓN DE FIRMAS ---
     const signY = 265;

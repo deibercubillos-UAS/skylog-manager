@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { generateMasterReport, generateBatteryReport, generatePilotReport } from '@/lib/reportGenerators';
+import { generateMasterReport, generateBatteryReport, generatePilotReport, generatePilotDossier } from '@/lib/reportGenerators';
 import FileUpload from '@/components/FileUpload';
 
 export default function ReportsPage() {

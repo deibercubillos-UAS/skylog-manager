@@ -164,10 +164,11 @@ export const generatePilotDossier = (pilot, config) => {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const { orgName, logoUrl, reportDate } = config;
 
-    // Cabecera Técnica Portrait
+    // --- 1. CABECERA TÉCNICA (PORTRAIT) ---
     doc.setDrawColor(0); doc.setLineWidth(0.5);
     doc.rect(10, 10, 190, 25); 
     doc.line(50, 10, 50, 35); doc.line(160, 10, 160, 35);
+
     if (logoUrl) { try { doc.addImage(logoUrl, 'PNG', 15, 12, 30, 20); } catch (e) {} }
 
     doc.setFont("helvetica", "bold");
@@ -175,50 +176,90 @@ export const generatePilotDossier = (pilot, config) => {
     doc.setFontSize(12); doc.text("EXPEDIENTE TÉCNICO DE TRIPULANTE", 105, 28, { align: 'center' });
     doc.setFontSize(8); doc.text("VERSIÓN: 1.0", 162, 18); doc.text(`EMISIÓN: ${reportDate}`, 162, 28);
 
-    // Bloques de Información
-    const drawBlockHeader = (y, title, color = [26, 32, 44]) => {
-        doc.setFillColor(...color); doc.rect(10, y, 190, 8, 'F');
-        doc.setTextColor(255); doc.setFontSize(9); doc.text(title, 15, y + 5);
-        doc.setTextColor(0);
-    };
+    // --- 2. BLOQUE DE IDENTIDAD ---
+    autoTable(doc, {
+        startY: 40,
+        head: [['01. INFORMACIÓN PERSONAL Y DE IDENTIDAD', '']],
+        body: [
+            ['Nombre Completo:', pilot.name || 'N/A'],
+            ['Número de Identificación:', pilot.id_number || 'N/A'],
+            ['Correo Electrónico:', pilot.email || 'N/A'],
+            ['Teléfono Móvil:', pilot.phone || 'N/A']
+        ],
+        theme: 'plain',
+        styles: { fontSize: 9, cellPadding: 2 },
+        headStyles: { fillColor: [26, 32, 44], textColor: [255, 255, 255], fontStyle: 'bold' },
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } }
+    });
 
-    drawBlockHeader(40, "01. INFORMACIÓN PERSONAL Y DE IDENTIDAD");
-    doc.setFontSize(10);
-    doc.text(`Nombre Completo: ${pilot.name}`, 15, 55);
-    doc.text(`Identificación: ${pilot.id_number || 'N/A'}`, 15, 62);
-    doc.text(`Email: ${pilot.email || 'N/A'}`, 15, 69);
-    doc.text(`Teléfono: ${pilot.phone || 'N/A'}`, 15, 76);
+    // --- 3. BLOQUE AERONÁUTICO ---
+    autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 5,
+        head: [['02. CREDENCIALES Y CALIFICACIONES AEROCIVIL', '']],
+        body: [
+            ['Cargo Operativo:', pilot.pilot_role || 'Piloto'],
+            ['Número CIPU (Registro):', pilot.license_number || 'PENDIENTE'],
+            ['Fecha Vencimiento Médico:', pilot.medical_expiry || 'NO REGISTRADO']
+        ],
+        theme: 'plain',
+        styles: { fontSize: 9, cellPadding: 2 },
+        headStyles: { fillColor: [236, 91, 19], textColor: [255, 255, 255], fontStyle: 'bold' },
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } }
+    });
 
-    drawBlockHeader(85, "02. CREDENCIALES Y CALIFICACIONES", [236, 91, 19]);
-    doc.text(`Cargo: ${pilot.pilot_role}`, 15, 100);
-    doc.text(`CIPU: ${pilot.license_number || 'PTE'}`, 15, 107);
-    doc.text(`Vence Médico: ${pilot.medical_expiry || 'N/R'}`, 15, 114);
-
-    drawBlockHeader(125, "03. DOCUMENTACIÓN DIGITAL (ANEXOS)", [100, 100, 100]);
-    let docY = 140;
-    const addDocLink = (label, url) => {
-        doc.setFontSize(8);
-        if (url) {
-            doc.setTextColor(0, 31, 63);
-            doc.text(`> ${label}: [VER ARCHIVO ONLINE]`, 15, docY);
-            doc.textWithLink("   CLIC PARA ABRIR", 15, docY, { url: url });
-        } else {
-            doc.setTextColor(150); doc.text(`> ${label}: No cargado`, 15, docY);
+    // --- 4. BLOQUE DE DOCUMENTACIÓN (ANEXOS PARA IMPRESIÓN) ---
+    // Usamos una tabla para que los links y etiquetas nunca se encimen
+    autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 5,
+        head: [['03. ANEXOS DIGITALES', 'ESTADO', 'VÍNCULO DE VERIFICACIÓN']],
+        body: [
+            ['Cédula de Ciudadanía', pilot.id_doc_url ? 'CARGADO' : 'PENDIENTE', pilot.id_doc_url ? 'CLIC PARA VER ARCHIVO' : '---'],
+            ['Diploma Curso Piloto', pilot.pilot_course_url ? 'CARGADO' : 'PENDIENTE', pilot.pilot_course_url ? 'CLIC PARA VER ARCHIVO' : '---'],
+            ['Certificado Examen Teórico', pilot.theoretical_exam_url ? 'CARGADO' : 'PENDIENTE', pilot.theoretical_exam_url ? 'CLIC PARA VER ARCHIVO' : '---'],
+            ['Certificado Médico Vigente', pilot.medical_cert_url ? 'CARGADO' : 'PENDIENTE', pilot.medical_cert_url ? 'CLIC PARA VER ARCHIVO' : '---']
+        ],
+        theme: 'grid',
+        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { fillColor: [100, 100, 100], textColor: [255, 255, 255], fontStyle: 'bold' },
+        didDrawCell: (data) => {
+            // Lógica para hacer los links clickeables solo en la columna 2
+            if (data.section === 'body' && data.column.index === 2) {
+                let url = '';
+                if (data.row.index === 0) url = pilot.id_doc_url;
+                if (data.row.index === 1) url = pilot.pilot_course_url;
+                if (data.row.index === 2) url = pilot.theoretical_exam_url;
+                if (data.row.index === 3) url = pilot.medical_cert_url;
+                
+                if (url) {
+                    doc.setTextColor(0, 0, 255);
+                    doc.textWithLink("VER DOCUMENTO", data.cell.x + 3, data.cell.y + 6, { url: url });
+                }
+            }
         }
-        docY += 8;
-    };
-    addDocLink("Cédula Ciudadanía", pilot.id_doc_url);
-    addDocLink("Diploma Curso Piloto", pilot.pilot_course_url);
-    addDocLink("Certificado Médico", pilot.medical_cert_url);
+    });
 
-    drawBlockHeader(185, "04. CONTACTO DE EMERGENCIA", [185, 28, 28]);
-    doc.text(`Nombre: ${pilot.emergency_contact_name || 'N/A'}`, 15, 200);
-    doc.text(`Teléfono: ${pilot.emergency_contact_phone || 'N/A'}`, 15, 207);
+    // --- 5. CONTACTO DE EMERGENCIA ---
+    autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 5,
+        head: [['04. CONTACTO EN CASO DE EMERGENCIA', '']],
+        body: [
+            ['Nombre de Contacto:', pilot.emergency_contact_name || 'N/A'],
+            ['Teléfono de Contacto:', pilot.emergency_contact_phone || 'N/A']
+        ],
+        theme: 'plain',
+        styles: { fontSize: 9, cellPadding: 2 },
+        headStyles: { fillColor: [185, 28, 28], textColor: [255, 255, 255], fontStyle: 'bold' },
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } }
+    });
 
-    // Firmas
-    const signY = 240;
-    doc.line(30, signY, 80, signY); doc.text("FIRMA DEL PILOTO", 55, signY + 5, { align: 'center' });
-    doc.line(130, signY, 180, signY); doc.text("FIRMA JEFE DE PILOTOS", 155, signY + 5, { align: 'center' });
+    // --- SECCIÓN DE FIRMAS ---
+    const signY = 265;
+    doc.setDrawColor(0);
+    doc.line(20, signY, 80, signY);
+    doc.text("FIRMA DEL PILOTO", 50, signY + 5, { align: 'center' });
+    
+    doc.line(130, signY, 190, signY);
+    doc.text("FIRMA JEFE DE PILOTOS", 160, signY + 5, { align: 'center' });
 
-    doc.save(`EXPEDIENTE_${pilot.name.replace(' ', '_')}.pdf`);
+    doc.save(`EXPEDIENTE_${pilot.name.replace(/\s+/g, '_')}.pdf`);
 };

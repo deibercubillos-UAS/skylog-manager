@@ -242,28 +242,33 @@ export default function MissionControlPage() {
                     </section>
 
                     {/* SECCIÓN 4: INFORMACIÓN DE LA OPERACIÓN */}
-                    <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8">
-                        <div className="bg-slate-50 border-b border-slate-200 p-4 flex justify-between items-center px-8">
-                            <h4 className="font-black text-slate-900 uppercase text-[11px] tracking-widest">4. INFORMACIÓN DE LA OPERACIÓN AÉREA</h4>
-                            <HelpTooltip text="Diligencie los datos de la empresa contratante, fechas, horarios y ubicación geográfica." />
+                    {/* FILA 5: UBICACIÓN GEOGRÁFICA (API COLOMBIA) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Departamento</label>
+                            <select 
+                                className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-xs focus:ring-2 focus:ring-orange-500 outline-none appearance-none"
+                                value={aeroForm.department}
+                                onChange={e => handleDeptChange(e.target.value)}
+                            >
+                                <option value="">-- Seleccionar Departamento --</option>
+                                {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                            </select>
                         </div>
-                        <div className="p-8 space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <InputCol label="Empresa Contratante del Servicio" placeholder="Cliente S.A.S" value={aeroForm.client} onChange={e => setAeroForm({...aeroForm, client: e.target.value})} />
-                                <InputCol label="Peso Bruto Máximo (Kg)" type="number" placeholder="0.00" value={aeroForm.mtow} onChange={e => setAeroForm({...aeroForm, mtow: e.target.value})} />
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <InputCol label="Fecha Inicio" type="date" value={aeroForm.start_date} onChange={e => setAeroForm({...aeroForm, start_date: e.target.value})} />
-                                <InputCol label="Hora Inicio (UTC)" type="time" value={aeroForm.start_time} onChange={e => setAeroForm({...aeroForm, start_time: e.target.value})} />
-                                <InputCol label="Fecha Fin" type="date" value={aeroForm.end_date} onChange={e => setAeroForm({...aeroForm, end_date: e.target.value})} />
-                                <InputCol label="Hora Fin (UTC)" type="time" value={aeroForm.end_time} onChange={e => setAeroForm({...aeroForm, end_time: e.target.value})} />
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <InputCol label="Municipio" placeholder="Ej: Bogotá" value={aeroForm.municipality} onChange={e => setAeroForm({...aeroForm, municipality: e.target.value})} />
-                                <InputCol label="Departamento" placeholder="Ej: Cundinamarca" value={aeroForm.department} onChange={e => setAeroForm({...aeroForm, department: e.target.value})} />
-                            </div>
+
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Municipio</label>
+                            <select 
+                                disabled={!aeroForm.department}
+                                className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-xs focus:ring-2 focus:ring-orange-500 outline-none appearance-none disabled:opacity-50"
+                                value={aeroForm.municipality}
+                                onChange={e => setAeroForm({...aeroForm, municipality: e.target.value})}
+                            >
+                                <option value="">-- Seleccionar Municipio --</option>
+                                {filteredMunicipios.map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
                         </div>
-                    </section>
+                    </div>
                 </div>
             )}
 

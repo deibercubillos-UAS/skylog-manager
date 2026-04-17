@@ -4,6 +4,9 @@ import { supabase } from '@/lib/supabase';
 import EditAuthorizationPanel from '@/components/EditAuthorizationPanel';
 
 export default function MissionControlPage() {
+    // ESTADO DE PANTALLA ACTIVA
+    const [activeTab, setActiveTab] = useState('basica'); // 'basica' o 'aerocivil'
+
     const [missions, setMissions] = useState([]);
     const [pilots, setPilots] = useState([]);
     const [drones, setDrones] = useState([]);
@@ -14,11 +17,8 @@ export default function MissionControlPage() {
     const [userRole, setUserRole] = useState('');
 
     const [form, setForm] = useState({ 
-        pilot_id: '', 
-        aircraft_id: '', 
-        location: '', 
-        scheduled_at: '', 
-        mission_type: 'Operación Comercial' 
+        pilot_id: '', aircraft_id: '', location: '', 
+        scheduled_at: '', mission_type: 'Operación Comercial' 
     });
 
     const loadData = async () => {
@@ -48,7 +48,7 @@ export default function MissionControlPage() {
 
     useEffect(() => { loadData(); }, []);
 
-    // --- LÓGICA DE VALIDACIÓN TÉCNICA (SEMÁFORO) ---
+    // LOGICA DE VALIDACIÓN (SEMÁFORO)
     const getPilotStatus = () => {
         const p = pilots.find(x => x.id === form.pilot_id);
         if (!p || !p.medical_expiry) return null;
@@ -65,8 +65,7 @@ export default function MissionControlPage() {
         if (!d) return null;
         const currentHours = parseFloat(d.total_hours || 0);
         const lastHours = parseFloat(d.last_maintenance_hours || 0);
-        const hoursUsed = currentHours - lastHours;
-        const remaining = 200 - hoursUsed;
+        const remaining = 200 - (currentHours - lastHours);
         if (remaining <= 0) return { type: 'ERROR', msg: 'MANTENIMIENTO REQUERIDO' };
         if (remaining <= 20) return { type: 'WARN', msg: `${remaining.toFixed(1)}H PARA SERVICIO` };
         return { type: 'OK', msg: 'AERONAVE OPERATIVA' };
@@ -74,12 +73,6 @@ export default function MissionControlPage() {
 
     const pStatus = getPilotStatus();
     const dStatus = getDroneStatus();
-
-    const updatePrefix = async (val) => {
-        const newPrefix = val.toUpperCase().substring(0, 3);
-        setOrg(prev => ({ ...prev, flight_prefix: newPrefix }));
-        await supabase.from('organizations').update({ flight_prefix: newPrefix }).eq('id', org.id);
-    };
 
     const handleAuthorize = async (e) => {
         e.preventDefault();
@@ -96,9 +89,7 @@ export default function MissionControlPage() {
                 setForm({ pilot_id: '', aircraft_id: '', location: '', scheduled_at: '', mission_type: 'Operación Comercial' });
                 loadData();
             }
-        } finally {
-            setSaving(false);
-        }
+        } finally { setSaving(false); }
     };
 
     const updateStatus = async (id, newStatus) => {
@@ -110,97 +101,116 @@ export default function MissionControlPage() {
 
     return (
         <div className="max-w-6xl mx-auto space-y-8 text-left pb-20 animate-in fade-in duration-500">
-            <header className="flex justify-between items-center">
-                <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Programación</h2>
-                <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border shadow-sm">
-                    <span className="text-[9px] font-black text-slate-400 uppercase">Prefijo:</span>
-                    <input className="w-16 p-1 text-center font-black bg-slate-50 rounded-lg text-orange-600 uppercase border-none focus:ring-2 focus:ring-orange-500" 
-                           value={org?.flight_prefix || ''} onChange={(e) => updatePrefix(e.target.value)} />
+            
+            {/* HEADER CON SELECTOR DE PANTALLAS */}
+            <header className="flex flex-col md:flex-row justify-between items-center gap-6">
+                <div>
+                    <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Programación</h2>
+                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">Mando y Control Operativo</p>
+                </div>
+
+                {/* BOTONES DE CAMBIO DE PANTALLA */}
+                <div className="flex bg-slate-200/50 p-1.5 rounded-[1.5rem] shadow-inner">
+                    <button 
+                        onClick={() => setActiveTab('basica')}
+                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'basica' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    > Programación Básica </button>
+                    <button 
+                        onClick={() => setActiveTab('aerocivil')}
+                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'aerocivil' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    > Programación Aerocivil </button>
                 </div>
             </header>
 
-            {/* PANEL DE MANDO CENTRAL (ESTILO OSCURO RECOBRADO) */}
-            <section className="bg-[#1A202C] p-10 rounded-[3rem] text-white shadow-2xl space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className={`p-4 rounded-2xl border transition-all ${!pStatus ? 'border-white/10' : pStatus.type === 'ERROR' ? 'bg-red-500/20 border-red-500' : pStatus.type === 'WARN' ? 'bg-orange-500/20 border-orange-500' : 'bg-emerald-500/10 border-emerald-500/30'}`}>
-                        <p className="text-[8px] font-black uppercase text-slate-500">Estatus Piloto</p>
-                        <p className="text-[10px] font-bold mt-1 uppercase">{pStatus ? pStatus.msg : 'Seleccione PIC'}</p>
-                    </div>
-                    <div className={`p-4 rounded-2xl border transition-all ${!dStatus ? 'border-white/10' : dStatus.type === 'ERROR' ? 'bg-red-500/20 border-red-500' : dStatus.type === 'WARN' ? 'bg-orange-500/20 border-orange-500' : 'bg-emerald-500/10 border-emerald-500/30'}`}>
-                        <p className="text-[8px] font-black uppercase text-slate-500">Estatus Aeronave</p>
-                        <p className="text-[10px] font-bold mt-1 uppercase">{dStatus ? dStatus.msg : 'Seleccione UAS'}</p>
+            {/* CONTENIDO CONDICIONAL: PANTALLA BÁSICA (ACTUAL) */}
+            {activeTab === 'basica' && (
+                <div className="space-y-8 animate-in slide-in-from-left duration-500">
+                    <section className="bg-[#1A202C] p-10 rounded-[3rem] text-white shadow-2xl space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className={`p-4 rounded-2xl border transition-all ${!pStatus ? 'border-white/10' : pStatus.type === 'ERROR' ? 'bg-red-500/20 border-red-500' : pStatus.type === 'WARN' ? 'bg-orange-500/20 border-orange-500' : 'bg-emerald-500/10 border-emerald-500/30'}`}>
+                                <p className="text-[8px] font-black uppercase text-slate-500">Estatus Piloto</p>
+                                <p className="text-[10px] font-bold mt-1 uppercase">{pStatus ? pStatus.msg : 'Seleccione PIC'}</p>
+                            </div>
+                            <div className={`p-4 rounded-2xl border transition-all ${!dStatus ? 'border-white/10' : dStatus.type === 'ERROR' ? 'bg-red-500/20 border-red-500' : dStatus.type === 'WARN' ? 'bg-orange-500/20 border-orange-500' : 'bg-emerald-500/10 border-emerald-500/30'}`}>
+                                <p className="text-[8px] font-black uppercase text-slate-500">Estatus Aeronave</p>
+                                <p className="text-[10px] font-bold mt-1 uppercase">{dStatus ? dStatus.msg : 'Seleccione UAS'}</p>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleAuthorize} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-black text-slate-500 uppercase">PIC (Piloto al Mando)</label>
+                                <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.pilot_id} onChange={e => setForm({...form, pilot_id: e.target.value})}>
+                                    <option value="">Seleccionar...</option>
+                                    {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-black text-slate-500 uppercase">UAS (Aeronave)</label>
+                                <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.aircraft_id} onChange={e => setForm({...form, aircraft_id: e.target.value})}>
+                                    <option value="">Seleccionar...</option>
+                                    {drones.map(d => <option key={d.id} value={d.id}>{d.model} ({d.serial_number})</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-black text-slate-500 uppercase">Tipo de Misión</label>
+                                <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.mission_type} onChange={e => setForm({...form, mission_type: e.target.value})}>
+                                    <option value="Operación Comercial">Operación Comercial</option>
+                                    <option value="Inspección Técnica">Inspección Técnica</option>
+                                    <option value="Entrenamiento">Entrenamiento</option>
+                                    <option value="Búsqueda y Rescate">Búsqueda y Rescate</option>
+                                </select>
+                            </div>
+                            <div className="md:col-span-2 grid grid-cols-2 gap-4">
+                                <input required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" placeholder="Lugar de Operación" value={form.location} onChange={e => setForm({...form, location: e.target.value})} />
+                                <input required type="date" className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})} />
+                            </div>
+                            <button type="submit" disabled={saving} className="bg-orange-600 hover:bg-orange-700 text-white p-4 rounded-2xl font-black uppercase text-xs shadow-xl active:scale-95 transition-all">
+                                {saving ? '...' : 'EMITIR ORDEN'}
+                            </button>
+                        </form>
+                    </section>
+
+                    {/* TABLA DE ÓRDENES */}
+                    <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
+                                <tr><th className="p-5">Orden</th><th className="p-5">Tripulación / Equipo</th><th className="p-5 text-right">Acción</th></tr>
+                            </thead>
+                            <tbody className="divide-y text-sm">
+                                {missions.map(m => (
+                                    <tr key={m.id} className="hover:bg-slate-50">
+                                        <td className="p-5 font-black text-orange-600 font-mono">{m.mission_id}</td>
+                                        <td className="p-5"><b>{m.pilots?.name}</b><br/><span className="text-[10px] text-slate-400 uppercase">{m.aircraft?.model}</span></td>
+                                        <td className="p-5 text-right space-x-2">
+                                            <button onClick={() => setEditingMission(m)} className="material-symbols-outlined text-slate-300 hover:text-orange-600 transition-colors">edit_square</button>
+                                            <button onClick={() => updateStatus(m.id, 'realizado')} className="material-symbols-outlined text-emerald-500 hover:scale-110 transition-all">check_circle</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+            )}
 
-                <form onSubmit={handleAuthorize} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                    <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase">PIC (Piloto al Mando)</label>
-                        <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.pilot_id} onChange={e => setForm({...form, pilot_id: e.target.value})}>
-                            <option value="">Seleccionar...</option>
-                            {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
+            {/* CONTENIDO CONDICIONAL: PANTALLA AEROCIVIL (A DISEÑAR) */}
+            {activeTab === 'aerocivil' && (
+                <div className="p-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200 animate-in slide-in-from-right duration-500">
+                    <div className="size-20 bg-orange-50 rounded-full flex items-center justify-center mx-auto text-orange-600 mb-6">
+                        <span className="material-symbols-outlined text-4xl">gavel</span>
                     </div>
-                    <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase">UAS (Aeronave)</label>
-                        <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.aircraft_id} onChange={e => setForm({...form, aircraft_id: e.target.value})}>
-                            <option value="">Seleccionar...</option>
-                            {drones.map(d => <option key={d.id} value={d.id}>{d.model} ({d.serial_number})</option>)}
-                        </select>
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase">Tipo de Misión</label>
-                        <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.mission_type} onChange={e => setForm({...form, mission_type: e.target.value})}>
-                            <option value="Operación Comercial">Operación Comercial</option>
-                            <option value="Inspección Técnica">Inspección Técnica</option>
-                            <option value="Entrenamiento">Entrenamiento</option>
-                            <option value="Búsqueda y Rescate">Búsqueda y Rescate</option>
-                        </select>
-                    </div>
-                    <div className="md:col-span-2 grid grid-cols-2 gap-4">
-                        <input required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" placeholder="Lugar de Operación" value={form.location} onChange={e => setForm({...form, location: e.target.value})} />
-                        <input required type="date" className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})} />
-                    </div>
-                    <button type="submit" disabled={saving} className="bg-orange-600 hover:bg-orange-700 text-white p-4 rounded-2xl font-black uppercase text-xs shadow-xl transition-all active:scale-95">
-                        {saving ? '...' : 'EMITIR ORDEN'}
-                    </button>
-                </form>
-            </section>
+                    <h3 className="text-xl font-black uppercase text-slate-900">Módulo Aerocivil</h3>
+                    <p className="text-slate-500 max-w-sm mx-auto mt-2 font-medium">Estamos preparando la interfaz de cumplimiento normativo según sus requerimientos.</p>
+                </div>
+            )}
 
-            {/* TABLA DE ÓRDENES (RECOBRADA) */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
-                <table className="w-full text-left">
-                    <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
-                        <tr><th className="p-5">Orden</th><th className="p-5">Tripulación / Equipo</th><th className="p-5">Estado</th><th className="p-5 text-right">Acción</th></tr>
-                    </thead>
-                    <tbody className="divide-y text-sm">
-                        {missions.map(m => (
-                            <tr key={m.id} className="hover:bg-slate-50">
-                                <td className="p-5 font-black text-orange-600 font-mono">{m.mission_id}</td>
-                                <td className="p-5"><b>{m.pilots?.name}</b><br/><span className="text-[10px] text-slate-400 uppercase">{m.aircraft?.model}</span></td>
-                                <td className="p-5">
-                                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${m.status === 'realizado' ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
-                                        {m.status}
-                                    </span>
-                                </td>
-                                <td className="p-5 text-right space-x-2">
-                                    <button onClick={() => setEditingMission(m)} className="material-symbols-outlined text-slate-300 hover:text-orange-600 transition-colors">edit_square</button>
-                                    <button onClick={() => updateStatus(m.id, 'realizado')} title="Marcar Realizado" className="material-symbols-outlined text-emerald-500 hover:scale-110 transition-all">check_circle</button>
-                                    <button onClick={() => updateStatus(m.id, 'cancelado')} title="Cancelar" className="material-symbols-outlined text-red-400 hover:scale-110 transition-all">cancel</button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* PANEL DE EDICIÓN */}
+            {/* PANEL DE EDICIÓN (MASTER) */}
             {editingMission && (
                 <div className="fixed inset-0 z-[200] flex justify-end">
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setEditingMission(null)} />
                     <EditAuthorizationPanel 
-                        mission={editingMission} 
-                        pilots={pilots} 
-                        drones={drones} 
+                        mission={editingMission} pilots={pilots} drones={drones} 
                         onClose={() => setEditingMission(null)} 
                         onSuccess={() => { setEditingMission(null); loadData(); }} 
                     />

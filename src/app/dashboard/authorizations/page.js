@@ -1,12 +1,12 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
 import EditAuthorizationPanel from '@/components/EditAuthorizationPanel';
+import HelpTooltip from '@/components/HelpTooltip'; // Asegúrese de que el archivo existe
 
 export default function MissionControlPage() {
-    // ESTADO DE PANTALLA ACTIVA
-    const [activeTab, setActiveTab] = useState('basica'); // 'basica' o 'aerocivil'
-
+    const [activeTab, setActiveTab] = useState('basica');
     const [missions, setMissions] = useState([]);
     const [pilots, setPilots] = useState([]);
     const [drones, setDrones] = useState([]);
@@ -48,7 +48,7 @@ export default function MissionControlPage() {
 
     useEffect(() => { loadData(); }, []);
 
-    // LOGICA DE VALIDACIÓN (SEMÁFORO)
+    // LOGICA DE VALIDACIÓN TÉCNICA
     const getPilotStatus = () => {
         const p = pilots.find(x => x.id === form.pilot_id);
         if (!p || !p.medical_expiry) return null;
@@ -102,14 +102,12 @@ export default function MissionControlPage() {
     return (
         <div className="max-w-6xl mx-auto space-y-8 text-left pb-20 animate-in fade-in duration-500">
             
-            {/* HEADER CON SELECTOR DE PANTALLAS */}
             <header className="flex flex-col md:flex-row justify-between items-center gap-6">
                 <div>
                     <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Programación</h2>
-                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">Mando y Control Operativo</p>
+                    <p className="text-slate-500 text-[10px] font-black uppercase mt-1">Prefijo Actual: {org?.flight_prefix}</p>
                 </div>
 
-                {/* BOTONES DE CAMBIO DE PANTALLA */}
                 <div className="flex bg-slate-200/50 p-1.5 rounded-[1.5rem] shadow-inner">
                     <button 
                         onClick={() => setActiveTab('basica')}
@@ -122,19 +120,12 @@ export default function MissionControlPage() {
                 </div>
             </header>
 
-            {/* CONTENIDO CONDICIONAL: PANTALLA BÁSICA (ACTUAL) */}
-            {activeTab === 'basica' && (
+            {activeTab === 'basica' ? (
                 <div className="space-y-8 animate-in slide-in-from-left duration-500">
-                    <section className="bg-[#1A202C] p-10 rounded-[3rem] text-white shadow-2xl space-y-8">
+                    <section className="bg-[#1A202C] p-10 rounded-[3rem] text-white shadow-2xl space-y-8 border border-white/5">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className={`p-4 rounded-2xl border transition-all ${!pStatus ? 'border-white/10' : pStatus.type === 'ERROR' ? 'bg-red-500/20 border-red-500' : pStatus.type === 'WARN' ? 'bg-orange-500/20 border-orange-500' : 'bg-emerald-500/10 border-emerald-500/30'}`}>
-                                <p className="text-[8px] font-black uppercase text-slate-500">Estatus Piloto</p>
-                                <p className="text-[10px] font-bold mt-1 uppercase">{pStatus ? pStatus.msg : 'Seleccione PIC'}</p>
-                            </div>
-                            <div className={`p-4 rounded-2xl border transition-all ${!dStatus ? 'border-white/10' : dStatus.type === 'ERROR' ? 'bg-red-500/20 border-red-500' : dStatus.type === 'WARN' ? 'bg-orange-500/20 border-orange-500' : 'bg-emerald-500/10 border-emerald-500/30'}`}>
-                                <p className="text-[8px] font-black uppercase text-slate-500">Estatus Aeronave</p>
-                                <p className="text-[10px] font-bold mt-1 uppercase">{dStatus ? dStatus.msg : 'Seleccione UAS'}</p>
-                            </div>
+                            <StatusBox status={pStatus} title="Estatus Piloto" defaultMsg="Seleccione PIC" />
+                            <StatusBox status={dStatus} title="Estatus Aeronave" defaultMsg="Seleccione UAS" />
                         </div>
 
                         <form onSubmit={handleAuthorize} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
@@ -158,7 +149,6 @@ export default function MissionControlPage() {
                                     <option value="Operación Comercial">Operación Comercial</option>
                                     <option value="Inspección Técnica">Inspección Técnica</option>
                                     <option value="Entrenamiento">Entrenamiento</option>
-                                    <option value="Búsqueda y Rescate">Búsqueda y Rescate</option>
                                 </select>
                             </div>
                             <div className="md:col-span-2 grid grid-cols-2 gap-4">
@@ -166,25 +156,24 @@ export default function MissionControlPage() {
                                 <input required type="date" className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})} />
                             </div>
                             <button type="submit" disabled={saving} className="bg-orange-600 hover:bg-orange-700 text-white p-4 rounded-2xl font-black uppercase text-xs shadow-xl active:scale-95 transition-all">
-                                {saving ? '...' : 'EMITIR ORDEN'}
+                                {saving ? 'SINCRO...' : 'EMITIR ORDEN'}
                             </button>
                         </form>
                     </section>
 
-                    {/* TABLA DE ÓRDENES */}
                     <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
                         <table className="w-full text-left">
                             <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
-                                <tr><th className="p-5">Orden</th><th className="p-5">Tripulación / Equipo</th><th className="p-5 text-right">Acción</th></tr>
+                                <tr><th className="p-5">Orden</th><th className="p-5">PIC / UAS</th><th className="p-5 text-right">Acción</th></tr>
                             </thead>
                             <tbody className="divide-y text-sm">
                                 {missions.map(m => (
-                                    <tr key={m.id} className="hover:bg-slate-50">
+                                    <tr key={m.id} className="hover:bg-slate-50 transition-all">
                                         <td className="p-5 font-black text-orange-600 font-mono">{m.mission_id}</td>
                                         <td className="p-5"><b>{m.pilots?.name}</b><br/><span className="text-[10px] text-slate-400 uppercase">{m.aircraft?.model}</span></td>
                                         <td className="p-5 text-right space-x-2">
-                                            <button onClick={() => setEditingMission(m)} className="material-symbols-outlined text-slate-300 hover:text-orange-600 transition-colors">edit_square</button>
-                                            <button onClick={() => updateStatus(m.id, 'realizado')} className="material-symbols-outlined text-emerald-500 hover:scale-110 transition-all">check_circle</button>
+                                            <button onClick={() => setEditingMission(m)} className="material-symbols-outlined text-slate-300 hover:text-orange-600">edit_square</button>
+                                            <button onClick={() => updateStatus(m.id, 'realizado')} className="material-symbols-outlined text-emerald-500">check_circle</button>
                                         </td>
                                     </tr>
                                 ))}
@@ -192,20 +181,47 @@ export default function MissionControlPage() {
                         </table>
                     </div>
                 </div>
-            )}
-
-            {/* CONTENIDO CONDICIONAL: PANTALLA AEROCIVIL (A DISEÑAR) */}
-            {activeTab === 'aerocivil' && (
-                <div className="p-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200 animate-in slide-in-from-right duration-500">
-                    <div className="size-20 bg-orange-50 rounded-full flex items-center justify-center mx-auto text-orange-600 mb-6">
-                        <span className="material-symbols-outlined text-4xl">gavel</span>
+            ) : (
+                <div className="space-y-6 animate-in slide-in-from-right duration-500">
+                    <div className="bg-orange-600 p-8 rounded-[3rem] text-white flex justify-between items-center shadow-xl">
+                        <div>
+                            <h3 className="text-2xl font-black uppercase tracking-tighter">Formato 100</h3>
+                            <p className="text-[10px] font-black uppercase opacity-80 tracking-widest">Solicitud de Autorización Aerocivil</p>
+                        </div>
+                        <span className="material-symbols-outlined text-4xl opacity-50">gavel</span>
                     </div>
-                    <h3 className="text-xl font-black uppercase text-slate-900">Módulo Aerocivil</h3>
-                    <p className="text-slate-500 max-w-sm mx-auto mt-2 font-medium">Estamos preparando la interfaz de cumplimiento normativo según sus requerimientos.</p>
+
+                    <section className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
+                        <div className="flex items-center">
+                            <h4 className="font-black text-slate-900 uppercase text-sm">3. Tipo de Operación Aérea</h4>
+                            <HelpTooltip text="Se marca con una equis (X) el tipo de operación aérea que se solicita acorde a lo autorizado por la UAEAC." />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <CheckOption label="Simple captura de imágenes o datos" />
+                            <CheckOption label="Vigilancia y Seguridad Privada" />
+                            <CheckOption label="Medios masivos de comunicación" />
+                            <CheckOption label="Aspersión / Dispersión" />
+                        </div>
+                    </section>
+
+                    <section className="bg-[#1A202C] p-8 rounded-[2.5rem] text-white space-y-6 shadow-xl">
+                        <div className="flex items-center">
+                            <h4 className="font-black uppercase text-sm text-orange-500">11. Coordenadas de la Operación</h4>
+                            <HelpTooltip text="Coordenadas en formato WGS-84 (grados, minutos, segundos)." />
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                            <input className="p-3 bg-slate-800 rounded-xl border-none text-[10px] font-mono text-white" placeholder="Item" />
+                            <input className="p-3 bg-slate-800 rounded-xl border-none text-[10px] font-mono text-white" placeholder="Latitud (N/S)" />
+                            <input className="p-3 bg-slate-800 rounded-xl border-none text-[10px] font-mono text-white" placeholder="Longitud (W)" />
+                        </div>
+                    </section>
+
+                    <button className="w-full py-5 bg-slate-900 text-white font-black rounded-[2rem] shadow-2xl uppercase text-xs tracking-widest hover:bg-orange-600 transition-all">
+                        Generar Solicitud PDF
+                    </button>
                 </div>
             )}
 
-            {/* PANEL DE EDICIÓN (MASTER) */}
             {editingMission && (
                 <div className="fixed inset-0 z-[200] flex justify-end">
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setEditingMission(null)} />
@@ -217,5 +233,24 @@ export default function MissionControlPage() {
                 </div>
             )}
         </div>
+    );
+}
+
+// COMPONENTES AUXILIARES FUERA DEL RENDER
+function StatusBox({ status, title, defaultMsg }) {
+    return (
+        <div className={`p-4 rounded-2xl border transition-all ${!status ? 'border-white/10' : status.type === 'ERROR' ? 'bg-red-500/20 border-red-500' : status.type === 'WARN' ? 'bg-orange-500/20 border-orange-500' : 'bg-emerald-500/10 border-emerald-500/30'}`}>
+            <p className="text-[8px] font-black uppercase text-slate-500">{title}</p>
+            <p className="text-[10px] font-bold mt-1 uppercase">{status ? status.msg : defaultMsg}</p>
+        </div>
+    );
+}
+
+function CheckOption({ label }) {
+    return (
+        <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-orange-50 transition-all group border border-transparent hover:border-orange-200">
+            <input type="checkbox" className="size-5 rounded border-slate-300 text-orange-600 focus:ring-0" />
+            <span className="text-xs font-bold text-slate-600 group-hover:text-slate-900 uppercase">{label}</span>
+        </label>
     );
 }

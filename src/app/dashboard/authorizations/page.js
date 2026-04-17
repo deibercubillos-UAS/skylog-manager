@@ -26,7 +26,17 @@ export default function MissionControlPage() {
 
     // --- ESTADO: FORMULARIO AEROCIVIL (SECCIÓN 3) ---
     const [aeroForm, setAeroForm] = useState({
-        op_types: [], // Captura de Sección 3
+        op_types: [],
+        // NUEVOS CAMPOS SECCIÓN 4
+        client: '',
+        start_date: '',
+        end_date: '',
+        start_time: '',
+        end_time: '',
+        mtow: '',
+        municipality: '',
+        department: '',
+        cronogram_details: ''
     });
 
     const loadData = async () => {
@@ -173,6 +183,92 @@ export default function MissionControlPage() {
                                     <option value="Inspección Técnica">Inspección Técnica</option>
                                     <option value="Entrenamiento">Entrenamiento</option>
                                 </select>
+                                {/* SECCIÓN 4: INFORMACIÓN DE LA OPERACIÓN AÉREA */}
+                    <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
+                        <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                            <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">4. INFORMACIÓN DE LA OPERACIÓN AÉREA</h4>
+                            <HelpTooltip text="Diligencie los datos de la empresa contratante, fechas, horarios UTC, pesos brutos y ubicación geográfica de la operación." />
+                        </div>
+
+                        <div className="p-8 space-y-4">
+                            {/* FILA 1: EMPRESA */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <InputCol 
+                                    label="Empresa Contratante del Servicio" 
+                                    placeholder="Nombre o Razón Social" 
+                                    value={aeroForm.client}
+                                    onChange={e => setAeroForm({...aeroForm, client: e.target.value})}
+                                />
+                            </div>
+
+                            {/* FILA 2: INICIO (FECHA Y HORA) */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <InputCol 
+                                    label="Fecha Propuesta Inicio (Día/Mes/Año)" 
+                                    type="date"
+                                    value={aeroForm.start_date}
+                                    onChange={e => setAeroForm({...aeroForm, start_date: e.target.value})}
+                                />
+                                <InputCol 
+                                    label="Horario Hora de Inicio (Local/UTC)" 
+                                    type="time"
+                                    value={aeroForm.start_time}
+                                    onChange={e => setAeroForm({...aeroForm, start_time: e.target.value})}
+                                />
+                            </div>
+
+                            {/* FILA 3: FIN (FECHA Y HORA) */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <InputCol 
+                                    label="Fecha Propuesta Finalización" 
+                                    type="date"
+                                    value={aeroForm.end_date}
+                                    onChange={e => setAeroForm({...aeroForm, end_date: e.target.value})}
+                                />
+                                <InputCol 
+                                    label="Horario Hora de Finalización" 
+                                    type="time"
+                                    value={aeroForm.end_time}
+                                    onChange={e => setAeroForm({...aeroForm, end_time: e.target.value})}
+                                />
+                            </div>
+
+                            {/* FILA 4: DETALLES CRONOGRAMA */}
+                            <div className="w-full">
+                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Otros detalles del cronograma de operación</label>
+                                <textarea 
+                                    rows="2"
+                                    className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-xs mt-1 outline-none focus:ring-2 focus:ring-orange-500"
+                                    placeholder="..."
+                                    value={aeroForm.cronogram_details}
+                                    onChange={e => setAeroForm({...aeroForm, cronogram_details: e.target.value})}
+                                />
+                            </div>
+
+                            {/* FILA 5: PESO Y UBICACIÓN */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <InputCol 
+                                    label="Peso (Masa) Bruto Máximo (Kg)" 
+                                    type="number"
+                                    placeholder="0.00"
+                                    value={aeroForm.mtow}
+                                    onChange={e => setAeroForm({...aeroForm, mtow: e.target.value})}
+                                />
+                                <InputCol 
+                                    label="Municipio" 
+                                    placeholder="Ej: Bogotá" 
+                                    value={aeroForm.municipality}
+                                    onChange={e => setAeroForm({...aeroForm, municipality: e.target.value})}
+                                />
+                                <InputCol 
+                                    label="Departamento" 
+                                    placeholder="Ej: Cundinamarca" 
+                                    value={aeroForm.department}
+                                    onChange={e => setAeroForm({...aeroForm, department: e.target.value})}
+                                />
+                            </div>
+                        </div>
+                    </section>
                             </div>
                             <div className="md:col-span-2 grid grid-cols-2 gap-4">
                                 <input required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" placeholder="Lugar de Operación" value={form.location} onChange={e => setForm({...form, location: e.target.value})} />

@@ -6,28 +6,25 @@ import EditAuthorizationPanel from '@/components/EditAuthorizationPanel';
 import HelpTooltip from '@/components/HelpTooltip';
 
 export default function MissionControlPage() {
-    // --- ESTADOS DE NAVEGACIÓN ---
+    // --- 1. ESTADOS DE NAVEGACIÓN Y CARGA ---
     const [activeTab, setActiveTab] = useState('basica');
-
-    // --- ESTADOS DE DATOS ---
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [missions, setMissions] = useState([]);
     const [pilots, setPilots] = useState([]);
     const [drones, setDrones] = useState([]);
     const [org, setOrg] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
     const [editingMission, setEditingMission] = useState(null);
 
-    // --- ESTADO: PROGRAMACIÓN BÁSICA (ORIGINAL) ---
+    // --- 2. ESTADO: PROGRAMACIÓN BÁSICA ---
     const [form, setForm] = useState({ 
         pilot_id: '', aircraft_id: '', location: '', 
         scheduled_at: '', mission_type: 'Operación Comercial' 
     });
 
-    // --- ESTADO: FORMULARIO AEROCIVIL (SECCIÓN 3) ---
+    // --- 3. ESTADO: FORMULARIO AEROCIVIL (SECCIONES 3 Y 4) ---
     const [aeroForm, setAeroForm] = useState({
         op_types: [],
-        // NUEVOS CAMPOS SECCIÓN 4
         client: '',
         start_date: '',
         end_date: '',
@@ -56,7 +53,7 @@ export default function MissionControlPage() {
             setDrones(dRes.data || []);
             setOrg(oRes.data);
         } catch (err) {
-            console.error("Error cargando Torre de Control:", err);
+            console.error("Falla de Mando:", err);
         } finally {
             setLoading(false);
         }
@@ -90,13 +87,7 @@ export default function MissionControlPage() {
     const pStatus = getPilotStatus();
     const dStatus = getDroneStatus();
 
-    // --- LÓGICA DE ACCIONES (BÁSICA) ---
-    const updatePrefix = async (val) => {
-        const newPrefix = val.toUpperCase().substring(0, 3);
-        setOrg(prev => ({ ...prev, flight_prefix: newPrefix }));
-        await supabase.from('organizations').update({ flight_prefix: newPrefix }).eq('id', org.id);
-    };
-
+    // --- LÓGICA DE ACCIONES ---
     const handleAuthorize = async (e) => {
         e.preventDefault();
         if (pStatus?.type === 'ERROR' || dStatus?.type === 'ERROR') return alert("🚫 BLOQUEO: Elementos vencidos");
@@ -120,39 +111,31 @@ export default function MissionControlPage() {
         loadData();
     };
 
-    // --- LÓGICA DE SELECCIÓN (AEROCIVIL) ---
     const toggleOpType = (id) => {
         setAeroForm(prev => ({
             ...prev,
-            op_types: prev.op_types.includes(id) 
-                ? prev.op_types.filter(t => t !== id) 
-                : [...prev.op_types, id]
+            op_types: prev.op_types.includes(id) ? prev.op_types.filter(t => t !== id) : [...prev.op_types, id]
         }));
     };
 
-    if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400 uppercase">Estableciendo Frecuencia...</div>;
+    if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">CARGANDO TORRE DE CONTROL...</div>;
 
     return (
-        <div className="max-w-6xl mx-auto space-y-8 text-left pb-20 animate-in fade-in duration-500">
+        <div className="max-w-7xl mx-auto space-y-8 text-left pb-32 animate-in fade-in duration-500">
             
-            {/* HEADER CON SELECTOR DE PANTALLAS */}
+            {/* CABECERA Y SWITCHER */}
             <header className="flex flex-col md:flex-row justify-between items-center gap-6">
                 <div>
-                    <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900 leading-none">Programación</h2>
-                    <div className="flex items-center gap-3 mt-1">
-                        <span className="text-[9px] font-black text-slate-400 uppercase">Prefijo:</span>
-                        <input className="w-12 p-1 text-center font-black bg-white rounded border border-slate-100 text-orange-600 uppercase" 
-                               value={org?.flight_prefix || ''} onChange={(e) => updatePrefix(e.target.value)} />
-                    </div>
+                    <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900 leading-none">Mando y Control</h2>
+                    <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-2">Nomenclatura: {org?.flight_prefix}</p>
                 </div>
-
                 <div className="flex bg-slate-200/50 p-1.5 rounded-[1.5rem] shadow-inner">
                     <button onClick={() => setActiveTab('basica')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'basica' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'}`}>Programación Básica</button>
-                    <button onClick={() => setActiveTab('aerocivil')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'aerocivil' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'}`}>Programación Aerocivil</button>
+                    <button onClick={() => setActiveTab('aerocivil')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'aerocivil' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'}`}>Formato 100 Aerocivil</button>
                 </div>
             </header>
 
-            {/* --- CONTENIDO 01: PROGRAMACIÓN BÁSICA (TAL CUAL ESTABA) --- */}
+            {/* --- CONTENIDO 01: PROGRAMACIÓN BÁSICA --- */}
             {activeTab === 'basica' && (
                 <div className="space-y-8 animate-in slide-in-from-left duration-500">
                     <section className="bg-[#1A202C] p-10 rounded-[3rem] text-white shadow-2xl space-y-8 border border-white/5">
@@ -183,92 +166,6 @@ export default function MissionControlPage() {
                                     <option value="Inspección Técnica">Inspección Técnica</option>
                                     <option value="Entrenamiento">Entrenamiento</option>
                                 </select>
-                                {/* SECCIÓN 4: INFORMACIÓN DE LA OPERACIÓN AÉREA */}
-                    <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
-                        <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
-                            <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">4. INFORMACIÓN DE LA OPERACIÓN AÉREA</h4>
-                            <HelpTooltip text="Diligencie los datos de la empresa contratante, fechas, horarios UTC, pesos brutos y ubicación geográfica de la operación." />
-                        </div>
-
-                        <div className="p-8 space-y-4">
-                            {/* FILA 1: EMPRESA */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <InputCol 
-                                    label="Empresa Contratante del Servicio" 
-                                    placeholder="Nombre o Razón Social" 
-                                    value={aeroForm.client}
-                                    onChange={e => setAeroForm({...aeroForm, client: e.target.value})}
-                                />
-                            </div>
-
-                            {/* FILA 2: INICIO (FECHA Y HORA) */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <InputCol 
-                                    label="Fecha Propuesta Inicio (Día/Mes/Año)" 
-                                    type="date"
-                                    value={aeroForm.start_date}
-                                    onChange={e => setAeroForm({...aeroForm, start_date: e.target.value})}
-                                />
-                                <InputCol 
-                                    label="Horario Hora de Inicio (Local/UTC)" 
-                                    type="time"
-                                    value={aeroForm.start_time}
-                                    onChange={e => setAeroForm({...aeroForm, start_time: e.target.value})}
-                                />
-                            </div>
-
-                            {/* FILA 3: FIN (FECHA Y HORA) */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <InputCol 
-                                    label="Fecha Propuesta Finalización" 
-                                    type="date"
-                                    value={aeroForm.end_date}
-                                    onChange={e => setAeroForm({...aeroForm, end_date: e.target.value})}
-                                />
-                                <InputCol 
-                                    label="Horario Hora de Finalización" 
-                                    type="time"
-                                    value={aeroForm.end_time}
-                                    onChange={e => setAeroForm({...aeroForm, end_time: e.target.value})}
-                                />
-                            </div>
-
-                            {/* FILA 4: DETALLES CRONOGRAMA */}
-                            <div className="w-full">
-                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Otros detalles del cronograma de operación</label>
-                                <textarea 
-                                    rows="2"
-                                    className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-xs mt-1 outline-none focus:ring-2 focus:ring-orange-500"
-                                    placeholder="..."
-                                    value={aeroForm.cronogram_details}
-                                    onChange={e => setAeroForm({...aeroForm, cronogram_details: e.target.value})}
-                                />
-                            </div>
-
-                            {/* FILA 5: PESO Y UBICACIÓN */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <InputCol 
-                                    label="Peso (Masa) Bruto Máximo (Kg)" 
-                                    type="number"
-                                    placeholder="0.00"
-                                    value={aeroForm.mtow}
-                                    onChange={e => setAeroForm({...aeroForm, mtow: e.target.value})}
-                                />
-                                <InputCol 
-                                    label="Municipio" 
-                                    placeholder="Ej: Bogotá" 
-                                    value={aeroForm.municipality}
-                                    onChange={e => setAeroForm({...aeroForm, municipality: e.target.value})}
-                                />
-                                <InputCol 
-                                    label="Departamento" 
-                                    placeholder="Ej: Cundinamarca" 
-                                    value={aeroForm.department}
-                                    onChange={e => setAeroForm({...aeroForm, department: e.target.value})}
-                                />
-                            </div>
-                        </div>
-                    </section>
                             </div>
                             <div className="md:col-span-2 grid grid-cols-2 gap-4">
                                 <input required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" placeholder="Lugar de Operación" value={form.location} onChange={e => setForm({...form, location: e.target.value})} />
@@ -283,7 +180,7 @@ export default function MissionControlPage() {
                     <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
                         <table className="w-full text-left">
                             <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
-                                <tr><th className="p-5">Misión</th><th className="p-5">PIC / UAS</th><th className="p-5">Estado</th><th className="p-5 text-right">Acción</th></tr>
+                                <tr><th className="p-5">Orden</th><th className="p-5">PIC / UAS</th><th className="p-5">Estado</th><th className="p-5 text-right">Acción</th></tr>
                             </thead>
                             <tbody className="divide-y text-sm">
                                 {missions.map(m => (
@@ -308,7 +205,7 @@ export default function MissionControlPage() {
                 </div>
             )}
 
-            {/* --- CONTENIDO 02: PROGRAMACIÓN AEROCIVIL (SECCIÓN 3) --- */}
+            {/* --- CONTENIDO 02: PROGRAMACIÓN AEROCIVIL --- */}
             {activeTab === 'aerocivil' && (
                 <div className="space-y-10 animate-in slide-in-from-right duration-500">
                     <div className="bg-slate-900 p-8 rounded-[3rem] text-white flex justify-between items-center border-l-8 border-orange-600 shadow-2xl">
@@ -321,15 +218,15 @@ export default function MissionControlPage() {
                         </div>
                     </div>
 
+                    {/* SECCIÓN 3: TIPO DE OPERACIÓN */}
                     <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
                         <div className="bg-slate-50 border-b border-slate-200 p-4 flex justify-between items-center px-8">
                             <h4 className="font-black text-slate-900 uppercase text-[11px] tracking-widest">3. TIPO DE OPERACIÓN AÉREA</h4>
-                            <HelpTooltip text="Marque los tipos de operación que se realizarán acorde a su manual de operaciones." />
+                            <HelpTooltip text="Marque los tipos de operación autorizados por la UAEAC acorde a su registro mercantil." />
                         </div>
-
                         <div className="p-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <OpCard label="Simple captura de imágenes o datos." selected={aeroForm.op_types.includes('simple_captura')} onClick={() => toggleOpType('simple_captura')} />
+                                <OpCard label="Simple captura de imágenes o datos." selected={aeroForm.op_types.includes('simple')} onClick={() => toggleOpType('simple')} />
                                 <OpCard label="Captura con fines de vigilancia y seguridad privada." selected={aeroForm.op_types.includes('vigilancia')} onClick={() => toggleOpType('vigilancia')} />
                                 <OpCard label="Captura para medios masivos de comunicación." selected={aeroForm.op_types.includes('medios')} onClick={() => toggleOpType('medios')} />
                                 <OpCard label="Aspersión." selected={aeroForm.op_types.includes('aspersion')} onClick={() => toggleOpType('aspersion')} />
@@ -343,10 +240,34 @@ export default function MissionControlPage() {
                             </div>
                         </div>
                     </section>
+
+                    {/* SECCIÓN 4: INFORMACIÓN DE LA OPERACIÓN */}
+                    <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8">
+                        <div className="bg-slate-50 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                            <h4 className="font-black text-slate-900 uppercase text-[11px] tracking-widest">4. INFORMACIÓN DE LA OPERACIÓN AÉREA</h4>
+                            <HelpTooltip text="Diligencie los datos de la empresa contratante, fechas, horarios y ubicación geográfica." />
+                        </div>
+                        <div className="p-8 space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <InputCol label="Empresa Contratante del Servicio" placeholder="Cliente S.A.S" value={aeroForm.client} onChange={e => setAeroForm({...aeroForm, client: e.target.value})} />
+                                <InputCol label="Peso Bruto Máximo (Kg)" type="number" placeholder="0.00" value={aeroForm.mtow} onChange={e => setAeroForm({...aeroForm, mtow: e.target.value})} />
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <InputCol label="Fecha Inicio" type="date" value={aeroForm.start_date} onChange={e => setAeroForm({...aeroForm, start_date: e.target.value})} />
+                                <InputCol label="Hora Inicio (UTC)" type="time" value={aeroForm.start_time} onChange={e => setAeroForm({...aeroForm, start_time: e.target.value})} />
+                                <InputCol label="Fecha Fin" type="date" value={aeroForm.end_date} onChange={e => setAeroForm({...aeroForm, end_date: e.target.value})} />
+                                <InputCol label="Hora Fin (UTC)" type="time" value={aeroForm.end_time} onChange={e => setAeroForm({...aeroForm, end_time: e.target.value})} />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <InputCol label="Municipio" placeholder="Ej: Bogotá" value={aeroForm.municipality} onChange={e => setAeroForm({...aeroForm, municipality: e.target.value})} />
+                                <InputCol label="Departamento" placeholder="Ej: Cundinamarca" value={aeroForm.department} onChange={e => setAeroForm({...aeroForm, department: e.target.value})} />
+                            </div>
+                        </div>
+                    </section>
                 </div>
             )}
 
-            {/* PANEL DE EDICIÓN (OVERLAY) */}
+            {/* PANEL DE EDICIÓN (BÁSICO) */}
             {editingMission && (
                 <div className="fixed inset-0 z-[200] flex justify-end">
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setEditingMission(null)} />
@@ -357,23 +278,39 @@ export default function MissionControlPage() {
     );
 }
 
-// --- COMPONENTES AUXILIARES ---
+// --- ZONA DE COMPONENTES AUXILIARES (DEFINIDOS FUERA PARA ESTABILIDAD) ---
 function StatusBox({ status, title, defaultMsg }) {
-    return (
-        <div className={`p-4 rounded-2xl border transition-all ${!status ? 'border-white/10' : status.type === 'ERROR' ? 'bg-red-500/20 border-red-500' : status.type === 'WARN' ? 'bg-orange-500/20 border-orange-500' : 'bg-emerald-500/10 border-emerald-500/30'}`}>
+    const baseClass = "p-4 rounded-2xl border transition-all";
+    if (!status) return (
+        <div className={`${baseClass} border-white/10 bg-white/5`}>
             <p className="text-[8px] font-black uppercase text-slate-500">{title}</p>
-            <p className="text-[10px] font-bold mt-1 uppercase">{status ? status.msg : defaultMsg}</p>
+            <p className="text-[10px] font-bold mt-1 text-slate-400">{defaultMsg}</p>
+        </div>
+    );
+    return (
+        <div className={`${baseClass} ${status.type === 'ERROR' ? 'bg-red-500/20 border-red-500' : status.type === 'WARN' ? 'bg-orange-500/20 border-orange-500' : 'bg-emerald-500/20 border-emerald-500'}`}>
+            <p className="text-[8px] font-black uppercase text-white opacity-60">{title}</p>
+            <p className="text-[10px] font-bold mt-1 text-white">{status.msg}</p>
         </div>
     );
 }
 
 function OpCard({ label, selected, onClick }) {
     return (
-        <button type="button" onClick={onClick} className={`w-full flex items-center justify-between p-5 rounded-[1.5rem] border-2 transition-all text-left group ${selected ? 'border-orange-500 bg-orange-50/50 shadow-md scale-[1.01]' : 'border-slate-100 bg-slate-50/30 hover:border-slate-200'}`}>
-            <span className={`text-[10px] font-black leading-tight uppercase ${selected ? 'text-orange-700' : 'text-slate-500'}`}>{label}</span>
+        <button type="button" onClick={onClick} className={`w-full flex items-center justify-between p-5 rounded-[1.5rem] border-2 transition-all text-left ${selected ? 'border-orange-500 bg-orange-50/50 shadow-md' : 'border-slate-100 bg-slate-50/30 hover:border-slate-200'}`}>
+            <span className={`text-[10px] font-black uppercase ${selected ? 'text-orange-700' : 'text-slate-500'}`}>{label}</span>
             <div className={`size-6 rounded-lg border-2 flex items-center justify-center shrink-0 ${selected ? 'bg-orange-500 border-orange-500 shadow-sm' : 'border-slate-300 bg-white'}`}>
                 {selected && <span className="material-symbols-outlined text-white text-base">check</span>}
             </div>
         </button>
+    );
+}
+
+function InputCol({ label, placeholder, type = "text", value, onChange }) {
+    return (
+        <div className="space-y-1">
+            <label className="text-[9px] font-black text-slate-400 uppercase ml-1">{label}</label>
+            <input type={type} className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-xs focus:ring-2 focus:ring-orange-500 outline-none" placeholder={placeholder} value={value} onChange={onChange} />
+        </div>
     );
 }

@@ -36,9 +36,9 @@ export default function MissionControlPage() {
         cronogram_details: ''
     });
     // --- NUEVOS ESTADOS GEOGRÁFICOS ---
-    const [colombiaData, setColombiaData] = useState([]);
-    const [departments, setDepartments] = useState([]);
-    const [filteredMunicipios, setFilteredMunicipios] = useState([]);
+        const [colombiaData, setColombiaData] = useState([]);
+        const [departments, setDepartments] = useState([]);
+        const [filteredMunicipios, setFilteredMunicipios] = useState([]);
 
     const loadData = async () => {
         try {
@@ -65,20 +65,30 @@ export default function MissionControlPage() {
 
     useEffect(() => { loadData(); }, []);
     useEffect(() => {
-        async function fetchGeo() {
-            try {
-                // Usamos el endpoint JSON de datos.gov.co para mayor compatibilidad
-                const res = await fetch('https://www.datos.gov.co/resource/xdk5-pm3f.json?$limit=1200');
-                const data = await res.json();
+    async function fetchGeo() {
+        try {
+            // URL Estable del Divipola (Municipios y Departamentos)
+            const res = await fetch('https://www.datos.gov.co/resource/xdk5-pm3f.json?$limit=1500');
+            if (!res.ok) throw new Error("Error en servidor gubernamental");
+            
+            const data = await res.json();
+            
+            if (Array.isArray(data)) {
                 setColombiaData(data);
-                const uniqueDepts = [...new Set(data.map(item => item.departamento))].sort();
+                // Limpieza y ordenamiento de departamentos
+                const uniqueDepts = [...new Set(data.map(item => item.departamento))]
+                    .filter(Boolean)
+                    .sort();
                 setDepartments(uniqueDepts);
-            } catch (e) {
-                console.error("Error API Colombia:", e);
             }
+        } catch (e) {
+            console.error("API Colombia inestable, usando modo manual de respaldo.");
+            // Respaldo básico para que la app no muera
+            setDepartments(['Cundinamarca', 'Antioquia', 'Valle del Cauca']); 
         }
-        fetchGeo();
-    }, []);
+    }
+    fetchGeo();
+}, []);
 
     // --- LÓGICA DE VALIDACIÓN TÉCNICA (BÁSICA) ---
     const getPilotStatus = () => {
@@ -138,13 +148,19 @@ export default function MissionControlPage() {
     };
 
     const handleDeptChange = (deptName) => {
-        setAeroForm({ ...aeroForm, department: deptName, municipality: '' });
+    setAeroForm(prev => ({ ...prev, department: deptName, municipality: '' }));
+    
+    if (colombiaData.length > 0) {
         const filtered = colombiaData
             .filter(item => item.departamento === deptName)
             .map(item => item.municipio)
+            .filter(Boolean)
             .sort();
         setFilteredMunicipios(filtered);
-    };
+    } else {
+        setFilteredMunicipios(['Bogotá D.C.', 'Medellín', 'Cali']); // Respaldo
+    }
+};
 
     if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">CARGANDO TORRE DE CONTROL...</div>;
 
@@ -293,7 +309,7 @@ export default function MissionControlPage() {
                                     onChange={e => handleDeptChange(e.target.value)}
                                 >
                                     <option value="">-- Seleccionar --</option>
-                                    {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                                    {departments?.map(d => (<option key={d} value={d}>{d}</option>))}
                                 </select>
                             </div>
                             <div className="space-y-1">
@@ -305,7 +321,7 @@ export default function MissionControlPage() {
                                     onChange={e => setAeroForm({...aeroForm, municipality: e.target.value})}
                                 >
                                     <option value="">-- Seleccionar --</option>
-                                    {filteredMunicipios.map(m => <option key={m} value={m}>{m}</option>)}
+                                    {filteredMunicipios?.map(m => (<option key={m} value={m}>{m}</option>))}
                                 </select>
                             </div>
                         </div>

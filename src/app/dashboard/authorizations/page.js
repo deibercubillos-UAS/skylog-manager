@@ -65,31 +65,25 @@ export default function MissionControlPage() {
 
     useEffect(() => { loadData(); }, []);
     useEffect(() => {
-    async function fetchGeo() {
+    async function loadInternalGeo() {
         try {
-            // URL Estable del Divipola (Municipios y Departamentos)
-            const res = await fetch('https://www.datos.gov.co/resource/xdk5-pm3f.json?$limit=1500');
-            if (!res.ok) throw new Error("Error en servidor gubernamental");
-            
-            const data = await res.json();
-            
-            if (Array.isArray(data)) {
-                setColombiaData(data);
-                // Limpieza y ordenamiento de departamentos
-                const uniqueDepts = [...new Set(data.map(item => item.departamento))]
-                    .filter(Boolean)
-                    .sort();
-                setDepartments(uniqueDepts);
-            }
+            // Consultamos departamentos únicos directamente de nuestra tabla
+            const { data, error } = await supabase
+                .from('colombia_geo')
+                .select('department')
+                .order('department', { ascending: true });
+
+            if (error) throw error;
+
+            // Limpiamos duplicados
+            const uniqueDepts = [...new Set(data.map(item => item.department))];
+            setDepartments(uniqueDepts);
         } catch (e) {
-            console.error("API Colombia inestable, usando modo manual de respaldo.");
-            // Respaldo básico para que la app no muera
-            setDepartments(['Cundinamarca', 'Antioquia', 'Valle del Cauca']); 
+            console.error("Error cargando geografía interna:", e);
         }
     }
-    fetchGeo();
+    loadInternalGeo();
 }, []);
-
     // --- LÓGICA DE VALIDACIÓN TÉCNICA (BÁSICA) ---
     const getPilotStatus = () => {
         const p = pilots.find(x => x.id === form.pilot_id);
@@ -147,18 +141,27 @@ export default function MissionControlPage() {
         }));
     };
 
-    const handleDeptChange = (deptName) => {
+    const handleDeptChange = async (deptName) => {
+    // 1. Actualizamos el estado del formulario
     setAeroForm(prev => ({ ...prev, department: deptName, municipality: '' }));
     
-    if (colombiaData.length > 0) {
-        const filtered = colombiaData
-            .filter(item => item.departamento === deptName)
-            .map(item => item.municipio)
-            .filter(Boolean)
-            .sort();
-        setFilteredMunicipios(filtered);
-    } else {
-        setFilteredMunicipios(['Bogotá D.C.', 'Medellín', 'Cali']); // Respaldo
+    if (!deptName) {
+        setFilteredMunicipios([]);
+        return;
+    }
+
+    try {
+        // 2. Consultamos municipios filtrados por departamento
+        const { data, error } = await supabase
+            .from('colombia_geo')
+            .select('municipality')
+            .eq('department', deptName)
+            .order('municipality', { ascending: true });
+
+        if (error) throw error;
+        setFilteredMunicipios(data.map(item => item.municipio || item.municipality));
+    } catch (e) {
+        console.error("Error al filtrar municipios:", e);
     }
 };
 

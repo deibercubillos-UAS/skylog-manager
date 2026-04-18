@@ -13,7 +13,7 @@ export default function SettingsPage() {
         async function loadOrgData() {
             const { data: { user } } = await supabase.auth.getUser();
             const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
-            const { data: orgData } = await supabase.from('organizations').select('*').eq('id', profData.organization_id).single();
+            const { data: orgData } = await supabase.from('organizations').select('*').eq('id', prof.organization_id).single();
             if (orgData) setOrg(orgData);
             setLoading(false);
         }

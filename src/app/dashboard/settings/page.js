@@ -8,6 +8,7 @@ export default function SettingsPage() {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [org, setOrg] = useState(null);
+    const [profile, setProfile] = useState(null); // Estado del Usuario 
 
     useEffect(() => {
         async function loadOrgData() {

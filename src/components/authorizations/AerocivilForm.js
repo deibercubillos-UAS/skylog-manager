@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import HelpTooltip from '@/components/HelpTooltip';
+import MapPickerModal from './MapPickerModal';
 
 export default function AerocivilForm({ drones, pilots }) { 
     const [geo, setGeo] = useState({ depts: [], munis: [], all: [] });
@@ -50,8 +51,12 @@ export default function AerocivilForm({ drones, pilots }) {
         ],
         observadores: [
             { id: '', name: '', id_number: '', phone: '' }
-        ]
-    });
+        ],
+        geo_type: 'polygon', // polygon, linear, circle
+    points: [],
+    altitude: '400'
+});
+const [showMap, setShowMap] = useState(false);
 
      // --- FUNCIONES DE LÓGICA INTERNA ---
     const toggleSpecialVuelo = (field) => {
@@ -161,6 +166,15 @@ export default function AerocivilForm({ drones, pilots }) {
         };
         setAeroForm(prev => ({ ...prev, observadores: newObs }));
     };
+    // FUNCIÓN DE CONVERSIÓN (Decimal a GMS para Aerocivil)
+    const toGMS = (dec) => {
+    const d = Math.abs(dec);
+    const degrees = Math.floor(d);
+    const minutes = Math.floor((d - degrees) * 60);
+    const seconds = Math.round((d - degrees - minutes / 60) * 3600);
+    return `${degrees}°${minutes}'${seconds}"`;
+    };
+
 
     // CARGA DE DIVIPOLA (MUNICIPIOS) DESDE SUPABASE
     useEffect(() => {
@@ -713,6 +727,70 @@ export default function AerocivilForm({ drones, pilots }) {
                     )}
                 </div>
             </section>
+
+            {/* SECCIÓN 11: COORDENADAS DE LA OPERACIÓN */}
+            <section className="bg-slate-900 p-8 rounded-[3rem] text-white space-y-8 shadow-2xl mt-8">
+                <div className="flex justify-between items-center border-b border-white/10 pb-4">
+                    <h4 className="font-black uppercase text-sm text-orange-500 tracking-widest">11. COORDENADAS DE LA OPERACIÓN (WGS-84)</h4>
+                    <HelpTooltip text="Las coordenadas deben consignarse en grados, minutos y segundos. El mapa las convertirá automáticamente." />
+                </div>
+
+                {/* SELECTOR DE TIPO DE GEOMETRÍA */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {['polygon', 'linear', 'circle'].map(t => (
+                        <button 
+                            key={t}
+                            onClick={() => setAeroForm({...aeroForm, geo_type: t, points: []})}
+                            className={`p-4 rounded-2xl border-2 transition-all font-black text-[10px] uppercase ${aeroForm.geo_type === t ? 'border-orange-500 bg-orange-500/10' : 'border-white/10'}`}
+                        >
+                            {t === 'polygon' ? 'Polígono' : t === 'linear' ? 'Tramo Lineal' : 'Circunferencia'}
+                        </button>
+                    ))}
+                </div>
+
+                {/* BOTÓN DISPARADOR DEL MAPA */}
+                <button 
+                    onClick={() => setShowMap(true)}
+                    className="w-full py-6 bg-white/10 border-2 border-dashed border-white/20 rounded-[2rem] flex flex-col items-center gap-2 hover:bg-orange-600/20 hover:border-orange-500 transition-all"
+                >
+                    <span className="material-symbols-outlined text-4xl text-orange-500">map</span>
+                    <span className="text-[10px] font-black uppercase">Abrir Mapa Interactivo y Capturar Puntos</span>
+                </button>
+
+                {/* TABLA TÉCNICA (Como en la imagen) */}
+                {aeroForm.points.length > 0 && (
+                    <div className="overflow-hidden rounded-2xl border border-white/10">
+                        <table className="w-full text-left text-[10px]">
+                            <thead className="bg-white/5 font-black uppercase text-slate-500">
+                                <tr>
+                                    <th className="p-3">ITEM</th>
+                                    <th className="p-3">LATITUD (N/S)</th>
+                                    <th className="p-3">LONGITUD (W)</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5 font-mono">
+                                {aeroForm.points.map((p, i) => (
+                                    <tr key={i}>
+                                        <td className="p-3">{i + 1}</td>
+                                        <td className="p-3">{toGMS(p.lat)}{p.lat >= 0 ? 'N' : 'S'}</td>
+                                        <td className="p-3">{toGMS(p.lng)}W</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </section>
+
+            {/* MODAL DEL MAPA */}
+            {showMap && (
+                <MapPickerModal 
+                    type={aeroForm.geo_type} 
+                    points={aeroForm.points}
+                    onSave={(pts) => { setAeroForm({...aeroForm, points: pts}); setShowMap(false); }}
+                    onClose={() => setShowMap(false)}
+                />
+            )}
 
             <button className="w-full py-6 bg-slate-900 text-white font-black rounded-[2.5rem] shadow-xl uppercase text-xs tracking-widest hover:bg-orange-600 transition-all active:scale-95">
                 Generar Formato 100 PDF

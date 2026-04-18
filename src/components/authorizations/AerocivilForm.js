@@ -387,43 +387,42 @@ function AeroCheck({ label, checked, onChange }) {
     );
 }
 
-function AeroCheck({ label, checked, onChange }) {
-    return (
-        <button type="button" onClick={onChange} className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left ${checked ? 'border-orange-500 bg-orange-50/50 shadow-md' : 'border-slate-100 bg-slate-50/30 hover:border-slate-200'}`}>
-            <span className="text-[10px] font-black uppercase text-slate-700">{label}</span>
-            <div className={`size-6 rounded-lg border-2 flex items-center justify-center ${checked ? 'bg-orange-600 border-orange-600' : 'border-slate-200 bg-white'}`}>
-                {checked && <span className="material-symbols-outlined text-white text-base">close</span>}
-            </div>
-        </button>
-    );
-}
-
+// COMPONENTE VISUAL PARA SECCIÓN 5
 function VisualOption({ label, description, selected, onClick }) {
     return (
-        <button type="button" onClick={onClick} className={`w-full flex items-center justify-between p-5 rounded-[1.5rem] border-2 transition-all text-left ${selected ? 'border-orange-500 bg-orange-50/30 shadow-md' : 'border-slate-100 bg-slate-50/30'}`}>
+        <button 
+            type="button"
+            onClick={onClick}
+            className={`w-full flex items-center justify-between p-5 rounded-[1.5rem] border-2 transition-all text-left ${
+                selected 
+                ? 'border-orange-500 bg-orange-50/30 shadow-md' 
+                : 'border-slate-100 bg-slate-50/30 hover:border-slate-200'
+            }`}
+        >
             <div className="flex-1 pr-4">
-                <p className={`text-[10px] font-black uppercase ${selected ? 'text-orange-700' : 'text-slate-500'}`}>{label}</p>
-                <p className="text-[9px] text-slate-400 font-medium mt-1 leading-tight">{description}</p>
+                <p className={`text-[10px] font-black uppercase ${selected ? 'text-orange-700' : 'text-slate-500'}`}>
+                    {label}
+                </p>
+                <p className="text-[9px] text-slate-400 font-medium mt-1 leading-tight">
+                    {description}
+                </p>
             </div>
-            <div className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 ${selected ? 'bg-orange-600 border-orange-600' : 'border-slate-200 bg-white'}`}>
+            <div className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                selected ? 'bg-orange-600 border-orange-600' : 'border-slate-200 bg-white'
+            }`}>
                 {selected && <span className="material-symbols-outlined text-white text-base">check</span>}
             </div>
         </button>
     );
 }
 
-function InputCol({ label, placeholder, type = "text", value, onChange }) {
-    return (
-        <div className="space-y-1">
-            <label className="text-[9px] font-black text-slate-400 uppercase ml-1">{label}</label>
-            <input type={type} className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-xs focus:ring-2 focus:ring-orange-500 transition-all outline-none" placeholder={placeholder} value={value} onChange={onChange} />
-        </div>
-    );
-}
-
-function StatusBox({ status, title, defaultMsg }) {
-    if (!status) return <div className="p-4 rounded-2xl border border-white/10 bg-white/5"><p className="text-[8px] font-black text-slate-500 uppercase">{title}</p><p className="text-[10px] font-bold mt-1 text-slate-400">{defaultMsg}</p></div>;
-    return <div className={`p-4 rounded-2xl border ${status.type === 'ERROR' ? 'bg-red-500/20 border-red-500' : status.type === 'WARN' ? 'bg-orange-500/20 border-orange-500' : 'bg-emerald-500/20 border-emerald-500'}`}><p className="text-[8px] font-black uppercase text-white opacity-60">{title}</p><p className="text-[10px] font-bold mt-1 text-white">{status.msg}</p></div>;
-}
-
+const toggleSpecialVuelo = (field) => {
+    setAeroForm(prev => ({
+        ...prev,
+        vuelos_especiales: {
+            ...prev.vuelos_especiales,
+            [field]: !prev.vuelos_especiales[field]
+        }
+    }));
+};
        

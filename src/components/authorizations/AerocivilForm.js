@@ -16,6 +16,7 @@ const MapPickerModal = dynamic(() => import('./MapPickerModal'), {
 export default function AerocivilForm({ drones, pilots, org }) {
     const [geo, setGeo] = useState({ depts: [], munis: [], all: [] });
     const [loadingGeo, setLoadingGeo] = useState(true);
+    const [saving, setSaving] = useState(false)
 
     // CORRECCIÓN LÍNEA 14: Estructura plana y sin duplicados
     const [aeroForm, setAeroForm] = useState({

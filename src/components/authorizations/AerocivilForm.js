@@ -13,7 +13,7 @@ const MapPickerModal = dynamic(() => import('./MapPickerModal'), {
   )
 });
 
-export default function AerocivilForm({ drones, pilots, org }) {
+export default function AerocivilForm({ drones, pilots, org, loadData }) { 
     const [geo, setGeo] = useState({ depts: [], munis: [], all: [] });
     const [loadingGeo, setLoadingGeo] = useState(true);
     const [saving, setSaving] = useState(false)
@@ -849,7 +849,8 @@ export default function AerocivilForm({ drones, pilots, org }) {
                     setSaving(true);
                     try {
                         const { generateExcelF100 } = await import('@/lib/reportGenerators');
-                        await generateExcelF100(aeroForm, userProfile, org, pilots); // <--- 'org' ahora será válido
+                        // Ahora 'org' ya está definido porque lo recibimos arriba
+                        await generateExcelF100(aeroForm, userProfile, org, pilots);
                     } catch (e) {
                         alert("Error: " + e.message);
                     } finally {

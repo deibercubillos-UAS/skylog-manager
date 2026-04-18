@@ -40,7 +40,10 @@ export default function AerocivilForm({ drones }) { // <-- Recibe drones aquí
         },
         aeronaves: [
             { id: '', brand: '', model: '', serial_number: '', insurer: '', policy: '', start_date: '', end_date: '' }
-        ]
+        ],
+        equipos: [
+        { id: '', brand: '', model: '', type: '', serial_number: '' }
+    ],
     });
 
      // --- FUNCIONES DE LÓGICA INTERNA ---
@@ -78,6 +81,31 @@ export default function AerocivilForm({ drones }) { // <-- Recibe drones aquí
         newAeronaves[index][field] = value;
         setAeroForm(prev => ({ ...prev, aeronaves: newAeronaves }));
     };
+
+    // FUNCIÓN PARA AGREGAR SLOT DE TECNOLOGÍA
+const addTechSlot = () => {
+    if (aeroForm.equipos.length < 3) {
+        setAeroForm(prev => ({
+            ...prev,
+            equipos: [...prev.equipos, { id: '', brand: '', model: '', type: '', serial_number: '' }]
+        }));
+    }
+};
+
+// FUNCIÓN PARA AUTOCOMPLETAR EQUIPO (Simulando carga de inventario)
+const handleTechSelect = (index, itemId, inventoryList) => {
+    const selected = inventoryList.find(i => i.id === itemId);
+    const newEquipos = [...aeroForm.equipos];
+    newEquipos[index] = {
+        ...newEquipos[index],
+        id: itemId,
+        brand: selected?.brand || '',
+        model: selected?.model || '',
+        type: selected?.category || 'Cámara/Sensor',
+        serial_number: selected?.serial_number || ''
+    };
+    setAeroForm(prev => ({ ...prev, equipos: newEquipos }));
+};
 
     // CARGA DE DIVIPOLA (MUNICIPIOS) DESDE SUPABASE
     useEffect(() => {
@@ -441,6 +469,60 @@ export default function AerocivilForm({ drones }) { // <-- Recibe drones aquí
                         >
                             <span className="material-symbols-outlined text-sm">add_circle</span>
                             Vincular otra aeronave a la solicitud
+                        </button>
+                    )}
+                </div>
+            </section>
+            
+            {/* SECCIÓN 8: EQUIPOS TECNOLÓGICOS */}
+            <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
+                <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-purple-600">settings_input_component</span>
+                        <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">8. EQUIPOS TECNOLÓGICOS (PAYLOADS)</h4>
+                    </div>
+                    <HelpTooltip text="Relacione los equipos integrados o externos como cámaras, sensores LIDAR o sistemas de fumigación registrados en su inventario." />
+                </div>
+
+                <div className="p-8 space-y-8">
+                    {aeroForm.equipos.map((item, index) => (
+                        <div key={index} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4 relative">
+                            <div className="flex justify-between items-center">
+                                <span className="bg-slate-900 text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase">Equipo #{index + 1}</span>
+                                {index > 0 && (
+                                    <button onClick={() => setAeroForm(prev => ({...prev, equipos: prev.equipos.filter((_, i) => i !== index)}))} className="text-red-500 material-symbols-outlined text-sm">delete</button>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="space-y-1 lg:col-span-2">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Seleccionar de Inventario</label>
+                                    <select 
+                                        className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                                        value={item.id}
+                                        onChange={(e) => handleTechSelect(index, e.target.value, []) /* Aquí iría su lista de inventario */}
+                                    >
+                                        <option value="">-- Elegir de Catálogo --</option>
+                                        {/* El mapeo de inventoryItems irá aquí cuando conectemos la tabla */}
+                                    </select>
+                                </div>
+                                <InputCol label="Tipo de Equipo" value={item.type} disabled />
+                                <InputCol label="Número de Serie" value={item.serial_number} disabled />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <InputCol label="Marca" value={item.brand} disabled />
+                                <InputCol label="Modelo" value={item.model} disabled />
+                            </div>
+                        </div>
+                    ))}
+
+                    {aeroForm.equipos.length < 3 && (
+                        <button 
+                            onClick={addTechSlot}
+                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-[10px] uppercase hover:border-purple-500 hover:text-purple-500 transition-all flex items-center justify-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-sm">add_circle</span>
+                            Vincular equipo tecnológico adicional
                         </button>
                     )}
                 </div>

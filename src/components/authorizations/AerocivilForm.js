@@ -63,7 +63,8 @@ export default function AerocivilForm({ drones, pilots }) {
         ],
         geo_type: 'polygon', // polygon, linear, circle
     points: [],
-    altitude: '400'
+    altitude: '400',
+    radius: 500
 });
 const [showMap, setShowMap] = useState(false);
 
@@ -796,7 +797,15 @@ const [showMap, setShowMap] = useState(false);
                 <MapPickerModal 
                     type={aeroForm.geo_type} 
                     points={aeroForm.points}
-                    onSave={(pts) => { setAeroForm({...aeroForm, points: pts}); setShowMap(false); }}
+                    // CORRECCIÓN: 'data' ahora trae { points, radius }
+                    onSave={(data) => { 
+                        setAeroForm({
+                            ...aeroForm, 
+                            points: data.points, 
+                            radius: data.radius 
+                        }); 
+                        setShowMap(false); 
+                    }}
                     onClose={() => setShowMap(false)}
                 />
             )}

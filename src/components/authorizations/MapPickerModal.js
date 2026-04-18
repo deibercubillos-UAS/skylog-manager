@@ -66,7 +66,7 @@ export default function MapPickerModal({ type, points, onSave, onClose }) {
                     <span className="text-[9px] font-black text-slate-400 uppercase">Radio de Operación</span>
                     <div className="flex items-center gap-3">
                         <input 
-                            type="range" min="50" max="5000" step="50"
+                            type="range" min="10" max="500" step="5"
                             className="w-32 accent-orange-600 cursor-pointer"
                             value={radius}
                             onChange={(e) => setRadius(parseInt(e.target.value))}

@@ -839,7 +839,7 @@ export default function AerocivilForm({ drones, pilots, org }) {
                         const { generateExcelF100 } = await import('@/lib/reportGenerators');
                         await generateExcelF100(aeroForm, userProfile);
                     } catch (e) {
-                        alert("Error al procesar el Excel. Verifique que la plantilla exista.");
+                        alert("⚠️ " + e.message);
                     } finally {
                         setSaving(false);
                     }

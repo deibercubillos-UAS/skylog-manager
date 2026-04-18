@@ -299,7 +299,7 @@ export const generateExcelF100 = async (data, profile) => {
     worksheet.getCell('V9').value = profile?.id_number;
     worksheet.getCell('V10').value = profile?.email;
     worksheet.getCell('V11').value = profile?.phone;
-    worksheet.getCell('V12').value = profile?.addres;
+    worksheet.getCell('V12').value = profile?.address;
 
     // --- SECCIÓN 3: TIPO DE OPERACIÓN (Marcación de X) ---
     // Aquí ponemos la 'X' solo en las celdas que el usuario marcó
@@ -328,9 +328,9 @@ export const generateExcelF100 = async (data, profile) => {
     // --- SECCIÓN 5: TIPO DE CONTACTO VISUAL CON LA UA (Marcación de X) ---
     // Aquí ponemos la 'X' solo en las celdas que el usuario marcó
     const cv = data.contacto_visual;
-    if (cv.VLOS) worksheet.getCell('S19').value = 'X';
-    if (cv.EVLOS) worksheet.getCell('AO19').value = 'X';
-    if (cv.BVLOS) worksheet.getCell('S20').value = 'X';
+    if (cv.VLOS) worksheet.getCell('S35').value = 'X';
+    if (cv.EVLOS) worksheet.getCell('AN32').value = 'X';
+    if (cv.BVLOS) worksheet.getCell('S36').value = 'X';
 
     // --- SECCIÓN 6: VUELO ESPECIAL (Marcación de X) ---
     // Aquí ponemos la 'X' solo en las celdas que el usuario marcó
@@ -341,7 +341,7 @@ export const generateExcelF100 = async (data, profile) => {
     if (ve.demostracion) worksheet.getCell('AN36').value = 'X';
     if (ve.cautiva) worksheet.getCell('S37').value = 'X';
     if (ve.recreativo) worksheet.getCell('AN37').value = 'X';
-    worksheet.getCell('B38').value = data.empresa_contratante?.toUpperCase();
+    worksheet.getCell('B38').value = data.justificacion_especial;
 
     // --- SECCIÓN 7: AERONAVES (Mapeo de tabla) ---
     // Suponiendo que la tabla de aeronaves empieza en la fila 40

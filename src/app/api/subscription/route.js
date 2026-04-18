@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabaseServer';
 import { PLAN_CONFIG } from '@/lib/planLimits';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   try {

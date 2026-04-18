@@ -2,7 +2,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import HelpTooltip from '@/components/HelpTooltip';
-import MapPickerModal from './MapPickerModal';
+import dynamic from 'next/dynamic';
+
+const MapPickerModal = dynamic(() => import('./MapPickerModal'), { 
+  ssr: false, // <--- ESTO ES VITAL: Desactiva el renderizado en servidor
+  loading: () => (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[500] flex items-center justify-center">
+      <div className="bg-white p-6 rounded-2xl font-black animate-pulse">PREPARANDO RADAR GEOGRÁFICO...</div>
+    </div>
+  )
+});
 
 export default function AerocivilForm({ drones, pilots }) { 
     const [geo, setGeo] = useState({ depts: [], munis: [], all: [] });

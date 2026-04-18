@@ -294,27 +294,53 @@ export const generateExcelF100 = async (data, profile) => {
 
     // --- SECCIÓN 1: DATOS DEL SOLICITANTE (Ejemplo de celdas) ---
     // Ajuste las coordenadas (C12, C13, etc) según su Excel real
-    worksheet.getCell('C12').value = profile?.full_name?.toUpperCase();
-    worksheet.getCell('C13').value = "CEDULA DE CIUDADANIA";
-    worksheet.getCell('C14').value = profile?.id_number;
-    worksheet.getCell('C15').value = profile?.email;
-    worksheet.getCell('C16').value = profile?.phone;
+    worksheet.getCell('V7').value = profile?.full_name?.toUpperCase();
+    worksheet.getCell('V8').value = "NIT";
+    worksheet.getCell('V9').value = profile?.id_number;
+    worksheet.getCell('V10').value = profile?.email;
+    worksheet.getCell('V11').value = profile?.phone;
+    worksheet.getCell('V12').value = profile?.addres;
 
     // --- SECCIÓN 3: TIPO DE OPERACIÓN (Marcación de X) ---
     // Aquí ponemos la 'X' solo en las celdas que el usuario marcó
     const op = data.tipo_operacion;
-    if (op.simple_captura) worksheet.getCell('D20').value = 'X';
-    if (op.vigilancia_seguridad) worksheet.getCell('H20').value = 'X';
-    if (op.aspersion) worksheet.getCell('H21').value = 'X';
-    if (op.instruccion) worksheet.getCell('H23').value = 'X';
+    if (op.simple_captura) worksheet.getCell('S19').value = 'X';
+    if (op.vigilancia_seguridad) worksheet.getCell('AO19').value = 'X';
+    if (op.medios_comunicacion) worksheet.getCell('S20').value = 'X';
+    if (op.aspersion) worksheet.getCell('AO20').value = 'X';
+    if (op.dispersion) worksheet.getCell('S21').value = 'X';
+    if (op.enjambre) worksheet.getCell('AO21').value = 'X';
+    if (op.carga_delivery) worksheet.getCell('S22').value = 'X';
+    if (op.instruccion) worksheet.getCell('AO22').value = 'X';
+    if (op.misiones_publicas) worksheet.getCell('S23').value = 'X';
 
     // --- SECCIÓN 4: INFORMACIÓN OPERACIÓN ---
-    worksheet.getCell('C27').value = data.empresa_contratante?.toUpperCase();
-    worksheet.getCell('C28').value = data.fecha_inicio;
-    worksheet.getCell('G28').value = data.hora_inicio;
-    worksheet.getCell('C32').value = data.peso_maximo;
-    worksheet.getCell('C33').value = data.municipality;
-    worksheet.getCell('G33').value = data.department;
+    worksheet.getCell('W25').value = data.empresa_contratante?.toUpperCase();
+    worksheet.getCell('M26').value = data.fecha_inicio;
+    worksheet.getCell('AI26').value = data.hora_inicio;
+    worksheet.getCell('M27').value = data.fecha_fin;
+    worksheet.getCell('AI27').value = data.hora_fin;
+    worksheet.getCell('W29').value = data.peso_maximo;
+    worksheet.getCell('M28').value = data.otros_detalles;
+    worksheet.getCell('M30').value = data.municipality;
+    worksheet.getCell('AI30').value = data.department;
+
+    // --- SECCIÓN 5: TIPO DE CONTACTO VISUAL CON LA UA (Marcación de X) ---
+    // Aquí ponemos la 'X' solo en las celdas que el usuario marcó
+    const cv = data.contacto_visual;
+    if (cv.VLOS) worksheet.getCell('S19').value = 'X';
+    if (cv.EVLOS) worksheet.getCell('AO19').value = 'X';
+    if (cv.BVLOS) worksheet.getCell('S20').value = 'X';
+
+    // --- SECCIÓN 6: VUELO ESPECIAL (Marcación de X) ---
+    // Aquí ponemos la 'X' solo en las celdas que el usuario marcó
+    const ve = data.vuelos_especiales;
+    if (ve.nocturno) worksheet.getCell('S35').value = 'X';
+    if (ve.urbana) worksheet.getCell('AN35').value = 'X';
+    if (ve.autonomo) worksheet.getCell('S36').value = 'X';
+    if (ve.demostracion) worksheet.getCell('AN36').value = 'X';
+    if (ve.cautiva) worksheet.getCell('S37').value = 'X';
+    if (ve.recreativo) worksheet.getCell('AN37').value = 'X';
 
     // --- SECCIÓN 7: AERONAVES (Mapeo de tabla) ---
     // Suponiendo que la tabla de aeronaves empieza en la fila 40

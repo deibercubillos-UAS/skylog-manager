@@ -29,7 +29,11 @@ export default function AerocivilForm({ drones, pilots, org }) {
         hora_fin: '',
         otros_detalles: '',
         peso_maximo: '',
-        contacto_visual: 'VLOS', // <--- Ahora está en el nivel correcto
+        contacto_visual: {
+            VLOS:false,
+            BVLOS:false,
+            EVLOS:false
+        }, // <--- Ahora está en el nivel correcto
         justificacion_especial: '',
         tipo_operacion: {
             simple_captura: false,
@@ -425,21 +429,21 @@ export default function AerocivilForm({ drones, pilots, org }) {
                         <VisualOption 
                             label="VLOS (Hasta 750 metros)" 
                             description="Línea de vista visual directa del piloto."
-                            selected={aeroForm.contacto_visual === 'VLOS'}
-                            onClick={() => setAeroForm({...aeroForm, contacto_visual: 'VLOS'})}
+                            checked={aeroForm.contacto_visual.VLOS}
+                            onChange={() => toggleAeroCheck('VLOS')}
                         />
                         <VisualOption 
                             label="EVLOS (Hasta 3.000 metros con observador(es))" 
                             description="Línea de vista extendida mediante observadores."
-                            selected={aeroForm.contacto_visual === 'EVLOS'}
-                            onClick={() => setAeroForm({...aeroForm, contacto_visual: 'EVLOS'})}
+                            checked={aeroForm.contacto_visual.EVLOS}
+                            onChange={() => toggleAeroCheck('EVLOS')}
                         />
                         <div className="md:col-span-2">
                             <VisualOption 
                                 label="BVLOS (Distancia aprobada en la operación aérea)" 
                                 description="Operación más allá de la línea de vista visual."
-                                selected={aeroForm.contacto_visual === 'BVLOS'}
-                                onClick={() => setAeroForm({...aeroForm, contacto_visual: 'BVLOS'})}
+                                checked={aeroForm.contacto_visual.BVLOS}
+                            onChange={() => toggleAeroCheck('BVLOS')}
                             />
                         </div>
                     </div>

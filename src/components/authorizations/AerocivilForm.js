@@ -12,6 +12,13 @@ export default function AerocivilForm() {
     const [aeroForm, setAeroForm] = useState({
         department: '',
         municipality: '',
+        empresa_contratante: '',
+        fecha_inicio: '',
+        hora_inicio: '',
+        fecha_fin: '',
+        hora_fin: '',
+        otros_detalles: '',
+        peso_maximo: '',
         tipo_operacion: {
             simple_captura: false,
             vigilancia_seguridad: false,
@@ -146,38 +153,97 @@ export default function AerocivilForm() {
                     </div>
                 </div>
             </section>
-
-            {/* SECCIÓN 4: UBICACIÓN GEOGRÁFICA */}
-            <section className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-8">
-                <div className="flex items-center justify-between border-b pb-4">
-                    <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">4. UBICACIÓN DE LA OPERACIÓN</h4>
-                    <HelpTooltip text="Seleccione el departamento y municipio según el Divipola nacional." />
+            
+            {/* SECCIÓN 4: INFORMACIÓN DE LA OPERACIÓN AÉREA */}
+            <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden animate-in fade-in duration-500">
+                <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                    <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">4. INFORMACIÓN DE LA OPERACIÓN AÉREA</h4>
+                    <HelpTooltip text="Diligencie los datos de la empresa contratante, fechas, horarios UTC, pesos brutos y ubicación geográfica de la operación." />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="p-8 space-y-6">
+                    {/* FILA 1: EMPRESA CONTRATANTE */}
                     <div className="space-y-1">
-                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Departamento</label>
-                        <select 
-                            className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-orange-500 appearance-none"
-                            value={aeroForm.department}
-                            onChange={e => handleDeptChange(e.target.value)}
-                        >
-                            <option value="">-- {geo.depts.length > 0 ? `Seleccionar (${geo.depts.length})` : 'Cargando...'} --</option>
-                            {geo.depts.map(d => <option key={d} value={d}>{d}</option>)}
-                        </select>
+                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Empresa Contratante del Servicio</label>
+                        <input 
+                            className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                            placeholder="Razón Social del Cliente"
+                            value={aeroForm.empresa_contratante}
+                            onChange={e => setAeroForm({...aeroForm, empresa_contratante: e.target.value})}
+                        />
                     </div>
 
+                    {/* FILA 2 Y 3: CRONOGRAMA TÉCNICO */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Fecha Inicio</label>
+                                <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-xs" value={aeroForm.fecha_inicio} onChange={e => setAeroForm({...aeroForm, fecha_inicio: e.target.value})} />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Hora Inicio</label>
+                                <input type="time" className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-xs" value={aeroForm.hora_inicio} onChange={e => setAeroForm({...aeroForm, hora_inicio: e.target.value})} />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Fecha Finalización</label>
+                                <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-xs" value={aeroForm.fecha_fin} onChange={e => setAeroForm({...aeroForm, fecha_fin: e.target.value})} />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Hora Fin</label>
+                                <input type="time" className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-xs" value={aeroForm.hora_fin} onChange={e => setAeroForm({...aeroForm, hora_fin: e.target.value})} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* FILA 4: OTROS DETALLES */}
                     <div className="space-y-1">
-                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Municipio</label>
-                        <select 
-                            disabled={!aeroForm.department}
-                            className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-30 appearance-none"
-                            value={aeroForm.municipality}
-                            onChange={e => setAeroForm({...aeroForm, municipality: e.target.value})}
-                        >
-                            <option value="">-- {aeroForm.department ? `Seleccionar (${geo.munis.length})` : 'Elija departamento'} --</option>
-                            {geo.munis.map(m => <option key={m} value={m}>{m}</option>)}
-                        </select>
+                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Otros detalles del cronograma de operación</label>
+                        <textarea 
+                            rows="2"
+                            className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                            placeholder="Especifique detalles adicionales si aplica..."
+                            value={aeroForm.otros_detalles}
+                            onChange={e => setAeroForm({...aeroForm, otros_detalles: e.target.value})}
+                        />
+                    </div>
+
+                    {/* FILA 5: PESO Y GEOGRAFÍA */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Peso Bruto Máximo (Kg)</label>
+                            <input 
+                                type="number" step="0.01" 
+                                className="w-full p-4 bg-white border-2 border-orange-100 rounded-2xl font-black text-sm text-orange-600 outline-none" 
+                                placeholder="0.00"
+                                value={aeroForm.peso_maximo}
+                                onChange={e => setAeroForm({...aeroForm, peso_maximo: e.target.value})}
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Departamento</label>
+                            <select 
+                                className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-orange-500 appearance-none"
+                                value={aeroForm.department}
+                                onChange={e => handleDeptChange(e.target.value)}
+                            >
+                                <option value="">-- Seleccionar --</option>
+                                {geo.depts.map(d => <option key={d} value={d}>{d}</option>)}
+                            </select>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Municipio</label>
+                            <select 
+                                disabled={!aeroForm.department}
+                                className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-30 appearance-none"
+                                value={aeroForm.municipality}
+                                onChange={e => setAeroForm({...aeroForm, municipality: e.target.value})}
+                            >
+                                <option value="">-- Seleccionar --</option>
+                                {geo.munis.map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                        </div>
                     </div>
                 </div>
             </section>

@@ -80,13 +80,6 @@ export default function AerocivilForm({ drones, pilots, org }) {
             vuelos_especiales: { ...prev.vuelos_especiales, [field]: !prev.vuelos_especiales[field] }
         }));
     };
-
-    const toggleTipoFly = (field) => {
-        setAeroForm(prev => ({
-            ...prev,
-            vuelos_especiales: { ...prev.vuelos_especiales, [field]: !prev.vuelos_especiales[field] }
-        }));
-    };
     
     const addAircraftSlot = () => {
         if (aeroForm.aeronaves.length < 3) {
@@ -253,6 +246,13 @@ export default function AerocivilForm({ drones, pilots, org }) {
                 ...prev.tipo_operacion,
                 [field]: !prev.tipo_operacion[field]
             }
+        }));
+    };
+
+    const toggleTipoFly = (field) => {
+        setAeroForm(prev => ({
+            ...prev,
+            contacto_visual: { ...prev.contacto_visual, [field]: !prev.contacto_visual[field] }
         }));
     };
 

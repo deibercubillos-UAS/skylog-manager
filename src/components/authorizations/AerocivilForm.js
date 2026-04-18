@@ -30,9 +30,31 @@ export default function AerocivilForm() {
             instruccion: false,
             misiones_publicas: false,
             contacto_visual: 'VLOS', // Valor por defecto
-            tipo_operacion: { /* ... */ }
+            tipo_operacion: { /* ... */ },
+            vuelos_especiales: {
+            nocturno: false,
+            autonomo: false,
+            cautiva: false,
+            urbana: false,
+            demostracion: false,
+            recreativo: false
+        },
+        justificacion_especial: '',
+        tipo_operacion: { /* ... */ }
         }
     });
+
+
+        // FUNCIÓN PARA TOGGLE DE VUELOS ESPECIALES
+        const toggleSpecialVuelo = (field) => {
+            setAeroForm(prev => ({
+                ...prev,
+                vuelos_especiales: {
+                    ...prev.vuelos_especiales,
+                    [field]: !prev.vuelos_especiales[field]
+                }
+            }));
+        };
 
     // CARGA DE DIVIPOLA (MUNICIPIOS) DESDE SUPABASE
     useEffect(() => {
@@ -279,6 +301,64 @@ export default function AerocivilForm() {
                                 onClick={() => setAeroForm({...aeroForm, contacto_visual: 'BVLOS'})}
                             />
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* SECCIÓN 6: VUELO ESPECIAL */}
+            <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
+                <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                    <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">6. VUELO ESPECIAL</h4>
+                    <HelpTooltip text="Marque con una equis (X) el tipo de vuelo especial que se realizará. Debe incluir una justificación detallada de la operación." />
+                </div>
+
+                <div className="p-8 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <AeroCheck 
+                            label="VUELO NOCTURNO" 
+                            checked={aeroForm.vuelos_especiales.nocturno}
+                            onChange={() => toggleSpecialVuelo('nocturno')}
+                        />
+                        <AeroCheck 
+                            label="VUELO EN ZONA URBANA" 
+                            checked={aeroForm.vuelos_especiales.urbana}
+                            onChange={() => toggleSpecialVuelo('urbana')}
+                        />
+                        <AeroCheck 
+                            label="VUELO AUTÓNOMO" 
+                            checked={aeroForm.vuelos_especiales.autonomo}
+                            onChange={() => toggleSpecialVuelo('autonomo')}
+                        />
+                        <AeroCheck 
+                            label="VUELOS PARA DEMOSTRACIONES COMERCIALES" 
+                            checked={aeroForm.vuelos_especiales.demostracion}
+                            onChange={() => toggleSpecialVuelo('demostracion')}
+                        />
+                        <AeroCheck 
+                            label="VUELO DE UA CAUTIVA" 
+                            checked={aeroForm.vuelos_especiales.cautiva}
+                            onChange={() => toggleSpecialVuelo('cautiva')}
+                        />
+                        <AeroCheck 
+                            label="VUELOS EN COMPETENCIAS O RECREATIVOS" 
+                            checked={aeroForm.vuelos_especiales.recreativo}
+                            onChange={() => toggleSpecialVuelo('recreativo')}
+                        />
+                    </div>
+
+                    {/* CAMPO DE JUSTIFICACIÓN */}
+                    <div className="pt-4 border-t border-slate-50">
+                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1 flex items-center gap-2">
+                            Justificación de la Operación Especial
+                            <HelpTooltip text="Describa brevemente la necesidad y los mitigantes de riesgo para el tipo de vuelo especial seleccionado." />
+                        </label>
+                        <textarea 
+                            rows="3"
+                            className="w-full p-4 bg-slate-50 rounded-2xl border-none font-medium text-sm mt-2 outline-none focus:ring-2 focus:ring-orange-500"
+                            placeholder="Describa el propósito y medidas de seguridad..."
+                            value={aeroForm.justificacion_especial}
+                            onChange={e => setAeroForm({...aeroForm, justificacion_especial: e.target.value})}
+                        />
                     </div>
                 </div>
             </section>

@@ -13,8 +13,8 @@ export default function SettingsPage() {
         async function loadOrgData() {
             const { data: { user } } = await supabase.auth.getUser();
             const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
-            const { data: orgData } = await supabase.from('organizations').select('*').eq('id', prof.organization_id).single();
-            setOrg(orgData);
+            const { data: orgData } = await supabase.from('organizations').select('*').eq('id', profData.organization_id).single();
+            if (orgData) setOrg(orgData);
             setLoading(false);
         }
         loadOrgData();
@@ -51,6 +51,48 @@ export default function SettingsPage() {
         await supabase.from('organizations').update({ logo_url: url }).eq('id', org.id);
         setOrg({ ...org, logo_url: url });
         alert("✅ Logo corporativo actualizado.");
+    };
+
+    const handleSave = async (e) => {
+        e.preventDefault();
+        setUpdating(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+
+            // 1. Guardar datos en la tabla ORGANIZATIONS
+            const { error: orgError } = await supabase
+                .from('organizations')
+                .update({
+                    company_name: org.company_name,
+                    tax_id_type: org.tax_id_type,
+                    tax_id: org.tax_id,
+                    dan_number: org.dan_number,
+                    legal_rep: org.legal_rep,
+                    operator_email: org.operator_email,
+                    phone: org.phone,
+                    address: org.address
+                })
+                .eq('id', profile.organization_id);
+
+            if (orgError) throw orgError;
+
+            // 2. Guardar datos en la tabla PROFILES (Si ha cambiado algo del usuario)
+            const { error: profError } = await supabase
+                .from('profiles')
+                .update({
+                    full_name: profile.full_name,
+                    // Otros campos de perfil que desee actualizar
+                })
+                .eq('id', user.id);
+
+            if (profError) throw profError;
+
+            alert("✅ Identidad Corporativa y Perfil actualizados correctamente.");
+        } catch (err) {
+            alert("⚠️ Error al guardar: " + err.message);
+        } finally {
+            setUpdating(false);
+        }
     };
 
     if (loading) return <div className="p-20 text-center font-black animate-pulse">CARGANDO DATOS CORPORATIVOS...</div>;
@@ -101,18 +143,17 @@ export default function SettingsPage() {
                             </div>
 
                             <div className="space-y-1">
-                                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Tipo de Doc.</label>
-                                    <select 
-                                        className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500"
-                                        value={profile.id_type || 'CC'}
-                                        onChange={e => setProfile({...profile, id_type: e.target.value})}
-                                    >
-                                        <option value="CC">Cédula de Ciudadanía</option>
-                                        <option value="CE">Cédula de Extranjería</option>
-                                        <option value="NIT">NIT (Empresa)</option>
-                                        <option value="PP">Pasaporte</option>
-                                        <option value="PEP">Permiso Especial</option>
-                                    </select>
+                                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Tipo de Identificación</label>
+                                <select 
+                                    className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500 appearance-none"
+                                    value={org.tax_id_type || 'NIT'} // Cambiado de profile.id_type a org.tax_id_type
+                                    onChange={e => setOrg({...org, tax_id_type: e.target.value})}
+                                >
+                                    <option value="NIT">NIT (Persona Jurídica)</option>
+                                    <option value="CC">Cédula de Ciudadanía</option>
+                                    <option value="CE">Cédula de Extranjería</option>
+                                    <option value="PP">Pasaporte</option>
+                                </select>
                             </div>
 
                             <div className="space-y-1">

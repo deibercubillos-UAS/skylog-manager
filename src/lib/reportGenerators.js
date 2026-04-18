@@ -277,3 +277,131 @@ export const generatePilotDossier = (pilot, config) => {
 
     doc.save(`EXPEDIENTE_${pilot.name.replace(/\s+/g, '_')}.pdf`);
 };
+
+// --- GENERADOR: FORMATO 100 UAEAC (SOLICITUD DE AUTORIZACIÓN) ---
+export const generateAeroForm100 = (formData, org, profile) => {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const reportDate = new Date().toLocaleDateString();
+
+    // Función auxiliar para dibujar la cabecera del F-100 en cada página
+    const drawAeroHeader = (pageNumber) => {
+        doc.setDrawColor(0); doc.setLineWidth(0.5);
+        doc.rect(10, 10, 190, 25); 
+        doc.line(55, 10, 55, 35); doc.line(160, 10, 160, 35);
+        
+        // Espacio Logo Aerocivil (Placeholder A)
+        doc.setFontSize(14); doc.setFont("helvetica", "bold");
+        doc.text("A", 32.5, 22, { align: 'center' });
+        doc.setFontSize(6);
+        doc.text("AERONÁUTICA CIVIL", 32.5, 28, { align: 'center' });
+        doc.text("UNIDAD ADMINISTRATIVA ESPECIAL", 32.5, 31, { align: 'center' });
+
+        doc.setFontSize(8);
+        doc.text("FORMATO", 107.5, 15, { align: 'center' });
+        doc.setFontSize(9);
+        doc.text("100- SOLICITUD DE AUTORIZACIÓN DE VUELO UAS", 107.5, 25, { align: 'center' });
+
+        doc.setFontSize(7);
+        doc.line(160, 18, 200, 18); doc.line(160, 26, 200, 26);
+        doc.text(`Clave: MAUT-5.0-12-056`, 162, 15);
+        doc.text(`Versión: 01`, 162, 23);
+        doc.text(`Aprobación: 07/11/2023`, 162, 31);
+        
+        doc.setFontSize(6);
+        doc.text(`Página: ${pageNumber} de 7`, 185, 285);
+    };
+
+    // --- PÁGINA 1 ---
+    drawAeroHeader(1);
+    
+    // Sección 1: Datos del Solicitante
+    autoTable(doc, {
+        startY: 38,
+        head: [['1. DATOS DEL SOLICITANTE', '']],
+        body: [
+            ['NOMBRE COMPLETO:', profile?.full_name?.toUpperCase() || ''],
+            ['IDENTIFICACIÓN:', profile?.id_number || ''],
+            ['CORREO:', profile?.email || ''],
+            ['CONTACTO:', profile?.phone || ''],
+            ['DIRECCIÓN:', profile?.address || '']
+        ],
+        theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5 },
+        headStyles: { fillColor: [200, 200, 200], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center' },
+        columnStyles: { 0: { cellWidth: 50, fontStyle: 'bold' } }
+    });
+
+    // Sección 3: Tipo de Operación (Mapeo de X)
+    const op = formData.tipo_operacion;
+    autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 5,
+        head: [['3. TIPO DE OPERACIÓN AÉREA', 'X', 'TIPO DE OPERACIÓN AÉREA', 'X']],
+        body: [
+            ['SIMPLE CAPTURA DE IMÁGENES', op.simple_captura ? 'X' : '', 'VIGILANCIA Y SEGURIDAD', op.vigilancia_seguridad ? 'X' : ''],
+            ['MEDIOS DE COMUNICACIÓN', op.medios_comunicacion ? 'X' : '', 'ASPERSIÓN', op.aspersion ? 'X' : ''],
+            ['DISPERSIÓN', op.dispersion ? 'X' : '', 'ENJAMBRE', op.enjambre ? 'X' : ''],
+            ['TRANSPORTE DE CARGA', op.carga_delivery ? 'X' : '', 'INSTRUCCIÓN', op.instruccion ? 'X' : '']
+        ],
+        theme: 'grid', styles: { fontSize: 6.5 },
+        headStyles: { fillColor: [200, 200, 200], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center' }
+    });
+
+    // Sección 4: Información Operación
+    autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 5,
+        head: [['4. INFORMACIÓN DE LA OPERACIÓN AÉREA', '']],
+        body: [
+            ['EMPRESA CONTRATANTE:', formData.empresa_contratante?.toUpperCase()],
+            ['FECHA INICIO:', formData.fecha_inicio, 'HORA INICIO (UTC):', formData.hora_inicio],
+            ['FECHA FIN:', formData.fecha_fin, 'HORA FIN (UTC):', formData.hora_fin],
+            ['PESO BRUTO MAX (KG):', formData.peso_maximo, 'UBICACIÓN:', `${formData.municipality}, ${formData.department}`]
+        ],
+        theme: 'grid', styles: { fontSize: 7 },
+        headStyles: { fillColor: [200, 200, 200], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center' }
+    });
+
+    // --- PÁGINA 2 (Aeronaves y Equipos) ---
+    doc.addPage();
+    drawAeroHeader(2);
+
+    autoTable(doc, {
+        startY: 38,
+        head: [['7. AERONAVE(S) NO TRIPULADA(S) UAS', '']],
+        body: formData.aeronaves.map(a => [
+            `MARCA/MODELO: ${a.brand} ${a.model}`,
+            `S/N: ${a.serial_number} | PÓLIZA: ${a.policy}`
+        ]),
+        theme: 'grid', styles: { fontSize: 7 },
+        headStyles: { fillColor: [200, 200, 200], textColor: [0, 0, 0], fontStyle: 'bold' }
+    });
+
+    // --- PÁGINA 3 (Coordenadas) ---
+    doc.addPage();
+    drawAeroHeader(3);
+    
+    doc.setFontSize(9); doc.setFont("helvetica", "bold");
+    doc.text("11. COORDENADAS DE LA OPERACIÓN AÉREA (WGS-84)", 15, 45);
+
+    autoTable(doc, {
+        startY: 50,
+        head: [['ITEM', 'LATITUD (N/S)', 'LONGITUD (W)', 'ALTURA']],
+        body: formData.points.map((p, i) => [
+            i + 1,
+            `${Math.abs(p.lat).toFixed(4)}°${p.lat >= 0 ? 'N' : 'S'}`,
+            `${Math.abs(p.lng).toFixed(4)}°W`,
+            `${formData.altitude || '400'} FT`
+        ]),
+        theme: 'grid', styles: { fontSize: 8, halign: 'center' },
+        headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] }
+    });
+
+    // --- SECCIÓN DE FIRMAS (Página Final) ---
+    doc.addPage();
+    drawAeroHeader(7);
+    const signY = 100;
+    doc.line(30, signY, 180, signY);
+    doc.setFontSize(9);
+    doc.text("14. FIRMA DE JEFE DE PILOTOS O QUIEN HAGA SUS VECES", 105, signY + 5, { align: 'center' });
+    doc.text(profile?.full_name?.toUpperCase() || '', 105, signY + 12, { align: 'center' });
+
+    doc.save(`SOLICITUD_F100_${org?.company_name?.replace(' ', '_')}.pdf`);
+};

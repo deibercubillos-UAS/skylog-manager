@@ -65,8 +65,8 @@ export default function AerocivilForm({ drones, pilots }) {
     points: [],
     altitude: '400',
     radius: 500
-});
-const [showMap, setShowMap] = useState(false);
+    });
+    const [showMap, setShowMap] = useState(false);
 
      // --- FUNCIONES DE LÓGICA INTERNA ---
     const toggleSpecialVuelo = (field) => {
@@ -185,6 +185,16 @@ const [showMap, setShowMap] = useState(false);
     return `${degrees}°${minutes}'${seconds}"`;
     };
 
+    const [userProfile, setUserProfile] = useState(null);
+
+    useEffect(() => {
+        async function getProfile() {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            setUserProfile(data);
+        }
+        getProfile();
+    }, []);
 
     // CARGA DE DIVIPOLA (MUNICIPIOS) DESDE SUPABASE
     useEffect(() => {
@@ -810,8 +820,22 @@ const [showMap, setShowMap] = useState(false);
                 />
             )}
 
-            <button className="w-full py-6 bg-slate-900 text-white font-black rounded-[2.5rem] shadow-xl uppercase text-xs tracking-widest hover:bg-orange-600 transition-all active:scale-95">
-                Generar Formato 100 PDF
+            <button 
+                onClick={() => {
+                    if (!aeroForm.department || aeroForm.aeronaves.length === 0) {
+                        return alert("Complete la información geográfica y seleccione al menos una aeronave.");
+                    }
+                    setSaving(true);
+                    // Llamamos al nuevo generador inyectando todos los contextos
+                    import('@/lib/reportGenerators').then(m => {
+                        m.generateAeroForm100(aeroForm, org, userProfile);
+                        setSaving(false);
+                    });
+                }}
+                disabled={saving}
+                className="w-full py-6 bg-orange-600 text-white font-black rounded-[2.5rem] shadow-xl uppercase text-xs tracking-widest hover:bg-slate-900 transition-all active:scale-95"
+            >
+                {saving ? 'PROCESANDO...' : 'GENERAR FORMULARIO'}
             </button>
         </div>
     );

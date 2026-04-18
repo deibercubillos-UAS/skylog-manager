@@ -284,13 +284,22 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
 export const generateExcelF100 = async (data, profile) => {
-    // 1. Cargar la plantilla desde la carpeta pública
-    const response = await fetch('/templates/formato_100_template.xlsx');
-    const arrayBuffer = await response.arrayBuffer();
-    
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(arrayBuffer);
-    const worksheet = workbook.getWorksheet(1); // Usar la primera hoja
+    try {
+        // 1. Carga de plantilla
+        const response = await fetch('/templates/formato_100_template.xlsx');
+        if (!response.ok) throw new Error("No se encontró la plantilla en public/templates/formato_100_template.xlsx");
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(arrayBuffer);
+
+        // --- CORRECCIÓN CRÍTICA AQUÍ ---
+        // Accedemos a la primera hoja del arreglo directamente
+        const worksheet = workbook.worksheets[0]; 
+        
+        if (!worksheet) {
+            throw new Error("El archivo Excel no contiene hojas de trabajo válidas.");
+        } // Usar la primera hoja
 
     // --- SECCIÓN 1: DATOS DEL SOLICITANTE (Ejemplo de celdas) ---
     // Ajuste las coordenadas (C12, C13, etc) según su Excel real
@@ -352,8 +361,12 @@ export const generateExcelF100 = async (data, profile) => {
         worksheet.getCell(`E${rowOffset + 1}`).value = a.serial_number;
     });
 
-    // --- GENERAR DESCARGA ---
     const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, `SOLICITUD_F100_${profile?.full_name}.xlsx`);
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(blob, `F100_UAEAC_${profile?.full_name?.replace(/\s+/g, '_')}.xlsx`);
+
+    } catch (error) {
+        console.error("Error en generateExcelF100:", error);
+        alert("Falla técnica: " + error.message);
+    }
 };

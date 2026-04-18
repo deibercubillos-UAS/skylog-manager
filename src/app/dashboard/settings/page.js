@@ -24,75 +24,46 @@ export default function SettingsPage() {
         e.preventDefault();
         setUpdating(true);
         try {
-            const { error } = await supabase
+            const { data: auth } = await supabase.auth.getUser();
+            
+            // 1. Intentar actualización
+            const { data: updatedData, error: orgErr } = await supabase
                 .from('organizations')
                 .update({
                     company_name: org.company_name,
                     tax_id: org.tax_id,
-                    address: org.address,
-                    phone: org.phone,
-                    operator_email: org.operator_email,
-                    legal_rep: org.legal_rep,
-                    dan_number: org.dan_number,
-                    flight_prefix: org.flight_prefix
-                })
-                .eq('id', org.id);
-
-            if (error) throw error;
-            alert("✅ Datos de la organización actualizados.");
-        } catch (err) {
-            alert("Error: " + err.message);
-        } finally {
-            setUpdating(false);
-        }
-    };
-
-    const updateLogo = async (url) => {
-        await supabase.from('organizations').update({ logo_url: url }).eq('id', org.id);
-        setOrg({ ...org, logo_url: url });
-        alert("✅ Logo corporativo actualizado.");
-    };
-
-    const handleSave = async (e) => {
-        e.preventDefault();
-        setUpdating(true);
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-
-            // 1. Guardar datos en la tabla ORGANIZATIONS
-            const { error: orgError } = await supabase
-                .from('organizations')
-                .update({
-                    company_name: org.company_name,
                     tax_id_type: org.tax_id_type,
-                    tax_id: org.tax_id,
                     dan_number: org.dan_number,
                     legal_rep: org.legal_rep,
                     operator_email: org.operator_email,
                     phone: org.phone,
                     address: org.address
                 })
-                .eq('id', profile.organization_id);
+                .eq('id', profile.organization_id)
+                .select(); // <--- IMPORTANTE: Pedimos los datos de vuelta para confirmar
 
-            if (orgError) throw orgError;
+            if (orgErr) throw orgErr;
 
-            // 2. Guardar datos en la tabla PROFILES (Si ha cambiado algo del usuario)
-            const { error: profError } = await supabase
-                .from('profiles')
-                .update({
-                    full_name: profile.full_name,
-                    // Otros campos de perfil que desee actualizar
-                })
-                .eq('id', user.id);
+            // 2. VERIFICACIÓN REAL: Si updatedData está vacío, RLS bloqueó la edición
+            if (!updatedData || updatedData.length === 0) {
+                throw new Error("Privilegios insuficientes: No tienes permiso para editar esta organización.");
+            }
 
-            if (profError) throw profError;
-
-            alert("✅ Identidad Corporativa y Perfil actualizados correctamente.");
+            alert("✅ Identidad Corporativa persistida en la base de datos.");
+            setOrg(updatedData[0]); // Actualizamos el estado con la respuesta real de la DB
+            
         } catch (err) {
-            alert("⚠️ Error al guardar: " + err.message);
+            console.error("Falla de persistencia:", err.message);
+            alert("⚠️ Error: " + err.message);
         } finally {
             setUpdating(false);
         }
+        };  
+
+    const updateLogo = async (url) => {
+        await supabase.from('organizations').update({ logo_url: url }).eq('id', org.id);
+        setOrg({ ...org, logo_url: url });
+        alert("✅ Logo corporativo actualizado.");
     };
 
     if (loading) return <div className="p-20 text-center font-black animate-pulse">CARGANDO DATOS CORPORATIVOS...</div>;

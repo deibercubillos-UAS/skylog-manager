@@ -279,9 +279,6 @@ export const generatePilotDossier = (pilot, config) => {
 };
 
 // --- GENERADOR: FORMATO 100 UAEAC (SOLICITUD DE AUTORIZACIÓN) ---
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-
 export const generateOfficialF100 = (data, org, profile) => {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 

@@ -14,6 +14,9 @@ export default function SettingsPage() {
         async function loadOrgData() {
             const { data: { user } } = await supabase.auth.getUser();
             const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+            
+            setProfile(prof); // <--- AGREGUE ESTA LÍNEA AQUÍ
+            
             const { data: orgData } = await supabase.from('organizations').select('*').eq('id', prof.organization_id).single();
             if (orgData) setOrg(orgData);
             setLoading(false);
@@ -40,7 +43,7 @@ export default function SettingsPage() {
                     phone: org.phone,
                     address: org.address
                 })
-                .eq('id', profile.organization_id)
+                .eq('id', org.id)
                 .select(); // <--- IMPORTANTE: Pedimos los datos de vuelta para confirmar
 
             if (orgErr) throw orgErr;

@@ -822,21 +822,20 @@ export default function AerocivilForm({ drones, pilots, org }) {
             )}
 
             <button 
-                onClick={() => {
-                    if (!aeroForm.department || aeroForm.aeronaves.length === 0) {
-                        return alert("Complete la información geográfica y seleccione al menos una aeronave.");
-                    }
+                onClick={async () => {
                     setSaving(true);
-                    // Llamamos al nuevo generador inyectando todos los contextos
-                    import('@/lib/reportGenerators').then(m => {
-                        m.generateAeroForm100(aeroForm, org, userProfile);
+                    try {
+                        const { generateExcelF100 } = await import('@/lib/reportGenerators');
+                        await generateExcelF100(aeroForm, userProfile);
+                    } catch (e) {
+                        alert("Error al procesar el Excel. Verifique que la plantilla exista.");
+                    } finally {
                         setSaving(false);
-                    });
+                    }
                 }}
-                disabled={saving}
-                className="w-full py-6 bg-orange-600 text-white font-black rounded-[2.5rem] shadow-xl uppercase text-xs tracking-widest hover:bg-slate-900 transition-all active:scale-95"
+                className="w-full py-6 bg-emerald-600 text-white font-black rounded-[2.5rem] shadow-xl uppercase text-xs tracking-widest hover:bg-slate-900 transition-all active:scale-95"
             >
-                {saving ? 'PROCESANDO...' : 'GENERAR FORMULARIO'}
+                {saving ? 'PROCESANDO EXCEL...' : 'GENERAR FORMULARIO OFICIAL (.XLSX)'}
             </button>
         </div>
     );

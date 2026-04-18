@@ -44,6 +44,17 @@ export default function AerocivilForm() {
         }
     });
 
+     // FUNCIÓN PARA TOGGLE DE VUELOS ESPECIALES
+        const toggleSpecialVuelo = (field) => {
+            setAeroForm(prev => ({
+                ...prev,
+                vuelos_especiales: {
+                    ...prev.vuelos_especiales,
+                    [field]: !prev.vuelos_especiales[field]
+                }
+            }));
+        };
+
     // CARGA DE DIVIPOLA (MUNICIPIOS) DESDE SUPABASE
     useEffect(() => {
         async function loadGeo() {
@@ -407,13 +418,4 @@ function VisualOption({ label, description, selected, onClick }) {
     );
 }
 
-        // FUNCIÓN PARA TOGGLE DE VUELOS ESPECIALES
-        const toggleSpecialVuelo = (field) => {
-            setAeroForm(prev => ({
-                ...prev,
-                vuelos_especiales: {
-                    ...prev.vuelos_especiales,
-                    [field]: !prev.vuelos_especiales[field]
-                }
-            }));
-        };
+       

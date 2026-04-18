@@ -13,7 +13,7 @@ const MapPickerModal = dynamic(() => import('./MapPickerModal'), {
   )
 });
 
-export default function AerocivilForm({ drones, pilots }) {
+export default function AerocivilForm({ drones, pilots, org }) {
     const [geo, setGeo] = useState({ depts: [], munis: [], all: [] });
     const [loadingGeo, setLoadingGeo] = useState(true);
 
@@ -86,7 +86,7 @@ export default function AerocivilForm({ drones, pilots }) {
     };
 
     const handleAircraftSelect = (index, aircraftId) => {
-        const selected = drones.find(d => d.id === aircraftId);
+        const selected = drones?.find(d => d.id === aircraftId);
         const newAeronaves = [...aeroForm.aeronaves];
         newAeronaves[index] = {
             ...newAeronaves[index],

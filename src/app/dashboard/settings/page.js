@@ -100,8 +100,34 @@ export default function SettingsPage() {
                                 <input required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.company_name || ''} onChange={e => setOrg({...org, company_name: e.target.value})} />
                             </div>
 
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 col-span-2">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Tipo de Doc.</label>
+                                    <select 
+                                        className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                                        value={profile.id_type || 'CC'}
+                                        onChange={e => setProfile({...profile, id_type: e.target.value})}
+                                    >
+                                        <option value="CC">Cédula de Ciudadanía</option>
+                                        <option value="CE">Cédula de Extranjería</option>
+                                        <option value="NIT">NIT (Empresa)</option>
+                                        <option value="PP">Pasaporte</option>
+                                        <option value="PEP">Permiso Especial</option>
+                                    </select>
+                                </div>
+                                <div className="md:col-span-2 space-y-1">
+                                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Número de Identificación</label>
+                                    <input 
+                                        required 
+                                        className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" 
+                                        value={profile.id_number || ''} 
+                                        onChange={e => setProfile({...profile, id_number: e.target.value})} 
+                                    />
+                                </div>
+                            </div>
+
                             <div className="space-y-1">
-                                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">NIT / RUT</label>
+                                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Numero de Identificación</label>
                                 <input className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.tax_id || ''} onChange={e => setOrg({...org, tax_id: e.target.value})} />
                             </div>
 

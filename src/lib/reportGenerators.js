@@ -341,6 +341,7 @@ export const generateExcelF100 = async (data, profile) => {
     if (ve.demostracion) worksheet.getCell('AN36').value = 'X';
     if (ve.cautiva) worksheet.getCell('S37').value = 'X';
     if (ve.recreativo) worksheet.getCell('AN37').value = 'X';
+    worksheet.getCell('B38').value = data.empresa_contratante?.toUpperCase();
 
     // --- SECCIÓN 7: AERONAVES (Mapeo de tabla) ---
     // Suponiendo que la tabla de aeronaves empieza en la fila 40

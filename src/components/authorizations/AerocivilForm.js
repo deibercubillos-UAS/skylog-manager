@@ -81,6 +81,13 @@ export default function AerocivilForm({ drones, pilots, org }) {
         }));
     };
 
+    const toggleTipoFly = (field) => {
+        setAeroForm(prev => ({
+            ...prev,
+            vuelos_especiales: { ...prev.vuelos_especiales, [field]: !prev.vuelos_especiales[field] }
+        }));
+    };
+    
     const addAircraftSlot = () => {
         if (aeroForm.aeronaves.length < 3) {
             setAeroForm(prev => ({
@@ -430,20 +437,20 @@ export default function AerocivilForm({ drones, pilots, org }) {
                             label="VLOS (Hasta 750 metros)" 
                             description="Línea de vista visual directa del piloto."
                             checked={aeroForm.contacto_visual.VLOS}
-                            onChange={() => toggleAeroCheck('VLOS')}
+                            onChange={() => toggleTipoFly('VLOS')}
                         />
                         <VisualOption 
                             label="EVLOS (Hasta 3.000 metros con observador(es))" 
                             description="Línea de vista extendida mediante observadores."
                             checked={aeroForm.contacto_visual.EVLOS}
-                            onChange={() => toggleAeroCheck('EVLOS')}
+                            onChange={() => toggleTipoFly('EVLOS')}
                         />
                         <div className="md:col-span-2">
                             <VisualOption 
                                 label="BVLOS (Distancia aprobada en la operación aérea)" 
                                 description="Operación más allá de la línea de vista visual."
                                 checked={aeroForm.contacto_visual.BVLOS}
-                            onChange={() => toggleAeroCheck('BVLOS')}
+                            onChange={() => toggleTipoFly('BVLOS')}
                             />
                         </div>
                     </div>

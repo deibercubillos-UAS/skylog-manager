@@ -301,14 +301,25 @@ export const generateExcelF100 = async (data, profile) => {
             throw new Error("El archivo Excel no contiene hojas de trabajo válidas.");
         } // Usar la primera hoja
 
+    // Función auxiliar para forzar Mayúsculas y evitar errores de nulos
+        const cleanText = (val) => val ? String(val).toUpperCase() : '';
+
     // --- SECCIÓN 1: DATOS DEL SOLICITANTE (Ejemplo de celdas) ---
     // Ajuste las coordenadas (C12, C13, etc) según su Excel real
     worksheet.getCell('V7').value = profile?.full_name?.toUpperCase();
-    worksheet.getCell('V8').value = "NIT";
+    worksheet.getCell('V8').value = cleanText(org?.tax_id_type || 'NIT'); // Tomado de la organización
     worksheet.getCell('V9').value = profile?.id_number;
     worksheet.getCell('V10').value = profile?.email;
     worksheet.getCell('V11').value = profile?.phone;
     worksheet.getCell('V12').value = profile?.address;
+
+    // --- SECCIÓN 2: JEFE DE PILOTOS UAS (Búsqueda Automática) ---
+        const chiefPilot = pilots?.find(p => p.pilot_role === 'Jefe de Pilotos');
+        if (chiefPilot) {
+            worksheet.getCell('V14').value = cleanText(chiefPilot.name);
+            worksheet.getCell('V15').value = cleanText(chiefPilot.id_number);
+            worksheet.getCell('V16').value = cleanText(chiefPilot.phone);
+        }
 
     // --- SECCIÓN 3: TIPO DE OPERACIÓN (Marcación de X) ---
     // Aquí ponemos la 'X' solo en las celdas que el usuario marcó
@@ -355,11 +366,25 @@ export const generateExcelF100 = async (data, profile) => {
     // --- SECCIÓN 7: AERONAVES (Mapeo de tabla) ---
     // Suponiendo que la tabla de aeronaves empieza en la fila 40
     data.aeronaves.forEach((a, index) => {
-        const rowOffset = 40 + (index * 4); // Ajustar según diseño del Excel
-        worksheet.getCell(`A${rowOffset}`).value = a.brand;
-        worksheet.getCell(`E${rowOffset}`).value = a.model;
-        worksheet.getCell(`E${rowOffset + 1}`).value = a.serial_number;
+        const rowOffset = 43 + (index * 4); // Ajustar según diseño del Excel
+        worksheet.getCell(`M${rowOffset}`).value = a.brand;
+        worksheet.getCell(`AI${rowOffset}`).value = a.model;
+        worksheet.getCell(`AI${rowOffset + 1}`).value = a.serial_number;
     });
+
+    // --- SECCIÓN 11: COORDENADAS ---
+        data.points.forEach((p, index) => {
+            const row = 89 + index; // Asumiendo que la tabla de coordenadas empieza en 100
+            const toGMS = (dec) => {
+                const d = Math.abs(dec);
+                const deg = Math.floor(d);
+                const min = Math.floor((d - deg) * 60);
+                const sec = Math.round((d - deg - min / 60) * 3600);
+                return `${deg}°${min}'${sec}"`;
+            };
+            worksheet.getCell(`H${row}`).value = `${toGMS(p.lat)}${p.lat >= 0 ? 'N' : 'S'}`;
+            worksheet.getCell(`AK${row}`).value = `${toGMS(p.lng)}W`;
+        });
 
     const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });

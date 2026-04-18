@@ -13,7 +13,7 @@ const MapPickerModal = dynamic(() => import('./MapPickerModal'), {
   )
 });
 
-export default function AerocivilForm({ drones, pilots }) { 
+export default function AerocivilForm({ drones, pilots }) {
     const [geo, setGeo] = useState({ depts: [], munis: [], all: [] });
     const [loadingGeo, setLoadingGeo] = useState(true);
 
@@ -28,7 +28,7 @@ export default function AerocivilForm({ drones, pilots }) {
         hora_fin: '',
         otros_detalles: '',
         peso_maximo: '',
-        contacto_visual: 'VLOS',
+        contacto_visual: 'VLOS', // <--- Ahora está en el nivel correcto
         justificacion_especial: '',
         tipo_operacion: {
             simple_captura: false,
@@ -61,10 +61,10 @@ export default function AerocivilForm({ drones, pilots }) {
         observadores: [
             { id: '', name: '', id_number: '', phone: '' }
         ],
-        geo_type: 'polygon', // polygon, linear, circle
-    points: [],
-    altitude: '400',
-    radius: 500
+        geo_type: 'polygon',
+        points: [],
+        altitude: '400',
+        radius: 500
     });
     const [showMap, setShowMap] = useState(false);
 

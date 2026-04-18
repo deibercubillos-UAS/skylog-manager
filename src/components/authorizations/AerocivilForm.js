@@ -849,8 +849,7 @@ export default function AerocivilForm({ drones, pilots, org }) {
                     setSaving(true);
                     try {
                         const { generateExcelF100 } = await import('@/lib/reportGenerators');
-                        // Enviamos 4 parámetros: datos form, perfil usuario, datos organización, lista pilotos
-                        await generateExcelF100(aeroForm, userProfile, org, pilots);
+                        await generateExcelF100(aeroForm, userProfile, org, pilots); // <--- 'org' ahora será válido
                     } catch (e) {
                         alert("Error: " + e.message);
                     } finally {

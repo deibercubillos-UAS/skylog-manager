@@ -46,10 +46,11 @@ export default function MissionControlPage() {
                 <BasicForm pilots={data.pilots} drones={data.drones} missions={data.missions} loadData={loadData} />
             ) : (
                 <AerocivilForm 
-                    drones={data.drones} 
+                        drones={data.drones} 
                     pilots={data.pilots} 
-                    org={data.org}
-                />
+                    org={data.org} // <--- ESTO ES LO QUE ESTABA FALTANDO
+                    loadData={loadData} 
+                />  
             )}
         </div>
     );

@@ -433,20 +433,20 @@ export default function AerocivilForm({ drones, pilots, org }) {
 
                 <div className="p-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <VisualOption 
+                        <AeroCheck 
                             label="VLOS (Hasta 750 metros)" 
                             description="Línea de vista visual directa del piloto."
                             checked={aeroForm.contacto_visual.VLOS}
                             onChange={() => toggleTipoFly('VLOS')}
                         />
-                        <VisualOption 
+                        <AeroCheck 
                             label="EVLOS (Hasta 3.000 metros con observador(es))" 
                             description="Línea de vista extendida mediante observadores."
                             checked={aeroForm.contacto_visual.EVLOS}
                             onChange={() => toggleTipoFly('EVLOS')}
                         />
                         <div className="md:col-span-2">
-                            <VisualOption 
+                            <AeroCheck 
                                 label="BVLOS (Distancia aprobada en la operación aérea)" 
                                 description="Operación más allá de la línea de vista visual."
                                 checked={aeroForm.contacto_visual.BVLOS}

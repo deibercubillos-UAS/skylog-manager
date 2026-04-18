@@ -45,7 +45,7 @@ export default function MissionControlPage() {
             {activeTab === 'basica' ? (
                 <BasicForm pilots={data.pilots} drones={data.drones} missions={data.missions} loadData={loadData} />
             ) : (
-                <AerocivilForm />
+                <AerocivilForm drones={data.drones} />
             )}
         </div>
     );

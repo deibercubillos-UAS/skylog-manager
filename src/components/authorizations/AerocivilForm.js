@@ -3,12 +3,10 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import HelpTooltip from '@/components/HelpTooltip';
 
-export default function AerocivilForm() {
-    // 1. ESTADOS DE GEOGRAFÍA
+export default function AerocivilForm({ drones }) { // <-- Recibe drones aquí
     const [geo, setGeo] = useState({ depts: [], munis: [], all: [] });
     const [loadingGeo, setLoadingGeo] = useState(true);
 
-    // 2. ESTADO MAESTRO DEL FORMULARIO (SECCIONES 3 Y 4)
     const [aeroForm, setAeroForm] = useState({
         department: '',
         municipality: '',
@@ -41,22 +39,45 @@ export default function AerocivilForm() {
             recreativo: false
         },
         aeronaves: [
-        { id: '', brand: '', model: '', serial_number: '', insurer: '', policy: '', start_date: '', end_date: '' }
-    ],
-    tipo_operacion: { /* ... */ },
-    vuelos_especiales: { /* ... */ }
-});
+            { id: '', brand: '', model: '', serial_number: '', insurer: '', policy: '', start_date: '', end_date: '' }
+        ]
+    });
 
-     // FUNCIÓN PARA TOGGLE DE VUELOS ESPECIALES
-        const toggleSpecialVuelo = (field) => {
+     // --- FUNCIONES DE LÓGICA INTERNA ---
+    const toggleSpecialVuelo = (field) => {
+        setAeroForm(prev => ({
+            ...prev,
+            vuelos_especiales: { ...prev.vuelos_especiales, [field]: !prev.vuelos_especiales[field] }
+        }));
+    };
+
+    const addAircraftSlot = () => {
+        if (aeroForm.aeronaves.length < 3) {
             setAeroForm(prev => ({
                 ...prev,
-                vuelos_especiales: {
-                    ...prev.vuelos_especiales,
-                    [field]: !prev.vuelos_especiales[field]
-                }
+                aeronaves: [...prev.aeronaves, { id: '', brand: '', model: '', serial_number: '', insurer: '', policy: '', start_date: '', end_date: '' }]
             }));
+        }
+    };
+
+    const handleAircraftSelect = (index, aircraftId) => {
+        const selected = drones.find(d => d.id === aircraftId);
+        const newAeronaves = [...aeroForm.aeronaves];
+        newAeronaves[index] = {
+            ...newAeronaves[index],
+            id: aircraftId,
+            brand: selected?.brand || '',
+            model: selected?.model || '',
+            serial_number: selected?.serial_number || ''
         };
+        setAeroForm(prev => ({ ...prev, aeronaves: newAeronaves }));
+    };
+
+    const updateMaintField = (index, field, value) => {
+        const newAeronaves = [...aeroForm.aeronaves];
+        newAeronaves[index][field] = value;
+        setAeroForm(prev => ({ ...prev, aeronaves: newAeronaves }));
+    };
 
     // CARGA DE DIVIPOLA (MUNICIPIOS) DESDE SUPABASE
     useEffect(() => {
@@ -432,6 +453,36 @@ export default function AerocivilForm() {
     );
 }
 
+function InputCol({ label, placeholder, type = "text", value, onChange, disabled = false }) {
+    return (
+        <div className="space-y-1">
+            <label className="text-[9px] font-black text-slate-400 uppercase ml-1">{label}</label>
+            <input 
+                disabled={disabled}
+                type={type} 
+                className={`w-full p-3 rounded-xl border-none font-bold text-xs focus:ring-2 focus:ring-orange-500 outline-none ${disabled ? 'bg-slate-200 text-slate-500' : 'bg-slate-100 text-slate-900'}`} 
+                placeholder={placeholder} 
+                value={value} 
+                onChange={onChange} 
+            />
+        </div>
+    );
+}
+
+function VisualOption({ label, description, selected, onClick }) {
+    return (
+        <button type="button" onClick={onClick} className={`w-full flex items-center justify-between p-5 rounded-[1.5rem] border-2 transition-all text-left ${selected ? 'border-orange-500 bg-orange-50/30 shadow-md' : 'border-slate-100 bg-slate-50/30 hover:border-slate-200'}`}>
+            <div className="flex-1 pr-4">
+                <p className={`text-[10px] font-black uppercase ${selected ? 'text-orange-700' : 'text-slate-500'}`}>{label}</p>
+                <p className="text-[9px] text-slate-400 font-medium mt-1 leading-tight">{description}</p>
+            </div>
+            <div className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${selected ? 'bg-orange-600 border-orange-600' : 'border-slate-200 bg-white'}`}>
+                {selected && <span className="material-symbols-outlined text-white text-base">check</span>}
+            </div>
+        </button>
+    );
+}
+
 // COMPONENTES AUXILIARES
 function AeroCheck({ label, checked, onChange }) {
     return (
@@ -480,43 +531,3 @@ function VisualOption({ label, description, selected, onClick }) {
         </button>
     );
 }
-
-const toggleSpecialVuelo = (field) => {
-    setAeroForm(prev => ({
-        ...prev,
-        vuelos_especiales: {
-            ...prev.vuelos_especiales,
-            [field]: !prev.vuelos_especiales[field]
-        }
-    }));
-};
-
-// FUNCIÓN PARA AGREGAR SLOT (MÁXIMO 3)
-const addAircraftSlot = () => {
-    if (aeroForm.aeronaves.length < 3) {
-        setAeroForm(prev => ({
-            ...prev,
-            aeronaves: [...prev.aeronaves, { id: '', brand: '', model: '', serial_number: '', insurer: '', policy: '', start_date: '', end_date: '' }]
-        }));
-    }
-};
-
-// FUNCIÓN PARA AUTOCOMPLETAR AL SELECCIONAR DRONE
-const handleAircraftSelect = (index, aircraftId, dronesList) => {
-    const selected = dronesList.find(d => d.id === aircraftId);
-    const newAeronaves = [...aeroForm.aeronaves];
-    newAeronaves[index] = {
-        ...newAeronaves[index],
-        id: aircraftId,
-        brand: selected?.brand || '',
-        model: selected?.model || '',
-        serial_number: selected?.serial_number || ''
-    };
-    setAeroForm(prev => ({ ...prev, aeronaves: newAeronaves }));
-};
-
-const updateMaintField = (index, field, value) => {
-    const newAeronaves = [...aeroForm.aeronaves];
-    newAeronaves[index][field] = value;
-    setAeroForm(prev => ({ ...prev, aeronaves: newAeronaves }));
-};

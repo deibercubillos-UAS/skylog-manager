@@ -43,7 +43,10 @@ export default function AerocivilForm({ drones }) { // <-- Recibe drones aquí
         ],
         equipos: [
         { id: '', brand: '', model: '', type: '', serial_number: '' }
-    ],
+        ],
+        pilotos_solicitud: [
+        { id: '', name: '', id_number: '', phone: '' }
+        ],
     });
 
      // --- FUNCIONES DE LÓGICA INTERNA ---
@@ -83,29 +86,53 @@ export default function AerocivilForm({ drones }) { // <-- Recibe drones aquí
     };
 
     // FUNCIÓN PARA AGREGAR SLOT DE TECNOLOGÍA
-const addTechSlot = () => {
-    if (aeroForm.equipos.length < 3) {
-        setAeroForm(prev => ({
-            ...prev,
-            equipos: [...prev.equipos, { id: '', brand: '', model: '', type: '', serial_number: '' }]
-        }));
-    }
-};
-
-// FUNCIÓN PARA AUTOCOMPLETAR EQUIPO (Simulando carga de inventario)
-const handleTechSelect = (index, itemId, inventoryList) => {
-    const selected = inventoryList.find(i => i.id === itemId);
-    const newEquipos = [...aeroForm.equipos];
-    newEquipos[index] = {
-        ...newEquipos[index],
-        id: itemId,
-        brand: selected?.brand || '',
-        model: selected?.model || '',
-        type: selected?.category || 'Cámara/Sensor',
-        serial_number: selected?.serial_number || ''
+    const addTechSlot = () => {
+        if (aeroForm.equipos.length < 3) {
+            setAeroForm(prev => ({
+                ...prev,
+                equipos: [...prev.equipos, { id: '', brand: '', model: '', type: '', serial_number: '' }]
+            }));
+        }
     };
-    setAeroForm(prev => ({ ...prev, equipos: newEquipos }));
-};
+
+    // FUNCIÓN PARA AUTOCOMPLETAR EQUIPO (Simulando carga de inventario)
+    const handleTechSelect = (index, itemId, inventoryList) => {
+        const selected = inventoryList.find(i => i.id === itemId);
+        const newEquipos = [...aeroForm.equipos];
+        newEquipos[index] = {
+            ...newEquipos[index],
+            id: itemId,
+            brand: selected?.brand || '',
+            model: selected?.model || '',
+            type: selected?.category || 'Cámara/Sensor',
+            serial_number: selected?.serial_number || ''
+        };
+        setAeroForm(prev => ({ ...prev, equipos: newEquipos }));
+    };
+
+    // FUNCIÓN PARA AGREGAR SLOT DE PILOTO (MÁXIMO 3)
+    const addPilotSlot = () => {
+        if (aeroForm.pilotos_solicitud.length < 3) {
+            setAeroForm(prev => ({
+                ...prev,
+                pilotos_solicitud: [...prev.pilotos_solicitud, { id: '', name: '', id_number: '', phone: '' }]
+            }));
+        }
+    };
+
+    // FUNCIÓN PARA AUTOCOMPLETAR DATOS DEL PILOTO
+    const handlePilotSelect = (index, pilotId) => {
+        const selected = pilots?.find(p => p.id === pilotId);
+        const newPilotos = [...aeroForm.pilotos_solicitud];
+        newPilotos[index] = {
+            ...newPilotos[index],
+            id: pilotId,
+            name: selected?.name || '',
+            id_number: selected?.id_number || '',
+            phone: selected?.phone || ''
+        };
+        setAeroForm(prev => ({ ...prev, pilotos_solicitud: newPilotos }));
+    };
 
     // CARGA DE DIVIPOLA (MUNICIPIOS) DESDE SUPABASE
     useEffect(() => {
@@ -523,6 +550,59 @@ const handleTechSelect = (index, itemId, inventoryList) => {
                         >
                             <span className="material-symbols-outlined text-sm">add_circle</span>
                             Vincular equipo tecnológico adicional
+                        </button>
+                    )}
+                </div>
+            </section>
+
+            {/* SECCIÓN 9: PILOTO(S) UAS */}
+            <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
+                <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-orange-600">person_check</span>
+                        <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">9. PILOTO(S) UAS</h4>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <p className="text-[9px] font-black text-slate-400 uppercase">Tripulantes: {aeroForm.pilotos_solicitud.length} / 3</p>
+                        <HelpTooltip text="Seleccione los pilotos que participarán en la misión. El sistema cargará su identificación y teléfono de contacto automáticamente." />
+                    </div>
+                </div>
+
+                <div className="p-8 space-y-8">
+                    {aeroForm.pilotos_solicitud.map((pilot, index) => (
+                        <div key={index} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4 relative">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="bg-orange-600 text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase">Piloto #{index + 1}</span>
+                                {index > 0 && (
+                                    <button onClick={() => setAeroForm(prev => ({...prev, pilotos_solicitud: prev.pilotos_solicitud.filter((_, i) => i !== index)}))} className="text-red-500 material-symbols-outlined text-sm">delete</button>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Vincular de Tripulación</label>
+                                    <select 
+                                        className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                                        value={pilot.id}
+                                        onChange={(e) => handlePilotSelect(index, e.target.value)}
+                                    >
+                                        <option value="">-- Seleccionar Piloto --</option>
+                                        {pilots?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </select>
+                                </div>
+                                <InputCol label="N° Documento Identificación" value={pilot.id_number} disabled />
+                                <InputCol label="N° Teléfono Celular" value={pilot.phone} disabled />
+                            </div>
+                        </div>
+                    ))}
+
+                    {aeroForm.pilotos_solicitud.length < 3 && (
+                        <button 
+                            onClick={addPilotSlot}
+                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-[10px] uppercase hover:border-orange-500 hover:text-orange-500 transition-all flex items-center justify-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-sm">group_add</span>
+                            Vincular otro piloto a la misión
                         </button>
                     )}
                 </div>

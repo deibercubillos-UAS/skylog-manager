@@ -18,6 +18,7 @@ const fixLeafletIcons = () => {
 
 export default function MapPickerModal({ type, points, onSave, onClose }) {
   const [tempPoints, setTempPoints] = useState(points || []);
+  const [radius, setRadius] = useState(500);
 
   // Ejecutamos el fix de iconos solo una vez al montar
   useEffect(() => {
@@ -58,6 +59,32 @@ export default function MapPickerModal({ type, points, onSave, onClose }) {
             </div>
         </div>
 
+        {/* CONTROL DE RADIO DINÁMICO (Solo para círculos) */}
+        {type === 'circle' && tempPoints.length > 0 && (
+            <div className="flex items-center gap-6 px-6 border-l border-r border-slate-100 animate-in slide-in-from-top duration-300">
+                <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-slate-400 uppercase">Radio de Operación</span>
+                    <div className="flex items-center gap-3">
+                        <input 
+                            type="range" min="50" max="5000" step="50"
+                            className="w-32 accent-orange-600 cursor-pointer"
+                            value={radius}
+                            onChange={(e) => setRadius(parseInt(e.target.value))}
+                        />
+                        <span className="text-sm font-black text-orange-600 font-mono w-16">{radius}m</span>
+                    </div>
+                </div>
+                <div className="hidden md:block">
+                    <input 
+                        type="number" 
+                        className="w-20 p-2 bg-slate-50 rounded-lg text-xs font-black text-center outline-none focus:ring-2 focus:ring-orange-500"
+                        value={radius}
+                        onChange={(e) => setRadius(parseInt(e.target.value) || 0)}
+                    />
+                </div>
+            </div>
+        )}
+
         <div className="flex items-center gap-2 md:gap-4">
           <button 
             onClick={() => setTempPoints([])} 
@@ -66,11 +93,11 @@ export default function MapPickerModal({ type, points, onSave, onClose }) {
             Reiniciar
           </button>
           <button 
-            onClick={() => onSave(tempPoints)} 
-            className="px-6 py-2 bg-orange-600 text-white rounded-xl text-[10px] font-black uppercase shadow-lg shadow-orange-500/30 hover:bg-slate-900 transition-all active:scale-95"
-          >
-            Confirmar Área
-          </button>
+                onClick={() => onSave({ points: tempPoints, radius: radius })} 
+                className="px-6 py-2 bg-orange-600 text-white rounded-xl text-[10px] font-black uppercase shadow-lg shadow-orange-500/30 hover:bg-slate-900 transition-all active:scale-95"
+            >
+                Confirmar Área
+            </button>
           <button onClick={onClose} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -106,13 +133,14 @@ export default function MapPickerModal({ type, points, onSave, onClose }) {
             <Polyline positions={tempPoints} pathOptions={{ color: '#ec5b13', weight: 4 }} />
           )}
           
-          {type === 'circle' && tempPoints.length === 1 && (
-            <Circle 
-                center={tempPoints[0]} 
-                radius={500} // Radio por defecto 500m (configurable en el futuro)
-                pathOptions={{ color: '#ec5b13', fillColor: '#ec5b13', fillOpacity: 0.3 }} 
-            />
-          )}
+          {/* Renderizado de Círculo con Radio Dinámico */}
+            {type === 'circle' && tempPoints.length === 1 && (
+                <Circle 
+                    center={tempPoints[0]} 
+                    radius={radius} // <--- AHORA USA EL ESTADO DINÁMICO
+                    pathOptions={{ color: '#ec5b13', fillColor: '#ec5b13', fillOpacity: 0.2 }} 
+                />
+            )}
         </MapContainer>
         
         {/* INSTRUCCIÓN FLOTANTE */}

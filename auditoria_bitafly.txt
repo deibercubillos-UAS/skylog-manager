@@ -1,3 +1,322 @@
+=== REPORTE DE AUDITORÍA TÉCNICA BITAFLY ===
+Fecha: Sat Apr 18 23:08:54 UTC 2026
+
+
+--- START OF FILE: src/app/dashboard/layout.js ---
+"use client";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+
+export default function DashboardLayout({ children }) {
+  const pathname = usePathname();
+  const [data, setData] = useState({ profile: null, org: null });
+  const [loading, setLoading] = useState(true);
+  const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [activeFlight, setActiveFlight] = useState(null);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { window.location.href = '/login'; return; }
+        
+        const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        const { data: org } = await supabase.from('organizations').select('*').eq('id', prof?.organization_id).single();
+
+        // BUSCAMOS SI HAY UN VUELO ACTIVO (Sin hora de aterrizaje)
+        const { data: flight } = await supabase
+            .from('flights')
+            .select('id')
+            .is('landing_time', null)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        setData({ profile: prof, org });
+        setActiveFlight(flight); // <--- GUARDAMOS EL VUELO ENCONTRADO
+      } catch (err) {
+        console.error("Layout Load Error");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+}, [pathname]); // <--- IMPORTANTE: Añadimos pathname para que refresque al navegar
+
+  // Cierra el menú automáticamente al navegar en móviles
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
+  if (loading) return <div className="h-screen flex items-center justify-center bg-[#1A202C] text-white font-black animate-pulse">CARGANDO BITAFLY...</div>;
+
+  const role = data.profile?.role;
+
+const navLinks = [
+  { name: 'Dashboard', icon: 'dashboard', href: '/dashboard', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/dashboard/fleet', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Tripulación', icon: 'person', href: '/dashboard/pilots', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Mantenimiento', icon: 'build', href: '/dashboard/maintenance', roles: ['superadmin', 'jefe_pilotos', 'gerente_sms'] },
+  { name: 'Programación', icon: 'event_available', href: '/dashboard/authorizations', roles: ['superadmin', 'jefe_pilotos'] },
+  { name: 'Bitácora', icon: 'menu_book', href: '/dashboard/logbook', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Reportes', icon: 'assessment', href: '/dashboard/reports', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'] },
+  { name: 'Seguridad', icon: 'health_and_safety', href: '/dashboard/safety', roles: ['superadmin', 'gerente_sms'] },
+  { name: 'Auditoría', icon: 'fact_check', href: '/dashboard/audit', roles: ['superadmin', 'admin', 'gerente_sms'] },
+];
+
+// FILTRAR LINKS BASADO EN EL ROL
+const filteredLinks = navLinks.filter(link => link.roles.includes(role));
+
+  const footerLinks = [
+    { name: 'Configuración', icon: 'settings', href: '/dashboard/settings' },
+    { name: 'Mi Perfil', icon: 'account_circle', href: '/dashboard/settings/profile' },
+    { name: 'Suscripción', icon: 'payments', href: '/dashboard/subscription' },
+  ];
+
+  return (
+    <div className="flex h-screen bg-[#f8f6f6] font-display overflow-hidden text-left">
+      
+      {/* SIDEBAR DINÁMICO */}
+      <aside className={`
+          fixed inset-y-0 left-0 z-[150] w-64 bg-[#1A202C] text-white flex flex-col 
+          transition-transform duration-300 ease-in-out border-r border-white/5
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        {/* BLOQUE DE ESTATUS COMPACTO */}
+          <div className="mt-4 p-3 bg-white/5 rounded-xl border border-white/10 flex items-center justify-between gap-2">
+            <div className="flex flex-col min-w-0">
+                <span className="text-[6px] font-black text-slate-500 uppercase tracking-tighter">Plan</span>
+                <span className="text-[9px] font-black text-orange-400 uppercase truncate">
+                  {data.profile?.subscription_plan || 'PILOTO'}
+                </span>
+           </div>
+   
+   <div className="w-px h-6 bg-white/10 shrink-0"></div> {/* Divisor vertical */}
+   
+   <div className="flex flex-col text-right">
+      <span className="text-[6px] font-black text-slate-500 uppercase tracking-tighter">Org ID</span>
+      <span className="text-[9px] font-mono font-bold text-white leading-none">
+        {data.org?.unique_code || '---'}
+      </span>
+   </div>
+</div>
+
+        <nav className="flex-1 p-4 space-y-1 mt-2 overflow-y-auto custom-scrollbar">
+          {navLinks.map(link => (
+            <Link key={link.href} href={link.href} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${pathname === link.href ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' : 'text-slate-400 hover:bg-white/5'}`}>
+              <span className="material-symbols-outlined text-lg">{link.icon}</span>{link.name}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-white/5 bg-black/10 transition-all duration-500">
+          {/* BOTÓN DE CONTROL: Gestión Administrativa */}
+          <button 
+            onClick={() => setIsAdminOpen(!isAdminOpen)}
+            className="w-full flex items-center justify-between px-4 py-2 rounded-xl text-[10px] font-black uppercase text-slate-500 hover:text-slate-300 transition-all group"
+          >
+            <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-sm">settings_suggest</span>
+                <span>Administración</span>
+            </div>
+            <span className={`material-symbols-outlined text-xs transition-transform duration-300 ${isAdminOpen ? 'rotate-180' : ''}`}>
+                expand_less
+            </span>
+          </button>
+
+          {/* GRUPO COLAPSABLE */}
+          <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isAdminOpen ? 'max-h-40 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+            <div className="space-y-1 pb-2">
+              {footerLinks.map(link => (
+                  <Link 
+                    key={link.href} 
+                    href={link.href} 
+                    className={`flex items-center gap-3 px-4 py-2 rounded-xl text-xs font-bold transition-all ${pathname === link.href ? 'text-orange-500' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    <span className="material-symbols-outlined text-base">{link.icon}</span>
+                    {link.name}
+                  </Link>
+              ))}
+            </div>
+          </div>
+
+          {data.profile?.role === 'superadmin' && (
+    <div className="px-4 mb-4">
+        <Link 
+            href="/admin/master" 
+            className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-purple-600/20 border border-purple-500/30 text-purple-400 hover:bg-purple-600 hover:text-white transition-all shadow-lg group"
+        >
+            <span className="material-symbols-outlined text-lg group-hover:animate-spin">settings_accessibility</span>
+            <div className="text-left">
+                <p className="text-[10px] font-black uppercase leading-none">Master Control</p>
+                <p className="text-[8px] font-bold opacity-70 uppercase mt-1">Gestión Global SaaS</p>
+            </div>
+        </Link>
+    </div>
+)}
+
+          {/* BOTÓN SALIR: Siempre visible o compacto */}
+          <button 
+            onClick={() => supabase.auth.signOut().then(() => window.location.href='/login')} 
+            className="w-full flex items-center gap-3 px-4 py-3 mt-1 rounded-xl text-[10px] font-black text-red-500/70 hover:text-red-500 hover:bg-red-500/10 transition-all uppercase tracking-widest"
+          >
+            <span className="material-symbols-outlined text-lg">logout</span>
+            <span>Cerrar Sesión</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* OVERLAY PARA MÓVILES */}
+      {isSidebarOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140] lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* CONTENIDO PRINCIPAL */}
+      <main className={`
+          flex-1 flex flex-col overflow-hidden transition-all duration-300
+          ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'}
+      `}>
+       <header className="h-16 md:h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shrink-0 sticky top-0 z-[100]">
+  {/* LADO IZQUIERDO: Toggle y Empresa */}
+  <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
+    <button 
+      onClick={() => setSidebarOpen(!isSidebarOpen)}
+      className="p-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 active:scale-95 transition-all shrink-0"
+    >
+      <span className="material-symbols-outlined leading-none">
+        {isSidebarOpen ? 'menu_open' : 'menu'}
+      </span>
+    </button>
+    
+    <div className="text-left truncate">
+      <p className="hidden md:block text-[9px] font-black text-slate-400 uppercase leading-none tracking-widest">Organización</p>
+      <h2 className="text-xs md:text-sm font-black text-slate-900 uppercase truncate max-w-[120px] md:max-w-none">
+        {data.org?.company_name || 'Individual'}
+      </h2>
+    </div>
+  </div>
+  
+  {/* LADO DERECHO: Acciones y Perfil */}
+<div className="flex items-center gap-2 md:gap-6">
+  
+  {/* CONTENEDOR DE BOTONES OPERATIVOS */}
+  <div className="flex items-center gap-2">
+    
+    {/* BOTÓN 1: TÉRMINO DE VUELO (Solo si activeFlight existe) */}
+    {activeFlight && (
+      <Link 
+        href={`/dashboard/logbook/finalize?id=${activeFlight.id}`} 
+        className="bg-slate-900 hover:bg-black text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg border border-white/10 transition-all flex items-center gap-2 active:scale-95"
+      >
+        <span className="material-symbols-outlined text-sm md:text-base text-orange-500">flight_land</span> 
+        <span className="hidden sm:inline">Término de Vuelo</span>
+        <span className="sm:hidden">Finalizar</span>
+      </Link>
+    )}
+
+    {/* BOTÓN 2: NUEVA OPERACIÓN */}
+    <Link 
+      href="/dashboard/logbook/new" 
+      className="bg-orange-600 hover:bg-orange-700 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
+    >
+      <span className="material-symbols-outlined text-sm md:text-base">add_circle</span> 
+      <span className="hidden sm:inline">Nueva Operación</span>
+      <span className="sm:hidden">Nuevo</span>
+    </Link>
+  </div>
+
+  {/* PERFIL CLICKABLE (Separado por línea en desktop) */}
+  <Link 
+      href="/dashboard/settings/profile" 
+      className="flex items-center gap-3 border-l border-slate-100 pl-2 md:pl-6 group hover:opacity-80 transition-all"
+  >
+     <div className="hidden md:block text-right">
+        <p className="text-[10px] font-black text-slate-900 leading-none group-hover:text-orange-600 transition-colors">{data.profile?.full_name}</p>
+        <p className="text-[8px] font-bold text-orange-500 uppercase mt-1">{data.profile?.role?.replace('_', ' ')}</p>
+     </div>
+     <div className="size-8 md:size-10 rounded-full bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+        {data.profile?.avatar_url ? (
+            <img src={data.profile.avatar_url} className="size-full object-cover" alt="Perfil" />
+        ) : (
+            <span className="material-symbols-outlined text-slate-400 text-xl">person</span>
+        )}
+     </div>
+  </Link>
+</div>
+</header>
+        <div className="flex-1 overflow-y-auto p-10">{children}</div>
+      </main>
+    </div>
+  );
+}
+--- END OF FILE: src/app/dashboard/layout.js ---
+
+
+--- START OF FILE: src/app/dashboard/authorizations/page.js ---
+'use client';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import BasicForm from '@/components/authorizations/BasicForm';
+import AerocivilForm from '@/components/authorizations/AerocivilForm';
+
+export default function MissionControlPage() {
+    const [activeTab, setActiveTab] = useState('basica');
+    const [data, setData] = useState({ pilots: [], drones: [], missions: [], org: null, loading: true });
+
+    const loadData = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+        
+        const [mRes, pRes, dRes, oRes] = await Promise.all([
+            fetch('/api/flights/authorize'),
+            supabase.from('pilots').select('*').eq('organization_id', prof.organization_id).eq('is_active', true),
+            supabase.from('aircraft').select('*').eq('organization_id', prof.organization_id).eq('status', 'Operativo'),
+            supabase.from('organizations').select('*').eq('id', prof.organization_id).single()
+        ]);
+        
+        setData({
+            missions: await mRes.json(),
+            pilots: pRes.data || [],
+            drones: dRes.data || [],
+            org: oRes.data,
+            loading: false
+        });
+    };
+
+    useEffect(() => { loadData(); }, []);
+
+    if (data.loading) return <div className="p-20 text-center font-black animate-pulse uppercase">Iniciando Torre de Control...</div>;
+
+    return (
+        <div className="max-w-7xl mx-auto space-y-8 text-left pb-32">
+            <header className="flex justify-between items-center">
+                <h2 className="text-3xl font-black uppercase tracking-tighter">Programación</h2>
+                <div className="flex bg-slate-200/50 p-1.5 rounded-2xl">
+                    <button onClick={() => setActiveTab('basica')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase ${activeTab === 'basica' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'}`}>Básica</button>
+                    <button onClick={() => setActiveTab('aerocivil')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase ${activeTab === 'aerocivil' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'}`}>Aerocivil</button>
+                </div>
+            </header>
+
+            {activeTab === 'basica' ? (
+                <BasicForm pilots={data.pilots} drones={data.drones} missions={data.missions} loadData={loadData} />
+            ) : (
+                <AerocivilForm 
+                    drones={data.drones} 
+                    pilots={data.pilots} 
+                    org={data.org} // <--- ENLACE MAESTRO: Enviamos la organización al hijo
+                    loadData={loadData} 
+                />
+            )}
+        </div>
+    );
+}
+--- END OF FILE: src/app/dashboard/authorizations/page.js ---
+
+
+--- START OF FILE: src/components/authorizations/AerocivilForm.js ---
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -849,7 +1168,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                     setSaving(true);
                     try {
                         const { generateExcelF100 } = await import('@/lib/reportGenerators');
-                        // IMPORTANTE: Pasamos aeroForm, userProfile, org y pilots
+                        // Ahora 'org' ya está definido porque lo recibimos arriba
                         await generateExcelF100(aeroForm, userProfile, org, pilots);
                     } catch (e) {
                         alert("Error: " + e.message);
@@ -907,3 +1226,440 @@ function InputCol({ label, placeholder, type = "text", value, onChange, disabled
         </div>
     );
 }
+--- END OF FILE: src/components/authorizations/AerocivilForm.js ---
+
+
+--- START OF FILE: src/lib/reportGenerators.js ---
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
+// --- 1. GENERADOR: FORMATO MASTER DE VUELO ---
+export const generateMasterReport = (data, config) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const { orgName, logoUrl, version, reportDate, formCode } = config;
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.4);
+    doc.rect(10, 10, 277, 25); 
+
+    doc.line(65, 10, 65, 35);   
+    doc.line(225, 10, 225, 35); 
+    doc.line(65, 22.5, 225, 22.5); 
+    
+    if (logoUrl) {
+        try { doc.addImage(logoUrl, 'PNG', 15, 12, 45, 20); } catch (e) {
+            doc.setFontSize(7); doc.text("S/L", 40, 23, { align: 'center' });
+        }
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(orgName ? orgName.toUpperCase() : "BITAFLY UAS", 145, 18, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text("FORMATO MASTER DE VUELO", 145, 30, { align: 'center' });
+
+    doc.setFontSize(7);
+    doc.line(225, 18, 287, 18);
+    doc.line(225, 26, 287, 26);
+    doc.text(`VERSIÓN: ${version || '1.0'}`, 227, 15);
+    doc.text(`FECHA: ${reportDate || '---'}`, 227, 23);
+    doc.text(`FORMATO: ${formCode || 'N/A'}`, 227, 31);
+
+    autoTable(doc, {
+        startY: 40,
+        head: [['FECHA', 'VUELO', 'MARCA', 'MODELO', 'S/N', 'RUAS', 'LUGAR', 'TIPO OP', 'VISUAL', 'DEP', 'ARR', 'TOTAL', 'PILOTO', 'CIPU']],
+        body: data.map(f => [
+            f.flight_date, f.mission_id, f.aircraft?.brand, f.aircraft?.model, f.aircraft?.serial_number, 
+            f.aircraft?.ruas, f.location, f.mission_type, f.visual_condition, f.takeoff_time, 
+            f.landing_time, f.aircraft?.total_hours?.toFixed(2), f.pilots?.name, f.pilots?.license_number
+        ]),
+        styles: { fontSize: 5.5, cellPadding: 1, lineColor: [0, 0, 0], lineWidth: 0.1 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', lineWidth: 0.2 },
+        margin: { left: 10, right: 10 }
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 25;
+    doc.line(30, finalY, 110, finalY);
+    doc.text("FIRMA JEFE DE PILOTOS", 70, finalY + 5, { align: 'center' });
+    doc.line(187, finalY, 267, finalY);
+    doc.text("FIRMA GERENTE GENERAL", 227, finalY + 5, { align: 'center' });
+
+    doc.save(`${formCode || 'F-OPS-002'}_VUELO_${orgName}.pdf`);
+};
+
+// --- 2. GENERADOR: REGISTRO OPERACIONAL DE BATERÍAS ---
+export const generateBatteryReport = (data, config) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const { orgName, logoUrl, version, reportDate, formCode } = config;
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.4);
+    doc.rect(10, 10, 277, 25); 
+    doc.line(65, 10, 65, 35);
+    doc.line(225, 10, 225, 35);
+    doc.line(65, 22.5, 225, 22.5);
+
+    if (logoUrl) { try { doc.addImage(logoUrl, 'PNG', 15, 12, 45, 20); } catch (e) {} }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(orgName ? orgName.toUpperCase() : "BITAFLY UAS", 145, 18, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text("REGISTRO OPERACIONAL DE BATERÍAS", 145, 30, { align: 'center' });
+
+    doc.setFontSize(7);
+    doc.line(225, 18, 287, 18);
+    doc.line(225, 26, 287, 26);
+    doc.text(`VERSIÓN: ${version}`, 227, 15);
+    doc.text(`FECHA: ${reportDate}`, 227, 23);
+    doc.text(`FORMATO: ${formCode}`, 227, 31);
+
+    autoTable(doc, {
+        startY: 40,
+        head: [['S/N BATERÍA', 'MARCA', 'DRON USADO', 'CICLOS ACUM.', 'VUELO ID', 'UBICACIÓN', 'CONDICIÓN']],
+        body: data.map(f => [
+            f.battery?.serial_number || 'N/A', f.battery?.brand || 'N/A', f.aircraft?.model || 'N/A', 
+            f.battery?.cycles || '0', f.mission_id || 'N/A', f.location || 'N/A', f.visual_condition || 'VMC'
+        ]),
+        styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', lineWidth: 0.2 },
+        margin: { left: 10, right: 10 }
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 30;
+    doc.line(30, finalY, 110, finalY);
+    doc.text("FIRMA JEFE DE PILOTOS", 70, finalY + 5, { align: 'center' });
+    doc.line(187, finalY, 267, finalY);
+    doc.text("FIRMA GERENTE GENERAL", 227, finalY + 5, { align: 'center' });
+
+    doc.save(`${formCode}_ENERGIA_${orgName}.pdf`);
+};
+
+// --- 3. GENERADOR: BITÁCORA DE EXPERIENCIA DE PILOTO ---
+export const generatePilotReport = (data, config) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const { orgName, logoUrl, version, reportDate, formCode } = config;
+    const pilotName = data[0]?.pilots?.name || "N/A";
+    const pilotCIPU = data[0]?.pilots?.license_number || "---";
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.4);
+    doc.rect(10, 10, 277, 25); 
+    doc.line(65, 10, 65, 35);
+    doc.line(225, 10, 225, 35);
+    doc.line(65, 22.5, 225, 22.5);
+
+    if (logoUrl) { try { doc.addImage(logoUrl, 'PNG', 15, 12, 45, 20); } catch (e) {} }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(`PILOTO: ${pilotName.toUpperCase()} | CIPU: ${pilotCIPU}`, 145, 18, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text("BITÁCORA DE EXPERIENCIA DE VUELO", 145, 30, { align: 'center' });
+
+    doc.setFontSize(7);
+    doc.line(225, 18, 287, 18);
+    doc.line(225, 26, 287, 26);
+    doc.text(`VERSIÓN: ${version}`, 227, 15);
+    doc.text(`FECHA: ${reportDate}`, 227, 23);
+    doc.text(`FORMATO: ${formCode}`, 227, 31);
+
+    let totalAcumulado = 0;
+    autoTable(doc, {
+        startY: 40,
+        head: [['FECHA', 'MISIÓN ID', 'MODELO UAS', 'S/N EQUIPO', 'UBICACIÓN', 'DEP', 'ARR', 'DURACIÓN (H)', 'OBSERVACIONES']],
+        body: data.map(f => {
+            totalAcumulado += parseFloat(f.total_time || 0);
+            return [
+                f.flight_date, f.mission_id, f.aircraft?.model || 'N/A', f.aircraft?.serial_number || 'N/A', 
+                f.location, f.takeoff_time, f.landing_time, f.total_time?.toFixed(2) || '0.00', f.notes || ''
+            ];
+        }),
+        foot: [['', '', '', '', '', '', 'TOTAL PERIODO:', totalAcumulado.toFixed(2) + ' H', '']],
+        styles: { fontSize: 7, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center' },
+        footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+        margin: { left: 10, right: 10 }
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 25;
+    doc.line(30, finalY, 110, finalY);
+    doc.text("FIRMA DEL PILOTO", 70, finalY + 5, { align: 'center' });
+    doc.line(187, finalY, 267, finalY);
+    doc.text("FIRMA JEFE DE PILOTOS / CERTIFICADOR", 227, finalY + 5, { align: 'center' });
+
+    doc.save(`${formCode}_PILOTO_${pilotName.replace(' ', '_')}.pdf`);
+};
+
+// --- 4. NUEVO GENERADOR: EXPEDIENTE TÉCNICO DE TRIPULANTE (PORTRAIT) ---
+export const generatePilotDossier = (pilot, config) => {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const { orgName, logoUrl, reportDate } = config;
+
+    // --- 1. CABECERA TÉCNICA (PORTRAIT) ---
+    doc.setDrawColor(0); doc.setLineWidth(0.5);
+    doc.rect(10, 10, 190, 25); 
+    doc.line(50, 10, 50, 35); doc.line(160, 10, 160, 35);
+
+    if (logoUrl) { try { doc.addImage(logoUrl, 'PNG', 15, 12, 30, 20); } catch (e) {} }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10); doc.text(orgName ? orgName.toUpperCase() : "BITAFLY UAS", 105, 18, { align: 'center' });
+    doc.setFontSize(12); doc.text("EXPEDIENTE TÉCNICO DE TRIPULANTE", 105, 28, { align: 'center' });
+    doc.setFontSize(8); doc.text("VERSIÓN: 1.0", 162, 18); doc.text(`EMISIÓN: ${reportDate}`, 162, 28);
+
+    // --- 2. BLOQUE DE IDENTIDAD ---
+    autoTable(doc, {
+        startY: 40,
+        head: [['01. INFORMACIÓN PERSONAL Y DE IDENTIDAD', '']],
+        body: [
+            ['Nombre Completo:', pilot.name || 'N/A'],
+            ['Número de Identificación:', pilot.id_number || 'N/A'],
+            ['Correo Electrónico:', pilot.email || 'N/A'],
+            ['Teléfono Móvil:', pilot.phone || 'N/A']
+        ],
+        theme: 'plain',
+        styles: { fontSize: 9, cellPadding: 2 },
+        headStyles: { fillColor: [26, 32, 44], textColor: [255, 255, 255], fontStyle: 'bold' },
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } }
+    });
+
+    // --- 3. BLOQUE AERONÁUTICO ---
+    autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 5,
+        head: [['02. CREDENCIALES Y CALIFICACIONES AEROCIVIL', '']],
+        body: [
+            ['Cargo Operativo:', pilot.pilot_role || 'Piloto'],
+            ['Número CIPU (Registro):', pilot.license_number || 'PENDIENTE'],
+            ['Fecha Vencimiento Médico:', pilot.medical_expiry || 'NO REGISTRADO']
+        ],
+        theme: 'plain',
+        styles: { fontSize: 9, cellPadding: 2 },
+        headStyles: { fillColor: [236, 91, 19], textColor: [255, 255, 255], fontStyle: 'bold' },
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } }
+    });
+
+    // --- 4. BLOQUE DE DOCUMENTACIÓN (ANEXOS PARA IMPRESIÓN) ---
+    // Usamos una tabla para que los links y etiquetas nunca se encimen
+    autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 5,
+        head: [['03. ANEXOS DIGITALES', 'ESTADO', 'VÍNCULO DE VERIFICACIÓN']],
+        body: [
+            ['Cédula de Ciudadanía', pilot.id_doc_url ? 'CARGADO' : 'PENDIENTE', pilot.id_doc_url ? ' ' : '---'],
+            ['Diploma Curso Piloto', pilot.pilot_course_url ? 'CARGADO' : 'PENDIENTE', pilot.pilot_course_url ? ' ' : '---'],
+            ['Certificado Examen Teórico', pilot.theoretical_exam_url ? 'CARGADO' : 'PENDIENTE', pilot.theoretical_exam_url ? ' ' : '---'],
+            ['Certificado Médico Vigente', pilot.medical_cert_url ? 'CARGADO' : 'PENDIENTE', pilot.medical_cert_url ? ' ' : '---']
+        ],
+        theme: 'grid',
+        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { fillColor: [100, 100, 100], textColor: [255, 255, 255], fontStyle: 'bold' },
+        didDrawCell: (data) => {
+            // Lógica para hacer los links clickeables solo en la columna 2
+            if (data.section === 'body' && data.column.index === 2) {
+                let url = '';
+                if (data.row.index === 0) url = pilot.id_doc_url;
+                if (data.row.index === 1) url = pilot.pilot_course_url;
+                if (data.row.index === 2) url = pilot.theoretical_exam_url;
+                if (data.row.index === 3) url = pilot.medical_cert_url;
+                
+                if (url) {
+                    doc.setTextColor(0, 0, 255);
+                    doc.textWithLink("VER DOCUMENTO", data.cell.x + 3, data.cell.y + 6, { url: url });
+                }
+            }
+        }
+    });
+
+   // --- 5. CONTACTO DE EMERGENCIA ---
+    autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 5,
+        head: [['04. CONTACTO EN CASO DE EMERGENCIA', '']],
+        body: [
+            ['Nombre de Contacto:', pilot.emergency_contact_name || 'N/A'],
+            ['Teléfono de Contacto:', pilot.emergency_contact_phone || 'N/A']
+        ],
+        theme: 'plain',
+        styles: { fontSize: 9, cellPadding: 2 },
+        headStyles: { fillColor: [185, 28, 28], textColor: [255, 255, 255], fontStyle: 'bold' },
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } }
+    });
+
+    // --- 6. RESUMEN DE EXPERIENCIA (NUEVO) ---
+    autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 5,
+        head: [['05. EXPERIENCIA DE VUELO ACUMULADA', '']],
+        body: [
+            ['Horas Totales Certificadas (en Bitafly):', (pilot.total_hours_accumulated || 0).toFixed(2) + ' Horas']
+        ],
+        theme: 'plain',
+        styles: { fontSize: 10, cellPadding: 3 },
+        headStyles: { fillColor: [0, 80, 158], textColor: [255, 255, 255], fontStyle: 'bold' }, // Color azul aviación
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 70 } }
+    });
+
+    // --- SECCIÓN DE FIRMAS (Ajustada de posición) ---
+    const signY = 265;
+    doc.setDrawColor(0);
+    doc.setFontSize(8);
+    doc.line(20, signY, 80, signY);
+    doc.text("FIRMA DEL PILOTO", 50, signY + 5, { align: 'center' });
+    
+    doc.line(130, signY, 190, signY);
+    doc.text("FIRMA JEFE DE PILOTOS", 160, signY + 5, { align: 'center' });
+
+    doc.save(`EXPEDIENTE_${pilot.name.replace(/\s+/g, '_')}.pdf`);
+};
+
+// --- GENERADOR: FORMATO 100 UAEAC (SOLICITUD DE AUTORIZACIÓN) ---
+// ASEGÚRESE QUE EL NOMBRE SEA EXACTAMENTE ESTE:
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
+
+export const generateExcelF100 = async (data, profile) => {
+    try {
+        // 1. Carga de plantilla
+        const response = await fetch('/templates/formato_100_template.xlsx');
+        if (!response.ok) throw new Error("No se encontró la plantilla en public/templates/formato_100_template.xlsx");
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(arrayBuffer);
+
+        // --- CORRECCIÓN CRÍTICA AQUÍ ---
+        // Accedemos a la primera hoja del arreglo directamente
+        const worksheet = workbook.worksheets[0]; 
+        
+        if (!worksheet) {
+            throw new Error("El archivo Excel no contiene hojas de trabajo válidas.");
+        } // Usar la primera hoja
+
+    // Función auxiliar para forzar Mayúsculas y evitar errores de nulos
+        const cleanText = (val) => val ? String(val).toUpperCase() : '';
+
+    // --- SECCIÓN 1: DATOS DEL SOLICITANTE (Ejemplo de celdas) ---
+    // Ajuste las coordenadas (C12, C13, etc) según su Excel real
+    worksheet.getCell('V7').value = profile?.full_name?.toUpperCase();
+    worksheet.getCell('V8').value = cleanText(org?.tax_id_type || 'NIT'); // Tomado de la organización
+    worksheet.getCell('V9').value = profile?.id_number;
+    worksheet.getCell('V10').value = profile?.email;
+    worksheet.getCell('V11').value = profile?.phone;
+    worksheet.getCell('V12').value = profile?.address;
+
+    // --- SECCIÓN 2: JEFE DE PILOTOS UAS (Búsqueda Automática) ---
+        const chiefPilot = pilots?.find(p => p.pilot_role === 'Jefe de Pilotos');
+        if (chiefPilot) {
+            worksheet.getCell('V14').value = cleanText(chiefPilot.name);
+            worksheet.getCell('V15').value = cleanText(chiefPilot.id_number);
+            worksheet.getCell('V16').value = cleanText(chiefPilot.phone);
+        }
+
+    // --- SECCIÓN 3: TIPO DE OPERACIÓN (Marcación de X) ---
+    // Aquí ponemos la 'X' solo en las celdas que el usuario marcó
+    const op = data.tipo_operacion;
+    if (op.simple_captura) worksheet.getCell('S19').value = 'X';
+    if (op.vigilancia_seguridad) worksheet.getCell('AO19').value = 'X';
+    if (op.medios_comunicacion) worksheet.getCell('S20').value = 'X';
+    if (op.aspersion) worksheet.getCell('AO20').value = 'X';
+    if (op.dispersion) worksheet.getCell('S21').value = 'X';
+    if (op.enjambre) worksheet.getCell('AO21').value = 'X';
+    if (op.carga_delivery) worksheet.getCell('S22').value = 'X';
+    if (op.instruccion) worksheet.getCell('AO22').value = 'X';
+    if (op.misiones_publicas) worksheet.getCell('S23').value = 'X';
+
+    // --- SECCIÓN 4: INFORMACIÓN OPERACIÓN ---
+    worksheet.getCell('W25').value = data.empresa_contratante?.toUpperCase();
+    worksheet.getCell('M26').value = data.fecha_inicio;
+    worksheet.getCell('AI26').value = data.hora_inicio;
+    worksheet.getCell('M27').value = data.fecha_fin;
+    worksheet.getCell('AI27').value = data.hora_fin;
+    worksheet.getCell('W29').value = data.peso_maximo;
+    worksheet.getCell('M28').value = data.otros_detalles;
+    worksheet.getCell('M30').value = data.municipality;
+    worksheet.getCell('AI30').value = data.department;
+
+    // --- SECCIÓN 5: TIPO DE CONTACTO VISUAL CON LA UA (Marcación de X) ---
+    // Aquí ponemos la 'X' solo en las celdas que el usuario marcó
+    const cv = data.contacto_visual;
+    if (cv.VLOS) worksheet.getCell('S35').value = 'X';
+    if (cv.EVLOS) worksheet.getCell('AN32').value = 'X';
+    if (cv.BVLOS) worksheet.getCell('S36').value = 'X';
+
+    // --- SECCIÓN 6: VUELO ESPECIAL (Marcación de X) ---
+    // Aquí ponemos la 'X' solo en las celdas que el usuario marcó
+    const ve = data.vuelos_especiales;
+    if (ve.nocturno) worksheet.getCell('S35').value = 'X';
+    if (ve.urbana) worksheet.getCell('AN35').value = 'X';
+    if (ve.autonomo) worksheet.getCell('S36').value = 'X';
+    if (ve.demostracion) worksheet.getCell('AN36').value = 'X';
+    if (ve.cautiva) worksheet.getCell('S37').value = 'X';
+    if (ve.recreativo) worksheet.getCell('AN37').value = 'X';
+    worksheet.getCell('B38').value = data.justificacion_especial;
+
+    // --- SECCIÓN 7: AERONAVES (Mapeo de tabla) ---
+    // Suponiendo que la tabla de aeronaves empieza en la fila 40
+    data.aeronaves.forEach((a, index) => {
+        const rowOffset = 43 + (index * 4); // Ajustar según diseño del Excel
+        worksheet.getCell(`M${rowOffset}`).value = a.brand;
+        worksheet.getCell(`AI${rowOffset}`).value = a.model;
+        worksheet.getCell(`AI${rowOffset + 1}`).value = a.serial_number;
+    });
+
+    // --- SECCIÓN 11: COORDENADAS ---
+        data.points.forEach((p, index) => {
+            const row = 89 + index; // Asumiendo que la tabla de coordenadas empieza en 100
+            const toGMS = (dec) => {
+                const d = Math.abs(dec);
+                const deg = Math.floor(d);
+                const min = Math.floor((d - deg) * 60);
+                const sec = Math.round((d - deg - min / 60) * 3600);
+                return `${deg}°${min}'${sec}"`;
+            };
+            worksheet.getCell(`H${row}`).value = `${toGMS(p.lat)}${p.lat >= 0 ? 'N' : 'S'}`;
+            worksheet.getCell(`AK${row}`).value = `${toGMS(p.lng)}W`;
+        });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(blob, `F100_UAEAC_${profile?.full_name?.replace(/\s+/g, '_')}.xlsx`);
+
+    } catch (error) {
+        console.error("Error en generateExcelF100:", error);
+        alert("Falla técnica: " + error.message);
+    }
+};
+--- END OF FILE: src/lib/reportGenerators.js ---
+
+
+--- START OF FILE: src/lib/supabaseServer.js ---
+import { createServerClient } from '@supabase/ssr'
+import { createClient as createJSClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
+
+// Función principal
+export async function createClient() {
+  const cookieStore = cookies()
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        get(name) { return cookieStore.get(name)?.value },
+        set(name, value, options) { try { cookieStore.set({ name, value, ...options }) } catch (e) {} },
+        remove(name, options) { try { cookieStore.set({ name, value: '', ...options }) } catch (e) {} },
+      },
+    }
+  )
+}
+
+// ALIAS PARA COMPATIBILIDAD CON TODAS LAS APIS
+export const createClientSSR = createClient;
+
+// FUNCIÓN PARA PANEL MASTER (Service Role)
+export function createAdminClient() {
+  return createJSClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  )
+}
+
+--- END OF FILE: src/lib/supabaseServer.js ---

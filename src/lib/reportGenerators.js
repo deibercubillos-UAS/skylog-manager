@@ -1,5 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 // --- 1. GENERADOR: FORMATO MASTER DE VUELO ---
 export const generateMasterReport = (data, config) => {
@@ -279,9 +281,6 @@ export const generatePilotDossier = (pilot, config) => {
 };
 
 // --- GENERADOR: FORMATO 100 UAEAC (SOLICITUD DE AUTORIZACIÓN) ---
-// ASEGÚRESE QUE EL NOMBRE SEA EXACTAMENTE ESTE:
-import ExcelJS from 'exceljs';
-import { saveAs } from 'file-saver';
 
 export const generateExcelF100 = async (data, profile) => {
     try {
@@ -292,9 +291,6 @@ export const generateExcelF100 = async (data, profile) => {
         const arrayBuffer = await response.arrayBuffer();
         const workbook = new ExcelJS.Workbook();
         await workbook.xlsx.load(arrayBuffer);
-
-        // --- CORRECCIÓN CRÍTICA AQUÍ ---
-        // Accedemos a la primera hoja del arreglo directamente
         const worksheet = workbook.worksheets[0]; 
         
         if (!worksheet) {

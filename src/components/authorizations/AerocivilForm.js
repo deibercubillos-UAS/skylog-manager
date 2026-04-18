@@ -28,7 +28,9 @@ export default function AerocivilForm() {
             enjambre: false,
             carga_delivery: false,
             instruccion: false,
-            misiones_publicas: false
+            misiones_publicas: false,
+            contacto_visual: 'VLOS', // Valor por defecto
+            tipo_operacion: { /* ... */ }
         }
     });
 
@@ -248,6 +250,39 @@ export default function AerocivilForm() {
                 </div>
             </section>
 
+            {/* SECCIÓN 5: TIPO DE CONTACTO VISUAL CON LA UA */}
+            <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
+                <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                    <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">5. TIPO DE CONTACTO VISUAL CON LA UA</h4>
+                    <HelpTooltip text="Seleccione la condición visual de la operación. Recuerde que EVLOS requiere observadores y BVLOS requiere autorización específica de distancia." />
+                </div>
+
+                <div className="p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <VisualOption 
+                            label="VLOS (Hasta 750 metros)" 
+                            description="Línea de vista visual directa del piloto."
+                            selected={aeroForm.contacto_visual === 'VLOS'}
+                            onClick={() => setAeroForm({...aeroForm, contacto_visual: 'VLOS'})}
+                        />
+                        <VisualOption 
+                            label="EVLOS (Hasta 3.000 metros con observador(es))" 
+                            description="Línea de vista extendida mediante observadores."
+                            selected={aeroForm.contacto_visual === 'EVLOS'}
+                            onClick={() => setAeroForm({...aeroForm, contacto_visual: 'EVLOS'})}
+                        />
+                        <div className="md:col-span-2">
+                            <VisualOption 
+                                label="BVLOS (Distancia aprobada en la operación aérea)" 
+                                description="Operación más allá de la línea de vista visual."
+                                selected={aeroForm.contacto_visual === 'BVLOS'}
+                                onClick={() => setAeroForm({...aeroForm, contacto_visual: 'BVLOS'})}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <button className="w-full py-6 bg-slate-900 text-white font-black rounded-[2.5rem] shadow-xl uppercase text-xs tracking-widest hover:bg-orange-600 transition-all active:scale-95">
                 Generar Formato 100 PDF
             </button>
@@ -270,6 +305,35 @@ function AeroCheck({ label, checked, onChange }) {
             <span className={`text-[10px] font-black leading-tight uppercase ${checked ? 'text-orange-700' : 'text-slate-500'}`}>{label}</span>
             <div className={`size-6 rounded-lg border-2 flex items-center justify-center shrink-0 ${checked ? 'bg-orange-600 border-orange-600' : 'border-slate-200 bg-white'}`}>
                 {checked && <span className="material-symbols-outlined text-white text-base">close</span>}
+            </div>
+        </button>
+    );
+}
+
+// COMPONENTE VISUAL PARA SECCIÓN 5
+function VisualOption({ label, description, selected, onClick }) {
+    return (
+        <button 
+            type="button"
+            onClick={onClick}
+            className={`w-full flex items-center justify-between p-5 rounded-[1.5rem] border-2 transition-all text-left ${
+                selected 
+                ? 'border-orange-500 bg-orange-50/30 shadow-md' 
+                : 'border-slate-100 bg-slate-50/30 hover:border-slate-200'
+            }`}
+        >
+            <div className="flex-1 pr-4">
+                <p className={`text-[10px] font-black uppercase ${selected ? 'text-orange-700' : 'text-slate-500'}`}>
+                    {label}
+                </p>
+                <p className="text-[9px] text-slate-400 font-medium mt-1 leading-tight">
+                    {description}
+                </p>
+            </div>
+            <div className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                selected ? 'bg-orange-600 border-orange-600' : 'border-slate-200 bg-white'
+            }`}>
+                {selected && <span className="material-symbols-outlined text-white text-base">check</span>}
             </div>
         </button>
     );

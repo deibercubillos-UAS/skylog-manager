@@ -18,24 +18,34 @@ export default function AddAircraftPanel({ onClose, onSuccess }) {
       const { data: { user } } = await supabase.auth.getUser();
       const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
 
-      const { error } = await supabase.from('aircraft').insert([{ 
-        ...form, 
+      // --- LIMPIEZA DE DATOS (SANITIZACIÓN) ---
+      // Si la fecha está vacía, la convertimos en null para que Supabase la acepte
+      const cleanData = {
+        brand: form.brand,
+        model: form.model,
+        serial_number: form.serial_number,
+        ruas: form.ruas,
+        image_url: form.image_url,
+        total_hours: parseFloat(form.total_hours || 0),
+        last_maintenance_hours: parseFloat(form.last_maintenance_hours || 0),
+        last_maintenance_date: form.last_maintenance_date === "" ? null : form.last_maintenance_date, // <--- ESTO ARREGLA EL ERROR
         owner_id: user.id,
         organization_id: prof.organization_id,
-        status: 'Operativo',
-        total_hours: parseFloat(form.total_hours || 0),
-        last_maintenance_hours: parseFloat(form.last_maintenance_hours || 0)
-      }]);
+        status: 'Operativo'
+      };
+
+      const { error } = await supabase.from('aircraft').insert([cleanData]);
 
       if (error) throw error;
+      
       alert("✅ Aeronave inscrita correctamente.");
       onSuccess();
     } catch (err) {
-      alert("Error: " + err.message);
+      alert("⚠️ Error de registro: " + err.message);
     } finally {
       setLoading(false);
     }
-  };
+};
 
   return (
     <aside className="fixed inset-y-0 right-0 w-96 bg-white shadow-2xl z-[150] p-8 flex flex-col text-left animate-in slide-in-from-right overflow-y-auto">

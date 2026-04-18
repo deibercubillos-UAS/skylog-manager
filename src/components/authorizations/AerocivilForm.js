@@ -3,10 +3,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import HelpTooltip from '@/components/HelpTooltip';
 
-export default function AerocivilForm({ drones }) { // <-- Recibe drones aquí
+export default function AerocivilForm({ drones, pilots }) { 
     const [geo, setGeo] = useState({ depts: [], munis: [], all: [] });
     const [loadingGeo, setLoadingGeo] = useState(true);
 
+    // CORRECCIÓN LÍNEA 14: Estructura plana y sin duplicados
     const [aeroForm, setAeroForm] = useState({
         department: '',
         municipality: '',
@@ -42,11 +43,11 @@ export default function AerocivilForm({ drones }) { // <-- Recibe drones aquí
             { id: '', brand: '', model: '', serial_number: '', insurer: '', policy: '', start_date: '', end_date: '' }
         ],
         equipos: [
-        { id: '', brand: '', model: '', type: '', serial_number: '' }
+            { id: '', brand: '', model: '', type: '', serial_number: '' }
         ],
         pilotos_solicitud: [
-        { id: '', name: '', id_number: '', phone: '' }
-        ],
+            { id: '', name: '', id_number: '', phone: '' }
+        ]
     });
 
      // --- FUNCIONES DE LÓGICA INTERNA ---

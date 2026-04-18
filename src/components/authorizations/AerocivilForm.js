@@ -39,8 +39,13 @@ export default function AerocivilForm() {
             urbana: false,
             demostracion: false,
             recreativo: false
-        }
-    });
+        },
+        aeronaves: [
+        { id: '', brand: '', model: '', serial_number: '', insurer: '', policy: '', start_date: '', end_date: '' }
+    ],
+    tipo_operacion: { /* ... */ },
+    vuelos_especiales: { /* ... */ }
+});
 
      // FUNCIÓN PARA TOGGLE DE VUELOS ESPECIALES
         const toggleSpecialVuelo = (field) => {
@@ -360,6 +365,66 @@ export default function AerocivilForm() {
                 </div>
             </section>
 
+            {/* SECCIÓN 7: AERONAVE(S) NO TRIPULADA(S) UAS */}
+            <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
+                <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-blue-600">aeroplane</span>
+                        <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">7. AERONAVE(S) NO TRIPULADA(S) UAS</h4>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <p className="text-[9px] font-black text-slate-400 uppercase">Slots: {aeroForm.aeronaves.length} / 3</p>
+                        <HelpTooltip text="Seleccione las aeronaves de su flota. Debe incluir los datos vigentes de la póliza de Responsabilidad Civil Extracontractual (RCE)." />
+                    </div>
+                </div>
+
+                <div className="p-8 space-y-8">
+                    {aeroForm.aeronaves.map((unit, index) => (
+                        <div key={index} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4 relative">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="bg-slate-900 text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase">Aeronave #{index + 1}</span>
+                                {index > 0 && (
+                                    <button onClick={() => setAeroForm(prev => ({...prev, aeronaves: prev.aeronaves.filter((_, i) => i !== index)}))} className="text-red-500 material-symbols-outlined text-sm">delete</button>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Seleccionar de Flota</label>
+                                    <select 
+                                        className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                                        value={unit.id}
+                                        onChange={(e) => handleAircraftSelect(index, e.target.value, drones)}
+                                    >
+                                        <option value="">-- Elegir Equipo --</option>
+                                        {drones?.map(d => <option key={d.id} value={d.id}>{d.model} ({d.serial_number})</option>)}
+                                    </select>
+                                </div>
+                                <InputCol label="Marca" value={unit.brand} disabled isDark={false} />
+                                <InputCol label="Modelo" value={unit.model} disabled isDark={false} />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 border-t border-slate-200/50">
+                                <InputCol label="Empresa Aseguradora" placeholder="Ej: Seguros Bolívar" value={unit.insurer} onChange={e => updateMaintField(index, 'insurer', e.target.value)} />
+                                <InputCol label="Número de Póliza" placeholder="000-XXX-000" value={unit.policy} onChange={e => updateMaintField(index, 'policy', e.target.value)} />
+                                <InputCol label="Inicio Cobertura" type="date" value={unit.start_date} onChange={e => updateMaintField(index, 'start_date', e.target.value)} />
+                                <InputCol label="Fin Cobertura" type="date" value={unit.end_date} onChange={e => updateMaintField(index, 'end_date', e.target.value)} />
+                            </div>
+                        </div>
+                    ))}
+
+                    {aeroForm.aeronaves.length < 3 && (
+                        <button 
+                            onClick={addAircraftSlot}
+                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-[10px] uppercase hover:border-orange-500 hover:text-orange-500 transition-all flex items-center justify-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-sm">add_circle</span>
+                            Vincular otra aeronave a la solicitud
+                        </button>
+                    )}
+                </div>
+            </section>
+
             <button className="w-full py-6 bg-slate-900 text-white font-black rounded-[2.5rem] shadow-xl uppercase text-xs tracking-widest hover:bg-orange-600 transition-all active:scale-95">
                 Generar Formato 100 PDF
             </button>
@@ -425,4 +490,33 @@ const toggleSpecialVuelo = (field) => {
         }
     }));
 };
-       
+
+// FUNCIÓN PARA AGREGAR SLOT (MÁXIMO 3)
+const addAircraftSlot = () => {
+    if (aeroForm.aeronaves.length < 3) {
+        setAeroForm(prev => ({
+            ...prev,
+            aeronaves: [...prev.aeronaves, { id: '', brand: '', model: '', serial_number: '', insurer: '', policy: '', start_date: '', end_date: '' }]
+        }));
+    }
+};
+
+// FUNCIÓN PARA AUTOCOMPLETAR AL SELECCIONAR DRONE
+const handleAircraftSelect = (index, aircraftId, dronesList) => {
+    const selected = dronesList.find(d => d.id === aircraftId);
+    const newAeronaves = [...aeroForm.aeronaves];
+    newAeronaves[index] = {
+        ...newAeronaves[index],
+        id: aircraftId,
+        brand: selected?.brand || '',
+        model: selected?.model || '',
+        serial_number: selected?.serial_number || ''
+    };
+    setAeroForm(prev => ({ ...prev, aeronaves: newAeronaves }));
+};
+
+const updateMaintField = (index, field, value) => {
+    const newAeronaves = [...aeroForm.aeronaves];
+    newAeronaves[index][field] = value;
+    setAeroForm(prev => ({ ...prev, aeronaves: newAeronaves }));
+};

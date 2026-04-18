@@ -47,6 +47,9 @@ export default function AerocivilForm({ drones, pilots }) {
         ],
         pilotos_solicitud: [
             { id: '', name: '', id_number: '', phone: '' }
+        ],
+        observadores: [
+            { id: '', name: '', id_number: '', phone: '' }
         ]
     });
 
@@ -133,6 +136,30 @@ export default function AerocivilForm({ drones, pilots }) {
             phone: selected?.phone || ''
         };
         setAeroForm(prev => ({ ...prev, pilotos_solicitud: newPilotos }));
+    };
+
+    // FUNCIÓN PARA AGREGAR SLOT DE OBSERVADOR
+    const addObserverSlot = () => {
+        if (aeroForm.observadores.length < 2) {
+            setAeroForm(prev => ({
+                ...prev,
+                observadores: [...prev.observadores, { id: '', name: '', id_number: '', phone: '' }]
+            }));
+        }
+    };
+
+    // FUNCIÓN PARA AUTOCOMPLETAR DATOS DEL OBSERVADOR (Desde lista de pilotos)
+    const handleObserverSelect = (index, personId) => {
+        const selected = pilots?.find(p => p.id === personId);
+        const newObs = [...aeroForm.observadores];
+        newObs[index] = {
+            ...newObs[index],
+            id: personId,
+            name: selected?.name || '',
+            id_number: selected?.id_number || '',
+            phone: selected?.phone || ''
+        };
+        setAeroForm(prev => ({ ...prev, observadores: newObs }));
     };
 
     // CARGA DE DIVIPOLA (MUNICIPIOS) DESDE SUPABASE
@@ -604,6 +631,84 @@ export default function AerocivilForm({ drones, pilots }) {
                         >
                             <span className="material-symbols-outlined text-sm">group_add</span>
                             Vincular otro piloto a la misión
+                        </button>
+                    )}
+                </div>
+            </section>
+
+            {/* SECCIÓN 10: OBSERVADOR(ES) UA */}
+            <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
+                <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-emerald-600">visibility</span>
+                        <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">10. OBSERVADOR(ES) UA</h4>
+                    </div>
+                    <HelpTooltip text="Relacione el personal que actuará como observador visual de la operación. Pueden ser pilotos registrados u otro personal capacitado." />
+                </div>
+
+                <div className="p-8 space-y-6">
+                    {aeroForm.observadores.map((obs, index) => (
+                        <div key={index} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4 relative">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="bg-slate-900 text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase">Observador #{index + 1}</span>
+                                {index > 0 && (
+                                    <button onClick={() => setAeroForm(prev => ({...prev, observadores: prev.observadores.filter((_, i) => i !== index)}))} className="text-red-500 material-symbols-outlined text-sm">delete</button>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Vincular de Tripulación (Opcional)</label>
+                                    <select 
+                                        className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                                        value={obs.id}
+                                        onChange={(e) => handleObserverSelect(index, e.target.value)}
+                                    >
+                                        <option value="">-- Seleccionar de la lista --</option>
+                                        {pilots?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </select>
+                                </div>
+                                {/* Campos editables por si el observador no está en la base de datos de pilotos */}
+                                <InputCol 
+                                    label="Nombre Completo" 
+                                    value={obs.name} 
+                                    onChange={e => {
+                                        const newObs = [...aeroForm.observadores];
+                                        newObs[index].name = e.target.value;
+                                        setAeroForm({...aeroForm, observadores: newObs});
+                                    }} 
+                                />
+                                <div className="grid grid-cols-2 gap-2">
+                                    <InputCol 
+                                        label="Documento ID" 
+                                        value={obs.id_number} 
+                                        onChange={e => {
+                                            const newObs = [...aeroForm.observadores];
+                                            newObs[index].id_number = e.target.value;
+                                            setAeroForm({...aeroForm, observadores: newObs});
+                                        }} 
+                                    />
+                                    <InputCol 
+                                        label="Teléfono Celular" 
+                                        value={obs.phone} 
+                                        onChange={e => {
+                                            const newObs = [...aeroForm.observadores];
+                                            newObs[index].phone = e.target.value;
+                                            setAeroForm({...aeroForm, observadores: newObs});
+                                        }} 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+
+                    {aeroForm.observadores.length < 2 && (
+                        <button 
+                            onClick={addObserverSlot}
+                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-[10px] uppercase hover:border-emerald-500 hover:text-emerald-500 transition-all flex items-center justify-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-sm">person_add_alt</span>
+                            Asignar observador adicional
                         </button>
                     )}
                 </div>

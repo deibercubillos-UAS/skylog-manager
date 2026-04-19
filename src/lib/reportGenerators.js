@@ -449,6 +449,24 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
             }
         });
 
+        // --- SECCIÓN 12: DOCUMENTOS DIGITALES REQUERIDOS (Marcación de X) ---
+        const docs = data.docs_adjuntos;
+
+        // Columna Izquierda (Celdas estimadas según formato estándar UAEAC)
+        if (docs.poliza_rce) worksheet.getCell('S110').value = 'X';
+        if (docs.analisis_riesgos) worksheet.getCell('S111').value = 'X';
+        if (docs.contrato_instalacion) worksheet.getCell('S112').value = 'X';
+
+        // Columna Derecha
+        if (docs.archivo_kmz) worksheet.getCell('AN110').value = 'X';
+        if (docs.acta_cdm) worksheet.getCell('AN111').value = 'X';
+        if (docs.declaracion_carga) worksheet.getCell('AN112').value = 'X';
+
+        // --- SECCIÓN 14: FIRMA DE RESPONSABILIDAD ---
+        // Inyectamos el nombre del Jefe de Pilotos o Representante en el área de firma
+        const signer = pilots?.find(p => p.pilot_role?.includes('Jefe')) || profile;
+        worksheet.getCell('B112').value = "FIRMA: " + cleanText(signer?.full_name || signer?.name);
+
          // --- SECCIÓN 14: FIRMA (Metadata de pie de página) ---
         worksheet.getCell('B114').value = cleanText(chief?.name || profile?.full_name);
 

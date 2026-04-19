@@ -404,7 +404,7 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
     const gName = cleanText(data.geo_name);
 
     if (data.geo_type === 'linear') {
-        headerRow = 95;      // Fila del encabezado de Tramo Lineal
+        headerRow = 96;      // Fila del encabezado de Tramo Lineal
         dataStartRow = 96;   // Fila donde empiezan los puntos
         // Inyectar Nombre y Altura Dual en el encabezado de Línea
         worksheet.getCell(`L${headerRow}`).value = gName;
@@ -412,7 +412,7 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
         worksheet.getCell(`AO${headerRow}`).value = feet;
     } 
     else if (data.geo_type === 'circle') {
-        headerRow = 104;      // Fila del encabezado de Circunferencia
+        headerRow = 105;      // Fila del encabezado de Circunferencia
         dataStartRow = 105;   // Fila del punto central
         // Inyectar Nombre y Altura Dual en el encabezado de Círculo
         worksheet.getCell(`O${headerRow}`).value = gName;
@@ -420,7 +420,7 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
         worksheet.getCell(`AO${headerRow}`).value = feet;
     } 
     else {
-        headerRow = 86;      // Fila del encabezado de Polígono
+        headerRow = 87;      // Fila del encabezado de Polígono
         dataStartRow = 87;   // Fila donde empiezan los puntos
         // Inyectar Nombre y Altura Dual en el encabezado de Polígono
         worksheet.getCell(`O${headerRow}`).value = gName;
@@ -428,14 +428,6 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
         worksheet.getCell(`AO${headerRow}`).value = feet;
     }
 
-    // Inyección de puntos en la tabla correspondiente (máximo 5 por formato)
-    data.points.forEach((p, i) => {
-        const currentRow = dataStartRow + i;
-        if (i < 5) { 
-            worksheet.getCell(`H${currentRow}`).value = `${toGMS(p.lat)}${p.lat >= 0 ? 'N' : 'S'}`;
-            worksheet.getCell(`AK${currentRow}`).value = `${toGMS(p.lng)}W`;
-        }
-    });
     let startRow = 88; // Fila base para Polígono
         
         if (data.geo_type === 'linear') {

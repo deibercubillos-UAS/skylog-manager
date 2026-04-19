@@ -322,9 +322,9 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
     // --- SECCIÓN 2: JEFE DE PILOTOS UAS (Búsqueda Automática) ---
         const chiefPilot = pilots?.find(p => p.pilot_role?.includes('Jefe'));
         if (chiefPilot) {
-            worksheet.getCell('V14').value = cleanText(chiefPilot.name);
-            worksheet.getCell('V15').value = cleanText(chiefPilot.id_number);
-            worksheet.getCell('V16').value = cleanText(chiefPilot.phone);
+            worksheet.getCell('W15').value = cleanText(chiefPilot.name);
+            worksheet.getCell('W16').value = cleanText(chiefPilot.id_number);
+            worksheet.getCell('W17').value = cleanText(chiefPilot.phone);
         }
 
     // --- SECCIÓN 3: TIPO DE OPERACIÓN (Marcación de X) ---
@@ -367,7 +367,7 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
     if (ve.demostracion) worksheet.getCell('AN36').value = 'X';
     if (ve.cautiva) worksheet.getCell('S37').value = 'X';
     if (ve.recreativo) worksheet.getCell('AN37').value = 'X';
-    worksheet.getCell('B38').value = data.justificacion_especial;
+    worksheet.getCell('B38').value = "JUSTIFICACIÓN: " + cleanText(data.justificacion_especial);
 
     // --- SECCIÓN 7: AERONAVES (Mapeo de tabla) ---
     // Suponiendo que la tabla de aeronaves empieza en la fila 40

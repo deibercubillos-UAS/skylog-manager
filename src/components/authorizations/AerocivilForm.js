@@ -358,13 +358,12 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Hora Inicio (Formato 24h)</label>
-                                <input 
+                                <InputCol 
+                                    label="Hora Inicio (24h / UTC)" 
                                     type="time" 
-                                    step="60" // Asegura incremento por minuto
-                                    className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-sm" 
                                     value={aeroForm.hora_inicio} 
                                     onChange={e => setAeroForm({...aeroForm, hora_inicio: e.target.value})} 
-                                />
+                                />  
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
@@ -374,13 +373,12 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Hora Fin (Formato 24h)</label>
-                                <input 
+                                <InputCol 
+                                    label="Hora Inicio (24h / UTC)" 
                                     type="time" 
-                                    step="60" // Asegura incremento por minuto
-                                    className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-sm" 
                                     value={aeroForm.hora_fin} 
                                     onChange={e => setAeroForm({...aeroForm, hora_fin: e.target.value})} 
-                                />
+                                />  
                             </div>
                         </div>
                     </div>

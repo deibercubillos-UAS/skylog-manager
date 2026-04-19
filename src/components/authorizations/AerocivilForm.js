@@ -78,7 +78,15 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
         altitude_feet: '',      // Altura en Pies
         points: [],
         altitude: '400',
-        radius: 500
+        radius: 500,
+         docs_adjuntos: {
+        poliza_rce: false,
+        analisis_riesgos: false,
+        contrato_instalacion: false,
+        archivo_kmz: false,
+        acta_cdm: false,
+        declaracion_carga: false
+    },
     });
     const [showMap, setShowMap] = useState(false);
 
@@ -87,6 +95,16 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
         setAeroForm(prev => ({
             ...prev,
             vuelos_especiales: { ...prev.vuelos_especiales, [field]: !prev.vuelos_especiales[field] }
+        }));
+    };
+
+    const toggleAeroDoc = (field) => {
+        setAeroForm(prev => ({
+            ...prev,
+            docs_adjuntos: {
+                ...prev.docs_adjuntos,
+                [field]: !prev.docs_adjuntos[field]
+            }
         }));
     };
 
@@ -923,6 +941,62 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                     onClose={() => setShowMap(false)}
                 />
             )}
+
+            {/* SECCIÓN 12: DOCUMENTOS DIGITALES REQUERIDOS */}
+            <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
+                <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-slate-600">attach_file</span>
+                        <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">12. DOCUMENTOS DIGITALES REQUERIDOS</h4>
+                    </div>
+                    <HelpTooltip text="Marque con una equis (X) los documentos que adjuntará a la solicitud electrónica. Recuerde que el PDF generado debe ir acompañado de estos archivos." />
+                </div>
+
+                <div className="p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <AeroCheck 
+                            label="Copia de póliza de seguro RCE y certificado de pago." 
+                            checked={aeroForm.docs_adjuntos.poliza_rce}
+                            onChange={() => toggleAeroDoc('poliza_rce')}
+                        />
+                        <AeroCheck 
+                            label="Archivo electrónico en formato KMZ / KML (WGS-84)." 
+                            checked={aeroForm.docs_adjuntos.archivo_kmz}
+                            onChange={() => toggleAeroDoc('archivo_kmz')}
+                        />
+                        <AeroCheck 
+                            label="Formato de Análisis de Riesgos Operacionales (SORA)." 
+                            checked={aeroForm.docs_adjuntos.analisis_riesgos}
+                            onChange={() => toggleAeroDoc('analisis_riesgos')}
+                        />
+                        <AeroCheck 
+                            label="Acta CDM (Coordinaciones Operativas) si aplica." 
+                            checked={aeroForm.docs_adjuntos.acta_cdm}
+                            onChange={() => toggleAeroDoc('acta_cdm')}
+                        />
+                        <AeroCheck 
+                            label="Copia de contrato o autorización (Instalación Especial)." 
+                            checked={aeroForm.docs_adjuntos.contrato_instalacion}
+                            onChange={() => toggleAeroDoc('contrato_instalacion')}
+                        />
+                        <AeroCheck 
+                            label="Declaración de Carga - Membreteada (Drone Delivery)." 
+                            checked={aeroForm.docs_adjuntos.declaracion_carga}
+                            onChange={() => toggleAeroDoc('declaracion_carga')}
+                        />
+                    </div>
+
+                    <div className="mt-8 p-6 bg-blue-50 rounded-2xl border border-blue-100 flex items-start gap-4">
+                        <span className="material-symbols-outlined text-blue-600">info</span>
+                        <div>
+                            <p className="text-[10px] font-black text-blue-900 uppercase tracking-tight">Nota de Cumplimiento:</p>
+                            <p className="text-[9px] text-blue-700 font-medium mt-1 leading-relaxed">
+                                La omisión de cualquiera de los documentos marcados como obligatorios por la UAEAC dará lugar a la devolución de la solicitud. Asegúrese de tener los archivos listos en formato digital.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <button 
                 onClick={async () => {

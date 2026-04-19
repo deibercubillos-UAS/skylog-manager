@@ -450,7 +450,7 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
         });
 
          // --- SECCIÓN 14: FIRMA (Metadata de pie de página) ---
-        worksheet.getCell('V110').value = cleanText(chief?.name || profile?.full_name);
+        worksheet.getCell('B114').value = cleanText(chief?.name || profile?.full_name);
 
     const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });

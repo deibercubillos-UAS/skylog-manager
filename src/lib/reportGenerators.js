@@ -3,6 +3,16 @@ import autoTable from 'jspdf-autotable';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
+const cleanText = (val) => val ? String(val).toUpperCase() : '';
+
+const toGMS = (dec) => {
+    const d = Math.abs(dec);
+    const deg = Math.floor(d);
+    const min = Math.floor((d - deg) * 60);
+    const sec = Math.round((d - deg - min / 60) * 3600);
+    return `${deg}°${min}'${sec}"`;
+};
+
 // --- 1. GENERADOR: FORMATO MASTER DE VUELO ---
 export const generateMasterReport = (data, config) => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
@@ -282,7 +292,7 @@ export const generatePilotDossier = (pilot, config) => {
 
 // --- GENERADOR: FORMATO 100 UAEAC (SOLICITUD DE AUTORIZACIÓN) ---
 
-export const generateExcelF100 = async (data, profile) => {
+export const generateExcelF100 = async (data, profile, org, pilots) => {
     try {
         // 1. Carga de plantilla
         const response = await fetch('/templates/formato_100_template.xlsx');
@@ -307,10 +317,10 @@ export const generateExcelF100 = async (data, profile) => {
     worksheet.getCell('V9').value = profile?.id_number;
     worksheet.getCell('V10').value = profile?.email;
     worksheet.getCell('V11').value = profile?.phone;
-    worksheet.getCell('V12').value = profile?.address;
+    worksheet.getCell('V12').value = cleanText(profile?.address);
 
     // --- SECCIÓN 2: JEFE DE PILOTOS UAS (Búsqueda Automática) ---
-        const chiefPilot = pilots?.find(p => p.pilot_role === 'Jefe de Pilotos');
+        const chiefPilot = pilots?.find(p => p.pilot_role?.includes('Jefe'));
         if (chiefPilot) {
             worksheet.getCell('V14').value = cleanText(chiefPilot.name);
             worksheet.getCell('V15').value = cleanText(chiefPilot.id_number);

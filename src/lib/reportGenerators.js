@@ -321,11 +321,11 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
   
 
     // --- SECCIÓN 2: JEFE DE PILOTOS UAS (Búsqueda Automática) ---
-        const chiefPilot = pilots?.find(p => p.pilot_role?.includes('Jefe'));
-        if (chiefPilot) {
-            worksheet.getCell('W15').value = cleanText(chiefPilot.name);
-            worksheet.getCell('W16').value = cleanText(chiefPilot.id_number);
-            worksheet.getCell('W17').value = cleanText(chiefPilot.phone);
+        const chief = pilots?.find(p => p.pilot_role?.includes('Jefe'));
+        if (chief) {
+            worksheet.getCell('W15').value = cleanText(chief.name);
+            worksheet.getCell('W16').value = cleanText(chief.id_number);
+            worksheet.getCell('W17').value = cleanText(chief.phone);
         }
 
     // --- SECCIÓN 3: TIPO DE OPERACIÓN (Marcación de X) ---

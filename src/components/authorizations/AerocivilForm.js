@@ -817,6 +817,39 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
             </section>
 
             {/* SECCIÓN 11: PARÁMETROS TÉCNICOS DE GEOMETRÍA */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Nombre de la Geometría</label>
+                <input 
+                    className="w-full p-3 bg-white/5 border border-white/10 rounded-xl font-bold text-xs text-white outline-none focus:border-orange-500"
+                    placeholder="Ej: Polígono Misión Alfa"
+                    value={aeroForm.geo_name}
+                    onChange={e => setAeroForm({...aeroForm, geo_name: e.target.value})}
+                />
+                <p className="text-[7px] text-slate-500 uppercase ml-1 italic">Identificador oficial en el F-100</p>
+            </div>
+
+            <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Altura en Metros (m)</label>
+                <input 
+                    type="number"
+                    className="w-full p-3 bg-white/5 border border-white/10 rounded-xl font-bold text-xs text-white outline-none focus:border-orange-500"
+                    placeholder="0"
+                    value={aeroForm.altitude_meters}
+                    onChange={e => handleAltitudeChange(e.target.value, 'm')}
+                />
+            </div>
+
+            <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Altura en Pies (ft)</label>
+                <input 
+                    type="number"
+                    className="w-full p-3 bg-white/10 border-2 border-orange-500/30 rounded-xl font-black text-xs text-orange-500 outline-none"
+                    placeholder="0"
+                    value={aeroForm.altitude_feet}
+                    onChange={e => handleAltitudeChange(e.target.value, 'ft')}
+                />
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="space-y-1">
                     <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Nombre de la Geometría</label>
@@ -851,6 +884,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                     />
                 </div>
             </div>
+        </div>
 
             {/* MODAL DEL MAPA */}
             {showMap && (

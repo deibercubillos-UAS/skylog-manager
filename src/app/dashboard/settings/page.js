@@ -40,7 +40,7 @@ export default function SettingsPage() {
                     phone: org.phone,
                     address: org.address
                 })
-                .eq('id', org.id)
+                .eq('id', profile.organization_id)
                 .select();
 
             if (orgErr) throw orgErr;

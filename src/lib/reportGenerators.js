@@ -315,9 +315,10 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
     worksheet.getCell('V7').value = profile?.full_name?.toUpperCase();
     worksheet.getCell('V8').value = cleanText(org?.tax_id_type || 'NIT'); // Tomado de la organización
     worksheet.getCell('V9').value = cleanText(org?.tax_id); 
-    worksheet.getCell('V10').value = cleanText(org?.tax_email);
-    worksheet.getCell('V11').value = cleanText(org?.tax_phone);
-    worksheet.getCell('V12').value = cleanText(profile?.address);
+    worksheet.getCell('V10').value = cleanText(org?.operator_email); // Correo Org
+    worksheet.getCell('V11').value = cleanText(org?.phone);          // Teléfono Org
+    worksheet.getCell('V12').value = cleanText(org?.address); 
+  
 
     // --- SECCIÓN 2: JEFE DE PILOTOS UAS (Búsqueda Automática) ---
         const chiefPilot = pilots?.find(p => p.pilot_role?.includes('Jefe'));
@@ -394,19 +395,30 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
         worksheet.getCell(`W${row + 2}`).value = cleanText(obs.phone);
     });
 
-    // --- SECCIÓN 11: COORDENADAS ---
-        data.points.forEach((p, index) => {
-            const row = 89 + index; // Asumiendo que la tabla de coordenadas empieza en 100
-            const toGMS = (dec) => {
-                const d = Math.abs(dec);
-                const deg = Math.floor(d);
-                const min = Math.floor((d - deg) * 60);
-                const sec = Math.round((d - deg - min / 60) * 3600);
-                return `${deg}°${min}'${sec}"`;
-            };
-            worksheet.getCell(`H${row}`).value = `${toGMS(p.lat)}${p.lat >= 0 ? 'N' : 'S'}`;
-            worksheet.getCell(`AK${row}`).value = `${toGMS(p.lng)}W`;
+    // --- SECCIÓN 11: COORDENADAS DINÁMICAS (LÓGICA POR GEOMETRÍA) ---
+        let startRow = 88; // Fila base para Polígono
+        
+        if (data.geo_type === 'linear') {
+            startRow = 98; // Salta a la tabla de Tramo Lineal
+            worksheet.getCell('H98').value = "TRAMO OPERATIVO PRINCIPAL"; 
+        } else if (data.geo_type === 'circle') {
+            startRow = 107; // Salta a la tabla de Circunferencia
+            worksheet.getCell('H107').value = "RADIO DE OPERACIÓN: " + data.radius + " METROS";
+        } else {
+            worksheet.getCell('H88').value = "POLÍGONO DE OPERACIÓN";
+        }
+
+        // Inyección de puntos en la tabla correspondiente
+        data.points.forEach((p, i) => {
+            const currentRow = startRow + i;
+            if (i < 5) { // El formato estándar tiene 5 slots por tabla
+                worksheet.getCell(`H${currentRow}`).value = `${toGMS(p.lat)}${p.lat >= 0 ? 'N' : 'S'}`;
+                worksheet.getCell(`AK${currentRow}`).value = `${toGMS(p.lng)}W`;
+            }
         });
+
+         // --- SECCIÓN 14: FIRMA (Metadata de pie de página) ---
+        worksheet.getCell('V110').value = cleanText(chief?.name || profile?.full_name);
 
     const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });

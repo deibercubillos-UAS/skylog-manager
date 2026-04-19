@@ -816,75 +816,95 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                 </div>
             </section>
 
-            {/* SECCIÓN 11: PARÁMETROS TÉCNICOS DE GEOMETRÍA */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Nombre de la Geometría</label>
-                <input 
-                    className="w-full p-3 bg-white/5 border border-white/10 rounded-xl font-bold text-xs text-white outline-none focus:border-orange-500"
-                    placeholder="Ej: Polígono Misión Alfa"
-                    value={aeroForm.geo_name}
-                    onChange={e => setAeroForm({...aeroForm, geo_name: e.target.value})}
-                />
-                <p className="text-[7px] text-slate-500 uppercase ml-1 italic">Identificador oficial en el F-100</p>
-            </div>
-
-            <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Altura en Metros (m)</label>
-                <input 
-                    type="number"
-                    className="w-full p-3 bg-white/5 border border-white/10 rounded-xl font-bold text-xs text-white outline-none focus:border-orange-500"
-                    placeholder="0"
-                    value={aeroForm.altitude_meters}
-                    onChange={e => handleAltitudeChange(e.target.value, 'm')}
-                />
-            </div>
-
-            <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Altura en Pies (ft)</label>
-                <input 
-                    type="number"
-                    className="w-full p-3 bg-white/10 border-2 border-orange-500/30 rounded-xl font-black text-xs text-orange-500 outline-none"
-                    placeholder="0"
-                    value={aeroForm.altitude_feet}
-                    onChange={e => handleAltitudeChange(e.target.value, 'ft')}
-                />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Nombre de la Geometría</label>
-                    <input 
-                        className="w-full p-3 bg-white/5 border border-white/10 rounded-xl font-bold text-xs text-white outline-none focus:border-orange-500"
-                        placeholder="Ej: Polígono Misión Alfa"
-                        value={aeroForm.geo_name}
-                        onChange={e => setAeroForm({...aeroForm, geo_name: e.target.value})}
-                    />
-                    <p className="text-[7px] text-slate-500 uppercase ml-1 italic">Identificador oficial en el F-100</p>
+            {/* SECCIÓN 11: COORDENADAS DE LA OPERACIÓN */}
+            <section className="bg-slate-900 p-8 rounded-[3rem] text-white space-y-8 shadow-2xl mt-8">
+                <div className="flex justify-between items-center border-b border-white/10 pb-4">
+                    <h4 className="font-black uppercase text-sm text-orange-500 tracking-widest">11. COORDENADAS DE LA OPERACIÓN (WGS-84)</h4>
+                    <HelpTooltip text="Las coordenadas deben consignarse en grados, minutos y segundos. El mapa las convertirá automáticamente." />
                 </div>
 
-                <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Altura en Metros (m)</label>
-                    <input 
-                        type="number"
-                        className="w-full p-3 bg-white/5 border border-white/10 rounded-xl font-bold text-xs text-white outline-none focus:border-orange-500"
-                        placeholder="0"
-                        value={aeroForm.altitude_meters}
-                        onChange={e => handleAltitudeChange(e.target.value, 'm')}
-                    />
+                {/* SECCIÓN 11: PARÁMETROS TÉCNICOS DE GEOMETRÍA */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Nombre de la Geometría</label>
+                        <input 
+                            className="w-full p-3 bg-white/5 border border-white/10 rounded-xl font-bold text-xs text-white outline-none focus:border-orange-500"
+                            placeholder="Ej: Polígono Misión Alfa"
+                            value={aeroForm.geo_name}
+                            onChange={e => setAeroForm({...aeroForm, geo_name: e.target.value})}
+                        />
+                        <p className="text-[7px] text-slate-500 uppercase ml-1 italic">Identificador oficial en el F-100</p>
+                    </div>
+
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Altura en Metros (m)</label>
+                        <input 
+                            type="number"
+                            className="w-full p-3 bg-white/5 border border-white/10 rounded-xl font-bold text-xs text-white outline-none focus:border-orange-500"
+                            placeholder="0"
+                            value={aeroForm.altitude_meters}
+                            onChange={e => handleAltitudeChange(e.target.value, 'm')}
+                        />
+                    </div>
+
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Altura en Pies (ft)</label>
+                        <input 
+                            type="number"
+                            className="w-full p-3 bg-white/10 border-2 border-orange-500/30 rounded-xl font-black text-xs text-orange-500 outline-none"
+                            placeholder="0"
+                            value={aeroForm.altitude_feet}
+                            onChange={e => handleAltitudeChange(e.target.value, 'ft')}
+                        />
+                    </div>
                 </div>
 
-                <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Altura en Pies (ft)</label>
-                    <input 
-                        type="number"
-                        className="w-full p-3 bg-white/10 border-2 border-orange-500/30 rounded-xl font-black text-xs text-orange-500 outline-none"
-                        placeholder="0"
-                        value={aeroForm.altitude_feet}
-                        onChange={e => handleAltitudeChange(e.target.value, 'ft')}
-                    />
+                {/* SELECTOR DE TIPO DE GEOMETRÍA */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {['polygon', 'linear', 'circle'].map(t => (
+                        <button 
+                            key={t}
+                            onClick={() => setAeroForm({...aeroForm, geo_type: t, points: []})}
+                            className={`p-4 rounded-2xl border-2 transition-all font-black text-[10px] uppercase ${aeroForm.geo_type === t ? 'border-orange-500 bg-orange-500/10' : 'border-white/10'}`}
+                        >
+                            {t === 'polygon' ? 'Polígono' : t === 'linear' ? 'Tramo Lineal' : 'Circunferencia'}
+                        </button>
+                    ))}
                 </div>
-            </div>
-        </div>
+
+                {/* BOTÓN DISPARADOR DEL MAPA */}
+                <button 
+                    onClick={() => setShowMap(true)}
+                    className="w-full py-6 bg-white/10 border-2 border-dashed border-white/20 rounded-[2rem] flex flex-col items-center gap-2 hover:bg-orange-600/20 hover:border-orange-500 transition-all"
+                >
+                    <span className="material-symbols-outlined text-4xl text-orange-500">map</span>
+                    <span className="text-[10px] font-black uppercase">Abrir Mapa Interactivo y Capturar Puntos</span>
+                </button>
+
+                {/* TABLA TÉCNICA (Como en la imagen) */}
+                {aeroForm.points.length > 0 && (
+                    <div className="overflow-hidden rounded-2xl border border-white/10">
+                        <table className="w-full text-left text-[10px]">
+                            <thead className="bg-white/5 font-black uppercase text-slate-500">
+                                <tr>
+                                    <th className="p-3">ITEM</th>
+                                    <th className="p-3">LATITUD (N/S)</th>
+                                    <th className="p-3">LONGITUD (W)</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5 font-mono">
+                                {aeroForm.points.map((p, i) => (
+                                    <tr key={i}>
+                                        <td className="p-3">{i + 1}</td>
+                                        <td className="p-3">{toGMS(p.lat)}{p.lat >= 0 ? 'N' : 'S'}</td>
+                                        <td className="p-3">{toGMS(p.lng)}W</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </section>
 
             {/* MODAL DEL MAPA */}
             {showMap && (

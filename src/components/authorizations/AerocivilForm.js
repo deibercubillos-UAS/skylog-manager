@@ -30,9 +30,9 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
         otros_detalles: '',
         peso_maximo: '',
         contacto_visual: {
-            VLOS:false,
-            BVLOS:false,
-            EVLOS:false
+            vlos:false,
+            bvlos:false,
+            evlos:false
         }, // <--- Ahora está en el nivel correcto
         justificacion_especial: '',
         tipo_operacion: {
@@ -359,11 +359,11 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                             <div className="space-y-1">
                                 <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Hora Inicio (Formato 24h)</label>
                                 <InputCol 
-                                    label="Hora Inicio (24h / UTC)" 
-                                    type="time" 
+                                    type="text" // <--- CAMBIO A TEXTO
+                                    placeholder="HH:MM"
                                     value={aeroForm.hora_inicio} 
                                     onChange={e => setAeroForm({...aeroForm, hora_inicio: e.target.value})} 
-                                />  
+                                /> 
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
@@ -374,11 +374,11 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                             <div className="space-y-1">
                                 <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Hora Fin (Formato 24h)</label>
                                 <InputCol 
-                                    label="Hora Inicio (24h / UTC)" 
-                                    type="time" 
+                                    type="text" // <--- CAMBIO A TEXTO
+                                    placeholder="HH:MM"
                                     value={aeroForm.hora_fin} 
                                     onChange={e => setAeroForm({...aeroForm, hora_fin: e.target.value})} 
-                                />  
+                                /> 
                             </div>
                         </div>
                     </div>
@@ -446,21 +446,21 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                         <AeroCheck 
                             label="VLOS (Hasta 750 metros)" 
                             description="Línea de vista visual directa del piloto."
-                            checked={aeroForm.contacto_visual.VLOS}
-                            onChange={() => toggleTipoFly('VLOS')}
+                            checked={aeroForm.contacto_visual.vlos}
+                            onChange={() => toggleTipoFly('vlos')}
                         />
                         <AeroCheck 
                             label="EVLOS (Hasta 3.000 metros con observador(es))" 
                             description="Línea de vista extendida mediante observadores."
-                            checked={aeroForm.contacto_visual.EVLOS}
-                            onChange={() => toggleTipoFly('EVLOS')}
+                            checked={aeroForm.contacto_visual.evlos}
+                            onChange={() => toggleTipoFly('evlos')}
                         />
                         <div className="md:col-span-2">
                             <AeroCheck 
                                 label="BVLOS (Distancia aprobada en la operación aérea)" 
                                 description="Operación más allá de la línea de vista visual."
-                                checked={aeroForm.contacto_visual.BVLOS}
-                            onChange={() => toggleTipoFly('BVLOS')}
+                                checked={aeroForm.contacto_visual.bvlos}
+                            onChange={() => toggleTipoFly('bvlos')}
                             />
                         </div>
                     </div>

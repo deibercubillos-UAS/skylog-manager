@@ -314,9 +314,9 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
     // Ajuste las coordenadas (C12, C13, etc) según su Excel real
     worksheet.getCell('V7').value = profile?.full_name?.toUpperCase();
     worksheet.getCell('V8').value = cleanText(org?.tax_id_type || 'NIT'); // Tomado de la organización
-    worksheet.getCell('V9').value = profile?.id_number;
-    worksheet.getCell('V10').value = profile?.email;
-    worksheet.getCell('V11').value = profile?.phone;
+    worksheet.getCell('V9').value = cleanText(org?.tax_id); 
+    worksheet.getCell('V10').value = cleanText(org?.tax_email);
+    worksheet.getCell('V11').value = cleanText(org?.tax_phone);
     worksheet.getCell('V12').value = cleanText(profile?.address);
 
     // --- SECCIÓN 2: JEFE DE PILOTOS UAS (Búsqueda Automática) ---
@@ -354,9 +354,9 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
     // --- SECCIÓN 5: TIPO DE CONTACTO VISUAL CON LA UA (Marcación de X) ---
     // Aquí ponemos la 'X' solo en las celdas que el usuario marcó
     const cv = data.contacto_visual;
-    if (cv.VLOS) worksheet.getCell('S35').value = 'X';
-    if (cv.EVLOS) worksheet.getCell('AN32').value = 'X';
-    if (cv.BVLOS) worksheet.getCell('S36').value = 'X';
+    if (cv.vlos) worksheet.getCell('S35').value = 'X';
+    if (cv.evlos) worksheet.getCell('AN32').value = 'X';
+    if (cv.bvlos) worksheet.getCell('S36').value = 'X';
 
     // --- SECCIÓN 6: VUELO ESPECIAL (Marcación de X) ---
     // Aquí ponemos la 'X' solo en las celdas que el usuario marcó
@@ -376,6 +376,22 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
         worksheet.getCell(`M${rowOffset}`).value = a.brand;
         worksheet.getCell(`AI${rowOffset}`).value = a.model;
         worksheet.getCell(`AI${rowOffset + 1}`).value = a.serial_number;
+    });
+
+    // --- SECCIÓN 9: PILOTO(S) UAS ---
+        data.pilotos_solicitud.forEach((p, index) => {
+            const row = 67 + (index * 4); // Piloto 1 en fila 51, Piloto 2 en 55...
+            worksheet.getCell(`W${row}`).value = cleanText(p.name);
+            worksheet.getCell(`W${row + 1}`).value = cleanText(p.id_number);
+            worksheet.getCell(`W${row + 2}`).value = cleanText(p.phone);
+        });
+
+        // --- SECCIÓN 10: OBSERVADOR(ES) UA ---
+    data.observadores.forEach((obs, index) => {
+        const row = 79 + (index * 4); // Observador 1 en fila 63, Observador 2 en 67...
+        worksheet.getCell(`W${row}`).value = cleanText(obs.name);
+        worksheet.getCell(`W${row + 1}`).value = cleanText(obs.id_number);
+        worksheet.getCell(`W${row + 2}`).value = cleanText(obs.phone);
     });
 
     // --- SECCIÓN 11: COORDENADAS ---

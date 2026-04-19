@@ -1,21 +1,52 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export default function BasicForm({ pilots, drones, missions, org, loadData }) {
     const [saving, setSaving] = useState(false);
+    const [geo, setGeo] = useState({ depts: [], munis: [], all: [] });
+    const [loadingGeo, setLoadingGeo] = useState(true);
+    const [prefix, setPrefix] = useState(org?.flight_prefix || 'BIT');
+
     const [form, setForm] = useState({ 
-        pilot_id: '', aircraft_id: '', location: '', 
-        scheduled_at: '', mission_type: 'Operación Comercial' 
+        pilot_id: '', aircraft_id: '', department: '', municipality: '',
+        scheduled_at: '', mission_type: 'SIMPLE CAPTURA DE IMÁGENES O DATOS' 
     });
 
-    // --- LÓGICA DE VALIDACIÓN TÉCNICA (SEMÁFORO) ---
+    // CARGA DE GEOGRAFÍA INTERNA
+    useEffect(() => {
+        async function loadGeo() {
+            const { data } = await supabase.from('colombia_geo').select('*').range(0, 1200).order('Nombre Departamento');
+            if (data) {
+                const uniqueDepts = [...new Set(data.map(i => i["Nombre Departamento"]))].sort();
+                setGeo({ depts: uniqueDepts, munis: [], all: data });
+            }
+            setLoadingGeo(false);
+        }
+        loadGeo();
+    }, []);
+
+    const handleDeptChange = (deptName) => {
+        const filtered = geo.all.filter(i => i["Nombre Departamento"] === deptName).map(i => i["Nombre Municipio"]).sort();
+        setGeo(prev => ({ ...prev, munis: filtered }));
+        setForm({ ...form, department: deptName, municipality: '' });
+    };
+
+    const handleUpdatePrefix = async () => {
+        const newP = prompt("Ingrese el nuevo prefijo (3 letras):", prefix);
+        if (newP && newP.length === 3) {
+            const val = newP.toUpperCase();
+            setPrefix(val);
+            await supabase.from('organizations').update({ flight_prefix: val }).eq('id', org.id);
+            alert("✅ Prefijo actualizado a: " + val);
+        }
+    };
+
+    // SEMÁFOROS DE SEGURIDAD
     const getPilotStatus = () => {
         const p = pilots.find(x => x.id === form.pilot_id);
         if (!p || !p.medical_expiry) return null;
-        const today = new Date();
-        const expiry = new Date(p.medical_expiry);
-        const diff = (expiry - today) / (1000 * 60 * 60 * 24);
+        const diff = (new Date(p.medical_expiry) - new Date()) / (1000 * 60 * 60 * 24);
         if (diff < 0) return { type: 'ERROR', msg: 'MÉDICO VENCIDO' };
         if (diff < 30) return { type: 'WARN', msg: `VENCE EN ${Math.round(diff)} DÍAS` };
         return { type: 'OK', msg: 'APTO PARA OPERACIÓN' };
@@ -24,134 +55,106 @@ export default function BasicForm({ pilots, drones, missions, org, loadData }) {
     const getDroneStatus = () => {
         const d = drones.find(x => x.id === form.aircraft_id);
         if (!d) return null;
-        const currentHours = parseFloat(d.total_hours || 0);
-        const lastHours = parseFloat(d.last_maintenance_hours || 0);
-        const remaining = 200 - (currentHours - lastHours);
+        const remaining = 200 - (parseFloat(d.total_hours || 0) - parseFloat(d.last_maintenance_hours || 0));
         if (remaining <= 0) return { type: 'ERROR', msg: 'MANTENIMIENTO REQUERIDO' };
         if (remaining <= 20) return { type: 'WARN', msg: `${remaining.toFixed(1)}H PARA SERVICIO` };
         return { type: 'OK', msg: 'AERONAVE OPERATIVA' };
     };
 
-    const pStatus = getPilotStatus();
-    const dStatus = getDroneStatus();
-
     const handleAuthorize = async (e) => {
         e.preventDefault();
-        if (pStatus?.type === 'ERROR' || dStatus?.type === 'ERROR') return alert("🚫 BLOQUEO: Elementos vencidos");
-        setSaving(true);
-        try {
-            const res = await fetch('/api/flights/authorize', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(form)
-            });
-            if (res.ok) {
-                alert("✅ MISIÓN AUTORIZADA");
-                setForm({ pilot_id: '', aircraft_id: '', location: '', scheduled_at: '', mission_type: 'Operación Comercial' });
-                loadData();
-            }
-        } finally { setSaving(false); }
-    };
+        const pStat = getPilotStatus();
+        const dStat = getDroneStatus();
+        if (pStat?.type === 'ERROR' || dStat?.type === 'ERROR') return alert("🚫 BLOQUEO DE SEGURIDAD");
 
-    const updateStatus = async (id, newStatus) => {
-        await supabase.from('flight_authorizations').update({ status: newStatus }).eq('id', id);
-        loadData();
+        setSaving(true);
+        const payload = {
+            ...form,
+            location: `${form.municipality}, ${form.department}`
+        };
+
+        const res = await fetch('/api/flights/authorize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            alert("🚀 MISIÓN AUTORIZADA");
+            setForm({ pilot_id: '', aircraft_id: '', department: '', municipality: '', scheduled_at: '', mission_type: 'SIMPLE CAPTURA DE IMÁGENES O DATOS' });
+            loadData();
+        }
+        setSaving(false);
     };
 
     return (
         <div className="space-y-8 animate-in slide-in-from-left duration-500">
-            {/* 1. PANEL DE MANDO (FORMULARIO) */}
-            <section className="bg-[#1A202C] p-6 md:p-10 rounded-[2.5rem] text-white shadow-2xl space-y-8 border border-white/5">
-                {/* SEMÁFOROS DE SEGURIDAD */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <StatusBox status={pStatus} title="Estatus Piloto" defaultMsg="Seleccione PIC" />
-                    <StatusBox status={dStatus} title="Estatus Aeronave" defaultMsg="Seleccione UAS" />
+            {/* PANEL DE MANDO */}
+            <section className="bg-[#1A202C] p-6 md:p-10 rounded-[3rem] text-white shadow-2xl space-y-8 border border-white/5">
+                <div className="flex justify-between items-center">
+                    <div className="flex gap-4">
+                        <StatusBox status={getPilotStatus()} title="Estatus PIC" defaultMsg="Seleccione Piloto" />
+                        <StatusBox status={getDroneStatus()} title="Estatus UAS" defaultMsg="Seleccione Drone" />
+                    </div>
+                    <button onClick={handleUpdatePrefix} className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-[10px] font-black text-orange-500 hover:bg-orange-600 hover:text-white transition-all">
+                        PREFIJO: {prefix}
+                    </button>
                 </div>
 
-                <form onSubmit={handleAuthorize} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                <form onSubmit={handleAuthorize} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end text-left">
                     <div className="space-y-1">
                         <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Piloto al Mando</label>
-                        <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold outline-none focus:ring-2 focus:ring-orange-500" value={form.pilot_id} onChange={e => setForm({...form, pilot_id: e.target.value})}>
-                            <option value="">Seleccionar PIC...</option>
+                        <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.pilot_id} onChange={e => setForm({...form, pilot_id: e.target.value})}>
+                            <option value="">Seleccionar...</option>
                             {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                     </div>
                     <div className="space-y-1">
                         <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Aeronave (UAS)</label>
-                        <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold outline-none focus:ring-2 focus:ring-orange-500" value={form.aircraft_id} onChange={e => setForm({...form, aircraft_id: e.target.value})}>
-                            <option value="">Seleccionar UAS...</option>
+                        <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.aircraft_id} onChange={e => setForm({...form, aircraft_id: e.target.value})}>
+                            <option value="">Seleccionar...</option>
                             {drones.map(d => <option key={d.id} value={d.id}>{d.model} ({d.serial_number})</option>)}
                         </select>
                     </div>
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Tipo de Misión</label>
-                        <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold outline-none" value={form.mission_type} onChange={e => setForm({...form, mission_type: e.target.value})}>
-                            <option value="Operación Comercial">Operación Comercial</option>
-                            <option value="Inspección Técnica">Inspección Técnica</option>
-                            <option value="Entrenamiento">Entrenamiento</option>
+                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Tipo de Operación (RAC 100)</label>
+                        <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.mission_type} onChange={e => setForm({...form, mission_type: e.target.value})}>
+                            <option value="SIMPLE CAPTURA DE IMÁGENES O DATOS">SIMPLE CAPTURA DE IMÁGENES</option>
+                            <option value="VIGILANCIA Y SEGURIDAD PRIVADA">VIGILANCIA Y SEGURIDAD</option>
+                            <option value="ASPERSIÓN / DISPERSIÓN">ASPERSIÓN / DISPERSIÓN</option>
+                            <option value="TRANSPORTE DE CARGA">TRANSPORTE DE CARGA</option>
+                            <option value="INSTRUCCIÓN">INSTRUCCIÓN</option>
                         </select>
                     </div>
-                    <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <input required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" placeholder="Lugar de Operación" value={form.location} onChange={e => setForm({...form, location: e.target.value})} />
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Departamento</label>
+                        <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.department} onChange={e => handleDeptChange(e.target.value)}>
+                            <option value="">-- Seleccionar --</option>
+                            {geo.depts.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Municipio</label>
+                        <select required disabled={!form.department} className="w-full p-4 bg-slate-800 rounded-2xl border-none text-white text-sm font-bold disabled:opacity-30" value={form.municipality} onChange={e => setForm({...form, municipality: e.target.value})}>
+                            <option value="">-- Seleccionar --</option>
+                            {geo.munis.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Fecha Programada</label>
                         <input required type="date" className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})} />
                     </div>
-                    <button type="submit" disabled={saving} className="bg-orange-600 hover:bg-orange-700 text-white p-4 rounded-2xl font-black uppercase text-xs shadow-xl active:scale-95 transition-all">
-                        {saving ? 'SINCRO...' : 'EMITIR ORDEN'}
+                    <button type="submit" disabled={saving} className="md:col-span-3 bg-orange-600 hover:bg-orange-700 text-white py-5 rounded-[2rem] font-black uppercase text-xs shadow-xl active:scale-95 transition-all">
+                        {saving ? 'SINCRO EN CURSO...' : 'AUTORIZAR MISIÓN OPERATIVA'}
                     </button>
                 </form>
             </section>
-
-            {/* 2. TABLA DE CONTROL OPERATIVO */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
-                <div className="p-6 bg-slate-50/50 border-b flex justify-between items-center">
-                    <h3 className="font-black text-[10px] uppercase text-slate-400 tracking-widest">Órdenes de Vuelo Emitidas</h3>
-                    <span className="text-[10px] font-mono font-black text-orange-600 uppercase">Prefijo: {org?.flight_prefix}</span>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
-                            <tr><th className="p-5">Orden</th><th className="p-5">PIC / UAS</th><th className="p-5">Estatus</th><th className="p-5 text-right">Acción</th></tr>
-                        </thead>
-                        <tbody className="divide-y text-sm">
-                            {missions.length > 0 ? missions.map(m => (
-                                <tr key={m.id} className="hover:bg-slate-50 transition-all group">
-                                    <td className="p-5 font-black text-orange-600 font-mono">{m.mission_id}</td>
-                                    <td className="p-5">
-                                        <p className="font-bold text-slate-800">{m.pilots?.name || 'Sistema'}</p>
-                                        <p className="text-[10px] text-slate-400 font-black uppercase">{m.aircraft?.model || 'UAS'}</p>
-                                    </td>
-                                    <td className="p-5">
-                                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${m.status === 'realizado' ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
-                                            {m.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-5 text-right space-x-2">
-                                        <button onClick={() => updateStatus(m.id, 'realizado')} title="Marcar Realizado" className="material-symbols-outlined text-emerald-500 hover:scale-110 transition-all">check_circle</button>
-                                        <button onClick={() => updateStatus(m.id, 'cancelado')} title="Cancelar" className="material-symbols-outlined text-red-400 hover:scale-110 transition-all">cancel</button>
-                                    </td>
-                                </tr>
-                            )) : (
-                                <tr><td colSpan="4" className="p-10 text-center text-slate-400 italic">No hay misiones programadas.</td></tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
     );
 }
 
 function StatusBox({ status, title, defaultMsg }) {
-    if (!status) return (
-        <div className="p-4 rounded-2xl border border-white/10 bg-white/5">
-            <p className="text-[8px] font-black text-slate-500 uppercase">{title}</p>
-            <p className="text-[10px] font-bold mt-1 text-slate-400 uppercase">{defaultMsg}</p>
-        </div>
-    );
-    return (
-        <div className={`p-4 rounded-2xl border ${status.type === 'ERROR' ? 'bg-red-500/20 border-red-500' : status.type === 'WARN' ? 'bg-orange-500/20 border-orange-500' : 'bg-emerald-500/20 border-emerald-500'}`}>
-            <p className="text-[8px] font-black uppercase text-white opacity-60">{title}</p>
-            <p className="text-[10px] font-bold mt-1 text-white uppercase">{status.msg}</p>
-        </div>
-    );
+    if (!status) return <div className="px-4 py-2 rounded-xl border border-white/10 bg-white/5"><p className="text-[7px] font-black text-slate-500 uppercase">{title}</p><p className="text-[9px] font-bold text-slate-400">{defaultMsg}</p></div>;
+    const colors = { ERROR: 'bg-red-500/20 border-red-500', WARN: 'bg-orange-500/20 border-orange-500', OK: 'bg-emerald-500/20 border-emerald-500' };
+    return <div className={`px-4 py-2 rounded-xl border ${colors[status.type]}`}><p className="text-[7px] font-black uppercase opacity-60">{title}</p><p className="text-[9px] font-black">{status.msg}</p></div>;
 }

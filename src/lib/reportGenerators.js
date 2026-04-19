@@ -354,9 +354,9 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
     // --- SECCIÓN 5: TIPO DE CONTACTO VISUAL CON LA UA (Marcación de X) ---
     // Aquí ponemos la 'X' solo en las celdas que el usuario marcó
     const cv = data.contacto_visual;
-    if (cv.vlos) worksheet.getCell('S35').value = 'X';
+    if (cv.vlos) worksheet.getCell('S32').value = 'X';
     if (cv.evlos) worksheet.getCell('AN32').value = 'X';
-    if (cv.bvlos) worksheet.getCell('S36').value = 'X';
+    if (cv.bvlos) worksheet.getCell('S33').value = 'X';
 
     // --- SECCIÓN 6: VUELO ESPECIAL (Marcación de X) ---
     // Aquí ponemos la 'X' solo en las celdas que el usuario marcó
@@ -372,7 +372,7 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
     // --- SECCIÓN 7: AERONAVES (Mapeo de tabla) ---
     // Suponiendo que la tabla de aeronaves empieza en la fila 40
     data.aeronaves.forEach((a, index) => {
-        const rowOffset = 43 + (index * 4); // Ajustar según diseño del Excel
+        const rowOffset = 43 + (index * 5); // Ajustar según diseño del Excel
         worksheet.getCell(`M${rowOffset}`).value = a.brand;
         worksheet.getCell(`AI${rowOffset}`).value = a.model;
         worksheet.getCell(`AI${rowOffset + 1}`).value = a.serial_number;

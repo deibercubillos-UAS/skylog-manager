@@ -4,6 +4,12 @@ import { supabase } from '@/lib/supabase';
 import HelpTooltip from '@/components/HelpTooltip';
 import dynamic from 'next/dynamic';
 
+const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
+    const hours = Math.floor(i / 2).toString().padStart(2, '0');
+    const minutes = (i % 2 === 0 ? '00' : '30');
+    return `${hours}:${minutes}`;
+});
+
 const MapPickerModal = dynamic(() => import('./MapPickerModal'), { 
   ssr: false, // <--- ESTO ES VITAL: Desactiva el renderizado en servidor
   loading: () => (
@@ -79,6 +85,21 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
             ...prev,
             vuelos_especiales: { ...prev.vuelos_especiales, [field]: !prev.vuelos_especiales[field] }
         }));
+    };
+
+    const handleTimeInput = (value, field) => {
+        // 1. Limpiar todo lo que no sea número
+        let val = value.replace(/\D/g, '');
+        
+        // 2. Limitar a 4 dígitos (HHmm)
+        if (val.length > 4) val = val.slice(0, 4);
+        
+        // 3. Formatear con los dos puntos
+        if (val.length >= 3) {
+            val = val.slice(0, 2) + ':' + val.slice(2);
+        }
+        
+        setAeroForm(prev => ({ ...prev, [field]: val }));
     };
     
     const addAircraftSlot = () => {
@@ -357,14 +378,17 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                                 <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-xs" value={aeroForm.fecha_inicio} onChange={e => setAeroForm({...aeroForm, fecha_inicio: e.target.value})} />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Hora Inicio (Formato 24h)</label>
-                                <InputCol 
-                                    type="text" // <--- CAMBIO A TEXTO
+                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Hora Inicio (24h)</label>
+                                <input 
+                                    list="time-slots"
+                                    type="text"
+                                    maxLength="5"
                                     placeholder="HH:MM"
-                                    value={aeroForm.hora_inicio} 
-                                    onChange={e => setAeroForm({...aeroForm, hora_inicio: e.target.value})} 
-                                /> 
-                            </div>
+                                    className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                                    value={aeroForm.hora_inicio}
+                                    onChange={(e) => handleTimeInput(e.target.value, 'hora_inicio')}
+                                />
+                            </div> 
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
@@ -372,14 +396,23 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                                 <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-xs" value={aeroForm.fecha_fin} onChange={e => setAeroForm({...aeroForm, fecha_fin: e.target.value})} />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Hora Fin (Formato 24h)</label>
-                                <InputCol 
-                                    type="text" // <--- CAMBIO A TEXTO
+                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Hora Fin (24h)</label>
+                                <input 
+                                    list="time-slots"
+                                    type="text"
+                                    maxLength="5"
                                     placeholder="HH:MM"
-                                    value={aeroForm.hora_fin} 
-                                    onChange={e => setAeroForm({...aeroForm, hora_fin: e.target.value})} 
-                                /> 
+                                    className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                                    value={aeroForm.hora_fin}
+                                    onChange={(e) => handleTimeInput(e.target.value, 'hora_fin')}
+                                />
                             </div>
+                            {/* LISTA DESPLEGABLE COMPARTIDA */}
+                            <datalist id="time-slots">
+                                {TIME_OPTIONS.map(time => (
+                                    <option key={time} value={time} />
+                                ))}
+                            </datalist>
                         </div>
                     </div>
 

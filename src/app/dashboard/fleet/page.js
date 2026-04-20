@@ -7,12 +7,17 @@ import AddAircraftPanel from '@/components/AddAircraftPanel';
 import AddBatteryPanel from '@/components/AddBatteryPanel';
 import EditAircraftPanel from '@/components/EditAircraftPanel';
 import EditBatteryPanel from '@/components/EditBatteryPanel';
+import TechCard from '@/components/TechCard';
+import AddTechPanel from '@/components/AddTechPanel';
+import EditTechPanel from '@/components/EditTechPanel'; // Crea este copiando AddTechPanel y cambiando insert por update
 
 export default function FleetPage() {
   const [drones, setDrones] = useState([]);
   const [batteries, setBatteries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
+  const [tech, setTech] = useState([]);
+  const [editingTech, setEditingTech] = useState(null);
   
   // Estados de Control de UI
   const [activePanel, setActivePanel] = useState(null);
@@ -43,6 +48,17 @@ export default function FleetPage() {
     } finally {
       setLoading(false);
     }
+    if (prof?.organization_id) {
+      const [resDrones, resBatteries, resTech] = await Promise.all([
+        supabase.from('aircraft').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
+        supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
+        supabase.from('inventory_items').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false })
+      ]);
+      setDrones(resDrones.data || []);
+      setBatteries(resBatteries.data || []);
+      setTech(resTech.data || []);
+    }
+    setLoading(false);
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -93,6 +109,23 @@ export default function FleetPage() {
         </div>
       </section>
 
+      // 4. INYECTAR LA SECCIÓN EN EL RENDERIZADO (Entre Baterías y Paneles)
+      <section className="mt-16">
+          <header className="flex justify-between items-end border-b pb-4 mb-8">
+            <div>
+              <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Equipos Tecnológicos</h2>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{tech.length} Payloads</p>
+            </div>
+            <button onClick={() => setActivePanel('tech')} className="bg-[#1A202C] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-purple-600 transition-all">+ Nuevo Equipo</button>
+          </header>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {tech.map(t => (
+              <TechCard key={t.id} item={t} onEdit={setEditingTech} onDelete={(id) => handleDelete(id, 'inventory_items')} />
+            ))}
+          </div>
+      </section>
+
+
       {/* SECCIÓN BATERÍAS */}
       <section>
         <header className="flex justify-between items-end border-b border-slate-200 pb-4 mb-8">
@@ -125,7 +158,8 @@ export default function FleetPage() {
       {/* PANELES DE ACCIÓN (Solo se activan si existen los estados) */}
       {activePanel === 'drone' && <AddAircraftPanel onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}
       {activePanel === 'battery' && <AddBatteryPanel onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}
-      
+      {activePanel === 'tech' && <AddTechPanel onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}
+      {editingTech && <EditTechPanel item={editingTech} onClose={() => setEditingTech(null)} onSuccess={() => { setEditingTech(null); fetchData(); }} />}
       {editingDrone && <EditAircraftPanel aircraft={editingDrone} onClose={() => setEditingDrone(null)} onSuccess={() => { setEditingDrone(null); fetchData(); }} />}
       {editingBattery && <EditBatteryPanel battery={editingBattery} onClose={() => setEditingBattery(null)} onSuccess={() => { setEditingBattery(null); fetchData(); }} />}
     </div>

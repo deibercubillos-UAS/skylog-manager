@@ -23,6 +23,16 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
     const [geo, setGeo] = useState({ depts: [], munis: [], all: [] });
     const [loadingGeo, setLoadingGeo] = useState(true);
     const [saving, setSaving] = useState(false)
+    const [inventoryList, setInventoryList] = useState([]);
+
+    useEffect(() => {
+    async function loadTech() {
+        const { data } = await supabase.from('inventory_items').select('*').eq('status', 'Operativo');
+        setInventoryList(data || []);
+    }
+    loadTech();
+}, []);
+
 
     // CORRECCIÓN LÍNEA 14: Estructura plana y sin duplicados
     const [aeroForm, setAeroForm] = useState({
@@ -722,12 +732,14 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                                 <div className="space-y-1 lg:col-span-2">
                                     <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Seleccionar de Inventario</label>
                                     <select 
-                                        className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                                        className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs outline-none"
                                         value={item.id}
-                                        onChange={(e) => handleTechSelect(index, e.target.value, []) /* Aquí iría su lista de inventario */}
+                                        onChange={(e) => handleTechSelect(index, e.target.value, inventoryList)} // <--- AHORA USA LA LISTA REAL
                                     >
-                                        <option value="">-- Elegir de Catálogo --</option>
-                                        {/* El mapeo de inventoryItems irá aquí cuando conectemos la tabla */}
+                                        <option value="">-- Seleccionar Equipo --</option>
+                                        {inventoryList.map(inv => (
+                                            <option key={inv.id} value={inv.id}>{inv.brand} {inv.model} ({inv.serial_number})</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <InputCol label="Tipo de Equipo" value={item.type} disabled />

@@ -116,10 +116,18 @@ export default function FleetPage() {
           <button onClick={() => setActivePanel('tech')} className="bg-[#1A202C] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-purple-600 transition-all">+ Nuevo Equipo</button>
         </header>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {tech.map(t => (
-            <TechCard key={t.id} item={t} onEdit={setEditingTech} onDelete={(id) => handleDelete(id, 'inventory_items')} />
-          ))}
-          {tech.length === 0 && <div className="col-span-full py-10 text-center text-slate-400 italic text-xs">No hay payloads registrados.</div>}
+            {tech && tech.length > 0 ? tech.map(t => (
+              <TechCard 
+                  key={t.id} 
+                  item={t} 
+                  onEdit={(item) => setEditingTech(item)} 
+                  onDelete={(id) => handleDelete(id, 'inventory_items')} 
+              />
+            )) : (
+              <div className="col-span-full py-10 text-center text-slate-400 border-2 border-dashed rounded-3xl">
+                  No hay equipos tecnológicos registrados aún.
+              </div>
+            )}
         </div>
       </section>
 

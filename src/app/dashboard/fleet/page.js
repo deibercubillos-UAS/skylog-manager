@@ -25,40 +25,31 @@ export default function FleetPage() {
   const [editingBattery, setEditingBattery] = useState(null);
 
   const fetchData = async () => {
-    try {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        setLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-      // 1. OBTENER ROL PARA EL CONTROL DE ACCESO
-      const { data: prof } = await supabase.from('profiles').select('role, organization_id').eq('id', user.id).single();
-      setUserRole(prof?.role);
-      
-      if (prof?.organization_id) {
-        const [resDrones, resBatteries] = await Promise.all([
-          supabase.from('aircraft').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
-          supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false })
-        ]);
+        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
         
-        setDrones(resDrones.data || []);
-        setBatteries(resBatteries.data || []);
+        if (prof?.organization_id) {
+          // CARGA INDEPENDIENTE PARA EVITAR BLOQUEOS
+          const [resDrones, resBatteries, resTech] = await Promise.all([
+            supabase.from('aircraft').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
+            supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
+            supabase.from('inventory_items').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false })
+          ]);
+          
+          // ASIGNACIÓN CON RESPALDO DE ARRAY VACÍO
+          setDrones(resDrones.data || []);
+          setBatteries(resBatteries.data || []);
+          setTech(resTech.data || []);
+        }
+      } catch (err) {
+        console.error("Error en sincronización:", err.message);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Error de carga:", err);
-    } finally {
-      setLoading(false);
-    }
-    if (prof?.organization_id) {
-      const [resDrones, resBatteries, resTech] = await Promise.all([
-        supabase.from('aircraft').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
-        supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
-        supabase.from('inventory_items').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false })
-      ]);
-      setDrones(resDrones.data || []);
-      setBatteries(resBatteries.data || []);
-      setTech(resTech.data || []);
-    }
-    setLoading(false);
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -110,26 +101,17 @@ export default function FleetPage() {
       </section>
 
      {/*SECCION EQUIPOS*/} 
-      <section>
+      <section className="mb-12">
         <header className="flex justify-between items-end border-b pb-4 mb-8">
-          <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Equipos Tecnológicos</h2>
-          <button onClick={() => setActivePanel('tech')} className="bg-[#1A202C] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-purple-600 transition-all">+ Nuevo Equipo</button>
+            <h2 className="text-3xl font-black uppercase text-slate-900">Tecnología</h2>
+            <button onClick={() => setActivePanel('tech')} className="bg-[#1A202C] text-white px-6 py-2 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-purple-600 transition-all">+ Nuevo Payload</button>
         </header>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {tech && tech.length > 0 ? tech.map(t => (
-              <TechCard 
-                  key={t.id} 
-                  item={t} 
-                  onEdit={(item) => setEditingTech(item)} 
-                  onDelete={(id) => handleDelete(id, 'inventory_items')} 
-              />
-            )) : (
-              <div className="col-span-full py-10 text-center text-slate-400 border-2 border-dashed rounded-3xl">
-                  No hay equipos tecnológicos registrados aún.
-              </div>
-            )}
+            {tech.map(t => (
+                <TechCard key={t.id} item={t} onEdit={setEditingTech} onDelete={(id) => handleDelete(id, 'inventory_items')} />
+            ))}
         </div>
-      </section>
+    </section>
 
             {/* SECCIÓN BATERÍAS */}
       <section>

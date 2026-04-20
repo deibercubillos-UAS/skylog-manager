@@ -3,13 +3,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import AircraftCard from '@/components/AircraftCard';
 import BatteryCard from '@/components/BatteryCard';
+import TechCard from '@/components/TechCard'; // <--- IMPORTANTE
 import AddAircraftPanel from '@/components/AddAircraftPanel';
 import AddBatteryPanel from '@/components/AddBatteryPanel';
+import AddTechPanel from '@/components/AddTechPanel'; // <--- IMPORTANTE
 import EditAircraftPanel from '@/components/EditAircraftPanel';
 import EditBatteryPanel from '@/components/EditBatteryPanel';
-import TechCard from '@/components/TechCard';
-import AddTechPanel from '@/components/AddTechPanel';
-import EditTechPanel from '@/components/EditTechPanel'; // Crea este copiando AddTechPanel y cambiando insert por update
+import EditTechPanel from '@/components/EditTechPanel'; // <--- IMPORTANTE
 
 export default function FleetPage() {
   const [drones, setDrones] = useState([]);
@@ -109,24 +109,21 @@ export default function FleetPage() {
         </div>
       </section>
 
-      // 4. INYECTAR LA SECCIÓN EN EL RENDERIZADO (Entre Baterías y Paneles)
-      <section className="mt-16">
-          <header className="flex justify-between items-end border-b pb-4 mb-8">
-            <div>
-              <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Equipos Tecnológicos</h2>
-              <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{tech.length} Payloads</p>
-            </div>
-            <button onClick={() => setActivePanel('tech')} className="bg-[#1A202C] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-purple-600 transition-all">+ Nuevo Equipo</button>
-          </header>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {tech.map(t => (
-              <TechCard key={t.id} item={t} onEdit={setEditingTech} onDelete={(id) => handleDelete(id, 'inventory_items')} />
-            ))}
-          </div>
+     {/*SECCION EQUIPOS*/} 
+      <section>
+        <header className="flex justify-between items-end border-b pb-4 mb-8">
+          <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Equipos Tecnológicos</h2>
+          <button onClick={() => setActivePanel('tech')} className="bg-[#1A202C] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-purple-600 transition-all">+ Nuevo Equipo</button>
+        </header>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {tech.map(t => (
+            <TechCard key={t.id} item={t} onEdit={setEditingTech} onDelete={(id) => handleDelete(id, 'inventory_items')} />
+          ))}
+          {tech.length === 0 && <div className="col-span-full py-10 text-center text-slate-400 italic text-xs">No hay payloads registrados.</div>}
+        </div>
       </section>
 
-
-      {/* SECCIÓN BATERÍAS */}
+            {/* SECCIÓN BATERÍAS */}
       <section>
         <header className="flex justify-between items-end border-b border-slate-200 pb-4 mb-8">
           <div>
@@ -155,13 +152,13 @@ export default function FleetPage() {
         </div>
       </section>
 
-      {/* PANELES DE ACCIÓN (Solo se activan si existen los estados) */}
+      {/* RENDERIZADO DE PANELES */}
       {activePanel === 'drone' && <AddAircraftPanel onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}
       {activePanel === 'battery' && <AddBatteryPanel onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}
       {activePanel === 'tech' && <AddTechPanel onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}
-      {editingTech && <EditTechPanel item={editingTech} onClose={() => setEditingTech(null)} onSuccess={() => { setEditingTech(null); fetchData(); }} />}
-      {editingDrone && <EditAircraftPanel aircraft={editingDrone} onClose={() => setEditingDrone(null)} onSuccess={() => { setEditingDrone(null); fetchData(); }} />}
+            {editingDrone && <EditAircraftPanel aircraft={editingDrone} onClose={() => setEditingDrone(null)} onSuccess={() => { setEditingDrone(null); fetchData(); }} />}
       {editingBattery && <EditBatteryPanel battery={editingBattery} onClose={() => setEditingBattery(null)} onSuccess={() => { setEditingBattery(null); fetchData(); }} />}
+      {editingTech && <EditTechPanel item={editingTech} onClose={() => setEditingTech(null)} onSuccess={() => { setEditingTech(null); fetchData(); }} />}
     </div>
   );
 }

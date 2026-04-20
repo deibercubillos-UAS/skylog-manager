@@ -58,13 +58,21 @@ export default function FleetPage() {
   const canManage = ['superadmin', 'admin', 'jefe_pilotos'].includes(userRole);
 
   const handleDelete = async (id, table) => {
-    if (!canManage) return alert("Acceso Denegado: No tiene permisos de escritura.");
-    if (!confirm("¿Eliminar este activo permanentemente?")) return;
+    if (!confirm("¿Está seguro de eliminar este activo? Esta acción es irreversible.")) return;
     
-    const { error } = await supabase.from(table).delete().eq('id', id);
-    if (!error) fetchData();
-    else alert("Error al eliminar: " + error.message);
-  };
+    try {
+        const { error } = await supabase.from(table).delete().eq('id', id);
+        
+        if (error) {
+            alert("Error de Servidor: " + error.message);
+        } else {
+            // Refrescar los datos locales después de borrar
+            fetchData();
+        }
+    } catch (err) {
+        alert("Falla de red al intentar eliminar.");
+    }
+};
 
   if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">CARGANDO INVENTARIO TÉCNICO...</div>;
 
@@ -114,32 +122,16 @@ export default function FleetPage() {
     </section>
 
             {/* SECCIÓN BATERÍAS */}
-      <section>
-        <header className="flex justify-between items-end border-b border-slate-200 pb-4 mb-8">
-          <div>
-            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Baterías</h2>
-            <p className="text-slate-400 text-[10px] font-black uppercase mt-2 tracking-widest">{batteries.length} Células de Energía</p>
+      <section className="mb-12">
+          <header className="flex justify-between items-end border-b pb-4 mb-8">
+              <h2 className="text-3xl font-black uppercase text-slate-900">Baterías</h2>
+              <button onClick={() => setActivePanel('battery')} className="bg-[#1A202C] text-white px-6 py-2 rounded-xl font-black text-[10px] uppercase shadow-lg">+ Nueva Batería</button>
+          </header>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {batteries.map(b => (
+                  <BatteryCard key={b.id} battery={b} onEdit={setEditingBattery} onDelete={(id) => handleDelete(id, 'batteries')} />
+              ))}
           </div>
-          {/* Solo mostramos el botón si tiene permisos */}
-          {canManage && (
-            <button 
-              onClick={() => setActivePanel('battery')} 
-              className="bg-[#1A202C] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-orange-600 transition-all active:scale-95"
-            >
-              + Nueva Batería
-            </button>
-          )}
-        </header>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {batteries.map(b => (
-            <BatteryCard 
-              key={b.id} 
-              battery={b} 
-              onEdit={canManage ? setEditingBattery : null} 
-              onDelete={canManage ? (id) => handleDelete(id, 'batteries') : null} 
-            />
-          ))}
-        </div>
       </section>
 
       {/* RENDERIZADO DE PANELES */}

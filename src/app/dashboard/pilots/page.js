@@ -6,37 +6,36 @@ export const dynamic = 'force-dynamic';
 
 export default async function PilotsPage() {
   const supabase = createClient();
-
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: currentUser } = await supabase
-    .from('profiles')
-    .select('organization_id, role')
-    .eq('id', user.id)
-    .single();
+  const { data: prof } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).single();
+  const orgId = prof?.organization_id;
 
-  if (!currentUser?.organization_id) redirect('/onboarding');
-
-  // PARALELISMO: Traemos a TODOS los miembros de la empresa (sin filtrar solo por 'Piloto')
-  // para que no desaparezcan los que ya estaban registrados.
+  // TRAEMOS DE LA TABLA 'pilots' (Donde están tus datos antiguos)
   const [pilotsReq, orgReq] = await Promise.all([
-  supabase
-    .from('profiles') // Usamos profiles porque ahí están los datos de contacto y rol
-    .select('id, full_name, role, license_number, medical_expiry, phone, email')
-    .eq('organization_id', currentUser.organization_id)
-    .order('full_name', { ascending: true }),
-  supabase
-    .from('organizations')
-    .select('company_name')
-    .eq('id', currentUser.organization_id)
-    .single()
-]);
+    supabase
+      .from('pilots') // <--- CAMBIO A TU TABLA DE PILOTOS REAL
+      .select('*')
+      .eq('organization_id', orgId)
+      .order('name', { ascending: true }),
+    supabase
+      .from('organizations')
+      .select('company_name')
+      .eq('id', orgId)
+      .single()
+  ]);
+
   const initialData = {
-    pilots: pilotsReq.data || [],
-    organization: orgReq.data || {},
-    userRole: currentUser.role,
-    organizationId: currentUser.organization_id
+    // Mapeamos 'name' porque en tu tabla 'pilots' no se llama 'full_name'
+    pilots: pilotsReq.data?.map(p => ({
+        ...p,
+        full_name: p.name, 
+        role: p.position || 'Piloto'
+    })) || [],
+    organization: orgReq.data || { company_name: 'Bitafly Corp' },
+    userRole: prof?.role,
+    organizationId: orgId
   };
 
   return <PilotsClient initialData={initialData} />;

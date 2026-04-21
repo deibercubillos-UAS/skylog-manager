@@ -19,24 +19,32 @@ export default function FinalizeFlightPage() {
     });
 
     useEffect(() => {
-        async function loadOpenFlights() {
-            const { data: { user } } = await supabase.auth.getUser();
-            const { data } = await supabase
-                .from('flights')
-                .select('*, aircraft(model, serial_number), pilots(name)')
-                .is('landing_time', null)
-                .order('created_at', { ascending: false });
-            
-            setOpenFlights(data || []);
-            
-            const targetId = flightIdParam || (data?.length > 0 ? data[0].id : '');
-            if (targetId) {
-                setForm(prev => ({ ...prev, flight_id: targetId }));
-                setSelectedFlight(data?.find(f => f.id === targetId));
-            }
-            setLoading(false);
+    async function loadOpenFlights() {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        // Obtenemos el perfil para filtrar por organización (Evita error 406)
+        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+
+        const { data, error } = await supabase
+            .from('flights')
+            .select('*, aircraft(model, serial_number, total_hours)')
+            .eq('organization_id', prof.organization_id) // Filtro explícito
+            .is('landing_time', null)
+            .order('created_at', { ascending: false });
+        
+        if (error) console.error(error);
+        
+        setOpenFlights(data || []);
+        
+        // Vincular el ID que viene por URL
+        const targetId = flightIdParam || (data?.length > 0 ? data[0].id : '');
+        if (targetId) {
+            setForm(prev => ({ ...prev, flight_id: targetId }));
+            setSelectedFlight(data?.find(f => f.id === targetId));
         }
-        loadOpenFlights();
+        setLoading(false);
+    }
+    loadOpenFlights();
     }, [flightIdParam]);
 
     const handleSelectChange = (id) => {

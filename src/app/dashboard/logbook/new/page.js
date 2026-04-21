@@ -69,6 +69,7 @@ export default function NewOperationPage() {
         else if (step === 'preflight') setStep('briefing');
     };
 
+    // BUSQUE LA FUNCIÓN handleFinalize Y REEMPLÁCELA:
     const handleFinalize = async () => {
         setSaving(true);
         try {
@@ -76,9 +77,13 @@ export default function NewOperationPage() {
             const selectedAuth = resources.auths.find(a => a.id === form.auth_id);
             const orgId = selectedAuth.organization_id;
 
-            // 1. Crear el Vuelo principal
+            // 1. Crear el Vuelo (Insertamos y esperamos confirmación)
             const { data: flight, error: fErr } = await supabase.from('flights').insert([{ 
-                ...form, 
+                battery_id: form.battery_id,
+                takeoff_time: form.takeoff_time,
+                visual_condition: form.visual_condition,
+                notes: form.notes,
+                auth_id: selectedAuth.id, 
                 pilot_id: selectedAuth.pilot_id, 
                 aircraft_id: selectedAuth.aircraft_id, 
                 location: selectedAuth.location, 
@@ -90,43 +95,22 @@ export default function NewOperationPage() {
 
             if (fErr) throw fErr;
 
-            // 2. Guardar resultados INYECTANDO el orgId para cumplir con RLS
+            // 2. Guardar resultados
             await Promise.all([
-                supabase.from('results_health').insert([{ 
-                    flight_id: flight.id, 
-                    checks: checks.health,
-                    organization_id: orgId 
-                }]),
-                supabase.from('results_briefing').insert([{ 
-                    flight_id: flight.id, 
-                    checks: checks.briefing,
-                    organization_id: orgId 
-                }]),
-                supabase.from('results_preflight').insert([{ 
-                    flight_id: flight.id, 
-                    checks: checks.preflight,
-                    organization_id: orgId 
-                }]),
+                supabase.from('results_health').insert([{ flight_id: flight.id, checks: checks.health, organization_id: orgId }]),
+                supabase.from('results_briefing').insert([{ flight_id: flight.id, checks: checks.briefing, organization_id: orgId }]),
+                supabase.from('results_preflight').insert([{ flight_id: flight.id, checks: checks.preflight, organization_id: orgId }]),
                 supabase.from('flight_authorizations').update({ status: 'realizado' }).eq('id', form.auth_id)
             ]);
 
-            if (!healthDone) {
-                await supabase.from('daily_health_checks').insert([{ 
-                    user_id: user.id, 
-                    organization_id: orgId 
-                }]);
-            }
-
             alert("🚀 ¡AUTORIZADO VOLAR!");
-            // Forzamos la redirección con window.location para limpiar el estado de memoria
+            
+            // REDIRECCIÓN FORZADA AL NAVEGADOR
             window.location.href = `/dashboard/logbook/finalize?id=${flight.id}`;
 
         } catch (err) {
-            console.error("Falla en despacho:", err.message);
-            alert("⚠️ Error de Seguridad: " + err.message);
-        } finally { 
-            setSaving(false); 
-        }
+            alert("⚠️ Error de Despacho: " + err.message);
+        } finally { setSaving(false); }
     };
 
     if (loading) return <div className="h-screen flex items-center justify-center bg-[#f8f6f6] font-black animate-pulse text-slate-400">CARGANDO...</div>;

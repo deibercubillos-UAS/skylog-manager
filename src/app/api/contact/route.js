@@ -9,7 +9,7 @@ export async function POST(req) {
 
     await resend.emails.send({
       from: 'BitaFly Leads <no-reply@bitafly.com>',
-      to: ['tu-correo@empresa.com'], // Donde quieres recibir los leads
+      to: ['deibercubillos@gmail.com'], // Donde quieres recibir los leads
       subject: `Nueva Consulta: ${company}`,
       html: `<p><strong>Nombre:</strong> ${name}</p>
              <p><strong>Email:</strong> ${email}</p>

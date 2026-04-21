@@ -1,0 +1,3301 @@
+--- BITAFY ARCHITECTURE AUDIT ---
+Generated on: Tue Apr 21 21:06:10 UTC 2026
+
+
+==========================================
+FILE/DIR: src/app/api
+==========================================
+
+--- File: src/app/api/invite/route.js ---
+import { Resend } from 'resend';
+import { NextResponse } from 'next/server';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export async function POST(req) {
+  try {
+    const { email, role, orgName, inviterName } = await req.json();
+
+    const data = await resend.emails.send({
+      from: 'SkyLog Manager <no-reply@bitafly.com>',
+      to: [email],
+      subject: `🚁 Invitación para unirse a la flota de ${orgName}`,
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; color: #1A202C;">
+          <h2 style="color: #ec5b13;">¡Hola!</h2>
+          <p><strong>${inviterName}</strong> te ha invitado a unirte a su equipo en <strong>BitaFly</strong> como <strong>${role}</strong>.</p>
+          <p>Con BitaFly podrás gestionar tus vuelos, cumplir con la normativa RAC 100 y mantener tu bitácora digital al día.</p>
+          <div style="margin-top: 30px;">
+            <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com'}/registro?email=${email}" 
+               style="background-color: #ec5b13; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+              Aceptar Invitación y Registrarme
+            </a>
+          </div>
+          <p style="margin-top: 40px; font-size: 12px; color: #718096;">Si no esperabas esta invitación, puedes ignorar este correo.</p>
+        </div>
+      `,
+    });
+
+    return NextResponse.json(data);
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+--- File: src/app/api/subscription/route.js ---
+// FILE: src/app/api/subscription/route.js
+import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabaseServer';
+import { PLAN_CONFIG } from '@/lib/planLimits';
+export const dynamic = 'force-dynamic';
+
+export async function GET(request) {
+  try {
+    const supabase = await createClient();
+    
+    // Verificación de sesión mediante SSR (Cookies seguras)
+    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    
+    if (authError || !session) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const userId = session.user.id;
+
+    const [profileRes, dronesRes, pilotsRes] = await Promise.all([
+      supabase.from('profiles').select('subscription_plan').eq('id', userId).single(),
+      supabase.from('aircraft').select('id', { count: 'exact', head: true }).eq('owner_id', userId),
+      supabase.from('pilots').select('id', { count: 'exact', head: true }).eq('owner_id', userId).eq('is_active', true)
+    ]);
+
+    const planKey = profileRes.data?.subscription_plan || 'piloto';
+    const currentPlan = PLAN_CONFIG[planKey];
+
+    return NextResponse.json({
+      planName: currentPlan.name,
+      planSlug: planKey,
+      usage: {
+        drones: { current: dronesRes.count || 0, limit: currentPlan.maxDrones },
+        pilots: { current: pilotsRes.count || 0, limit: currentPlan.maxPilots }
+      },
+      features: currentPlan.features
+    });
+
+  } catch (err) {
+    console.error("API Subscription Error:", err.message);
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
+  }
+}
+--- File: src/app/api/subscription/cancel/route.js ---
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+
+export async function POST(request) {
+  try {
+    const { userId } = await request.json();
+    const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+    const { data: profile } = await supabaseAdmin.from('profiles').select('epayco_subscription_id').eq('id', userId).single();
+
+    if (profile?.epayco_subscription_id) {
+      const authRes = await fetch('https://api.secure.payco.co/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          public_key: process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY,
+          private_key: process.env.EPAYCO_PRIVATE_KEY
+        })
+      });
+      const authData = await authRes.json();
+      const token = authData.bearer_token || authData.token;
+
+      await fetch('https://api.secure.payco.co/recurring/v1/subscription/cancel', {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'type': 'sdk-jwt' 
+        },
+        body: JSON.stringify({ id: profile.epayco_subscription_id })
+      });
+    }
+
+    await supabaseAdmin.from('profiles').update({ 
+      subscription_plan: 'piloto',
+      epayco_subscription_id: null,
+      updated_at: new Date().toISOString()
+    }).eq('id', userId);
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+--- File: src/app/api/route.js ---
+// FILE: src/app/api/form-templates/route.js
+import { createClient } from '@/lib/supabaseServer';
+import { NextResponse } from 'next/server';
+
+// Obtener todas las plantillas del usuario
+export async function GET(request) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return new NextResponse(JSON.stringify({ error: 'No autorizado' }), { status: 401 });
+
+    const { data, error } = await supabase
+      .from('form_templates')
+      .select('*')
+      .eq('owner_id', user.id)
+      .order('name');
+      
+    if (error) throw error;
+    return NextResponse.json(data);
+  } catch (err) {
+    return new NextResponse(JSON.stringify({ error: err.message }), { status: 500 });
+  }
+}
+
+// Crear una nueva plantilla de formulario
+export async function POST(request) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return new NextResponse(JSON.stringify({ error: 'No autorizado' }), { status: 401 });
+
+    const body = await request.json();
+    const { name, form_code, version, schema } = body;
+
+    const { data, error } = await supabase
+      .from('form_templates')
+      .insert([{ owner_id: user.id, name, form_code, version, schema }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return NextResponse.json(data, { status: 201 });
+  } catch (err) {
+    return new NextResponse(JSON.stringify({ error: err.message }), { status: 500 });
+  }
+}
+--- File: src/app/api/pilots/route.js ---
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+import { canAddResource } from '@/lib/planLimits';
+
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    const authHeader = request.headers.get('Authorization');
+
+    if (!userId || !authHeader) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data, error } = await supabase
+      .from('pilots')
+      .select('*')
+      .eq('owner_id', userId)
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    return NextResponse.json(data);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function POST(request) {
+  try {
+    const body = await request.json();
+    const authHeader = request.headers.get('Authorization');
+    const { userId, pilotData, currentPlan, currentCount } = body;
+
+    if (!canAddResource(currentPlan, currentCount, 'pilot')) {
+      return NextResponse.json({ error: "Límite de plan alcanzado" }, { status: 403 });
+    }
+
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data, error } = await supabase
+      .from('pilots')
+      .insert([{ ...pilotData, owner_id: userId }])
+      .select();
+
+    if (error) throw error;
+    return NextResponse.json(data[0], { status: 201 });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+--- File: src/app/api/pilots/[id]/route.js ---
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+
+// OBTENER UN PILOTO ESPECÍFICO
+export async function GET(request, { params }) {
+  try {
+    const { id } = params;
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+    const { data, error } = await supabase.from('pilots').select('*').eq('id', id).single();
+    if (error) throw error;
+    return NextResponse.json(data);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+// EDITAR DATOS DEL PILOTO
+export async function PATCH(request, { params }) {
+  try {
+    const { id } = params;
+    const body = await request.json();
+    const { updateData } = body;
+    const authHeader = request.headers.get('Authorization');
+
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data, error } = await supabase
+      .from('pilots')
+      .update({ ...updateData, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select();
+
+    if (error) throw error;
+    return NextResponse.json(data[0]);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+// DAR DE BAJA (SOFT DELETE) - RESERVADO PARA ADMIN, SMS Y JEFE PILOTOS
+export async function DELETE(request, { params }) {
+  try {
+    const { id } = params;
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    const authHeader = request.headers.get('Authorization');
+
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Validar Rol en el servidor antes de proceder
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single();
+    const rolesAutorizados = ['admin', 'gerente_sms', 'jefe_pilotos'];
+
+    if (!rolesAutorizados.includes(profile.role)) {
+      return NextResponse.json({ error: "No autorizado para dar de baja tripulantes" }, { status: 403 });
+    }
+
+    // Borrado Lógico: is_active = false
+    const { error } = await supabase
+      .from('pilots')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) throw error;
+    return NextResponse.json({ message: "Tripulante dado de baja" });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+--- File: src/app/api/flights/authorize/route.js ---
+import { createClientSSR } from '@/lib/supabaseServer';
+import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
+    try {
+        const supabase = await createClientSSR();
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+
+        const { data, error } = await supabase
+            .from('flight_authorizations')
+            .select(`
+                *,
+                pilots:pilot_id(name, phone, id_number),
+                aircraft:aircraft_id(model, serial_number, total_hours),
+                payload:payload_id(brand, model, category, serial_number),
+                observer:observer_id(name)
+            `)
+            .eq('organization_id', prof.organization_id)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return NextResponse.json(data || []);
+    } catch (err) { return NextResponse.json([], { status: 500 }); }
+}
+
+export async function POST(request) {
+    try {
+        const supabase = await createClientSSR();
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+        const { data: org } = await supabase.from('organizations').select('flight_prefix').eq('id', prof.organization_id).single();
+
+        const body = await request.json();
+        const prefix = org.flight_prefix || 'BIT';
+
+        const { count } = await supabase.from('flight_authorizations')
+            .select('*', { count: 'exact', head: true })
+            .eq('organization_id', prof.organization_id)
+            .ilike('mission_id', `${prefix}-%`);
+
+        const missionId = `${prefix}-${(count + 1).toString().padStart(3, '0')}`;
+
+        const { data, error } = await supabase.from('flight_authorizations').insert([{
+            ...body,
+            mission_id: missionId,
+            organization_id: prof.organization_id,
+            scheduled_by: user.id,
+            status: 'autorizado' // <--- DEBE SER EXACTAMENTE IGUAL AL FILTRO DE DESPACHO
+        }]).select();
+
+        if (error) throw error;
+        return NextResponse.json(data[0]);
+    } catch (err) { return NextResponse.json({ error: err.message }, { status: 500 }); }
+}
+
+// --- MÉTODO NUEVO PARA EDITAR ---
+export async function PATCH(request) {
+    try {
+        const supabase = await createClientSSR();
+        const body = await request.json();
+        const { id, pilot_id, aircraft_id, location, scheduled_at, mission_type } = body;
+
+        const { data, error } = await supabase
+            .from('flight_authorizations')
+            .update({
+                pilot_id,
+                aircraft_id,
+                location,
+                scheduled_at,
+                mission_type,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id)
+            .select();
+
+        if (error) throw error;
+        return NextResponse.json(data[0]);
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}
+--- File: src/app/api/form-templates/route.js ---
+import { createClient } from '@/lib/supabaseServer';
+import { NextResponse } from 'next/server';
+
+const INITIAL_FORMATS = [
+    { 
+        identifier: 'vuelo_diario', name: 'Formato de Vuelo Diario', form_code: 'F-OPS-001', version: '2.0',
+        schema: [
+            { label: 'Marca UAS', type: 'auto_brand' },
+            { label: 'Modelo UAS', type: 'auto_model' },
+            { label: 'SN UAS', type: 'auto_sn' },
+            { label: 'CIPU Piloto', type: 'auto_cipu' },
+            { label: 'Hora Despegue', type: 'time' },
+            { label: 'Hora Aterrizaje', type: 'time' },
+            { label: 'Condición Visual', type: 'select', options: 'VMC, IMC' }
+        ]
+    },
+    { 
+        identifier: 'registro_baterias', name: 'Registro Operacional Baterías', form_code: 'F-MNT-003', version: '1.0',
+        schema: [
+            { label: 'SN Aeronave', type: 'auto_sn' },
+            { label: 'Modelo Batería', type: 'text' },
+            { label: 'Número de Ciclo', type: 'number' }
+        ]
+    }
+];
+
+export async function GET() {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    let { data: templates } = await supabase.from('form_templates').select('*').eq('owner_id', user.id);
+
+    // Si es un usuario nuevo, instalamos los formatos básicos
+    if (!templates || templates.length === 0) {
+        const toInstall = INITIAL_FORMATS.map(f => ({ ...f, owner_id: user.id }));
+        const { data: installed } = await supabase.from('form_templates').insert(toInstall).select();
+        return NextResponse.json(installed);
+    }
+
+    return NextResponse.json(templates);
+}
+
+export async function POST(request) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const body = await request.json();
+    
+    const { data, error } = await supabase.from('form_templates').upsert({
+        ...body,
+        owner_id: user.id,
+        updated_at: new Date().toISOString()
+    }).select();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(data[0]);
+}
+
+--- File: src/app/api/logbook/route.js ---
+import { createClientSSR } from '@/lib/supabaseServer';
+import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
+    try {
+        const supabase = await createClientSSR();
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+
+        const { data, error } = await supabase
+            .from('flights')
+            .select(`
+                *,
+                pilots:pilot_id(name),
+                aircraft:aircraft_id(model, serial_number, total_hours)
+            `)
+            .eq('organization_id', prof.organization_id)
+            .order('flight_date', { ascending: false });
+
+        if (error) throw error;
+        return NextResponse.json(data || []);
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}
+--- File: src/app/api/logbook/pilots/route.js ---
+import { createClient } from '@/lib/supabaseServer';
+import { NextResponse } from 'next/server';
+
+export async function GET(request) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const pilotId = searchParams.get('pilotId');
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+        let query = supabase
+            .from('flights')
+            .select('*, pilots(*), aircraft(*)')
+            .eq('owner_id', user.id)
+            .order('flight_date', { ascending: false });
+
+        if (pilotId) {
+            query = query.eq('pilot_id', pilotId);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        return NextResponse.json(data);
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}
+--- File: src/app/api/logbook/batteries/route.js ---
+import { createClient } from '@/lib/supabaseServer';
+import { NextResponse } from 'next/server';
+
+export async function POST(request) {
+    try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+        const body = await request.json();
+        
+        const { data, error } = await supabase.from('battery_logs').insert([{
+            owner_id: user.id,
+            aircraft_id: body.aircraft_id,
+            flight_id: body.flight_id, // <-- Nuevo vínculo
+            battery_model: body.battery_model,
+            battery_sn: body.battery_sn,
+            charge_percentage: body.charge_percentage,
+            cycle_number: body.cycle_number,
+            notes: body.notes
+        }]).select();
+
+        if (error) throw error;
+        return NextResponse.json(data[0]);
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}
+--- File: src/app/api/logbook/inventory/route.js ---
+import { createClient } from '@/lib/supabaseServer';
+import { NextResponse } from 'next/server';
+
+export async function GET() {
+    try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        const { data } = await supabase.from('inventory_items').select('*').eq('owner_id', user.id);
+        return NextResponse.json(data || []);
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}
+
+export async function POST(request) {
+    try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        const body = await request.json();
+
+        // Si es una creación de artículo nuevo para el catálogo
+        if (body.action === 'add_item') {
+            const { data, error } = await supabase.from('inventory_items').insert([{
+                owner_id: user.id,
+                name: body.name
+            }]).select();
+            if (error) throw error;
+            return NextResponse.json(data[0]);
+        }
+
+        // Si es un registro de inventario para una misión
+        const { data, error } = await supabase.from('mission_inventory_logs').insert([{
+            owner_id: user.id,
+            flight_id: body.flight_id,
+            items_json: body.items,
+            notes: body.notes
+        }]).select();
+
+        if (error) throw error;
+        return NextResponse.json(data[0]);
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}
+--- File: src/app/api/form-settings/route.js ---
+import { createClient } from '@/lib/supabaseServer';
+import { NextResponse } from 'next/server';
+
+export async function GET() {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data } = await supabase.from('form_settings').select('*').eq('owner_id', user.id).maybeSingle();
+    
+    return NextResponse.json(data || { enabled_forms: [], form_metadata: {} });
+}
+
+export async function POST(request) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const body = await request.json();
+    
+    const { data, error } = await supabase.from('form_settings').upsert({
+        owner_id: user.id,
+        enabled_forms: body.enabled_forms,
+        form_metadata: body.form_metadata,
+        updated_at: new Date().toISOString()
+    }).select();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(data[0]);
+}
+
+--- File: src/app/api/user/profile/route.js ---
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    const cookieStore = await cookies();
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          get(name) { return cookieStore.get(name)?.value; },
+        },
+      }
+    );
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+    const targetUserId = userId || session.user.id;
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', targetUserId).single();
+
+    if (error) throw error;
+    return NextResponse.json(data);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(request) {
+  try {
+    const body = await request.json();
+    const { userId, updateData } = body;
+    const cookieStore = await cookies();
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          get(name) { return cookieStore.get(name)?.value; },
+          set(name, value, options) { },
+          remove(name, options) { }
+        },
+      }
+    );
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+    const targetUserId = userId || session.user.id;
+
+    if (updateData.role === 'admin') {
+       const { data: current } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
+       if (current?.role !== 'admin') {
+         return NextResponse.json({ error: "No tiene permisos para asignar el rol Admin" }, { status: 403 });
+       }
+    }
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ ...updateData, updated_at: new Date().toISOString() })
+      .eq('id', targetUserId)
+      .select();
+
+    if (error) throw error;
+    return NextResponse.json(data[0]);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+--- File: src/app/api/auth/register/route.js ---
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+
+export async function POST(request) {
+    try {
+        const body = await request.json();
+        const { email, password, firstName, lastName, phone, city, type, role, orgCode, companyName } = body;
+        const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+        let targetOrgId = null;
+
+        if (type === 'solo' || role === 'admin') {
+            const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+            const { data: org, error: orgErr } = await supabaseAdmin.from('organizations').insert([{
+                company_name: type === 'solo' ? `Piloto: ${firstName}` : companyName,
+                unique_code: code
+            }]).select().single();
+            if (orgErr) throw orgErr;
+            targetOrgId = org.id;
+        } else {
+            const { data: org, error: orgErr } = await supabaseAdmin.from('organizations').select('id').eq('unique_code', orgCode.toUpperCase()).single();
+            if (orgErr || !org) throw new Error("Código de Empresa Inválido");
+            targetOrgId = org.id;
+        }
+
+        const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
+            email, password, email_confirm: true,
+            user_metadata: { first_name: firstName, last_name: lastName, role, organization_id: targetOrgId }
+        });
+        if (authErr) throw authErr;
+
+        await supabaseAdmin.from('profiles').insert([{
+            id: authData.user.id, email, first_name: firstName, last_name: lastName,
+            full_name: `${firstName} ${lastName}`, role, organization_id: targetOrgId,
+            phone, city, subscription_plan: 'piloto'
+        }]);
+
+        return NextResponse.json({ success: true });
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+}
+
+--- File: src/app/api/auth/login/route.js ---
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+
+export async function POST(request) {
+  try {
+    const { email, password } = await request.json();
+
+    // Backend: Conexión segura a Supabase
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password,
+    });
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
+
+    return NextResponse.json({ 
+      session: data.session,
+      message: "Backend validado" 
+    }, { status: 200 });
+
+  } catch (err) {
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
+  }
+}
+--- File: src/app/api/auth/reset-request/route.js ---
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+
+export async function POST(request) {
+  try {
+    const { email } = await request.json();
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com'}/update-password`,
+    });
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+    return NextResponse.json({ message: "Correo de recuperación enviado" });
+  } catch (err) {
+    return NextResponse.json({ error: "Error en el servidor" }, { status: 500 });
+  }
+}
+--- File: src/app/api/maintenance/route.js ---
+import { createClientSSR } from '@/lib/supabaseServer';
+import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
+    try {
+        const supabase = await createClientSSR();
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+
+        const { data, error } = await supabase
+            .from('maintenance_logs')
+            .select('*, aircraft(model, serial_number)')
+            .eq('organization_id', prof.organization_id)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return NextResponse.json(data || []);
+    } catch (err) { return NextResponse.json({ error: err.message }, { status: 500 }); }
+}
+
+export async function POST(request) {
+    try {
+        const supabase = await createClientSSR();
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+        
+        const body = await request.json();
+        const today = new Date().toISOString().split('T')[0];
+
+        // 1. Registrar el Mantenimiento
+        const { data: log, error: mErr } = await supabase.from('maintenance_logs').insert([{
+            ...body,
+            organization_id: prof.organization_id
+        }]).select().single();
+
+        if (mErr) throw mErr;
+
+        // 2. REINICIAR CONTADORES EN EL DRONE (Lógica Maestra)
+        await supabase.from('aircraft').update({
+            last_maintenance_date: today,
+            last_maintenance_hours: body.hours_at_service
+        }).eq('id', body.aircraft_id);
+
+        return NextResponse.json(log);
+    } catch (err) { return NextResponse.json({ error: err.message }, { status: 500 }); }
+}
+--- File: src/app/api/safety-config/route.js ---
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+
+// OBTENER PROTOCOLOS
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    const authHeader = request.headers.get('Authorization');
+
+    if (!userId || !authHeader) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Consultamos ambas tablas en paralelo
+    const [checklist, sora] = await Promise.all([
+      supabase.from('checklist_templates').select('*').eq('owner_id', userId).order('category'),
+      supabase.from('sora_templates').select('*').eq('owner_id', userId).order('category')
+    ]);
+
+    return NextResponse.json({
+      checklist: checklist.data || [],
+      sora: sora.data || []
+    });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+// CREAR NUEVO ITEM
+export async function POST(request) {
+  try {
+    const body = await request.json();
+    const authHeader = request.headers.get('Authorization');
+    const { userId, type, data } = body; // type: 'checklist' o 'sora'
+
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const table = type === 'checklist' ? 'checklist_templates' : 'sora_templates';
+    
+    const { data: result, error } = await supabase
+      .from(table)
+      .insert([{ ...data, owner_id: userId }])
+      .select();
+
+    if (error) throw error;
+    return NextResponse.json(result[0], { status: 201 });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+--- File: src/app/api/safety-config/[id]/route.js ---
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+
+export async function DELETE(request, { params }) {
+  try {
+    // --- CAMBIO CLAVE PARA NEXT.JS 16 ---
+    const resolvedParams = await params; 
+    const id = resolvedParams.id;
+    // ------------------------------------
+
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get('type');
+    const userId = searchParams.get('userId');
+    const authHeader = request.headers.get('Authorization');
+
+    if (!userId || userId === 'undefined' || !authHeader) {
+      return NextResponse.json({ error: "Sesión inválida o ID de usuario no recibido" }, { status: 401 });
+    }
+
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single();
+    
+    if (profile?.role !== 'admin' && profile?.role !== 'gerente_sms') {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
+    const table = type === 'checklist' ? 'checklist_templates' : 'sora_templates';
+    
+    // Verificamos que el ID no sea undefined antes de ir a la DB
+    if (!id || id === 'undefined') throw new Error("ID de item inválido");
+
+    const { error } = await supabase.from(table).delete().eq('id', id);
+
+    if (error) throw error;
+    return NextResponse.json({ message: "Eliminado con éxito" });
+
+  } catch (err) {
+    console.error("Error en Delete API:", err.message);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+--- File: src/app/api/fleet/route.js ---
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+import { canAddResource } from '@/lib/planLimits';
+
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    const authHeader = request.headers.get('Authorization');
+
+    if (!userId || !authHeader) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data, error } = await supabase
+      .from('aircraft')
+      .select('*')
+      .eq('owner_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return NextResponse.json(data);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function POST(request) {
+  try {
+    const body = await request.json();
+    const authHeader = request.headers.get('Authorization');
+    const { userId, aircraftData, currentPlan } = body;
+
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // 1. VALIDACIÓN DE PLAN EN SERVIDOR
+    const { count } = await supabase.from('aircraft').select('*', { count: 'exact', head: true }).eq('owner_id', userId);
+    
+    if (!canAddResource(currentPlan, count || 0, 'drone')) {
+      return NextResponse.json({ error: `Tu plan ${currentPlan.toUpperCase()} ha llegado al límite de aeronaves.` }, { status: 403 });
+    }
+
+    // 2. INSERCIÓN
+    const { data, error } = await supabase
+      .from('aircraft')
+      .insert([{ ...aircraftData, owner_id: userId, status: 'Operativo' }])
+      .select();
+
+    if (error) throw error;
+    return NextResponse.json(data[0], { status: 201 });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+--- File: src/app/api/fleet/[id]/route.js ---
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+
+export async function PATCH(request, { params }) {
+  try {
+    const { id } = params;
+    const body = await request.json();
+    const authHeader = request.headers.get('Authorization');
+    const { updateData } = body;
+
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data, error } = await supabase
+      .from('aircraft')
+      .update({ ...updateData, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select();
+
+    if (error) throw error;
+    return NextResponse.json(data[0]);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+--- File: src/app/api/sms/route.js ---
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    const authHeader = request.headers.get('Authorization');
+
+    if (!userId || !authHeader) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data, error } = await supabase
+      .from('sms_reports')
+      .select('*, flights(flight_number, location)')
+      .eq('owner_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return NextResponse.json(data);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function POST(request) {
+  try {
+    const body = await request.json();
+    const authHeader = request.headers.get('Authorization');
+    const { userId, reportData } = body;
+
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // --- VALIDACIÓN DE SEGURIDAD EN SERVIDOR ---
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single();
+    
+    if (profile.role !== 'admin' && profile.role !== 'gerente_sms') {
+      return NextResponse.json({ error: "Solo el Gerente SMS puede emitir reportes oficiales." }, { status: 403 });
+    }
+
+    const { data, error } = await supabase
+      .from('sms_reports')
+      .insert([{ ...reportData, owner_id: userId }])
+      .select();
+
+    if (error) throw error;
+    return NextResponse.json(data[0], { status: 201 });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+--- File: src/app/api/dashboard/route.js ---
+import { createClientSSR } from '@/lib/supabaseServer';
+import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
+    try {
+        const supabase = await createClientSSR();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+        const orgId = profile?.organization_id;
+
+        const [aircraftRes, pilotsRes, flightsRes, batteriesRes] = await Promise.all([
+            supabase.from('aircraft').select('*').eq('organization_id', orgId),
+            supabase.from('pilots').select('*').eq('organization_id', orgId),
+            supabase.from('flights')
+                .select('*, pilots:pilot_id(name), aircraft:aircraft_id(model)') // El * ya incluye mission_id
+                .eq('organization_id', orgId)
+                .order('created_at', { ascending: false }),
+            supabase.from('batteries').select('*').eq('organization_id', orgId)
+        ]);
+
+        // --- 1. LÓGICA DE GRÁFICO MENSUAL (RECUPERADA Y MEJORADA) ---
+        const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        const chartData = [];
+        const now = new Date();
+
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const mIdx = d.getMonth();
+            const year = d.getFullYear();
+
+            // Filtrado por coincidencia de Mes y Año para evitar errores de zona horaria
+            const count = flightsRes.data?.filter(f => {
+                if (!f.flight_date) return false;
+                const [fYear, fMonth] = f.flight_date.split('-');
+                return parseInt(fYear) === year && parseInt(fMonth) === (mIdx + 1);
+            }).length || 0;
+
+            chartData.push({ label: monthNames[mIdx], count });
+        }
+
+        // --- 2. LÓGICA DE ALERTAS OPERATIVAS ---
+        const alerts = [];
+        const todayStr = new Date().toISOString().split('T')[0];
+        const warningLimit = new Date();
+        warningLimit.setDate(warningLimit.getDate() + 30);
+        const warningStr = warningLimit.toISOString().split('T')[0];
+
+        // Escáner de Aeronaves (200h o 6 Meses)
+        aircraftRes.data?.forEach(a => {
+            const hours = parseFloat(a.total_hours || 0);
+            const lastHours = parseFloat(a.last_maintenance_hours || 0);
+            const hoursSince = hours - lastHours;
+            const lastDate = a.last_maintenance_date ? new Date(a.last_maintenance_date) : new Date(a.created_at);
+            const daysSince = Math.ceil(Math.abs(new Date() - lastDate) / (1000 * 60 * 60 * 24));
+
+            if (hoursSince >= 180 || daysSince >= 165) {
+                alerts.push({
+                    type: (hoursSince >= 195 || daysSince >= 175) ? 'CRÍTICO' : 'AVISO',
+                    msg: `MNT: ${a.model} (${a.serial_number})`,
+                    val: hoursSince >= 180 ? `${hoursSince.toFixed(1)}h desde serv.` : `${daysSince} días desde serv.`
+                });
+            }
+        });
+
+        // Escáner de Baterías (200 Ciclos)
+        batteriesRes.data?.forEach(b => {
+            const cycles = parseInt(b.cycles || 0);
+            if (cycles >= 160) {
+                alerts.push({
+                    type: cycles >= 185 ? 'CRÍTICO' : 'AVISO',
+                    msg: `BATERÍA: ${b.brand} (${b.serial_number})`,
+                    val: `${cycles} / 200 ciclos`
+                });
+            }
+        });
+
+        // Escáner de Pilotos (Médico)
+        pilotsRes.data?.forEach(p => {
+            if (p.medical_expiry) {
+                if (p.medical_expiry < todayStr) {
+                    alerts.push({ type: 'CRÍTICO', msg: `MÉDICO VENCIDO: ${p.name}`, val: p.medical_expiry });
+                } else if (p.medical_expiry < warningStr) {
+                    alerts.push({ type: 'AVISO', msg: `MÉDICO PRÓXIMO: ${p.name}`, val: p.medical_expiry });
+                }
+            }
+        });
+
+        return NextResponse.json({
+            stats: {
+                hours: aircraftRes.data?.reduce((acc, a) => acc + (parseFloat(a.total_hours) || 0), 0).toFixed(1) || "0.0",
+                fleetCount: aircraftRes.data?.length || 0,
+                pilotCount: pilotsRes.data?.length || 0,
+                alertsCount: alerts.length,
+                totalFlights: flightsRes.data?.length || 0
+            },
+            chart: chartData,
+            alerts: alerts.sort((a, b) => a.type === 'CRÍTICO' ? -1 : 1),
+            recentActivity: flightsRes.data?.slice(0, 5) || []
+        });
+
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}
+--- File: src/app/api/audit/route.js ---
+import { createClientSSR } from '@/lib/supabaseServer';
+import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
+    try {
+        const supabase = await createClientSSR();
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+        const orgId = prof?.organization_id;
+
+        const [drones, crew, flights] = await Promise.all([
+            supabase.from('aircraft').select('*').eq('organization_id', orgId),
+            supabase.from('pilots').select('*').eq('organization_id', orgId),
+            supabase.from('flights').select('*').eq('organization_id', orgId).is('landing_time', null)
+        ]);
+
+        const today = new Date();
+
+        // AUDITORÍA DE FLOTA
+        const fleetAudit = drones.data?.map(d => {
+            const hoursUsed = parseFloat(d.total_hours || 0) - parseFloat(d.last_maintenance_hours || 0);
+            const lastM = d.last_maintenance_date ? new Date(d.last_maintenance_date) : new Date(d.created_at);
+            const daysUsed = Math.ceil(Math.abs(today - lastM) / (1000 * 60 * 60 * 24));
+            
+            return {
+                id: d.id,
+                model: d.model,
+                sn: d.serial_number,
+                isReady: hoursUsed < 200 && daysUsed < 182,
+                reason: hoursUsed >= 200 ? 'Límite de 200h alcanzado' : daysUsed >= 182 ? 'Límite de 6 meses vencido' : 'Operativo',
+                docs: !!d.image_url && !!d.ruas
+            };
+        });
+
+        // AUDITORÍA DE TRIPULACIÓN
+        const crewAudit = crew.data?.map(p => {
+            const medical = p.medical_expiry ? new Date(p.medical_expiry) : null;
+            return {
+                id: p.id,
+                name: p.name,
+                isReady: medical && medical > today,
+                reason: !medical ? 'Sin examen médico' : medical <= today ? 'Examen Vencido' : 'Vigente',
+                docs: !!p.id_doc_url && !!p.medical_cert_url
+            };
+        });
+
+        return NextResponse.json({
+            fleet: fleetAudit || [],
+            crew: crewAudit || [],
+            activeOperations: flights.data?.length || 0,
+            score: calculateScore(fleetAudit, crewAudit)
+        });
+    } catch (err) { return NextResponse.json({ error: err.message }, { status: 500 }); }
+}
+
+function calculateScore(f, c) {
+    if (!f || !c) return 0;
+    const total = f.length + c.length;
+    const ready = f.filter(x => x.isReady).length + c.filter(x => x.isReady).length;
+    return total > 0 ? Math.round((ready / total) * 100) : 100;
+}
+--- File: src/app/api/testimonials/route.js ---
+import { NextResponse } from 'next/server';
+
+export async function GET() {
+  // En el futuro, esto puede venir de una tabla 'testimonials' en Supabase
+  const testimonials = [
+    {
+      id: 1,
+      name: "Cap. Julián Arenas",
+      role: "Director de Operaciones",
+      company: "SkyVisual Drone Services",
+      content: "BitaFly transformó nuestra gestión documental. Pasar auditorías de la Aerocivil ahora es un proceso de minutos, no de días.",
+      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=100"
+    },
+    {
+      id: 2,
+      name: "Ing. Sandra Milena",
+      role: "Gerente SMS",
+      company: "AgroTech Solutions",
+      content: "La personalización de los protocolos SORA es impresionante. Se adapta exactamente a los riesgos de aspersión que manejamos.",
+      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100"
+    },
+    {
+      id: 3,
+      name: "Ricardo Fonseca",
+      role: "Piloto Senior",
+      company: "Independiente",
+      content: "Como piloto independiente, el Plan Piloto gratuito es perfecto. Tengo mi bitácora legal siempre a mano en mi celular.",
+      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=100"
+    }
+  ];
+
+  return NextResponse.json(testimonials);
+}
+--- File: src/app/api/sora/route.js ---
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    const authHeader = request.headers.get('Authorization');
+
+    if (!userId || !authHeader) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Obtenemos las plantillas de mitigación configuradas por el usuario
+    const { data, error } = await supabase
+      .from('sora_templates')
+      .select('*')
+      .eq('owner_id', userId)
+      .order('category', { ascending: true });
+
+    if (error) throw error;
+    return NextResponse.json(data);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+--- File: src/app/api/admin/master/route.js ---
+import { createAdminClient, createClient } from '@/lib/supabaseServer';
+import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
+    try {
+        const supabase = await createClient();
+        const adminSupabase = createAdminClient();
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+
+        // Obtenemos el perfil con la Service Role Key (Bypass RLS)
+        const { data: profile, error: profError } = await adminSupabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        if (profError) throw new Error("Perfil no encontrado en la base de datos.");
+
+        // LOG DE SEGURIDAD (Se ve en los logs de Vercel)
+        console.log(`Intento de acceso Master - Usuario: ${user.email} - Rol: ${profile?.role}`);
+
+        if (profile?.role !== 'superadmin') {
+            return NextResponse.json({ 
+                error: `Acceso Denegado. Su rol actual es: ${profile?.role}. Se requiere: superadmin` 
+            }, { status: 403 });
+        }
+
+        const { data, error } = await adminSupabase
+            .from('profiles')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return NextResponse.json(data);
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}
+
+export async function PATCH(request) {
+    try {
+        const adminSupabase = createAdminClient();
+        const body = await request.json();
+        const { targetUserId, updateData } = body;
+        const { data, error } = await adminSupabase.from('profiles').update(updateData).eq('id', targetUserId).select();
+        if (error) throw error;
+        return NextResponse.json(data[0]);
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}
+
+--- File: src/app/api/contact/route.js ---
+import { Resend } from 'resend';
+import { NextResponse } from 'next/server';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export async function POST(req) {
+  try {
+    const { name, email, company, message } = await req.json();
+
+    await resend.emails.send({
+      from: 'BitaFly Leads <no-reply@bitafly.com>',
+      to: ['tu-correo@empresa.com'], // Donde quieres recibir los leads
+      subject: `Nueva Consulta: ${company}`,
+      html: `<p><strong>Nombre:</strong> ${name}</p>
+             <p><strong>Email:</strong> ${email}</p>
+             <p><strong>Mensaje:</strong> ${message}</p>`
+    });
+
+    return NextResponse.json({ message: "Enviado" });
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+--- File: src/app/api/reports/master/route.js ---
+import { createClientSSR } from '@/lib/supabaseServer';
+import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(request) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const from = searchParams.get('from');
+        const to = searchParams.get('to');
+
+        const supabase = await createClientSSR();
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+
+        const { data, error } = await supabase
+            .from('flights')
+            .select(`
+                flight_date,
+                mission_id,
+                mission_type,
+                location,
+                visual_condition,
+                takeoff_time,
+                landing_time,
+                notes,
+                aircraft:aircraft_id(brand, model, serial_number, ruas, total_hours),
+                pilots:pilot_id(name, license_number)
+            `)
+            .eq('organization_id', prof.organization_id)
+            .gte('flight_date', from)
+            .lte('flight_date', to)
+            .order('flight_date', { ascending: true });
+
+        if (error) throw error;
+        return NextResponse.json(data || []);
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}
+--- File: src/app/api/reports/route.js ---
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    const reportType = searchParams.get('type'); 
+    const dateFrom = searchParams.get('from');
+    const dateTo = searchParams.get('to');
+    const authHeader = request.headers.get('Authorization');
+
+    if (!userId || !authHeader) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // 1. REPORTE SMS (CORREGIDO FILTRO)
+    if (reportType === 'sms') {
+      const { data: smsData, error } = await supabase
+        .from('sms_reports')
+        .select('*, flights(flight_number)')
+        .eq('owner_id', userId)
+        .gte('created_at', `${dateFrom}T00:00:00`)
+        .lte('created_at', `${dateTo}T23:59:59`);
+      
+      if (error) throw error;
+      
+      return NextResponse.json(smsData.map(row => ({
+        FECHA: row.created_at?.slice(0,10),
+        ID_VUELO: row.flights?.flight_number || 'N/A',
+        SEVERIDAD: row.severity?.toUpperCase(),
+        SUCESO: row.narrative?.slice(0, 50) || 'Sin detalle',
+        ACCIONES: row.immediate_actions?.slice(0, 50) || 'N/A'
+      })));
+    }
+
+    // 2. REPORTE DE FLOTA (SIMPLIFICADO)
+    if (reportType === 'flota') {
+      const [dronesRes, flightsRes] = await Promise.all([
+        supabase.from('aircraft').select('*').eq('owner_id', userId),
+        supabase.from('flights').select('*').eq('owner_id', userId).gte('flight_date', dateFrom).lte('flight_date', dateTo)
+      ]);
+
+      return NextResponse.json(dronesRes.data.map(d => {
+        const droneFlights = flightsRes.data.filter(f => f.aircraft_id === d.id);
+        let totalMins = 0;
+        droneFlights.forEach(f => {
+          if (f.takeoff_time && f.landing_time) {
+            const [h1, m1] = f.takeoff_time.split(':').map(Number);
+            const [h2, m2] = f.landing_time.split(':').map(Number);
+            let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+            if (diff < 0) diff += 1440;
+            totalMins += diff;
+          }
+        });
+
+        return {
+          AERONAVE: d.model,
+          SERIE: d.serial_number,
+          VUELOS: droneFlights.length,
+          DURACION: `${Math.floor(totalMins/60)}:${(totalMins%60).toString().padStart(2,'0')}`,
+          ESTADO: d.status
+        };
+      }));
+    }
+
+    // 3. REPORTE BITÁCORA
+    const { data: flightData, error } = await supabase
+      .from('flights')
+      .select('*, pilots(name), aircraft(model)')
+      .eq('owner_id', userId)
+      .gte('flight_date', dateFrom)
+      .lte('flight_date', dateTo);
+    
+    if (error) throw error;
+
+    return NextResponse.json(flightData.map(row => {
+      let dur = "00:00";
+      if (row.takeoff_time && row.landing_time) {
+        const [h1, m1] = row.takeoff_time.split(':').map(Number);
+        const [h2, m2] = row.landing_time.split(':').map(Number);
+        let d = (h2 * 60 + m2) - (h1 * 60 + m1);
+        if (d < 0) d += 1440;
+        dur = `${Math.floor(d/60).toString().padStart(2,'0')}:${(d%60).toString().padStart(2,'0')}`;
+      }
+      return {
+        FECHA: row.flight_date,
+        ID_REF: row.flight_number,
+        PILOTO: row.pilots?.name || 'N/A',
+        AERONAVE: row.aircraft?.model || 'N/A',
+        UBICACION: row.location || 'N/A',
+        DURACION: dur
+      };
+    }));
+
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+--- File: src/app/api/reports/pilots/route.js ---
+import { createClientSSR } from '@/lib/supabaseServer';
+import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(request) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const from = searchParams.get('from');
+        const to = searchParams.get('to');
+        const pilotId = searchParams.get('pilotId');
+
+        if (!pilotId) return NextResponse.json({ error: "Pilot ID required" }, { status: 400 });
+
+        const supabase = await createClientSSR();
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+
+        const { data, error } = await supabase
+            .from('flights')
+            .select(`
+                flight_date,
+                mission_id,
+                location,
+                takeoff_time,
+                landing_time,
+                total_time,
+                notes,
+                aircraft:aircraft_id(model, serial_number),
+                pilots:pilot_id(name, license_number)
+            `)
+            .eq('organization_id', prof.organization_id)
+            .eq('pilot_id', pilotId)
+            .gte('flight_date', from)
+            .lte('flight_date', to)
+            .order('flight_date', { ascending: true });
+
+        if (error) throw error;
+        return NextResponse.json(data || []);
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}
+--- File: src/app/api/reports/batteries/route.js ---
+import { createClientSSR } from '@/lib/supabaseServer';
+import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(request) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const from = searchParams.get('from');
+        const to = searchParams.get('to');
+
+        const supabase = await createClientSSR();
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+
+        const { data, error } = await supabase
+            .from('flights')
+            .select(`
+                mission_id,
+                location,
+                visual_condition,
+                flight_date,
+                battery:battery_id(serial_number, brand, cycles),
+                aircraft:aircraft_id(model)
+            `)
+            .eq('organization_id', prof.organization_id)
+            .gte('flight_date', from)
+            .lte('flight_date', to)
+            .order('flight_date', { ascending: true });
+
+        if (error) throw error;
+        return NextResponse.json(data || []);
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}
+
+==========================================
+FILE/DIR: src/app/dashboard/authorizations
+==========================================
+
+--- File: src/app/dashboard/authorizations/MissionControlClient.js ---
+'use client';
+import { useState } from 'react';
+import Link from 'next/link';
+import BasicForm from '@/components/authorizations/BasicForm';
+import AerocivilForm from '@/components/authorizations/AerocivilForm';
+
+export default function MissionControlClient({ initialData }) {
+    const [activeTab, setActiveTab] = useState('basica');
+    const { pilots, drones, org, userRole } = initialData;
+
+    return (
+        <div className="space-y-10 pb-20 animate-in fade-in duration-700 text-left">
+            {/* HEADER */}
+            <header className="flex justify-between items-end border-b pb-6">
+                <div>
+                    <h2 className="text-3xl font-black text-navy uppercase tracking-tighter">Autorización de Vuelo</h2>
+                    <p className="text-slate-500 text-[10px] font-black uppercase italic">
+                        Centro de Control: {org?.company_name}
+                    </p>
+                </div>
+                <Link href="/dashboard" className="text-[10px] font-black text-primary uppercase underline">
+                    Volver al mando
+                </Link>
+            </header>
+
+            {/* SELECTOR DE PESTAÑAS */}
+            <div className="flex bg-slate-100 p-1.5 rounded-2xl w-fit">
+                <button 
+                    onClick={() => setActiveTab('basica')}
+                    className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'basica' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'}`}
+                >
+                    Misión Básica
+                </button>
+                <button 
+                    onClick={() => setActiveTab('aerocivil')}
+                    className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'aerocivil' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'}`}
+                >
+                    Apendice 13 (Aerocivil)
+                </button>
+            </div>
+
+            {/* FORMULARIOS (Tu diseño robusto intacto) */}
+            <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6 md:p-12">
+                {activeTab === 'basica' ? (
+                    <BasicForm pilots={pilots} drones={drones} userRole={userRole} />
+                ) : (
+                    <AerocivilForm pilots={initialData.pilots} drones={drones} userRole={userRole} />
+                )}
+            </div>
+            
+            {/* FOOTER DE ESTADO */}
+            <div className="flex items-center gap-4 px-6 py-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-ping"></span>
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    Sincronizado con base de datos - {pilots.length} pilotos disponibles
+                </span>
+            </div>
+        </div>
+    );
+}
+--- File: src/app/dashboard/authorizations/page.js ---
+import { createClient } from '@/utils/supabase/server';
+import { redirect } from 'next/navigation';
+import MissionControlClient from './MissionControlClient';
+
+export const dynamic = 'force-dynamic';
+
+export default async function AuthorizePage() {
+  const supabase = createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('organization_id, role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile?.organization_id) redirect('/onboarding');
+
+  const [pilotsReq, dronesReq, orgReq] = await Promise.all([
+    supabase.from('profiles').select('id, full_name, role').eq('organization_id', profile.organization_id).eq('role', 'Piloto'),
+    supabase.from('aircraft').select('*').eq('organization_id', profile.organization_id).eq('status', 'Operativo'),
+    supabase.from('organizations').select('*').eq('id', profile.organization_id).single()
+  ]);
+
+  const initialData = {
+    pilots: pilotsReq.data || [],
+    drones: dronesReq.data || [],
+    org: orgReq.data || {},
+    userRole: profile.role
+  };
+
+  return <MissionControlClient initialData={initialData} />;
+}
+
+==========================================
+FILE/DIR: src/components/authorizations
+==========================================
+
+--- File: src/components/authorizations/BasicForm.js ---
+'use client';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+
+export default function BasicForm({ pilots, drones, missions, org, loadData }) {
+    const [saving, setSaving] = useState(false);
+    const [geo, setGeo] = useState({ depts: [], munis: [], all: [] });
+    const [loadingGeo, setLoadingGeo] = useState(true);
+    const [prefix, setPrefix] = useState(org?.flight_prefix || 'BIT');
+
+    const [form, setForm] = useState({ 
+        pilot_id: '', aircraft_id: '', department: '', municipality: '',
+        scheduled_at: '', mission_type: 'SIMPLE CAPTURA DE IMÁGENES O DATOS' 
+    });
+
+    // CARGA DE GEOGRAFÍA INTERNA
+    useEffect(() => {
+        async function loadGeo() {
+            const { data } = await supabase.from('colombia_geo').select('*').range(0, 1200).order('Nombre Departamento');
+            if (data) {
+                const uniqueDepts = [...new Set(data.map(i => i["Nombre Departamento"]))].sort();
+                setGeo({ depts: uniqueDepts, munis: [], all: data });
+            }
+            setLoadingGeo(false);
+        }
+        loadGeo();
+    }, []);
+
+    const handleDeptChange = (deptName) => {
+        const filtered = geo.all.filter(i => i["Nombre Departamento"] === deptName).map(i => i["Nombre Municipio"]).sort();
+        setGeo(prev => ({ ...prev, munis: filtered }));
+        setForm({ ...form, department: deptName, municipality: '' });
+    };
+
+    const handleUpdatePrefix = async () => {
+        const newP = prompt("Ingrese el nuevo prefijo (3 letras):", prefix);
+        if (newP && newP.length === 3) {
+            const val = newP.toUpperCase();
+            setPrefix(val);
+            await supabase.from('organizations').update({ flight_prefix: val }).eq('id', org.id);
+            alert("✅ Prefijo actualizado a: " + val);
+        }
+    };
+
+    // SEMÁFOROS DE SEGURIDAD
+    const getPilotStatus = () => {
+        const p = pilots.find(x => x.id === form.pilot_id);
+        if (!p || !p.medical_expiry) return null;
+        const diff = (new Date(p.medical_expiry) - new Date()) / (1000 * 60 * 60 * 24);
+        if (diff < 0) return { type: 'ERROR', msg: 'MÉDICO VENCIDO' };
+        if (diff < 30) return { type: 'WARN', msg: `VENCE EN ${Math.round(diff)} DÍAS` };
+        return { type: 'OK', msg: 'APTO PARA OPERACIÓN' };
+    };
+
+    const getDroneStatus = () => {
+        const d = drones.find(x => x.id === form.aircraft_id);
+        if (!d) return null;
+        const remaining = 200 - (parseFloat(d.total_hours || 0) - parseFloat(d.last_maintenance_hours || 0));
+        if (remaining <= 0) return { type: 'ERROR', msg: 'MANTENIMIENTO REQUERIDO' };
+        if (remaining <= 20) return { type: 'WARN', msg: `${remaining.toFixed(1)}H PARA SERVICIO` };
+        return { type: 'OK', msg: 'AERONAVE OPERATIVA' };
+    };
+
+    const handleAuthorize = async (e) => {
+        e.preventDefault();
+        const pStat = getPilotStatus();
+        const dStat = getDroneStatus();
+        if (pStat?.type === 'ERROR' || dStat?.type === 'ERROR') return alert("🚫 BLOQUEO DE SEGURIDAD");
+
+        setSaving(true);
+        const payload = {
+            ...form,
+            location: `${form.municipality}, ${form.department}`
+        };
+
+        const res = await fetch('/api/flights/authorize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            alert("🚀 MISIÓN AUTORIZADA");
+            setForm({ pilot_id: '', aircraft_id: '', department: '', municipality: '', scheduled_at: '', mission_type: 'SIMPLE CAPTURA DE IMÁGENES O DATOS' });
+            loadData();
+        }
+        setSaving(false);
+    };
+
+    return (
+        <div className="space-y-8 animate-in slide-in-from-left duration-500">
+            {/* PANEL DE MANDO */}
+            <section className="bg-[#1A202C] p-6 md:p-10 rounded-[3rem] text-white shadow-2xl space-y-8 border border-white/5">
+                <div className="flex justify-between items-center">
+                    <div className="flex gap-4">
+                        <StatusBox status={getPilotStatus()} title="Estatus PIC" defaultMsg="Seleccione Piloto" />
+                        <StatusBox status={getDroneStatus()} title="Estatus UAS" defaultMsg="Seleccione Drone" />
+                    </div>
+                    <button onClick={handleUpdatePrefix} className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-[10px] font-black text-orange-500 hover:bg-orange-600 hover:text-white transition-all">
+                        PREFIJO: {prefix}
+                    </button>
+                </div>
+
+                <form onSubmit={handleAuthorize} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end text-left">
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Piloto al Mando</label>
+                        <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.pilot_id} onChange={e => setForm({...form, pilot_id: e.target.value})}>
+                            <option value="">Seleccionar...</option>
+                            {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Aeronave (UAS)</label>
+                        <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.aircraft_id} onChange={e => setForm({...form, aircraft_id: e.target.value})}>
+                            <option value="">Seleccionar...</option>
+                            {drones.map(d => <option key={d.id} value={d.id}>{d.model} ({d.serial_number})</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Tipo de Operación (RAC 100)</label>
+                        <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.mission_type} onChange={e => setForm({...form, mission_type: e.target.value})}>
+                            <option value="SIMPLE CAPTURA DE IMÁGENES O DATOS">SIMPLE CAPTURA DE IMÁGENES</option>
+                            <option value="VIGILANCIA Y SEGURIDAD PRIVADA">VIGILANCIA Y SEGURIDAD</option>
+                            <option value="ASPERSIÓN / DISPERSIÓN">ASPERSIÓN / DISPERSIÓN</option>
+                            <option value="TRANSPORTE DE CARGA">TRANSPORTE DE CARGA</option>
+                            <option value="INSTRUCCIÓN">INSTRUCCIÓN</option>
+                        </select>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Departamento</label>
+                        <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.department} onChange={e => handleDeptChange(e.target.value)}>
+                            <option value="">-- Seleccionar --</option>
+                            {geo.depts.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Municipio</label>
+                        <select required disabled={!form.department} className="w-full p-4 bg-slate-800 rounded-2xl border-none text-white text-sm font-bold disabled:opacity-30" value={form.municipality} onChange={e => setForm({...form, municipality: e.target.value})}>
+                            <option value="">-- Seleccionar --</option>
+                            {geo.munis.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Fecha Programada</label>
+                        <input required type="date" className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})} />
+                    </div>
+                    <button type="submit" disabled={saving} className="md:col-span-3 bg-orange-600 hover:bg-orange-700 text-white py-5 rounded-[2rem] font-black uppercase text-xs shadow-xl active:scale-95 transition-all">
+                        {saving ? 'SINCRO EN CURSO...' : 'AUTORIZAR MISIÓN OPERATIVA'}
+                    </button>
+                </form>
+            </section>
+        </div>
+    );
+}
+
+function StatusBox({ status, title, defaultMsg }) {
+    if (!status) return <div className="px-4 py-2 rounded-xl border border-white/10 bg-white/5"><p className="text-[7px] font-black text-slate-500 uppercase">{title}</p><p className="text-[9px] font-bold text-slate-400">{defaultMsg}</p></div>;
+    const colors = { ERROR: 'bg-red-500/20 border-red-500', WARN: 'bg-orange-500/20 border-orange-500', OK: 'bg-emerald-500/20 border-emerald-500' };
+    return <div className={`px-4 py-2 rounded-xl border ${colors[status.type]}`}><p className="text-[7px] font-black uppercase opacity-60">{title}</p><p className="text-[9px] font-black">{status.msg}</p></div>;
+}
+--- File: src/components/authorizations/AerocivilForm.js ---
+'use client';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import HelpTooltip from '@/components/HelpTooltip';
+import dynamic from 'next/dynamic';
+
+const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
+    const hours = Math.floor(i / 2).toString().padStart(2, '0');
+    const minutes = (i % 2 === 0 ? '00' : '30');
+    return `${hours}:${minutes}`;
+});
+
+const MapPickerModal = dynamic(() => import('./MapPickerModal'), { 
+  ssr: false, // <--- ESTO ES VITAL: Desactiva el renderizado en servidor
+  loading: () => (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[500] flex items-center justify-center">
+      <div className="bg-white p-6 rounded-2xl font-black animate-pulse">PREPARANDO RADAR GEOGRÁFICO...</div>
+    </div>
+  )
+});
+
+export default function AerocivilForm({ drones, pilots, org, loadData }) { 
+    const [geo, setGeo] = useState({ depts: [], munis: [], all: [] });
+    const [loadingGeo, setLoadingGeo] = useState(true);
+    const [saving, setSaving] = useState(false)
+    const [inventoryList, setInventoryList] = useState([]);
+
+    useEffect(() => {
+    async function loadTech() {
+        const { data } = await supabase.from('inventory_items').select('*').eq('status', 'Operativo');
+        setInventoryList(data || []);
+    }
+    loadTech();
+}, []);
+
+
+    // CORRECCIÓN LÍNEA 14: Estructura plana y sin duplicados
+    const [aeroForm, setAeroForm] = useState({
+        department: '',
+        municipality: '',
+        empresa_contratante: '',
+        fecha_inicio: '',
+        hora_inicio: '',
+        fecha_fin: '',
+        hora_fin: '',
+        otros_detalles: '',
+        peso_maximo: '',
+        contacto_visual: {
+            vlos:false,
+            bvlos:false,
+            evlos:false
+        }, // <--- Ahora está en el nivel correcto
+        justificacion_especial: '',
+        tipo_operacion: {
+            simple_captura: false,
+            vigilancia_seguridad: false,
+            medios_comunicacion: false,
+            aspersion: false,
+            dispersion: false,
+            enjambre: false,
+            carga_delivery: false,
+            instruccion: false,
+            misiones_publicas: false
+        },
+        vuelos_especiales: {
+            nocturno: false,
+            autonomo: false,
+            cautiva: false,
+            urbana: false,
+            demostracion: false,
+            recreativo: false
+        },
+        aeronaves: [
+            { id: '', brand: '', model: '', serial_number: '', insurer: '', policy: '', start_date: '', end_date: '' }
+        ],
+        equipos: [
+            { id: '', brand: '', model: '', type: '', serial_number: '' }
+        ],
+        pilotos_solicitud: [
+            { id: '', name: '', id_number: '', phone: '' }
+        ],
+        observadores: [
+            { id: '', name: '', id_number: '', phone: '' }
+        ],
+        geo_type: 'polygon',
+        geo_name: '',           // Nombre del Polígono / Tramo / Radio
+        altitude_meters: '',    // Altura en Metros
+        altitude_feet: '',      // Altura en Pies
+        points: [],
+        altitude: '400',
+        radius: 500,
+         docs_adjuntos: {
+        poliza_rce: false,
+        analisis_riesgos: false,
+        contrato_instalacion: false,
+        archivo_kmz: false,
+        acta_cdm: false,
+        declaracion_carga: false
+    },
+    });
+    const [showMap, setShowMap] = useState(false);
+
+     // --- FUNCIONES DE LÓGICA INTERNA ---
+    const toggleSpecialVuelo = (field) => {
+        setAeroForm(prev => ({
+            ...prev,
+            vuelos_especiales: { ...prev.vuelos_especiales, [field]: !prev.vuelos_especiales[field] }
+        }));
+    };
+
+    const toggleAeroDoc = (field) => {
+        setAeroForm(prev => ({
+            ...prev,
+            docs_adjuntos: {
+                ...prev.docs_adjuntos,
+                [field]: !prev.docs_adjuntos[field]
+            }
+        }));
+    };
+
+    const handleAltitudeChange = (val, unit) => {
+        if (unit === 'm') {
+            const feet = val ? (parseFloat(val) * 3.28084).toFixed(0) : '';
+            setAeroForm({ ...aeroForm, altitude_meters: val, altitude_feet: feet });
+        } else {
+            const meters = val ? (parseFloat(val) / 3.28084).toFixed(0) : '';
+            setAeroForm({ ...aeroForm, altitude_feet: val, altitude_meters: meters });
+        }
+    };
+
+    const handleTimeInput = (value, field) => {
+        // 1. Limpiar todo lo que no sea número
+        let val = value.replace(/\D/g, '');
+        
+        // 2. Limitar a 4 dígitos (HHmm)
+        if (val.length > 4) val = val.slice(0, 4);
+        
+        // 3. Formatear con los dos puntos
+        if (val.length >= 3) {
+            val = val.slice(0, 2) + ':' + val.slice(2);
+        }
+        
+        setAeroForm(prev => ({ ...prev, [field]: val }));
+    };
+    
+    const addAircraftSlot = () => {
+        if (aeroForm.aeronaves.length < 3) {
+            setAeroForm(prev => ({
+                ...prev,
+                aeronaves: [...prev.aeronaves, { id: '', brand: '', model: '', serial_number: '', insurer: '', policy: '', start_date: '', end_date: '' }]
+            }));
+        }
+    };
+
+    const handleAircraftSelect = (index, aircraftId) => {
+        const selected = drones?.find(d => d.id === aircraftId);
+        const newAeronaves = [...aeroForm.aeronaves];
+        newAeronaves[index] = {
+            ...newAeronaves[index],
+            id: aircraftId,
+            brand: selected?.brand || '',
+            model: selected?.model || '',
+            serial_number: selected?.serial_number || ''
+        };
+        setAeroForm(prev => ({ ...prev, aeronaves: newAeronaves }));
+    };
+
+    const updateMaintField = (index, field, value) => {
+        const newAeronaves = [...aeroForm.aeronaves];
+        newAeronaves[index][field] = value;
+        setAeroForm(prev => ({ ...prev, aeronaves: newAeronaves }));
+    };
+
+    // FUNCIÓN PARA AGREGAR SLOT DE TECNOLOGÍA
+    const addTechSlot = () => {
+        if (aeroForm.equipos.length < 3) {
+            setAeroForm(prev => ({
+                ...prev,
+                equipos: [...prev.equipos, { id: '', brand: '', model: '', type: '', serial_number: '' }]
+            }));
+        }
+    };
+
+    // FUNCIÓN PARA AUTOCOMPLETAR EQUIPO (Simulando carga de inventario)
+    const handleTechSelect = (index, itemId, inventoryList) => {
+        const selected = inventoryList.find(i => i.id === itemId);
+        const newEquipos = [...aeroForm.equipos];
+        newEquipos[index] = {
+            ...newEquipos[index],
+            id: itemId,
+            brand: selected?.brand || '',
+            model: selected?.model || '',
+            type: selected?.category || 'Cámara/Sensor',
+            serial_number: selected?.serial_number || ''
+        };
+        setAeroForm(prev => ({ ...prev, equipos: newEquipos }));
+    };
+
+    // FUNCIÓN PARA AGREGAR SLOT DE PILOTO (MÁXIMO 3)
+    const addPilotSlot = () => {
+        if (aeroForm.pilotos_solicitud.length < 3) {
+            setAeroForm(prev => ({
+                ...prev,
+                pilotos_solicitud: [...prev.pilotos_solicitud, { id: '', name: '', id_number: '', phone: '' }]
+            }));
+        }
+    };
+
+    // FUNCIÓN PARA AUTOCOMPLETAR DATOS DEL PILOTO
+    const handlePilotSelect = (index, pilotId) => {
+        const selected = pilots?.find(p => p.id === pilotId);
+        const newPilotos = [...aeroForm.pilotos_solicitud];
+        newPilotos[index] = {
+            ...newPilotos[index],
+            id: pilotId,
+            name: selected?.name || '',
+            id_number: selected?.id_number || '',
+            phone: selected?.phone || ''
+        };
+        setAeroForm(prev => ({ ...prev, pilotos_solicitud: newPilotos }));
+    };
+
+    // FUNCIÓN PARA AGREGAR SLOT DE OBSERVADOR
+    const addObserverSlot = () => {
+        if (aeroForm.observadores.length < 2) {
+            setAeroForm(prev => ({
+                ...prev,
+                observadores: [...prev.observadores, { id: '', name: '', id_number: '', phone: '' }]
+            }));
+        }
+    };
+
+    // FUNCIÓN PARA AUTOCOMPLETAR DATOS DEL OBSERVADOR (Desde lista de pilotos)
+    const handleObserverSelect = (index, personId) => {
+        const selected = pilots?.find(p => p.id === personId);
+        const newObs = [...aeroForm.observadores];
+        newObs[index] = {
+            ...newObs[index],
+            id: personId,
+            name: selected?.name || '',
+            id_number: selected?.id_number || '',
+            phone: selected?.phone || ''
+        };
+        setAeroForm(prev => ({ ...prev, observadores: newObs }));
+    };
+    // FUNCIÓN DE CONVERSIÓN (Decimal a GMS para Aerocivil)
+    const toGMS = (dec) => {
+    const d = Math.abs(dec);
+    const degrees = Math.floor(d);
+    const minutes = Math.floor((d - degrees) * 60);
+    const seconds = Math.round((d - degrees - minutes / 60) * 3600);
+    return `${degrees}°${minutes}'${seconds}"`;
+    };
+
+    const [userProfile, setUserProfile] = useState(null);
+
+    useEffect(() => {
+        async function getProfile() {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            setUserProfile(data);
+        }
+        getProfile();
+    }, []);
+
+    // CARGA DE DIVIPOLA (MUNICIPIOS) DESDE SUPABASE
+    useEffect(() => {
+        async function loadGeo() {
+            setLoadingGeo(true);
+            try {
+                const { data, error } = await supabase
+                    .from('colombia_geo')
+                    .select('"Nombre Departamento", "Nombre Municipio"')
+                    .range(0, 1200)
+                    .order('"Nombre Departamento"', { ascending: true });
+
+                if (error) throw error;
+
+                if (data) {
+                    const uniqueDepts = [...new Set(data.map(i => i["Nombre Departamento"]))].sort();
+                    setGeo({ depts: uniqueDepts, munis: [], all: data });
+                }
+            } catch (err) {
+                console.error("Geo Load Error:", err.message);
+            } finally {
+                setLoadingGeo(false);
+            }
+        }
+        loadGeo();
+    }, []);
+
+    // MANEJO DE CAMBIO DE DEPARTAMENTO
+    const handleDeptChange = (deptName) => {
+        const filtered = geo.all
+            .filter(i => i["Nombre Departamento"] === deptName)
+            .map(i => i["Nombre Municipio"])
+            .sort();
+            
+        setGeo(prev => ({ ...prev, munis: filtered }));
+        setAeroForm({ ...aeroForm, department: deptName, municipality: '' });
+    };
+
+    // LÓGICA DE SELECCIÓN DE OPERACIÓN (X)
+    const toggleAeroCheck = (field) => {
+        setAeroForm(prev => ({
+            ...prev,
+            tipo_operacion: {
+                ...prev.tipo_operacion,
+                [field]: !prev.tipo_operacion[field]
+            }
+        }));
+    };
+
+    const toggleTipoFly = (field) => {
+        setAeroForm(prev => ({
+            ...prev,
+            contacto_visual: { ...prev.contacto_visual, [field]: !prev.contacto_visual[field] }
+        }));
+    };
+
+        const handleFinalSubmit = async () => {
+        // Validaciones básicas antes de radicar
+        if (!aeroForm.empresa_contratante) return alert("Ingrese el nombre de la empresa");
+        if (!aeroForm.aeronaves[0].id) return alert("Seleccione al menos una aeronave");
+        
+        setSaving(true);
+        try {
+            // 1. CREAR EL REGISTRO EN LA TABLA DE PROGRAMACIÓN (API)
+            const payload = {
+                pilot_id: aeroForm.pilotos_solicitud[0].id,
+                aircraft_id: aeroForm.aeronaves[0].id,
+                location: `${aeroForm.municipality}, ${aeroForm.department}`,
+                scheduled_at: aeroForm.fecha_inicio || new Date().toISOString().split('T')[0],
+                mission_type: "F100: " + aeroForm.empresa_contratante
+            };
+
+            const res = await fetch('/api/flights/authorize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const newMission = await res.json();
+
+            if (res.ok) {
+                // 2. GUARDAR EL RESPALDO DEL FORMULARIO COMPLETO
+                await supabase.from('aerocivil_submissions').insert([{
+                    organization_id: org.id,
+                    authorization_id: newMission.id,
+                    full_data: aeroForm
+                }]);
+
+                // 3. GENERAR EL EXCEL CON EL CONSECUTIVO REAL
+                const { generateExcelF100 } = await import('@/lib/reportGenerators');
+                const dataForExcel = { ...aeroForm, mission_id: newMission.mission_id };
+                await generateExcelF100(dataForExcel, userProfile, org, pilots);
+
+                alert("🚀 MISIÓN PROGRAMADA: " + newMission.mission_id);
+                if (loadData) loadData(); // Refresca la tabla del padre
+            } else {
+                throw new Error(newMission.error);
+            }
+        } catch (e) {
+            alert("Falla en radicación: " + e.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="space-y-10 animate-in fade-in slide-in-from-right duration-500 pb-20 text-left">
+            
+            {/* ENCABEZADO TÉCNICO */}
+            <div className="bg-slate-900 p-8 rounded-[3rem] text-white flex justify-between items-center border-l-8 border-orange-600 shadow-2xl">
+                <div>
+                    <h3 className="text-2xl font-black uppercase tracking-tight">Formato 100 UAEAC</h3>
+                    <p className="text-orange-500 text-[10px] font-black uppercase tracking-[0.3em] mt-1">Módulo de Cumplimiento Normativo</p>
+                </div>
+                <div className="size-14 bg-white/5 rounded-2xl flex items-center justify-center">
+                    <span className="material-symbols-outlined text-4xl text-orange-500">gavel</span>
+                </div>
+            </div>
+
+            {/* SECCIÓN 3: TIPO DE OPERACIÓN AÉREA */}
+            <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                    <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">3. TIPO DE OPERACIÓN AÉREA</h4>
+                    <HelpTooltip text="Marque con una equis (X) el tipo de operación aérea que se solicita acorde a lo autorizado por la UAEAC." />
+                </div>
+
+                <div className="p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <AeroCheck 
+                            label="SIMPLE CAPTURA DE IMÁGENES O DATOS" 
+                            checked={aeroForm.tipo_operacion.simple_captura}
+                            onChange={() => toggleAeroCheck('simple_captura')}
+                        />
+                        <AeroCheck 
+                            label="CAPTURA PARA VIGILANCIA Y SEGURIDAD PRIVADA" 
+                            checked={aeroForm.tipo_operacion.vigilancia_seguridad}
+                            onChange={() => toggleAeroCheck('vigilancia_seguridad')}
+                        />
+                        <AeroCheck 
+                            label="CAPTURA PARA MEDIOS MASIVOS DE COMUNICACIÓN" 
+                            checked={aeroForm.tipo_operacion.medios_comunicacion}
+                            onChange={() => toggleAeroCheck('medios_comunicacion')}
+                        />
+                        <AeroCheck 
+                            label="ASPERSIÓN" 
+                            checked={aeroForm.tipo_operacion.aspersion}
+                            onChange={() => toggleAeroCheck('aspersion')}
+                        />
+                        <AeroCheck 
+                            label="DISPERSIÓN" 
+                            checked={aeroForm.tipo_operacion.dispersion}
+                            onChange={() => toggleAeroCheck('dispersion')}
+                        />
+                        <AeroCheck 
+                            label="ENJAMBRE" 
+                            checked={aeroForm.tipo_operacion.enjambre}
+                            onChange={() => toggleAeroCheck('enjambre')}
+                        />
+                        <AeroCheck 
+                            label="TRANSPORTE DE CARGA ('DRONE DELIVERY')" 
+                            checked={aeroForm.tipo_operacion.carga_delivery}
+                            onChange={() => toggleAeroCheck('carga_delivery')}
+                        />
+                        <AeroCheck 
+                            label="INSTRUCCIÓN" 
+                            checked={aeroForm.tipo_operacion.instruccion}
+                            onChange={() => toggleAeroCheck('instruccion')}
+                        />
+                        <div className="md:col-span-2">
+                            <AeroCheck 
+                                label="ACTIVIDADES MISIONALES DE ENTIDADES PÚBLICAS" 
+                                checked={aeroForm.tipo_operacion.misiones_publicas}
+                                onChange={() => toggleAeroCheck('misiones_publicas')}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            {/* SECCIÓN 4: INFORMACIÓN DE LA OPERACIÓN AÉREA */}
+            <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden animate-in fade-in duration-500">
+                <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                    <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">4. INFORMACIÓN DE LA OPERACIÓN AÉREA</h4>
+                    <HelpTooltip text="Diligencie los datos de la empresa contratante, fechas, horarios UTC, pesos brutos y ubicación geográfica de la operación." />
+                </div>
+
+                <div className="p-8 space-y-6">
+                    {/* FILA 1: EMPRESA CONTRATANTE */}
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Empresa Contratante del Servicio</label>
+                        <input 
+                            className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                            placeholder="Razón Social del Cliente"
+                            value={aeroForm.empresa_contratante}
+                            onChange={e => setAeroForm({...aeroForm, empresa_contratante: e.target.value})}
+                        />
+                    </div>
+
+                    {/* FILA 2 Y 3: CRONOGRAMA TÉCNICO */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Fecha Inicio</label>
+                                <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-xs" value={aeroForm.fecha_inicio} onChange={e => setAeroForm({...aeroForm, fecha_inicio: e.target.value})} />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Hora Inicio (24h)</label>
+                                <input 
+                                    list="time-slots"
+                                    type="text"
+                                    maxLength="5"
+                                    placeholder="HH:MM"
+                                    className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                                    value={aeroForm.hora_inicio}
+                                    onChange={(e) => handleTimeInput(e.target.value, 'hora_inicio')}
+                                />
+                            </div> 
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Fecha Finalización</label>
+                                <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-xs" value={aeroForm.fecha_fin} onChange={e => setAeroForm({...aeroForm, fecha_fin: e.target.value})} />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Hora Fin (24h)</label>
+                                <input 
+                                    list="time-slots"
+                                    type="text"
+                                    maxLength="5"
+                                    placeholder="HH:MM"
+                                    className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                                    value={aeroForm.hora_fin}
+                                    onChange={(e) => handleTimeInput(e.target.value, 'hora_fin')}
+                                />
+                            </div>
+                            {/* LISTA DESPLEGABLE COMPARTIDA */}
+                            <datalist id="time-slots">
+                                {TIME_OPTIONS.map(time => (
+                                    <option key={time} value={time} />
+                                ))}
+                            </datalist>
+                        </div>
+                    </div>
+
+                    {/* FILA 4: OTROS DETALLES */}
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Otros detalles del cronograma de operación</label>
+                        <textarea 
+                            rows="2"
+                            className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                            placeholder="Especifique detalles adicionales si aplica..."
+                            value={aeroForm.otros_detalles}
+                            onChange={e => setAeroForm({...aeroForm, otros_detalles: e.target.value})}
+                        />
+                    </div>
+
+                    {/* FILA 5: PESO Y GEOGRAFÍA */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Peso Bruto Máximo (Kg)</label>
+                            <input 
+                                type="number" step="0.01" 
+                                className="w-full p-4 bg-white border-2 border-orange-100 rounded-2xl font-black text-sm text-orange-600 outline-none" 
+                                placeholder="0.00"
+                                value={aeroForm.peso_maximo}
+                                onChange={e => setAeroForm({...aeroForm, peso_maximo: e.target.value})}
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Departamento</label>
+                            <select 
+                                className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-orange-500 appearance-none"
+                                value={aeroForm.department}
+                                onChange={e => handleDeptChange(e.target.value)}
+                            >
+                                <option value="">-- Seleccionar --</option>
+                                {geo.depts.map(d => <option key={d} value={d}>{d}</option>)}
+                            </select>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Municipio</label>
+                            <select 
+                                disabled={!aeroForm.department}
+                                className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-30 appearance-none"
+                                value={aeroForm.municipality}
+                                onChange={e => setAeroForm({...aeroForm, municipality: e.target.value})}
+                            >
+                                <option value="">-- Seleccionar --</option>
+                                {geo.munis.map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* SECCIÓN 5: TIPO DE CONTACTO VISUAL CON LA UA */}
+            <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
+                <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                    <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">5. TIPO DE CONTACTO VISUAL CON LA UA</h4>
+                    <HelpTooltip text="Seleccione la condición visual de la operación. Recuerde que EVLOS requiere observadores y BVLOS requiere autorización específica de distancia." />
+                </div>
+
+                <div className="p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <AeroCheck 
+                            label="VLOS (Hasta 750 metros)" 
+                            description="Línea de vista visual directa del piloto."
+                            checked={aeroForm.contacto_visual.vlos}
+                            onChange={() => toggleTipoFly('vlos')}
+                        />
+                        <AeroCheck 
+                            label="EVLOS (Hasta 3.000 metros con observador(es))" 
+                            description="Línea de vista extendida mediante observadores."
+                            checked={aeroForm.contacto_visual.evlos}
+                            onChange={() => toggleTipoFly('evlos')}
+                        />
+                        <div className="md:col-span-2">
+                            <AeroCheck 
+                                label="BVLOS (Distancia aprobada en la operación aérea)" 
+                                description="Operación más allá de la línea de vista visual."
+                                checked={aeroForm.contacto_visual.bvlos}
+                            onChange={() => toggleTipoFly('bvlos')}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* SECCIÓN 6: VUELO ESPECIAL */}
+            <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
+                <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                    <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">6. VUELO ESPECIAL</h4>
+                    <HelpTooltip text="Marque con una equis (X) el tipo de vuelo especial que se realizará. Debe incluir una justificación detallada de la operación." />
+                </div>
+
+                <div className="p-8 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <AeroCheck 
+                            label="VUELO NOCTURNO" 
+                            checked={aeroForm.vuelos_especiales.nocturno}
+                            onChange={() => toggleSpecialVuelo('nocturno')}
+                        />
+                        <AeroCheck 
+                            label="VUELO EN ZONA URBANA" 
+                            checked={aeroForm.vuelos_especiales.urbana}
+                            onChange={() => toggleSpecialVuelo('urbana')}
+                        />
+                        <AeroCheck 
+                            label="VUELO AUTÓNOMO" 
+                            checked={aeroForm.vuelos_especiales.autonomo}
+                            onChange={() => toggleSpecialVuelo('autonomo')}
+                        />
+                        <AeroCheck 
+                            label="VUELOS PARA DEMOSTRACIONES COMERCIALES" 
+                            checked={aeroForm.vuelos_especiales.demostracion}
+                            onChange={() => toggleSpecialVuelo('demostracion')}
+                        />
+                        <AeroCheck 
+                            label="VUELO DE UA CAUTIVA" 
+                            checked={aeroForm.vuelos_especiales.cautiva}
+                            onChange={() => toggleSpecialVuelo('cautiva')}
+                        />
+                        <AeroCheck 
+                            label="VUELOS EN COMPETENCIAS O RECREATIVOS" 
+                            checked={aeroForm.vuelos_especiales.recreativo}
+                            onChange={() => toggleSpecialVuelo('recreativo')}
+                        />
+                    </div>
+
+                    {/* CAMPO DE JUSTIFICACIÓN */}
+                    <div className="pt-4 border-t border-slate-50">
+                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1 flex items-center gap-2">
+                            Justificación de la Operación Especial
+                            <HelpTooltip text="Describa brevemente la necesidad y los mitigantes de riesgo para el tipo de vuelo especial seleccionado." />
+                        </label>
+                        <textarea 
+                            rows="3"
+                            className="w-full p-4 bg-slate-50 rounded-2xl border-none font-medium text-sm mt-2 outline-none focus:ring-2 focus:ring-orange-500"
+                            placeholder="Describa el propósito y medidas de seguridad..."
+                            value={aeroForm.justificacion_especial}
+                            onChange={e => setAeroForm({...aeroForm, justificacion_especial: e.target.value})}
+                        />
+                    </div>
+                </div>
+            </section>
+
+            {/* SECCIÓN 7: AERONAVE(S) NO TRIPULADA(S) UAS */}
+            <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
+                <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-blue-600">aeroplane</span>
+                        <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">7. AERONAVE(S) NO TRIPULADA(S) UAS</h4>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <p className="text-[9px] font-black text-slate-400 uppercase">Slots: {aeroForm.aeronaves.length} / 3</p>
+                        <HelpTooltip text="Seleccione las aeronaves de su flota. Debe incluir los datos vigentes de la póliza de Responsabilidad Civil Extracontractual (RCE)." />
+                    </div>
+                </div>
+
+                <div className="p-8 space-y-8">
+                    {aeroForm.aeronaves.map((unit, index) => (
+                        <div key={index} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4 relative">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="bg-slate-900 text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase">Aeronave #{index + 1}</span>
+                                {index > 0 && (
+                                    <button onClick={() => setAeroForm(prev => ({...prev, aeronaves: prev.aeronaves.filter((_, i) => i !== index)}))} className="text-red-500 material-symbols-outlined text-sm">delete</button>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Seleccionar de Flota</label>
+                                    <select 
+                                        className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                                        value={unit.id}
+                                        onChange={(e) => handleAircraftSelect(index, e.target.value, drones)}
+                                    >
+                                        <option value="">-- Elegir Equipo --</option>
+                                        {drones?.map(d => <option key={d.id} value={d.id}>{d.model} ({d.serial_number})</option>)}
+                                    </select>
+                                </div>
+                                <InputCol label="Marca" value={unit.brand} disabled isDark={false} />
+                                <InputCol label="Modelo" value={unit.model} disabled isDark={false} />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 border-t border-slate-200/50">
+                                <InputCol label="Empresa Aseguradora" placeholder="Ej: Seguros Bolívar" value={unit.insurer} onChange={e => updateMaintField(index, 'insurer', e.target.value)} />
+                                <InputCol label="Número de Póliza" placeholder="000-XXX-000" value={unit.policy} onChange={e => updateMaintField(index, 'policy', e.target.value)} />
+                                <InputCol label="Inicio Cobertura" type="date" value={unit.start_date} onChange={e => updateMaintField(index, 'start_date', e.target.value)} />
+                                <InputCol label="Fin Cobertura" type="date" value={unit.end_date} onChange={e => updateMaintField(index, 'end_date', e.target.value)} />
+                            </div>
+                        </div>
+                    ))}
+
+                    {aeroForm.aeronaves.length < 3 && (
+                        <button 
+                            onClick={addAircraftSlot}
+                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-[10px] uppercase hover:border-orange-500 hover:text-orange-500 transition-all flex items-center justify-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-sm">add_circle</span>
+                            Vincular otra aeronave a la solicitud
+                        </button>
+                    )}
+                </div>
+            </section>
+            
+            {/* SECCIÓN 8: EQUIPOS TECNOLÓGICOS */}
+            <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
+                <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-purple-600">settings_input_component</span>
+                        <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">8. EQUIPOS TECNOLÓGICOS (PAYLOADS)</h4>
+                    </div>
+                    <HelpTooltip text="Relacione los equipos integrados o externos como cámaras, sensores LIDAR o sistemas de fumigación registrados en su inventario." />
+                </div>
+
+                <div className="p-8 space-y-8">
+                    {aeroForm.equipos.map((item, index) => (
+                        <div key={index} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4 relative">
+                            <div className="flex justify-between items-center">
+                                <span className="bg-slate-900 text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase">Equipo #{index + 1}</span>
+                                {index > 0 && (
+                                    <button onClick={() => setAeroForm(prev => ({...prev, equipos: prev.equipos.filter((_, i) => i !== index)}))} className="text-red-500 material-symbols-outlined text-sm">delete</button>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="space-y-1 lg:col-span-2">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Seleccionar de Inventario</label>
+                                    <select 
+                                        className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs outline-none"
+                                        value={item.id}
+                                        onChange={(e) => handleTechSelect(index, e.target.value, inventoryList)} // <--- AHORA USA LA LISTA REAL
+                                    >
+                                        <option value="">-- Seleccionar Equipo --</option>
+                                        {inventoryList.map(inv => (
+                                            <option key={inv.id} value={inv.id}>{inv.brand} {inv.model} ({inv.serial_number})</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <InputCol label="Tipo de Equipo" value={item.type} disabled />
+                                <InputCol label="Número de Serie" value={item.serial_number} disabled />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <InputCol label="Marca" value={item.brand} disabled />
+                                <InputCol label="Modelo" value={item.model} disabled />
+                            </div>
+                        </div>
+                    ))}
+
+                    {aeroForm.equipos.length < 3 && (
+                        <button 
+                            onClick={addTechSlot}
+                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-[10px] uppercase hover:border-purple-500 hover:text-purple-500 transition-all flex items-center justify-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-sm">add_circle</span>
+                            Vincular equipo tecnológico adicional
+                        </button>
+                    )}
+                </div>
+            </section>
+
+            {/* SECCIÓN 9: PILOTO(S) UAS */}
+            <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
+                <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-orange-600">person_check</span>
+                        <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">9. PILOTO(S) UAS</h4>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <p className="text-[9px] font-black text-slate-400 uppercase">Tripulantes: {aeroForm.pilotos_solicitud.length} / 3</p>
+                        <HelpTooltip text="Seleccione los pilotos que participarán en la misión. El sistema cargará su identificación y teléfono de contacto automáticamente." />
+                    </div>
+                </div>
+
+                <div className="p-8 space-y-8">
+                    {aeroForm.pilotos_solicitud.map((pilot, index) => (
+                        <div key={index} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4 relative">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="bg-orange-600 text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase">Piloto #{index + 1}</span>
+                                {index > 0 && (
+                                    <button onClick={() => setAeroForm(prev => ({...prev, pilotos_solicitud: prev.pilotos_solicitud.filter((_, i) => i !== index)}))} className="text-red-500 material-symbols-outlined text-sm">delete</button>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Vincular de Tripulación</label>
+                                    <select 
+                                        className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                                        value={pilot.id}
+                                        onChange={(e) => handlePilotSelect(index, e.target.value)}
+                                    >
+                                        <option value="">-- Seleccionar Piloto --</option>
+                                        {pilots?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </select>
+                                </div>
+                                <InputCol label="N° Documento Identificación" value={pilot.id_number} disabled />
+                                <InputCol label="N° Teléfono Celular" value={pilot.phone} disabled />
+                            </div>
+                        </div>
+                    ))}
+
+                    {aeroForm.pilotos_solicitud.length < 3 && (
+                        <button 
+                            onClick={addPilotSlot}
+                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-[10px] uppercase hover:border-orange-500 hover:text-orange-500 transition-all flex items-center justify-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-sm">group_add</span>
+                            Vincular otro piloto a la misión
+                        </button>
+                    )}
+                </div>
+            </section>
+
+            {/* SECCIÓN 10: OBSERVADOR(ES) UA */}
+            <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
+                <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-emerald-600">visibility</span>
+                        <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">10. OBSERVADOR(ES) UA</h4>
+                    </div>
+                    <HelpTooltip text="Relacione el personal que actuará como observador visual de la operación. Pueden ser pilotos registrados u otro personal capacitado." />
+                </div>
+
+                <div className="p-8 space-y-6">
+                    {aeroForm.observadores.map((obs, index) => (
+                        <div key={index} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4 relative">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="bg-slate-900 text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase">Observador #{index + 1}</span>
+                                {index > 0 && (
+                                    <button onClick={() => setAeroForm(prev => ({...prev, observadores: prev.observadores.filter((_, i) => i !== index)}))} className="text-red-500 material-symbols-outlined text-sm">delete</button>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Vincular de Tripulación (Opcional)</label>
+                                    <select 
+                                        className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs outline-none focus:ring-2 focus:ring-orange-500"
+                                        value={obs.id}
+                                        onChange={(e) => handleObserverSelect(index, e.target.value)}
+                                    >
+                                        <option value="">-- Seleccionar de la lista --</option>
+                                        {pilots?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </select>
+                                </div>
+                                {/* Campos editables por si el observador no está en la base de datos de pilotos */}
+                                <InputCol 
+                                    label="Nombre Completo" 
+                                    value={obs.name} 
+                                    onChange={e => {
+                                        const newObs = [...aeroForm.observadores];
+                                        newObs[index].name = e.target.value;
+                                        setAeroForm({...aeroForm, observadores: newObs});
+                                    }} 
+                                />
+                                <div className="grid grid-cols-2 gap-2">
+                                    <InputCol 
+                                        label="Documento ID" 
+                                        value={obs.id_number} 
+                                        onChange={e => {
+                                            const newObs = [...aeroForm.observadores];
+                                            newObs[index].id_number = e.target.value;
+                                            setAeroForm({...aeroForm, observadores: newObs});
+                                        }} 
+                                    />
+                                    <InputCol 
+                                        label="Teléfono Celular" 
+                                        value={obs.phone} 
+                                        onChange={e => {
+                                            const newObs = [...aeroForm.observadores];
+                                            newObs[index].phone = e.target.value;
+                                            setAeroForm({...aeroForm, observadores: newObs});
+                                        }} 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+
+                    {aeroForm.observadores.length < 2 && (
+                        <button 
+                            onClick={addObserverSlot}
+                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-[10px] uppercase hover:border-emerald-500 hover:text-emerald-500 transition-all flex items-center justify-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-sm">person_add_alt</span>
+                            Asignar observador adicional
+                        </button>
+                    )}
+                </div>
+            </section>
+
+            {/* SECCIÓN 11: COORDENADAS DE LA OPERACIÓN */}
+            <section className="bg-slate-900 p-8 rounded-[3rem] text-white space-y-8 shadow-2xl mt-8">
+                <div className="flex justify-between items-center border-b border-white/10 pb-4">
+                    <h4 className="font-black uppercase text-sm text-orange-500 tracking-widest">11. COORDENADAS DE LA OPERACIÓN (WGS-84)</h4>
+                    <HelpTooltip text="Las coordenadas deben consignarse en grados, minutos y segundos. El mapa las convertirá automáticamente." />
+                </div>
+
+                {/* SECCIÓN 11: PARÁMETROS TÉCNICOS DE GEOMETRÍA */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Nombre de la Geometría</label>
+                        <input 
+                            className="w-full p-3 bg-white/5 border border-white/10 rounded-xl font-bold text-xs text-white outline-none focus:border-orange-500"
+                            placeholder="Ej: Polígono Misión Alfa"
+                            value={aeroForm.geo_name}
+                            onChange={e => setAeroForm({...aeroForm, geo_name: e.target.value})}
+                        />
+                        <p className="text-[7px] text-slate-500 uppercase ml-1 italic">Identificador oficial en el F-100</p>
+                    </div>
+
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Altura en Metros (m)</label>
+                        <input 
+                            type="number"
+                            className="w-full p-3 bg-white/5 border border-white/10 rounded-xl font-bold text-xs text-white outline-none focus:border-orange-500"
+                            placeholder="0"
+                            value={aeroForm.altitude_meters}
+                            onChange={e => handleAltitudeChange(e.target.value, 'm')}
+                        />
+                    </div>
+
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Altura en Pies (ft)</label>
+                        <input 
+                            type="number"
+                            className="w-full p-3 bg-white/10 border-2 border-orange-500/30 rounded-xl font-black text-xs text-orange-500 outline-none"
+                            placeholder="0"
+                            value={aeroForm.altitude_feet}
+                            onChange={e => handleAltitudeChange(e.target.value, 'ft')}
+                        />
+                    </div>
+                </div>
+
+                {/* SELECTOR DE TIPO DE GEOMETRÍA */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {['polygon', 'linear', 'circle'].map(t => (
+                        <button 
+                            key={t}
+                            onClick={() => setAeroForm({...aeroForm, geo_type: t, points: []})}
+                            className={`p-4 rounded-2xl border-2 transition-all font-black text-[10px] uppercase ${aeroForm.geo_type === t ? 'border-orange-500 bg-orange-500/10' : 'border-white/10'}`}
+                        >
+                            {t === 'polygon' ? 'Polígono' : t === 'linear' ? 'Tramo Lineal' : 'Circunferencia'}
+                        </button>
+                    ))}
+                </div>
+
+                {/* BOTÓN DISPARADOR DEL MAPA */}
+                <button 
+                    onClick={() => setShowMap(true)}
+                    className="w-full py-6 bg-white/10 border-2 border-dashed border-white/20 rounded-[2rem] flex flex-col items-center gap-2 hover:bg-orange-600/20 hover:border-orange-500 transition-all"
+                >
+                    <span className="material-symbols-outlined text-4xl text-orange-500">map</span>
+                    <span className="text-[10px] font-black uppercase">Abrir Mapa Interactivo y Capturar Puntos</span>
+                </button>
+
+                {/* TABLA TÉCNICA (Como en la imagen) */}
+                {aeroForm.points.length > 0 && (
+                    <div className="overflow-hidden rounded-2xl border border-white/10">
+                        <table className="w-full text-left text-[10px]">
+                            <thead className="bg-white/5 font-black uppercase text-slate-500">
+                                <tr>
+                                    <th className="p-3">ITEM</th>
+                                    <th className="p-3">LATITUD (N/S)</th>
+                                    <th className="p-3">LONGITUD (W)</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5 font-mono">
+                                {aeroForm.points.map((p, i) => (
+                                    <tr key={i}>
+                                        <td className="p-3">{i + 1}</td>
+                                        <td className="p-3">{toGMS(p.lat)}{p.lat >= 0 ? 'N' : 'S'}</td>
+                                        <td className="p-3">{toGMS(p.lng)}W</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </section>
+
+            {/* MODAL DEL MAPA */}
+            {showMap && (
+                <MapPickerModal 
+                    type={aeroForm.geo_type} 
+                    points={aeroForm.points}
+                    // CORRECCIÓN: 'data' ahora trae { points, radius }
+                    onSave={(data) => { 
+                        setAeroForm({
+                            ...aeroForm, 
+                            points: data.points, 
+                            radius: data.radius 
+                        }); 
+                        setShowMap(false); 
+                    }}
+                    onClose={() => setShowMap(false)}
+                />
+            )}
+
+            {/* SECCIÓN 12: DOCUMENTOS DIGITALES REQUERIDOS */}
+        <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
+            <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-slate-600">attach_file</span>
+                    <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">12. DOCUMENTOS DIGITALES REQUERIDOS</h4>
+                </div>
+                <HelpTooltip text="Marque con una equis (X) los documentos que adjuntará a la solicitud electrónica. Recuerde que el PDF generado debe ir acompañado de estos archivos." />
+            </div>
+
+            <div className="p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <AeroCheck 
+                        label="Copia de póliza de seguro RCE y certificado de pago." 
+                        checked={aeroForm.docs_adjuntos.poliza_rce}
+                        onChange={() => toggleAeroDoc('poliza_rce')}
+                    />
+                    <AeroCheck 
+                        label="Archivo electrónico en formato KMZ / KML (WGS-84)." 
+                        checked={aeroForm.docs_adjuntos.archivo_kmz}
+                        onChange={() => toggleAeroDoc('archivo_kmz')}
+                    />
+                    <AeroCheck 
+                        label="Formato de Análisis de Riesgos Operacionales (SORA)." 
+                        checked={aeroForm.docs_adjuntos.analisis_riesgos}
+                        onChange={() => toggleAeroDoc('analisis_riesgos')}
+                    />
+                    <AeroCheck 
+                        label="Acta CDM (Coordinaciones Operativas) si aplica." 
+                        checked={aeroForm.docs_adjuntos.acta_cdm}
+                        onChange={() => toggleAeroDoc('acta_cdm')}
+                    />
+                    <AeroCheck 
+                        label="Copia de contrato o autorización (Instalación Especial)." 
+                        checked={aeroForm.docs_adjuntos.contrato_instalacion}
+                        onChange={() => toggleAeroDoc('contrato_instalacion')}
+                    />
+                    <AeroCheck 
+                        label="Declaración de Carga - Membreteada (Drone Delivery)." 
+                        checked={aeroForm.docs_adjuntos.declaracion_carga}
+                        onChange={() => toggleAeroDoc('declaracion_carga')}
+                    />
+                </div>
+
+                <div className="mt-8 p-6 bg-blue-50 rounded-2xl border border-blue-100 flex items-start gap-4">
+                    <span className="material-symbols-outlined text-blue-600">info</span>
+                    <div>
+                        <p className="text-[10px] font-black text-blue-900 uppercase tracking-tight">Nota de Cumplimiento:</p>
+                        <p className="text-[9px] text-blue-700 font-medium mt-1 leading-relaxed">
+                            La omisión de cualquiera de los documentos marcados como obligatorios por la UAEAC dará lugar a la devolución de la solicitud. Asegúrese de tener los archivos listos en formato digital.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+            <button 
+                    onClick={handleFinalSubmit}
+                    disabled={saving}
+                    className="w-full py-6 bg-emerald-600 text-white font-black rounded-[2.5rem] shadow-xl uppercase text-xs tracking-widest hover:bg-slate-900 transition-all active:scale-95"
+                >
+                    {saving ? 'RADICANDO EN TORRE DE CONTROL...' : 'GENERAR Y PROGRAMAR MISIÓN OFICIAL'}
+                </button>
+        </div>
+    );
+}
+
+// --- ESTA DEBE SER LA ÚNICA VEZ QUE APAREZCAN ESTAS FUNCIONES AL FINAL DEL ARCHIVO ---
+
+function AeroCheck({ label, checked, onChange }) {
+    return (
+        <button type="button" onClick={onChange} className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left ${checked ? 'border-orange-500 bg-orange-50/50 shadow-md scale-[1.01]' : 'border-slate-100 bg-slate-50/30 hover:border-slate-200'}`}>
+            <span className={`text-[10px] font-black leading-tight uppercase ${checked ? 'text-orange-700' : 'text-slate-500'}`}>{label}</span>
+            <div className={`size-6 rounded-lg border-2 flex items-center justify-center shrink-0 ${checked ? 'bg-orange-600 border-orange-600' : 'border-slate-200 bg-white'}`}>
+                {checked && <span className="material-symbols-outlined text-white text-base">close</span>}
+            </div>
+        </button>
+    );
+}
+
+function VisualOption({ label, description, selected, onClick }) {
+    return (
+        <button type="button" onClick={onClick} className={`w-full flex items-center justify-between p-5 rounded-[1.5rem] border-2 transition-all text-left ${selected ? 'border-orange-500 bg-orange-50/30 shadow-md' : 'border-slate-100 bg-slate-50/30 hover:border-slate-200'}`}>
+            <div className="flex-1 pr-4">
+                <p className={`text-[10px] font-black uppercase ${selected ? 'text-orange-700' : 'text-slate-500'}`}>{label}</p>
+                <p className="text-[9px] text-slate-400 font-medium mt-1 leading-tight">{description}</p>
+            </div>
+            <div className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${selected ? 'bg-orange-600 border-orange-600' : 'border-slate-200 bg-white'}`}>
+                {selected && <span className="material-symbols-outlined text-white text-base">check</span>}
+            </div>
+        </button>
+    );
+}
+
+function InputCol({ label, placeholder, type = "text", value, onChange, disabled = false }) {
+    return (
+        <div className="space-y-1">
+            <label className="text-[9px] font-black text-slate-400 uppercase ml-1">{label}</label>
+            <input 
+                disabled={disabled}
+                type={type} 
+                className={`w-full p-3 rounded-xl border-none font-bold text-xs focus:ring-2 focus:ring-orange-500 outline-none ${disabled ? 'bg-slate-200 text-slate-500' : 'bg-slate-50 text-slate-900'}`} 
+                placeholder={placeholder} 
+                value={value} 
+                onChange={onChange} 
+            />
+        </div>
+    );
+}
+--- File: src/components/authorizations/MapPickerModal.js ---
+'use client';
+import { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, useMapEvents, Polygon, Polyline, Circle, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix para iconos de marcadores
+const fixLeafletIcons = () => {
+  delete L.Icon.Default.prototype._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  });
+};
+
+export default function MapPickerModal({ type, points, onSave, onClose }) {
+  const [tempPoints, setTempPoints] = useState(points || []);
+  const [radius, setRadius] = useState(500);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => { fixLeafletIcons(); }, []);
+
+  // --- COMPONENTE INTERNO PARA CONTROLAR EL MOVIMIENTO DEL MAPA ---
+  function MapController() {
+    const map = useMap();
+    
+    // Captura de clics para poner puntos
+    useMapEvents({
+      click(e) {
+        if (type === 'circle' && tempPoints.length >= 1) {
+            setTempPoints([e.latlng]);
+        } else {
+            setTempPoints(prev => [...prev, e.latlng]);
+        }
+      },
+    });
+
+    return null;
+  }
+
+  // --- LÓGICA DE BÚSQUEDA GEOGRÁFICA ---
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchQuery) return;
+    setIsSearching(true);
+
+    try {
+        // 1. Verificar si son coordenadas (Lat, Lng)
+        const coordsRegex = /^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?),\s*[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?)$/;
+        
+        if (coordsRegex.test(searchQuery)) {
+            const [lat, lng] = searchQuery.split(',').map(n => parseFloat(n.trim()));
+            // Como no podemos usar 'useMap' fuera del container, forzamos un re-render
+            // enviando un punto temporal que el mapa centrará (se maneja con estado si fuera necesario)
+            // Para simplicidad en este modal, el usuario solo debe buscar.
+            alert(`Coordenadas detectadas. Buscando: ${lat}, ${lng}`);
+            // Nota: En la implementación de abajo usamos una técnica de "FlyTo"
+        }
+
+        // 2. Búsqueda por Nombre vía Nominatim (OpenStreetMap)
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`);
+        const data = await response.json();
+
+        if (data && data.length > 0) {
+            const { lat, lon } = data[0];
+            // Evento personalizado para que el mapa se mueva
+            const event = new CustomEvent('map-fly-to', { detail: [parseFloat(lat), parseFloat(lon)] });
+            window.dispatchEvent(event);
+        } else {
+            alert("No se encontró el lugar solicitado.");
+        }
+    } catch (err) {
+        alert("Error en el servicio de búsqueda.");
+    } finally {
+        setIsSearching(false);
+    }
+  };
+
+  // Sub-componente para escuchar el evento de "Volar a"
+  function SearchFlyTo() {
+    const map = useMap();
+    useEffect(() => {
+        const handler = (e) => {
+            map.flyTo(e.detail, 16, { animate: true });
+        };
+        window.addEventListener('map-fly-to', handler);
+        return () => window.removeEventListener('map-fly-to', handler);
+    }, [map]);
+    return null;
+  }
+
+  if (typeof window === 'undefined') return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[500] flex flex-col font-display animate-in fade-in duration-300">
+      
+      {/* CABECERA CON BUSCADOR INTEGRADO */}
+      <header className="bg-white p-4 md:px-10 flex flex-col md:flex-row justify-between items-center gap-4 shrink-0 shadow-xl">
+        <div className="flex items-center gap-4 w-full md:w-auto">
+            <div className="size-10 bg-orange-600 rounded-xl flex items-center justify-center text-white shrink-0">
+                <span className="material-symbols-outlined">explore</span>
+            </div>
+            <form onSubmit={handleSearch} className="relative w-full md:w-80">
+                <input 
+                    type="text"
+                    placeholder="Buscar lugar o Lat, Lng..."
+                    className="w-full pl-10 pr-4 py-2 bg-slate-100 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                {isSearching && <div className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin size-3 border-2 border-orange-500 border-b-transparent rounded-full"></div>}
+            </form>
+        </div>
+
+        {/* CONTROLES DE RADIO Y ACCIÓN */}
+        <div className="flex items-center gap-4 w-full md:w-auto justify-between">
+            {type === 'circle' && tempPoints.length > 0 && (
+                <div className="flex items-center gap-3 bg-orange-50 px-4 py-2 rounded-xl border border-orange-100">
+                    <span className="text-[9px] font-black text-orange-600 uppercase">Radio:</span>
+                    <input type="range" min="50" max="5000" step="50" className="w-20 accent-orange-600" value={radius} onChange={(e) => setRadius(parseInt(e.target.value))} />
+                    <span className="text-xs font-black text-orange-700 w-10">{radius}m</span>
+                </div>
+            )}
+            <div className="flex gap-2">
+                <button onClick={() => setTempPoints([])} className="px-4 py-2 bg-slate-100 text-slate-500 rounded-xl text-[10px] font-black uppercase">Limpiar</button>
+                <button onClick={() => onSave({ points: tempPoints, radius })} className="px-6 py-2 bg-orange-600 text-white rounded-xl text-[10px] font-black uppercase shadow-lg">Confirmar</button>
+                <button onClick={onClose} className="material-symbols-outlined text-slate-300">close</button>
+            </div>
+        </div>
+      </header>
+
+      {/* MAPA */}
+      <div className="flex-1 relative">
+        <MapContainer center={[4.5709, -74.2973]} zoom={6} style={{ height: '100%', width: '100%' }}>
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <MapController />
+          <SearchFlyTo />
+          
+          {tempPoints.map((p, i) => <Marker key={i} position={p} />)}
+          
+          {type === 'polygon' && tempPoints.length >= 3 && (
+            <Polygon positions={tempPoints} pathOptions={{ color: '#ec5b13', fillColor: '#ec5b13', fillOpacity: 0.3 }} />
+          )}
+          {type === 'linear' && tempPoints.length >= 2 && (
+            <Polyline positions={tempPoints} pathOptions={{ color: '#ec5b13', weight: 4 }} />
+          )}
+          {type === 'circle' && tempPoints.length === 1 && (
+            <Circle center={tempPoints[0]} radius={radius} pathOptions={{ color: '#ec5b13', fillColor: '#ec5b13', fillOpacity: 0.3 }} />
+          )}
+        </MapContainer>
+        
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[600] bg-slate-900/90 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest backdrop-blur-sm border border-white/10">
+            {tempPoints.length === 0 ? 'Busque un lugar o haga clic para marcar' : `${tempPoints.length} Puntos registrados`}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+==========================================
+FILE/DIR: src/utils/supabase
+==========================================
+
+--- File: src/utils/supabase/client.js ---
+import { createBrowserClient } from '@supabase/ssr'
+
+export function createClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  )
+}
+--- File: src/utils/supabase/server.js ---
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+
+export function createClient() {
+  const cookieStore = cookies()
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        get(name) {
+          return cookieStore.get(name)?.value
+        },
+        set(name, value, options) {
+          try {
+            cookieStore.set({ name, value, ...options })
+          } catch (error) {
+            // El middleware se encargará de esto si falla en un Server Component
+          }
+        },
+        remove(name, options) {
+          try {
+            cookieStore.set({ name, value: '', ...options })
+          } catch (error) {
+            // El middleware se encargará de esto
+          }
+        },
+      },
+    }
+  )
+}
+--- File: src/utils/supabase/middleware.js ---
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse } from 'next/server'
+
+export async function updateSession(request) {
+  let supabaseResponse = NextResponse.next({
+    request,
+  })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          supabaseResponse = NextResponse.next({
+            request,
+          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  // IMPORTANTE: Solo refrescamos el token, NO consultamos tablas aquí.
+  await supabase.auth.getUser()
+
+  return supabaseResponse
+}
+
+==========================================
+FILE/DIR: src/middleware.js
+==========================================
+import { updateSession } from '@/utils/supabase/middleware'
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse } from 'next/server'
+
+export async function middleware(request) {
+  // 1. Refrescar sesión (Vital para estabilidad)
+  let response = await updateSession(request)
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        get(name) { return request.cookies.get(name)?.value },
+        set(name, value, options) {
+          request.cookies.set({ name, value, ...options })
+          response = NextResponse.next({ request: { headers: request.headers } })
+          response.cookies.set({ name, value, ...options })
+        },
+        remove(name, options) {
+          request.cookies.set({ name, value: '', ...options })
+          response = NextResponse.next({ request: { headers: request.headers } })
+          response.cookies.set({ name, value: '', ...options })
+        },
+      },
+    }
+  )
+
+  // 2. Verificar usuario de forma segura
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const isDashboard = request.nextUrl.pathname.startsWith('/dashboard')
+  const isAuthPage = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register')
+
+  // REGLA 1: Si no hay usuario y va al dashboard -> Al login
+  if (isDashboard && !user) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  // REGLA 2: Si ya hay usuario e intenta ir al login -> Al dashboard
+  if (isAuthPage && user) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  return response
+}
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+}

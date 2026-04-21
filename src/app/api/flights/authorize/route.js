@@ -36,12 +36,23 @@ export async function POST(request) {
         const body = await request.json();
         const prefix = org.flight_prefix || 'BIT';
 
-        const { count } = await supabase.from('flight_authorizations')
-            .select('*', { count: 'exact', head: true })
+        // Buscamos el último mission_id por orden descendente (más seguro que contar filas)
+        const { data: last } = await supabase.from('flight_authorizations')
+            .select('mission_id')
             .eq('organization_id', prof.organization_id)
-            .ilike('mission_id', `${prefix}-%`);
+            .ilike('mission_id', `${prefix}-%`)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-        const missionId = `${prefix}-${(count + 1).toString().padStart(3, '0')}`;
+        let nextNumber = 1;
+        if (last?.mission_id) {
+            const parts = last.mission_id.split('-');
+            const lastNumber = parseInt(parts[parts.length - 1], 10);
+            if (!isNaN(lastNumber)) nextNumber = lastNumber + 1;
+        }
+
+        const missionId = `${prefix}-${nextNumber.toString().padStart(3, '0')}`;
 
         const { data, error } = await supabase.from('flight_authorizations').insert([{
             ...body,
@@ -60,8 +71,23 @@ export async function POST(request) {
 export async function PATCH(request) {
     try {
         const supabase = await createClientSSR();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
         const body = await request.json();
         const { id, pilot_id, aircraft_id, location, scheduled_at, mission_type } = body;
+
+        // Verificamos que la autorización pertenezca a la organización del usuario
+        const { data: existing } = await supabase
+            .from('flight_authorizations')
+            .select('organization_id')
+            .eq('id', id)
+            .single();
+
+        if (!existing || existing.organization_id !== prof.organization_id) {
+            return NextResponse.json({ error: "No autorizado para editar esta misión" }, { status: 403 });
+        }
 
         const { data, error } = await supabase
             .from('flight_authorizations')
@@ -81,4 +107,4 @@ export async function PATCH(request) {
     } catch (err) {
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
-}
+}git rm src/app/api/route.js

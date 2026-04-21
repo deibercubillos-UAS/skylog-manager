@@ -19,7 +19,7 @@ export default async function AuthorizePage() {
   if (!profile?.organization_id) redirect('/onboarding');
 
   const [pilotsReq, dronesReq, orgReq] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, role').eq('organization_id', profile.organization_id).eq('role', 'Piloto'),
+    supabase.from('pilots').select('*').eq('organization_id', profile.organization_id).eq('is_active', true).order('name'),
     supabase.from('aircraft').select('*').eq('organization_id', profile.organization_id).eq('status', 'Operativo'),
     supabase.from('organizations').select('*').eq('id', profile.organization_id).single()
   ]);

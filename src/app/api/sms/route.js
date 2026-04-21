@@ -1,17 +1,13 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 export async function GET(request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const authHeader = request.headers.get('Authorization');
-
-    if (!userId || !authHeader) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } }
-    });
+    // Usamos el cliente SSR que valida la sesión por cookie
+    const { createClient: createSSRClient } = await import('@/utils/supabase/server');
+    const supabase = await createSSRClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    const userId = user.id;
 
     const { data, error } = await supabase
       .from('sms_reports')

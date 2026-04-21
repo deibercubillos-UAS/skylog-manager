@@ -14,11 +14,22 @@ export async function GET(request) {
       global: { headers: { Authorization: authHeader } }
     });
 
+    // Obtenemos la organización del usuario para guardarla junto al piloto
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', userId)
+      .single();
+
     const { data, error } = await supabase
       .from('pilots')
-      .select('*')
-      .eq('owner_id', userId)
-      .order('name', { ascending: true });
+      .insert([{
+        ...pilotData,
+        owner_id: userId,
+        organization_id: profile?.organization_id,
+        is_active: true
+      }])
+      .select();
 
     if (error) throw error;
     return NextResponse.json(data);
@@ -31,9 +42,16 @@ export async function POST(request) {
   try {
     const body = await request.json();
     const authHeader = request.headers.get('Authorization');
-    const { userId, pilotData, currentPlan, currentCount } = body;
+    const { userId, pilotData, currentPlan } = body;
 
-    if (!canAddResource(currentPlan, currentCount, 'pilot')) {
+    // Contamos en el servidor, NO confiamos en el cliente
+    const { count: realCount } = await supabase
+      .from('pilots')
+      .select('*', { count: 'exact', head: true })
+      .eq('owner_id', userId)
+      .eq('is_active', true);
+
+    if (!canAddResource(currentPlan, realCount || 0, 'pilot')) {
       return NextResponse.json({ error: "Límite de plan alcanzado" }, { status: 403 });
     }
 
@@ -41,10 +59,18 @@ export async function POST(request) {
       global: { headers: { Authorization: authHeader } }
     });
 
+   // Buscamos la organización del usuario
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', userId)
+      .single();
+
     const { data, error } = await supabase
       .from('pilots')
-      .insert([{ ...pilotData, owner_id: userId }])
-      .select();
+      .select('*')
+      .eq('organization_id', profile?.organization_id)
+      .order('name', { ascending: true });
 
     if (error) throw error;
     return NextResponse.json(data[0], { status: 201 });

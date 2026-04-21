@@ -1,28 +1,25 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   try {
     const { email, password } = await request.json();
 
-    // Backend: Conexión segura a Supabase
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
+    // Cliente SSR que SÍ guarda cookies
+    const supabase = await createClient();
 
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password,
+      email,
+      password,
     });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 401 });
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       session: data.session,
-      message: "Backend validado" 
+      message: "Sesión iniciada correctamente"
     }, { status: 200 });
 
   } catch (err) {

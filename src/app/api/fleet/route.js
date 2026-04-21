@@ -14,10 +14,16 @@ export async function GET(request) {
       global: { headers: { Authorization: authHeader } }
     });
 
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', userId)
+      .single();
+
     const { data, error } = await supabase
       .from('aircraft')
       .select('*')
-      .eq('owner_id', userId)
+      .eq('organization_id', profile?.organization_id)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -45,9 +51,21 @@ export async function POST(request) {
     }
 
     // 2. INSERCIÓN
+   // Obtenemos la organización del usuario
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', userId)
+      .single();
+
     const { data, error } = await supabase
       .from('aircraft')
-      .insert([{ ...aircraftData, owner_id: userId, status: 'Operativo' }])
+      .insert([{
+        ...aircraftData,
+        owner_id: userId,
+        organization_id: profile?.organization_id,
+        status: 'Operativo'
+      }])
       .select();
 
     if (error) throw error;

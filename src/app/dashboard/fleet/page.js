@@ -18,8 +18,6 @@ export default function FleetPage() {
   const [userRole, setUserRole] = useState(null);
   const [tech, setTech] = useState([]);
   const [editingTech, setEditingTech] = useState(null);
-  
-  // Estados de Control de UI
   const [activePanel, setActivePanel] = useState(null);
   const [editingDrone, setEditingDrone] = useState(null);
   const [editingBattery, setEditingBattery] = useState(null);
@@ -80,32 +78,34 @@ export default function FleetPage() {
     <div className="space-y-16 text-left animate-in fade-in duration-500 pb-20">
       
       {/* SECCIÓN AERONAVES */}
-      <section>
-        <header className="flex justify-between items-end border-b border-slate-200 pb-4 mb-8">
-          <div>
-            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Aeronaves</h2>
-            <p className="text-slate-400 text-[10px] font-black uppercase mt-2 tracking-widest">{drones.length} Unidades en Flota</p>
-          </div>
-          {/* Solo mostramos el botón si tiene permisos */}
-          {canManage && (
-            <button 
-              onClick={() => setActivePanel('drone')} 
-              className="bg-[#1A202C] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-orange-600 transition-all active:scale-95"
-            >
-              + Nuevo Drone
-            </button>
-          )}
-        </header>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {drones.map(d => (
-            <AircraftCard 
-              key={d.id} 
-              aircraft={d} 
-              onEdit={canManage ? setEditingDrone : null} 
-              onDelete={canManage ? (id) => handleDelete(id, 'aircraft') : null} 
-            />
-          ))}
+      <section className="animate-in fade-in duration-700">
+    <header className="flex justify-between items-end border-b border-slate-200 pb-4 mb-8">
+        <div className="text-left">
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Aeronaves UAS</h2>
+            <p className="text-slate-400 text-[10px] font-black uppercase mt-2 tracking-widest">
+                {(drones || []).length} Unidades en Flota
+            </p>
         </div>
+
+        {/* BOTÓN DE ACCIÓN: Solo Master, Admin y Jefe de Pilotos pueden registrar equipos */}
+        {['superadmin', 'admin', 'jefe_pilotos'].includes(userRole) && (
+            <button 
+                onClick={() => setActivePanel('drone')} 
+                className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-600/20 transition-all active:scale-95 flex items-center gap-2"
+            >
+                <span className="material-symbols-outlined text-sm">add_circle</span>
+                <span className="hidden sm:inline">Nuevo Drone</span>
+                <span className="sm:hidden">Nuevo</span>
+            </button>
+        )}
+    </header>
+
+    {/* Grid de Aeronaves */}
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {drones.map(d => (
+            <AircraftCard key={d.id} aircraft={d} onEdit={setEditingDrone} onDelete={(id) => handleDelete(id, 'aircraft')} />
+        ))}
+    </div>
       </section>
 
      {/*SECCION EQUIPOS*/} 

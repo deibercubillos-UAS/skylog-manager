@@ -8,7 +8,20 @@ export async function GET() {
         const supabase = await createClientSSR();
         const { data: { user } } = await supabase.auth.getUser();
         const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
-        const { data, error } = await supabase.from('flight_authorizations').select('*, pilots:pilot_id(name), aircraft:aircraft_id(model)').eq('organization_id', prof.organization_id).order('created_at', { ascending: false });
+
+        const { data, error } = await supabase
+            .from('flight_authorizations')
+            .select(`
+                *,
+                pilots:pilot_id(name, phone, id_number),
+                aircraft:aircraft_id(model, serial_number, total_hours),
+                payload:payload_id(brand, model, category, serial_number),
+                observer:observer_id(name)
+            `)
+            .eq('organization_id', prof.organization_id)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
         return NextResponse.json(data || []);
     } catch (err) { return NextResponse.json([], { status: 500 }); }
 }

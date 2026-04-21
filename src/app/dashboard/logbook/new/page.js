@@ -73,21 +73,60 @@ export default function NewOperationPage() {
         setSaving(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
+            const selectedAuth = resources.auths.find(a => a.id === form.auth_id);
+            const orgId = selectedAuth.organization_id;
+
+            // 1. Crear el Vuelo principal
             const { data: flight, error: fErr } = await supabase.from('flights').insert([{ 
-                ...form, pilot_id: selectedAuth.pilot_id, aircraft_id: selectedAuth.aircraft_id, 
-                location: selectedAuth.location, mission_id: selectedAuth.mission_id, 
-                flight_date: new Date().toISOString().split('T')[0], organization_id: selectedAuth.organization_id, owner_id: user.id 
+                ...form, 
+                pilot_id: selectedAuth.pilot_id, 
+                aircraft_id: selectedAuth.aircraft_id, 
+                location: selectedAuth.location, 
+                mission_id: selectedAuth.mission_id, 
+                flight_date: new Date().toISOString().split('T')[0], 
+                organization_id: orgId, 
+                owner_id: user.id 
             }]).select().single();
+
             if (fErr) throw fErr;
+
+            // 2. Guardar resultados INYECTANDO el orgId para cumplir con RLS
             await Promise.all([
-                supabase.from('results_health').insert([{ flight_id: flight.id, checks: checks.health }]),
-                supabase.from('results_briefing').insert([{ flight_id: flight.id, checks: checks.briefing }]),
-                supabase.from('results_preflight').insert([{ flight_id: flight.id, checks: checks.preflight }]),
+                supabase.from('results_health').insert([{ 
+                    flight_id: flight.id, 
+                    checks: checks.health,
+                    organization_id: orgId 
+                }]),
+                supabase.from('results_briefing').insert([{ 
+                    flight_id: flight.id, 
+                    checks: checks.briefing,
+                    organization_id: orgId 
+                }]),
+                supabase.from('results_preflight').insert([{ 
+                    flight_id: flight.id, 
+                    checks: checks.preflight,
+                    organization_id: orgId 
+                }]),
                 supabase.from('flight_authorizations').update({ status: 'realizado' }).eq('id', form.auth_id)
             ]);
+
+            if (!healthDone) {
+                await supabase.from('daily_health_checks').insert([{ 
+                    user_id: user.id, 
+                    organization_id: orgId 
+                }]);
+            }
+
             alert("🚀 ¡AUTORIZADO VOLAR!");
-            router.push(`/dashboard/logbook/finalize?id=${flight.id}`);
-        } catch (err) { alert(err.message); } finally { setSaving(false); }
+            // Forzamos la redirección con window.location para limpiar el estado de memoria
+            window.location.href = `/dashboard/logbook/finalize?id=${flight.id}`;
+
+        } catch (err) {
+            console.error("Falla en despacho:", err.message);
+            alert("⚠️ Error de Seguridad: " + err.message);
+        } finally { 
+            setSaving(false); 
+        }
     };
 
     if (loading) return <div className="h-screen flex items-center justify-center bg-[#f8f6f6] font-black animate-pulse text-slate-400">CARGANDO...</div>;

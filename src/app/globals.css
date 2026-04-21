@@ -8,14 +8,32 @@
 }
 
 body {
-  /* Eliminamos el font-family manual para que Tailwind use el de la config */
-  @apply antialiased; 
   background-color: #f8f6f6;
   color: #1a202c;
 }
 
-/* Mantén tus animaciones y Material Symbols abajo */
+/* FIX CRÍTICO: Asegura que los iconos se rendericen como tales y no como texto */
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined' !important;
-  /* ... resto de tu código ... */
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tus animaciones se mantienen */
+@keyframes grow-up {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+.animate-grow-up {
+  animation: grow-up 1s ease-out forwards;
 }

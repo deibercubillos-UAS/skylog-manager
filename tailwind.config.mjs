@@ -9,9 +9,9 @@ const config = {
         primary: '#ec5b13',
         navy: '#1A202C',
       },
-      // Sincronización de la variable de Next.js Font
       fontFamily: {
-        sans: ['var(--font-public-sans)', 'system-ui', 'sans-serif'],
+        // Esto vincula la variable de layout.js con Tailwind
+        sans: ['var(--font-public-sans)', 'sans-serif'],
       },
     },
   },

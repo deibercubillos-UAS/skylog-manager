@@ -1,40 +1,31 @@
 import "./globals.css";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Analytics } from "@vercel/analytics/react";
+import { Public_Sans } from "next/font/google"; // Optimización de fuentes de Next.js
+
+const publicSans = Public_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-public-sans",
+});
 
 export const metadata = {
-  title: "BitaFly Manager - Aviation Log",
-  description: "Gestión aeronáutica profesional UAS",
+  title: "Bitafly - Gestión Aeronáutica",
+  description: "Plataforma de gestión para tripulaciones y aeronaves",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="es">
+    <html lang="es" className={`${publicSans.variable}`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800;900&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet" />
-        
-        {/* PARCHE DE RENDIMIENTO: EVENTOS PASIVOS PARA MOBILE */}
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            (function() {
-              var opts = {passive: true};
-              window.addEventListener('touchstart', function(){}, opts);
-              window.addEventListener('touchmove', function(){}, opts);
-              window.addEventListener('wheel', function(){}, opts);
-            })();
-          `
-        }} />
+        {/* ELIMINADO: Script de ePayco que bloqueaba el renderizado */}
+        <link
+          rel="preload"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+          as="style"
+          onLoad="this.onload=null;this.rel='stylesheet'"
+        />
       </head>
-      <body className="antialiased">
+      <body className="antialiased font-sans">
         {children}
-        
-        {/* MONITOREO DE RENDIMIENTO EN TIEMPO REAL */}
-        <SpeedInsights />
-        
-        {/* MONITOREO DE TRÁFICO Y COMPORTAMIENTO */}
-        <Analytics />
       </body>
     </html>
   );

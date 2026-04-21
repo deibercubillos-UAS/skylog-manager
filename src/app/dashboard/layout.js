@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import Image from 'next/image';
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
@@ -245,7 +246,14 @@ const filteredLinks = navLinks.filter(link => link.roles.includes(role));
      </div>
      <div className="size-8 md:size-10 rounded-full bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
         {data.profile?.avatar_url ? (
-            <img src={data.profile.avatar_url} className="size-full object-cover" alt="Perfil" />
+            <Image 
+              src="/logo.png" 
+              alt="Bitafly" 
+              width={150} 
+              height={40} 
+              priority // Carga inmediata
+              fetchPriority="high" // Prioridad máxima en el canal de red
+            />
         ) : (
             <span className="material-symbols-outlined text-slate-400 text-xl">person</span>
         )}

@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import ExportActions from '@/components/dashboard/ExportActions'; // Asegúrate de haber creado el Paso 5
 
+
 export default async function PilotsPage() {
   const supabase = createClient();
 

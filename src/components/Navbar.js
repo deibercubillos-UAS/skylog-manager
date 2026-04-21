@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Navbar() {
   return (
@@ -10,7 +11,14 @@ export default function Navbar() {
           {/* Lado Izquierdo: LOGO NUEVO Y NOMBRE BITAFLY */}
           <Link href="/" className="flex items-center gap-3 group text-left">
             <div className="h-12 w-12 flex items-center justify-center overflow-hidden transition-transform group-hover:scale-110">
-              <img src="/logo.png" alt="BitaFly Logo" className="h-full w-auto object-contain" />
+              <Image 
+  src="/logo-bitafly.png" // O la ruta de tu logo
+  alt="Bitafly Logo"
+  width={150} 
+  height={40}
+  priority // ESTA PROPIEDAD ES LA QUE SUBE EL SCORE
+  className="object-contain"
+/>
             </div>
             <div className="flex flex-col">
               <span className="text-2xl font-black tracking-tighter text-[#1A202C] dark:text-white leading-none">

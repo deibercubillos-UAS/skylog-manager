@@ -40,6 +40,20 @@ export async function updateSession(request) {
 
   // Esto refresca el token de sesión automáticamente
   await supabase.auth.getUser()
+  
+    const { data: profile } = await supabase
+    .from('profiles')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single();
 
+    const requestHeaders = new Headers(request.headers);
+    if (profile) {
+    requestHeaders.set('x-organization-id', profile.organization_id);
+    }
+
+    return NextResponse.next({
+    request: { headers: requestHeaders },
+    });
   return response
 }

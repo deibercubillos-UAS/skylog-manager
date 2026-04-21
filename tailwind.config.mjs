@@ -1,22 +1,21 @@
 /** @type {import('tailwindcss').Config} */
 const config = {
   content: [
-    "./src/**/*.{js,ts,jsx,tsx,mdx}", // Esto asegura que busque en todas las subcarpetas de src
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
-  darkMode: "class",
   theme: {
     extend: {
       colors: {
-        "primary": "#ec5b13",
-        "background-light": "#f8f6f6",
-        "background-dark": "#221610",
-        "navy": "#1A202C",
+        primary: '#ec5b13',
+        navy: '#1A202C',
       },
+      // Sincronización de la variable de Next.js Font
       fontFamily: {
-        "display": ["Public Sans", "sans-serif"]
-      }
+        sans: ['var(--font-public-sans)', 'system-ui', 'sans-serif'],
+      },
     },
   },
   plugins: [],
 };
+
 export default config;

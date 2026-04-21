@@ -5,42 +5,17 @@
 :root {
   --color-primary: #ec5b13;
   --color-navy: #1A202C;
-  --color-background-light: #f8f6f6;
 }
 
 body {
+  /* Eliminamos el font-family manual para que Tailwind use el de la config */
+  @apply antialiased; 
   background-color: #f8f6f6;
   color: #1a202c;
-  font-family: 'Public Sans', sans-serif;
-  margin: 0;
-  padding: 0;
 }
 
+/* Mantén tus animaciones y Material Symbols abajo */
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined' !important;
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  width: 24px !important;
-  height: 24px !important;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-@keyframes grow-up {
-  from { transform: scaleY(0); }
-  to { transform: scaleY(1); }
-}
-.animate-grow-up {
-  animation: grow-up 1s ease-out forwards;
-}
-
-@keyframes pulse-slow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
-}
-.animate-pulse-slow {
-  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  /* ... resto de tu código ... */
 }

@@ -472,7 +472,8 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
 
     const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        saveAs(blob, `F100_UAEAC_${profile?.full_name?.replace(/\s+/g, '_')}.xlsx`);
+        const fileName = data.mission_id ? `${data.mission_id}.xlsx` : `F100_OFICIAL_${cleanText(org?.company_name)}.xlsx`;
+        saveAs(blob, fileName);
 
     } catch (error) {
         console.error("Error en generateExcelF100:", error);

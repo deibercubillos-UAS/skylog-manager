@@ -55,5 +55,4 @@ export async function updateSession(request) {
     return NextResponse.next({
     request: { headers: requestHeaders },
     });
-  return response
 }

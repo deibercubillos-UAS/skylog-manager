@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
-import DashboardClient from './DashboardClient'; // El archivo con tu diseño
+import DashboardClient from './DashboardClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,41 +19,61 @@ export default async function DashboardPage() {
 
     if (!profile?.organization_id) redirect('/onboarding');
 
-    // 2. PARALELISMO TOTAL: Traemos todo lo que tu diseño necesita
-    const [statsReq, pilotsReq, fleetReq, logsReq] = await Promise.all([
-        // Horas de vuelo (Sumamos duration_minutes de la tabla flight_logs)
-        supabase.from('flight_logs').select('duration_minutes').eq('organization_id', profile.organization_id),
-        // Conteo de tripulación
+    const today = new Date().toISOString().split('T')[0];
+
+    // 2. CONSULTAS BASADAS EN TU ESQUEMA REAL
+    const [statsReq, crewReq, fleetReq, logsReq, alertsReq] = await Promise.all([
+        // Sumamos total_time de la tabla 'flights'
+        supabase.from('flights').select('total_time').eq('organization_id', profile.organization_id),
+        // Conteo de perfiles en la organización
         supabase.from('profiles').select('id', { count: 'exact' }).eq('organization_id', profile.organization_id),
-        // Conteo de aeronaves
-        supabase.from('aircraft').select('id', { count: 'exact' }).eq('organization_id', profile.organization_id),
-        // Actividad reciente (Con joins para que aparezcan nombres de pilotos y drones)
-        supabase.from('flight_logs')
-            .select('id, mission_id, created_at, pilots(full_name), aircraft(model)')
+        // Flota operativa (usando 'operational' según tu schema)
+        supabase.from('aircraft').select('id', { count: 'exact' }).eq('organization_id', profile.organization_id).eq('status', 'operational'),
+        // Actividad Reciente (Join con pilots y aircraft)
+        supabase.from('flights')
+            .select(`
+                id, 
+                mission_id, 
+                created_at, 
+                pilots (name), 
+                aircraft (model)
+            `)
             .eq('organization_id', profile.organization_id)
             .order('created_at', { ascending: false })
-            .limit(5)
+            .limit(5),
+        // Alertas: Médicos vencidos en la tabla 'profiles'
+        supabase.from('profiles')
+            .select('full_name, medical_expiry')
+            .eq('organization_id', profile.organization_id)
+            .lt('medical_expiry', today)
     ]);
 
-    // 3. Procesar estadísticas para tu frontend
-    const totalMinutes = statsReq.data?.reduce((acc, curr) => acc + (curr.duration_minutes || 0), 0) || 0;
+    // 3. Procesamiento de datos para el DashboardClient
+    const totalHours = statsReq.data?.reduce((acc, curr) => acc + (curr.total_time || 0), 0) || 0;
     
-    const dashboardData = {
+    const initialData = {
         stats: {
-            hours: (totalMinutes / 60).toFixed(1),
-            pilotCount: pilotsReq.count || 0,
+            hours: totalHours.toFixed(1),
+            pilotCount: crewReq.count || 0,
             fleetCount: fleetReq.count || 0,
-            alertsCount: 0 // Aquí puedes sumar lógica de alertas si tienes tabla
+            alertsCount: (alertsReq.data?.length || 0)
         },
-        recentActivity: logsReq.data || [],
-        // Generamos un gráfico vacío o con datos si tienes por mes
+        recentActivity: logsReq.data?.map(f => ({
+            id: f.id,
+            mission_id: f.mission_id || 'S/N',
+            pilots: { name: f.pilots?.name || 'Piloto Externo' },
+            aircraft: { model: f.aircraft?.model || 'UAS Genérico' }
+        })) || [],
+        alerts: alertsReq.data?.map(a => ({
+            type: 'CRÍTICO',
+            msg: `Licencia Médica Vencida: ${a.full_name}`,
+            val: a.medical_expiry
+        })) || [],
         chart: [
             { label: 'ENE', count: 0 }, { label: 'FEB', count: 0 }, { label: 'MAR', count: 0 }, 
-            { label: 'ABR', count: 0 }, { label: 'MAY', count: 0 }, { label: 'JUN', count: 2 }
-        ],
-        alerts: [] // Mantenemos tu estructura de alertas
+            { label: 'ABR', count: 0 }, { label: 'MAY', count: 0 }, { label: 'JUN', count: logsReq.data?.length || 0 }
+        ]
     };
 
-    // Le pasamos los datos a tu frontend robusto
-    return <DashboardClient initialData={dashboardData} />;
+    return <DashboardClient initialData={initialData} />;
 }

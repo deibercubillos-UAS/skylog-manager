@@ -21,18 +21,17 @@ export default async function PilotsPage() {
   // PARALELISMO: Traemos a TODOS los miembros de la empresa (sin filtrar solo por 'Piloto')
   // para que no desaparezcan los que ya estaban registrados.
   const [pilotsReq, orgReq] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('id, full_name, role, license_number, medical_expiry, phone, email')
-      .eq('organization_id', currentUser.organization_id)
-      .order('full_name', { ascending: true }),
-    supabase
-      .from('organizations')
-      .select('company_name')
-      .eq('id', currentUser.organization_id)
-      .single()
-  ]);
-
+  supabase
+    .from('profiles') // Usamos profiles porque ahí están los datos de contacto y rol
+    .select('id, full_name, role, license_number, medical_expiry, phone, email')
+    .eq('organization_id', currentUser.organization_id)
+    .order('full_name', { ascending: true }),
+  supabase
+    .from('organizations')
+    .select('company_name')
+    .eq('id', currentUser.organization_id)
+    .single()
+]);
   const initialData = {
     pilots: pilotsReq.data || [],
     organization: orgReq.data || {},

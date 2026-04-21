@@ -23,31 +23,33 @@ export default function FleetPage() {
   const [editingBattery, setEditingBattery] = useState(null);
 
   const fetchData = async () => {
-      try {
-        setLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+      // 1. Obtener Perfil y Rol
+      const { data: prof } = await supabase.from('profiles').select('role, organization_id').eq('id', user.id).single();
+      
+      // VITAL: Guardar el rol en el estado
+      if (prof) setUserRole(prof.role);
+
+      if (prof?.organization_id) {
+        const [resDrones, resBatteries, resTech] = await Promise.all([
+          supabase.from('aircraft').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
+          supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
+          supabase.from('inventory_items').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false })
+        ]);
         
-        if (prof?.organization_id) {
-          // CARGA INDEPENDIENTE PARA EVITAR BLOQUEOS
-          const [resDrones, resBatteries, resTech] = await Promise.all([
-            supabase.from('aircraft').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
-            supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
-            supabase.from('inventory_items').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false })
-          ]);
-          
-          // ASIGNACIÓN CON RESPALDO DE ARRAY VACÍO
-          setDrones(resDrones.data || []);
-          setBatteries(resBatteries.data || []);
-          setTech(resTech.data || []);
-        }
-      } catch (err) {
-        console.error("Error en sincronización:", err.message);
-      } finally {
-        setLoading(false);
+        setDrones(resDrones.data || []);
+        setBatteries(resBatteries.data || []);
+        setTech(resTech.data || []);
       }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -79,26 +81,23 @@ export default function FleetPage() {
       
       {/* SECCIÓN AERONAVES */}
       <section className="animate-in fade-in duration-700">
-    <header className="flex justify-between items-end border-b border-slate-200 pb-4 mb-8">
-        <div className="text-left">
-            <h2 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Aeronaves UAS</h2>
-            <p className="text-slate-400 text-[10px] font-black uppercase mt-2 tracking-widest">
-                {(drones || []).length} Unidades en Flota
-            </p>
-        </div>
+      <header className="flex justify-between items-end border-b pb-4 mb-8">
+      <div className="text-left">
+          <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Aeronaves</h2>
+          <p className="text-slate-400 text-[10px] font-black uppercase">{drones.length} UNIDADES</p>
+      </div>
 
-        {/* BOTÓN DE ACCIÓN: Solo Master, Admin y Jefe de Pilotos pueden registrar equipos */}
-        {['superadmin', 'admin', 'jefe_pilotos'].includes(userRole) && (
-            <button 
-                onClick={() => setActivePanel('drone')} 
-                className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-600/20 transition-all active:scale-95 flex items-center gap-2"
-            >
-                <span className="material-symbols-outlined text-sm">add_circle</span>
-                <span className="hidden sm:inline">Nuevo Drone</span>
-                <span className="sm:hidden">Nuevo</span>
-            </button>
-        )}
-    </header>
+      {/* BOTÓN REPARADO: Se muestra si el rol es válido */}
+      {(userRole === 'superadmin' || userRole === 'admin' || userRole === 'jefe_pilotos') && (
+          <button 
+              onClick={() => setActivePanel('drone')} 
+              className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
+          >
+              <span className="material-symbols-outlined text-sm">add_circle</span>
+              Nuevo UAS
+          </button>
+      )}
+      </header>
 
     {/* Grid de Aeronaves */}
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

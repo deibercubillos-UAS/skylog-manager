@@ -7,21 +7,20 @@ export const dynamic = 'force-dynamic';
 export default async function DashboardPage() {
     const supabase = createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) redirect('/login');
+    // 1. Obtener Usuario
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) redirect('/login');
 
+    // 2. Obtener organización (Sin causar recursión)
     const { data: profile } = await supabase
         .from('profiles')
-        .select('organization_id')
+        .select('organization_id, role')
         .eq('id', user.id)
         .single();
 
-    // COMENTAMOS ESTA LÍNEA PARA QUE NO TE MANDE A ONBOARDING
-    // if (!profile?.organization_id) redirect('/onboarding');
-    
     const orgId = profile?.organization_id;
 
-    // Si no hay orgId, enviamos datos vacíos en lugar de fallar
+    // Si no hay empresa, mandamos datos vacíos pero la página CARGA
     if (!orgId) {
         return <DashboardClient initialData={{
             stats: { hours: '0.0', pilotCount: 0, fleetCount: 0, alertsCount: 0 },
@@ -31,7 +30,7 @@ export default async function DashboardPage() {
         }} />;
     }
 
-    // Si hay orgId, hacemos las consultas normales
+    // 3. CONSULTAS CON TUS TABLAS REALES
     const [statsRes, crewRes, fleetRes, recentRes] = await Promise.all([
         supabase.from('flights').select('total_time').eq('organization_id', orgId),
         supabase.from('profiles').select('id', { count: 'exact' }).eq('organization_id', orgId),
@@ -45,7 +44,7 @@ export default async function DashboardPage() {
 
     const totalHours = statsRes.data?.reduce((acc, curr) => acc + (curr.total_time || 0), 0) || 0;
 
-    return <DashboardClient initialData={{
+    const initialData = {
         stats: {
             hours: totalHours.toFixed(1),
             pilotCount: crewRes.count || 0,
@@ -55,10 +54,12 @@ export default async function DashboardPage() {
         recentActivity: recentRes.data?.map(f => ({
             id: f.id,
             mission_id: f.mission_id || 'S/N',
-            pilots: { name: f.pilots?.name || 'PIC' }, 
+            pilots: { name: f.pilots?.name || 'Comandante' }, 
             aircraft: { model: f.aircraft?.model || 'UAV' }
         })) || [],
         alerts: [],
-        chart: [{ label: 'ACTUAL', count: recentRes.data?.length || 0 }]
-    }} />;
+        chart: [{ label: 'HOY', count: recentRes.data?.length || 0 }]
+    };
+
+    return <DashboardClient initialData={initialData} />;
 }

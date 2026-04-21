@@ -18,7 +18,6 @@ export async function GET(request) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('organization_id')
-      .eq('id', userId)
       .single();
 
     const { data, error } = await supabase
@@ -63,7 +62,6 @@ export async function POST(request) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('organization_id')
-      .eq('id', userId)
       .single();
 
     const { data, error } = await supabase

@@ -60,6 +60,7 @@ const navLinks = [
   { name: 'Reportes', icon: 'assessment', href: '/dashboard/reports', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'] },
   { name: 'Seguridad', icon: 'health_and_safety', href: '/dashboard/safety', roles: ['superadmin', 'gerente_sms'] },
   { name: 'Auditoría', icon: 'fact_check', href: '/dashboard/audit', roles: ['superadmin', 'admin', 'gerente_sms'] },
+  { name: 'Protocolos', icon: 'rule', href: '/dashboard/settings/forms', roles: ['superadmin', 'admin', 'gerente_sms'] }, 
 ];
 
 // FILTRAR LINKS BASADO EN EL ROL

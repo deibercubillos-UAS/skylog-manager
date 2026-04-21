@@ -1,36 +1,58 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+// IMPORTACIÓN CORREGIDA
+import { createClient } from '@/utils/supabase/client'; 
 import BasicForm from '@/components/authorizations/BasicForm';
 import AerocivilForm from '@/components/authorizations/AerocivilForm';
 
 export default function MissionControlPage() {
+    const supabase = createClient(); // MOTOR INICIALIZADO
+    const [userRole, setUserRole] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('basica');
     const [data, setData] = useState({ pilots: [], drones: [], missions: [], org: null, loading: true });
 
     const loadData = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
-        
-        const [mRes, pRes, dRes, oRes] = await Promise.all([
-            fetch('/api/flights/authorize'),
-            supabase.from('pilots').select('*').eq('organization_id', prof.organization_id).eq('is_active', true),
-            supabase.from('aircraft').select('*').eq('organization_id', prof.organization_id).eq('status', 'Operativo'),
-            supabase.from('organizations').select('*').eq('id', prof.organization_id).single()
-        ]);
-        
-        setData({
-            missions: await mRes.json(),
-            pilots: pRes.data || [],
-            drones: dRes.data || [],
-            org: oRes.data,
-            loading: false
-        });
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            // CAMBIO CLAVE: Pedimos 'role' y 'organization_id' juntos
+            const { data: prof } = await supabase
+                .from('profiles')
+                .select('organization_id, role')
+                .eq('id', user.id)
+                .single();
+            
+            // ASIGNACIÓN DE ROL (Esto quita el error de "undefined")
+            if (prof) {
+                setUserRole(prof.role);
+            }
+
+            if (prof?.organization_id) {
+                const [mRes, pRes, dRes, oRes] = await Promise.all([
+                    fetch('/api/flights/authorize'),
+                    supabase.from('profiles').select('*').eq('organization_id', prof.organization_id).eq('role', 'Piloto'),
+                    supabase.from('aircraft').select('*').eq('organization_id', prof.organization_id).eq('status', 'Operativo'),
+                    supabase.from('organizations').select('*').eq('id', prof.organization_id).single()
+                ]);
+                
+                setData({
+                    missions: await mRes.json(),
+                    pilots: pRes.data || [],
+                    drones: dRes.data || [],
+                    org: oRes.data,
+                    loading: false
+                });
+            }
+        } catch (error) {
+            console.error("Falla en Torre de Control:", error);
+        }
     };
 
     useEffect(() => { loadData(); }, []);
 
-    if (data.loading) return <div className="p-20 text-center font-black animate-pulse uppercase">Iniciando Torre de Control...</div>;
+    if (data.loading) return <div className="p-20 text-center font-black animate-pulse uppercase text-slate-400">Iniciando Torre de Control...</div>;
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 text-left pb-32">

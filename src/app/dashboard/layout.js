@@ -13,33 +13,43 @@ export default function DashboardLayout({ children }) {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) { window.location.href = '/login'; return; }
-        
-        const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        const { data: org } = await supabase.from('organizations').select('*').eq('id', prof?.organization_id).single();
+      async function loadData() {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) { window.location.href = '/login'; return; }
+          
+          // PASO 1: Cargar Perfil (Base de la identidad)
+          const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+          if (!prof) throw new Error("No profile");
 
-        // BUSCAMOS SI HAY UN VUELO ACTIVO (Sin hora de aterrizaje)
-        const { data: flight } = await supabase
-            .from('flights')
-            .select('id')
-            .is('landing_time', null)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
+          // PASO 2: Cargar Organización (Solo si el perfil fue exitoso)
+          const { data: org } = await supabase.from('organizations').select('*').eq('id', prof.organization_id).single();
 
-        setData({ profile: prof, org });
-        setActiveFlight(flight); // <--- GUARDAMOS EL VUELO ENCONTRADO
-      } catch (err) {
-        console.error("Layout Load Error");
-      } finally {
-        setLoading(false);
+          // PASO 3: Buscar Vuelo Activo (Solo si tenemos organización validada)
+          // Esto evita el Error 406 al asegurar que la consulta lleva el contexto correcto
+          let active = null;
+          if (prof.organization_id) {
+              const { data: flight } = await supabase
+                  .from('flights')
+                  .select('id')
+                  .eq('organization_id', prof.organization_id) // <--- FILTRO EXPLÍCITO AÑADIDO
+                  .is('landing_time', null)
+                  .order('created_at', { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+              active = flight;
+          }
+
+          setData({ profile: prof, org });
+          setActiveFlight(active);
+        } catch (err) {
+          console.error("Layout Handshake Error:", err.message);
+        } finally {
+          setLoading(false);
+        }
       }
-    }
-    loadData();
-}, [pathname]); // <--- IMPORTANTE: Añadimos pathname para que refresque al navegar
+      loadData();
+  }, [pathname]);
 
   // Cierra el menú automáticamente al navegar en móviles
   useEffect(() => {

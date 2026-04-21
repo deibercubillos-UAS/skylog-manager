@@ -12,6 +12,7 @@
     "@hookform/resolvers": "^3.3.4",
     "@supabase/ssr": "^0.3.0",
     "@supabase/supabase-js": "^2.43.2",
+    "@vercel/analytics": "^2.0.1",
     "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",
     "jspdf": "^2.5.1",

@@ -1,5 +1,6 @@
 import "./globals.css";
 import Script from 'next/script';
+import { Analytics } from '@vercel/analytics/next';
 
 export const metadata = {
   title: "BitaFly Manager - Aviation Log",
@@ -20,6 +21,7 @@ export default function RootLayout({ children }) {
         <Script 
           strategy="afterInteractive" 
         />
+        <Analytics />
       </body>
     </html>
   );

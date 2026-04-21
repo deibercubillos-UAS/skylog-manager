@@ -1,59 +1,46 @@
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
-import MissionControlClient from './MissionControlClient'; // Vamos a crear este componente abajo
+import ExportActions from '@/components/dashboard/ExportActions';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AuthorizePage() {
+export default async function PilotsPage() {
   const supabase = createClient();
 
-  // 1. OBTENER SESIÓN Y PERFIL (Motor de alta velocidad)
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: profile } = await supabase
+  const { data: currentUser } = await supabase
     .from('profiles')
     .select('organization_id, role')
     .eq('id', user.id)
     .single();
 
-  if (!profile?.organization_id) redirect('/onboarding');
+  if (!currentUser?.organization_id) redirect('/onboarding');
 
-  // 2. PARALELISMO TOTAL: Traemos toda la empresa en una ráfaga
-  // Nota: Aquí corregimos la falla de "solo veo mi nombre" usando organization_id
-  const [pilotsReq, dronesReq, orgReq] = await Promise.all([
-    // Traer a TODOS los pilotos de la misma empresa
+  // PARALELISMO: Traemos a toda la tripulación de la organización
+  const [pilotsReq, orgReq, statsReq] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, full_name, role')
-      .eq('organization_id', profile.organization_id)
-      .eq('role', 'Piloto'),
-    
-    // Traer aeronaves operativas de la empresa
-    supabase
-      .from('aircraft')
-      .select('*')
-      .eq('organization_id', profile.organization_id)
-      .eq('status', 'Operativo'),
-      
-    // Datos de la organización
+      .select('id, full_name, role, license_number, medical_expiry, phone, email')
+      .eq('organization_id', currentUser.organization_id)
+      .order('full_name', { ascending: true }),
     supabase
       .from('organizations')
-      .select('*')
-      .eq('id', profile.organization_id)
-      .single()
+      .select('company_name, flight_prefix')
+      .eq('id', currentUser.organization_id)
+      .single(),
+    supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', currentUser.organization_id)
+      .eq('role', 'Piloto')
   ]);
 
-  // Preparamos los datos para el Frontend Robusto
-  const initialData = {
-    pilots: pilotsReq.data || [],
-    drones: dronesReq.data || [],
-    org: orgReq.data || {},
-    userRole: profile.role,
-    organizationId: profile.organization_id
-  };
-
+  const pilots = pilotsReq.data || [];
+  const organization = orgReq.data || {};
+  const totalPilots = statsReq.count || 0;
+  const canManage = ['superadmin', 'admin', 'jefe_pilotos'].includes(currentUser.role);
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* HEADER DINÁMICO - Mismo diseño, carga más rápida */}

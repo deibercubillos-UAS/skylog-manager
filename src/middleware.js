@@ -1,12 +1,10 @@
+import { updateSession } from '@/utils/supabase/middleware'
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 
 export async function middleware(request) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
+  // 1. Refrescar sesión (Vital para estabilidad)
+  let response = await updateSession(request)
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -28,13 +26,20 @@ export async function middleware(request) {
     }
   )
 
+  // 2. Verificar usuario de forma segura
   const { data: { user } } = await supabase.auth.getUser()
 
-  // REGLA DE PROTECCIÓN AERONÁUTICA
   const isDashboard = request.nextUrl.pathname.startsWith('/dashboard')
-  
+  const isAuthPage = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register')
+
+  // REGLA 1: Si no hay usuario y va al dashboard -> Al login
   if (isDashboard && !user) {
     return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  // REGLA 2: Si ya hay usuario e intenta ir al login -> Al dashboard
+  if (isAuthPage && user) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   return response

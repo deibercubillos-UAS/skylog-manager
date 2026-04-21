@@ -17,28 +17,32 @@ export default function LoginPage() {
     if (error) alert("Error con Google: " + error.message);
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+ const handleLogin = async (e) => {
+    e.preventDefault(); // Evita que la página se recargue sola
+    
+    if (!email || !password) {
+      alert("Por favor ingresa email y contraseña");
+      return;
+    }
 
     try {
-      // Usamos el cliente directamente para que Supabase gestione las COOKIES
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: email.trim(), // Limpiamos espacios
         password: password,
       });
 
       if (error) throw error;
 
       if (data.user) {
-        console.log("Login exitoso, redirigiendo...");
-        // Usamos window.location para asegurar que el Middleware refresque
+        // 1. Sincronización de sesión forzada
+        await supabase.auth.setSession(data.session);
+        // 2. Refrescar motor
+        router.refresh();
+        // 3. Redirección dura (la más segura para evitar bucles)
         window.location.href = '/dashboard';
       }
     } catch (err) {
       alert("Error de acceso: " + err.message);
-    } finally {
-      setLoading(false);
     }
   };
 

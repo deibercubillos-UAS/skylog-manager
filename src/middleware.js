@@ -23,8 +23,7 @@ export async function middleware(request) {
 
   // Una sola llamada a getUser para refrescar sesión y validar
   const { data: { user } } = await supabase.auth.getUser()
-  console.log('[MW]', request.nextUrl.pathname, '| user:', user?.email || 'NULL', '| cookies:', request.cookies.getAll().map(c => c.name).join(','))
-
+  
   const { pathname } = request.nextUrl
   const isDashboard = pathname.startsWith('/dashboard')
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register')

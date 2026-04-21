@@ -1,99 +1,148 @@
-'use client';
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import PilotCard from '@/components/PilotCard';
-import AddPilotPanel from '@/components/AddPilotPanel';
-import EditPilotPanel from '@/components/EditPilotPanel';
+import { createClient } from '@/utils/supabase/server';
+import { redirect } from 'next/navigation';
+import ExportActions from '@/components/dashboard/ExportActions'; // Asegúrate de haber creado el Paso 5
 
-export default function PilotsPage() {
-  const [pilots, setPilots] = useState([]);
-  const [userRole, setUserRole] = useState(null); // <--- ESTADO PARA EL ROL
-  const [loading, setLoading] = useState(true);
-  const [showAdd, setShowAdd] = useState(false);
-  const [editingPilot, setEditingPilot] = useState(null);
+export default async function PilotsPage() {
+  const supabase = createClient();
 
-  // DEFINICIÓN DE ROLES CON PODER DE GESTIÓN
-  const rolesAutorizados = ['superadmin', 'admin', 'jefe_pilotos'];
+  // 1. OBTENER SESIÓN (Operación rápida)
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect('/login');
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+  // 2. OBTENER CONTEXTO DEL USUARIO (Org y Rol)
+  // Solo pedimos 2 columnas: reduce la carga de la base de datos drásticamente
+  const { data: currentUser } = await supabase
+    .from('profiles')
+    .select('organization_id, role')
+    .eq('id', user.id)
+    .single();
 
-      // 1. OBTENER ROL Y ORGANIZACIÓN DEL USUARIO LOGUEADO
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('role, organization_id')
-        .eq('id', user.id)
-        .single();
-      
-      setUserRole(prof?.role);
+  if (!currentUser?.organization_id) redirect('/onboarding');
 
-      if (prof?.organization_id) {
-        const { data } = await supabase
-          .from('pilots')
-          .select('*')
-          .eq('organization_id', prof.organization_id)
-          .order('name', { ascending: true });
-        setPilots(data || []);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // --- PASO 2: PARALELISMO TOTAL (Optimización de latencia) ---
+  // Ejecutamos todas las consultas al mismo tiempo
+  const [pilotsReq, orgReq, statsReq] = await Promise.all([
+    // A. Lista de Pilotos: Seleccionamos campos específicos (NO select *)
+    supabase
+      .from('profiles')
+      .select('id, full_name, role, license_number, medical_expiry, phone, email')
+      .eq('organization_id', currentUser.organization_id)
+      .order('full_name', { ascending: true }),
 
-  useEffect(() => { fetchData(); }, []);
+    // B. Datos de la Empresa
+    supabase
+      .from('organizations')
+      .select('company_name, flight_prefix')
+      .eq('id', currentUser.organization_id)
+      .single(),
 
-  // LÓGICA DE PERMISOS
-  const canManageCrew = rolesAutorizados.includes(userRole);
+    // C. Conteo rápido para el Dashboard
+    supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', currentUser.organization_id)
+      .eq('role', 'Piloto')
+  ]);
 
-  const handleDelete = async (id) => {
-    if (!canManageCrew) return alert("No tiene permisos para esta acción.");
-    if (!confirm("¿Dar de baja a este tripulante?")) return;
-    
-    const { error } = await supabase.from('pilots').delete().eq('id', id);
-    if (!error) fetchData();
-  };
+  const pilots = pilotsReq.data || [];
+  const organization = orgReq.data || {};
+  const totalPilots = statsReq.count || 0;
 
-  if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">SINCRO...</div>;
+  // Lógica de Roles: ¿Puede agregar pilotos?
+  const canManage = ['Gerente General', 'Jefe de Pilotos'].includes(currentUser.role);
 
   return (
-    <div className="space-y-10 text-left animate-in fade-in duration-500">
-      <header className="flex justify-between items-end border-b border-slate-200 pb-4">
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* HEADER DINÁMICO */}
+      <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Cuerpo de Pilotos</h2>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{pilots.length} Operadores Activos</p>
+          <h1 className="text-2xl font-bold text-navy">
+            Tripulación: {organization.company_name}
+          </h1>
+          <p className="text-gray-500 text-sm">
+            {totalPilots} pilotos activos bajo el prefijo {organization.flight_prefix || 'N/A'}
+          </p>
         </div>
-        
-        {/* EL BOTÓN SOLO APARECE SI ES UN ROL AUTORIZADO */}
-        {canManageCrew && (
-          <button 
-            onClick={() => setShowAdd(true)} 
-            className="bg-orange-600 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-slate-900 transition-all items-center gap-2 active:scale-95"
-          >
-            <span className="material-symbols-outlined text-sm">person_add</span>
-            Registrar Piloto
-          </button>
-        )}
+
+        <div className="flex gap-3">
+          {/* PASO 5: Exportación optimizada */}
+          <ExportActions data={pilots} reportName={`Pilotos-${organization.company_name}`} />
+          
+          {canManage && (
+            <button className="bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2">
+              <span className="material-symbols-outlined text-sm">person_add</span>
+              Registrar Piloto
+            </button>
+          )}
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {pilots.map(p => (
-          <PilotCard 
-            key={p.id} 
-            pilot={p} 
-            canManage={canManageCrew} // <--- PASAMOS EL PERMISO A LA TARJETA
-            onEdit={setEditingPilot} 
-            onDelete={handleDelete} 
-          />
-        ))}
+      {/* TABLA DE TRIPULACIÓN */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="px-6 py-4 text-xs uppercase tracking-wider text-gray-500 font-bold">Piloto</th>
+                <th className="px-6 py-4 text-xs uppercase tracking-wider text-gray-500 font-bold">Licencia</th>
+                <th className="px-6 py-4 text-xs uppercase tracking-wider text-gray-500 font-bold">Contacto</th>
+                <th className="px-6 py-4 text-xs uppercase tracking-wider text-gray-500 font-bold">Estado Médico</th>
+                <th className="px-6 py-4 text-xs uppercase tracking-wider text-gray-500 font-bold"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {pilots.map((pilot) => (
+                <tr key={pilot.id} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="font-semibold text-navy">{pilot.full_name}</div>
+                    <div className="text-xs text-gray-400 uppercase tracking-tighter">{pilot.role}</div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600 font-mono">
+                    {pilot.license_number || '---'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    <div>{pilot.email}</div>
+                    <div className="text-xs text-gray-400">{pilot.phone}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <MedicalStatus date={pilot.medical_expiry} />
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button className="text-gray-400 hover:text-primary transition-colors">
+                      <span className="material-symbols-outlined">visibility</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        {pilots.length === 0 && (
+          <div className="p-12 text-center">
+            <span className="material-symbols-outlined text-4xl text-gray-200">group_off</span>
+            <p className="mt-2 text-gray-400">No se encontraron tripulantes registrados.</p>
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
 
-      {showAdd && <AddPilotPanel onClose={() => setShowAdd(false)} onSuccess={() => { setShowAdd(false); fetchData(); }} />}
-      {editingPilot && <EditPilotPanel pilot={editingPilot} onClose={() => setEditingPilot(null)} onSuccess={() => { setEditingPilot(null); fetchData(); }} />}
+// Componente Interno para Estado Médico (Optimización de UI)
+function MedicalStatus({ date }) {
+  if (!date) return <span className="text-gray-300 text-xs">No registrado</span>;
+
+  const expiryDate = new Date(date);
+  const today = new Date();
+  const isExpired = expiryDate < today;
+
+  return (
+    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+      isExpired ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
+    }`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${isExpired ? 'bg-red-500' : 'bg-green-500'}`}></span>
+      {isExpired ? 'VENCIDO' : 'VIGENTE'} ({date})
     </div>
   );
 }

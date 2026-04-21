@@ -1,10 +1,12 @@
-'use client';
+'use client'; // 1. Asegúrate de que esto esté en la primera línea
+
+import { useRouter } from 'next/navigation'; // 2. Importación correcta para Next.js 14
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import Link from 'next/link';
-import AuthSidePanel from '@/components/AuthSidePanel';
+import { createClient } from '@/utils/supabase/client';
 
 export default function LoginPage() {
+  const router = useRouter(); // 3. ¡ESTA ES LA LÍNEA QUE FALTA!
+  const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,34 +19,27 @@ export default function LoginPage() {
     if (error) alert("Error con Google: " + error.message);
   };
 
- const handleLogin = async (e) => {
-    e.preventDefault(); // Evita que la página se recargue sola
+  const handleLogin = async (e) => {
+    e.preventDefault();
     
-    if (!email || !password) {
-      alert("Por favor ingresa email y contraseña");
-      return;
-    }
-
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(), // Limpiamos espacios
-        password: password,
+        email: email.trim(),
+        password: password
       });
 
       if (error) throw error;
 
       if (data.user) {
-        // 1. Sincronización de sesión forzada
-        await supabase.auth.setSession(data.session);
-        // 2. Refrescar motor
-        router.refresh();
-        // 3. Redirección dura (la más segura para evitar bucles)
-        window.location.href = '/dashboard';
+        // Ahora 'router' ya está definido y no dará error
+        router.refresh(); 
+        window.location.href = '/dashboard'; 
       }
     } catch (err) {
       alert("Error de acceso: " + err.message);
     }
   };
+
 
   return (
     <main className="flex min-h-screen flex-col lg:flex-row bg-[#f8f6f6]">

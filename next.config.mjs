@@ -1,21 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: { ignoreDuringBuilds: true },
-  images: { unoptimized: true },
-  experimental: {optimizePackageImports: ['xlsx', 'jspdf', 'resend'],},
-  // Refuerzo de cabeceras de seguridad
-  async headers() {
-    return [
+  images: {
+    remotePatterns: [
       {
-        source: '/(.*)',
-        headers: [
-          { key: 'X-Frame-Options', value: 'DENY' },
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-        ],
+        protocol: 'https',
+        hostname: '**.supabase.co', // Autoriza todas las imágenes de Supabase
+        port: '',
+        pathname: '/storage/v1/object/public/**',
       },
-    ];
+    ],
   },
- compress: true,
 };
+
 export default nextConfig;

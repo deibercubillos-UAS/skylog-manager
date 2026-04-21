@@ -2,6 +2,7 @@
 const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   images: { unoptimized: true },
+  experimental: {optimizePackageImports: ['xlsx', 'jspdf', 'resend'],},
   // Refuerzo de cabeceras de seguridad
   async headers() {
     return [
@@ -15,5 +16,6 @@ const nextConfig = {
       },
     ];
   },
+ compress: true,
 };
 export default nextConfig;

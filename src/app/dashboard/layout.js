@@ -96,7 +96,7 @@ const navLinks = [
 const filteredLinks = navLinks.filter(link => link.roles.includes(role));
 
   const footerLinks = [
-    { name: 'Configuración', icon: 'settings', href: '/dashboard/settings' },
+    { name: 'Configurar Organización', icon: 'settings', href: '/dashboard/settings' },
     { name: 'Mi Perfil', icon: 'account_circle', href: '/dashboard/settings/profile' },
     { name: 'Suscripción', icon: 'payments', href: '/dashboard/subscription' },
   ];

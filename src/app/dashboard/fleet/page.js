@@ -21,7 +21,6 @@ export default function FleetPage() {
   const [activePanel, setActivePanel] = useState(null);
   const [editingDrone, setEditingDrone] = useState(null);
   const [editingBattery, setEditingBattery] = useState(null);
-  const [flightHoursMap, setFlightHoursMap] = useState({});
 
   const fetchData = async () => {
     try {
@@ -36,24 +35,15 @@ export default function FleetPage() {
       if (prof) setUserRole(prof.role);
 
       if (prof?.organization_id) {
-        const [resDrones, resBatteries, resTech, resFlights] = await Promise.all([
+        const [resDrones, resBatteries, resTech] = await Promise.all([
     supabase.from('aircraft').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
     supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
-    supabase.from('inventory_items').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
-    supabase.from('flights').select('aircraft_id, total_time').eq('organization_id', prof.organization_id).not('landing_time', 'is', null)
+    supabase.from('inventory_items').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false })
 ]);
-
-// Suma en vivo de horas por aeronave (fuente de verdad)
-const hoursMap = {};
-(resFlights.data || []).forEach(f => {
-    if (!f.aircraft_id || !f.total_time || f.total_time <= 0) return;
-    hoursMap[f.aircraft_id] = (hoursMap[f.aircraft_id] || 0) + parseFloat(f.total_time);
-});
 
 setDrones(resDrones.data || []);
 setBatteries(resBatteries.data || []);
 setTech(resTech.data || []);
-setFlightHoursMap(hoursMap);
       }
     } catch (err) {
       console.error(err);
@@ -112,13 +102,7 @@ setFlightHoursMap(hoursMap);
     {/* Grid de Aeronaves */}
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {drones.map(d => (
-            <AircraftCard 
-    key={d.id} 
-    aircraft={d} 
-    liveHours={flightHoursMap[d.id]} 
-    onEdit={setEditingDrone} 
-    onDelete={(id) => handleDelete(id, 'aircraft')} 
-/>
+            <AircraftCard key={d.id} aircraft={d} onEdit={setEditingDrone} onDelete={(id) => handleDelete(id, 'aircraft')} />
         ))}
     </div>
       </section>

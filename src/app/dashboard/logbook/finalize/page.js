@@ -95,7 +95,7 @@ export default function FinalizeFlightPage() {
         if (airError) throw airError;
 
         alert(`✅ OPERACIÓN CERRADA\nAnterior: ${currentTotalHours}h\nVolado: ${durationOfThisFlight}h\nNuevo Total: ${finalTotalHours}h`);
-        router.push('/dashboard/logbook');
+        window.location.href = '/dashboard/logbook';
 
     } catch (err) {
         alert("⚠️ Error de cálculo: " + err.message);

@@ -13,44 +13,62 @@ export default function DashboardLayout({ children }) {
   const [activeFlight, setActiveFlight] = useState(null);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
 
+// EFECTO 1: Cargar Perfil + Organización UNA SOLA VEZ al montar el layout
   useEffect(() => {
-      async function loadData() {
+      async function loadIdentity() {
         try {
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) { window.location.href = '/login'; return; }
-          
-          // PASO 1: Cargar Perfil (Base de la identidad)
+
+          // Cargar perfil (necesario para obtener organization_id)
           const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
           if (!prof) throw new Error("No profile");
 
-          // PASO 2: Cargar Organización (Solo si el perfil fue exitoso)
-          const { data: org } = await supabase.from('organizations').select('*').eq('id', prof.organization_id).single();
-
-          // PASO 3: Buscar Vuelo Activo (Solo si tenemos organización validada)
-          // Esto evita el Error 406 al asegurar que la consulta lleva el contexto correcto
-          let active = null;
-          if (prof.organization_id) {
-              const { data: flight } = await supabase
+          // Cargar organización EN PARALELO con el primer vuelo activo (ambas usan prof.organization_id)
+          const [orgRes, flightRes] = await Promise.all([
+            supabase.from('organizations').select('*').eq('id', prof.organization_id).single(),
+            prof.organization_id
+              ? supabase
                   .from('flights')
                   .select('id')
-                  .eq('organization_id', prof.organization_id) // <--- FILTRO EXPLÍCITO AÑADIDO
+                  .eq('organization_id', prof.organization_id)
                   .is('landing_time', null)
                   .order('created_at', { ascending: false })
                   .limit(1)
-                  .maybeSingle();
-              active = flight;
-          }
+                  .maybeSingle()
+              : Promise.resolve({ data: null })
+          ]);
 
-          setData({ profile: prof, org });
-          setActiveFlight(active);
+          setData({ profile: prof, org: orgRes.data });
+          setActiveFlight(flightRes.data);
         } catch (err) {
           console.error("Layout Handshake Error:", err.message);
         } finally {
           setLoading(false);
         }
       }
-      loadData();
-  }, [pathname]);
+      loadIdentity();
+  }, []); // ← SOLO al montar, NO en cada navegación
+
+  // EFECTO 2: Refrescar SOLO el vuelo activo al navegar entre páginas (consulta ligera)
+  useEffect(() => {
+      async function refreshActiveFlight() {
+        if (!data.profile?.organization_id) return;
+        const { data: flight } = await supabase
+            .from('flights')
+            .select('id')
+            .eq('organization_id', data.profile.organization_id)
+            .is('landing_time', null)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        setActiveFlight(flight || null);
+      }
+      // Evita doble-llamada en el primer render (cuando aún no hay perfil)
+      if (data.profile?.organization_id) {
+        refreshActiveFlight();
+      }
+  }, [pathname, data.profile?.organization_id]);
 
   // Cierra el menú automáticamente al navegar en móviles
   useEffect(() => {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Image from 'next/image';
+import { ROLE_LABELS, PERMISSIONS, hasPermission } from '@/lib/roles';
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
@@ -80,26 +81,28 @@ export default function DashboardLayout({ children }) {
   const role = data.profile?.role;
 
 const navLinks = [
-  { name: 'Dashboard', icon: 'dashboard', href: '/dashboard', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Mi Flota', icon: 'precision_manufacturing', href: '/dashboard/fleet', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Tripulación', icon: 'person', href: '/dashboard/pilots', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Mantenimiento', icon: 'build', href: '/dashboard/maintenance', roles: ['superadmin', 'jefe_pilotos', 'gerente_sms'] },
-  { name: 'Programación', icon: 'event_available', href: '/dashboard/authorizations', roles: ['superadmin', 'jefe_pilotos'] },
-  { name: 'Bitácora', icon: 'menu_book', href: '/dashboard/logbook', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Reportes', icon: 'assessment', href: '/dashboard/reports', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'] },
-  { name: 'Seguridad', icon: 'health_and_safety', href: '/dashboard/safety', roles: ['superadmin', 'gerente_sms'] },
-  { name: 'Auditoría', icon: 'fact_check', href: '/dashboard/audit', roles: ['superadmin', 'admin', 'gerente_sms'] },
-  { name: 'Protocolos', icon: 'rule', href: '/dashboard/settings/forms', roles: ['superadmin', 'admin', 'gerente_sms'] }, 
+  { name: 'Dashboard',      icon: 'dashboard',               href: '/dashboard',                 roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Mi Flota',       icon: 'precision_manufacturing', href: '/dashboard/fleet',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Tripulación',    icon: 'person',                  href: '/dashboard/pilots',          roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'] },
+  { name: 'Programación',   icon: 'event_available',         href: '/dashboard/authorizations',  roles: ['superadmin', 'admin', 'jefe_pilotos'] },
+  { name: 'Bitácora',       icon: 'menu_book',               href: '/dashboard/logbook',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Reportes',       icon: 'assessment',              href: '/dashboard/reports',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'] },
+  { name: 'Seguridad',      icon: 'health_and_safety',       href: '/dashboard/safety',          roles: ['superadmin', 'admin', 'gerente_sms'] },
+  { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'] },
+  { name: 'Protocolos',     icon: 'rule',                    href: '/dashboard/settings/forms',  roles: ['superadmin', 'admin', 'gerente_sms'] },
 ];
 
 // FILTRAR LINKS BASADO EN EL ROL
 const filteredLinks = navLinks.filter(link => link.roles.includes(role));
 
-  const footerLinks = [
-    { name: 'Configurar Organización', icon: 'settings', href: '/dashboard/settings' },
-    { name: 'Mi Perfil', icon: 'account_circle', href: '/dashboard/settings/profile' },
-    { name: 'Suscripción', icon: 'payments', href: '/dashboard/subscription' },
-  ];
+const footerLinksAll = [
+    { name: 'Configurar Organización', icon: 'settings', href: '/dashboard/settings', roles: ['superadmin', 'admin'] },
+    { name: 'Gestión de Usuarios',     icon: 'groups',   href: '/dashboard/users',    roles: ['superadmin', 'admin'] },
+    { name: 'Mi Perfil',               icon: 'account_circle', href: '/dashboard/settings/profile', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+    { name: 'Suscripción',             icon: 'payments', href: '/dashboard/subscription', roles: ['superadmin', 'admin', 'gerente_sms'] },
+];
+const footerLinks = footerLinksAll.filter(link => link.roles.includes(role));
 
   return (
     <div className="flex h-screen bg-[#f8f6f6] font-display overflow-hidden text-left">
@@ -130,7 +133,7 @@ const filteredLinks = navLinks.filter(link => link.roles.includes(role));
 </div>
 
         <nav className="flex-1 p-4 space-y-1 mt-2 overflow-y-auto custom-scrollbar">
-          {navLinks.map(link => (
+          {filteredLinks.map(link => (
             <Link key={link.href} href={link.href} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${pathname === link.href ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' : 'text-slate-400 hover:bg-white/5'}`}>
               <span className="material-symbols-outlined text-lg">{link.icon}</span>{link.name}
             </Link>
@@ -230,17 +233,32 @@ const filteredLinks = navLinks.filter(link => link.roles.includes(role));
   {/* CONTENEDOR DE BOTONES OPERATIVOS */}
   <div className="flex items-center gap-2">
     
-    {/* BOTÓN 1: TÉRMINO DE VUELO (Solo si activeFlight existe) */}
-    {activeFlight && (
-      <Link 
-        href={`/dashboard/logbook/finalize?id=${activeFlight.id}`} 
-        className="bg-slate-900 hover:bg-black text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg border border-white/10 transition-all flex items-center gap-2 active:scale-95"
-      >
-        <span className="material-symbols-outlined text-sm md:text-base text-orange-500">flight_land</span> 
-        <span className="hidden sm:inline">Término de Vuelo</span>
-        <span className="sm:hidden">Finalizar</span>
-      </Link>
-    )}
+{hasPermission(role, 'canFly') && (
+    <div className="flex items-center gap-2">
+        
+        {/* BOTÓN 1: TÉRMINO DE VUELO (Solo si activeFlight existe) */}
+        {activeFlight && (
+          <Link 
+            href={`/dashboard/logbook/finalize?id=${activeFlight.id}`} 
+            className="bg-slate-900 hover:bg-black text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg border border-white/10 transition-all flex items-center gap-2 active:scale-95"
+          >
+            <span className="material-symbols-outlined text-sm md:text-base text-orange-500">flight_land</span> 
+            <span className="hidden sm:inline">Término de Vuelo</span>
+            <span className="sm:hidden">Finalizar</span>
+          </Link>
+        )}
+
+        {/* BOTÓN 2: NUEVA OPERACIÓN */}
+        <Link 
+          href="/dashboard/logbook/new" 
+          className="bg-orange-600 hover:bg-orange-700 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
+        >
+          <span className="material-symbols-outlined text-sm md:text-base">add_circle</span> 
+          <span className="hidden sm:inline">Nueva Operación</span>
+          <span className="sm:hidden">Nuevo</span>
+        </Link>
+    </div>
+)}
 
     {/* BOTÓN 2: NUEVA OPERACIÓN */}
     <Link 
@@ -260,7 +278,7 @@ const filteredLinks = navLinks.filter(link => link.roles.includes(role));
   >
      <div className="hidden md:block text-right">
         <p className="text-[10px] font-black text-slate-900 leading-none group-hover:text-orange-600 transition-colors">{data.profile?.full_name}</p>
-        <p className="text-[8px] font-bold text-orange-500 uppercase mt-1">{data.profile?.role?.replace('_', ' ')}</p>
+        <p className="text-[8px] font-bold text-orange-500 uppercase mt-1">{ROLE_LABELS[data.profile?.role] || data.profile?.role}</p>
      </div>
      <div className="size-8 md:size-10 rounded-full bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
         {data.profile?.avatar_url ? (

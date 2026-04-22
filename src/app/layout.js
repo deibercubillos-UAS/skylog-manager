@@ -1,5 +1,7 @@
 import "./globals.css";
 import { Public_Sans } from "next/font/google";
+import { GoogleAnalytics } from '@next/third-parties/google';
+import Script from 'next/script';
 
 const publicSans = Public_Sans({
   subsets: ["latin"],
@@ -67,9 +69,37 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
         />
+        <Script
+  id="schema-organization"
+  type="application/ld+json"
+  strategy="beforeInteractive"
+  dangerouslySetInnerHTML={{
+    __html: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Bitafly",
+      "legalName": "Bitafly UAS Manager",
+      "url": "https://bitafly.com",
+      "logo": "https://bitafly.com/logo.png",
+      "description": "Plataforma SaaS para operadores de drones en Colombia. Bitácoras digitales, mantenimiento, SMS y cumplimiento RAC 100.",
+      "email": "soporte@bitafly.com",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "CO",
+        "addressRegion": "Colombia"
+      },
+      "areaServed": {
+        "@type": "Country",
+        "name": "Colombia"
+      },
+      "sameAs": []
+    })
+  }}
+/>
       </head> 
       <body className="font-sans antialiased">
         {children}
+        {process.env.NEXT_PUBLIC_GA_ID && <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />} 
       </body>
     </html>
   );

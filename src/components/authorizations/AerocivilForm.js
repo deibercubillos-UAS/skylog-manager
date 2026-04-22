@@ -845,9 +845,8 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                                 </div>
                                 <InputCol label="N° Documento Identificación" value={pilot.id_number} disabled />
                                 <InputCol label="N° Teléfono Celular" value={pilot.phone} disabled />
-                            <InputCol label="Teléfono" value={p.phone} disabled />
                             </div>
-                            <AlertBanner alert={getPersonAlert(p.id)} />
+                            <AlertBanner alert={getPersonAlert(pilot.id)} />
                         </div>
                     ))}
 
@@ -925,7 +924,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                                         }} 
                                     />
                                 </div>
-                                <AlertBanner alert={getPersonAlert(p.id)} />
+                                <AlertBanner alert={getPersonAlert(obs.id)} />
                             </div>
                         </div>
                     ))}

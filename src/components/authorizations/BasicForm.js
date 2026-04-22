@@ -68,23 +68,33 @@ export default function BasicForm({ pilots, drones, missions, org, loadData }) {
         if (pStat?.type === 'ERROR' || dStat?.type === 'ERROR') return alert("🚫 BLOQUEO DE SEGURIDAD");
 
         setSaving(true);
+        // SOLO enviamos las columnas que existen en flight_authorizations
         const payload = {
-            ...form,
+            pilot_id: form.pilot_id,
+            aircraft_id: form.aircraft_id,
+            mission_type: form.mission_type,
+            scheduled_at: form.scheduled_at,
             location: `${form.municipality}, ${form.department}`
         };
 
-        const res = await fetch('/api/flights/authorize', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+        try {
+            const res = await fetch('/api/flights/authorize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
 
-        if (res.ok) {
-            alert("🚀 MISIÓN AUTORIZADA");
+            if (!res.ok) throw new Error(data?.error || 'Error al guardar');
+
+            alert(`🚀 MISIÓN AUTORIZADA: ${data.mission_id}`);
             setForm({ pilot_id: '', aircraft_id: '', department: '', municipality: '', scheduled_at: '', mission_type: 'SIMPLE CAPTURA DE IMÁGENES O DATOS' });
-            loadData();
+            if (loadData) loadData();
+        } catch (err) {
+            alert('⚠️ Error: ' + err.message);
+        } finally {
+            setSaving(false);
         }
-        setSaving(false);
     };
 
     return (

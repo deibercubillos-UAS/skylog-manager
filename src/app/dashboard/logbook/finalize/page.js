@@ -68,34 +68,42 @@ export default function FinalizeFlightPage() {
     setSaving(true);
     try {
 
-        // 2. OBTENER HORAS ACTUALES DEL DRONE DIRECTO DE LA DB (Evita el error de sobreescritura)
-        const { data: droneDB, error: fetchError } = await supabase
-            .from('aircraft')
-            .select('total_hours')
-            .eq('id', selectedFlight.aircraft_id)
-            .single();
+        // 2. OBTENER HORAS DEL DRONE + CICLOS DE LA BATERÍA EN PARALELO
+        const [droneRes, batteryRes] = await Promise.all([
+            supabase.from('aircraft').select('total_hours').eq('id', selectedFlight.aircraft_id).single(),
+            selectedFlight.battery_id
+                ? supabase.from('batteries').select('cycles').eq('id', selectedFlight.battery_id).single()
+                : Promise.resolve({ data: null })
+        ]);
+        if (droneRes.error) throw droneRes.error;
 
-        if (fetchError) throw fetchError;
-
-        // 3. CALCULAR EL NUEVO TOTAL (Suma real)
-        const currentTotalHours = parseFloat(droneDB?.total_hours || 0);
+        // 3. CALCULAR NUEVOS VALORES
+        const currentTotalHours = parseFloat(droneRes.data?.total_hours || 0);
         const finalTotalHours = parseFloat((currentTotalHours + durationOfThisFlight).toFixed(2));
+        const currentCycles = parseInt(batteryRes.data?.cycles || 0, 10);
+        const newCycles = currentCycles + 1;
 
-        // 4. ACTUALIZACIÓN ATÓMICA
+        // 4. ACTUALIZACIÓN ATÓMICA (vuelo + drone + batería)
         const { error: logError } = await supabase.from('flights').update({
             landing_time: form.landing_time,
             safety_report: form.safety_report,
             notes: form.notes,
-            total_time: durationOfThisFlight // Guarda solo lo que voló hoy en el log
+            total_time: durationOfThisFlight
         }).eq('id', form.flight_id);
-
         if (logError) throw logError;
 
         const { error: airError } = await supabase.from('aircraft').update({ 
-            total_hours: finalTotalHours // Guarda el acumulado histórico en el drone
+            total_hours: finalTotalHours
         }).eq('id', selectedFlight.aircraft_id);
-
         if (airError) throw airError;
+
+        // Solo actualizamos batería si el vuelo tenía una asociada
+        if (selectedFlight.battery_id) {
+            const { error: batError } = await supabase.from('batteries').update({
+                cycles: newCycles
+            }).eq('id', selectedFlight.battery_id);
+            if (batError) console.warn('No se pudo actualizar ciclos de batería:', batError.message);
+        }
 
         alert(`✅ OPERACIÓN CERRADA\nAnterior: ${currentTotalHours}h\nVolado: ${durationOfThisFlight}h\nNuevo Total: ${finalTotalHours}h`);
         window.location.href = '/dashboard/logbook';

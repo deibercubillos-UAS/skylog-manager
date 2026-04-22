@@ -379,6 +379,17 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
         worksheet.getCell(`AI${rowOffset + 1}`).value = a.serial_number;
     });
 
+        // --- SECCIÓN 8: EQUIPOS TECNOLÓGICOS (PAYLOADS) ---
+    // El formato F100 reserva 3 slots de equipos entre las aeronaves y los pilotos
+    data.equipos?.forEach((eq, index) => {
+        if (!eq?.id) return; // Saltar slots vacíos
+        const row = 58 + (index * 3); // Cada equipo ocupa 3 filas en el F100
+        worksheet.getCell(`M${row}`).value     = cleanText(eq.brand);
+        worksheet.getCell(`AI${row}`).value    = cleanText(eq.model);
+        worksheet.getCell(`M${row + 1}`).value = cleanText(eq.type);
+        worksheet.getCell(`AI${row + 1}`).value = cleanText(eq.serial_number);
+    });
+
     // --- SECCIÓN 9: PILOTO(S) UAS ---
         data.pilotos_solicitud.forEach((p, index) => {
             const row = 67 + (index * 4); // Piloto 1 en fila 51, Piloto 2 en 55...

@@ -152,6 +152,40 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
         }
     };
 
+    // ========== HELPERS DE ALERTAS ==========
+    const getDroneAlert = (droneId) => {
+        if (!droneId) return null;
+        const d = drones?.find(x => x.id === droneId);
+        if (!d) return null;
+        const remaining = 200 - (parseFloat(d.total_hours || 0) - parseFloat(d.last_maintenance_hours || 0));
+        if (remaining <= 0) return { type: 'ERROR', msg: '🚫 MANTENIMIENTO REQUERIDO' };
+        if (remaining <= 20) return { type: 'WARN', msg: `⚠ ${remaining.toFixed(1)}h para servicio` };
+        return null;
+    };
+
+    const getPersonAlert = (personId) => {
+        if (!personId) return null;
+        const p = pilots?.find(x => x.id === personId);
+        if (!p?.medical_expiry) return null;
+        const days = Math.round((new Date(p.medical_expiry) - new Date()) / (1000 * 60 * 60 * 24));
+        if (days < 0) return { type: 'ERROR', msg: '🚫 MÉDICO VENCIDO' };
+        if (days < 30) return { type: 'WARN', msg: `⚠ Médico vence en ${days} días` };
+        return null;
+    };
+
+    const AlertBanner = ({ alert }) => {
+        if (!alert) return null;
+        const cls = alert.type === 'ERROR' 
+            ? 'bg-red-50 text-red-700 border-red-200' 
+            : 'bg-orange-50 text-orange-700 border-orange-200';
+        return (
+            <div className={`px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest ${cls}`}>
+                {alert.msg}
+            </div>
+        );
+    };
+    // ========== FIN HELPERS ==========
+
     const handleAircraftSelect = (index, aircraftId) => {
         const selected = drones?.find(d => d.id === aircraftId);
         const newAeronaves = [...aeroForm.aeronaves];
@@ -322,6 +356,15 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
         // Validaciones básicas antes de radicar
         if (!aeroForm.empresa_contratante) return alert("Ingrese el nombre de la empresa");
         if (!aeroForm.aeronaves[0].id) return alert("Seleccione al menos una aeronave");
+        // BLOQUEO POR SEGURIDAD: aeronaves, pilotos u observadores con alertas CRÍTICAS
+        const dronesConError = aeroForm.aeronaves.filter(a => getDroneAlert(a.id)?.type === 'ERROR');
+        const personasConError = [
+            ...aeroForm.pilotos_solicitud.filter(p => getPersonAlert(p.id)?.type === 'ERROR'),
+            ...aeroForm.observadores.filter(o => getPersonAlert(o.id)?.type === 'ERROR')
+        ];
+        if (dronesConError.length > 0 || personasConError.length > 0) {
+            return alert(`🚫 BLOQUEO DE SEGURIDAD\n\nNo se puede radicar la misión:\n${dronesConError.length > 0 ? `• ${dronesConError.length} aeronave(s) requieren mantenimiento\n` : ''}${personasConError.length > 0 ? `• ${personasConError.length} tripulante(s) con médico vencido\n` : ''}\nResuelva las alertas antes de continuar.`);
+        }
         
         setSaving(true);
         try {
@@ -652,7 +695,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
             <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
                 <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
                     <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-blue-600">aeroplane</span>
+                        <span className="material-symbols-outlined text-blue-600">precision_manufacturing</span>
                         <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">7. AERONAVE(S) NO TRIPULADA(S) UAS</h4>
                     </div>
                     <div className="flex items-center gap-4">
@@ -693,6 +736,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                                 <InputCol label="Inicio Cobertura" type="date" value={unit.start_date} onChange={e => updateMaintField(index, 'start_date', e.target.value)} />
                                 <InputCol label="Fin Cobertura" type="date" value={unit.end_date} onChange={e => updateMaintField(index, 'end_date', e.target.value)} />
                             </div>
+                            <AlertBanner alert={getDroneAlert(unit.id)} />
                         </div>
                     ))}
 
@@ -801,7 +845,9 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                                 </div>
                                 <InputCol label="N° Documento Identificación" value={pilot.id_number} disabled />
                                 <InputCol label="N° Teléfono Celular" value={pilot.phone} disabled />
+                            <InputCol label="Teléfono" value={p.phone} disabled />
                             </div>
+                            <AlertBanner alert={getPersonAlert(p.id)} />
                         </div>
                     ))}
 
@@ -879,6 +925,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                                         }} 
                                     />
                                 </div>
+                                <AlertBanner alert={getPersonAlert(p.id)} />
                             </div>
                         </div>
                     ))}

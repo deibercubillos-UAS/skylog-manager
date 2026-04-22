@@ -29,15 +29,20 @@ export async function POST(request) {
         const body = await request.json();
         const today = new Date().toISOString().split('T')[0];
 
-        // 1. Registrar el Mantenimiento
+        // 1. Registrar el Mantenimiento (compatibilidad con columnas legadas)
         const { data: log, error: mErr } = await supabase.from('maintenance_logs').insert([{
-            ...body,
+            aircraft_id: body.aircraft_id,
+            maintenance_type: body.maintenance_type,
+            description: body.description,
+            hours_at_service: body.hours_at_service,
+            technician: body.technician_name,       // <-- columna legada NOT NULL
+            technician_name: body.technician_name,  // <-- columna nueva
             organization_id: prof.organization_id
         }]).select().single();
 
         if (mErr) throw mErr;
 
-        // 2. REINICIAR CONTADORES EN EL DRONE (Lógica Maestra)
+        // 2. REINICIAR CONTADORES EN EL DRONE
         await supabase.from('aircraft').update({
             last_maintenance_date: today,
             last_maintenance_hours: body.hours_at_service

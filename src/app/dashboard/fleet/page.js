@@ -21,6 +21,7 @@ export default function FleetPage() {
   const [activePanel, setActivePanel] = useState(null);
   const [editingDrone, setEditingDrone] = useState(null);
   const [editingBattery, setEditingBattery] = useState(null);
+  const [flightHoursMap, setFlightHoursMap] = useState({});
 
   const fetchData = async () => {
     try {
@@ -35,15 +36,24 @@ export default function FleetPage() {
       if (prof) setUserRole(prof.role);
 
       if (prof?.organization_id) {
-        const [resDrones, resBatteries, resTech] = await Promise.all([
-          supabase.from('aircraft').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
-          supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
-          supabase.from('inventory_items').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false })
-        ]);
-        
-        setDrones(resDrones.data || []);
-        setBatteries(resBatteries.data || []);
-        setTech(resTech.data || []);
+        const [resDrones, resBatteries, resTech, resFlights] = await Promise.all([
+    supabase.from('aircraft').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
+    supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
+    supabase.from('inventory_items').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
+    supabase.from('flights').select('aircraft_id, total_time').eq('organization_id', prof.organization_id).not('landing_time', 'is', null)
+]);
+
+// Suma en vivo de horas por aeronave (fuente de verdad)
+const hoursMap = {};
+(resFlights.data || []).forEach(f => {
+    if (!f.aircraft_id || !f.total_time || f.total_time <= 0) return;
+    hoursMap[f.aircraft_id] = (hoursMap[f.aircraft_id] || 0) + parseFloat(f.total_time);
+});
+
+setDrones(resDrones.data || []);
+setBatteries(resBatteries.data || []);
+setTech(resTech.data || []);
+setFlightHoursMap(hoursMap);
       }
     } catch (err) {
       console.error(err);
@@ -88,7 +98,7 @@ export default function FleetPage() {
       </div>
 
       {/* BOTÓN REPARADO: Se muestra si el rol es válido */}
-      {(userRole === 'superadmin' || userRole === 'admin' || userRole === 'jefe_pilotos') && (
+      {canManage && (
           <button 
               onClick={() => setActivePanel('drone')} 
               className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
@@ -102,7 +112,13 @@ export default function FleetPage() {
     {/* Grid de Aeronaves */}
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {drones.map(d => (
-            <AircraftCard key={d.id} aircraft={d} onEdit={setEditingDrone} onDelete={(id) => handleDelete(id, 'aircraft')} />
+            <AircraftCard 
+    key={d.id} 
+    aircraft={d} 
+    liveHours={flightHoursMap[d.id]} 
+    onEdit={setEditingDrone} 
+    onDelete={(id) => handleDelete(id, 'aircraft')} 
+/>
         ))}
     </div>
       </section>
@@ -110,8 +126,19 @@ export default function FleetPage() {
      {/*SECCION EQUIPOS*/} 
       <section className="mb-12">
         <header className="flex justify-between items-end border-b pb-4 mb-8">
-            <h2 className="text-3xl font-black uppercase text-slate-900">Tecnología</h2>
-            <button onClick={() => setActivePanel('tech')} className="bg-[#1A202C] text-white px-6 py-2 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-purple-600 transition-all">+ Nuevo Payload</button>
+            <div className="text-left">
+                <h2 className="text-3xl font-black uppercase text-slate-900 tracking-tighter">Tecnología</h2>
+                <p className="text-slate-400 text-[10px] font-black uppercase">{tech.length} PAYLOADS</p>
+            </div>
+            {canManage && (
+                <button 
+                    onClick={() => setActivePanel('tech')}
+                    className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
+                >
+                    <span className="material-symbols-outlined text-sm">add_circle</span>
+                    Nuevo Payload
+                </button>
+            )}
         </header>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {tech.map(t => (
@@ -123,9 +150,20 @@ export default function FleetPage() {
             {/* SECCIÓN BATERÍAS */}
       <section className="mb-12">
           <header className="flex justify-between items-end border-b pb-4 mb-8">
-              <h2 className="text-3xl font-black uppercase text-slate-900">Baterías</h2>
-              <button onClick={() => setActivePanel('battery')} className="bg-[#1A202C] text-white px-6 py-2 rounded-xl font-black text-[10px] uppercase shadow-lg">+ Nueva Batería</button>
-          </header>
+                <div className="text-left">
+                    <h2 className="text-3xl font-black uppercase text-slate-900 tracking-tighter">Baterías</h2>
+                    <p className="text-slate-400 text-[10px] font-black uppercase">{batteries.length} UNIDADES</p>
+                </div>
+                {canManage && (
+                    <button 
+                        onClick={() => setActivePanel('battery')}
+                        className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
+                    >
+                        <span className="material-symbols-outlined text-sm">add_circle</span>
+                        Nueva Batería
+                    </button>
+                )}
+            </header> 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {batteries.map(b => (
                   <BatteryCard key={b.id} battery={b} onEdit={setEditingBattery} onDelete={(id) => handleDelete(id, 'batteries')} />

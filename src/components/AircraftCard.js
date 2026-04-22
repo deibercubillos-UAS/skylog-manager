@@ -1,8 +1,8 @@
 'use client';
-export default function AircraftCard({ aircraft, onEdit, onDelete }) {
+export default function AircraftCard({ aircraft, liveHours, onEdit, onDelete }) {
   if (!aircraft) return null; // Escudo 1
 
-  const hours = parseFloat(aircraft.total_hours || 0);
+  const hours = liveHours !== undefined ? parseFloat(liveHours) : parseFloat(aircraft.total_hours || 0);
   const lastMaintHours = parseFloat(aircraft.last_maintenance_hours || 0);
   const diffHours = Math.max(0, hours - lastMaintHours);
   const hourProgress = Math.min(100, (diffHours / 200) * 100);

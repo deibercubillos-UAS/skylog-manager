@@ -7,6 +7,54 @@ const publicSans = Public_Sans({
   display: "swap",
 });
 
+export const metadata = {
+  metadataBase: new URL('https://bitafly.com'), // ← cambia por tu dominio real en Vercel
+  title: {
+    default: 'Bitafly | Gestión Aeronáutica Profesional para Operadores UAS',
+    template: '%s | Bitafly',
+  },
+  description: 'Plataforma SaaS para operadores de drones en Colombia. Bitácoras digitales, mantenimiento, SMS, autorizaciones AeroCivil y cumplimiento RAC 100 en un solo lugar.',
+  keywords: ['drones Colombia', 'RAC 100', 'bitácora UAS', 'mantenimiento drones', 'AeroCivil', 'operador UAS', 'SMS aeronáutico', 'gestión aeronáutica'],
+  authors: [{ name: 'Bitafly Operations' }],
+  creator: 'Bitafly Operations',
+  openGraph: {
+    type: 'website',
+    locale: 'es_CO',
+    url: 'https://bitafly.com',
+    siteName: 'Bitafly',
+    title: 'Bitafly | Gestión Aeronáutica Profesional',
+    description: 'La plataforma inteligente para operadores UAS y tripulaciones en Colombia.',
+    images: [
+      {
+        url: '/logo.png',
+        width: 1200,
+        height: 630,
+        alt: 'Bitafly - Gestión Aeronáutica',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Bitafly | Gestión Aeronáutica Profesional',
+    description: 'Plataforma para operadores UAS en Colombia',
+    images: ['/logo.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  icons: {
+    icon: '/favicon.ico',
+  },
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="es" className={`${publicSans.variable}`}>

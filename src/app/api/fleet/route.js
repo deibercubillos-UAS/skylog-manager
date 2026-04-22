@@ -43,7 +43,7 @@ export async function POST(request) {
     });
 
     // 1. VALIDACIÓN DE PLAN EN SERVIDOR
-    const { count } = await supabase.from('aircraft').select('*', { count: 'exact', head: true }).eq('owner_id', userId);
+    const { count } = await supabase.from('aircraft').select('*', { count: 'exact', head: true });
     
     if (!canAddResource(currentPlan, count || 0, 'drone')) {
       return NextResponse.json({ error: `Tu plan ${currentPlan.toUpperCase()} ha llegado al límite de aeronaves.` }, { status: 403 });

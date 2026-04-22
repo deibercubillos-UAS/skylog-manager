@@ -25,16 +25,42 @@ export default async function DashboardPage() {
 
     // CARGA TOTAL (Fluidez máxima: traemos todo lo de la empresa)
     const [flightsRes, crewRes, fleetRes] = await Promise.all([
-        supabase.from('flights').select('total_time, mission_id, created_at').eq('organization_id', orgId),
+        supabase
+            .from('flights')
+            .select(`
+                id,
+                mission_id,
+                flight_date,
+                takeoff_time,
+                landing_time,
+                total_time,
+                created_at,
+                pilots:pilot_id(name),
+                aircraft:aircraft_id(model, serial_number)
+            `)
+            .eq('organization_id', orgId)
+            .order('created_at', { ascending: false }),
         supabase.from('pilots').select('id, name, medical_expiry').eq('organization_id', orgId).eq('is_active', true),
         supabase.from('aircraft').select('id, model, status').eq('organization_id', orgId)
     ]);
 
-    const totalHours = flightsRes.data?.reduce((acc, curr) => acc + (curr.total_time || 0), 0) || 0;
-    
-    // Alertas fluidas: mostramos alertas de cualquier piloto con médico vencido
+    const flights = flightsRes.data || [];
+    const totalHours = flights.reduce((acc, f) => acc + (parseFloat(f.total_time) || 0), 0);
+
+    // Alertas: pilotos con médico vencido
     const today = new Date().toISOString().split('T')[0];
     const expiredMedicals = crewRes.data?.filter(p => p.medical_expiry && p.medical_expiry < today) || [];
+
+    // CHART: últimos 6 meses con conteo real de vuelos
+    const now = new Date();
+    const monthLabels = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+    const chart = [];
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const count = flights.filter(f => f.created_at?.startsWith(monthStr)).length;
+        chart.push({ label: monthLabels[d.getMonth()], count });
+    }
 
     const initialData = {
         stats: {
@@ -43,19 +69,19 @@ export default async function DashboardPage() {
             fleetCount: fleetRes.data?.length || 0,
             alertsCount: expiredMedicals.length
         },
-        recentActivity: flightsRes.data?.slice(0, 5).map(f => ({
+        recentActivity: flights.slice(0, 5).map(f => ({
             id: f.id,
             mission_id: f.mission_id || 'S/N',
-            pilots: { name: 'Comandante' },
-            aircraft: { model: 'UAS' }
-        })) || [],
+            profiles: { full_name: f.pilots?.name || 'Sin PIC' },
+            aircraft: { model: f.aircraft?.model || 'N/R' }
+        })),
         alerts: expiredMedicals.map(p => ({
             type: 'CRÍTICO',
             msg: `Médico Vencido: ${p.name}`,
             val: p.medical_expiry
         })),
-        chart: [{ label: 'ACTIVIDAD', count: flightsRes.data?.length || 0 }]
-    };
+        chart
+    }; 
 
     return <DashboardClient initialData={initialData} userProfile={profile} />;
 }

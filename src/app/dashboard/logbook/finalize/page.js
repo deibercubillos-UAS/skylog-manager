@@ -56,14 +56,17 @@ export default function FinalizeFlightPage() {
     e.preventDefault();
     if (!form.landing_time || !selectedFlight) return alert("Faltan datos");
     
+    // VALIDACIÓN: La hora de aterrizaje debe ser POSTERIOR a la de despegue
+    const [h1, m1] = selectedFlight.takeoff_time.split(':').map(Number);
+    const [h2, m2] = form.landing_time.split(':').map(Number);
+    const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+    if (diff <= 0) {
+        return alert(`⚠️ HORA INVÁLIDA\n\nLa hora de aterrizaje (${form.landing_time}) debe ser POSTERIOR a la de despegue (${selectedFlight.takeoff_time}).\n\nVerifique los valores antes de cerrar la misión.`);
+    }
+    const durationOfThisFlight = parseFloat((diff / 60).toFixed(2));
+
     setSaving(true);
     try {
-        // 1. Calcular duración del vuelo actual
-        const [h1, m1] = selectedFlight.takeoff_time.split(':').map(Number);
-        const [h2, m2] = form.landing_time.split(':').map(Number);
-        let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-        if (diff < 0) diff += 1440; 
-        const durationOfThisFlight = parseFloat((diff / 60).toFixed(2));
 
         // 2. OBTENER HORAS ACTUALES DEL DRONE DIRECTO DE LA DB (Evita el error de sobreescritura)
         const { data: droneDB, error: fetchError } = await supabase

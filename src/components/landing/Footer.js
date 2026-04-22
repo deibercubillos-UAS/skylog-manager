@@ -10,6 +10,9 @@ export default function Footer() {
              <span className="text-xl font-black uppercase tracking-tighter">BitaFly Manager</span>
           </div>
           <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.3em]">© 2024 BitaFly UAS Manager - Aviation Systems</p>
+          <a href="mailto:soporte@bitafly.com" className="text-xs font-bold text-orange-400 hover:text-orange-300 tracking-wider">
+             soporte@bitafly.com
+          </a>
           <div className="flex gap-8 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
              <span>RAC Compliant</span>
              <span>SORA Methodology</span>

@@ -8,7 +8,8 @@ export async function POST(req) {
     const { email, role, orgName, inviterName } = await req.json();
 
     const data = await resend.emails.send({
-      from: 'SkyLog Manager <no-reply@bitafly.com>',
+      from: 'BitaFly <no-reply@bitafly.com>',
+      replyTo: 'soporte@bitafly.com',
       to: [email],
       subject: `🚁 Invitación para unirse a la flota de ${orgName}`,
       html: `

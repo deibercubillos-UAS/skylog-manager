@@ -8,8 +8,9 @@ export async function POST(req) {
     const { name, email, company, message } = await req.json();
 
     await resend.emails.send({
-      from: 'BitaFly Leads <no-reply@bitafly.com>',
-      to: ['deibercubillos@gmail.com'], // Donde quieres recibir los leads
+      from: 'BitaFly Soporte <soporte@bitafly.com>',
+      to: ['soporte@bitafly.com'],
+      replyTo: email,// Donde quieres recibir los leads
       subject: `Nueva Consulta: ${company}`,
       html: `<p><strong>Nombre:</strong> ${name}</p>
              <p><strong>Email:</strong> ${email}</p>

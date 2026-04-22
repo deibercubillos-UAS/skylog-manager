@@ -26,26 +26,31 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
     }, []);
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
-
-            const { error } = await supabase.from('maintenance_logs').insert([{
-                ...form,
-                organization_id: prof.organization_id,
-                hours_at_service: parseFloat(form.hours_at_service)
-            }]);
-
-            if (error) throw error;
-            onSuccess();
-        } catch (err) {
-            alert("Error: " + err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
+    e.preventDefault();
+    if (!form.aircraft_id) return alert("⚠️ Selecciona una aeronave.");
+    setLoading(true);
+    try {
+        const res = await fetch('/api/maintenance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                aircraft_id: form.aircraft_id,
+                technician_name: form.technician_name,
+                maintenance_type: form.maintenance_type,
+                description: form.description,
+                hours_at_service: parseFloat(form.hours_at_service || 0)
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || 'Error al guardar');
+        alert("✅ Mantenimiento registrado y contadores del drone actualizados.");
+        onSuccess();
+    } catch (err) {
+        alert("⚠️ Error: " + err.message);
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
         <aside className="fixed inset-y-0 right-0 w-96 bg-white shadow-2xl z-[250] p-10 flex flex-col text-left animate-in slide-in-from-right">

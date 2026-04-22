@@ -24,14 +24,19 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
     const [loadingGeo, setLoadingGeo] = useState(true);
     const [saving, setSaving] = useState(false)
     const [inventoryList, setInventoryList] = useState([]);
+    const [policies, setPolicies] = useState([]);
 
     useEffect(() => {
-    async function loadTech() {
-        const { data } = await supabase.from('inventory_items').select('*').eq('status', 'Operativo');
-        setInventoryList(data || []);
-    }
-    loadTech();
-}, []);
+        async function loadTechAndPolicies() {
+            const [techRes, polRes] = await Promise.all([
+                supabase.from('inventory_items').select('*').eq('status', 'Operativo'),
+                supabase.from('insurance_policies').select('*').order('end_date', { ascending: false })
+            ]);
+            setInventoryList(techRes.data || []);
+            setPolicies(polRes.data || []);
+        }
+        loadTechAndPolicies();
+    }, []);
 
 
     // CORRECCIÓN LÍNEA 14: Estructura plana y sin duplicados
@@ -185,18 +190,55 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
         );
     };
     // ========== FIN HELPERS ==========
+    const findPolicyForAircraft = (aircraftId) => {
+        if (!aircraftId || !policies.length) return null;
+        const today = new Date();
+        const isValid = (p) => new Date(p.start_date) <= today && new Date(p.end_date) >= today;
+
+        // Prioridad 1: póliza específica vigente
+        const specific = policies.find(p => p.aircraft_id === aircraftId && isValid(p));
+        if (specific) return specific;
+
+        // Prioridad 2: póliza para toda la flota vigente
+        const fleet = policies.find(p => p.aircraft_id === null && isValid(p));
+        if (fleet) return fleet;
+
+        // Prioridad 3: última póliza específica (aunque vencida)
+        const anySpecific = policies.find(p => p.aircraft_id === aircraftId);
+        if (anySpecific) return anySpecific;
+
+        // Prioridad 4: última póliza de flota
+        return policies.find(p => p.aircraft_id === null) || null;
+    };
 
     const handleAircraftSelect = (index, aircraftId) => {
         const selected = drones?.find(d => d.id === aircraftId);
+        const policy = findPolicyForAircraft(aircraftId);
         const newAeronaves = [...aeroForm.aeronaves];
         newAeronaves[index] = {
             ...newAeronaves[index],
             id: aircraftId,
             brand: selected?.brand || '',
             model: selected?.model || '',
-            serial_number: selected?.serial_number || ''
+            serial_number: selected?.serial_number || '',
+            insurer: policy?.insurance_company || '',
+            policy: policy?.policy_number || '',
+            start_date: policy?.start_date || '',
+            end_date: policy?.end_date || ''
         };
         setAeroForm(prev => ({ ...prev, aeronaves: newAeronaves }));
+
+        // Tip visual: marcamos el check de póliza si hay una vigente
+        if (policy) {
+            const today = new Date();
+            const vigente = new Date(policy.start_date) <= today && new Date(policy.end_date) >= today;
+            if (vigente) {
+                setAeroForm(prev => ({
+                    ...prev,
+                    docs_adjuntos: { ...prev.docs_adjuntos, poliza_rce: true }
+                }));
+            }
+        }
     };
 
     const updateMaintField = (index, field, value) => {
@@ -737,6 +779,26 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                                 <InputCol label="Fin Cobertura" type="date" value={unit.end_date} onChange={e => updateMaintField(index, 'end_date', e.target.value)} />
                             </div>
                             <AlertBanner alert={getDroneAlert(unit.id)} />
+                                {unit.id && unit.policy && (() => {
+                                    const today = new Date();
+                                    const end = unit.end_date ? new Date(unit.end_date) : null;
+                                    const days = end ? Math.ceil((end - today) / (1000 * 60 * 60 * 24)) : null;
+                                    const cls = !end || days < 0 
+                                        ? 'bg-red-50 text-red-700 border-red-200'
+                                        : days < 30 
+                                        ? 'bg-orange-50 text-orange-700 border-orange-200'
+                                        : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                                    const label = !end || days < 0 
+                                        ? `🚫 Póliza vencida (${unit.end_date || 'sin fecha'})` 
+                                        : days < 30 
+                                        ? `⚠ Póliza vence en ${days} días`
+                                        : `✅ Póliza vigente hasta ${unit.end_date}`;
+                                    return (
+                                        <div className={`px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest ${cls}`}>
+                                            {label}
+                                        </div>
+                                    );
+                                })()}
                         </div>
                     ))}
 

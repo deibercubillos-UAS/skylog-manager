@@ -371,12 +371,19 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
     worksheet.getCell('B38').value = "JUSTIFICACIÓN: " + cleanText(data.justificacion_especial);
 
     // --- SECCIÓN 7: AERONAVES (Mapeo de tabla) ---
-    // Suponiendo que la tabla de aeronaves empieza en la fila 40
+    // Cada aeronave ocupa un bloque de 5 filas
     data.aeronaves.forEach((a, index) => {
-        const rowOffset = 43 + (index * 5); // Ajustar según diseño del Excel
-        worksheet.getCell(`M${rowOffset}`).value = a.brand;
-        worksheet.getCell(`AI${rowOffset}`).value = a.model;
-        worksheet.getCell(`AI${rowOffset + 1}`).value = a.serial_number;
+        if (!a?.id) return; // Saltar slots vacíos
+        const rowOffset = 43 + (index * 5);
+        worksheet.getCell(`M${rowOffset}`).value       = cleanText(a.brand);
+        worksheet.getCell(`AI${rowOffset}`).value      = cleanText(a.model);
+        worksheet.getCell(`AI${rowOffset + 1}`).value  = cleanText(a.serial_number);
+
+        // Datos de la póliza de seguro RCE
+        worksheet.getCell(`M${rowOffset + 2}`).value   = cleanText(a.insurer);
+        worksheet.getCell(`AI${rowOffset + 2}`).value  = cleanText(a.policy);
+        worksheet.getCell(`M${rowOffset + 3}`).value   = cleanText(a.start_date);
+        worksheet.getCell(`AI${rowOffset + 3}`).value  = cleanText(a.end_date);
     });
 
         // --- SECCIÓN 8: EQUIPOS TECNOLÓGICOS (PAYLOADS) ---

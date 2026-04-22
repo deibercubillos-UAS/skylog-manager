@@ -1,10 +1,43 @@
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation'; // IMPORTANTE
-import AddPilotPanel from '@/components/AddPilotPanel'; 
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import AddPilotPanel from '@/components/AddPilotPanel';
+import EditPilotPanel from '@/components/EditPilotPanel';
 
 export default function PilotsClient({ initialData }) {
   const [showAddPanel, setShowAddPanel] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
+const [editingPilot, setEditingPilot] = useState(null);
+const menuRef = useRef(null);
+
+// Cerrar el menú al hacer click fuera
+useEffect(() => {
+    const handleClickOutside = (e) => {
+        if (menuRef.current && !menuRef.current.contains(e.target)) {
+            setOpenMenuId(null);
+        }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+}, []);
+
+const handleEdit = (pilot) => {
+    setOpenMenuId(null);
+    setEditingPilot(pilot);
+};
+
+const handleDelete = async (pilot) => {
+    setOpenMenuId(null);
+    if (!confirm(`¿Eliminar a ${pilot.full_name}? Esta acción es irreversible.`)) return;
+    try {
+        const { error } = await supabase.from('pilots').delete().eq('id', pilot.id);
+        if (error) throw error;
+        router.refresh();
+    } catch (err) {
+        alert('⚠️ No se pudo eliminar: ' + err.message);
+    }
+};
   const { pilots, organization, userRole } = initialData;
   const router = useRouter(); // Inicializamos el router
 
@@ -30,25 +63,16 @@ export default function PilotsClient({ initialData }) {
         </div>
 
         <div className="flex gap-2">
-          {/* Botón de refresco manual por si el internet falla */}
-          <button 
-            onClick={() => router.refresh()} 
-            className="p-2.5 text-slate-400 hover:text-navy transition-colors bg-white rounded-xl border border-slate-100 shadow-sm"
-            title="Refrescar lista"
-          >
-            <span className="material-symbols-outlined text-sm">refresh</span>
-          </button>
-
-          {canManage && (
-            <button 
-              onClick={() => setShowAddPanel(true)}
-              className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
-            >
-              <span className="material-symbols-outlined text-sm">person_add</span>
-              Registrar Miembro
-            </button>
-          )}
-        </div>
+    {canManage && (
+        <button 
+            onClick={() => setShowAddPanel(true)}
+            className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
+        >
+            <span className="material-symbols-outlined text-sm">person_add</span>
+            Registrar Miembro
+        </button>
+    )}
+</div>
       </header>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -82,9 +106,40 @@ export default function PilotsClient({ initialData }) {
                       {pilot.medical_expiry ? `Médico: ${pilot.medical_expiry}` : 'VIGENTE'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right text-slate-300">
-                    <span className="material-symbols-outlined">more_vert</span>
-                  </td>
+                  <td className="px-6 py-4 text-right relative">
+                    {canManage ? (
+                        <div className="inline-block relative" ref={openMenuId === pilot.id ? menuRef : null}>
+                            <button
+                                onClick={() => setOpenMenuId(openMenuId === pilot.id ? null : pilot.id)}
+                                className="size-9 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-navy transition-all"
+                                title="Acciones"
+                            >
+                                <span className="material-symbols-outlined text-lg">more_vert</span>
+                            </button>
+                            {openMenuId === pilot.id && (
+                                <div className="absolute right-0 top-11 z-20 w-44 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                                    <button
+                                        onClick={() => handleEdit(pilot)}
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-[11px] font-black uppercase text-slate-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined text-base">edit_square</span>
+                                        Editar
+                                    </button>
+                                    <div className="border-t border-slate-100"></div>
+                                    <button
+                                        onClick={() => handleDelete(pilot)}
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-[11px] font-black uppercase text-red-500 hover:bg-red-50 transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined text-base">delete</span>
+                                        Eliminar
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <span className="material-symbols-outlined text-slate-200">more_vert</span>
+                    )}
+                </td>
                 </tr>
               ))}
             </tbody>
@@ -96,10 +151,19 @@ export default function PilotsClient({ initialData }) {
       </div>
 
       {showAddPanel && (
-        <AddPilotPanel 
-          onClose={() => setShowAddPanel(false)} 
-          onSuccess={handleSuccess} 
-        />
+          <AddPilotPanel 
+              onClose={() => setShowAddPanel(false)} 
+              onSuccess={handleSuccess} 
+          />
+      )}
+
+      {editingPilot && (
+          <EditPilotPanel 
+              pilot={editingPilot} 
+              onClose={() => setEditingPilot(null)} 
+              onSuccess={() => { setEditingPilot(null); router.refresh(); }} 
+          />
+      )}
       )}
     </div>
   );

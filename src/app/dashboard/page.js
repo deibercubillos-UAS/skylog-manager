@@ -26,7 +26,7 @@ export default async function DashboardPage() {
     // CARGA TOTAL (Fluidez máxima: traemos todo lo de la empresa)
     const [flightsRes, crewRes, fleetRes] = await Promise.all([
         supabase.from('flights').select('total_time, mission_id, created_at').eq('organization_id', orgId),
-        supabase.from('profiles').select('id, full_name, medical_expiry').eq('organization_id', orgId),
+        supabase.from('pilots').select('id, name, medical_expiry').eq('organization_id', orgId).eq('is_active', true),
         supabase.from('aircraft').select('id, model, status').eq('organization_id', orgId)
     ]);
 
@@ -51,7 +51,7 @@ export default async function DashboardPage() {
         })) || [],
         alerts: expiredMedicals.map(p => ({
             type: 'CRÍTICO',
-            msg: `Médico Vencido: ${p.full_name}`,
+            msg: `Médico Vencido: ${p.name}`,
             val: p.medical_expiry
         })),
         chart: [{ label: 'ACTIVIDAD', count: flightsRes.data?.length || 0 }]

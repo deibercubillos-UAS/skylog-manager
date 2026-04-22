@@ -19,6 +19,7 @@ export async function GET() {
                 observer:observer_id(name)
             `)
             .eq('organization_id', prof.organization_id)
+            .eq('status', 'autorizado')
             .order('created_at', { ascending: false });
 
         if (error) throw error;

@@ -164,7 +164,6 @@ const handleDelete = async (pilot) => {
               onSuccess={() => { setEditingPilot(null); router.refresh(); }} 
           />
       )}
-      )}
     </div>
   );
 }

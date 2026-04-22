@@ -19,8 +19,8 @@ export async function GET(request) {
 
     const [profileRes, dronesRes, pilotsRes] = await Promise.all([
       supabase.from('profiles').select('subscription_plan').eq('id', userId).single(),
-      supabase.from('aircraft').select('id', { count: 'exact', head: true }).eq('owner_id', userId),
-      supabase.from('pilots').select('id', { count: 'exact', head: true }).eq('owner_id', userId).eq('is_active', true)
+      supabase.from('aircraft').select('id', { count: 'exact', head: true }),
+      supabase.from('pilots').select('id', { count: 'exact', head: true }).eq('is_active', true)
     ]);
 
     const planKey = profileRes.data?.subscription_plan || 'piloto';

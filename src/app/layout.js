@@ -11,12 +11,15 @@ export default function RootLayout({ children }) {
   return (
     <html lang="es" className={`${publicSans.variable}`}>
       <head>
-        {/* Cargamos los iconos de forma estándar para asegurar que se vean */}
+        {/* Preconexión a Google Fonts para acelerar la descarga */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Material Symbols con display=block para que NO muestre texto mientras carga la fuente */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
         />
-      </head>
+      </head> 
       <body className="font-sans antialiased">
         {children}
       </body>

@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import FileUpload from '@/components/FileUpload';
+import { hasPermission } from '@/lib/roles';
 
 export default function SettingsPage() {
     const [loading, setLoading] = useState(true);
@@ -30,7 +31,7 @@ const [policyForm, setPolicyForm] = useState({
 useEffect(() => {
     async function loadOrgData() {
         const { data: { user } } = await supabase.auth.getUser();
-        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+        const { data: prof } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).single();
         setProfile(prof);
 
         const [orgRes, airRes] = await Promise.all([
@@ -138,6 +139,16 @@ const deletePolicy = async (p) => {
 const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60 * 60 * 24));
 
     if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400 uppercase">Sincronizando Identidad...</div>;
+
+    if (!hasPermission(profile?.role, 'canEditOrg')) {
+        return (
+            <div className="max-w-xl mx-auto mt-20 bg-slate-100 p-10 rounded-[2.5rem] border border-slate-200 text-center space-y-4">
+                <span className="material-symbols-outlined text-5xl text-slate-400">lock</span>
+                <h3 className="text-lg font-black uppercase tracking-tight text-slate-700">Acceso restringido</h3>
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Esta sección requiere permisos de Gerente General.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-6xl mx-auto space-y-6 md:space-y-10 text-left animate-in fade-in duration-700 pb-20 px-2 md:px-0">

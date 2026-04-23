@@ -39,7 +39,7 @@ export default function SMSReportPage() {
     init();
   }, []);
 
-  const canEdit = userProfile?.role === 'admin' || userProfile?.role === 'gerente_sms';
+  const canEdit = ['superadmin', 'admin', 'gerente_sms'].includes(userProfile?.role);
 
   const handleSave = async (e) => {
     e.preventDefault();

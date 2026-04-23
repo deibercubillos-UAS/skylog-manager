@@ -1,21 +1,30 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { hasPermission } from '@/lib/roles';
 import AddMaintenancePanel from '@/components/AddMaintenancePanel';
 
 export default function MaintenancePage() {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showAdd, setShowAdd] = useState(false);
+    const [userRole, setUserRole] = useState(null);
 
     const loadData = async () => {
-        const res = await fetch('/api/maintenance');
-        const data = await res.json();
-        setLogs(Array.isArray(data) ? data : []);
+        // Carga perfil (para rol) y logs en paralelo
+        const { data: { user } } = await supabase.auth.getUser();
+        const [profRes, logsRes] = await Promise.all([
+            supabase.from('profiles').select('role').eq('id', user.id).single(),
+            fetch('/api/maintenance').then(r => r.json())
+        ]);
+        setUserRole(profRes.data?.role || null);
+        setLogs(Array.isArray(logsRes) ? logsRes : []);
         setLoading(false);
     };
 
     useEffect(() => { loadData(); }, []);
+
+    const canManage = hasPermission(userRole, 'canManageOps');
 
     if (loading) return <div className="p-20 text-center font-black animate-pulse">SINCRO TÉCNICA...</div>;
 
@@ -26,7 +35,9 @@ export default function MaintenancePage() {
                     <h2 className="text-3xl font-black uppercase tracking-tighter">Libro de Mantenimiento</h2>
                     <p className="text-slate-500 text-sm">Registro de intervenciones y salud de flota.</p>
                 </div>
-                <button onClick={() => setShowAdd(true)} className="bg-orange-600 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-slate-900 transition-all">+ Nueva Intervención</button>
+                {canManage && (
+                    <button onClick={() => setShowAdd(true)} className="bg-orange-600 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-slate-900 transition-all">+ Nueva Intervención</button>
+                )}
             </header>
 
             <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
@@ -55,10 +66,10 @@ export default function MaintenancePage() {
                             </tr>
                         ))}
                     </tbody>
-                </table>
+                </table> 
             </div>
 
-            {showAdd && <AddMaintenancePanel onClose={() => setShowAdd(false)} onSuccess={() => { setShowAdd(false); loadData(); }} />}
+            {showAdd && canManage && <AddMaintenancePanel onClose={() => setShowAdd(false)} onSuccess={() => { setShowAdd(false); loadData(); }} />}
         </div>
     );
 }

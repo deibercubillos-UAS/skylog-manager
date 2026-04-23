@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { hasPermission } from '@/lib/roles';
 import { generateMasterReport, generateBatteryReport, generatePilotReport, generatePilotDossier } from '@/lib/reportGenerators';
 import FileUpload from '@/components/FileUpload';
 
@@ -9,6 +10,7 @@ export default function ReportsPage() {
     const [orgData, setOrgData] = useState(null);
     const [pilots, setPilots] = useState([]);
     const [selectedPilot, setSelectedPilot] = useState('');
+    const [userRole, setUserRole] = useState(null);
     
     const [config, setConfig] = useState({
         from: '', to: '', version: '1.0',
@@ -18,12 +20,16 @@ export default function ReportsPage() {
         formCodePilot: 'F-HUM-005'
     });
 
-    const init = async () => {
+    const canViewReports = hasPermission(userRole, 'canViewAudit');
+    const canEditLogo = hasPermission(userRole, 'canEditOrg');
+
+   const init = async () => {
         const { data: { user } } = await supabase.auth.getUser();
-        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+        const { data: prof } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).single();
         const { data: org } = await supabase.from('organizations').select('*').eq('id', prof.organization_id).single();
         const { data: crew } = await supabase.from('pilots').select('id, name').eq('organization_id', prof.organization_id);
         
+        setUserRole(prof?.role || null);
         setOrgData(org);
         setPilots(crew || []);
         setConfig(prev => ({ 
@@ -74,9 +80,11 @@ export default function ReportsPage() {
                     <h2 className="text-3xl font-black uppercase tracking-tighter">Centro de Reportes</h2>
                     <p className="text-slate-500 text-sm italic">Sistemas de exportación aeronáutica oficial.</p>
                 </div>
-                <div className="w-48">
-                    <FileUpload path="org/logos" label="Actualizar Logo" onUploadSuccess={updateLogo} />
-                </div>
+                {canEditLogo && (
+                    <div className="w-48">
+                        <FileUpload path="org/logos" label="Actualizar Logo" onUploadSuccess={updateLogo} />
+                    </div>
+                )}
             </header>
 
             {/* FILTROS GLOBALES */}
@@ -97,6 +105,12 @@ export default function ReportsPage() {
                 </div>
             </div>
 
+            {!canViewReports ? (
+                <div className="bg-slate-100 p-10 rounded-[2.5rem] border border-slate-200 text-center space-y-4">
+                    <span className="material-symbols-outlined text-5xl text-slate-400">lock</span>
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-500">Acceso restringido — solo personal gerencial.</p>
+                </div>
+            ) : (
             <div className="grid grid-cols-1 gap-6">
                 {/* REPORTE 1: MASTER */}
                 <ReportCard 
@@ -170,6 +184,7 @@ export default function ReportsPage() {
     > Descargar Expediente </button>
 </div>
             </div>
+            )}
         </div>
     );
 }

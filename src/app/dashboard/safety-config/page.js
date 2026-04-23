@@ -38,7 +38,7 @@ export default function SafetyConfigPage() {
   useEffect(() => { fetchData(); }, []);
 
   // Lógica de Permiso: Solo Admin y Gerente SMS
-  const canModify = userProfile?.role === 'admin' || userProfile?.role === 'gerente_sms';
+  const canModify = ['superadmin', 'admin', 'gerente_sms'].includes(userProfile?.role);
 
   const handleAdd = async (e) => {
     e.preventDefault();

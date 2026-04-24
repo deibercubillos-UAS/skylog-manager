@@ -16,7 +16,7 @@ export default async function AuthorizePage() {
     .eq('id', user.id)
     .single();
 
-  if (!profile?.organization_id) redirect('/onboarding');
+  if (!['superadmin', 'admin', 'jefe_pilotos'].includes(profile?.role)) redirect('/dashboard');
 
   const [pilotsReq, dronesReq, orgReq] = await Promise.all([
     supabase.from('pilots').select('*').eq('organization_id', profile.organization_id).eq('is_active', true).order('name'),

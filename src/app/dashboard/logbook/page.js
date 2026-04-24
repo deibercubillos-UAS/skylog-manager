@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import Link from 'next/link';
+
 
 export default function LogbookPage() {
     const [flights, setFlights] = useState([]);
@@ -71,9 +71,6 @@ export default function LogbookPage() {
                         onClick={() => setFilters({date:'', mission_id:'', model:'', serial:'', type:'', condition:'', pilot:''})}
                         className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 hover:text-orange-600 transition-colors"
                     > Limpiar Filtros </button>
-                    <Link href="/dashboard/logbook/new" className="bg-orange-600 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all">
-                        + Nuevo Registro
-                    </Link>
                 </div>
             </header>
 

@@ -260,17 +260,6 @@ const footerLinks = footerLinksAll.filter(link => link.roles.includes(role));
     </div>
 )}
 
-    {/* BOTÓN 2: NUEVA OPERACIÓN */}
-    <Link 
-      href="/dashboard/logbook/new" 
-      className="bg-orange-600 hover:bg-orange-700 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
-    >
-      <span className="material-symbols-outlined text-sm md:text-base">add_circle</span> 
-      <span className="hidden sm:inline">Nueva Operación</span>
-      <span className="sm:hidden">Nuevo</span>
-    </Link>
-  </div>
-
   {/* PERFIL CLICKABLE (Separado por línea en desktop) */}
   <Link 
       href="/dashboard/settings/profile" 

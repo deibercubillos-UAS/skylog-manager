@@ -248,7 +248,7 @@ const footerLinks = footerLinksAll.filter(link => link.roles.includes(role));
           </Link>
         )}
 
-        {/* BOTÓN 2: NUEVA OPERACIÓN */}
+       {/* BOTÓN 2: NUEVA OPERACIÓN */}
         <Link 
           href="/dashboard/logbook/new" 
           className="bg-orange-600 hover:bg-orange-700 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
@@ -259,6 +259,7 @@ const footerLinks = footerLinksAll.filter(link => link.roles.includes(role));
         </Link>
     </div>
 )}
+  </div>
 
   {/* PERFIL CLICKABLE (Separado por línea en desktop) */}
   <Link 

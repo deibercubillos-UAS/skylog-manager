@@ -41,11 +41,12 @@ export default async function DashboardPage() {
             .eq('organization_id', orgId)
             .order('created_at', { ascending: false }),
         supabase.from('pilots').select('id, name, medical_expiry').eq('organization_id', orgId).eq('is_active', true),
-        supabase.from('aircraft').select('id, model, status').eq('organization_id', orgId)
+        supabase.from('aircraft').select('id, model, status, total_hours').eq('organization_id', orgId)
     ]);
 
     const flights = flightsRes.data || [];
-    const totalHours = flights.reduce((acc, f) => acc + (parseFloat(f.total_time) || 0), 0);
+    // Fuente de verdad: aircraft.total_hours (coincide con la card de cada dron)
+    const totalHours = (fleetRes.data || []).reduce((acc, a) => acc + (parseFloat(a.total_hours) || 0), 0);
 
     // Alertas: pilotos con médico vencido
     const today = new Date().toISOString().split('T')[0];

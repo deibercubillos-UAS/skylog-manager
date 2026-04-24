@@ -301,10 +301,10 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                                 </td>
                                 <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-[9px] font-black ${stateCls}`}>{stateLabel}</span></td>
                                 <td className="px-4 py-3 text-right">
-                                    <button onClick={() => openEditPolicy(p)} className="size-8 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-orange-600 transition-colors inline-flex mr-1">
+                                    <button onClick={() => openEditPolicy(p)} className="size-8 rounded-xl bg-slate-50 inline-flex items-center justify-center text-slate-400 hover:text-orange-600 transition-colors mr-1">
                                         <span className="material-symbols-outlined text-base">edit_square</span>
                                     </button>
-                                    <button onClick={() => deletePolicy(p)} className="size-8 rounded-xl bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-600 hover:text-white transition-colors inline-flex">
+                                    <button onClick={() => deletePolicy(p)} className="size-8 rounded-xl bg-red-50 inline-flex items-center justify-center text-red-400 hover:bg-red-600 hover:text-white transition-colors">
                                         <span className="material-symbols-outlined text-base">delete</span>
                                     </button>
                                 </td>

@@ -2,8 +2,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { hasPermission } from '@/lib/roles';
-import { generateMasterReport, generateBatteryReport, generatePilotReport, generatePilotDossier } from '@/lib/reportGenerators';
 import FileUpload from '@/components/FileUpload';
+
+// PERFORMANCE: Solo carga jsPDF + ExcelJS (~400 kB) cuando el usuario realmente descarga
+const loadReportGenerators = () => import('@/lib/reportGenerators');
 
 export default function ReportsPage() {
     const [loading, setLoading] = useState(false);
@@ -52,12 +54,13 @@ export default function ReportsPage() {
         if (!config.from || !config.to) return alert("Seleccione fechas");
         setLoading(true);
         try {
-            let url = `/api/reports/${type}?from=${config.from}&to=${config.to}`;
-            if (type === 'pilots') url += `&pilotId=${selectedPilot}`;
-            
-            const res = await fetch(url);
+            // Carga el generador de PDFs/Excel y la data del backend en paralelo
+            const [{ generateMasterReport, generateBatteryReport, generatePilotReport }, res] = await Promise.all([
+                loadReportGenerators(),
+                fetch(`/api/reports/${type}?from=${config.from}&to=${config.to}${type === 'pilots' ? `&pilotId=${selectedPilot}` : ''}`)
+            ]);
             const data = await res.json();
-            
+
             const commonConfig = {
                 orgName: orgData?.company_name,
                 logoUrl: orgData?.logo_url,
@@ -165,12 +168,15 @@ export default function ReportsPage() {
             {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
     </div>
-    <button 
+    <button
         onClick={async () => {
             if(!selectedPilot) return alert("Seleccione un tripulante");
             setLoading(true);
             try {
-                const res = await fetch(`/api/reports/crew/expediente?pilotId=${selectedPilot}`);
+                const [{ generatePilotDossier }, res] = await Promise.all([
+                    loadReportGenerators(),
+                    fetch(`/api/reports/crew/expediente?pilotId=${selectedPilot}`)
+                ]);
                 const pilotData = await res.json();
                 generatePilotDossier(pilotData, {
                     orgName: orgData?.company_name,

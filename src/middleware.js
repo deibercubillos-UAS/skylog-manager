@@ -1,8 +1,19 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 
+// Patrones de bots que escanean vulnerabilidades de WordPress, etc.
+// Cortamos en frío sin tocar Supabase para no malgastar invocaciones de función.
+const BOT_PROBE_REGEX = /\.(php|asp|aspx|jsp|cgi|env|git|sql|bak|sh)$|wp-(admin|content|includes|login|config)|xmlrpc/i;
+
 export async function middleware(request) {
-  let response = NextResponse.next({ request })
+  const { pathname } = request.nextUrl;
+
+  // Fast bypass: bots escaneando vulnerabilidades — devuelve 404 sin más cómputo
+  if (BOT_PROBE_REGEX.test(pathname)) {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -19,25 +30,31 @@ export async function middleware(request) {
         },
       },
     }
-  )
+  );
 
-  // Una sola llamada a getUser para refrescar sesión y validar
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  const { pathname } = request.nextUrl
-  const isDashboard = pathname.startsWith('/dashboard')
-  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register')
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const isDashboard = pathname.startsWith('/dashboard');
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
 
   if (isDashboard && !user) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    return NextResponse.redirect(new URL('/login', request.url));
   }
   if (isAuthPage && user) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  return response
+  return response;
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  // Solo corre middleware donde realmente importa: rutas protegidas + auth.
+  // La landing, robots, sitemap, manifest, archivos estáticos NO pasan por aquí.
+  matcher: [
+    '/dashboard/:path*',
+    '/login',
+    '/register',
+    '/registro',
+    '/admin/:path*',
+  ],
 }

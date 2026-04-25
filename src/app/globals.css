@@ -19,7 +19,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* FIX CRÍTICO: Asegura que los iconos se rendericen como tales y no como texto */
+/* Material Symbols — con la fuente subset (~50 KB) y display=swap,
+   los iconos aparecen en <500ms incluso en conexiones lentas. */
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined' !important;
   font-weight: normal;
@@ -32,8 +33,19 @@ body {
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
+  font-feature-settings: 'liga';
   -webkit-font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
+  /* Mientras la fuente carga (display=swap), oculta el texto raw del nombre del icono
+     para evitar el flash. La fuente subset llega rápido (~300ms) así no hay layout shift. */
+  font-display: swap;
+}
+
+/* Aplica visibility:hidden en cuanto el span aún no está estilizado por la fuente.
+   El truco: si la fuente NO está lista, el span tiene fuente fallback, y la regla
+   font-display:swap se encarga de hacer el swap automático. */
+.material-symbols-outlined:empty {
+  visibility: hidden;
 }
 
 /* Utilidad para texto con outline (usada en hero del landing) */

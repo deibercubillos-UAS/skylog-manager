@@ -13,6 +13,34 @@ const publicSans = Public_Sans({
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
 
+/*
+ * MATERIAL SYMBOLS — lista exhaustiva de iconos que la app usa.
+ * Si añades un icono nuevo en cualquier .js/.jsx, agrégalo aquí también
+ * o aparecerá como texto plano (ej: "expand_less") en pantalla.
+ * Esta lista en lugar de la fuente completa baja el peso de 3.8 MB a ~60 KB.
+ */
+const MATERIAL_ICONS = [
+  'account_circle','account_tree','add','add_circle','admin_panel_settings',
+  'analytics','arrow_forward','assessment','attach_file','badge',
+  'battery_charging_full','build','business','check','check_circle',
+  'chevron_right','close','cloud_done','cloud_upload','dashboard',
+  'delete','delete_sweep','description','dynamic_form','edit',
+  'edit_square','engineering','error','event_available','expand_less',
+  'expand_more','explore','fact_check','flight_land','flight_takeoff',
+  'folder_shared','format_quote','gavel','group','group_add',
+  'groups','health_and_safety','info','inventory_2','label_important',
+  'lock','lock_reset','logout','mail','map',
+  'mark_email_read','menu','menu_book','menu_open','monitor_heart',
+  'more_vert','notification_important','payments','person','person_add',
+  'person_add_alt','person_check','photo_camera','picture_as_pdf','pin',
+  'precision_manufacturing','radar','report','report_problem','rocket_launch',
+  'rule','search','send','settings','settings_accessibility',
+  'settings_input_component','settings_suggest','sync','table_view','timer',
+  'verified','verified_user','visibility','warning',
+].join(',');
+
+const MATERIAL_SYMBOLS_URL = `https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=swap&icon_names=${MATERIAL_ICONS}`;
+
 export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
@@ -116,20 +144,13 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/*
           MATERIAL SYMBOLS OPTIMIZADO:
-          - icon_names: subsetea SOLO los iconos usados (de 3000+ a 75) → de 3.8 MB a ~50 KB
-          - display=swap: NO bloquea el render mientras descarga (antes bloqueaba 3.5 s)
-          - Sin rangos de wght/FILL/GRAD: usa la versión estática, no la variable (mucho más liviana)
+          - icon_names: subsetea SOLO los iconos usados (definidos en MATERIAL_ICONS arriba)
+          - display=swap: NO bloquea el render mientras descarga
+          - Sin rangos de wght/FILL/GRAD: usa la versión estática, no la variable
           - rel="preload" en el CSS para que arranque la descarga sin esperar al parser
         */}
-        <link
-          rel="preload"
-          as="style"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=swap&icon_names=account_circle,add,add_circle,admin_panel_settings,analytics,arrow_forward,assessment,attach_file,badge,battery_charging_full,build,business,check,check_circle,close,cloud_done,dashboard,delete,delete_sweep,edit,edit_square,engineering,error,event_available,expand_more,explore,fact_check,flight_land,flight_takeoff,folder_shared,format_quote,gavel,group,group_add,groups,health_and_safety,info,inventory_2,lock,lock_reset,logout,mail,map,mark_email_read,menu,menu_book,menu_open,more_vert,notification_important,payments,person,person_add,person_add_alt,person_check,picture_as_pdf,precision_manufacturing,radar,report,report_problem,rocket_launch,rule,search,send,settings,settings_accessibility,settings_input_component,settings_suggest,sync,table_view,timer,verified,verified_user,visibility,warning"
-        />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=swap&icon_names=account_circle,add,add_circle,admin_panel_settings,analytics,arrow_forward,assessment,attach_file,badge,battery_charging_full,build,business,check,check_circle,close,cloud_done,dashboard,delete,delete_sweep,edit,edit_square,engineering,error,event_available,expand_more,explore,fact_check,flight_land,flight_takeoff,folder_shared,format_quote,gavel,group,group_add,groups,health_and_safety,info,inventory_2,lock,lock_reset,logout,mail,map,mark_email_read,menu,menu_book,menu_open,more_vert,notification_important,payments,person,person_add,person_add_alt,person_check,picture_as_pdf,precision_manufacturing,radar,report,report_problem,rocket_launch,rule,search,send,settings,settings_accessibility,settings_input_component,settings_suggest,sync,table_view,timer,verified,verified_user,visibility,warning"
-        />
+        <link rel="preload" as="style" href={MATERIAL_SYMBOLS_URL} />
+        <link rel="stylesheet" href={MATERIAL_SYMBOLS_URL} />
 
         {/* Schema.org — Organization (rich result en buscadores) */}
         <Script

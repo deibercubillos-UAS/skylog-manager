@@ -1,21 +1,24 @@
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
+
 export default function sitemap() {
-  const baseUrl = 'https://bitafly.com'; // ← cambia por tu dominio
+  const now = new Date();
+
   return [
     {
-      url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
+      url: `${SITE_URL}/`,
+      lastModified: now,
+      changeFrequency: 'weekly',
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/login`,
-      lastModified: new Date(),
-      changeFrequency: 'yearly',
-      priority: 0.5,
+      url: `${SITE_URL}/registro`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.9,
     },
     {
-      url: `${baseUrl}/registro`,
-      lastModified: new Date(),
+      url: `${SITE_URL}/login`,
+      lastModified: now,
       changeFrequency: 'yearly',
       priority: 0.5,
     },

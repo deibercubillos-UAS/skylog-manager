@@ -7,9 +7,16 @@
   --color-navy: #1A202C;
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px; /* Compensa el header sticky cuando se navega por anchors */
+}
+
 body {
   background-color: #f8f6f6;
   color: #1a202c;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* FIX CRÍTICO: Asegura que los iconos se rendericen como tales y no como texto */
@@ -29,7 +36,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Tus animaciones se mantienen */
+/* Utilidad para texto con outline (usada en hero del landing) */
+.text-outline {
+  -webkit-text-stroke: 2px var(--color-primary);
+  color: transparent;
+}
+
+/* Animaciones */
 @keyframes grow-up {
   from { transform: scaleY(0); }
   to { transform: scaleY(1); }
@@ -37,3 +50,14 @@ body {
 .animate-grow-up {
   animation: grow-up 1s ease-out forwards;
 }
+
+/* Mejora foco visible para accesibilidad (cumple WCAG y suma puntos en Lighthouse SEO) */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Quita el marker default de <details> en Safari/Firefox para custom summary */
+summary::-webkit-details-marker { display: none; }
+summary { list-style: none; }

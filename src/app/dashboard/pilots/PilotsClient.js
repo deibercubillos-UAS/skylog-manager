@@ -2,8 +2,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import AddPilotPanel from '@/components/AddPilotPanel';
-import EditPilotPanel from '@/components/EditPilotPanel';
+import dynamic from 'next/dynamic';
+
+// PERFORMANCE: los paneles solo se descargan cuando el usuario hace click en
+// "Registrar Miembro" o en "Editar". Antes pesaban ~15 KB en el bundle inicial.
+const AddPilotPanel = dynamic(() => import('@/components/AddPilotPanel'), {
+  ssr: false,
+});
+const EditPilotPanel = dynamic(() => import('@/components/EditPilotPanel'), {
+  ssr: false,
+});
 
 export default function PilotsClient({ initialData }) {
   const [showAddPanel, setShowAddPanel] = useState(false);

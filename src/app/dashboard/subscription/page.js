@@ -3,91 +3,208 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import Link from 'next/link';
+import WompiButton from '@/components/WompiButton';
+
+const UPGRADE_PLANS = [
+  {
+    key: 'escuadrilla',
+    name: 'Escuadrilla',
+    monthly: '$15 USD/mes',
+    annual: '$12 USD/mes',
+    annualTotal: '$144/año',
+    limits: '3 drones · 4 usuarios',
+  },
+  {
+    key: 'flota',
+    name: 'Flota',
+    monthly: '$39 USD/mes',
+    annual: '$29 USD/mes',
+    annualTotal: '$348/año',
+    limits: '15 drones · 15 usuarios',
+    popular: true,
+  },
+];
 
 export default function SubscriptionPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [billing, setBilling] = useState('annual');
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
-    async function loadSubscription() {
+    async function load() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          window.location.href = '/login';
-          return;
-        }
-
-        // Llamada a la API con Token de Seguridad
-        const res = await fetch(`/api/subscription?userId=${session.user.id}`, {
-          headers: { 
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          }
+        if (!session) { window.location.href = '/login'; return; }
+        const res = await fetch('/api/subscription', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
         });
-
-        if (!res.ok) throw new Error(`Error ${res.status}: El servidor rechazó la petición.`);
-
-        const result = await res.json();
-        setData(result);
+        if (!res.ok) throw new Error(`Error ${res.status}`);
+        setData(await res.json());
       } catch (err) {
-        console.error("Falla en suscripción:", err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     }
-    loadSubscription();
+    load();
+
+    // Detectar retorno de Wompi
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('payment') === 'result') {
+      window.history.replaceState({}, '', '/dashboard/subscription');
+    }
   }, []);
 
-  if (loading) return <div className="p-20 text-center animate-pulse font-black text-slate-300 uppercase tracking-widest text-left">Validando Estatus Aeronáutico...</div>;
+  const handleCancel = async () => {
+    if (!confirm('¿Confirmas que deseas cancelar tu suscripción? Volverás al plan Piloto.')) return;
+    setCancelling(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    await fetch('/api/subscription/cancel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: session.user.id }),
+    });
+    window.location.reload();
+  };
 
-  if (error || !data) return (
-    <div className="p-20 text-center text-red-500 font-bold uppercase text-left">
-      ⚠️ Error de comunicación con el servicio de suscripción. <br/>
-      <button onClick={() => window.location.reload()} className="mt-4 bg-[#ec5b13] text-white px-6 py-2 rounded-xl text-xs font-black">Reintentar Conexión</button>
+  if (loading) return (
+    <div className="p-20 text-center animate-pulse font-black text-slate-300 uppercase tracking-widest">
+      Cargando suscripción...
     </div>
   );
 
+  if (error || !data) return (
+    <div className="p-20 text-center text-red-500 font-bold uppercase">
+      Error al cargar suscripción.
+      <button onClick={() => window.location.reload()} className="block mx-auto mt-4 bg-primary text-white px-6 py-2 rounded-xl text-xs font-black">
+        Reintentar
+      </button>
+    </div>
+  );
+
+  const isPaid = ['escuadrilla', 'flota', 'enterprise'].includes(data.planSlug);
+
   return (
-    <div className="max-w-5xl mx-auto space-y-10 text-left animate-in fade-in duration-500">
+    <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in duration-500">
       <header>
-        <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Estatus de Membresía</h2>
-        <p className="text-slate-500 text-sm mt-1 font-medium">Control centralizado de licencias y activos de BitaFly.</p>
+        <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Suscripción</h2>
+        <p className="text-slate-500 text-sm mt-1 font-medium">Administra tu plan y activos de Bitafly.</p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="bg-[#1A202C] text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col justify-between h-80">
-          <div className="absolute top-0 right-0 w-40 h-40 bg-[#ec5b13]/20 blur-3xl rounded-full -mr-20 -mt-20"></div>
+      {/* Plan actual */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="bg-[#1A202C] text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col justify-between h-72">
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/20 blur-3xl rounded-full" />
           <div className="relative z-10">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#ec5b13] mb-2">Suscripción</p>
+            <p className="text-xs font-black uppercase tracking-widest text-primary mb-2">Plan actual</p>
             <h3 className="text-4xl font-black uppercase tracking-tight">{data.planName}</h3>
+            {data.expiresAt && (
+              <p className="text-xs text-slate-400 font-bold mt-2">
+                Vigente hasta: {new Date(data.expiresAt).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
+            )}
           </div>
-          <Link href="/dashboard/subscription/manage" className="relative z-10 block w-full py-4 bg-white text-[#1A202C] rounded-2xl font-black text-xs uppercase tracking-widest text-center shadow-lg hover:bg-slate-50 transition-all">
-            Administrar Plan
-          </Link>
+          {isPaid && (
+            <button
+              onClick={handleCancel}
+              disabled={cancelling}
+              className="relative z-10 w-full py-3 border border-white/20 text-white/60 rounded-2xl font-black text-xs uppercase tracking-widest hover:border-red-500/50 hover:text-red-400 transition-all"
+            >
+              {cancelling ? 'Cancelando...' : 'Cancelar suscripción'}
+            </button>
+          )}
         </div>
 
-        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-[2.5rem] p-10 shadow-sm space-y-10">
-          <Meter label="Drones Registrados" current={data.usage.drones.current} limit={data.usage.drones.limit} />
-          <Meter label="Pilotos Activos" current={data.usage.pilots.current} limit={data.usage.pilots.limit} />
+        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-[2.5rem] p-10 shadow-sm space-y-8">
+          <Meter label="Drones registrados" current={data.usage.drones.current} limit={data.usage.drones.limit} />
+          <Meter label="Pilotos activos" current={data.usage.pilots.current} limit={data.usage.pilots.limit} />
         </div>
       </div>
+
+      {/* Planes de upgrade (solo si no es enterprise) */}
+      {data.planSlug !== 'enterprise' && (
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-black text-navy uppercase tracking-tight">Mejorar plan</h3>
+            {/* Toggle billing */}
+            <div className="inline-flex items-center gap-1 bg-slate-100 rounded-xl p-1">
+              {['monthly', 'annual'].map((b) => (
+                <button key={b} onClick={() => setBilling(b)}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${billing === b ? 'bg-white shadow text-navy' : 'text-slate-400'}`}>
+                  {b === 'monthly' ? 'Mensual' : 'Anual −20%'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {UPGRADE_PLANS.filter(p => {
+              // Ocultar planes iguales o inferiores al actual
+              const order = ['piloto', 'escuadrilla', 'flota', 'enterprise'];
+              return order.indexOf(p.key) > order.indexOf(data.planSlug);
+            }).map((plan) => (
+              <div key={plan.key}
+                className={`relative bg-white border-2 rounded-[2rem] p-8 flex flex-col gap-4 ${plan.popular ? 'border-primary shadow-xl shadow-orange-500/10' : 'border-slate-200'}`}>
+                {plan.popular && (
+                  <span className="absolute -top-3 left-6 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">
+                    Recomendado
+                  </span>
+                )}
+                <div>
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-400">{plan.name}</p>
+                  <p className="text-3xl font-black text-navy mt-1">
+                    {billing === 'annual' ? plan.annual : plan.monthly}
+                  </p>
+                  {billing === 'annual' && (
+                    <p className="text-xs text-slate-400 font-bold">Facturado {plan.annualTotal}</p>
+                  )}
+                  <p className="text-xs font-black text-primary uppercase mt-2">{plan.limits}</p>
+                </div>
+                <WompiButton
+                  planKey={plan.key}
+                  billing={billing}
+                  label={`Activar ${plan.name}`}
+                  className={plan.popular
+                    ? 'bg-primary text-white hover:bg-orange-600 shadow-lg shadow-orange-500/20'
+                    : 'bg-navy text-white hover:bg-slate-800'}
+                />
+              </div>
+            ))}
+
+            {/* Enterprise card */}
+            <div className="bg-[#1A202C] border-2 border-white/10 rounded-[2rem] p-8 flex flex-col gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-primary">Enterprise</p>
+                <p className="text-3xl font-black text-white mt-1">A consultar</p>
+                <p className="text-xs text-slate-400 font-bold">Ilimitado · White label · API · SLA</p>
+              </div>
+              <a href="/#contacto"
+                className="w-full text-center py-3.5 rounded-2xl border border-white/20 text-white font-black text-xs uppercase tracking-widest hover:bg-white/5 transition-all">
+                Contactar ventas
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
 
 function Meter({ label, current, limit }) {
-  const percent = Math.min((current / limit) * 100, 100);
+  const pct = Math.min((current / Math.max(limit, 1)) * 100, 100);
+  const color = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-orange-400' : 'bg-primary';
   return (
     <div className="space-y-3">
-      <div className="flex justify-between items-end px-1">
+      <div className="flex justify-between items-end">
         <span className="text-xs font-black uppercase text-slate-600">{label}</span>
-        <span className="text-sm font-black text-slate-900">{current} / {limit >= 999 ? '∞' : limit}</span>
+        <span className="text-sm font-black text-slate-900">
+          {current} / {limit >= 999 ? '∞' : limit}
+        </span>
       </div>
-      <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden p-1 shadow-inner">
-        <div className="h-full bg-[#ec5b13] rounded-full transition-all duration-1000 shadow-md" style={{ width: `${percent}%` }}></div>
+      <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+        <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );

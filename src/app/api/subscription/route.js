@@ -18,7 +18,7 @@ export async function GET(request) {
     const userId = session.user.id;
 
     const [profileRes, dronesRes, pilotsRes] = await Promise.all([
-      supabase.from('profiles').select('subscription_plan').eq('id', userId).single(),
+      supabase.from('profiles').select('subscription_plan, subscription_expires_at').eq('id', userId).single(),
       supabase.from('aircraft').select('id', { count: 'exact', head: true }),
       supabase.from('pilots').select('id', { count: 'exact', head: true }).eq('is_active', true)
     ]);
@@ -29,6 +29,7 @@ export async function GET(request) {
     return NextResponse.json({
       planName: currentPlan.name,
       planSlug: planKey,
+      expiresAt: profileRes.data?.subscription_expires_at || null,
       usage: {
         drones: { current: dronesRes.count || 0, limit: currentPlan.maxDrones },
         pilots: { current: pilotsRes.count || 0, limit: currentPlan.maxPilots }

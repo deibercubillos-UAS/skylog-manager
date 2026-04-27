@@ -120,7 +120,10 @@ export const hasPermission = (role, action) => {
   return userPerms.includes('all') || userPerms.includes(action);
 };
 
-export const EPAYCO_LINKS = {
-  escuadrilla: "https://payco.link/tuid-escuadrilla", // Reemplaza con tu link real
-  flota: "https://payco.link/tuid-flota",           // Reemplaza con tu link real
+// Precios en centavos USD para Wompi
+export const WOMPI_PRICES = {
+  piloto:      { monthly: null,  annual: null  }, // Gratis
+  escuadrilla: { monthly: 1500,  annual: 14400 }, // $15/mes · $144/año
+  flota:       { monthly: 3900,  annual: 34800 }, // $39/mes · $348/año
+  enterprise:  { monthly: null,  annual: null  }, // A consultar
 };

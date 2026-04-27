@@ -10,9 +10,12 @@ export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const [data, setData] = useState({ profile: null, org: null });
   const [loading, setLoading] = useState(true);
-  const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeFlight, setActiveFlight] = useState(null);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+
+  // Sidebar abierto por defecto solo en desktop
+  useEffect(() => { setSidebarOpen(window.innerWidth >= 1024); }, []);
 
 // EFECTO 1: Cargar Perfil + Organización UNA SOLA VEZ al montar el layout
   useEffect(() => {

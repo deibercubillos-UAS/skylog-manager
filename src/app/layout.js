@@ -33,7 +33,7 @@ const MATERIAL_ICONS = [
   'mark_email_read','menu','menu_book','menu_open','monitor_heart',
   'more_vert','notification_important','payments','person','person_add',
   'person_add_alt','person_check','photo_camera','picture_as_pdf','pin',
-  'precision_manufacturing','radar','report','report_problem','rocket_launch',
+  'precision_manufacturing','radar','remove_circle','report','report_problem','rocket_launch',
   'rule','search','send','settings','settings_accessibility',
   'settings_input_component','settings_suggest','sync','table_view','timer',
   'trending_down','trending_up',

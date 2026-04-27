@@ -1,53 +1,77 @@
 // src/lib/planLimits.js
 
+// Precios USD: piloto $5/mes ($4 anual, gratis 6 meses) · escuadrilla $15/mes ($12 anual) · flota $39/mes ($29 anual) · enterprise custom
 export const PLAN_CONFIG = {
   piloto: {
     name: 'Plan Piloto',
+    price: { monthly: 5, annual: 4, freeMonths: 6 },
     allowedRoles: ['piloto'],
     maxDrones: 1,
     maxPilots: 1,
+    maxBatteries: 2,
     features: {
-      maintenance: false,
-      reports: 'basic',
-      sora: true,
-      customChecklist: true
+      maintenance: 'basic',
+      reports: 'basic',         // Solo Maestro de Vuelo sin logo corporativo
+      sms: false,
+      authorizations: false,
+      audit: false,
+      customChecklist: false,
+      whiteLabel: false,
+      api: false,
     }
   },
   escuadrilla: {
     name: 'Plan Escuadrilla',
-    allowedRoles: ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'],
-    maxDrones: 15,
-    maxPilots: 7,
+    price: { monthly: 15, annual: 12, freeMonths: null },
+    allowedRoles: ['admin', 'jefe_pilotos', 'piloto'],
+    maxDrones: 3,
+    maxPilots: 4,
+    maxBatteries: null,         // Ilimitadas
     features: {
-      maintenance: true,
-      reports: 'audit',
-      sora: true,
-      customChecklist: true
+      maintenance: true,        // Alertas automáticas
+      reports: 'partial',       // F-OPS-002 + F-MNT-003
+      sms: 'basic',             // Registro de incidentes
+      authorizations: true,     // F-OPS-001
+      audit: false,
+      customChecklist: false,
+      whiteLabel: false,
+      api: false,
     }
   },
   flota: {
     name: 'Plan Flota',
+    price: { monthly: 39, annual: 29, freeMonths: null },
     allowedRoles: ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'],
-    maxDrones: 999,
-    maxPilots: 20,
+    maxDrones: 15,
+    maxPilots: 15,
+    maxBatteries: null,
     features: {
       maintenance: 'advanced',
-      reports: 'full',
-      sora: true,
-      customChecklist: true
+      reports: 'full',          // F-OPS-002 + F-MNT-003 + F-HUM-005
+      sms: 'full',
+      authorizations: true,
+      audit: true,
+      customChecklist: true,
+      whiteLabel: false,
+      api: false,
     }
   },
   enterprise: {
     name: 'Plan Enterprise',
-    allowedRoles: ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto', 'mantenimiento'],
-    maxDrones: 999,
-    maxPilots: 999,
+    price: { monthly: null, annual: null, freeMonths: null }, // A consultar
+    allowedRoles: ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'],
+    maxDrones: Infinity,
+    maxPilots: Infinity,
+    maxBatteries: null,
     features: {
-      maintenance: 'custom',
-      reports: 'api',
-      sora: true,
+      maintenance: 'advanced',
+      reports: 'full',
+      sms: 'full',
+      authorizations: true,
+      audit: true,
       customChecklist: true,
-      whiteLabel: true
+      whiteLabel: true,
+      api: true,
     }
   }
 };

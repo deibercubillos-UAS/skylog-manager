@@ -8,7 +8,7 @@ export const PLAN_CONFIG = {
     allowedRoles: ['piloto'],
     maxDrones: 1,
     maxPilots: 1,
-    maxBatteries: 2,
+    maxBatteries: 3,
     features: {
       maintenance: 'basic',
       reports: 'basic',         // Solo Maestro de Vuelo sin logo corporativo

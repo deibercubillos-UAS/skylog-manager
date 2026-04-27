@@ -37,7 +37,7 @@ const MATERIAL_ICONS = [
   'rule','search','send','settings','settings_accessibility',
   'settings_input_component','settings_suggest','sync','table_view','timer',
   'trending_down','trending_up',
-  'verified','verified_user','visibility','warning',
+  'verified','verified_user','visibility','visibility_off','warning',
 ].join(',');
 
 const MATERIAL_SYMBOLS_URL = `https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=swap&icon_names=${MATERIAL_ICONS}`;

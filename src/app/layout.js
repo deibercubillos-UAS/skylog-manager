@@ -36,6 +36,7 @@ const MATERIAL_ICONS = [
   'precision_manufacturing','radar','report','report_problem','rocket_launch',
   'rule','search','send','settings','settings_accessibility',
   'settings_input_component','settings_suggest','sync','table_view','timer',
+  'trending_down','trending_up',
   'verified','verified_user','visibility','warning',
 ].join(',');
 

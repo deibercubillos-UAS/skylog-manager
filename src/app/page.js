@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import NavMobile from '@/components/landing/NavMobile';
+import DashboardMockup from '@/components/landing/DashboardMockup';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
 
@@ -199,7 +201,7 @@ export default function LandingPage() {
 
       <div className="min-h-screen bg-white text-slate-800">
         {/* ==================== NAVEGACIÓN ==================== */}
-        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100">
+        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 relative">
           <nav
             className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between"
             aria-label="Navegación principal"
@@ -242,53 +244,62 @@ export default function LandingPage() {
               </Link>
               <Link
                 href="/registro"
-                className="bg-primary text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-md hover:bg-orange-600 transition-all"
+                className="hidden sm:inline-block bg-primary text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-md hover:bg-orange-600 transition-all"
               >
                 Comenzar gratis
               </Link>
+              <NavMobile />
             </div>
           </nav>
         </header>
 
         <main id="main">
           {/* ==================== HERO ==================== */}
-          <section className="relative overflow-hidden px-6 pt-20 pb-24 md:pt-28 md:pb-32">
-            <div className="max-w-5xl mx-auto text-center space-y-8">
-              <p className="inline-flex items-center gap-2 bg-orange-50 text-primary px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">
-                <span className="material-symbols-outlined text-sm">verified</span>
-                Diseñado para la RAC 100 de Colombia
-              </p>
+          <section className="relative overflow-hidden px-6 pt-16 pb-20 md:pt-24 md:pb-28">
+            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+              {/* Columna texto */}
+              <div className="flex flex-col gap-7">
+                <p className="inline-flex items-center gap-2 bg-orange-50 text-primary px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest w-fit">
+                  <span className="material-symbols-outlined text-sm">verified</span>
+                  Diseñado para la RAC 100 de Colombia
+                </p>
 
-              <h1 className="text-4xl sm:text-6xl md:text-7xl font-black text-navy leading-[0.95] tracking-tighter uppercase">
-                Software de Gestión para{' '}
-                <span className="text-primary">Operadores de Drones</span> en Colombia
-              </h1>
+                <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-navy leading-[0.95] tracking-tighter uppercase">
+                  Software de Gestión para{' '}
+                  <span className="text-primary">Operadores de Drones</span> en Colombia
+                </h1>
 
-              <p className="text-base md:text-xl font-medium text-slate-600 max-w-3xl mx-auto">
-                Bitácora digital, mantenimiento, baterías, SMS aeronáutico y autorizaciones
-                AeroCivil en una sola plataforma. Diseñado para cumplir con la RAC 100 desde
-                el primer vuelo.
-              </p>
+                <p className="text-base md:text-lg font-medium text-slate-600 max-w-xl">
+                  Bitácora digital, mantenimiento, baterías, SMS aeronáutico y autorizaciones
+                  AeroCivil en una sola plataforma. Diseñado para cumplir con la RAC 100 desde
+                  el primer vuelo.
+                </p>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-                <Link
-                  href="/registro"
-                  className="bg-navy text-white px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl hover:scale-105 transition-all inline-flex items-center gap-3"
-                >
-                  Comenzar gratis
-                  <span className="material-symbols-outlined text-lg">arrow_forward</span>
-                </Link>
-                <Link
-                  href="/login"
-                  className="border-2 border-slate-200 px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-700 hover:border-navy hover:text-navy transition-all"
-                >
-                  Iniciar sesión
-                </Link>
+                <div className="flex flex-col sm:flex-row items-start gap-3">
+                  <Link
+                    href="/registro"
+                    className="bg-primary text-white px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-orange-500/25 hover:bg-orange-600 hover:scale-105 transition-all inline-flex items-center gap-3"
+                  >
+                    Comenzar gratis
+                    <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                  </Link>
+                  <Link
+                    href="/login"
+                    className="px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest text-slate-600 border border-slate-200 hover:border-slate-400 hover:text-navy transition-all"
+                  >
+                    Iniciar sesión
+                  </Link>
+                </div>
+
+                <p className="text-xs font-bold text-slate-400">
+                  Sin tarjeta de crédito · Configuración en 5 minutos · Soporte en español
+                </p>
               </div>
 
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pt-4">
-                Sin tarjeta de crédito · Configuración en 5 minutos · Soporte en español
-              </p>
+              {/* Columna visual */}
+              <div className="hidden lg:flex items-center justify-center">
+                <DashboardMockup />
+              </div>
             </div>
           </section>
 
@@ -437,6 +448,60 @@ export default function LandingPage() {
                     </li>
                   </ul>
                 </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ==================== TESTIMONIOS ==================== */}
+          <section className="py-24 px-6 bg-white" aria-labelledby="testimonios-heading">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center mb-14 space-y-3">
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-primary">Testimonios</p>
+                <h2 id="testimonios-heading" className="text-3xl md:text-4xl font-black text-navy uppercase tracking-tighter">
+                  Lo que dicen nuestros <span className="text-primary">operadores</span>
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[
+                  {
+                    quote: 'Bitafly nos permitió pasar nuestra última auditoría de AeroCivil sin contratiempos. Los reportes PDF son exactamente lo que piden los inspectores.',
+                    name: 'Carlos M.',
+                    role: 'Gerente de Operaciones · Bogotá',
+                    initial: 'C',
+                  },
+                  {
+                    quote: 'Antes llevábamos todo en Excel y nos perdíamos ciclos de batería. Ahora el sistema nos alerta automáticamente. No volvemos atrás.',
+                    name: 'Andrés R.',
+                    role: 'Jefe de Pilotos · Medellín',
+                    initial: 'A',
+                  },
+                  {
+                    quote: 'La mejor decisión que tomamos como operador UAS. Configuración en menos de 10 minutos y el soporte en español es excelente.',
+                    name: 'Laura V.',
+                    role: 'Administradora · Cali',
+                    initial: 'L',
+                  },
+                ].map((t) => (
+                  <figure key={t.name} className="bg-slate-50 border border-slate-100 rounded-3xl p-8 flex flex-col gap-6">
+                    <div className="flex gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <span key={i} className="text-primary text-lg">★</span>
+                      ))}
+                    </div>
+                    <blockquote className="text-sm text-slate-600 leading-relaxed flex-1">
+                      &ldquo;{t.quote}&rdquo;
+                    </blockquote>
+                    <figcaption className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0">
+                        <span className="text-white font-black text-sm">{t.initial}</span>
+                      </div>
+                      <div>
+                        <p className="font-black text-navy text-sm">{t.name}</p>
+                        <p className="text-xs text-slate-400 font-medium">{t.role}</p>
+                      </div>
+                    </figcaption>
+                  </figure>
+                ))}
               </div>
             </div>
           </section>

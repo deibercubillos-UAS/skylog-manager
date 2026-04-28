@@ -31,7 +31,7 @@ export async function GET() {
 
         const { data, error } = await adminSupabase
             .from('profiles')
-            .select('*')
+            .select('id, full_name, email, role, subscription_plan, subscription_expires_at, last_payment_date, organization_id, company_name, admin_notes, created_at')
             .order('created_at', { ascending: false });
 
         if (error) throw error;

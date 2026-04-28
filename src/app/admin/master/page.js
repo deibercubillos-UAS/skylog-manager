@@ -1,138 +1,367 @@
 'use client';
-import { useState, useEffect } from 'react';
-import Navbar from '@/components/Navbar';
+import { useState, useEffect, useMemo } from 'react';
+
+const PLANS = ['piloto', 'escuadrilla', 'flota', 'enterprise'];
+
+const PLAN_STYLE = {
+  piloto:      'bg-slate-700 text-slate-300',
+  escuadrilla: 'bg-blue-900 text-blue-300',
+  flota:       'bg-orange-900 text-orange-300',
+  enterprise:  'bg-purple-900 text-purple-300',
+};
+
+const ROLE_STYLE = {
+  superadmin:   'bg-red-900 text-red-300',
+  admin:        'bg-orange-900 text-orange-300',
+  jefe_pilotos: 'bg-blue-900 text-blue-300',
+  gerente_sms:  'bg-green-900 text-green-300',
+  piloto:       'bg-slate-700 text-slate-300',
+};
 
 export default function MasterPanel() {
-    const [users, setUsers] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [edit, setEdit] = useState(null);
+  const [users, setUsers]     = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
+  const [edit, setEdit]       = useState(null);
+  const [saving, setSaving]   = useState(false);
+  const [search, setSearch]   = useState('');
+  const [planFilter, setPlanFilter] = useState('all');
+  const [saveMsg, setSaveMsg] = useState('');
 
-    const loadData = async () => {
-        try {
-            setLoading(true);
-            const res = await fetch('/api/admin/master');
-            const data = await res.json();
-            
-            if (data.error) {
-                setError(data.error);
-            } else {
-                setUsers(data);
-            }
-        } catch (err) {
-            setError("Error de conexión con la Torre de Control");
-        } finally {
-            setLoading(false);
-        }
-    };
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/admin/master');
+      const data = await res.json();
+      if (data.error) setError(data.error);
+      else setUsers(data);
+    } catch { setError('Error de conexión'); }
+    finally { setLoading(false); }
+  };
 
-    useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, []);
 
-    const handleSave = async () => {
-        const res = await fetch('/api/admin/master', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                targetUserId: edit.id, 
-                updateData: { 
-                    subscription_plan: edit.subscription_plan, 
-                    role: edit.role,
-                    organization_id: edit.organization_id,
-                    company_name: edit.company_name,
-                    last_payment_date: edit.last_payment_date 
-                } 
-            })
-        });
-        if (res.ok) {
-            setEdit(null);
-            loadData();
-        }
-    };
+  // Stats por plan
+  const stats = useMemo(() => ({
+    total: users.length,
+    piloto: users.filter(u => u.subscription_plan === 'piloto').length,
+    pagos: users.filter(u => ['escuadrilla','flota','enterprise'].includes(u.subscription_plan)).length,
+    enterprise: users.filter(u => u.subscription_plan === 'enterprise').length,
+  }), [users]);
 
-    if (loading) return <div className="p-20 text-center font-black animate-pulse text-white bg-slate-950 h-screen">AUTORIZANDO NIVEL MASTER...</div>;
+  // Filtrado
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return users.filter(u => {
+      const matchSearch = !q ||
+        u.full_name?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.company_name?.toLowerCase().includes(q);
+      const matchPlan = planFilter === 'all' || u.subscription_plan === planFilter;
+      return matchSearch && matchPlan;
+    });
+  }, [users, search, planFilter]);
 
-    if (error) return (
-        <div className="p-20 text-center text-white bg-slate-950 h-screen">
-            <h1 className="text-red-500 font-black text-4xl mb-4">ACCESO DENEGADO</h1>
-            <p className="text-slate-400 mb-8">Usted no tiene privilegios de SuperAdmin para ver esta consola.</p>
-            <button onClick={() => window.location.href='/dashboard'} className="bg-orange-600 px-8 py-3 rounded-xl font-bold">VOLVER AL DASHBOARD</button>
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveMsg('');
+    try {
+      const res = await fetch('/api/admin/master', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetUserId: edit.id,
+          updateData: {
+            subscription_plan:      edit.subscription_plan,
+            role:                   edit.role,
+            organization_id:        edit.organization_id,
+            subscription_expires_at: edit.subscription_expires_at || null,
+            last_payment_date:      edit.last_payment_date || null,
+            admin_notes:            edit.admin_notes || null,
+          },
+        }),
+      });
+      if (!res.ok) throw new Error('Error al guardar');
+      setSaveMsg('✓ Guardado');
+      setTimeout(() => { setEdit(null); setSaveMsg(''); loadData(); }, 800);
+    } catch (e) {
+      setSaveMsg('✗ ' + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Activación rápida de plan sin abrir modal
+  const quickPlan = async (userId, plan) => {
+    await fetch('/api/admin/master', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        targetUserId: userId,
+        updateData: {
+          subscription_plan: plan,
+          last_payment_date: new Date().toISOString().split('T')[0],
+          subscription_expires_at: (() => {
+            const d = new Date();
+            d.setMonth(d.getMonth() + 1);
+            return d.toISOString();
+          })(),
+        },
+      }),
+    });
+    loadData();
+  };
+
+  if (loading) return (
+    <div className="h-screen bg-slate-950 flex items-center justify-center">
+      <p className="text-orange-500 font-black text-lg uppercase tracking-widest animate-pulse">Autorizando nivel master...</p>
+    </div>
+  );
+
+  if (error) return (
+    <div className="h-screen bg-slate-950 flex flex-col items-center justify-center gap-6 text-center px-6">
+      <p className="text-red-500 font-black text-4xl uppercase">Acceso denegado</p>
+      <p className="text-slate-400 text-sm max-w-sm">{error}</p>
+      <button onClick={() => window.location.href='/dashboard'} className="bg-orange-600 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest">
+        Volver al dashboard
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-white font-display text-left">
+      <main className="p-6 md:p-10 max-w-[1600px] mx-auto space-y-8">
+
+        {/* Header */}
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-white/10">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-orange-500 mb-1">Bitafly</p>
+            <h1 className="text-4xl font-black uppercase tracking-tighter">Master Control</h1>
+            <p className="text-slate-500 text-xs font-bold uppercase mt-1">Torre de mando global · Solo superadmin</p>
+          </div>
+          <button onClick={loadData} className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all">
+            <span className="material-symbols-outlined text-base">sync</span>
+            Actualizar
+          </button>
+        </header>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Total usuarios', value: stats.total, icon: 'group', color: 'text-white' },
+            { label: 'Plan Piloto',    value: stats.piloto, icon: 'person', color: 'text-slate-400' },
+            { label: 'Planes pagos',  value: stats.pagos,  icon: 'payments', color: 'text-orange-400' },
+            { label: 'Enterprise',    value: stats.enterprise, icon: 'rocket_launch', color: 'text-purple-400' },
+          ].map(s => (
+            <div key={s.label} className="bg-slate-900 border border-white/5 rounded-[1.5rem] p-6 flex items-center gap-4">
+              <span className={`material-symbols-outlined text-2xl ${s.color}`}>{s.icon}</span>
+              <div>
+                <p className="text-2xl font-black">{s.value}</p>
+                <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{s.label}</p>
+              </div>
+            </div>
+          ))}
         </div>
-    );
 
-    return (
-        <div className="min-h-screen bg-slate-950 text-white font-sans text-left">
-            <Navbar />
-            <main className="p-10 max-w-[1600px] mx-auto">
-                <header className="mb-12 border-b border-white/10 pb-6 flex justify-between items-end">
-                    <div>
-                        <h1 className="text-4xl font-black text-orange-500 uppercase tracking-tighter">BitaFly Master Control</h1>
-                        <p className="text-slate-400 text-xs font-bold uppercase mt-2">Torre de Mando Global</p>
-                    </div>
-                </header>
+        {/* Filtros */}
+        <div className="flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg">search</span>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar por nombre, email o empresa..."
+              className="w-full bg-slate-900 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm font-medium text-white placeholder:text-slate-600 outline-none focus:border-orange-500/50 transition-colors"
+            />
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {['all', ...PLANS].map(p => (
+              <button key={p} onClick={() => setPlanFilter(p)}
+                className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${planFilter === p ? 'bg-orange-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}>
+                {p === 'all' ? 'Todos' : p}
+                {p !== 'all' && <span className="ml-1.5 opacity-60">{users.filter(u => u.subscription_plan === p).length}</span>}
+              </button>
+            ))}
+          </div>
+        </div>
 
-                <div className="bg-slate-900 rounded-[2.5rem] border border-white/5 overflow-hidden shadow-2xl">
-                    <table className="w-full text-left">
-                        <thead className="bg-black/40 text-[10px] uppercase text-slate-500 font-black">
-                            <tr>
-                                <th className="p-6">Empresa</th>
-                                <th className="p-6">Usuario / Email</th>
-                                <th className="p-6">Rol</th>
-                                <th className="p-6">Plan</th>
-                                <th className="p-6">Pago</th>
-                                <th className="p-6 text-right">Gestión</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5 text-sm">
-                            {users.map(u => (
-                                <tr key={u.id} className="hover:bg-white/5 transition-colors">
-                                    <td className="p-6 font-black text-orange-400 uppercase tracking-tight">{u.company_name || 'Individual'}</td>
-                                    <td className="p-6">
-                                        <p className="font-bold text-white">{u.full_name}</p>
-                                        <p className="text-xs text-slate-500 font-mono">{u.email}</p>
-                                    </td>
-                                    <td className="p-6"><span className="bg-slate-700 px-2 py-1 rounded text-[9px] font-bold uppercase">{u.role}</span></td>
-                                    <td className="p-6 font-black uppercase text-[11px]">{u.subscription_plan}</td>
-                                    <td className="p-6 font-mono text-xs text-slate-500">{u.last_payment_date || '---'}</td>
-                                    <td className="p-6 text-right">
-                                        <button onClick={() => setEdit(u)} className="bg-white text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-orange-500 hover:text-white transition-all">Editar</button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </main>
-
-            {edit && (
-                <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-6 z-[200]">
-                    <div className="bg-slate-900 border border-orange-500/30 p-10 rounded-[3rem] w-full max-w-lg space-y-6">
-                        <h2 className="text-2xl font-black uppercase text-white">Gestión de Organización</h2>
-                        <div className="grid grid-cols-1 gap-4 text-left">
-                            <div>
-                                <label className="text-[10px] font-black uppercase text-slate-500">ID de Organización (VINCULACIÓN)</label>
-                                <input className="w-full bg-slate-800 p-3 rounded-xl border-none text-white font-mono text-xs mt-1" value={edit.organization_id || ''} onChange={e => setEdit({...edit, organization_id: e.target.value})} />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black uppercase text-slate-500">Plan de Pago</label>
-                                <select className="w-full bg-slate-800 p-3 rounded-xl border-none text-white font-bold mt-1" value={edit.subscription_plan} onChange={e => setEdit({...edit, subscription_plan: e.target.value})}>
-                                    <option value="piloto">Plan Piloto</option>
-                                    <option value="escuadrilla">Plan Escuadrilla</option>
-                                    <option value="flota">Plan Flota</option>
-                                    <option value="enterprise">Plan Enterprise</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black uppercase text-slate-500">Fecha Último Cobro</label>
-                                <input type="date" className="w-full bg-slate-800 p-3 rounded-xl border-none text-white font-bold mt-1" value={edit.last_payment_date || ''} onChange={e => setEdit({...edit, last_payment_date: e.target.value})} />
-                            </div>
+        {/* Tabla */}
+        <div className="bg-slate-900 rounded-[2rem] border border-white/5 overflow-hidden shadow-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-black/40 text-[10px] uppercase text-slate-500 font-black">
+                <tr>
+                  <th className="px-6 py-4">Empresa</th>
+                  <th className="px-6 py-4">Usuario / Email</th>
+                  <th className="px-6 py-4">Rol</th>
+                  <th className="px-6 py-4">Plan</th>
+                  <th className="px-6 py-4">Vigencia</th>
+                  <th className="px-6 py-4">Activación rápida</th>
+                  <th className="px-6 py-4 text-right">Editar</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5 text-sm">
+                {filtered.length === 0 && (
+                  <tr><td colSpan={7} className="px-6 py-12 text-center text-slate-600 font-bold text-xs uppercase">Sin resultados</td></tr>
+                )}
+                {filtered.map(u => {
+                  const expired = u.subscription_expires_at && new Date(u.subscription_expires_at) < new Date();
+                  return (
+                    <tr key={u.id} className="hover:bg-white/[0.03] transition-colors">
+                      <td className="px-6 py-4 font-black text-orange-400 uppercase text-xs">
+                        {u.company_name || <span className="text-slate-600">Individual</span>}
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="font-bold text-white text-sm">{u.full_name}</p>
+                        <p className="text-xs text-slate-500 font-mono">{u.email}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-1 rounded text-[10px] font-black uppercase ${ROLE_STYLE[u.role] || 'bg-slate-700 text-slate-300'}`}>
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${PLAN_STYLE[u.subscription_plan] || 'bg-slate-700 text-slate-300'}`}>
+                          {u.subscription_plan}
+                        </span>
+                        {expired && <span className="ml-2 text-[9px] text-red-400 font-black uppercase">Vencido</span>}
+                      </td>
+                      <td className="px-6 py-4 text-xs text-slate-500 font-mono">
+                        {u.subscription_expires_at
+                          ? new Date(u.subscription_expires_at).toLocaleDateString('es-CO')
+                          : '—'}
+                      </td>
+                      {/* Activación rápida */}
+                      <td className="px-6 py-4">
+                        <div className="flex gap-1">
+                          {['escuadrilla','flota','enterprise'].map(p => (
+                            <button key={p} onClick={() => quickPlan(u.id, p)}
+                              className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase transition-all hover:scale-105 ${
+                                u.subscription_plan === p ? 'bg-orange-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
+                              {p === 'escuadrilla' ? 'ESC' : p === 'flota' ? 'FLO' : 'ENT'}
+                            </button>
+                          ))}
                         </div>
-                        <div className="flex gap-4 pt-6">
-                            <button onClick={handleSave} className="flex-1 bg-orange-600 py-4 rounded-2xl font-black uppercase text-xs">Guardar Cambios</button>
-                            <button onClick={() => setEdit(null)} className="flex-1 bg-slate-800 py-4 rounded-2xl font-black uppercase text-xs">Cancelar</button>
-                        </div>
-                    </div>
-                </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button onClick={() => setEdit({ ...u })}
+                          className="bg-white/10 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all">
+                          Editar
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p className="text-slate-700 text-xs text-right font-mono">{filtered.length} de {users.length} usuarios</p>
+      </main>
+
+      {/* Modal de edición */}
+      {edit && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-6 z-[200]" onClick={e => e.target === e.currentTarget && setEdit(null)}>
+          <div className="bg-slate-900 border border-orange-500/20 p-8 md:p-10 rounded-[2.5rem] w-full max-w-lg space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
+
+            <div>
+              <h2 className="text-xl font-black uppercase text-white">{edit.full_name}</h2>
+              <p className="text-slate-500 text-xs font-mono">{edit.email}</p>
+            </div>
+
+            {/* Plan */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Plan de suscripción</label>
+              <select value={edit.subscription_plan} onChange={e => setEdit({ ...edit, subscription_plan: e.target.value })}
+                className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white font-bold text-sm outline-none focus:border-orange-500/50">
+                <option value="piloto">Piloto — Gratis</option>
+                <option value="escuadrilla">Escuadrilla — $12 USD/mes</option>
+                <option value="flota">Flota — $29 USD/mes</option>
+                <option value="enterprise">Enterprise — Personalizado</option>
+              </select>
+            </div>
+
+            {/* Rol */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Rol del usuario</label>
+              <select value={edit.role} onChange={e => setEdit({ ...edit, role: e.target.value })}
+                className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white font-bold text-sm outline-none focus:border-orange-500/50">
+                <option value="piloto">Piloto</option>
+                <option value="jefe_pilotos">Jefe de Pilotos</option>
+                <option value="gerente_sms">Gerente SMS</option>
+                <option value="admin">Admin (Gerente General)</option>
+                <option value="superadmin">Superadmin</option>
+              </select>
+            </div>
+
+            {/* Vigencia */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Vigente hasta</label>
+              <input type="date" value={edit.subscription_expires_at?.split('T')[0] || ''}
+                onChange={e => setEdit({ ...edit, subscription_expires_at: e.target.value })}
+                className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white font-bold text-sm outline-none focus:border-orange-500/50" />
+            </div>
+
+            {/* Pago */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Fecha último pago</label>
+              <input type="date" value={edit.last_payment_date || ''}
+                onChange={e => setEdit({ ...edit, last_payment_date: e.target.value })}
+                className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white font-bold text-sm outline-none focus:border-orange-500/50" />
+            </div>
+
+            {/* AeroCivil gratuito */}
+            <button
+              type="button"
+              onClick={() => {
+                const far = new Date(); far.setFullYear(far.getFullYear() + 2);
+                setEdit({
+                  ...edit,
+                  subscription_plan: 'flota',
+                  subscription_expires_at: far.toISOString().split('T')[0],
+                  admin_notes: (edit.admin_notes || '') + '\n[Acceso gratuito — proceso certificación AeroCivil]',
+                });
+              }}
+              className="w-full bg-emerald-900/40 border border-emerald-500/30 text-emerald-400 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-900/60 transition-all flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined text-base">verified_user</span>
+              Activar acceso gratuito · Certificación AeroCivil (2 años)
+            </button>
+
+            {/* Notas */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Notas internas</label>
+              <textarea rows={3} value={edit.admin_notes || ''}
+                onChange={e => setEdit({ ...edit, admin_notes: e.target.value })}
+                placeholder="Observaciones de pago, WhatsApp, etc."
+                className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white text-sm font-medium outline-none focus:border-orange-500/50 resize-none" />
+            </div>
+
+            {/* Org ID */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">ID de organización</label>
+              <input value={edit.organization_id || ''} onChange={e => setEdit({ ...edit, organization_id: e.target.value })}
+                className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white font-mono text-xs outline-none focus:border-orange-500/50" />
+            </div>
+
+            {saveMsg && (
+              <p className={`text-xs font-black text-center ${saveMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>
+                {saveMsg}
+              </p>
             )}
+
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => setEdit(null)} className="flex-1 bg-slate-800 hover:bg-slate-700 py-4 rounded-2xl font-black uppercase text-xs transition-all">
+                Cancelar
+              </button>
+              <button onClick={handleSave} disabled={saving}
+                className="flex-[2] bg-orange-600 hover:bg-orange-700 py-4 rounded-2xl font-black uppercase text-xs transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                {saving ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Guardando...</> : 'Guardar cambios'}
+              </button>
+            </div>
+          </div>
         </div>
-    );
+      )}
+    </div>
+  );
 }

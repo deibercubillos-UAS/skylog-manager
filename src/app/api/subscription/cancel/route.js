@@ -15,8 +15,6 @@ export async function POST(request) {
       .from('profiles')
       .update({
         subscription_plan: 'piloto',
-        wompi_subscription_ref: null,
-        subscription_expires_at: null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', userId);

@@ -13,19 +13,14 @@ export default function manifest() {
     categories: ['business', 'productivity', 'utilities'],
     icons: [
       {
-        src: '/favicon.ico',
-        sizes: '48x48',
-        type: 'image/x-icon',
-      },
-      {
         src: '/logo.png',
-        sizes: '512x512',
+        sizes: '320x277',
         type: 'image/png',
         purpose: 'any',
       },
       {
         src: '/logo.png',
-        sizes: '192x192',
+        sizes: '320x277',
         type: 'image/png',
         purpose: 'maskable',
       },

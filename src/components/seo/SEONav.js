@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 
 export default function SEONav() {
   return (
@@ -10,7 +9,8 @@ export default function SEONav() {
       display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 32px'
     }}>
       <Link href="/" style={{display:'flex',alignItems:'center',gap:'10px',textDecoration:'none'}}>
-        <Image src="/logo.png" alt="Bitafly" width={37} height={32} style={{objectFit:'contain'}} priority />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="Bitafly" width={37} height={32} style={{objectFit:'contain',display:'block'}} />
         <span style={{fontSize:'20px',fontWeight:900,textTransform:'uppercase',letterSpacing:'-0.04em',color:'#1A202C'}}>Bitafly</span>
       </Link>
       <ul style={{display:'flex',alignItems:'center',gap:'28px',listStyle:'none',margin:0,padding:0}}>

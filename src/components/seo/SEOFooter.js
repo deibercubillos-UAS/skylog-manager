@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 
 export default function SEOFooter({ brandDesc = 'Bitácora digital RAC 100 para operadores UAS en Colombia.' }) {
   return (
@@ -7,7 +6,8 @@ export default function SEOFooter({ brandDesc = 'Bitácora digital RAC 100 para 
       <div style={{maxWidth:'1100px',margin:'0 auto',display:'grid',gridTemplateColumns:'2fr 1fr 1fr',gap:'40px',marginBottom:'40px'}}>
         <div>
           <Link href="/" style={{display:'inline-flex',alignItems:'center',gap:'10px',textDecoration:'none',marginBottom:'12px'}}>
-            <Image src="/logo.png" alt="Bitafly" width={32} height={28} style={{objectFit:'contain',filter:'brightness(0) invert(1)'}} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Bitafly" width={32} height={28} style={{objectFit:'contain',display:'block',filter:'brightness(0) invert(1)'}} />
             <span style={{fontSize:'22px',fontWeight:900,textTransform:'uppercase',letterSpacing:'-0.04em',color:'#fff'}}>Bitafly</span>
           </Link>
           <p style={{fontSize:'12px',lineHeight:1.7,maxWidth:'280px'}}>{brandDesc}</p>

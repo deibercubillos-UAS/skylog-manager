@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Ingresar',
   description: 'Accede a tu cuenta Bitafly.',

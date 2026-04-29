@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
-import { WOMPI_PRICES } from '@/lib/planLimits';
+import { SIIGOPAY_PRICES } from '@/lib/planLimits';
 import crypto from 'crypto';
 
-// Genera referencia única y hash de integridad para el widget Wompi
+// Genera referencia única y hash de integridad para SIIGO PAY
+// Pendiente: configurar SIIGOPAY_INTEGRITY_SECRET y NEXT_PUBLIC_SIIGOPAY_PUBLIC_KEY
 export async function POST(request) {
   try {
     const { planKey, billing } = await request.json(); // billing: 'monthly' | 'annual'
@@ -12,7 +13,7 @@ export async function POST(request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const prices = WOMPI_PRICES[planKey];
+    const prices = SIIGOPAY_PRICES[planKey];
     if (!prices) return NextResponse.json({ error: 'Plan inválido' }, { status: 400 });
 
     const amountCents = billing === 'annual' ? prices.annual : prices.monthly;
@@ -20,10 +21,10 @@ export async function POST(request) {
 
     // Referencia única: bitafly_{plan}_{billing}_{userId}_{timestamp}
     const reference = `bitafly_${planKey}_${billing}_${user.id}_${Date.now()}`;
-    const currency = 'USD';
+    const currency = 'COP';
 
     // Hash de integridad: SHA256(reference + amountCents + currency + integritySecret)
-    const integritySecret = process.env.WOMPI_INTEGRITY_SECRET;
+    const integritySecret = process.env.SIIGOPAY_INTEGRITY_SECRET;
     const raw = `${reference}${amountCents}${currency}${integritySecret}`;
     const integrity = crypto.createHash('sha256').update(raw).digest('hex');
 
@@ -32,7 +33,7 @@ export async function POST(request) {
       amountCents,
       currency,
       integrity,
-      publicKey: process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY,
+      publicKey: process.env.NEXT_PUBLIC_SIIGOPAY_PUBLIC_KEY,
       redirectUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/subscription?payment=result`,
     });
   } catch (err) {

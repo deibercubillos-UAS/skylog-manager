@@ -2,25 +2,26 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 
+// Pendiente: configurar SIIGOPAY_WEBHOOK_SECRET en variables de entorno
 export async function POST(request) {
   try {
     const body = await request.text();
-    const wompiSignature = request.headers.get('x-event-checksum');
+    const signature = request.headers.get('x-siigopay-signature');
 
-    // 1. Verificar firma del evento
-    const eventsSecret = process.env.WOMPI_EVENTS_SECRET;
+    // Verificar firma del evento
+    const webhookSecret = process.env.SIIGOPAY_WEBHOOK_SECRET;
     const expectedSig = crypto
       .createHash('sha256')
-      .update(body + eventsSecret)
+      .update(body + webhookSecret)
       .digest('hex');
 
-    if (wompiSignature !== expectedSig) {
+    if (signature !== expectedSig) {
       return NextResponse.json({ error: 'Firma inválida' }, { status: 401 });
     }
 
     const event = JSON.parse(body);
 
-    // 2. Solo procesar transacciones aprobadas
+    // Solo procesar transacciones aprobadas
     if (
       event.event !== 'transaction.updated' ||
       event.data?.transaction?.status !== 'APPROVED'
@@ -31,9 +32,8 @@ export async function POST(request) {
     const transaction = event.data.transaction;
     const reference = transaction.reference; // bitafly_{plan}_{billing}_{userId}_{ts}
 
-    // 3. Parsear referencia para saber qué plan y qué usuario
+    // Parsear referencia
     const parts = reference.split('_');
-    // format: bitafly_{planKey}_{billing}_{userId}_{timestamp}
     if (parts.length < 5 || parts[0] !== 'bitafly') {
       return NextResponse.json({ error: 'Referencia inválida' }, { status: 400 });
     }
@@ -42,7 +42,7 @@ export async function POST(request) {
     const billing = parts[2];
     const userId = parts[3];
 
-    // 4. Calcular fecha de expiración
+    // Calcular fecha de expiración
     const now = new Date();
     const expiresAt = new Date(now);
     if (billing === 'annual') {
@@ -51,7 +51,7 @@ export async function POST(request) {
       expiresAt.setMonth(expiresAt.getMonth() + 1);
     }
 
-    // 5. Actualizar plan en Supabase
+    // Actualizar plan en Supabase
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -61,7 +61,7 @@ export async function POST(request) {
       .from('profiles')
       .update({
         subscription_plan: planKey,
-        wompi_subscription_ref: reference,
+        siigopay_subscription_ref: reference,
         subscription_expires_at: expiresAt.toISOString(),
         updated_at: now.toISOString(),
       })
@@ -69,7 +69,7 @@ export async function POST(request) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('Wompi webhook error:', err.message);
+    console.error('SIIGO PAY webhook error:', err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

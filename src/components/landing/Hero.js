@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Hero() {
   return (
@@ -24,7 +25,14 @@ export default function Hero() {
             </Link>
           </div>
           <div className="relative">
-            <img src="https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=800" className="rounded-[3rem] shadow-2xl border-8 border-white" alt="BitaFly" />
+            <Image
+              src="https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=800"
+              alt="Operador de drones gestionando flota con Bitafly"
+              width={800}
+              height={534}
+              priority
+              className="rounded-[3rem] shadow-2xl border-8 border-white"
+            />
           </div>
         </div>
       </div>

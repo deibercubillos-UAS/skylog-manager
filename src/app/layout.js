@@ -150,14 +150,15 @@ export default function RootLayout({ children }) {
           - Sin rangos de wght/FILL/GRAD: usa la versión estática, no la variable
           - rel="preload" en el CSS para que arranque la descarga sin esperar al parser
         */}
-        <link rel="preload" as="style" href={MATERIAL_SYMBOLS_URL} />
-        <link rel="stylesheet" href={MATERIAL_SYMBOLS_URL} />
+        {/* Material Symbols — carga no bloqueante: el CSS se descarga en paralelo y se aplica al terminar */}
+        <link rel="preload" as="style" href={MATERIAL_SYMBOLS_URL} onLoad="this.onload=null;this.rel='stylesheet'" />
+        <noscript><link rel="stylesheet" href={MATERIAL_SYMBOLS_URL} /></noscript>
 
         {/* Schema.org — Organization (rich result en buscadores) */}
         <Script
           id="schema-organization"
           type="application/ld+json"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
@@ -193,7 +194,7 @@ export default function RootLayout({ children }) {
         <Script
           id="schema-website"
           type="application/ld+json"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",

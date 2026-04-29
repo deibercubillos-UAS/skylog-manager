@@ -50,7 +50,7 @@ export default function Users() {
                 </div>
                 
                 <div className="flex items-center gap-4">
-                  <img src={user.avatar} alt={user.name} className="size-12 rounded-2xl object-cover border-2 border-white shadow-sm" />
+                  <img src={user.avatar} alt={user.name} className="size-12 rounded-2xl object-cover border-2 border-white shadow-sm" width={48} height={48} loading="lazy" />
                   <div>
                     <p className="text-sm font-black text-[#1A202C] dark:text-white uppercase tracking-tight">{user.name}</p>
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{user.role} en <span className="text-[#ec5b13]">{user.company}</span></p>

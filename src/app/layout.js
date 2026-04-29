@@ -116,10 +116,15 @@ export const metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon.ico' },
+      { url: '/logo.png', type: 'image/png', sizes: '320x277' },
     ],
-    shortcut: '/favicon.ico',
-    apple: '/logo.png',
+    shortcut: '/logo.png',
+    apple: [
+      { url: '/logo.png', sizes: '320x277', type: 'image/png' },
+    ],
+    other: [
+      { rel: 'apple-touch-icon', url: '/logo.png' },
+    ],
   },
   manifest: '/manifest.webmanifest',
   category: 'Software Empresarial',

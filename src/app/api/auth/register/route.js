@@ -29,11 +29,20 @@ export async function POST(request) {
         });
         if (authErr) throw authErr;
 
-        await supabaseAdmin.from('profiles').insert([{
-            id: authData.user.id, email, first_name: firstName, last_name: lastName,
-            full_name: `${firstName} ${lastName}`, role, organization_id: targetOrgId,
-            phone, city, subscription_plan: 'piloto'
-        }]);
+        // Upsert: el trigger on_auth_user_created ya pudo haber insertado el perfil base,
+        // así que actualizamos con los datos completos del formulario de registro.
+        await supabaseAdmin.from('profiles').upsert({
+            id: authData.user.id,
+            email,
+            first_name: firstName,
+            last_name: lastName,
+            full_name: `${firstName} ${lastName}`,
+            role,
+            organization_id: targetOrgId,
+            phone,
+            city,
+            subscription_plan: 'piloto',
+        }, { onConflict: 'id' });
 
         return NextResponse.json({ success: true });
     } catch (err) {

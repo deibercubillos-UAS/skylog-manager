@@ -83,10 +83,13 @@ export default function DashboardLayout({ children }) {
 
   const role = data.profile?.role;
 
+const plan = data.profile?.subscription_plan || 'piloto';
+const isPaidPlan = plan !== 'piloto'; // escuadrilla, flota o enterprise
+
 const navLinks = [
   { name: 'Dashboard',      icon: 'dashboard',               href: '/dashboard',                 roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Mi Flota',       icon: 'precision_manufacturing', href: '/dashboard/fleet',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Tripulación',    icon: 'person',                  href: '/dashboard/pilots',          roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Tripulación',    icon: 'person',                  href: '/dashboard/pilots',          roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], paidOnly: true },
   { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'] },
   { name: 'Programación',   icon: 'event_available',         href: '/dashboard/authorizations',  roles: ['superadmin', 'admin', 'jefe_pilotos'] },
   { name: 'Bitácora',       icon: 'menu_book',               href: '/dashboard/logbook',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
@@ -96,16 +99,20 @@ const navLinks = [
   { name: 'Protocolos',     icon: 'rule',                    href: '/dashboard/settings/forms',  roles: ['superadmin', 'admin', 'gerente_sms'] },
 ];
 
-// FILTRAR LINKS BASADO EN EL ROL
-const filteredLinks = navLinks.filter(link => link.roles.includes(role));
+// FILTRAR por rol Y por plan (paidOnly oculta el ítem en plan Piloto)
+const filteredLinks = navLinks.filter(link =>
+  link.roles.includes(role) && (!link.paidOnly || isPaidPlan)
+);
 
 const footerLinksAll = [
-    { name: 'Configurar Organización', icon: 'settings', href: '/dashboard/settings', roles: ['superadmin', 'admin'] },
-    { name: 'Gestión de Usuarios',     icon: 'groups',   href: '/dashboard/users',    roles: ['superadmin', 'admin'] },
-    { name: 'Mi Perfil',               icon: 'account_circle', href: '/dashboard/settings/profile', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-    { name: 'Suscripción',             icon: 'payments', href: '/dashboard/subscription', roles: ['superadmin', 'admin', 'gerente_sms'] },
+    { name: 'Configurar Organización', icon: 'settings',        href: '/dashboard/settings',          roles: ['superadmin', 'admin'] },
+    { name: 'Gestión de Usuarios',     icon: 'groups',          href: '/dashboard/users',             roles: ['superadmin', 'admin'], paidOnly: true },
+    { name: 'Mi Perfil',               icon: 'account_circle',  href: '/dashboard/settings/profile',  roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+    { name: 'Suscripción',             icon: 'payments',        href: '/dashboard/subscription',      roles: ['superadmin', 'admin', 'gerente_sms'] },
 ];
-const footerLinks = footerLinksAll.filter(link => link.roles.includes(role));
+const footerLinks = footerLinksAll.filter(link =>
+  link.roles.includes(role) && (!link.paidOnly || isPaidPlan)
+);
 
   return (
     <div className="flex h-screen bg-[#f8f6f6] font-display overflow-hidden text-left">

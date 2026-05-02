@@ -17,41 +17,77 @@ export default function DashboardLayout({ children }) {
   // Sidebar abierto por defecto solo en desktop
   useEffect(() => { setSidebarOpen(window.innerWidth >= 1024); }, []);
 
-// EFECTO 1: Cargar Perfil + Organización UNA SOLA VEZ al montar el layout
+// EFECTO 1: Cargar Perfil + Organización + suscripción Realtime al plan
   useEffect(() => {
-      async function loadIdentity() {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) { window.location.href = '/login'; return; }
+    let realtimeChannel;
 
-          // Cargar perfil (necesario para obtener organization_id)
-          const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-          if (!prof) throw new Error("No profile");
+    async function loadIdentity() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { window.location.href = '/login'; return; }
 
-          // Cargar organización EN PARALELO con el primer vuelo activo (ambas usan prof.organization_id)
-          const [orgRes, flightRes] = await Promise.all([
-            supabase.from('organizations').select('*').eq('id', prof.organization_id).single(),
-            prof.organization_id
-              ? supabase
-                  .from('flights')
-                  .select('id')
-                  .eq('organization_id', prof.organization_id)
-                  .is('landing_time', null)
-                  .order('created_at', { ascending: false })
-                  .limit(1)
-                  .maybeSingle()
-              : Promise.resolve({ data: null })
-          ]);
+        // Cargar perfil (necesario para obtener organization_id)
+        const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        if (!prof) throw new Error("No profile");
 
-          setData({ profile: prof, org: orgRes.data });
-          setActiveFlight(flightRes.data);
-        } catch (err) {
-          console.error("Layout Handshake Error:", err.message);
-        } finally {
-          setLoading(false);
+        // Protección: si el perfil existe pero no tiene organización asignada,
+        // la creamos automáticamente para que las políticas RLS funcionen.
+        if (!prof.organization_id) {
+          const { data: newOrg } = await supabase
+            .from('organizations')
+            .insert([{ company_name: `Piloto: ${prof.first_name || user.email}` }])
+            .select()
+            .single();
+          if (newOrg) {
+            await supabase.from('profiles').update({ organization_id: newOrg.id }).eq('id', user.id);
+            prof.organization_id = newOrg.id;
+          }
         }
+
+        // Cargar organización EN PARALELO con el primer vuelo activo
+        const [orgRes, flightRes] = await Promise.all([
+          supabase.from('organizations').select('*').eq('id', prof.organization_id).single(),
+          prof.organization_id
+            ? supabase
+                .from('flights')
+                .select('id')
+                .eq('organization_id', prof.organization_id)
+                .is('landing_time', null)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+            : Promise.resolve({ data: null })
+        ]);
+
+        setData({ profile: prof, org: orgRes.data });
+        setActiveFlight(flightRes.data);
+
+        // Suscripción Realtime: si el admin actualiza el plan o el rol desde Supabase,
+        // el sidebar se actualiza automáticamente sin que el usuario cierre sesión.
+        realtimeChannel = supabase
+          .channel(`profile-${user.id}`)
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+            (payload) => {
+              setData((prev) => ({ ...prev, profile: { ...prev.profile, ...payload.new } }));
+            }
+          )
+          .subscribe();
+
+      } catch (err) {
+        console.error("Layout Handshake Error:", err.message);
+      } finally {
+        setLoading(false);
       }
-      loadIdentity();
+    }
+
+    loadIdentity();
+
+    // Limpiar suscripción al desmontar
+    return () => {
+      if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+    };
   }, []); // ← SOLO al montar, NO en cada navegación
 
   // EFECTO 2: Refrescar SOLO el vuelo activo al navegar entre páginas (consulta ligera)
@@ -83,10 +119,13 @@ export default function DashboardLayout({ children }) {
 
   const role = data.profile?.role;
 
+const plan = data.profile?.subscription_plan || 'piloto';
+const isPaidPlan = plan !== 'piloto'; // escuadrilla, flota o enterprise
+
 const navLinks = [
   { name: 'Dashboard',      icon: 'dashboard',               href: '/dashboard',                 roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Mi Flota',       icon: 'precision_manufacturing', href: '/dashboard/fleet',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Tripulación',    icon: 'person',                  href: '/dashboard/pilots',          roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Tripulación',    icon: 'person',                  href: '/dashboard/pilots',          roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], paidOnly: true },
   { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'] },
   { name: 'Programación',   icon: 'event_available',         href: '/dashboard/authorizations',  roles: ['superadmin', 'admin', 'jefe_pilotos'] },
   { name: 'Bitácora',       icon: 'menu_book',               href: '/dashboard/logbook',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
@@ -96,16 +135,20 @@ const navLinks = [
   { name: 'Protocolos',     icon: 'rule',                    href: '/dashboard/settings/forms',  roles: ['superadmin', 'admin', 'gerente_sms'] },
 ];
 
-// FILTRAR LINKS BASADO EN EL ROL
-const filteredLinks = navLinks.filter(link => link.roles.includes(role));
+// FILTRAR por rol Y por plan (paidOnly oculta el ítem en plan Piloto)
+const filteredLinks = navLinks.filter(link =>
+  link.roles.includes(role) && (!link.paidOnly || isPaidPlan)
+);
 
 const footerLinksAll = [
-    { name: 'Configurar Organización', icon: 'settings', href: '/dashboard/settings', roles: ['superadmin', 'admin'] },
-    { name: 'Gestión de Usuarios',     icon: 'groups',   href: '/dashboard/users',    roles: ['superadmin', 'admin'] },
-    { name: 'Mi Perfil',               icon: 'account_circle', href: '/dashboard/settings/profile', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-    { name: 'Suscripción',             icon: 'payments', href: '/dashboard/subscription', roles: ['superadmin', 'admin', 'gerente_sms'] },
+    { name: 'Configurar Organización', icon: 'settings',        href: '/dashboard/settings',          roles: ['superadmin', 'admin'] },
+    { name: 'Gestión de Usuarios',     icon: 'groups',          href: '/dashboard/users',             roles: ['superadmin', 'admin'], paidOnly: true },
+    { name: 'Mi Perfil',               icon: 'account_circle',  href: '/dashboard/settings/profile',  roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+    { name: 'Suscripción',             icon: 'payments',        href: '/dashboard/subscription',      roles: ['superadmin', 'admin', 'gerente_sms'] },
 ];
-const footerLinks = footerLinksAll.filter(link => link.roles.includes(role));
+const footerLinks = footerLinksAll.filter(link =>
+  link.roles.includes(role) && (!link.paidOnly || isPaidPlan)
+);
 
   return (
     <div className="flex h-screen bg-[#f8f6f6] font-display overflow-hidden text-left">

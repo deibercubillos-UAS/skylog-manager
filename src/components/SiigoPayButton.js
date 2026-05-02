@@ -9,7 +9,7 @@ const PLAN_LABELS = {
   flota:       { name: 'Flota',       monthly: '$39 USD/mes', annual: '$29 USD/mes (facturado $348/año)' },
 };
 
-export default function WompiButton({ planKey, billing = 'annual', label = 'Mejorar plan', className = '' }) {
+export default function SiigoPayButton({ planKey, billing = 'annual', label = 'Mejorar plan', className = '' }) {
   const [email, setEmail] = useState('');
 
   useEffect(() => {

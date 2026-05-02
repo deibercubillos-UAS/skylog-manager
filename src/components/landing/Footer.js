@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex flex-col items-center gap-6">
           <div className="flex items-center gap-3">
-             <img src="/logo.png" className="size-10 object-contain" alt="BitaFly" />
+             <img src="/logo.png" className="size-10 object-contain" alt="BitaFly" width={40} height={40} loading="lazy" />
              <span className="text-xl font-black uppercase tracking-tighter">BitaFly Manager</span>
           </div>
           <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.3em]">© 2024 BitaFly UAS Manager - Aviation Systems</p>

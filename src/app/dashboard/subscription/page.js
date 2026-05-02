@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import WompiButton from '@/components/WompiButton';
+import SiigoPayButton from '@/components/SiigoPayButton';
 
 const UPGRADE_PLANS = [
   {
@@ -50,7 +50,6 @@ export default function SubscriptionPage() {
     }
     load();
 
-    // Detectar retorno de Wompi
     const params = new URLSearchParams(window.location.search);
     if (params.get('payment') === 'result') {
       window.history.replaceState({}, '', '/dashboard/subscription');
@@ -162,7 +161,7 @@ export default function SubscriptionPage() {
                   )}
                   <p className="text-xs font-black text-primary uppercase mt-2">{plan.limits}</p>
                 </div>
-                <WompiButton
+                <SiigoPayButton
                   planKey={plan.key}
                   billing={billing}
                   label={`Activar ${plan.name}`}

@@ -1,23 +1,25 @@
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
 
 export default function sitemap() {
-  const routes = [
-    { url: '/', priority: 1.0, changeFrequency: 'weekly' },
-    { url: '/rac-100', priority: 0.9, changeFrequency: 'monthly' },
-    { url: '/bitacora-digital', priority: 0.9, changeFrequency: 'monthly' },
-    { url: '/mantenimiento-drones', priority: 0.8, changeFrequency: 'monthly' },
-    { url: '/sms-aeronautico', priority: 0.8, changeFrequency: 'monthly' },
-    { url: '/autorizaciones-aerocivil', priority: 0.8, changeFrequency: 'monthly' },
-    { url: '/gestion-flota-drones', priority: 0.8, changeFrequency: 'monthly' },
-    { url: '/operadores-uas', priority: 0.8, changeFrequency: 'monthly' },
-    { url: '/reportes-auditoria', priority: 0.7, changeFrequency: 'monthly' },
-    { url: '/precios', priority: 0.9, changeFrequency: 'weekly' },
-  ];
+  const now = new Date();
 
-  return routes.map(({ url, priority, changeFrequency }) => ({
-    url: `${SITE_URL}${url}`,
-    lastModified: new Date(),
-    changeFrequency,
-    priority,
-  }));
+  return [
+    // Páginas principales
+    { url: `${SITE_URL}/`,                         lastModified: now, changeFrequency: 'weekly',  priority: 1.0 },
+    { url: `${SITE_URL}/precios`,                  lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${SITE_URL}/registro`,                 lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+
+    // Landing pages SEO
+    { url: `${SITE_URL}/rac-100`,                  lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
+    { url: `${SITE_URL}/bitacora-digital`,         lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
+    { url: `${SITE_URL}/mantenimiento-drones`,     lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${SITE_URL}/sms-aeronautico`,          lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${SITE_URL}/autorizaciones-aerocivil`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${SITE_URL}/gestion-flota-drones`,     lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${SITE_URL}/operadores-uas`,           lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
+    { url: `${SITE_URL}/reportes-auditoria`,       lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
+
+    // Páginas de acceso (baja prioridad)
+    { url: `${SITE_URL}/login`,                    lastModified: now, changeFrequency: 'yearly',  priority: 0.4 },
+  ];
 }

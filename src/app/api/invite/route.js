@@ -6,6 +6,7 @@ export async function POST(req) {
   try {
     const { email, role, orgName, inviterName } = await req.json();
 
+    const resend = new Resend(process.env.RESEND_API_KEY);
     const data = await resend.emails.send({
       from: 'BitaFly <no-reply@bitafly.com>',
       replyTo: 'soporte@bitafly.com',

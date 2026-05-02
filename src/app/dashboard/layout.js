@@ -17,41 +17,63 @@ export default function DashboardLayout({ children }) {
   // Sidebar abierto por defecto solo en desktop
   useEffect(() => { setSidebarOpen(window.innerWidth >= 1024); }, []);
 
-// EFECTO 1: Cargar Perfil + Organización UNA SOLA VEZ al montar el layout
+// EFECTO 1: Cargar Perfil + Organización + suscripción Realtime al plan
   useEffect(() => {
-      async function loadIdentity() {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) { window.location.href = '/login'; return; }
+    let realtimeChannel;
 
-          // Cargar perfil (necesario para obtener organization_id)
-          const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-          if (!prof) throw new Error("No profile");
+    async function loadIdentity() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { window.location.href = '/login'; return; }
 
-          // Cargar organización EN PARALELO con el primer vuelo activo (ambas usan prof.organization_id)
-          const [orgRes, flightRes] = await Promise.all([
-            supabase.from('organizations').select('*').eq('id', prof.organization_id).single(),
-            prof.organization_id
-              ? supabase
-                  .from('flights')
-                  .select('id')
-                  .eq('organization_id', prof.organization_id)
-                  .is('landing_time', null)
-                  .order('created_at', { ascending: false })
-                  .limit(1)
-                  .maybeSingle()
-              : Promise.resolve({ data: null })
-          ]);
+        // Cargar perfil (necesario para obtener organization_id)
+        const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        if (!prof) throw new Error("No profile");
 
-          setData({ profile: prof, org: orgRes.data });
-          setActiveFlight(flightRes.data);
-        } catch (err) {
-          console.error("Layout Handshake Error:", err.message);
-        } finally {
-          setLoading(false);
-        }
+        // Cargar organización EN PARALELO con el primer vuelo activo
+        const [orgRes, flightRes] = await Promise.all([
+          supabase.from('organizations').select('*').eq('id', prof.organization_id).single(),
+          prof.organization_id
+            ? supabase
+                .from('flights')
+                .select('id')
+                .eq('organization_id', prof.organization_id)
+                .is('landing_time', null)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+            : Promise.resolve({ data: null })
+        ]);
+
+        setData({ profile: prof, org: orgRes.data });
+        setActiveFlight(flightRes.data);
+
+        // Suscripción Realtime: si el admin actualiza el plan o el rol desde Supabase,
+        // el sidebar se actualiza automáticamente sin que el usuario cierre sesión.
+        realtimeChannel = supabase
+          .channel(`profile-${user.id}`)
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+            (payload) => {
+              setData((prev) => ({ ...prev, profile: { ...prev.profile, ...payload.new } }));
+            }
+          )
+          .subscribe();
+
+      } catch (err) {
+        console.error("Layout Handshake Error:", err.message);
+      } finally {
+        setLoading(false);
       }
-      loadIdentity();
+    }
+
+    loadIdentity();
+
+    // Limpiar suscripción al desmontar
+    return () => {
+      if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+    };
   }, []); // ← SOLO al montar, NO en cada navegación
 
   // EFECTO 2: Refrescar SOLO el vuelo activo al navegar entre páginas (consulta ligera)

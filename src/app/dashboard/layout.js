@@ -30,6 +30,20 @@ export default function DashboardLayout({ children }) {
         const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         if (!prof) throw new Error("No profile");
 
+        // Protección: si el perfil existe pero no tiene organización asignada,
+        // la creamos automáticamente para que las políticas RLS funcionen.
+        if (!prof.organization_id) {
+          const { data: newOrg } = await supabase
+            .from('organizations')
+            .insert([{ company_name: `Piloto: ${prof.first_name || user.email}` }])
+            .select()
+            .single();
+          if (newOrg) {
+            await supabase.from('profiles').update({ organization_id: newOrg.id }).eq('id', user.id);
+            prof.organization_id = newOrg.id;
+          }
+        }
+
         // Cargar organización EN PARALELO con el primer vuelo activo
         const [orgRes, flightRes] = await Promise.all([
           supabase.from('organizations').select('*').eq('id', prof.organization_id).single(),

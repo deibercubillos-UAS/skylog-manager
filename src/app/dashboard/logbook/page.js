@@ -1,12 +1,14 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import LogbookImportPanel from '@/components/LogbookImportPanel';
 
 
 export default function LogbookPage() {
     const [flights, setFlights] = useState([]);
     const [filteredFlights, setFilteredFlights] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showImport, setShowImport] = useState(false);
 
     // ESTADO DE FILTROS
     const [filters, setFilters] = useState({
@@ -58,6 +60,13 @@ export default function LogbookPage() {
     if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">AUDITANDO REGISTROS...</div>;
 
     return (
+        <>
+        {showImport && (
+            <LogbookImportPanel
+                onClose={() => setShowImport(false)}
+                onSuccess={() => { setShowImport(false); loadData(); }}
+            />
+        )}
         <div className="space-y-8 text-left animate-in fade-in duration-700 pb-20">
             <header className="flex justify-between items-end border-b border-slate-200 pb-4">
                 <div>
@@ -67,10 +76,17 @@ export default function LogbookPage() {
                     </p>
                 </div>
                 <div className="flex gap-3">
-                    <button 
+                    <button
                         onClick={() => setFilters({date:'', mission_id:'', model:'', serial:'', type:'', condition:'', pilot:''})}
                         className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 hover:text-orange-600 transition-colors"
                     > Limpiar Filtros </button>
+                    <button
+                        onClick={() => setShowImport(true)}
+                        className="flex items-center gap-2 bg-navy text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm"
+                    >
+                        <span className="material-symbols-outlined text-sm">upload_file</span>
+                        Importar Histórico
+                    </button>
                 </div>
             </header>
 
@@ -152,5 +168,6 @@ export default function LogbookPage() {
                 )}
             </div>
         </div>
+        </>
     );
 }

@@ -265,7 +265,13 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
     }
   };
 
-  useEffect(() => { if (orgId) loadCreds(); }, [orgId]);
+  useEffect(() => {
+    if (orgId) {
+      loadCreds();
+    } else {
+      setLoading(false); // sin org → salir del estado de carga inmediatamente
+    }
+  }, [orgId]);
 
   // ── Abrir formulario ─────────────────────────────────────────
   const openForm = () => {
@@ -374,7 +380,7 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
           </p>
         </div>
 
-        {canManage && (
+        {canManage && orgId && (
           <button
             onClick={openForm}
             className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
@@ -389,6 +395,19 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
       {loading ? (
         <div className="py-8 text-center text-slate-300 font-black text-[10px] uppercase animate-pulse">
           Verificando configuración...
+        </div>
+      ) : !orgId ? (
+        /* Sin organización vinculada — caso típico de cuenta superadmin */
+        <div className="flex items-start gap-4 bg-slate-50 border border-slate-200 rounded-2xl p-5">
+          <span className="material-symbols-outlined text-2xl text-slate-400 shrink-0 mt-0.5">info</span>
+          <div>
+            <p className="text-xs font-black text-slate-700 uppercase">Cuenta sin organización vinculada</p>
+            <p className="text-[10px] text-slate-500 font-medium mt-1">
+              Las credenciales de AeroCivil se configuran por organización. Para gestionar esta sección,
+              inicia sesión con una cuenta <strong>Gerente General</strong> (admin) que tenga una organización asignada,
+              o vincula esta cuenta a una organización desde el panel Master.
+            </p>
+          </div>
         </div>
       ) : !creds ? (
         /* Sin credenciales */

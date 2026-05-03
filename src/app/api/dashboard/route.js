@@ -13,13 +13,20 @@ export async function GET() {
         const orgId = profile?.organization_id;
 
         const [aircraftRes, pilotsRes, flightsRes, batteriesRes] = await Promise.all([
-            supabase.from('aircraft').select('*').eq('organization_id', orgId),
-            supabase.from('pilots').select('*').eq('organization_id', orgId),
+            supabase.from('aircraft')
+                .select('id,model,serial_number,total_hours,last_maintenance_hours,last_maintenance_date,created_at')
+                .eq('organization_id', orgId),
+            supabase.from('pilots')
+                .select('id,name,medical_expiry')
+                .eq('organization_id', orgId),
             supabase.from('flights')
-                .select('*, pilots:pilot_id(name), aircraft:aircraft_id(model)') // El * ya incluye mission_id
+                .select('id,mission_id,flight_date,created_at,pilots:pilot_id(name),aircraft:aircraft_id(model)')
                 .eq('organization_id', orgId)
-                .order('created_at', { ascending: false }),
-            supabase.from('batteries').select('*').eq('organization_id', orgId)
+                .order('created_at', { ascending: false })
+                .limit(500),
+            supabase.from('batteries')
+                .select('id,brand,serial_number,cycles')
+                .eq('organization_id', orgId)
         ]);
 
         // --- 1. LÓGICA DE GRÁFICO MENSUAL (RECUPERADA Y MEJORADA) ---
@@ -89,7 +96,7 @@ export async function GET() {
             }
         });
 
-        return NextResponse.json({
+        const response = NextResponse.json({
             stats: {
                 hours: aircraftRes.data?.reduce((acc, a) => acc + (parseFloat(a.total_hours) || 0), 0).toFixed(1) || "0.0",
                 fleetCount: aircraftRes.data?.length || 0,
@@ -101,6 +108,8 @@ export async function GET() {
             alerts: alerts.sort((a, b) => a.type === 'CRÍTICO' ? -1 : 1),
             recentActivity: flightsRes.data?.slice(0, 5) || []
         });
+        response.headers.set('Cache-Control', 'private, max-age=120, stale-while-revalidate=300');
+        return response;
 
     } catch (err) {
         return NextResponse.json({ error: err.message }, { status: 500 });

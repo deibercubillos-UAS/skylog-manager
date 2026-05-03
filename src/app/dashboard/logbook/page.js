@@ -1,16 +1,13 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import LogbookImportPanel from '@/components/LogbookImportPanel';
 
-
 export default function LogbookPage() {
     const [flights, setFlights] = useState([]);
-    const [filteredFlights, setFilteredFlights] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showImport, setShowImport] = useState(false);
 
-    // ESTADO DE FILTROS
     const [filters, setFilters] = useState({
         date: '',
         mission_id: '',
@@ -23,11 +20,10 @@ export default function LogbookPage() {
 
     const loadData = async () => {
         try {
-            const res = await fetch('/api/logbook');
+            setLoading(true);
+            const res = await fetch('/api/logbook?limit=200');
             const data = await res.json();
-            const validData = Array.isArray(data) ? data : [];
-            setFlights(validData);
-            setFilteredFlights(validData);
+            setFlights(Array.isArray(data) ? data : []);
         } catch (e) {
             console.error("Error cargando bitácora");
         } finally {
@@ -37,25 +33,25 @@ export default function LogbookPage() {
 
     useEffect(() => { loadData(); }, []);
 
-    // MOTOR DE FILTRADO EN TIEMPO REAL
-    useEffect(() => {
+    // Valores únicos para selects — solo se recalculan cuando cambia flights
+    const uniqueModels = useMemo(() => [...new Set(flights.map(f => f.aircraft?.model).filter(Boolean))], [flights]);
+    const uniqueTypes  = useMemo(() => [...new Set(flights.map(f => f.mission_type).filter(Boolean))],     [flights]);
+    const uniquePilots = useMemo(() => [...new Set(flights.map(f => f.pilots?.name).filter(Boolean))],     [flights]);
+
+    // Filtrado en memoria — solo recalcula cuando cambian filtros o datos
+    const filteredFlights = useMemo(() => {
         let result = flights;
-
-        if (filters.date) result = result.filter(f => f.flight_date?.includes(filters.date));
+        if (filters.date)       result = result.filter(f => f.flight_date?.includes(filters.date));
         if (filters.mission_id) result = result.filter(f => f.mission_id?.toLowerCase().includes(filters.mission_id.toLowerCase()));
-        if (filters.model) result = result.filter(f => f.aircraft?.model === filters.model);
-        if (filters.serial) result = result.filter(f => f.aircraft?.serial_number?.toLowerCase().includes(filters.serial.toLowerCase()));
-        if (filters.type) result = result.filter(f => f.mission_type === filters.type);
-        if (filters.condition) result = result.filter(f => f.visual_condition === filters.condition);
-        if (filters.pilot) result = result.filter(f => f.pilots?.name === filters.pilot);
-
-        setFilteredFlights(result);
+        if (filters.model)      result = result.filter(f => f.aircraft?.model === filters.model);
+        if (filters.serial)     result = result.filter(f => f.aircraft?.serial_number?.toLowerCase().includes(filters.serial.toLowerCase()));
+        if (filters.type)       result = result.filter(f => f.mission_type === filters.type);
+        if (filters.condition)  result = result.filter(f => f.visual_condition === filters.condition);
+        if (filters.pilot)      result = result.filter(f => f.pilots?.name === filters.pilot);
+        return result;
     }, [filters, flights]);
 
-    // OBTENER VALORES ÚNICOS PARA LOS SELECTS
-    const uniqueModels = [...new Set(flights.map(f => f.aircraft?.model).filter(Boolean))];
-    const uniqueTypes = [...new Set(flights.map(f => f.mission_type).filter(Boolean))];
-    const uniquePilots = [...new Set(flights.map(f => f.pilots?.name).filter(Boolean))];
+    const clearFilters = () => setFilters({ date: '', mission_id: '', model: '', serial: '', type: '', condition: '', pilot: '' });
 
     if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">AUDITANDO REGISTROS...</div>;
 
@@ -77,9 +73,9 @@ export default function LogbookPage() {
                 </div>
                 <div className="flex gap-3">
                     <button
-                        onClick={() => setFilters({date:'', mission_id:'', model:'', serial:'', type:'', condition:'', pilot:''})}
+                        onClick={clearFilters}
                         className="px-4 py-2 text-[10px] font-black uppercase text-slate-400 hover:text-orange-600 transition-colors"
-                    > Limpiar Filtros </button>
+                    >Limpiar Filtros</button>
                     <button
                         onClick={() => setShowImport(true)}
                         className="flex items-center gap-2 bg-navy text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm"
@@ -94,7 +90,6 @@ export default function LogbookPage() {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
-                            {/* FILA 1: TÍTULOS */}
                             <tr className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-widest border-b">
                                 <th className="px-4 py-4">Fecha</th>
                                 <th className="px-4 py-4">N° Misión</th>
@@ -105,38 +100,39 @@ export default function LogbookPage() {
                                 <th className="px-4 py-4">T.T Posterior</th>
                                 <th className="px-4 py-4">Piloto (PIC)</th>
                             </tr>
-                            {/* FILA 2: INPUTS DE FILTRO */}
                             <tr className="bg-white border-b-2 border-slate-100">
                                 <th className="px-2 py-2">
-                                    <input type="date" className="w-full p-2 bg-slate-50 rounded-lg text-[10px] font-bold outline-none focus:ring-1 focus:ring-orange-500" value={filters.date} onChange={e => setFilters({...filters, date: e.target.value})} />
+                                    <input type="date" className="w-full p-2 bg-slate-50 rounded-lg text-[10px] font-bold outline-none focus:ring-1 focus:ring-orange-500" value={filters.date} onChange={e => setFilters(f => ({...f, date: e.target.value}))} />
                                 </th>
                                 <th className="px-2 py-2">
-                                    <input placeholder="Buscar..." className="w-full p-2 bg-slate-50 rounded-lg text-[10px] font-bold outline-none focus:ring-1 focus:ring-orange-500" value={filters.mission_id} onChange={e => setFilters({...filters, mission_id: e.target.value})} />
+                                    <input placeholder="Buscar..." className="w-full p-2 bg-slate-50 rounded-lg text-[10px] font-bold outline-none focus:ring-1 focus:ring-orange-500" value={filters.mission_id} onChange={e => setFilters(f => ({...f, mission_id: e.target.value}))} />
                                 </th>
                                 <th className="px-2 py-2">
-                                    <select className="w-full p-2 bg-slate-50 rounded-lg text-[10px] font-bold outline-none" value={filters.model} onChange={e => setFilters({...filters, model: e.target.value})}>
+                                    <select className="w-full p-2 bg-slate-50 rounded-lg text-[10px] font-bold outline-none" value={filters.model} onChange={e => setFilters(f => ({...f, model: e.target.value}))}>
                                         <option value="">TODOS</option>
                                         {uniqueModels.map(m => <option key={m} value={m}>{m}</option>)}
                                     </select>
                                 </th>
                                 <th className="px-2 py-2">
-                                    <input placeholder="S/N..." className="w-full p-2 bg-slate-50 rounded-lg text-[10px] font-bold outline-none" value={filters.serial} onChange={e => setFilters({...filters, serial: e.target.value})} />
+                                    <input placeholder="S/N..." className="w-full p-2 bg-slate-50 rounded-lg text-[10px] font-bold outline-none" value={filters.serial} onChange={e => setFilters(f => ({...f, serial: e.target.value}))} />
                                 </th>
                                 <th className="px-2 py-2">
-                                    <select className="w-full p-2 bg-slate-50 rounded-lg text-[10px] font-bold outline-none" value={filters.type} onChange={e => setFilters({...filters, type: e.target.value})}>
+                                    <select className="w-full p-2 bg-slate-50 rounded-lg text-[10px] font-bold outline-none" value={filters.type} onChange={e => setFilters(f => ({...f, type: e.target.value}))}>
                                         <option value="">TODOS</option>
                                         {uniqueTypes.map(t => <option key={t} value={t}>{t}</option>)}
                                     </select>
                                 </th>
                                 <th className="px-2 py-2">
-                                    <select className="w-full p-2 bg-slate-50 rounded-lg text-[10px] font-bold outline-none" value={filters.condition} onChange={e => setFilters({...filters, condition: e.target.value})}>
+                                    <select className="w-full p-2 bg-slate-50 rounded-lg text-[10px] font-bold outline-none" value={filters.condition} onChange={e => setFilters(f => ({...f, condition: e.target.value}))}>
                                         <option value="">TODAS</option>
-                                        <option value="VMC">VMC</option><option value="IMC">IMC</option><option value="NIGHT">NOCTURNO</option>
+                                        <option value="VMC">VMC</option>
+                                        <option value="IMC">IMC</option>
+                                        <option value="NIGHT">NOCTURNO</option>
                                     </select>
                                 </th>
                                 <th className="px-2 py-2"></th>
                                 <th className="px-2 py-2">
-                                    <select className="w-full p-2 bg-slate-50 rounded-lg text-[10px] font-bold outline-none" value={filters.pilot} onChange={e => setFilters({...filters, pilot: e.target.value})}>
+                                    <select className="w-full p-2 bg-slate-50 rounded-lg text-[10px] font-bold outline-none" value={filters.pilot} onChange={e => setFilters(f => ({...f, pilot: e.target.value}))}>
                                         <option value="">TODOS</option>
                                         {uniquePilots.map(p => <option key={p} value={p}>{p}</option>)}
                                     </select>

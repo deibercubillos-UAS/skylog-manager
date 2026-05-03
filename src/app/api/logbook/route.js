@@ -3,8 +3,12 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request) {
     try {
+        const { searchParams } = new URL(request.url);
+        const limit  = Math.min(parseInt(searchParams.get('limit')  || '200'), 500);
+        const offset = parseInt(searchParams.get('offset') || '0');
+
         const supabase = await createClientSSR();
         const { data: { user } } = await supabase.auth.getUser();
         const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
@@ -12,15 +16,29 @@ export async function GET() {
         const { data, error } = await supabase
             .from('flights')
             .select(`
-                *,
+                id,
+                mission_id,
+                flight_date,
+                takeoff_time,
+                landing_time,
+                mission_type,
+                visual_condition,
+                location,
+                notes,
+                incidents,
+                imported,
                 pilots:pilot_id(name),
                 aircraft:aircraft_id(model, serial_number, total_hours)
             `)
             .eq('organization_id', prof.organization_id)
-            .order('flight_date', { ascending: false });
+            .order('flight_date', { ascending: false })
+            .range(offset, offset + limit - 1);
 
         if (error) throw error;
-        return NextResponse.json(data || []);
+
+        const res = NextResponse.json(data || []);
+        res.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=120');
+        return res;
     } catch (err) {
         return NextResponse.json({ error: err.message }, { status: 500 });
     }

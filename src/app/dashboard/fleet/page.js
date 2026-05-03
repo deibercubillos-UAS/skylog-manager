@@ -1,15 +1,18 @@
 'use client';
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import AircraftCard from '@/components/AircraftCard';
 import BatteryCard from '@/components/BatteryCard';
-import TechCard from '@/components/TechCard'; // <--- IMPORTANTE
-import AddAircraftPanel from '@/components/AddAircraftPanel';
-import AddBatteryPanel from '@/components/AddBatteryPanel';
-import AddTechPanel from '@/components/AddTechPanel'; // <--- IMPORTANTE
-import EditAircraftPanel from '@/components/EditAircraftPanel';
-import EditBatteryPanel from '@/components/EditBatteryPanel';
-import EditTechPanel from '@/components/EditTechPanel'; // <--- IMPORTANTE
+import TechCard from '@/components/TechCard';
+
+// Paneles: carga diferida → no bloquean el bundle inicial
+const AddAircraftPanel  = dynamic(() => import('@/components/AddAircraftPanel'),  { ssr: false });
+const AddBatteryPanel   = dynamic(() => import('@/components/AddBatteryPanel'),   { ssr: false });
+const AddTechPanel      = dynamic(() => import('@/components/AddTechPanel'),      { ssr: false });
+const EditAircraftPanel = dynamic(() => import('@/components/EditAircraftPanel'), { ssr: false });
+const EditBatteryPanel  = dynamic(() => import('@/components/EditBatteryPanel'),  { ssr: false });
+const EditTechPanel     = dynamic(() => import('@/components/EditTechPanel'),     { ssr: false });
 
 export default function FleetPage() {
   const [drones, setDrones] = useState([]);
@@ -59,18 +62,25 @@ setTech(resTech.data || []);
 
   const handleDelete = async (id, table) => {
     if (!confirm("¿Está seguro de eliminar este activo? Esta acción es irreversible.")) return;
-    
+
+    // Actualización optimista: eliminar del estado antes de esperar al servidor
+    const prevDrones    = drones;
+    const prevBatteries = batteries;
+    const prevTech      = tech;
+
+    if (table === 'aircraft')        setDrones(d    => d.filter(x => x.id !== id));
+    else if (table === 'batteries')  setBatteries(b => b.filter(x => x.id !== id));
+    else if (table === 'inventory_items') setTech(t => t.filter(x => x.id !== id));
+
     try {
         const { error } = await supabase.from(table).delete().eq('id', id);
-        
-        if (error) {
-            alert("Error de Servidor: " + error.message);
-        } else {
-            // Refrescar los datos locales después de borrar
-            fetchData();
-        }
+        if (error) throw error;
     } catch (err) {
-        alert("Falla de red al intentar eliminar.");
+        // Revertir si falla
+        setDrones(prevDrones);
+        setBatteries(prevBatteries);
+        setTech(prevTech);
+        alert("Error al eliminar: " + err.message);
     }
 };
 

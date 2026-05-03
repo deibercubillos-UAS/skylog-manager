@@ -23,23 +23,19 @@ export default async function DashboardPage() {
         return <DashboardClient initialData={{ stats: { hours: '0.0', pilotCount: 0, fleetCount: 0, alertsCount: 0 }, recentActivity: [], alerts: [], chart: [] }} />;
     }
 
-    // CARGA TOTAL (Fluidez máxima: traemos todo lo de la empresa)
+    // Solo vuelos de los últimos 6 meses (para el gráfico + actividad reciente)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const sixMonthsAgoStr = sixMonthsAgo.toISOString().split('T')[0];
+
     const [flightsRes, crewRes, fleetRes] = await Promise.all([
         supabase
             .from('flights')
-            .select(`
-                id,
-                mission_id,
-                flight_date,
-                takeoff_time,
-                landing_time,
-                total_time,
-                created_at,
-                pilots:pilot_id(name),
-                aircraft:aircraft_id(model, serial_number)
-            `)
+            .select('id,mission_id,flight_date,created_at,pilots:pilot_id(name),aircraft:aircraft_id(model,serial_number)')
             .eq('organization_id', orgId)
-            .order('created_at', { ascending: false }),
+            .gte('flight_date', sixMonthsAgoStr)
+            .order('created_at', { ascending: false })
+            .limit(300),
         supabase.from('pilots').select('id, name, medical_expiry').eq('organization_id', orgId).eq('is_active', true),
         supabase.from('aircraft').select('id, model, status, total_hours').eq('organization_id', orgId)
     ]);

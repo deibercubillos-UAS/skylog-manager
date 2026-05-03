@@ -1,8 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import HelpTooltip from '@/components/HelpTooltip';
 import dynamic from 'next/dynamic';
+import { generateKML, downloadKML } from '@/lib/kmlGenerator';
+import { sailRoman, sailColor } from '@/lib/soraEngine';
 
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
     const hours = Math.floor(i / 2).toString().padStart(2, '0');
@@ -22,20 +24,29 @@ const MapPickerModal = dynamic(() => import('./MapPickerModal'), {
 export default function AerocivilForm({ drones, pilots, org, loadData }) { 
     const [geo, setGeo] = useState({ depts: [], munis: [], all: [] });
     const [loadingGeo, setLoadingGeo] = useState(true);
-    const [saving, setSaving] = useState(false)
+    const [saving, setSaving] = useState(false);
     const [inventoryList, setInventoryList] = useState([]);
     const [policies, setPolicies] = useState([]);
+    // ── Fase 3 additions ───────────────────────────────────────────
+    const [soraAssessments, setSoraAssessments] = useState([]);
+    const [linkedSoraId,    setLinkedSoraId]    = useState('');
+    const [aerocivilCreds,  setAerocivilCreds]  = useState(null);
+    const [kmlGenerated,    setKmlGenerated]    = useState(false);
 
     useEffect(() => {
-        async function loadTechAndPolicies() {
-            const [techRes, polRes] = await Promise.all([
+        async function loadInitialData() {
+            const [techRes, polRes, soraRes, credsRes] = await Promise.all([
                 supabase.from('inventory_items').select('*').eq('status', 'Operativo'),
-                supabase.from('insurance_policies').select('*').order('end_date', { ascending: false })
+                supabase.from('insurance_policies').select('*').order('end_date', { ascending: false }),
+                fetch('/api/sora/assessments').then(r => r.json()).catch(() => []),
+                fetch('/api/aerocivil/credentials').then(r => r.json()).catch(() => null),
             ]);
             setInventoryList(techRes.data || []);
             setPolicies(polRes.data || []);
+            setSoraAssessments(Array.isArray(soraRes) ? soraRes.filter(a => a.status === 'complete') : []);
+            setAerocivilCreds(credsRes?.username ? credsRes : null);
         }
-        loadTechAndPolicies();
+        loadInitialData();
     }, []);
 
 
@@ -76,7 +87,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
             recreativo: false
         },
         aeronaves: [
-            { id: '', brand: '', model: '', serial_number: '', insurer: '', policy: '', start_date: '', end_date: '' }
+            { id: '', brand: '', model: '', serial_number: '', ruas: '', insurer: '', policy: '', start_date: '', end_date: '' }
         ],
         equipos: [
             { id: '', brand: '', model: '', type: '', serial_number: '' }
@@ -152,7 +163,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
         if (aeroForm.aeronaves.length < 3) {
             setAeroForm(prev => ({
                 ...prev,
-                aeronaves: [...prev.aeronaves, { id: '', brand: '', model: '', serial_number: '', insurer: '', policy: '', start_date: '', end_date: '' }]
+                aeronaves: [...prev.aeronaves, { id: '', brand: '', model: '', serial_number: '', ruas: '', insurer: '', policy: '', start_date: '', end_date: '' }]
             }));
         }
     };
@@ -217,14 +228,15 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
         const newAeronaves = [...aeroForm.aeronaves];
         newAeronaves[index] = {
             ...newAeronaves[index],
-            id: aircraftId,
-            brand: selected?.brand || '',
-            model: selected?.model || '',
+            id:            aircraftId,
+            brand:         selected?.brand         || '',
+            model:         selected?.model         || '',
             serial_number: selected?.serial_number || '',
-            insurer: policy?.insurance_company || '',
-            policy: policy?.policy_number || '',
-            start_date: policy?.start_date || '',
-            end_date: policy?.end_date || ''
+            ruas:          selected?.ruas           || '',
+            insurer:       policy?.insurance_company || '',
+            policy:        policy?.policy_number    || '',
+            start_date:    policy?.start_date       || '',
+            end_date:      policy?.end_date         || '',
         };
         setAeroForm(prev => ({ ...prev, aeronaves: newAeronaves }));
 
@@ -430,9 +442,9 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
             if (res.ok) {
                 // 2. GUARDAR EL RESPALDO DEL FORMULARIO COMPLETO
                 await supabase.from('aerocivil_submissions').insert([{
-                    organization_id: org.id,
+                    organization_id:  org.id,
                     authorization_id: newMission.id,
-                    full_data: aeroForm
+                    full_data:        { ...aeroForm, sora_assessment_id: linkedSoraId || null }
                 }]);
 
                 // 3. GENERAR EL EXCEL CON EL CONSECUTIVO REAL
@@ -733,6 +745,91 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                 </div>
             </section>
 
+            {/* SECCIÓN 6.5: EVALUACIÓN SORA (JARUS) ─────────────────────────── */}
+            <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
+                <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-orange-600">shield_check</span>
+                        <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">Análisis de Riesgos SORA</h4>
+                    </div>
+                    <HelpTooltip text="Vincule la evaluación JARUS SORA completada. El nivel SAIL y el documento de análisis de riesgos son exigidos por AeroCivil para la solicitud F-100." />
+                </div>
+                <div className="p-8 space-y-4">
+                    {soraAssessments.length === 0 ? (
+                        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                            <span className="material-symbols-outlined text-amber-500 shrink-0">warning</span>
+                            <div>
+                                <p className="text-[10px] font-black text-amber-800 uppercase">Sin evaluaciones SORA completadas</p>
+                                <p className="text-[9px] text-amber-600 font-medium mt-1">
+                                    Debe completar una evaluación SORA antes de radicar la solicitud. Ir a{' '}
+                                    <a href="/dashboard/sora" target="_blank" className="underline font-black">Análisis SORA</a>
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Vincular Evaluación SORA completada</label>
+                            <select
+                                className="w-full p-3.5 bg-slate-50 rounded-2xl border border-slate-200 font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                                value={linkedSoraId}
+                                onChange={e => {
+                                    const id = e.target.value;
+                                    setLinkedSoraId(id);
+                                    if (id) {
+                                        setAeroForm(prev => ({
+                                            ...prev,
+                                            docs_adjuntos: { ...prev.docs_adjuntos, analisis_riesgos: true }
+                                        }));
+                                    }
+                                }}
+                            >
+                                <option value="">— Sin vincular —</option>
+                                {soraAssessments.map(a => (
+                                    <option key={a.id} value={a.id}>
+                                        {a.operation_name} · SAIL {sailRoman(a.sail_level)} · {a.final_arc} · {a.operation_date || ''}
+                                    </option>
+                                ))}
+                            </select>
+
+                            {linkedSoraId && (() => {
+                                const linked = soraAssessments.find(a => a.id === linkedSoraId);
+                                if (!linked) return null;
+                                const sc = sailColor(linked.sail_level);
+                                return (
+                                    <div className="grid grid-cols-3 gap-3 mt-2">
+                                        <div className={`p-4 rounded-2xl border text-center ${sc.bg} ${sc.border}`}>
+                                            <p className={`text-[8px] font-black uppercase ${sc.text} opacity-70`}>SAIL</p>
+                                            <p className={`text-3xl font-black ${sc.text}`}>{sailRoman(linked.sail_level)}</p>
+                                        </div>
+                                        <div className="p-4 rounded-2xl border bg-slate-50 border-slate-200 text-center">
+                                            <p className="text-[8px] font-black uppercase text-slate-400">GRC Final</p>
+                                            <p className="text-2xl font-black text-slate-800">{linked.final_grc}</p>
+                                        </div>
+                                        <div className="p-4 rounded-2xl border bg-slate-50 border-slate-200 text-center">
+                                            <p className="text-[8px] font-black uppercase text-slate-400">ARC Final</p>
+                                            <p className="text-xl font-black text-slate-800">{linked.final_arc}</p>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
+
+                    {aerocivilCreds && (
+                        <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mt-2">
+                            <span className="material-symbols-outlined text-emerald-500 text-sm shrink-0 mt-0.5">verified_user</span>
+                            <div>
+                                <p className="text-[9px] font-black text-emerald-800 uppercase">Cuenta AeroCivil configurada</p>
+                                <p className="text-[9px] text-emerald-600 font-medium mt-0.5">
+                                    Solicitante: <strong>{aerocivilCreds.solicitante || aerocivilCreds.username}</strong>
+                                    {aerocivilCreds.contact_name && <> · Contacto: <strong>{aerocivilCreds.contact_name}</strong></>}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </section>
+
             {/* SECCIÓN 7: AERONAVE(S) NO TRIPULADA(S) UAS */}
             <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
                 <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
@@ -756,10 +853,10 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Seleccionar de Flota</label>
-                                    <select 
+                                    <select
                                         className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs outline-none focus:ring-2 focus:ring-orange-500"
                                         value={unit.id}
                                         onChange={(e) => handleAircraftSelect(index, e.target.value, drones)}
@@ -770,6 +867,12 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                                 </div>
                                 <InputCol label="Marca" value={unit.brand} disabled isDark={false} />
                                 <InputCol label="Modelo" value={unit.model} disabled isDark={false} />
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">RUAS (Matrícula)</label>
+                                    <div className={`w-full p-3 rounded-xl text-xs font-black ${unit.ruas ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-slate-200 text-slate-400'}`}>
+                                        {unit.ruas || 'Sin RUAS'}
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 border-t border-slate-200/50">
@@ -1070,6 +1173,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
 
                 {/* TABLA TÉCNICA (Como en la imagen) */}
                 {aeroForm.points.length > 0 && (
+                    <>
                     <div className="overflow-hidden rounded-2xl border border-white/10">
                         <table className="w-full text-left text-[10px]">
                             <thead className="bg-white/5 font-black uppercase text-slate-500">
@@ -1090,6 +1194,47 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* KML Download */}
+                    <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl p-4 mt-2">
+                        <div>
+                            <p className="text-[10px] font-black uppercase text-orange-400">Archivo KML listo para exportar</p>
+                            <p className="text-[9px] text-slate-400 font-medium mt-0.5">
+                                {aeroForm.points.length} punto{aeroForm.points.length !== 1 ? 's' : ''} · {aeroForm.geo_type === 'circle' ? `radio ${aeroForm.radius}m` : aeroForm.geo_type} · WGS-84
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const kml = generateKML(
+                                    aeroForm.geo_type,
+                                    aeroForm.points,
+                                    aeroForm.radius,
+                                    aeroForm.geo_name || 'Operacion-UAS',
+                                    Number(aeroForm.altitude_meters) || 120
+                                );
+                                if (kml) {
+                                    const fname = `${(aeroForm.geo_name || 'operacion-uas').replace(/\s+/g, '-').toLowerCase()}.kml`;
+                                    downloadKML(kml, fname);
+                                    setKmlGenerated(true);
+                                    setAeroForm(prev => ({
+                                        ...prev,
+                                        docs_adjuntos: { ...prev.docs_adjuntos, archivo_kmz: true }
+                                    }));
+                                }
+                            }}
+                            className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase transition-all active:scale-95 shadow-lg shadow-orange-500/20"
+                        >
+                            <span className="material-symbols-outlined text-sm">download</span>
+                            {kmlGenerated ? 'Descargar de nuevo' : 'Descargar KML'}
+                        </button>
+                    </div>
+                    {kmlGenerated && (
+                        <p className="text-[9px] text-emerald-400 font-black uppercase text-center mt-1">
+                            ✓ KML generado · Adjunte el archivo al portal de AeroCivil
+                        </p>
+                    )}
+                    </>
                 )}
             </section>
 

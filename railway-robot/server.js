@@ -9,6 +9,7 @@
 
 import express        from 'express';
 import { runAutomation } from './automator.js';
+import { inspectPortal } from './inspector.js';
 
 const app    = express();
 const SECRET = process.env.RAILWAY_API_SECRET;
@@ -52,6 +53,30 @@ app.post('/automate', async (req, res) => {
   runAutomation(jobId, credentials, formData, kmlContent).catch(err => {
     console.error(`[JOB ${jobId}] Error no capturado:`, err.message);
   });
+});
+
+// ── POST /inspect ──────────────────────────────────────────────────────────
+// Body: { credentials: { username, password } }
+// Navega el portal paso a paso y devuelve screenshots + elementos detectados.
+// Solo para diagnóstico de selectores — NO crear solicitudes.
+app.post('/inspect', async (req, res) => {
+  const { credentials } = req.body;
+
+  if (!credentials?.username || !credentials?.password) {
+    return res.status(400).json({ error: 'Faltan credentials.username / credentials.password' });
+  }
+
+  try {
+    console.log(`[INSPECT] Iniciando inspección del portal para ${credentials.username}`);
+    const result = await inspectPortal(credentials);
+    console.log(`[INSPECT] Completado: ${result.totalSteps} pasos`);
+
+    // Devolvemos los pasos pero sin el screenshot completo en logs
+    return res.json(result);
+  } catch (err) {
+    console.error('[INSPECT] Error:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // ── Iniciar servidor ───────────────────────────────────────────────────────

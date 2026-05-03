@@ -1,7 +1,8 @@
 /**
- * server.js — Bitafly AeroCivil Robot
+ * server.js — Bitafly AeroCivil Robot v1.1
  * Express microservice que recibe instrucciones de Vercel (Bitafly)
  * y ejecuta la automatización Playwright contra el portal AeroCivil.
+ * Endpoints: /health, /automate, /inspect
  *
  * Puerto: Railway inyecta PORT automáticamente.
  * Autenticación: header x-api-secret debe coincidir con RAILWAY_API_SECRET.

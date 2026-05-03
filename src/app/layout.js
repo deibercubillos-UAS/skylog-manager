@@ -39,6 +39,9 @@ const MATERIAL_ICONS = [
   'checklist','shield_check',
   'trending_down','trending_up','upload_file',
   'verified','verified_user','visibility','visibility_off','warning',
+  // Iconos añadidos en Fase 2-4 (SORA, KML, AeroCivil, Inspector)
+  'arrow_back','download','open_in_full','progress_activity',
+  'save','task_alt','travel_explore',
 ].join(',');
 
 const MATERIAL_SYMBOLS_URL = `https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=swap&icon_names=${MATERIAL_ICONS}`;

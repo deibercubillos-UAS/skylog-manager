@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import FileUpload from '@/components/FileUpload';
 import { hasPermission } from '@/lib/roles';
+import AerocivilCredentialsSection from '@/components/settings/AerocivilCredentialsSection';
 
 export default function SettingsPage() {
     const [loading, setLoading] = useState(true);
@@ -316,6 +317,9 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
         </div>
     )}
 </section>
+
+{/* SECCIÓN CUENTA AEROCIVIL */}
+{profile && <AerocivilCredentialsSection orgId={profile.organization_id} role={profile.role} />}
 
 {/* MODAL PANEL DE PÓLIZA */}
 {showPolicyForm && (

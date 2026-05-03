@@ -1,0 +1,35 @@
+# Railway build config — Playwright necesita dependencias del sistema
+# nixpacks.toml se aplica automáticamente en Railway
+
+[phases.setup]
+nixPkgs = [
+  "nodejs_20",
+  "chromium",
+  "nss",
+  "nspr",
+  "dbus",
+  "atk",
+  "at-spi2-atk",
+  "cups",
+  "libxkbcommon",
+  "gtk3",
+  "pango",
+  "cairo",
+  "gdk-pixbuf",
+  "libxrandr",
+  "libxdamage",
+  "libxcomposite",
+  "libxext",
+  "libxfixes",
+  "mesa",
+  "alsa-lib"
+]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npx playwright install chromium --with-deps || true"]
+
+[start]
+cmd = "node server.js"

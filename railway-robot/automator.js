@@ -7,8 +7,8 @@
  * real con el usuario. Usar el modo debug (DEBUG_SCREENSHOTS=true) para
  * tomar capturas en cada paso y ajustar si es necesario.
  *
- * Portal AeroCivil UAS: https://www.aerocivil.gov.co/servicios/servicios-en-linea/uas
- * (puede requerir SIPAC o portal secundario — verificar con la cuenta real)
+ * Portal AeroCivil UAS (Oracle APEX):
+ * https://g1ec7dbefb1d8e0-adbprodoa1.adb.sa-bogota-1.oraclecloudapps.com/ords/r/wsp_app_uasyp/col-aerocivil/login?tz=-5:00
  */
 
 import { chromium } from 'playwright';
@@ -30,7 +30,7 @@ const DEBUG = process.env.DEBUG_SCREENSHOTS === 'true';
 const SCREENSHOTS_DIR = path.join(__dirname, 'screenshots');
 
 // Portal URLs — verificar con cuenta real
-const PORTAL_LOGIN_URL = 'https://www.aerocivil.gov.co/servicios/servicios-en-linea/uas';
+const PORTAL_LOGIN_URL = 'https://g1ec7dbefb1d8e0-adbprodoa1.adb.sa-bogota-1.oraclecloudapps.com/ords/r/wsp_app_uasyp/col-aerocivil/login?tz=-5:00';
 const MAX_RETRIES      = 2;
 const STEP_DELAY_MS    = 1200; // pausa entre acciones (ms) — simula comportamiento humano
 

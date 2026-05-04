@@ -10,7 +10,7 @@
 
 import { chromium } from 'playwright';
 
-const PORTAL_URL = 'https://www.aerocivil.gov.co/servicios/servicios-en-linea/uas';
+const PORTAL_URL = 'https://g1ec7dbefb1d8e0-adbprodoa1.adb.sa-bogota-1.oraclecloudapps.com/ords/r/wsp_app_uasyp/col-aerocivil/login?tz=-5:00';
 
 // Extrae todos los elementos interactivos visibles de la página
 async function extractPageElements(page) {

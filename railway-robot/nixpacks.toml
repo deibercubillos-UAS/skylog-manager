@@ -34,4 +34,6 @@ cmds = ["npm ci"]
 PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
 
 [start]
-cmd = "node server.js"
+# Antes de arrancar Node, busca libglib-2.0.so.0 en el Nix store y lo agrega
+# a LD_LIBRARY_PATH para que el Chromium headless encuentre sus dependencias.
+cmd = "NIX_GLIB=$(find /nix/store -maxdepth 7 -name 'libglib-2.0.so.0' 2>/dev/null | head -1 | xargs dirname 2>/dev/null || echo '') && export LD_LIBRARY_PATH=\"${NIX_GLIB}:${LD_LIBRARY_PATH:-}\" && echo \"[Robot] LD_LIBRARY_PATH=${LD_LIBRARY_PATH}\" && node server.js"

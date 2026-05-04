@@ -86,8 +86,13 @@ export async function POST(request) {
     if (jobErr) throw jobErr;
 
     // 5. Llamar al microservicio Railway (fire-and-forget desde Vercel)
-    const railwayUrl    = process.env.RAILWAY_AUTOMATION_URL;
+    const rawRailwayUrl = process.env.RAILWAY_AUTOMATION_URL;
     const railwaySecret = process.env.RAILWAY_API_SECRET;
+
+    // Normalizar URL: asegurar que tenga protocolo https://
+    const railwayUrl = rawRailwayUrl
+      ? (rawRailwayUrl.startsWith('http') ? rawRailwayUrl.replace(/\/$/, '') : `https://${rawRailwayUrl.replace(/\/$/, '')}`)
+      : null;
 
     if (!railwayUrl || !railwaySecret) {
       // Modo simulación: registrar el job pero no disparar el robot

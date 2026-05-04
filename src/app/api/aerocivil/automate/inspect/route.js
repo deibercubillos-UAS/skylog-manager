@@ -51,13 +51,18 @@ export async function POST() {
     }
 
     // 3. Verificar que Railway está configurado
-    const railwayUrl    = process.env.RAILWAY_AUTOMATION_URL;
+    const rawRailwayUrl = process.env.RAILWAY_AUTOMATION_URL;
     const railwaySecret = process.env.RAILWAY_API_SECRET;
 
-    if (!railwayUrl || !railwaySecret)
+    if (!rawRailwayUrl || !railwaySecret)
       return NextResponse.json({
         error: 'RAILWAY_AUTOMATION_URL o RAILWAY_API_SECRET no están configurados en Vercel',
       }, { status: 400 });
+
+    // Normalizar URL: asegurar que tenga protocolo https://
+    const railwayUrl = rawRailwayUrl.startsWith('http')
+      ? rawRailwayUrl.replace(/\/$/, '')
+      : `https://${rawRailwayUrl.replace(/\/$/, '')}`;
 
     // 4. Llamar a Railway /inspect (esperar respuesta — la inspección dura ~30s)
     const controller = new AbortController();

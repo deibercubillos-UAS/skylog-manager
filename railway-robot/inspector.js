@@ -39,7 +39,7 @@ async function extractPageElements(page) {
         name:     el.name || null,
         visible:  el.offsetParent !== null,
         selector: el.id ? `#${el.id}` : el.name ? `select[name="${el.name}"]` : null,
-        options:  Array.from(el.options).slice(0, 5).map(o => o.text), // primeras 5 opciones
+        options:  Array.from(el.options).slice(0, 5).map(o => o.text),
       });
     });
 
@@ -82,8 +82,8 @@ export async function inspectPortal(credentials) {
 
     steps.push({
       label,
-      url:      page.url(),
-      title:    await page.title().catch(() => ''),
+      url:        page.url(),
+      title:      await page.title().catch(() => ''),
       screenshot: screenshot64,
       elements:   elements.filter(e => e.visible !== false),
       error:      error?.message || null,
@@ -104,13 +104,12 @@ export async function inspectPortal(credentials) {
     const page = await context.newPage();
     page.setDefaultTimeout(20000);
 
-    // ── PASO A: Página inicial ────────────────────────────────────────────
+    // ── PASO A: Página inicial (login) ────────────────────────────────────────
     await page.goto(PORTAL_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForTimeout(2000);
     await addStep('Página inicial del portal', page);
 
-    // ── PASO B: Intentar login ────────────────────────────────────────────
-    // Buscar campos de usuario/contraseña con múltiples estrategias
+    // ── PASO B: Llenar formulario de login ────────────────────────────────────
     let loginAttempted = false;
 
     const usernameSelectors = [
@@ -146,7 +145,6 @@ export async function inspectPortal(credentials) {
     if (loginAttempted) {
       await addStep('Formulario de login (campos llenados)', page);
 
-      // Intentar submit
       const submitSelectors = [
         'button[type="submit"]', 'input[type="submit"]',
         'button:has-text("Ingresar")', 'button:has-text("Acceder")',
@@ -158,7 +156,7 @@ export async function inspectPortal(credentials) {
           if (await el.isVisible({ timeout: 2000 })) {
             await el.click();
             await page.waitForLoadState('domcontentloaded', { timeout: 15000 });
-            await page.waitForTimeout(2000);
+            await page.waitForTimeout(3000); // Oracle APEX necesita tiempo extra
             break;
           }
         } catch {}
@@ -166,10 +164,9 @@ export async function inspectPortal(credentials) {
 
       await addStep('Después de intentar login', page);
     } else {
-      // Puede haber un botón/link para abrir el login primero
       const loginLinkSelectors = [
         'a:has-text("Ingresar")', 'a:has-text("Acceso")',
-        'a:has-text("Login")',    'a:has-text("Iniciar sesión")',
+        'a:has-text("Login")', 'a:has-text("Iniciar sesión")',
         '#btn-login', '.login-btn', '[href*="login"]',
       ];
       for (const sel of loginLinkSelectors) {
@@ -186,80 +183,80 @@ export async function inspectPortal(credentials) {
       await addStep('Después de buscar enlace de login', page);
     }
 
-    // ── PASO C: Explorar después del login ────────────────────────────────
-    // Verificar si estamos logueados buscando elementos del dashboard
+    // ── PASO C: Verificar login exitoso (Oracle APEX UAS portal) ─────────────
+    // Detectamos por elementos del dashboard UAS de Oracle APEX
     const loggedIn = await page.locator([
-      'text=/cerrar sesión/i', 'text=/salir/i', 'text=/logout/i',
-      'text=/mi cuenta/i', '[href*="logout"]', '[href*="signout"]',
-      'text=/bienvenido/i', 'text=/solicitudes/i',
-    ].join(', ')).first().isVisible({ timeout: 3000 }).catch(() => false);
+      '.t-Button--headerTree',
+      'text=/Registro UAS/i',
+      'text=/Sistemas de Aeronaves/i',
+      'text=/No Tripuladas/i',
+      'text=/solicitudes/i',
+      'text=/cerrar sesión/i',
+      '[href*="logout"]',
+    ].join(', ')).first().isVisible({ timeout: 8000 }).catch(() => false);
 
     if (loggedIn) {
       await addStep('Dashboard (login exitoso) ✅', page);
 
-      // ── PASO D: Navegar a "Autorización de Vuelo UAS" (menú lateral) ───────
-      // Oracle APEX portal AeroCivil — menú izquierdo
-      const authVueloSelectors = [
-        'a:has-text("Autorización de Vuelo UAS")',
-        'a:has-text("Autorización de Vuelo")',
-        '[href*="solicitud-autorizacion-de-vuelo"]',
-        '[href*="autorizacion-de-vuelo-uas"]',
-        'a:has-text("Autorización")',
-      ];
-      let foundAuthPage = false;
-      for (const sel of authVueloSelectors) {
-        try {
-          const el = page.locator(sel).first();
-          if (await el.isVisible({ timeout: 3000 })) {
-            await el.click();
-            await page.waitForLoadState('domcontentloaded', { timeout: 15000 });
-            await page.waitForTimeout(2000);
-            await addStep('Autorización de Vuelo UAS — lista de solicitudes', page);
-            foundAuthPage = true;
-            break;
-          }
-        } catch {}
-      }
-
-      if (!foundAuthPage) {
-        // Intentar navegar directo por URL (ruta conocida del portal Oracle APEX)
-        try {
-          const baseUrl = page.url().split('/col-aerocivil/')[0];
-          await page.goto(`${baseUrl}/col-aerocivil/solicitud-autorizacion-de-vuelo-uas`, {
-            waitUntil: 'domcontentloaded', timeout: 20000,
-          });
-          await page.waitForTimeout(2000);
-          await addStep('Autorización de Vuelo UAS — navegación directa por URL', page);
-          foundAuthPage = true;
-        } catch {}
-      }
-
-      // ── PASO E: Abrir formulario "Crear Solicitud" ────────────────────────
-      if (foundAuthPage) {
-        const crearSelectors = [
-          'button:has-text("Crear Solicitud")',
-          'a:has-text("Crear Solicitud")',
-          'button:has-text("Crear")',
-          '[href*="crear"]',
-          'button:has-text("Nueva Solicitud")',
-          'button:has-text("Nueva")',
-        ];
-        for (const sel of crearSelectors) {
-          try {
-            const el = page.locator(sel).first();
-            if (await el.isVisible({ timeout: 3000 })) {
-              await el.click();
-              await page.waitForLoadState('domcontentloaded', { timeout: 20000 });
-              await page.waitForTimeout(2000);
-              await addStep('Formulario — Crear Solicitud (campos del formulario F-100)', page);
-              break;
-            }
-          } catch {}
+      // ── PASO D: Click en botón de árbol del header Oracle APEX ───────────────
+      // Clase: t-Button--headerTree  (abre/cierra el menú lateral de navegación)
+      try {
+        const treeBtn = page.locator('.t-Button--headerTree').first();
+        if (await treeBtn.isVisible({ timeout: 4000 })) {
+          await treeBtn.click();
+          await page.waitForTimeout(1500);
+          await addStep('Menú lateral desplegado', page);
         }
-      }
+      } catch {}
+
+      // ── PASO E: Expandir nodo "Crear Solicitudes" en el árbol ────────────────
+      // Click en .a-TreeView-toggle del item que contiene "Crear Solicitudes"
+      try {
+        const toggle = page.locator(
+          'li:has(.a-TreeView-label:has-text("Crear Solicitudes")) .a-TreeView-toggle, ' +
+          'li:has(a:has-text("Crear Solicitudes")) .a-TreeView-toggle'
+        ).first();
+
+        if (await toggle.isVisible({ timeout: 4000 })) {
+          await toggle.click();
+          await page.waitForTimeout(1500);
+          await addStep('Nodo Crear Solicitudes expandido', page);
+        }
+      } catch {}
+
+      // ── PASO F: Click en "Autorización de Vuelo UAS" (.a-TreeView-label) ────
+      try {
+        const authLabel = page.locator(
+          '.a-TreeView-label:has-text("Autorización de Vuelo UAS"), ' +
+          '.a-TreeView-label:has-text("Autorización de Vuelo"), ' +
+          'a:has-text("Autorización de Vuelo UAS")'
+        ).first();
+
+        if (await authLabel.isVisible({ timeout: 4000 })) {
+          await authLabel.click();
+          await page.waitForLoadState('domcontentloaded', { timeout: 20000 });
+          await page.waitForTimeout(2000);
+          await addStep('Autorización de Vuelo UAS — lista de solicitudes', page);
+
+          // ── PASO G: Click en "Crear Solicitud" ─────────────────────────────────
+          const crearBtn = page.locator(
+            'button:has-text("Crear Solicitud"), ' +
+            'a:has-text("Crear Solicitud"), ' +
+            'button:has-text("Crear"), ' +
+            'a:has-text("Crear")'
+          ).first();
+
+          if (await crearBtn.isVisible({ timeout: 4000 })) {
+            await crearBtn.click();
+            await page.waitForLoadState('domcontentloaded', { timeout: 20000 });
+            await page.waitForTimeout(2000);
+            await addStep('Formulario — Crear Solicitud (campos F-100)', page);
+          }
+        }
+      } catch {}
 
     } else {
-      await addStep('Estado desconocido después del login (revisar screenshot)', page);
+      await addStep('Estado desconocido después del login — revisar screenshot', page);
     }
 
   } catch (err) {

@@ -1,5 +1,7 @@
-# Railway build config — Playwright necesita dependencias del sistema
-# nixpacks.toml se aplica automáticamente en Railway
+# Railway build config — Playwright usa el Chromium del sistema (Nix)
+# PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 evita que npm descargue el Chromium
+# propio de Playwright (que falla con libglib-2.0.so.0 en entornos Nix).
+# El inspector.js usa `which chromium` para encontrar el binario de Nix.
 
 [phases.setup]
 nixPkgs = [
@@ -22,14 +24,14 @@ nixPkgs = [
   "libxext",
   "libxfixes",
   "mesa",
-  "alsa-lib"
+  "alsa-lib",
 ]
 
 [phases.install]
 cmds = ["npm ci"]
 
-[phases.build]
-cmds = ["npx playwright install chromium --with-deps || true"]
+[variables]
+PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
 
 [start]
 cmd = "node server.js"

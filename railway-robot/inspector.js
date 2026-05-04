@@ -9,8 +9,36 @@
  */
 
 import { chromium } from 'playwright';
+import { execSync  } from 'child_process';
 
 const PORTAL_URL = 'https://www.aerocivil.gov.co/servicios/servicios-en-linea/uas';
+
+/**
+ * En Railway/Nixpacks el Chromium propio de Playwright no encuentra libglib-2.0.so.0
+ * porque las librerías están en el Nix store, no en /lib estándar.
+ * Usamos el Chromium instalado por Nix (nixPkgs: chromium) que tiene rpath
+ * apuntando al Nix store y funciona correctamente.
+ */
+function getChromiumExecPath() {
+  // Variable explícita tiene prioridad (p.ej. en Docker)
+  if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
+    return process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+  }
+  // Buscar chromium de Nix en el PATH del sistema
+  try {
+    const p = execSync('which chromium 2>/dev/null || which chromium-browser 2>/dev/null || echo ""', {
+      encoding: 'utf8',
+      timeout: 5000,
+    }).trim();
+    if (p) {
+      console.log(`[INSPECT] Usando Chromium del sistema: ${p}`);
+      return p;
+    }
+  } catch {}
+  // Fallback: dejar que Playwright use su propio binario
+  console.warn('[INSPECT] No se encontró chromium en PATH; usando binario de Playwright (puede fallar en Nix)');
+  return undefined;
+}
 
 // Extrae todos los elementos interactivos visibles de la página
 async function extractPageElements(page) {
@@ -92,6 +120,7 @@ export async function inspectPortal(credentials) {
 
   try {
     browser = await chromium.launch({
+      executablePath: getChromiumExecPath(),
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
     });

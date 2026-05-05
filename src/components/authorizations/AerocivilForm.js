@@ -33,6 +33,13 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
     const [aerocivilCreds,  setAerocivilCreds]  = useState(null);
     const [kmlGenerated,    setKmlGenerated]    = useState(false);
 
+    // ── Robot AeroCivil — estado del job ───────────────────────────
+    const [radicando,   setRadicando]   = useState(false);
+    const [jobId,       setJobId]       = useState(null);
+    const [jobStatus,   setJobStatus]   = useState(null); // 'started'|'running'|'completed'|'failed'
+    const [jobStep,     setJobStep]     = useState('');
+    const [radicado,    setRadicado]    = useState(null); // número de radicado AeroCivil
+
     useEffect(() => {
         async function loadInitialData() {
             const [techRes, polRes, soraRes, credsRes] = await Promise.all([
@@ -60,7 +67,8 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
         fecha_fin: '',
         hora_fin: '',
         otros_detalles: '',
-        peso_maximo: '',
+        peso_maximo: '',      // kg — campo interno
+        pbmo_gramos: '',      // gramos — lo que pide AeroCivil
         contacto_visual: {
             vlos:false,
             bvlos:false,
@@ -303,7 +311,8 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
             id: pilotId,
             name: selected?.name || '',
             id_number: selected?.id_number || '',
-            phone: selected?.phone || ''
+            phone: selected?.phone || '',
+            license_number: selected?.license_number || selected?.cipu_number || '', // CIPU para AeroCivil
         };
         setAeroForm(prev => ({ ...prev, pilotos_solicitud: newPilotos }));
     };
@@ -327,7 +336,8 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
             id: personId,
             name: selected?.name || '',
             id_number: selected?.id_number || '',
-            phone: selected?.phone || ''
+            phone: selected?.phone || '',
+            license_number: selected?.license_number || selected?.cipu_number || '', // CIPU para AeroCivil
         };
         setAeroForm(prev => ({ ...prev, observadores: newObs }));
     };
@@ -404,6 +414,77 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
             ...prev,
             contacto_visual: { ...prev.contacto_visual, [field]: !prev.contacto_visual[field] }
         }));
+    };
+
+    // ── RADICAR A AEROCIVIL (Robot Playwright) ────────────────────
+    const handleRadicarAeroCivil = async () => {
+        if (!aerocivilCreds) return alert('Configure las credenciales AeroCivil en Ajustes antes de radicar.');
+        if (!aeroForm.aeronaves[0].id) return alert('Seleccione al menos una aeronave.');
+        if (aeroForm.points.length === 0) return alert('Capture las coordenadas de operación en el mapa.');
+
+        // Bloqueos de seguridad
+        const dronesConError = aeroForm.aeronaves.filter(a => getDroneAlert(a.id)?.type === 'ERROR');
+        const personasConError = [
+            ...aeroForm.pilotos_solicitud.filter(p => getPersonAlert(p.id)?.type === 'ERROR'),
+            ...aeroForm.observadores.filter(o => getPersonAlert(o.id)?.type === 'ERROR'),
+        ];
+        if (dronesConError.length > 0 || personasConError.length > 0) {
+            return alert(`🚫 BLOQUEO DE SEGURIDAD\n\nResuelva las alertas críticas antes de radicar:\n${dronesConError.length > 0 ? `• ${dronesConError.length} aeronave(s) requieren mantenimiento\n` : ''}${personasConError.length > 0 ? `• ${personasConError.length} tripulante(s) con médico vencido\n` : ''}`);
+        }
+
+        setRadicando(true);
+        setJobStatus('started');
+        setJobStep('Iniciando robot AeroCivil...');
+        setRadicado(null);
+
+        try {
+            const res = await fetch('/api/aerocivil/automate', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    submissionId:     null,
+                    soraAssessmentId: linkedSoraId || null,
+                    formData:         aeroForm,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.error || 'Error al iniciar la automatización');
+
+            const newJobId = data.jobId;
+            setJobId(newJobId);
+            setJobStatus(data.status);
+
+            // Polling cada 4s para monitorear el progreso
+            const pollInterval = setInterval(async () => {
+                try {
+                    const pollRes  = await fetch(`/api/aerocivil/automate?jobId=${newJobId}`);
+                    const pollData = await pollRes.json();
+
+                    setJobStep(pollData.current_step || '');
+                    setJobStatus(pollData.status);
+
+                    if (pollData.status === 'completed') {
+                        clearInterval(pollInterval);
+                        setRadicando(false);
+                        setRadicado(pollData.aerocivil_request_number || 'Radicado');
+                    } else if (pollData.status === 'failed') {
+                        clearInterval(pollInterval);
+                        setRadicando(false);
+                        alert(`❌ Error en la radicación:\n${pollData.error_message || 'Error desconocido'}`);
+                    }
+                } catch { /* silencioso — reintentar */ }
+            }, 4000);
+
+            // Detener polling después de 10 min
+            setTimeout(() => { clearInterval(pollInterval); setRadicando(false); }, 600000);
+
+        } catch (e) {
+            setRadicando(false);
+            setJobStatus('failed');
+            alert('Error al iniciar radicación: ' + e.message);
+        }
     };
 
         const handleFinalSubmit = async () => {
@@ -618,13 +699,20 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                     {/* FILA 5: PESO Y GEOGRAFÍA */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="space-y-1">
-                            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Peso Bruto Máximo (Kg)</label>
-                            <input 
-                                type="number" step="0.01" 
-                                className="w-full p-4 bg-white border-2 border-orange-100 rounded-2xl font-black text-sm text-orange-600 outline-none" 
+                            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">
+                                Peso Bruto Máximo (Kg)
+                                {aeroForm.pbmo_gramos && <span className="ml-2 text-orange-500">= {aeroForm.pbmo_gramos} g (AeroCivil)</span>}
+                            </label>
+                            <input
+                                type="number" step="0.01"
+                                className="w-full p-4 bg-white border-2 border-orange-100 rounded-2xl font-black text-sm text-orange-600 outline-none"
                                 placeholder="0.00"
                                 value={aeroForm.peso_maximo}
-                                onChange={e => setAeroForm({...aeroForm, peso_maximo: e.target.value})}
+                                onChange={e => {
+                                    const kg = e.target.value;
+                                    const gramos = kg ? Math.round(parseFloat(kg) * 1000) : '';
+                                    setAeroForm({...aeroForm, peso_maximo: kg, pbmo_gramos: gramos});
+                                }}
                             />
                         </div>
                         <div className="space-y-1">
@@ -1312,7 +1400,54 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
             </div>
         </section>
 
-            <button 
+            {/* ── PANEL DE PROGRESO DEL ROBOT ─────────────────────────── */}
+            {(jobStatus || radicado) && (
+                <div className={`rounded-[2.5rem] p-6 border-2 space-y-4 ${
+                    radicado           ? 'bg-emerald-50 border-emerald-300' :
+                    jobStatus==='failed'? 'bg-red-50 border-red-300' :
+                                         'bg-blue-50 border-blue-200'
+                }`}>
+                    <div className="flex items-center gap-3">
+                        {radicado ? (
+                            <span className="material-symbols-outlined text-3xl text-emerald-600">task_alt</span>
+                        ) : jobStatus === 'failed' ? (
+                            <span className="material-symbols-outlined text-3xl text-red-600">error</span>
+                        ) : (
+                            <span className="material-symbols-outlined text-3xl text-blue-600 animate-spin" style={{animationDuration:'2s'}}>progress_activity</span>
+                        )}
+                        <div>
+                            <p className={`text-[11px] font-black uppercase tracking-widest ${
+                                radicado ? 'text-emerald-800' : jobStatus==='failed' ? 'text-red-800' : 'text-blue-800'
+                            }`}>
+                                {radicado ? '✅ Radicado con Éxito' : jobStatus==='failed' ? 'Error en la radicación' : 'Robot AeroCivil en ejecución'}
+                            </p>
+                            {radicado && (
+                                <p className="text-2xl font-black text-emerald-700 mt-1">#{radicado}</p>
+                            )}
+                            {!radicado && jobStep && (
+                                <p className="text-[10px] text-blue-600 font-medium mt-0.5">{jobStep}</p>
+                            )}
+                        </div>
+                    </div>
+                    {jobId && !radicado && (
+                        <p className="text-[8px] text-slate-400 font-mono">Job ID: {jobId}</p>
+                    )}
+                </div>
+            )}
+
+            {/* ── BOTÓN RADICAR A AEROCIVIL ────────────────────────────── */}
+            {aerocivilCreds && (
+                <button
+                    onClick={handleRadicarAeroCivil}
+                    disabled={radicando || !!radicado}
+                    className="w-full py-6 bg-orange-600 text-white font-black rounded-[2.5rem] shadow-xl uppercase text-xs tracking-widest hover:bg-orange-700 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                >
+                    <span className="material-symbols-outlined text-lg">travel_explore</span>
+                    {radicando ? 'ROBOT ACTIVO — RADICANDO EN AEROCIVIL...' : radicado ? `RADICADO #${radicado}` : 'RADICAR AUTOMÁTICAMENTE EN AEROCIVIL'}
+                </button>
+            )}
+
+            <button
                     onClick={handleFinalSubmit}
                     disabled={saving}
                     className="w-full py-6 bg-emerald-600 text-white font-black rounded-[2.5rem] shadow-xl uppercase text-xs tracking-widest hover:bg-slate-900 transition-all active:scale-95"

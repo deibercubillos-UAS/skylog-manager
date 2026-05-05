@@ -537,11 +537,13 @@ async function _automate(jobId, credentials, formData, kmlContent, browser) {
     );
   }
 
-  // [VERIFICAR] PBMO (gramos)
-  if (formData.pbmo_gramos) {
+  // [VERIFICAR] PBMO (gramos) — el formulario puede enviar peso_maximo en Kg, convertir
+  const pbmoGramos = formData.pbmo_gramos
+    || (formData.peso_maximo ? Math.round(parseFloat(formData.peso_maximo) * 1000) : null);
+  if (pbmoGramos) {
     await apexFill(page,
       ['[id*="PBMO" i]', '[id*="pbmo" i]', '[placeholder*="PBMO" i]', '[placeholder*="gramos" i]'],
-      String(formData.pbmo_gramos), 'PBMO'
+      String(pbmoGramos), 'PBMO'
     );
   }
 
@@ -564,13 +566,21 @@ async function _automate(jobId, credentials, formData, kmlContent, browser) {
   }
 
   // [VERIFICAR] Tipo de contacto visual con la UA — Radio: VLOS/EVLOS/BVLOS
-  const contactoVisual = formData.tipo_contacto_visual || 'VLOS';
-  const contactoTexto = {
-    'VLOS':  'VLOS',
-    'EVLOS': 'EVLOS',
-    'BVLOS': 'BVLOS',
-  }[contactoVisual] || contactoVisual;
-  await apexRadio(page, '[id*="CONTACTO_VISUAL" i], [id*="VLOS" i]', contactoTexto);
+  // Soporta string directo ('VLOS') o el objeto del formulario {vlos:true, evlos:false, bvlos:false}
+  let contactoVisual = formData.tipo_contacto_visual || 'VLOS';
+  if (typeof contactoVisual === 'object') {
+    if (contactoVisual.bvlos) contactoVisual = 'BVLOS';
+    else if (contactoVisual.evlos) contactoVisual = 'EVLOS';
+    else contactoVisual = 'VLOS';
+  }
+  // También soporta formData.contacto_visual (el nombre del campo en el formulario)
+  if (formData.contacto_visual && !formData.tipo_contacto_visual) {
+    const cv = formData.contacto_visual;
+    if (cv.bvlos) contactoVisual = 'BVLOS';
+    else if (cv.evlos) contactoVisual = 'EVLOS';
+    else contactoVisual = 'VLOS';
+  }
+  await apexRadio(page, '[id*="CONTACTO_VISUAL" i], [id*="VLOS" i]', contactoVisual);
   await sleep(500);
 
   // [VERIFICAR] Vuelos Especiales — checkboxes opcionales
@@ -593,13 +603,16 @@ async function _automate(jobId, credentials, formData, kmlContent, browser) {
   }
 
   // [VERIFICAR] Justificación (Opcional, máx 1300 caracteres)
-  if (formData.justificacion) {
-    const justText = formData.justificacion.substring(0, 1300);
+  // El formulario puede enviar 'justificacion' o 'justificacion_especial'
+  const justificacionTexto = formData.justificacion || formData.justificacion_especial || '';
+  if (justificacionTexto) {
+    const justText = justificacionTexto.substring(0, 1300);
     await apexFill(page,
       ['[id*="JUSTIFICACION" i]', 'textarea[id*="JUST" i]', 'textarea:visible'],
       justText, 'Justificación'
     );
   }
+  // (si no hay justificación separada, la variable 'justificacionTexto' fue vacía)
 
   await dbg(page, jobId, '11_datos_operacion_filled');
 
@@ -663,8 +676,11 @@ async function _automate(jobId, credentials, formData, kmlContent, browser) {
     }
   }
 
-  // [VERIFICAR] Seleccionar Piloto(s) — LOV filtrado por CIPU
-  const pilotoCipu = formData.pilot_cipu || formData.pilotos_solicitud?.[0]?.cipu || '';
+  // [VERIFICAR] Seleccionar Piloto(s) — LOV filtrado por CIPU (license_number)
+  const pilotoCipu = formData.pilot_cipu
+    || formData.pilotos_solicitud?.[0]?.license_number
+    || formData.pilotos_solicitud?.[0]?.cipu
+    || '';
   if (pilotoCipu) {
     await apexLovSelect(page,
       '[id*="PILOTO" i], [placeholder*="CIPU" i]',
@@ -674,7 +690,10 @@ async function _automate(jobId, credentials, formData, kmlContent, browser) {
   }
 
   // [VERIFICAR] Seleccionar Observador(es) — LOV opcional por CIPU
-  const observadorCipu = formData.observer_cipu || '';
+  const observadorCipu = formData.observer_cipu
+    || formData.observadores?.[0]?.license_number
+    || formData.observadores?.[0]?.cipu
+    || '';
   if (observadorCipu) {
     await apexLovSelect(page,
       '[id*="OBSERVADOR" i], [id*="observador" i]',

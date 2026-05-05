@@ -1,4 +1,5 @@
 import { createClientSSR } from '@/lib/supabaseServer';
+import { getOrgContext } from '@/lib/apiAuth';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -6,26 +7,30 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
     try {
         const supabase = await createClientSSR();
-        const { data: { user } } = await supabase.auth.getUser();
-        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+        const { orgId } = await getOrgContext(supabase);
+        if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
         const { data, error } = await supabase
             .from('maintenance_logs')
-            .select('*, aircraft(model, serial_number)')
-            .eq('organization_id', prof.organization_id)
-            .order('created_at', { ascending: false });
+            .select('id,aircraft_id,maintenance_type,description,hours_at_service,technician_name,created_at,aircraft:aircraft_id(model,serial_number)')
+            .eq('organization_id', orgId)
+            .order('created_at', { ascending: false })
+            .limit(200);
 
         if (error) throw error;
-        return NextResponse.json(data || []);
+
+        const res = NextResponse.json(data || []);
+        res.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=120');
+        return res;
     } catch (err) { return NextResponse.json({ error: err.message }, { status: 500 }); }
 }
 
 export async function POST(request) {
     try {
         const supabase = await createClientSSR();
-        const { data: { user } } = await supabase.auth.getUser();
-        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
-        
+        const { orgId } = await getOrgContext(supabase);
+        if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
         const body = await request.json();
         const today = new Date().toISOString().split('T')[0];
 
@@ -37,7 +42,7 @@ export async function POST(request) {
             hours_at_service: body.hours_at_service,
             technician: body.technician_name,       // <-- columna legada NOT NULL
             technician_name: body.technician_name,  // <-- columna nueva
-            organization_id: prof.organization_id
+            organization_id: orgId
         }]).select().single();
 
         if (mErr) throw mErr;

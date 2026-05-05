@@ -1,4 +1,5 @@
 import { createClientSSR } from '@/lib/supabaseServer';
+import { getOrgContext } from '@/lib/apiAuth';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -6,21 +7,21 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
     try {
         const supabase = await createClientSSR();
-        const { data: { user } } = await supabase.auth.getUser();
-        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+        const { orgId } = await getOrgContext(supabase);
+        if (!orgId) return NextResponse.json([], { status: 401 });
 
         const { data, error } = await supabase
             .from('flight_authorizations')
             .select(`
-                *,
+                id,mission_id,scheduled_at,location,mission_type,status,created_at,
                 pilots:pilot_id(name, phone, id_number),
                 aircraft:aircraft_id(model, serial_number, total_hours),
                 payload:payload_id(brand, model, category, serial_number),
                 observer:observer_id(name)
             `)
-            .eq('organization_id', prof.organization_id)
-            .eq('status', 'autorizado')
-            .order('created_at', { ascending: false });
+            .eq('organization_id', orgId)
+            .order('created_at', { ascending: false })
+            .limit(100);
 
         if (error) throw error;
         return NextResponse.json(data || []);
@@ -30,25 +31,26 @@ export async function GET() {
 export async function POST(request) {
     try {
         const supabase = await createClientSSR();
-        const { data: { user } } = await supabase.auth.getUser();
-        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
-        const { data: org } = await supabase.from('organizations').select('flight_prefix').eq('id', prof.organization_id).single();
+        const { user, orgId } = await getOrgContext(supabase);
+        if (!orgId) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+        // Prefijo de la organización + próximo número de misión en paralelo
+        const [orgRes, lastRes] = await Promise.all([
+            supabase.from('organizations').select('flight_prefix').eq('id', orgId).single(),
+            supabase.from('flight_authorizations')
+                .select('mission_id')
+                .eq('organization_id', orgId)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+        ]);
 
         const body = await request.json();
-        const prefix = org.flight_prefix || 'BIT';
-
-        // Buscamos el último mission_id por orden descendente (más seguro que contar filas)
-        const { data: last } = await supabase.from('flight_authorizations')
-            .select('mission_id')
-            .eq('organization_id', prof.organization_id)
-            .ilike('mission_id', `${prefix}-%`)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+        const prefix = orgRes.data?.flight_prefix || 'BIT';
 
         let nextNumber = 1;
-        if (last?.mission_id) {
-            const parts = last.mission_id.split('-');
+        if (lastRes.data?.mission_id) {
+            const parts = lastRes.data.mission_id.split('-');
             const lastNumber = parseInt(parts[parts.length - 1], 10);
             if (!isNaN(lastNumber)) nextNumber = lastNumber + 1;
         }
@@ -58,9 +60,9 @@ export async function POST(request) {
         const { data, error } = await supabase.from('flight_authorizations').insert([{
             ...body,
             mission_id: missionId,
-            organization_id: prof.organization_id,
+            organization_id: orgId,
             scheduled_by: user.id,
-            status: 'autorizado' // <--- DEBE SER EXACTAMENTE IGUAL AL FILTRO DE DESPACHO
+            status: 'autorizado'
         }]).select();
 
         if (error) throw error;
@@ -72,10 +74,9 @@ export async function POST(request) {
 export async function PATCH(request) {
     try {
         const supabase = await createClientSSR();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+        const { orgId } = await getOrgContext(supabase);
+        if (!orgId) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
         const body = await request.json();
         const { id, pilot_id, aircraft_id, location, scheduled_at, mission_type } = body;
 
@@ -86,7 +87,7 @@ export async function PATCH(request) {
             .eq('id', id)
             .single();
 
-        if (!existing || existing.organization_id !== prof.organization_id) {
+        if (!existing || existing.organization_id !== orgId) {
             return NextResponse.json({ error: "No autorizado para editar esta misión" }, { status: 403 });
         }
 

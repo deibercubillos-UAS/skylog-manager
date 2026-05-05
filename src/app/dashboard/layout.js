@@ -23,11 +23,18 @@ export default function DashboardLayout({ children }) {
 
     async function loadIdentity() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        // getSession() lee el token de la cookie sin hacer un roundtrip a Supabase Auth.
+        // El JWT ya fue validado por el middleware en el servidor — esto es seguro.
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user;
         if (!user) { window.location.href = '/login'; return; }
 
-        // Cargar perfil (necesario para obtener organization_id)
-        const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        // Solo los campos que el layout realmente usa
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('id,organization_id,role,first_name,full_name,email,avatar_url,subscription_plan')
+          .eq('id', user.id)
+          .single();
         if (!prof) throw new Error("No profile");
 
         // Protección: si el perfil existe pero no tiene organización asignada,
@@ -36,7 +43,7 @@ export default function DashboardLayout({ children }) {
           const { data: newOrg } = await supabase
             .from('organizations')
             .insert([{ company_name: `Piloto: ${prof.first_name || user.email}` }])
-            .select()
+            .select('id')
             .single();
           if (newOrg) {
             await supabase.from('profiles').update({ organization_id: newOrg.id }).eq('id', user.id);
@@ -46,17 +53,19 @@ export default function DashboardLayout({ children }) {
 
         // Cargar organización EN PARALELO con el primer vuelo activo
         const [orgRes, flightRes] = await Promise.all([
-          supabase.from('organizations').select('*').eq('id', prof.organization_id).single(),
-          prof.organization_id
-            ? supabase
-                .from('flights')
-                .select('id')
-                .eq('organization_id', prof.organization_id)
-                .is('landing_time', null)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle()
-            : Promise.resolve({ data: null })
+          supabase
+            .from('organizations')
+            .select('id,company_name,unique_code,logo_url,subscription_plan')
+            .eq('id', prof.organization_id)
+            .single(),
+          supabase
+            .from('flights')
+            .select('id')
+            .eq('organization_id', prof.organization_id)
+            .is('landing_time', null)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
         ]);
 
         setData({ profile: prof, org: orgRes.data });

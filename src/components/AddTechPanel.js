@@ -10,29 +10,25 @@ export default function AddTechPanel({ onClose, onSuccess }) {
     e.preventDefault();
     setLoading(true);
     try {
-      // 1. Capturar identidad en el momento del clic (Manual)
       const { data: { user } } = await supabase.auth.getUser();
       const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
 
       if (!prof?.organization_id) throw new Error("OrgID no detectado");
 
-      // 2. Inserción con inyección de identidad verificada
-      const { error } = await supabase.from('inventory_items').insert([{ 
+      const { error } = await supabase.from('inventory_items').insert([{
         category: form.category,
         brand: form.brand,
         model: form.model,
         serial_number: form.serial_number,
         name: `${form.brand} ${form.model}`,
-        organization_id: prof.organization_id, // <--- VÍNCULO CRÍTICO
+        organization_id: prof.organization_id,
         owner_id: user.id,
         status: 'Operativo'
       }]);
 
       if (error) throw error;
-
       alert("✅ EQUIPO REGISTRADO: Sincronizando flota...");
-      onSuccess(); // Esto dispara el fetchData del padre
-
+      onSuccess();
     } catch (err) {
       alert("Error de registro: " + err.message);
     } finally {
@@ -41,28 +37,47 @@ export default function AddTechPanel({ onClose, onSuccess }) {
   };
 
   return (
-    <aside className="fixed inset-y-0 right-0 w-96 bg-white shadow-2xl z-[250] p-10 flex flex-col text-left animate-in slide-in-from-right">
-      <h3 className="text-xl font-black uppercase mb-8 tracking-tighter">Registrar Payload</h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Tipo de Equipo</label>
-          <input required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" placeholder="Ej: Cámara Térmica" onChange={e => setForm({...form, category: e.target.value})} />
-        </div>
-        <div>
-            <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Marca / Modelo</label>
-            <input required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm mt-1" placeholder="Marca" onChange={e => setForm({...form, brand: e.target.value})} />
-            <input required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm mt-2" placeholder="Modelo" onChange={e => setForm({...form, model: e.target.value})} />
-        </div>
-        <div>
-            <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Serial (S/N)</label>
-            <input required className="w-full p-4 bg-white border-2 border-orange-100 rounded-2xl font-mono text-sm uppercase" placeholder="S/N" onChange={e => setForm({...form, serial_number: e.target.value})} />
-        </div>
-        
-        <button disabled={loading} type="submit" className="w-full py-5 bg-orange-600 text-white font-black rounded-2xl shadow-xl uppercase text-xs tracking-widest active:scale-95 transition-all">
-            {loading ? 'SINCRO...' : 'CONFIRMAR CARGA'}
+    <aside className="fixed z-[250] bg-white flex flex-col text-left
+      bottom-0 left-0 right-0 rounded-t-3xl max-h-[92vh]
+      md:bottom-auto md:inset-y-0 md:left-auto md:right-0 md:rounded-none md:w-96
+      shadow-[0_-4px_30px_rgba(0,0,0,0.14)] md:shadow-2xl
+      animate-in slide-in-from-bottom duration-300">
+
+      {/* Drag handle — mobile */}
+      <div className="md:hidden flex justify-center pt-3 pb-1 shrink-0">
+        <div className="w-10 h-1 bg-slate-200 rounded-full" />
+      </div>
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+        <h3 className="text-lg font-black uppercase tracking-tighter text-slate-900">Registrar Payload</h3>
+        <button type="button" onClick={onClose}
+          className="size-10 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all active:scale-95">
+          <span className="material-symbols-outlined text-xl">close</span>
         </button>
-        <button type="button" onClick={onClose} className="w-full py-2 text-slate-400 font-bold uppercase text-[9px]">Cancelar</button>
-      </form>
+      </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-xs font-black text-slate-400 uppercase ml-1">Tipo de Equipo</label>
+            <input required className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-sm mt-1" placeholder="Ej: Cámara Térmica" onChange={e => setForm({...form, category: e.target.value})} />
+          </div>
+          <div>
+            <label className="text-xs font-black text-slate-400 uppercase ml-1">Marca / Modelo</label>
+            <input required className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-sm mt-1" placeholder="Marca" onChange={e => setForm({...form, brand: e.target.value})} />
+            <input required className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-sm mt-2" placeholder="Modelo" onChange={e => setForm({...form, model: e.target.value})} />
+          </div>
+          <div>
+            <label className="text-xs font-black text-slate-400 uppercase ml-1">Serial (S/N)</label>
+            <input required className="w-full p-3 bg-white border-2 border-orange-100 rounded-xl font-mono text-sm uppercase mt-1" placeholder="S/N" onChange={e => setForm({...form, serial_number: e.target.value})} />
+          </div>
+          <button disabled={loading} type="submit" className="w-full py-4 bg-orange-600 text-white font-black rounded-xl shadow-lg uppercase text-xs tracking-widest active:scale-95 transition-all disabled:opacity-60">
+            {loading ? 'SINCRO...' : 'CONFIRMAR CARGA'}
+          </button>
+        </form>
+      </div>
     </aside>
   );
 }

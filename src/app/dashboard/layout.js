@@ -119,13 +119,14 @@ export default function DashboardLayout({ children }) {
 
   const role = data.profile?.role;
 
-const plan = data.profile?.subscription_plan || 'piloto';
-const isPaidPlan = plan !== 'piloto'; // escuadrilla, flota o enterprise
+// Plan: verificar en org Y en profile para no bloquear usuarios válidos
+const plan = data.org?.subscription_plan || data.profile?.subscription_plan || 'piloto';
+const isPaidPlan = !['piloto', null, undefined, ''].includes(plan);
 
 const navLinks = [
   { name: 'Dashboard',      icon: 'dashboard',               href: '/dashboard',                 roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Mi Flota',       icon: 'precision_manufacturing', href: '/dashboard/fleet',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Tripulación',    icon: 'person',                  href: '/dashboard/pilots',          roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], paidOnly: true },
+  { name: 'Tripulación',    icon: 'group',                   href: '/dashboard/pilots',          roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'] },
   { name: 'Programación',   icon: 'event_available',         href: '/dashboard/authorizations',  roles: ['superadmin', 'admin', 'jefe_pilotos'] },
   { name: 'Bitácora',       icon: 'menu_book',               href: '/dashboard/logbook',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
@@ -383,13 +384,15 @@ const footerLinks = footerLinksAll.filter(link =>
             </div>
           )}
 
+          {/* Tripulación */}
+          {filteredLinks.some(l => l.href === '/dashboard/pilots') && (
+            <BottomNavItem href="/dashboard/pilots" icon="group" label="Tripulación" active={pathname.startsWith('/dashboard/pilots')} />
+          )}
+
           {/* Flota */}
           {filteredLinks.some(l => l.href === '/dashboard/fleet') && (
             <BottomNavItem href="/dashboard/fleet" icon="precision_manufacturing" label="Flota" active={pathname.startsWith('/dashboard/fleet')} />
           )}
-
-          {/* Ajustes */}
-          <BottomNavItem href="/dashboard/settings" icon="settings" label="Ajustes" active={pathname.startsWith('/dashboard/settings')} />
 
         </div>
       </nav>

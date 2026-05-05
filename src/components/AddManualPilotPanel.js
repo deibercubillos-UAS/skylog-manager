@@ -37,31 +37,46 @@ export default function AddManualPilotPanel({ onClose, onSuccess, currentPlan, c
   };
 
   return (
-    <aside className="fixed inset-y-0 right-0 w-96 bg-white shadow-2xl z-50 p-8 flex flex-col text-left animate-in slide-in-from-right duration-300 overflow-y-auto">
-      <div className="flex justify-between items-center mb-8">
-        <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900">Registro Manual</h3>
-        <button onClick={onClose} className="material-symbols-outlined text-slate-300 hover:text-red-500">close</button>
+    <aside className="fixed z-50 bg-white flex flex-col text-left
+      bottom-0 left-0 right-0 rounded-t-3xl max-h-[92vh]
+      md:bottom-auto md:inset-y-0 md:left-auto md:right-0 md:rounded-none md:w-96
+      shadow-[0_-4px_30px_rgba(0,0,0,0.14)] md:shadow-2xl
+      animate-in slide-in-from-bottom duration-300">
+
+      {/* Drag handle — mobile */}
+      <div className="md:hidden flex justify-center pt-3 pb-1 shrink-0">
+        <div className="w-10 h-1 bg-slate-200 rounded-full" />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="space-y-4">
-          <input required className="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm font-bold" placeholder="Nombre del Piloto" onChange={e => setFormData({...formData, name: e.target.value})} />
-          <input required className="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm font-bold" placeholder="Licencia / DAN" onChange={e => setFormData({...formData, license_number: e.target.value})} />
-          <div>
-            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1 ml-1">Vencimiento Médico</label>
-            <input required type="date" className="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm font-bold" onChange={e => setFormData({...formData, medical_expiry: e.target.value})} />
-          </div>
-        </div>
-
-        <div className="space-y-3 pt-4 border-t border-slate-100">
-          <FileUpload bucket="documents" path="pilot_licenses" label="Subir Licencia" onUploadSuccess={(url) => setDocs({...docs, license: url})} />
-          <FileUpload bucket="documents" path="pilot_medical" label="Subir Certificado Médico" onUploadSuccess={(url) => setDocs({...docs, medical: url})} />
-        </div>
-
-        <button type="submit" disabled={loading} className="w-full py-5 bg-[#ec5b13] text-white font-black rounded-2xl shadow-lg shadow-orange-500/20 uppercase text-xs tracking-widest">
-          {loading ? 'Validando...' : 'Guardar Piloto'}
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+        <h3 className="text-lg font-black uppercase tracking-tighter text-slate-900">Registro Manual</h3>
+        <button type="button" onClick={onClose}
+          className="size-10 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all active:scale-95">
+          <span className="material-symbols-outlined text-xl">close</span>
         </button>
-      </form>
+      </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input required className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm font-bold" placeholder="Nombre del Piloto" onChange={e => setFormData({...formData, name: e.target.value})} />
+          <input required className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm font-bold" placeholder="Licencia / DAN" onChange={e => setFormData({...formData, license_number: e.target.value})} />
+          <div>
+            <label className="block text-xs font-black uppercase text-slate-400 mb-1 ml-1">Vencimiento Médico</label>
+            <input required type="date" className="w-full p-3 bg-slate-50 rounded-xl border-none text-sm font-bold" onChange={e => setFormData({...formData, medical_expiry: e.target.value})} />
+          </div>
+
+          <div className="space-y-3 pt-4 border-t border-slate-100">
+            <FileUpload bucket="documents" path="pilot_licenses" label="Subir Licencia" onUploadSuccess={(url) => setDocs({...docs, license: url})} />
+            <FileUpload bucket="documents" path="pilot_medical" label="Subir Certificado Médico" onUploadSuccess={(url) => setDocs({...docs, medical: url})} />
+          </div>
+
+          <button type="submit" disabled={loading} className="w-full py-4 bg-orange-600 text-white font-black rounded-xl shadow-lg uppercase text-xs tracking-widest disabled:opacity-60 active:scale-95 transition-all">
+            {loading ? 'Validando...' : 'Guardar Piloto'}
+          </button>
+        </form>
+      </div>
     </aside>
   );
 }

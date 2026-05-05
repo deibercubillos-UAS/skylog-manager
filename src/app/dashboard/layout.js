@@ -332,7 +332,7 @@ const footerLinks = footerLinksAll.filter(link =>
                 )}
                 <Link
                   href="/dashboard/logbook/new"
-                  className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-3 md:px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-500/20 transition-all active:scale-95"
+                  className="hidden sm:flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-3 md:px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-500/20 transition-all active:scale-95"
                 >
                   <span className="material-symbols-outlined text-base">add_circle</span>
                   <span className="hidden sm:inline">Nueva Operación</span>

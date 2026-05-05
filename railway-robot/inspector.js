@@ -155,8 +155,8 @@ export async function inspectPortal(credentials) {
           const el = page.locator(sel).first();
           if (await el.isVisible({ timeout: 2000 })) {
             await el.click();
-            await page.waitForLoadState('domcontentloaded', { timeout: 15000 });
-            await page.waitForTimeout(3000); // Oracle APEX necesita tiempo extra
+            await page.waitForLoadState('domcontentloaded', { timeout: 20000 });
+            await page.waitForTimeout(4000); // Oracle APEX necesita tiempo extra para JS
             break;
           }
         } catch {}
@@ -184,16 +184,11 @@ export async function inspectPortal(credentials) {
     }
 
     // ── PASO C: Verificar login exitoso (Oracle APEX UAS portal) ─────────────
-    // Detectamos por elementos del dashboard UAS de Oracle APEX
-    const loggedIn = await page.locator([
-      '.t-Button--headerTree',
-      'text=/Registro UAS/i',
-      'text=/Sistemas de Aeronaves/i',
-      'text=/No Tripuladas/i',
-      'text=/solicitudes/i',
-      'text=/cerrar sesión/i',
-      '[href*="logout"]',
-    ].join(', ')).first().isVisible({ timeout: 8000 }).catch(() => false);
+    // Oracle APEX redirige fuera de /login al autenticarse correctamente.
+    // Comprobamos por URL (más fiable que buscar texto en el DOM).
+    await page.waitForTimeout(2000); // tiempo extra para Oracle APEX JS
+    const currentUrl = page.url();
+    const loggedIn = !currentUrl.includes('/login');
 
     if (loggedIn) {
       await addStep('Dashboard (login exitoso) ✅', page);

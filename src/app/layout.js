@@ -26,7 +26,7 @@ const MATERIAL_ICONS = [
   'chevron_right','close','cloud_done','cloud_upload','dashboard',
   'delete','delete_sweep','description','download','dynamic_form','edit',
   'edit_square','engineering','error','event_available','expand_less',
-  'expand_more','explore','fact_check','flight_land','flight_takeoff',
+  'expand_more','explore','fact_check','flight','flight_land','flight_takeoff',
   'folder_shared','format_quote','gavel','group','group_add',
   'groups','health_and_safety','info','inventory_2','label_important',
   'lock','lock_reset','logout','mail','map',

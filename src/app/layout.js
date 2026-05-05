@@ -141,6 +141,8 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 5,
   colorScheme: 'light',
+  // Required for env(safe-area-inset-*) to work on iOS notch/Dynamic Island devices
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }) {

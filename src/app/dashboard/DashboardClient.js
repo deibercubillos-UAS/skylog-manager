@@ -16,11 +16,11 @@ export default function DashboardClient({ initialData, userProfile }) {
         : null;
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-700 text-left pb-10">
+        <div className="space-y-5 md:space-y-8 animate-in fade-in duration-700 text-left pb-4">
 
             {/* SALUDO */}
             <div>
-                <h2 className="text-xl md:text-2xl font-black text-slate-800">
+                <h2 className="text-lg md:text-2xl font-black text-slate-800">
                     Bienvenido, <span className="text-orange-500">{firstName}</span>
                 </h2>
                 <p className="text-xs font-medium text-slate-400 mt-1 uppercase tracking-wider">
@@ -29,33 +29,33 @@ export default function DashboardClient({ initialData, userProfile }) {
             </div>
 
             {/* 1. KPIs SUPERIORES */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
                 <KPICard title="Horas de Vuelo" value={`${data?.stats?.hours || '0.0'}h`} icon="timer" color="text-slate-900" trend={flightTrend} />
                 <KPICard title="Flota Lista" value={data?.stats?.fleetCount || 0} icon="precision_manufacturing" color="text-orange-500" />
                 <KPICard title="Tripulación" value={data?.stats?.pilotCount || 0} icon="group" color="text-slate-900" />
                 <KPICard title="Alertas" value={data?.stats?.alertsCount || 0} icon="warning" warning={(data?.stats?.alertsCount || 0) > 0} />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
                 {/* 2. GRÁFICO DINÁMICO POR MESES */}
-                <div className="lg:col-span-2 bg-white p-6 md:p-10 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col h-[380px] md:h-[450px]">
-                    <div className="flex justify-between items-start mb-10">
+                <div className="lg:col-span-2 bg-white p-5 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col h-[260px] md:h-[420px]">
+                    <div className="flex justify-between items-start mb-4 md:mb-10">
                         <div>
-                            <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.3em]">Actividad Mensual</h3>
-                            <span className="text-xs font-bold text-slate-400 mt-1 inline-block">Últimos 6 meses</span>
+                            <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em] md:tracking-[0.3em]">Actividad Mensual</h3>
+                            <span className="text-xs font-bold text-slate-400 mt-0.5 inline-block">Últimos 6 meses</span>
                         </div>
                     </div>
-                    <div className="flex-1 flex items-end justify-around gap-2 px-2 border-b border-slate-100 pb-4">
+                    <div className="flex-1 flex items-end justify-around gap-1 md:gap-2 px-1 border-b border-slate-100 pb-3">
                         {data?.chart?.map((m, i) => {
                             const barHeight = Math.round((m.count / maxVal) * 100);
                             return (
-                                <div key={i} className="flex-1 flex flex-col items-center gap-3 group relative h-full justify-end">
-                                    <div 
-                                        className={`w-full max-w-[40px] rounded-t-lg transition-all duration-1000 ease-out shadow-sm ${m.count > 0 ? 'bg-orange-500' : 'bg-slate-50'}`}
-                                        style={{ height: m.count > 0 ? `${barHeight}%` : '4px' }}
+                                <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative h-full justify-end">
+                                    <div
+                                        className={`w-full max-w-[36px] rounded-t-lg transition-all duration-1000 ease-out shadow-sm ${m.count > 0 ? 'bg-orange-500' : 'bg-slate-100'}`}
+                                        style={{ height: m.count > 0 ? `${barHeight}%` : '3px' }}
                                     >
                                         {m.count > 0 && (
-                                            <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                                                 {m.count}
                                             </div>
                                         )}
@@ -68,8 +68,8 @@ export default function DashboardClient({ initialData, userProfile }) {
                 </div>
 
                 {/* 3. ALERTAS DE COMPLIANCE */}
-                <div className="bg-[#1A202C] p-8 md:p-10 rounded-[2.5rem] shadow-2xl text-white flex flex-col h-[380px] md:h-[450px] border border-white/5">
-                    <h3 className="text-xs font-black uppercase text-orange-500 mb-8 tracking-widest flex items-center gap-2">
+                <div className="bg-[#1A202C] p-5 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl text-white flex flex-col h-[260px] md:h-[420px] border border-white/5">
+                    <h3 className="text-xs font-black uppercase text-orange-500 mb-4 md:mb-8 tracking-widest flex items-center gap-2">
                         <span className="material-symbols-outlined text-lg">gavel</span> Compliance
                     </h3>
                     <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1">
@@ -181,16 +181,16 @@ function EmptyState({ icon, message, sub }) {
 
 function KPICard({ title, value, icon, warning, color, trend }) {
     return (
-        <div className={`bg-white p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 shadow-sm flex flex-col justify-between transition-all hover:-translate-y-1 ${warning ? 'ring-2 ring-red-500/30 bg-red-50/5' : ''}`}>
-            <div className="flex justify-between items-start mb-4">
-                <span className="text-xs font-black uppercase text-slate-400 tracking-widest leading-none">{title}</span>
-                <span className={`material-symbols-outlined text-xl md:text-2xl ${warning ? 'text-red-500 animate-pulse' : 'text-orange-500'}`}>{icon}</span>
+        <div className={`bg-white p-4 md:p-8 rounded-2xl md:rounded-[2rem] border border-slate-200 shadow-sm flex flex-col justify-between transition-all hover:-translate-y-1 ${warning ? 'ring-2 ring-red-500/30 bg-red-50/5' : ''}`}>
+            <div className="flex justify-between items-start mb-3 md:mb-4">
+                <span className="text-xs font-black uppercase text-slate-400 tracking-wide leading-tight max-w-[80%]">{title}</span>
+                <span className={`material-symbols-outlined text-xl ${warning ? 'text-red-500 animate-pulse' : 'text-orange-500'}`}>{icon}</span>
             </div>
             <span className={`text-2xl md:text-4xl font-black tracking-tighter ${warning ? 'text-red-600' : color}`}>{value || 0}</span>
             {trend !== null && trend !== undefined && (
-                <span className={`mt-2 text-xs font-black flex items-center gap-1 ${trend >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>
+                <span className={`mt-1.5 text-xs font-black flex items-center gap-1 ${trend >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>
                     <span className="material-symbols-outlined text-sm">{trend >= 0 ? 'trending_up' : 'trending_down'}</span>
-                    {trend >= 0 ? '+' : ''}{trend}% vs mes anterior
+                    {trend >= 0 ? '+' : ''}{trend}%
                 </span>
             )}
         </div>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import Link from 'next/link';
 
 export default function SafetyPage() {
@@ -20,7 +20,7 @@ export default function SafetyPage() {
                     Seguridad Operacional <br/>
                     <span className="text-orange-600">en Desarrollo</span>
                 </h2>
-                <p className="text-slate-500 text-sm font-medium leading-relaxed uppercase tracking-widest text-[10px]">
+                <p className="text-slate-500 text-sm font-medium leading-relaxed uppercase tracking-widest text-xs">
                     Estamos construyendo el motor de gestión de riesgos (SMS) más potente del mercado. <br/>
                     <span className="font-black">Próximas capacidades:</span>
                 </p>
@@ -33,7 +33,7 @@ export default function SafetyPage() {
                 </div>
             </div>
 
-            <Link href="/dashboard" className="mt-12 px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-orange-600 transition-all active:scale-95">
+            <Link href="/dashboard" className="mt-12 px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-orange-600 transition-all active:scale-95">
                 Volver al Centro de Mando
             </Link>
         </div>
@@ -44,7 +44,7 @@ function FeatureTag({ icon, text }) {
     return (
         <div className="flex items-center gap-3 bg-white border border-slate-100 p-3 rounded-2xl shadow-sm opacity-60">
             <span className="material-symbols-outlined text-orange-500 text-base">{icon}</span>
-            <span className="text-[10px] font-black text-slate-700 uppercase">{text}</span>
+            <span className="text-xs font-black text-slate-700 uppercase">{text}</span>
         </div>
     );
 }

@@ -23,11 +23,18 @@ export default function DashboardLayout({ children }) {
 
     async function loadIdentity() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        // getSession() lee el token de la cookie sin hacer un roundtrip a Supabase Auth.
+        // El JWT ya fue validado por el middleware en el servidor — esto es seguro.
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user;
         if (!user) { window.location.href = '/login'; return; }
 
-        // Cargar perfil (necesario para obtener organization_id)
-        const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        // Solo los campos que el layout realmente usa
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('id,organization_id,role,first_name,full_name,email,avatar_url,subscription_plan')
+          .eq('id', user.id)
+          .single();
         if (!prof) throw new Error("No profile");
 
         // Protección: si el perfil existe pero no tiene organización asignada,
@@ -36,7 +43,7 @@ export default function DashboardLayout({ children }) {
           const { data: newOrg } = await supabase
             .from('organizations')
             .insert([{ company_name: `Piloto: ${prof.first_name || user.email}` }])
-            .select()
+            .select('id')
             .single();
           if (newOrg) {
             await supabase.from('profiles').update({ organization_id: newOrg.id }).eq('id', user.id);
@@ -46,17 +53,19 @@ export default function DashboardLayout({ children }) {
 
         // Cargar organización EN PARALELO con el primer vuelo activo
         const [orgRes, flightRes] = await Promise.all([
-          supabase.from('organizations').select('*').eq('id', prof.organization_id).single(),
-          prof.organization_id
-            ? supabase
-                .from('flights')
-                .select('id')
-                .eq('organization_id', prof.organization_id)
-                .is('landing_time', null)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle()
-            : Promise.resolve({ data: null })
+          supabase
+            .from('organizations')
+            .select('id,company_name,unique_code,logo_url,subscription_plan')
+            .eq('id', prof.organization_id)
+            .single(),
+          supabase
+            .from('flights')
+            .select('id')
+            .eq('organization_id', prof.organization_id)
+            .is('landing_time', null)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
         ]);
 
         setData({ profile: prof, org: orgRes.data });
@@ -119,13 +128,14 @@ export default function DashboardLayout({ children }) {
 
   const role = data.profile?.role;
 
-const plan = data.profile?.subscription_plan || 'piloto';
-const isPaidPlan = plan !== 'piloto'; // escuadrilla, flota o enterprise
+// Plan: verificar en org Y en profile para no bloquear usuarios válidos
+const plan = data.org?.subscription_plan || data.profile?.subscription_plan || 'piloto';
+const isPaidPlan = !['piloto', null, undefined, ''].includes(plan);
 
 const navLinks = [
   { name: 'Dashboard',      icon: 'dashboard',               href: '/dashboard',                 roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Mi Flota',       icon: 'precision_manufacturing', href: '/dashboard/fleet',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Tripulación',    icon: 'person',                  href: '/dashboard/pilots',          roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], paidOnly: true },
+  { name: 'Tripulación',    icon: 'group',                   href: '/dashboard/pilots',          roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'] },
   { name: 'Programación',   icon: 'event_available',         href: '/dashboard/authorizations',  roles: ['superadmin', 'admin', 'jefe_pilotos'] },
   { name: 'Bitácora',       icon: 'menu_book',               href: '/dashboard/logbook',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
@@ -150,191 +160,274 @@ const footerLinks = footerLinksAll.filter(link =>
   link.roles.includes(role) && (!link.paidOnly || isPaidPlan)
 );
 
+  // ── Links para la barra de navegación inferior (mobile) ─────────────────
+  const bottomNavLinks = [
+    { name: 'Inicio',      icon: 'dashboard',    href: '/dashboard' },
+    { name: 'Bitácora',    icon: 'menu_book',    href: '/dashboard/logbook' },
+    { name: 'Flota',       icon: 'precision_manufacturing', href: '/dashboard/fleet' },
+    { name: 'Ajustes',     icon: 'settings',     href: '/dashboard/settings' },
+  ].filter(l => filteredLinks.some(fl => fl.href === l.href) || footerLinks.some(fl => fl.href === l.href) || l.href === '/dashboard');
+
   return (
     <div className="flex h-screen bg-[#f8f6f6] font-display overflow-hidden text-left">
-      
-      {/* SIDEBAR DINÁMICO */}
+
+      {/* ── SIDEBAR DINÁMICO ─────────────────────────────────────────────── */}
       <aside className={`
-          fixed inset-y-0 left-0 z-[150] w-64 bg-[#1A202C] text-white flex flex-col 
+          fixed inset-y-0 left-0 z-[150] w-64 bg-[#1A202C] text-white flex flex-col
           transition-transform duration-300 ease-in-out border-r border-white/5
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        {/* BLOQUE DE ESTATUS COMPACTO */}
-          <div className="mt-4 p-3 bg-white/5 rounded-xl border border-white/10 flex items-center justify-between gap-2">
-            <div className="flex flex-col min-w-0">
-                <span className="text-[6px] font-black text-slate-500 uppercase tracking-tighter">Plan</span>
-                <span className="text-[9px] font-black text-orange-400 uppercase truncate">
-                  {data.profile?.subscription_plan || 'PILOTO'}
-                </span>
-           </div>
-   
-   <div className="w-px h-6 bg-white/10 shrink-0"></div> {/* Divisor vertical */}
-   
-   <div className="flex flex-col text-right">
-      <span className="text-[6px] font-black text-slate-500 uppercase tracking-tighter">Org ID</span>
-      <span className="text-[9px] font-mono font-bold text-white leading-none">
-        {data.org?.unique_code || '---'}
-      </span>
-   </div>
-</div>
 
-        <nav className="flex-1 p-4 space-y-1 mt-2 overflow-y-auto custom-scrollbar">
+        {/* MARCA / LOGO */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/5 shrink-0">
+          <div className="size-9 bg-orange-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-orange-600/30">
+            <span className="material-symbols-outlined text-white text-lg">flight</span>
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-black text-white leading-none tracking-tight">Bitafly</p>
+            <p className="text-xs text-orange-400 font-bold mt-0.5 truncate">
+              {data.org?.company_name || 'Mi Organización'}
+            </p>
+          </div>
+        </div>
+
+        {/* BLOQUE DE ESTATUS */}
+        <div className="mx-3 mt-3 p-3 bg-white/5 rounded-xl border border-white/10 flex items-center justify-between gap-2 shrink-0">
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs font-black text-slate-500 uppercase tracking-tight leading-none">Plan</span>
+            <span className="text-xs font-black text-orange-400 uppercase truncate mt-0.5">
+              {data.profile?.subscription_plan || 'PILOTO'}
+            </span>
+          </div>
+          <div className="w-px h-6 bg-white/10 shrink-0" />
+          <div className="flex flex-col text-right min-w-0">
+            <span className="text-xs font-black text-slate-500 uppercase tracking-tight leading-none">Org ID</span>
+            <span className="text-xs font-mono font-bold text-white leading-none mt-0.5">
+              {data.org?.unique_code || '---'}
+            </span>
+          </div>
+        </div>
+
+        {/* NAV PRINCIPAL */}
+        <nav className="flex-1 p-3 space-y-0.5 mt-2 overflow-y-auto custom-scrollbar">
           {filteredLinks.map(link => (
-            <Link key={link.href} href={link.href} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${pathname === link.href ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' : 'text-slate-400 hover:bg-white/5'}`}>
-              <span className="material-symbols-outlined text-lg">{link.icon}</span>{link.name}
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                pathname === link.href
+                  ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <span className="material-symbols-outlined text-lg shrink-0">{link.icon}</span>
+              {link.name}
             </Link>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-white/5 bg-black/10 transition-all duration-500">
-          {/* BOTÓN DE CONTROL: Gestión Administrativa */}
-          <button 
+        {/* PIE DE SIDEBAR */}
+        <div className="p-3 border-t border-white/5 bg-black/10 space-y-1 shrink-0">
+          {/* ADMINISTRACIÓN COLAPSABLE */}
+          <button
             onClick={() => setIsAdminOpen(!isAdminOpen)}
-            className="w-full flex items-center justify-between px-4 py-2 rounded-xl text-[10px] font-black uppercase text-slate-500 hover:text-slate-300 transition-all group"
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-black uppercase text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-all"
           >
             <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-sm">settings_suggest</span>
-                <span>Administración</span>
+              <span className="material-symbols-outlined text-base">settings_suggest</span>
+              <span>Administración</span>
             </div>
-            <span className={`material-symbols-outlined text-xs transition-transform duration-300 ${isAdminOpen ? 'rotate-180' : ''}`}>
-                expand_less
+            <span className={`material-symbols-outlined text-sm transition-transform duration-300 ${isAdminOpen ? 'rotate-180' : ''}`}>
+              expand_less
             </span>
           </button>
 
-          {/* GRUPO COLAPSABLE */}
-          <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isAdminOpen ? 'max-h-40 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
-            <div className="space-y-1 pb-2">
+          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isAdminOpen ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'}`}>
+            <div className="space-y-0.5 pb-1 pt-0.5">
               {footerLinks.map(link => (
-                  <Link 
-                    key={link.href} 
-                    href={link.href} 
-                    className={`flex items-center gap-3 px-4 py-2 rounded-xl text-xs font-bold transition-all ${pathname === link.href ? 'text-orange-500' : 'text-slate-500 hover:text-slate-300'}`}
-                  >
-                    <span className="material-symbols-outlined text-base">{link.icon}</span>
-                    {link.name}
-                  </Link>
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
+                    pathname === link.href ? 'text-orange-400 bg-white/5' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-base shrink-0">{link.icon}</span>
+                  {link.name}
+                </Link>
               ))}
             </div>
           </div>
 
+          {/* MASTER CONTROL (superadmin) */}
           {data.profile?.role === 'superadmin' && (
-    <div className="px-4 mb-4">
-        <Link 
-            href="/admin/master" 
-            className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-purple-600/20 border border-purple-500/30 text-purple-400 hover:bg-purple-600 hover:text-white transition-all shadow-lg group"
-        >
-            <span className="material-symbols-outlined text-lg group-hover:animate-spin">settings_accessibility</span>
-            <div className="text-left">
-                <p className="text-[10px] font-black uppercase leading-none">Master Control</p>
-                <p className="text-[8px] font-bold opacity-70 uppercase mt-1">Gestión Global SaaS</p>
-            </div>
-        </Link>
-    </div>
-)}
+            <Link
+              href="/admin/master"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-purple-600/20 border border-purple-500/30 text-purple-400 hover:bg-purple-600 hover:text-white transition-all"
+            >
+              <span className="material-symbols-outlined text-base">settings_accessibility</span>
+              <div className="text-left min-w-0">
+                <p className="text-xs font-black uppercase leading-none">Master Control</p>
+                <p className="text-xs opacity-70 uppercase mt-0.5">Gestión Global SaaS</p>
+              </div>
+            </Link>
+          )}
 
-          {/* BOTÓN SALIR: Siempre visible o compacto */}
-          <button 
-            onClick={() => supabase.auth.signOut().then(() => window.location.href='/login')} 
-            className="w-full flex items-center gap-3 px-4 py-3 mt-1 rounded-xl text-[10px] font-black text-red-500/70 hover:text-red-500 hover:bg-red-500/10 transition-all uppercase tracking-widest"
+          {/* CERRAR SESIÓN */}
+          <button
+            onClick={() => supabase.auth.signOut().then(() => (window.location.href = '/login'))}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black text-red-500/70 hover:text-red-400 hover:bg-red-500/10 transition-all uppercase tracking-widest"
           >
-            <span className="material-symbols-outlined text-lg">logout</span>
+            <span className="material-symbols-outlined text-base">logout</span>
             <span>Cerrar Sesión</span>
           </button>
         </div>
       </aside>
 
-      {/* OVERLAY PARA MÓVILES */}
+      {/* OVERLAY MÓVIL */}
       {isSidebarOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140] lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140] lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
-      {/* CONTENIDO PRINCIPAL */}
-      <main className={`
-          flex-1 flex flex-col overflow-hidden transition-all duration-300
-          ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'}
-      `}>
-       <header className="h-16 md:h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shrink-0 sticky top-0 z-[100]">
-  {/* LADO IZQUIERDO: Toggle y Empresa */}
-  <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
-    <button 
-      onClick={() => setSidebarOpen(!isSidebarOpen)}
-      className="p-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 active:scale-95 transition-all shrink-0"
-    >
-      <span className="material-symbols-outlined leading-none">
-        {isSidebarOpen ? 'menu_open' : 'menu'}
-      </span>
-    </button>
-    
-    <div className="text-left truncate">
-      <p className="hidden md:block text-[9px] font-black text-slate-400 uppercase leading-none tracking-widest">Organización</p>
-      <h2 className="text-xs md:text-sm font-black text-slate-900 uppercase truncate max-w-[120px] md:max-w-none">
-        {data.org?.company_name || 'Individual'}
-      </h2>
-    </div>
-  </div>
-  
-  {/* LADO DERECHO: Acciones y Perfil */}
-<div className="flex items-center gap-2 md:gap-6">
-  
-  {/* CONTENEDOR DE BOTONES OPERATIVOS */}
-  <div className="flex items-center gap-2">
-    
-{hasPermission(role, 'canFly') && (
-    <div className="flex items-center gap-2">
-        
-        {/* BOTÓN 1: TÉRMINO DE VUELO (Solo si activeFlight existe) */}
-        {activeFlight && (
-          <Link 
-            href={`/dashboard/logbook/finalize?id=${activeFlight.id}`} 
-            className="bg-slate-900 hover:bg-black text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg border border-white/10 transition-all flex items-center gap-2 active:scale-95"
-          >
-            <span className="material-symbols-outlined text-sm md:text-base text-orange-500">flight_land</span> 
-            <span className="hidden sm:inline">Término de Vuelo</span>
-            <span className="sm:hidden">Finalizar</span>
-          </Link>
-        )}
+      {/* ── CONTENIDO PRINCIPAL ──────────────────────────────────────────── */}
+      <main className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'}`}>
 
-       {/* BOTÓN 2: NUEVA OPERACIÓN */}
-        <Link 
-          href="/dashboard/logbook/new" 
-          className="bg-orange-600 hover:bg-orange-700 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
-        >
-          <span className="material-symbols-outlined text-sm md:text-base">add_circle</span> 
-          <span className="hidden sm:inline">Nueva Operación</span>
-          <span className="sm:hidden">Nuevo</span>
-        </Link>
-    </div>
-)}
-  </div>
+        {/* HEADER */}
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shrink-0 sticky top-0 z-[100]">
 
-  {/* PERFIL CLICKABLE (Separado por línea en desktop) */}
-  <Link 
-      href="/dashboard/settings/profile" 
-      className="flex items-center gap-3 border-l border-slate-100 pl-2 md:pl-6 group hover:opacity-80 transition-all"
-  >
-     <div className="hidden md:block text-right">
-        <p className="text-[10px] font-black text-slate-900 leading-none group-hover:text-orange-600 transition-colors">{data.profile?.full_name}</p>
-        <p className="text-[8px] font-bold text-orange-500 uppercase mt-1">{ROLE_LABELS[data.profile?.role] || data.profile?.role}</p>
-     </div>
-     <div className="size-8 md:size-10 rounded-full bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
-        {data.profile?.avatar_url ? (
-            <Image 
-              src="/logo.png" 
-              alt="Bitafly" 
-              width={150} 
-              height={40} 
-              priority // Carga inmediata
-              fetchPriority="high" // Prioridad máxima en el canal de red
-            />
-        ) : (
-            <span className="material-symbols-outlined text-slate-400 text-xl">person</span>
-        )}
-     </div>
-  </Link>
-</div>
-</header>
-        <div className="flex-1 overflow-y-auto p-10">{children}</div>
+          {/* IZQUIERDA: hamburguesa + empresa */}
+          <div className="flex items-center gap-3 overflow-hidden">
+            <button
+              onClick={() => setSidebarOpen(!isSidebarOpen)}
+              className="size-11 flex items-center justify-center rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 active:scale-95 transition-all shrink-0"
+              aria-label="Abrir menú"
+            >
+              <span className="material-symbols-outlined text-xl leading-none">
+                {isSidebarOpen ? 'menu_open' : 'menu'}
+              </span>
+            </button>
+            <div className="text-left truncate">
+              <p className="hidden md:block text-xs font-black text-slate-400 uppercase leading-none tracking-widest">Organización</p>
+              <h2 className="text-sm font-black text-slate-900 uppercase truncate max-w-[140px] sm:max-w-xs md:max-w-none">
+                {data.org?.company_name || 'Individual'}
+              </h2>
+            </div>
+          </div>
+
+          {/* DERECHA: acciones + perfil */}
+          <div className="flex items-center gap-2 md:gap-4">
+            {hasPermission(role, 'canFly') && (
+              <div className="flex items-center gap-2">
+                {activeFlight && (
+                  <Link
+                    href={`/dashboard/logbook/finalize?id=${activeFlight.id}`}
+                    className="flex items-center gap-2 bg-slate-900 hover:bg-black text-white px-3 md:px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg border border-white/10 transition-all active:scale-95"
+                  >
+                    <span className="material-symbols-outlined text-base text-orange-500">flight_land</span>
+                    <span className="hidden sm:inline">Término de Vuelo</span>
+                  </Link>
+                )}
+                <Link
+                  href="/dashboard/logbook/new"
+                  className="hidden sm:flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-3 md:px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-500/20 transition-all active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-base">add_circle</span>
+                  <span className="hidden sm:inline">Nueva Operación</span>
+                </Link>
+              </div>
+            )}
+
+            <Link
+              href="/dashboard/settings/profile"
+              className="flex items-center gap-3 border-l border-slate-100 pl-3 md:pl-5 group hover:opacity-80 transition-all"
+            >
+              <div className="hidden md:block text-right">
+                <p className="text-xs font-black text-slate-900 leading-none group-hover:text-orange-600 transition-colors">
+                  {data.profile?.full_name}
+                </p>
+                <p className="text-xs font-bold text-orange-500 uppercase mt-0.5">
+                  {ROLE_LABELS[data.profile?.role] || data.profile?.role}
+                </p>
+              </div>
+              <div className="size-10 rounded-full bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+                {data.profile?.avatar_url ? (
+                  <Image src="/logo.png" alt="Bitafly" width={40} height={40} priority />
+                ) : (
+                  <span className="material-symbols-outlined text-slate-400 text-xl">person</span>
+                )}
+              </div>
+            </Link>
+          </div>
+        </header>
+
+        {/* CONTENIDO DE PÁGINA */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10 pb-24 lg:pb-10">
+          {children}
+        </div>
       </main>
+
+      {/* ── BARRA DE NAVEGACIÓN INFERIOR — solo mobile ───────────────────── */}
+      <nav
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-[200] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
+        <div className="flex items-stretch h-16">
+
+          {/* Dashboard */}
+          <BottomNavItem href="/dashboard" icon="dashboard" label="Inicio" active={pathname === '/dashboard'} />
+
+          {/* Bitácora */}
+          {filteredLinks.some(l => l.href === '/dashboard/logbook') && (
+            <BottomNavItem href="/dashboard/logbook" icon="menu_book" label="Bitácora" active={pathname.startsWith('/dashboard/logbook')} />
+          )}
+
+          {/* FAB central: Nueva Operación */}
+          {hasPermission(role, 'canFly') && (
+            <div className="flex-1 flex items-center justify-center">
+              <Link
+                href="/dashboard/logbook/new"
+                className="size-14 bg-orange-600 hover:bg-orange-700 text-white rounded-2xl flex flex-col items-center justify-center shadow-lg shadow-orange-500/30 active:scale-95 transition-all -mt-5 border-4 border-white"
+              >
+                <span className="material-symbols-outlined text-2xl">add</span>
+              </Link>
+            </div>
+          )}
+
+          {/* Tripulación */}
+          {filteredLinks.some(l => l.href === '/dashboard/pilots') && (
+            <BottomNavItem href="/dashboard/pilots" icon="group" label="Tripulación" active={pathname.startsWith('/dashboard/pilots')} />
+          )}
+
+          {/* Flota */}
+          {filteredLinks.some(l => l.href === '/dashboard/fleet') && (
+            <BottomNavItem href="/dashboard/fleet" icon="precision_manufacturing" label="Flota" active={pathname.startsWith('/dashboard/fleet')} />
+          )}
+
+        </div>
+      </nav>
     </div>
+  );
+}
+
+// ── Ítem de la barra de navegación inferior ───────────────────────────────────
+function BottomNavItem({ href, icon, label, active }) {
+  return (
+    <Link
+      href={href}
+      className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-all active:scale-90 ${
+        active ? 'text-orange-600' : 'text-slate-400'
+      }`}
+    >
+      <span className={`material-symbols-outlined text-2xl leading-none ${active ? 'text-orange-600' : ''}`}>
+        {icon}
+      </span>
+      <span className={`text-xs font-black uppercase tracking-tight leading-none ${active ? 'text-orange-600' : 'text-slate-400'}`}>
+        {label}
+      </span>
+      {active && <span className="absolute bottom-0 h-0.5 w-8 bg-orange-600 rounded-full" />}
+    </Link>
   );
 }

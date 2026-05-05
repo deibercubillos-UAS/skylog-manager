@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -81,10 +81,10 @@ export default function BatteryLogPage() {
             <form onSubmit={handleSubmit} className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
                     <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6">
-                        <h3 className="text-[10px] font-black uppercase text-[#ec5b13] tracking-widest">1. Misión y Aeronave</h3>
+                        <h3 className="text-xs font-black uppercase text-[#ec5b13] tracking-widest">1. Misión y Aeronave</h3>
                         <div className="space-y-4">
                             <div>
-                                <label className="text-[9px] font-black text-slate-400 uppercase">Seleccionar Número de Vuelo</label>
+                                <label className="text-xs font-black text-slate-400 uppercase">Seleccionar Número de Vuelo</label>
                                 <select required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" 
                                         value={form.flight_id} onChange={e => handleFlightSelect(e.target.value)}>
                                     <option value="">Seleccionar...</option>
@@ -92,7 +92,7 @@ export default function BatteryLogPage() {
                                 </select>
                             </div>
                             <div>
-                                <label className="text-[9px] font-black text-slate-400 uppercase">Drone Usado (Auto-detectado)</label>
+                                <label className="text-xs font-black text-slate-400 uppercase">Drone Usado (Auto-detectado)</label>
                                 <select disabled className="w-full p-4 bg-slate-100 rounded-2xl border-none font-bold text-sm text-slate-500" 
                                         value={form.aircraft_id}>
                                     <option value="">Esperando vuelo...</option>
@@ -103,9 +103,9 @@ export default function BatteryLogPage() {
                     </div>
 
                     <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6">
-                        <h3 className="text-[10px] font-black uppercase text-[#ec5b13] tracking-widest">2. Selección de Energía</h3>
+                        <h3 className="text-xs font-black uppercase text-[#ec5b13] tracking-widest">2. Selección de Energía</h3>
                         <div>
-                            <label className="text-[9px] font-black text-slate-400 uppercase">Batería Utilizada</label>
+                            <label className="text-xs font-black text-slate-400 uppercase">Batería Utilizada</label>
                             <select required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" 
                                     onChange={e => handleBatterySelect(e.target.value)}>
                                 <option value="">Seleccionar del inventario...</option>
@@ -118,7 +118,7 @@ export default function BatteryLogPage() {
                 <div className="bg-[#1A202C] p-10 rounded-[3rem] text-white">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
                         <div className="space-y-2">
-                            <label className="text-[9px] font-black text-slate-500 uppercase">Ciclo a Registrar</label>
+                            <label className="text-xs font-black text-slate-500 uppercase">Ciclo a Registrar</label>
                             <input type="number" className="w-full bg-slate-800 p-4 rounded-2xl border-none font-bold text-2xl text-emerald-400"
                                    value={form.cycle_number} onChange={e => setForm({...form, cycle_number: e.target.value})} />
                         </div>

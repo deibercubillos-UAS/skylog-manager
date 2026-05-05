@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/server';
+﻿import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import PilotsClient from './PilotsClient';
@@ -14,7 +14,7 @@ function TableSkeleton({ orgName, canManage }) {
           <h1 className="text-2xl font-bold text-navy uppercase tracking-tighter">
             Tripulación: {orgName}
           </h1>
-          <p className="text-gray-400 text-[10px] font-black uppercase">Cargando miembros...</p>
+          <p className="text-gray-400 text-xs font-black uppercase">Cargando miembros...</p>
         </div>
         {canManage && (
           <div className="h-12 w-44 bg-slate-100 rounded-xl animate-pulse" />

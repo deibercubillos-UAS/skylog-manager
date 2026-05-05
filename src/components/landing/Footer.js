@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 export default function Footer() {
   return (
@@ -9,11 +9,11 @@ export default function Footer() {
              <img src="/logo.png" className="size-10 object-contain" alt="BitaFly" width={40} height={40} loading="lazy" />
              <span className="text-xl font-black uppercase tracking-tighter">BitaFly Manager</span>
           </div>
-          <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.3em]">© 2024 BitaFly UAS Manager - Aviation Systems</p>
+          <p className="text-xs font-black uppercase text-slate-500 tracking-[0.3em]">© 2024 BitaFly UAS Manager - Aviation Systems</p>
           <a href="mailto:soporte@bitafly.com" className="text-xs font-bold text-orange-400 hover:text-orange-300 tracking-wider">
              soporte@bitafly.com
           </a>
-          <div className="flex gap-8 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+          <div className="flex gap-8 text-xs font-bold text-slate-400 uppercase tracking-widest">
              <span>RAC Compliant</span>
              <span>SORA Methodology</span>
              <span>ISO 27001 Security</span>

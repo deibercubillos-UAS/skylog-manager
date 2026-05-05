@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import Link from 'next/link';
 
@@ -139,7 +139,7 @@ export default function Pricing() {
               className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${annual ? 'bg-navy text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
             >
               Anual
-              <span className="bg-primary text-white text-[9px] px-2 py-0.5 rounded-full font-black">-20%</span>
+              <span className="bg-primary text-white text-xs px-2 py-0.5 rounded-full font-black">-20%</span>
             </button>
           </div>
         </div>
@@ -156,7 +156,7 @@ export default function Pricing() {
               }`}
             >
               {plan.badge && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-4 py-1 rounded-full shadow-lg">
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary text-white text-xs font-black uppercase tracking-widest px-4 py-1 rounded-full shadow-lg">
                   {plan.badge}
                 </div>
               )}
@@ -207,7 +207,7 @@ export default function Pricing() {
               </div>
 
               {/* Límites */}
-              <p className={`text-[11px] font-black uppercase tracking-wider mb-6 ${plan.popular ? 'text-primary' : 'text-primary'}`}>
+              <p className={`text-xs font-black uppercase tracking-wider mb-6 ${plan.popular ? 'text-primary' : 'text-primary'}`}>
                 {plan.limits}
               </p>
 

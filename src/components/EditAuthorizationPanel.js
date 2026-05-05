@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 
 export default function EditAuthorizationPanel({ mission, pilots, drones, onClose, onSuccess }) {
@@ -58,33 +58,33 @@ export default function EditAuthorizationPanel({ mission, pilots, drones, onClos
             <div className="flex justify-between items-center mb-8">
                 <div>
                     <h3 className="text-xl font-black uppercase tracking-tighter">Corregir Misión</h3>
-                    <p className="text-[10px] font-mono text-orange-600 font-bold">{mission.mission_id}</p>
+                    <p className="text-xs font-mono text-orange-600 font-bold">{mission.mission_id}</p>
                 </div>
                 <button onClick={onClose} className="material-symbols-outlined text-slate-300 hover:text-red-500 transition-colors">close</button>
             </div>
 
             <form onSubmit={handleUpdate} className="space-y-6">
                 <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Piloto asignado</label>
+                    <label className="text-xs font-black uppercase text-slate-400 ml-1">Piloto asignado</label>
                     <select required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={form.pilot_id} onChange={e => setForm({...form, pilot_id: e.target.value})}>
                         {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                 </div>
 
                 <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Aeronave autorizada</label>
+                    <label className="text-xs font-black uppercase text-slate-400 ml-1">Aeronave autorizada</label>
                     <select required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={form.aircraft_id} onChange={e => setForm({...form, aircraft_id: e.target.value})}>
                         {drones.map(d => <option key={d.id} value={d.id}>{d.model}</option>)}
                     </select>
                 </div>
 
                 <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Ubicación</label>
+                    <label className="text-xs font-black uppercase text-slate-400 ml-1">Ubicación</label>
                     <input required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={form.location} onChange={e => setForm({...form, location: e.target.value})} />
                 </div>
 
                 <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Fecha Programada</label>
+                    <label className="text-xs font-black uppercase text-slate-400 ml-1">Fecha Programada</label>
                     <input required type="date" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm uppercase" value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})} />
                 </div>
 

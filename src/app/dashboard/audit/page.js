@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 
 export default function AuditPage() {
@@ -19,7 +19,7 @@ export default function AuditPage() {
                     <p className="text-slate-500 text-sm">Verificación de aeronavegabilidad y estatus de personal.</p>
                 </div>
                 <div className="text-right">
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Salud Organizacional</p>
+                    <p className="text-xs font-black text-slate-400 uppercase">Salud Organizacional</p>
                     <p className={`text-4xl font-black ${data.score > 80 ? 'text-emerald-500' : 'text-orange-500'}`}>{data.score}%</p>
                 </div>
             </header>
@@ -60,13 +60,13 @@ function AuditCard({ title, sub, status, reason, docs }) {
                 <div className={`size-3 rounded-full ${status ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-red-500 animate-pulse'}`}></div>
                 <div>
                     <h4 className="text-sm font-black text-slate-900 uppercase leading-none">{title}</h4>
-                    <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase">{sub}</p>
+                    <p className="text-xs text-slate-400 font-bold mt-1 uppercase">{sub}</p>
                 </div>
             </div>
             <div className="text-right">
-                <p className={`text-[9px] font-black uppercase ${status ? 'text-emerald-600' : 'text-red-600'}`}>{reason}</p>
+                <p className={`text-xs font-black uppercase ${status ? 'text-emerald-600' : 'text-red-600'}`}>{reason}</p>
                 <div className="flex justify-end gap-1 mt-1">
-                    <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${docs ? 'bg-slate-100 text-slate-600' : 'bg-orange-50 text-orange-600'}`}>
+                    <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${docs ? 'bg-slate-100 text-slate-600' : 'bg-orange-50 text-orange-600'}`}>
                         {docs ? 'DOCS OK' : 'DOCS FALTANTES'}
                     </span>
                 </div>

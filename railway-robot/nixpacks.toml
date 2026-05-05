@@ -1,0 +1,39 @@
+# Railway build config — Playwright usa el Chromium del sistema (Nix)
+# PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 evita que npm descargue el Chromium
+# propio de Playwright (que falla con libglib-2.0.so.0 en entornos Nix).
+# El inspector.js usa `which chromium` para encontrar el binario de Nix.
+
+[phases.setup]
+nixPkgs = [
+  "nodejs_20",
+  "chromium",
+  "nss",
+  "nspr",
+  "dbus",
+  "atk",
+  "at-spi2-atk",
+  "cups",
+  "libxkbcommon",
+  "gtk3",
+  "pango",
+  "cairo",
+  "gdk-pixbuf",
+  "libxrandr",
+  "libxdamage",
+  "libxcomposite",
+  "libxext",
+  "libxfixes",
+  "mesa",
+  "alsa-lib",
+]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[variables]
+PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
+
+[start]
+# Antes de arrancar Node, busca libglib-2.0.so.0 en el Nix store y lo agrega
+# a LD_LIBRARY_PATH para que el Chromium headless encuentre sus dependencias.
+cmd = "NIX_GLIB=$(find /nix/store -maxdepth 7 -name 'libglib-2.0.so.0' 2>/dev/null | head -1 | xargs dirname 2>/dev/null || echo '') && export LD_LIBRARY_PATH=\"${NIX_GLIB}:${LD_LIBRARY_PATH:-}\" && echo \"[Robot] LD_LIBRARY_PATH=${LD_LIBRARY_PATH}\" && node server.js"

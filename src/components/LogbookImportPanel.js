@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 
@@ -207,25 +207,25 @@ export default function LogbookImportPanel({ onClose, onSuccess }) {
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-slate-50 rounded-2xl p-4 text-center">
                   <p className="text-2xl font-black text-navy">{preview.total}</p>
-                  <p className="text-[9px] font-black uppercase text-slate-400 mt-1">Filas detectadas</p>
+                  <p className="text-xs font-black uppercase text-slate-400 mt-1">Filas detectadas</p>
                 </div>
                 <div className="bg-green-50 rounded-2xl p-4 text-center">
                   <p className="text-2xl font-black text-green-600">{preview.total}</p>
-                  <p className="text-[9px] font-black uppercase text-slate-400 mt-1">A procesar</p>
+                  <p className="text-xs font-black uppercase text-slate-400 mt-1">A procesar</p>
                 </div>
                 <div className="bg-orange-50 rounded-2xl p-4 text-center">
                   <p className="text-2xl font-black text-primary">{file?.name}</p>
-                  <p className="text-[9px] font-black uppercase text-slate-400 mt-1 truncate">Archivo</p>
+                  <p className="text-xs font-black uppercase text-slate-400 mt-1 truncate">Archivo</p>
                 </div>
               </div>
 
               {/* Primeras filas */}
               <div className="bg-slate-50 rounded-2xl overflow-hidden">
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-4 py-2 border-b border-slate-200">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400 px-4 py-2 border-b border-slate-200">
                   Vista previa (primeras 5 filas)
                 </p>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-[10px] font-mono">
+                  <table className="w-full text-xs font-mono">
                     <thead>
                       <tr className="bg-slate-100">
                         {preview.rows[0] && Object.keys(preview.rows[0]).map(k => (
@@ -276,15 +276,15 @@ export default function LogbookImportPanel({ onClose, onSuccess }) {
               {/* Detalle de rechazados */}
               {result.invalid?.length > 0 && (
                 <div className="bg-red-50 border border-red-100 rounded-2xl overflow-hidden">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-red-400 px-4 py-2 border-b border-red-100">
+                  <p className="text-xs font-black uppercase tracking-widest text-red-400 px-4 py-2 border-b border-red-100">
                     Filas rechazadas
                   </p>
                   <div className="divide-y divide-red-100 max-h-48 overflow-y-auto">
                     {result.invalid.map((row, i) => (
                       <div key={i} className="px-4 py-2">
-                        <p className="text-[10px] font-black text-red-600">Fila {row.fila}</p>
+                        <p className="text-xs font-black text-red-600">Fila {row.fila}</p>
                         {row.errores.map((e, j) => (
-                          <p key={j} className="text-[10px] text-red-500 font-medium">• {e}</p>
+                          <p key={j} className="text-xs text-red-500 font-medium">• {e}</p>
                         ))}
                       </div>
                     ))}

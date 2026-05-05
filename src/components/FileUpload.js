@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
@@ -62,7 +62,7 @@ export default function FileUpload({ path, onUploadSuccess, label }) {
 
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-black uppercase text-slate-400">{label}</label>
+      <label className="text-xs font-black uppercase text-slate-400">{label}</label>
       <div className={`relative border-2 border-dashed rounded-2xl p-4 transition-all cursor-pointer ${uploading ? 'bg-slate-100 border-slate-300' : 'hover:bg-orange-50 border-slate-200'}`}>
         <input 
             type="file" 
@@ -75,7 +75,7 @@ export default function FileUpload({ path, onUploadSuccess, label }) {
             <span className={`material-symbols-outlined text-xl ${uploading ? 'animate-spin text-orange-500' : 'text-slate-400'}`}>
                 {uploading ? 'sync' : 'cloud_upload'}
             </span>
-            <p className="text-[10px] font-bold text-slate-500 uppercase">
+            <p className="text-xs font-bold text-slate-500 uppercase">
                 {uploading ? 'Procesando Archivo...' : 'Seleccionar Documento (PDF/JPG)'}
             </p>
         </div>

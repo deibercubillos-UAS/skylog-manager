@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -24,7 +24,7 @@ export default function Navbar() {
               <span className="text-2xl font-black tracking-tighter text-[#1A202C] dark:text-white leading-none">
                 BitaFly
               </span>
-              <span className="text-[#ec5b13] text-[9px] font-black uppercase tracking-[0.3em]">Aviation Log</span>
+              <span className="text-[#ec5b13] text-xs font-black uppercase tracking-[0.3em]">Aviation Log</span>
             </div>
           </Link>
 

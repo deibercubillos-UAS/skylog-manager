@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
@@ -88,7 +88,7 @@ export default function FormSettingsClient({ initialData }) {
                         <button 
                             key={t.id} 
                             onClick={() => setType(t.id)} 
-                            className={`flex-1 md:flex-none px-6 md:px-8 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${type === t.id ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'}`}
+                            className={`flex-1 md:flex-none px-6 md:px-8 py-2.5 rounded-xl text-xs font-black uppercase transition-all whitespace-nowrap ${type === t.id ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'}`}
                         >
                             {t.label}
                         </button>
@@ -97,9 +97,9 @@ export default function FormSettingsClient({ initialData }) {
 
                 {type === 'preflight' && (
                     <div className="flex items-center gap-3 animate-in slide-in-from-left">
-                        <span className="text-[9px] font-black text-slate-400 uppercase ml-2">Modelo:</span>
+                        <span className="text-xs font-black text-slate-400 uppercase ml-2">Modelo:</span>
                         <select 
-                            className="bg-white border-2 border-orange-100 p-3 rounded-2xl font-black text-[10px] uppercase text-orange-600 outline-none flex-1 md:flex-none" 
+                            className="bg-white border-2 border-orange-100 p-3 rounded-2xl font-black text-xs uppercase text-orange-600 outline-none flex-1 md:flex-none" 
                             value={selectedModel} 
                             onChange={e => setSelectedModel(e.target.value)}
                         >
@@ -118,11 +118,11 @@ export default function FormSettingsClient({ initialData }) {
                         <div className="flex items-center justify-between bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
                             <div className="pr-4">
                                 <p className="text-xs font-black text-slate-900 uppercase">Activar Protocolo</p>
-                                <p className="text-[9px] text-slate-500 mt-1 uppercase font-bold">Solicitar chequeo médico antes de cada vuelo</p>
+                                <p className="text-xs text-slate-500 mt-1 uppercase font-bold">Solicitar chequeo médico antes de cada vuelo</p>
                             </div>
                             <button 
                                 onClick={toggleHealth}
-                                className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${healthEnabled ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}
+                                className={`px-6 py-3 rounded-xl text-xs font-black uppercase transition-all ${healthEnabled ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}
                             >
                                 {healthEnabled ? 'ON' : 'OFF'}
                             </button>
@@ -130,7 +130,7 @@ export default function FormSettingsClient({ initialData }) {
                     )}
 
                     <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
-                        <div className="hidden md:flex p-4 bg-slate-50 border-b justify-between px-10 text-[9px] font-black text-slate-400 uppercase">
+                        <div className="hidden md:flex p-4 bg-slate-50 border-b justify-between px-10 text-xs font-black text-slate-400 uppercase">
                             <span>Posición (Slot)</span>
                             <span>Descripción del Requerimiento Técnico</span>
                         </div>
@@ -138,8 +138,8 @@ export default function FormSettingsClient({ initialData }) {
                             {Array.from({ length: LIMITS[type] }).map((_, i) => (
                                 <div key={i} className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 group border-b border-slate-50 pb-3 md:pb-0 md:border-none last:border-none">
                                     <div className="flex items-center gap-3">
-                                        <span className="text-[11px] font-black text-slate-300 w-8 group-hover:text-orange-600 transition-colors">{(i + 1).toString().padStart(2, '0')}</span>
-                                        <span className="md:hidden text-[9px] font-black text-slate-400 uppercase tracking-widest">Requerimiento</span>
+                                        <span className="text-xs font-black text-slate-300 w-8 group-hover:text-orange-600 transition-colors">{(i + 1).toString().padStart(2, '0')}</span>
+                                        <span className="md:hidden text-xs font-black text-slate-400 uppercase tracking-widest">Requerimiento</span>
                                     </div>
                                     <input 
                                         value={labels[i + 1] || ''}

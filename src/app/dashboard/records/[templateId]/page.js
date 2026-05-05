@@ -32,12 +32,12 @@ export default function DynamicFormPage({ params }) {
     return (
         <div className="max-w-2xl mx-auto bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm text-left">
             <h2 className="text-2xl font-black uppercase mb-2">{template.name}</h2>
-            <p className="text-[10px] font-bold text-slate-400 uppercase mb-8">{template.form_code} | v{template.version}</p>
-            
+            <p className="text-xs font-bold text-slate-400 uppercase mb-8">{template.form_code} | v{template.version}</p>
+
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 {template.schema?.map((field) => (
                     <div key={field.name} className="space-y-1 text-left">
-                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">{field.label}</label>
+                        <label className="text-xs font-black uppercase text-slate-400 ml-1">{field.label}</label>
                         <input 
                             {...register(field.name)}
                             type={field.type}

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import Image from 'next/image';
 
 export default function Hero() {
@@ -12,7 +12,7 @@ export default function Hero() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ec5b13] opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-[#ec5b13]"></span>
               </span>
-              <span className="text-[10px] font-black uppercase tracking-wider text-[#ec5b13]">RAC 2024 Compliance</span>
+              <span className="text-xs font-black uppercase tracking-wider text-[#ec5b13]">RAC 2024 Compliance</span>
             </div>
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-[#1A202C] leading-[1.1] tracking-tight">
               La Bitácora Digital de <span className="text-[#ec5b13]">Alto Nivel.</span>

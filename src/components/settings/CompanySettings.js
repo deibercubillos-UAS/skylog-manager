@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 export default function CompanySettings({ profile, setProfile }) {
   return (
@@ -10,7 +10,7 @@ export default function CompanySettings({ profile, setProfile }) {
       <div className="space-y-6">
         {/* Razón Social */}
         <div>
-          <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 ml-1">
+          <label className="block text-xs font-black uppercase text-slate-400 mb-2 ml-1">
             Razón Social / Empresa
           </label>
           <input 
@@ -25,7 +25,7 @@ export default function CompanySettings({ profile, setProfile }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* ID de Operador */}
           <div>
-            <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 ml-1">
+            <label className="block text-xs font-black uppercase text-slate-400 mb-2 ml-1">
               ID de Operador (DAN / Registro)
             </label>
             <input 
@@ -39,7 +39,7 @@ export default function CompanySettings({ profile, setProfile }) {
 
           {/* PREFIJO DE VUELO (NUEVO CAMPO SOLICITADO) */}
           <div>
-            <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 ml-1">
+            <label className="block text-xs font-black uppercase text-slate-400 mb-2 ml-1">
               Prefijo de Vuelo (Iniciales)
             </label>
             <div className="relative">
@@ -55,7 +55,7 @@ export default function CompanySettings({ profile, setProfile }) {
                 onChange={(e) => setProfile({...profile, flight_prefix: e.target.value.toUpperCase()})} 
               />
             </div>
-            <p className="text-[9px] text-slate-400 font-medium mt-2 ml-1 uppercase">
+            <p className="text-xs text-slate-400 font-medium mt-2 ml-1 uppercase">
               Estas iniciales se usarán para generar tus IDs de vuelo (ej: {profile.flight_prefix || 'SKL'}-0001).
             </p>
           </div>

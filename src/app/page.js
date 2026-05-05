@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import NavMobile from '@/components/landing/NavMobile';
 import DashboardMockup from '@/components/landing/DashboardMockup';
 import Pricing from '@/components/landing/Pricing';
@@ -315,25 +315,25 @@ export default function LandingPage() {
             <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
               <div>
                 <p className="text-3xl md:text-4xl font-black text-primary">100%</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-2">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400 mt-2">
                   Cumplimiento RAC
                 </p>
               </div>
               <div>
                 <p className="text-3xl md:text-4xl font-black text-primary">5</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-2">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400 mt-2">
                   Roles operacionales
                 </p>
               </div>
               <div>
                 <p className="text-3xl md:text-4xl font-black text-primary">99.9%</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-2">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400 mt-2">
                   Disponibilidad
                 </p>
               </div>
               <div>
                 <p className="text-3xl md:text-4xl font-black text-primary">24/7</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-2">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400 mt-2">
                   Acceso en la nube
                 </p>
               </div>
@@ -344,7 +344,7 @@ export default function LandingPage() {
           <section id="funciones" className="py-24 px-6 bg-[#f8f6f6]">
             <div className="max-w-6xl mx-auto">
               <div className="text-center mb-16 space-y-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-primary">
                   Funciones
                 </p>
                 <h2 className="text-3xl md:text-5xl font-black text-navy uppercase tracking-tighter">
@@ -380,7 +380,7 @@ export default function LandingPage() {
           <section id="cumplimiento" className="py-24 px-6 bg-white">
             <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div className="space-y-6">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-primary">
                   Cumplimiento normativo
                 </p>
                 <h2 className="text-3xl md:text-5xl font-black text-navy uppercase tracking-tighter leading-tight">
@@ -427,7 +427,7 @@ export default function LandingPage() {
                   tu organización. Sin Excels dispersos. Sin papeles perdidos.
                 </p>
                 <div className="border-t border-white/10 pt-6 space-y-3">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-primary">
+                  <p className="text-xs font-black uppercase tracking-widest text-primary">
                     Reportes oficiales generados
                   </p>
                   <ul className="space-y-2 font-mono text-xs text-slate-300">
@@ -514,7 +514,7 @@ export default function LandingPage() {
           <section id="faq" className="py-24 px-6 bg-white">
             <div className="max-w-4xl mx-auto">
               <div className="text-center mb-16 space-y-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-primary">
                   Preguntas frecuentes
                 </p>
                 <h2 className="text-3xl md:text-5xl font-black text-navy uppercase tracking-tighter">
@@ -588,7 +588,7 @@ export default function LandingPage() {
             </div>
 
             <div className="space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-white">
+              <p className="text-xs font-black uppercase tracking-widest text-white">
                 Producto
               </p>
               <ul className="space-y-2 text-xs">
@@ -616,7 +616,7 @@ export default function LandingPage() {
             </div>
 
             <div className="space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-white">
+              <p className="text-xs font-black uppercase tracking-widest text-white">
                 Empresa
               </p>
               <ul className="space-y-2 text-xs">
@@ -642,7 +642,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="max-w-6xl mx-auto mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between gap-4 text-[10px] uppercase tracking-widest">
+          <div className="max-w-6xl mx-auto mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between gap-4 text-xs uppercase tracking-widest">
             <p>© {new Date().getFullYear()} Bitafly Operations. Todos los derechos reservados.</p>
             <p>Hecho en Colombia para operadores UAS</p>
           </div>

@@ -1,4 +1,5 @@
 import { createClientSSR } from '@/lib/supabaseServer';
+import { getOrgContext } from '@/lib/apiAuth';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -10,8 +11,8 @@ export async function GET(request) {
         const offset = parseInt(searchParams.get('offset') || '0');
 
         const supabase = await createClientSSR();
-        const { data: { user } } = await supabase.auth.getUser();
-        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+        const { orgId } = await getOrgContext(supabase);
+        const prof = { organization_id: orgId }; // compat alias
 
         const { data, error } = await supabase
             .from('flights')

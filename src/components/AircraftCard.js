@@ -1,6 +1,6 @@
 'use client';
 export default function AircraftCard({ aircraft, onEdit, onDelete }) {
-  if (!aircraft) return null; // Escudo 1
+  if (!aircraft) return null;
 
   const hours = parseFloat(aircraft.total_hours || 0);
   const lastMaintHours = parseFloat(aircraft.last_maintenance_hours || 0);
@@ -24,17 +24,23 @@ export default function AircraftCard({ aircraft, onEdit, onDelete }) {
         <div className="flex justify-between items-start">
           <div className="truncate pr-2">
             <h3 className="font-black text-slate-900 text-base md:text-lg uppercase leading-tight truncate">{aircraft.model || 'UAS'}</h3>
-            <p className="text-orange-600 text-[9px] font-black font-mono tracking-widest mt-1">RUAS: {aircraft.ruas || '---'}</p>
+            <p className="text-orange-600 text-xs font-black font-mono tracking-widest mt-1">RUAS: {aircraft.ruas || '---'}</p>
           </div>
           <div className="flex gap-2 shrink-0">
-            <button onClick={() => onEdit(aircraft)} className="size-8 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-orange-600 transition-colors"><span className="material-symbols-outlined text-lg">edit_square</span></button>
-            <button onClick={() => onDelete(aircraft.id)} className="size-8 rounded-xl bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-600 hover:text-white transition-colors"><span className="material-symbols-outlined text-lg">delete</span></button>
+            <button onClick={() => onEdit(aircraft)}
+              className="size-11 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-orange-600 transition-colors active:scale-95">
+              <span className="material-symbols-outlined text-lg">edit_square</span>
+            </button>
+            <button onClick={() => onDelete(aircraft.id)}
+              className="size-11 rounded-xl bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-600 hover:text-white transition-colors active:scale-95">
+              <span className="material-symbols-outlined text-lg">delete</span>
+            </button>
           </div>
         </div>
         <div className="space-y-3 mt-4">
           <div className="flex justify-between items-end">
-            <p className="text-[10px] font-bold text-slate-700">{hours.toFixed(2)}h <span className="text-[8px] text-slate-400 uppercase">T.T</span></p>
-            <p className="text-[8px] font-black text-slate-400 uppercase">Salud Técnica</p>
+            <p className="text-xs font-bold text-slate-700">{hours.toFixed(2)}h <span className="text-xs text-slate-400 uppercase">T.T</span></p>
+            <p className="text-xs font-black text-slate-400 uppercase">Salud Técnica</p>
           </div>
           <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div className={`h-full ${barColor} transition-all duration-1000`} style={{ width: `${finalProgress}%` }}></div>

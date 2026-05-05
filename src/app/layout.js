@@ -16,31 +16,33 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
 /*
  * MATERIAL SYMBOLS — lista exhaustiva de iconos que la app usa.
  * Si añades un icono nuevo en cualquier .js/.jsx, agrégalo aquí también
- * o aparecerá como texto plano (ej: "expand_less") en pantalla.
- * Esta lista en lugar de la fuente completa baja el peso de 3.8 MB a ~60 KB.
+ * o aparecerá como texto plano en pantalla.
+ * El subset icon_names (~60 KB) es más rápido que la fuente completa (~400 KB).
  */
 const MATERIAL_ICONS = [
   'account_circle','account_tree','add','add_circle','admin_panel_settings',
-  'analytics','arrow_forward','assessment','attach_file','badge',
-  'battery_charging_full','build','business','check','check_circle',
+  'analytics','arrow_back','arrow_forward','assessment','attach_file','badge',
+  'battery_charging_full','build','business','check','check_circle','checklist',
   'chevron_right','close','cloud_done','cloud_upload','dashboard',
-  'delete','delete_sweep','description','dynamic_form','edit',
+  'delete','delete_sweep','description','download','dynamic_form','edit',
   'edit_square','engineering','error','event_available','expand_less',
   'expand_more','explore','fact_check','flight_land','flight_takeoff',
   'folder_shared','format_quote','gavel','group','group_add',
   'groups','health_and_safety','info','inventory_2','label_important',
   'lock','lock_reset','logout','mail','map',
   'mark_email_read','menu','menu_book','menu_open','monitor_heart',
-  'more_vert','notification_important','payments','person','person_add',
+  'more_vert','notification_important','open_in_full','payments','person','person_add',
   'person_add_alt','person_check','photo_camera','picture_as_pdf','pin',
-  'precision_manufacturing','radar','remove_circle','report','report_problem','rocket_launch',
-  'rule','search','send','settings','settings_accessibility',
-  'settings_input_component','settings_suggest','sync','table_view','timer',
+  'precision_manufacturing','progress_activity','radar','remove_circle',
+  'report','report_problem','rocket_launch',
+  'rule','save','search','send','settings','settings_accessibility',
+  'settings_input_component','settings_suggest','shield_check','sync',
+  'table_view','task_alt','timer','travel_explore',
   'trending_down','trending_up','upload_file',
   'verified','verified_user','visibility','visibility_off','warning',
 ].join(',');
 
-const MATERIAL_SYMBOLS_URL = `https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=swap&icon_names=${MATERIAL_ICONS}`;
+const MATERIAL_SYMBOLS_URL = `https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=block&icon_names=${MATERIAL_ICONS}`;
 
 export const metadata = {
   metadataBase: new URL(SITE_URL),
@@ -139,6 +141,8 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 5,
   colorScheme: 'light',
+  // Required for env(safe-area-inset-*) to work on iOS notch/Dynamic Island devices
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }) {
@@ -155,7 +159,8 @@ export default function RootLayout({ children }) {
           - Sin rangos de wght/FILL/GRAD: usa la versión estática, no la variable
           - rel="preload" en el CSS para que arranque la descarga sin esperar al parser
         */}
-        {/* Material Symbols — subsetado a ~60 KB con icon_names, impacto en render mínimo */}
+        {/* Material Symbols — subsetado con icon_names, preload para arranque inmediato */}
+        <link rel="preload" as="style" href={MATERIAL_SYMBOLS_URL} />
         <link rel="stylesheet" href={MATERIAL_SYMBOLS_URL} />
 
         {/* Schema.org — Organization (rich result en buscadores) */}

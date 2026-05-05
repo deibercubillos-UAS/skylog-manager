@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect } from 'react';
 import Link from 'next/link';
 
@@ -24,7 +24,7 @@ export default function PaymentResponsePage() {
           <strong>Tu nuevo plan se activará en unos segundos.</strong>
         </p>
         <div className="mt-10">
-           <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest animate-pulse">Iniciando sistemas BitaFly Pro...</p>
+           <p className="text-xs font-black uppercase text-slate-400 tracking-widest animate-pulse">Iniciando sistemas BitaFly Pro...</p>
         </div>
       </div>
     </div>

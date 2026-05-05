@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -122,7 +122,7 @@ export default function NewOperationPage() {
                     <div className="size-8 md:size-10 bg-orange-600 rounded-xl flex items-center justify-center text-white font-black">B</div>
                     <div className="text-left">
                         <h2 className="text-xs md:text-sm font-black uppercase leading-none">Despacho</h2>
-                        <p className="text-[9px] font-bold text-orange-600 uppercase mt-1">Fase: {stepNames[step]}</p>
+                        <p className="text-xs font-bold text-orange-600 uppercase mt-1">Fase: {stepNames[step]}</p>
                     </div>
                 </div>
                 <button onClick={() => router.back()} className="material-symbols-outlined text-slate-300 hover:text-red-500">close</button>
@@ -136,7 +136,7 @@ export default function NewOperationPage() {
                             <section className="bg-white p-6 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-200 space-y-6">
                                 <div className="grid grid-cols-1 gap-4 md:gap-6">
                                     <div className="space-y-1">
-                                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Orden de Vuelo</label>
+                                        <label className="text-xs font-black uppercase text-slate-400 ml-1">Orden de Vuelo</label>
                                         <select className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={form.auth_id} onChange={e => handleAuthChange(e.target.value)}>
                                             <option value="">-- Seleccionar Misión --</option>
                                             {resources.auths.map(a => <option key={a.id} value={a.id}>{a.mission_id} - {a.location}</option>)}
@@ -153,7 +153,7 @@ export default function NewOperationPage() {
                                     )}
 
                                     <div className="space-y-1">
-                                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Batería</label>
+                                        <label className="text-xs font-black uppercase text-slate-400 ml-1">Batería</label>
                                         <select className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={form.battery_id} onChange={e => setForm({...form, battery_id: e.target.value})}>
                                             <option value="">-- Seleccionar Batería --</option>
                                             {resources.batteries.map(b => <option key={b.id} value={b.id}>{b.brand} {b.model} ({b.serial_number})</option>)}
@@ -162,11 +162,11 @@ export default function NewOperationPage() {
                                     
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Hora Despegue</label>
+                                            <label className="text-xs font-black uppercase text-slate-400 ml-1">Hora Despegue</label>
                                             <input type="time" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold" onChange={e => setForm({...form, takeoff_time: e.target.value})} />
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Condición</label>
+                                            <label className="text-xs font-black uppercase text-slate-400 ml-1">Condición</label>
                                             <select className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold" value={form.visual_condition} onChange={e => setForm({...form, visual_condition: e.target.value})}>
                                                 <option value="VMC">VMC</option><option value="IMC">IMC</option><option value="NIGHT">NIGHT</option>
                                             </select>
@@ -175,7 +175,7 @@ export default function NewOperationPage() {
                                 </div>
                                 <div className="flex flex-col gap-3 pt-4">
                                     <button disabled={!form.auth_id || !form.battery_id || !form.takeoff_time} onClick={handleNextStep} className="w-full py-5 bg-orange-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl disabled:bg-slate-200 transition-all active:scale-95">Continuar a Seguridad</button>
-                                    {form.auth_id && <button onClick={() => setShowCancelModal(true)} className="w-full py-3 text-red-500 font-black uppercase text-[10px]">Cancelar Misión</button>}
+                                    {form.auth_id && <button onClick={() => setShowCancelModal(true)} className="w-full py-3 text-red-500 font-black uppercase text-xs">Cancelar Misión</button>}
                                 </div>
                             </section>
                         </div>
@@ -185,7 +185,7 @@ export default function NewOperationPage() {
                         <div className="space-y-6 md:space-y-8 animate-in slide-in-from-right duration-500">
                             <div className="flex justify-between items-center px-2">
                                 <h3 className="text-xl md:text-2xl font-black uppercase text-slate-800">{stepNames[step]}</h3>
-                                <button onClick={() => setStep('data')} className="text-[10px] font-black text-slate-400 uppercase border-b border-slate-200">Corregir Datos</button>
+                                <button onClick={() => setStep('data')} className="text-xs font-black text-slate-400 uppercase border-b border-slate-200">Corregir Datos</button>
                             </div>
                             
                             <div className="grid gap-3 md:gap-4">
@@ -200,7 +200,7 @@ export default function NewOperationPage() {
                                 ) : (
                                     <button disabled={!dynamicLabels.every(l => checks.briefing[l.field_number] === true) || saving} onClick={handleFinalize} className="w-full py-5 bg-emerald-600 text-white rounded-[2rem] font-black uppercase text-xs shadow-xl disabled:bg-slate-200 active:scale-95">Aprobar Vuelo</button>
                                 )}
-                                <button onClick={() => setShowCancelModal(true)} className="w-full py-3 bg-red-50 text-red-600 rounded-[2rem] font-black uppercase text-[10px] border border-red-100">Abortar Operación</button>
+                                <button onClick={() => setShowCancelModal(true)} className="w-full py-3 bg-red-50 text-red-600 rounded-[2rem] font-black uppercase text-xs border border-red-100">Abortar Operación</button>
                             </div>
                         </div>
                     )}
@@ -213,8 +213,8 @@ export default function NewOperationPage() {
 function InfoBox({ label, val }) {
     return (
         <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col justify-center">
-            <p className="text-[7px] font-black text-slate-400 uppercase leading-none">{label}</p>
-            <p className="text-[10px] font-bold text-slate-800 mt-1 uppercase truncate">{val || 'N/A'}</p>
+            <p className="text-xs font-black text-slate-400 uppercase leading-none">{label}</p>
+            <p className="text-xs font-bold text-slate-800 mt-1 uppercase truncate">{val || 'N/A'}</p>
         </div>
     );
 }

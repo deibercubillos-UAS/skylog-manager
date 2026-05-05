@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 export default function MaintenanceDroneCard({ drone }) {
   // Simulamos límites técnicos (MTBF): Motores cada 200h, Hélices cada 50h
@@ -23,7 +23,7 @@ export default function MaintenanceDroneCard({ drone }) {
           className="absolute inset-0 bg-cover bg-center opacity-70 group-hover:scale-110 transition-transform duration-700" 
           style={{ backgroundImage: `url(${drone.image_url || 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=400'})` }}
         ></div>
-        <div className={`absolute top-3 right-3 text-[10px] font-black px-2.5 py-1 rounded-full animate-pulse ${
+        <div className={`absolute top-3 right-3 text-xs font-black px-2.5 py-1 rounded-full animate-pulse ${
           isCritical ? 'bg-red-500 text-white' : isWarning ? 'bg-yellow-500 text-black' : 'bg-green-500 text-white'
         }`}>
           {isCritical ? 'CRITICAL' : isWarning ? 'WARNING' : 'OPTIMAL'}
@@ -34,10 +34,10 @@ export default function MaintenanceDroneCard({ drone }) {
         <div className="flex justify-between items-start mb-4">
           <div>
             <h4 className="font-bold text-base text-slate-900 dark:text-white">{drone.model}</h4>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{drone.serial_number}</p>
+            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">{drone.serial_number}</p>
           </div>
           <div className="text-right">
-            <p className="text-[9px] text-slate-400 font-black uppercase tracking-tighter">Total Flight</p>
+            <p className="text-xs text-slate-400 font-black uppercase tracking-tighter">Total Flight</p>
             <p className="font-bold font-mono text-[#ec5b13]">{drone.total_hours}h</p>
           </div>
         </div>
@@ -51,9 +51,9 @@ export default function MaintenanceDroneCard({ drone }) {
         <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
           <div className="flex items-center gap-1.5">
             <span className={`w-2 h-2 rounded-full ${isCritical ? 'bg-red-500' : 'bg-green-500'}`}></span>
-            <span className="text-[10px] font-black text-slate-500 uppercase">IMU Status OK</span>
+            <span className="text-xs font-black text-slate-500 uppercase">IMU Status OK</span>
           </div>
-          <button className="text-[#ec5b13] text-[10px] font-black hover:underline uppercase tracking-widest">Ver Diagnóstico</button>
+          <button className="text-[#ec5b13] text-xs font-black hover:underline uppercase tracking-widest">Ver Diagnóstico</button>
         </div>
       </div>
     </div>
@@ -64,7 +64,7 @@ function HealthBar({ label, current, max, percent }) {
   const isHigh = percent > 85;
   return (
     <div className="space-y-1.5">
-      <div className="flex justify-between text-[10px] font-bold">
+      <div className="flex justify-between text-xs font-bold">
         <span className="text-slate-500 uppercase">{label}</span>
         <span className={`${isHigh ? 'text-red-500 font-black' : 'text-slate-400'} font-mono`}>{current}/{max}h</span>
       </div>

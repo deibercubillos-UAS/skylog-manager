@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -75,8 +75,8 @@ export default function MissionInventoryPage() {
                 {/* COLUMNA 1: SELECCIÓN DE VUELO */}
                 <div className="space-y-6">
                     <section className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm text-left">
-                        <h3 className="text-[10px] font-black uppercase text-[#ec5b13] tracking-widest mb-4">Referencia Operativa</h3>
-                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Seleccionar Vuelo</label>
+                        <h3 className="text-xs font-black uppercase text-[#ec5b13] tracking-widest mb-4">Referencia Operativa</h3>
+                        <label className="text-xs font-black text-slate-400 uppercase ml-1">Seleccionar Vuelo</label>
                         <select className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm"
                                 value={selectedFlight} onChange={e => setSelectedFlight(e.target.value)}>
                             <option value="">¿Para qué vuelo?</option>
@@ -85,7 +85,7 @@ export default function MissionInventoryPage() {
                     </section>
 
                     <section className="bg-[#1A202C] p-8 rounded-[2rem] text-white text-left">
-                        <h3 className="text-[10px] font-black uppercase text-[#ec5b13] tracking-widest mb-4">Gestión de Catálogo</h3>
+                        <h3 className="text-xs font-black uppercase text-[#ec5b13] tracking-widest mb-4">Gestión de Catálogo</h3>
                         <div className="flex gap-2">
                             <input className="flex-1 bg-slate-800 border-none rounded-xl p-3 text-xs" 
                                    placeholder="Nuevo artículo..." value={newItemName} onChange={e => setNewItemName(e.target.value)} />

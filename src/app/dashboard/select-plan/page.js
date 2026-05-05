@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -75,7 +75,7 @@ export default function SelectPlanPage() {
 function PlanOption({ title, price, desc, features, onClick, loading, recommended }) {
   return (
     <div className={`bg-white p-8 rounded-[2.5rem] border-2 flex flex-col transition-all ${recommended ? 'border-[#ec5b13] shadow-2xl scale-105 z-10' : 'border-slate-100 shadow-sm hover:border-slate-200'}`}>
-      {recommended && <span className="bg-[#ec5b13] text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full self-center mb-4">Más Popular</span>}
+      {recommended && <span className="bg-[#ec5b13] text-white text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full self-center mb-4">Más Popular</span>}
       <h3 className="text-xl font-black uppercase text-slate-900">{title}</h3>
       <div className="mt-4 mb-6">
         <span className="text-4xl font-black">${price}</span>

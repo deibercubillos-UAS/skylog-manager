@@ -1,4 +1,5 @@
 import { createClientSSR } from '@/lib/supabaseServer';
+import { getOrgContext } from '@/lib/apiAuth';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -6,24 +7,32 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
     try {
         const supabase = await createClientSSR();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        const { orgId } = await getOrgContext(supabase);
+        if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
-        const orgId = profile?.organization_id;
+        // Fecha de corte: 6 meses atrás para el gráfico mensual
+        const cutoffDate = new Date();
+        cutoffDate.setMonth(cutoffDate.getMonth() - 6);
+        const cutoffStr = cutoffDate.toISOString().split('T')[0];
 
-        const [aircraftRes, pilotsRes, flightsRes, batteriesRes] = await Promise.all([
+        const [aircraftRes, pilotsRes, chartFlightsRes, recentFlightsRes, batteriesRes] = await Promise.all([
             supabase.from('aircraft')
                 .select('id,model,serial_number,total_hours,last_maintenance_hours,last_maintenance_date,created_at')
                 .eq('organization_id', orgId),
             supabase.from('pilots')
                 .select('id,name,medical_expiry')
                 .eq('organization_id', orgId),
+            // Solo flight_date para el gráfico mensual (payload mínimo)
+            supabase.from('flights')
+                .select('flight_date')
+                .eq('organization_id', orgId)
+                .gte('flight_date', cutoffStr),
+            // Solo 5 registros completos para "Actividad Reciente"
             supabase.from('flights')
                 .select('id,mission_id,flight_date,created_at,pilots:pilot_id(name),aircraft:aircraft_id(model)')
                 .eq('organization_id', orgId)
                 .order('created_at', { ascending: false })
-                .limit(500),
+                .limit(5),
             supabase.from('batteries')
                 .select('id,brand,serial_number,cycles')
                 .eq('organization_id', orgId)
@@ -40,7 +49,7 @@ export async function GET() {
             const year = d.getFullYear();
 
             // Filtrado por coincidencia de Mes y Año para evitar errores de zona horaria
-            const count = flightsRes.data?.filter(f => {
+            const count = chartFlightsRes.data?.filter(f => {
                 if (!f.flight_date) return false;
                 const [fYear, fMonth] = f.flight_date.split('-');
                 return parseInt(fYear) === year && parseInt(fMonth) === (mIdx + 1);
@@ -102,11 +111,11 @@ export async function GET() {
                 fleetCount: aircraftRes.data?.length || 0,
                 pilotCount: pilotsRes.data?.length || 0,
                 alertsCount: alerts.length,
-                totalFlights: flightsRes.data?.length || 0
+                totalFlights: chartFlightsRes.data?.length || 0
             },
             chart: chartData,
             alerts: alerts.sort((a, b) => a.type === 'CRÍTICO' ? -1 : 1),
-            recentActivity: flightsRes.data?.slice(0, 5) || []
+            recentActivity: recentFlightsRes.data || []
         });
         response.headers.set('Cache-Control', 'private, max-age=120, stale-while-revalidate=300');
         return response;

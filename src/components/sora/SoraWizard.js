@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
@@ -170,7 +170,7 @@ export default function SoraWizard({ onClose, onSaved }) {
                 onChange={e => set('operation_name', e.target.value)}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <InputLabel>Fecha prevista</InputLabel>
                 <input type="date" className={inputCls}
@@ -186,7 +186,7 @@ export default function SoraWizard({ onClose, onSaved }) {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <InputLabel>Aeronave UAS</InputLabel>
                 <select className={selectCls} value={form.aircraft_id} onChange={e => set('aircraft_id', e.target.value)}>
@@ -226,7 +226,7 @@ export default function SoraWizard({ onClose, onSaved }) {
                 {UA_DIMENSIONS.map(dim => (
                   <button key={dim} type="button"
                     onClick={() => set('ua_dimension', dim)}
-                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all ${
+                    className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase transition-all active:scale-95 ${
                       form.ua_dimension === dim
                         ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/20'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -243,7 +243,7 @@ export default function SoraWizard({ onClose, onSaved }) {
                 {Object.entries(SCENARIO_LABELS).map(([key, lbl]) => (
                   <button key={key} type="button"
                     onClick={() => set('op_scenario', key)}
-                    className={`flex items-center justify-between px-4 py-3 rounded-2xl text-left text-sm font-bold transition-all ${
+                    className={`flex items-center justify-between px-4 py-3.5 rounded-2xl text-left text-sm font-bold transition-all active:scale-[0.99] ${
                       form.op_scenario === key
                         ? 'bg-orange-50 border-2 border-orange-500 text-orange-700'
                         : 'bg-slate-50 border border-slate-200 text-slate-700 hover:border-slate-400'
@@ -261,8 +261,8 @@ export default function SoraWizard({ onClose, onSaved }) {
             {/* GRC Matrix */}
             <div>
               <p className="text-xs font-black uppercase text-slate-400 tracking-widest mb-2">Matriz GRC Intrínseco</p>
-              <div className="overflow-x-auto rounded-2xl border border-slate-200">
-                <table className="w-full text-xs font-black text-center border-collapse">
+              <div className="overflow-x-auto rounded-2xl border border-slate-200 -mx-1 px-1">
+                <table className="min-w-[480px] w-full text-xs font-black text-center border-collapse">
                   <thead>
                     <tr className="bg-slate-50">
                       <th className="px-3 py-2 text-left text-slate-400 uppercase">UA / Escenario</th>
@@ -316,7 +316,7 @@ export default function SoraWizard({ onClose, onSaved }) {
               {Object.keys(MITIGATION_LABELS).map(lvl => (
                 <button key={lvl} type="button"
                   onClick={() => set(field, lvl)}
-                  className={`p-3 rounded-2xl text-left transition-all border ${
+                  className={`p-3 rounded-2xl text-left transition-all border active:scale-95 ${
                     form[field] === lvl
                       ? 'border-orange-500 bg-orange-50 shadow-sm'
                       : 'border-slate-200 bg-white hover:border-slate-400'
@@ -388,7 +388,7 @@ export default function SoraWizard({ onClose, onSaved }) {
       case 4:
         return (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <InputLabel required>Altura operacional (m AGL)</InputLabel>
                 <input
@@ -541,10 +541,10 @@ export default function SoraWizard({ onClose, onSaved }) {
           <div className="space-y-6">
             {/* SAIL Result */}
             <div className="grid grid-cols-3 gap-4">
-              <div className={`col-span-1 flex flex-col items-center justify-center p-6 rounded-2xl border-2 ${sc.bg} ${sc.border}`}>
-                <p className={`text-xs font-black uppercase tracking-widest ${sc.text} opacity-70`}>Nivel SAIL</p>
-                <p className={`text-6xl font-black ${sc.text} mt-1`}>{sailRoman(sail_level)}</p>
-                <p className={`text-xs font-black uppercase ${sc.text} opacity-60 mt-1`}>
+              <div className={`col-span-1 flex flex-col items-center justify-center p-4 md:p-6 rounded-2xl border-2 ${sc.bg} ${sc.border}`}>
+                <p className={`text-xs font-black uppercase tracking-widest ${sc.text} opacity-70`}>SAIL</p>
+                <p className={`text-5xl md:text-6xl font-black ${sc.text} mt-1`}>{sailRoman(sail_level)}</p>
+                <p className={`text-xs font-black uppercase ${sc.text} opacity-60 mt-1 text-center`}>
                   {sail_level <= 2 ? 'Bajo' : sail_level <= 4 ? 'Moderado' : 'Elevado'}
                 </p>
               </div>
@@ -553,14 +553,14 @@ export default function SoraWizard({ onClose, onSaved }) {
                   ['GRC Final',  final_grc,  '', 'Riesgo terrestre con mitigaciones'],
                   ['ARC Final',  final_arc,  '', 'Riesgo aéreo con mitigaciones estratégicas'],
                 ].map(([k, v]) => (
-                  <div key={k} className="flex justify-between items-center bg-slate-50 rounded-xl px-4 py-2">
+                  <div key={k} className="flex justify-between items-center bg-slate-50 rounded-xl px-3 md:px-4 py-2">
                     <span className="font-black text-slate-500 uppercase text-xs">{k}</span>
                     <span className="font-black text-slate-800 text-base">{v}</span>
                   </div>
                 ))}
                 {/* Mini SAIL matrix */}
                 <div className="mt-1 overflow-x-auto rounded-xl border border-slate-200">
-                  <table className="w-full text-xs font-black text-center border-collapse">
+                  <table className="min-w-[220px] w-full text-xs font-black text-center border-collapse">
                     <thead>
                       <tr className="bg-slate-50">
                         <th className="px-2 py-1.5 text-slate-400">GRC\ARC</th>
@@ -600,7 +600,7 @@ export default function SoraWizard({ onClose, onSaved }) {
               <p className="text-xs font-black uppercase text-slate-400 tracking-widest mb-3">
                 OSOs requeridos para SAIL {sailRoman(sail_level)} — {osos.length} objetivos
               </p>
-              <div className="space-y-6 max-h-80 overflow-y-auto pr-1">
+              <div className="space-y-6 max-h-72 md:max-h-80 overflow-y-auto pr-1">
                 {Object.entries(grouped).map(([cat, items]) => (
                   <div key={cat}>
                     <p className="text-xs font-black uppercase text-orange-500 tracking-widest mb-2">{cat}</p>
@@ -612,7 +612,7 @@ export default function SoraWizard({ onClose, onSaved }) {
                             : 'bg-white border-slate-200 hover:border-slate-400'
                         }`}>
                           <input type="checkbox"
-                            className="size-4 rounded text-emerald-500 focus:ring-0 flex-shrink-0 cursor-pointer"
+                            className="size-5 rounded text-emerald-500 focus:ring-0 flex-shrink-0 cursor-pointer"
                             checked={!!form.oso_checklist[oso.id]}
                             onChange={e => set('oso_checklist', { ...form.oso_checklist, [oso.id]: e.target.checked })}
                           />
@@ -645,7 +645,7 @@ export default function SoraWizard({ onClose, onSaved }) {
                       </div>
                     </div>
                     <p className="text-xs font-black text-slate-500 uppercase whitespace-nowrap">
-                      {checked}/{osos.length} verificados · {mandatoryChecked}/{mandatory.length} obligatorios
+                      {checked}/{osos.length} · {mandatoryChecked}/{mandatory.length} oblig.
                     </p>
                   </div>
                 );
@@ -662,31 +662,39 @@ export default function SoraWizard({ onClose, onSaved }) {
   // ── Main render ────────────────────────────────────────────────────────────
   return (
     <div
-      className="fixed inset-0 bg-black/60 z-[300] flex items-center justify-center p-4 backdrop-blur-sm"
+      className="fixed inset-0 bg-black/60 z-[300] flex items-end md:items-center justify-center md:p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-[2.5rem] w-full max-w-3xl max-h-[95vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200"
+        className="bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] w-full md:max-w-3xl max-h-[95vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom md:zoom-in-95 duration-300"
         onClick={e => e.stopPropagation()}
       >
+        {/* ── Drag handle (mobile only) ──────────────────────────── */}
+        <div className="md:hidden flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 bg-slate-200 rounded-full" />
+        </div>
+
         {/* ── Header ─────────────────────────────────────────── */}
-        <div className="flex items-center justify-between px-8 pt-7 pb-5 border-b border-slate-100">
-          <div>
-            <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 flex items-center gap-2">
+        <div className="flex items-center justify-between px-5 md:px-8 pt-4 md:pt-7 pb-4 md:pb-5 border-b border-slate-100">
+          <div className="min-w-0">
+            <h3 className="text-lg md:text-xl font-black uppercase tracking-tighter text-slate-900 flex items-center gap-2">
               <span className="material-symbols-outlined text-orange-500">shield_check</span>
-              Evaluación SORA — JARUS v2.0
+              <span className="truncate">Evaluación SORA — JARUS v2.0</span>
             </h3>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
               Paso {step} de {STEPS.length} — {STEPS[step - 1].label}
             </p>
           </div>
-          <button onClick={onClose} className="text-slate-300 hover:text-slate-600 transition-colors">
-            <span className="material-symbols-outlined">close</span>
+          <button
+            onClick={onClose}
+            className="ml-3 shrink-0 size-11 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 active:scale-95 transition-all flex items-center justify-center"
+          >
+            <span className="material-symbols-outlined text-xl">close</span>
           </button>
         </div>
 
         {/* ── Step indicator ─────────────────────────────────── */}
-        <div className="px-8 pt-4 pb-0">
+        <div className="px-5 md:px-8 pt-4 pb-0">
           <div className="flex items-center gap-1">
             {STEPS.map((s, i) => (
               <div key={s.id} className="flex items-center gap-1 flex-1 min-w-0">
@@ -713,15 +721,17 @@ export default function SoraWizard({ onClose, onSaved }) {
         </div>
 
         {/* ── Step body ──────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto px-8 py-5">
+        <div className="flex-1 overflow-y-auto px-5 md:px-8 py-4 md:py-5">
           {renderStep()}
         </div>
 
         {/* ── Footer ─────────────────────────────────────────── */}
-        <div className="flex items-center justify-between px-8 py-5 border-t border-slate-100">
+        <div className="flex items-center justify-between px-5 md:px-8 py-4 md:py-5 border-t border-slate-100"
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 1rem)' }}
+        >
           <button
             onClick={() => step > 1 ? setStep(s => s - 1) : onClose?.()}
-            className="px-6 py-2.5 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase hover:bg-slate-200 transition-colors flex items-center gap-2"
+            className="px-5 py-3.5 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase hover:bg-slate-200 active:scale-95 transition-all flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-sm">arrow_back</span>
             {step === 1 ? 'Cancelar' : 'Anterior'}
@@ -731,7 +741,7 @@ export default function SoraWizard({ onClose, onSaved }) {
             <button
               onClick={() => canNext() && setStep(s => s + 1)}
               disabled={!canNext()}
-              className="px-6 py-2.5 bg-orange-600 text-white rounded-2xl font-black text-xs uppercase hover:bg-slate-900 transition-all shadow-lg shadow-orange-500/20 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+              className="px-5 py-3.5 bg-orange-600 text-white rounded-2xl font-black text-xs uppercase hover:bg-slate-900 transition-all shadow-lg shadow-orange-500/20 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
             >
               Siguiente
               <span className="material-symbols-outlined text-sm">arrow_forward</span>
@@ -740,10 +750,10 @@ export default function SoraWizard({ onClose, onSaved }) {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-8 py-2.5 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2 disabled:opacity-60 active:scale-95"
+              className="px-6 py-3.5 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2 disabled:opacity-60 active:scale-95"
             >
               <span className="material-symbols-outlined text-sm">save</span>
-              {saving ? 'Guardando...' : 'Guardar Evaluación'}
+              {saving ? 'Guardando...' : 'Guardar'}
             </button>
           )}
         </div>

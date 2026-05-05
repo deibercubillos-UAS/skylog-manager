@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
@@ -94,14 +94,14 @@ setTech(resTech.data || []);
       <header className="flex justify-between items-end border-b pb-4 mb-8">
       <div className="text-left">
           <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Aeronaves</h2>
-          <p className="text-slate-400 text-[10px] font-black uppercase">{drones.length} UNIDADES</p>
+          <p className="text-slate-400 text-xs font-black uppercase">{drones.length} UNIDADES</p>
       </div>
 
       {/* BOTÓN REPARADO: Se muestra si el rol es válido */}
       {canManage && (
           <button 
               onClick={() => setActivePanel('drone')} 
-              className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
+              className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
           >
               <span className="material-symbols-outlined text-sm">add_circle</span>
               Nuevo UAS
@@ -122,12 +122,12 @@ setTech(resTech.data || []);
         <header className="flex justify-between items-end border-b pb-4 mb-8">
             <div className="text-left">
                 <h2 className="text-3xl font-black uppercase text-slate-900 tracking-tighter">Tecnología</h2>
-                <p className="text-slate-400 text-[10px] font-black uppercase">{tech.length} PAYLOADS</p>
+                <p className="text-slate-400 text-xs font-black uppercase">{tech.length} PAYLOADS</p>
             </div>
             {canManage && (
                 <button 
                     onClick={() => setActivePanel('tech')}
-                    className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
+                    className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
                 >
                     <span className="material-symbols-outlined text-sm">add_circle</span>
                     Nuevo Payload
@@ -146,12 +146,12 @@ setTech(resTech.data || []);
           <header className="flex justify-between items-end border-b pb-4 mb-8">
                 <div className="text-left">
                     <h2 className="text-3xl font-black uppercase text-slate-900 tracking-tighter">Baterías</h2>
-                    <p className="text-slate-400 text-[10px] font-black uppercase">{batteries.length} UNIDADES</p>
+                    <p className="text-slate-400 text-xs font-black uppercase">{batteries.length} UNIDADES</p>
                 </div>
                 {canManage && (
                     <button 
                         onClick={() => setActivePanel('battery')}
-                        className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
+                        className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
                     >
                         <span className="material-symbols-outlined text-sm">add_circle</span>
                         Nueva Batería

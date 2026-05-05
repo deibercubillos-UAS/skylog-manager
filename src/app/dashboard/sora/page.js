@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
@@ -80,7 +80,7 @@ export default function SoraPage() {
       archived: 'bg-slate-50   text-slate-500   border-slate-200',
     };
     return (
-      <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase border ${map[status] || map.draft}`}>
+      <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase border ${map[status] || map.draft}`}>
         {status === 'complete' ? 'Completado' : status === 'draft' ? 'Borrador' : 'Archivado'}
       </span>
     );
@@ -107,14 +107,14 @@ export default function SoraPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard/safety-config"
-              className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-black text-[10px] uppercase hover:bg-slate-200 transition-colors flex items-center gap-1.5"
+              className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-black text-xs uppercase hover:bg-slate-200 transition-colors flex items-center gap-1.5"
             >
               <span className="material-symbols-outlined text-sm">settings</span>
               Configurar Barreras
             </Link>
             <button
               onClick={() => setShowWizard(true)}
-              className="flex items-center gap-2 bg-orange-600 hover:bg-slate-900 text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-orange-500/20 active:scale-95"
+              className="flex items-center gap-2 bg-orange-600 hover:bg-slate-900 text-white px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-orange-500/20 active:scale-95"
             >
               <span className="material-symbols-outlined text-sm">add_circle</span>
               Nueva Evaluación
@@ -129,7 +129,7 @@ export default function SoraPage() {
             { key: 'checklist',   label: 'Verificación Operacional', icon: 'checklist'    },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase transition-all ${
                 tab === t.key
                   ? 'bg-white text-orange-600 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
@@ -145,7 +145,7 @@ export default function SoraPage() {
         {tab === 'assessments' && (
           <div className="space-y-4">
             {loadingA ? (
-              <div className="py-16 text-center text-slate-300 font-black text-[10px] uppercase animate-pulse tracking-widest">
+              <div className="py-16 text-center text-slate-300 font-black text-xs uppercase animate-pulse tracking-widest">
                 Cargando evaluaciones...
               </div>
             ) : assessments.length === 0 ? (
@@ -154,12 +154,12 @@ export default function SoraPage() {
                 <p className="text-slate-400 font-black uppercase text-xs tracking-widest">
                   No hay evaluaciones SORA registradas
                 </p>
-                <p className="text-slate-300 text-[10px] font-medium mt-1 mb-5">
+                <p className="text-slate-300 text-xs font-medium mt-1 mb-5">
                   Crea la primera evaluación para obtener tu nivel SAIL
                 </p>
                 <button
                   onClick={() => setShowWizard(true)}
-                  className="bg-orange-600 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-500/20 hover:bg-slate-900 transition-all"
+                  className="bg-orange-600 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/20 hover:bg-slate-900 transition-all"
                 >
                   Iniciar Evaluación
                 </button>
@@ -169,7 +169,7 @@ export default function SoraPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[700px]">
                     <thead>
-                      <tr className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-widest border-b">
+                      <tr className="bg-slate-50 text-xs font-black uppercase text-slate-400 tracking-widest border-b">
                         <th className="px-5 py-4">Operación</th>
                         <th className="px-4 py-4">Fecha</th>
                         <th className="px-4 py-4">Aeronave</th>
@@ -186,12 +186,12 @@ export default function SoraPage() {
                           <tr key={a.id} className="hover:bg-orange-50/30 transition-all text-xs font-medium text-slate-700">
                             <td className="px-5 py-4">
                               <p className="font-black text-slate-900 text-sm">{a.operation_name}</p>
-                              {a.location_name && <p className="text-[10px] text-slate-400 mt-0.5">{a.location_name}</p>}
+                              {a.location_name && <p className="text-xs text-slate-400 mt-0.5">{a.location_name}</p>}
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-slate-500">{fmtDate(a.operation_date)}</td>
                             <td className="px-4 py-4">
                               {a.aircraft
-                                ? <><span className="font-black text-slate-900">{a.aircraft.model}</span><br/><span className="text-[10px] text-slate-400 font-mono">{a.aircraft.serial_number}</span></>
+                                ? <><span className="font-black text-slate-900">{a.aircraft.model}</span><br/><span className="text-xs text-slate-400 font-mono">{a.aircraft.serial_number}</span></>
                                 : <span className="text-slate-300">—</span>}
                             </td>
                             <td className="px-4 py-4">
@@ -202,7 +202,7 @@ export default function SoraPage() {
                               }`}>{a.final_grc}</span>
                             </td>
                             <td className="px-4 py-4">
-                              <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black ${ARC_COLORS[a.final_arc] || 'bg-slate-100 text-slate-500'}`}>
+                              <span className={`px-2.5 py-1 rounded-lg text-xs font-black ${ARC_COLORS[a.final_arc] || 'bg-slate-100 text-slate-500'}`}>
                                 {a.final_arc}
                               </span>
                             </td>
@@ -248,21 +248,21 @@ export default function SoraPage() {
                 </p>
               </div>
               {progress === 100 && (
-                <div className="bg-emerald-500 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase shadow-lg shadow-emerald-500/20 animate-bounce">
+                <div className="bg-emerald-500 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase shadow-lg shadow-emerald-500/20 animate-bounce">
                   Operación Autorizada
                 </div>
               )}
             </div>
 
             {loadingC ? (
-              <div className="py-8 text-center text-slate-300 font-black text-[10px] uppercase animate-pulse">
+              <div className="py-8 text-center text-slate-300 font-black text-xs uppercase animate-pulse">
                 Cargando lista de verificación...
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {Object.keys(grouped).map(cat => (
                   <div key={cat} className="space-y-4">
-                    <h4 className="text-[10px] font-black uppercase text-orange-500 tracking-[0.3em] ml-2">{cat}</h4>
+                    <h4 className="text-xs font-black uppercase text-orange-500 tracking-[0.3em] ml-2">{cat}</h4>
                     <div className="space-y-3">
                       {grouped[cat].map(item => (
                         <label key={item.id} className={`flex items-center justify-between p-5 bg-white border rounded-3xl transition-all cursor-pointer ${
@@ -272,7 +272,7 @@ export default function SoraPage() {
                         }`}>
                           <div className="text-left pr-4">
                             <p className={`text-sm font-bold ${checked[item.id] ? 'text-emerald-700' : 'text-slate-700'}`}>{item.label}</p>
-                            <p className="text-[9px] font-black text-slate-400 uppercase mt-1">Impacto: {item.score} pts</p>
+                            <p className="text-xs font-black text-slate-400 uppercase mt-1">Impacto: {item.score} pts</p>
                           </div>
                           <input
                             type="checkbox"

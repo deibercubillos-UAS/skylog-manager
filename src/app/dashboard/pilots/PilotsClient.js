@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -65,7 +65,7 @@ const handleDelete = async (pilot) => {
           <h1 className="text-2xl font-bold text-navy uppercase tracking-tighter">
             Tripulación: {organization.company_name}
           </h1>
-          <p className="text-gray-400 text-[10px] font-black uppercase">
+          <p className="text-gray-400 text-xs font-black uppercase">
             {pilots.length} MIEMBROS REGISTRADOS
           </p>
         </div>
@@ -74,7 +74,7 @@ const handleDelete = async (pilot) => {
     {canManage && (
         <button 
             onClick={() => setShowAddPanel(true)}
-            className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
+            className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
         >
             <span className="material-symbols-outlined text-sm">person_add</span>
             Registrar Miembro
@@ -87,7 +87,7 @@ const handleDelete = async (pilot) => {
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-gray-50 border-b border-gray-100">
-              <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <tr className="text-xs font-black text-slate-400 uppercase tracking-widest">
                 <th className="px-6 py-4">Miembro</th>
                 <th className="px-6 py-4">Licencia</th>
                 <th className="px-6 py-4">Contacto</th>
@@ -100,16 +100,16 @@ const handleDelete = async (pilot) => {
                 <tr key={pilot.id} className="hover:bg-gray-50/50 transition-colors animate-in fade-in duration-300">
                   <td className="px-6 py-4">
                     <div className="font-semibold text-navy uppercase text-sm">{pilot.full_name}</div>
-                    <div className="text-[10px] text-slate-400 font-bold uppercase">{pilot.role}</div>
+                    <div className="text-xs text-slate-400 font-bold uppercase">{pilot.role}</div>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 font-mono">
                     {pilot.license_number || '---'}
                   </td>
                   <td className="px-6 py-4 text-xs text-gray-500">
                     <div>{pilot.email}</div>
-                    <div className="text-[10px] text-slate-400">{pilot.phone}</div>
+                    <div className="text-xs text-slate-400">{pilot.phone}</div>
                   </td>
-                  <td className="px-6 py-4 text-[10px] font-black uppercase">
+                  <td className="px-6 py-4 text-xs font-black uppercase">
                     <span className={pilot.medical_expiry && new Date(pilot.medical_expiry) < new Date() ? 'text-red-500' : 'text-emerald-500'}>
                       {pilot.medical_expiry ? `Médico: ${pilot.medical_expiry}` : 'VIGENTE'}
                     </span>
@@ -119,16 +119,16 @@ const handleDelete = async (pilot) => {
                         <div className="inline-block relative" ref={openMenuId === pilot.id ? menuRef : null}>
                             <button
                                 onClick={() => setOpenMenuId(openMenuId === pilot.id ? null : pilot.id)}
-                                className="size-9 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-navy transition-all"
+                                className="size-11 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-navy transition-all active:scale-95"
                                 title="Acciones"
                             >
                                 <span className="material-symbols-outlined text-lg">more_vert</span>
                             </button>
                             {openMenuId === pilot.id && (
-                                <div className="absolute right-0 top-11 z-20 w-44 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                                <div className="absolute right-0 top-12 z-20 w-44 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
                                     <button
                                         onClick={() => handleEdit(pilot)}
-                                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-[11px] font-black uppercase text-slate-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                                        className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-xs font-black uppercase text-slate-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
                                     >
                                         <span className="material-symbols-outlined text-base">edit_square</span>
                                         Editar
@@ -136,7 +136,7 @@ const handleDelete = async (pilot) => {
                                     <div className="border-t border-slate-100"></div>
                                     <button
                                         onClick={() => handleDelete(pilot)}
-                                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-[11px] font-black uppercase text-red-500 hover:bg-red-50 transition-colors"
+                                        className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-xs font-black uppercase text-red-500 hover:bg-red-50 transition-colors"
                                     >
                                         <span className="material-symbols-outlined text-base">delete</span>
                                         Eliminar

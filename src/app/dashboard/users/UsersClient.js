@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
 import { ROLE_LABELS, ASSIGNABLE_ROLES, labelForRole } from '@/lib/roles';
 
@@ -76,7 +76,7 @@ export default function UsersClient({ currentUserId, currentRole, organization }
             <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b pb-6">
                 <div>
                     <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900 leading-none">Gestión de Usuarios</h2>
-                    <p className="text-slate-500 text-[10px] md:text-sm font-bold uppercase mt-2 tracking-widest">
+                    <p className="text-slate-500 text-xs md:text-sm font-bold uppercase mt-2 tracking-widest">
                         {organization.company_name} · {users.length} miembros
                     </p>
                 </div>
@@ -99,7 +99,7 @@ export default function UsersClient({ currentUserId, currentRole, organization }
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse min-w-[700px]">
                             <thead>
-                                <tr className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-widest">
+                                <tr className="bg-slate-50 text-xs font-black uppercase text-slate-400 tracking-widest">
                                     <th className="px-6 py-5">Miembro</th>
                                     <th className="px-6 py-5">Correo</th>
                                     <th className="px-6 py-5">Rol Actual</th>
@@ -128,21 +128,21 @@ export default function UsersClient({ currentUserId, currentRole, organization }
                                                     <div>
                                                         <div className="font-black text-slate-900 uppercase text-xs">
                                                             {u.full_name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || '---'}
-                                                            {isSelf && <span className="ml-2 text-[9px] text-orange-600 font-black">(TÚ)</span>}
+                                                            {isSelf && <span className="ml-2 text-xs text-orange-600 font-black">(TÚ)</span>}
                                                         </div>
-                                                        <div className="text-[10px] text-slate-400 font-mono">{u.phone || '---'}</div>
+                                                        <div className="text-xs text-slate-400 font-mono">{u.phone || '---'}</div>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5 text-xs text-slate-600 font-medium">{u.email}</td>
                                             <td className="px-6 py-5">
-                                                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border ${roleBadge(u.role)}`}>
+                                                <span className={`px-3 py-1 rounded-full text-xs font-black uppercase border ${roleBadge(u.role)}`}>
                                                     {labelForRole(u.role)}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-5">
                                                 {isSuper ? (
-                                                    <span className="text-[10px] italic text-slate-400 font-bold">Gestión desde Master</span>
+                                                    <span className="text-xs italic text-slate-400 font-bold">Gestión desde Master</span>
                                                 ) : (
                                                     <select
                                                         disabled={disabled}
@@ -156,7 +156,7 @@ export default function UsersClient({ currentUserId, currentRole, organization }
                                                     </select>
                                                 )}
                                                 {savingId === u.id && (
-                                                    <span className="ml-2 text-[10px] font-bold text-orange-500 animate-pulse">guardando...</span>
+                                                    <span className="ml-2 text-xs font-bold text-orange-500 animate-pulse">guardando...</span>
                                                 )}
                                             </td>
                                         </tr>
@@ -168,8 +168,8 @@ export default function UsersClient({ currentUserId, currentRole, organization }
                 </div>
             )}
 
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-[10px] font-medium text-slate-500 leading-relaxed">
-                <p className="font-black text-slate-700 uppercase tracking-widest mb-2 text-[10px]">Reglas del sistema</p>
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-xs font-medium text-slate-500 leading-relaxed">
+                <p className="font-black text-slate-700 uppercase tracking-widest mb-2 text-xs">Reglas del sistema</p>
                 <ul className="list-disc list-inside space-y-1">
                     <li>Solo se pueden asignar los roles: Gerente General, Gerente SMS, Jefe de Pilotos y Piloto.</li>
                     <li>El rol SuperAdmin solo se gestiona desde el panel Master.</li>

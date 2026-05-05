@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 
 const ALLOWED_ROLES = ['superadmin', 'admin', 'jefe_pilotos'];
@@ -28,7 +28,7 @@ function InspectModal({ result, onClose }) {
               <span className="material-symbols-outlined text-orange-500">travel_explore</span>
               Diagnóstico del portal AeroCivil
             </h3>
-            <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+            <p className="text-xs text-slate-400 font-medium mt-0.5">
               {steps.length} paso{steps.length !== 1 ? 's' : ''} capturados
             </p>
           </div>
@@ -46,7 +46,7 @@ function InspectModal({ result, onClose }) {
             <button
               key={i}
               onClick={() => setActiveStep(i)}
-              className={`shrink-0 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${
+              className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-black uppercase transition-all ${
                 i === activeStep
                   ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/20'
                   : s.error
@@ -66,10 +66,10 @@ function InspectModal({ result, onClose }) {
             {/* Screenshot */}
             <div className="p-6 flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <h4 className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                <h4 className="text-xs font-black uppercase text-slate-500 tracking-widest">
                   Captura de pantalla
                 </h4>
-                <span className="text-[8px] text-slate-300 font-mono truncate max-w-[200px]">{step.url}</span>
+                <span className="text-xs text-slate-300 font-mono truncate max-w-[200px]">{step.url}</span>
               </div>
 
               {step.screenshot ? (
@@ -80,63 +80,63 @@ function InspectModal({ result, onClose }) {
                 />
               ) : (
                 <div className="flex items-center justify-center h-48 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                  <p className="text-[10px] text-slate-300 font-medium">Sin captura disponible</p>
+                  <p className="text-xs text-slate-300 font-medium">Sin captura disponible</p>
                 </div>
               )}
 
               {step.error && (
                 <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl p-3">
                   <span className="material-symbols-outlined text-red-500 text-sm shrink-0">error</span>
-                  <p className="text-[10px] text-red-600 font-mono">{step.error}</p>
+                  <p className="text-xs text-red-600 font-mono">{step.error}</p>
                 </div>
               )}
 
               <div className="bg-slate-50 rounded-xl p-3 space-y-1">
-                <p className="text-[8px] font-black text-slate-400 uppercase">Título de la página</p>
-                <p className="text-[10px] text-slate-700 font-medium">{step.title || '—'}</p>
+                <p className="text-xs font-black text-slate-400 uppercase">Título de la página</p>
+                <p className="text-xs text-slate-700 font-medium">{step.title || '—'}</p>
               </div>
             </div>
 
             {/* Elementos detectados */}
             <div className="p-6 flex flex-col gap-3">
-              <h4 className="text-[10px] font-black uppercase text-slate-500 tracking-widest shrink-0">
+              <h4 className="text-xs font-black uppercase text-slate-500 tracking-widest shrink-0">
                 Elementos detectados ({step.elements?.length ?? 0})
               </h4>
 
               {!step.elements?.length ? (
                 <div className="flex items-center justify-center h-32 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                  <p className="text-[10px] text-slate-300 font-medium">Sin elementos visibles</p>
+                  <p className="text-xs text-slate-300 font-medium">Sin elementos visibles</p>
                 </div>
               ) : (
                 <div className="space-y-2 overflow-y-auto max-h-[500px] pr-1">
                   {/* Inputs */}
                   {step.elements.filter(e => e.tag === 'input').length > 0 && (
                     <div className="space-y-1.5">
-                      <p className="text-[8px] font-black text-orange-500 uppercase sticky top-0 bg-white py-0.5">
+                      <p className="text-xs font-black text-orange-500 uppercase sticky top-0 bg-white py-0.5">
                         Inputs ({step.elements.filter(e => e.tag === 'input').length})
                       </p>
                       {step.elements.filter(e => e.tag === 'input').map((el, idx) => (
                         <div key={idx} className="bg-blue-50 rounded-xl p-3 space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="bg-blue-100 text-blue-600 text-[7px] font-black px-2 py-0.5 rounded-full uppercase">
+                            <span className="bg-blue-100 text-blue-600 text-xs font-black px-2 py-0.5 rounded-full uppercase">
                               {el.type || 'text'}
                             </span>
                             {el.id && (
-                              <span className="font-mono text-[9px] text-slate-700 bg-white px-1.5 py-0.5 rounded-lg border border-slate-200">
+                              <span className="font-mono text-xs text-slate-700 bg-white px-1.5 py-0.5 rounded-lg border border-slate-200">
                                 #{el.id}
                               </span>
                             )}
                             {el.name && (
-                              <span className="font-mono text-[9px] text-slate-500">
+                              <span className="font-mono text-xs text-slate-500">
                                 name=&quot;{el.name}&quot;
                               </span>
                             )}
                           </div>
                           {el.placeholder && (
-                            <p className="text-[8px] text-slate-400 italic">placeholder: &quot;{el.placeholder}&quot;</p>
+                            <p className="text-xs text-slate-400 italic">placeholder: &quot;{el.placeholder}&quot;</p>
                           )}
                           {el.selector && (
-                            <p className="font-mono text-[8px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">
+                            <p className="font-mono text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">
                               → {el.selector}
                             </p>
                           )}
@@ -148,31 +148,31 @@ function InspectModal({ result, onClose }) {
                   {/* Selects */}
                   {step.elements.filter(e => e.tag === 'select').length > 0 && (
                     <div className="space-y-1.5">
-                      <p className="text-[8px] font-black text-purple-500 uppercase sticky top-0 bg-white py-0.5">
+                      <p className="text-xs font-black text-purple-500 uppercase sticky top-0 bg-white py-0.5">
                         Selects ({step.elements.filter(e => e.tag === 'select').length})
                       </p>
                       {step.elements.filter(e => e.tag === 'select').map((el, idx) => (
                         <div key={idx} className="bg-purple-50 rounded-xl p-3 space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             {el.id && (
-                              <span className="font-mono text-[9px] text-slate-700 bg-white px-1.5 py-0.5 rounded-lg border border-slate-200">
+                              <span className="font-mono text-xs text-slate-700 bg-white px-1.5 py-0.5 rounded-lg border border-slate-200">
                                 #{el.id}
                               </span>
                             )}
                             {el.name && (
-                              <span className="font-mono text-[9px] text-slate-500">
+                              <span className="font-mono text-xs text-slate-500">
                                 name=&quot;{el.name}&quot;
                               </span>
                             )}
                           </div>
                           {el.options?.length > 0 && (
-                            <p className="text-[8px] text-slate-400">
+                            <p className="text-xs text-slate-400">
                               Opciones: {el.options.join(', ')}
                               {el.options.length >= 5 && '…'}
                             </p>
                           )}
                           {el.selector && (
-                            <p className="font-mono text-[8px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">
+                            <p className="font-mono text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">
                               → {el.selector}
                             </p>
                           )}
@@ -184,23 +184,23 @@ function InspectModal({ result, onClose }) {
                   {/* Buttons */}
                   {step.elements.filter(e => e.tag === 'button' || e.tag === 'a').length > 0 && (
                     <div className="space-y-1.5">
-                      <p className="text-[8px] font-black text-slate-500 uppercase sticky top-0 bg-white py-0.5">
+                      <p className="text-xs font-black text-slate-500 uppercase sticky top-0 bg-white py-0.5">
                         Botones / Links ({step.elements.filter(e => e.tag === 'button' || e.tag === 'a').length})
                       </p>
                       {step.elements.filter(e => e.tag === 'button' || e.tag === 'a').slice(0, 15).map((el, idx) => (
                         <div key={idx} className="bg-slate-50 rounded-xl p-2.5 flex items-center gap-2">
-                          <span className={`text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase ${
+                          <span className={`text-xs font-black px-1.5 py-0.5 rounded-full uppercase ${
                             el.tag === 'button'
                               ? 'bg-orange-100 text-orange-600'
                               : 'bg-slate-200 text-slate-500'
                           }`}>
                             {el.tag}
                           </span>
-                          <span className="text-[9px] text-slate-700 font-medium truncate flex-1">
+                          <span className="text-xs text-slate-700 font-medium truncate flex-1">
                             {el.text || el.href || '(sin texto)'}
                           </span>
                           {el.id && (
-                            <span className="font-mono text-[8px] text-slate-400 shrink-0">#{el.id}</span>
+                            <span className="font-mono text-xs text-slate-400 shrink-0">#{el.id}</span>
                           )}
                         </div>
                       ))}
@@ -214,7 +214,7 @@ function InspectModal({ result, onClose }) {
 
         {/* Footer con instrucción */}
         <div className="px-8 py-4 border-t bg-slate-50 shrink-0">
-          <p className="text-[9px] text-slate-400 font-medium leading-relaxed">
+          <p className="text-xs text-slate-400 font-medium leading-relaxed">
             <strong className="text-slate-600">¿Cómo usar esto?</strong>{' '}
             Revisa cada paso: el screenshot muestra exactamente lo que ve el robot.
             Los <span className="text-emerald-600 font-mono">selectores verdes</span> son los que debes copiar en{' '}
@@ -348,13 +348,13 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
     if (!creds) return null;
     if (creds.verified)
       return (
-        <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1 rounded-full text-[9px] font-black uppercase">
+        <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1 rounded-full text-xs font-black uppercase">
           <span className="size-1.5 bg-emerald-500 rounded-full inline-block" />
           Verificado
         </span>
       );
     return (
-      <span className="flex items-center gap-1.5 bg-amber-50 text-amber-600 border border-amber-200 px-3 py-1 rounded-full text-[9px] font-black uppercase">
+      <span className="flex items-center gap-1.5 bg-amber-50 text-amber-600 border border-amber-200 px-3 py-1 rounded-full text-xs font-black uppercase">
         <span className="size-1.5 bg-amber-400 rounded-full inline-block animate-pulse" />
         Pendiente de verificación
       </span>
@@ -375,7 +375,7 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
             <span className="material-symbols-outlined text-orange-500">gavel</span>
             Cuenta AeroCivil
           </h3>
-          <p className="text-slate-400 text-[10px] font-black uppercase mt-1">
+          <p className="text-slate-400 text-xs font-black uppercase mt-1">
             Credenciales del portal de automatización UAS
           </p>
         </div>
@@ -383,7 +383,7 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
         {canManage && orgId && (
           <button
             onClick={openForm}
-            className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
+            className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
           >
             <span className="material-symbols-outlined text-sm">{creds ? 'edit_square' : 'add_circle'}</span>
             {creds ? 'Editar' : 'Configurar'}
@@ -393,7 +393,7 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
 
       {/* Estado */}
       {loading ? (
-        <div className="py-8 text-center text-slate-300 font-black text-[10px] uppercase animate-pulse">
+        <div className="py-8 text-center text-slate-300 font-black text-xs uppercase animate-pulse">
           Verificando configuración...
         </div>
       ) : !orgId ? (
@@ -402,7 +402,7 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
           <span className="material-symbols-outlined text-2xl text-slate-400 shrink-0 mt-0.5">info</span>
           <div>
             <p className="text-xs font-black text-slate-700 uppercase">Cuenta sin organización vinculada</p>
-            <p className="text-[10px] text-slate-500 font-medium mt-1">
+            <p className="text-xs text-slate-500 font-medium mt-1">
               Las credenciales de AeroCivil se configuran por organización. Para gestionar esta sección,
               inicia sesión con una cuenta <strong>Gerente General</strong> (admin) que tenga una organización asignada,
               o vincula esta cuenta a una organización desde el panel Master.
@@ -415,7 +415,7 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
           <span className="material-symbols-outlined text-2xl text-amber-500 shrink-0 mt-0.5">warning</span>
           <div>
             <p className="text-xs font-black text-amber-800 uppercase">Sin credenciales configuradas</p>
-            <p className="text-[10px] text-amber-600 font-medium mt-1">
+            <p className="text-xs text-amber-600 font-medium mt-1">
               Para que Bitafly pueda radicar solicitudes automáticamente en el portal de AeroCivil,
               configura el usuario y contraseña de tu cuenta UAEAC.
               La contraseña se almacena cifrada y nunca se muestra en texto claro.
@@ -427,25 +427,25 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-slate-50 rounded-2xl p-5 space-y-3">
             <div className="flex justify-between items-start">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Usuario AeroCivil</p>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Usuario AeroCivil</p>
               {statusChip()}
             </div>
             <p className="font-black text-slate-900 text-sm font-mono">{creds.username}</p>
-            <p className="text-[10px] text-slate-400 font-mono">Contraseña: ••••••••••••</p>
+            <p className="text-xs text-slate-400 font-mono">Contraseña: ••••••••••••</p>
           </div>
 
           <div className="bg-slate-50 rounded-2xl p-5 space-y-3">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Datos del Solicitante</p>
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Datos del Solicitante</p>
             <p className="font-black text-slate-900 text-sm">
               {creds.solicitante || <span className="text-slate-300 font-medium italic">No configurado</span>}
             </p>
-            <p className="text-[10px] text-slate-500 font-medium">
+            <p className="text-xs text-slate-500 font-medium">
               Contacto: {creds.contact_name || <span className="text-slate-300 italic">No configurado</span>}
             </p>
           </div>
 
           <div className="md:col-span-2 flex items-center justify-between bg-slate-50 rounded-2xl p-4 gap-3 flex-wrap">
-            <p className="text-[9px] font-black text-slate-400 uppercase">
+            <p className="text-xs font-black text-slate-400 uppercase">
               Última actualización: <span className="text-slate-600">{fmtDate(creds.updated_at)}</span>
               {creds.last_verified_at && (
                 <> · Verificado: <span className="text-emerald-600">{fmtDate(creds.last_verified_at)}</span></>
@@ -457,7 +457,7 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
                 <button
                   onClick={handleInspect}
                   disabled={inspecting}
-                  className="flex items-center gap-1.5 text-[9px] font-black uppercase text-indigo-500 hover:text-indigo-700 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 text-xs font-black uppercase text-indigo-500 hover:text-indigo-700 transition-colors disabled:opacity-50"
                 >
                   <span className={`material-symbols-outlined text-sm ${inspecting ? 'animate-spin' : ''}`}>
                     {inspecting ? 'progress_activity' : 'travel_explore'}
@@ -469,7 +469,7 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
                 <button
                   onClick={handleDelete}
                   disabled={deleting}
-                  className="flex items-center gap-1.5 text-[9px] font-black uppercase text-red-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 text-xs font-black uppercase text-red-400 hover:text-red-600 transition-colors disabled:opacity-50"
                 >
                   <span className="material-symbols-outlined text-sm">delete</span>
                   {deleting ? 'Eliminando...' : 'Eliminar'}
@@ -485,8 +485,8 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
         <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl p-4">
           <span className="material-symbols-outlined text-red-500 text-base shrink-0 mt-0.5">error</span>
           <div className="flex-1">
-            <p className="text-[10px] font-black text-red-700 uppercase">Error al inspeccionar el portal</p>
-            <p className="text-[9px] text-red-500 font-mono mt-1">{inspectError}</p>
+            <p className="text-xs font-black text-red-700 uppercase">Error al inspeccionar el portal</p>
+            <p className="text-xs text-red-500 font-mono mt-1">{inspectError}</p>
           </div>
           <button
             onClick={() => setInspectError(null)}
@@ -503,8 +503,8 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-indigo-500">task_alt</span>
             <div>
-              <p className="text-[10px] font-black text-indigo-800 uppercase">Inspección completada</p>
-              <p className="text-[9px] text-indigo-500 font-medium">
+              <p className="text-xs font-black text-indigo-800 uppercase">Inspección completada</p>
+              <p className="text-xs text-indigo-500 font-medium">
                 {inspectResult.totalSteps} paso{inspectResult.totalSteps !== 1 ? 's' : ''} capturados.
                 Revisa los selectores para actualizar <span className="font-mono">automator.js</span>.
               </p>
@@ -513,7 +513,7 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowInspectModal(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-black text-[9px] uppercase transition-colors flex items-center gap-1.5"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-black text-xs uppercase transition-colors flex items-center gap-1.5"
             >
               <span className="material-symbols-outlined text-sm">open_in_full</span>
               Ver resultados
@@ -531,7 +531,7 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
       {/* Aviso de seguridad */}
       <div className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
         <span className="material-symbols-outlined text-slate-400 text-base shrink-0 mt-0.5">lock</span>
-        <p className="text-[9px] text-slate-400 font-medium leading-relaxed">
+        <p className="text-xs text-slate-400 font-medium leading-relaxed">
           Las credenciales se cifran con <strong>AES-256-GCM</strong> antes de almacenarse.
           Nunca se transmiten en texto claro. Solo el servicio de automatización en Railway
           las descifra en el momento de ejecutar la solicitud.
@@ -554,14 +554,14 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
             <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900">
               {creds ? 'Actualizar credenciales' : 'Configurar cuenta AeroCivil'}
             </h3>
-            <p className="text-[10px] text-slate-400 font-medium mt-1">
+            <p className="text-xs text-slate-400 font-medium mt-1">
               Usadas exclusivamente para radicar solicitudes de forma automática.
             </p>
           </div>
 
           {/* Usuario */}
           <div className="space-y-1">
-            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">
+            <label className="text-xs font-black uppercase text-slate-400 ml-1">
               Usuario AeroCivil <span className="text-orange-500">*</span>
             </label>
             <input
@@ -576,7 +576,7 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
 
           {/* Contraseña */}
           <div className="space-y-1">
-            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">
+            <label className="text-xs font-black uppercase text-slate-400 ml-1">
               Contraseña <span className="text-orange-500">*</span>
               {creds && <span className="text-slate-300 ml-1 normal-case">(dejar vacío = mantener la actual)</span>}
             </label>
@@ -605,7 +605,7 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
 
           {/* Solicitante */}
           <div className="space-y-1">
-            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">
+            <label className="text-xs font-black uppercase text-slate-400 ml-1">
               Nombre del Solicitante en AeroCivil
             </label>
             <input
@@ -614,14 +614,14 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
               value={form.solicitante}
               onChange={e => setForm(f => ({ ...f, solicitante: e.target.value }))}
             />
-            <p className="text-[8px] text-slate-400 ml-1">
+            <p className="text-xs text-slate-400 ml-1">
               Nombre exacto que aparece en el desplegable &quot;Solicitante&quot; del portal.
             </p>
           </div>
 
           {/* Contacto */}
           <div className="space-y-1">
-            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">
+            <label className="text-xs font-black uppercase text-slate-400 ml-1">
               Nombre del Contacto en AeroCivil
             </label>
             <input
@@ -630,7 +630,7 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
               value={form.contact_name}
               onChange={e => setForm(f => ({ ...f, contact_name: e.target.value }))}
             />
-            <p className="text-[8px] text-slate-400 ml-1">
+            <p className="text-xs text-slate-400 ml-1">
               Nombre exacto del desplegable &quot;Contacto&quot; del portal.
             </p>
           </div>
@@ -638,7 +638,7 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
           {/* Aviso */}
           <div className="flex items-start gap-2 bg-blue-50 rounded-xl p-3">
             <span className="material-symbols-outlined text-blue-400 text-sm shrink-0 mt-0.5">info</span>
-            <p className="text-[8px] text-blue-600 font-medium">
+            <p className="text-xs text-blue-600 font-medium">
               La contraseña se cifra localmente antes de enviarse. Nadie del equipo Bitafly puede verla.
             </p>
           </div>
@@ -647,14 +647,14 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="flex-1 py-3 bg-slate-100 text-slate-500 font-black rounded-2xl uppercase text-[10px]"
+              className="flex-1 py-3 bg-slate-100 text-slate-500 font-black rounded-2xl uppercase text-xs"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 py-3 bg-orange-600 text-white font-black rounded-2xl shadow-lg uppercase text-[10px] active:scale-95 transition-all disabled:opacity-60"
+              className="flex-1 py-3 bg-orange-600 text-white font-black rounded-2xl shadow-lg uppercase text-xs active:scale-95 transition-all disabled:opacity-60"
             >
               {saving ? 'Guardando...' : creds ? 'Actualizar' : 'Guardar'}
             </button>

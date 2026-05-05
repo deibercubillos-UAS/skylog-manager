@@ -1,4 +1,4 @@
-export default function DashboardMockup() {
+﻿export default function DashboardMockup() {
   const bars = [
     { h: 30, label: 'NOV' },
     { h: 55, label: 'DIC' },
@@ -21,7 +21,7 @@ export default function DashboardMockup() {
           <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
           <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
           <div className="flex-1 mx-4 h-5 bg-slate-200 rounded-full flex items-center px-3">
-            <span className="text-[8px] text-slate-400 font-mono">app.bitafly.com/dashboard</span>
+            <span className="text-xs text-slate-400 font-mono">app.bitafly.com/dashboard</span>
           </div>
         </div>
 
@@ -46,12 +46,12 @@ export default function DashboardMockup() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Panel de Control</p>
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Panel de Control</p>
                 <p className="text-xs font-black text-[#1A202C]">Bienvenido, Operador</p>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center">
-                  <span className="text-[7px] font-black text-white">A</span>
+                  <span className="text-xs font-black text-white">A</span>
                 </div>
               </div>
             </div>
@@ -134,7 +134,7 @@ export default function DashboardMockup() {
       {/* Floating badge */}
       <div className="absolute -bottom-3 -right-3 bg-white border border-slate-200 rounded-2xl px-4 py-2.5 shadow-xl flex items-center gap-2">
         <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-        <span className="text-[10px] font-black text-slate-700 uppercase tracking-wide">RAC 100 · En cumplimiento</span>
+        <span className="text-xs font-black text-slate-700 uppercase tracking-wide">RAC 100 · En cumplimiento</span>
       </div>
     </div>
   );

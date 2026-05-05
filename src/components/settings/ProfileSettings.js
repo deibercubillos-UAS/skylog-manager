@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 export default function ProfileSettings({ profile, setProfile }) {
   // Definimos los roles permitidos en la interfaz
@@ -17,7 +17,7 @@ export default function ProfileSettings({ profile, setProfile }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Campo Nombre Completo */}
         <div>
-          <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 ml-1">
+          <label className="block text-xs font-black uppercase text-slate-400 mb-2 ml-1">
             Nombre Completo
           </label>
           <input 
@@ -30,7 +30,7 @@ export default function ProfileSettings({ profile, setProfile }) {
 
         {/* Campo Cargo Operativo (Lista Desplegable) */}
         <div>
-          <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 ml-1">
+          <label className="block text-xs font-black uppercase text-slate-400 mb-2 ml-1">
             Cargo Operativo
           </label>
           <div className="relative">
@@ -63,11 +63,11 @@ export default function ProfileSettings({ profile, setProfile }) {
           </div>
           
           {profile.role === 'admin' ? (
-            <p className="text-[9px] text-blue-500 font-bold uppercase mt-2 ml-1 tracking-tighter">
+            <p className="text-xs text-blue-500 font-bold uppercase mt-2 ml-1 tracking-tighter">
               ℹ️ Tu nivel de acceso actual es restringido por el sistema.
             </p>
           ) : (
-            <p className="text-[9px] text-slate-400 font-medium mt-2 ml-1">
+            <p className="text-xs text-slate-400 font-medium mt-2 ml-1">
               Selecciona tu rol para ajustar tus permisos en la plataforma.
             </p>
           )}

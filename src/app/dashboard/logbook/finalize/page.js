@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -121,8 +121,8 @@ export default function FinalizeFlightPage() {
                 <span className="material-symbols-outlined text-4xl">flight_land</span>
             </div>
             <h2 className="text-xl font-black uppercase text-slate-900">No hay vuelos activos</h2>
-            <p className="text-sm text-slate-500 uppercase font-bold text-[10px]">Todos los registros están cerrados.</p>
-            <Link href="/dashboard/logbook/new" className="inline-block px-8 py-3 bg-orange-600 text-white rounded-xl font-black text-[10px] uppercase">Iniciar Nueva Operación</Link>
+            <p className="text-sm text-slate-500 uppercase font-bold text-xs">Todos los registros están cerrados.</p>
+            <Link href="/dashboard/logbook/new" className="inline-block px-8 py-3 bg-orange-600 text-white rounded-xl font-black text-xs uppercase">Iniciar Nueva Operación</Link>
         </div>
     );
 
@@ -130,7 +130,7 @@ export default function FinalizeFlightPage() {
         <div className="max-w-xl mx-auto space-y-6 text-left pb-20 animate-in fade-in duration-500">
             <header className="px-2">
                 <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">Cierre de Vuelo</h2>
-                <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">Registro de Aterrizaje F-OPS-001</p>
+                <p className="text-slate-500 text-xs font-black uppercase tracking-widest mt-1">Registro de Aterrizaje F-OPS-001</p>
             </header>
 
             {/* CONTEXTO DE LA MISIÓN (CARD) */}
@@ -138,19 +138,19 @@ export default function FinalizeFlightPage() {
                 <div className="bg-[#1A202C] p-6 rounded-[2.5rem] text-white shadow-xl border border-white/5 space-y-4 mx-2">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-[8px] font-black text-orange-500 uppercase tracking-widest">Misión en Curso</p>
+                            <p className="text-xs font-black text-orange-500 uppercase tracking-widest">Misión en Curso</p>
                             <h3 className="text-lg font-black uppercase">{selectedFlight.mission_id}</h3>
                         </div>
-                        <span className="px-3 py-1 bg-orange-600 text-[9px] font-black rounded-full animate-pulse">EN VUELO</span>
+                        <span className="px-3 py-1 bg-orange-600 text-xs font-black rounded-full animate-pulse">EN VUELO</span>
                     </div>
                     <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-4">
                         <div>
-                            <p className="text-[7px] font-black text-slate-500 uppercase">Aeronave / S/N</p>
-                            <p className="text-[11px] font-bold truncate">{selectedFlight.aircraft?.model}</p>
+                            <p className="text-xs font-black text-slate-500 uppercase">Aeronave / S/N</p>
+                            <p className="text-xs font-bold truncate">{selectedFlight.aircraft?.model}</p>
                         </div>
                         <div>
-                            <p className="text-[7px] font-black text-slate-500 uppercase">Hora Despegue</p>
-                            <p className="text-[11px] font-bold text-orange-400">{selectedFlight.takeoff_time}</p>
+                            <p className="text-xs font-black text-slate-500 uppercase">Hora Despegue</p>
+                            <p className="text-xs font-bold text-orange-400">{selectedFlight.takeoff_time}</p>
                         </div>
                     </div>
                 </div>
@@ -159,7 +159,7 @@ export default function FinalizeFlightPage() {
             <form onSubmit={handleCloseFlight} className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] shadow-sm border border-slate-200 space-y-8 mx-2">
                 <div className="space-y-6">
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Cambiar Vuelo</label>
+                        <label className="text-xs font-black uppercase text-slate-400 ml-1">Cambiar Vuelo</label>
                         <select className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={form.flight_id} onChange={e => handleSelectChange(e.target.value)}>
                             {openFlights.map(f => (
                                 <option key={f.id} value={f.id}>{f.mission_id} - {f.aircraft?.model}</option>
@@ -168,23 +168,23 @@ export default function FinalizeFlightPage() {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Hora de Aterrizaje (24H)</label>
+                        <label className="text-xs font-black uppercase text-slate-400 ml-1">Hora de Aterrizaje (24H)</label>
                         <input required type="time" className="w-full p-5 bg-slate-100 rounded-3xl border-none font-black text-2xl text-slate-900" onChange={e => setForm({...form, landing_time: e.target.value})} />
                     </div>
 
                     <div className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div className="text-center sm:text-left">
                             <p className="text-xs font-black text-slate-900 uppercase">¿Reporte SMS?</p>
-                            <p className="text-[8px] text-slate-400 font-bold uppercase mt-1">¿Hubo incidentes en el aterrizaje?</p>
+                            <p className="text-xs text-slate-400 font-bold uppercase mt-1">¿Hubo incidentes en el aterrizaje?</p>
                         </div>
                         <div className="flex bg-white p-1.5 rounded-2xl border shadow-sm w-full sm:w-auto">
-                            <button type="button" onClick={() => setForm({...form, safety_report: false})} className={`flex-1 sm:px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${!form.safety_report ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-slate-400'}`}>No</button>
-                            <button type="button" onClick={() => setForm({...form, safety_report: true})} className={`flex-1 sm:px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${form.safety_report ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'text-slate-400'}`}>Sí</button>
+                            <button type="button" onClick={() => setForm({...form, safety_report: false})} className={`flex-1 sm:px-6 py-3 rounded-xl text-xs font-black uppercase transition-all ${!form.safety_report ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-slate-400'}`}>No</button>
+                            <button type="button" onClick={() => setForm({...form, safety_report: true})} className={`flex-1 sm:px-6 py-3 rounded-xl text-xs font-black uppercase transition-all ${form.safety_report ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'text-slate-400'}`}>Sí</button>
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Observaciones Finales</label>
+                        <label className="text-xs font-black uppercase text-slate-400 ml-1">Observaciones Finales</label>
                         <textarea rows="4" className="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm font-medium focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Estado final del equipo..." onChange={e => setForm({...form, notes: e.target.value})} />
                     </div>
                 </div>

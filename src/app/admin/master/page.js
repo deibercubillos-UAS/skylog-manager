@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect, useMemo } from 'react';
 
 const PLANS = ['piloto', 'escuadrilla', 'flota', 'enterprise'];
@@ -157,7 +157,7 @@ export default function MasterPanel() {
               <span className={`material-symbols-outlined text-2xl ${s.color}`}>{s.icon}</span>
               <div>
                 <p className="text-2xl font-black">{s.value}</p>
-                <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{s.label}</p>
+                <p className="text-xs font-black uppercase text-slate-500 tracking-widest">{s.label}</p>
               </div>
             </div>
           ))}
@@ -177,7 +177,7 @@ export default function MasterPanel() {
           <div className="flex gap-2 flex-wrap">
             {['all', ...PLANS].map(p => (
               <button key={p} onClick={() => setPlanFilter(p)}
-                className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${planFilter === p ? 'bg-orange-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}>
+                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${planFilter === p ? 'bg-orange-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}>
                 {p === 'all' ? 'Todos' : p}
                 {p !== 'all' && <span className="ml-1.5 opacity-60">{users.filter(u => u.subscription_plan === p).length}</span>}
               </button>
@@ -189,7 +189,7 @@ export default function MasterPanel() {
         <div className="bg-slate-900 rounded-[2rem] border border-white/5 overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
-              <thead className="bg-black/40 text-[10px] uppercase text-slate-500 font-black">
+              <thead className="bg-black/40 text-xs uppercase text-slate-500 font-black">
                 <tr>
                   <th className="px-6 py-4">Empresa</th>
                   <th className="px-6 py-4">Usuario / Email</th>
@@ -216,15 +216,15 @@ export default function MasterPanel() {
                         <p className="text-xs text-slate-500 font-mono">{u.email}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-1 rounded text-[10px] font-black uppercase ${ROLE_STYLE[u.role] || 'bg-slate-700 text-slate-300'}`}>
+                        <span className={`px-2 py-1 rounded text-xs font-black uppercase ${ROLE_STYLE[u.role] || 'bg-slate-700 text-slate-300'}`}>
                           {u.role}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${PLAN_STYLE[u.subscription_plan] || 'bg-slate-700 text-slate-300'}`}>
+                        <span className={`px-3 py-1 rounded-lg text-xs font-black uppercase ${PLAN_STYLE[u.subscription_plan] || 'bg-slate-700 text-slate-300'}`}>
                           {u.subscription_plan}
                         </span>
-                        {expired && <span className="ml-2 text-[9px] text-red-400 font-black uppercase">Vencido</span>}
+                        {expired && <span className="ml-2 text-xs text-red-400 font-black uppercase">Vencido</span>}
                       </td>
                       <td className="px-6 py-4 text-xs text-slate-500 font-mono">
                         {u.subscription_expires_at
@@ -236,7 +236,7 @@ export default function MasterPanel() {
                         <div className="flex gap-1">
                           {['escuadrilla','flota','enterprise'].map(p => (
                             <button key={p} onClick={() => quickPlan(u.id, p)}
-                              className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase transition-all hover:scale-105 ${
+                              className={`px-2 py-1 rounded-lg text-xs font-black uppercase transition-all hover:scale-105 ${
                                 u.subscription_plan === p ? 'bg-orange-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
                               {p === 'escuadrilla' ? 'ESC' : p === 'flota' ? 'FLO' : 'ENT'}
                             </button>
@@ -245,7 +245,7 @@ export default function MasterPanel() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button onClick={() => setEdit({ ...u })}
-                          className="bg-white/10 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all">
+                          className="bg-white/10 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase transition-all">
                           Editar
                         </button>
                       </td>
@@ -271,7 +271,7 @@ export default function MasterPanel() {
 
             {/* Plan */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Plan de suscripción</label>
+              <label className="text-xs font-black uppercase text-slate-500 tracking-widest">Plan de suscripción</label>
               <select value={edit.subscription_plan} onChange={e => setEdit({ ...edit, subscription_plan: e.target.value })}
                 className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white font-bold text-sm outline-none focus:border-orange-500/50">
                 <option value="piloto">Piloto — Gratis</option>
@@ -283,7 +283,7 @@ export default function MasterPanel() {
 
             {/* Rol */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Rol del usuario</label>
+              <label className="text-xs font-black uppercase text-slate-500 tracking-widest">Rol del usuario</label>
               <select value={edit.role} onChange={e => setEdit({ ...edit, role: e.target.value })}
                 className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white font-bold text-sm outline-none focus:border-orange-500/50">
                 <option value="piloto">Piloto</option>
@@ -296,7 +296,7 @@ export default function MasterPanel() {
 
             {/* Vigencia */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Vigente hasta</label>
+              <label className="text-xs font-black uppercase text-slate-500 tracking-widest">Vigente hasta</label>
               <input type="date" value={edit.subscription_expires_at?.split('T')[0] || ''}
                 onChange={e => setEdit({ ...edit, subscription_expires_at: e.target.value })}
                 className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white font-bold text-sm outline-none focus:border-orange-500/50" />
@@ -304,7 +304,7 @@ export default function MasterPanel() {
 
             {/* Pago */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Fecha último pago</label>
+              <label className="text-xs font-black uppercase text-slate-500 tracking-widest">Fecha último pago</label>
               <input type="date" value={edit.last_payment_date || ''}
                 onChange={e => setEdit({ ...edit, last_payment_date: e.target.value })}
                 className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white font-bold text-sm outline-none focus:border-orange-500/50" />
@@ -330,7 +330,7 @@ export default function MasterPanel() {
 
             {/* Notas */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Notas internas</label>
+              <label className="text-xs font-black uppercase text-slate-500 tracking-widest">Notas internas</label>
               <textarea rows={3} value={edit.admin_notes || ''}
                 onChange={e => setEdit({ ...edit, admin_notes: e.target.value })}
                 placeholder="Observaciones de pago, WhatsApp, etc."
@@ -339,7 +339,7 @@ export default function MasterPanel() {
 
             {/* Org ID */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">ID de organización</label>
+              <label className="text-xs font-black uppercase text-slate-500 tracking-widest">ID de organización</label>
               <input value={edit.organization_id || ''} onChange={e => setEdit({ ...edit, organization_id: e.target.value })}
                 className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white font-mono text-xs outline-none focus:border-orange-500/50" />
             </div>

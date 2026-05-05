@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { hasPermission } from '@/lib/roles';
@@ -93,14 +93,14 @@ export default function ReportsPage() {
             {/* FILTROS GLOBALES */}
             <div className="bg-[#1A202C] p-8 rounded-[2.5rem] text-white grid grid-cols-1 md:grid-cols-2 gap-8 shadow-xl">
                 <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-orange-500 ml-1">Periodo de Auditoría (Desde / Hasta)</label>
+                    <label className="text-xs font-black uppercase text-orange-500 ml-1">Periodo de Auditoría (Desde / Hasta)</label>
                     <div className="grid grid-cols-2 gap-3">
                         <input type="date" className="p-3 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white" onChange={e => setConfig({...config, from: e.target.value})} />
                         <input type="date" className="p-3 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white" onChange={e => setConfig({...config, to: e.target.value})} />
                     </div>
                 </div>
                 <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-orange-500 ml-1">Control de Cabecera (Versión / Fecha Reporte)</label>
+                    <label className="text-xs font-black uppercase text-orange-500 ml-1">Control de Cabecera (Versión / Fecha Reporte)</label>
                     <div className="grid grid-cols-2 gap-3">
                         <input className="p-3 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white" value={config.version} onChange={e => setConfig({...config, version: e.target.value})} />
                         <input type="date" className="p-3 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white" value={config.reportDate} onChange={e => setConfig({...config, reportDate: e.target.value})} />
@@ -139,7 +139,7 @@ export default function ReportsPage() {
                     <div className="flex-1 space-y-4">
                         <h3 className="text-xl font-black uppercase tracking-tight">Bitácora de Piloto</h3>
                         <select 
-                            className="w-full md:w-64 p-3 bg-slate-50 rounded-xl text-[10px] font-black uppercase border-2 border-slate-100"
+                            className="w-full md:w-64 p-3 bg-slate-50 rounded-xl text-xs font-black uppercase border-2 border-slate-100"
                             value={selectedPilot} onChange={(e) => setSelectedPilot(e.target.value)}
                         >
                             <option value="">-- Seleccionar Piloto --</option>
@@ -148,8 +148,8 @@ export default function ReportsPage() {
                     </div>
                 
                     <div className="w-full md:w-auto flex flex-col gap-2">
-                        <input className="p-3 bg-slate-100 rounded-xl text-[10px] font-black uppercase text-center w-32" value={config.formCodePilot} onChange={e => setConfig({...config, formCodePilot: e.target.value})} />
-                        <button onClick={() => downloadReport('pilots')} disabled={loading} className="px-8 py-4 bg-orange-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-slate-900 transition-all">Descargar PDF</button>
+                        <input className="p-3 bg-slate-100 rounded-xl text-xs font-black uppercase text-center w-32" value={config.formCodePilot} onChange={e => setConfig({...config, formCodePilot: e.target.value})} />
+                        <button onClick={() => downloadReport('pilots')} disabled={loading} className="px-8 py-4 bg-orange-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg hover:bg-slate-900 transition-all">Descargar PDF</button>
                     </div>
                 </div>
 
@@ -161,7 +161,7 @@ export default function ReportsPage() {
         <h3 className="text-xl font-black uppercase tracking-tight">Expediente de Tripulante</h3>
         <p className="text-xs text-slate-500">Hoja de vida completa con anexos digitales y certificados.</p>
         <select 
-            className="w-full md:w-64 p-3 bg-slate-50 rounded-xl text-[10px] font-black uppercase border-2 border-slate-100"
+            className="w-full md:w-64 p-3 bg-slate-50 rounded-xl text-xs font-black uppercase border-2 border-slate-100"
             value={selectedPilot} onChange={(e) => setSelectedPilot(e.target.value)}
         >
             <option value="">-- Seleccionar Tripulante --</option>
@@ -186,7 +186,7 @@ export default function ReportsPage() {
             } finally { setLoading(false); }
         }}
         disabled={loading}
-        className="px-8 py-4 bg-orange-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-slate-900 transition-all"
+        className="px-8 py-4 bg-orange-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg hover:bg-slate-900 transition-all"
     > Descargar Expediente </button>
 </div>
             </div>
@@ -204,8 +204,8 @@ function ReportCard({ icon, title, desc, formCode, onCodeChange, onDownload, loa
                 <p className="text-xs text-slate-500 mt-1">{desc}</p>
             </div>
             <div className="w-full md:w-auto flex flex-col gap-2">
-                <input className="p-3 bg-slate-100 rounded-xl text-[10px] font-black uppercase text-center w-32" value={formCode} onChange={e => onCodeChange(e.target.value)} />
-                <button onClick={onDownload} disabled={loading} className="px-8 py-4 bg-[#1A202C] text-white rounded-2xl font-black text-[10px] uppercase shadow-lg hover:bg-orange-600 transition-all">Descargar PDF</button>
+                <input className="p-3 bg-slate-100 rounded-xl text-xs font-black uppercase text-center w-32" value={formCode} onChange={e => onCodeChange(e.target.value)} />
+                <button onClick={onDownload} disabled={loading} className="px-8 py-4 bg-[#1A202C] text-white rounded-2xl font-black text-xs uppercase shadow-lg hover:bg-orange-600 transition-all">Descargar PDF</button>
             </div>
         </div>
     );

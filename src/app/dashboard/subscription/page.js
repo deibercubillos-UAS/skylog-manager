@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
@@ -147,7 +147,7 @@ export default function SubscriptionPage() {
               <div key={plan.key}
                 className={`relative bg-white border-2 rounded-[2rem] p-8 flex flex-col gap-4 ${plan.popular ? 'border-primary shadow-xl shadow-orange-500/10' : 'border-slate-200'}`}>
                 {plan.popular && (
-                  <span className="absolute -top-3 left-6 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">
+                  <span className="absolute -top-3 left-6 bg-primary text-white text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full">
                     Recomendado
                   </span>
                 )}

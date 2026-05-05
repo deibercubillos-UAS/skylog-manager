@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
@@ -106,28 +106,28 @@ export default function BasicForm({ pilots, drones, missions, org, loadData }) {
                         <StatusBox status={getPilotStatus()} title="Estatus PIC" defaultMsg="Seleccione Piloto" />
                         <StatusBox status={getDroneStatus()} title="Estatus UAS" defaultMsg="Seleccione Drone" />
                     </div>
-                    <button onClick={handleUpdatePrefix} className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-[10px] font-black text-orange-500 hover:bg-orange-600 hover:text-white transition-all">
+                    <button onClick={handleUpdatePrefix} className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-xs font-black text-orange-500 hover:bg-orange-600 hover:text-white transition-all">
                         PREFIJO: {prefix}
                     </button>
                 </div>
 
                 <form onSubmit={handleAuthorize} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end text-left">
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Piloto al Mando</label>
+                        <label className="text-xs font-black text-slate-500 uppercase ml-1">Piloto al Mando</label>
                         <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.pilot_id} onChange={e => setForm({...form, pilot_id: e.target.value})}>
                             <option value="">Seleccionar...</option>
                             {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                     </div>
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Aeronave (UAS)</label>
+                        <label className="text-xs font-black text-slate-500 uppercase ml-1">Aeronave (UAS)</label>
                         <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.aircraft_id} onChange={e => setForm({...form, aircraft_id: e.target.value})}>
                             <option value="">Seleccionar...</option>
                             {drones.map(d => <option key={d.id} value={d.id}>{d.model} ({d.serial_number})</option>)}
                         </select>
                     </div>
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Tipo de Operación (RAC 100)</label>
+                        <label className="text-xs font-black text-slate-500 uppercase ml-1">Tipo de Operación (RAC 100)</label>
                         <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.mission_type} onChange={e => setForm({...form, mission_type: e.target.value})}>
                             <option value="SIMPLE CAPTURA DE IMÁGENES O DATOS">SIMPLE CAPTURA DE IMÁGENES</option>
                             <option value="VIGILANCIA Y SEGURIDAD PRIVADA">VIGILANCIA Y SEGURIDAD</option>
@@ -137,21 +137,21 @@ export default function BasicForm({ pilots, drones, missions, org, loadData }) {
                         </select>
                     </div>
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Departamento</label>
+                        <label className="text-xs font-black text-slate-500 uppercase ml-1">Departamento</label>
                         <select required className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.department} onChange={e => handleDeptChange(e.target.value)}>
                             <option value="">-- Seleccionar --</option>
                             {geo.depts.map(d => <option key={d} value={d}>{d}</option>)}
                         </select>
                     </div>
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Municipio</label>
+                        <label className="text-xs font-black text-slate-500 uppercase ml-1">Municipio</label>
                         <select required disabled={!form.department} className="w-full p-4 bg-slate-800 rounded-2xl border-none text-white text-sm font-bold disabled:opacity-30" value={form.municipality} onChange={e => setForm({...form, municipality: e.target.value})}>
                             <option value="">-- Seleccionar --</option>
                             {geo.munis.map(m => <option key={m} value={m}>{m}</option>)}
                         </select>
                     </div>
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Fecha Programada</label>
+                        <label className="text-xs font-black text-slate-500 uppercase ml-1">Fecha Programada</label>
                         <input required type="date" className="w-full bg-slate-800 p-4 rounded-2xl border-none text-white text-sm font-bold" value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})} />
                     </div>
                     <button type="submit" disabled={saving} className="md:col-span-3 bg-orange-600 hover:bg-orange-700 text-white py-5 rounded-[2rem] font-black uppercase text-xs shadow-xl active:scale-95 transition-all">
@@ -164,7 +164,7 @@ export default function BasicForm({ pilots, drones, missions, org, loadData }) {
 }
 
 function StatusBox({ status, title, defaultMsg }) {
-    if (!status) return <div className="px-4 py-2 rounded-xl border border-white/10 bg-white/5"><p className="text-[7px] font-black text-slate-500 uppercase">{title}</p><p className="text-[9px] font-bold text-slate-400">{defaultMsg}</p></div>;
+    if (!status) return <div className="px-4 py-2 rounded-xl border border-white/10 bg-white/5"><p className="text-xs font-black text-slate-500 uppercase">{title}</p><p className="text-xs font-bold text-slate-400">{defaultMsg}</p></div>;
     const colors = { ERROR: 'bg-red-500/20 border-red-500', WARN: 'bg-orange-500/20 border-orange-500', OK: 'bg-emerald-500/20 border-emerald-500' };
-    return <div className={`px-4 py-2 rounded-xl border ${colors[status.type]}`}><p className="text-[7px] font-black uppercase opacity-60">{title}</p><p className="text-[9px] font-black">{status.msg}</p></div>;
+    return <div className={`px-4 py-2 rounded-xl border ${colors[status.type]}`}><p className="text-xs font-black uppercase opacity-60">{title}</p><p className="text-xs font-black">{status.msg}</p></div>;
 }

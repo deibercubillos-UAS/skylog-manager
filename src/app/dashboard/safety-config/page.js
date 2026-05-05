@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
@@ -107,7 +107,7 @@ export default function SafetyConfigPage() {
           <p className="text-slate-500 text-sm">Estandarización de seguridad para operaciones BitaFly.</p>
         </div>
         {!canModify && (
-          <div className="bg-orange-50 text-[#ec5b13] px-4 py-2 rounded-xl border border-orange-100 text-[10px] font-black uppercase">
+          <div className="bg-orange-50 text-[#ec5b13] px-4 py-2 rounded-xl border border-orange-100 text-xs font-black uppercase">
             Modo Consulta: Edición Protegida
           </div>
         )}
@@ -115,7 +115,7 @@ export default function SafetyConfigPage() {
 
       <div className="flex bg-white p-1 rounded-2xl border border-slate-200 w-fit mb-10 shadow-sm">
         {['checklist', 'sora'].map(t => (
-          <button key={t} onClick={() => setActiveTab(t)} className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === t ? 'bg-[#ec5b13] text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
+          <button key={t} onClick={() => setActiveTab(t)} className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === t ? 'bg-[#ec5b13] text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
             {t === 'checklist' ? 'Checklist Pre-Vuelo' : 'Análisis SORA'}
           </button>
         ))}
@@ -126,16 +126,16 @@ export default function SafetyConfigPage() {
         <div className="lg:col-span-1">
           {canModify ? (
             <form onSubmit={handleAdd} className="bg-[#1A202C] p-8 rounded-[2.5rem] text-white space-y-6 sticky top-24 shadow-2xl border border-white/5">
-              <h3 className="text-[#ec5b13] text-[10px] font-black uppercase tracking-[0.2em] border-b border-white/10 pb-4">Nuevo Requerimiento</h3>
+              <h3 className="text-[#ec5b13] text-xs font-black uppercase tracking-[0.2em] border-b border-white/10 pb-4">Nuevo Requerimiento</h3>
               <input required className="w-full bg-slate-800 border-none rounded-xl p-4 text-sm font-bold outline-none" placeholder="Grupo (Ej: Motores)" value={form.category} onChange={e => setForm({...form, category: e.target.value})} />
               <textarea required rows="3" className="w-full bg-slate-800 border-none rounded-xl p-4 text-sm outline-none" placeholder="Descripción del punto..." value={form.label} onChange={e => setForm({...form, label: e.target.value})} />
               {activeTab === 'sora' && (
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Puntaje SAIL</label>
+                  <label className="text-xs font-black text-slate-500 uppercase ml-1">Puntaje SAIL</label>
                   <input type="number" min="1" max="10" className="w-full bg-slate-800 border-none rounded-xl p-4 text-sm font-black" value={form.score} onChange={e => setForm({...form, score: e.target.value})} />
                 </div>
               )}
-              <button type="submit" className="w-full bg-[#ec5b13] py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl active:scale-95 transition-all">Añadir al Protocolo</button>
+              <button type="submit" className="w-full bg-[#ec5b13] py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all">Añadir al Protocolo</button>
             </form>
           ) : (
             <div className="bg-slate-100 p-8 rounded-[2.5rem] border border-slate-200 text-slate-400 text-center space-y-4">
@@ -157,13 +157,13 @@ export default function SafetyConfigPage() {
                 }, {})
               ).map(([cat, subItems]) => (
                 <div key={cat} className="space-y-4">
-                  <h4 className="text-[10px] font-black uppercase text-[#ec5b13] tracking-[0.3em] bg-orange-50 px-4 py-2 rounded-lg inline-block">{cat}</h4>
+                  <h4 className="text-xs font-black uppercase text-[#ec5b13] tracking-[0.3em] bg-orange-50 px-4 py-2 rounded-lg inline-block">{cat}</h4>
                   <div className="grid gap-3">
                     {subItems.map(item => (
                       <div key={item.id} className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-[#ec5b13]/30 transition-all">
                         <div className="text-left">
                           <p className="text-sm font-bold text-slate-700">{item.label}</p>
-                          {item.score && <p className="text-[9px] font-black text-slate-400 mt-1 uppercase tracking-tighter">Impacto SORA: {item.score} pts</p>}
+                          {item.score && <p className="text-xs font-black text-slate-400 mt-1 uppercase tracking-tighter">Impacto SORA: {item.score} pts</p>}
                         </div>
                         {/* El botón de borrar solo aparece si tiene permisos */}
                         {canModify && (

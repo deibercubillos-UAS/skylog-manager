@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 export default function NotificationSettings() {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -17,7 +17,7 @@ function ToggleItem({ label, desc, checked }) {
     <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
       <div className="text-left">
         <p className="text-sm font-bold text-slate-800">{label}</p>
-        <p className="text-[10px] text-slate-500 uppercase font-medium">{desc}</p>
+        <p className="text-xs text-slate-500 uppercase font-medium">{desc}</p>
       </div>
       <div className={`w-10 h-5 rounded-full relative transition-colors ${checked ? 'bg-[#ec5b13]' : 'bg-slate-300'}`}>
         <div className={`absolute top-1 size-3 bg-white rounded-full transition-all ${checked ? 'right-1' : 'left-1'}`}></div>

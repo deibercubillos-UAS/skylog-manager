@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
@@ -79,7 +79,7 @@ export default function SMSReportPage() {
         {!canEdit && (
           <div className="bg-red-50 text-red-600 px-4 py-2 rounded-xl border border-red-100 flex items-center gap-2">
             <span className="material-symbols-outlined text-sm font-black">lock</span>
-            <span className="text-[10px] font-black uppercase">Solo lectura: Perfil Gerencial requerido</span>
+            <span className="text-xs font-black uppercase">Solo lectura: Perfil Gerencial requerido</span>
           </div>
         )}
       </header>
@@ -87,7 +87,7 @@ export default function SMSReportPage() {
       <main className="max-w-5xl mx-auto w-full p-8 space-y-8">
         {/* NIVEL DE GRAVEDAD */}
         <section className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8">01. Clasificación de Severidad</h3>
+          <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-8">01. Clasificación de Severidad</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <SeverityBtn active={formData.severity === 'incidente'} color="blue" icon="info" label="Incidente" onClick={() => canEdit && setFormData({...formData, severity: 'incidente'})} />
             <SeverityBtn active={formData.severity === 'incidente_grave'} color="amber" icon="warning" label="Incidente Grave" onClick={() => canEdit && setFormData({...formData, severity: 'incidente_grave'})} />
@@ -99,14 +99,14 @@ export default function SMSReportPage() {
         <form onSubmit={handleSave} className="space-y-8">
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8">
              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Vuelo Asociado</label>
+                <label className="text-xs font-black uppercase text-slate-400 ml-1">Vuelo Asociado</label>
                 <select disabled={!canEdit} className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={formData.flight_id} onChange={e => setFormData({...formData, flight_id: e.target.value})}>
                   <option value="">Seleccionar Misión...</option>
                   {flights.map(f => <option key={f.id} value={f.id}>{f.flight_number} - {f.location}</option>)}
                 </select>
              </div>
              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Fecha y Hora del Suceso</label>
+                <label className="text-xs font-black uppercase text-slate-400 ml-1">Fecha y Hora del Suceso</label>
                 <input disabled={!canEdit} type="datetime-local" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={formData.occurrence_date} onChange={e => setFormData({...formData, occurrence_date: e.target.value})} />
              </div>
           </div>

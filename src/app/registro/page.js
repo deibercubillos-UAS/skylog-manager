@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import Link from 'next/link';
 import AuthSidePanel from '@/components/AuthSidePanel';
@@ -157,7 +157,7 @@ export default function RegisterPage() {
                     }`}
                   >
                     {plan.popular && (
-                      <span className="absolute -top-2.5 left-4 bg-primary text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                      <span className="absolute -top-2.5 left-4 bg-primary text-white text-xs font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
                         Popular
                       </span>
                     )}
@@ -172,12 +172,12 @@ export default function RegisterPage() {
                     <p className={`text-sm font-black ${form.selectedPlan === plan.key ? 'text-navy' : 'text-slate-700'}`}>
                       {plan.price}
                     </p>
-                    <p className="text-[11px] text-slate-400 font-medium">{plan.sub}</p>
-                    <p className={`text-[11px] font-black uppercase mt-1 ${form.selectedPlan === plan.key ? 'text-primary' : 'text-slate-400'}`}>
+                    <p className="text-xs text-slate-400 font-medium">{plan.sub}</p>
+                    <p className={`text-xs font-black uppercase mt-1 ${form.selectedPlan === plan.key ? 'text-primary' : 'text-slate-400'}`}>
                       {plan.limits}
                     </p>
                     {plan.contact && (
-                      <p className="text-[11px] text-primary font-bold mt-1">Contactar →</p>
+                      <p className="text-xs text-primary font-bold mt-1">Contactar →</p>
                     )}
                   </button>
                 ))}
@@ -290,7 +290,7 @@ export default function RegisterPage() {
                       {t.icon}
                     </span>
                     <p className={`text-xs font-black uppercase ${form.type === t.key ? 'text-primary' : 'text-navy'}`}>{t.label}</p>
-                    <p className="text-[11px] text-slate-400 font-medium mt-0.5">{t.sub}</p>
+                    <p className="text-xs text-slate-400 font-medium mt-0.5">{t.sub}</p>
                   </button>
                 ))}
               </div>
@@ -332,7 +332,7 @@ export default function RegisterPage() {
                           className={`${INPUT} uppercase font-black text-center tracking-widest text-primary placeholder:text-slate-300 placeholder:normal-case placeholder:tracking-normal placeholder:font-normal`}
                         />
                       </Field>
-                      <p className="text-[11px] text-slate-400 font-medium px-1">
+                      <p className="text-xs text-slate-400 font-medium px-1">
                         Opcional — si no tienes el código ahora, tu administrador puede invitarte después desde el panel.
                       </p>
                     </div>
@@ -356,7 +356,7 @@ export default function RegisterPage() {
                 </button>
               </div>
 
-              <p className="text-center text-[11px] text-slate-400 leading-relaxed">
+              <p className="text-center text-xs text-slate-400 leading-relaxed">
                 Al registrarte aceptas nuestros{' '}
                 <a href="#" className="text-primary hover:underline">Términos de servicio</a>
                 {' '}y{' '}

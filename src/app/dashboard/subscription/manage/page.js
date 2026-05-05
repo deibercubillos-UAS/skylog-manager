@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
@@ -34,7 +34,7 @@ export default function ManageSubscriptionPage() {
                     <span className="material-symbols-outlined text-9xl text-orange-500">verified</span>
                 </div>
                 <div className="relative z-10">
-                    <p className="text-[#ec5b13] text-[10px] font-black uppercase tracking-[0.3em] mb-2">Plan Actual</p>
+                    <p className="text-[#ec5b13] text-xs font-black uppercase tracking-[0.3em] mb-2">Plan Actual</p>
                     <h3 className="text-5xl font-black uppercase tracking-tighter mb-6">{profile?.subscription_plan || 'PILOTO'}</h3>
                     <p className="text-slate-400 max-w-md text-sm leading-relaxed mb-8">
                         Para cambios de plan, facturación corporativa o soporte técnico, por favor contacta a nuestro centro de mando.

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import HelpTooltip from '@/components/HelpTooltip';
@@ -203,7 +203,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
             ? 'bg-red-50 text-red-700 border-red-200' 
             : 'bg-orange-50 text-orange-700 border-orange-200';
         return (
-            <div className={`px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest ${cls}`}>
+            <div className={`px-4 py-2 rounded-xl border text-xs font-black uppercase tracking-widest ${cls}`}>
                 {alert.msg}
             </div>
         );
@@ -552,7 +552,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
             <div className="bg-slate-900 p-8 rounded-[3rem] text-white flex justify-between items-center border-l-8 border-orange-600 shadow-2xl">
                 <div>
                     <h3 className="text-2xl font-black uppercase tracking-tight">Formato 100 UAEAC</h3>
-                    <p className="text-orange-500 text-[10px] font-black uppercase tracking-[0.3em] mt-1">Módulo de Cumplimiento Normativo</p>
+                    <p className="text-orange-500 text-xs font-black uppercase tracking-[0.3em] mt-1">Módulo de Cumplimiento Normativo</p>
                 </div>
                 <div className="size-14 bg-white/5 rounded-2xl flex items-center justify-center">
                     <span className="material-symbols-outlined text-4xl text-orange-500">gavel</span>
@@ -629,7 +629,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                 <div className="p-8 space-y-6">
                     {/* FILA 1: EMPRESA CONTRATANTE */}
                     <div className="space-y-1">
-                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Empresa Contratante del Servicio</label>
+                        <label className="text-xs font-black uppercase text-slate-400 ml-1">Empresa Contratante del Servicio</label>
                         <input 
                             className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500"
                             placeholder="Razón Social del Cliente"
@@ -642,11 +642,11 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Fecha Inicio</label>
+                                <label className="text-xs font-black uppercase text-slate-400 ml-1">Fecha Inicio</label>
                                 <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-xs" value={aeroForm.fecha_inicio} onChange={e => setAeroForm({...aeroForm, fecha_inicio: e.target.value})} />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Hora Inicio (24h)</label>
+                                <label className="text-xs font-black uppercase text-slate-400 ml-1">Hora Inicio (24h)</label>
                                 <input 
                                     list="time-slots"
                                     type="text"
@@ -660,11 +660,11 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Fecha Finalización</label>
+                                <label className="text-xs font-black uppercase text-slate-400 ml-1">Fecha Finalización</label>
                                 <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-xs" value={aeroForm.fecha_fin} onChange={e => setAeroForm({...aeroForm, fecha_fin: e.target.value})} />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Hora Fin (24h)</label>
+                                <label className="text-xs font-black uppercase text-slate-400 ml-1">Hora Fin (24h)</label>
                                 <input 
                                     list="time-slots"
                                     type="text"
@@ -686,7 +686,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
 
                     {/* FILA 4: OTROS DETALLES */}
                     <div className="space-y-1">
-                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Otros detalles del cronograma de operación</label>
+                        <label className="text-xs font-black uppercase text-slate-400 ml-1">Otros detalles del cronograma de operación</label>
                         <textarea 
                             rows="2"
                             className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500"
@@ -699,7 +699,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                     {/* FILA 5: PESO Y GEOGRAFÍA */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="space-y-1">
-                            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">
+                            <label className="text-xs font-black uppercase text-slate-400 ml-1">
                                 Peso Bruto Máximo (Kg)
                                 {aeroForm.pbmo_gramos && <span className="ml-2 text-orange-500">= {aeroForm.pbmo_gramos} g (AeroCivil)</span>}
                             </label>
@@ -716,7 +716,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Departamento</label>
+                            <label className="text-xs font-black uppercase text-slate-400 ml-1">Departamento</label>
                             <select 
                                 className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-orange-500 appearance-none"
                                 value={aeroForm.department}
@@ -727,7 +727,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                             </select>
                         </div>
                         <div className="space-y-1">
-                            <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Municipio</label>
+                            <label className="text-xs font-black uppercase text-slate-400 ml-1">Municipio</label>
                             <select 
                                 disabled={!aeroForm.department}
                                 className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-30 appearance-none"
@@ -818,7 +818,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
 
                     {/* CAMPO DE JUSTIFICACIÓN */}
                     <div className="pt-4 border-t border-slate-50">
-                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1 flex items-center gap-2">
+                        <label className="text-xs font-black uppercase text-slate-400 ml-1 flex items-center gap-2">
                             Justificación de la Operación Especial
                             <HelpTooltip text="Describa brevemente la necesidad y los mitigantes de riesgo para el tipo de vuelo especial seleccionado." />
                         </label>
@@ -847,8 +847,8 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                         <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">
                             <span className="material-symbols-outlined text-amber-500 shrink-0">warning</span>
                             <div>
-                                <p className="text-[10px] font-black text-amber-800 uppercase">Sin evaluaciones SORA completadas</p>
-                                <p className="text-[9px] text-amber-600 font-medium mt-1">
+                                <p className="text-xs font-black text-amber-800 uppercase">Sin evaluaciones SORA completadas</p>
+                                <p className="text-xs text-amber-600 font-medium mt-1">
                                     Debe completar una evaluación SORA antes de radicar la solicitud. Ir a{' '}
                                     <a href="/dashboard/sora" target="_blank" className="underline font-black">Análisis SORA</a>
                                 </p>
@@ -856,7 +856,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                         </div>
                     ) : (
                         <div className="space-y-3">
-                            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Vincular Evaluación SORA completada</label>
+                            <label className="text-xs font-black uppercase text-slate-400 ml-1">Vincular Evaluación SORA completada</label>
                             <select
                                 className="w-full p-3.5 bg-slate-50 rounded-2xl border border-slate-200 font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500"
                                 value={linkedSoraId}
@@ -886,15 +886,15 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                                 return (
                                     <div className="grid grid-cols-3 gap-3 mt-2">
                                         <div className={`p-4 rounded-2xl border text-center ${sc.bg} ${sc.border}`}>
-                                            <p className={`text-[8px] font-black uppercase ${sc.text} opacity-70`}>SAIL</p>
+                                            <p className={`text-xs font-black uppercase ${sc.text} opacity-70`}>SAIL</p>
                                             <p className={`text-3xl font-black ${sc.text}`}>{sailRoman(linked.sail_level)}</p>
                                         </div>
                                         <div className="p-4 rounded-2xl border bg-slate-50 border-slate-200 text-center">
-                                            <p className="text-[8px] font-black uppercase text-slate-400">GRC Final</p>
+                                            <p className="text-xs font-black uppercase text-slate-400">GRC Final</p>
                                             <p className="text-2xl font-black text-slate-800">{linked.final_grc}</p>
                                         </div>
                                         <div className="p-4 rounded-2xl border bg-slate-50 border-slate-200 text-center">
-                                            <p className="text-[8px] font-black uppercase text-slate-400">ARC Final</p>
+                                            <p className="text-xs font-black uppercase text-slate-400">ARC Final</p>
                                             <p className="text-xl font-black text-slate-800">{linked.final_arc}</p>
                                         </div>
                                     </div>
@@ -907,8 +907,8 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                         <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mt-2">
                             <span className="material-symbols-outlined text-emerald-500 text-sm shrink-0 mt-0.5">verified_user</span>
                             <div>
-                                <p className="text-[9px] font-black text-emerald-800 uppercase">Cuenta AeroCivil configurada</p>
-                                <p className="text-[9px] text-emerald-600 font-medium mt-0.5">
+                                <p className="text-xs font-black text-emerald-800 uppercase">Cuenta AeroCivil configurada</p>
+                                <p className="text-xs text-emerald-600 font-medium mt-0.5">
                                     Solicitante: <strong>{aerocivilCreds.solicitante || aerocivilCreds.username}</strong>
                                     {aerocivilCreds.contact_name && <> · Contacto: <strong>{aerocivilCreds.contact_name}</strong></>}
                                 </p>
@@ -926,7 +926,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                         <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">7. AERONAVE(S) NO TRIPULADA(S) UAS</h4>
                     </div>
                     <div className="flex items-center gap-4">
-                        <p className="text-[9px] font-black text-slate-400 uppercase">Slots: {aeroForm.aeronaves.length} / 3</p>
+                        <p className="text-xs font-black text-slate-400 uppercase">Slots: {aeroForm.aeronaves.length} / 3</p>
                         <HelpTooltip text="Seleccione las aeronaves de su flota. Debe incluir los datos vigentes de la póliza de Responsabilidad Civil Extracontractual (RCE)." />
                     </div>
                 </div>
@@ -935,7 +935,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                     {aeroForm.aeronaves.map((unit, index) => (
                         <div key={index} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4 relative">
                             <div className="flex justify-between items-center mb-2">
-                                <span className="bg-slate-900 text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase">Aeronave #{index + 1}</span>
+                                <span className="bg-slate-900 text-white px-3 py-1 rounded-lg text-xs font-black uppercase">Aeronave #{index + 1}</span>
                                 {index > 0 && (
                                     <button onClick={() => setAeroForm(prev => ({...prev, aeronaves: prev.aeronaves.filter((_, i) => i !== index)}))} className="text-red-500 material-symbols-outlined text-sm">delete</button>
                                 )}
@@ -943,7 +943,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
 
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div className="space-y-1">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Seleccionar de Flota</label>
+                                    <label className="text-xs font-black text-slate-400 uppercase ml-1">Seleccionar de Flota</label>
                                     <select
                                         className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs outline-none focus:ring-2 focus:ring-orange-500"
                                         value={unit.id}
@@ -956,7 +956,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                                 <InputCol label="Marca" value={unit.brand} disabled isDark={false} />
                                 <InputCol label="Modelo" value={unit.model} disabled isDark={false} />
                                 <div className="space-y-1">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">RUAS (Matrícula)</label>
+                                    <label className="text-xs font-black text-slate-400 uppercase ml-1">RUAS (Matrícula)</label>
                                     <div className={`w-full p-3 rounded-xl text-xs font-black ${unit.ruas ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-slate-200 text-slate-400'}`}>
                                         {unit.ruas || 'Sin RUAS'}
                                     </div>
@@ -985,7 +985,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                                         ? `⚠ Póliza vence en ${days} días`
                                         : `✅ Póliza vigente hasta ${unit.end_date}`;
                                     return (
-                                        <div className={`px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest ${cls}`}>
+                                        <div className={`px-4 py-2 rounded-xl border text-xs font-black uppercase tracking-widest ${cls}`}>
                                             {label}
                                         </div>
                                     );
@@ -996,7 +996,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                     {aeroForm.aeronaves.length < 3 && (
                         <button 
                             onClick={addAircraftSlot}
-                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-[10px] uppercase hover:border-orange-500 hover:text-orange-500 transition-all flex items-center justify-center gap-2"
+                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-xs uppercase hover:border-orange-500 hover:text-orange-500 transition-all flex items-center justify-center gap-2"
                         >
                             <span className="material-symbols-outlined text-sm">add_circle</span>
                             Vincular otra aeronave a la solicitud
@@ -1019,7 +1019,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                     {aeroForm.equipos.map((item, index) => (
                         <div key={index} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4 relative">
                             <div className="flex justify-between items-center">
-                                <span className="bg-slate-900 text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase">Equipo #{index + 1}</span>
+                                <span className="bg-slate-900 text-white px-3 py-1 rounded-lg text-xs font-black uppercase">Equipo #{index + 1}</span>
                                 {index > 0 && (
                                     <button onClick={() => setAeroForm(prev => ({...prev, equipos: prev.equipos.filter((_, i) => i !== index)}))} className="text-red-500 material-symbols-outlined text-sm">delete</button>
                                 )}
@@ -1027,7 +1027,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <div className="space-y-1 lg:col-span-2">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Seleccionar de Inventario</label>
+                                    <label className="text-xs font-black text-slate-400 uppercase ml-1">Seleccionar de Inventario</label>
                                     <select 
                                         className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs outline-none"
                                         value={item.id}
@@ -1052,7 +1052,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                     {aeroForm.equipos.length < 3 && (
                         <button 
                             onClick={addTechSlot}
-                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-[10px] uppercase hover:border-purple-500 hover:text-purple-500 transition-all flex items-center justify-center gap-2"
+                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-xs uppercase hover:border-purple-500 hover:text-purple-500 transition-all flex items-center justify-center gap-2"
                         >
                             <span className="material-symbols-outlined text-sm">add_circle</span>
                             Vincular equipo tecnológico adicional
@@ -1069,7 +1069,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                         <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">9. PILOTO(S) UAS</h4>
                     </div>
                     <div className="flex items-center gap-4">
-                        <p className="text-[9px] font-black text-slate-400 uppercase">Tripulantes: {aeroForm.pilotos_solicitud.length} / 3</p>
+                        <p className="text-xs font-black text-slate-400 uppercase">Tripulantes: {aeroForm.pilotos_solicitud.length} / 3</p>
                         <HelpTooltip text="Seleccione los pilotos que participarán en la misión. El sistema cargará su identificación y teléfono de contacto automáticamente." />
                     </div>
                 </div>
@@ -1078,7 +1078,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                     {aeroForm.pilotos_solicitud.map((pilot, index) => (
                         <div key={index} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4 relative">
                             <div className="flex justify-between items-center mb-2">
-                                <span className="bg-orange-600 text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase">Piloto #{index + 1}</span>
+                                <span className="bg-orange-600 text-white px-3 py-1 rounded-lg text-xs font-black uppercase">Piloto #{index + 1}</span>
                                 {index > 0 && (
                                     <button onClick={() => setAeroForm(prev => ({...prev, pilotos_solicitud: prev.pilotos_solicitud.filter((_, i) => i !== index)}))} className="text-red-500 material-symbols-outlined text-sm">delete</button>
                                 )}
@@ -1086,7 +1086,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div className="space-y-1">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Vincular de Tripulación</label>
+                                    <label className="text-xs font-black text-slate-400 uppercase ml-1">Vincular de Tripulación</label>
                                     <select 
                                         className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs outline-none focus:ring-2 focus:ring-orange-500"
                                         value={pilot.id}
@@ -1106,7 +1106,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                     {aeroForm.pilotos_solicitud.length < 3 && (
                         <button 
                             onClick={addPilotSlot}
-                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-[10px] uppercase hover:border-orange-500 hover:text-orange-500 transition-all flex items-center justify-center gap-2"
+                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-xs uppercase hover:border-orange-500 hover:text-orange-500 transition-all flex items-center justify-center gap-2"
                         >
                             <span className="material-symbols-outlined text-sm">group_add</span>
                             Vincular otro piloto a la misión
@@ -1129,7 +1129,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                     {aeroForm.observadores.map((obs, index) => (
                         <div key={index} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4 relative">
                             <div className="flex justify-between items-center mb-2">
-                                <span className="bg-slate-900 text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase">Observador #{index + 1}</span>
+                                <span className="bg-slate-900 text-white px-3 py-1 rounded-lg text-xs font-black uppercase">Observador #{index + 1}</span>
                                 {index > 0 && (
                                     <button onClick={() => setAeroForm(prev => ({...prev, observadores: prev.observadores.filter((_, i) => i !== index)}))} className="text-red-500 material-symbols-outlined text-sm">delete</button>
                                 )}
@@ -1137,7 +1137,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div className="space-y-1">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Vincular de Tripulación (Opcional)</label>
+                                    <label className="text-xs font-black text-slate-400 uppercase ml-1">Vincular de Tripulación (Opcional)</label>
                                     <select 
                                         className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs outline-none focus:ring-2 focus:ring-orange-500"
                                         value={obs.id}
@@ -1185,7 +1185,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                     {aeroForm.observadores.length < 2 && (
                         <button 
                             onClick={addObserverSlot}
-                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-[10px] uppercase hover:border-emerald-500 hover:text-emerald-500 transition-all flex items-center justify-center gap-2"
+                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-xs uppercase hover:border-emerald-500 hover:text-emerald-500 transition-all flex items-center justify-center gap-2"
                         >
                             <span className="material-symbols-outlined text-sm">person_add_alt</span>
                             Asignar observador adicional
@@ -1204,18 +1204,18 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                 {/* SECCIÓN 11: PARÁMETROS TÉCNICOS DE GEOMETRÍA */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Nombre de la Geometría</label>
+                        <label className="text-xs font-black uppercase text-slate-500 ml-1">Nombre de la Geometría</label>
                         <input 
                             className="w-full p-3 bg-white/5 border border-white/10 rounded-xl font-bold text-xs text-white outline-none focus:border-orange-500"
                             placeholder="Ej: Polígono Misión Alfa"
                             value={aeroForm.geo_name}
                             onChange={e => setAeroForm({...aeroForm, geo_name: e.target.value})}
                         />
-                        <p className="text-[7px] text-slate-500 uppercase ml-1 italic">Identificador oficial en el F-100</p>
+                        <p className="text-xs text-slate-500 uppercase ml-1 italic">Identificador oficial en el F-100</p>
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Altura en Metros (m)</label>
+                        <label className="text-xs font-black uppercase text-slate-500 ml-1">Altura en Metros (m)</label>
                         <input 
                             type="number"
                             className="w-full p-3 bg-white/5 border border-white/10 rounded-xl font-bold text-xs text-white outline-none focus:border-orange-500"
@@ -1226,7 +1226,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-slate-500 ml-1">Altura en Pies (ft)</label>
+                        <label className="text-xs font-black uppercase text-slate-500 ml-1">Altura en Pies (ft)</label>
                         <input 
                             type="number"
                             className="w-full p-3 bg-white/10 border-2 border-orange-500/30 rounded-xl font-black text-xs text-orange-500 outline-none"
@@ -1243,7 +1243,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                         <button 
                             key={t}
                             onClick={() => setAeroForm({...aeroForm, geo_type: t, points: []})}
-                            className={`p-4 rounded-2xl border-2 transition-all font-black text-[10px] uppercase ${aeroForm.geo_type === t ? 'border-orange-500 bg-orange-500/10' : 'border-white/10'}`}
+                            className={`p-4 rounded-2xl border-2 transition-all font-black text-xs uppercase ${aeroForm.geo_type === t ? 'border-orange-500 bg-orange-500/10' : 'border-white/10'}`}
                         >
                             {t === 'polygon' ? 'Polígono' : t === 'linear' ? 'Tramo Lineal' : 'Circunferencia'}
                         </button>
@@ -1256,14 +1256,14 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                     className="w-full py-6 bg-white/10 border-2 border-dashed border-white/20 rounded-[2rem] flex flex-col items-center gap-2 hover:bg-orange-600/20 hover:border-orange-500 transition-all"
                 >
                     <span className="material-symbols-outlined text-4xl text-orange-500">map</span>
-                    <span className="text-[10px] font-black uppercase">Abrir Mapa Interactivo y Capturar Puntos</span>
+                    <span className="text-xs font-black uppercase">Abrir Mapa Interactivo y Capturar Puntos</span>
                 </button>
 
                 {/* TABLA TÉCNICA (Como en la imagen) */}
                 {aeroForm.points.length > 0 && (
                     <>
                     <div className="overflow-hidden rounded-2xl border border-white/10">
-                        <table className="w-full text-left text-[10px]">
+                        <table className="w-full text-left text-xs">
                             <thead className="bg-white/5 font-black uppercase text-slate-500">
                                 <tr>
                                     <th className="p-3">ITEM</th>
@@ -1286,8 +1286,8 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                     {/* KML Download */}
                     <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl p-4 mt-2">
                         <div>
-                            <p className="text-[10px] font-black uppercase text-orange-400">Archivo KML listo para exportar</p>
-                            <p className="text-[9px] text-slate-400 font-medium mt-0.5">
+                            <p className="text-xs font-black uppercase text-orange-400">Archivo KML listo para exportar</p>
+                            <p className="text-xs text-slate-400 font-medium mt-0.5">
                                 {aeroForm.points.length} punto{aeroForm.points.length !== 1 ? 's' : ''} · {aeroForm.geo_type === 'circle' ? `radio ${aeroForm.radius}m` : aeroForm.geo_type} · WGS-84
                             </p>
                         </div>
@@ -1311,14 +1311,14 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                                     }));
                                 }
                             }}
-                            className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase transition-all active:scale-95 shadow-lg shadow-orange-500/20"
+                            className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase transition-all active:scale-95 shadow-lg shadow-orange-500/20"
                         >
                             <span className="material-symbols-outlined text-sm">download</span>
                             {kmlGenerated ? 'Descargar de nuevo' : 'Descargar KML'}
                         </button>
                     </div>
                     {kmlGenerated && (
-                        <p className="text-[9px] text-emerald-400 font-black uppercase text-center mt-1">
+                        <p className="text-xs text-emerald-400 font-black uppercase text-center mt-1">
                             ✓ KML generado · Adjunte el archivo al portal de AeroCivil
                         </p>
                     )}
@@ -1391,8 +1391,8 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                 <div className="mt-8 p-6 bg-blue-50 rounded-2xl border border-blue-100 flex items-start gap-4">
                     <span className="material-symbols-outlined text-blue-600">info</span>
                     <div>
-                        <p className="text-[10px] font-black text-blue-900 uppercase tracking-tight">Nota de Cumplimiento:</p>
-                        <p className="text-[9px] text-blue-700 font-medium mt-1 leading-relaxed">
+                        <p className="text-xs font-black text-blue-900 uppercase tracking-tight">Nota de Cumplimiento:</p>
+                        <p className="text-xs text-blue-700 font-medium mt-1 leading-relaxed">
                             La omisión de cualquiera de los documentos marcados como obligatorios por la UAEAC dará lugar a la devolución de la solicitud. Asegúrese de tener los archivos listos en formato digital.
                         </p>
                     </div>
@@ -1416,7 +1416,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                             <span className="material-symbols-outlined text-3xl text-blue-600 animate-spin" style={{animationDuration:'2s'}}>progress_activity</span>
                         )}
                         <div>
-                            <p className={`text-[11px] font-black uppercase tracking-widest ${
+                            <p className={`text-xs font-black uppercase tracking-widest ${
                                 radicado ? 'text-emerald-800' : jobStatus==='failed' ? 'text-red-800' : 'text-blue-800'
                             }`}>
                                 {radicado ? '✅ Radicado con Éxito' : jobStatus==='failed' ? 'Error en la radicación' : 'Robot AeroCivil en ejecución'}
@@ -1425,12 +1425,12 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                                 <p className="text-2xl font-black text-emerald-700 mt-1">#{radicado}</p>
                             )}
                             {!radicado && jobStep && (
-                                <p className="text-[10px] text-blue-600 font-medium mt-0.5">{jobStep}</p>
+                                <p className="text-xs text-blue-600 font-medium mt-0.5">{jobStep}</p>
                             )}
                         </div>
                     </div>
                     {jobId && !radicado && (
-                        <p className="text-[8px] text-slate-400 font-mono">Job ID: {jobId}</p>
+                        <p className="text-xs text-slate-400 font-mono">Job ID: {jobId}</p>
                     )}
                 </div>
             )}
@@ -1463,7 +1463,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
 function AeroCheck({ label, checked, onChange }) {
     return (
         <button type="button" onClick={onChange} className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left ${checked ? 'border-orange-500 bg-orange-50/50 shadow-md scale-[1.01]' : 'border-slate-100 bg-slate-50/30 hover:border-slate-200'}`}>
-            <span className={`text-[10px] font-black leading-tight uppercase ${checked ? 'text-orange-700' : 'text-slate-500'}`}>{label}</span>
+            <span className={`text-xs font-black leading-tight uppercase ${checked ? 'text-orange-700' : 'text-slate-500'}`}>{label}</span>
             <div className={`size-6 rounded-lg border-2 flex items-center justify-center shrink-0 ${checked ? 'bg-orange-600 border-orange-600' : 'border-slate-200 bg-white'}`}>
                 {checked && <span className="material-symbols-outlined text-white text-base">close</span>}
             </div>
@@ -1475,8 +1475,8 @@ function VisualOption({ label, description, selected, onClick }) {
     return (
         <button type="button" onClick={onClick} className={`w-full flex items-center justify-between p-5 rounded-[1.5rem] border-2 transition-all text-left ${selected ? 'border-orange-500 bg-orange-50/30 shadow-md' : 'border-slate-100 bg-slate-50/30 hover:border-slate-200'}`}>
             <div className="flex-1 pr-4">
-                <p className={`text-[10px] font-black uppercase ${selected ? 'text-orange-700' : 'text-slate-500'}`}>{label}</p>
-                <p className="text-[9px] text-slate-400 font-medium mt-1 leading-tight">{description}</p>
+                <p className={`text-xs font-black uppercase ${selected ? 'text-orange-700' : 'text-slate-500'}`}>{label}</p>
+                <p className="text-xs text-slate-400 font-medium mt-1 leading-tight">{description}</p>
             </div>
             <div className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${selected ? 'bg-orange-600 border-orange-600' : 'border-slate-200 bg-white'}`}>
                 {selected && <span className="material-symbols-outlined text-white text-base">check</span>}
@@ -1488,7 +1488,7 @@ function VisualOption({ label, description, selected, onClick }) {
 function InputCol({ label, placeholder, type = "text", value, onChange, disabled = false }) {
     return (
         <div className="space-y-1">
-            <label className="text-[9px] font-black text-slate-400 uppercase ml-1">{label}</label>
+            <label className="text-xs font-black text-slate-400 uppercase ml-1">{label}</label>
             <input 
                 disabled={disabled}
                 type={type} 

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import Link from 'next/link'; // <--- ESTA ES LA LÍNEA QUE FALTABA
 
 export default function Features() {
@@ -54,7 +54,7 @@ export default function Features() {
         {/* Encabezado Estilo HUD */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-20 gap-6">
           <div className="max-w-2xl">
-            <p className="text-[#ec5b13] text-[10px] font-black uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+            <p className="text-[#ec5b13] text-xs font-black uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
               <span className="w-8 h-px bg-[#ec5b13]"></span> Capacidades del Sistema
             </p>
             <h2 className="text-4xl md:text-5xl font-black text-[#1A202C] dark:text-white uppercase tracking-tighter leading-tight">
@@ -70,7 +70,7 @@ export default function Features() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((f) => (
             <div key={f.id} className="group relative p-10 rounded-[2.5rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-[#ec5b13]/50 transition-all hover:shadow-2xl overflow-hidden text-left">
-              <span className="absolute top-6 right-8 text-[8px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest group-hover:text-[#ec5b13] transition-colors">
+              <span className="absolute top-6 right-8 text-xs font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest group-hover:text-[#ec5b13] transition-colors">
                 {f.tag}
               </span>
 
@@ -88,7 +88,7 @@ export default function Features() {
               </p>
 
               <div className="mt-8 pt-6 border-t border-slate-200 dark:border-white/5 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                 <span className="text-[10px] font-black text-[#ec5b13] uppercase tracking-tighter">Módulo Activo</span>
+                 <span className="text-xs font-black text-[#ec5b13] uppercase tracking-tighter">Módulo Activo</span>
                  <span className="material-symbols-outlined text-sm text-slate-400">arrow_forward</span>
               </div>
             </div>
@@ -100,7 +100,7 @@ export default function Features() {
           <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none" style={{backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '20px 20px'}}></div>
           <div className="relative z-10 text-left">
             <h4 className="text-xl font-black uppercase tracking-tighter">¿Listo para digitalizar tu escuadrilla?</h4>
-            <p className="text-slate-400 text-sm mt-1 uppercase font-bold text-[10px] tracking-widest">Configura tu organización en menos de 5 minutos.</p>
+            <p className="text-slate-400 text-sm mt-1 uppercase font-bold text-xs tracking-widest">Configura tu organización en menos de 5 minutos.</p>
           </div>
           <Link href="/registro" className="relative z-10 bg-[#ec5b13] hover:bg-orange-600 text-white px-10 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all active:scale-95 shadow-lg shadow-orange-500/20">
             Empezar Ahora

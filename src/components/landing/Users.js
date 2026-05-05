@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 
 export default function Users() {
@@ -30,8 +30,8 @@ export default function Users() {
             </p>
           </div>
           <div className="flex gap-8 border-l border-slate-100 dark:border-white/5 pl-8">
-             <div><p className="text-3xl font-black text-[#1A202C] dark:text-white leading-none">15k+</p><p className="text-[10px] font-black uppercase text-slate-400 mt-2">Vuelos Registrados</p></div>
-             <div><p className="text-3xl font-black text-[#ec5b13] leading-none">100%</p><p className="text-[10px] font-black uppercase text-slate-400 mt-2">Cumplimiento RAC</p></div>
+             <div><p className="text-3xl font-black text-[#1A202C] dark:text-white leading-none">15k+</p><p className="text-xs font-black uppercase text-slate-400 mt-2">Vuelos Registrados</p></div>
+             <div><p className="text-3xl font-black text-[#ec5b13] leading-none">100%</p><p className="text-xs font-black uppercase text-slate-400 mt-2">Cumplimiento RAC</p></div>
           </div>
         </div>
 
@@ -53,7 +53,7 @@ export default function Users() {
                   <img src={user.avatar} alt={user.name} className="size-12 rounded-2xl object-cover border-2 border-white shadow-sm" width={48} height={48} loading="lazy" />
                   <div>
                     <p className="text-sm font-black text-[#1A202C] dark:text-white uppercase tracking-tight">{user.name}</p>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{user.role} en <span className="text-[#ec5b13]">{user.company}</span></p>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{user.role} en <span className="text-[#ec5b13]">{user.company}</span></p>
                   </div>
                 </div>
               </div>

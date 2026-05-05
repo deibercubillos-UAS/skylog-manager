@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -156,7 +156,7 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
             <header className="flex justify-between items-end border-b pb-6 px-2 md:px-0">
                 <div>
                     <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900 leading-none">Configurar Organización</h2>
-<p className="text-slate-500 text-[10px] md:text-sm font-bold uppercase mt-2 tracking-widest">Identidad Legal y Pólizas de Seguro</p>
+<p className="text-slate-500 text-xs md:text-sm font-bold uppercase mt-2 tracking-widest">Identidad Legal y Pólizas de Seguro</p>
                 </div>
             </header>
 
@@ -176,9 +176,9 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                     </div>
 
                     <div className="bg-[#1A202C] p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] text-white">
-                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em]">ID de Vinculación</p>
+                        <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em]">ID de Vinculación</p>
                         <p className="text-xl md:text-2xl font-mono font-black text-orange-500 mt-1">{org.unique_code}</p>
-                        <p className="text-[7px] text-slate-400 mt-4 uppercase leading-tight italic">
+                        <p className="text-xs text-slate-400 mt-4 uppercase leading-tight italic">
                             Proporcione este código a su tripulación para vincularlos a esta flota.
                         </p>
                     </div>
@@ -189,15 +189,15 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                     <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-slate-200 shadow-sm space-y-8">
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                            <h4 className="col-span-full text-[10px] font-black text-orange-600 uppercase tracking-[0.2em] border-b pb-2">01. Datos de Registro</h4>
+                            <h4 className="col-span-full text-xs font-black text-orange-600 uppercase tracking-[0.2em] border-b pb-2">01. Datos de Registro</h4>
                             
                             <div className="col-span-full space-y-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Razón Social</label>
+                                <label className="text-xs font-black uppercase text-slate-400 ml-1">Razón Social</label>
                                 <input required className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.company_name || ''} onChange={e => setOrg({...org, company_name: e.target.value})} />
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Tipo Identificación</label>
+                                <label className="text-xs font-black uppercase text-slate-400 ml-1">Tipo Identificación</label>
                                 <select 
                                     className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500"
                                     value={org.tax_id_type || 'NIT'}
@@ -210,36 +210,36 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">N° Documento</label>
+                                <label className="text-xs font-black uppercase text-slate-400 ml-1">N° Documento</label>
                                 <input required className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.tax_id || ''} onChange={e => setOrg({...org, tax_id: e.target.value})} />
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">N° Explotador (DAN)</label>
+                                <label className="text-xs font-black uppercase text-slate-400 ml-1">N° Explotador (DAN)</label>
                                 <input className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.dan_number || ''} onChange={e => setOrg({...org, dan_number: e.target.value})} />
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Representante Legal</label>
+                                <label className="text-xs font-black uppercase text-slate-400 ml-1">Representante Legal</label>
                                 <input className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.legal_rep || ''} onChange={e => setOrg({...org, legal_rep: e.target.value})} />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pt-4">
-                            <h4 className="col-span-full text-[10px] font-black text-orange-600 uppercase tracking-[0.2em] border-b pb-2">02. Contacto Administrativo</h4>
+                            <h4 className="col-span-full text-xs font-black text-orange-600 uppercase tracking-[0.2em] border-b pb-2">02. Contacto Administrativo</h4>
                             
                             <div className="space-y-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Email Corporativo</label>
+                                <label className="text-xs font-black uppercase text-slate-400 ml-1">Email Corporativo</label>
                                 <input type="email" className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.operator_email || ''} onChange={e => setOrg({...org, operator_email: e.target.value})} />
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Teléfono</label>
+                                <label className="text-xs font-black uppercase text-slate-400 ml-1">Teléfono</label>
                                 <input className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.phone || ''} onChange={e => setOrg({...org, phone: e.target.value})} />
                             </div>
 
                             <div className="col-span-full space-y-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Dirección Oficial</label>
+                                <label className="text-xs font-black uppercase text-slate-400 ml-1">Dirección Oficial</label>
                                 <input className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.address || ''} onChange={e => setOrg({...org, address: e.target.value})} />
                             </div>
                         </div>
@@ -259,11 +259,11 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
     <header className="flex justify-between items-center border-b pb-4">
         <div>
             <h3 className="text-lg md:text-xl font-black uppercase tracking-tighter text-slate-900">Pólizas de Seguro</h3>
-            <p className="text-slate-400 text-[10px] font-black uppercase mt-1">{policies.length} pólizas registradas</p>
+            <p className="text-slate-400 text-xs font-black uppercase mt-1">{policies.length} pólizas registradas</p>
         </div>
         <button 
             onClick={openNewPolicy}
-            className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
+            className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
         >
             <span className="material-symbols-outlined text-sm">add_circle</span>
             Nueva Póliza
@@ -271,14 +271,14 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
     </header>
 
     {policies.length === 0 ? (
-        <div className="p-10 text-center text-slate-300 italic font-bold uppercase text-[10px] tracking-widest">
+        <div className="p-10 text-center text-slate-300 italic font-bold uppercase text-xs tracking-widest">
             No hay pólizas registradas todavía.
         </div>
     ) : (
         <div className="overflow-x-auto">
             <table className="w-full text-left">
                 <thead>
-                    <tr className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-widest border-b">
+                    <tr className="bg-slate-50 text-xs font-black uppercase text-slate-400 tracking-widest border-b">
                         <th className="px-4 py-3">Aseguradora</th>
                         <th className="px-4 py-3">N° Póliza</th>
                         <th className="px-4 py-3">Vigencia</th>
@@ -295,12 +295,12 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                         return (
                             <tr key={p.id} className="hover:bg-slate-50 text-xs">
                                 <td className="px-4 py-3 font-bold text-slate-900">{p.insurance_company}</td>
-                                <td className="px-4 py-3 font-mono text-[11px]">{p.policy_number}</td>
-                                <td className="px-4 py-3 text-[11px]">{p.start_date} → {p.end_date}</td>
-                                <td className="px-4 py-3 text-[11px] font-bold">
+                                <td className="px-4 py-3 font-mono text-xs">{p.policy_number}</td>
+                                <td className="px-4 py-3 text-xs">{p.start_date} → {p.end_date}</td>
+                                <td className="px-4 py-3 text-xs font-bold">
                                     {p.aircraft_id ? `${p.aircraft?.model} (${p.aircraft?.serial_number})` : <span className="text-orange-600">TODA LA FLOTA</span>}
                                 </td>
-                                <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-[9px] font-black ${stateCls}`}>{stateLabel}</span></td>
+                                <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs font-black ${stateCls}`}>{stateLabel}</span></td>
                                 <td className="px-4 py-3 text-right">
                                     <button onClick={() => openEditPolicy(p)} className="size-8 rounded-xl bg-slate-50 inline-flex items-center justify-center text-slate-400 hover:text-orange-600 transition-colors mr-1">
                                         <span className="material-symbols-outlined text-base">edit_square</span>
@@ -334,40 +334,40 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
             </h3>
 
             <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Empresa Aseguradora</label>
+                <label className="text-xs font-black uppercase text-slate-400 ml-1">Empresa Aseguradora</label>
                 <input required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={policyForm.insurance_company} onChange={e => setPolicyForm({...policyForm, insurance_company: e.target.value})} />
             </div>
 
             <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Número de Póliza</label>
+                <label className="text-xs font-black uppercase text-slate-400 ml-1">Número de Póliza</label>
                 <input required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-mono font-bold text-sm" value={policyForm.policy_number} onChange={e => setPolicyForm({...policyForm, policy_number: e.target.value})} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Inicio Cobertura</label>
+                    <label className="text-xs font-black uppercase text-slate-400 ml-1">Inicio Cobertura</label>
                     <input required type="date" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={policyForm.start_date} onChange={e => setPolicyForm({...policyForm, start_date: e.target.value})} />
                 </div>
                 <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Fin Cobertura</label>
+                    <label className="text-xs font-black uppercase text-slate-400 ml-1">Fin Cobertura</label>
                     <input required type="date" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={policyForm.end_date} onChange={e => setPolicyForm({...policyForm, end_date: e.target.value})} />
                 </div>
             </div>
 
             <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Aplica a</label>
+                <label className="text-xs font-black uppercase text-slate-400 ml-1">Aplica a</label>
                 <select className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={policyForm.aircraft_id} onChange={e => setPolicyForm({...policyForm, aircraft_id: e.target.value})}>
                     <option value="">🛡️ TODA LA FLOTA</option>
                     {aircraft.map(a => (
                         <option key={a.id} value={a.id}>{a.model} ({a.serial_number})</option>
                     ))}
                 </select>
-                <p className="text-[8px] text-slate-400 mt-1 ml-1 uppercase">Si seleccionas "Toda la flota", cubre todas las aeronaves registradas.</p>
+                <p className="text-xs text-slate-400 mt-1 ml-1 uppercase">Si seleccionas "Toda la flota", cubre todas las aeronaves registradas.</p>
             </div>
 
             <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowPolicyForm(false)} className="flex-1 py-3 bg-slate-100 text-slate-500 font-black rounded-2xl uppercase text-[10px]">Cancelar</button>
-                <button type="submit" className="flex-1 py-3 bg-orange-600 text-white font-black rounded-2xl shadow-lg uppercase text-[10px] active:scale-95 transition-all">
+                <button type="button" onClick={() => setShowPolicyForm(false)} className="flex-1 py-3 bg-slate-100 text-slate-500 font-black rounded-2xl uppercase text-xs">Cancelar</button>
+                <button type="submit" className="flex-1 py-3 bg-orange-600 text-white font-black rounded-2xl shadow-lg uppercase text-xs active:scale-95 transition-all">
                     {editingPolicy ? 'Actualizar' : 'Registrar'}
                 </button>
             </div>

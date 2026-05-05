@@ -275,46 +275,86 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
             No hay pólizas registradas todavía.
         </div>
     ) : (
-        <div className="overflow-x-auto">
-            <table className="w-full text-left">
-                <thead>
-                    <tr className="bg-slate-50 text-xs font-black uppercase text-slate-400 tracking-widest border-b">
-                        <th className="px-4 py-3">Aseguradora</th>
-                        <th className="px-4 py-3">N° Póliza</th>
-                        <th className="px-4 py-3">Vigencia</th>
-                        <th className="px-4 py-3">Aeronave</th>
-                        <th className="px-4 py-3">Estado</th>
-                        <th className="px-4 py-3"></th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                    {policies.map(p => {
-                        const days = daysUntil(p.end_date);
-                        const stateCls = days < 0 ? 'bg-red-50 text-red-600' : days < 30 ? 'bg-orange-50 text-orange-600' : 'bg-emerald-50 text-emerald-600';
-                        const stateLabel = days < 0 ? 'VENCIDA' : days < 30 ? `VENCE EN ${days}D` : 'VIGENTE';
-                        return (
-                            <tr key={p.id} className="hover:bg-slate-50 text-xs">
-                                <td className="px-4 py-3 font-bold text-slate-900">{p.insurance_company}</td>
-                                <td className="px-4 py-3 font-mono text-xs">{p.policy_number}</td>
-                                <td className="px-4 py-3 text-xs">{p.start_date} → {p.end_date}</td>
-                                <td className="px-4 py-3 text-xs font-bold">
-                                    {p.aircraft_id ? `${p.aircraft?.model} (${p.aircraft?.serial_number})` : <span className="text-orange-600">TODA LA FLOTA</span>}
-                                </td>
-                                <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs font-black ${stateCls}`}>{stateLabel}</span></td>
-                                <td className="px-4 py-3 text-right">
-                                    <button onClick={() => openEditPolicy(p)} className="size-8 rounded-xl bg-slate-50 inline-flex items-center justify-center text-slate-400 hover:text-orange-600 transition-colors mr-1">
+        <>
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-slate-100 -mx-6">
+                {policies.map(p => {
+                    const days = daysUntil(p.end_date);
+                    const stateCls = days < 0 ? 'bg-red-50 text-red-600' : days < 30 ? 'bg-orange-50 text-orange-600' : 'bg-emerald-50 text-emerald-600';
+                    const stateLabel = days < 0 ? 'VENCIDA' : days < 30 ? `VENCE EN ${days}D` : 'VIGENTE';
+                    return (
+                        <div key={p.id} className="p-4 space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                    <p className="text-xs font-black text-slate-900 uppercase truncate">{p.insurance_company}</p>
+                                    <p className="text-xs font-mono text-slate-500 mt-0.5">{p.policy_number}</p>
+                                </div>
+                                <span className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-black ${stateCls}`}>{stateLabel}</span>
+                            </div>
+                            <div className="text-xs text-slate-400 font-bold">
+                                {p.aircraft_id
+                                    ? <span>{p.aircraft?.model} · {p.aircraft?.serial_number}</span>
+                                    : <span className="text-orange-600">Toda la flota</span>
+                                }
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <p className="text-xs text-slate-400">{p.start_date} → {p.end_date}</p>
+                                <div className="flex gap-2">
+                                    <button onClick={() => openEditPolicy(p)} className="size-11 rounded-xl bg-slate-50 inline-flex items-center justify-center text-slate-400 hover:text-orange-600 transition-colors active:scale-95">
                                         <span className="material-symbols-outlined text-base">edit_square</span>
                                     </button>
-                                    <button onClick={() => deletePolicy(p)} className="size-8 rounded-xl bg-red-50 inline-flex items-center justify-center text-red-400 hover:bg-red-600 hover:text-white transition-colors">
+                                    <button onClick={() => deletePolicy(p)} className="size-11 rounded-xl bg-red-50 inline-flex items-center justify-center text-red-400 hover:bg-red-600 hover:text-white transition-colors active:scale-95">
                                         <span className="material-symbols-outlined text-base">delete</span>
                                     </button>
-                                </td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
-        </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left min-w-[700px]">
+                    <thead>
+                        <tr className="bg-slate-50 text-xs font-black uppercase text-slate-400 tracking-widest border-b">
+                            <th className="px-4 py-3">Aseguradora</th>
+                            <th className="px-4 py-3">N° Póliza</th>
+                            <th className="px-4 py-3">Vigencia</th>
+                            <th className="px-4 py-3">Aeronave</th>
+                            <th className="px-4 py-3">Estado</th>
+                            <th className="px-4 py-3"></th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                        {policies.map(p => {
+                            const days = daysUntil(p.end_date);
+                            const stateCls = days < 0 ? 'bg-red-50 text-red-600' : days < 30 ? 'bg-orange-50 text-orange-600' : 'bg-emerald-50 text-emerald-600';
+                            const stateLabel = days < 0 ? 'VENCIDA' : days < 30 ? `VENCE EN ${days}D` : 'VIGENTE';
+                            return (
+                                <tr key={p.id} className="hover:bg-slate-50 text-xs">
+                                    <td className="px-4 py-3 font-bold text-slate-900">{p.insurance_company}</td>
+                                    <td className="px-4 py-3 font-mono text-xs">{p.policy_number}</td>
+                                    <td className="px-4 py-3 text-xs">{p.start_date} → {p.end_date}</td>
+                                    <td className="px-4 py-3 text-xs font-bold">
+                                        {p.aircraft_id ? `${p.aircraft?.model} (${p.aircraft?.serial_number})` : <span className="text-orange-600">TODA LA FLOTA</span>}
+                                    </td>
+                                    <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs font-black ${stateCls}`}>{stateLabel}</span></td>
+                                    <td className="px-4 py-3 text-right">
+                                        <button onClick={() => openEditPolicy(p)} className="size-11 rounded-xl bg-slate-50 inline-flex items-center justify-center text-slate-400 hover:text-orange-600 transition-colors mr-1 active:scale-95">
+                                            <span className="material-symbols-outlined text-base">edit_square</span>
+                                        </button>
+                                        <button onClick={() => deletePolicy(p)} className="size-11 rounded-xl bg-red-50 inline-flex items-center justify-center text-red-400 hover:bg-red-600 hover:text-white transition-colors active:scale-95">
+                                            <span className="material-symbols-outlined text-base">delete</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        </>
     )}
 </section>
 
@@ -323,12 +363,16 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
 
 {/* MODAL PANEL DE PÓLIZA */}
 {showPolicyForm && (
-    <div className="fixed inset-0 bg-black/40 z-[300] flex items-center justify-center p-4" onClick={() => setShowPolicyForm(false)}>
-        <form 
+    <div className="fixed inset-0 bg-black/40 z-[300] flex items-end md:items-center justify-center md:p-4" onClick={() => setShowPolicyForm(false)}>
+        <form
             onClick={e => e.stopPropagation()}
             onSubmit={savePolicy}
-            className="bg-white rounded-[2.5rem] p-8 md:p-10 max-w-lg w-full space-y-5 shadow-2xl animate-in zoom-in-95 duration-200"
+            className="bg-white w-full rounded-t-[2.5rem] md:rounded-[2.5rem] md:max-w-lg shadow-2xl animate-in slide-in-from-bottom md:zoom-in-95 duration-300"
         >
+            <div className="md:hidden flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 bg-slate-200 rounded-full" />
+            </div>
+            <div className="p-8 md:p-10 space-y-5">
             <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900">
                 {editingPolicy ? 'Editar Póliza' : 'Nueva Póliza'}
             </h3>
@@ -370,6 +414,7 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                 <button type="submit" className="flex-1 py-3 bg-orange-600 text-white font-black rounded-2xl shadow-lg uppercase text-xs active:scale-95 transition-all">
                     {editingPolicy ? 'Actualizar' : 'Registrar'}
                 </button>
+            </div>
             </div>
         </form>
     </div>

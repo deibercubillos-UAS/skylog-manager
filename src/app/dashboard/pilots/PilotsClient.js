@@ -83,8 +83,54 @@ const handleDelete = async (pilot) => {
 </div>
       </header>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+
+        {/* Mobile cards */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {pilots.length === 0 ? (
+            <p className="py-16 text-center text-xs font-black text-slate-300 uppercase tracking-widest">No hay tripulación en base.</p>
+          ) : pilots.map(pilot => {
+            const medExpired = pilot.medical_expiry && new Date(pilot.medical_expiry) < new Date();
+            return (
+              <div key={pilot.id} className="p-4 flex items-center gap-3">
+                <div className="size-10 rounded-2xl bg-slate-100 flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-xl text-slate-400">person</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-black text-slate-900 uppercase truncate">{pilot.full_name}</p>
+                  <p className="text-xs text-orange-600 font-bold uppercase">{pilot.role}</p>
+                  <p className={`text-xs font-bold mt-0.5 ${medExpired ? 'text-red-500' : 'text-emerald-500'}`}>
+                    {medExpired ? '⚠ Médico vencido' : pilot.license_number || 'Sin CIPU'}
+                  </p>
+                </div>
+                {canManage && (
+                  <div className="relative shrink-0" ref={openMenuId === pilot.id ? menuRef : null}>
+                    <button
+                      onClick={() => setOpenMenuId(openMenuId === pilot.id ? null : pilot.id)}
+                      className="size-11 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-all active:scale-95"
+                    >
+                      <span className="material-symbols-outlined text-lg">more_vert</span>
+                    </button>
+                    {openMenuId === pilot.id && (
+                      <div className="absolute right-0 top-12 z-20 w-44 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                        <button onClick={() => handleEdit(pilot)} className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-xs font-black uppercase text-slate-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                          <span className="material-symbols-outlined text-base">edit_square</span>Editar
+                        </button>
+                        <div className="border-t border-slate-100" />
+                        <button onClick={() => handleDelete(pilot)} className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-xs font-black uppercase text-red-500 hover:bg-red-50 transition-colors">
+                          <span className="material-symbols-outlined text-base">delete</span>Eliminar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr className="text-xs font-black text-slate-400 uppercase tracking-widest">
@@ -102,9 +148,7 @@ const handleDelete = async (pilot) => {
                     <div className="font-semibold text-navy uppercase text-sm">{pilot.full_name}</div>
                     <div className="text-xs text-slate-400 font-bold uppercase">{pilot.role}</div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 font-mono">
-                    {pilot.license_number || '---'}
-                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600 font-mono">{pilot.license_number || '---'}</td>
                   <td className="px-6 py-4 text-xs text-gray-500">
                     <div>{pilot.email}</div>
                     <div className="text-xs text-slate-400">{pilot.phone}</div>
@@ -116,38 +160,29 @@ const handleDelete = async (pilot) => {
                   </td>
                   <td className="px-6 py-4 text-right relative">
                     {canManage ? (
-                        <div className="inline-block relative" ref={openMenuId === pilot.id ? menuRef : null}>
-                            <button
-                                onClick={() => setOpenMenuId(openMenuId === pilot.id ? null : pilot.id)}
-                                className="size-11 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-navy transition-all active:scale-95"
-                                title="Acciones"
-                            >
-                                <span className="material-symbols-outlined text-lg">more_vert</span>
+                      <div className="inline-block relative" ref={openMenuId === pilot.id ? menuRef : null}>
+                        <button
+                          onClick={() => setOpenMenuId(openMenuId === pilot.id ? null : pilot.id)}
+                          className="size-11 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-navy transition-all active:scale-95"
+                        >
+                          <span className="material-symbols-outlined text-lg">more_vert</span>
+                        </button>
+                        {openMenuId === pilot.id && (
+                          <div className="absolute right-0 top-12 z-20 w-44 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                            <button onClick={() => handleEdit(pilot)} className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-xs font-black uppercase text-slate-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                              <span className="material-symbols-outlined text-base">edit_square</span>Editar
                             </button>
-                            {openMenuId === pilot.id && (
-                                <div className="absolute right-0 top-12 z-20 w-44 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
-                                    <button
-                                        onClick={() => handleEdit(pilot)}
-                                        className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-xs font-black uppercase text-slate-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
-                                    >
-                                        <span className="material-symbols-outlined text-base">edit_square</span>
-                                        Editar
-                                    </button>
-                                    <div className="border-t border-slate-100"></div>
-                                    <button
-                                        onClick={() => handleDelete(pilot)}
-                                        className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-xs font-black uppercase text-red-500 hover:bg-red-50 transition-colors"
-                                    >
-                                        <span className="material-symbols-outlined text-base">delete</span>
-                                        Eliminar
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                            <div className="border-t border-slate-100" />
+                            <button onClick={() => handleDelete(pilot)} className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-xs font-black uppercase text-red-500 hover:bg-red-50 transition-colors">
+                              <span className="material-symbols-outlined text-base">delete</span>Eliminar
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     ) : (
-                        <span className="material-symbols-outlined text-slate-200">more_vert</span>
+                      <span className="material-symbols-outlined text-slate-200">more_vert</span>
                     )}
-                </td>
+                  </td>
                 </tr>
               ))}
             </tbody>

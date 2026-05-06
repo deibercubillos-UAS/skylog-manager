@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
 
 export default function InvitePilotPanel({ onClose, onSuccess }) {
   const [email, setEmail] = useState('');
@@ -45,10 +46,10 @@ export default function InvitePilotPanel({ onClose, onSuccess }) {
         throw new Error(errorData.error || 'Error al enviar el correo');
       }
 
-      alert("🚀 ¡Invitación registrada y correo enviado exitosamente!");
+      toast.success("Invitación registrada y correo enviado exitosamente.");
       onSuccess();
     } catch (error) {
-      alert("Error en el proceso: " + error.message);
+      toast.error("Error en el proceso: " + error.message);
     } finally {
       setLoading(false);
     }

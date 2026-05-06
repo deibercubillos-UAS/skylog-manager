@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
 
 export default function BatteryLogPage() {
     const [drones, setDrones] = useState([]);
@@ -63,7 +64,7 @@ export default function BatteryLogPage() {
             body: JSON.stringify(form)
         });
         if (res.ok) {
-            alert("✅ Ciclo de batería vinculado exitosamente.");
+            toast.success("Ciclo de batería vinculado exitosamente.");
             setForm({ aircraft_id: '', flight_id: '', battery_model: '', battery_sn: '', charge_percentage: 100, cycle_number: 1, notes: '' });
         }
         setSaving(false);

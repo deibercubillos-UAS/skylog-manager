@@ -1,12 +1,15 @@
 ﻿'use client';
 import { useEffect, useState } from 'react';
 import { ROLE_LABELS, ASSIGNABLE_ROLES, labelForRole } from '@/lib/roles';
+import { toast } from '@/lib/toast';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 export default function UsersClient({ currentUserId, currentRole, organization }) {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [savingId, setSavingId] = useState(null);
     const [search, setSearch] = useState('');
+    const [confirmDlg, setConfirmDlg] = useState(null);
 
     const loadUsers = async () => {
         setLoading(true);
@@ -16,7 +19,7 @@ export default function UsersClient({ currentUserId, currentRole, organization }
             if (!res.ok) throw new Error(data?.error || 'Error al cargar usuarios');
             setUsers(Array.isArray(data) ? data : []);
         } catch (err) {
-            alert('⚠️ ' + err.message);
+            toast.error(err.message);
         } finally {
             setLoading(false);
         }
@@ -24,32 +27,41 @@ export default function UsersClient({ currentUserId, currentRole, organization }
 
     useEffect(() => { loadUsers(); }, []);
 
-    const changeRole = async (targetUserId, newRole, currentTargetRole) => {
+    const changeRole = (targetUserId, newRole, currentTargetRole) => {
         if (newRole === currentTargetRole) return;
         const target = users.find(u => u.id === targetUserId);
         const confirmMsg = targetUserId === currentUserId
-            ? `⚠️ Vas a cambiar TU PROPIO rol a "${labelForRole(newRole)}". Perderás accesos inmediatamente. ¿Continuar?`
+            ? `Vas a cambiar TU PROPIO rol a "${labelForRole(newRole)}". Perderás accesos inmediatamente. ¿Continuar?`
             : `Cambiar rol de ${target?.full_name || target?.email} a "${labelForRole(newRole)}"?`;
-        if (!confirm(confirmMsg)) return;
 
-        setSavingId(targetUserId);
-        try {
-            const res = await fetch('/api/admin/users', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ targetUserId, newRole })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data?.error || 'Error al actualizar');
-            setUsers(prev => prev.map(u => u.id === targetUserId ? { ...u, role: data.role } : u));
-            if (targetUserId === currentUserId) {
-                setTimeout(() => window.location.reload(), 600);
+        setConfirmDlg({
+            isOpen: true,
+            title: 'Cambiar rol',
+            message: confirmMsg,
+            confirmText: 'Confirmar',
+            danger: targetUserId === currentUserId,
+            onConfirm: async () => {
+                setConfirmDlg(null);
+                setSavingId(targetUserId);
+                try {
+                    const res = await fetch('/api/admin/users', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ targetUserId, newRole })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data?.error || 'Error al actualizar');
+                    setUsers(prev => prev.map(u => u.id === targetUserId ? { ...u, role: data.role } : u));
+                    if (targetUserId === currentUserId) {
+                        setTimeout(() => window.location.reload(), 600);
+                    }
+                } catch (err) {
+                    toast.error(err.message);
+                } finally {
+                    setSavingId(null);
+                }
             }
-        } catch (err) {
-            alert('⚠️ ' + err.message);
-        } finally {
-            setSavingId(null);
-        }
+        });
     };
 
     const filtered = users.filter(u => {
@@ -73,6 +85,7 @@ export default function UsersClient({ currentUserId, currentRole, organization }
 
     return (
         <div className="max-w-6xl mx-auto space-y-8 text-left animate-in fade-in duration-500 pb-20 px-2 md:px-0">
+            <ConfirmModal {...confirmDlg} onCancel={() => setConfirmDlg(null)} />
             <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b pb-6">
                 <div>
                     <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900 leading-none">Gestión de Usuarios</h2>

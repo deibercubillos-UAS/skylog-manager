@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from '@/lib/toast';
 
 export default function FinalizeFlightPage() {
     const router = useRouter();
@@ -54,14 +55,14 @@ export default function FinalizeFlightPage() {
 
     const handleCloseFlight = async (e) => {
     e.preventDefault();
-    if (!form.landing_time || !selectedFlight) return alert("Faltan datos");
+    if (!form.landing_time || !selectedFlight) return toast.warn("Faltan datos");
     
     // VALIDACIÓN: La hora de aterrizaje debe ser POSTERIOR a la de despegue
     const [h1, m1] = selectedFlight.takeoff_time.split(':').map(Number);
     const [h2, m2] = form.landing_time.split(':').map(Number);
     const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
     if (diff <= 0) {
-        return alert(`⚠️ HORA INVÁLIDA\n\nLa hora de aterrizaje (${form.landing_time}) debe ser POSTERIOR a la de despegue (${selectedFlight.takeoff_time}).\n\nVerifique los valores antes de cerrar la misión.`);
+        return toast.warn(`Hora inválida: el aterrizaje (${form.landing_time}) debe ser posterior al despegue (${selectedFlight.takeoff_time}). Verifique los valores.`);
     }
     const durationOfThisFlight = parseFloat((diff / 60).toFixed(2));
 
@@ -105,11 +106,11 @@ export default function FinalizeFlightPage() {
             if (batError) console.warn('No se pudo actualizar ciclos de batería:', batError.message);
         }
 
-        alert(`✅ OPERACIÓN CERRADA\nAnterior: ${currentTotalHours}h\nVolado: ${durationOfThisFlight}h\nNuevo Total: ${finalTotalHours}h`);
+        toast.success(`Operación cerrada. Anterior: ${currentTotalHours}h | Volado: ${durationOfThisFlight}h | Nuevo Total: ${finalTotalHours}h`);
         window.location.href = '/dashboard/logbook';
 
     } catch (err) {
-        alert("⚠️ Error de cálculo: " + err.message);
+        toast.error("Error de cálculo: " + err.message);
     } finally { setSaving(false); }
 };
 

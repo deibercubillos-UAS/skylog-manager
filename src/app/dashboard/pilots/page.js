@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const AddPilotPanel  = dynamic(() => import('@/components/AddPilotPanel'),  { ssr: false });
 const EditPilotPanel = dynamic(() => import('@/components/EditPilotPanel'), { ssr: false });
@@ -18,6 +20,7 @@ export default function PilotsPage() {
   const [showAddPanel,  setShowAddPanel]  = useState(false);
   const [editingPilot,  setEditingPilot]  = useState(null);
   const [openMenuId,    setOpenMenuId]    = useState(null);
+  const [confirmDlg,    setConfirmDlg]    = useState(null);
 
   // ── Cerrar menú al click fuera ──────────────────────────────────────────
   useEffect(() => {
@@ -73,16 +76,26 @@ export default function PilotsPage() {
   const canManage = ['superadmin', 'admin', 'jefe_pilotos'].includes(userRole);
   const canEditMedical = ['superadmin', 'admin', 'jefe_pilotos'].includes(userRole);
 
-  const handleDelete = async (pilot) => {
+  const handleDelete = (pilot) => {
     setOpenMenuId(null);
-    if (!confirm(`¿Eliminar a ${pilot.name}? Esta acción es irreversible.`)) return;
-    try {
-      const { error } = await supabase.from('pilots').delete().eq('id', pilot.id);
-      if (error) throw error;
-      setPilots(prev => prev.filter(p => p.id !== pilot.id));
-    } catch (err) {
-      alert('⚠️ No se pudo eliminar: ' + err.message);
-    }
+    setConfirmDlg({
+      isOpen: true,
+      title: `¿Eliminar a ${pilot.name}?`,
+      message: 'Esta acción es irreversible. Se eliminarán todos los datos del expediente.',
+      confirmText: 'Eliminar',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDlg(null);
+        try {
+          const { error } = await supabase.from('pilots').delete().eq('id', pilot.id);
+          if (error) throw error;
+          setPilots(prev => prev.filter(p => p.id !== pilot.id));
+          toast.success(`${pilot.name} eliminado del expediente.`);
+        } catch (err) {
+          toast.error('No se pudo eliminar: ' + err.message);
+        }
+      },
+    });
   };
 
   const handleEdit = (pilot) => {
@@ -239,6 +252,9 @@ export default function PilotsPage() {
           </table>
         )}
       </div>
+
+      {/* Confirm modal */}
+      <ConfirmModal {...confirmDlg} onCancel={() => setConfirmDlg(null)} />
 
       {/* Paneles */}
       {showAddPanel && (

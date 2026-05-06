@@ -1,11 +1,11 @@
 ﻿'use client';
 import { useState, useRef } from 'react';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 // ──────────────────────────────────────────────
 // Genera y descarga la plantilla Excel
 // ──────────────────────────────────────────────
-function downloadTemplate() {
+async function downloadTemplate() {
   const headers = [
     'FECHA',
     'SERIAL_AERONAVE',
@@ -24,12 +24,15 @@ function downloadTemplate() {
     ['2024-04-01', 'DJI-M300-002', 'Fumigación',  '06:30', '07:45', 'VMC', 'Cali, Valle',          'Sin novedad',    'NO'],
   ];
 
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...examples]);
+  const workbook = new ExcelJS.Workbook();
 
-  // Anchos de columna
-  ws['!cols'] = [
-    { wch: 14 }, { wch: 20 }, { wch: 18 }, { wch: 14 },
-    { wch: 16 }, { wch: 18 }, { wch: 28 }, { wch: 30 }, { wch: 12 },
+  // Hoja principal
+  const ws = workbook.addWorksheet('Bitácora Histórica');
+  ws.addRow(headers);
+  examples.forEach(row => ws.addRow(row));
+  ws.columns = [
+    { width: 14 }, { width: 20 }, { width: 18 }, { width: 14 },
+    { width: 16 }, { width: 18 }, { width: 28 }, { width: 30 }, { width: 12 },
   ];
 
   // Hoja de instrucciones
@@ -45,15 +48,23 @@ function downloadTemplate() {
     ['NOTAS',             'NO',  'Texto libre — observaciones del vuelo'],
     ['INCIDENTES',        'NO',  'SI | NO'],
   ];
+  const wsInstr = workbook.addWorksheet('Instrucciones');
+  wsInstr.addRow(instrHeaders);
+  instrRows.forEach(row => wsInstr.addRow(row));
+  wsInstr.columns = [{ width: 22 }, { width: 14 }, { width: 55 }];
 
-  const wsInstr = XLSX.utils.aoa_to_sheet([instrHeaders, ...instrRows]);
-  wsInstr['!cols'] = [{ wch: 22 }, { wch: 14 }, { wch: 55 }];
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws,     'Bitácora Histórica');
-  XLSX.utils.book_append_sheet(wb, wsInstr,'Instrucciones');
-
-  XLSX.writeFile(wb, 'Plantilla_Bitacora_Historica_Bitafly.xlsx');
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Plantilla_Bitacora_Historica_Bitafly.xlsx';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 // ──────────────────────────────────────────────
@@ -75,11 +86,38 @@ export default function LogbookImportPanel({ onClose, onSuccess }) {
 
     // Preview local antes de enviar
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
-        const wb  = XLSX.read(e.target.result, { type: 'array' });
-        const ws  = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(e.target.result);
+        const ws = workbook.worksheets[0];
+        if (!ws) throw new Error('Hoja no encontrada');
+
+        // Extraer encabezados de la primera fila
+        const colMap = {};
+        ws.getRow(1).eachCell((cell, colNumber) => {
+          colMap[colNumber] = cell.value ? String(cell.value).trim() : '';
+        });
+
+        const rows = [];
+        ws.eachRow((row, rowNumber) => {
+          if (rowNumber === 1) return;
+          const obj = {};
+          Object.entries(colMap).forEach(([colNum, header]) => {
+            if (!header) return;
+            const cell = row.getCell(Number(colNum));
+            let val = cell.value;
+            if (val && typeof val === 'object') {
+              if (val instanceof Date) val = val.toISOString().split('T')[0];
+              else if (val.richText)   val = val.richText.map(r => r.text).join('');
+              else if (val.result !== undefined) val = val.result ?? '';
+              else val = String(val);
+            }
+            obj[header] = val ?? '';
+          });
+          rows.push(obj);
+        });
+
         setPreview({ rows, total: rows.length });
         setStep('preview');
       } catch {

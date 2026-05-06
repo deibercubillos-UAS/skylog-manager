@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
 
 export default function AddTechPanel({ onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
@@ -27,10 +28,10 @@ export default function AddTechPanel({ onClose, onSuccess }) {
       }]);
 
       if (error) throw error;
-      alert("✅ EQUIPO REGISTRADO: Sincronizando flota...");
+      toast.success("Equipo registrado correctamente.");
       onSuccess();
     } catch (err) {
-      alert("Error de registro: " + err.message);
+      toast.error("Error de registro: " + err.message);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
 import {
   calcIntrinsicGRC, calcFinalGRC, calcInitialARC, calcFinalARC,
   calcSAIL, sailRoman, sailColor, getOSOsForSAIL,
@@ -138,7 +139,7 @@ export default function SoraWizard({ onClose, onSaved }) {
       onSaved?.(data);
       onClose?.();
     } catch (err) {
-      alert('Error al guardar: ' + err.message);
+      toast.error('Error al guardar: ' + err.message);
     } finally {
       setSaving(false);
     }

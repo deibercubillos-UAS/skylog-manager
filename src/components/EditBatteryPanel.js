@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
 
 export default function EditBatteryPanel({ battery, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
@@ -27,9 +28,10 @@ export default function EditBatteryPanel({ battery, onClose, onSuccess }) {
       }).eq('id', battery.id);
 
       if (error) throw error;
+      toast.success("Batería actualizada correctamente.");
       onSuccess();
     } catch (err) {
-      alert("Error: " + err.message);
+      toast.error("Error: " + err.message);
     } finally {
       setLoading(false);
     }

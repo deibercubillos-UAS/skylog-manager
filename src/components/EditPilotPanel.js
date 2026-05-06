@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import FileUpload from './FileUpload';
+import { toast } from '@/lib/toast';
 
 const AEROCIVIL_ADDITIONS = [
     "PBMO SUPERIOR A 25 KG Y HASTA 250 KG", "DISPERSIÓN", "ASPERSIÓN", "ENJAMBRE",
@@ -14,10 +15,10 @@ const AEROCIVIL_ADDITIONS = [
 
 export default function EditPilotPanel({ pilot, onClose, onSuccess, canEditMedical = false }) {
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ ...pilot });
+  const [form, setForm] = useState({ ...pilot, additions: pilot?.additions || [] });
 
   useEffect(() => {
-    setForm({ ...pilot });
+    setForm({ ...pilot, additions: pilot?.additions || [] });
   }, [pilot]);
 
   const handleUpdate = async (e) => {
@@ -36,15 +37,16 @@ export default function EditPilotPanel({ pilot, onClose, onSuccess, canEditMedic
         medical_cert_url: form.medical_cert_url,
         emergency_contact_name: form.emergency_contact_name,
         emergency_contact_phone: form.emergency_contact_phone,
+        additions: form.additions || [],
         updated_at: new Date().toISOString()
       };
 
       const { error } = await supabase.from('pilots').update(updateData).eq('id', pilot.id);
       if (error) throw error;
-      alert("✅ Expediente actualizado correctamente.");
+      toast.success("Expediente actualizado correctamente.");
       onSuccess();
     } catch (err) {
-      alert("⚠️ Error al actualizar: " + err.message);
+      toast.error("Error al actualizar: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -147,7 +149,18 @@ export default function EditPilotPanel({ pilot, onClose, onSuccess, canEditMedic
             <div className="bg-slate-50 p-3 rounded-2xl max-h-40 overflow-y-auto space-y-2 custom-scrollbar border border-slate-100">
               {AEROCIVIL_ADDITIONS.map(add => (
                 <label key={add} className="flex items-center gap-3 p-2 hover:bg-white rounded-lg cursor-pointer transition-all">
-                  <input type="checkbox" className="rounded text-blue-600 focus:ring-0" />
+                  <input
+                    type="checkbox"
+                    className="rounded text-blue-600 focus:ring-0"
+                    checked={form.additions?.includes(add) || false}
+                    onChange={() => {
+                      const current = form.additions || [];
+                      const updated = current.includes(add)
+                        ? current.filter(a => a !== add)
+                        : [...current, add];
+                      setForm({ ...form, additions: updated });
+                    }}
+                  />
                   <span className="text-xs font-bold text-slate-600">{add}</span>
                 </label>
               ))}

@@ -1,5 +1,7 @@
 ﻿'use client';
 import { useState, useEffect } from 'react';
+import { toast } from '@/lib/toast';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const ALLOWED_ROLES = ['superadmin', 'admin', 'jefe_pilotos'];
 
@@ -237,6 +239,7 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
   const [deleting, setDeleting]   = useState(false);
 
   // Inspector state
+  const [confirmDlg, setConfirmDlg]       = useState(null);
   const [inspecting, setInspecting]       = useState(false);
   const [inspectResult, setInspectResult] = useState(null);   // datos crudos
   const [showInspectModal, setShowInspectModal] = useState(false);
@@ -289,7 +292,7 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!form.username.trim() || !form.password.trim())
-      return alert('Usuario y contraseña son obligatorios');
+      return toast.warn('Usuario y contraseña son obligatorios');
 
     setSaving(true);
     try {
@@ -303,25 +306,34 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
       setShowForm(false);
       await loadCreds();
     } catch (err) {
-      alert('Error al guardar: ' + err.message);
+      toast.error('Error al guardar: ' + err.message);
     } finally {
       setSaving(false);
     }
   };
 
   // ── Eliminar ─────────────────────────────────────────────────
-  const handleDelete = async () => {
-    if (!confirm('¿Eliminar las credenciales de AeroCivil? El robot no podrá autenticarse.')) return;
-    setDeleting(true);
-    try {
-      const res = await fetch('/api/aerocivil/credentials', { method: 'DELETE' });
-      if (!res.ok) throw new Error((await res.json()).error);
-      setCreds(null);
-    } catch (err) {
-      alert('Error al eliminar: ' + err.message);
-    } finally {
-      setDeleting(false);
-    }
+  const handleDelete = () => {
+    setConfirmDlg({
+      isOpen: true,
+      title: 'Eliminar credenciales AeroCivil',
+      message: '¿Eliminar las credenciales de AeroCivil? El robot no podrá autenticarse.',
+      confirmText: 'Eliminar',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDlg(null);
+        setDeleting(true);
+        try {
+          const res = await fetch('/api/aerocivil/credentials', { method: 'DELETE' });
+          if (!res.ok) throw new Error((await res.json()).error);
+          setCreds(null);
+        } catch (err) {
+          toast.error('Error al eliminar: ' + err.message);
+        } finally {
+          setDeleting(false);
+        }
+      }
+    });
   };
 
   // ── Probar Portal ────────────────────────────────────────────
@@ -367,6 +379,7 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
   // ── Render ───────────────────────────────────────────────────
   return (
     <>
+    <ConfirmModal {...confirmDlg} onCancel={() => setConfirmDlg(null)} />
     <section className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-slate-200 shadow-sm space-y-6">
       {/* Header */}
       <header className="flex justify-between items-center border-b pb-4">

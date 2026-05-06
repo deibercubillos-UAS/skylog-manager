@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
 
 // Tipos de operación según RAC 100 — lista completa
 const MISSION_TYPES = [
@@ -75,7 +76,7 @@ export default function BasicForm({ pilots, drones, org, loadData }) {
         e.preventDefault();
         const pStat = getPilotStatus();
         const dStat = getDroneStatus();
-        if (pStat?.type === 'ERROR' || dStat?.type === 'ERROR') return alert("🚫 BLOQUEO DE SEGURIDAD");
+        if (pStat?.type === 'ERROR' || dStat?.type === 'ERROR') return toast.error("Bloqueo de seguridad: resuelva las alertas críticas antes de continuar.");
 
         setSaving(true);
         const payload = {
@@ -95,11 +96,11 @@ export default function BasicForm({ pilots, drones, org, loadData }) {
             const data = await res.json();
             if (!res.ok) throw new Error(data?.error || 'Error al guardar');
 
-            alert(`🚀 MISIÓN AUTORIZADA: ${data.mission_id}`);
+            toast.success(`Misión autorizada: ${data.mission_id}`);
             setForm({ pilot_id: '', aircraft_id: '', department: '', municipality: '', scheduled_at: '', mission_type: MISSION_TYPES[0] });
             if (loadData) loadData();
         } catch (err) {
-            alert('⚠️ Error: ' + err.message);
+            toast.error('Error: ' + err.message);
         } finally {
             setSaving(false);
         }

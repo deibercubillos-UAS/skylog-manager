@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
 
 export default function AddMaintenancePanel({ onClose, onSuccess }) {
     const [drones, setDrones] = useState([]);
@@ -27,7 +28,7 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!form.aircraft_id) return alert("⚠️ Selecciona una aeronave.");
+        if (!form.aircraft_id) { toast.warn("Selecciona una aeronave."); return; }
         setLoading(true);
         try {
             const res = await fetch('/api/maintenance', {
@@ -43,10 +44,10 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data?.error || 'Error al guardar');
-            alert("✅ Mantenimiento registrado y contadores del drone actualizados.");
+            toast.success("Mantenimiento registrado y contadores actualizados.");
             onSuccess();
         } catch (err) {
-            alert("⚠️ Error: " + err.message);
+            toast.error("Error: " + err.message);
         } finally {
             setLoading(false);
         }

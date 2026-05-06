@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { canAddResource } from '@/lib/planLimits';
 import FileUpload from './FileUpload';
+import { toast } from '@/lib/toast';
 
 export default function AddManualPilotPanel({ onClose, onSuccess, currentPlan, currentCount }) {
   const [loading, setLoading] = useState(false);
@@ -14,7 +15,7 @@ export default function AddManualPilotPanel({ onClose, onSuccess, currentPlan, c
     setLoading(true);
 
     if (!canAddResource(currentPlan, currentCount, 'pilot')) {
-      alert(`⚠️ LÍMITE DE PLAN: Tu ${currentPlan} no permite más pilotos.`);
+      toast.warn(`Límite de plan: tu plan ${currentPlan} no permite más pilotos.`);
       setLoading(false);
       return;
     }
@@ -28,10 +29,10 @@ export default function AddManualPilotPanel({ onClose, onSuccess, currentPlan, c
     }]);
 
     if (!error) {
-      alert("Piloto registrado exitosamente.");
+      toast.success("Piloto registrado exitosamente.");
       onSuccess();
     } else {
-      alert(error.message);
+      toast.error(error.message);
     }
     setLoading(false);
   };

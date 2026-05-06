@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
 
 export default function AddBatteryPanel({ onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
@@ -21,10 +22,10 @@ export default function AddBatteryPanel({ onClose, onSuccess }) {
       }]);
 
       if (error) throw error;
-      alert("✅ Batería añadida al inventario.");
+      toast.success("Batería añadida al inventario.");
       onSuccess();
     } catch (err) {
-      alert("Error: " + err.message);
+      toast.error("Error: " + err.message);
     } finally {
       setLoading(false);
     }

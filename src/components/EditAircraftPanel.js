@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import FileUpload from './FileUpload';
+import { toast } from '@/lib/toast';
 
 export default function EditAircraftPanel({ aircraft, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
@@ -28,9 +29,10 @@ export default function EditAircraftPanel({ aircraft, onClose, onSuccess }) {
       }).eq('id', aircraft.id);
 
       if (error) throw error;
+      toast.success("Aeronave actualizada correctamente.");
       onSuccess();
     } catch (err) {
-      alert("Error: " + err.message);
+      toast.error("Error: " + err.message);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 ﻿'use client';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { toast } from '@/lib/toast';
 
 export default function FormSettingsClient({ initialData }) {
     const supabase = createClient();
@@ -52,9 +53,9 @@ export default function FormSettingsClient({ initialData }) {
 
             const { error } = await supabase.from('form_definitions').upsert(updates);
             if (error) throw error;
-            alert("✅ PROTOCOLO GUARDADO EXITOSAMENTE");
+            toast.success("Protocolo guardado exitosamente");
         } catch (e) {
-            alert("Error: " + e.message);
+            toast.error("Error: " + e.message);
         } finally {
             setSaving(false);
         }

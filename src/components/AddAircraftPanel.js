@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import FileUpload from './FileUpload';
+import { toast } from '@/lib/toast';
 
 export default function AddAircraftPanel({ onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
@@ -32,10 +33,10 @@ export default function AddAircraftPanel({ onClose, onSuccess }) {
       };
       const { error } = await supabase.from('aircraft').insert([cleanData]);
       if (error) throw error;
-      alert('✅ Aeronave inscrita correctamente.');
+      toast.success('Aeronave inscrita correctamente.');
       onSuccess();
     } catch (err) {
-      alert('⚠️ Error de registro: ' + err.message);
+      toast.error('Error de registro: ' + err.message);
     } finally {
       setLoading(false);
     }

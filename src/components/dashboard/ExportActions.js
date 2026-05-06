@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { toast } from '@/lib/toast';
 
 export default function ExportActions({ data, reportName = "Bitafly-Report" }) {
   const [isExporting, setIsExporting] = useState(false);
@@ -20,7 +21,7 @@ export default function ExportActions({ data, reportName = "Bitafly-Report" }) {
       writeFile(workbook, `${reportName}.xlsx`);
     } catch (error) {
       console.error("Error al exportar Excel:", error);
-      alert("No se pudo generar el Excel");
+      toast.error("No se pudo generar el Excel");
     } finally {
       setIsExporting(false);
     }
@@ -59,7 +60,7 @@ export default function ExportActions({ data, reportName = "Bitafly-Report" }) {
       doc.save(`${reportName}.pdf`);
     } catch (error) {
       console.error("Error al exportar PDF:", error);
-      alert("No se pudo generar el PDF");
+      toast.error("No se pudo generar el PDF");
     } finally {
       setIsExporting(false);
     }

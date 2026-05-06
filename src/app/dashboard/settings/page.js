@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase';
 import FileUpload from '@/components/FileUpload';
 import { hasPermission } from '@/lib/roles';
 import AerocivilCredentialsSection from '@/components/settings/AerocivilCredentialsSection';
+import { toast } from '@/lib/toast';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 export default function SettingsPage() {
     const [loading, setLoading] = useState(true);
@@ -19,6 +21,7 @@ const [policyForm, setPolicyForm] = useState({
     insurance_company: '', policy_number: '',
     start_date: '', end_date: '', aircraft_id: ''
 });
+const [confirmDlg, setConfirmDlg] = useState(null);
 
     const loadPolicies = async (orgId) => {
     const { data } = await supabase
@@ -70,10 +73,10 @@ useEffect(() => {
             if (orgErr) throw orgErr;
             if (!updatedData || updatedData.length === 0) throw new Error("No se pudo persistir el cambio.");
 
-            alert("✅ Identidad Corporativa actualizada.");
+            toast.success("Identidad Corporativa actualizada.");
             setOrg(updatedData[0]);
         } catch (err) {
-            alert("⚠️ Error: " + err.message);
+            toast.error("Error: " + err.message);
         } finally {
             setUpdating(false);
         }
@@ -82,7 +85,7 @@ useEffect(() => {
     const updateLogo = async (url) => {
         await supabase.from('organizations').update({ logo_url: url }).eq('id', org.id);
         setOrg({ ...org, logo_url: url });
-        alert("✅ Logo actualizado.");
+        toast.success("Logo actualizado.");
     };
 
     const openNewPolicy = () => {
@@ -106,7 +109,7 @@ const openEditPolicy = (p) => {
 const savePolicy = async (e) => {
     e.preventDefault();
     if (new Date(policyForm.end_date) <= new Date(policyForm.start_date)) {
-        return alert("⚠️ La fecha fin debe ser posterior a la fecha inicio.");
+        return toast.warn("La fecha fin debe ser posterior a la fecha inicio.");
     }
     try {
         const payload = {
@@ -124,17 +127,26 @@ const savePolicy = async (e) => {
         if (error) throw error;
         setShowPolicyForm(false);
         await loadPolicies(profile.organization_id);
-        alert(`✅ Póliza ${editingPolicy ? 'actualizada' : 'registrada'}.`);
+        toast.success(`Póliza ${editingPolicy ? 'actualizada' : 'registrada'}.`);
     } catch (err) {
-        alert("⚠️ Error: " + err.message);
+        toast.error("Error: " + err.message);
     }
 };
 
-const deletePolicy = async (p) => {
-    if (!confirm(`¿Eliminar la póliza ${p.policy_number}?`)) return;
-    const { error } = await supabase.from('insurance_policies').delete().eq('id', p.id);
-    if (error) return alert("⚠️ Error: " + error.message);
-    await loadPolicies(profile.organization_id);
+const deletePolicy = (p) => {
+    setConfirmDlg({
+        isOpen: true,
+        title: 'Eliminar póliza',
+        message: `¿Eliminar la póliza ${p.policy_number}?`,
+        confirmText: 'Eliminar',
+        danger: true,
+        onConfirm: async () => {
+            setConfirmDlg(null);
+            const { error } = await supabase.from('insurance_policies').delete().eq('id', p.id);
+            if (error) return toast.error("Error: " + error.message);
+            await loadPolicies(profile.organization_id);
+        }
+    });
 };
 
 const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60 * 60 * 24));
@@ -153,6 +165,7 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
 
     return (
         <div className="max-w-6xl mx-auto space-y-6 md:space-y-10 text-left animate-in fade-in duration-700 pb-20 px-2 md:px-0">
+            <ConfirmModal {...confirmDlg} onCancel={() => setConfirmDlg(null)} />
             <header className="flex justify-between items-end border-b pb-6 px-2 md:px-0">
                 <div>
                     <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900 leading-none">Configurar Organización</h2>

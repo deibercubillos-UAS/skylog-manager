@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import AuthSidePanel from '@/components/AuthSidePanel';
+import { toast } from '@/lib/toast';
 
 export default function UpdatePasswordPage() {
   const [password, setPassword] = useState('');
@@ -14,9 +15,9 @@ export default function UpdatePasswordPage() {
     const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
-      alert("Error: " + error.message);
+      toast.error("Error: " + error.message);
     } else {
-      alert("✅ Contraseña actualizada. Ya puedes ingresar.");
+      toast.success("Contraseña actualizada. Ya puedes ingresar.");
       window.location.href = '/login';
     }
     setLoading(false);

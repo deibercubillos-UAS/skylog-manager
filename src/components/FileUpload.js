@@ -1,6 +1,7 @@
 ﻿'use client';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
 
 export default function FileUpload({ path, onUploadSuccess, label }) {
   const [uploading, setUploading] = useState(false);
@@ -52,7 +53,7 @@ export default function FileUpload({ path, onUploadSuccess, label }) {
 
     } catch (error) {
       console.error("Error en FileUpload:", error.message);
-      alert("Error crítico de carga: " + error.message);
+      toast.error("Error crítico de carga: " + error.message);
     } finally {
       setUploading(false);
       // Limpiar el input para permitir subir el mismo archivo si falla

@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import AircraftCard from '@/components/AircraftCard';
 import BatteryCard from '@/components/BatteryCard';
 import TechCard from '@/components/TechCard';
@@ -22,6 +24,7 @@ export default function FleetPage() {
   const [tech, setTech] = useState([]);
   const [editingTech, setEditingTech] = useState(null);
   const [activePanel, setActivePanel] = useState(null);
+  const [confirmDlg,  setConfirmDlg]  = useState(null);
   const [editingDrone, setEditingDrone] = useState(null);
   const [editingBattery, setEditingBattery] = useState(null);
 
@@ -60,29 +63,38 @@ setTech(resTech.data || []);
   // LÓGICA DE PERMISOS: Solo estos roles pueden modificar la flota
   const canManage = ['superadmin', 'admin', 'jefe_pilotos'].includes(userRole);
 
-  const handleDelete = async (id, table) => {
-    if (!confirm("¿Está seguro de eliminar este activo? Esta acción es irreversible.")) return;
+  const handleDelete = (id, table) => {
+    const labels = { aircraft: 'aeronave', batteries: 'batería', inventory_items: 'equipo' };
+    setConfirmDlg({
+      isOpen: true,
+      title: `¿Eliminar este ${labels[table] || 'activo'}?`,
+      message: 'Esta acción es irreversible y no puede deshacerse.',
+      confirmText: 'Eliminar',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDlg(null);
+        const prevDrones    = drones;
+        const prevBatteries = batteries;
+        const prevTech      = tech;
 
-    // Actualización optimista: eliminar del estado antes de esperar al servidor
-    const prevDrones    = drones;
-    const prevBatteries = batteries;
-    const prevTech      = tech;
+        // Actualización optimista
+        if (table === 'aircraft')             setDrones(d    => d.filter(x => x.id !== id));
+        else if (table === 'batteries')       setBatteries(b => b.filter(x => x.id !== id));
+        else if (table === 'inventory_items') setTech(t      => t.filter(x => x.id !== id));
 
-    if (table === 'aircraft')        setDrones(d    => d.filter(x => x.id !== id));
-    else if (table === 'batteries')  setBatteries(b => b.filter(x => x.id !== id));
-    else if (table === 'inventory_items') setTech(t => t.filter(x => x.id !== id));
-
-    try {
-        const { error } = await supabase.from(table).delete().eq('id', id);
-        if (error) throw error;
-    } catch (err) {
-        // Revertir si falla
-        setDrones(prevDrones);
-        setBatteries(prevBatteries);
-        setTech(prevTech);
-        alert("Error al eliminar: " + err.message);
-    }
-};
+        try {
+          const { error } = await supabase.from(table).delete().eq('id', id);
+          if (error) throw error;
+          toast.success('Activo eliminado del inventario.');
+        } catch (err) {
+          setDrones(prevDrones);
+          setBatteries(prevBatteries);
+          setTech(prevTech);
+          toast.error('Error al eliminar: ' + err.message);
+        }
+      },
+    });
+  };
 
   if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">CARGANDO INVENTARIO TÉCNICO...</div>;
 
@@ -164,6 +176,8 @@ setTech(resTech.data || []);
               ))}
           </div>
       </section>
+
+      <ConfirmModal {...confirmDlg} onCancel={() => setConfirmDlg(null)} />
 
       {/* RENDERIZADO DE PANELES */}
       {activePanel === 'drone' && <AddAircraftPanel onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}

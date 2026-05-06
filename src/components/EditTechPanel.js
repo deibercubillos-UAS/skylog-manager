@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
 
 export default function EditTechPanel({ item, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
@@ -20,7 +21,7 @@ export default function EditTechPanel({ item, onClose, onSuccess }) {
 
       if (error) throw error;
       onSuccess();
-    } catch (err) { alert(err.message); }
+    } catch (err) { toast.error(err.message); }
     finally { setLoading(false); }
   };
 

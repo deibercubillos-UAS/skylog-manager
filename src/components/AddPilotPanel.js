@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import FileUpload from './FileUpload';
+import { toast } from '@/lib/toast';
 
 const AEROCIVIL_ADDITIONS = [
     "PBMO SUPERIOR A 25 KG Y HASTA 250 KG", "DISPERSIÓN", "ASPERSIÓN", "ENJAMBRE",
@@ -64,10 +65,10 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
               status: 'creado_manualmente'
           }]);
 
-          alert(`✅ Tripulante registrado.\n🚀 Se ha enviado un correo de acceso a ${form.email}`);
+          toast.success(`Tripulante registrado. Correo de acceso enviado a ${form.email}`);
           onSuccess();
       } catch (err) {
-          alert("⚠️ Error en el proceso: " + err.message);
+          toast.error("Error en el proceso: " + err.message);
       } finally {
           setLoading(false);
       }
@@ -101,10 +102,10 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
           organization_id: prof.organization_id,
           invited_by: user.id
         }]);
-        alert("🚀 Invitación enviada exitosamente.");
+        toast.success("Invitación enviada exitosamente.");
         onSuccess();
       }
-    } catch (e) { alert("Falla al enviar invitación"); }
+    } catch (e) { toast.error("Falla al enviar invitación"); }
     finally { setLoading(false); }
   };
 

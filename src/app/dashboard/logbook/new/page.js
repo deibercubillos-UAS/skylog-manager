@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from '@/lib/toast';
 
 export default function NewOperationPage() {
     const router = useRouter();
@@ -69,7 +70,6 @@ export default function NewOperationPage() {
         else if (step === 'preflight') setStep('briefing');
     };
 
-    // BUSQUE LA FUNCIÓN handleFinalize Y REEMPLÁCELA:
     const handleFinalize = async () => {
         setSaving(true);
         try {
@@ -103,13 +103,13 @@ export default function NewOperationPage() {
                 supabase.from('flight_authorizations').update({ status: 'realizado' }).eq('id', form.auth_id)
             ]);
 
-            alert("🚀 ¡AUTORIZADO VOLAR!");
+            toast.success("¡Autorizado volar! Redirigiendo al cierre de misión...");
             
             // REDIRECCIÓN FORZADA AL NAVEGADOR
             window.location.href = `/dashboard/logbook/finalize?id=${flight.id}`;
 
         } catch (err) {
-            alert("⚠️ Error de Despacho: " + err.message);
+            toast.error("Error de despacho: " + err.message);
         } finally { setSaving(false); }
     };
 

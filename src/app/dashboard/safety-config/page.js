@@ -3,6 +3,8 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 export default function SafetyConfigPage() {
   const [activeTab, setActiveTab] = useState('checklist');
@@ -10,6 +12,7 @@ export default function SafetyConfigPage() {
   const [items, setItems] = useState({ checklist: [], sora: [] });
   const [userProfile, setUserProfile] = useState(null);
   const [form, setForm] = useState({ category: '', label: '', score: 1 });
+  const [confirmDlg, setConfirmDlg] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -42,7 +45,7 @@ export default function SafetyConfigPage() {
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!canModify) return alert("No tienes permisos para agregar protocolos.");
+    if (!canModify) return toast.error("No tienes permisos para agregar protocolos.");
 
     const { data: { session } } = await supabase.auth.getSession();
     const payload = {
@@ -64,43 +67,52 @@ export default function SafetyConfigPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!canModify) return alert("No tienes permisos para eliminar.");
+    if (!canModify) return toast.error("No tienes permisos para eliminar.");
     if (!id) return; // Seguridad extra
-    
-    if (!confirm("¿Eliminar este requerimiento de seguridad?")) return;
 
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user?.id) {
-        alert("Sesión expirada. Por favor reingresa.");
-        return;
-      }
+    setConfirmDlg({
+      isOpen: true,
+      title: 'Eliminar requerimiento',
+      message: '¿Eliminar este requerimiento de seguridad?',
+      confirmText: 'Eliminar',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDlg(null);
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
 
-      const res = await fetch(`/api/safety-config/${id}?type=${activeTab}&userId=${session.user.id}`, {
-        method: 'DELETE',
-        headers: { 
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
+          if (!session?.user?.id) {
+            toast.error("Sesión expirada. Por favor reingresa.");
+            return;
+          }
+
+          const res = await fetch(`/api/safety-config/${id}?type=${activeTab}&userId=${session.user.id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (res.ok) {
+            fetchData(); // Refrescar lista
+          } else {
+            const err = await res.json();
+            toast.error("Error del servidor: " + err.error);
+          }
+        } catch (error) {
+          console.error("Error en borrado:", error);
+          toast.error("Error de conexión al intentar eliminar.");
         }
-      });
-
-      if (res.ok) {
-        fetchData(); // Refrescar lista
-      } else {
-        const err = await res.json();
-        alert("Error del servidor: " + err.error);
       }
-    } catch (error) {
-      console.error("Error en borrado:", error);
-      alert("Error de conexión al intentar eliminar.");
-    }
+    });
   };
 
   if (loading) return <div className="p-20 text-center animate-pulse font-black text-slate-300">SINCRONIZANDO PROTOCOLOS...</div>;
 
   return (
     <div className="max-w-6xl mx-auto text-left animate-in fade-in duration-500 pb-20">
+      <ConfirmModal {...confirmDlg} onCancel={() => setConfirmDlg(null)} />
       <header className="mb-8 flex justify-between items-end">
         <div>
           <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Protocolos de Seguridad</h2>

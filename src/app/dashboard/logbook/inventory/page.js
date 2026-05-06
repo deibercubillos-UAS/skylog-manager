@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
 
 export default function MissionInventoryPage() {
     const [items, setItems] = useState([]);
@@ -46,14 +47,14 @@ export default function MissionInventoryPage() {
     };
 
     const handleSaveLog = async () => {
-        if (!selectedFlight || selectedItems.length === 0) return alert("Selecciona vuelo e ítems.");
+        if (!selectedFlight || selectedItems.length === 0) return toast.warn("Selecciona vuelo e ítems.");
         setSaving(true);
         const res = await fetch('/api/logbook/inventory', {
             method: 'POST',
             body: JSON.stringify({ flight_id: selectedFlight, items: selectedItems })
         });
         if (res.ok) {
-            alert("✅ Inventario de misión registrado.");
+            toast.success("Inventario de misión registrado.");
             setSelectedItems([]);
             setSelectedFlight('');
         }

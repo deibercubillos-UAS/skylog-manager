@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import FileUpload from '@/components/FileUpload';
+import { toast } from '@/lib/toast';
 export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
@@ -50,9 +51,9 @@ useEffect(() => {
             .eq('id', profile.id);
 
         if (error) throw error;
-        alert("✅ Expediente guardado exitosamente");
+        toast.success("Expediente guardado exitosamente");
     } catch (err) {
-        alert("⚠️ Error al guardar: " + err.message);
+        toast.error("Error al guardar: " + err.message);
     } finally {
         setUpdating(false);
     }

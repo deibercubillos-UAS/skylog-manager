@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createClientSSR } from '@/lib/supabaseServer';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,12 +21,27 @@ const COL = {
 // Normaliza fecha desde formatos comunes → 'YYYY-MM-DD'
 function parseDate(raw) {
   if (!raw) return null;
+
+  // ExcelJS devuelve Date para celdas con formato fecha
+  if (raw instanceof Date) {
+    if (isNaN(raw.getTime())) return null;
+    const y = raw.getUTCFullYear();
+    const m = String(raw.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(raw.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
   const s = String(raw).trim();
 
-  // Número de serie Excel (días desde 1900)
+  // Número de serie Excel (días desde 1900) — fallback para celdas no tipadas
   if (/^\d{5}$/.test(s)) {
-    const d = XLSX.SSF.parse_date_code(Number(s));
-    if (d) return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+    const date = new Date((Number(s) - 25569) * 86400 * 1000);
+    if (!isNaN(date.getTime())) {
+      const y = date.getUTCFullYear();
+      const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const d = String(date.getUTCDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
   }
 
   // DD/MM/YYYY o DD-MM-YYYY
@@ -38,6 +53,19 @@ function parseDate(raw) {
   if (ymd) return `${ymd[1]}-${ymd[2].padStart(2,'0')}-${ymd[3].padStart(2,'0')}`;
 
   return null;
+}
+
+// Extrae el valor primitivo de una celda ExcelJS
+function getCellValue(cell) {
+  const val = cell.value;
+  if (val === null || val === undefined) return '';
+  if (val instanceof Date) return val; // parseDate lo maneja
+  if (typeof val === 'object') {
+    if (val.richText)            return val.richText.map(r => r.text).join('');
+    if (val.result !== undefined) return val.result ?? '';
+    return String(val);
+  }
+  return val;
 }
 
 export async function POST(request) {
@@ -69,9 +97,30 @@ export async function POST(request) {
     if (!file) return NextResponse.json({ error: 'Archivo no recibido' }, { status: 400 });
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const wb = XLSX.read(buffer, { type: 'buffer', cellDates: false });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+    const ws = workbook.worksheets[0];
+
+    if (!ws) {
+      return NextResponse.json({ error: 'El archivo está vacío' }, { status: 400 });
+    }
+
+    // Extraer encabezados de la primera fila
+    const colMap = {};
+    ws.getRow(1).eachCell((cell, colNumber) => {
+      colMap[colNumber] = cell.value ? String(cell.value).trim() : '';
+    });
+
+    // Extraer filas de datos
+    const rows = [];
+    ws.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return;
+      const obj = {};
+      Object.entries(colMap).forEach(([colNum, header]) => {
+        if (header) obj[header] = getCellValue(row.getCell(Number(colNum)));
+      });
+      rows.push(obj);
+    });
 
     if (!rows.length) {
       return NextResponse.json({ error: 'El archivo está vacío' }, { status: 400 });

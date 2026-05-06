@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import SiigoPayButton from '@/components/SiigoPayButton';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const UPGRADE_PLANS = [
   {
@@ -30,7 +31,8 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [billing, setBilling] = useState('annual');
-  const [cancelling, setCancelling] = useState(false);
+  const [cancelling,   setCancelling]   = useState(false);
+  const [showCancelDlg, setShowCancelDlg] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -56,8 +58,10 @@ export default function SubscriptionPage() {
     }
   }, []);
 
-  const handleCancel = async () => {
-    if (!confirm('¿Confirmas que deseas cancelar tu suscripción? Volverás al plan Piloto.')) return;
+  const handleCancel = () => setShowCancelDlg(true);
+
+  const doCancel = async () => {
+    setShowCancelDlg(false);
     setCancelling(true);
     const { data: { session } } = await supabase.auth.getSession();
     await fetch('/api/subscription/cancel', {
@@ -86,6 +90,16 @@ export default function SubscriptionPage() {
   const isPaid = ['escuadrilla', 'flota', 'enterprise'].includes(data.planSlug);
 
   return (
+    <>
+    <ConfirmModal
+      isOpen={showCancelDlg}
+      title="¿Cancelar suscripción?"
+      message="Volverás al plan Piloto de inmediato. Perderás acceso a las funciones de tu plan actual."
+      confirmText="Cancelar suscripción"
+      danger
+      onConfirm={doCancel}
+      onCancel={() => setShowCancelDlg(false)}
+    />
     <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in duration-500">
       <header>
         <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Suscripción</h2>
@@ -188,6 +202,7 @@ export default function SubscriptionPage() {
         </section>
       )}
     </div>
+    </>
   );
 }
 

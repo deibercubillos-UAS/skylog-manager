@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import AuthSidePanel from '@/components/AuthSidePanel';
+import { toast } from '@/lib/toast';
 
 export default function ResetRequestPage() {
   const [email, setEmail] = useState('');
@@ -17,7 +18,7 @@ export default function ResetRequestPage() {
       body: JSON.stringify({ email })
     });
     if (res.ok) setSent(true);
-    else alert("Error al enviar el correo.");
+    else toast.error("Error al enviar el correo.");
     setLoading(false);
   };
 

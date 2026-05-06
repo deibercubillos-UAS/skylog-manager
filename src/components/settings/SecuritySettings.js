@@ -1,6 +1,7 @@
 ﻿'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
 
 export default function SecuritySettings() {
   const [loading, setLoading] = useState(false);
@@ -31,7 +32,7 @@ export default function SecuritySettings() {
         // Volvemos al estado inicial después de 5 segundos
         setTimeout(() => setSent(false), 5000);
       } else {
-        alert("No se pudo procesar la solicitud. Reintenta más tarde.");
+        toast.error("No se pudo procesar la solicitud. Reintenta más tarde.");
       }
     } catch (error) {
       console.error(error);

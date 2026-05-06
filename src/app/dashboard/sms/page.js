@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
 
 export default function SMSReportPage() {
   const [loading, setLoading] = useState(true);
@@ -43,7 +44,7 @@ export default function SMSReportPage() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!canEdit) return alert("Permisos insuficientes.");
+    if (!canEdit) return toast.error("Permisos insuficientes.");
     
     setSubmitting(true);
     const { data: { session } } = await supabase.auth.getSession();
@@ -58,11 +59,11 @@ export default function SMSReportPage() {
     });
 
     if (response.ok) {
-      alert("🚀 Reporte SMS registrado y enviado a auditoría.");
+      toast.success("Reporte SMS registrado y enviado a auditoría.");
       setFormData({ flight_id: '', severity: 'incidente', occurrence_date: '', location: '', narrative: '', immediate_actions: '' });
     } else {
       const err = await response.json();
-      alert("Error: " + err.error);
+      toast.error("Error: " + err.error);
     }
     setSubmitting(false);
   };

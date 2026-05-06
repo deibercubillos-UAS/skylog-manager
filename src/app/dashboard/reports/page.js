@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { hasPermission } from '@/lib/roles';
 import FileUpload from '@/components/FileUpload';
+import { toast } from '@/lib/toast';
 
 // PERFORMANCE: Solo carga jsPDF + ExcelJS (~400 kB) cuando el usuario realmente descarga
 const loadReportGenerators = () => import('@/lib/reportGenerators');
@@ -47,11 +48,11 @@ export default function ReportsPage() {
     const updateLogo = async (url) => {
         await supabase.from('organizations').update({ logo_url: url }).eq('id', orgData.id);
         init();
-        alert("✅ Logo actualizado");
+        toast.success("Logo actualizado");
     };
 
     const downloadReport = async (type) => {
-        if (!config.from || !config.to) return alert("Seleccione fechas");
+        if (!config.from || !config.to) return toast.warn("Seleccione fechas");
         setLoading(true);
         try {
             // Carga el generador de PDFs/Excel y la data del backend en paralelo
@@ -72,7 +73,7 @@ export default function ReportsPage() {
             if (type === 'batteries') generateBatteryReport(data, { ...commonConfig, formCode: config.formCodeBattery });
             if (type === 'pilots') generatePilotReport(data, { ...commonConfig, formCode: config.formCodePilot });
 
-        } catch (e) { alert("Error al generar reporte"); }
+        } catch (e) { toast.error("Error al generar reporte"); }
         finally { setLoading(false); }
     };
 
@@ -170,7 +171,7 @@ export default function ReportsPage() {
     </div>
     <button
         onClick={async () => {
-            if(!selectedPilot) return alert("Seleccione un tripulante");
+            if(!selectedPilot) return toast.warn("Seleccione un tripulante");
             setLoading(true);
             try {
                 const [{ generatePilotDossier }, res] = await Promise.all([

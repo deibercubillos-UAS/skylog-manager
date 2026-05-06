@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import HelpTooltip from '@/components/HelpTooltip';
+import { toast } from '@/lib/toast';
 import dynamic from 'next/dynamic';
 import { generateKML, downloadKML } from '@/lib/kmlGenerator';
 import { sailRoman, sailColor } from '@/lib/soraEngine';
@@ -418,9 +419,9 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
 
     // ── RADICAR A AEROCIVIL (Robot Playwright) ────────────────────
     const handleRadicarAeroCivil = async () => {
-        if (!aerocivilCreds) return alert('Configure las credenciales AeroCivil en Ajustes antes de radicar.');
-        if (!aeroForm.aeronaves[0].id) return alert('Seleccione al menos una aeronave.');
-        if (aeroForm.points.length === 0) return alert('Capture las coordenadas de operación en el mapa.');
+        if (!aerocivilCreds) return toast.warn('Configure las credenciales AeroCivil en Ajustes antes de radicar.');
+        if (!aeroForm.aeronaves[0].id) return toast.warn('Seleccione al menos una aeronave.');
+        if (aeroForm.points.length === 0) return toast.warn('Capture las coordenadas de operación en el mapa.');
 
         // Bloqueos de seguridad
         const dronesConError = aeroForm.aeronaves.filter(a => getDroneAlert(a.id)?.type === 'ERROR');
@@ -429,7 +430,10 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
             ...aeroForm.observadores.filter(o => getPersonAlert(o.id)?.type === 'ERROR'),
         ];
         if (dronesConError.length > 0 || personasConError.length > 0) {
-            return alert(`🚫 BLOQUEO DE SEGURIDAD\n\nResuelva las alertas críticas antes de radicar:\n${dronesConError.length > 0 ? `• ${dronesConError.length} aeronave(s) requieren mantenimiento\n` : ''}${personasConError.length > 0 ? `• ${personasConError.length} tripulante(s) con médico vencido\n` : ''}`);
+            const parts = [];
+            if (dronesConError.length > 0) parts.push(`${dronesConError.length} aeronave(s) requieren mantenimiento`);
+            if (personasConError.length > 0) parts.push(`${personasConError.length} tripulante(s) con médico vencido`);
+            return toast.error(`Bloqueo de seguridad: ${parts.join('; ')}. Resuelva las alertas antes de radicar.`);
         }
 
         setRadicando(true);
@@ -472,7 +476,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                     } else if (pollData.status === 'failed') {
                         clearInterval(pollInterval);
                         setRadicando(false);
-                        alert(`❌ Error en la radicación:\n${pollData.error_message || 'Error desconocido'}`);
+                        toast.error(`Error en la radicación: ${pollData.error_message || 'Error desconocido'}`);
                     }
                 } catch { /* silencioso — reintentar */ }
             }, 4000);
@@ -483,14 +487,14 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
         } catch (e) {
             setRadicando(false);
             setJobStatus('failed');
-            alert('Error al iniciar radicación: ' + e.message);
+            toast.error('Error al iniciar radicación: ' + e.message);
         }
     };
 
         const handleFinalSubmit = async () => {
         // Validaciones básicas antes de radicar
-        if (!aeroForm.empresa_contratante) return alert("Ingrese el nombre de la empresa");
-        if (!aeroForm.aeronaves[0].id) return alert("Seleccione al menos una aeronave");
+        if (!aeroForm.empresa_contratante) return toast.warn("Ingrese el nombre de la empresa");
+        if (!aeroForm.aeronaves[0].id) return toast.warn("Seleccione al menos una aeronave");
         // BLOQUEO POR SEGURIDAD: aeronaves, pilotos u observadores con alertas CRÍTICAS
         const dronesConError = aeroForm.aeronaves.filter(a => getDroneAlert(a.id)?.type === 'ERROR');
         const personasConError = [
@@ -498,7 +502,10 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
             ...aeroForm.observadores.filter(o => getPersonAlert(o.id)?.type === 'ERROR')
         ];
         if (dronesConError.length > 0 || personasConError.length > 0) {
-            return alert(`🚫 BLOQUEO DE SEGURIDAD\n\nNo se puede radicar la misión:\n${dronesConError.length > 0 ? `• ${dronesConError.length} aeronave(s) requieren mantenimiento\n` : ''}${personasConError.length > 0 ? `• ${personasConError.length} tripulante(s) con médico vencido\n` : ''}\nResuelva las alertas antes de continuar.`);
+            const parts = [];
+            if (dronesConError.length > 0) parts.push(`${dronesConError.length} aeronave(s) requieren mantenimiento`);
+            if (personasConError.length > 0) parts.push(`${personasConError.length} tripulante(s) con médico vencido`);
+            return toast.error(`Bloqueo de seguridad: ${parts.join('; ')}. Resuelva las alertas antes de continuar.`);
         }
         
         setSaving(true);
@@ -533,13 +540,13 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                 const dataForExcel = { ...aeroForm, mission_id: newMission.mission_id };
                 await generateExcelF100(dataForExcel, userProfile, org, pilots);
 
-                alert("🚀 MISIÓN PROGRAMADA: " + newMission.mission_id);
+                toast.success("Misión programada: " + newMission.mission_id);
                 if (loadData) loadData(); // Refresca la tabla del padre
             } else {
                 throw new Error(newMission.error);
             }
         } catch (e) {
-            alert("Falla en radicación: " + e.message);
+            toast.error("Falla en radicación: " + e.message);
         } finally {
             setSaving(false);
         }

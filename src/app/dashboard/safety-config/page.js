@@ -26,9 +26,7 @@ export default function SafetyConfigPage() {
       setUserProfile(profData);
 
       // 2. Cargar Protocolos
-      const res = await fetch(`/api/safety-config?userId=${session.user.id}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const res = await fetch('/api/safety-config');
       const data = await res.json();
       setItems(data);
     } catch (err) {
@@ -47,16 +45,14 @@ export default function SafetyConfigPage() {
     e.preventDefault();
     if (!canModify) return toast.error("No tienes permisos para agregar protocolos.");
 
-    const { data: { session } } = await supabase.auth.getSession();
     const payload = {
-      userId: session.user.id,
       type: activeTab,
       data: { category: form.category || 'General', label: form.label, ...(activeTab === 'sora' && { score: form.score }) }
     };
 
     const res = await fetch('/api/safety-config', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
@@ -79,19 +75,8 @@ export default function SafetyConfigPage() {
       onConfirm: async () => {
         setConfirmDlg(null);
         try {
-          const { data: { session } } = await supabase.auth.getSession();
-
-          if (!session?.user?.id) {
-            toast.error("Sesión expirada. Por favor reingresa.");
-            return;
-          }
-
-          const res = await fetch(`/api/safety-config/${id}?type=${activeTab}&userId=${session.user.id}`, {
+          const res = await fetch(`/api/safety-config/${id}?type=${activeTab}`, {
             method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`,
-              'Content-Type': 'application/json'
-            }
           });
 
           if (res.ok) {

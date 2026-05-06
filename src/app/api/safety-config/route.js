@@ -1,28 +1,24 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClientSSR } from '@/lib/supabaseServer';
+import { getOrgContext } from '@/lib/apiAuth';
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 // OBTENER PROTOCOLOS
-export async function GET(request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const authHeader = request.headers.get('Authorization');
+    const supabase = await createClientSSR();
+    const { user, orgId } = await getOrgContext(supabase);
+    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    if (!userId || !authHeader) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    // Consultamos ambas tablas en paralelo
     const [checklist, sora] = await Promise.all([
-      supabase.from('checklist_templates').select('*').eq('owner_id', userId).order('category'),
-      supabase.from('sora_templates').select('*').eq('owner_id', userId).order('category')
+      supabase.from('checklist_templates').select('*').eq('owner_id', user.id).order('category'),
+      supabase.from('sora_templates').select('*').eq('owner_id', user.id).order('category'),
     ]);
 
     return NextResponse.json({
       checklist: checklist.data || [],
-      sora: sora.data || []
+      sora: sora.data || [],
     });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -32,19 +28,22 @@ export async function GET(request) {
 // CREAR NUEVO ITEM
 export async function POST(request) {
   try {
-    const body = await request.json();
-    const authHeader = request.headers.get('Authorization');
-    const { userId, type, data } = body; // type: 'checklist' o 'sora'
+    const supabase = await createClientSSR();
+    const { user, orgId } = await getOrgContext(supabase);
+    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } }
-    });
+    const body = await request.json();
+    const { type, data } = body; // type: 'checklist' o 'sora'
+
+    if (!type || !data) {
+      return NextResponse.json({ error: 'Parámetros inválidos' }, { status: 400 });
+    }
 
     const table = type === 'checklist' ? 'checklist_templates' : 'sora_templates';
-    
+
     const { data: result, error } = await supabase
       .from(table)
-      .insert([{ ...data, owner_id: userId }])
+      .insert([{ ...data, owner_id: user.id, organization_id: orgId }])
       .select();
 
     if (error) throw error;

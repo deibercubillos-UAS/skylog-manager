@@ -113,9 +113,24 @@ export default function NewOperationPage() {
         } finally { setSaving(false); }
     };
 
+    const handleCancelMission = async () => {
+        if (!form.auth_id) return;
+        try {
+            await supabase
+                .from('flight_authorizations')
+                .update({ status: 'cancelado', notes: cancelNotes || null })
+                .eq('id', form.auth_id);
+            toast.warn('Misión cancelada.');
+            router.replace('/dashboard/logbook');
+        } catch (err) {
+            toast.error('No se pudo cancelar: ' + err.message);
+        }
+    };
+
     if (loading) return <div className="h-screen flex items-center justify-center bg-[#f8f6f6] font-black animate-pulse text-slate-400">CARGANDO...</div>;
 
     return (
+        <>
         <div className="fixed inset-0 bg-[#f8f6f6] z-[200] flex flex-col font-display text-left">
             <header className="h-16 md:h-20 bg-white border-b flex items-center justify-between px-4 md:px-10 shrink-0">
                 <div className="flex items-center gap-3">
@@ -207,7 +222,48 @@ export default function NewOperationPage() {
                 </div>
             </main>
         </div>
-    );
+
+        {/* Modal de cancelación */}
+        {showCancelModal && (
+            <div className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md animate-in slide-in-from-bottom duration-300 p-8 space-y-6">
+                    <div className="flex items-start gap-4">
+                        <div className="size-12 bg-red-100 rounded-2xl flex items-center justify-center shrink-0">
+                            <span className="material-symbols-outlined text-red-500">warning</span>
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-black uppercase text-slate-900">¿Cancelar Misión?</h3>
+                            <p className="text-xs text-slate-500 font-bold mt-1">La orden de vuelo quedará como cancelada y no podrá reactivarse.</p>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-xs font-black uppercase text-slate-400">Motivo de cancelación (opcional)</label>
+                        <textarea
+                            rows="3"
+                            value={cancelNotes}
+                            onChange={e => setCancelNotes(e.target.value)}
+                            placeholder="Condiciones climáticas, avería técnica..."
+                            className="w-full p-4 bg-slate-50 rounded-2xl text-sm font-medium outline-none focus:ring-2 focus:ring-red-400 resize-none"
+                        />
+                    </div>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setShowCancelModal(false)}
+                            className="flex-1 py-3.5 rounded-2xl border-2 border-slate-200 text-xs font-black uppercase text-slate-500"
+                        >
+                            Volver
+                        </button>
+                        <button
+                            onClick={async () => { setShowCancelModal(false); await handleCancelMission(); }}
+                            className="flex-1 py-3.5 rounded-2xl bg-red-600 text-white text-xs font-black uppercase shadow-lg shadow-red-500/20"
+                        >
+                            Confirmar Cancelación
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+    </>;
 }
 
 function InfoBox({ label, val }) {

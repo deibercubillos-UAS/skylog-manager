@@ -35,13 +35,27 @@ export default function FinalizeFlightPage() {
         
         if (error) console.error(error);
         
-        setOpenFlights(data || []);
-        
-        // Vincular el ID que viene por URL
-        const targetId = flightIdParam || (data?.length > 0 ? data[0].id : '');
+        const flights = data || [];
+        setOpenFlights(flights);
+
+        // Vincular el ID que viene por URL (verificando que pertenezca a un vuelo abierto)
+        let targetId = '';
+        if (flightIdParam) {
+            const match = flights.find(f => f.id === flightIdParam);
+            if (match) {
+                targetId = flightIdParam;
+            } else if (flights.length > 0) {
+                // El ID de la URL no corresponde a ningún vuelo abierto de esta org
+                toast.warn('El vuelo solicitado ya fue cerrado o no existe. Selecciona uno de la lista.');
+                targetId = flights[0].id;
+            }
+        } else if (flights.length > 0) {
+            targetId = flights[0].id;
+        }
+
         if (targetId) {
             setForm(prev => ({ ...prev, flight_id: targetId }));
-            setSelectedFlight(data?.find(f => f.id === targetId));
+            setSelectedFlight(flights.find(f => f.id === targetId));
         }
         setLoading(false);
     }

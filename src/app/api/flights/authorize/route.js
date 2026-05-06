@@ -14,12 +14,15 @@ export async function GET() {
             .from('flight_authorizations')
             .select(`
                 id,mission_id,scheduled_at,location,mission_type,status,created_at,
+                pilot_id,aircraft_id,organization_id,
                 pilots:pilot_id(name, phone, id_number),
                 aircraft:aircraft_id(model, serial_number, total_hours),
                 payload:payload_id(brand, model, category, serial_number),
                 observer:observer_id(name)
             `)
             .eq('organization_id', orgId)
+            .neq('status', 'realizado')
+            .neq('status', 'cancelado')
             .order('created_at', { ascending: false })
             .limit(100);
 

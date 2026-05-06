@@ -36,7 +36,7 @@ const MATERIAL_ICONS = [
   'precision_manufacturing','progress_activity','radar','remove_circle',
   'report','report_problem','rocket_launch',
   'rule','save','search','send','settings','settings_accessibility',
-  'settings_input_component','settings_suggest','shield_check','sync',
+  'settings_input_component','settings_suggest','sync',
   'table_view','task_alt','timer','travel_explore',
   'trending_down','trending_up','upload_file',
   'verified','verified_user','visibility','visibility_off','warning',

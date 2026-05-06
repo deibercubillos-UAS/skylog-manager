@@ -837,7 +837,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
             <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mt-8 animate-in fade-in duration-500">
                 <div className="bg-slate-100 border-b border-slate-200 p-4 flex justify-between items-center px-8">
                     <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-orange-600">shield_check</span>
+                        <span className="material-symbols-outlined text-orange-600">verified_user</span>
                         <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">Análisis de Riesgos SORA</h4>
                     </div>
                     <HelpTooltip text="Vincule la evaluación JARUS SORA completada. El nivel SAIL y el documento de análisis de riesgos son exigidos por AeroCivil para la solicitud F-100." />

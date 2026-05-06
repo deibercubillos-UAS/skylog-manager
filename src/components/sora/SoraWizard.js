@@ -678,7 +678,7 @@ export default function SoraWizard({ onClose, onSaved }) {
         <div className="flex items-center justify-between px-5 md:px-8 pt-4 md:pt-7 pb-4 md:pb-5 border-b border-slate-100">
           <div className="min-w-0">
             <h3 className="text-lg md:text-xl font-black uppercase tracking-tighter text-slate-900 flex items-center gap-2">
-              <span className="material-symbols-outlined text-orange-500">shield_check</span>
+              <span className="material-symbols-outlined text-orange-500">verified_user</span>
               <span className="truncate">Evaluación SORA — JARUS v2.0</span>
             </h3>
             <p className="text-xs text-slate-400 font-medium mt-0.5">

@@ -92,7 +92,7 @@ export default function SoraPage() {
               </div>
             ) : assessments.length === 0 ? (
               <div className="py-20 text-center border-2 border-dashed border-slate-200 rounded-[2.5rem]">
-                <span className="material-symbols-outlined text-5xl text-slate-200 block mb-3">shield_check</span>
+                <span className="material-symbols-outlined text-5xl text-slate-200 block mb-3">verified_user</span>
                 <p className="text-slate-400 font-black uppercase text-xs tracking-widest">
                   No hay evaluaciones SORA registradas
                 </p>

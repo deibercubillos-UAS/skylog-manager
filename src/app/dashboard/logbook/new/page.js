@@ -263,7 +263,8 @@ export default function NewOperationPage() {
                 </div>
             </div>
         )}
-    </>;
+    </>
+    );
 }
 
 function InfoBox({ label, val }) {

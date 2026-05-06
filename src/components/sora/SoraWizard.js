@@ -45,6 +45,7 @@ export default function SoraWizard({ onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [aircraft, setAircraft] = useState([]);
   const [pilots,   setPilots]   = useState([]);
+  const [customOsos, setCustomOsos] = useState(null); // null = not loaded yet
 
   // ── Form state ────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
@@ -93,18 +94,42 @@ export default function SoraWizard({ onClose, onSaved }) {
     [initial_arc, form.strategic_m1, form.strategic_m2, form.strategic_m3]
   );
   const sail_level = useMemo(() => calcSAIL(final_grc, final_arc), [final_grc, final_arc]);
-  const osos        = useMemo(() => getOSOsForSAIL(sail_level),    [sail_level]);
+  const hardcodedOsos = useMemo(() => getOSOsForSAIL(sail_level), [sail_level]);
+
+  // OSOs a mostrar: custom si el org los definió, sino los del motor SORA
+  const osos = useMemo(() => {
+    if (customOsos === null) return hardcodedOsos; // aún cargando
+    if (customOsos.length > 0) {
+      // Items personalizados: simular misma estructura
+      return customOsos.map(item => ({
+        id: item.id,
+        label: item.label,
+        category: item.category,
+        robustness: 'O', // Opcional por defecto para items custom
+      }));
+    }
+    return hardcodedOsos; // Sin items custom → usar motor
+  }, [customOsos, hardcodedOsos]);
+
   const grcMatrix   = useMemo(() => getGRCMatrix(), []);
 
-  // ── Load aircraft + pilots ─────────────────────────────────────────────────
+  // ── Load aircraft + pilots + custom OSOs ──────────────────────────────────
   useEffect(() => {
     async function load() {
-      const [{ data: ac }, { data: pi }] = await Promise.all([
+      const [{ data: ac }, { data: pi }, soraRes] = await Promise.all([
         supabase.from('aircraft').select('id,model,serial_number').order('model'),
         supabase.from('pilots').select('id,name').order('name'),
+        fetch('/api/safety-config'),
       ]);
       setAircraft(ac || []);
       setPilots(pi   || []);
+
+      if (soraRes.ok) {
+        const soraData = await soraRes.json();
+        setCustomOsos(soraData.sora || []);
+      } else {
+        setCustomOsos([]); // fallback a hardcoded
+      }
     }
     load();
   }, []);
@@ -599,7 +624,10 @@ export default function SoraWizard({ onClose, onSaved }) {
             {/* OSO Checklist */}
             <div>
               <p className="text-xs font-black uppercase text-slate-400 tracking-widest mb-3">
-                OSOs requeridos para SAIL {sailRoman(sail_level)} — {osos.length} objetivos
+                {customOsos?.length > 0
+                  ? `Requerimientos del manual — ${osos.length} objetivos`
+                  : `OSOs requeridos para SAIL ${sailRoman(sail_level)} — ${osos.length} objetivos`
+                }
               </p>
               <div className="space-y-6 max-h-72 md:max-h-80 overflow-y-auto pr-1">
                 {Object.entries(grouped).map(([cat, items]) => (
@@ -619,10 +647,10 @@ export default function SoraWizard({ onClose, onSaved }) {
                           />
                           <div className="flex-1 min-w-0">
                             <p className={`text-xs font-black uppercase ${form.oso_checklist[oso.id] ? 'text-emerald-700 line-through opacity-60' : 'text-slate-700'}`}>
-                              {oso.id} — {oso.label}
+                              {customOsos?.length > 0 ? oso.label : `${oso.id} — ${oso.label}`}
                             </p>
                           </div>
-                          <RobustnessTag code={oso.robustness} />
+                          {customOsos?.length === 0 && <RobustnessTag code={oso.robustness} />}
                         </label>
                       ))}
                     </div>

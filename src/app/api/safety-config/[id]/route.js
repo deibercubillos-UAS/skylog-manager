@@ -13,11 +13,8 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'ID de item inválido' }, { status: 400 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type');
-
     const supabase = await createClientSSR();
-    const { user } = await getOrgContext(supabase);
+    const { user, orgId } = await getOrgContext(supabase);
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     // Verificar rol
@@ -27,10 +24,13 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Sin permisos para eliminar protocolos' }, { status: 403 });
     }
 
-    const table = type === 'checklist' ? 'checklist_templates' : 'sora_templates';
-
-    // Solo puede eliminar sus propios items
-    const { error } = await supabase.from(table).delete().eq('id', id).eq('owner_id', user.id);
+    // Eliminar de form_definitions, verificando que pertenezca al org
+    const { error } = await supabase
+      .from('form_definitions')
+      .delete()
+      .eq('id', id)
+      .eq('organization_id', orgId)
+      .eq('form_type', 'sora');
 
     if (error) throw error;
     return NextResponse.json({ message: 'Eliminado con éxito' });

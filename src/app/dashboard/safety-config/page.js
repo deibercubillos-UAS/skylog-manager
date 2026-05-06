@@ -7,9 +7,8 @@ import { toast } from '@/lib/toast';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 export default function SafetyConfigPage() {
-  const [activeTab, setActiveTab] = useState('checklist');
   const [loading, setLoading] = useState(true);
-  const [items, setItems] = useState({ checklist: [], sora: [] });
+  const [items, setItems] = useState([]);
   const [userProfile, setUserProfile] = useState(null);
   const [form, setForm] = useState({ category: '', label: '', score: 1 });
   const [confirmDlg, setConfirmDlg] = useState(null);
@@ -25,10 +24,10 @@ export default function SafetyConfigPage() {
       const profData = await profRes.json();
       setUserProfile(profData);
 
-      // 2. Cargar Protocolos
+      // 2. Cargar Análisis SORA
       const res = await fetch('/api/safety-config');
       const data = await res.json();
-      setItems(data);
+      setItems(data.sora || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -46,8 +45,8 @@ export default function SafetyConfigPage() {
     if (!canModify) return toast.error("No tienes permisos para agregar protocolos.");
 
     const payload = {
-      type: activeTab,
-      data: { category: form.category || 'General', label: form.label, ...(activeTab === 'sora' && { score: form.score }) }
+      type: 'sora',
+      data: { category: form.category || 'General', label: form.label, score: form.score }
     };
 
     const res = await fetch('/api/safety-config', {
@@ -75,7 +74,7 @@ export default function SafetyConfigPage() {
       onConfirm: async () => {
         setConfirmDlg(null);
         try {
-          const res = await fetch(`/api/safety-config/${id}?type=${activeTab}`, {
+          const res = await fetch(`/api/safety-config/${id}?type=sora`, {
             method: 'DELETE',
           });
 
@@ -98,10 +97,10 @@ export default function SafetyConfigPage() {
   return (
     <div className="max-w-6xl mx-auto text-left animate-in fade-in duration-500 pb-20">
       <ConfirmModal {...confirmDlg} onCancel={() => setConfirmDlg(null)} />
-      <header className="mb-8 flex justify-between items-end">
+      <header className="mb-10 flex justify-between items-end">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Protocolos de Seguridad</h2>
-          <p className="text-slate-500 text-sm">Estandarización de seguridad para operaciones BitaFly.</p>
+          <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Análisis SORA</h2>
+          <p className="text-slate-500 text-sm">Requerimientos de seguridad operacional para evaluación de riesgo.</p>
         </div>
         {!canModify && (
           <div className="bg-orange-50 text-[#ec5b13] px-4 py-2 rounded-xl border border-orange-100 text-xs font-black uppercase">
@@ -109,14 +108,6 @@ export default function SafetyConfigPage() {
           </div>
         )}
       </header>
-
-      <div className="flex bg-white p-1 rounded-2xl border border-slate-200 w-fit mb-10 shadow-sm">
-        {['checklist', 'sora'].map(t => (
-          <button key={t} onClick={() => setActiveTab(t)} className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === t ? 'bg-[#ec5b13] text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
-            {t === 'checklist' ? 'Checklist Pre-Vuelo' : 'Análisis SORA'}
-          </button>
-        ))}
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* FORMULARIO: Solo se muestra si tiene permisos */}
@@ -126,12 +117,10 @@ export default function SafetyConfigPage() {
               <h3 className="text-[#ec5b13] text-xs font-black uppercase tracking-[0.2em] border-b border-white/10 pb-4">Nuevo Requerimiento</h3>
               <input required className="w-full bg-slate-800 border-none rounded-xl p-4 text-sm font-bold outline-none" placeholder="Grupo (Ej: Motores)" value={form.category} onChange={e => setForm({...form, category: e.target.value})} />
               <textarea required rows="3" className="w-full bg-slate-800 border-none rounded-xl p-4 text-sm outline-none" placeholder="Descripción del punto..." value={form.label} onChange={e => setForm({...form, label: e.target.value})} />
-              {activeTab === 'sora' && (
-                <div className="space-y-1">
-                  <label className="text-xs font-black text-slate-500 uppercase ml-1">Puntaje SAIL</label>
-                  <input type="number" min="1" max="10" className="w-full bg-slate-800 border-none rounded-xl p-4 text-sm font-black" value={form.score} onChange={e => setForm({...form, score: e.target.value})} />
-                </div>
-              )}
+              <div className="space-y-1">
+                <label className="text-xs font-black text-slate-500 uppercase ml-1">Puntaje SAIL</label>
+                <input type="number" min="1" max="10" className="w-full bg-slate-800 border-none rounded-xl p-4 text-sm font-black" value={form.score} onChange={e => setForm({...form, score: e.target.value})} />
+              </div>
               <button type="submit" className="w-full bg-[#ec5b13] py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all">Añadir al Protocolo</button>
             </form>
           ) : (
@@ -147,7 +136,7 @@ export default function SafetyConfigPage() {
           <div className="bg-white border border-slate-200 rounded-[2.5rem] p-10 shadow-sm min-h-[400px]">
             <div className="space-y-10">
               {Object.entries(
-                (activeTab === 'checklist' ? items.checklist : items.sora).reduce((acc, curr) => {
+                items.reduce((acc, curr) => {
                   if (!acc[curr.category]) acc[curr.category] = [];
                   acc[curr.category].push(curr);
                   return acc;

@@ -179,9 +179,12 @@ const footerLinks = footerLinksAll.filter(link =>
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
 
-        {/* MARCA / LOGO */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/5 shrink-0">
-          <div className="size-9 bg-orange-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-orange-600/30">
+        {/* MARCA / LOGO — clic navega a Mi Perfil */}
+        <Link
+          href="/dashboard/settings/profile"
+          className="flex items-center gap-3 px-5 py-4 border-b border-white/5 shrink-0 hover:bg-white/5 transition-colors group"
+        >
+          <div className="size-9 bg-orange-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-orange-600/30 group-hover:bg-orange-500 transition-colors">
             <span className="material-symbols-outlined text-white text-lg">flight</span>
           </div>
           <div className="min-w-0">
@@ -190,7 +193,7 @@ const footerLinks = footerLinksAll.filter(link =>
               {data.org?.company_name || 'Mi Organización'}
             </p>
           </div>
-        </div>
+        </Link>
 
         {/* BLOQUE DE ESTATUS */}
         <div className="mx-3 mt-3 p-3 bg-white/5 rounded-xl border border-white/10 flex items-center justify-between gap-2 shrink-0">

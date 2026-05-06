@@ -1,92 +1,261 @@
-﻿import { createClient } from '@/utils/supabase/server';
-import { redirect } from 'next/navigation';
-import { Suspense } from 'react';
-import PilotsClient from './PilotsClient';
+'use client';
+import { useState, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
-export const dynamic = 'force-dynamic';
+const AddPilotPanel  = dynamic(() => import('@/components/AddPilotPanel'),  { ssr: false });
+const EditPilotPanel = dynamic(() => import('@/components/EditPilotPanel'), { ssr: false });
 
-// Skeleton de la tabla mientras se hace fetch a pilots (cubre el LCP)
-function TableSkeleton({ orgName, canManage }) {
-  return (
-    <>
-      <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-navy uppercase tracking-tighter">
-            Tripulación: {orgName}
-          </h1>
-          <p className="text-gray-400 text-xs font-black uppercase">Cargando miembros...</p>
-        </div>
-        {canManage && (
-          <div className="h-12 w-44 bg-slate-100 rounded-xl animate-pulse" />
-        )}
-      </header>
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
-        <div className="h-14 bg-gray-50 border-b border-gray-100" />
-        <div className="divide-y divide-gray-50">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-20 bg-white" />
-          ))}
-        </div>
-      </div>
-    </>
-  );
-}
+export default function PilotsPage() {
+  const router      = useRouter();
+  const menuRef     = useRef(null);
+  const [pilots,        setPilots]        = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [userRole,      setUserRole]      = useState(null);
+  const [orgName,       setOrgName]       = useState('');
+  const [orgId,         setOrgId]         = useState(null);
+  const [showAddPanel,  setShowAddPanel]  = useState(false);
+  const [editingPilot,  setEditingPilot]  = useState(null);
+  const [openMenuId,    setOpenMenuId]    = useState(null);
 
-// Componente async que sí espera por los pilots (corre en paralelo al header)
-async function PilotsTable({ orgId, orgName, userRole }) {
-  const supabase = createClient();
+  // ── Cerrar menú al click fuera ──────────────────────────────────────────
+  useEffect(() => {
+    const handle = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setOpenMenuId(null);
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, []);
 
-  const { data: pilots } = await supabase
-    .from('pilots')
-    .select('*')
-    .eq('organization_id', orgId)
-    .order('name', { ascending: true });
+  // ── Carga de datos ─────────────────────────────────────────────────────
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { window.location.href = '/login'; return; }
 
-  const initialData = {
-    pilots:
-      pilots?.map((p) => ({
-        ...p,
-        full_name: p.name,
-        role: p.position || 'Piloto',
-      })) || [],
-    organization: { company_name: orgName },
-    userRole,
-    organizationId: orgId,
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('organization_id, role')
+        .eq('id', session.user.id)
+        .single();
+
+      if (!prof?.organization_id) { window.location.href = '/login'; return; }
+
+      setUserRole(prof.role);
+      setOrgId(prof.organization_id);
+
+      const [pilotsRes, orgRes] = await Promise.all([
+        supabase
+          .from('pilots')
+          .select('*')
+          .eq('organization_id', prof.organization_id)
+          .order('name', { ascending: true }),
+        supabase
+          .from('organizations')
+          .select('company_name')
+          .eq('id', prof.organization_id)
+          .single(),
+      ]);
+
+      setPilots(pilotsRes.data || []);
+      setOrgName(orgRes.data?.company_name || 'Mi Organización');
+    } catch (err) {
+      console.error('Error cargando tripulación:', err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return <PilotsClient initialData={initialData} />;
-}
+  useEffect(() => { loadData(); }, []);
 
-export default async function PilotsPage() {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  const canManage = ['superadmin', 'admin', 'jefe_pilotos'].includes(userRole);
+  const canEditMedical = ['superadmin', 'admin', 'jefe_pilotos'].includes(userRole);
 
-  // OPTIMIZACIÓN 1: una sola query trae perfil + organización (antes eran 2 round trips)
-  const { data: prof } = await supabase
-    .from('profiles')
-    .select('organization_id, role, organizations(company_name)')
-    .eq('id', user.id)
-    .single();
+  const handleDelete = async (pilot) => {
+    setOpenMenuId(null);
+    if (!confirm(`¿Eliminar a ${pilot.name}? Esta acción es irreversible.`)) return;
+    try {
+      const { error } = await supabase.from('pilots').delete().eq('id', pilot.id);
+      if (error) throw error;
+      setPilots(prev => prev.filter(p => p.id !== pilot.id));
+    } catch (err) {
+      alert('⚠️ No se pudo eliminar: ' + err.message);
+    }
+  };
 
-  if (!prof?.organization_id) redirect('/login');
+  const handleEdit = (pilot) => {
+    setOpenMenuId(null);
+    setEditingPilot(pilot);
+  };
 
-  const orgName = prof.organizations?.company_name || 'Bitafly Corp';
-  const canManage = ['superadmin', 'admin', 'jefe_pilotos'].includes(prof.role);
+  // ── Helpers de estado médico ───────────────────────────────────────────
+  const medicalStatus = (expiry) => {
+    if (!expiry) return null;
+    const diff = (new Date(expiry) - new Date()) / (1000 * 60 * 60 * 24);
+    if (diff < 0)  return { color: 'bg-red-100 text-red-600 border-red-200',       label: 'VENCIDO' };
+    if (diff < 30) return { color: 'bg-orange-100 text-orange-600 border-orange-200', label: `Vence en ${Math.round(diff)}d` };
+    return           { color: 'bg-emerald-100 text-emerald-600 border-emerald-200',  label: 'Vigente' };
+  };
 
-  // OPTIMIZACIÓN 3: el shell (con el H1) sale al cliente INMEDIATAMENTE.
-  // La tabla se streamea cuando esté lista vía Suspense → mejora LCP drásticamente.
+  if (loading) return (
+    <div className="p-20 text-center font-black animate-pulse text-slate-300 uppercase tracking-widest text-xs">
+      Cargando tripulación...
+    </div>
+  );
+
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <Suspense fallback={<TableSkeleton orgName={orgName} canManage={canManage} />}>
-        <PilotsTable
-          orgId={prof.organization_id}
-          orgName={orgName}
-          userRole={prof.role}
+    <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500 text-left pb-20">
+
+      {/* Header */}
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-slate-200 pb-5">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter">Tripulación</h2>
+          <p className="text-slate-400 text-xs font-black uppercase mt-1">{orgName} · {pilots.length} miembros</p>
+        </div>
+        {canManage && (
+          <button
+            onClick={() => setShowAddPanel(true)}
+            className="flex items-center gap-2 bg-orange-600 hover:bg-slate-900 text-white px-5 py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/20 transition-all active:scale-95"
+          >
+            <span className="material-symbols-outlined text-sm">person_add</span>
+            Registrar Miembro
+          </button>
+        )}
+      </header>
+
+      {/* Lista — Mobile cards */}
+      <div className="md:hidden divide-y divide-slate-100 bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        {pilots.length === 0 ? (
+          <div className="py-16 text-center">
+            <span className="material-symbols-outlined text-5xl text-slate-200 block mb-3">group</span>
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Sin pilotos registrados</p>
+          </div>
+        ) : pilots.map(p => {
+          const ms = medicalStatus(p.medical_expiry);
+          return (
+            <div key={p.id} className="p-4 flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="size-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-slate-400 text-xl">person</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-black text-slate-900 truncate">{p.name}</p>
+                  <p className="text-xs text-slate-400 font-bold uppercase truncate">{p.pilot_role || p.position || 'Piloto'}</p>
+                  {ms && (
+                    <span className={`inline-block mt-1 px-2 py-0.5 rounded-lg text-xs font-black border ${ms.color}`}>
+                      {ms.label}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {canManage && (
+                <div className="flex gap-1.5 shrink-0">
+                  <button
+                    onClick={() => handleEdit(p)}
+                    className="size-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 active:scale-95 transition-all"
+                  >
+                    <span className="material-symbols-outlined text-base">edit</span>
+                  </button>
+                  <button
+                    onClick={() => handleDelete(p)}
+                    className="size-9 flex items-center justify-center rounded-xl bg-red-50 text-red-400 active:scale-95 transition-all"
+                  >
+                    <span className="material-symbols-outlined text-base">delete</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Lista — Desktop table */}
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        {pilots.length === 0 ? (
+          <div className="py-20 text-center">
+            <span className="material-symbols-outlined text-5xl text-slate-200 block mb-3">group</span>
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Sin pilotos registrados</p>
+          </div>
+        ) : (
+          <table className="w-full text-left">
+            <thead className="bg-slate-50 border-b border-slate-100">
+              <tr className="text-xs font-black uppercase text-slate-400 tracking-widest">
+                <th className="px-6 py-4">Nombre</th>
+                <th className="px-6 py-4">Rol / Habilitaciones</th>
+                <th className="px-6 py-4">Licencia</th>
+                <th className="px-6 py-4">Estado Médico</th>
+                {canManage && <th className="px-6 py-4 text-right">Acciones</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {pilots.map(p => {
+                const ms = medicalStatus(p.medical_expiry);
+                return (
+                  <tr key={p.id} className="hover:bg-orange-50/30 transition-colors text-sm">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="size-9 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-slate-400 text-lg">person</span>
+                        </div>
+                        <div>
+                          <p className="font-black text-slate-900 text-sm">{p.name}</p>
+                          {p.email && <p className="text-xs text-slate-400">{p.email}</p>}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-bold text-slate-600 uppercase">{p.pilot_role || p.position || '—'}</td>
+                    <td className="px-6 py-4 font-mono text-xs text-slate-500">{p.license_number || '—'}</td>
+                    <td className="px-6 py-4">
+                      {ms ? (
+                        <span className={`px-2.5 py-1 rounded-xl text-xs font-black border ${ms.color}`}>{ms.label}</span>
+                      ) : (
+                        <span className="text-slate-300 text-xs">—</span>
+                      )}
+                    </td>
+                    {canManage && (
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleEdit(p)}
+                            className="size-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-orange-50 hover:text-orange-600 active:scale-95 transition-all"
+                          >
+                            <span className="material-symbols-outlined text-base">edit</span>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(p)}
+                            className="size-9 flex items-center justify-center rounded-xl bg-slate-100 text-red-400 hover:bg-red-50 active:scale-95 transition-all"
+                          >
+                            <span className="material-symbols-outlined text-base">delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Paneles */}
+      {showAddPanel && (
+        <AddPilotPanel
+          onClose={() => setShowAddPanel(false)}
+          onSuccess={() => { setShowAddPanel(false); loadData(); }}
         />
-      </Suspense>
+      )}
+      {editingPilot && (
+        <EditPilotPanel
+          pilot={editingPilot}
+          userRole={userRole}
+          canEditMedical={canEditMedical}
+          onClose={() => setEditingPilot(null)}
+          onSuccess={() => { setEditingPilot(null); loadData(); }}
+        />
+      )}
     </div>
   );
 }

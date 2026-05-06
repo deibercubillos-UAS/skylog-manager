@@ -1,50 +1,87 @@
-﻿'use client';
+'use client';
 import Link from 'next/link';
 
+const SAFETY_MODULES = [
+  {
+    href:  '/dashboard/sora',
+    icon:  'radar',
+    title: 'Análisis SORA',
+    desc:  'Evaluación de riesgos operacionales — Metodología JARUS v2.0',
+    color: 'bg-orange-50 border-orange-200 text-orange-600',
+    available: true,
+  },
+  {
+    href:  '/dashboard/safety-config',
+    icon:  'settings_input_component',
+    title: 'Formato SORA / Barreras',
+    desc:  'Configura plantillas de evaluación, barreras de seguridad y categorías de riesgo',
+    color: 'bg-blue-50 border-blue-200 text-blue-600',
+    available: true,
+  },
+  {
+    href:  '/dashboard/sms',
+    icon:  'report_problem',
+    title: 'Reportes SMS',
+    desc:  'Sistema de gestión de seguridad operacional — reporte de incidentes',
+    color: 'bg-amber-50 border-amber-200 text-amber-600',
+    available: false,
+  },
+  {
+    href:  '#',
+    icon:  'map',
+    title: 'Mapas de Restricción',
+    desc:  'Zonas de exclusión aérea, TFRs y espacio aéreo controlado',
+    color: 'bg-emerald-50 border-emerald-200 text-emerald-600',
+    available: false,
+  },
+];
+
 export default function SafetyPage() {
-    return (
-        <div className="h-full flex flex-col items-center justify-center text-center p-10 animate-in fade-in zoom-in duration-700">
-            {/* ICONO INDUSTRIAL */}
-            <div className="relative mb-8">
-                <div className="size-24 bg-orange-100 rounded-[2.5rem] flex items-center justify-center text-orange-600 shadow-lg shadow-orange-500/10">
-                    <span className="material-symbols-outlined text-6xl">engineering</span>
-                </div>
-                <div className="absolute -bottom-2 -right-2 size-10 bg-slate-900 rounded-2xl flex items-center justify-center text-white border-4 border-[#f8f6f6]">
-                    <span className="material-symbols-outlined text-sm animate-spin">sync</span>
-                </div>
-            </div>
+  return (
+    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 text-left pb-20">
 
-            {/* TEXTO DE ESTADO */}
-            <div className="max-w-md space-y-4">
-                <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900 leading-tight">
-                    Seguridad Operacional <br/>
-                    <span className="text-orange-600">en Desarrollo</span>
-                </h2>
-                <p className="text-slate-500 text-sm font-medium leading-relaxed uppercase tracking-widest text-xs">
-                    Estamos construyendo el motor de gestión de riesgos (SMS) más potente del mercado. <br/>
-                    <span className="font-black">Próximas capacidades:</span>
-                </p>
-                
-                {/* LISTA DE FUNCIONES FUTURAS */}
-                <div className="grid grid-cols-1 gap-2 pt-6">
-                    <FeatureTag icon="analytics" text="Análisis de Riesgos SORA" />
-                    <FeatureTag icon="report_problem" text="Reporte de Incidentes SMS" />
-                    <FeatureTag icon="radar" text="Mapas de Restricción de Vuelo" />
-                </div>
-            </div>
+      {/* Header */}
+      <header className="border-b border-slate-200 pb-5">
+        <h2 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter">
+          Seguridad Operacional
+        </h2>
+        <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">
+          SMS Aeronáutico · RAC 100 · JARUS v2.0
+        </p>
+      </header>
 
-            <Link href="/dashboard" className="mt-12 px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-orange-600 transition-all active:scale-95">
-                Volver al Centro de Mando
+      {/* Módulos */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {SAFETY_MODULES.map(m => (
+          m.available ? (
+            <Link key={m.href} href={m.href}
+              className="flex items-start gap-4 p-5 bg-white border border-slate-200 rounded-[2rem] hover:border-orange-300 hover:shadow-md transition-all group active:scale-[0.99]">
+              <div className={`size-12 rounded-2xl flex items-center justify-center border shrink-0 ${m.color} group-hover:scale-110 transition-transform`}>
+                <span className="material-symbols-outlined text-xl">{m.icon}</span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-black text-slate-900 uppercase tracking-tight group-hover:text-orange-600 transition-colors">{m.title}</p>
+                <p className="text-xs text-slate-500 font-medium mt-1 leading-snug">{m.desc}</p>
+              </div>
+              <span className="material-symbols-outlined text-slate-300 group-hover:text-orange-400 transition-colors text-xl shrink-0 mt-0.5">chevron_right</span>
             </Link>
-        </div>
-    );
-}
-
-function FeatureTag({ icon, text }) {
-    return (
-        <div className="flex items-center gap-3 bg-white border border-slate-100 p-3 rounded-2xl shadow-sm opacity-60">
-            <span className="material-symbols-outlined text-orange-500 text-base">{icon}</span>
-            <span className="text-xs font-black text-slate-700 uppercase">{text}</span>
-        </div>
-    );
+          ) : (
+            <div key={m.title}
+              className="flex items-start gap-4 p-5 bg-slate-50 border border-slate-100 rounded-[2rem] opacity-50 cursor-not-allowed">
+              <div className={`size-12 rounded-2xl flex items-center justify-center border shrink-0 ${m.color}`}>
+                <span className="material-symbols-outlined text-xl">{m.icon}</span>
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-black text-slate-700 uppercase tracking-tight">{m.title}</p>
+                  <span className="px-2 py-0.5 bg-slate-200 text-slate-500 rounded-full text-xs font-black uppercase">Pronto</span>
+                </div>
+                <p className="text-xs text-slate-400 font-medium mt-1 leading-snug">{m.desc}</p>
+              </div>
+            </div>
+          )
+        ))}
+      </div>
+    </div>
+  );
 }

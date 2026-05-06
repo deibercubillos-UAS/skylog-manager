@@ -58,7 +58,7 @@ export default function EditBatteryPanel({ battery, onClose, onSuccess }) {
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
-        <form onSubmit={handleUpdate} className="space-y-4">
+        <form id="edit-battery-form" onSubmit={handleUpdate} className="space-y-4">
           <input required className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-sm" value={form.brand} onChange={e => setForm({...form, brand: e.target.value})} placeholder="Marca" />
           <input required className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-sm" value={form.model} onChange={e => setForm({...form, model: e.target.value})} placeholder="Modelo" />
           <input required className="w-full p-3 bg-slate-50 rounded-xl border-none font-mono text-sm uppercase" value={form.serial_number} onChange={e => setForm({...form, serial_number: e.target.value})} placeholder="Serial Number" />
@@ -79,11 +79,15 @@ export default function EditBatteryPanel({ battery, onClose, onSuccess }) {
             <option value="En Mantenimiento">En Mantenimiento</option>
             <option value="Fuera de Servicio">Fuera de Servicio</option>
           </select>
-
-          <button disabled={loading} className="w-full py-4 bg-slate-900 text-white font-black rounded-xl uppercase text-xs shadow-lg disabled:opacity-60 active:scale-95 transition-all">
-            {loading ? 'Actualizando...' : 'GUARDAR CAMBIOS'}
-          </button>
         </form>
+      </div>
+
+      {/* Footer fijo — botón siempre visible */}
+      <div className="shrink-0 px-6 py-4 border-t border-slate-100 bg-white">
+        <button form="edit-battery-form" type="submit" disabled={loading}
+          className="w-full py-4 bg-slate-900 text-white font-black rounded-xl uppercase text-xs shadow-lg disabled:opacity-60 active:scale-95 transition-all">
+          {loading ? 'Actualizando...' : 'GUARDAR CAMBIOS'}
+        </button>
       </div>
     </aside>
   );

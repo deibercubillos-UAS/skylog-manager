@@ -1,9 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { supabase } from '@/lib/supabase';
-import Link from 'next/link';
 import { sailRoman, sailColor } from '@/lib/soraEngine';
 
 const SoraWizard = dynamic(() => import('@/components/sora/SoraWizard'), { ssr: false });
@@ -38,15 +36,9 @@ function GrcBadge({ value }) {
 }
 
 export default function SoraPage() {
-  const [tab,        setTab]        = useState('assessments');
   const [showWizard, setShowWizard] = useState(false);
-
   const [assessments, setAssessments] = useState([]);
   const [loadingA,    setLoadingA]    = useState(true);
-
-  const [templates, setTemplates] = useState([]);
-  const [checked,   setChecked]   = useState({});
-  const [loadingC,  setLoadingC]  = useState(false);
 
   const loadAssessments = async () => {
     setLoadingA(true);
@@ -58,42 +50,11 @@ export default function SoraPage() {
     finally  { setLoadingA(false); }
   };
 
-  const loadChecklist = async () => {
-    setLoadingC(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const res  = await fetch(`/api/sora?userId=${session.user.id}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` },
-      });
-      const data = await res.json();
-      setTemplates(Array.isArray(data) ? data : []);
-    } catch { setTemplates([]); }
-    finally  { setLoadingC(false); }
-  };
-
   useEffect(() => { loadAssessments(); }, []);
-  useEffect(() => {
-    if (tab === 'checklist' && templates.length === 0) loadChecklist();
-  }, [tab]);
-
-  const grouped      = useMemo(() => templates.reduce((acc, item) => {
-    if (!acc[item.category]) acc[item.category] = [];
-    acc[item.category].push(item);
-    return acc;
-  }, {}), [templates]);
-  const totalItems   = templates.length;
-  const checkedItems = Object.values(checked).filter(Boolean).length;
-  const progress     = totalItems > 0 ? Math.round((checkedItems / totalItems) * 100) : 0;
 
   const fmtDate = d => d
     ? new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
     : '—';
-
-  const TABS = [
-    { key: 'assessments', label: 'Evaluaciones SORA', icon: 'shield_check' },
-    { key: 'checklist',   label: 'Verificación',       icon: 'checklist'    },
-  ];
 
   return (
     <>
@@ -114,41 +75,17 @@ export default function SoraPage() {
               Metodología JARUS v2.0 · Cumplimiento RAC 100
             </p>
           </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Link
-              href="/dashboard/safety-config"
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-black text-xs uppercase hover:bg-slate-200 transition-colors active:scale-95"
-            >
-              <span className="material-symbols-outlined text-sm">settings</span>
-              Barreras
-            </Link>
-            <button
-              onClick={() => setShowWizard(true)}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-orange-600 hover:bg-slate-900 text-white px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-orange-500/20 active:scale-95"
-            >
-              <span className="material-symbols-outlined text-sm">add_circle</span>
-              Nueva Evaluación
-            </button>
-          </div>
+          <button
+            onClick={() => setShowWizard(true)}
+            className="flex items-center justify-center gap-2 bg-orange-600 hover:bg-slate-900 text-white px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-orange-500/20 active:scale-95 w-full sm:w-auto"
+          >
+            <span className="material-symbols-outlined text-sm">add_circle</span>
+            Nueva Evaluación
+          </button>
         </header>
 
-        {/* ── Tabs ───────────────────────────────────────────── */}
-        <div className="flex bg-slate-100 p-1 rounded-2xl">
-          {TABS.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              className={`flex-1 sm:flex-none sm:px-6 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${
-                tab === t.key ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              <span className="material-symbols-outlined text-sm">{t.icon}</span>
-              <span className="hidden xs:inline">{t.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* ══ TAB: Assessments ══════════════════════════════════ */}
-        {tab === 'assessments' && (
-          <div className="space-y-4">
+        {/* ══ Evaluaciones SORA ════════════════════════════════ */}
+        <div className="space-y-4">
             {loadingA ? (
               <div className="py-16 text-center text-slate-300 font-black text-xs uppercase animate-pulse tracking-widest">
                 Cargando evaluaciones...
@@ -252,81 +189,8 @@ export default function SoraPage() {
                 </div>
               </div>
             )}
-          </div>
-        )}
+        </div>
 
-        {/* ══ TAB: Checklist ═══════════════════════════════════ */}
-        {tab === 'checklist' && (
-          <div className="space-y-8">
-            {/* Progress monitor */}
-            <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-6 md:gap-8">
-              <div className="size-24 rounded-full border-8 border-slate-100 flex items-center justify-center relative shrink-0">
-                <svg className="size-full -rotate-90 absolute" viewBox="0 0 96 96">
-                  <circle cx="48" cy="48" r="40" fill="none" stroke="#ec5b13" strokeWidth="8"
-                    strokeDasharray="251" strokeDashoffset={251 - (251 * progress) / 100}
-                    className="transition-all duration-1000"
-                  />
-                </svg>
-                <span className="text-xl font-black text-slate-900">{progress}%</span>
-              </div>
-              <div className="flex-1 text-center sm:text-left">
-                <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Estado de Mitigaciones</h3>
-                <p className="text-sm text-slate-500 font-medium">
-                  {progress < 100
-                    ? `Faltan ${totalItems - checkedItems} barreras por validar.`
-                    : 'Todas las mitigaciones validadas exitosamente.'}
-                </p>
-              </div>
-              {progress === 100 && (
-                <div className="bg-emerald-500 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase shadow-lg shadow-emerald-500/20 animate-bounce shrink-0">
-                  Operación Autorizada
-                </div>
-              )}
-            </div>
-
-            {loadingC ? (
-              <div className="py-8 text-center text-slate-300 font-black text-xs uppercase animate-pulse">
-                Cargando lista de verificación...
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-                {Object.keys(grouped).map(cat => (
-                  <div key={cat} className="space-y-3">
-                    <h4 className="text-xs font-black uppercase text-orange-500 tracking-[0.3em] ml-2">{cat}</h4>
-                    <div className="space-y-2">
-                      {grouped[cat].map(item => (
-                        <label key={item.id} className={`flex items-center justify-between p-4 bg-white border rounded-2xl transition-all cursor-pointer ${
-                          checked[item.id]
-                            ? 'border-emerald-500 ring-4 ring-emerald-500/5 bg-emerald-50/30'
-                            : 'border-slate-200 hover:border-slate-400'
-                        }`}>
-                          <div className="text-left pr-4">
-                            <p className={`text-xs font-bold ${checked[item.id] ? 'text-emerald-700' : 'text-slate-700'}`}>{item.label}</p>
-                            <p className="text-xs font-black text-slate-400 uppercase mt-0.5">Impacto: {item.score} pts</p>
-                          </div>
-                          <input
-                            type="checkbox"
-                            className="size-6 rounded-lg text-orange-500 border-slate-300 focus:ring-0 cursor-pointer shrink-0"
-                            onChange={e => setChecked({ ...checked, [item.id]: e.target.checked })}
-                          />
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                {templates.length === 0 && (
-                  <div className="col-span-full py-20 text-center border-2 border-dashed border-slate-200 rounded-[2.5rem]">
-                    <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">No hay barreras configuradas</p>
-                    <Link href="/dashboard/safety-config"
-                      className="text-orange-500 text-xs font-black underline mt-2 block uppercase">
-                      Definir barreras ahora
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </>
   );

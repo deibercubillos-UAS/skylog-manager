@@ -192,19 +192,33 @@ export default function SubscriptionPage() {
 }
 
 function Meter({ label, current, limit }) {
-  const pct = Math.min((current / Math.max(limit, 1)) * 100, 100);
-  const color = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-orange-400' : 'bg-primary';
+  const isUnlimited = limit >= 999;
+  const pct   = isUnlimited ? 0 : Math.min((current / Math.max(limit, 1)) * 100, 100);
+  const color = (!isUnlimited && pct >= 90) ? 'bg-red-500' : pct >= 70 ? 'bg-orange-400' : 'bg-primary';
+
   return (
     <div className="space-y-3">
-      <div className="flex justify-between items-end">
+      <div className="flex justify-between items-center">
         <span className="text-xs font-black uppercase text-slate-600">{label}</span>
-        <span className="text-sm font-black text-slate-900">
-          {current} / {limit >= 999 ? '∞' : limit}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-black text-slate-900">{current}</span>
+          <span className="text-sm text-slate-400 font-bold">/</span>
+          {isUnlimited ? (
+            <span className="text-xl font-black text-emerald-500 leading-none">∞</span>
+          ) : (
+            <span className="text-sm font-black text-slate-900">{limit}</span>
+          )}
+        </div>
       </div>
-      <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-        <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${pct}%` }} />
-      </div>
+      {isUnlimited ? (
+        <div className="w-full h-3 bg-emerald-100 rounded-full overflow-hidden flex items-center justify-center">
+          <div className="w-full h-full bg-emerald-400/30 rounded-full" />
+        </div>
+      ) : (
+        <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+          <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${pct}%` }} />
+        </div>
+      )}
     </div>
   );
 }

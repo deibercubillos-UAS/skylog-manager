@@ -12,7 +12,7 @@ const AEROCIVIL_ADDITIONS = [
     "INSTRUCTOR DE VUELO UAS EN NOCTURNAS", "INSTRUCTOR DE VUELO UAS EN BVLOS"
 ];
 
-export default function EditPilotPanel({ pilot, onClose, onSuccess }) {
+export default function EditPilotPanel({ pilot, onClose, onSuccess, canEditMedical = false }) {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ ...pilot });
 
@@ -73,7 +73,7 @@ export default function EditPilotPanel({ pilot, onClose, onSuccess }) {
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
-        <form onSubmit={handleUpdate} className="space-y-6 pb-4">
+        <form id="edit-pilot-form" onSubmit={handleUpdate} className="space-y-6 pb-4">
 
           {/* 01. IDENTIDAD (BLOQUEADA) */}
           <div className="space-y-3 opacity-70">
@@ -104,10 +104,27 @@ export default function EditPilotPanel({ pilot, onClose, onSuccess }) {
               <label className="text-xs font-black text-slate-400 uppercase ml-1">Número CIPU</label>
               <input required className="w-full p-3 bg-white border-2 border-orange-100 rounded-xl font-black text-orange-600 uppercase text-sm mt-1" value={form.license_number || ''} onChange={e => setForm({...form, license_number: e.target.value})} />
             </div>
-            <div>
-              <label className="text-xs font-black text-slate-400 uppercase ml-1">Fecha Vence Médico</label>
-              <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-sm mt-1" value={form.medical_expiry || ''} onChange={e => setForm({...form, medical_expiry: e.target.value})} />
+
+            {/* Médico: solo editable por jefe_pilotos y superiores */}
+            <div className={!canEditMedical ? 'opacity-60' : ''}>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-black text-slate-400 uppercase ml-1">Fecha Vence Médico</label>
+                {!canEditMedical && (
+                  <span className="flex items-center gap-1 text-xs font-black text-slate-400 uppercase">
+                    <span className="material-symbols-outlined text-sm">lock</span>
+                    Solo Jefe de Pilotos
+                  </span>
+                )}
+              </div>
+              <input
+                type="date"
+                disabled={!canEditMedical}
+                className={`w-full p-3 rounded-xl border-none font-bold text-sm mt-0.5 ${canEditMedical ? 'bg-slate-50' : 'bg-slate-100 cursor-not-allowed text-slate-400'}`}
+                value={form.medical_expiry || ''}
+                onChange={e => canEditMedical && setForm({...form, medical_expiry: e.target.value})}
+              />
             </div>
+
             <select className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-sm text-orange-600 outline-none" value={form.pilot_role || 'Piloto'} onChange={e => setForm({...form, pilot_role: e.target.value})}>
               <option value="Piloto">Piloto Estándar</option>
               <option value="Jefe de Pilotos">Jefe de Pilotos</option>
@@ -144,10 +161,15 @@ export default function EditPilotPanel({ pilot, onClose, onSuccess }) {
             <input className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-sm" placeholder="Teléfono" value={form.emergency_contact_phone || ''} onChange={e => setForm({...form, emergency_contact_phone: e.target.value})} />
           </div>
 
-          <button disabled={loading} type="submit" className="w-full py-4 bg-slate-900 text-white font-black rounded-xl shadow-lg uppercase text-xs tracking-widest hover:bg-orange-600 transition-all active:scale-95 disabled:opacity-60">
-            {loading ? 'SINCRONIZANDO...' : 'ACTUALIZAR EXPEDIENTE'}
-          </button>
         </form>
+      </div>
+
+      {/* Footer fijo — botón siempre visible */}
+      <div className="shrink-0 px-6 py-4 border-t border-slate-100 bg-white">
+        <button form="edit-pilot-form" type="submit" disabled={loading}
+          className="w-full py-4 bg-slate-900 text-white font-black rounded-xl shadow-lg uppercase text-xs tracking-widest hover:bg-orange-600 transition-all active:scale-95 disabled:opacity-60">
+          {loading ? 'SINCRONIZANDO...' : 'ACTUALIZAR EXPEDIENTE'}
+        </button>
       </div>
     </aside>
   );

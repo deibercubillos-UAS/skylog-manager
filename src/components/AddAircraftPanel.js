@@ -64,7 +64,7 @@ export default function AddAircraftPanel({ onClose, onSuccess }) {
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form id="add-aircraft-form" onSubmit={handleSubmit} className="space-y-5">
           <FileUpload path="fleet/drones" label="Fotografía de Identificación"
             onUploadSuccess={(url) => setForm({ ...form, image_url: url })} />
 
@@ -103,12 +103,15 @@ export default function AddAircraftPanel({ onClose, onSuccess }) {
                 placeholder="0.00" onChange={e => setForm({ ...form, last_maintenance_hours: e.target.value })} />
             </div>
           </div>
-
-          <button disabled={loading}
-            className="w-full py-4 bg-orange-600 hover:bg-orange-700 text-white font-black rounded-xl uppercase text-xs shadow-lg transition-all active:scale-95 disabled:opacity-60">
-            {loading ? 'Sincronizando...' : 'FINALIZAR INSCRIPCIÓN'}
-          </button>
         </form>
+      </div>
+
+      {/* Footer fijo — botón siempre visible */}
+      <div className="shrink-0 px-6 py-4 border-t border-slate-100 bg-white">
+        <button form="add-aircraft-form" type="submit" disabled={loading}
+          className="w-full py-4 bg-orange-600 hover:bg-orange-700 text-white font-black rounded-xl uppercase text-xs shadow-lg transition-all active:scale-95 disabled:opacity-60">
+          {loading ? 'Sincronizando...' : 'FINALIZAR INSCRIPCIÓN'}
+        </button>
       </div>
     </aside>
   );

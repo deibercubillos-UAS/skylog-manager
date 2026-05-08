@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request) {
     try {
         const { searchParams } = new URL(request.url);
-        const limit  = Math.min(parseInt(searchParams.get('limit')  || '200'), 500);
+        const limit  = Math.min(parseInt(searchParams.get('limit')  || '30'), 500);
         const offset = parseInt(searchParams.get('offset') || '0');
 
         const supabase = await createClientSSR();

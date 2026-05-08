@@ -11,15 +11,22 @@ export default function ProfilePage() {
     // REEMPLACE EL BLOQUE useEffect (Líneas 10 a 18 aprox) POR ESTE:
 useEffect(() => {
     async function loadFullProfile() {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        // Traemos Perfil y Organización en una sola carga
-        const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        setProfile(prof);
+        // getSession() es local (sin roundtrip de red), más rápido que getUser()
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { window.location.href = '/login'; return; }
+
+        // Perfil y organización en paralelo: primero el perfil, luego ambas queries a la vez
+        const { data: prof } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
 
         if (prof?.organization_id) {
-            const { data: orgData } = await supabase.from('organizations').select('company_name, unique_code').eq('id', prof.organization_id).single();
-            setProfile(prev => ({ ...prev, company_name: orgData?.company_name, unique_code: orgData?.unique_code }));
+            const { data: orgData } = await supabase
+                .from('organizations')
+                .select('company_name, unique_code')
+                .eq('id', prof.organization_id)
+                .single();
+            setProfile({ ...prof, company_name: orgData?.company_name, unique_code: orgData?.unique_code });
+        } else {
+            setProfile(prof);
         }
         setLoading(false);
     }

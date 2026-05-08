@@ -34,18 +34,24 @@ const [confirmDlg, setConfirmDlg] = useState(null);
 
 useEffect(() => {
     async function loadOrgData() {
-        const { data: { user } } = await supabase.auth.getUser();
-        const { data: prof } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).single();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { window.location.href = '/login'; return; }
+        const { data: prof } = await supabase.from('profiles').select('organization_id, role').eq('id', session.user.id).single();
         setProfile(prof);
 
-        const [orgRes, airRes] = await Promise.all([
+        // Carga org, aeronaves y pólizas en paralelo — elimina roundtrip secuencial
+        const [orgRes, airRes, polRes] = await Promise.all([
             supabase.from('organizations').select('*').eq('id', prof.organization_id).single(),
-            supabase.from('aircraft').select('id, model, serial_number').eq('organization_id', prof.organization_id).order('model')
+            supabase.from('aircraft').select('id, model, serial_number').eq('organization_id', prof.organization_id).order('model'),
+            supabase.from('insurance_policies')
+                .select('*, aircraft:aircraft_id(model, serial_number)')
+                .eq('organization_id', prof.organization_id)
+                .order('end_date', { ascending: true })
         ]);
 
         if (orgRes.data) setOrg(orgRes.data);
         setAircraft(airRes.data || []);
-        await loadPolicies(prof.organization_id);
+        setPolicies(polRes.data || []);
         setLoading(false);
     }
     loadOrgData();

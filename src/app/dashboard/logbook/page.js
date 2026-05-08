@@ -3,9 +3,14 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import LogbookImportPanel from '@/components/LogbookImportPanel';
 
+const PAGE_SIZE = 30;
+
 export default function LogbookPage() {
     const [flights, setFlights] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(false);
+    const [offset, setOffset] = useState(0);
     const [showImport, setShowImport] = useState(false);
 
     const [filters, setFilters] = useState({
@@ -18,20 +23,33 @@ export default function LogbookPage() {
         pilot: ''
     });
 
-    const loadData = async () => {
+    const loadData = async (reset = true) => {
         try {
-            setLoading(true);
-            const res = await fetch('/api/logbook?limit=200');
+            const currentOffset = reset ? 0 : offset;
+            if (reset) setLoading(true);
+            else setLoadingMore(true);
+
+            const res = await fetch(`/api/logbook?limit=${PAGE_SIZE}&offset=${currentOffset}`);
             const data = await res.json();
-            setFlights(Array.isArray(data) ? data : []);
+            const rows = Array.isArray(data) ? data : [];
+
+            if (reset) {
+                setFlights(rows);
+                setOffset(PAGE_SIZE);
+            } else {
+                setFlights(prev => [...prev, ...rows]);
+                setOffset(currentOffset + PAGE_SIZE);
+            }
+            setHasMore(rows.length === PAGE_SIZE);
         } catch (e) {
             console.error("Error cargando bitácora");
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
     };
 
-    useEffect(() => { loadData(); }, []);
+    useEffect(() => { loadData(true); }, []);
 
     // Valores únicos para selects — solo se recalculan cuando cambia flights
     const uniqueModels = useMemo(() => [...new Set(flights.map(f => f.aircraft?.model).filter(Boolean))], [flights]);
@@ -51,7 +69,9 @@ export default function LogbookPage() {
         return result;
     }, [filters, flights]);
 
-    const clearFilters = () => setFilters({ date: '', mission_id: '', model: '', serial: '', type: '', condition: '', pilot: '' });
+    const clearFilters = () => {
+        setFilters({ date: '', mission_id: '', model: '', serial: '', type: '', condition: '', pilot: '' });
+    };
 
     if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">AUDITANDO REGISTROS...</div>;
 
@@ -173,6 +193,19 @@ export default function LogbookPage() {
                     )}
                 </div>
             </div>
+
+            {/* Paginación — cargar más */}
+            {hasMore && (
+                <div className="flex justify-center pt-2">
+                    <button
+                        onClick={() => loadData(false)}
+                        disabled={loadingMore}
+                        className="px-8 py-3 bg-white border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-500 hover:text-orange-600 hover:border-orange-300 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                    >
+                        {loadingMore ? 'Cargando...' : `Cargar más registros`}
+                    </button>
+                </div>
+            )}
         </div>
         </>
     );

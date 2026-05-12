@@ -1,0 +1,477 @@
+import Link from 'next/link';
+import NavMobile from '@/components/landing/NavMobile';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
+
+export const metadata = {
+  title: 'Documentación | Bitafly — Guía de Usuario',
+  description: 'Guía completa de uso de Bitafly: configuración inicial, gestión de flota, planificación de misiones, bitácora digital, seguridad SMS y reportes oficiales RAC 100.',
+  alternates: { canonical: '/documentacion' },
+  openGraph: {
+    title: 'Documentación Bitafly — Guía de Usuario Completa',
+    description: 'Aprende a usar Bitafly paso a paso: desde la configuración hasta los reportes oficiales para la AeroCivil.',
+    url: `${SITE_URL}/documentacion`,
+    type: 'website',
+  },
+};
+
+// ─── Datos de las 6 fases ────────────────────────────────────────────────────
+
+const FASES = [
+  {
+    id: 'fase-1',
+    num: '01',
+    title: 'Configuración Inicial',
+    subtitle: 'Prepara tu organización antes de operar',
+    icon: 'settings',
+    color: 'from-orange-500 to-orange-600',
+    roles: ['Admin', 'Superadmin'],
+    duracion: '~15 min',
+    desc: 'El primer paso es crear la cuenta de tu organización y dejar la plataforma lista para que tu equipo pueda operar. Aquí defines la identidad corporativa, vinculas a tu tripulación y configuras los parámetros de seguridad.',
+    pasos: [
+      { icon: 'how_to_reg', title: 'Crear cuenta de organización', desc: 'Regístrate en /registro con tu correo corporativo. La plataforma crea automáticamente una organización con un código único de vinculación.' },
+      { icon: 'business', title: 'Configurar identidad corporativa', desc: 'En Configuración → Organización completa la razón social, NIT/cédula, número de explotador DAN, representante legal, teléfono, dirección y correo oficial. Sube el logo de la empresa.' },
+      { icon: 'link', title: 'Vincular tripulación', desc: 'Comparte el código único de tu organización a tus pilotos y gerentes. Cada miembro se registra y usa ese código para unirse a tu flota. El administrador asigna el rol correspondiente.' },
+      { icon: 'badge', title: 'Configurar roles y permisos', desc: 'Bitafly tiene 5 roles predefinidos: Superadmin, Administrador, Gerente SMS, Jefe de Pilotos y Piloto. Cada rol tiene permisos específicos sobre los módulos del sistema.' },
+      { icon: 'policy', title: 'Registrar pólizas de seguro', desc: 'En Configuración → Pólizas registra las pólizas de seguro de la flota: aseguradora, número de póliza, vigencia y aeronave cubierta. El sistema alerta cuando se acercan los vencimientos.' },
+      { icon: 'health_and_safety', title: 'Configurar parámetros SMS', desc: 'En Seguridad y SMS activa el sistema de gestión de seguridad. Define los umbrales de riesgo y configura las listas SORA/OSO de tu organización.' },
+      { icon: 'key', title: 'Conectar credenciales AeroCivil', desc: 'En Configuración → Cuenta AeroCivil ingresa tus credenciales del portal de la UAEAC para habilitar la generación automática de solicitudes de vuelo.' },
+    ],
+    roles_tabla: [
+      { accion: 'Crear y editar organización', superadmin: true, admin: true, gerente: false, jefe: false, piloto: false },
+      { accion: 'Gestionar usuarios y roles', superadmin: true, admin: true, gerente: false, jefe: false, piloto: false },
+      { accion: 'Registrar pólizas de seguro', superadmin: true, admin: true, gerente: false, jefe: false, piloto: false },
+      { accion: 'Configurar parámetros SMS', superadmin: true, admin: true, gerente: true, jefe: false, piloto: false },
+      { accion: 'Ver configuración', superadmin: true, admin: true, gerente: 'ver', jefe: 'ver', piloto: false },
+    ],
+    nota: 'El código único de vinculación lo encuentras en Configuración → Organización → ID de Vinculación. Compártelo solo con personas de confianza ya que da acceso a unirse a tu organización.',
+  },
+  {
+    id: 'fase-2',
+    num: '02',
+    title: 'Gestión de Flota y Pilotos',
+    subtitle: 'Registra tus aeronaves y tripulación',
+    icon: 'precision_manufacturing',
+    color: 'from-slate-700 to-slate-800',
+    roles: ['Admin', 'Jefe de Pilotos'],
+    duracion: '~20 min',
+    desc: 'Antes de planificar cualquier misión, necesitas tener registradas todas tus aeronaves, baterías y pilotos. Este es el corazón del cumplimiento RAC 100: cada activo tiene su hoja de vida digital.',
+    pasos: [
+      { icon: 'flight', title: 'Registrar aeronaves', desc: 'En Flota → Nueva Aeronave ingresa modelo, número de serie, matrícula, fabricante, fecha de adquisición y horas iniciales. Cada aeronave tiene su propio expediente de mantenimiento.' },
+      { icon: 'battery_charging_full', title: 'Registrar baterías LiPo', desc: 'En Flota → Baterías registra cada batería con su serial, capacidad (mAh), número de celdas, ciclos iniciales y aeronave asignada. El sistema lleva el conteo automático de ciclos por vuelo.' },
+      { icon: 'build', title: 'Configurar alertas de mantenimiento', desc: 'Activa las alertas por horas de vuelo (ej. cada 200h) y por tiempo calendario (ej. cada 6 meses). El dashboard principal mostrará las aeronaves que requieren intervención.' },
+      { icon: 'person_add', title: 'Registrar pilotos', desc: 'En Tripulación → Nuevo Piloto ingresa nombre, número de licencia CIPU, vencimiento del examen médico y contacto de emergencia. El sistema alerta 30 días antes del vencimiento del médico.' },
+      { icon: 'upload_file', title: 'Subir documentos y certificados', desc: 'Adjunta el certificado médico, la licencia y los registros de entrenamiento de cada piloto. Los documentos quedan almacenados en el expediente digital del tripulante.' },
+      { icon: 'assignment_ind', title: 'Asignar pilotos a aeronaves', desc: 'Configura qué pilotos están habilitados para operar cada aeronave de la flota. Esto se valida automáticamente al planificar una misión.' },
+    ],
+    roles_tabla: [
+      { accion: 'Registrar y editar aeronaves', superadmin: true, admin: true, gerente: false, jefe: true, piloto: false },
+      { accion: 'Registrar y editar baterías', superadmin: true, admin: true, gerente: false, jefe: true, piloto: false },
+      { accion: 'Registrar y editar pilotos', superadmin: true, admin: true, gerente: false, jefe: true, piloto: false },
+      { accion: 'Ver flota y tripulación', superadmin: true, admin: true, gerente: 'ver', jefe: true, piloto: 'ver' },
+      { accion: 'Subir documentos de pilotos', superadmin: true, admin: true, gerente: false, jefe: true, piloto: 'propio' },
+    ],
+    nota: 'Las horas "iniciales" de la aeronave son las horas acumuladas antes de ingresar a Bitafly. Es fundamental ingresarlas correctamente para que los reportes reflejen el historial real del equipo.',
+  },
+  {
+    id: 'fase-3',
+    num: '03',
+    title: 'Planificación de Misión',
+    subtitle: 'Crea y autoriza misiones de vuelo',
+    icon: 'map',
+    color: 'from-blue-600 to-blue-700',
+    roles: ['Admin', 'Jefe de Pilotos', 'Piloto'],
+    duracion: '~10 min por misión',
+    desc: 'Cada operación comienza con una misión planificada. Bitafly centraliza toda la información preoperacional: zona de vuelo, tripulación asignada, aeronave seleccionada y evaluación de riesgo SORA.',
+    pasos: [
+      { icon: 'add_circle', title: 'Crear nueva misión', desc: 'En Misiones → Nueva Misión define el número de misión (generado automáticamente), tipo de operación (VLOS, BVLOS, nocturno), ubicación y fecha programada.' },
+      { icon: 'group', title: 'Asignar tripulación y aeronave', desc: 'Selecciona el piloto al mando (PIC) y la aeronave a utilizar. El sistema valida que el piloto tenga licencia vigente y la aeronave esté habilitada para operación.' },
+      { icon: 'checklist', title: 'Completar lista de verificación pre-vuelo', desc: 'El piloto completa el checklist preoperacional: condiciones meteorológicas, verificación física de la aeronave, estado de baterías, espacio aéreo y zona de operación.' },
+      { icon: 'radar', title: 'Evaluación de riesgo SORA', desc: 'El sistema guía al operador a través del proceso de evaluación SORA (Specific Operations Risk Assessment): SAIL, GRC, ARC y lista de OSOs requeridos para la operación.' },
+      { icon: 'gavel', title: 'Solicitar autorización AeroCivil', desc: 'Con los datos de la misión completos, genera el formato F-OPS-001 automáticamente y envíalo al portal de la UAEAC. Bitafly pre-llena todos los campos exigidos.' },
+      { icon: 'verified', title: 'Aprobar y activar la misión', desc: 'El administrador o jefe de pilotos revisa la misión y la aprueba. A partir de ese momento el piloto puede registrar los vuelos asociados a esa misión.' },
+    ],
+    roles_tabla: [
+      { accion: 'Crear y editar misiones', superadmin: true, admin: true, gerente: false, jefe: true, piloto: true },
+      { accion: 'Aprobar misiones', superadmin: true, admin: true, gerente: false, jefe: true, piloto: false },
+      { accion: 'Completar checklist pre-vuelo', superadmin: true, admin: true, gerente: false, jefe: true, piloto: true },
+      { accion: 'Ejecutar evaluación SORA', superadmin: true, admin: true, gerente: true, jefe: true, piloto: false },
+      { accion: 'Generar solicitud AeroCivil', superadmin: true, admin: true, gerente: false, jefe: true, piloto: false },
+    ],
+    nota: 'Una misión puede tener múltiples vuelos asociados (ej. varios despegues en el mismo día). Cada vuelo se registra individualmente en la bitácora pero referencia la misma misión.',
+  },
+  {
+    id: 'fase-4',
+    num: '04',
+    title: 'Ejecución y Bitácora',
+    subtitle: 'Registra cada vuelo con precisión RAC 100',
+    icon: 'flight_takeoff',
+    color: 'from-emerald-600 to-emerald-700',
+    roles: ['Piloto', 'Admin', 'Jefe de Pilotos'],
+    duracion: '~5 min por vuelo',
+    desc: 'La bitácora digital es el core de Bitafly. Cada vuelo registrado alimenta automáticamente las horas totales de la aeronave, los ciclos de las baterías y el historial del piloto. Cumplimiento RAC 100 en tiempo real.',
+    pasos: [
+      { icon: 'flight_takeoff', title: 'Registrar nuevo vuelo', desc: 'En Bitácora → Nuevo Vuelo selecciona la misión activa. El sistema pre-llena aeronave, piloto y condiciones base. Ingresa hora de despegue y hora de aterrizaje.' },
+      { icon: 'wb_sunny', title: 'Condiciones del vuelo', desc: 'Registra la condición visual (VMC, IMC, NIGHT), velocidad del viento y observaciones meteorológicas. Estos datos son obligatorios para el reporte F-OPS-002.' },
+      { icon: 'battery_charging_full', title: 'Seleccionar baterías utilizadas', desc: 'Marca las baterías empleadas en el vuelo. El sistema suma automáticamente un ciclo a cada una y actualiza el conteo total.' },
+      { icon: 'timer', title: 'Calcular tiempo de vuelo', desc: 'Con los tiempos de despegue y aterrizaje, Bitafly calcula automáticamente la duración del vuelo y la suma a las horas totales de la aeronave y del piloto.' },
+      { icon: 'warning', title: 'Registrar incidentes o anomalías', desc: 'Si ocurre cualquier evento anormal durante el vuelo, regístralo en el campo de incidentes. Esto puede derivar en un reporte SMS dependiendo de la clasificación.' },
+      { icon: 'note_add', title: 'Observaciones y cierre', desc: 'Agrega notas operacionales, condiciones de aterrizaje y firma digital del piloto al mando. El vuelo queda registrado en la bitácora oficial.' },
+      { icon: 'build', title: 'Registrar mantenimiento post-vuelo', desc: 'Si se realizó alguna intervención en la aeronave (limpieza, ajuste, calibración), regístrala en Mantenimiento. El sistema actualiza el historial técnico.' },
+    ],
+    roles_tabla: [
+      { accion: 'Registrar vuelos en bitácora', superadmin: true, admin: true, gerente: false, jefe: true, piloto: true },
+      { accion: 'Editar vuelos existentes', superadmin: true, admin: true, gerente: false, jefe: true, piloto: false },
+      { accion: 'Eliminar vuelos', superadmin: true, admin: true, gerente: false, jefe: false, piloto: false },
+      { accion: 'Registrar incidentes', superadmin: true, admin: true, gerente: true, jefe: true, piloto: true },
+      { accion: 'Importar vuelos desde Excel', superadmin: true, admin: true, gerente: false, jefe: true, piloto: false },
+    ],
+    nota: 'Puedes registrar vuelos pasados importando desde Excel/CSV. El sistema acepta el formato estándar de la AeroCivil y mapea automáticamente los campos al formato interno de Bitafly.',
+  },
+  {
+    id: 'fase-5',
+    num: '05',
+    title: 'Seguridad y SMS',
+    subtitle: 'Sistema de gestión de seguridad operacional',
+    icon: 'health_and_safety',
+    color: 'from-red-600 to-red-700',
+    roles: ['Gerente SMS', 'Admin', 'Todos (reportar)'],
+    duracion: 'Continuo',
+    desc: 'El Sistema de Gestión de Seguridad (SMS) aeronáutico es un requisito RAC 100. Bitafly integra la gestión de incidentes, la evaluación de riesgo SORA y el seguimiento de acciones correctivas en un solo módulo.',
+    pasos: [
+      { icon: 'report_problem', title: 'Reportar evento de seguridad', desc: 'Cualquier usuario puede reportar un evento: incidente, incidente grave o accidente. Describe el evento, fecha, aeronave involucrada y circunstancias. El sistema asigna un número de reporte automático.' },
+      { icon: 'category', title: 'Clasificar el evento', desc: 'El Gerente SMS clasifica el evento según la severidad (Bajo/Medio/Alto/Crítico) y el tipo (operacional, técnico, humano, organizacional). Esta clasificación determina el proceso de investigación.' },
+      { icon: 'manage_search', title: 'Investigar causa raíz', desc: 'Documenta la cadena de causas del evento: causa inmediata, factores contribuyentes y causas raíz. Usa el análisis de árbol de fallos integrado en el formulario de investigación.' },
+      { icon: 'task_alt', title: 'Definir acciones correctivas', desc: 'Por cada causa raíz identifica una acción correctiva con responsable, fecha límite y criterio de verificación. El sistema hace seguimiento del estado de cada acción.' },
+      { icon: 'radar', title: 'Evaluación de riesgo SORA', desc: 'Para operaciones BVLOS o de alto riesgo, ejecuta el proceso SORA completo: calcula el GRC intrínseco, el GRC final con mitigaciones, el ARC inicial, el ARC final y el SAIL resultante.' },
+      { icon: 'policy', title: 'Revisar cumplimiento y OSOs', desc: 'Verifica que los Objetivos de Seguridad Operacional (OSOs) requeridos para el nivel SAIL estén implementados con el nivel de robustez exigido por el estándar JARUS.' },
+    ],
+    roles_tabla: [
+      { accion: 'Crear reporte SMS', superadmin: true, admin: true, gerente: true, jefe: true, piloto: true },
+      { accion: 'Clasificar e investigar eventos', superadmin: true, admin: true, gerente: true, jefe: false, piloto: false },
+      { accion: 'Definir acciones correctivas', superadmin: true, admin: true, gerente: true, jefe: false, piloto: false },
+      { accion: 'Ejecutar evaluación SORA', superadmin: true, admin: true, gerente: true, jefe: true, piloto: false },
+      { accion: 'Configurar lista OSO personalizada', superadmin: true, admin: true, gerente: true, jefe: false, piloto: false },
+    ],
+    nota: 'La lista de OSOs puede ser personalizada por tu organización en Configuración → Seguridad. Por defecto se carga el estándar JARUS SORA v2.0 con los 24 objetivos de seguridad oficiales.',
+  },
+  {
+    id: 'fase-6',
+    num: '06',
+    title: 'Reportes y Administración',
+    subtitle: 'Exporta reportes y gestiona tu cuenta',
+    icon: 'assessment',
+    color: 'from-purple-600 to-purple-700',
+    roles: ['Admin', 'Gerente SMS', 'Jefe de Pilotos'],
+    duracion: '~5 min por reporte',
+    desc: 'Bitafly genera en un clic todos los reportes oficiales exigidos por la AeroCivil en PDF con membrete corporativo. Además, desde el panel de administración gestionas usuarios, planes y configuración avanzada.',
+    pasos: [
+      { icon: 'summarize', title: 'Centro de reportes', desc: 'En Reportes selecciona el tipo de reporte: Maestro de Vuelo (F-OPS-002), Registro de Baterías (F-MNT-003), Bitácora de Piloto (F-HUM-005) o Expediente de Tripulante.' },
+      { icon: 'menu_book', title: 'Reporte de bitácora oficial', desc: 'Filtra por rango de fechas, aeronave o piloto y exporta el Maestro de Vuelo en PDF. Incluye logo corporativo, código de formato, versión y todas las columnas exigidas por RAC 100.' },
+      { icon: 'precision_manufacturing', title: 'Reporte de flota y mantenimiento', desc: 'Genera el estado actual de toda la flota: horas por aeronave, próximas revisiones, historial de mantenimiento y estado de pólizas de seguro.' },
+      { icon: 'person', title: 'Expediente de tripulación', desc: 'Exporta el expediente completo de cada tripulante: datos personales, licencias, horas voladas por aeronave, exámenes médicos y registro de capacitaciones.' },
+      { icon: 'group', title: 'Gestión de usuarios y roles', desc: 'En Configuración → Usuarios ve todos los miembros activos, cambia sus roles, desactiva accesos o envía invitaciones a nuevos miembros del equipo.' },
+      { icon: 'credit_card', title: 'Gestión de suscripción', desc: 'Revisa tu plan actual, el número de aeronaves y pilotos disponibles, el historial de facturación y actualiza tu plan si el equipo crece.' },
+      { icon: 'tune', title: 'Configuración avanzada', desc: 'Ajusta los parámetros de alertas (ciclos de batería, horas de mantenimiento, días de vencimiento médico), personaliza los formatos de reporte y configura las integraciones disponibles.' },
+    ],
+    roles_tabla: [
+      { accion: 'Generar reportes PDF', superadmin: true, admin: true, gerente: true, jefe: true, piloto: false },
+      { accion: 'Ver bitácora de piloto propia', superadmin: true, admin: true, gerente: false, jefe: true, piloto: true },
+      { accion: 'Gestionar usuarios', superadmin: true, admin: true, gerente: false, jefe: false, piloto: false },
+      { accion: 'Gestionar suscripción', superadmin: true, admin: true, gerente: false, jefe: false, piloto: false },
+      { accion: 'Configuración avanzada', superadmin: true, admin: true, gerente: false, jefe: false, piloto: false },
+    ],
+    nota: 'Todos los reportes PDF generados llevan automáticamente el logo, razón social y NIT de tu organización tal como está configurado en Configuración → Organización.',
+  },
+];
+
+const ROLES = ['Superadmin', 'Admin', 'Gerente SMS', 'Jefe Pilotos', 'Piloto'];
+const ROLE_KEYS = ['superadmin', 'admin', 'gerente', 'jefe', 'piloto'];
+
+// ─── Componente auxiliar de badge de rol ────────────────────────────────────
+function RolBadge({ val }) {
+  if (val === true)       return <span className="inline-flex items-center justify-center size-6 rounded-full bg-emerald-100 text-emerald-600 text-xs font-black">✓</span>;
+  if (val === false)      return <span className="inline-flex items-center justify-center size-6 rounded-full bg-red-50 text-red-400 text-xs font-black">✗</span>;
+  if (val === 'ver')      return <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-black">VER</span>;
+  if (val === 'propio')   return <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-xs font-black">PROPIO</span>;
+  return null;
+}
+
+// ─── Página ─────────────────────────────────────────────────────────────────
+export default function DocumentacionPage() {
+  return (
+    <div className="min-h-screen bg-white text-slate-800">
+
+      {/* ── HEADER ── */}
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100">
+        <nav className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2" aria-label="Bitafly inicio">
+            <span className="text-2xl font-black text-navy uppercase tracking-tighter">Bitafly</span>
+          </Link>
+          <ul className="hidden md:flex items-center gap-8 text-sm font-bold text-slate-600">
+            <li><Link href="/#funciones" className="hover:text-primary transition-colors">Funciones</Link></li>
+            <li><Link href="/#cumplimiento" className="hover:text-primary transition-colors">RAC 100</Link></li>
+            <li><Link href="/documentacion" className="text-primary border-b-2 border-primary pb-0.5">Guía</Link></li>
+            <li><Link href="/#precios" className="hover:text-primary transition-colors">Precios</Link></li>
+          </ul>
+          <div className="flex items-center gap-3">
+            <Link href="/login" className="hidden sm:inline-block text-xs font-black uppercase tracking-widest text-slate-600 hover:text-primary transition-colors">
+              Ingresar
+            </Link>
+            <Link href="/registro" className="hidden sm:inline-block bg-primary text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-md hover:bg-orange-600 transition-all">
+              Comenzar gratis
+            </Link>
+            <NavMobile />
+          </div>
+        </nav>
+      </header>
+
+      {/* ── HERO ── */}
+      <section className="bg-navy text-white py-16 md:py-24 px-6">
+        <div className="max-w-4xl mx-auto text-center space-y-6">
+          <p className="inline-flex items-center gap-2 bg-white/10 text-orange-400 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest">
+            <span className="material-symbols-outlined text-sm">menu_book</span>
+            Guía de Usuario — 6 Fases
+          </p>
+          <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-[0.95]">
+            Cómo usar <span className="text-primary">Bitafly</span>
+          </h1>
+          <p className="text-slate-300 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+            Guía completa paso a paso para operadores UAS. Desde la configuración inicial
+            hasta la generación de reportes oficiales para la AeroCivil.
+          </p>
+          {/* Chips de fases */}
+          <div className="flex flex-wrap justify-center gap-2 pt-4">
+            {FASES.map((f) => (
+              <a
+                key={f.id}
+                href={`#${f.id}`}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-xs font-black uppercase tracking-wider text-slate-300 hover:text-white transition-all"
+              >
+                {f.num}. {f.title}
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CONTENIDO PRINCIPAL (sidebar + fases) ── */}
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-12 md:py-20">
+        <div className="flex gap-12 lg:gap-16">
+
+          {/* Sidebar TOC — desktop */}
+          <aside className="hidden lg:block w-56 shrink-0">
+            <div className="sticky top-24 space-y-1">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 px-3">Contenido</p>
+              {FASES.map((f) => (
+                <a
+                  key={f.id}
+                  href={`#${f.id}`}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:text-primary hover:bg-orange-50 transition-all group"
+                >
+                  <span className="size-6 rounded-lg bg-slate-100 group-hover:bg-orange-100 flex items-center justify-center text-xs font-black text-slate-400 group-hover:text-primary shrink-0 transition-all">
+                    {f.num}
+                  </span>
+                  <span className="leading-tight">{f.title}</span>
+                </a>
+              ))}
+              <div className="border-t border-slate-100 mt-6 pt-5 space-y-2 px-3">
+                <Link
+                  href="/registro"
+                  className="block text-center py-2.5 bg-primary text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-orange-600 transition-all"
+                >
+                  Comenzar gratis
+                </Link>
+                <Link
+                  href="/login"
+                  className="block text-center py-2.5 border border-slate-200 text-slate-600 rounded-xl text-xs font-black uppercase tracking-widest hover:border-slate-400 transition-all"
+                >
+                  Ingresar
+                </Link>
+              </div>
+            </div>
+          </aside>
+
+          {/* Fases */}
+          <main className="flex-1 min-w-0 space-y-20">
+
+            {/* Resumen rápido de roles */}
+            <section className="bg-slate-50 rounded-3xl border border-slate-200 p-6 md:p-10">
+              <h2 className="text-lg font-black uppercase tracking-tighter text-navy mb-2">Los 5 roles de Bitafly</h2>
+              <p className="text-sm text-slate-500 mb-6">Cada usuario tiene un rol que define lo que puede ver y hacer en la plataforma.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {[
+                  { rol: 'Superadmin', desc: 'Control total del sistema. Gestión inter-organizaciones.', icon: 'shield_person', color: 'bg-purple-50 text-purple-700 border-purple-200' },
+                  { rol: 'Administrador', desc: 'Gestión completa de la organización, flota, pilotos y reportes.', icon: 'manage_accounts', color: 'bg-navy/5 text-navy border-navy/20' },
+                  { rol: 'Gerente SMS', desc: 'Seguridad operacional, SORA, reportes e incidentes.', icon: 'health_and_safety', color: 'bg-red-50 text-red-700 border-red-200' },
+                  { rol: 'Jefe de Pilotos', desc: 'Gestión de flota, pilotos, misiones y bitácora.', icon: 'flight', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+                  { rol: 'Piloto', desc: 'Registra sus propios vuelos y consulta su expediente.', icon: 'person', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                ].map((r) => (
+                  <div key={r.rol} className={`flex items-start gap-3 p-4 rounded-2xl border ${r.color}`}>
+                    <span className="material-symbols-outlined text-xl shrink-0 mt-0.5">{r.icon}</span>
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wide">{r.rol}</p>
+                      <p className="text-xs mt-1 opacity-80 leading-relaxed">{r.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* ─ Iteración de fases ─ */}
+            {FASES.map((fase, idx) => (
+              <section key={fase.id} id={fase.id} className="scroll-mt-24">
+
+                {/* Encabezado de fase */}
+                <div className="flex items-start gap-5 mb-8">
+                  <div className={`size-16 rounded-3xl bg-gradient-to-br ${fase.color} flex items-center justify-center shadow-lg shrink-0`}>
+                    <span className="material-symbols-outlined text-white text-2xl">{fase.icon}</span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Fase {fase.num}</span>
+                      <span className="h-1 w-1 rounded-full bg-slate-300" />
+                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{fase.duracion}</span>
+                      {fase.roles.map((r) => (
+                        <span key={r} className="px-2 py-0.5 bg-orange-50 text-primary rounded-full text-xs font-black uppercase">
+                          {r}
+                        </span>
+                      ))}
+                    </div>
+                    <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-navy leading-tight">
+                      {fase.title}
+                    </h2>
+                    <p className="text-slate-500 text-sm mt-1">{fase.subtitle}</p>
+                  </div>
+                </div>
+
+                {/* Descripción */}
+                <p className="text-slate-600 leading-relaxed mb-8 text-sm md:text-base">{fase.desc}</p>
+
+                {/* Pasos */}
+                <div className="space-y-3 mb-8">
+                  {fase.pasos.map((paso, i) => (
+                    <div key={i} className="flex gap-4 p-5 bg-white rounded-2xl border border-slate-100 hover:border-orange-200 hover:shadow-sm transition-all">
+                      <div className="flex flex-col items-center gap-1 shrink-0">
+                        <div className="size-10 rounded-2xl bg-orange-50 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-primary text-lg">{paso.icon}</span>
+                        </div>
+                        <span className="text-xs font-black text-orange-300">{String(i + 1).padStart(2, '0')}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-black text-navy text-sm uppercase tracking-tight mb-1">{paso.title}</h3>
+                        <p className="text-xs text-slate-500 leading-relaxed">{paso.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Tabla de permisos por rol */}
+                <div className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden mb-6">
+                  <div className="px-5 py-3 bg-slate-100 border-b border-slate-200">
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-500">Permisos por rol</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left min-w-[480px]">
+                      <thead>
+                        <tr className="text-xs font-black uppercase text-slate-400 border-b border-slate-200">
+                          <th className="px-4 py-3 w-1/2">Acción</th>
+                          {ROLES.map((r) => (
+                            <th key={r} className="px-3 py-3 text-center whitespace-nowrap">{r}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {fase.roles_tabla.map((row, i) => (
+                          <tr key={i} className="hover:bg-white transition-colors">
+                            <td className="px-4 py-3 text-xs font-bold text-slate-700">{row.accion}</td>
+                            {ROLE_KEYS.map((key) => (
+                              <td key={key} className="px-3 py-3 text-center">
+                                <RolBadge val={row[key]} />
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Nota / tip */}
+                <div className="flex gap-3 p-4 md:p-5 bg-amber-50 rounded-2xl border border-amber-200">
+                  <span className="material-symbols-outlined text-amber-500 text-xl shrink-0 mt-0.5">lightbulb</span>
+                  <p className="text-xs text-amber-800 leading-relaxed font-medium">{fase.nota}</p>
+                </div>
+
+                {/* Separador (excepto en el último) */}
+                {idx < FASES.length - 1 && (
+                  <div className="mt-20 border-t border-slate-100" />
+                )}
+              </section>
+            ))}
+
+            {/* ─ CTA final ─ */}
+            <section className="bg-navy rounded-[2.5rem] p-8 md:p-12 text-white text-center space-y-6">
+              <span className="material-symbols-outlined text-primary text-5xl">rocket_launch</span>
+              <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter">
+                ¿Listo para comenzar?
+              </h2>
+              <p className="text-slate-300 text-sm max-w-lg mx-auto leading-relaxed">
+                Crea tu cuenta gratuita y ten tu primera aeronave registrada en menos de 15 minutos.
+                Sin tarjeta de crédito. Sin instalaciones.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link
+                  href="/registro"
+                  className="bg-primary text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-500 hover:scale-105 transition-all shadow-xl shadow-orange-500/20"
+                >
+                  Crear cuenta gratis
+                </Link>
+                <a
+                  href="mailto:soporte@bitafly.com"
+                  className="border-2 border-white/20 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/5 transition-all"
+                >
+                  Contactar soporte
+                </a>
+              </div>
+            </section>
+
+          </main>
+        </div>
+      </div>
+
+      {/* ── FOOTER ── */}
+      <footer className="bg-[#0F1419] text-slate-400 py-16 px-6 border-t border-white/5 mt-20">
+        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
+          <div className="col-span-2">
+            <p className="text-2xl font-black text-white uppercase tracking-tighter">Bitafly</p>
+            <p className="text-xs mt-3 max-w-xs leading-relaxed">
+              Software de gestión aeronáutica para operadores UAS en Colombia. Cumplimiento RAC 100 desde el primer vuelo.
+            </p>
+          </div>
+          <div className="space-y-3">
+            <p className="text-xs font-black uppercase tracking-widest text-white">Producto</p>
+            <ul className="space-y-2 text-xs">
+              <li><Link href="/#funciones" className="hover:text-primary transition-colors">Funciones</Link></li>
+              <li><Link href="/#precios" className="hover:text-primary transition-colors">Precios</Link></li>
+              <li><Link href="/documentacion" className="hover:text-primary transition-colors">Documentación</Link></li>
+              <li><Link href="/login" className="hover:text-primary transition-colors">Iniciar sesión</Link></li>
+            </ul>
+          </div>
+          <div className="space-y-3">
+            <p className="text-xs font-black uppercase tracking-widest text-white">Empresa</p>
+            <ul className="space-y-2 text-xs">
+              <li><Link href="/#faq" className="hover:text-primary transition-colors">Preguntas frecuentes</Link></li>
+              <li><a href="mailto:soporte@bitafly.com" className="hover:text-primary transition-colors">Contacto</a></li>
+              <li><Link href="/registro" className="hover:text-primary transition-colors">Comenzar gratis</Link></li>
+            </ul>
+          </div>
+        </div>
+        <div className="max-w-6xl mx-auto mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between gap-4 text-xs uppercase tracking-widest">
+          <p>© {new Date().getFullYear()} Bitafly Operations. Todos los derechos reservados.</p>
+          <p>Hecho en Colombia para operadores UAS</p>
+        </div>
+      </footer>
+    </div>
+  );
+}

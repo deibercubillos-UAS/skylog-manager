@@ -225,6 +225,11 @@ export default function LandingPage() {
                 </a>
               </li>
               <li>
+                <Link href="/documentacion" className="hover:text-primary transition-colors">
+                  Guía
+                </Link>
+              </li>
+              <li>
                 <a href="#precios" className="hover:text-primary transition-colors">
                   Precios
                 </a>
@@ -606,6 +611,11 @@ export default function LandingPage() {
                   <a href="#cumplimiento" className="hover:text-primary transition-colors">
                     Cumplimiento RAC
                   </a>
+                </li>
+                <li>
+                  <Link href="/documentacion" className="hover:text-primary transition-colors">
+                    Documentación
+                  </Link>
                 </li>
                 <li>
                   <Link href="/login" className="hover:text-primary transition-colors">

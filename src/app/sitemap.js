@@ -8,6 +8,7 @@ export default function sitemap() {
     { url: `${SITE_URL}/`,                         lastModified: now, changeFrequency: 'weekly',  priority: 1.0 },
     { url: `${SITE_URL}/precios`,                  lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${SITE_URL}/registro`,                 lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${SITE_URL}/documentacion`,            lastModified: now, changeFrequency: 'monthly', priority: 0.88 },
 
     // Landing pages SEO
     { url: `${SITE_URL}/rac-100`,                  lastModified: now, changeFrequency: 'monthly', priority: 0.85 },

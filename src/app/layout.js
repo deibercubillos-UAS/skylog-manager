@@ -14,35 +14,12 @@ const publicSans = Public_Sans({
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
 
 /*
- * MATERIAL SYMBOLS — lista exhaustiva de iconos que la app usa.
- * Si añades un icono nuevo en cualquier .js/.jsx, agrégalo aquí también
- * o aparecerá como texto plano en pantalla.
- * El subset icon_names (~60 KB) es más rápido que la fuente completa (~400 KB).
+ * MATERIAL SYMBOLS — fuente completa sin subsetting.
+ * Cargamos todos los glifos para evitar que íconos nuevos aparezcan como texto.
+ * El navegador cachea el archivo después de la primera visita (~370 KB una sola vez).
+ * display=swap: muestra texto mientras carga, sin bloquear el render.
  */
-const MATERIAL_ICONS = [
-  'account_circle','account_tree','add','add_circle','admin_panel_settings',
-  'analytics','arrow_back','arrow_forward','assessment','assignment_ind','attach_file','badge',
-  'battery_charging_full','build','business','category','check','check_circle','checklist',
-  'chevron_right','close','cloud_done','cloud_upload','credit_card','dashboard',
-  'delete','delete_sweep','description','download','dynamic_form','edit',
-  'edit_square','engineering','error','event_available','expand_less',
-  'expand_more','explore','fact_check','flight','flight_land','flight_takeoff',
-  'folder_shared','format_quote','gavel','group','group_add',
-  'groups','health_and_safety','how_to_reg','info','inventory_2','label_important',
-  'key','lightbulb','link','lock','lock_reset','logout','mail','manage_accounts','manage_search','map',
-  'mark_email_read','menu','menu_book','menu_open','monitor_heart',
-  'more_vert','note_add','notification_important','open_in_full','payments','person','person_add',
-  'person_add_alt','person_check','photo_camera','picture_as_pdf','pin','policy',
-  'precision_manufacturing','progress_activity','radar','remove_circle',
-  'report','report_problem','rocket_launch',
-  'rule','save','search','send','settings','settings_accessibility',
-  'settings_input_component','settings_suggest','shield_person','summarize','sync',
-  'table_view','task_alt','timer','travel_explore',
-  'trending_down','trending_up','tune','upload_file',
-  'verified','verified_user','visibility','visibility_off','warning','wb_sunny',
-].join(',');
-
-const MATERIAL_SYMBOLS_URL = `https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=block&icon_names=${MATERIAL_ICONS}`;
+const MATERIAL_SYMBOLS_URL = `https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap`;
 
 export const metadata = {
   metadataBase: new URL(SITE_URL),

@@ -22,9 +22,11 @@ const FASES = [
     id: 'fase-1',
     num: '01',
     title: 'Configuración Inicial',
+    titleCorto: 'Configuración',
     subtitle: 'Prepara tu organización antes de operar',
     icon: 'settings',
     color: 'from-orange-500 to-orange-600',
+    colorSolid: 'bg-orange-500',
     roles: ['Admin', 'Superadmin'],
     duracion: '~15 min',
     desc: 'El primer paso es crear la cuenta de tu organización y dejar la plataforma lista para que tu equipo pueda operar. Aquí defines la identidad corporativa, vinculas a tu tripulación y configuras los parámetros de seguridad.',
@@ -50,9 +52,11 @@ const FASES = [
     id: 'fase-2',
     num: '02',
     title: 'Gestión de Flota y Pilotos',
+    titleCorto: 'Flota',
     subtitle: 'Registra tus aeronaves y tripulación',
     icon: 'precision_manufacturing',
     color: 'from-slate-700 to-slate-800',
+    colorSolid: 'bg-slate-700',
     roles: ['Admin', 'Jefe de Pilotos'],
     duracion: '~20 min',
     desc: 'Antes de planificar cualquier misión, necesitas tener registradas todas tus aeronaves, baterías y pilotos. Este es el corazón del cumplimiento RAC 100: cada activo tiene su hoja de vida digital.',
@@ -77,9 +81,11 @@ const FASES = [
     id: 'fase-3',
     num: '03',
     title: 'Planificación de Misión',
+    titleCorto: 'Misiones',
     subtitle: 'Crea y autoriza misiones de vuelo',
     icon: 'map',
     color: 'from-blue-600 to-blue-700',
+    colorSolid: 'bg-blue-600',
     roles: ['Admin', 'Jefe de Pilotos', 'Piloto'],
     duracion: '~10 min por misión',
     desc: 'Cada operación comienza con una misión planificada. Bitafly centraliza toda la información preoperacional: zona de vuelo, tripulación asignada, aeronave seleccionada y evaluación de riesgo SORA.',
@@ -104,9 +110,11 @@ const FASES = [
     id: 'fase-4',
     num: '04',
     title: 'Ejecución y Bitácora',
+    titleCorto: 'Bitácora',
     subtitle: 'Registra cada vuelo con precisión RAC 100',
     icon: 'flight_takeoff',
     color: 'from-emerald-600 to-emerald-700',
+    colorSolid: 'bg-emerald-600',
     roles: ['Piloto', 'Admin', 'Jefe de Pilotos'],
     duracion: '~5 min por vuelo',
     desc: 'La bitácora digital es el core de Bitafly. Cada vuelo registrado alimenta automáticamente las horas totales de la aeronave, los ciclos de las baterías y el historial del piloto. Cumplimiento RAC 100 en tiempo real.',
@@ -132,9 +140,11 @@ const FASES = [
     id: 'fase-5',
     num: '05',
     title: 'Seguridad y SMS',
+    titleCorto: 'SMS',
     subtitle: 'Sistema de gestión de seguridad operacional',
     icon: 'health_and_safety',
     color: 'from-red-600 to-red-700',
+    colorSolid: 'bg-red-600',
     roles: ['Gerente SMS', 'Admin', 'Todos (reportar)'],
     duracion: 'Continuo',
     desc: 'El Sistema de Gestión de Seguridad (SMS) aeronáutico es un requisito RAC 100. Bitafly integra la gestión de incidentes, la evaluación de riesgo SORA y el seguimiento de acciones correctivas en un solo módulo.',
@@ -159,9 +169,11 @@ const FASES = [
     id: 'fase-6',
     num: '06',
     title: 'Reportes y Administración',
+    titleCorto: 'Reportes',
     subtitle: 'Exporta reportes y gestiona tu cuenta',
     icon: 'assessment',
     color: 'from-purple-600 to-purple-700',
+    colorSolid: 'bg-purple-600',
     roles: ['Admin', 'Gerente SMS', 'Jefe de Pilotos'],
     duracion: '~5 min por reporte',
     desc: 'Bitafly genera en un clic todos los reportes oficiales exigidos por la AeroCivil en PDF con membrete corporativo. Además, desde el panel de administración gestionas usuarios, planes y configuración avanzada.',
@@ -176,7 +188,7 @@ const FASES = [
     ],
     roles_tabla: [
       { accion: 'Generar reportes PDF', superadmin: true, admin: true, gerente: true, jefe: true, piloto: false },
-      { accion: 'Ver bitácora de piloto propia', superadmin: true, admin: true, gerente: false, jefe: true, piloto: true },
+      { accion: 'Ver bitácora propia', superadmin: true, admin: true, gerente: false, jefe: true, piloto: true },
       { accion: 'Gestionar usuarios', superadmin: true, admin: true, gerente: false, jefe: false, piloto: false },
       { accion: 'Gestionar suscripción', superadmin: true, admin: true, gerente: false, jefe: false, piloto: false },
       { accion: 'Configuración avanzada', superadmin: true, admin: true, gerente: false, jefe: false, piloto: false },
@@ -185,16 +197,68 @@ const FASES = [
   },
 ];
 
-const ROLES = ['Superadmin', 'Admin', 'Gerente SMS', 'Jefe Pilotos', 'Piloto'];
+const ROLES = ['Superadmin', 'Admin', 'Gte. SMS', 'Jefe', 'Piloto'];
+const ROLES_FULL = ['Superadmin', 'Admin', 'Gerente SMS', 'Jefe Pilotos', 'Piloto'];
 const ROLE_KEYS = ['superadmin', 'admin', 'gerente', 'jefe', 'piloto'];
 
-// ─── Componente auxiliar de badge de rol ────────────────────────────────────
-function RolBadge({ val }) {
-  if (val === true)       return <span className="inline-flex items-center justify-center size-6 rounded-full bg-emerald-100 text-emerald-600 text-xs font-black">✓</span>;
-  if (val === false)      return <span className="inline-flex items-center justify-center size-6 rounded-full bg-red-50 text-red-400 text-xs font-black">✗</span>;
-  if (val === 'ver')      return <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-black">VER</span>;
-  if (val === 'propio')   return <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-xs font-black">PROPIO</span>;
+// ─── Badge de permiso ────────────────────────────────────────────────────────
+function RolBadge({ val, compact = false }) {
+  if (val === true)     return <span className="inline-flex items-center justify-center size-5 rounded-full bg-emerald-100 text-emerald-600 text-xs font-black">✓</span>;
+  if (val === false)    return <span className="inline-flex items-center justify-center size-5 rounded-full bg-red-50 text-red-400 text-xs font-black">✗</span>;
+  if (val === 'ver')    return <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-black">VER</span>;
+  if (val === 'propio') return <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 text-xs font-black">OWN</span>;
   return null;
+}
+
+// ─── Tabla de permisos mobile (cards) ───────────────────────────────────────
+function PermisosMobile({ tabla }) {
+  return (
+    <div className="md:hidden space-y-2">
+      {tabla.map((row, i) => (
+        <div key={i} className="bg-white rounded-xl border border-slate-200 p-3">
+          <p className="text-xs font-black text-slate-700 mb-2 leading-tight">{row.accion}</p>
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {ROLE_KEYS.map((key, ki) => (
+              <span key={key} className="flex items-center gap-1 text-xs text-slate-400">
+                <span className="font-bold">{ROLES[ki]}</span>
+                <RolBadge val={row[key]} compact />
+              </span>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Tabla de permisos desktop ───────────────────────────────────────────────
+function PermisosDesktop({ tabla }) {
+  return (
+    <div className="hidden md:block overflow-x-auto">
+      <table className="w-full text-left min-w-[480px]">
+        <thead>
+          <tr className="text-xs font-black uppercase text-slate-400 border-b border-slate-200">
+            <th className="px-4 py-3 w-1/2">Acción</th>
+            {ROLES_FULL.map((r) => (
+              <th key={r} className="px-3 py-3 text-center whitespace-nowrap">{r}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {tabla.map((row, i) => (
+            <tr key={i} className="hover:bg-white transition-colors">
+              <td className="px-4 py-3 text-xs font-bold text-slate-700">{row.accion}</td>
+              {ROLE_KEYS.map((key) => (
+                <td key={key} className="px-3 py-3 text-center">
+                  <RolBadge val={row[key]} />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 // ─── Página ─────────────────────────────────────────────────────────────────
@@ -204,9 +268,9 @@ export default function DocumentacionPage() {
 
       {/* ── HEADER ── */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100">
-        <nav className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <nav className="max-w-7xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2" aria-label="Bitafly inicio">
-            <span className="text-2xl font-black text-navy uppercase tracking-tighter">Bitafly</span>
+            <span className="text-xl md:text-2xl font-black text-navy uppercase tracking-tighter">Bitafly</span>
           </Link>
           <ul className="hidden md:flex items-center gap-8 text-sm font-bold text-slate-600">
             <li><Link href="/#funciones" className="hover:text-primary transition-colors">Funciones</Link></li>
@@ -214,11 +278,11 @@ export default function DocumentacionPage() {
             <li><Link href="/documentacion" className="text-primary border-b-2 border-primary pb-0.5">Guía</Link></li>
             <li><Link href="/#precios" className="hover:text-primary transition-colors">Precios</Link></li>
           </ul>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <Link href="/login" className="hidden sm:inline-block text-xs font-black uppercase tracking-widest text-slate-600 hover:text-primary transition-colors">
               Ingresar
             </Link>
-            <Link href="/registro" className="hidden sm:inline-block bg-primary text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-md hover:bg-orange-600 transition-all">
+            <Link href="/registro" className="hidden sm:inline-block bg-primary text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest shadow-md hover:bg-orange-600 transition-all">
               Comenzar gratis
             </Link>
             <NavMobile />
@@ -226,41 +290,61 @@ export default function DocumentacionPage() {
         </nav>
       </header>
 
+      {/* ── MOBILE STICKY NAV — navegación entre fases ── */}
+      {/* Solo visible en mobile/tablet, sticky justo debajo del header */}
+      <div className="lg:hidden sticky top-14 z-30 bg-white/95 backdrop-blur-sm border-b border-slate-100 shadow-sm">
+        <div className="flex overflow-x-auto gap-1.5 px-4 py-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {FASES.map((f) => (
+            <a
+              key={f.id}
+              href={`#${f.id}`}
+              className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wide border border-slate-200 text-slate-500 hover:border-orange-300 hover:text-primary transition-all`}
+            >
+              <span className={`size-4 rounded-full ${f.colorSolid} flex items-center justify-center text-white font-black`} style={{ fontSize: '8px' }}>
+                {f.num}
+              </span>
+              {f.titleCorto}
+            </a>
+          ))}
+        </div>
+      </div>
+
       {/* ── HERO ── */}
-      <section className="bg-navy text-white py-16 md:py-24 px-6">
-        <div className="max-w-4xl mx-auto text-center space-y-6">
-          <p className="inline-flex items-center gap-2 bg-white/10 text-orange-400 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest">
+      <section className="bg-navy text-white py-12 md:py-24 px-4 md:px-6">
+        <div className="max-w-4xl mx-auto text-center space-y-4 md:space-y-6">
+          <p className="inline-flex items-center gap-2 bg-white/10 text-orange-400 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs font-black uppercase tracking-widest">
             <span className="material-symbols-outlined text-sm">menu_book</span>
             Guía de Usuario — 6 Fases
           </p>
-          <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-[0.95]">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-black uppercase tracking-tighter leading-[0.95]">
             Cómo usar <span className="text-primary">Bitafly</span>
           </h1>
-          <p className="text-slate-300 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
-            Guía completa paso a paso para operadores UAS. Desde la configuración inicial
-            hasta la generación de reportes oficiales para la AeroCivil.
+          <p className="text-slate-300 text-sm md:text-lg max-w-2xl mx-auto leading-relaxed">
+            Guía completa paso a paso para operadores UAS. Desde la configuración
+            hasta los reportes oficiales para la AeroCivil.
           </p>
-          {/* Chips de fases */}
-          <div className="flex flex-wrap justify-center gap-2 pt-4">
+
+          {/* Chips de fases — solo desktop (en mobile hay la sticky nav) */}
+          <div className="hidden sm:flex flex-wrap justify-center gap-2 pt-2">
             {FASES.map((f) => (
               <a
                 key={f.id}
                 href={`#${f.id}`}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-xs font-black uppercase tracking-wider text-slate-300 hover:text-white transition-all"
+                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-full text-xs font-black uppercase tracking-wide text-slate-300 hover:text-white transition-all"
               >
-                {f.num}. {f.title}
+                {f.num}. {f.titleCorto}
               </a>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── CONTENIDO PRINCIPAL (sidebar + fases) ── */}
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-12 md:py-20">
-        <div className="flex gap-12 lg:gap-16">
+      {/* ── CONTENIDO PRINCIPAL ── */}
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-20">
+        <div className="flex gap-10 lg:gap-16">
 
-          {/* Sidebar TOC — desktop */}
-          <aside className="hidden lg:block w-56 shrink-0">
+          {/* Sidebar TOC — solo desktop */}
+          <aside className="hidden lg:block w-52 shrink-0">
             <div className="sticky top-24 space-y-1">
               <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 px-3">Contenido</p>
               {FASES.map((f) => (
@@ -276,30 +360,24 @@ export default function DocumentacionPage() {
                 </a>
               ))}
               <div className="border-t border-slate-100 mt-6 pt-5 space-y-2 px-3">
-                <Link
-                  href="/registro"
-                  className="block text-center py-2.5 bg-primary text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-orange-600 transition-all"
-                >
+                <Link href="/registro" className="block text-center py-2.5 bg-primary text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-orange-600 transition-all">
                   Comenzar gratis
                 </Link>
-                <Link
-                  href="/login"
-                  className="block text-center py-2.5 border border-slate-200 text-slate-600 rounded-xl text-xs font-black uppercase tracking-widest hover:border-slate-400 transition-all"
-                >
+                <Link href="/login" className="block text-center py-2.5 border border-slate-200 text-slate-600 rounded-xl text-xs font-black uppercase tracking-widest hover:border-slate-400 transition-all">
                   Ingresar
                 </Link>
               </div>
             </div>
           </aside>
 
-          {/* Fases */}
-          <main className="flex-1 min-w-0 space-y-20">
+          {/* Contenido */}
+          <main className="flex-1 min-w-0 space-y-14 md:space-y-20">
 
-            {/* Resumen rápido de roles */}
-            <section className="bg-slate-50 rounded-3xl border border-slate-200 p-6 md:p-10">
-              <h2 className="text-lg font-black uppercase tracking-tighter text-navy mb-2">Los 5 roles de Bitafly</h2>
-              <p className="text-sm text-slate-500 mb-6">Cada usuario tiene un rol que define lo que puede ver y hacer en la plataforma.</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {/* Resumen de roles */}
+            <section className="bg-slate-50 rounded-2xl md:rounded-3xl border border-slate-200 p-5 md:p-10">
+              <h2 className="text-base md:text-lg font-black uppercase tracking-tighter text-navy mb-1">Los 5 roles de Bitafly</h2>
+              <p className="text-xs md:text-sm text-slate-500 mb-5">Cada usuario tiene un rol que define lo que puede ver y hacer en la plataforma.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
                 {[
                   { rol: 'Superadmin', desc: 'Control total del sistema. Gestión inter-organizaciones.', icon: 'shield_person', color: 'bg-purple-50 text-purple-700 border-purple-200' },
                   { rol: 'Administrador', desc: 'Gestión completa de la organización, flota, pilotos y reportes.', icon: 'manage_accounts', color: 'bg-navy/5 text-navy border-navy/20' },
@@ -307,113 +385,101 @@ export default function DocumentacionPage() {
                   { rol: 'Jefe de Pilotos', desc: 'Gestión de flota, pilotos, misiones y bitácora.', icon: 'flight', color: 'bg-blue-50 text-blue-700 border-blue-200' },
                   { rol: 'Piloto', desc: 'Registra sus propios vuelos y consulta su expediente.', icon: 'person', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
                 ].map((r) => (
-                  <div key={r.rol} className={`flex items-start gap-3 p-4 rounded-2xl border ${r.color}`}>
-                    <span className="material-symbols-outlined text-xl shrink-0 mt-0.5">{r.icon}</span>
+                  <div key={r.rol} className={`flex items-start gap-3 p-3 md:p-4 rounded-xl md:rounded-2xl border ${r.color}`}>
+                    <span className="material-symbols-outlined text-lg md:text-xl shrink-0 mt-0.5">{r.icon}</span>
                     <div>
                       <p className="text-xs font-black uppercase tracking-wide">{r.rol}</p>
-                      <p className="text-xs mt-1 opacity-80 leading-relaxed">{r.desc}</p>
+                      <p className="text-xs mt-0.5 opacity-80 leading-relaxed">{r.desc}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </section>
 
-            {/* ─ Iteración de fases ─ */}
+            {/* ─ Fases ─ */}
             {FASES.map((fase, idx) => (
-              <section key={fase.id} id={fase.id} className="scroll-mt-24">
-
+              <section
+                key={fase.id}
+                id={fase.id}
+                // scroll-mt compensa: header (56px mobile / 64px desktop) + mobile nav (44px) + margen
+                className="scroll-mt-28 lg:scroll-mt-24"
+              >
                 {/* Encabezado de fase */}
-                <div className="flex items-start gap-5 mb-8">
-                  <div className={`size-16 rounded-3xl bg-gradient-to-br ${fase.color} flex items-center justify-center shadow-lg shrink-0`}>
-                    <span className="material-symbols-outlined text-white text-2xl">{fase.icon}</span>
+                <div className="flex items-start gap-4 mb-6">
+                  <div className={`size-12 md:size-16 rounded-2xl md:rounded-3xl bg-gradient-to-br ${fase.color} flex items-center justify-center shadow-lg shrink-0`}>
+                    <span className="material-symbols-outlined text-white text-xl md:text-2xl">{fase.icon}</span>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5 mb-1">
                       <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Fase {fase.num}</span>
                       <span className="h-1 w-1 rounded-full bg-slate-300" />
                       <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{fase.duracion}</span>
+                    </div>
+                    <h2 className="text-xl md:text-3xl font-black uppercase tracking-tighter text-navy leading-tight">
+                      {fase.title}
+                    </h2>
+                    <p className="text-slate-500 text-xs md:text-sm mt-1">{fase.subtitle}</p>
+                    {/* Roles — debajo del título en mobile */}
+                    <div className="flex flex-wrap gap-1.5 mt-2">
                       {fase.roles.map((r) => (
                         <span key={r} className="px-2 py-0.5 bg-orange-50 text-primary rounded-full text-xs font-black uppercase">
                           {r}
                         </span>
                       ))}
                     </div>
-                    <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-navy leading-tight">
-                      {fase.title}
-                    </h2>
-                    <p className="text-slate-500 text-sm mt-1">{fase.subtitle}</p>
                   </div>
                 </div>
 
                 {/* Descripción */}
-                <p className="text-slate-600 leading-relaxed mb-8 text-sm md:text-base">{fase.desc}</p>
+                <p className="text-slate-600 leading-relaxed mb-6 text-sm">{fase.desc}</p>
 
                 {/* Pasos */}
-                <div className="space-y-3 mb-8">
+                <div className="space-y-2 md:space-y-3 mb-6">
                   {fase.pasos.map((paso, i) => (
-                    <div key={i} className="flex gap-4 p-5 bg-white rounded-2xl border border-slate-100 hover:border-orange-200 hover:shadow-sm transition-all">
+                    <div key={i} className="flex gap-3 md:gap-4 p-4 md:p-5 bg-white rounded-xl md:rounded-2xl border border-slate-100 hover:border-orange-200 hover:shadow-sm transition-all">
                       <div className="flex flex-col items-center gap-1 shrink-0">
-                        <div className="size-10 rounded-2xl bg-orange-50 flex items-center justify-center">
-                          <span className="material-symbols-outlined text-primary text-lg">{paso.icon}</span>
+                        <div className="size-9 md:size-10 rounded-xl md:rounded-2xl bg-orange-50 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-primary text-base md:text-lg">{paso.icon}</span>
                         </div>
                         <span className="text-xs font-black text-orange-300">{String(i + 1).padStart(2, '0')}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-black text-navy text-sm uppercase tracking-tight mb-1">{paso.title}</h3>
+                        <h3 className="font-black text-navy text-xs md:text-sm uppercase tracking-tight mb-1 leading-tight">{paso.title}</h3>
                         <p className="text-xs text-slate-500 leading-relaxed">{paso.desc}</p>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                {/* Tabla de permisos por rol */}
-                <div className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden mb-6">
-                  <div className="px-5 py-3 bg-slate-100 border-b border-slate-200">
+                {/* Tabla de permisos */}
+                <div className="bg-slate-50 rounded-xl md:rounded-2xl border border-slate-200 overflow-hidden mb-5">
+                  <div className="px-4 py-2.5 bg-slate-100 border-b border-slate-200">
                     <p className="text-xs font-black uppercase tracking-widest text-slate-500">Permisos por rol</p>
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left min-w-[480px]">
-                      <thead>
-                        <tr className="text-xs font-black uppercase text-slate-400 border-b border-slate-200">
-                          <th className="px-4 py-3 w-1/2">Acción</th>
-                          {ROLES.map((r) => (
-                            <th key={r} className="px-3 py-3 text-center whitespace-nowrap">{r}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {fase.roles_tabla.map((row, i) => (
-                          <tr key={i} className="hover:bg-white transition-colors">
-                            <td className="px-4 py-3 text-xs font-bold text-slate-700">{row.accion}</td>
-                            {ROLE_KEYS.map((key) => (
-                              <td key={key} className="px-3 py-3 text-center">
-                                <RolBadge val={row[key]} />
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  {/* Mobile: cards */}
+                  <div className="p-3 md:p-0">
+                    <PermisosMobile tabla={fase.roles_tabla} />
                   </div>
+                  {/* Desktop: tabla */}
+                  <PermisosDesktop tabla={fase.roles_tabla} />
                 </div>
 
-                {/* Nota / tip */}
-                <div className="flex gap-3 p-4 md:p-5 bg-amber-50 rounded-2xl border border-amber-200">
-                  <span className="material-symbols-outlined text-amber-500 text-xl shrink-0 mt-0.5">lightbulb</span>
+                {/* Nota */}
+                <div className="flex gap-3 p-4 bg-amber-50 rounded-xl md:rounded-2xl border border-amber-200">
+                  <span className="material-symbols-outlined text-amber-500 text-lg shrink-0 mt-0.5">lightbulb</span>
                   <p className="text-xs text-amber-800 leading-relaxed font-medium">{fase.nota}</p>
                 </div>
 
-                {/* Separador (excepto en el último) */}
                 {idx < FASES.length - 1 && (
-                  <div className="mt-20 border-t border-slate-100" />
+                  <div className="mt-14 md:mt-20 border-t border-slate-100" />
                 )}
               </section>
             ))}
 
-            {/* ─ CTA final ─ */}
-            <section className="bg-navy rounded-[2.5rem] p-8 md:p-12 text-white text-center space-y-6">
-              <span className="material-symbols-outlined text-primary text-5xl">rocket_launch</span>
-              <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter">
+            {/* CTA final */}
+            <section className="bg-navy rounded-2xl md:rounded-[2.5rem] p-7 md:p-12 text-white text-center space-y-5">
+              <span className="material-symbols-outlined text-primary text-4xl md:text-5xl">rocket_launch</span>
+              <h2 className="text-xl md:text-3xl font-black uppercase tracking-tighter">
                 ¿Listo para comenzar?
               </h2>
               <p className="text-slate-300 text-sm max-w-lg mx-auto leading-relaxed">
@@ -421,16 +487,10 @@ export default function DocumentacionPage() {
                 Sin tarjeta de crédito. Sin instalaciones.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Link
-                  href="/registro"
-                  className="bg-primary text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-500 hover:scale-105 transition-all shadow-xl shadow-orange-500/20"
-                >
+                <Link href="/registro" className="bg-primary text-white px-7 py-3.5 md:px-8 md:py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-500 transition-all shadow-xl shadow-orange-500/20 active:scale-95">
                   Crear cuenta gratis
                 </Link>
-                <a
-                  href="mailto:soporte@bitafly.com"
-                  className="border-2 border-white/20 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/5 transition-all"
-                >
+                <a href="mailto:soporte@bitafly.com" className="border-2 border-white/20 px-7 py-3.5 md:px-8 md:py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/5 transition-all active:scale-95">
                   Contactar soporte
                 </a>
               </div>
@@ -441,10 +501,10 @@ export default function DocumentacionPage() {
       </div>
 
       {/* ── FOOTER ── */}
-      <footer className="bg-[#0F1419] text-slate-400 py-16 px-6 border-t border-white/5 mt-20">
-        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
+      <footer className="bg-[#0F1419] text-slate-400 py-12 md:py-16 px-4 md:px-6 border-t border-white/5 mt-12 md:mt-20">
+        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 text-sm">
           <div className="col-span-2">
-            <p className="text-2xl font-black text-white uppercase tracking-tighter">Bitafly</p>
+            <p className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter">Bitafly</p>
             <p className="text-xs mt-3 max-w-xs leading-relaxed">
               Software de gestión aeronáutica para operadores UAS en Colombia. Cumplimiento RAC 100 desde el primer vuelo.
             </p>
@@ -467,7 +527,7 @@ export default function DocumentacionPage() {
             </ul>
           </div>
         </div>
-        <div className="max-w-6xl mx-auto mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between gap-4 text-xs uppercase tracking-widest">
+        <div className="max-w-6xl mx-auto mt-10 pt-6 border-t border-white/5 flex flex-col md:flex-row justify-between gap-3 text-xs uppercase tracking-widest">
           <p>© {new Date().getFullYear()} Bitafly Operations. Todos los derechos reservados.</p>
           <p>Hecho en Colombia para operadores UAS</p>
         </div>

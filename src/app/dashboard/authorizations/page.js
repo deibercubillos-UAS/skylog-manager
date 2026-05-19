@@ -18,6 +18,11 @@ export default async function AuthorizePage() {
 
   if (!['superadmin', 'admin', 'jefe_pilotos'].includes(profile?.role)) redirect('/dashboard');
 
+  // Plan piloto: redirigir a la herramienta simplificada de planificación
+  const { data: org } = await supabase.from('organizations').select('subscription_plan').eq('id', profile.organization_id).single();
+  const plan = org?.subscription_plan || profile?.subscription_plan || 'piloto';
+  if (plan === 'piloto') redirect('/dashboard/plan-vuelo');
+
   const [pilotsReq, dronesReq, orgReq] = await Promise.all([
     supabase.from('pilots').select('*').eq('organization_id', profile.organization_id).eq('is_active', true).order('name'),
     supabase.from('aircraft').select('*').eq('organization_id', profile.organization_id).eq('status', 'Operativo'),

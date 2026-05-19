@@ -130,26 +130,32 @@ export default function DashboardLayout({ children }) {
 
 // Plan: verificar en org Y en profile para no bloquear usuarios válidos
 const plan = data.org?.subscription_plan || data.profile?.subscription_plan || 'piloto';
-const isPaidPlan = !['piloto', null, undefined, ''].includes(plan);
+const isPaidPlan  = !['piloto', null, undefined, ''].includes(plan);
+const isPilotoPlan = plan === 'piloto'; // solo piloto autónomo (sin SMS, sin auditoría)
 
+// pilotHidden: true  → se oculta cuando el plan es 'piloto' (sin importar el rol)
+// pilotOnly: true    → se muestra SOLO cuando el plan es 'piloto'
 const navLinks = [
   { name: 'Dashboard',      icon: 'dashboard',               href: '/dashboard',                 roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Mi Flota',       icon: 'precision_manufacturing', href: '/dashboard/fleet',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Tripulación',    icon: 'group',                   href: '/dashboard/pilots',          roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'] },
-  { name: 'Programación',   icon: 'event_available',         href: '/dashboard/authorizations',  roles: ['superadmin', 'admin', 'jefe_pilotos'] },
-  { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      roles: ['piloto'] },
+  { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      roles: ['superadmin', 'admin', 'jefe_pilotos', 'piloto'], pilotOnly: true },
+  { name: 'Programación',   icon: 'event_available',         href: '/dashboard/authorizations',  roles: ['superadmin', 'admin', 'jefe_pilotos'],            pilotHidden: true },
   { name: 'Bitácora',       icon: 'menu_book',               href: '/dashboard/logbook',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Reportes',       icon: 'assessment',              href: '/dashboard/reports',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'] },
-  { name: 'Seguridad',      icon: 'health_and_safety',       href: '/dashboard/safety',          roles: ['superadmin', 'admin', 'gerente_sms'] },
-  { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'] },
-  { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'] },
-  { name: 'Protocolos',     icon: 'rule',                    href: '/dashboard/settings/forms',  roles: ['superadmin', 'admin', 'gerente_sms'] },
+  { name: 'Reportes',       icon: 'assessment',              href: '/dashboard/reports',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
+  { name: 'Seguridad',      icon: 'health_and_safety',       href: '/dashboard/safety',          roles: ['superadmin', 'admin', 'gerente_sms'],                    pilotHidden: true },
+  { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
+  { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
+  { name: 'Protocolos',     icon: 'rule',                    href: '/dashboard/settings/forms',  roles: ['superadmin', 'admin', 'gerente_sms'],                    pilotHidden: true },
 ];
 
-// FILTRAR por rol Y por plan (paidOnly oculta el ítem en plan Piloto)
+// FILTRAR por rol, plan y flags pilotOnly / pilotHidden
 const filteredLinks = navLinks.filter(link =>
-  link.roles.includes(role) && (!link.paidOnly || isPaidPlan)
+  link.roles.includes(role) &&
+  (!link.paidOnly     || isPaidPlan) &&
+  (!link.pilotHidden  || !isPilotoPlan) &&
+  (!link.pilotOnly    || isPilotoPlan)
 );
 
 const footerLinksAll = [

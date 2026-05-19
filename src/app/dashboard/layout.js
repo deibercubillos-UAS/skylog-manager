@@ -138,7 +138,7 @@ const isPilotoPlan = plan === 'piloto'; // solo piloto autónomo (sin SMS, sin a
 const navLinks = [
   { name: 'Dashboard',      icon: 'dashboard',               href: '/dashboard',                 roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Mi Flota',       icon: 'precision_manufacturing', href: '/dashboard/fleet',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Tripulación',    icon: 'group',                   href: '/dashboard/pilots',          roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Tripulación',    icon: 'group',                   href: '/dashboard/pilots',          roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
   { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      roles: ['superadmin', 'admin', 'jefe_pilotos', 'piloto'], pilotOnly: true },
   { name: 'Programación',   icon: 'event_available',         href: '/dashboard/authorizations',  roles: ['superadmin', 'admin', 'jefe_pilotos'],            pilotHidden: true },
@@ -147,7 +147,7 @@ const navLinks = [
   { name: 'Seguridad',      icon: 'health_and_safety',       href: '/dashboard/safety',          roles: ['superadmin', 'admin', 'gerente_sms'],                    pilotHidden: true },
   { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
   { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
-  { name: 'Protocolos',     icon: 'rule',                    href: '/dashboard/settings/forms',  roles: ['superadmin', 'admin', 'gerente_sms'],                    pilotHidden: true },
+  { name: 'Protocolos',     icon: 'rule',                    href: '/dashboard/settings/forms',  roles: ['superadmin', 'admin', 'gerente_sms'] },
 ];
 
 // FILTRAR por rol, plan y flags pilotOnly / pilotHidden

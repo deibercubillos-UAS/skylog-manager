@@ -29,9 +29,10 @@ function coordString(points, altM = 0) {
  * @param {number} radiusM  — only used when geoType === 'circle'
  * @param {string} name     — placemark name
  * @param {number} altM     — altitude in metres AGL
+ * @param {string} desc     — optional description embedded in the KML document
  * @returns {string} KML document as string
  */
-export function generateKML(geoType, points, radiusM = 500, name = 'Operación UAS', altM = 120) {
+export function generateKML(geoType, points, radiusM = 500, name = 'Operación UAS', altM = 120, desc = '') {
   if (!points || points.length === 0) return null;
 
   let placemark = '';
@@ -100,12 +101,16 @@ export function generateKML(geoType, points, radiusM = 500, name = 'Operación U
     return null;
   }
 
+  const description = desc
+    ? `${desc}\n\nGenerado por Bitafly · Sistema de Gestión RAC 100`
+    : 'Operación UAS — Generado por Bitafly · Sistema de Gestión RAC 100';
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2"
      xmlns:gx="http://www.google.com/kml/ext/2.2">
   <Document>
     <name>${name}</name>
-    <description>Operación UAS — Generado por Bitafly · Sistema de Gestión RAC 100</description>
+    <description>${description}</description>
     ${placemark}
   </Document>
 </kml>`;

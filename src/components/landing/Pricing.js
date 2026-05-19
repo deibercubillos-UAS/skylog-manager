@@ -10,7 +10,7 @@ const PLANS = [
     tagline: 'Para el piloto autónomo',
     monthly: 5,
     annual: 4,
-    freeMonths: 6,
+    freeMonths: 1,
     dark: false,
     popular: false,
     cta: 'Comenzar gratis',
@@ -181,7 +181,7 @@ export default function Pricing() {
                       Gratis
                     </p>
                     <p className={`text-xs font-bold mt-1 ${plan.popular ? 'text-slate-400' : 'text-slate-500'}`}>
-                      6 meses · luego{' '}
+                      {plan.freeMonths} mes gratis · luego{' '}
                       <span className="font-black text-primary">
                         ${annual ? plan.annual : plan.monthly} USD/mes
                       </span>

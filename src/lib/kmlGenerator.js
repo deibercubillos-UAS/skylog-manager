@@ -125,6 +125,26 @@ export function downloadKML(kmlString, filename = 'operacion-uas.kml') {
   URL.revokeObjectURL(url);
 }
 
+// ─── KMZ download (KML inside a ZIP container) ───────────────────────────────
+/**
+ * Generates a .kmz file (ZIP with doc.kml inside) for AeroCivil submissions.
+ * Uses fflate (already bundled via jsPDF) — no extra network request.
+ */
+export async function downloadKMZ(kmlString, filename = 'operacion-uas.kmz') {
+  if (typeof window === 'undefined' || !kmlString) return;
+  const { zipSync, strToU8 } = await import('fflate');
+  const zipped = zipSync({ 'doc.kml': strToU8(kmlString) }, { level: 6 });
+  const blob = new Blob([zipped], { type: 'application/vnd.google-earth.kmz' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 // ─── Geometry helpers ────────────────────────────────────────────────────────
 const R_EARTH = 6371000; // metres
 

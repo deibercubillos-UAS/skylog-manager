@@ -1,10 +1,10 @@
 // src/lib/planLimits.js
 
-// Precios USD: piloto $5/mes ($4 anual, gratis 6 meses) · escuadrilla $15/mes ($12 anual) · flota $39/mes ($29 anual) · enterprise custom
+// Precios USD: piloto $5/mes ($4 anual, gratis 1 mes) · escuadrilla $15/mes ($12 anual) · flota $39/mes ($29 anual) · enterprise custom
 export const PLAN_CONFIG = {
   piloto: {
     name: 'Plan Piloto',
-    price: { monthly: 5, annual: 4, freeMonths: 6 },
+    price: { monthly: 5, annual: 4, freeMonths: 1 },
     allowedRoles: ['piloto'],
     maxDrones: 1,
     maxPilots: 1,

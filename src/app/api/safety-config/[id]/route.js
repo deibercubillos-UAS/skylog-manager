@@ -24,7 +24,19 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Sin permisos para eliminar protocolos' }, { status: 403 });
     }
 
-    // Eliminar de form_definitions, verificando que pertenezca al org
+    // Verificar que el registro exista y pertenezca al org antes de eliminar
+    const { data: existing } = await supabase
+      .from('form_definitions')
+      .select('id')
+      .eq('id', id)
+      .eq('organization_id', orgId)
+      .eq('form_type', 'sora')
+      .maybeSingle();
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Protocolo no encontrado o sin permisos' }, { status: 404 });
+    }
+
     const { error } = await supabase
       .from('form_definitions')
       .delete()

@@ -46,39 +46,44 @@ export async function PATCH(request) {
         const supabase = await createClient();
         const adminSupabase = createAdminClient();
 
-        // Verificar sesión del llamante
+        // ── Auth: verificar identidad real del solicitante ──────────────────
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-        // Verificar que el llamante es superadmin (con service role para bypass RLS)
-        const { data: profile } = await adminSupabase
+        // ── Autorización: solo superadmin puede usar este endpoint ──────────
+        const { data: requester } = await adminSupabase
             .from('profiles')
             .select('role')
             .eq('id', user.id)
             .single();
 
-        console.log(`Intento de PATCH Master - Usuario: ${user.email} - Rol: ${profile?.role}`);
-
-        if (profile?.role !== 'superadmin') {
-            return NextResponse.json({
-                error: `Acceso Denegado. Su rol actual es: ${profile?.role}. Se requiere: superadmin`
-            }, { status: 403 });
+        if (requester?.role !== 'superadmin') {
+            console.warn(`PATCH /api/admin/master — acceso denegado: ${user.email} (rol: ${requester?.role})`);
+            return NextResponse.json({ error: "Acceso denegado. Se requiere rol: superadmin" }, { status: 403 });
         }
 
         const body = await request.json();
         const { targetUserId, updateData } = body;
+
         if (!targetUserId || !updateData) {
-            return NextResponse.json({ error: "Parámetros inválidos" }, { status: 400 });
+            return NextResponse.json({ error: "targetUserId y updateData son requeridos" }, { status: 400 });
         }
 
-        // Evitar que se auto-degraden o eliminen el propio rol superadmin
-        if (targetUserId === user.id && updateData.role && updateData.role !== 'superadmin') {
-            return NextResponse.json({ error: "No puedes cambiar tu propio rol de superadmin" }, { status: 403 });
+        // ── Allowlist: superadmin solo puede modificar estos campos ─────────
+        const ALLOWED_FIELDS = ['role', 'subscription_plan', 'subscription_expires_at', 'full_name', 'first_name', 'last_name'];
+        const safeUpdate = Object.fromEntries(
+            Object.entries(updateData).filter(([key]) => ALLOWED_FIELDS.includes(key))
+        );
+
+        if (Object.keys(safeUpdate).length === 0) {
+            return NextResponse.json({ error: "No hay campos válidos para actualizar" }, { status: 400 });
         }
+
+        console.log(`PATCH /api/admin/master — ${user.email} actualizando perfil ${targetUserId}:`, Object.keys(safeUpdate));
 
         const { data, error } = await adminSupabase
             .from('profiles')
-            .update(updateData)
+            .update({ ...safeUpdate, updated_at: new Date().toISOString() })
             .eq('id', targetUserId)
             .select();
         if (error) throw error;

@@ -7,13 +7,23 @@ export async function GET() {
     try {
         const supabase = await createClientSSR();
         const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
         const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
         const orgId = prof?.organization_id;
+        if (!orgId) return NextResponse.json({ error: 'Sin organización asignada' }, { status: 403 });
 
         const [drones, crew, flights] = await Promise.all([
-            supabase.from('aircraft').select('*').eq('organization_id', orgId),
-            supabase.from('pilots').select('*').eq('organization_id', orgId),
-            supabase.from('flights').select('*').eq('organization_id', orgId).is('landing_time', null)
+            supabase.from('aircraft')
+                .select('id,model,serial_number,total_hours,last_maintenance_hours,last_maintenance_date,created_at,image_url,ruas')
+                .eq('organization_id', orgId),
+            supabase.from('pilots')
+                .select('id,name,medical_expiry,id_doc_url,medical_cert_url')
+                .eq('organization_id', orgId),
+            supabase.from('flights')
+                .select('id')
+                .eq('organization_id', orgId)
+                .is('landing_time', null),
         ]);
 
         const today = new Date();

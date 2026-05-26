@@ -42,6 +42,13 @@ export async function middleware(request) {
 
   const isDashboard = pathname.startsWith('/dashboard');
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
+  // Rutas API sensibles que requieren sesión activa
+  const isProtectedApi = pathname.startsWith('/api/admin') || pathname.startsWith('/api/user');
+
+  // API routes: responder 401 JSON, nunca redirigir
+  if (isProtectedApi && !user) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  }
 
   if (isDashboard && !user) {
     return NextResponse.redirect(new URL('/login', request.url));
@@ -62,5 +69,7 @@ export const config = {
     '/register',
     '/registro',
     '/admin/:path*',
+    '/api/admin/:path*',
+    '/api/user/:path*',
   ],
 }

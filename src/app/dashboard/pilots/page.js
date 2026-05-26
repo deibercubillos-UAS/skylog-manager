@@ -35,13 +35,14 @@ export default function PilotsPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { window.location.href = '/login'; return; }
+      // getUser() verifica el token contra Supabase (más seguro que getSession())
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { window.location.href = '/login'; return; }
 
       const { data: prof } = await supabase
         .from('profiles')
         .select('organization_id, role')
-        .eq('id', session.user.id)
+        .eq('id', user.id)
         .single();
 
       if (!prof?.organization_id) { window.location.href = '/login'; return; }

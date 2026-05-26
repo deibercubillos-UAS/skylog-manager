@@ -365,7 +365,7 @@ const footerLinks = footerLinksAll.filter(link =>
               </div>
               <div className="size-10 rounded-full bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
                 {data.profile?.avatar_url ? (
-                  <Image src="/logo.png" alt="Bitafly" width={40} height={40} priority />
+                  <Image src={data.profile.avatar_url} alt="Avatar" width={40} height={40} className="object-cover w-full h-full" />
                 ) : (
                   <span className="material-symbols-outlined text-slate-400 text-xl">person</span>
                 )}

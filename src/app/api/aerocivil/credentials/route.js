@@ -7,7 +7,9 @@ export const dynamic = 'force-dynamic';
 
 // ─── Cifrado AES-256-GCM ─────────────────────────────────────
 const ALGO = 'aes-256-gcm';
-const SALT = 'bitafly-aerocivil-v1';
+// AEROCIVIL_SALT debe definirse en .env.local para instalaciones nuevas.
+// El fallback mantiene compatibilidad con credenciales ya cifradas existentes.
+const SALT = process.env.AEROCIVIL_SALT || 'bitafly-aerocivil-v1';
 
 function getKey() {
   const secret = process.env.AEROCIVIL_ENCRYPTION_KEY;

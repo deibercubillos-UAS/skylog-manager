@@ -4,16 +4,32 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+// Tipos de reporte permitidos
+const ALLOWED_REPORT_TYPES = ['sms', 'flota', 'bitacora'];
+// Regex para validar fechas en formato YYYY-MM-DD
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
-    const reportType = searchParams.get('type');
+    const reportType = searchParams.get('type') || 'bitacora';
     const dateFrom   = searchParams.get('from');
     const dateTo     = searchParams.get('to');
 
     const supabase = await createClientSSR();
     const { user, orgId } = await getOrgContext(supabase);
-    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (!user)  return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (!orgId) return NextResponse.json({ error: 'Sin organización asignada' }, { status: 403 });
+
+    // Validar tipo de reporte contra allowlist
+    if (!ALLOWED_REPORT_TYPES.includes(reportType)) {
+      return NextResponse.json({ error: `Tipo de reporte inválido. Permitidos: ${ALLOWED_REPORT_TYPES.join(', ')}` }, { status: 400 });
+    }
+
+    // Validar fechas
+    if ((dateFrom && !DATE_REGEX.test(dateFrom)) || (dateTo && !DATE_REGEX.test(dateTo))) {
+      return NextResponse.json({ error: 'Formato de fecha inválido. Use YYYY-MM-DD' }, { status: 400 });
+    }
 
     // 1. REPORTE SMS
     if (reportType === 'sms') {

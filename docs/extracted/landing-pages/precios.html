@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Precios Software Drones Colombia — Planes desde Gratis | Bitafly</title>
+<meta name="description" content="Planes y precios de Bitafly para operadores de drones en Colombia. Plan gratuito 6 meses, Escuadrilla desde $15 USD/mes, Flota desde $29 USD/mes, Enterprise a consultar. Sin contrato. Cancela cuando quieras.">
+<meta name="keywords" content="precios software drones Colombia, costo plataforma UAS, planes bitafly, software operadores drones precio, gestión flota drones precio">
+<link rel="canonical" href="https://bitafly.com/precios">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=swap&icon_names=check_circle,remove_circle,expand_more,arrow_forward,verified_user,rocket_launch,gavel,payments,star,groups">
+<link rel="stylesheet" href="_shared.css">
+<script type="application/ld+json">{
+  "@context":"https://schema.org","@type":"FAQPage",
+  "mainEntity":[
+    {"@type":"Question","name":"¿Tiene Bitafly un plan gratuito?","acceptedAnswer":{"@type":"Answer","text":"Sí. Bitafly ofrece 6 meses gratuitos para pilotos individuales con 1 aeronave. No se requiere tarjeta de crédito. Después de los 6 meses el plan Piloto cuesta $5 USD/mes (o $4 USD/mes anual)."}},
+    {"@type":"Question","name":"¿Puedo cancelar mi suscripción en cualquier momento?","acceptedAnswer":{"@type":"Answer","text":"Sí. No hay contratos a largo plazo. Puedes cancelar tu suscripción en cualquier momento desde el panel de configuración sin penalidades ni cargos adicionales."}},
+    {"@type":"Question","name":"¿Qué incluye el plan Flota de Bitafly?","acceptedAnswer":{"@type":"Answer","text":"El plan Flota ($39 USD/mes o $29 USD/mes anual) incluye hasta 15 aeronaves, 15 usuarios con los 5 roles RAC 100, bitácora ilimitada, mantenimiento avanzado, SMS completo, todos los reportes oficiales, auditoría completa, protocolos personalizables y soporte prioritario."}}
+  ]
+}</script>
+<script type="application/ld+json">{
+  "@context":"https://schema.org","@type":"PriceSpecification",
+  "name":"Bitafly — Planes de suscripción",
+  "priceCurrency":"USD",
+  "price":"0",
+  "description":"Plan Piloto gratuito 6 meses para operadores individuales de drones en Colombia"
+}</script>
+</head>
+<body>
+<nav class="main-nav">
+  <a href="home.html" class="nav-logo">Bitafly</a>
+  <ul class="nav-links">
+    <li><a href="home.html">Funciones</a></li>
+    <li><a href="rac-100.html">RAC 100</a></li>
+    <li><a href="operadores-uas.html">Operadores UAS</a></li>
+    <li><a href="#faq">Preguntas</a></li>
+  </ul>
+  <a href="#" class="nav-cta">Comenzar gratis</a>
+</nav>
+
+<!-- HERO -->
+<section style="padding:72px 32px 56px;background:#fff;text-align:center">
+  <div style="max-width:700px;margin:0 auto">
+    <div class="overline" style="display:flex;justify-content:center;margin-bottom:14px">Planes y precios</div>
+    <h1 class="hero-title" style="font-size:clamp(32px,4vw,52px)">Planes que <span>crecen con tu flota</span></h1>
+    <p style="font-size:15px;color:#64748b;line-height:1.65;margin:16px auto 32px;max-width:520px">Empieza gratis. Actualiza cuando agregues más drones, tripulantes o necesites el SMS empresarial. Sin contratos rígidos. Sin letra pequeña.</p>
+    <!-- Toggle -->
+    <div id="toggle-bar" style="display:inline-flex;align-items:center;gap:4px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:16px;padding:5px">
+      <button id="btn-mensual" onclick="setAnnual(false)" style="padding:8px 20px;border-radius:12px;border:none;font-family:inherit;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;background:#1A202C;color:#fff">Mensual</button>
+      <button id="btn-anual" onclick="setAnnual(true)" style="padding:8px 20px;border-radius:12px;border:none;font-family:inherit;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;background:transparent;color:#94a3b8;display:flex;align-items:center;gap:6px">Anual <span style="background:#ec5b13;color:#fff;font-size:8px;padding:2px 7px;border-radius:9999px">−20%</span></button>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING CARDS -->
+<section style="padding:0 32px 80px;background:#fff">
+  <div style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:start">
+    <!-- Piloto -->
+    <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:28px;padding:28px;display:flex;flex-direction:column;gap:0">
+      <p style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#94a3b8;margin-bottom:4px">Piloto</p>
+      <p style="font-size:11px;color:#94a3b8;margin-bottom:16px">Para el piloto autónomo</p>
+      <div style="margin-bottom:8px">
+        <div style="font-size:36px;font-weight:900;color:#1A202C">Gratis</div>
+        <div style="font-size:11px;font-weight:700;color:#94a3b8;margin-top:4px">6 meses · luego <span id="p-piloto" style="color:#ec5b13;font-weight:900">$5 USD/mes</span></div>
+      </div>
+      <p style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:#ec5b13;margin-bottom:20px">1 aeronave · 1 usuario</p>
+      <a href="#" style="display:block;text-align:center;padding:12px;background:#1A202C;color:#fff;border-radius:14px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;margin-bottom:20px">Comenzar gratis</a>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:8px">
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#475569"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>1 aeronave registrada</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#475569"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>Bitácora RAC 100 ilimitada</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#475569"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>Alertas de mantenimiento</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#475569"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>Hasta 2 baterías</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#475569"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>Reporte PDF F-OPS-002</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#cbd5e1"><span class="material-symbols-outlined" style="font-size:16px;color:#e2e8f0;flex-shrink:0;margin-top:1px">remove_circle</span>Autorizaciones F-OPS-001</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#cbd5e1"><span class="material-symbols-outlined" style="font-size:16px;color:#e2e8f0;flex-shrink:0;margin-top:1px">remove_circle</span>SMS aeronáutico</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#cbd5e1"><span class="material-symbols-outlined" style="font-size:16px;color:#e2e8f0;flex-shrink:0;margin-top:1px">remove_circle</span>Multi-usuario</li>
+      </ul>
+    </div>
+    <!-- Escuadrilla -->
+    <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:28px;padding:28px;display:flex;flex-direction:column">
+      <p style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#94a3b8;margin-bottom:4px">Escuadrilla</p>
+      <p style="font-size:11px;color:#94a3b8;margin-bottom:16px">Para pequeñas empresas</p>
+      <div style="margin-bottom:8px">
+        <div style="display:flex;align-items:baseline;gap:4px"><span id="v-escuadrilla" style="font-size:36px;font-weight:900;color:#1A202C">$15</span><span style="font-size:11px;font-weight:700;color:#94a3b8">USD/mes</span></div>
+        <div id="ann-escuadrilla" style="font-size:10px;font-weight:700;color:#94a3b8;margin-top:4px;display:none">Facturado $144/año</div>
+      </div>
+      <p style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:#ec5b13;margin-bottom:20px">3 aeronaves · 4 usuarios</p>
+      <a href="#" style="display:block;text-align:center;padding:12px;background:#1A202C;color:#fff;border-radius:14px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;margin-bottom:20px">Comenzar ahora</a>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:8px">
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#475569"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>Hasta 3 aeronaves</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#475569"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>Hasta 4 usuarios (3 roles)</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#475569"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>Bitácora RAC 100 ilimitada</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#475569"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>Baterías ilimitadas</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#475569"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>Autorizaciones F-OPS-001</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#475569"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>SMS básico</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#cbd5e1"><span class="material-symbols-outlined" style="font-size:16px;color:#e2e8f0;flex-shrink:0;margin-top:1px">remove_circle</span>Auditoría completa</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#cbd5e1"><span class="material-symbols-outlined" style="font-size:16px;color:#e2e8f0;flex-shrink:0;margin-top:1px">remove_circle</span>Checklists personalizados</li>
+      </ul>
+    </div>
+    <!-- Flota (popular) -->
+    <div style="background:#1A202C;border:1.5px solid #ec5b13;border-radius:28px;padding:28px;display:flex;flex-direction:column;position:relative;box-shadow:0 24px 48px rgba(26,32,44,0.25)">
+      <div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:#ec5b13;color:#fff;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;padding:4px 14px;border-radius:9999px;white-space:nowrap">Más popular</div>
+      <p style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#ec5b13;margin-bottom:4px">Flota</p>
+      <p style="font-size:11px;color:#64748b;margin-bottom:16px">Para empresas medianas</p>
+      <div style="margin-bottom:8px">
+        <div style="display:flex;align-items:baseline;gap:4px"><span id="v-flota" style="font-size:36px;font-weight:900;color:#fff">$39</span><span style="font-size:11px;font-weight:700;color:#64748b">USD/mes</span></div>
+        <div id="ann-flota" style="font-size:10px;font-weight:700;color:#64748b;margin-top:4px;display:none">Facturado $348/año</div>
+      </div>
+      <p style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:#ec5b13;margin-bottom:20px">15 aeronaves · 15 usuarios</p>
+      <a href="#" style="display:block;text-align:center;padding:12px;background:#ec5b13;color:#fff;border-radius:14px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;margin-bottom:20px;box-shadow:0 4px 14px rgba(236,91,19,0.4)">Comenzar ahora</a>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:8px">
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#94a3b8"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>Hasta 15 aeronaves</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#94a3b8"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>15 usuarios · 5 roles RAC 100</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#94a3b8"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>Todos los reportes: F-OPS-002, F-MNT-003, F-HUM-005</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#94a3b8"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>SMS completo con trazabilidad</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#94a3b8"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>Auditoría y trazabilidad completa</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#94a3b8"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>Checklists personalizables</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#94a3b8"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>Soporte prioritario 12h</li>
+      </ul>
+    </div>
+    <!-- Enterprise -->
+    <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:28px;padding:28px;display:flex;flex-direction:column">
+      <p style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#94a3b8;margin-bottom:4px">Enterprise</p>
+      <p style="font-size:11px;color:#94a3b8;margin-bottom:16px">Para grandes operadores</p>
+      <div style="margin-bottom:8px">
+        <div style="font-size:30px;font-weight:900;color:#1A202C;line-height:1.2">A consultar</div>
+      </div>
+      <p style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;color:#ec5b13;margin-bottom:20px">Ilimitado</p>
+      <a href="mailto:soporte@bitafly.com" style="display:block;text-align:center;padding:12px;background:#1A202C;color:#fff;border-radius:14px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;margin-bottom:20px">Contactar ventas</a>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:8px">
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#475569"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>Todo el plan Flota incluido</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#475569"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>Aeronaves y usuarios ilimitados</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#475569"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>White label / marca propia</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#475569"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>API access + integraciones</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#475569"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>SLA 99.9% garantizado</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#475569"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>Soporte dedicado 24/7</li>
+        <li style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:#475569"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13;flex-shrink:0;margin-top:1px">check_circle</span>Onboarding personalizado</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ESUAS banner -->
+<section style="padding:0 32px 80px;background:#fff">
+  <div style="max-width:1100px;margin:0 auto">
+    <div style="background:#fff;border:1.5px solid rgba(236,91,19,0.2);border-radius:28px;padding:32px 36px;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center">
+      <div style="display:flex;gap:18px;align-items:flex-start">
+        <div style="width:48px;height:48px;background:rgba(236,91,19,0.08);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="material-symbols-outlined" style="color:#ec5b13;font-size:24px">verified_user</span></div>
+        <div>
+          <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;color:#ec5b13;margin-bottom:6px">Oferta especial · Proceso de certificación ESUAS</div>
+          <h3 style="font-size:17px;font-weight:900;text-transform:uppercase;letter-spacing:-0.02em;color:#1A202C;margin-bottom:8px">¿Tu empresa está certificando como Explotador UAS ante la AeroCivil?</h3>
+          <p style="font-size:13px;color:#64748b;line-height:1.65;max-width:620px">Accede a Bitafly <strong>sin costo</strong> durante todo el proceso. Sabemos que cumplir la RAC 100 tiene un costo, y queremos ser parte de la solución. Contáctanos con tu número de radicado.</p>
+        </div>
+      </div>
+      <a href="mailto:soporte@bitafly.com" style="flex-shrink:0;display:inline-flex;align-items:center;gap:6px;background:#ec5b13;color:#fff;padding:14px 22px;border-radius:16px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;white-space:nowrap;box-shadow:0 4px 14px rgba(236,91,19,0.3)"><span class="material-symbols-outlined" style="font-size:16px">gavel</span>Solicitar acceso</a>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" class="faq-section">
+  <div class="faq-inner">
+    <div style="text-align:center;margin-bottom:48px"><div class="overline">Precios — Preguntas</div><h2 class="section-title">Dudas sobre <span>planes y precios</span></h2></div>
+    <details class="faq-item"><summary class="faq-q">¿El plan gratuito requiere tarjeta de crédito?<span class="material-symbols-outlined faq-icon">expand_more</span></summary><p class="faq-a">No. El plan Piloto es gratuito por 6 meses sin necesidad de tarjeta de crédito. Solo necesitas un correo electrónico para registrarte. Al finalizar los 6 meses, puedes elegir continuar con el plan de pago o contactarnos para extender el período gratuito si estás en proceso de certificación.</p></details>
+    <details class="faq-item"><summary class="faq-q">¿Puedo cambiar de plan en cualquier momento?<span class="material-symbols-outlined faq-icon">expand_more</span></summary><p class="faq-a">Sí. Puedes actualizar o degradar tu plan en cualquier momento desde el panel de suscripción. Los cambios aplican al siguiente período de facturación. Si actualizas, el acceso a las nuevas funciones es inmediato.</p></details>
+    <details class="faq-item"><summary class="faq-q">¿Hay descuento por pago anual?<span class="material-symbols-outlined faq-icon">expand_more</span></summary><p class="faq-a">Sí. El pago anual tiene un descuento del 20%. El plan Escuadrilla pasa de $15 USD/mes a $12 USD/mes. El plan Flota pasa de $39 USD/mes a $29 USD/mes. Selecciona "Anual" en el toggle de precios para ver los valores exactos.</p></details>
+    <details class="faq-item"><summary class="faq-q">¿Los pagos son en pesos colombianos o dólares?<span class="material-symbols-outlined faq-icon">expand_more</span></summary><p class="faq-a">Los precios están expresados en USD como referencia estable. El cobro se realiza a través de Wompi en pesos colombianos a la TRM del día. Aceptamos tarjetas Visa, Mastercard y PSE.</p></details>
+    <details class="faq-item"><summary class="faq-q">¿Qué pasa con mis datos si cancelo?<span class="material-symbols-outlined faq-icon">expand_more</span></summary><p class="faq-a">Tus datos se conservan durante 90 días después de la cancelación, período durante el cual puedes exportar tus bitácoras, reportes y datos de flota en PDF o Excel. Transcurrido ese período, los datos son eliminados de forma permanente.</p></details>
+  </div>
+</section>
+
+<div class="cta-band">
+  <h2>Empieza hoy. <span>Gratis por 6 meses.</span></h2>
+  <p>Sin tarjeta de crédito, sin contratos, sin letra pequeña. Configura en 5 minutos.</p>
+  <div class="cta-btns">
+    <a href="#" class="btn-white"><span class="material-symbols-outlined" style="font-size:18px">rocket_launch</span>Crear cuenta gratis</a>
+    <a href="mailto:soporte@bitafly.com" class="btn-outline-white">Hablar con ventas</a>
+  </div>
+</div>
+
+<footer class="main-footer">
+  <div class="footer-inner">
+    <div><div class="footer-brand-name">Bitafly</div><p class="footer-brand-desc">Software de gestión aeronáutica para operadores UAS en Colombia. Planes desde gratis.</p></div>
+    <div><div class="footer-col-title">Planes</div><ul class="footer-links"><li><a href="#" style="color:#ec5b13">Piloto — Gratis 6 meses</a></li><li><a href="#">Escuadrilla — $15 USD/mes</a></li><li><a href="#">Flota — $39 USD/mes</a></li><li><a href="mailto:soporte@bitafly.com">Enterprise — A consultar</a></li></ul></div>
+    <div><div class="footer-col-title">Producto</div><ul class="footer-links"><li><a href="home.html">Inicio</a></li><li><a href="rac-100.html">RAC 100</a></li><li><a href="operadores-uas.html">Operadores UAS</a></li><li><a href="reportes-auditoria.html">Reportes</a></li></ul></div>
+  </div>
+  <div class="footer-bottom"><span>© 2025 Bitafly Operations. Todos los derechos reservados.</span><span>Hecho en Colombia para operadores UAS</span></div>
+</footer>
+
+<script>
+let isAnnual = false;
+const prices = { escuadrilla: [15,12], flota: [39,29] };
+function setAnnual(ann) {
+  isAnnual = ann;
+  document.getElementById('btn-mensual').style.background = ann ? 'transparent' : '#1A202C';
+  document.getElementById('btn-mensual').style.color = ann ? '#94a3b8' : '#fff';
+  document.getElementById('btn-anual').style.background = ann ? '#1A202C' : 'transparent';
+  document.getElementById('btn-anual').style.color = ann ? '#fff' : '#94a3b8';
+  document.getElementById('p-piloto').textContent = ann ? '$4 USD/mes' : '$5 USD/mes';
+  document.getElementById('v-escuadrilla').textContent = '$' + prices.escuadrilla[ann?1:0];
+  document.getElementById('ann-escuadrilla').style.display = ann ? 'block' : 'none';
+  document.getElementById('v-flota').textContent = '$' + prices.flota[ann?1:0];
+  document.getElementById('ann-flota').style.display = ann ? 'block' : 'none';
+}
+</script>
+</body>
+</html>

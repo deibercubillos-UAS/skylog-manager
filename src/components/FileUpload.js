@@ -3,6 +3,9 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 
+const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
 export default function FileUpload({ path, onUploadSuccess, label }) {
   const [uploading, setUploading] = useState(false);
   const BUCKET = 'documents';
@@ -11,6 +14,20 @@ export default function FileUpload({ path, onUploadSuccess, label }) {
     try {
       const file = event.target.files[0];
       if (!file) return;
+
+      // Validación de tipo MIME (más fiable que solo la extensión)
+      if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+        toast.error('Solo se permiten archivos PDF, JPG y PNG.');
+        event.target.value = '';
+        return;
+      }
+
+      // Validación de tamaño (máx 10 MB)
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        toast.error('El archivo supera el límite de 10 MB.');
+        event.target.value = '';
+        return;
+      }
 
       setUploading(true);
 

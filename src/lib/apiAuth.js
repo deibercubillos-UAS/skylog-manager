@@ -14,13 +14,14 @@ export async function getOrgContext(supabase) {
 
     const { data: prof } = await supabase
         .from('profiles')
-        .select('organization_id, role')
+        .select('organization_id, role, subscription_plan')
         .eq('id', user.id)
         .single();
 
     return {
         user,
-        orgId: prof?.organization_id ?? null,
-        role: prof?.role ?? null,
+        orgId:             prof?.organization_id  ?? null,
+        role:              prof?.role              ?? null,
+        subscription_plan: prof?.subscription_plan ?? 'piloto',
     };
 }

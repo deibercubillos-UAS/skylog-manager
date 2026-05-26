@@ -2,11 +2,14 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 export default function SecuritySettings() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   // 1. Obtener el correo del usuario actual para mostrarlo
   useEffect(() => {
@@ -38,6 +41,24 @@ export default function SecuritySettings() {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/user/delete', { method: 'DELETE' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'No se pudo eliminar la cuenta');
+      }
+      await supabase.auth.signOut();
+      window.location.href = '/';
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setDeleting(false);
+      setDeleteConfirm(null);
     }
   };
 
@@ -98,12 +119,28 @@ export default function SecuritySettings() {
               <p className="text-xs font-black text-red-700 uppercase">Eliminar Cuenta Permanentemente</p>
               <p className="text-xs text-red-500 font-medium">Esta acción borrará toda tu bitácora, drones y pilotos de forma irreversible.</p>
             </div>
-            <button className="bg-white text-red-600 border border-red-200 px-6 py-2 rounded-xl text-xs font-black uppercase hover:bg-red-600 hover:text-white transition-all">
-              Borrar Todo
+            <button
+              onClick={() => setDeleteConfirm({
+                isOpen: true,
+                title: '¿Eliminar cuenta?',
+                message: 'Se borrará toda tu bitácora, drones, pilotos y datos. Esta acción es IRREVERSIBLE y no tiene recuperación.',
+                confirmText: deleting ? 'Eliminando...' : 'Sí, eliminar todo',
+                danger: true,
+                onConfirm: handleDeleteAccount,
+              })}
+              disabled={deleting}
+              className="bg-white text-red-600 border border-red-200 px-6 py-2 rounded-xl text-xs font-black uppercase hover:bg-red-600 hover:text-white transition-all disabled:opacity-60"
+            >
+              {deleting ? 'Eliminando...' : 'Borrar Todo'}
             </button>
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        {...(deleteConfirm || { isOpen: false })}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </div>
   );
 }

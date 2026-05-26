@@ -6,6 +6,20 @@ import { toast } from '@/lib/toast';
 export default function ExportActions({ data, reportName = "Bitafly-Report" }) {
   const [isExporting, setIsExporting] = useState(false);
 
+  // Sin datos no hay nada que exportar
+  if (!data?.length) {
+    return (
+      <div className="flex gap-2">
+        <button disabled className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-400 rounded-lg text-sm cursor-not-allowed" title="Sin datos para exportar">
+          <span className="material-symbols-outlined text-sm">table_view</span> Excel
+        </button>
+        <button disabled className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-400 rounded-lg text-sm cursor-not-allowed" title="Sin datos para exportar">
+          <span className="material-symbols-outlined text-sm">picture_as_pdf</span> PDF
+        </button>
+      </div>
+    );
+  }
+
   // --- EXPORTAR A EXCEL (Dynamic Import) ---
   const exportToExcel = async () => {
     try {

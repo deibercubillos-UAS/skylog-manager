@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
+import { getColombiaGeo } from '@/lib/colombiaGeo';
 
 // Tipos de operación según RAC 100 — lista completa
 const MISSION_TYPES = [
@@ -34,17 +35,15 @@ export default function BasicForm({ pilots, drones, org, loadData }) {
         scheduled_at: '', mission_type: MISSION_TYPES[0],
     });
 
-    // CARGA DE GEOGRAFÍA INTERNA
+    // CARGA DE GEOGRAFÍA — usa caché compartida para no re-fetchear si AerocivilForm ya lo hizo
     useEffect(() => {
-        async function loadGeo() {
-            const { data } = await supabase.from('colombia_geo').select('*').range(0, 1200).order('Nombre Departamento');
-            if (data) {
+        getColombiaGeo(supabase)
+            .then(data => {
                 const uniqueDepts = [...new Set(data.map(i => i["Nombre Departamento"]))].sort();
                 setGeo({ depts: uniqueDepts, munis: [], all: data });
-            }
-            setLoadingGeo(false);
-        }
-        loadGeo();
+            })
+            .catch(() => {}) // silencia errores de red; el selector simplemente queda vacío
+            .finally(() => setLoadingGeo(false));
     }, []);
 
     const handleDeptChange = (deptName) => {

@@ -51,10 +51,16 @@ export default function LogbookPage() {
 
     useEffect(() => { loadData(true); }, []);
 
-    // Valores únicos para selects — solo se recalculan cuando cambia flights
-    const uniqueModels = useMemo(() => [...new Set(flights.map(f => f.aircraft?.model).filter(Boolean))], [flights]);
-    const uniqueTypes  = useMemo(() => [...new Set(flights.map(f => f.mission_type).filter(Boolean))],     [flights]);
-    const uniquePilots = useMemo(() => [...new Set(flights.map(f => f.pilots?.name).filter(Boolean))],     [flights]);
+    // Valores únicos para selects — un solo recorrido del array para los tres sets
+    const { uniqueModels, uniqueTypes, uniquePilots } = useMemo(() => {
+        const models = new Set(), types = new Set(), pilotsSet = new Set();
+        flights.forEach(f => {
+            if (f.aircraft?.model) models.add(f.aircraft.model);
+            if (f.mission_type)    types.add(f.mission_type);
+            if (f.pilots?.name)    pilotsSet.add(f.pilots.name);
+        });
+        return { uniqueModels: [...models], uniqueTypes: [...types], uniquePilots: [...pilotsSet] };
+    }, [flights]);
 
     // Filtrado en memoria — solo recalcula cuando cambian filtros o datos
     const filteredFlights = useMemo(() => {

@@ -1,5 +1,4 @@
-﻿'use client';
-import Link from 'next/link'; // <--- ESTA ES LA LÍNEA QUE FALTABA
+﻿import Link from 'next/link';
 
 export default function Features() {
   const features = [

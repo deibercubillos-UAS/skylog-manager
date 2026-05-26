@@ -28,18 +28,26 @@ export default function ReportsPage() {
 
    const init = async () => {
         const { data: { user } } = await supabase.auth.getUser();
-        const { data: prof } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).single();
-        const { data: org } = await supabase.from('organizations').select('*').eq('id', prof.organization_id).single();
-        const { data: crew } = await supabase.from('pilots').select('id, name').eq('organization_id', prof.organization_id);
-        
-        setUserRole(prof?.role || null);
+        if (!user) return;
+
+        const { data: prof } = await supabase
+            .from('profiles').select('organization_id, role').eq('id', user.id).single();
+        if (!prof?.organization_id) return;
+
+        // Org y tripulación en paralelo (mismo org_id, no dependen entre sí)
+        const [{ data: org }, { data: crew }] = await Promise.all([
+            supabase.from('organizations').select('*').eq('id', prof.organization_id).single(),
+            supabase.from('pilots').select('id, name').eq('organization_id', prof.organization_id),
+        ]);
+
+        setUserRole(prof.role || null);
         setOrgData(org);
         setPilots(crew || []);
-        setConfig(prev => ({ 
-            ...prev, 
-            formCodeMaster: org?.form_code_master || 'F-OPS-002',
+        setConfig(prev => ({
+            ...prev,
+            formCodeMaster:  org?.form_code_master    || 'F-OPS-002',
             formCodeBattery: org?.form_code_batteries || 'F-MNT-003',
-            formCodePilot: org?.form_code_pilots || 'F-HUM-005'
+            formCodePilot:   org?.form_code_pilots    || 'F-HUM-005',
         }));
     };
 

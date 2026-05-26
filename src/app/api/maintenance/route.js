@@ -40,18 +40,17 @@ export async function POST(request) {
             maintenance_type: body.maintenance_type,
             description: body.description,
             hours_at_service: body.hours_at_service,
-            technician: body.technician_name,       // <-- columna legada NOT NULL
-            technician_name: body.technician_name,  // <-- columna nueva
+            technician_name: body.technician_name,
             organization_id: orgId
         }]).select().single();
 
         if (mErr) throw mErr;
 
-        // 2. REINICIAR CONTADORES EN EL DRONE
+        // 2. REINICIAR CONTADORES EN EL DRONE (con filtro de org para evitar cross-tenant)
         await supabase.from('aircraft').update({
             last_maintenance_date: today,
             last_maintenance_hours: body.hours_at_service
-        }).eq('id', body.aircraft_id);
+        }).eq('id', body.aircraft_id).eq('organization_id', orgId);
 
         return NextResponse.json(log);
     } catch (err) { return NextResponse.json({ error: err.message }, { status: 500 }); }

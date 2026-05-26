@@ -31,11 +31,36 @@ export async function GET() {
     } catch (err) { return NextResponse.json([], { status: 500 }); }
 }
 
+// Campos que el cliente NO puede controlar en una autorización de vuelo
+const BLOCKED_AUTHORIZATION_FIELDS = [
+  'id', 'organization_id', 'mission_id', 'scheduled_by',
+  'status', 'created_at', 'updated_at',
+];
+
+// Campos RAC 100 mínimos requeridos para una solicitud de autorización
+const REQUIRED_AUTHORIZATION_FIELDS = ['pilot_id', 'aircraft_id', 'location', 'scheduled_at', 'mission_type'];
+
 export async function POST(request) {
     try {
         const supabase = await createClientSSR();
         const { user, orgId } = await getOrgContext(supabase);
         if (!orgId) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+        const body = await request.json();
+
+        // Validar campos obligatorios RAC 100
+        const missing = REQUIRED_AUTHORIZATION_FIELDS.filter(f => !body[f]);
+        if (missing.length > 0) {
+            return NextResponse.json(
+                { error: `Campos RAC 100 obligatorios faltantes: ${missing.join(', ')}` },
+                { status: 400 }
+            );
+        }
+
+        // Sanitizar: remover campos controlados por el servidor
+        const safeBody = Object.fromEntries(
+            Object.entries(body).filter(([key]) => !BLOCKED_AUTHORIZATION_FIELDS.includes(key))
+        );
 
         // Prefijo de la organización + próximo número de misión en paralelo
         const [orgRes, lastRes] = await Promise.all([
@@ -48,7 +73,6 @@ export async function POST(request) {
                 .maybeSingle()
         ]);
 
-        const body = await request.json();
         const prefix = orgRes.data?.flight_prefix || 'BIT';
 
         let nextNumber = 1;
@@ -58,14 +82,16 @@ export async function POST(request) {
             if (!isNaN(lastNumber)) nextNumber = lastNumber + 1;
         }
 
-        const missionId = `${prefix}-${nextNumber.toString().padStart(3, '0')}`;
+        // Sufijo aleatorio corto para minimizar colisiones en inserciones concurrentes
+        const salt = Math.random().toString(36).substring(2, 5).toUpperCase();
+        const missionId = `${prefix}-${nextNumber.toString().padStart(3, '0')}-${salt}`;
 
         const { data, error } = await supabase.from('flight_authorizations').insert([{
-            ...body,
-            mission_id: missionId,
+            ...safeBody,
+            mission_id:      missionId,
             organization_id: orgId,
-            scheduled_by: user.id,
-            status: 'autorizado'
+            scheduled_by:    user.id,
+            status:          'autorizado',
         }]).select();
 
         if (error) throw error;

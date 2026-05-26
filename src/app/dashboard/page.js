@@ -1,11 +1,8 @@
-'use client';
-export const dynamic = 'force-dynamic';
-
 /**
- * Dashboard page — pure client component.
- * Los datos los carga DashboardClient via /api/dashboard.
- * Eliminamos el Server Component con createClient() de @/utils/supabase/server
- * que fallaba en producción por el manejo de cookies en SSR streaming.
+ * Dashboard page — Server Component wrapper.
+ * DashboardClient (Client Component) carga los datos via /api/dashboard.
+ * Al ser Server Component, este archivo no se incluye en el JS bundle
+ * del cliente y el middleware protege la ruta antes del render.
  */
 import DashboardClient from './DashboardClient';
 

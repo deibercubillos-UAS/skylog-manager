@@ -1,22 +1,29 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabaseServer';
+import { getOrgContext } from '@/lib/apiAuth';
 
-export async function GET(request) {
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
   try {
-    // Usamos el cliente SSR que valida la sesión por cookie
-    const { createClient: createSSRClient } = await import('@/utils/supabase/server');
-    const supabase = await createSSRClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    const userId = user.id;
+    const supabase = await createClient();
+    const { user, orgId } = await getOrgContext(supabase);
+    if (!user)  return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    if (!orgId) return NextResponse.json({ error: "Sin organización asignada" }, { status: 403 });
 
+    // Filtro por organization_id para que todos los miembros con permiso vean los reportes
     const { data, error } = await supabase
       .from('sms_reports')
-      .select('*, flights(flight_number, location)')
-      .eq('owner_id', userId)
-      .order('created_at', { ascending: false });
+      .select('id,severity,narrative,immediate_actions,created_at,owner_id,flights(flight_number,location)')
+      .eq('organization_id', orgId)
+      .order('created_at', { ascending: false })
+      .limit(200);
 
     if (error) throw error;
-    return NextResponse.json(data);
+
+    const res = NextResponse.json(data || []);
+    res.headers.set('Cache-Control', 'private, max-age=30, stale-while-revalidate=60');
+    return res;
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
@@ -24,24 +31,27 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const body = await request.json();
-    const authHeader = request.headers.get('Authorization');
-    const { userId, reportData } = body;
+    const supabase = await createClient();
+    const { user, orgId, role } = await getOrgContext(supabase);
+    if (!user)  return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    if (!orgId) return NextResponse.json({ error: "Sin organización asignada" }, { status: 403 });
 
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    // --- VALIDACIÓN DE SEGURIDAD EN SERVIDOR ---
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single();
-    
-    if (profile.role !== 'admin' && profile.role !== 'gerente_sms') {
+    // Solo admin y gerente_sms pueden emitir reportes oficiales
+    const ALLOWED_ROLES = ['admin', 'gerente_sms', 'superadmin'];
+    if (!ALLOWED_ROLES.includes(role)) {
       return NextResponse.json({ error: "Solo el Gerente SMS puede emitir reportes oficiales." }, { status: 403 });
     }
 
+    const body = await request.json();
+    const { reportData } = body;
+
     const { data, error } = await supabase
       .from('sms_reports')
-      .insert([{ ...reportData, owner_id: userId }])
+      .insert([{
+        ...reportData,
+        owner_id:        user.id,
+        organization_id: orgId,
+      }])
       .select();
 
     if (error) throw error;

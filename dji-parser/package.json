@@ -1,0 +1,21 @@
+{
+  "name": "dji-parser",
+  "version": "0.1.0",
+  "description": "Local DJI .dat and .txt flight log parser — outputs Bitafly-compatible JSON",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test:txt": "node test/test-txt.js",
+    "test:dat": "node test/test-dat.js",
+    "parse": "node index.js"
+  },
+  "dependencies": {
+    "csv-parse": "^5.6.0",
+    "dji-log-parser": "^0.0.4",
+    "dji-log-parser-js": "^0.5.7",
+    "dotenv": "^17.4.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

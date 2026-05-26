@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // dji-log-parser-js usa WASM — excluir del bundling de webpack
+  experimental: {
+    serverComponentsExternalPackages: ['dji-log-parser-js'],
+  },
+
   // Compresión gzip/brotli en respuestas (mejora TTFB)
   compress: true,
 

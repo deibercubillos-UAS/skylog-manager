@@ -1,23 +1,22 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClientSSR } from '@/lib/supabaseServer';
+import { getOrgContext } from '@/lib/apiAuth';
 import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const authHeader = request.headers.get('Authorization');
+    const supabase = await createClientSSR();
 
-    if (!userId || !authHeader) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    // Obtener userId del token — no del query string
+    const { user, orgId } = await getOrgContext(supabase);
+    if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    // Obtenemos las plantillas de mitigación configuradas por el usuario
+    // Obtenemos las plantillas de mitigación del usuario autenticado
     const { data, error } = await supabase
       .from('sora_templates')
       .select('*')
-      .eq('owner_id', userId)
+      .eq('owner_id', user.id)
       .order('category', { ascending: true });
 
     if (error) throw error;

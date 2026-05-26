@@ -45,13 +45,28 @@ export async function POST(request) {
 
     // Acción especial: sembrar OSOs JARUS por defecto
     if (body.action === 'seed_sora') {
-      const rows = body.items.map((item, idx) => ({
+      // Guard anti-duplicado: si ya existen OSOs para esta org, no insertar de nuevo
+      const { count: existing } = await supabase
+        .from('form_definitions')
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', orgId)
+        .eq('form_type', 'sora');
+
+      if ((existing || 0) > 0) {
+        return NextResponse.json({ message: 'OSOs ya sembrados para esta organización' }, { status: 200 });
+      }
+
+      const rows = (body.items || []).map((item, idx) => ({
         organization_id: orgId,
         form_type: 'sora',
         aircraft_model: item.category || 'General',
         field_number: idx + 1,
         label_text: item.label,
       }));
+
+      if (!rows.length) {
+        return NextResponse.json({ error: 'No se recibieron ítems para sembrar' }, { status: 400 });
+      }
 
       const { error } = await supabase.from('form_definitions').insert(rows);
       if (error) throw error;

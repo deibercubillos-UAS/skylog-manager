@@ -5,6 +5,9 @@ import { saveAs } from 'file-saver';
 
 const cleanText = (val) => val ? String(val).toUpperCase() : '';
 
+// Devuelve doc.lastAutoTable.finalY de forma segura (evita crash con datos vacíos o tabla no renderizada)
+const safeAutoTableY = (doc, fallback = 40) => doc.lastAutoTable?.finalY ?? fallback;
+
 const toGMS = (dec) => {
     const d = Math.abs(dec);
     const deg = Math.floor(d);
@@ -48,7 +51,7 @@ export const generateMasterReport = (data, config) => {
     autoTable(doc, {
         startY: 40,
         head: [['FECHA', 'VUELO', 'MARCA', 'MODELO', 'S/N', 'RUAS', 'LUGAR', 'TIPO OP', 'VISUAL', 'DEP', 'ARR', 'TOTAL', 'PILOTO', 'CIPU']],
-        body: data.map(f => [
+        body: (data || []).map(f => [
             f.flight_date, f.mission_id, f.aircraft?.brand, f.aircraft?.model, f.aircraft?.serial_number, 
             f.aircraft?.ruas, f.location, f.mission_type, f.visual_condition, f.takeoff_time, 
             f.landing_time, f.aircraft?.total_hours?.toFixed(2), f.pilots?.name, f.pilots?.license_number
@@ -58,7 +61,7 @@ export const generateMasterReport = (data, config) => {
         margin: { left: 10, right: 10 }
     });
 
-    const finalY = doc.lastAutoTable.finalY + 25;
+    const finalY = safeAutoTableY(doc, 80) + 25;
     doc.line(30, finalY, 110, finalY);
     doc.text("FIRMA JEFE DE PILOTOS", 70, finalY + 5, { align: 'center' });
     doc.line(187, finalY, 267, finalY);
@@ -97,8 +100,8 @@ export const generateBatteryReport = (data, config) => {
     autoTable(doc, {
         startY: 40,
         head: [['S/N BATERÍA', 'MARCA', 'DRON USADO', 'CICLOS ACUM.', 'VUELO ID', 'UBICACIÓN', 'CONDICIÓN']],
-        body: data.map(f => [
-            f.battery?.serial_number || 'N/A', f.battery?.brand || 'N/A', f.aircraft?.model || 'N/A', 
+        body: (data || []).map(f => [
+            f.battery?.serial_number || 'N/A', f.battery?.brand || 'N/A', f.aircraft?.model || 'N/A',
             f.battery?.cycles || '0', f.mission_id || 'N/A', f.location || 'N/A', f.visual_condition || 'VMC'
         ]),
         styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1 },
@@ -106,7 +109,7 @@ export const generateBatteryReport = (data, config) => {
         margin: { left: 10, right: 10 }
     });
 
-    const finalY = doc.lastAutoTable.finalY + 30;
+    const finalY = safeAutoTableY(doc, 80) + 30;
     doc.line(30, finalY, 110, finalY);
     doc.text("FIRMA JEFE DE PILOTOS", 70, finalY + 5, { align: 'center' });
     doc.line(187, finalY, 267, finalY);
@@ -148,7 +151,7 @@ export const generatePilotReport = (data, config) => {
     autoTable(doc, {
         startY: 40,
         head: [['FECHA', 'MISIÓN ID', 'MODELO UAS', 'S/N EQUIPO', 'UBICACIÓN', 'DEP', 'ARR', 'DURACIÓN (H)', 'OBSERVACIONES']],
-        body: data.map(f => {
+        body: (data || []).map(f => {
             totalAcumulado += parseFloat(f.total_time || 0);
             return [
                 f.flight_date, f.mission_id, f.aircraft?.model || 'N/A', f.aircraft?.serial_number || 'N/A', 
@@ -162,13 +165,13 @@ export const generatePilotReport = (data, config) => {
         margin: { left: 10, right: 10 }
     });
 
-    const finalY = doc.lastAutoTable.finalY + 25;
+    const finalY = safeAutoTableY(doc, 80) + 25;
     doc.line(30, finalY, 110, finalY);
     doc.text("FIRMA DEL PILOTO", 70, finalY + 5, { align: 'center' });
     doc.line(187, finalY, 267, finalY);
     doc.text("FIRMA JEFE DE PILOTOS / CERTIFICADOR", 227, finalY + 5, { align: 'center' });
 
-    doc.save(`${formCode}_PILOTO_${pilotName.replace(' ', '_')}.pdf`);
+    doc.save(`${formCode}_PILOTO_${(pilotName || 'PILOTO').replace(/\s+/g, '_')}.pdf`);
 };
 
 // --- 4. NUEVO GENERADOR: EXPEDIENTE TÉCNICO DE TRIPULANTE (PORTRAIT) ---
@@ -206,7 +209,7 @@ export const generatePilotDossier = (pilot, config) => {
 
     // --- 3. BLOQUE AERONÁUTICO ---
     autoTable(doc, {
-        startY: doc.lastAutoTable.finalY + 5,
+        startY: safeAutoTableY(doc, 40) + 5,
         head: [['02. CREDENCIALES Y CALIFICACIONES AEROCIVIL', '']],
         body: [
             ['Cargo Operativo:', pilot.pilot_role || 'Piloto'],
@@ -222,7 +225,7 @@ export const generatePilotDossier = (pilot, config) => {
     // --- 4. BLOQUE DE DOCUMENTACIÓN (ANEXOS PARA IMPRESIÓN) ---
     // Usamos una tabla para que los links y etiquetas nunca se encimen
     autoTable(doc, {
-        startY: doc.lastAutoTable.finalY + 5,
+        startY: safeAutoTableY(doc, 40) + 5,
         head: [['03. ANEXOS DIGITALES', 'ESTADO', 'VÍNCULO DE VERIFICACIÓN']],
         body: [
             ['Cédula de Ciudadanía', pilot.id_doc_url ? 'CARGADO' : 'PENDIENTE', pilot.id_doc_url ? ' ' : '---'],
@@ -252,7 +255,7 @@ export const generatePilotDossier = (pilot, config) => {
 
    // --- 5. CONTACTO DE EMERGENCIA ---
     autoTable(doc, {
-        startY: doc.lastAutoTable.finalY + 5,
+        startY: safeAutoTableY(doc, 40) + 5,
         head: [['04. CONTACTO EN CASO DE EMERGENCIA', '']],
         body: [
             ['Nombre de Contacto:', pilot.emergency_contact_name || 'N/A'],
@@ -266,7 +269,7 @@ export const generatePilotDossier = (pilot, config) => {
 
     // --- 6. RESUMEN DE EXPERIENCIA (NUEVO) ---
     autoTable(doc, {
-        startY: doc.lastAutoTable.finalY + 5,
+        startY: safeAutoTableY(doc, 40) + 5,
         head: [['05. EXPERIENCIA DE VUELO ACUMULADA', '']],
         body: [
             ['Horas Totales Certificadas (en Bitafly):', (pilot.total_hours_accumulated || 0).toFixed(2) + ' Horas']
@@ -287,7 +290,7 @@ export const generatePilotDossier = (pilot, config) => {
     doc.line(130, signY, 190, signY);
     doc.text("FIRMA JEFE DE PILOTOS", 160, signY + 5, { align: 'center' });
 
-    doc.save(`EXPEDIENTE_${pilot.name.replace(/\s+/g, '_')}.pdf`);
+    doc.save(`EXPEDIENTE_${(pilot?.name || 'PILOTO').replace(/\s+/g, '_')}.pdf`);
 };
 
 // --- GENERADOR: FORMATO 100 UAEAC (SOLICITUD DE AUTORIZACIÓN) ---
@@ -329,8 +332,7 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
         }
 
     // --- SECCIÓN 3: TIPO DE OPERACIÓN (Marcación de X) ---
-    // Aquí ponemos la 'X' solo en las celdas que el usuario marcó
-    const op = data.tipo_operacion;
+    const op = data.tipo_operacion || {};
     if (op.simple_captura) worksheet.getCell('S19').value = 'X';
     if (op.vigilancia_seguridad) worksheet.getCell('AO19').value = 'X';
     if (op.medios_comunicacion) worksheet.getCell('S20').value = 'X';
@@ -353,15 +355,13 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
     worksheet.getCell('AI30').value = data.department;
 
     // --- SECCIÓN 5: TIPO DE CONTACTO VISUAL CON LA UA (Marcación de X) ---
-    // Aquí ponemos la 'X' solo en las celdas que el usuario marcó
-    const cv = data.contacto_visual;
+    const cv = data.contacto_visual || {};
     if (cv.vlos) worksheet.getCell('S32').value = 'X';
     if (cv.evlos) worksheet.getCell('AN32').value = 'X';
     if (cv.bvlos) worksheet.getCell('S33').value = 'X';
 
     // --- SECCIÓN 6: VUELO ESPECIAL (Marcación de X) ---
-    // Aquí ponemos la 'X' solo en las celdas que el usuario marcó
-    const ve = data.vuelos_especiales;
+    const ve = data.vuelos_especiales || {};
     if (ve.nocturno) worksheet.getCell('S35').value = 'X';
     if (ve.urbana) worksheet.getCell('AN35').value = 'X';
     if (ve.autonomo) worksheet.getCell('S36').value = 'X';
@@ -372,7 +372,7 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
 
     // --- SECCIÓN 7: AERONAVES (Mapeo de tabla) ---
     // Cada aeronave ocupa un bloque de 5 filas
-    data.aeronaves.forEach((a, index) => {
+    (data.aeronaves || []).forEach((a, index) => {
         if (!a?.id) return; // Saltar slots vacíos
         const rowOffset = 43 + (index * 5);
         worksheet.getCell(`M${rowOffset}`).value       = cleanText(a.brand);
@@ -398,7 +398,7 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
     });
 
     // --- SECCIÓN 9: PILOTO(S) UAS ---
-        data.pilotos_solicitud.forEach((p, index) => {
+        (data.pilotos_solicitud || []).forEach((p, index) => {
             const row = 67 + (index * 4); // Piloto 1 en fila 51, Piloto 2 en 55...
             worksheet.getCell(`W${row}`).value = cleanText(p.name);
             worksheet.getCell(`W${row + 1}`).value = cleanText(p.id_number);
@@ -406,7 +406,7 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
         });
 
         // --- SECCIÓN 10: OBSERVADOR(ES) UA ---
-    data.observadores.forEach((obs, index) => {
+    (data.observadores || []).forEach((obs, index) => {
         const row = 79 + (index * 4); // Observador 1 en fila 63, Observador 2 en 67...
         worksheet.getCell(`W${row}`).value = cleanText(obs.name);
         worksheet.getCell(`W${row + 1}`).value = cleanText(obs.id_number);
@@ -459,7 +459,7 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
         }
 
         // Inyección de puntos en la tabla correspondiente
-        data.points.forEach((p, i) => {
+        (data.points || []).forEach((p, i) => {
             const currentRow = startRow + i;
             if (i < 5) { // El formato estándar tiene 5 slots por tabla
                 worksheet.getCell(`H${currentRow}`).value = `${toGMS(p.lat)}${p.lat >= 0 ? 'N' : 'S'}`;

@@ -2,20 +2,40 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 
-// Pendiente: configurar SIIGOPAY_WEBHOOK_SECRET en variables de entorno
 export async function POST(request) {
   try {
+    // ── Guard: el secreto DEBE estar configurado ─────────────────────────────
+    // Si no está definido, cualquier petición pasaría la verificación de firma
+    // (undefined.toString() = "undefined" → firma predecible). Rechazamos todo.
+    const webhookSecret = process.env.SIIGOPAY_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.error('SIIGOPAY_WEBHOOK_SECRET no está configurado en las variables de entorno');
+      return NextResponse.json({ error: 'Webhook no configurado en el servidor' }, { status: 500 });
+    }
+
     const body = await request.text();
     const signature = request.headers.get('x-siigopay-signature');
 
-    // Verificar firma del evento
-    const webhookSecret = process.env.SIIGOPAY_WEBHOOK_SECRET;
+    if (!signature) {
+      return NextResponse.json({ error: 'Firma ausente' }, { status: 401 });
+    }
+
+    // ── Comparación en tiempo constante (previene timing attacks) ───────────
     const expectedSig = crypto
       .createHash('sha256')
       .update(body + webhookSecret)
       .digest('hex');
 
-    if (signature !== expectedSig) {
+    // timingSafeEqual requiere buffers del mismo tamaño.
+    // Comparamos los hex strings como ASCII buffers (SHA-256 siempre = 64 chars).
+    const sigBuffer = Buffer.from(signature.toLowerCase().trim());
+    const expBuffer = Buffer.from(expectedSig.toLowerCase());
+
+    const signaturesMatch =
+      sigBuffer.length === expBuffer.length &&
+      crypto.timingSafeEqual(sigBuffer, expBuffer);
+
+    if (!signaturesMatch) {
       return NextResponse.json({ error: 'Firma inválida' }, { status: 401 });
     }
 
@@ -51,22 +71,28 @@ export async function POST(request) {
       expiresAt.setMonth(expiresAt.getMonth() + 1);
     }
 
-    // Actualizar plan en Supabase
+    // Actualizar plan en Supabase con Service Role (bypasa RLS intencionalmente)
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    await supabase
+    const { error: updateError } = await supabase
       .from('profiles')
       .update({
         subscription_plan: planKey,
-        siigopay_subscription_ref: reference,
+        wompi_subscription_ref: reference,       // ← nombre real del campo en la BD
         subscription_expires_at: expiresAt.toISOString(),
         updated_at: now.toISOString(),
       })
       .eq('id', userId);
 
+    if (updateError) {
+      console.error('Error actualizando suscripción:', updateError.message);
+      throw updateError;
+    }
+
+    console.log(`Suscripción activada: usuario=${userId} plan=${planKey} billing=${billing}`);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('SIIGO PAY webhook error:', err.message);

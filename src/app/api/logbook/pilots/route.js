@@ -1,19 +1,24 @@
-import { createClient } from '@/lib/supabaseServer';
+import { createClientSSR } from '@/lib/supabaseServer';
+import { getOrgContext } from '@/lib/apiAuth';
 import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
     try {
         const { searchParams } = new URL(request.url);
         const pilotId = searchParams.get('pilotId');
-        const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
 
-        if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+        const supabase = await createClientSSR();
+        const { orgId } = await getOrgContext(supabase);
+        if (!orgId) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+        // Filtrar por organization_id (aislamiento de tenant)
+        // pilotId es opcional: si se pasa, muestra solo los vuelos de ese piloto
         let query = supabase
             .from('flights')
             .select('id,mission_id,flight_date,mission_type,visual_condition,pilots:pilot_id(name),aircraft:aircraft_id(model,serial_number)')
-            .eq('owner_id', user.id)
+            .eq('organization_id', orgId)
             .order('flight_date', { ascending: false })
             .limit(200);
 

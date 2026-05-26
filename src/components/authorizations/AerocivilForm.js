@@ -1,6 +1,7 @@
 ﻿'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
+import { getColombiaGeo } from '@/lib/colombiaGeo';
 import HelpTooltip from '@/components/HelpTooltip';
 import { toast } from '@/lib/toast';
 import dynamic from 'next/dynamic';
@@ -362,30 +363,16 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
         getProfile();
     }, []);
 
-    // CARGA DE DIVIPOLA (MUNICIPIOS) DESDE SUPABASE
+    // CARGA DE DIVIPOLA — usa caché compartida con BasicForm para evitar doble fetch
     useEffect(() => {
-        async function loadGeo() {
-            setLoadingGeo(true);
-            try {
-                const { data, error } = await supabase
-                    .from('colombia_geo')
-                    .select('"Nombre Departamento", "Nombre Municipio"')
-                    .range(0, 1200)
-                    .order('"Nombre Departamento"', { ascending: true });
-
-                if (error) throw error;
-
-                if (data) {
-                    const uniqueDepts = [...new Set(data.map(i => i["Nombre Departamento"]))].sort();
-                    setGeo({ depts: uniqueDepts, munis: [], all: data });
-                }
-            } catch (err) {
-                console.error("Geo Load Error:", err.message);
-            } finally {
-                setLoadingGeo(false);
-            }
-        }
-        loadGeo();
+        setLoadingGeo(true);
+        getColombiaGeo(supabase)
+            .then(data => {
+                const uniqueDepts = [...new Set(data.map(i => i["Nombre Departamento"]))].sort();
+                setGeo({ depts: uniqueDepts, munis: [], all: data });
+            })
+            .catch(err => console.error("Geo Load Error:", err.message))
+            .finally(() => setLoadingGeo(false));
     }, []);
 
     // MANEJO DE CAMBIO DE DEPARTAMENTO

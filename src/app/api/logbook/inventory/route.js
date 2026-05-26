@@ -27,7 +27,7 @@ export async function POST(request) {
   try {
     const supabase = await createClientSSR();
     const { user, orgId } = await getOrgContext(supabase);
-    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (!orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const body = await request.json();
 

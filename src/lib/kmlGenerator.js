@@ -4,6 +4,17 @@
  * Generates WGS-84 KML compatible with Google Earth and AeroCivil portal.
  */
 
+// ─── XML escaping (previene inyección en el documento KML) ──────────────────
+function xmlEscape(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 // ─── Circle → polygon approximation ────────────────────────────────────────
 function circleToPolygon(center, radiusM, numPts = 64) {
   const R_LAT = 111320; // metres per degree latitude
@@ -19,7 +30,14 @@ function circleToPolygon(center, radiusM, numPts = 64) {
 
 // ─── Coordinates string for KML ─────────────────────────────────────────────
 function coordString(points, altM = 0) {
-  return points.map(p => `${p.lng},${p.lat},${altM}`).join('\n              ');
+  return points
+    .filter(p => {
+      const lat = Number(p.lat), lng = Number(p.lng);
+      return !isNaN(lat) && !isNaN(lng) &&
+             lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+    })
+    .map(p => `${Number(p.lng)},${Number(p.lat)},${Number(altM) || 0}`)
+    .join('\n              ');
 }
 
 // ─── Main KML generator ─────────────────────────────────────────────────────
@@ -41,7 +59,7 @@ export function generateKML(geoType, points, radiusM = 500, name = 'Operación U
     const closed = [...points, points[0]]; // close the ring
     placemark = `
     <Placemark>
-      <name>${name}</name>
+      <name>${xmlEscape(name)}</name>
       <Style>
         <LineStyle><color>ff1457ec</color><width>2</width></LineStyle>
         <PolyStyle><color>401457ec</color></PolyStyle>
@@ -62,7 +80,7 @@ export function generateKML(geoType, points, radiusM = 500, name = 'Operación U
   } else if (geoType === 'linear' && points.length >= 2) {
     placemark = `
     <Placemark>
-      <name>${name}</name>
+      <name>${xmlEscape(name)}</name>
       <Style>
         <LineStyle><color>ff1457ec</color><width>3</width></LineStyle>
       </Style>
@@ -80,7 +98,7 @@ export function generateKML(geoType, points, radiusM = 500, name = 'Operación U
     const polyPts = circleToPolygon(points[0], radiusM);
     placemark = `
     <Placemark>
-      <name>${name} (r=${radiusM}m)</name>
+      <name>${xmlEscape(name)} (r=${Number(radiusM) || 0}m)</name>
       <Style>
         <LineStyle><color>ff1457ec</color><width>2</width></LineStyle>
         <PolyStyle><color>401457ec</color></PolyStyle>
@@ -109,8 +127,8 @@ export function generateKML(geoType, points, radiusM = 500, name = 'Operación U
 <kml xmlns="http://www.opengis.net/kml/2.2"
      xmlns:gx="http://www.google.com/kml/ext/2.2">
   <Document>
-    <name>${name}</name>
-    <description>${description}</description>
+    <name>${xmlEscape(name)}</name>
+    <description>Operación UAS — Generado por Bitafly · Sistema de Gestión RAC 100</description>
     ${placemark}
   </Document>
 </kml>`;

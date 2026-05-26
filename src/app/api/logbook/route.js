@@ -12,6 +12,7 @@ export async function GET(request) {
 
         const supabase = await createClientSSR();
         const { orgId } = await getOrgContext(supabase);
+        if (!orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         const prof = { organization_id: orgId }; // compat alias
 
         const { data, error } = await supabase

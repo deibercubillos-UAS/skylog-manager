@@ -107,9 +107,9 @@ export default function FinalizeFlightPage() {
         }).eq('id', form.flight_id);
         if (logError) throw logError;
 
-        const { error: airError } = await supabase.from('aircraft').update({ 
+        const { error: airError } = await supabase.from('aircraft').update({
             total_hours: finalTotalHours
-        }).eq('id', selectedFlight.aircraft_id);
+        }).eq('id', selectedFlight.aircraft_id).eq('organization_id', selectedFlight.organization_id);
         if (airError) throw airError;
 
         // Solo actualizamos batería si el vuelo tenía una asociada

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { createClientSSR } from '@/lib/supabaseServer';
+import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import ExcelJS from 'exceljs';
 
 export const dynamic = 'force-dynamic';
@@ -127,10 +126,7 @@ export async function POST(request) {
     }
 
     // 3. Cargar aeronaves de la organización para lookup por serial
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    const supabaseAdmin = createAdminClient();
 
     const { data: aircraftList } = await supabaseAdmin
       .from('aircraft')
@@ -205,6 +201,34 @@ export async function POST(request) {
       .insert(valid);
 
     if (insertErr) throw insertErr;
+
+    // 7. Actualizar total_hours de cada aeronave con las horas de los vuelos importados
+    //    Solo se procesan vuelos que tienen ambas horas (despegue y aterrizaje)
+    const hoursByAircraft = {};
+    valid.forEach(f => {
+      if (f.takeoff_time && f.landing_time) {
+        const [h1, m1] = f.takeoff_time.split(':').map(Number);
+        const [h2, m2] = f.landing_time.split(':').map(Number);
+        let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+        if (diff < 0) diff += 1440; // vuelo nocturno que cruza medianoche
+        hoursByAircraft[f.aircraft_id] = (hoursByAircraft[f.aircraft_id] || 0) + (diff / 60);
+      }
+    });
+
+    await Promise.all(
+      Object.entries(hoursByAircraft).map(async ([aircraftId, addedHours]) => {
+        const aircraft = aircraftList.find(a => a.id === aircraftId);
+        if (!aircraft) return;
+        const newTotal = parseFloat(
+          (parseFloat(aircraft.total_hours || 0) + addedHours).toFixed(2)
+        );
+        await supabaseAdmin
+          .from('aircraft')
+          .update({ total_hours: newTotal })
+          .eq('id', aircraftId)
+          .eq('organization_id', prof.organization_id); // seguridad: cross-tenant guard
+      })
+    );
 
     return NextResponse.json({
       success: true,

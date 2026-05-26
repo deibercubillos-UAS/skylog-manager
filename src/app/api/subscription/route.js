@@ -1,42 +1,38 @@
 // FILE: src/app/api/subscription/route.js
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabaseServer';
+import { createClientSSR } from '@/lib/supabaseServer';
+import { getOrgContext } from '@/lib/apiAuth';
 import { PLAN_CONFIG } from '@/lib/planLimits';
+
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   try {
-    const supabase = await createClient();
-    
-    // Verificación de sesión mediante SSR (Cookies seguras)
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
-    
-    if (authError || !session) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
+    const supabase = await createClientSSR();
 
-    const userId = session.user.id;
+    // getUser() valida el token contra Supabase (anti-spoofing)
+    const { user, orgId, subscription_plan: planKey } = await getOrgContext(supabase);
+    if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+    const currentPlan = PLAN_CONFIG[planKey] || PLAN_CONFIG['piloto'];
+
+    // Contar recursos de la org (con filtro de organization_id)
     const [profileRes, dronesRes, pilotsRes] = await Promise.all([
-      supabase.from('profiles').select('subscription_plan, subscription_expires_at').eq('id', userId).single(),
-      supabase.from('aircraft').select('id', { count: 'exact', head: true }),
-      supabase.from('pilots').select('id', { count: 'exact', head: true }).eq('is_active', true)
+      supabase.from('profiles').select('subscription_expires_at').eq('id', user.id).single(),
+      supabase.from('aircraft').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
+      supabase.from('pilots').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('is_active', true),
     ]);
 
-    const planKey = profileRes.data?.subscription_plan || 'piloto';
-    const currentPlan = PLAN_CONFIG[planKey];
-
     return NextResponse.json({
-      planName: currentPlan.name,
-      planSlug: planKey,
+      planName:  currentPlan.name,
+      planSlug:  planKey,
       expiresAt: profileRes.data?.subscription_expires_at || null,
       usage: {
         drones: { current: dronesRes.count || 0, limit: currentPlan.maxDrones },
-        pilots: { current: pilotsRes.count || 0, limit: currentPlan.maxPilots }
+        pilots: { current: pilotsRes.count || 0, limit: currentPlan.maxPilots },
       },
-      features: currentPlan.features
+      features: currentPlan.features,
     });
-
   } catch (err) {
     console.error("API Subscription Error:", err.message);
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });

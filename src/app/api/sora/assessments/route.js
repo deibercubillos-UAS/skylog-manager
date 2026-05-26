@@ -1,5 +1,5 @@
 import { NextResponse }     from 'next/server';
-import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
+import { createClientSSR } from '@/lib/supabaseServer';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +36,10 @@ export async function GET() {
       .limit(50);
 
     if (error) throw error;
-    return NextResponse.json(data || []);
+
+    const res = NextResponse.json(data || []);
+    res.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=120');
+    return res;
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
@@ -64,8 +67,8 @@ export async function POST(request) {
       sail_level, oso_checklist, sail_complete, status,
     } = body;
 
-    const admin = createAdminClient();
-    const { data, error } = await admin
+    // Usamos el cliente SSR del usuario (con su JWT) — el org_id viene de la BD, no del body
+    const { data, error } = await supabase
       .from('sora_assessments')
       .insert({
         organization_id: prof.organization_id,

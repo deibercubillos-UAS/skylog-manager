@@ -123,10 +123,13 @@ export const ARC_DESCRIPTIONS = {
 const ARC_LEVELS = ['ARC-a', 'ARC-b', 'ARC-c', 'ARC-d'];
 
 export function calcFinalARC(initialARC, sm1, sm2, sm3) {
-  let idx = ARC_LEVELS.indexOf(initialARC);
-  if (idx <= 0) return 'ARC-a';
-  const reductions  = (sm1 ? 1 : 0) + (sm2 ? 1 : 0) + (sm3 ? 1 : 0);
-  const capped      = Math.min(reductions, 2); // max 2 levels reduction
+  const idx = ARC_LEVELS.indexOf(initialARC);
+  // ARC inválido (no reconocido) → defaultear a ARC-a sin bloquear la operación
+  if (idx === -1) return 'ARC-a';
+  // ARC-a ya es el mínimo, las mitigaciones estratégicas no aplican
+  if (idx === 0) return 'ARC-a';
+  const reductions = (sm1 ? 1 : 0) + (sm2 ? 1 : 0) + (sm3 ? 1 : 0);
+  const capped     = Math.min(reductions, 2); // max 2 niveles de reducción
   return ARC_LEVELS[Math.max(0, idx - capped)];
 }
 
@@ -145,8 +148,19 @@ const SAIL_MATRIX = {
 const ARC_COL      = { 'ARC-a': 0, 'ARC-b': 1, 'ARC-c': 2, 'ARC-d': 3 };
 const SAIL_ROMANS  = ['', 'I', 'II', 'III', 'IV', 'V', 'VI'];
 
+/**
+ * Verifica si el GRC final permite clasificar la operación bajo SORA.
+ * GRC > 7 implica operación no viable en la categoría específica (JARUS SORA v2.0 §6.2).
+ */
+export function isGRCOperable(grc) {
+  return Math.round(grc) <= 7;
+}
+
 export function calcSAIL(finalGRC, finalARC) {
-  const grcKey = Math.min(Math.max(Math.round(finalGRC), 1), 7);
+  const rounded = Math.round(finalGRC);
+  // GRC > 7: no hay fila en la matriz SAIL — operación no viable (retorna 0)
+  if (rounded > 7) return 0;
+  const grcKey = Math.min(Math.max(rounded, 1), 7);
   const row    = SAIL_MATRIX[grcKey];
   if (!row) return 1;
   const col = ARC_COL[finalARC];
@@ -155,6 +169,7 @@ export function calcSAIL(finalGRC, finalARC) {
 }
 
 export function sailRoman(n) {
+  if (n === 0) return 'N/V'; // No viable
   return SAIL_ROMANS[n] || 'I';
 }
 

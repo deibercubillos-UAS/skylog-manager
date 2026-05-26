@@ -16,6 +16,7 @@ const AEROCIVIL_ADDITIONS = [
 export default function AddPilotPanel({ onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('manual');
+  const [aerocivilChecked, setAerocivilChecked] = useState([]);
 
   const [form, setForm] = useState({
     name: '', id_number: '', phone: '', email: '',
@@ -27,9 +28,16 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
 
   const [inviteEmail, setInviteEmail] = useState('');
 
+  const toggleAerocivil = (addition) => {
+    setAerocivilChecked(prev =>
+      prev.includes(addition) ? prev.filter(a => a !== addition) : [...prev, addition]
+    );
+  };
+
   const handleManualSubmit = async (e) => {
       e.preventDefault();
       setLoading(true);
+      let insertedPilotId = null;
       try {
           const { data: { user } } = await supabase.auth.getUser();
           const { data: prof } = await supabase.from('profiles').select('organization_id, full_name').eq('id', user.id).single();
@@ -40,12 +48,17 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
               owner_id: user.id,
               organization_id: prof.organization_id,
               medical_expiry: form.medical_expiry === '' ? null : form.medical_expiry,
+              aerocivil_additions: aerocivilChecked,
           };
 
-          const { error: dbError } = await supabase.from('pilots').insert([cleanData]);
+          // 1. Insertar piloto y guardar su ID para poder hacer rollback
+          const { data: pilotData, error: dbError } = await supabase
+              .from('pilots').insert([cleanData]).select('id').single();
           if (dbError) throw dbError;
+          insertedPilotId = pilotData.id;
 
-          await fetch('/api/invite', {
+          // 2. Enviar invitación — si falla, hacer rollback del piloto
+          const inviteRes = await fetch('/api/invite', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -57,6 +70,14 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
               })
           });
 
+          if (!inviteRes.ok) {
+              // Rollback: eliminar el piloto recién insertado
+              await supabase.from('pilots').delete().eq('id', insertedPilotId);
+              const errBody = await inviteRes.json().catch(() => ({}));
+              throw new Error(errBody.error || 'No se pudo enviar la invitación');
+          }
+
+          // 3. Registrar invitación en la tabla
           await supabase.from('invitations').insert([{
               email: form.email,
               role: form.pilot_role,
@@ -182,7 +203,12 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
               <div className="bg-slate-50 p-4 rounded-2xl max-h-40 overflow-y-auto space-y-2 custom-scrollbar border border-slate-100">
                 {AEROCIVIL_ADDITIONS.map(add => (
                   <label key={add} className="flex items-center gap-3 p-2 hover:bg-white rounded-lg cursor-pointer transition-all">
-                    <input type="checkbox" className="rounded text-blue-600 focus:ring-0" />
+                    <input
+                      type="checkbox"
+                      className="rounded text-blue-600 focus:ring-0"
+                      checked={aerocivilChecked.includes(add)}
+                      onChange={() => toggleAerocivil(add)}
+                    />
                     <span className="text-xs font-bold text-slate-600">{add}</span>
                   </label>
                 ))}

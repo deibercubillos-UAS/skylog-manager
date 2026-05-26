@@ -4,6 +4,16 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+// Campos editables de un piloto.
+// Bloqueados: organization_id, owner_id, id, created_at, is_active (soft-delete es por DELETE).
+const ALLOWED_PILOT_FIELDS = [
+  'name', 'email', 'phone', 'license_number', 'medical_expiry',
+  'pilot_role', 'position', 'notes', 'avatar_url',
+  'aerocivil_theoretical', 'aerocivil_practical',
+  'theoretical_approval_date', 'practical_approval_date',
+  'address', 'city', 'emergency_contact_name', 'emergency_contact_phone',
+];
+
 // OBTENER UN PILOTO ESPECÍFICO (requiere autenticación y org match)
 export async function GET(request, { params }) {
   try {
@@ -39,9 +49,22 @@ export async function PATCH(request, { params }) {
     const { orgId } = await getOrgContext(supabase);
     if (!orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
+    if (!updateData || typeof updateData !== 'object') {
+      return NextResponse.json({ error: 'updateData requerido' }, { status: 400 });
+    }
+
+    // Allowlist: evitar mass-assignment de campos sensibles
+    const safeUpdate = Object.fromEntries(
+      Object.entries(updateData).filter(([key]) => ALLOWED_PILOT_FIELDS.includes(key))
+    );
+
+    if (Object.keys(safeUpdate).length === 0) {
+      return NextResponse.json({ error: 'No hay campos válidos para actualizar' }, { status: 400 });
+    }
+
     const { data, error } = await supabase
       .from('pilots')
-      .update({ ...updateData, updated_at: new Date().toISOString() })
+      .update({ ...safeUpdate, updated_at: new Date().toISOString() })
       .eq('id', id)
       .eq('organization_id', orgId)
       .select();

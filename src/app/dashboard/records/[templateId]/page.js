@@ -7,27 +7,76 @@ export default function DynamicFormPage({ params }) {
     const resolvedParams = use(params);
     const templateId = resolvedParams.templateId;
     const [template, setTemplate] = useState(null);
+    const [orgId, setOrgId] = useState(null);
     const [loading, setLoading] = useState(true);
-    const { register, handleSubmit } = useForm();
+    const [error, setError] = useState(null);
+    const { register, handleSubmit, reset } = useForm();
 
     useEffect(() => {
         async function fetchTemplate() {
-            const { data } = await supabase.from('form_templates').select('*').eq('id', templateId).single();
-            setTemplate(data);
-            setLoading(false);
+            try {
+                // Obtener usuario y org del perfil
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) { setError('No autenticado'); setLoading(false); return; }
+
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('organization_id')
+                    .eq('id', user.id)
+                    .single();
+
+                const currentOrgId = profile?.organization_id;
+                if (!currentOrgId) { setError('Sin organización asignada'); setLoading(false); return; }
+
+                setOrgId(currentOrgId);
+
+                // Filtrar por owner_id del usuario Y por organización para evitar IDOR
+                const { data } = await supabase
+                    .from('form_templates')
+                    .select('*')
+                    .eq('id', templateId)
+                    .eq('owner_id', user.id)
+                    .maybeSingle();
+
+                if (!data) { setError('Formato no encontrado'); setLoading(false); return; }
+
+                setTemplate(data);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
         }
         fetchTemplate();
     }, [templateId]);
 
     const onSubmit = async (formData) => {
-        const { data: { user } } = await supabase.auth.getUser();
-        const { error } = await supabase.from('form_records').insert([
-            { owner_id: user.id, template_id: templateId, data: formData }
-        ]);
-        if (!error) alert("Registro guardado exitosamente");
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user || !orgId) { alert('Sesión expirada. Recarga la página.'); return; }
+
+            const { error: insertError } = await supabase.from('form_records').insert([{
+                owner_id:        user.id,
+                organization_id: orgId,
+                template_id:     templateId,
+                data:            formData,
+            }]);
+
+            if (insertError) throw insertError;
+            alert('Registro guardado exitosamente');
+            reset();
+        } catch (err) {
+            alert(`Error al guardar: ${err.message}`);
+        }
     };
 
     if (loading) return <div className="p-20 text-center animate-pulse font-black uppercase">Cargando Formato...</div>;
+
+    if (error || !template) return (
+        <div className="p-20 text-center font-black uppercase text-red-500">
+            {error || 'Formato no disponible'}
+        </div>
+    );
 
     return (
         <div className="max-w-2xl mx-auto bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm text-left">
@@ -35,12 +84,12 @@ export default function DynamicFormPage({ params }) {
             <p className="text-xs font-bold text-slate-400 uppercase mb-8">{template.form_code} | v{template.version}</p>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                {template.schema?.map((field) => (
-                    <div key={field.name} className="space-y-1 text-left">
+                {(template.schema || []).map((field) => (
+                    <div key={field.label} className="space-y-1 text-left">
                         <label className="text-xs font-black uppercase text-slate-400 ml-1">{field.label}</label>
-                        <input 
-                            {...register(field.name)}
-                            type={field.type}
+                        <input
+                            {...register(field.label)}
+                            type={field.type?.startsWith('auto_') ? 'text' : (field.type || 'text')}
                             className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm"
                         />
                     </div>

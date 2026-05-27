@@ -111,17 +111,17 @@ export default function DjiRcSync({ onImported }) {
   };
 
   // ── Selección individual y masiva ──────────────────────────────
-  // Los duplicados se pueden seleccionar manualmente si el usuario quiere forzar la importación
+  // Solo se pueden seleccionar archivos pendientes (no ya importados)
   const toggleFile = (name) =>
     setFiles(prev => prev.map(f =>
-      f.name === name && (f.status === 'pending' || f.status === 'duplicate')
+      f.name === name && f.status === 'pending'
         ? { ...f, selected: !f.selected }
         : f
     ));
 
   const toggleAll = (val) =>
     setFiles(prev => prev.map(f =>
-      f.status === 'pending' || f.status === 'duplicate'
+      f.status === 'pending'
         ? { ...f, selected: val }
         : f
     ));
@@ -311,14 +311,18 @@ export default function DjiRcSync({ onImported }) {
                     'hover:bg-white'
                   }`}
                 >
-                  {/* Checkbox solo en estado ready */}
-                  {state === 'ready' && (
+                  {/* Checkbox solo en estado ready y archivo pendiente */}
+                  {state === 'ready' && f.status === 'pending' && (
                     <input
                       type="checkbox"
                       checked={f.selected}
                       onChange={() => toggleFile(f.name)}
                       className="accent-orange-600 w-4 h-4 rounded shrink-0"
                     />
+                  )}
+                  {/* Spacer para mantener alineación cuando no hay checkbox */}
+                  {state === 'ready' && f.status !== 'pending' && (
+                    <span className="w-4 h-4 shrink-0" />
                   )}
 
                   {/* Icono de estado */}

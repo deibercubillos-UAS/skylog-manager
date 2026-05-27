@@ -14,12 +14,49 @@ const publicSans = Public_Sans({
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
 
 /*
- * MATERIAL SYMBOLS — fuente completa sin subsetting.
- * Cargamos todos los glifos para evitar que íconos nuevos aparezcan como texto.
- * El navegador cachea el archivo después de la primera visita (~370 KB una sola vez).
- * display=swap: muestra texto mientras carga, sin bloquear el render.
+ * MATERIAL SYMBOLS — subsetado a los íconos usados + ejes fijos.
+ *
+ * Problema anterior: la URL cargaba la fuente VARIABLE completa (~370 KB)
+ * con rangos opsz 20–48, wght 100–700, FILL 0–1, GRAD -50–200, sin subsetting
+ * de glifos → el archivo woff2 contenía los ~3,000 íconos aunque usamos ~110.
+ *
+ * Solución:
+ *  1. Ejes fijos @24,400,0,0 en lugar de rangos → fuente estática, mucho más liviana.
+ *  2. icon_names= con solo los íconos usados → ~15-25 KB en lugar de ~370 KB.
+ *  3. display=block → oculta el texto "check_circle" / "arrow_back" mientras
+ *     carga (en vez de mostrarlo como texto con display=swap).
+ *     Con el subset pequeño la fuente llega en <500 ms, así el período
+ *     invisible es imperceptible.
+ *
+ * Para agregar un ícono nuevo: agrégalo a ICON_NAMES y haz deploy.
  */
-const MATERIAL_SYMBOLS_URL = `https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap`;
+const ICON_NAMES = [
+  'account_circle','add','add_circle','add_location_alt','admin_panel_settings',
+  'arrow_back','arrow_forward','assessment','assignment_ind','attach_file',
+  'badge','battery_charging_full','browser_not_supported','build','business',
+  'category','check','check_circle','checklist','chevron_right',
+  'circle','close','cloud_done','cloud_upload','credit_card',
+  'dashboard','delete','delete_sweep','description','download',
+  'edit','edit_square','error','event_available','expand_less','expand_more',
+  'explore','fact_check','flight','flight_land','flight_takeoff',
+  'folder_shared','format_quote','gavel','group','group_add','groups',
+  'health_and_safety','hourglass_empty','how_to_reg',
+  'info','inventory_2','key','lightbulb','link','lock','lock_reset','logout',
+  'mail','manage_accounts','manage_search','map','mark_email_read','menu_book',
+  'note_add','open_in_full','payments','pentagon','person','person_add',
+  'person_add_alt','person_check','picture_as_pdf','playlist_add_check',
+  'policy','precision_manufacturing','progress_activity',
+  'radar','remove_circle','report_problem','rocket_launch','route','rule',
+  'save','schedule','search','send','settings','settings_accessibility',
+  'settings_input_component','settings_suggest','shield_person','summarize',
+  'sync','table_chart','table_view','task_alt','timer','travel_explore',
+  'trending_down','trending_up','tune','upload_file','usb',
+  'verified','verified_user','visibility','warning','wb_sunny',
+].join(',');
+
+const MATERIAL_SYMBOLS_URL =
+  `https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0` +
+  `&icon_names=${ICON_NAMES}&display=block`;
 
 export const metadata = {
   metadataBase: new URL(SITE_URL),
@@ -129,14 +166,7 @@ export default function RootLayout({ children }) {
         {/* Preconexión para acelerar la descarga de fuentes externas */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/*
-          MATERIAL SYMBOLS OPTIMIZADO:
-          - icon_names: subsetea SOLO los iconos usados (definidos en MATERIAL_ICONS arriba)
-          - display=swap: NO bloquea el render mientras descarga
-          - Sin rangos de wght/FILL/GRAD: usa la versión estática, no la variable
-          - rel="preload" en el CSS para que arranque la descarga sin esperar al parser
-        */}
-        {/* Material Symbols — subsetado con icon_names, preload para arranque inmediato */}
+        {/* Material Symbols — subsetado (~110 íconos, ejes fijos) → ~20 KB en lugar de ~370 KB */}
         <link rel="preload" as="style" href={MATERIAL_SYMBOLS_URL} />
         <link rel="stylesheet" href={MATERIAL_SYMBOLS_URL} />
 

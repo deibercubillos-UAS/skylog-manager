@@ -42,7 +42,7 @@ const ICON_NAMES = [
   'folder_shared','format_quote','gavel','group','group_add','groups',
   'health_and_safety','hourglass_empty','how_to_reg',
   'info','inventory_2','key','lightbulb','link','lock','lock_reset','logout',
-  'mail','manage_accounts','manage_search','map','mark_email_read','menu_book',
+  'mail','manage_accounts','manage_search','map','mark_email_read','menu','menu_book','menu_open',
   'note_add','open_in_full','payments','pentagon','person','person_add',
   'person_add_alt','person_check','picture_as_pdf','playlist_add_check',
   'policy','precision_manufacturing','progress_activity',

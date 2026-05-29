@@ -1,26 +1,43 @@
+import { BLOG_POSTS } from '@/lib/blogPosts';
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
 
 export default function sitemap() {
   const now = new Date();
 
+  // Blog posts — prioridad 0.7, fecha real de publicación/actualización
+  const blogEntries = BLOG_POSTS.map(post => ({
+    url:             `${SITE_URL}/blog/${post.slug}`,
+    lastModified:    new Date(post.updatedAt ?? post.publishedAt),
+    changeFrequency: 'monthly',
+    priority:        0.7,
+  }));
+
   return [
-    // Páginas principales
-    { url: `${SITE_URL}/`,                         lastModified: now, changeFrequency: 'weekly',  priority: 1.0 },
-    { url: `${SITE_URL}/precios`,                  lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
-    { url: `${SITE_URL}/registro`,                 lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
-    { url: `${SITE_URL}/documentacion`,            lastModified: now, changeFrequency: 'monthly', priority: 0.88 },
+    // ── Páginas principales ───────────────────────────────────────────────
+    { url: `${SITE_URL}/`,                           lastModified: now, changeFrequency: 'weekly',  priority: 1.0 },
+    { url: `${SITE_URL}/precios`,                    lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${SITE_URL}/registro`,                   lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${SITE_URL}/documentacion`,              lastModified: now, changeFrequency: 'monthly', priority: 0.88 },
 
-    // Landing pages SEO
-    { url: `${SITE_URL}/rac-100`,                  lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
-    { url: `${SITE_URL}/bitacora-digital`,         lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
-    { url: `${SITE_URL}/mantenimiento-drones`,     lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${SITE_URL}/sms-aeronautico`,          lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${SITE_URL}/autorizaciones-aerocivil`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${SITE_URL}/gestion-flota-drones`,     lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${SITE_URL}/operadores-uas`,           lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
-    { url: `${SITE_URL}/reportes-auditoria`,       lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
+    // ── Blog ─────────────────────────────────────────────────────────────
+    { url: `${SITE_URL}/blog`,                       lastModified: now, changeFrequency: 'weekly',  priority: 0.85 },
+    ...blogEntries,
 
-    // Páginas de acceso (baja prioridad)
-    { url: `${SITE_URL}/login`,                    lastModified: now, changeFrequency: 'yearly',  priority: 0.4 },
+    // ── Landing pages de módulos ──────────────────────────────────────────
+    { url: `${SITE_URL}/rac-100`,                    lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
+    { url: `${SITE_URL}/bitacora-digital`,           lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
+    { url: `${SITE_URL}/mantenimiento-drones`,       lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${SITE_URL}/sms-aeronautico`,            lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${SITE_URL}/autorizaciones-aerocivil`,   lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${SITE_URL}/gestion-flota-drones`,       lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${SITE_URL}/sora`,                       lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${SITE_URL}/gestion-pilotos`,            lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
+    { url: `${SITE_URL}/plan-vuelo-drones`,          lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
+    { url: `${SITE_URL}/operadores-uas`,             lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
+    { url: `${SITE_URL}/reportes-auditoria`,         lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
+
+    // ── Páginas de acceso (baja prioridad) ───────────────────────────────
+    { url: `${SITE_URL}/login`,                      lastModified: now, changeFrequency: 'yearly',  priority: 0.4 },
   ];
 }

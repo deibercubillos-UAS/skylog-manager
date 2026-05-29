@@ -17,6 +17,7 @@ export default function SEONav() {
         <li><Link href="/" style={{textDecoration:'none',fontSize:'13px',fontWeight:700,color:'#475569'}}>Inicio</Link></li>
         <li><Link href="/rac-100" style={{textDecoration:'none',fontSize:'13px',fontWeight:700,color:'#475569'}}>RAC 100</Link></li>
         <li><Link href="/gestion-flota-drones" style={{textDecoration:'none',fontSize:'13px',fontWeight:700,color:'#475569'}}>Funciones</Link></li>
+        <li><Link href="/blog" style={{textDecoration:'none',fontSize:'13px',fontWeight:700,color:'#475569'}}>Blog</Link></li>
         <li><Link href="/precios" style={{textDecoration:'none',fontSize:'13px',fontWeight:700,color:'#475569'}}>Precios</Link></li>
       </ul>
       <Link href="/registro" style={{

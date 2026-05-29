@@ -5,6 +5,7 @@ import Link from 'next/link';
 const NAV_LINKS = [
   { href: '#funciones', label: 'Funciones' },
   { href: '#cumplimiento', label: 'RAC 100' },
+  { href: '/blog', label: 'Blog', isLink: true },
   { href: '/documentacion', label: 'Guía de uso', isLink: true },
   { href: '#precios', label: 'Precios' },
   { href: '#faq', label: 'Preguntas' },

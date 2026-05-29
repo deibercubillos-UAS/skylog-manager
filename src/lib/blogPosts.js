@@ -1,0 +1,415 @@
+/**
+ * blogPosts.js — Fuente de verdad de artículos del blog de Bitafly.
+ * Cada post es un objeto JS con metadatos + body HTML.
+ * Para agregar un artículo: añade un objeto al array y redespliega.
+ */
+
+export const BLOG_POSTS = [
+  // ─── 1. RAC 100 ──────────────────────────────────────────────────────────
+  {
+    slug:            'rac-100-colombia-operadores-drones',
+    title:           '¿Qué es la RAC 100 y cómo cumplirla siendo operador de drones en Colombia?',
+    metaTitle:       'RAC 100 Colombia: Guía para Operadores de Drones | Bitafly',
+    metaDescription: 'Todo lo que necesitas saber sobre la RAC 100 de la AeroCivil: qué exige, cómo cumplirla y qué documentos debes llevar como operador UAS en Colombia.',
+    publishedAt:     '2025-03-10',
+    updatedAt:       '2025-05-01',
+    readingTime:     7,
+    category:        'Normativa',
+    keywords:        ['RAC 100', 'AeroCivil drones', 'operadores UAS Colombia', 'normativa RPAS Colombia'],
+    excerpt:         'La RAC 100 es el reglamento aeronáutico colombiano que regula todas las operaciones con sistemas de aeronaves no tripuladas (RPAS/UAS). Si operas drones comercialmente, cumplirla no es opcional.',
+    coverAlt:        'Normativa RAC 100 Colombia para operadores de drones',
+    body: `
+<p>La <strong>RAC 100</strong> (Reglamento Aeronáutico de Colombia, Parte 100) es la norma emitida por la <strong>UAEAC (Unidad Administrativa Especial de Aeronáutica Civil)</strong> que establece los requisitos técnicos, operacionales y administrativos para quienes operan sistemas de aeronaves remotamente pilotadas (RPAS) en Colombia.</p>
+
+<p>Si usas un dron con fines comerciales —inspección, topografía, filmación, agricultura, vigilancia— estás obligado a cumplirla. No cumplirla puede implicar suspensión de operaciones, multas y responsabilidad civil o penal en caso de accidente.</p>
+
+<h2>¿A quién aplica la RAC 100?</h2>
+<p>La norma aplica a cualquier persona natural o jurídica que opere un RPAS con fines distintos al recreo dentro del espacio aéreo colombiano. Específicamente cubre:</p>
+<ul>
+  <li>Operadores comerciales (empresas y freelancers que prestan servicios con drones)</li>
+  <li>Pilotos remotos certificados (PRC)</li>
+  <li>Fabricantes e importadores de RPAS</li>
+  <li>Operaciones especiales (BVLOS, vuelos nocturnos, sobre aglomeraciones)</li>
+</ul>
+<p>Los vuelos recreativos con drones de menos de 2 kg en zonas no restringidas tienen requisitos más simples, pero igualmente deben registrarse.</p>
+
+<h2>Principales obligaciones del operador UAS bajo la RAC 100</h2>
+
+<h3>1. Registro del RPAS ante la UAEAC</h3>
+<p>Todo RPAS con peso de despegue superior a 250 gramos debe matricularse en el <strong>Portal SIRAC</strong> de la AeroCivil. El proceso es digital y requiere datos técnicos de la aeronave, datos del propietario y pago de la tasa correspondiente.</p>
+
+<h3>2. Certificación del piloto remoto</h3>
+<p>El operador debe contar con pilotos que tengan el <strong>Certificado de Piloto Remoto (CPR)</strong> emitido por una Organización de Entrenamiento Aprobada (OEA). La RAC 100 define los niveles de competencia según el tipo de operación.</p>
+
+<h3>3. Manual de Operaciones</h3>
+<p>El operador debe elaborar y mantener actualizado un <strong>Manual de Operaciones (MO)</strong> que describa procedimientos normales, de emergencia, gestión de riesgos, responsabilidades y protocolos de comunicación. La AeroCivil puede auditarlo en cualquier momento.</p>
+
+<h3>4. Bitácora digital de vuelo (F-OPS-002)</h3>
+<p>Cada vuelo debe quedar registrado en la <strong>Bitácora de Vuelo</strong> según el formato <strong>F-OPS-002</strong>. Este documento debe incluir: fecha, piloto, aeronave (matrícula y serial), condiciones meteorológicas, horas de vuelo, incidentes y firma del jefe de pilotos.</p>
+<p>Bitafly genera automáticamente el F-OPS-002 en PDF con todos los campos requeridos, desde cualquier dispositivo móvil. <a href="/bitacora-digital">Conoce la bitácora digital →</a></p>
+
+<h3>5. Sistema de Gestión de Seguridad (SMS)</h3>
+<p>Los operadores con flota de más de tres aeronaves o que realicen operaciones de mayor complejidad deben implementar un <strong>SMS aeronáutico</strong>: un sistema formal de identificación, análisis y mitigación de riesgos operacionales.</p>
+<p><a href="/sms-aeronautico">Conoce el módulo SMS de Bitafly →</a></p>
+
+<h3>6. Seguro de responsabilidad civil</h3>
+<p>Es obligatorio contar con un seguro de responsabilidad civil extracontractual que cubra daños a terceros durante las operaciones. El valor mínimo varía según el peso del RPAS.</p>
+
+<h3>7. Autorizaciones de vuelo</h3>
+<p>Ciertas operaciones requieren autorización previa ante la AeroCivil: vuelos en zonas de control (CTR), zonas restringidas, sobre aglomeraciones o por fuera de la línea de visión visual (BVLOS). El proceso se realiza a través del portal AeroCivil con documentación específica, incluyendo archivos KML del área de operación.</p>
+<p><a href="/autorizaciones-aerocivil">Gestiona tus autorizaciones con Bitafly →</a></p>
+
+<h2>¿Qué pasa si no cumplo la RAC 100?</h2>
+<p>La UAEAC puede imponer las siguientes medidas:</p>
+<ul>
+  <li><strong>Suspensión de la certificación</strong> del operador o el piloto</li>
+  <li><strong>Multas</strong> proporcionales a la gravedad de la infracción</li>
+  <li><strong>Inmovilización</strong> de la aeronave</li>
+  <li>Responsabilidad civil o penal en caso de accidente por negligencia operacional</li>
+</ul>
+
+<h2>¿Cómo gestionar el cumplimiento RAC 100 eficientemente?</h2>
+<p>El mayor desafío para los operadores no es entender la norma, sino <em>mantener el cumplimiento activo</em> operación tras operación: bitácoras al día, certificaciones vigentes, seguros actualizados, autorizaciones obtenidas a tiempo.</p>
+<p><strong>Bitafly</strong> centraliza todo esto en una plataforma diseñada específicamente para la RAC 100 colombiana: bitácora digital automática, alertas de vencimiento, gestión de pilotos y aeronaves, módulo SMS y generación de documentos AeroCivil en un clic.</p>
+<p><a href="/registro">Comienza gratis — sin tarjeta de crédito →</a></p>
+`,
+  },
+
+  // ─── 2. Bitácora F-OPS-002 ────────────────────────────────────────────────
+  {
+    slug:            'bitacora-digital-drone-f-ops-002',
+    title:           'Bitácora digital de vuelo para drones: guía completa del formato F-OPS-002',
+    metaTitle:       'Bitácora Digital Drone F-OPS-002 Colombia | Guía 2025 | Bitafly',
+    metaDescription: 'Aprende qué campos exige el F-OPS-002 de la AeroCivil, por qué la bitácora digital agiliza el cumplimiento RAC 100 y cómo generarla automáticamente con Bitafly.',
+    publishedAt:     '2025-03-18',
+    updatedAt:       '2025-05-01',
+    readingTime:     6,
+    category:        'Operaciones',
+    keywords:        ['bitácora digital drones', 'F-OPS-002', 'bitácora vuelo RAC 100', 'registro vuelos AeroCivil'],
+    excerpt:         'El formato F-OPS-002 es la bitácora oficial de vuelo exigida por la AeroCivil para operadores RPAS en Colombia. Aquí te explicamos cada campo y cómo automatizarla.',
+    coverAlt:        'Bitácora digital de vuelo para drones F-OPS-002 Colombia',
+    body: `
+<p>La <strong>bitácora de vuelo</strong> es uno de los documentos más importantes para un operador RPAS en Colombia. No es opcional: la <strong>RAC 100</strong> exige que cada vuelo comercial quede documentado en el formato oficial <strong>F-OPS-002</strong>, con firma del jefe de pilotos.</p>
+
+<p>En este artículo te explicamos exactamente qué campos contiene, por qué la bitácora digital es la forma más inteligente de cumplir este requisito y cómo Bitafly te genera el PDF en segundos.</p>
+
+<h2>¿Qué es el F-OPS-002?</h2>
+<p>El F-OPS-002 es el formato oficial de la <strong>UAEAC</strong> para el registro de vuelos de sistemas remotamente pilotados. Su nombre completo es "Formato de Registro de Operaciones UAS" y debe conservarse disponible para auditoría durante al menos dos años.</p>
+
+<h2>Campos obligatorios del F-OPS-002</h2>
+<p>El formato exige registrar, como mínimo, los siguientes datos por vuelo:</p>
+<ul>
+  <li><strong>Fecha y hora de despegue y aterrizaje</strong></li>
+  <li><strong>Ubicación de la operación</strong> (coordenadas o descripción del área)</li>
+  <li><strong>Aeronave utilizada</strong>: matrícula UAEAC, número de serie, modelo</li>
+  <li><strong>Piloto remoto</strong>: nombre, número de CPR, vencimiento</li>
+  <li><strong>Tipo de misión</strong>: inspección, cartografía, filmación, agricultura, etc.</li>
+  <li><strong>Condición visual</strong>: VMC (Visual Meteorological Conditions) o IMC</li>
+  <li><strong>Estado de la batería</strong> al inicio y fin del vuelo (% o voltaje)</li>
+  <li><strong>Incidentes o anomalías</strong> detectados durante la operación</li>
+  <li><strong>Horas de vuelo acumuladas</strong> de la aeronave (contador Hobbs)</li>
+  <li><strong>Firma del jefe de pilotos</strong></li>
+</ul>
+
+<h2>Bitácora en papel vs. bitácora digital</h2>
+<p>Durante años, los operadores llenaban el F-OPS-002 a mano. El problema:</p>
+<ul>
+  <li>Errores de escritura que invalidan el documento</li>
+  <li>Hojas perdidas o deterioradas</li>
+  <li>Tiempo invertido en sumar horas de vuelo manualmente</li>
+  <li>Imposibilidad de buscar vuelos históricos rápidamente</li>
+  <li>No se integra con el reporte de mantenimiento</li>
+</ul>
+<p>La <strong>bitácora digital</strong> resuelve todos estos puntos: el operador registra el vuelo desde el celular en campo, el sistema calcula automáticamente las horas acumuladas, y el PDF con todos los campos del F-OPS-002 está disponible en segundos para descarga o auditoría.</p>
+
+<h2>Cómo funciona la bitácora digital de Bitafly</h2>
+<ol>
+  <li><strong>Selecciona la aeronave</strong> — el sistema carga automáticamente matrícula, serial y modelo</li>
+  <li><strong>Asigna el piloto</strong> — verifica CPR vigente y alerta si está por vencer</li>
+  <li><strong>Registra los datos del vuelo</strong> — formulario optimizado para móvil, con selección de tipo de misión y condición meteorológica</li>
+  <li><strong>El sistema suma las horas</strong> — el contador Hobbs se actualiza automáticamente</li>
+  <li><strong>Descarga el F-OPS-002 en PDF</strong> — con logo corporativo, firma digital y todos los campos AeroCivil</li>
+</ol>
+<p>Además, puedes importar automáticamente datos de vuelo desde los registros de tu controlador DJI RC o RC 2, sin digitar nada manualmente.</p>
+
+<h2>¿Cuántos vuelos puedo registrar?</h2>
+<p>En Bitafly, la bitácora es <strong>ilimitada en todos los planes</strong>, incluyendo el plan gratuito. Puedes registrar todos los vuelos de tu operación sin restricciones de volumen.</p>
+
+<h2>¿Qué pasa si no llevo la bitácora al día?</h2>
+<p>La AeroCivil puede solicitar los registros de vuelo en cualquier inspección o auditoría. No tenerlos actualizados es una infracción directa a la RAC 100 y puede resultar en suspensión de la certificación del operador.</p>
+<p>Con Bitafly, el registro es tan rápido que no hay excusa para dejarlos pendientes. <a href="/bitacora-digital">Ver todos los detalles de la bitácora digital →</a></p>
+<p><a href="/registro">Comienza gratis hoy →</a></p>
+`,
+  },
+
+  // ─── 3. Registro UAEAC ────────────────────────────────────────────────────
+  {
+    slug:            'como-registrar-drone-uaeac-colombia-2025',
+    title:           'Cómo registrar tu dron ante la UAEAC en Colombia: paso a paso 2025',
+    metaTitle:       'Cómo Registrar tu Drone en Colombia UAEAC 2025 | Paso a Paso',
+    metaDescription: 'Guía completa para matricular tu drone ante la AeroCivil de Colombia en 2025. Documentos necesarios, costos, plazos y errores comunes a evitar.',
+    publishedAt:     '2025-04-02',
+    updatedAt:       '2025-05-15',
+    readingTime:     5,
+    category:        'Trámites',
+    keywords:        ['registrar drone Colombia', 'matrícula RPAS UAEAC', 'SIRAC AeroCivil', 'registro drone AeroCivil 2025'],
+    excerpt:         'Todo operador debe matricular su RPAS ante la UAEAC antes de operar comercialmente. Te explicamos el proceso completo, los documentos que necesitas y cuánto demora.',
+    coverAlt:        'Registro de drones ante la UAEAC AeroCivil Colombia',
+    body: `
+<p>Antes de realizar cualquier operación comercial con tu dron en Colombia, debes <strong>matricular la aeronave ante la UAEAC</strong> a través del portal SIRAC. Sin este registro, el vuelo es ilegal y estás expuesto a sanciones.</p>
+
+<p>En esta guía te explicamos el proceso actualizado para 2025, los documentos que necesitas y los errores más comunes que cometen los operadores nuevos.</p>
+
+<h2>¿Qué drones deben registrarse?</h2>
+<p>Según la RAC 100, deben matricularse ante la UAEAC todos los RPAS con <strong>peso de despegue superior a 250 gramos</strong> que se usen con fines comerciales o que operen en espacio aéreo no segregado. Los drones de uso recreativo menor a 250 g tienen un proceso simplificado.</p>
+
+<h2>Documentos necesarios para el registro</h2>
+<ul>
+  <li><strong>Cédula de ciudadanía o RUT</strong> (persona natural o jurídica)</li>
+  <li><strong>Factura de compra o prueba de propiedad</strong> del RPAS</li>
+  <li><strong>Número de serie</strong> del fabricante (airframe S/N)</li>
+  <li><strong>Ficha técnica del fabricante</strong> con peso de despegue máximo y características técnicas</li>
+  <li><strong>Seguro de responsabilidad civil</strong> vigente</li>
+  <li><strong>Pago de la tasa aeronáutica</strong> correspondiente</li>
+</ul>
+
+<h2>Paso a paso: cómo registrar tu dron en SIRAC</h2>
+<ol>
+  <li><strong>Crea una cuenta en el portal SIRAC</strong>: ingresa a <em>sirac.aerocivil.gov.co</em> y regístrate como operador UAS.</li>
+  <li><strong>Completa el formulario de matrícula</strong>: ingresa los datos técnicos del RPAS, datos del propietario y los documentos requeridos.</li>
+  <li><strong>Carga los documentos digitalizados</strong>: la factura, ficha técnica y seguro deben subirse en PDF.</li>
+  <li><strong>Paga la tasa aeronáutica</strong>: el valor varía según el peso de la aeronave. El pago se realiza en línea.</li>
+  <li><strong>Espera la aprobación</strong>: el proceso puede tomar entre 5 y 15 días hábiles.</li>
+  <li><strong>Recibe el certificado de matrícula</strong>: una vez aprobado, recibirás el número de matrícula que debe exhibirse en la aeronave.</li>
+</ol>
+
+<h2>Marcación física de la aeronave</h2>
+<p>Una vez obtenida la matrícula, debes <strong>marcar físicamente el dron</strong> con el número asignado, de forma legible y en lugar visible. El tamaño mínimo de los caracteres es de 6 mm. Puedes usar stickers, grabado láser o marcación con pintura permanente.</p>
+
+<h2>¿Cuánto vale la matrícula?</h2>
+<p>La tasa aeronáutica para registro de RPAS en Colombia depende del peso de la aeronave y se actualiza anualmente. Para el año 2025, consulta los valores vigentes directamente en el portal SIRAC o contáctanos para orientarte.</p>
+
+<h2>Errores comunes que retrasan el trámite</h2>
+<ul>
+  <li>Subir documentos en baja resolución o con información ilegible</li>
+  <li>No coincidir el número de serie entre la factura y la ficha técnica</li>
+  <li>Seguro de RC vencido al momento de radicar</li>
+  <li>Peso de despegue mal declarado (siempre usar el MTOW, no el peso sin batería)</li>
+</ul>
+
+<h2>¿Y si tengo varios drones?</h2>
+<p>Cada aeronave requiere su propio trámite de matrícula. En Bitafly puedes gestionar toda tu flota desde un solo lugar: matrículas, vencimientos, historial de mantenimiento y horas de vuelo de cada aeronave. <a href="/gestion-flota-drones">Conoce el módulo de flota →</a></p>
+<p><a href="/registro">Crea tu cuenta gratis →</a></p>
+`,
+  },
+
+  // ─── 4. SMS Aeronáutico ───────────────────────────────────────────────────
+  {
+    slug:            'sms-aeronautico-operadores-rpas-colombia',
+    title:           'SMS aeronáutico para operadores RPAS: qué es y cómo implementarlo en Colombia',
+    metaTitle:       'SMS Aeronáutico para Operadores RPAS Colombia | Guía Práctica',
+    metaDescription: 'El Sistema de Gestión de Seguridad (SMS) es obligatorio para operadores RPAS en Colombia. Aprende qué componentes incluye y cómo implementarlo sin morir en el intento.',
+    publishedAt:     '2025-04-15',
+    updatedAt:       '2025-05-15',
+    readingTime:     7,
+    category:        'Seguridad',
+    keywords:        ['SMS aeronáutico RPAS', 'sistema gestión seguridad drones', 'SMS UAS Colombia', 'seguridad operacional drones'],
+    excerpt:         'El SMS (Safety Management System) es el marco formal de gestión de riesgos que la RAC 100 exige a los operadores UAS en Colombia. No es papeleo: es la diferencia entre operar con control real o a ciegas.',
+    coverAlt:        'Sistema de Gestión de Seguridad SMS para operadores RPAS Colombia',
+    body: `
+<p>El <strong>Sistema de Gestión de Seguridad (SMS)</strong> es uno de los pilares de la aviación moderna y, desde la entrada en vigor de la RAC 100, también aplica a los operadores de sistemas remotamente pilotados (RPAS) en Colombia.</p>
+
+<p>Muchos operadores lo ven como burocracia. En realidad, un SMS bien implementado es la herramienta que te permite identificar riesgos antes de que se conviertan en accidentes, protegerte legalmente y mejorar la eficiencia de tus operaciones.</p>
+
+<h2>¿Qué es el SMS aeronáutico?</h2>
+<p>El SMS (Safety Management System) es un enfoque sistemático para gestionar la seguridad operacional. Se basa en cuatro componentes fundamentales definidos por la OACI:</p>
+<ol>
+  <li><strong>Política y objetivos de seguridad</strong>: define el compromiso de la organización con la seguridad y las responsabilidades de cada rol</li>
+  <li><strong>Gestión de riesgos</strong>: identificación de peligros, evaluación y mitigación de riesgos operacionales</li>
+  <li><strong>Aseguramiento de la seguridad</strong>: monitoreo continuo, auditorías y análisis de tendencias</li>
+  <li><strong>Promoción de la seguridad</strong>: formación, comunicación y cultura organizacional</li>
+</ol>
+
+<h2>¿Quién está obligado a tener SMS bajo la RAC 100?</h2>
+<p>La RAC 100 exige la implementación de SMS a operadores que cumplan alguna de estas condiciones:</p>
+<ul>
+  <li>Flota de <strong>tres o más aeronaves</strong></li>
+  <li>Operaciones de <strong>mayor complejidad</strong> (BVLOS, vuelos nocturnos, sobre aglomeraciones)</li>
+  <li>Operadores que obtienen <strong>autorización de operación especial</strong> de la AeroCivil</li>
+</ul>
+<p>Incluso si no estás en esta categoría, implementar un SMS voluntario es una práctica que diferencia a los operadores profesionales.</p>
+
+<h2>Componentes prácticos del SMS para operadores RPAS</h2>
+
+<h3>1. Política de seguridad</h3>
+<p>Documento firmado por la dirección que establece el compromiso con la seguridad, los objetivos medibles y las responsabilidades del equipo. No necesita ser extenso; necesita ser claro y aplicarse de verdad.</p>
+
+<h3>2. Identificación y reporte de peligros</h3>
+<p>Mecanismo formal para que pilotos y personal de tierra reporten condiciones inseguras, casi-accidentes o comportamientos de riesgo sin miedo a represalias. La cultura de reporte es el corazón del SMS.</p>
+
+<h3>3. Evaluación de riesgos (SORA)</h3>
+<p>Para operaciones RPAS, la herramienta estándar de evaluación de riesgo es el <strong>SORA (Specific Operations Risk Assessment)</strong>, un método desarrollado por JARUS que clasifica operaciones en categorías de riesgo y determina medidas de mitigación. <a href="/sora">Conoce el módulo SORA de Bitafly →</a></p>
+
+<h3>4. Investigación de incidentes</h3>
+<p>Proceso documentado para analizar todo evento que podría haber resultado en daño. El objetivo es encontrar causas raíz, no culpables, y establecer acciones correctivas.</p>
+
+<h3>5. Auditorías internas</h3>
+<p>Revisiones periódicas del cumplimiento de procedimientos, estado de certificaciones, bitácoras y equipos. En Bitafly, el módulo de auditoría genera reportes automáticos del estado de cumplimiento de tu operación.</p>
+
+<h2>Implementación del SMS paso a paso</h2>
+<ol>
+  <li>Designa un <strong>gestor de seguridad</strong> dentro de tu organización</li>
+  <li>Documenta tus <strong>procesos operacionales</strong> actuales (lista de verificación, procedimientos de emergencia)</li>
+  <li>Implementa un <strong>sistema de reporte de peligros</strong> accesible para todo el equipo</li>
+  <li>Realiza la <strong>evaluación SORA</strong> de tu tipo de operación habitual</li>
+  <li>Establece un <strong>calendario de auditorías internas</strong> (mínimo semestral)</li>
+  <li>Documenta todo: la AeroCivil puede pedir evidencias del SMS en cualquier momento</li>
+</ol>
+
+<h2>SMS digital: el enfoque moderno</h2>
+<p>El módulo SMS de Bitafly digitaliza todos estos procesos: formularios de reporte de peligros accesibles desde el celular, registro automático de incidentes, evaluación de riesgos SORA asistida y generación de reportes para auditorías AeroCivil.</p>
+<p><a href="/sms-aeronautico">Ver el módulo SMS de Bitafly →</a></p>
+<p><a href="/registro">Comienza gratis →</a></p>
+`,
+  },
+
+  // ─── 5. Análisis SORA ────────────────────────────────────────────────────
+  {
+    slug:            'analisis-sora-operaciones-drones-colombia',
+    title:           'Análisis SORA para operaciones de drones: qué es y por qué lo necesitas',
+    metaTitle:       'Análisis SORA Drones Colombia: Guía JARUS v2 | Bitafly',
+    metaDescription: 'El SORA (Specific Operations Risk Assessment) es el estándar internacional para evaluar riesgos en operaciones RPAS. Aprende cómo aplicarlo a tus vuelos en Colombia.',
+    publishedAt:     '2025-04-28',
+    updatedAt:       '2025-05-15',
+    readingTime:     8,
+    category:        'Seguridad',
+    keywords:        ['análisis SORA drones', 'SORA JARUS Colombia', 'evaluación riesgo RPAS', 'BVLOS Colombia'],
+    excerpt:         'SORA es el método estándar para evaluar si una operación de drones es segura y qué medidas de mitigación necesitas. Cada vez más requerido por la AeroCivil en autorizaciones especiales.',
+    coverAlt:        'Análisis de riesgo SORA para operaciones RPAS en Colombia',
+    body: `
+<p>El <strong>SORA</strong> (Specific Operations Risk Assessment) es la metodología desarrollada por <strong>JARUS</strong> (Joint Authorities for Rulemaking on Unmanned Systems) para evaluar de forma sistemática el riesgo de operaciones de aeronaves no tripuladas. Es el estándar adoptado por las autoridades aeronáuticas de más de 50 países, incluyendo Colombia a través de la RAC 100.</p>
+
+<p>Si planeas operaciones fuera de la línea de visión visual (BVLOS), vuelos nocturnos o sobre áreas habitadas, la AeroCivil puede exigirte una evaluación SORA como parte del proceso de autorización especial.</p>
+
+<h2>¿Qué evalúa el SORA?</h2>
+<p>El SORA analiza el riesgo desde dos dimensiones:</p>
+
+<h3>Riesgo en tierra (Ground Risk)</h3>
+<p>¿Qué probabilidad hay de que la aeronave impacte a personas en tierra en caso de pérdida de control? Depende de:</p>
+<ul>
+  <li>Área de operación: despoblada, poblada, con concentración de personas</li>
+  <li>Tipo de operación: VLOS (línea de visión), BVLOS, sobre aglomeraciones</li>
+  <li>Energía cinética de la aeronave (peso × velocidad)</li>
+</ul>
+
+<h3>Riesgo en aire (Air Risk)</h3>
+<p>¿Qué probabilidad hay de colisión con aeronaves tripuladas? Depende de:</p>
+<ul>
+  <li>Densidad de tráfico aéreo en el área</li>
+  <li>Altitud de operación</li>
+  <li>Capacidad de separación y coordinación con ATC</li>
+</ul>
+
+<h2>Las categorías de riesgo SORA</h2>
+<p>El resultado del SORA se expresa en un <strong>SAIL</strong> (Specific Assurance and Integrity Level) del 1 al 6:</p>
+<ul>
+  <li><strong>SAIL I-II</strong>: Operaciones de bajo riesgo (VLOS en área despoblada, dron &lt;4 kg). Requisitos mínimos de competencia y equipo.</li>
+  <li><strong>SAIL III-IV</strong>: Operaciones de riesgo medio (VLOS en área habitada, BVLOS en área despoblada). Requiere SMS, procedimientos robustos y posiblemente certificación del equipo.</li>
+  <li><strong>SAIL V-VI</strong>: Operaciones de alto riesgo (BVLOS sobre áreas habitadas). Requiere certificación formal del RPAS y demostración de redundancias técnicas.</li>
+</ul>
+
+<h2>Pasos para hacer un análisis SORA</h2>
+<ol>
+  <li><strong>Define el concepto de operación (CONOPS)</strong>: área, altitud, tipo de vuelo, aeronave</li>
+  <li><strong>Determina el GRC</strong> (Ground Risk Class) basado en densidad poblacional y tipo de vuelo</li>
+  <li><strong>Determina el ARC</strong> (Air Risk Class) basado en el entorno aéreo</li>
+  <li><strong>Aplica mitigaciones</strong> para reducir el GRC y ARC</li>
+  <li><strong>Determina el SAIL</strong> combinando GRC y ARC mitigados</li>
+  <li><strong>Define las OSO</strong> (Operational Safety Objectives) requeridas para ese SAIL</li>
+</ol>
+
+<h2>¿Cuándo lo exige la AeroCivil?</h2>
+<p>Actualmente, la AeroCivil solicita evidencia de evaluación de riesgo tipo SORA principalmente para:</p>
+<ul>
+  <li>Solicitudes de autorización de vuelo BVLOS</li>
+  <li>Operaciones en áreas controladas (CTR, TMA)</li>
+  <li>Vuelos sobre aglomeraciones de personas</li>
+  <li>Operaciones nocturnas</li>
+</ul>
+
+<h2>SORA en Bitafly</h2>
+<p>El módulo SORA de Bitafly guía al operador a través de cada paso del análisis con formularios estructurados, calcula automáticamente el GRC, ARC y SAIL, y genera el documento de evaluación listo para adjuntar a tu solicitud de autorización AeroCivil.</p>
+<p>No necesitas ser experto en aviación para completarlo: el sistema explica cada pregunta y sugiere las mitigaciones más comunes para cada escenario.</p>
+<p><a href="/registro">Prueba el módulo SORA gratis →</a></p>
+`,
+  },
+
+  // ─── 6. Software drones Colombia ─────────────────────────────────────────
+  {
+    slug:            'software-gestion-operadores-drones-colombia-2025',
+    title:           'Software para operadores de drones en Colombia: qué necesitas realmente en 2025',
+    metaTitle:       'Software Operadores Drones Colombia 2025 | Comparativo | Bitafly',
+    metaDescription: 'Qué funcionalidades debe tener un software de gestión para operadores RPAS en Colombia: RAC 100, bitácora, SMS, autorizaciones AeroCivil. Guía 2025.',
+    publishedAt:     '2025-05-10',
+    updatedAt:       '2025-05-20',
+    readingTime:     6,
+    category:        'Herramientas',
+    keywords:        ['software drones Colombia', 'software gestión UAS', 'plataforma operadores RPAS', 'herramientas operadores drones 2025'],
+    excerpt:         'No todo software de drones sirve para el mercado colombiano. La RAC 100 tiene exigencias específicas que la mayoría de plataformas globales no cubren. Te explicamos qué buscar.',
+    coverAlt:        'Software de gestión para operadores de drones en Colombia 2025',
+    body: `
+<p>El mercado de software para operadores de drones creció exponencialmente en los últimos cinco años. Hay plataformas de planificación de vuelo, análisis fotogramétrico, gestión de flotas y cumplimiento normativo. Pero si operas en Colombia, no cualquier herramienta te sirve.</p>
+
+<p>La <strong>RAC 100</strong> tiene exigencias específicas que la mayoría de plataformas globales simplemente no contemplan: el formato F-OPS-002, los requisitos del SMS para el mercado colombiano, la integración con los procesos de la AeroCivil y la generación de documentos en español con nomenclatura oficial.</p>
+
+<h2>Las 7 funcionalidades que sí necesitas</h2>
+
+<h3>1. Bitácora digital conforme al F-OPS-002</h3>
+<p>El software debe generar exactamente el formato que exige la AeroCivil, no una bitácora genérica. Esto incluye: campos de matrícula UAEAC, CPR del piloto, horas de vuelo acumuladas, condición VMC/IMC y firma del jefe de pilotos.</p>
+
+<h3>2. Gestión de certificaciones con alertas de vencimiento</h3>
+<p>Los certificados de los pilotos (CPR), seguros de RC y matrículas de aeronaves tienen fechas de vencimiento. Un buen software te alerta antes de que expiren, no después.</p>
+
+<h3>3. Módulo de mantenimiento por horas de vuelo</h3>
+<p>El mantenimiento preventivo de RPAS debe programarse por horas de vuelo o ciclos de batería, no por calendario. El software debe sumar horas automáticamente y generar alertas de intervención.</p>
+
+<h3>4. SMS aeronáutico integrado</h3>
+<p>El sistema de gestión de seguridad no puede ser un documento Word aislado. Debe estar integrado con las operaciones: formularios de reporte de peligros, registro de incidentes, evaluaciones de riesgo.</p>
+
+<h3>5. Generación de archivos KML para AeroCivil</h3>
+<p>Las solicitudes de autorización ante la AeroCivil requieren el área de operación en formato KML (Google Earth). El software debe permitir dibujar el área en un mapa y exportar el archivo directamente.</p>
+
+<h3>6. Reportes listos para auditoría</h3>
+<p>Cuando llegue una inspección de la AeroCivil, necesitas poder mostrar todos los registros organizados en minutos, no buscar en carpetas de Drive durante una hora.</p>
+
+<h3>7. Acceso móvil desde el sitio de operación</h3>
+<p>Los pilotos registran vuelos desde campo. El software debe funcionar perfectamente desde un celular, sin instalar apps, sin depender de señal perfecta.</p>
+
+<h2>Lo que no necesitas (pero muchos venden)</h2>
+<ul>
+  <li><strong>Planificación de misiones 3D</strong> — útil para drones de cartografía, pero no para el cumplimiento normativo</li>
+  <li><strong>Análisis fotogramétrico</strong> — eso es para el software de procesamiento, no para la gestión operacional</li>
+  <li><strong>Integración con drones de terceros en tiempo real</strong> — bonito, pero no requerido por la RAC 100</li>
+</ul>
+
+<h2>¿Por qué una plataforma global no es suficiente?</h2>
+<p>Herramientas como Airdata UAV o DJI FlySafe son excelentes para lo que hacen, pero no generan el F-OPS-002, no tienen el flujo de autorizaciones de la AeroCivil colombiana, no están en español colombiano y no contemplan los roles específicos de la RAC 100 (jefe de pilotos, gerente SMS, observador).</p>
+
+<h2>Bitafly: diseñado para Colombia desde el primer día</h2>
+<p>Bitafly es la única plataforma construida específicamente para la RAC 100. No es una adaptación de un producto global: es una plataforma que nació del contacto directo con operadores UAS colombianos y con los requisitos reales de la AeroCivil.</p>
+<p>Incluye todos los módulos descritos arriba, funciona desde cualquier celular o computador, y tiene un plan gratuito sin límite de vuelos para que lo pruebes sin comprometerte.</p>
+<p><a href="/precios">Ver planes y precios →</a></p>
+<p><a href="/registro">Comenzar gratis — sin tarjeta →</a></p>
+`,
+  },
+];
+
+/** Retorna un post por slug, o undefined si no existe */
+export function getPostBySlug(slug) {
+  return BLOG_POSTS.find(p => p.slug === slug);
+}
+
+/** Retorna todos los slugs (para generateStaticParams) */
+export function getAllSlugs() {
+  return BLOG_POSTS.map(p => ({ slug: p.slug }));
+}

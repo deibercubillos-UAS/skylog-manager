@@ -117,6 +117,7 @@ const FEATURES = [
 const softwareSchema = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
+  '@id': `${SITE_URL}/#software`,
   name: 'Bitafly',
   applicationCategory: 'BusinessApplication',
   applicationSubCategory: 'Aviation Management Software',
@@ -128,23 +129,35 @@ const softwareSchema = {
   featureList: FEATURES.map((f) => f.title).join(', '),
   offers: {
     '@type': 'Offer',
-    priceCurrency: 'COP',
     price: '0',
-    description: 'Plan gratuito para operadores individuales',
+    priceCurrency: 'USD',
+    description: 'Plan Piloto — gratis por 6 meses para operadores individuales',
     availability: 'https://schema.org/InStock',
+    eligibleRegion: { '@type': 'Country', name: 'Colombia' },
+    url: `${SITE_URL}/registro`,
   },
-  publisher: {
-    '@type': 'Organization',
-    name: 'Bitafly Operations',
-    url: SITE_URL,
-  },
+  // publisher referencia @id del Organization (ancla cross-page)
+  publisher: { '@id': `${SITE_URL}/#organization` },
   aggregateRating: {
     '@type': 'AggregateRating',
     ratingValue: '4.9',
     bestRating: '5',
     worstRating: '1',
-    ratingCount: '12',
+    ratingCount: '18',
   },
+};
+
+// WebPage — declara el tipo de página para Googlebot
+const webPageSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  '@id': `${SITE_URL}/#webpage`,
+  'url': SITE_URL,
+  'name': 'Bitafly | Software de Gestión para Operadores de Drones en Colombia',
+  'isPartOf': { '@id': `${SITE_URL}/#website` },
+  'about': { '@id': `${SITE_URL}/#software` },
+  'inLanguage': 'es-CO',
+  'description': 'Plataforma SaaS líder para operadores UAS en Colombia. Bitácora digital RAC 100, mantenimiento, baterías, SMS aeronáutico, autorizaciones AeroCivil y reportes oficiales.',
 };
 
 // JSON-LD: FAQPage (rich result de preguntas frecuentes)
@@ -178,19 +191,11 @@ const breadcrumbSchema = {
 export default function LandingPage() {
   return (
     <>
-      {/* JSON-LD para SEO avanzado */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
-      />
+      {/* JSON-LD para SEO avanzado — inline para que Googlebot los vea en HTML inicial */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
 
       {/* Skip-link para accesibilidad (mejora SEO indirectamente) */}
       <a

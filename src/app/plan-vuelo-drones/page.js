@@ -1,4 +1,3 @@
-import Script from 'next/script';
 import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
@@ -40,7 +39,7 @@ const FEATURES = [
 export default function PlanVueloDronesPage() {
   return (
     <>
-      <Script id="faq-schema" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <SEONav />
 
       {/* HERO */}

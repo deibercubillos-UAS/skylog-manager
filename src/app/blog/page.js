@@ -5,6 +5,43 @@ import { BLOG_POSTS } from '@/lib/blogPosts';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
 
+// CollectionPage + ItemList — Google entiende que /blog es una colección de artículos
+function buildBlogSchemas(posts) {
+  const sorted = [...posts].sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+  return [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      '@id': `${SITE_URL}/blog#webpage`,
+      'name': 'Blog Bitafly — Recursos para Operadores de Drones en Colombia',
+      'description': 'Guías, normativa y recursos para operadores RPAS en Colombia. RAC 100, trámites AeroCivil, SMS aeronáutico y gestión de flotas.',
+      'url': `${SITE_URL}/blog`,
+      'inLanguage': 'es-CO',
+      'isPartOf': { '@id': `${SITE_URL}/#website` },
+      'breadcrumb': {
+        '@type': 'BreadcrumbList',
+        'itemListElement': [
+          { '@type': 'ListItem', 'position': 1, 'name': 'Inicio', 'item': SITE_URL },
+          { '@type': 'ListItem', 'position': 2, 'name': 'Blog',   'item': `${SITE_URL}/blog` },
+        ],
+      },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      'name': 'Artículos del Blog de Bitafly',
+      'url': `${SITE_URL}/blog`,
+      'numberOfItems': sorted.length,
+      'itemListElement': sorted.map((post, i) => ({
+        '@type': 'ListItem',
+        'position': i + 1,
+        'url': `${SITE_URL}/blog/${post.slug}`,
+        'name': post.title,
+      })),
+    },
+  ];
+}
+
 export const metadata = {
   title: 'Blog sobre Drones en Colombia | RAC 100, Normativa y Operaciones | Bitafly',
   metaTitle: 'Blog Drones Colombia — RAC 100, Normativa, Operaciones UAS | Bitafly',
@@ -31,9 +68,13 @@ export default function BlogIndex() {
     (a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)
   );
   const [featured, ...rest] = posts;
+  const schemas = buildBlogSchemas(posts);
 
   return (
     <>
+      {schemas.map((s, i) => (
+        <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(s) }} />
+      ))}
       <SEONav />
 
       <main>

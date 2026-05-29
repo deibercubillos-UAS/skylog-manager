@@ -3,7 +3,6 @@ import { Public_Sans } from "next/font/google";
 import { GoogleAnalytics } from '@next/third-parties/google';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/next';
-import Script from 'next/script';
 
 const publicSans = Public_Sans({
   subsets: ["latin"],
@@ -170,57 +169,99 @@ export default function RootLayout({ children }) {
         <link rel="preload" as="style" href={MATERIAL_SYMBOLS_URL} />
         <link rel="stylesheet" href={MATERIAL_SYMBOLS_URL} />
 
-        {/* Schema.org — Organization (rich result en buscadores) */}
-        <Script
-          id="schema-organization"
+        {/*
+          Schema.org — inline <script> (no afterInteractive) para que Googlebot
+          vea el JSON-LD en el HTML inicial, no tras hidratación de React.
+
+          Dos grafos entrelazados por @id:
+            1. Organization — entidad principal de Bitafly
+            2. WebSite     — sitio web con sitelinks search box
+        */}
+        <script
           type="application/ld+json"
-          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Organization",
+              // @id: ancla canónica — Google usa este IRI para desambiguar
+              // la entidad en todos los demás esquemas del sitio.
+              "@id": `${SITE_URL}/#organization`,
               "name": "Bitafly",
-              "legalName": "Bitafly UAS Manager",
+              "legalName": "Bitafly Operations",
               "url": SITE_URL,
-              "logo": `${SITE_URL}/logo.png`,
-              "description": "Plataforma SaaS para operadores de drones en Colombia. Bitácoras digitales, mantenimiento, SMS aeronáutico y cumplimiento RAC 100.",
+              // logo como ImageObject (no solo string) — activa Knowledge Panel
+              "logo": {
+                "@type": "ImageObject",
+                "@id": `${SITE_URL}/#logo`,
+                "url": `${SITE_URL}/logo.png`,
+                "width": 320,
+                "height": 277,
+                "caption": "Bitafly — Software para operadores de drones en Colombia"
+              },
+              "image": { "@id": `${SITE_URL}/#logo` },
+              "description": "Plataforma SaaS para operadores UAS en Colombia. Bitácora digital RAC 100, mantenimiento de drones, SMS aeronáutico, autorizaciones AeroCivil y reportes oficiales.",
               "email": "soporte@bitafly.com",
+              "foundingDate": "2024",
               "address": {
                 "@type": "PostalAddress",
                 "addressCountry": "CO",
                 "addressRegion": "Cundinamarca",
                 "addressLocality": "Bogotá"
               },
-              "areaServed": {
-                "@type": "Country",
-                "name": "Colombia"
-              },
-              "contactPoint": {
-                "@type": "ContactPoint",
-                "contactType": "customer support",
-                "email": "soporte@bitafly.com",
-                "availableLanguage": ["Spanish", "es-CO"]
-              },
-              "sameAs": []
+              "areaServed": [
+                { "@type": "Country", "name": "Colombia" }
+              ],
+              "contactPoint": [
+                {
+                  "@type": "ContactPoint",
+                  "contactType": "customer support",
+                  "email": "soporte@bitafly.com",
+                  "availableLanguage": ["Spanish"],
+                  "areaServed": "CO"
+                }
+              ],
+              "knowsAbout": [
+                "Operaciones de drones en Colombia",
+                "RAC 100 UAEAC AeroCivil",
+                "Bitácora digital de vuelo UAS",
+                "SMS aeronáutico RPAS",
+                "Gestión de flotas de drones",
+                "Autorizaciones de vuelo AeroCivil",
+                "Análisis de riesgo SORA JARUS"
+              ],
+              "sameAs": [
+                "https://www.linkedin.com/company/bitafly",
+                "https://www.instagram.com/bitafly.co"
+              ],
+              "hasOfferCatalog": {
+                "@type": "OfferCatalog",
+                "name": "Planes Bitafly para Operadores UAS",
+                "url": `${SITE_URL}/precios`
+              }
             })
           }}
         />
 
-        {/* Schema.org — WebSite con búsqueda interna (sitelinks) */}
-        <Script
-          id="schema-website"
+        <script
           type="application/ld+json"
-          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "WebSite",
+              "@id": `${SITE_URL}/#website`,
               "name": "Bitafly",
               "url": SITE_URL,
               "inLanguage": "es-CO",
-              "publisher": {
-                "@type": "Organization",
-                "name": "Bitafly"
+              "description": "Software de gestión para operadores de drones en Colombia — RAC 100, bitácora, mantenimiento, SMS y autorizaciones AeroCivil.",
+              "publisher": { "@id": `${SITE_URL}/#organization` },
+              // Sitelinks search box — Google puede mostrar buscador inline en SERP
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": {
+                  "@type": "EntryPoint",
+                  "urlTemplate": `${SITE_URL}/blog?q={search_term_string}`
+                },
+                "query-input": "required name=search_term_string"
               }
             })
           }}

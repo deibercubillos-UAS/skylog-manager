@@ -5,7 +5,7 @@ import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import { BLOG_POSTS, getPostBySlug, getAllSlugs } from '@/lib/blogPosts';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
 // ── SSG: pre-renderiza todas las rutas en build time ─────────────────────────
 export function generateStaticParams() {

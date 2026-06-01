@@ -3,7 +3,7 @@ import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import { CASE_STUDIES } from '@/lib/caseStudies';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
 export const metadata = {
   title: 'Casos de Éxito — Operadores de Drones en Colombia | Bitafly',

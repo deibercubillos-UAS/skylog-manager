@@ -3,24 +3,33 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import SiigoPayButton from '@/components/SiigoPayButton';
+import EpaycoCheckout from '@/components/EpaycoCheckout';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const UPGRADE_PLANS = [
   {
+    key: 'piloto',
+    name: 'Piloto',
+    monthly: '$15.000/mes',
+    annual: '$150.000/año',
+    annualSaving: '2 meses gratis',
+    limits: '1 drone · 1 usuario',
+    trial: '2 meses gratis al suscribirte',
+  },
+  {
     key: 'escuadrilla',
     name: 'Escuadrilla',
-    monthly: '$15 USD/mes',
-    annual: '$12 USD/mes',
-    annualTotal: '$144/año',
+    monthly: '$59.000/mes',
+    annual: '$590.000/año',
+    annualSaving: '2 meses gratis',
     limits: '3 drones · 4 usuarios',
   },
   {
     key: 'flota',
     name: 'Flota',
-    monthly: '$39 USD/mes',
-    annual: '$29 USD/mes',
-    annualTotal: '$348/año',
+    monthly: '$159.000/mes',
+    annual: '$1.590.000/año',
+    annualSaving: '2 meses gratis',
     limits: '15 drones · 15 usuarios',
     popular: true,
   },
@@ -28,9 +37,10 @@ const UPGRADE_PLANS = [
 
 export default function SubscriptionPage() {
   const [data, setData] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [billing, setBilling] = useState('annual');
+  const [billing, setBilling] = useState('monthly');
   const [cancelling,   setCancelling]   = useState(false);
   const [showCancelDlg, setShowCancelDlg] = useState(false);
 
@@ -39,6 +49,7 @@ export default function SubscriptionPage() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) { window.location.href = '/login'; return; }
+        setUser({ id: session.user.id, email: session.user.email });
         const res = await fetch('/api/subscription', {
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
@@ -87,7 +98,7 @@ export default function SubscriptionPage() {
     </div>
   );
 
-  const isPaid = ['escuadrilla', 'flota', 'enterprise'].includes(data.planSlug);
+  const isPaid = ['piloto', 'escuadrilla', 'flota', 'enterprise'].includes(data.planSlug) && data.expiresAt;
 
   return (
     <>
@@ -170,15 +181,19 @@ export default function SubscriptionPage() {
                   <p className="text-3xl font-black text-navy mt-1">
                     {billing === 'annual' ? plan.annual : plan.monthly}
                   </p>
-                  {billing === 'annual' && (
-                    <p className="text-xs text-slate-400 font-bold">Facturado {plan.annualTotal}</p>
+                  {billing === 'annual' && plan.annualSaving && (
+                    <p className="text-xs text-emerald-600 font-black mt-1">✓ {plan.annualSaving}</p>
+                  )}
+                  {plan.trial && (
+                    <p className="text-xs text-primary font-bold mt-1">🎁 {plan.trial}</p>
                   )}
                   <p className="text-xs font-black text-primary uppercase mt-2">{plan.limits}</p>
                 </div>
-                <SiigoPayButton
+                <EpaycoCheckout
                   planKey={plan.key}
                   billing={billing}
                   label={`Activar ${plan.name}`}
+                  user={user}
                   className={plan.popular
                     ? 'bg-primary text-white hover:bg-orange-600 shadow-lg shadow-orange-500/20'
                     : 'bg-navy text-white hover:bg-slate-800'}

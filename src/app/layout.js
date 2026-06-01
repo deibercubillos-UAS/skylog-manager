@@ -11,7 +11,7 @@ const publicSans = Public_Sans({
   display: "swap",
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/+$/, '');
 
 /*
  * MATERIAL SYMBOLS — ejes fijos, sin icon_names.

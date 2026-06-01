@@ -1,10 +1,10 @@
 // src/lib/planLimits.js
 
-// Precios USD: piloto $5/mes ($4 anual, gratis 1 mes) · escuadrilla $15/mes ($12 anual) · flota $39/mes ($29 anual) · enterprise custom
+// Precios COP: piloto $15.000/mes ($150.000/año, 2 meses gratis) · escuadrilla $59.000/mes · flota $159.000/mes
 export const PLAN_CONFIG = {
   piloto: {
     name: 'Plan Piloto',
-    price: { monthly: 5, annual: 4, freeMonths: 1 },
+    price: { monthly: 15000, annual: 150000, freeMonths: 2 },
     allowedRoles: ['piloto'],
     maxDrones: 1,
     maxPilots: 1,
@@ -120,10 +120,64 @@ export const hasPermission = (role, action) => {
   return userPerms.includes('all') || userPerms.includes(action);
 };
 
-// Precios en centavos USD para SIIGO PAY
-export const SIIGOPAY_PRICES = {
-  piloto:      { monthly: null,  annual: null  }, // Gratis
-  escuadrilla: { monthly: 1500,  annual: 14400 }, // $15/mes · $144/año
-  flota:       { monthly: 3900,  annual: 34800 }, // $39/mes · $348/año
-  enterprise:  { monthly: null,  annual: null  }, // A consultar
+// Precios en COP para ePayco
+// IVA incluido (19%): taxBase = floor(amount / 1.19) · tax = amount - taxBase
+// trial_days: 60 en piloto = 2 meses gratis antes del primer cobro
+export const EPAYCO_PLANS = {
+  piloto: {
+    monthly: {
+      amount:      15000,
+      taxBase:     12605,
+      tax:          2395,
+      trialDays:   60,
+      name:        'Bitafly Piloto Mensual',
+      description: 'Suscripción mensual - Plan Piloto para operadores UAS individuales',
+      epaycoId:    'bitafly_piloto_monthly',
+    },
+    annual: {
+      amount:      150000,
+      taxBase:     126050,
+      tax:          23950,
+      trialDays:   60,
+      name:        'Bitafly Piloto Anual',
+      description: 'Suscripción anual - Plan Piloto (2 meses gratis incluidos)',
+      epaycoId:    'bitafly_piloto_annual',
+    },
+  },
+  escuadrilla: {
+    monthly: {
+      amount:      59000,
+      taxBase:     49580,
+      tax:          9420,
+      name:        'Bitafly Escuadrilla Mensual',
+      description: 'Suscripción mensual - Plan Escuadrilla para operadores UAS',
+      epaycoId:    'escuadrilla_mensual',
+    },
+    annual: {
+      amount:      590000,
+      taxBase:     495798,
+      tax:          94202,
+      name:        'Bitafly Escuadrilla Anual',
+      description: 'Suscripción anual - Plan Escuadrilla para operadores UAS',
+      epaycoId:    'Escuadrilla Anual',
+    },
+  },
+  flota: {
+    monthly: {
+      amount:      159000,
+      taxBase:     133613,
+      tax:          25387,
+      name:        'Bitafly Flota Mensual',
+      description: 'Suscripción mensual - Plan Flota para operadores UAS',
+      epaycoId:    'flota_mensual',
+    },
+    annual: {
+      amount:     1590000,
+      taxBase:    1336134,
+      tax:         253866,
+      name:        'Bitafly Flota Anual',
+      description: 'Suscripción anual - Plan Flota para operadores UAS',
+      epaycoId:    'flota_anual',
+    },
+  },
 };

@@ -1,6 +1,11 @@
 ﻿'use client';
 import { useState, useEffect, useMemo } from 'react';
 
+const TABS = [
+  { id: 'users',  label: 'Usuarios',      icon: 'group' },
+  { id: 'planes', label: 'Planes ePayco', icon: 'credit_card' },
+];
+
 const PLANS = ['piloto', 'escuadrilla', 'flota', 'enterprise'];
 
 const PLAN_STYLE = {
@@ -18,7 +23,186 @@ const ROLE_STYLE = {
   piloto:       'bg-slate-700 text-slate-300',
 };
 
+// ─── Componente de edición de planes ePayco ──────────────────────────────────
+function PlanesTab() {
+  const [planes, setPlanes]     = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [editId, setEditId]     = useState(null);
+  const [form, setForm]         = useState({});
+  const [saving, setSaving]     = useState(false);
+  const [msg, setMsg]           = useState('');
+
+  const loadPlanes = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/epayco/config');
+      setPlanes(await res.json());
+    } finally { setLoading(false); }
+  };
+
+  useEffect(() => { loadPlanes(); }, []);
+
+  const startEdit = (p) => {
+    setEditId(p.id);
+    setForm({ name: p.name, description: p.description || '', amount: p.amount, trial_days: p.trial_days });
+    setMsg('');
+  };
+
+  const handleSave = async () => {
+    setSaving(true); setMsg('');
+    try {
+      const res = await fetch('/api/epayco/config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editId, ...form, amount: Number(form.amount), trial_days: Number(form.trial_days) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setMsg(data.epayco_warning ? `✓ Guardado (ePayco: ${data.epayco_warning})` : '✓ Guardado y sincronizado con ePayco');
+      setTimeout(() => { setEditId(null); setMsg(''); loadPlanes(); }, 1200);
+    } catch (e) {
+      setMsg('✗ ' + e.message);
+    } finally { setSaving(false); }
+  };
+
+  const PLAN_ORDER = { piloto: 0, escuadrilla: 1, flota: 2 };
+  const grouped = planes.reduce((acc, p) => {
+    if (!acc[p.plan_key]) acc[p.plan_key] = [];
+    acc[p.plan_key].push(p);
+    return acc;
+  }, {});
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-20">
+      <span className="text-orange-500 font-black text-sm uppercase tracking-widest animate-pulse">Cargando planes...</span>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">
+        Los cambios se guardan en Supabase y se sincronizan con ePayco automáticamente.
+      </p>
+
+      {Object.entries(grouped)
+        .sort(([a], [b]) => (PLAN_ORDER[a] ?? 9) - (PLAN_ORDER[b] ?? 9))
+        .map(([planKey, items]) => (
+          <div key={planKey} className="bg-slate-900 border border-white/5 rounded-[2rem] overflow-hidden">
+            <div className="bg-black/40 px-8 py-4 flex items-center gap-3">
+              <span className="material-symbols-outlined text-orange-500 text-lg">workspace_premium</span>
+              <h3 className="font-black uppercase tracking-widest text-sm text-white">{planKey}</h3>
+            </div>
+
+            <div className="divide-y divide-white/5">
+              {items.map(p => (
+                <div key={p.id} className="px-8 py-6 space-y-4">
+                  {/* Header de la fila */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-black uppercase tracking-widest text-slate-500">
+                        {p.billing === 'monthly' ? 'Mensual' : 'Anual'}
+                      </span>
+                      <p className="text-white font-black text-base mt-0.5">{p.name}</p>
+                      <p className="text-slate-500 text-xs font-mono mt-0.5">ePayco ID: <span className="text-orange-400">{p.epayco_id}</span></p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-black text-orange-400">${p.amount.toLocaleString('es-CO')}</p>
+                      {p.trial_days > 0 && (
+                        <span className="text-xs font-black text-emerald-400">{p.trial_days} días gratis</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Form de edición (inline) */}
+                  {editId === p.id ? (
+                    <div className="bg-black/30 rounded-2xl p-6 space-y-4 border border-orange-500/20">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-black uppercase text-slate-500 tracking-widest">Nombre en ePayco</label>
+                          <input
+                            value={form.name}
+                            onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                            className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white text-sm font-medium outline-none focus:border-orange-500/50"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-black uppercase text-slate-500 tracking-widest">Precio COP (IVA incl.)</label>
+                          <input
+                            type="number"
+                            value={form.amount}
+                            onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+                            className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white text-sm font-mono outline-none focus:border-orange-500/50"
+                          />
+                          {form.amount > 0 && (
+                            <p className="text-xs text-slate-600 font-mono">
+                              Base: ${Math.floor(Number(form.amount)/1.19).toLocaleString('es-CO')} · IVA: ${(Number(form.amount) - Math.floor(Number(form.amount)/1.19)).toLocaleString('es-CO')}
+                            </p>
+                          )}
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-black uppercase text-slate-500 tracking-widest">Días gratis (trial)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={form.trial_days}
+                            onChange={e => setForm(f => ({ ...f, trial_days: e.target.value }))}
+                            className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white text-sm font-mono outline-none focus:border-orange-500/50"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-black uppercase text-slate-500 tracking-widest">Descripción</label>
+                          <input
+                            value={form.description}
+                            onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                            className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white text-sm font-medium outline-none focus:border-orange-500/50"
+                          />
+                        </div>
+                      </div>
+
+                      {msg && (
+                        <p className={`text-xs font-black ${msg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>{msg}</p>
+                      )}
+
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => { setEditId(null); setMsg(''); }}
+                          className="flex-1 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl font-black uppercase text-xs transition-all"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={handleSave}
+                          disabled={saving}
+                          className="flex-[2] bg-orange-600 hover:bg-orange-700 py-3 rounded-xl font-black uppercase text-xs transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                        >
+                          {saving
+                            ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Guardando...</>
+                            : <><span className="material-symbols-outlined text-base">sync</span>Guardar y sincronizar ePayco</>
+                          }
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => startEdit(p)}
+                      className="flex items-center gap-2 bg-slate-800 hover:bg-orange-600 text-slate-400 hover:text-white px-5 py-2.5 rounded-xl font-black uppercase text-xs tracking-widest transition-all"
+                    >
+                      <span className="material-symbols-outlined text-base">edit</span>
+                      Editar plan
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+    </div>
+  );
+}
+
+// ─── Panel principal ──────────────────────────────────────────────────────────
 export default function MasterPanel() {
+  const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
@@ -145,6 +329,30 @@ export default function MasterPanel() {
           </button>
         </header>
 
+        {/* Tabs */}
+        <div className="flex gap-2 border-b border-white/10 pb-0">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-6 py-3 font-black uppercase text-xs tracking-widest border-b-2 transition-all -mb-px ${
+                activeTab === tab.id
+                  ? 'border-orange-500 text-orange-400'
+                  : 'border-transparent text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <span className="material-symbols-outlined text-base">{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab: Planes ePayco */}
+        {activeTab === 'planes' && <PlanesTab />}
+
+        {/* Tab: Usuarios */}
+        {activeTab === 'users' && <>
+
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
@@ -257,6 +465,8 @@ export default function MasterPanel() {
           </div>
         </div>
         <p className="text-slate-700 text-xs text-right font-mono">{filtered.length} de {users.length} usuarios</p>
+
+        </>} {/* fin tab users */}
       </main>
 
       {/* Modal de edición */}

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import NavMobile from '@/components/landing/NavMobile';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
 export const metadata = {
   title: 'Documentación | Bitafly — Guía de Usuario',

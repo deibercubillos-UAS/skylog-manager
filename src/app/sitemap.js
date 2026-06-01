@@ -1,7 +1,8 @@
 import { BLOG_POSTS } from '@/lib/blogPosts';
 import { CASE_STUDIES } from '@/lib/caseStudies';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
+// Quitar barra final si NEXT_PUBLIC_SITE_URL viene como "https://bitafly.com/"
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/+$/, '');
 
 export default function sitemap() {
   const now = new Date();

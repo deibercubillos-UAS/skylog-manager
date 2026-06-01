@@ -3,7 +3,7 @@ import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import { BLOG_POSTS } from '@/lib/blogPosts';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
 // CollectionPage + ItemList — Google entiende que /blog es una colección de artículos
 function buildBlogSchemas(posts) {

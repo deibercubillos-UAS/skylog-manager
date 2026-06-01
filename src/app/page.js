@@ -3,7 +3,7 @@ import NavMobile from '@/components/landing/NavMobile';
 import DashboardMockup from '@/components/landing/DashboardMockup';
 import Pricing from '@/components/landing/Pricing';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
 // METADATA específico del landing (sobrescribe el global con copy de mayor densidad)
 export const metadata = {

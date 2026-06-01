@@ -4,7 +4,7 @@ import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import { CASE_STUDIES, getCaseBySlug, getAllCaseSlugs } from '@/lib/caseStudies';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
 export function generateStaticParams() {
   return getAllCaseSlugs();

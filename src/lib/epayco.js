@@ -1,66 +1,76 @@
 // Cliente ePayco — server-side only
-// Endpoints verificados contra github.com/epayco/epayco-node
+// Autenticación y headers verificados contra github.com/epayco/epayco-node
 
 const BASE    = 'https://api.secure.payco.co';
 const PUB_KEY = () => process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY;
 const PRV_KEY = () => process.env.EPAYCO_PRIVATE_KEY;
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
-// ePayco devuelve bearer_token (no "token")
+// El SDK usa POST con JSON body, devuelve bearer_token
 async function getToken() {
-  const res = await fetch(
-    `${BASE}/v1/auth/login?public_key=${PUB_KEY()}&private_key=${PRV_KEY()}`,
-    { cache: 'no-store' }
-  );
-  if (!res.ok) throw new Error(`ePayco auth HTTP ${res.status}`);
+  const res = await fetch(`${BASE}/v1/auth/login`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ public_key: PUB_KEY(), private_key: PRV_KEY() }),
+    cache:   'no-store',
+  });
+
   const json = await res.json();
-  if (json.status === false) throw new Error(`ePayco auth: ${json.message || 'credenciales inválidas'}`);
+  if (!res.ok || json.status === false) {
+    throw new Error(`ePayco auth: ${json.message || json.error || res.status}`);
+  }
+
   const token = json.bearer_token || json.token;
-  if (!token) throw new Error(`ePayco auth: bearer_token ausente. Respuesta: ${JSON.stringify(json)}`);
+  if (!token) throw new Error(`ePayco auth: bearer_token ausente. Resp: ${JSON.stringify(json)}`);
   return token;
 }
 
-// POST con bearer token
-async function post(path, body) {
-  const token = await getToken();
-  const res = await fetch(`${BASE}${path}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization:  `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
-  });
+// Headers estándar del SDK (type: sdk-jwt y lang: NODE son requeridos)
+async function headers() {
+  return {
+    'Content-Type': 'application/json',
+    'Accept':       'application/json',
+    'type':         'sdk-jwt',
+    'lang':         'NODE',
+    'Authorization': `Bearer ${await getToken()}`,
+  };
+}
+
+// ── HTTP helpers ─────────────────────────────────────────────────────────────
+async function epaycoGet(path) {
+  const res  = await fetch(`${BASE}${path}`, { headers: await headers(), cache: 'no-store' });
   const json = await res.json();
   if (!res.ok || json.status === false) {
-    throw new Error(json.message || json.description || `ePayco error ${res.status}`);
+    throw new Error(json.message || json.error || json.error_description || `ePayco GET ${res.status}`);
   }
   return json;
 }
 
-// GET sin bearer — ePayco usa apiKey en la URL para GETs de recursos
-async function get(path) {
-  const res = await fetch(`${BASE}${path}`, { cache: 'no-store' });
+async function epaycoPost(path, body) {
+  const res  = await fetch(`${BASE}${path}`, {
+    method:  'POST',
+    headers: await headers(),
+    // El SDK agrega extras_epayco en POSTs
+    body:    JSON.stringify({ ...body, extras_epayco: { extra5: 'P44' } }),
+  });
   const json = await res.json();
   if (!res.ok || json.status === false) {
-    throw new Error(json.message || `ePayco GET error ${res.status}`);
+    throw new Error(json.message || json.error || json.error_description || `ePayco POST ${res.status}`);
   }
   return json;
 }
 
 // ── Planes ───────────────────────────────────────────────────────────────────
 
-// Lista todos los planes en ePayco y retorna array con { uid, id_plan, name, amount, ... }
+// Lista todos los planes — GET /recurring/v1/plans/{apiKey}
 export async function listPlans() {
-  const json = await get(`/recurring/v1/plans/${PUB_KEY()}`);
-  // ePayco puede devolver { data: [...] } o directamente el array
+  const json = await epaycoGet(`/recurring/v1/plans/${PUB_KEY()}`);
   return Array.isArray(json) ? json : (json.data ?? []);
 }
 
-// Crea un plan nuevo en ePayco
-// Endpoint verificado: POST /recurring/v1/plan/create
+// Crea un plan — POST /recurring/v1/plan/create
 export async function createPlan(cfg, billingKey) {
-  return post('/recurring/v1/plan/create', {
+  return epaycoPost('/recurring/v1/plan/create', {
     id_plan:        cfg.epaycoId,
     name:           cfg.name,
     description:    cfg.description,
@@ -73,10 +83,10 @@ export async function createPlan(cfg, billingKey) {
   });
 }
 
-// Actualiza un plan existente por su UID interno de ePayco
-// Endpoint verificado: POST /recurring/v1/plan/edit/{uid}
+// Actualiza un plan — POST /recurring/v1/plan/edit/{uid}
+// uid = UID interno de ePayco (obtenido con listPlans)
 export async function updatePlan(epaycoUid, { name, description, amount, trialDays, billingKey }) {
-  return post(`/recurring/v1/plan/edit/${epaycoUid}`, {
+  return epaycoPost(`/recurring/v1/plan/edit/${epaycoUid}`, {
     name,
     description,
     amount:         String(amount),
@@ -88,11 +98,10 @@ export async function updatePlan(epaycoUid, { name, description, amount, trialDa
   });
 }
 
-// Cancela una suscripción activa
-// Endpoint verificado: POST /recurring/v1/subscription/cancel
+// Cancela una suscripción — POST /recurring/v1/subscription/cancel
 export async function cancelSubscription(uid) {
-  return post('/recurring/v1/subscription/cancel', {
-    id: uid,
+  return epaycoPost('/recurring/v1/subscription/cancel', {
+    id:         uid,
     public_key: PUB_KEY(),
   });
 }

@@ -46,12 +46,26 @@ async function epaycoGet(path) {
   return json;
 }
 
+// POST para endpoints de PAGOS — incluye extras_epayco requerido por ePayco
 async function epaycoPost(path, body) {
   const res  = await fetch(`${BASE}${path}`, {
     method:  'POST',
     headers: await headers(),
-    // El SDK agrega extras_epayco en POSTs
     body:    JSON.stringify({ ...body, extras_epayco: { extra5: 'P44' } }),
+  });
+  const json = await res.json();
+  if (!res.ok || json.status === false) {
+    throw new Error(json.message || json.error || json.error_description || `ePayco POST ${res.status}`);
+  }
+  return json;
+}
+
+// POST para endpoints de PLANES/SUSCRIPCIONES — sin extras_epayco ni campos de pago
+async function epaycoRecurringPost(path, body) {
+  const res  = await fetch(`${BASE}${path}`, {
+    method:  'POST',
+    headers: await headers(),
+    body:    JSON.stringify(body),
   });
   const json = await res.json();
   if (!res.ok || json.status === false) {
@@ -70,7 +84,7 @@ export async function listPlans() {
 
 // Crea un plan — POST /recurring/v1/plan/create
 export async function createPlan(cfg, billingKey) {
-  return epaycoPost('/recurring/v1/plan/create', {
+  return epaycoRecurringPost('/recurring/v1/plan/create', {
     id_plan:        cfg.epaycoId,
     name:           cfg.name,
     description:    cfg.description,
@@ -86,22 +100,21 @@ export async function createPlan(cfg, billingKey) {
 // Actualiza un plan — POST /recurring/v1/plan/edit/{uid}
 // uid = UID interno de ePayco (_id del listPlans)
 export async function updatePlan(epaycoUid, { epaycoId, name, description, amount, trialDays, billingKey }) {
-  return epaycoPost(`/recurring/v1/plan/edit/${epaycoUid}`, {
-    id_plan:        epaycoId,           // requerido por ePayco en el body
+  return epaycoRecurringPost(`/recurring/v1/plan/edit/${epaycoUid}`, {
+    id_plan:        epaycoId,
     name,
     description,
-    amount:         Number(amount),     // ePayco espera número, no string
+    amount:         Number(amount),
     currency:       'COP',
     interval:       billingKey === 'annual' ? 'year' : 'month',
     interval_count: 1,
     trial_days:     Number(trialDays ?? 0),
-    status:         1,
   });
 }
 
 // Cancela una suscripción — POST /recurring/v1/subscription/cancel
 export async function cancelSubscription(uid) {
-  return epaycoPost('/recurring/v1/subscription/cancel', {
+  return epaycoRecurringPost('/recurring/v1/subscription/cancel', {
     id:         uid,
     public_key: PUB_KEY(),
   });

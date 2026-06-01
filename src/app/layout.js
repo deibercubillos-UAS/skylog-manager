@@ -141,9 +141,14 @@ export default function RootLayout({ children }) {
   return (
     <html lang="es-CO" className={`${publicSans.variable} scroll-smooth`}>
       <head>
-        {/* Preconexión para acelerar la descarga de fuentes externas */}
+        {/* Preconexión a dominios de primer orden (bloques DNS eliminados) */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* dns-prefetch: dominios de terceros que no son críticos pero se usan */}
+        <link rel="dns-prefetch" href="https://va.vercel-scripts.com" />
+        <link rel="dns-prefetch" href="https://vitals.vercel-insights.com" />
+        {process.env.NEXT_PUBLIC_GA_ID && <link rel="dns-prefetch" href="https://www.google-analytics.com" />}
+        {process.env.NEXT_PUBLIC_GA_ID && <link rel="dns-prefetch" href="https://www.googletagmanager.com" />}
         {/* Material Symbols — subsetado (~110 íconos, ejes fijos) → ~20 KB en lugar de ~370 KB */}
         <link rel="preload" as="style" href={MATERIAL_SYMBOLS_URL} />
         <link rel="stylesheet" href={MATERIAL_SYMBOLS_URL} />

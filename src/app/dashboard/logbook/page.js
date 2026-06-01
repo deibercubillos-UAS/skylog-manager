@@ -1,7 +1,20 @@
 ﻿'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
-import LogbookImportPanel from '@/components/LogbookImportPanel';
+import dynamic from 'next/dynamic';
+
+// Lazy: ExcelJS pesa ~250 KB. Solo carga cuando el usuario abre el panel de importación.
+const LogbookImportPanel = dynamic(
+  () => import('@/components/LogbookImportPanel'),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center py-12">
+        <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    ),
+    ssr: false,
+  }
+);
 
 const PAGE_SIZE = 30;
 

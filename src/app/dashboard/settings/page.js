@@ -186,7 +186,7 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                     <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col items-center text-center">
                         <div className="size-28 md:size-32 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden mb-6">
                             {org.logo_url ? (
-                                <img src={org.logo_url} className="size-full object-contain p-2" alt="Logo" />
+                                <img src={org.logo_url} className="size-full object-contain p-2" alt="Logo" loading="lazy" decoding="async" />
                             ) : (
                                 <span className="material-symbols-outlined text-4xl text-slate-300">business</span>
                             )}

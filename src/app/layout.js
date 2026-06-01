@@ -13,50 +13,25 @@ const publicSans = Public_Sans({
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
 
 /*
- * MATERIAL SYMBOLS — subsetado a los íconos usados + ejes fijos.
+ * MATERIAL SYMBOLS — ejes fijos, sin icon_names.
  *
- * Problema anterior: la URL cargaba la fuente VARIABLE completa (~370 KB)
- * con rangos opsz 20–48, wght 100–700, FILL 0–1, GRAD -50–200, sin subsetting
- * de glifos → el archivo woff2 contenía los ~3,000 íconos aunque usamos ~110.
+ * El parámetro icon_names= de Google Fonts solo funciona desde browsers
+ * con sesión de Google autenticada; retorna 400 desde otros contextos,
+ * rompiendo la carga completa de la fuente.
  *
- * Solución:
- *  1. Ejes fijos @24,400,0,0 en lugar de rangos → fuente estática, mucho más liviana.
- *  2. icon_names= con solo los íconos usados → ~15-25 KB en lugar de ~370 KB.
- *  3. display=block → oculta el texto "check_circle" / "arrow_back" mientras
- *     carga (en vez de mostrarlo como texto con display=swap).
- *     Con el subset pequeño la fuente llega en <500 ms, así el período
- *     invisible es imperceptible.
+ * Compromiso adoptado:
+ *  - Ejes fijos @24,400,0,0 (en lugar de rangos variables 20..48 / 100..700 / etc.)
+ *    → fuente estática, más liviana que la variable completa (~370 KB)
+ *    → todos los ~3,000 glifos disponibles, sin riesgo de íconos rotos
+ *  - display=swap: muestra fallback de texto mientras carga (visible)
+ *    en lugar de invisible 3 s (display=block).
  *
- * Para agregar un ícono nuevo: agrégalo a ICON_NAMES y haz deploy.
+ * Resultado: la fuente carga correctamente en todos los navegadores
+ * y contextos de red. Google la cachea en el CDN del usuario tras la
+ * primera visita.
  */
-const ICON_NAMES = [
-  'account_circle','add','add_circle','add_location_alt','admin_panel_settings',
-  'arrow_back','arrow_forward','assessment','assignment_ind','attach_file',
-  'badge','battery_charging_full','browser_not_supported','build','business',
-  'category','check','check_circle','checklist','chevron_right',
-  'circle','close','cloud_done','cloud_upload','credit_card',
-  'dashboard','delete','delete_sweep','description','download',
-  'edit','edit_square','error','event_available','expand_less','expand_more',
-  'explore','fact_check','flight','flight_land','flight_takeoff',
-  'folder_shared','format_quote','gavel','group','group_add','groups',
-  'health_and_safety','hourglass_empty','how_to_reg',
-  'info','inventory_2','key','lightbulb','link','lock','lock_reset','logout',
-  'mail','manage_accounts','manage_search','map','mark_email_read','menu','menu_book','menu_open',
-  'note_add','open_in_full','payments','pentagon','person','person_add',
-  'person_add_alt','person_check','picture_as_pdf','playlist_add_check',
-  'policy','precision_manufacturing','progress_activity',
-  'notification_important','photo_camera',
-  'radar','remove_circle','report','report_problem','rocket_launch','route','rule',
-  'save','schedule','search','send','settings','settings_accessibility',
-  'settings_input_component','settings_suggest','shield_person','summarize',
-  'sync','table_chart','table_view','task_alt','timer','travel_explore',
-  'trending_down','trending_up','tune','upload_file','usb',
-  'verified','verified_user','visibility','visibility_off','warning','wb_sunny',
-].join(',');
-
 const MATERIAL_SYMBOLS_URL =
-  `https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0` +
-  `&icon_names=${ICON_NAMES}&display=swap`;
+  `https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap`;
 
 export const metadata = {
   metadataBase: new URL(SITE_URL),

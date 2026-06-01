@@ -45,12 +45,13 @@ const ICON_NAMES = [
   'note_add','open_in_full','payments','pentagon','person','person_add',
   'person_add_alt','person_check','picture_as_pdf','playlist_add_check',
   'policy','precision_manufacturing','progress_activity',
-  'radar','remove_circle','report_problem','rocket_launch','route','rule',
+  'notification_important','photo_camera',
+  'radar','remove_circle','report','report_problem','rocket_launch','route','rule',
   'save','schedule','search','send','settings','settings_accessibility',
   'settings_input_component','settings_suggest','shield_person','summarize',
   'sync','table_chart','table_view','task_alt','timer','travel_explore',
   'trending_down','trending_up','tune','upload_file','usb',
-  'verified','verified_user','visibility','warning','wb_sunny',
+  'verified','verified_user','visibility','visibility_off','warning','wb_sunny',
 ].join(',');
 
 const MATERIAL_SYMBOLS_URL =

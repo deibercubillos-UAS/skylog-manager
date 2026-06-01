@@ -101,6 +101,7 @@ export async function createPlan(cfg, billingKey) {
 // uid = UID interno de ePayco (_id del listPlans)
 export async function updatePlan(epaycoUid, { epaycoId, name, description, amount, trialDays, billingKey }) {
   return epaycoRecurringPost(`/recurring/v1/plan/edit/${epaycoUid}`, {
+    public_key:     PUB_KEY(),          // requerido en todos los POSTs de la API
     id_plan:        epaycoId,
     name,
     description,

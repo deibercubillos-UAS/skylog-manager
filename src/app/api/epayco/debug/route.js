@@ -1,10 +1,11 @@
-// GET /api/epayco/debug?uid=XXX&admin=SECRET
-// Prueba el endpoint de actualización con respuesta RAW completa de ePayco
+// GET /api/epayco/debug?uid=XXX&id_plan=XXX&amount=XXX
+// Solo accesible para superadmin (usa la sesión activa, no ADMIN_SECRET)
 import { NextResponse } from 'next/server';
+import { createClientSSR } from '@/lib/supabaseServer';
 
 const BASE = 'https://api.secure.payco.co';
 
-async function getToken() {
+async function getRawToken() {
   const res = await fetch(`${BASE}/v1/auth/login`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -15,79 +16,83 @@ async function getToken() {
     cache: 'no-store',
   });
   const json = await res.json();
-  return { httpStatus: res.status, json };
+  return { httpStatus: res.status, json, token: json.bearer_token || json.token };
 }
 
 export async function GET(request) {
+  // Auth por sesión de superadmin
+  const supabase = await createClientSSR();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+
+  const { data: profile } = await supabase
+    .from('profiles').select('role').eq('id', user.id).single();
+  if (profile?.role !== 'superadmin') {
+    return NextResponse.json({ error: 'Solo superadmin' }, { status: 403 });
+  }
+
   const { searchParams } = new URL(request.url);
-  if (searchParams.get('admin') !== process.env.ADMIN_SECRET) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  const uid    = searchParams.get('uid');
+  const idPlan = searchParams.get('id_plan');
+  const amount = searchParams.get('amount') || '20000';
+
+  // 1. Auth ePayco
+  const authResult = await getRawToken();
+  if (!authResult.token) {
+    return NextResponse.json({ step: 'auth_failed', authResult });
   }
 
-  const uid      = searchParams.get('uid');      // _id del plan en ePayco
-  const idPlan   = searchParams.get('id_plan');  // ej: piloto_anual
-  const amount   = searchParams.get('amount');   // ej: 20000
-
-  // 1. Auth
-  const authResult = await getToken();
-  const token = authResult.json.bearer_token || authResult.json.token;
-
-  if (!token) {
-    return NextResponse.json({ step: 'auth', authResult });
-  }
+  const hdrs = {
+    'Content-Type': 'application/json',
+    'Accept':       'application/json',
+    'type':         'sdk-jwt',
+    'lang':         'NODE',
+    'Authorization': `Bearer ${authResult.token}`,
+  };
 
   if (!uid) {
-    return NextResponse.json({ step: 'auth_ok', token: token.slice(0, 20) + '...', authResult: authResult.json });
+    return NextResponse.json({
+      auth: 'OK',
+      token_preview: authResult.token.slice(0, 30) + '...',
+      next: 'Agrega ?uid=_id&id_plan=nombre&amount=precio a la URL',
+    });
   }
 
-  // 2. Prueba de update con body mínimo
-  const bodyMinimal = {
-    name:        idPlan || 'Test Plan',
-    amount:      Number(amount || 20000),
-    trial_days:  0,
-  };
-
-  const resMinimal = await fetch(`${BASE}/recurring/v1/plan/edit/${uid}`, {
-    method:  'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept':       'application/json',
-      'type':         'sdk-jwt',
-      'lang':         'NODE',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify(bodyMinimal),
+  // 2. Prueba minimal (solo name + amount + trial_days)
+  const bodyMin = { name: idPlan, amount: Number(amount), trial_days: 0 };
+  const resMin  = await fetch(`${BASE}/recurring/v1/plan/edit/${uid}`, {
+    method: 'POST', headers: hdrs, body: JSON.stringify(bodyMin),
   });
-  const jsonMinimal = await resMinimal.json();
+  const jsonMin = await resMin.json();
 
-  // 3. Prueba con body completo
+  // 3. Prueba con public_key
+  const bodyPK = { public_key: process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY, name: idPlan, amount: Number(amount), trial_days: 0 };
+  const resPK  = await fetch(`${BASE}/recurring/v1/plan/edit/${uid}`, {
+    method: 'POST', headers: hdrs, body: JSON.stringify(bodyPK),
+  });
+  const jsonPK = await resPK.json();
+
+  // 4. Prueba completa
   const bodyFull = {
-    id_plan:        idPlan,
-    name:           idPlan || 'Test Plan',
-    description:    'Test update',
-    amount:         Number(amount || 20000),
-    currency:       'COP',
-    interval:       'month',
+    public_key: process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY,
+    id_plan:    idPlan,
+    name:       idPlan,
+    description: 'Test update',
+    amount:     Number(amount),
+    currency:   'COP',
+    interval:   'month',
     interval_count: 1,
-    trial_days:     0,
+    trial_days: 0,
   };
-
   const resFull = await fetch(`${BASE}/recurring/v1/plan/edit/${uid}`, {
-    method:  'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept':       'application/json',
-      'type':         'sdk-jwt',
-      'lang':         'NODE',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify(bodyFull),
+    method: 'POST', headers: hdrs, body: JSON.stringify(bodyFull),
   });
   const jsonFull = await resFull.json();
 
   return NextResponse.json({
-    uid,
-    minimal: { httpStatus: resMinimal.status, body: bodyMinimal, response: jsonMinimal },
-    full:    { httpStatus: resFull.status,    body: bodyFull,    response: jsonFull    },
+    uid, id_plan: idPlan, amount,
+    minimal:       { status: resMin.status,  body: bodyMin,  response: jsonMin  },
+    with_pub_key:  { status: resPK.status,   body: bodyPK,   response: jsonPK   },
+    full:          { status: resFull.status, body: bodyFull, response: jsonFull },
   });
 }

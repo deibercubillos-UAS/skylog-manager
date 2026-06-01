@@ -159,7 +159,7 @@ export const EPAYCO_PLANS = {
       tax:          94202,
       name:        'Bitafly Escuadrilla Anual',
       description: 'Suscripción anual - Plan Escuadrilla para operadores UAS',
-      epaycoId:    'Escuadrilla Anual',
+      epaycoId:    'escuadrilla_anual',
     },
   },
   flota: {

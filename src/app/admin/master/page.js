@@ -25,12 +25,14 @@ const ROLE_STYLE = {
 
 // ─── Componente de edición de planes ePayco ──────────────────────────────────
 function PlanesTab() {
-  const [planes, setPlanes]     = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [editId, setEditId]     = useState(null);
-  const [form, setForm]         = useState({});
-  const [saving, setSaving]     = useState(false);
-  const [msg, setMsg]           = useState('');
+  const [planes, setPlanes]       = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [syncing, setSyncing]     = useState(false);
+  const [syncMsg, setSyncMsg]     = useState('');
+  const [editId, setEditId]       = useState(null);
+  const [form, setForm]           = useState({});
+  const [saving, setSaving]       = useState(false);
+  const [msg, setMsg]             = useState('');
 
   const loadPlanes = async () => {
     setLoading(true);
@@ -41,6 +43,23 @@ function PlanesTab() {
   };
 
   useEffect(() => { loadPlanes(); }, []);
+
+  // Obtiene los UIDs internos de ePayco y los guarda en Supabase
+  const syncUIDs = async () => {
+    setSyncing(true); setSyncMsg('');
+    try {
+      const res = await fetch('/api/epayco/plans', {
+        headers: { 'x-admin-key': prompt('Ingresa el ADMIN_SECRET:') || '' },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      const ok = data.updates?.filter(u => !u.error).length ?? 0;
+      setSyncMsg(`✓ ${ok} UIDs sincronizados. Recargando...`);
+      setTimeout(() => { setSyncMsg(''); loadPlanes(); }, 1500);
+    } catch (e) {
+      setSyncMsg('✗ ' + e.message);
+    } finally { setSyncing(false); }
+  };
 
   const startEdit = (p) => {
     setEditId(p.id);
@@ -80,9 +99,24 @@ function PlanesTab() {
 
   return (
     <div className="space-y-6">
-      <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">
-        Los cambios se guardan en Supabase y se sincronizan con ePayco automáticamente.
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">
+          Los cambios se sincronizan con ePayco. Primero sincroniza los UIDs si es la primera vez.
+        </p>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            onClick={syncUIDs}
+            disabled={syncing}
+            className="flex items-center gap-2 bg-slate-800 hover:bg-orange-600 text-slate-300 hover:text-white px-5 py-2.5 rounded-xl font-black uppercase text-xs tracking-widest transition-all disabled:opacity-60"
+          >
+            <span className={`material-symbols-outlined text-base ${syncing ? 'animate-spin' : ''}`}>sync</span>
+            {syncing ? 'Sincronizando...' : 'Sincronizar UIDs desde ePayco'}
+          </button>
+          {syncMsg && (
+            <p className={`text-xs font-black ${syncMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>{syncMsg}</p>
+          )}
+        </div>
+      </div>
 
       {Object.entries(grouped)
         .sort(([a], [b]) => (PLAN_ORDER[a] ?? 9) - (PLAN_ORDER[b] ?? 9))
@@ -103,7 +137,13 @@ function PlanesTab() {
                         {p.billing === 'monthly' ? 'Mensual' : 'Anual'}
                       </span>
                       <p className="text-white font-black text-base mt-0.5">{p.name}</p>
-                      <p className="text-slate-500 text-xs font-mono mt-0.5">ePayco ID: <span className="text-orange-400">{p.epayco_id}</span></p>
+                      <p className="text-slate-500 text-xs font-mono mt-0.5">
+                        ID: <span className="text-orange-400">{p.epayco_id}</span>
+                        {p.epayco_uid
+                          ? <> · UID: <span className="text-emerald-400">{p.epayco_uid.slice(0,8)}…</span></>
+                          : <span className="text-red-400 ml-1">⚠ UID faltante — sincroniza primero</span>
+                        }
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-black text-orange-400">${p.amount.toLocaleString('es-CO')}</p>

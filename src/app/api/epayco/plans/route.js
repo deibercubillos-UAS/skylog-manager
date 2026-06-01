@@ -112,8 +112,3 @@ export async function POST(request) {
 
   return NextResponse.json({ results });
 }
-
-function extractUid(p) {
-  return p.uid || p.planUid || p.plan_uid || p.uidPlan ||
-         p._id  || p.planId  || p.plan_id || p.id      || null;
-}

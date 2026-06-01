@@ -103,10 +103,13 @@ export const metadata = {
     description: 'Bitácora digital RAC 100, mantenimiento, SMS aeronáutico y autorizaciones AeroCivil para operadores UAS en Colombia.',
     images: [
       {
-        url: '/logo.png',
+        // Reemplazar logo.png por screenshot real del dashboard para mejor CTR social.
+        // Guardar la imagen en /public/og-dashboard.png (1200×630 px, PNG o WebP).
+        // Mientras no exista og-dashboard.png, Next.js sirve el logo como fallback.
+        url: '/og-dashboard.png',
         width: 1200,
         height: 630,
-        alt: 'Bitafly — Plataforma de gestión aeronáutica para operadores UAS',
+        alt: 'Bitafly — Dashboard de gestión aeronáutica para operadores UAS en Colombia',
       },
     ],
   },

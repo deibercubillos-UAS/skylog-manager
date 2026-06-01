@@ -402,6 +402,127 @@ export const BLOG_POSTS = [
 <p><a href="/registro">Comenzar gratis — sin tarjeta →</a></p>
 `,
   },
+
+  // ─── 7. Formatos AeroCivil ────────────────────────────────────────────────
+  {
+    slug:            'formatos-aerocivil-drones-colombia',
+    title:           'Formatos oficiales AeroCivil para drones: F-OPS-001, F-OPS-002, F-MNT-003 y F-HUM-005',
+    metaTitle:       'Formatos AeroCivil Drones: F-OPS-001, F-OPS-002, F-MNT-003, F-HUM-005 | Bitafly',
+    metaDescription: 'Guía completa de los formatos oficiales que exige la UAEAC para operadores de drones en Colombia: qué son, qué campos contienen y cómo Bitafly los genera automáticamente.',
+    publishedAt:     '2025-05-28',
+    updatedAt:       '2025-05-28',
+    readingTime:     7,
+    category:        'Normativa',
+    keywords:        ['formato F-OPS-001 aerocivil', 'formato F-OPS-002 aerocivil', 'F-MNT-003 drones', 'F-HUM-005 aerocivil', 'formatos drones Colombia', 'documentos RAC 100'],
+    excerpt:         'La AeroCivil exige cuatro formatos oficiales a todos los operadores UAS en Colombia. Aquí te explicamos qué es cada uno, cuándo se usa y qué campos debes llenar.',
+    coverAlt:        'Formatos oficiales AeroCivil para operadores de drones Colombia',
+    body: `
+<p>Si operas drones comercialmente en Colombia bajo la <strong>RAC 100</strong>, debes conocer cuatro formatos oficiales de la <strong>UAEAC (AeroCivil)</strong>. No son opcionales: cada auditoría o inspección puede solicitarlos, y tenerlos incompletos o desactualizados es una infracción directa.</p>
+
+<p>La buena noticia: Bitafly genera todos estos documentos en PDF con un clic, con los datos de tu operación ya cargados. Aquí te explicamos qué es cada uno.</p>
+
+<h2>F-OPS-001 — Solicitud de Autorización de Vuelo</h2>
+
+<h3>¿Para qué sirve?</h3>
+<p>El <strong>F-OPS-001</strong> es el formulario de solicitud de autorización de vuelo que debes presentar ante la AeroCivil antes de realizar operaciones en zonas controladas, áreas restringidas o con cualquier característica especial (BVLOS, nocturnas, sobre aglomeraciones).</p>
+
+<h3>¿Cuándo se requiere?</h3>
+<ul>
+  <li>Vuelos dentro de zonas de control de tráfico aéreo (CTR o TMA)</li>
+  <li>Operaciones en áreas restringidas o zonas de peligro</li>
+  <li>Vuelos a más de 400 pies AGL</li>
+  <li>Operaciones fuera de la línea de visión visual (BVLOS)</li>
+  <li>Vuelos nocturnos o sobre concentraciones de personas</li>
+</ul>
+
+<h3>Campos obligatorios del F-OPS-001</h3>
+<ul>
+  <li>Datos del operador certificado (ESUAS): nombre, NIT, número de certificación</li>
+  <li>Aeronave: matrícula UAEAC, número de serie, modelo y fabricante</li>
+  <li>Piloto responsable: nombre, número de CPR vigente</li>
+  <li>Observador (si aplica): nombre y función</li>
+  <li>Área de operación: coordenadas geográficas (WGS-84) o archivo KML</li>
+  <li>Altitud máxima de operación (metros AGL)</li>
+  <li>Fecha, hora y duración estimada</li>
+  <li>Objetivo de la misión</li>
+  <li>Póliza de responsabilidad civil: número y vigencia</li>
+  <li>Firma del responsable de la operación</li>
+</ul>
+
+<p>Bitafly genera el F-OPS-001 pre-llenado con los datos de tu aeronave, piloto y póliza registrados. El área de operación se define en el mapa interactivo y se exporta como KML directamente adjuntable a la solicitud. <a href="/autorizaciones-aerocivil">Ver módulo de autorizaciones →</a></p>
+
+<h2>F-OPS-002 — Maestro de Vuelo (Bitácora)</h2>
+
+<h3>¿Para qué sirve?</h3>
+<p>El <strong>F-OPS-002</strong> es el registro oficial de cada vuelo realizado. Es el documento más consultado en inspecciones: la AeroCivil puede pedir los últimos 12 meses de bitácora en cualquier momento.</p>
+
+<h3>¿Cuándo se diligencia?</h3>
+<p>Debe completarse por cada vuelo comercial realizado, sin excepción. No hay plazo mínimo de horas: si el vuelo fue de 10 minutos, debe registrarse igual.</p>
+
+<h3>Campos obligatorios del F-OPS-002</h3>
+<ul>
+  <li>Fecha, hora de despegue y hora de aterrizaje</li>
+  <li>Duración total del vuelo</li>
+  <li>Aeronave: matrícula y número de serie</li>
+  <li>Horas de vuelo acumuladas (contador Hobbs actualizado)</li>
+  <li>Piloto remoto: nombre y número de CPR</li>
+  <li>Observador (si aplica)</li>
+  <li>Tipo de misión (inspección, cartografía, audiovisual, agricultura, etc.)</li>
+  <li>Condición visual: VMC o IMC</li>
+  <li>Ubicación de la operación (municipio y coordenadas)</li>
+  <li>Estado de la batería al inicio y fin (% o voltaje)</li>
+  <li>Incidentes o anomalías detectadas</li>
+  <li>Firma del jefe de pilotos</li>
+</ul>
+
+<p>Bitafly suma automáticamente las horas acumuladas y genera el PDF del F-OPS-002 en segundos, con el logo de tu empresa y todos los campos requeridos. <a href="/bitacora-digital">Ver bitácora digital →</a></p>
+
+<h2>F-MNT-003 — Registro de Baterías</h2>
+
+<h3>¿Para qué sirve?</h3>
+<p>El <strong>F-MNT-003</strong> es el historial de mantenimiento y ciclos de cada batería LiPo de la flota. Permite demostrar que las baterías están dentro de los límites de uso seguros y que reciben mantenimiento preventivo.</p>
+
+<h3>¿Qué se registra?</h3>
+<ul>
+  <li>Número de serie de cada batería</li>
+  <li>Capacidad nominal (mAh) y capacidad actual</li>
+  <li>Número de ciclos de carga/descarga acumulados</li>
+  <li>Estado: Operativa / En revisión / Retirada de servicio</li>
+  <li>Fecha de cada intervención de mantenimiento</li>
+  <li>Observaciones por ciclo (inflamación, celdas débiles, etc.)</li>
+  <li>Umbral de ciclos para retiro (configurable, habitualmente 200)</li>
+</ul>
+
+<p>Bitafly registra los ciclos automáticamente con cada vuelo de la bitácora y alerta cuando una batería se acerca al límite configurado. El PDF del F-MNT-003 se genera al instante. <a href="/mantenimiento-drones">Ver módulo de mantenimiento →</a></p>
+
+<h2>F-HUM-005 — Bitácora de Piloto (Expediente de Tripulante)</h2>
+
+<h3>¿Para qué sirve?</h3>
+<p>El <strong>F-HUM-005</strong> es el registro individual de horas de vuelo acumuladas por cada piloto remoto. Sirve para demostrar experiencia, habilitar ascensos de categoría y cumplir los requisitos de renovación del CPR.</p>
+
+<h3>¿Qué contiene?</h3>
+<ul>
+  <li>Datos del piloto: nombre, número de CPR, fecha de emisión y vencimiento</li>
+  <li>Horas de vuelo totales acumuladas</li>
+  <li>Desglose por aeronave y tipo de misión</li>
+  <li>Historial de entrenamientos y habilitaciones</li>
+  <li>Certificaciones adicionales (si aplica)</li>
+</ul>
+
+<p>Bitafly mantiene actualizado el F-HUM-005 de cada piloto automáticamente. Cada vuelo registrado en la bitácora suma al totalizador individual del piloto. <a href="/gestion-pilotos">Ver gestión de pilotos →</a></p>
+
+<h2>¿Cómo organizarlos para una auditoría?</h2>
+<p>La AeroCivil puede solicitar cualquiera de estos documentos durante una inspección, para un período específico (generalmente los últimos 12 meses). Tenerlos en papel significa buscar en carpetas físicas bajo presión. En Bitafly:</p>
+<ol>
+  <li>Seleccionas el período</li>
+  <li>Eliges el formato (F-OPS-002, F-MNT-003 o F-HUM-005)</li>
+  <li>Descargas el PDF con logo corporativo, código de formato y versión</li>
+</ol>
+<p>En menos de dos minutos tienes el expediente completo listo para presentar.</p>
+<p><a href="/reportes-auditoria">Ver módulo de reportes →</a></p>
+<p><a href="/registro">Comienza gratis y genera tus primeros formatos →</a></p>
+`,
+  },
 ];
 
 /** Retorna un post por slug, o undefined si no existe */

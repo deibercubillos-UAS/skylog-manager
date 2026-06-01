@@ -36,6 +36,7 @@ export default function sitemap() {
     { url: `${SITE_URL}/plan-vuelo-drones`,          lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
     { url: `${SITE_URL}/operadores-uas`,             lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
     { url: `${SITE_URL}/reportes-auditoria`,         lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
+    { url: `${SITE_URL}/comparativa-bitafly-airdata`,lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
 
     // ── Páginas de acceso (baja prioridad) ───────────────────────────────
     { url: `${SITE_URL}/login`,                      lastModified: now, changeFrequency: 'yearly',  priority: 0.4 },

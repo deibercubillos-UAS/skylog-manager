@@ -523,6 +523,272 @@ export const BLOG_POSTS = [
 <p><a href="/registro">Comienza gratis y genera tus primeros formatos →</a></p>
 `,
   },
+
+  // ─── 8. Comparativa Bitafly vs AirData ───────────────────────────────────
+  {
+    slug:            'bitafly-vs-airdata-uav-colombia',
+    title:           'Bitafly vs AirData UAV: ¿cuál elegir para operar drones en Colombia?',
+    metaTitle:       'Bitafly vs AirData UAV Colombia 2025: Comparativa Completa',
+    metaDescription: 'Comparativa directa: Bitafly vs AirData UAV para operadores de drones en Colombia. RAC 100, idioma, precios, bitácora digital y soporte. ¿Cuál cumple la normativa colombiana?',
+    publishedAt:     '2025-06-01',
+    updatedAt:       '2025-06-01',
+    readingTime:     6,
+    category:        'Herramientas',
+    keywords:        ['bitafly vs airdata', 'alternativa airdata colombia', 'software drones colombia comparativa', 'airdata uav colombia', 'mejor software drones colombia'],
+    excerpt:         'AirData es el líder global en gestión de drones — pero fue diseñado para el mercado anglosajón. Comparamos ambas plataformas punto a punto para operadores que deben cumplir la RAC 100 colombiana.',
+    coverAlt:        'Comparativa Bitafly vs AirData UAV para operadores de drones en Colombia',
+    body: `
+<p>Si buscas software para gestionar tu operación de drones en Colombia, es probable que hayas encontrado <strong>AirData UAV</strong>. Es la plataforma líder global, usada por miles de operadores en todo el mundo. Pero ¿es la mejor opción si operas bajo la <strong>RAC 100</strong> colombiana?</p>
+
+<p>En esta comparativa directa analizamos ambas plataformas en los criterios que más importan para operadores en Colombia.</p>
+
+<h2>Resumen rápido</h2>
+<p>Si necesitas cumplir la RAC 100 de la AeroCivil, gestionar pilotos con CPR colombiano, generar el F-OPS-002 y el F-MNT-003, y operar todo en español colombiano: <strong>Bitafly es la única opción que cubre todos estos requisitos</strong>. AirData es excelente para análisis de vuelo y telemetría, pero no fue diseñado para la normativa colombiana.</p>
+
+<h2>Comparativa detallada</h2>
+
+<h3>Idioma y localización</h3>
+<p><strong>AirData UAV</strong> está completamente en inglés. La interfaz, los reportes, el soporte y la documentación son en inglés (con algunas traducciones automáticas en la app móvil). Para equipos colombianos que no dominan el inglés técnico, esto es una barrera real.</p>
+<p><strong>Bitafly</strong> está diseñado para Colombia: interfaz, reportes, soporte y documentación en español colombiano. Los formatos PDF usan la terminología exacta de la AeroCivil (RPAS, ESUAS, CPR, VMC, etc.).</p>
+
+<h3>Cumplimiento RAC 100</h3>
+<p><strong>AirData UAV</strong>: No tiene ningún módulo específico para la normativa colombiana. No genera el F-OPS-002, el F-MNT-003 ni el F-HUM-005. No contempla el rol de Jefe de Pilotos, el CPR colombiano ni las autorizaciones de la UAEAC.</p>
+<p><strong>Bitafly</strong>: Construido exclusivamente sobre la RAC 100. Genera los 4 formatos oficiales AeroCivil en PDF, gestiona CPR con alertas de vencimiento, y tiene roles específicos de la normativa colombiana (Gerente SMS, Jefe de Pilotos, Observador).</p>
+
+<h3>Bitácora de vuelo</h3>
+<p><strong>AirData UAV</strong>: Tiene un flight log viewer excelente para analizar telemetría. Puede importar logs de DJI, Autel, Skydio. Pero la "bitácora" es un repositorio de datos de vuelo, no el documento regulatorio colombiano.</p>
+<p><strong>Bitafly</strong>: Bitácora digital que genera el F-OPS-002 en PDF con todos los campos de la AeroCivil. También puede importar logs de DJI RC/RC 2 automáticamente. Suma horas acumuladas al contador Hobbs de cada aeronave.</p>
+
+<h3>Gestión de flota</h3>
+<p><strong>AirData UAV</strong>: Gestión de múltiples aeronaves con historial de vuelos, alertas de batería y estadísticas. Muy buena para análisis de rendimiento.</p>
+<p><strong>Bitafly</strong>: Gestión de flota con matrícula UAEAC, serial, estado operativo, horas de vuelo acumuladas y mantenimiento programado (alertas a 200 h o 6 meses). Genera el F-MNT-003 para las baterías.</p>
+
+<h3>SMS aeronáutico</h3>
+<p><strong>AirData UAV</strong>: No tiene módulo de SMS aeronáutico. No hay gestión de incidentes, clasificación RAC 100, ni reportes de seguridad operacional.</p>
+<p><strong>Bitafly</strong>: Módulo SMS completo con clasificación de incidentes (Incidente / Incidente Grave / Accidente), narrativa, acciones correctivas y generación de reportes para auditoría AeroCivil.</p>
+
+<h3>Autorizaciones de vuelo</h3>
+<p><strong>AirData UAV</strong>: Tiene integración con airspace providers (Aloft, DroneZone en EE.UU.). Sin integración con el portal de la AeroCivil colombiana.</p>
+<p><strong>Bitafly</strong>: Genera el F-OPS-001 (Solicitud de Autorización) con mapa interactivo para definir el área KML, exporta el archivo para adjuntar al portal AeroCivil.</p>
+
+<h3>Precio</h3>
+<p><strong>AirData UAV</strong>: Plan gratuito limitado. Plan Pro desde $11,99 USD/mes. Business desde $27,99 USD/mes. Cobrado en dólares, sin opción en pesos colombianos.</p>
+<p><strong>Bitafly</strong>: Plan gratuito por 6 meses (sin tarjeta). Planes pagos desde $15 USD/mes. Cobrado a través de Wompi en pesos colombianos a la TRM del día. Acepta PSE y tarjetas nacionales.</p>
+
+<h3>Soporte</h3>
+<p><strong>AirData UAV</strong>: Soporte en inglés vía email y comunidad. Respuesta en horas o días hábiles según el plan.</p>
+<p><strong>Bitafly</strong>: Soporte en español por WhatsApp y email. Equipo en Colombia, zona horaria local (UTC-5).</p>
+
+<h2>¿Cuándo usar cada uno?</h2>
+
+<h3>Elige AirData si:</h3>
+<ul>
+  <li>Tu operación es internacional o en el mercado anglosajón</li>
+  <li>Necesitas análisis avanzado de telemetría y logs de vuelo</li>
+  <li>No tienes obligación de cumplir la RAC 100 colombiana</li>
+  <li>Tu equipo trabaja cómodamente en inglés</li>
+</ul>
+
+<h3>Elige Bitafly si:</h3>
+<ul>
+  <li>Operas comercialmente en Colombia bajo la RAC 100</li>
+  <li>Necesitas el F-OPS-002, F-MNT-003, F-HUM-005 y F-OPS-001 en PDF</li>
+  <li>Quieres gestión de CPR, SMS aeronáutico y autorizaciones AeroCivil</li>
+  <li>Prefieres soporte en español y pago en pesos colombianos</li>
+</ul>
+
+<p><strong>Nota:</strong> Algunas operaciones usan ambas plataformas complementariamente — AirData para análisis de telemetría y Bitafly para el cumplimiento regulatorio colombiano.</p>
+<p><a href="/precios">Ver planes de Bitafly →</a></p>
+<p><a href="/registro">Comenzar gratis — sin tarjeta →</a></p>
+`,
+  },
+
+  // ─── 9. Checklist de vuelo RAC 100 ───────────────────────────────────────
+  {
+    slug:            'checklist-vuelo-drones-rac-100-colombia',
+    title:           'Checklist de vuelo para drones RAC 100: todo lo que debes verificar antes de despegar',
+    metaTitle:       'Checklist Vuelo Drones RAC 100 Colombia 2025 | Bitafly',
+    metaDescription: 'Checklist completo de pre-vuelo para operadores de drones en Colombia bajo la RAC 100: documentos, aeronave, batería, espacio aéreo y tripulación. Descargable.',
+    publishedAt:     '2025-06-01',
+    updatedAt:       '2025-06-01',
+    readingTime:     5,
+    category:        'Operaciones',
+    keywords:        ['checklist vuelo drones colombia', 'pre-vuelo drones RAC 100', 'lista verificación drones colombia', 'checklist RPAS aerocivil', 'pre-flight drones colombia'],
+    excerpt:         'Un checklist de pre-vuelo completo es la diferencia entre una operación segura y un incidente reportable. Aquí está la lista que todo operador RAC 100 debe revisar antes de cada misión.',
+    coverAlt:        'Checklist de pre-vuelo para drones RAC 100 Colombia',
+    body: `
+<p>La <strong>RAC 100</strong> exige que cada operación de drones siga procedimientos documentados de pre-vuelo. Un checklist no es solo un requisito normativo — es la herramienta que previene accidentes, protege tu certificación y demuestra profesionalismo ante clientes y autoridades.</p>
+
+<p>Esta lista cubre todos los puntos críticos que debe verificar un operador antes de despegar en Colombia.</p>
+
+<h2>1. Documentación obligatoria</h2>
+<p>Antes de salir al campo, confirma que tienes disponibles o accesibles:</p>
+<ul>
+  <li>✅ <strong>Matrícula UAEAC</strong> de la aeronave (digital o física en el RPAS)</li>
+  <li>✅ <strong>Certificado del Piloto Remoto (CPR)</strong> vigente — verificar fecha de vencimiento</li>
+  <li>✅ <strong>Póliza de responsabilidad civil</strong> vigente — verificar cobertura mínima según peso del RPAS</li>
+  <li>✅ <strong>Autorización de vuelo F-OPS-001</strong> (si aplica para la zona o tipo de operación)</li>
+  <li>✅ <strong>Manual de Operaciones</strong> del ESUAS (debe estar disponible durante la operación)</li>
+  <li>✅ <strong>Bitácora de vuelo</strong> (Bitafly abierto y listo para registrar)</li>
+</ul>
+
+<h2>2. Verificación del espacio aéreo</h2>
+<ul>
+  <li>✅ Consultar <strong>NOTAMs activos</strong> en la zona (portal AIS Colombia)</li>
+  <li>✅ Verificar si la zona está dentro de un <strong>CTR, TMA o área restringida</strong></li>
+  <li>✅ Confirmar <strong>altitud máxima permitida</strong> (400 pies AGL salvo autorización)</li>
+  <li>✅ Verificar <strong>actividad de aeronaves tripuladas</strong> en la zona (avisos a ATC si aplica)</li>
+  <li>✅ Revisar <strong>pronóstico meteorológico</strong> — vientos, visibilidad, precipitación</li>
+</ul>
+
+<h2>3. Condiciones meteorológicas en sitio</h2>
+<ul>
+  <li>✅ Velocidad del viento &lt; límite del fabricante (normalmente 12 m/s para drones DJI)</li>
+  <li>✅ Visibilidad &gt; 3 km para operación VLOS</li>
+  <li>✅ Sin precipitación activa ni amenaza en los próximos 30 minutos</li>
+  <li>✅ Temperatura dentro del rango operativo de la aeronave y las baterías</li>
+  <li>✅ Anotar condición meteorológica: VMC o IMC para la bitácora</li>
+</ul>
+
+<h2>4. Aeronave — inspección física</h2>
+<ul>
+  <li>✅ <strong>Hélices</strong>: sin grietas, chips ni deformaciones — montar correctamente (CW/CCW en los motores correctos)</li>
+  <li>✅ <strong>Motores</strong>: girar manualmente — deben moverse suave y sin ruido</li>
+  <li>✅ <strong>Brazos y estructura</strong>: sin daños visibles, tornillos ajustados</li>
+  <li>✅ <strong>Cámara / gimbal</strong>: libre de movimiento, lente sin suciedad</li>
+  <li>✅ <strong>GPS / antenas</strong>: sin obstrucciones, conectores seguros</li>
+  <li>✅ <strong>Matrícula UAEAC</strong> visible y legible en la aeronave</li>
+</ul>
+
+<h2>5. Batería</h2>
+<ul>
+  <li>✅ <strong>Nivel de carga &gt; 90%</strong> para vuelos de duración normal</li>
+  <li>✅ Sin daños físicos, sin inflamación, sin calor excesivo al tacto</li>
+  <li>✅ Ciclos de carga <strong>dentro del límite configurado</strong> (normalmente &lt; 200 ciclos)</li>
+  <li>✅ Temperatura de la batería &gt; 15°C antes del despegue (baterías LiPo pierden capacidad en frío)</li>
+  <li>✅ Registrar nivel inicial en la bitácora (% o voltaje por celda)</li>
+</ul>
+
+<h2>6. Controlador remoto (RC)</h2>
+<ul>
+  <li>✅ Batería del RC cargada (&gt; 50% mínimo)</li>
+  <li>✅ Señal de video y telemetría estable antes de armar</li>
+  <li>✅ Modos de vuelo configurados correctamente (GPS, ATTI, Sport según necesidad)</li>
+  <li>✅ Return to Home (RTH) configurado — altitud segura para el entorno</li>
+  <li>✅ Verificar enlace de control: sin interferencias, señal &gt; -70 dBm</li>
+</ul>
+
+<h2>7. Área de operación</h2>
+<ul>
+  <li>✅ <strong>Punto de despegue seguro</strong>: superficie nivelada, sin obstáculos en radio de 5 m</li>
+  <li>✅ <strong>Perímetro seguro</strong>: personas no autorizadas fuera del área de operación</li>
+  <li>✅ <strong>Obstáculos identificados</strong>: cables, antenas, árboles, edificios dentro del radio de vuelo</li>
+  <li>✅ <strong>Señalización</strong> (si aplica para operaciones en zonas públicas)</li>
+  <li>✅ <strong>Coordinar con el observador</strong> (si la operación requiere uno)</li>
+</ul>
+
+<h2>8. Verificación final antes de armar</h2>
+<ul>
+  <li>✅ Calibración de brújula (si el sitio es nuevo o hay interferencias magnéticas)</li>
+  <li>✅ <strong>Satélites GPS &gt; 8</strong> (DJI recomienda mínimo 8 para vuelo seguro)</li>
+  <li>✅ Modo de vuelo confirmado en la app del RC</li>
+  <li>✅ Área de operación despejada — confirmación verbal con el observador si aplica</li>
+  <li>✅ <strong>Hora de despegue registrada</strong> en la bitácora</li>
+</ul>
+
+<h2>Post-vuelo: no olvides</h2>
+<ul>
+  <li>✅ Registrar <strong>hora de aterrizaje</strong> y duración total del vuelo</li>
+  <li>✅ Nivel de batería al final</li>
+  <li>✅ Incidentes o anomalías observadas (reportar al SMS si aplica)</li>
+  <li>✅ Estado de la aeronave al finalizar (daños, desgaste de hélices)</li>
+  <li>✅ <strong>Generar el F-OPS-002</strong> antes de salir del sitio</li>
+</ul>
+
+<h2>Usa Bitafly para automatizar el checklist</h2>
+<p>Bitafly tiene el checklist de pre-vuelo integrado en el flujo de registro de vuelo. Marca cada ítem directamente desde el celular antes de armar la aeronave, y el sistema guarda el registro junto con la bitácora del vuelo. Al terminar, genera el F-OPS-002 con todos los datos del vuelo en PDF.</p>
+<p><a href="/bitacora-digital">Ver bitácora digital →</a></p>
+<p><a href="/registro">Comenzar gratis →</a></p>
+`,
+  },
+
+  // ─── 10. Gestión de flota de drones Colombia ──────────────────────────────
+  {
+    slug:            'gestion-flota-drones-colombia',
+    title:           'Cómo gestionar una flota de drones en Colombia: guía para operadores profesionales',
+    metaTitle:       'Gestión de Flota de Drones Colombia | Guía para Operadores UAS | Bitafly',
+    metaDescription: 'Guía completa para gestionar una flota de drones en Colombia: matrículas UAEAC, mantenimiento programado, horas de vuelo y cumplimiento RAC 100. Para ESUAS certificados.',
+    publishedAt:     '2025-06-01',
+    updatedAt:       '2025-06-01',
+    readingTime:     6,
+    category:        'Operaciones',
+    keywords:        ['gestión flota drones colombia', 'administración flota RPAS', 'mantenimiento flota drones colombia', 'software flota UAS colombia', 'ESUAS flota drones'],
+    excerpt:         'Gestionar más de un drone en Colombia implica mucho más que tener varios equipos: matrículas individuales, mantenimiento por horas, certificaciones de pilotos y cumplimiento RAC 100 para cada aeronave.',
+    coverAlt:        'Gestión de flota de drones en Colombia para operadores UAS',
+    body: `
+<p>Pasar de operar un solo drone a gestionar una flota es un salto operacional significativo. Cada aeronave adicional multiplica las obligaciones: matrícula propia, contador de horas independiente, mantenimiento diferenciado, seguro específico. Y todo debe quedar documentado según la <strong>RAC 100</strong> para cualquier auditoría de la AeroCivil.</p>
+
+<p>Esta guía está dirigida a <strong>Explotadores de Sistemas UAS (ESUAS)</strong> certificados o en proceso de certificación que operan múltiples aeronaves en Colombia.</p>
+
+<h2>¿Qué implica tener una flota de drones en Colombia?</h2>
+<p>Desde el punto de vista normativo, cada aeronave de la flota debe tener:</p>
+<ul>
+  <li><strong>Matrícula UAEAC individual</strong>: número único asignado por la AeroCivil al registrar el RPAS en SIRAC</li>
+  <li><strong>Historial de horas de vuelo</strong>: contador independiente por aeronave (Hobbs)</li>
+  <li><strong>Registro de mantenimiento</strong>: intervenciones preventivas y correctivas documentadas (F-MNT-003 para baterías)</li>
+  <li><strong>Seguro de RC propio</strong>: la póliza de responsabilidad civil debe cubrir cada aeronave operada</li>
+</ul>
+
+<h2>Los 5 pilares de una gestión de flota profesional</h2>
+
+<h3>1. Inventario centralizado</h3>
+<p>El primer problema de una flota sin software es el inventario disperso: cada aeronave en una hoja diferente, baterías sin identificar, seriales en fotos de WhatsApp. Esto crea confusión, dificulta las auditorías y genera errores en la bitácora.</p>
+<p>Un inventario centralizado por aeronave debe incluir: matrícula UAEAC, número de serie del fabricante, modelo, fabricante, fecha de adquisición, peso de despegue, estado operativo y observaciones de mantenimiento.</p>
+
+<h3>2. Control de horas de vuelo por aeronave</h3>
+<p>La RAC 100 exige que el mantenimiento preventivo se realice cada 200 horas de vuelo acumuladas o cada 6 meses, lo que ocurra primero. Para calcular esto correctamente, cada vuelo debe registrarse en la bitácora y sumarse al contador de cada aeronave específica.</p>
+<p>Un error común: usar el contador de horas del controlador DJI, que no es un documento válido para la AeroCivil y puede ser reseteado involuntariamente.</p>
+
+<h3>3. Mantenimiento programado</h3>
+<p>Las aeronaves de una flota profesional deben tener un calendario de mantenimiento que considere:</p>
+<ul>
+  <li><strong>Preventivo mayor</strong>: cada 200 h de vuelo — revisión de motores, ESC, estructura, firmware</li>
+  <li><strong>Preventivo menor</strong>: cada 50 h — hélices, contactos de batería, calibraciones</li>
+  <li><strong>Por eventos</strong>: después de un impacto, aterrizaje de emergencia o anomalía registrada</li>
+  <li><strong>Baterías</strong>: ciclos de carga acumulados (umbral configurable, típicamente 200 ciclos)</li>
+</ul>
+
+<h3>4. Gestión de baterías por ciclos</h3>
+<p>Las baterías LiPo son el componente más crítico y de menor vida útil de la flota. Una batería degradada puede causar pérdidas de potencia inesperadas. La gestión correcta implica:</p>
+<ul>
+  <li>Número de serie identificado en cada batería (sticker o grabado)</li>
+  <li>Registro de ciclos de carga/descarga acumulados (F-MNT-003)</li>
+  <li>Control de capacidad nominal vs. capacidad actual</li>
+  <li>Criterio claro de retiro de servicio (ciclos o degradación de capacidad)</li>
+</ul>
+
+<h3>5. Asignación de aeronaves a operaciones</h3>
+<p>En flotas con múltiples aeronaves y múltiples pilotos, la asignación debe ser explícita: qué aeronave vuela qué piloto en qué operación. Esto evita errores en la bitácora y permite trazabilidad completa para auditorías.</p>
+
+<h2>Errores comunes en la gestión de flotas</h2>
+
+<h3>Confundir los contadores de horas</h3>
+<p>Si tienes tres drones del mismo modelo, es fácil anotar las horas de uno en la bitácora de otro. Con un sistema digital, la aeronave se selecciona al inicio del vuelo y las horas suman automáticamente al contador correcto.</p>
+
+<h3>Baterías sin identificar</h3>
+<p>Las baterías de un mismo modelo son intercambiables físicamente, pero sus ciclos son individuales. Sin identificación única y registro individual, es imposible saber cuándo debe retirarse cada una.</p>
+
+<h3>Mantenimiento basado en calendario, no en horas</h3>
+<p>Una aeronave que vuela 5 horas al mes necesita mantenimiento cada 40 meses por horas — pero la RAC 100 exige también el límite de 6 meses por calendario. El criterio correcto es "lo que ocurra primero", no solo uno de los dos.</p>
+
+<h2>Software de gestión de flota para Colombia</h2>
+<p>Bitafly centraliza el inventario de tu flota, suma horas de vuelo automáticamente por aeronave con cada registro en la bitácora, alerta cuando se acerca el umbral de mantenimiento (200 h o 6 meses), y genera el F-MNT-003 de baterías en PDF.</p>
+<p>El módulo de flota es ilimitado en número de aeronaves en el plan Flota y Enterprise. En el plan Escuadrilla soporta hasta 5 aeronaves.</p>
+<p><a href="/gestion-flota-drones">Ver módulo de flota →</a></p>
+<p><a href="/mantenimiento-drones">Ver módulo de mantenimiento →</a></p>
+<p><a href="/registro">Comenzar gratis →</a></p>
+`,
+  },
 ];
 
 /** Retorna un post por slug, o undefined si no existe */

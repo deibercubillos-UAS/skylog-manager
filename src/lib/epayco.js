@@ -84,16 +84,17 @@ export async function createPlan(cfg, billingKey) {
 }
 
 // Actualiza un plan — POST /recurring/v1/plan/edit/{uid}
-// uid = UID interno de ePayco (obtenido con listPlans)
-export async function updatePlan(epaycoUid, { name, description, amount, trialDays, billingKey }) {
+// uid = UID interno de ePayco (_id del listPlans)
+export async function updatePlan(epaycoUid, { epaycoId, name, description, amount, trialDays, billingKey }) {
   return epaycoPost(`/recurring/v1/plan/edit/${epaycoUid}`, {
+    id_plan:        epaycoId,           // requerido por ePayco en el body
     name,
     description,
-    amount:         String(amount),
+    amount:         Number(amount),     // ePayco espera número, no string
     currency:       'COP',
     interval:       billingKey === 'annual' ? 'year' : 'month',
     interval_count: 1,
-    trial_days:     trialDays ?? 0,
+    trial_days:     Number(trialDays ?? 0),
     status:         1,
   });
 }

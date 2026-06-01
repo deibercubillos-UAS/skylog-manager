@@ -56,6 +56,7 @@ export async function PATCH(request) {
   let epaycoError = null;
   try {
     epaycoResult = await updatePlan(current.epayco_uid, {
+      epaycoId:     current.epayco_id,
       name,
       description:  description || current.description,
       amount:       Number(amount),

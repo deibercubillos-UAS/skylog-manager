@@ -77,8 +77,12 @@ function PlanesTab() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setMsg(data.epayco_warning ? `✓ Guardado (ePayco: ${data.epayco_warning})` : '✓ Guardado y sincronizado con ePayco');
-      setTimeout(() => { setEditId(null); setMsg(''); loadPlanes(); }, 1200);
+      if (data.epayco_warning) {
+        setMsg(`⚠ Supabase OK, pero ePayco falló: ${data.epayco_warning}`);
+      } else {
+        setMsg('✓ Guardado y sincronizado con ePayco');
+        setTimeout(() => { setEditId(null); setMsg(''); loadPlanes(); }, 1200);
+      }
     } catch (e) {
       setMsg('✗ ' + e.message);
     } finally { setSaving(false); }

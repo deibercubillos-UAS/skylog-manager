@@ -56,7 +56,7 @@ const ICON_NAMES = [
 
 const MATERIAL_SYMBOLS_URL =
   `https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0` +
-  `&icon_names=${ICON_NAMES}&display=block`;
+  `&icon_names=${ICON_NAMES}&display=swap`;
 
 export const metadata = {
   metadataBase: new URL(SITE_URL),

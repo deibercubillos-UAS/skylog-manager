@@ -3,6 +3,7 @@ import { Public_Sans } from "next/font/google";
 import { GoogleAnalytics } from '@next/third-parties/google';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/next';
+import Script from 'next/script';
 
 const publicSans = Public_Sans({
   subsets: ["latin"],
@@ -141,17 +142,24 @@ export default function RootLayout({ children }) {
   return (
     <html lang="es-CO" className={`${publicSans.variable} scroll-smooth`}>
       <head>
-        {/* Preconexión a dominios de primer orden (bloques DNS eliminados) */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* dns-prefetch: dominios de terceros que no son críticos pero se usan */}
+        {/*
+          dns-prefetch (no preconnect): la fuente se carga async con afterInteractive,
+          así que la conexión a Google Fonts no necesita estar lista antes del primer
+          paint. dns-prefetch prepara el DNS sin bloquear ni consumir sockets.
+        */}
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
         <link rel="dns-prefetch" href="https://va.vercel-scripts.com" />
         <link rel="dns-prefetch" href="https://vitals.vercel-insights.com" />
         {process.env.NEXT_PUBLIC_GA_ID && <link rel="dns-prefetch" href="https://www.google-analytics.com" />}
         {process.env.NEXT_PUBLIC_GA_ID && <link rel="dns-prefetch" href="https://www.googletagmanager.com" />}
-        {/* Material Symbols — subsetado (~110 íconos, ejes fijos) → ~20 KB en lugar de ~370 KB */}
-        <link rel="preload" as="style" href={MATERIAL_SYMBOLS_URL} />
-        <link rel="stylesheet" href={MATERIAL_SYMBOLS_URL} />
+        {/*
+          Material Symbols — carga NO bloqueante (afterInteractive).
+          <link rel="stylesheet"> externo bloqueaba FCP/LCP en Slow 4G:
+          2 round-trips a Google (CSS + font file) = ~400-600ms de retraso.
+          Ahora el font se inyecta después del primer paint: FCP/LCP inmediatos,
+          íconos aparecen ~50ms después (imperceptible). display=swap = fallback texto.
+        */}
 
         {/*
           Schema.org — inline <script> (no afterInteractive) para que Googlebot
@@ -253,6 +261,17 @@ export default function RootLayout({ children }) {
       </head>
       <body className="font-sans antialiased">
         {children}
+
+        {/* Material Symbols — async, no bloquea FCP ni LCP */}
+        <Script id="load-material-symbols" strategy="afterInteractive">{`
+          (function(){
+            var l=document.createElement('link');
+            l.rel='stylesheet';
+            l.href='${MATERIAL_SYMBOLS_URL}';
+            document.head.appendChild(l);
+          })();
+        `}</Script>
+
         <SpeedInsights />
         <Analytics />
         {process.env.NEXT_PUBLIC_GA_ID && <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />}

@@ -20,12 +20,18 @@ body {
 }
 
 /*
- * Material Symbols — fuente subsetada (~20 KB, ~110 íconos, ejes fijos).
- * display=block en la URL de Google Fonts oculta el texto mientras carga,
- * así nunca aparece "check_circle" o "arrow_back" como texto plano.
+ * Material Symbols — carga async (afterInteractive).
+ * Mientras el font no está disponible, los íconos muestran el nombre como texto
+ * (ej: "check_circle"). Esto es aceptable: mejora FCP/LCP -400ms en mobile
+ * vs. bloquear el render completo esperando a Google Fonts.
+ * display=swap en la URL asegura que el fallback sea texto visible, no invisible.
+ *
+ * Para ocultar el nombre del ícono mientras carga (si prefieres invisible a texto):
+ *   font-size: 0 → pero hace que los íconos no ocupen espacio → layout shift.
+ *   Mejor dejar display=swap y aceptar el texto momentáneo.
  */
 .material-symbols-outlined {
-  font-family: 'Material Symbols Outlined' !important;
+  font-family: 'Material Symbols Outlined', sans-serif;
   font-weight: normal;
   font-style: normal;
   font-size: 24px;

@@ -27,24 +27,24 @@ const FASES = [
     icon: 'settings',
     color: 'from-orange-500 to-orange-600',
     colorSolid: 'bg-orange-500',
-    roles: ['Admin', 'Superadmin'],
+    roles: ['Admin'],
     duracion: '~15 min',
     desc: 'El primer paso es crear la cuenta de tu organización y dejar la plataforma lista para que tu equipo pueda operar. Aquí defines la identidad corporativa, vinculas a tu tripulación y configuras los parámetros de seguridad.',
     pasos: [
       { icon: 'how_to_reg', title: 'Crear cuenta de organización', desc: 'Regístrate en /registro con tu correo corporativo. La plataforma crea automáticamente una organización con un código único de vinculación.' },
       { icon: 'business', title: 'Configurar identidad corporativa', desc: 'En Configuración → Organización completa la razón social, NIT/cédula, número de explotador DAN, representante legal, teléfono, dirección y correo oficial. Sube el logo de la empresa.' },
       { icon: 'link', title: 'Vincular tripulación', desc: 'Comparte el código único de tu organización a tus pilotos y gerentes. Cada miembro se registra y usa ese código para unirse a tu flota. El administrador asigna el rol correspondiente.' },
-      { icon: 'badge', title: 'Configurar roles y permisos', desc: 'Bitafly tiene 5 roles predefinidos: Superadmin, Administrador, Gerente SMS, Jefe de Pilotos y Piloto. Cada rol tiene permisos específicos sobre los módulos del sistema.' },
+      { icon: 'badge', title: 'Configurar roles y permisos', desc: 'Bitafly tiene 4 roles: Administrador, Gerente SMS, Jefe de Pilotos y Piloto. Cada rol tiene permisos específicos sobre los módulos del sistema.' },
       { icon: 'policy', title: 'Registrar pólizas de seguro', desc: 'En Configuración → Pólizas registra las pólizas de seguro de la flota: aseguradora, número de póliza, vigencia y aeronave cubierta. El sistema alerta cuando se acercan los vencimientos.' },
       { icon: 'health_and_safety', title: 'Configurar parámetros SMS', desc: 'En Seguridad y SMS activa el sistema de gestión de seguridad. Define los umbrales de riesgo y configura las listas SORA/OSO de tu organización.' },
       { icon: 'key', title: 'Conectar credenciales AeroCivil', desc: 'En Configuración → Cuenta AeroCivil ingresa tus credenciales del portal de la UAEAC para habilitar la generación automática de solicitudes de vuelo.' },
     ],
     roles_tabla: [
-      { accion: 'Crear y editar organización', superadmin: true, admin: true, gerente: false, jefe: false, piloto: false },
-      { accion: 'Gestionar usuarios y roles', superadmin: true, admin: true, gerente: false, jefe: false, piloto: false },
-      { accion: 'Registrar pólizas de seguro', superadmin: true, admin: true, gerente: false, jefe: false, piloto: false },
-      { accion: 'Configurar parámetros SMS', superadmin: true, admin: true, gerente: true, jefe: false, piloto: false },
-      { accion: 'Ver configuración', superadmin: true, admin: true, gerente: 'ver', jefe: 'ver', piloto: false },
+      { accion: 'Crear y editar organización', admin: true, gerente: false, jefe: false, piloto: false },
+      { accion: 'Gestionar usuarios y roles', admin: true, gerente: false, jefe: false, piloto: false },
+      { accion: 'Registrar pólizas de seguro', admin: true, gerente: false, jefe: false, piloto: false },
+      { accion: 'Configurar parámetros SMS', admin: true, gerente: true, jefe: false, piloto: false },
+      { accion: 'Ver configuración', admin: true, gerente: 'ver', jefe: 'ver', piloto: false },
     ],
     nota: 'El código único de vinculación lo encuentras en Configuración → Organización → ID de Vinculación. Compártelo solo con personas de confianza ya que da acceso a unirse a tu organización.',
   },
@@ -69,11 +69,11 @@ const FASES = [
       { icon: 'assignment_ind', title: 'Asignar pilotos a aeronaves', desc: 'Configura qué pilotos están habilitados para operar cada aeronave de la flota. Esto se valida automáticamente al planificar una misión.' },
     ],
     roles_tabla: [
-      { accion: 'Registrar y editar aeronaves', superadmin: true, admin: true, gerente: false, jefe: true, piloto: false },
-      { accion: 'Registrar y editar baterías', superadmin: true, admin: true, gerente: false, jefe: true, piloto: false },
-      { accion: 'Registrar y editar pilotos', superadmin: true, admin: true, gerente: false, jefe: true, piloto: false },
-      { accion: 'Ver flota y tripulación', superadmin: true, admin: true, gerente: 'ver', jefe: true, piloto: 'ver' },
-      { accion: 'Subir documentos de pilotos', superadmin: true, admin: true, gerente: false, jefe: true, piloto: 'propio' },
+      { accion: 'Registrar y editar aeronaves', admin: true, gerente: false, jefe: true, piloto: false },
+      { accion: 'Registrar y editar baterías', admin: true, gerente: false, jefe: true, piloto: false },
+      { accion: 'Registrar y editar pilotos', admin: true, gerente: false, jefe: true, piloto: false },
+      { accion: 'Ver flota y tripulación', admin: true, gerente: 'ver', jefe: true, piloto: 'ver' },
+      { accion: 'Subir documentos de pilotos', admin: true, gerente: false, jefe: true, piloto: 'propio' },
     ],
     nota: 'Las horas "iniciales" de la aeronave son las horas acumuladas antes de ingresar a Bitafly. Es fundamental ingresarlas correctamente para que los reportes reflejen el historial real del equipo.',
   },
@@ -98,11 +98,11 @@ const FASES = [
       { icon: 'verified', title: 'Aprobar y activar la misión', desc: 'El administrador o jefe de pilotos revisa la misión y la aprueba. A partir de ese momento el piloto puede registrar los vuelos asociados a esa misión.' },
     ],
     roles_tabla: [
-      { accion: 'Crear y editar misiones', superadmin: true, admin: true, gerente: false, jefe: true, piloto: true },
-      { accion: 'Aprobar misiones', superadmin: true, admin: true, gerente: false, jefe: true, piloto: false },
-      { accion: 'Completar checklist pre-vuelo', superadmin: true, admin: true, gerente: false, jefe: true, piloto: true },
-      { accion: 'Ejecutar evaluación SORA', superadmin: true, admin: true, gerente: true, jefe: true, piloto: false },
-      { accion: 'Generar solicitud AeroCivil', superadmin: true, admin: true, gerente: false, jefe: true, piloto: false },
+      { accion: 'Crear y editar misiones', admin: true, gerente: false, jefe: true, piloto: true },
+      { accion: 'Aprobar misiones', admin: true, gerente: false, jefe: true, piloto: false },
+      { accion: 'Completar checklist pre-vuelo', admin: true, gerente: false, jefe: true, piloto: true },
+      { accion: 'Ejecutar evaluación SORA', admin: true, gerente: true, jefe: true, piloto: false },
+      { accion: 'Generar solicitud AeroCivil', admin: true, gerente: false, jefe: true, piloto: false },
     ],
     nota: 'Una misión puede tener múltiples vuelos asociados (ej. varios despegues en el mismo día). Cada vuelo se registra individualmente en la bitácora pero referencia la misma misión.',
   },
@@ -128,11 +128,11 @@ const FASES = [
       { icon: 'build', title: 'Registrar mantenimiento post-vuelo', desc: 'Si se realizó alguna intervención en la aeronave (limpieza, ajuste, calibración), regístrala en Mantenimiento. El sistema actualiza el historial técnico.' },
     ],
     roles_tabla: [
-      { accion: 'Registrar vuelos en bitácora', superadmin: true, admin: true, gerente: false, jefe: true, piloto: true },
-      { accion: 'Editar vuelos existentes', superadmin: true, admin: true, gerente: false, jefe: true, piloto: false },
-      { accion: 'Eliminar vuelos', superadmin: true, admin: true, gerente: false, jefe: false, piloto: false },
-      { accion: 'Registrar incidentes', superadmin: true, admin: true, gerente: true, jefe: true, piloto: true },
-      { accion: 'Importar vuelos desde Excel', superadmin: true, admin: true, gerente: false, jefe: true, piloto: false },
+      { accion: 'Registrar vuelos en bitácora', admin: true, gerente: false, jefe: true, piloto: true },
+      { accion: 'Editar vuelos existentes', admin: true, gerente: false, jefe: true, piloto: false },
+      { accion: 'Eliminar vuelos', admin: true, gerente: false, jefe: false, piloto: false },
+      { accion: 'Registrar incidentes', admin: true, gerente: true, jefe: true, piloto: true },
+      { accion: 'Importar vuelos desde Excel', admin: true, gerente: false, jefe: true, piloto: false },
     ],
     nota: 'Puedes registrar vuelos pasados importando desde Excel/CSV. El sistema acepta el formato estándar de la AeroCivil y mapea automáticamente los campos al formato interno de Bitafly.',
   },
@@ -157,11 +157,11 @@ const FASES = [
       { icon: 'policy', title: 'Revisar cumplimiento y OSOs', desc: 'Verifica que los Objetivos de Seguridad Operacional (OSOs) requeridos para el nivel SAIL estén implementados con el nivel de robustez exigido por el estándar JARUS.' },
     ],
     roles_tabla: [
-      { accion: 'Crear reporte SMS', superadmin: true, admin: true, gerente: true, jefe: true, piloto: true },
-      { accion: 'Clasificar e investigar eventos', superadmin: true, admin: true, gerente: true, jefe: false, piloto: false },
-      { accion: 'Definir acciones correctivas', superadmin: true, admin: true, gerente: true, jefe: false, piloto: false },
-      { accion: 'Ejecutar evaluación SORA', superadmin: true, admin: true, gerente: true, jefe: true, piloto: false },
-      { accion: 'Configurar lista OSO personalizada', superadmin: true, admin: true, gerente: true, jefe: false, piloto: false },
+      { accion: 'Crear reporte SMS', admin: true, gerente: true, jefe: true, piloto: true },
+      { accion: 'Clasificar e investigar eventos', admin: true, gerente: true, jefe: false, piloto: false },
+      { accion: 'Definir acciones correctivas', admin: true, gerente: true, jefe: false, piloto: false },
+      { accion: 'Ejecutar evaluación SORA', admin: true, gerente: true, jefe: true, piloto: false },
+      { accion: 'Configurar lista OSO personalizada', admin: true, gerente: true, jefe: false, piloto: false },
     ],
     nota: 'La lista de OSOs puede ser personalizada por tu organización en Configuración → Seguridad. Por defecto se carga el estándar JARUS SORA v2.0 con los 24 objetivos de seguridad oficiales.',
   },
@@ -187,19 +187,19 @@ const FASES = [
       { icon: 'tune', title: 'Configuración avanzada', desc: 'Ajusta los parámetros de alertas (ciclos de batería, horas de mantenimiento, días de vencimiento médico), personaliza los formatos de reporte y configura las integraciones disponibles.' },
     ],
     roles_tabla: [
-      { accion: 'Generar reportes PDF', superadmin: true, admin: true, gerente: true, jefe: true, piloto: false },
-      { accion: 'Ver bitácora propia', superadmin: true, admin: true, gerente: false, jefe: true, piloto: true },
-      { accion: 'Gestionar usuarios', superadmin: true, admin: true, gerente: false, jefe: false, piloto: false },
-      { accion: 'Gestionar suscripción', superadmin: true, admin: true, gerente: false, jefe: false, piloto: false },
-      { accion: 'Configuración avanzada', superadmin: true, admin: true, gerente: false, jefe: false, piloto: false },
+      { accion: 'Generar reportes PDF', admin: true, gerente: true, jefe: true, piloto: false },
+      { accion: 'Ver bitácora propia', admin: true, gerente: false, jefe: true, piloto: true },
+      { accion: 'Gestionar usuarios', admin: true, gerente: false, jefe: false, piloto: false },
+      { accion: 'Gestionar suscripción', admin: true, gerente: false, jefe: false, piloto: false },
+      { accion: 'Configuración avanzada', admin: true, gerente: false, jefe: false, piloto: false },
     ],
     nota: 'Todos los reportes PDF generados llevan automáticamente el logo, razón social y NIT de tu organización tal como está configurado en Configuración → Organización.',
   },
 ];
 
-const ROLES = ['Superadmin', 'Admin', 'Gte. SMS', 'Jefe', 'Piloto'];
-const ROLES_FULL = ['Superadmin', 'Admin', 'Gerente SMS', 'Jefe Pilotos', 'Piloto'];
-const ROLE_KEYS = ['superadmin', 'admin', 'gerente', 'jefe', 'piloto'];
+const ROLES = ['Admin', 'Gte. SMS', 'Jefe', 'Piloto'];
+const ROLES_FULL = ['Admin', 'Gerente SMS', 'Jefe Pilotos', 'Piloto'];
+const ROLE_KEYS = ['admin', 'gerente', 'jefe', 'piloto'];
 
 // ─── Badge de permiso ────────────────────────────────────────────────────────
 function RolBadge({ val, compact = false }) {
@@ -375,11 +375,10 @@ export default function DocumentacionPage() {
 
             {/* Resumen de roles */}
             <section className="bg-slate-50 rounded-2xl md:rounded-3xl border border-slate-200 p-5 md:p-10">
-              <h2 className="text-base md:text-lg font-black uppercase tracking-tighter text-navy mb-1">Los 5 roles de Bitafly</h2>
+              <h2 className="text-base md:text-lg font-black uppercase tracking-tighter text-navy mb-1">Los 4 roles de Bitafly</h2>
               <p className="text-xs md:text-sm text-slate-500 mb-5">Cada usuario tiene un rol que define lo que puede ver y hacer en la plataforma.</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-2 md:gap-3">
                 {[
-                  { rol: 'Superadmin', desc: 'Control total del sistema. Gestión inter-organizaciones.', icon: 'shield_person', color: 'bg-purple-50 text-purple-700 border-purple-200' },
                   { rol: 'Administrador', desc: 'Gestión completa de la organización, flota, pilotos y reportes.', icon: 'manage_accounts', color: 'bg-navy/5 text-navy border-navy/20' },
                   { rol: 'Gerente SMS', desc: 'Seguridad operacional, SORA, reportes e incidentes.', icon: 'health_and_safety', color: 'bg-red-50 text-red-700 border-red-200' },
                   { rol: 'Jefe de Pilotos', desc: 'Gestión de flota, pilotos, misiones y bitácora.', icon: 'flight', color: 'bg-blue-50 text-blue-700 border-blue-200' },

@@ -58,41 +58,47 @@ export async function GET(request) {
     });
   }
 
-  // 2. Prueba minimal (solo name + amount + trial_days)
-  const bodyMin = { name: idPlan, amount: Number(amount), trial_days: 0 };
-  const resMin  = await fetch(`${BASE}/recurring/v1/plan/edit/${uid}`, {
-    method: 'POST', headers: hdrs, body: JSON.stringify(bodyMin),
-  });
-  const jsonMin = await resMin.json();
-
-  // 3. Prueba con public_key
-  const bodyPK = { public_key: process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY, name: idPlan, amount: Number(amount), trial_days: 0 };
-  const resPK  = await fetch(`${BASE}/recurring/v1/plan/edit/${uid}`, {
-    method: 'POST', headers: hdrs, body: JSON.stringify(bodyPK),
-  });
-  const jsonPK = await resPK.json();
-
-  // 4. Prueba completa
-  const bodyFull = {
-    public_key: process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY,
-    id_plan:    idPlan,
-    name:       idPlan,
+  const body = {
+    public_key:  process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY,
+    id_plan:     idPlan,
+    name:        idPlan,
     description: 'Test update',
-    amount:     Number(amount),
-    currency:   'COP',
-    interval:   'month',
+    amount:      Number(amount),
+    currency:    'COP',
+    interval:    'month',
     interval_count: 1,
-    trial_days: 0,
+    trial_days:  0,
   };
-  const resFull = await fetch(`${BASE}/recurring/v1/plan/edit/${uid}`, {
-    method: 'POST', headers: hdrs, body: JSON.stringify(bodyFull),
+
+  // Prueba A: URL usa _id de MongoDB (lo que teníamos)
+  const resA = await fetch(`${BASE}/recurring/v1/plan/edit/${uid}`, {
+    method: 'POST', headers: hdrs, body: JSON.stringify(body),
   });
-  const jsonFull = await resFull.json();
+  const jsonA = await resA.json();
+
+  // Prueba B: URL usa id_plan en lugar de _id
+  const resB = await fetch(`${BASE}/recurring/v1/plan/edit/${idPlan}`, {
+    method: 'POST', headers: hdrs, body: JSON.stringify(body),
+  });
+  const jsonB = await resB.json();
+
+  // Prueba C: GET del plan por _id — verifica si el _id es correcto para GET
+  const resGetById = await fetch(`${BASE}/recurring/v1/plan/${process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY}/${uid}`, {
+    headers: hdrs, cache: 'no-store',
+  });
+  const jsonGetById = await resGetById.json();
+
+  // Prueba D: GET del plan por id_plan
+  const resGetByPlan = await fetch(`${BASE}/recurring/v1/plan/${process.env.NEXT_PUBLIC_EPAYCO_PUBLIC_KEY}/${idPlan}`, {
+    headers: hdrs, cache: 'no-store',
+  });
+  const jsonGetByPlan = await resGetByPlan.json();
 
   return NextResponse.json({
     uid, id_plan: idPlan, amount,
-    minimal:       { status: resMin.status,  body: bodyMin,  response: jsonMin  },
-    with_pub_key:  { status: resPK.status,   body: bodyPK,   response: jsonPK   },
-    full:          { status: resFull.status, body: bodyFull, response: jsonFull },
+    'A_edit_by_uid':    { status: resA.status,        response: jsonA        },
+    'B_edit_by_id_plan':{ status: resB.status,        response: jsonB        },
+    'C_get_by_uid':     { status: resGetById.status,  response: jsonGetById  },
+    'D_get_by_id_plan': { status: resGetByPlan.status,response: jsonGetByPlan},
   });
 }

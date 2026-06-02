@@ -4,9 +4,18 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
 export default function DashboardClient() {
-  const [data,      setData]      = useState(null);
-  const [loading,   setLoading]   = useState(true);
-  const [firstName, setFirstName] = useState('Operador');
+  const [data,           setData]          = useState(null);
+  const [loading,        setLoading]       = useState(true);
+  const [firstName,      setFirstName]     = useState('Operador');
+  const [planActivated,  setPlanActivated] = useState(false);
+
+  useEffect(() => {
+    if (sessionStorage.getItem('plan_activated')) {
+      setPlanActivated(true);
+      sessionStorage.removeItem('plan_activated');
+      setTimeout(() => setPlanActivated(false), 6000);
+    }
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -53,6 +62,20 @@ export default function DashboardClient() {
 
   return (
     <div className="space-y-5 md:space-y-8 animate-in fade-in duration-700 text-left pb-4">
+
+      {/* BANNER PLAN ACTIVADO */}
+      {planActivated && (
+        <div className="flex items-center gap-4 bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 animate-in slide-in-from-top-2 duration-500">
+          <span className="material-symbols-outlined text-2xl text-emerald-500">check_circle</span>
+          <div>
+            <p className="text-sm font-black text-emerald-800 uppercase tracking-tight">¡Plan activado exitosamente!</p>
+            <p className="text-xs text-emerald-600 font-medium mt-0.5">
+              Tu nuevo plan ya está activo.{' '}
+              <Link href="/dashboard/subscription" className="underline font-black">Ver suscripción</Link>
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* SALUDO */}
       <div>

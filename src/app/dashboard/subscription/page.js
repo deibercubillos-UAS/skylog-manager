@@ -133,9 +133,9 @@ export default function SubscriptionPage() {
             <button
               onClick={handleCancel}
               disabled={cancelling}
-              className="relative z-10 w-full py-3 border border-white/20 text-white/60 rounded-2xl font-black text-xs uppercase tracking-widest hover:border-red-500/50 hover:text-red-400 transition-all"
+              className="relative z-10 w-full py-3 bg-red-500/20 border border-red-500/50 text-red-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-500/30 hover:border-red-500 hover:text-red-300 transition-all disabled:opacity-50"
             >
-              {cancelling ? 'Cancelando...' : 'Cancelar suscripción'}
+              {cancelling ? 'Cancelando...' : '✕ Cancelar suscripción'}
             </button>
           )}
         </div>

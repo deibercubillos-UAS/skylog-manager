@@ -132,7 +132,8 @@ export const EPAYCO_PLANS = {
       trialDays:   60,
       name:        'Bitafly Piloto Mensual',
       description: 'Suscripción mensual - Plan Piloto para operadores UAS individuales',
-      epaycoId:    'bitafly_piloto_monthly',
+      epaycoId:    'piloto_mensual',
+      planUid:     'a1e0914364d49714f06612a',
     },
     annual: {
       amount:      150000,
@@ -141,7 +142,8 @@ export const EPAYCO_PLANS = {
       trialDays:   60,
       name:        'Bitafly Piloto Anual',
       description: 'Suscripción anual - Plan Piloto (2 meses gratis incluidos)',
-      epaycoId:    'bitafly_piloto_annual',
+      epaycoId:    'piloto_anual',
+      planUid:     'a1e0935b41baa59fb014a78',
     },
   },
   escuadrilla: {
@@ -152,6 +154,7 @@ export const EPAYCO_PLANS = {
       name:        'Bitafly Escuadrilla Mensual',
       description: 'Suscripción mensual - Plan Escuadrilla para operadores UAS',
       epaycoId:    'escuadrilla_mensual',
+      planUid:     'a1dea39b3836c9ee300a1b4',
     },
     annual: {
       amount:      590000,
@@ -160,6 +163,7 @@ export const EPAYCO_PLANS = {
       name:        'Bitafly Escuadrilla Anual',
       description: 'Suscripción anual - Plan Escuadrilla para operadores UAS',
       epaycoId:    'escuadrilla_anual',
+      planUid:     'a1dea83a021a7cbb106d996',
     },
   },
   flota: {
@@ -170,6 +174,7 @@ export const EPAYCO_PLANS = {
       name:        'Bitafly Flota Mensual',
       description: 'Suscripción mensual - Plan Flota para operadores UAS',
       epaycoId:    'flota_mensual',
+      planUid:     'a1deab1b8bef2c21807e912',
     },
     annual: {
       amount:     1590000,
@@ -178,6 +183,7 @@ export const EPAYCO_PLANS = {
       name:        'Bitafly Flota Anual',
       description: 'Suscripción anual - Plan Flota para operadores UAS',
       epaycoId:    'flota_anual',
+      planUid:     'a1deaea5d185a11c30a7419',
     },
   },
 };

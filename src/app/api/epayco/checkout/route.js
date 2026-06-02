@@ -36,8 +36,8 @@ export async function POST(request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // URL de la página hosteada de ePayco para suscripciones
-  const epaycoUrl = `https://subscription-landing.epayco.co/plan/${cfg.epaycoId}`;
+  // La URL del landing de ePayco usa el _id interno (planUid), no el id_plan
+  const epaycoUrl = `https://subscription-landing.epayco.co/plan/${cfg.planUid}`;
 
   return NextResponse.json({ url: epaycoUrl, reference });
 }

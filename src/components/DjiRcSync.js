@@ -13,32 +13,41 @@ function timeFromName(name) {
   return m ? `${m[1]}:${m[2]}` : null;
 }
 
-// Navega automáticamente al FlightRecord dentro de la raíz del RC.
-// Primero intenta la ruta conocida del DJI RC 2; si falla hace búsqueda recursiva.
-const DJI_KNOWN_PATH = ['Android', 'data', 'dji.go.v5', 'files', 'FlightRecord'];
-const DJI_KNOWN_PATH_WITH_STORAGE = ['Internal Storage', ...DJI_KNOWN_PATH];
+// Busca FlightRecord dentro de la carpeta seleccionada.
+// Soporta el caso donde el usuario ya seleccionó FlightRecord directamente,
+// o seleccionó una carpeta padre (con distintos nombres en español/inglés).
+const DJI_INNER_PATH = ['Android', 'data', 'dji.go.v5', 'files', 'FlightRecord'];
+const DJI_STORAGE_NAMES = ['Almacenamiento interno compartido', 'Internal Storage', 'sdcard', 'storage'];
 
 async function findFlightRecordDir(rootHandle) {
-  // Intento 1: ruta exacta del DJI RC 2 con "Internal Storage"
+  // Caso 1: el usuario seleccionó directamente FlightRecord
+  if (rootHandle.name === 'FlightRecord') return rootHandle;
+
+  // Caso 2: seleccionó "files" (un nivel arriba)
+  try { return await rootHandle.getDirectoryHandle('FlightRecord'); } catch { /* sigue */ }
+
+  // Caso 3: seleccionó "dji.go.v5" o "data" (varios niveles arriba)
   try {
     let cur = rootHandle;
-    for (const seg of DJI_KNOWN_PATH_WITH_STORAGE) {
+    for (const seg of ['files', 'FlightRecord']) {
       cur = await cur.getDirectoryHandle(seg);
     }
     return cur;
   } catch { /* sigue */ }
 
-  // Intento 2: sin "Internal Storage" (algunas variantes del RC)
-  try {
-    let cur = rootHandle;
-    for (const seg of DJI_KNOWN_PATH) {
-      cur = await cur.getDirectoryHandle(seg);
-    }
-    return cur;
-  } catch { /* sigue */ }
+  // Caso 4: seleccionó "Almacenamiento interno compartido" u otro storage root
+  for (const storageName of DJI_STORAGE_NAMES) {
+    try {
+      let cur = await rootHandle.getDirectoryHandle(storageName);
+      for (const seg of DJI_INNER_PATH) {
+        cur = await cur.getDirectoryHandle(seg);
+      }
+      return cur;
+    } catch { /* sigue */ }
+  }
 
-  // Intento 3: búsqueda recursiva hasta 5 niveles
-  return findDirRecursive(rootHandle, 'FlightRecord', 5);
+  // Caso 5: búsqueda recursiva hasta 6 niveles como último recurso
+  return findDirRecursive(rootHandle, 'FlightRecord', 6);
 }
 
 async function findDirRecursive(handle, target, depth) {
@@ -265,12 +274,19 @@ export default function DjiRcSync({ onImported }) {
                 Pasos previos
               </p>
               <ol className="space-y-1.5 text-xs text-sky-800 font-medium list-decimal list-inside leading-relaxed">
-                <li>Conecta el RC al PC con el cable USB-C</li>
-                <li>En la pantalla del RC: selecciona <strong>"Transferencia de archivos"</strong></li>
-                <li>Haz clic en el botón y <strong>selecciona la raíz del DJI RC</strong> (la unidad que aparece al conectarlo)</li>
+                <li>Conecta el RC al PC con el cable USB-C y selecciona <strong>"Transferencia de archivos"</strong> en la pantalla del RC</li>
+                <li>
+                  Abre el Explorador de Windows y copia la carpeta <strong>FlightRecord</strong> a tu PC:
+                  <br />
+                  <code className="text-xs bg-sky-100 px-2 py-0.5 rounded font-mono mt-1 inline-block leading-loose">
+                    Este equipo → DJI RC 2 → Almacenamiento interno compartido → Android → data → dji.go.v5 → files → <strong>FlightRecord</strong>
+                  </code>
+                </li>
+                <li>Haz clic en el botón y <strong>selecciona la carpeta FlightRecord</strong> que copiaste</li>
               </ol>
-              <p className="text-xs text-sky-600 font-medium mt-2">
-                BitaFly navegará automáticamente a la carpeta <code className="bg-sky-100 px-1 rounded font-mono">FlightRecord</code>.
+              <p className="text-xs text-sky-500 font-medium mt-2 flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">info</span>
+                El navegador no puede acceder directamente a dispositivos USB — por eso hay que copiar primero.
               </p>
             </div>
           </div>

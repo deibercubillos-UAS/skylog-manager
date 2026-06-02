@@ -147,20 +147,24 @@ async function findDirRecursive(handle, target, depth) {
 }
 
 const STATUS_ICON = {
-  pending:   null,
-  loading:   'hourglass_empty',
-  ok:        'check_circle',
-  duplicate: 'sync',
-  error:     'error',
+  pending:        null,
+  loading:        'hourglass_empty',
+  ok:             'check_circle',
+  duplicate:      'sync',
+  error:          'error',
+  needs_aircraft: 'flight',
 };
 
 const STATUS_COLOR = {
-  pending:   '',
-  loading:   'text-orange-500 animate-spin',
-  ok:        'text-green-500',
-  duplicate: 'text-slate-400',
-  error:     'text-red-500',
+  pending:        '',
+  loading:        'text-orange-500 animate-spin',
+  ok:             'text-green-500',
+  duplicate:      'text-slate-400',
+  error:          'text-red-500',
+  needs_aircraft: 'text-amber-500',
 };
+
+const EMPTY_AIRCRAFT = { model: '', manufacturer: 'DJI', serial_number: '', ruas: '', notes: '' };
 
 export default function DjiRcSync({ onImported }) {
   const [state, setState] = useState('idle'); // idle | scanning | ready | uploading | done
@@ -168,6 +172,12 @@ export default function DjiRcSync({ onImported }) {
   const [files, setFiles] = useState([]);
   const [error, setError] = useState('');
   const [results, setResults] = useState(null);
+
+  // Modal crear aeronave
+  const [aircraftModal, setAircraftModal] = useState(null); // null | { serial, modelo, nombre, pendingFile }
+  const [aircraftForm, setAircraftForm] = useState(EMPTY_AIRCRAFT);
+  const [creatingAircraft, setCreatingAircraft] = useState(false);
+  const [aircraftError, setAircraftError] = useState('');
 
   const isSupported =
     typeof window !== 'undefined' && 'showDirectoryPicker' in window;
@@ -268,6 +278,16 @@ export default function DjiRcSync({ onImported }) {
         : f
     ));
 
+  // ── Subir un archivo individual, devuelve { ok, skipped, needsAircraft, data } ──
+  const uploadFile = async (fileInfo) => {
+    const fileObj = await fileInfo.handle.getFile();
+    const fd = new FormData();
+    fd.append('file', fileObj, fileInfo.name);
+    const res  = await fetch('/api/logbook/import-dji', { method: 'POST', body: fd });
+    const data = await res.json();
+    return { status: res.status, data };
+  };
+
   // ── Importar archivos seleccionados ───────────────────────────
   const handleImport = async () => {
     const toImport = files.filter(f => f.selected && f.status === 'pending');
@@ -282,23 +302,32 @@ export default function DjiRcSync({ onImported }) {
       );
 
       try {
-        const fileObj = await fileInfo.handle.getFile();
-        const fd = new FormData();
-        fd.append('file', fileObj, fileInfo.name);
+        const { status, data } = await uploadFile(fileInfo);
 
-        const res  = await fetch('/api/logbook/import-dji', { method: 'POST', body: fd });
-        const data = await res.json();
-
-        if (res.ok) {
+        if (status === 200 || status === 201) {
           imported++;
           setFiles(prev =>
             prev.map(f => f.name === fileInfo.name ? { ...f, status: 'ok', result: data } : f)
           );
-        } else if (res.status === 409) {
+        } else if (status === 409) {
           skipped++;
           setFiles(prev =>
             prev.map(f => f.name === fileInfo.name ? { ...f, status: 'duplicate', result: data } : f)
           );
+        } else if (status === 404 && data.needs_aircraft) {
+          // Aeronave no registrada — pausar e invocar modal
+          setFiles(prev =>
+            prev.map(f => f.name === fileInfo.name ? { ...f, status: 'needs_aircraft', result: data } : f)
+          );
+          setAircraftForm({
+            ...EMPTY_AIRCRAFT,
+            serial_number: data.serial ?? '',
+            model:         data.modelo  ?? '',
+            notes:         data.nombre  ? `Nombre DJI: ${data.nombre}` : '',
+          });
+          setAircraftModal({ ...data, pendingFile: fileInfo });
+          // Pausar el loop — el modal llama a continueImport cuando termine
+          return;
         } else {
           errors++;
           setFiles(prev =>
@@ -319,6 +348,110 @@ export default function DjiRcSync({ onImported }) {
     setResults({ imported, skipped, errors });
     setState('done');
     if (imported > 0) onImported?.();
+  };
+
+  // ── Continuar importación tras crear aeronave ─────────────────
+  const continueAfterAircraftCreated = async (pendingFile) => {
+    setAircraftModal(null);
+
+    // Reintentar el archivo que falló
+    let imported = 0, skipped = 0, errors = 0;
+    setFiles(prev =>
+      prev.map(f => f.name === pendingFile.name ? { ...f, status: 'loading' } : f)
+    );
+    try {
+      const { status, data } = await uploadFile(pendingFile);
+      if (status === 200 || status === 201) {
+        imported++;
+        setFiles(prev =>
+          prev.map(f => f.name === pendingFile.name ? { ...f, status: 'ok', result: data } : f)
+        );
+      } else {
+        errors++;
+        setFiles(prev =>
+          prev.map(f => f.name === pendingFile.name ? { ...f, status: 'error', result: data } : f)
+        );
+      }
+    } catch (err) {
+      errors++;
+      setFiles(prev =>
+        prev.map(f => f.name === pendingFile.name
+          ? { ...f, status: 'error', result: { error: err.message } }
+          : f
+        )
+      );
+    }
+
+    // Continuar con los archivos restantes que aún estén en pending
+    const remaining = files.filter(
+      f => f.selected && f.status === 'pending' && f.name !== pendingFile.name
+    );
+    let rImported = 0, rSkipped = 0, rErrors = 0;
+
+    for (const fileInfo of remaining) {
+      setFiles(prev =>
+        prev.map(f => f.name === fileInfo.name ? { ...f, status: 'loading' } : f)
+      );
+      try {
+        const { status, data } = await uploadFile(fileInfo);
+        if (status === 200 || status === 201) {
+          rImported++;
+          setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'ok', result: data } : f));
+        } else if (status === 409) {
+          rSkipped++;
+          setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'duplicate', result: data } : f));
+        } else if (status === 404 && data.needs_aircraft) {
+          setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'needs_aircraft', result: data } : f));
+          setAircraftForm({ ...EMPTY_AIRCRAFT, serial_number: data.serial ?? '', model: data.modelo ?? '', notes: data.nombre ? `Nombre DJI: ${data.nombre}` : '' });
+          setAircraftModal({ ...data, pendingFile: fileInfo });
+          return; // Pausar de nuevo
+        } else {
+          rErrors++;
+          setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'error', result: data } : f));
+        }
+      } catch (err) {
+        rErrors++;
+        setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'error', result: { error: err.message } } : f));
+      }
+    }
+
+    const total = {
+      imported: imported + rImported,
+      skipped:  skipped  + rSkipped,
+      errors:   errors   + rErrors,
+    };
+    setResults(total);
+    setState('done');
+    if (total.imported > 0) onImported?.();
+  };
+
+  // ── Crear aeronave desde modal ────────────────────────────────
+  const handleCreateAircraft = async () => {
+    if (!aircraftForm.model.trim() || !aircraftForm.serial_number.trim()) {
+      setAircraftError('Modelo y serial son obligatorios.');
+      return;
+    }
+    setCreatingAircraft(true);
+    setAircraftError('');
+    try {
+      const res  = await fetch('/api/fleet', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ aircraftData: aircraftForm }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAircraftError(data.error || 'Error al crear la aeronave.');
+        setCreatingAircraft(false);
+        return;
+      }
+      const pending = aircraftModal.pendingFile;
+      setCreatingAircraft(false);
+      continueAfterAircraftCreated(pending);
+    } catch (err) {
+      setAircraftError(err.message);
+      setCreatingAircraft(false);
+    }
   };
 
   // ── Reiniciar ─────────────────────────────────────────────────
@@ -535,9 +668,21 @@ export default function DjiRcSync({ onImported }) {
                       </p>
                     )}
                     {f.status === 'ok' && (
-                      <p className="text-xs text-green-600 font-bold">
-                        {f.result?.duracion ? `${Math.round(f.result.duracion / 60)} min` : 'Importado'}
-                        {f.result?.altMax ? ` · ${f.result.altMax} m` : ''}
+                      <div className="space-y-0.5">
+                        <p className="text-xs text-green-600 font-bold">
+                          {f.result?.duracion ? `${Math.round(f.result.duracion / 60)} min` : 'Importado'}
+                          {f.result?.altMax ? ` · ${f.result.altMax} m` : ''}
+                        </p>
+                        {f.result?.bateria_actualizada && (
+                          <p className="text-xs text-sky-500 font-bold">
+                            🔋 {f.result.bateria_actualizada.serial} · {f.result.bateria_actualizada.ciclos_anteriores}→{f.result.bateria_actualizada.ciclos_nuevos} ciclos
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {f.status === 'needs_aircraft' && (
+                      <p className="text-xs text-amber-600 font-bold">
+                        Aeronave no registrada · SN: {f.result?.serial}
                       </p>
                     )}
                   </div>
@@ -600,6 +745,107 @@ export default function DjiRcSync({ onImported }) {
         >
           Sincronizar más archivos
         </button>
+      )}
+
+      {/* ── Modal: crear aeronave ────────────────────────────────── */}
+      {aircraftModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white rounded-[2rem] shadow-2xl overflow-hidden">
+
+            {/* Header */}
+            <div className="bg-amber-50 border-b border-amber-100 px-6 py-5">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-amber-500 text-2xl">flight</span>
+                <div>
+                  <p className="text-sm font-black text-slate-900 uppercase tracking-tight">
+                    Aeronave no registrada
+                  </p>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    SN detectado: <code className="bg-amber-100 px-1.5 rounded font-mono">{aircraftModal.serial}</code>
+                    {aircraftModal.modelo && <span className="ml-2 text-slate-400">· {aircraftModal.modelo}</span>}
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-amber-700 font-medium mt-3 leading-relaxed">
+                Esta aeronave no está en tu flota. Completa los datos para registrarla y continuar la importación.
+              </p>
+            </div>
+
+            {/* Form */}
+            <div className="px-6 py-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className="text-xs font-black uppercase text-slate-500 tracking-widest block mb-1">Modelo *</label>
+                  <input
+                    value={aircraftForm.model}
+                    onChange={e => setAircraftForm(p => ({ ...p, model: e.target.value }))}
+                    placeholder="Ej: DJI Mini 3 Pro"
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-black uppercase text-slate-500 tracking-widest block mb-1">Fabricante</label>
+                  <input
+                    value={aircraftForm.manufacturer}
+                    onChange={e => setAircraftForm(p => ({ ...p, manufacturer: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-black uppercase text-slate-500 tracking-widest block mb-1">Serial (SN)</label>
+                  <input
+                    value={aircraftForm.serial_number}
+                    onChange={e => setAircraftForm(p => ({ ...p, serial_number: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-400 font-mono"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-xs font-black uppercase text-slate-500 tracking-widest block mb-1">No. RUAS / Matrícula</label>
+                  <input
+                    value={aircraftForm.ruas}
+                    onChange={e => setAircraftForm(p => ({ ...p, ruas: e.target.value }))}
+                    placeholder="Número de registro Aerocivil"
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-xs font-black uppercase text-slate-500 tracking-widest block mb-1">Notas</label>
+                  <input
+                    value={aircraftForm.notes}
+                    onChange={e => setAircraftForm(p => ({ ...p, notes: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  />
+                </div>
+              </div>
+
+              {aircraftError && (
+                <div className="flex gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+                  <span className="material-symbols-outlined text-red-400 text-sm shrink-0">error</span>
+                  <p className="text-xs text-red-600 font-bold">{aircraftError}</p>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={() => { setAircraftModal(null); setState('done'); setResults({ imported: 0, skipped: 0, errors: 1 }); }}
+                  className="flex-1 py-3 text-xs font-black text-slate-400 uppercase border border-slate-200 rounded-2xl hover:border-slate-400 transition-all"
+                >
+                  Omitir
+                </button>
+                <button
+                  onClick={handleCreateAircraft}
+                  disabled={creatingAircraft || !aircraftForm.model.trim()}
+                  className="flex-1 py-3 bg-orange-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-500/20 disabled:opacity-40 transition-all flex items-center justify-center gap-2"
+                >
+                  {creatingAircraft
+                    ? <><span className="material-symbols-outlined text-sm animate-spin">sync</span>Creando...</>
+                    : <><span className="material-symbols-outlined text-sm">add</span>Crear y continuar</>
+                  }
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

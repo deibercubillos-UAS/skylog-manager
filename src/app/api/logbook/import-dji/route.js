@@ -140,9 +140,12 @@ export async function POST(request) {
 
     if (!aircraft) {
       return NextResponse.json({
-        error: `Aeronave con serial "${parsed.serial_aeronave}" no encontrada en tu flota. Regístrala primero en Mi Flota.`,
-        serial: parsed.serial_aeronave,
-        file:   fileName,
+        needs_aircraft: true,
+        serial:         parsed.serial_aeronave,
+        modelo:         parsed._meta?.modelo_aeronave  ?? null,
+        nombre:         parsed._meta?.nombre_aeronave  ?? null,
+        file:           fileName,
+        error:          `Aeronave con serial "${parsed.serial_aeronave}" no registrada en tu flota.`,
       }, { status: 404 });
     }
 
@@ -202,15 +205,42 @@ export async function POST(request) {
         .eq('organization_id', prof.organization_id);
     }
 
-    // ── 8. Respuesta ─────────────────────────────────────────────
+    // ── 8. Actualizar ciclos de batería ──────────────────────────
+    let bateria_actualizada = null;
+    if (meta.serial_bateria && meta.ciclos_bateria != null) {
+      const { data: bat } = await supabaseAdmin
+        .from('batteries')
+        .select('id, serial_number, cycles')
+        .eq('organization_id', prof.organization_id)
+        .ilike('serial_number', meta.serial_bateria)
+        .maybeSingle();
+
+      if (bat) {
+        const newCycles = Math.max(meta.ciclos_bateria, bat.cycles ?? 0);
+        if (newCycles > (bat.cycles ?? 0)) {
+          await supabaseAdmin
+            .from('batteries')
+            .update({ cycles: newCycles })
+            .eq('id', bat.id);
+        }
+        bateria_actualizada = {
+          serial: bat.serial_number,
+          ciclos_anteriores: bat.cycles ?? 0,
+          ciclos_nuevos:     newCycles,
+        };
+      }
+    }
+
+    // ── 9. Respuesta ─────────────────────────────────────────────
     return NextResponse.json({
-      success:  true,
-      file:     fileName,
-      message:  `Vuelo del ${parsed.fecha} importado correctamente.`,
-      fecha:    parsed.fecha,
-      serial:   parsed.serial_aeronave,
-      duracion: meta.duracion_s ?? null,
-      altMax:   meta.altitud_max_m ?? null,
+      success:             true,
+      file:                fileName,
+      message:             `Vuelo del ${parsed.fecha} importado correctamente.`,
+      fecha:               parsed.fecha,
+      serial:              parsed.serial_aeronave,
+      duracion:            meta.duracion_s     ?? null,
+      altMax:              meta.altitud_max_m  ?? null,
+      bateria_actualizada,
     });
 
   } catch (err) {

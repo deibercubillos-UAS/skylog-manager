@@ -1,13 +1,21 @@
 // POST /api/epayco/webhook
-// ePayco llama aquí después de cada transacción aprobada o rechazada.
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+
+function makeSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+}
 
 export async function POST(request) {
   try {
     const body   = await request.text();
     const params = Object.fromEntries(new URLSearchParams(body));
+
+    console.log('ePayco webhook recibido:', JSON.stringify(params));
 
     // ── Verificación de firma ─────────────────────────────────────────────────
     const custId     = process.env.EPAYCO_P_CUST_ID;
@@ -27,42 +35,40 @@ export async function POST(request) {
     const receivedSig = (params.x_signature || '').toLowerCase();
 
     if (expectedSig !== receivedSig) {
-      console.warn('ePayco webhook: firma inválida', { expected: expectedSig, received: receivedSig });
+      console.warn('ePayco webhook: firma inválida', { expected: expectedSig.slice(0,8), received: receivedSig.slice(0,8) });
       return NextResponse.json({ error: 'Firma inválida' }, { status: 401 });
     }
 
-    // ── Solo procesar transacciones aprobadas ─────────────────────────────────
+    // ── Solo procesar aprobadas ───────────────────────────────────────────────
     if (params.x_transaction_state !== 'Aceptada') {
-      console.log(`ePayco webhook ignorado: estado=${params.x_transaction_state}`);
       return NextResponse.json({ received: true });
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    const supabase = makeSupabase();
 
-    // ── Identificar usuario: primero por extras, luego por referencia ─────────
+    // ── 1. Intentar por extras (checkout widget) ──────────────────────────────
     let planKey = params.x_extra1;
     let billing = params.x_extra2;
     let userId  = params.x_extra3;
 
-    // Si no vienen extras (flujo redirect), buscar en pending_subscriptions
-    if (!userId && params.x_id_invoice) {
-      const { data: pending } = await supabase
-        .from('pending_subscriptions')
-        .select('*')
-        .eq('reference', params.x_id_invoice)
-        .single();
-
-      if (pending) {
-        planKey = pending.plan_key;
-        billing = pending.billing;
-        userId  = pending.user_id;
+    // ── 2. Intentar por referencia en pending_subscriptions ──────────────────
+    if (!userId) {
+      const ref = params.x_id_invoice || params.x_invoice || params.x_description;
+      if (ref) {
+        const { data: pending } = await supabase
+          .from('pending_subscriptions')
+          .select('*')
+          .eq('reference', ref)
+          .single();
+        if (pending) {
+          planKey = pending.plan_key;
+          billing = pending.billing;
+          userId  = pending.user_id;
+        }
       }
     }
 
-    // También intentar por email si aún no encontramos el usuario
+    // ── 3. Fallback por email ─────────────────────────────────────────────────
     if (!userId && params.x_customer_email) {
       const { data: profile } = await supabase
         .from('profiles')
@@ -72,19 +78,30 @@ export async function POST(request) {
       if (profile) userId = profile.id;
     }
 
-    if (!planKey || !userId) {
-      console.error('ePayco webhook: no se pudo identificar usuario/plan', params);
-      return NextResponse.json({ error: 'No se pudo identificar usuario' }, { status: 400 });
+    // ── 4. Mapear id_plan de ePayco → planKey/billing ─────────────────────────
+    if (!planKey) {
+      const epaycoIdPlan = params.x_description_plan || params.x_plan_id || params.x_extra4;
+      if (epaycoIdPlan) {
+        const { data: cfg } = await supabase
+          .from('epayco_plan_config')
+          .select('plan_key, billing')
+          .eq('epayco_id', epaycoIdPlan)
+          .single();
+        if (cfg) { planKey = cfg.plan_key; billing = cfg.billing; }
+      }
     }
 
-    // ── Calcular fecha de expiración ──────────────────────────────────────────
+    if (!userId || !planKey) {
+      console.error('ePayco webhook: no se pudo identificar usuario/plan. Params:', JSON.stringify(params));
+      // 200 para que ePayco no reintente — se registra para revisión manual
+      return NextResponse.json({ received: true, warning: 'No se identificó usuario/plan — revisa logs de Vercel' });
+    }
+
+    // ── Calcular expiración ───────────────────────────────────────────────────
     const now       = new Date();
     const expiresAt = new Date(now);
-    if (billing === 'annual') {
-      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-    } else {
-      expiresAt.setMonth(expiresAt.getMonth() + 1);
-    }
+    if (billing === 'annual') expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+    else expiresAt.setMonth(expiresAt.getMonth() + 1);
 
     // ── Activar plan en Supabase ──────────────────────────────────────────────
     const { error: updateError } = await supabase
@@ -100,12 +117,11 @@ export async function POST(request) {
 
     if (updateError) throw updateError;
 
-    // Limpiar el intent pendiente
-    if (params.x_id_invoice) {
-      await supabase.from('pending_subscriptions').delete().eq('reference', params.x_id_invoice);
-    }
+    // Limpiar pending intent
+    const ref = params.x_id_invoice || params.x_invoice;
+    if (ref) await supabase.from('pending_subscriptions').delete().eq('reference', ref);
 
-    console.log(`Suscripción activada: user=${userId} plan=${planKey} billing=${billing}`);
+    console.log(`✓ Suscripción activada: user=${userId} plan=${planKey} billing=${billing}`);
     return NextResponse.json({ success: true });
 
   } catch (err) {

@@ -96,7 +96,8 @@ export default function SubscriptionPage() {
     </div>
   );
 
-  const isPaid = ['piloto', 'escuadrilla', 'flota', 'enterprise'].includes(data.planSlug) && data.expiresAt;
+  const isPaid = ['escuadrilla', 'flota', 'enterprise'].includes(data.planSlug) ||
+    (data.planSlug === 'piloto' && data.expiresAt);
 
   return (
     <>

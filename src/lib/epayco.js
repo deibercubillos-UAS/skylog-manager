@@ -99,7 +99,8 @@ export async function createPlan(cfg, billingKey) {
 
 // Actualiza un plan — POST /recurring/v1/plan/edit/{id_plan}
 // El endpoint usa id_plan como identificador en la URL (NO el _id de MongoDB)
-export async function updatePlan(epaycoId, { name, description, amount, trialDays, billingKey }) {
+export async function updatePlan(epaycoId, { name, description, amount, trialDays, billingKey, redirectUrl }) {
+  const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
   return epaycoRecurringPost(`/recurring/v1/plan/edit/${epaycoId}`, {
     public_key:     PUB_KEY(),
     id_plan:        epaycoId,
@@ -110,6 +111,7 @@ export async function updatePlan(epaycoId, { name, description, amount, trialDay
     interval:       billingKey === 'annual' ? 'year' : 'month',
     interval_count: 1,
     trial_days:     Number(trialDays ?? 0),
+    redirect_url:   redirectUrl || `${SITE}/dashboard/subscription/response`,
   });
 }
 

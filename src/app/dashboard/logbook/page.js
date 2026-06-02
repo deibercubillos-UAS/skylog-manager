@@ -1,6 +1,8 @@
 ﻿'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+
+const CAN_EDIT_PILOT = ['superadmin', 'admin', 'jefe_pilotos'];
 import dynamic from 'next/dynamic';
 
 // Lazy: ExcelJS pesa ~250 KB. Solo carga cuando el usuario abre el panel de importación.
@@ -25,6 +27,13 @@ export default function LogbookPage() {
     const [hasMore, setHasMore] = useState(false);
     const [offset, setOffset] = useState(0);
     const [showImport, setShowImport] = useState(false);
+    const [userRole, setUserRole] = useState(null);
+    const [pilots, setPilots] = useState([]);
+    const [editingPilot, setEditingPilot] = useState(null); // flightId siendo editado
+    const [savingPilot, setSavingPilot] = useState(null);
+    const pilotDropdownRef = useRef(null);
+
+    const canEditPilot = CAN_EDIT_PILOT.includes(userRole);
 
     const [filters, setFilters] = useState({
         date: '',
@@ -62,7 +71,27 @@ export default function LogbookPage() {
         }
     };
 
-    useEffect(() => { loadData(true); }, []);
+    useEffect(() => {
+        loadData(true);
+        // Cargar rol del usuario y lista de pilotos en paralelo
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (!session) return;
+            supabase.from('profiles').select('role').eq('id', session.user.id).single()
+                .then(({ data }) => setUserRole(data?.role ?? null));
+        });
+        fetch('/api/pilots').then(r => r.ok ? r.json() : []).then(data => setPilots(Array.isArray(data) ? data : []));
+    }, []);
+
+    // Cerrar dropdown al hacer clic fuera
+    useEffect(() => {
+        const handler = (e) => {
+            if (pilotDropdownRef.current && !pilotDropdownRef.current.contains(e.target)) {
+                setEditingPilot(null);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
 
     // Valores únicos para selects — un solo recorrido del array para los tres sets
     const { uniqueModels, uniqueTypes, uniquePilots } = useMemo(() => {
@@ -90,6 +119,80 @@ export default function LogbookPage() {
 
     const clearFilters = () => {
         setFilters({ date: '', mission_id: '', model: '', serial: '', type: '', condition: '', pilot: '' });
+    };
+
+    const assignPilot = async (flightId, pilotId) => {
+        setSavingPilot(flightId);
+        setEditingPilot(null);
+        try {
+            const res = await fetch(`/api/logbook/${flightId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pilot_id: pilotId || null }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setFlights(prev => prev.map(f =>
+                    f.id === flightId ? { ...f, pilots: data.flight.pilots } : f
+                ));
+            }
+        } finally {
+            setSavingPilot(null);
+        }
+    };
+
+    // Celda de piloto: editable para roles autorizados, solo lectura para el resto
+    const PilotCell = ({ flight }) => {
+        const isEditing = editingPilot === flight.id;
+        const isSaving  = savingPilot  === flight.id;
+        const pilotName = flight.pilots?.name;
+
+        if (!canEditPilot) {
+            return <span className="text-slate-600">{pilotName || <span className="text-slate-300 italic">Sin asignar</span>}</span>;
+        }
+
+        return (
+            <div className="relative" ref={isEditing ? pilotDropdownRef : null}>
+                <button
+                    onClick={() => setEditingPilot(isEditing ? null : flight.id)}
+                    disabled={isSaving}
+                    className={`flex items-center gap-1.5 group rounded-lg px-2 py-1 -mx-2 -my-1 transition-all ${
+                        isSaving ? 'opacity-50' : 'hover:bg-orange-50'
+                    }`}
+                >
+                    {isSaving
+                        ? <span className="material-symbols-outlined text-sm text-orange-400 animate-spin">sync</span>
+                        : <span className="material-symbols-outlined text-sm text-slate-300 group-hover:text-orange-400 transition-colors">edit</span>
+                    }
+                    <span className={pilotName ? 'text-slate-700 font-medium' : 'text-slate-300 italic text-xs'}>
+                        {pilotName || 'Sin asignar'}
+                    </span>
+                </button>
+
+                {isEditing && (
+                    <div className="absolute z-50 top-full mt-1 left-0 bg-white rounded-2xl shadow-2xl border border-slate-100 py-1 min-w-[200px] max-h-60 overflow-y-auto">
+                        <button
+                            onClick={() => assignPilot(flight.id, null)}
+                            className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-400 hover:bg-slate-50 italic"
+                        >
+                            — Sin asignar
+                        </button>
+                        {pilots.map(p => (
+                            <button
+                                key={p.id}
+                                onClick={() => assignPilot(flight.id, p.id)}
+                                className={`w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-orange-50 hover:text-orange-700 transition-colors ${
+                                    flight.pilots?.name === p.name ? 'text-orange-600 bg-orange-50/50' : 'text-slate-700'
+                                }`}
+                            >
+                                {p.name}
+                                {p.pilot_role && <span className="ml-2 text-slate-400 font-normal">{p.pilot_role}</span>}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
     };
 
     if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">AUDITANDO REGISTROS...</div>;
@@ -153,7 +256,7 @@ export default function LogbookPage() {
                                 <div className="min-w-0">
                                     <p className="text-xs font-black font-mono text-orange-600">{f.mission_id || 'N/A'}</p>
                                     <p className="text-xs font-bold text-slate-800 truncate">{f.aircraft?.model || 'UAS'}</p>
-                                    <p className="text-xs text-slate-400 font-bold">{f.pilots?.name || '---'}</p>
+                                    <div className="text-xs text-slate-400 font-bold"><PilotCell flight={f} /></div>
                                 </div>
                                 <div className="text-right shrink-0">
                                     <span className="bg-slate-100 px-2 py-0.5 rounded text-xs font-black">{f.visual_condition}</span>
@@ -200,7 +303,7 @@ export default function LogbookPage() {
                                     <td className="px-4 py-4 text-xs uppercase">{f.mission_type}</td>
                                     <td className="px-4 py-4"><span className="bg-slate-100 px-2 py-0.5 rounded text-xs font-black">{f.visual_condition}</span></td>
                                     <td className="px-4 py-4 font-black">{f.aircraft?.total_hours?.toFixed(2)}h</td>
-                                    <td className="px-4 py-4">{f.pilots?.name}</td>
+                                    <td className="px-4 py-4"><PilotCell flight={f} /></td>
                                 </tr>
                             ))}
                         </tbody>

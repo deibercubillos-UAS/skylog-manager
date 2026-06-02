@@ -37,7 +37,6 @@ const UPGRADE_PLANS = [
 
 export default function SubscriptionPage() {
   const [data, setData] = useState(null);
-  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [billing, setBilling] = useState('monthly');
@@ -49,7 +48,6 @@ export default function SubscriptionPage() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) { window.location.href = '/login'; return; }
-        setUser({ id: session.user.id, email: session.user.email });
         const res = await fetch('/api/subscription', {
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
@@ -193,7 +191,6 @@ export default function SubscriptionPage() {
                   planKey={plan.key}
                   billing={billing}
                   label={`Activar ${plan.name}`}
-                  user={user}
                   className={plan.popular
                     ? 'bg-primary text-white hover:bg-orange-600 shadow-lg shadow-orange-500/20'
                     : 'bg-navy text-white hover:bg-slate-800'}

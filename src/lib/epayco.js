@@ -115,10 +115,51 @@ export async function updatePlan(epaycoId, { name, description, amount, trialDay
   });
 }
 
+// Lista todas las suscripciones — GET /recurring/v1/subscriptions/{apiKey}
+export async function listSubscriptions() {
+  const json = await epaycoGet(`/recurring/v1/subscriptions/${PUB_KEY()}`);
+  return Array.isArray(json) ? json : (json.data ?? json.subscriptions ?? []);
+}
+
 // Cancela una suscripción — POST /recurring/v1/subscription/cancel
 export async function cancelSubscription(uid) {
   return epaycoRecurringPost('/recurring/v1/subscription/cancel', {
     id:         uid,
     public_key: PUB_KEY(),
   });
+}
+
+// Busca y cancela todas las suscripciones activas de un email.
+// Se usa como fallback cuando epayco_subscription_id no está guardado.
+export async function cancelSubscriptionsByEmail(email) {
+  const all = await listSubscriptions();
+  const normalEmail = email.trim().toLowerCase();
+
+  // Los campos de email varían según la respuesta de ePayco
+  const matches = all.filter(s => {
+    const subEmail = (
+      s.customer_data?.email ||
+      s.email ||
+      s.cliente?.email ||
+      s.subscriber?.email || ''
+    ).trim().toLowerCase();
+    const isActive = !s.status || ['active', '1', 'activa', 'activo'].includes(
+      String(s.status).toLowerCase()
+    );
+    return subEmail === normalEmail && isActive;
+  });
+
+  const results = [];
+  for (const s of matches) {
+    const uid = s.id || s.uid || s._id || s.subscription_id;
+    if (!uid) { results.push({ status: 'no_uid', raw: s }); continue; }
+    try {
+      await cancelSubscription(uid);
+      results.push({ uid, status: 'cancelled' });
+    } catch (err) {
+      results.push({ uid, status: 'error', error: err.message });
+    }
+  }
+
+  return { matched: matches.length, results };
 }

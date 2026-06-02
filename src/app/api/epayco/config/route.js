@@ -7,6 +7,19 @@ import { updatePlan } from '@/lib/epayco';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  // Auth: solo superadmin (misma política que el PATCH de abajo).
+  // Esta tabla la gestiona el admin client (bypassa RLS), así que el guard
+  // de sesión es la única barrera — no dejarla abierta.
+  const ssr = await createClientSSR();
+  const { data: { user } } = await ssr.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
+  const { data: requester } = await ssr
+    .from('profiles').select('role').eq('id', user.id).single();
+  if (requester?.role !== 'superadmin') {
+    return NextResponse.json({ error: 'Solo superadmin' }, { status: 403 });
+  }
+
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('epayco_plan_config')

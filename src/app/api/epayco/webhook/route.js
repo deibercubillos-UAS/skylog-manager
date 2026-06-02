@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { activatePlanForUser, resolvePendingForUser } from '@/lib/epaycoActivation';
 
 function makeSupabase() {
   return createClient(
@@ -68,17 +69,26 @@ export async function POST(request) {
       }
     }
 
-    // ── 3. Fallback por email ─────────────────────────────────────────────────
+    // ── 3. Fallback por email (case-insensitive) ──────────────────────────────
+    // En el flujo subscription-landing ePayco NO recibe nuestra referencia,
+    // por lo que el email es el enlace real entre el pago y el usuario.
     if (!userId && params.x_customer_email) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('id')
-        .eq('email', params.x_customer_email)
-        .single();
+        .ilike('email', params.x_customer_email.trim())
+        .maybeSingle();
       if (profile) userId = profile.id;
     }
 
-    // ── 4. Mapear id_plan de ePayco → planKey/billing ─────────────────────────
+    // ── 4. Resolver plan/billing desde el pending más reciente del usuario ─────
+    // Más confiable que x_description_plan (que ePayco no siempre envía).
+    if (userId && !planKey) {
+      const pending = await resolvePendingForUser(supabase, userId);
+      if (pending) { planKey = pending.planKey; billing = pending.billing; }
+    }
+
+    // ── 5. Último recurso: mapear id_plan de ePayco → planKey/billing ──────────
     if (!planKey) {
       const epaycoIdPlan = params.x_description_plan || params.x_plan_id || params.x_extra4;
       if (epaycoIdPlan) {
@@ -97,31 +107,16 @@ export async function POST(request) {
       return NextResponse.json({ received: true, warning: 'No se identificó usuario/plan — revisa logs de Vercel' });
     }
 
-    // ── Calcular expiración ───────────────────────────────────────────────────
-    const now       = new Date();
-    const expiresAt = new Date(now);
-    if (billing === 'annual') expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-    else expiresAt.setMonth(expiresAt.getMonth() + 1);
+    // ── Activar plan (helper compartido, idempotente) ─────────────────────────
+    await activatePlanForUser(supabase, {
+      userId,
+      planKey,
+      billing,
+      subscriptionId: params.x_subscription_id || null,
+      ref:            params.x_ref_payco || null,
+    });
 
-    // ── Activar plan en Supabase ──────────────────────────────────────────────
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({
-        subscription_plan:       planKey,
-        epayco_subscription_id:  params.x_subscription_id || null,
-        epayco_ref:              params.x_ref_payco,
-        subscription_expires_at: expiresAt.toISOString(),
-        updated_at:              now.toISOString(),
-      })
-      .eq('id', userId);
-
-    if (updateError) throw updateError;
-
-    // Limpiar pending intent
-    const ref = params.x_id_invoice || params.x_invoice;
-    if (ref) await supabase.from('pending_subscriptions').delete().eq('reference', ref);
-
-    console.log(`✓ Suscripción activada: user=${userId} plan=${planKey} billing=${billing}`);
+    console.log(`✓ Suscripción activada vía webhook: user=${userId} plan=${planKey} billing=${billing}`);
     return NextResponse.json({ success: true });
 
   } catch (err) {

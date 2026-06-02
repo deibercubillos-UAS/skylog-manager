@@ -1,21 +1,47 @@
 ﻿'use client';
 import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
 export default function PaymentResponsePage() {
   const [confirmed, setConfirmed] = useState(false);
 
   useEffect(() => {
-    // Marca éxito a los 2s para cambiar ícono, luego redirige al dashboard a los 5s
-    const confirmTimer = setTimeout(() => setConfirmed(true), 2000);
-    const redirectTimer = setTimeout(() => {
-      // Guardar flag en sessionStorage para mostrar banner de éxito en dashboard
-      sessionStorage.setItem('plan_activated', '1');
-      window.location.href = '/dashboard';
-    }, 5000);
-    return () => {
-      clearTimeout(confirmTimer);
-      clearTimeout(redirectTimer);
-    };
+    let redirectTimer;
+
+    async function verifyAndRedirect() {
+      // ePayco agrega ?ref_payco=XXX a la URL de retorno
+      const params   = new URLSearchParams(window.location.search);
+      const refPayco = params.get('ref_payco') || params.get('x_ref_payco');
+
+      // Red de seguridad: validar el pago y activar sin depender del webhook
+      if (refPayco) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            await fetch('/api/epayco/verify', {
+              method:  'POST',
+              headers: {
+                'Content-Type':  'application/json',
+                Authorization:   `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({ ref_payco: refPayco }),
+            });
+          }
+        } catch (e) {
+          // Si falla, el webhook sigue siendo el camino principal
+          console.error('verify-on-return falló:', e);
+        }
+      }
+
+      setConfirmed(true);
+      redirectTimer = setTimeout(() => {
+        sessionStorage.setItem('plan_activated', '1');
+        window.location.href = '/dashboard';
+      }, 2500);
+    }
+
+    verifyAndRedirect();
+    return () => clearTimeout(redirectTimer);
   }, []);
 
   return (

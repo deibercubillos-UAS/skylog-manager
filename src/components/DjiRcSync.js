@@ -13,6 +13,45 @@ function timeFromName(name) {
   return m ? `${m[1]}:${m[2]}` : null;
 }
 
+// Navega automáticamente al FlightRecord dentro de la raíz del RC.
+// Primero intenta la ruta conocida del DJI RC 2; si falla hace búsqueda recursiva.
+const DJI_KNOWN_PATH = ['Android', 'data', 'dji.go.v5', 'files', 'FlightRecord'];
+const DJI_KNOWN_PATH_WITH_STORAGE = ['Internal Storage', ...DJI_KNOWN_PATH];
+
+async function findFlightRecordDir(rootHandle) {
+  // Intento 1: ruta exacta del DJI RC 2 con "Internal Storage"
+  try {
+    let cur = rootHandle;
+    for (const seg of DJI_KNOWN_PATH_WITH_STORAGE) {
+      cur = await cur.getDirectoryHandle(seg);
+    }
+    return cur;
+  } catch { /* sigue */ }
+
+  // Intento 2: sin "Internal Storage" (algunas variantes del RC)
+  try {
+    let cur = rootHandle;
+    for (const seg of DJI_KNOWN_PATH) {
+      cur = await cur.getDirectoryHandle(seg);
+    }
+    return cur;
+  } catch { /* sigue */ }
+
+  // Intento 3: búsqueda recursiva hasta 5 niveles
+  return findDirRecursive(rootHandle, 'FlightRecord', 5);
+}
+
+async function findDirRecursive(handle, target, depth) {
+  if (depth <= 0) return null;
+  for await (const [name, h] of handle.entries()) {
+    if (h.kind !== 'directory') continue;
+    if (name === target) return h;
+    const found = await findDirRecursive(h, target, depth - 1);
+    if (found) return found;
+  }
+  return null;
+}
+
 const STATUS_ICON = {
   pending:   null,
   loading:   'hourglass_empty',
@@ -66,8 +105,16 @@ export default function DjiRcSync({ onImported }) {
   const handleSelectFolder = async () => {
     setError('');
     try {
-      const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+      const rootHandle = await window.showDirectoryPicker({ mode: 'read' });
       setState('scanning');
+
+      // Navegar automáticamente a FlightRecord
+      const dirHandle = await findFlightRecordDir(rootHandle);
+      if (!dirHandle) {
+        setError('No se encontró la carpeta "FlightRecord" en el RC. Asegúrate de seleccionar la raíz del DJI RC y que esté en modo "Transferencia de archivos".');
+        setState('idle');
+        return;
+      }
 
       const found = [];
       for await (const [name, handle] of dirHandle.entries()) {
@@ -77,7 +124,7 @@ export default function DjiRcSync({ onImported }) {
       }
 
       if (!found.length) {
-        setError('No se encontraron archivos .txt en esa carpeta. Verifica que seleccionaste la carpeta "FlightRecord".');
+        setError('La carpeta "FlightRecord" está vacía. Aún no hay vuelos registrados en este RC.');
         setState('idle');
         return;
       }
@@ -220,14 +267,11 @@ export default function DjiRcSync({ onImported }) {
               <ol className="space-y-1.5 text-xs text-sky-800 font-medium list-decimal list-inside leading-relaxed">
                 <li>Conecta el RC al PC con el cable USB-C</li>
                 <li>En la pantalla del RC: selecciona <strong>"Transferencia de archivos"</strong></li>
-                <li>
-                  Haz clic en el botón y navega a:
-                  <br />
-                  <code className="text-xs bg-sky-100 px-2 py-0.5 rounded font-mono mt-1 inline-block">
-                    DJI RC 2 → Internal Storage → Android → data → dji.go.v5 → files → FlightRecord
-                  </code>
-                </li>
+                <li>Haz clic en el botón y <strong>selecciona la raíz del DJI RC</strong> (la unidad que aparece al conectarlo)</li>
               </ol>
+              <p className="text-xs text-sky-600 font-medium mt-2">
+                BitaFly navegará automáticamente a la carpeta <code className="bg-sky-100 px-1 rounded font-mono">FlightRecord</code>.
+              </p>
             </div>
           </div>
         </div>
@@ -249,7 +293,7 @@ export default function DjiRcSync({ onImported }) {
         <div className="py-10 text-center space-y-3">
           <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-xs font-black uppercase text-slate-400 tracking-widest">
-            Leyendo archivos...
+            Buscando carpeta FlightRecord...
           </p>
         </div>
       )}

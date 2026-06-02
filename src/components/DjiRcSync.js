@@ -1,6 +1,91 @@
 'use client';
 import { useState } from 'react';
 
+const DEVICE_INSTRUCTIONS = {
+  rc: {
+    label: 'DJI RC',
+    icon: 'videogame_asset',
+    steps: [
+      {
+        title: 'Conecta el RC al PC',
+        detail: 'Usa el cable USB-C incluido con el RC.',
+      },
+      {
+        title: 'En la pantalla del RC',
+        detail: 'Selecciona "Transferencia de archivos" cuando aparezca el aviso.',
+      },
+      {
+        title: 'Abre el Explorador de Windows',
+        detail: null,
+        path: 'Este equipo → DJI RC 2 → Almacenamiento interno compartido → Android → data → dji.go.v5 → files → FlightRecord',
+      },
+      {
+        title: 'Copia la carpeta FlightRecord a tu PC',
+        detail: 'Arrástrala al Escritorio o Descargas. El navegador no puede leer dispositivos USB directamente.',
+      },
+      {
+        title: 'Haz clic en "Seleccionar carpeta" y elige la carpeta copiada',
+        detail: null,
+      },
+    ],
+  },
+  android: {
+    label: 'Android',
+    icon: 'android',
+    steps: [
+      {
+        title: 'Conecta el celular al PC con USB',
+        detail: null,
+      },
+      {
+        title: 'En el celular: selecciona "Transferencia de archivos" (MTP)',
+        detail: 'Desliza la barra de notificaciones y toca la notificación de USB.',
+      },
+      {
+        title: 'Abre el Explorador de Windows',
+        detail: null,
+        path: 'Este equipo → [Tu celular] → Almacenamiento interno → Android → data → dji.go.v5 → files → FlightRecord',
+        note: 'En Android 11 o superior la carpeta Android/data puede estar bloqueada vía USB. Si no la ves, usa la app "Files by Google" en el celular para copiar la carpeta a Descargas y luego transfiere.',
+      },
+      {
+        title: 'Copia la carpeta FlightRecord al PC',
+        detail: 'Arrástrala al Escritorio o Descargas.',
+      },
+      {
+        title: 'Haz clic en "Seleccionar carpeta" y elige la carpeta copiada',
+        detail: null,
+      },
+    ],
+  },
+  iphone: {
+    label: 'iPhone',
+    icon: 'phone_iphone',
+    steps: [
+      {
+        title: 'Conecta el iPhone al PC con el cable Lightning / USB-C',
+        detail: 'Acepta "Confiar en este equipo" en el iPhone si aparece el aviso.',
+      },
+      {
+        title: 'Abre iTunes (Windows) o el Finder (Mac)',
+        detail: null,
+      },
+      {
+        title: 'Selecciona tu iPhone → pestaña "Archivos" (File Sharing)',
+        detail: 'En iTunes: clic en el ícono del iPhone → sección Compartir archivos.',
+        path: 'iTunes → [Tu iPhone] → Archivos → DJI Fly → FlightRecord',
+      },
+      {
+        title: 'Selecciona la carpeta FlightRecord y haz clic en "Guardar en…"',
+        detail: 'Guárdala en el Escritorio o Descargas del PC.',
+      },
+      {
+        title: 'Haz clic en "Seleccionar carpeta" y elige la carpeta guardada',
+        detail: null,
+      },
+    ],
+  },
+};
+
 // Extrae YYYY-MM-DD del nombre: FlightRecord_2026-05-01_[18-17-11].txt
 function dateFromName(name) {
   const m = name.match(/(\d{4}-\d{2}-\d{2})/);
@@ -79,6 +164,7 @@ const STATUS_COLOR = {
 
 export default function DjiRcSync({ onImported }) {
   const [state, setState] = useState('idle'); // idle | scanning | ready | uploading | done
+  const [device, setDevice] = useState('rc'); // rc | android | iphone
   const [files, setFiles] = useState([]);
   const [error, setError] = useState('');
   const [results, setResults] = useState(null);
@@ -264,29 +350,66 @@ export default function DjiRcSync({ onImported }) {
   return (
     <div className="space-y-5">
 
-      {/* ── Instrucciones ──────────────────────────────────────── */}
+      {/* ── Instrucciones con tabs ─────────────────────────────── */}
       {(state === 'idle' || state === 'scanning') && (
-        <div className="bg-sky-50 border border-sky-100 rounded-2xl p-5">
-          <div className="flex items-start gap-3">
-            <span className="material-symbols-outlined text-sky-500 shrink-0 mt-0.5">info</span>
-            <div className="space-y-2">
-              <p className="text-xs font-black uppercase tracking-widest text-sky-700">
-                Pasos previos
-              </p>
-              <ol className="space-y-1.5 text-xs text-sky-800 font-medium list-decimal list-inside leading-relaxed">
-                <li>Conecta el RC al PC con el cable USB-C y selecciona <strong>"Transferencia de archivos"</strong> en la pantalla del RC</li>
-                <li>
-                  Abre el Explorador de Windows y copia la carpeta <strong>FlightRecord</strong> a tu PC:
-                  <br />
-                  <code className="text-xs bg-sky-100 px-2 py-0.5 rounded font-mono mt-1 inline-block leading-loose">
-                    Este equipo → DJI RC 2 → Almacenamiento interno compartido → Android → data → dji.go.v5 → files → <strong>FlightRecord</strong>
-                  </code>
+        <div className="rounded-2xl border border-slate-200 overflow-hidden">
+
+          {/* Tabs */}
+          <div className="flex border-b border-slate-200 bg-slate-50">
+            {Object.entries(DEVICE_INSTRUCTIONS).map(([key, dev]) => (
+              <button
+                key={key}
+                onClick={() => setDevice(key)}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-black uppercase tracking-widest transition-all ${
+                  device === key
+                    ? 'bg-white text-navy border-b-2 border-orange-500'
+                    : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm">{dev.icon}</span>
+                {dev.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Contenido del tab activo */}
+          <div className="p-5 space-y-3 bg-white">
+            <ol className="space-y-3">
+              {DEVICE_INSTRUCTIONS[device].steps.map((step, i) => (
+                <li key={i} className="flex gap-3">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-orange-100 text-orange-600 text-xs font-black flex items-center justify-center mt-0.5">
+                    {i + 1}
+                  </span>
+                  <div className="space-y-1 flex-1">
+                    <p className="text-xs font-bold text-slate-800">{step.title}</p>
+                    {step.detail && (
+                      <p className="text-xs text-slate-500 font-medium leading-relaxed">{step.detail}</p>
+                    )}
+                    {step.path && (
+                      <code className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded-lg font-mono block leading-relaxed mt-1">
+                        {step.path.split('→').map((seg, j, arr) => (
+                          <span key={j}>
+                            {j > 0 && <span className="text-slate-400 mx-1">→</span>}
+                            <span className={j === arr.length - 1 ? 'font-black text-orange-600' : ''}>{seg.trim()}</span>
+                          </span>
+                        ))}
+                      </code>
+                    )}
+                    {step.note && (
+                      <div className="flex gap-1.5 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 mt-1">
+                        <span className="material-symbols-outlined text-amber-500 text-sm shrink-0 mt-0.5">warning</span>
+                        <p className="text-xs text-amber-700 font-medium leading-relaxed">{step.note}</p>
+                      </div>
+                    )}
+                  </div>
                 </li>
-                <li>Haz clic en el botón y <strong>selecciona la carpeta FlightRecord</strong> que copiaste</li>
-              </ol>
-              <p className="text-xs text-sky-500 font-medium mt-2 flex items-center gap-1">
-                <span className="material-symbols-outlined text-sm">info</span>
-                El navegador no puede acceder directamente a dispositivos USB — por eso hay que copiar primero.
+              ))}
+            </ol>
+
+            <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100">
+              <span className="material-symbols-outlined text-slate-400 text-sm">info</span>
+              <p className="text-xs text-slate-400 font-medium">
+                El navegador no puede leer dispositivos USB directamente — es necesario copiar la carpeta al PC primero.
               </p>
             </div>
           </div>
@@ -299,8 +422,8 @@ export default function DjiRcSync({ onImported }) {
           onClick={handleSelectFolder}
           className="w-full py-5 bg-navy text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl hover:bg-slate-700 transition-all active:scale-95 flex items-center justify-center gap-2"
         >
-          <span className="material-symbols-outlined text-sm">usb</span>
-          Seleccionar carpeta del RC
+          <span className="material-symbols-outlined text-sm">folder_open</span>
+          Seleccionar carpeta FlightRecord
         </button>
       )}
 

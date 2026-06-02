@@ -43,5 +43,6 @@ next-env.d.ts
 
 # claude / local tooling
 .claude/
+.clone/
 docs/
 graphify-out/

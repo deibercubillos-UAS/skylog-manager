@@ -97,11 +97,11 @@ export async function createPlan(cfg, billingKey) {
   });
 }
 
-// Actualiza un plan — POST /recurring/v1/plan/edit/{uid}
-// uid = UID interno de ePayco (_id del listPlans)
-export async function updatePlan(epaycoUid, { epaycoId, name, description, amount, trialDays, billingKey }) {
-  return epaycoRecurringPost(`/recurring/v1/plan/edit/${epaycoUid}`, {
-    public_key:     PUB_KEY(),          // requerido en todos los POSTs de la API
+// Actualiza un plan — POST /recurring/v1/plan/edit/{id_plan}
+// El endpoint usa id_plan como identificador en la URL (NO el _id de MongoDB)
+export async function updatePlan(epaycoId, { name, description, amount, trialDays, billingKey }) {
+  return epaycoRecurringPost(`/recurring/v1/plan/edit/${epaycoId}`, {
+    public_key:     PUB_KEY(),
     id_plan:        epaycoId,
     name,
     description,

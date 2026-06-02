@@ -44,19 +44,11 @@ export async function PATCH(request) {
     return NextResponse.json({ error: 'Plan no encontrado' }, { status: 404 });
   }
 
-  // Verificar que tenemos el UID de ePayco
-  if (!current.epayco_uid) {
-    return NextResponse.json({
-      error: 'UID de ePayco no encontrado. Ejecuta primero la sincronización de UIDs desde el botón "Sincronizar UIDs".',
-    }, { status: 422 });
-  }
-
-  // Actualizar en ePayco usando el UID interno
+  // Actualizar en ePayco usando epayco_id (id_plan) como identificador en la URL
   let epaycoResult = null;
   let epaycoError = null;
   try {
-    epaycoResult = await updatePlan(current.epayco_uid, {
-      epaycoId:     current.epayco_id,
+    epaycoResult = await updatePlan(current.epayco_id, {
       name,
       description:  description || current.description,
       amount:       Number(amount),

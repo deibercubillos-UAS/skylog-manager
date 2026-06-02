@@ -1,11 +1,11 @@
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/lib/supabaseServer';
 import { redirect } from 'next/navigation';
 import MissionControlClient from './MissionControlClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AuthorizePage() {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');

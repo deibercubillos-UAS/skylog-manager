@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/utils/supabase/client';
+import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import AuthSidePanel from '@/components/AuthSidePanel';
 
@@ -13,7 +13,6 @@ export default function LoginPage() {
   const [error, setError] = useState('');
 
   const router = useRouter();
-  const supabase = createClient();
 
   const handleLogin = async (e) => {
     e.preventDefault();

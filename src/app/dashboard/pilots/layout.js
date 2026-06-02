@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/lib/supabaseServer';
 import { redirect } from 'next/navigation';
 import { PERMISSIONS } from '@/lib/roles';
 
@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 // Tripulación visible para todos excepto piloto solo (pilotHidden en nav)
 // Guard server-side: autenticado + en la lista de roles permitidos
 export default async function PilotsLayout({ children }) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 

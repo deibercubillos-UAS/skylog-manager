@@ -1,10 +1,10 @@
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/lib/supabaseServer';
 import FormSettingsClient from './FormSettingsClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function FormSettingsPage() {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // PASO 2: PARALELISMO TOTAL EN EL SERVIDOR (TTFB < 200ms)
     // Obtenemos todo lo necesario para el renderizado inicial antes de que el cliente cargue

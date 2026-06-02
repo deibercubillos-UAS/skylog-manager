@@ -1,10 +1,9 @@
 ﻿'use client';
 import { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 
 export default function FormSettingsClient({ initialData }) {
-    const supabase = createClient();
     const [type, setType] = useState('briefing');
     const [selectedModel, setSelectedModel] = useState('General');
     const [models] = useState(initialData.models);

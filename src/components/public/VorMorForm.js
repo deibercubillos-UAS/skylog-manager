@@ -1,43 +1,97 @@
 'use client';
 /**
  * Formulario público VOR / MOR
- * Usado por /vor/[orgCode] y /mor/[orgCode]
- * Sin autenticación requerida.
+ * Usado por /vor/[orgCode] y /mor/[orgCode] — sin autenticación.
+ *
+ * Los campos se resuelven dinámicamente:
+ *   BASE_FIELDS (código) + overrides del cliente (DB) + campos custom (DB)
+ * → Solo se almacena el delta en Supabase, no los campos base.
  */
 import { useState, useRef } from 'react';
+import { resolveFields, parseFormConfig, SECTION_LABELS } from '@/lib/vorMorFields';
 
 const MAX_FILES = 5;
 const MAX_MB    = 10;
 
-const STATUS_COLOR = {
-  VOR: { bg: 'bg-sky-600',  ring: 'ring-sky-300',  text: 'text-sky-700',  light: 'bg-sky-50',  border: 'border-sky-200',  icon: 'volunteer_activism' },
-  MOR: { bg: 'bg-rose-600', ring: 'ring-rose-300', text: 'text-rose-700', light: 'bg-rose-50', border: 'border-rose-200', icon: 'warning' },
+const THEME = {
+  VOR: { bg: 'bg-sky-600',  btn: 'bg-sky-600 hover:bg-sky-500',  icon: 'volunteer_activism' },
+  MOR: { bg: 'bg-rose-600', btn: 'bg-rose-600 hover:bg-rose-500', icon: 'warning' },
 };
 
-export default function VorMorForm({ orgCode, type, orgName, formDef }) {
-  const c = STATUS_COLOR[type];
+const INPUT    = 'w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent transition-all';
+const LABEL_CL = 'block text-xs font-black text-slate-500 uppercase tracking-widest mb-2';
 
-  const [step, setStep] = useState('form');   // 'form' | 'uploading' | 'submitting' | 'success' | 'error'
+// ── Renderizador de un campo individual ──────────────────────────────────────
+function FieldRenderer({ field, value, onChange }) {
+  const { label, type, required, placeholder, options } = field;
+
+  if (type === 'textarea') return (
+    <textarea required={required} rows={field.id === 'description' ? 5 : 3}
+      value={value || ''} onChange={e => onChange(e.target.value)}
+      className={`${INPUT} resize-none`} placeholder={placeholder} />
+  );
+
+  if (type === 'select') return (
+    <select required={required} value={value || ''} onChange={e => onChange(e.target.value)} className={INPUT}>
+      <option value="">Seleccionar...</option>
+      {(options || []).map((opt, i) => <option key={i} value={opt}>{opt}</option>)}
+    </select>
+  );
+
+  if (type === 'checkbox') return (
+    <label className="flex items-center gap-3 cursor-pointer">
+      <input type="checkbox" required={required} checked={!!value}
+        onChange={e => onChange(e.target.checked)} className="size-4 rounded" />
+      <span className="text-sm text-slate-700">{label}</span>
+    </label>
+  );
+
+  if (type === 'email') return (
+    <div>
+      <input type="email" required={required} value={value || ''}
+        onChange={e => onChange(e.target.value)} className={INPUT} placeholder={placeholder} />
+      {/* Aviso anónimo: sin nombre + con email */}
+      {field.id === 'reporter_email' && value && !value.includes(' ') && (
+        <p className="text-xs text-slate-400 mt-1.5 px-1" id="anon-hint">
+          Si no escribes tu nombre, el reporte será anónimo. Aun así recibirás actualizaciones.
+        </p>
+      )}
+    </div>
+  );
+
+  return (
+    <input type={type === 'date' ? 'date' : type === 'time' ? 'time' : 'text'}
+      required={required} value={value || ''}
+      onChange={e => onChange(e.target.value)} className={INPUT} placeholder={placeholder} />
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+export default function VorMorForm({ orgCode, type, orgName, formDef }) {
+  const c = THEME[type];
+
+  // Resolver campos (base + overrides + custom) una sola vez
+  const formConfig = parseFormConfig(formDef?.custom_fields);
+  const allFields  = resolveFields(formConfig);
+
+  // Agrupar por sección para el layout visual
+  const sections = allFields.reduce((acc, f) => {
+    const sec = f.isBase ? (f.section || 'event') : 'custom';
+    if (!acc[sec]) acc[sec] = [];
+    acc[sec].push(f);
+    return acc;
+  }, {});
+
+  const [step, setStep]             = useState('form');
   const [submissionId, setSubmissionId] = useState(null);
-  const [isAnonymous, setIsAnonymous] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [files, setFiles] = useState([]);
+  const [isAnonymous, setIsAnonymous]   = useState(false);
+  const [errorMsg, setErrorMsg]         = useState('');
+  const [files, setFiles]               = useState([]);
   const [uploadProgress, setUploadProgress] = useState([]);
+  const [values, setValues]             = useState({});  // { fieldId: value }
   const fileInputRef = useRef(null);
 
-  const [form, setForm] = useState({
-    reporter_name:       '',
-    reporter_email:      '',
-    occurrence_date:     '',
-    occurrence_time:     '',
-    location:            '',
-    description:         '',
-    immediate_actions:   '',
-    contributing_factors:'',
-    _custom:             {},   // campos personalizados {fieldId: value}
-  });
-
-  const set = (k) => (e) => setForm(prev => ({ ...prev, [k]: e.target.value }));
+  const setValue = (id, val) => setValues(prev => ({ ...prev, [id]: val }));
 
   // ── Archivos ───────────────────────────────────────────────────────────────
   const handleFileChange = (e) => {
@@ -47,15 +101,12 @@ export default function VorMorForm({ orgCode, type, orgName, formDef }) {
     setFiles(prev => [...prev, ...valid].slice(0, MAX_FILES));
   };
 
-  const removeFile = (idx) => setFiles(prev => prev.filter((_, i) => i !== idx));
-
   // ── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.description.trim()) return;
+    if (!values.description?.trim()) return;
     setErrorMsg('');
 
-    // 1. Subir archivos adjuntos
     setStep('uploading');
     const attachments = [];
     setUploadProgress(files.map(() => 0));
@@ -64,31 +115,42 @@ export default function VorMorForm({ orgCode, type, orgName, formDef }) {
       try {
         const fd = new FormData();
         fd.append('file', files[i]);
-        const res = await fetch(`/api/public/upload/${orgCode}`, { method: 'POST', body: fd });
+        const res  = await fetch(`/api/public/upload/${orgCode}`, { method: 'POST', body: fd });
         const data = await res.json();
         if (data.path) attachments.push(data.path);
         setUploadProgress(prev => prev.map((v, idx) => idx === i ? 100 : v));
-      } catch (_) {
-        // archivo falló → continuar sin él
-      }
+      } catch (_) { /* continuar sin el archivo */ }
     }
 
-    // 2. Enviar reporte
     setStep('submitting');
     try {
-      const endpoint = `/api/public/${type.toLowerCase()}/${orgCode}`;
-      const res = await fetch(endpoint, {
-        method: 'POST',
+      // Separar valores base de valores custom
+      const baseFieldIds  = new Set(allFields.filter(f => f.isBase).map(f => f.id));
+      const customResponses = {};
+      const baseValues    = {};
+
+      for (const [k, v] of Object.entries(values)) {
+        if (baseFieldIds.has(k)) baseValues[k] = v;
+        else customResponses[k] = v;
+      }
+
+      const res = await fetch(`/api/public/${type.toLowerCase()}/${orgCode}`, {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...form,
-          reporter_name:    form.reporter_name.trim()  || null,
-          reporter_email:   form.reporter_email.trim() || null,
+          reporter_name:        baseValues.reporter_name?.trim()  || null,
+          reporter_email:       baseValues.reporter_email?.trim() || null,
+          occurrence_date:      baseValues.occurrence_date        || null,
+          occurrence_time:      baseValues.occurrence_time        || null,
+          location:             baseValues.location?.trim()       || null,
+          description:          baseValues.description?.trim(),
+          immediate_actions:    baseValues.immediate_actions?.trim()    || null,
+          contributing_factors: baseValues.contributing_factors?.trim() || null,
           attachments,
-          custom_responses: form._custom || {},
-          _custom:          undefined,
+          custom_responses: customResponses,
         }),
       });
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al enviar el reporte');
       setSubmissionId(data.submission_id);
@@ -99,6 +161,13 @@ export default function VorMorForm({ orgCode, type, orgName, formDef }) {
       setStep('error');
     }
   };
+
+  const resetForm = () => {
+    setStep('form'); setFiles([]); setValues({});
+    setSubmissionId(null); setIsAnonymous(false); setErrorMsg('');
+  };
+
+  const isLoading = step === 'uploading' || step === 'submitting';
 
   // ── Pantalla éxito ─────────────────────────────────────────────────────────
   if (step === 'success') {
@@ -122,10 +191,8 @@ export default function VorMorForm({ orgCode, type, orgName, formDef }) {
               <p className="font-mono text-xs text-slate-600 mt-1 break-all">{submissionId}</p>
             </div>
           )}
-          <button
-            onClick={() => { setStep('form'); setFiles([]); setForm({ reporter_name:'',reporter_email:'',occurrence_date:'',occurrence_time:'',location:'',description:'',immediate_actions:'',contributing_factors:'',_custom:{} }); }}
-            className={`w-full ${c.bg} hover:opacity-90 text-white font-black py-3 rounded-2xl text-sm uppercase tracking-widest transition-opacity`}
-          >
+          <button onClick={resetForm}
+            className={`w-full ${c.btn} text-white font-black py-3 rounded-2xl text-sm uppercase tracking-widest transition-opacity`}>
             Enviar otro reporte
           </button>
         </div>
@@ -133,10 +200,8 @@ export default function VorMorForm({ orgCode, type, orgName, formDef }) {
     );
   }
 
-  const isLoading = step === 'uploading' || step === 'submitting';
-
-  const INPUT  = 'w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent transition-all';
-  const LABEL  = 'block text-xs font-black text-slate-500 uppercase tracking-widest mb-2';
+  // ── Formulario ─────────────────────────────────────────────────────────────
+  const SECTION_ORDER = ['reporter', 'occurrence', 'event', 'custom'];
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
@@ -153,158 +218,61 @@ export default function VorMorForm({ orgCode, type, orgName, formDef }) {
           <h1 className="text-2xl font-black leading-tight tracking-tight">
             {formDef?.title || `${type} — ${orgName}`}
           </h1>
-          <p className="text-sm opacity-75 mt-2 leading-relaxed">
-            {formDef?.description || 'Completa el formulario para reportar la ocurrencia. Puedes enviarlo de forma anónima.'}
-          </p>
+          {formDef?.description && (
+            <p className="text-sm opacity-75 mt-2 leading-relaxed">{formDef.description}</p>
+          )}
           <p className="text-xs font-bold mt-3 opacity-60">{orgName}</p>
         </div>
       </header>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="max-w-xl mx-auto px-4 pt-8 space-y-6">
+      <form onSubmit={handleSubmit} className="max-w-xl mx-auto px-4 pt-8 space-y-5">
 
-        {/* Anónimo / Identificado */}
-        <section className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-5">Datos del reportante (opcionales)</h3>
-          <div className="space-y-4">
-            <div>
-              <label className={LABEL}>Nombre</label>
-              <input value={form.reporter_name} onChange={set('reporter_name')} className={INPUT} placeholder="Dejar en blanco para enviar anónimamente" />
-            </div>
-            <div>
-              <label className={LABEL}>Correo electrónico</label>
-              <input type="email" value={form.reporter_email} onChange={set('reporter_email')} className={INPUT} placeholder="Para recibir actualizaciones (opcional)" />
-              {!form.reporter_name && form.reporter_email && (
-                <p className="text-xs text-slate-400 mt-1.5 px-1">
-                  Tu identidad permanecerá anónima. Solo recibirás actualizaciones del equipo SMS.
-                </p>
-              )}
-            </div>
-          </div>
-        </section>
+        {/* Renderizar secciones en orden */}
+        {SECTION_ORDER.map(sec => {
+          const secFields = sections[sec];
+          if (!secFields?.length) return null;
 
-        {/* Datos de la ocurrencia */}
-        <section className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-5">Datos de la ocurrencia</h3>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className={LABEL}>Fecha</label>
-              <input type="date" value={form.occurrence_date} onChange={set('occurrence_date')} className={INPUT} />
-            </div>
-            <div>
-              <label className={LABEL}>Hora</label>
-              <input type="time" value={form.occurrence_time} onChange={set('occurrence_time')} className={INPUT} />
-            </div>
-          </div>
-          <div>
-            <label className={LABEL}>Lugar / Ubicación</label>
-            <input value={form.location} onChange={set('location')} className={INPUT} placeholder="Ciudad, coordenadas o descripción del lugar" />
-          </div>
-        </section>
-
-        {/* Descripción */}
-        <section className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-5">Descripción del evento *</h3>
-          <textarea
-            required
-            rows={5}
-            value={form.description}
-            onChange={set('description')}
-            className={`${INPUT} resize-none`}
-            placeholder="Describe detalladamente lo que ocurrió..."
-          />
-          <div className="mt-4">
-            <label className={LABEL}>Acciones inmediatas tomadas</label>
-            <textarea rows={3} value={form.immediate_actions} onChange={set('immediate_actions')} className={`${INPUT} resize-none`} placeholder="¿Qué medidas se tomaron en el momento?" />
-          </div>
-          <div className="mt-4">
-            <label className={LABEL}>Factores contribuyentes</label>
-            <textarea rows={3} value={form.contributing_factors} onChange={set('contributing_factors')} className={`${INPUT} resize-none`} placeholder="Condiciones, factores humanos, técnicos u organizacionales..." />
-          </div>
-        </section>
-
-        {/* Campos personalizados por la org */}
-        {formDef?.custom_fields?.length > 0 && (
-          <section className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-5">Información adicional</h3>
-            <div className="space-y-4">
-              {formDef.custom_fields.map((field) => (
-                <div key={field.id}>
-                  <label className={LABEL}>
-                    {field.label}
-                    {field.required && <span className="text-red-500 ml-1">*</span>}
-                  </label>
-                  {field.type === 'textarea' ? (
-                    <textarea
-                      required={field.required}
-                      rows={3}
-                      className={`${INPUT} resize-none`}
-                      placeholder={field.placeholder || ''}
-                      value={form._custom?.[field.id] || ''}
-                      onChange={e => setForm(prev => ({ ...prev, _custom: { ...(prev._custom || {}), [field.id]: e.target.value } }))}
+          return (
+            <section key={sec} className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-5">
+                {sec === 'custom' ? 'Información adicional' : SECTION_LABELS[sec]}
+              </h3>
+              <div className={`space-y-4 ${sec === 'occurrence' ? 'grid grid-cols-1 sm:grid-cols-2 sm:gap-4 sm:space-y-0' : ''}`}>
+                {secFields.map(field => (
+                  <div key={field.id} className={sec === 'occurrence' && (field.id === 'location') ? 'sm:col-span-2' : ''}>
+                    {field.type !== 'checkbox' && (
+                      <label className={LABEL_CL}>
+                        {field.label}
+                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                      </label>
+                    )}
+                    <FieldRenderer
+                      field={field}
+                      value={values[field.id]}
+                      onChange={(val) => setValue(field.id, val)}
                     />
-                  ) : field.type === 'select' ? (
-                    <select
-                      required={field.required}
-                      className={INPUT}
-                      value={form._custom?.[field.id] || ''}
-                      onChange={e => setForm(prev => ({ ...prev, _custom: { ...(prev._custom || {}), [field.id]: e.target.value } }))}
-                    >
-                      <option value="">Seleccionar...</option>
-                      {(field.options || []).map((opt, i) => (
-                        <option key={i} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  ) : field.type === 'checkbox' ? (
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        required={field.required}
-                        className="size-4 rounded"
-                        checked={!!form._custom?.[field.id]}
-                        onChange={e => setForm(prev => ({ ...prev, _custom: { ...(prev._custom || {}), [field.id]: e.target.checked } }))}
-                      />
-                      <span className="text-sm text-slate-700">{field.checkboxLabel || field.label}</span>
-                    </label>
-                  ) : (
-                    <input
-                      type={field.type === 'date' ? 'date' : 'text'}
-                      required={field.required}
-                      className={INPUT}
-                      placeholder={field.placeholder || ''}
-                      value={form._custom?.[field.id] || ''}
-                      onChange={e => setForm(prev => ({ ...prev, _custom: { ...(prev._custom || {}), [field.id]: e.target.value } }))}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })}
 
         {/* Archivos adjuntos */}
         <section className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
           <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-5">
-            Evidencias (imágenes / PDF) — máx. {MAX_FILES} archivos de {MAX_MB} MB
+            Evidencias — máx. {MAX_FILES} archivos · {MAX_MB} MB c/u
           </h3>
           {files.length < MAX_FILES && (
             <>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full border-2 border-dashed border-slate-200 rounded-2xl py-6 flex flex-col items-center gap-2 text-slate-400 hover:border-slate-300 hover:text-slate-500 transition-colors"
-              >
-                <span className="material-symbols-outlined text-3xl">attach_file</span>
+              <button type="button" onClick={() => fileInputRef.current?.click()}
+                className="w-full border-2 border-dashed border-slate-200 rounded-2xl py-5 flex flex-col items-center gap-2 text-slate-400 hover:border-slate-300 hover:text-slate-500 transition-colors">
+                <span className="material-symbols-outlined text-2xl">attach_file</span>
                 <span className="text-xs font-bold uppercase tracking-widest">Seleccionar archivos</span>
               </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
+              <input ref={fileInputRef} type="file" multiple
                 accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
-                className="hidden"
-                onChange={handleFileChange}
-              />
+                className="hidden" onChange={handleFileChange} />
             </>
           )}
           {files.length > 0 && (
@@ -315,14 +283,13 @@ export default function VorMorForm({ orgCode, type, orgName, formDef }) {
                     {f.type.startsWith('image') ? 'image' : 'picture_as_pdf'}
                   </span>
                   <span className="text-xs text-slate-600 font-medium truncate flex-1">{f.name}</span>
-                  {step === 'uploading' && uploadProgress[i] === 100 && (
-                    <span className="material-symbols-outlined text-emerald-500 text-base">check_circle</span>
-                  )}
-                  {step !== 'uploading' && (
-                    <button type="button" onClick={() => removeFile(i)} className="text-slate-400 hover:text-red-500 transition-colors">
-                      <span className="material-symbols-outlined text-base">close</span>
-                    </button>
-                  )}
+                  {step === 'uploading' && uploadProgress[i] === 100
+                    ? <span className="material-symbols-outlined text-emerald-500 text-base">check_circle</span>
+                    : <button type="button" onClick={() => setFiles(p => p.filter((_, idx) => idx !== i))}
+                        className="text-slate-400 hover:text-red-500 transition-colors">
+                        <span className="material-symbols-outlined text-base">close</span>
+                      </button>
+                  }
                 </li>
               ))}
             </ul>
@@ -337,21 +304,13 @@ export default function VorMorForm({ orgCode, type, orgName, formDef }) {
         )}
 
         {/* Submit */}
-        <button
-          type="submit"
-          disabled={isLoading}
-          className={`w-full ${c.bg} hover:opacity-90 disabled:opacity-50 text-white font-black py-4 rounded-2xl text-sm uppercase tracking-widest shadow-lg transition-all flex items-center justify-center gap-2`}
-        >
+        <button type="submit" disabled={isLoading}
+          className={`w-full ${c.btn} disabled:opacity-50 text-white font-black py-4 rounded-2xl text-sm uppercase tracking-widest shadow-lg transition-all flex items-center justify-center gap-2`}>
           {isLoading ? (
-            <>
-              <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
-              {step === 'uploading' ? 'Subiendo archivos...' : 'Enviando reporte...'}
-            </>
+            <><span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
+              {step === 'uploading' ? 'Subiendo archivos...' : 'Enviando reporte...'}</>
           ) : (
-            <>
-              <span className="material-symbols-outlined text-base">{c.icon}</span>
-              Enviar reporte {type}
-            </>
+            <><span className="material-symbols-outlined text-base">{c.icon}</span> Enviar reporte {type}</>
           )}
         </button>
 

@@ -35,12 +35,12 @@ const SAFETY_MODULES = [
     available: true,
   },
   {
-    href:  '#',
+    href:  '/dashboard/safety/mapas',
     icon:  'map',
     title: 'Mapas de Restricción',
-    desc:  'Zonas de exclusión aérea, TFRs y espacio aéreo controlado',
+    desc:  'Visor ArcGIS Aerocivil — zonas prohibidas, CTR, TFR y espacio aéreo UAS Colombia',
     color: 'bg-emerald-50 border-emerald-200 text-emerald-600',
-    available: false,
+    available: true,
   },
 ];
 

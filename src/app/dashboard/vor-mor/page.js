@@ -86,8 +86,9 @@ export default function VorMorPage() {
       setProfile(prof);
 
       const { data: org } = await supabase.from('organizations')
-        .select('unique_code').eq('id', prof.organization_id).single();
-      setOrgCode(org?.unique_code);
+        .select('unique_code, slug').eq('id', prof.organization_id).single();
+      // Preferir slug (nombre empresa) sobre unique_code (NIT) para las URLs públicas
+      setOrgCode(org?.slug || org?.unique_code);
 
       // Miembros SMS para asignación
       const { data: members } = await supabase.from('profiles')

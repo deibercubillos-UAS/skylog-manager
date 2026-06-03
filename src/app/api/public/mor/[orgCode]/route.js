@@ -5,25 +5,9 @@
  * MOR = Mandatory Occurrence Report (RAC 100 / Aerocivil)
  * Misma lógica que VOR, type='MOR'.
  */
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
-
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
-async function resolveOrg(orgCode) {
-    const code = orgCode.replace(/\s|\./g, '').toUpperCase();
-    const { data, error } = await supabaseAdmin
-        .from('organizations')
-        .select('id, company_name')
-        .eq('unique_code', code)
-        .maybeSingle();
-    if (error || !data) return null;
-    return data;
-}
+import { resolveOrg, supabaseAdmin } from '../_resolveOrg';
 
 export async function GET(request, { params }) {
     try {

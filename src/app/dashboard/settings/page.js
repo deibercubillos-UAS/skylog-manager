@@ -194,12 +194,24 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                         <FileUpload path="org/logos" label="Actualizar Logo Corporativo" onUploadSuccess={updateLogo} />
                     </div>
 
-                    <div className="bg-[#1A202C] p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] text-white">
-                        <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em]">NIT · Código de acceso</p>
-                        <p className="text-xl md:text-2xl font-mono font-black text-orange-500 mt-1">{org.unique_code}</p>
-                        <p className="text-xs text-slate-400 mt-4 uppercase leading-tight italic">
-                            Comparte este NIT con tu tripulación para que se vinculen a tu organización.
-                        </p>
+                    <div className="bg-[#1A202C] p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] text-white space-y-4">
+                        <div>
+                            <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em]">NIT · Código de acceso</p>
+                            <p className="text-xl md:text-2xl font-mono font-black text-orange-500 mt-1">{org.unique_code}</p>
+                            <p className="text-xs text-slate-400 mt-2 uppercase leading-tight italic">
+                                Comparte este NIT con tu tripulación para que se vinculen.
+                            </p>
+                        </div>
+                        {org.slug && (
+                            <div className="border-t border-white/10 pt-4">
+                                <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-1">URL pública VOR/MOR</p>
+                                <div className="flex flex-col gap-1">
+                                    <p className="text-xs font-mono text-sky-400 break-all">bitafly.com/vor/<span className="font-black">{org.slug}</span></p>
+                                    <p className="text-xs font-mono text-rose-400 break-all">bitafly.com/mor/<span className="font-black">{org.slug}</span></p>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-2 italic">El slug se genera automáticamente del nombre de la empresa.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 

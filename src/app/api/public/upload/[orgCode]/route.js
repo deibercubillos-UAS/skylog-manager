@@ -5,13 +5,8 @@
  *
  * Límites: 10 MB por archivo, tipos: jpg/png/webp/heic/pdf
  */
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { resolveOrg, supabaseAdmin } from '../_resolveOrg';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'];
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -19,14 +14,7 @@ const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 export async function POST(request, { params }) {
     try {
         const { orgCode } = await params;
-
-        // Resolver org
-        const code = orgCode.replace(/\s|\./g, '').toUpperCase();
-        const { data: org } = await supabaseAdmin
-            .from('organizations')
-            .select('id')
-            .eq('unique_code', code)
-            .maybeSingle();
+        const org = await resolveOrg(orgCode);
         if (!org) return NextResponse.json({ error: 'Organización no encontrada' }, { status: 404 });
 
         const formData = await request.formData();

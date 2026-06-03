@@ -2,26 +2,9 @@
  * GET  /api/public/vor/[orgCode]  → formulario VOR (definición + campos) para renderizar
  * POST /api/public/vor/[orgCode]  → enviar reporte VOR (sin autenticación)
  */
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
-
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
-// ── Resolver orgCode → org ───────────────────────────────────────────────────
-async function resolveOrg(orgCode) {
-    const code = orgCode.replace(/\s|\./g, '').toUpperCase();
-    const { data, error } = await supabaseAdmin
-        .from('organizations')
-        .select('id, company_name')
-        .eq('unique_code', code)
-        .maybeSingle();
-    if (error || !data) return null;
-    return data;
-}
+import { resolveOrg, supabaseAdmin } from '../_resolveOrg';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  GET: definición del formulario VOR para la org

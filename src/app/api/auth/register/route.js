@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { uniqueSlug } from '@/lib/slugify';
 
 // Roles que se pueden auto-asignar en el formulario de registro público.
 // Nunca permitir: superadmin, gerente_sms, jefe_pilotos (se asignan por un admin después).
@@ -36,9 +37,16 @@ export async function POST(request) {
                 uniqueCode = Math.random().toString(36).substring(2, 8).toUpperCase();
             }
 
+            const orgName   = type === 'solo' ? `Piloto: ${firstName}` : companyName;
+            const orgSlug   = await uniqueSlug(orgName, async (candidate) => {
+                const { data } = await supabaseAdmin
+                    .from('organizations').select('id').eq('slug', candidate).maybeSingle();
+                return !!data;
+            });
             const orgInsert = {
-                company_name: type === 'solo' ? `Piloto: ${firstName}` : companyName,
-                unique_code: uniqueCode,
+                company_name: orgName,
+                unique_code:  uniqueCode,
+                slug:         orgSlug,
             };
             // Guardar NIT también en tax_id si es una empresa
             if (normalizedRole === 'admin' && nit) {
@@ -54,9 +62,15 @@ export async function POST(request) {
             if (!code) {
                 // Sin código: crear org propia pendiente de vinculación
                 const fallbackCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+                const soloName    = `Piloto: ${firstName}`;
+                const soloSlug    = await uniqueSlug(soloName, async (c) => {
+                    const { data } = await supabaseAdmin.from('organizations').select('id').eq('slug', c).maybeSingle();
+                    return !!data;
+                });
                 const { data: org, error: orgErr } = await supabaseAdmin.from('organizations').insert([{
-                    company_name: `Piloto: ${firstName}`,
-                    unique_code: fallbackCode,
+                    company_name: soloName,
+                    unique_code:  fallbackCode,
+                    slug:         soloSlug,
                 }]).select().single();
                 if (orgErr) throw orgErr;
                 targetOrgId = org.id;

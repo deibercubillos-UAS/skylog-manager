@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { createClient } from '@/lib/supabaseServer';
 import { redirect } from 'next/navigation';
 import MissionControlClient from './MissionControlClient';
@@ -10,18 +11,48 @@ export default async function AuthorizePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
+  // IMPORTANTE: incluir subscription_plan en el SELECT — sin esto la verificación
+  // del plan más abajo fallaría y mandaba todos los planes pagos al fallback piloto
   const { data: profile } = await supabase
     .from('profiles')
-    .select('organization_id, role')
+    .select('organization_id, role, subscription_plan')
     .eq('id', user.id)
     .single();
 
   if (!['superadmin', 'admin', 'jefe_pilotos'].includes(profile?.role)) redirect('/dashboard');
 
-  // Plan piloto: redirigir a la herramienta simplificada de planificación
   const { data: org } = await supabase.from('organizations').select('subscription_plan').eq('id', profile.organization_id).single();
+  // Default a 'piloto' SOLO si ambos están null/undefined explícitamente.
+  // No redirigir automáticamente — renderizar un mensaje informativo para
+  // evitar ping-pong con /dashboard/plan-vuelo (esa misma página tiene su
+  // propio sidebar que llevaría aquí otra vez).
   const plan = org?.subscription_plan || profile?.subscription_plan || 'piloto';
-  if (plan === 'piloto') redirect('/dashboard/plan-vuelo');
+  if (plan === 'piloto') {
+    return (
+      <div className="max-w-xl mx-auto py-16 px-6 text-center animate-in fade-in duration-500">
+        <div className="size-16 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-orange-100">
+          <span className="material-symbols-outlined text-primary text-3xl">workspace_premium</span>
+        </div>
+        <p className="text-xs font-black uppercase tracking-[0.3em] text-primary mb-3">Función premium</p>
+        <h1 className="text-2xl md:text-3xl font-black text-navy uppercase tracking-tighter mb-3">
+          Programación avanzada de vuelos
+        </h1>
+        <p className="text-sm text-slate-500 leading-relaxed mb-8">
+          La gestión completa de misiones (Formato 100 UAEAC y autorizaciones)
+          está incluida en los planes <span className="font-black text-navy">Escuadrilla</span> en adelante.
+          Si solo necesitas generar el KMZ para AeroCivil, usa la herramienta gratuita.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link href="/dashboard/plan-vuelo" className="px-6 py-3 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20">
+            Ir a Planear Vuelo
+          </Link>
+          <Link href="/dashboard/subscription" className="px-6 py-3 bg-navy text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all">
+            Mejorar mi plan
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const [pilotsReq, dronesReq, orgReq] = await Promise.all([
     supabase.from('pilots').select('*').eq('organization_id', profile.organization_id).eq('is_active', true).order('name'),

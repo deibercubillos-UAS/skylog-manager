@@ -4,6 +4,39 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+export async function PATCH(request, { params }) {
+  try {
+    const { id } = await params;
+    if (!id) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+
+    const supabase = await createClientSSR();
+    const { user, orgId } = await getOrgContext(supabase);
+    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (!['superadmin', 'admin', 'gerente_sms'].includes(profile?.role)) {
+      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
+    }
+
+    const { category, label } = await request.json();
+    if (!label?.trim()) return NextResponse.json({ error: 'La descripción es obligatoria' }, { status: 400 });
+
+    const { data, error } = await supabase
+      .from('form_definitions')
+      .update({ category: category?.trim() || 'General', label: label.trim(), updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('organization_id', orgId)
+      .eq('form_type', 'sora')
+      .select()
+      .single();
+
+    if (error) throw error;
+    return NextResponse.json(data);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
 export async function DELETE(request, { params }) {
   try {
     const resolvedParams = await params;

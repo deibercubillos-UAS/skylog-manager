@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 
@@ -62,7 +63,7 @@ export default function VorMorPage() {
   // Config / definición de formulario
   const [vorDef, setVorDef] = useState(null);
   const [morDef, setMorDef] = useState(null);
-  const [configForm, setConfigForm] = useState({ type: 'VOR', title: '', description: '' });
+  const [configForm, setConfigForm] = useState({ type: 'VOR', title: '', description: '', custom_fields: [] });
   const [savingConfig, setSavingConfig] = useState(false);
 
   // Modal: campos editables
@@ -131,9 +132,13 @@ export default function VorMorPage() {
       const mor = defs?.find(d => d.type === 'MOR');
       setVorDef(vor || null);
       setMorDef(mor || null);
-      if (!configForm.title) {
-        setConfigForm({ type: 'VOR', title: vor?.title || '', description: vor?.description || '' });
-      }
+      setConfigForm(p => ({
+        ...p,
+        type:          p.type,
+        title:         (p.type === 'VOR' ? vor : mor)?.title || '',
+        description:   (p.type === 'VOR' ? vor : mor)?.description || '',
+        custom_fields: (p.type === 'VOR' ? vor : mor)?.custom_fields || [],
+      }));
     }
     loadDefs();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -181,25 +186,34 @@ export default function VorMorPage() {
 
   // ── Guardar config formulario ────────────────────────────────────────────────
   const handleSaveConfig = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     if (!configForm.title.trim()) return toast.error('El título es obligatorio');
     setSavingConfig(true);
     const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch('/api/vor-mor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify(configForm),
+      body: JSON.stringify({
+        type:          configForm.type,
+        title:         configForm.title,
+        description:   configForm.description,
+        custom_fields: configForm.custom_fields || [],
+      }),
     });
     if (res.ok) {
       toast.success(`Formulario ${configForm.type} guardado`);
-      // refrescar defs
       const { data: defs } = await supabase.from('vor_mor_definitions')
         .select('*').eq('organization_id', profile.organization_id);
-      setVorDef(defs?.find(d => d.type === 'VOR') || null);
-      setMorDef(defs?.find(d => d.type === 'MOR') || null);
+      const vorUpdated = defs?.find(d => d.type === 'VOR') || null;
+      const morUpdated = defs?.find(d => d.type === 'MOR') || null;
+      setVorDef(vorUpdated);
+      setMorDef(morUpdated);
+      // actualizar custom_fields en el configForm con lo que viene de DB
+      const updated = defs?.find(d => d.type === configForm.type);
+      if (updated) setConfigForm(p => ({...p, custom_fields: updated.custom_fields || []}));
     } else {
-      const e = await res.json();
-      toast.error(e.error || 'Error al guardar');
+      const err = await res.json();
+      toast.error(err.error || 'Error al guardar');
     }
     setSavingConfig(false);
   };
@@ -222,6 +236,12 @@ export default function VorMorPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
+
+      {/* Botón regreso */}
+      <Link href="/dashboard/safety" className="inline-flex items-center gap-1.5 text-xs font-black text-slate-400 hover:text-slate-700 uppercase tracking-widest transition-colors">
+        <span className="material-symbols-outlined text-base">arrow_back</span>
+        Seguridad Operacional
+      </Link>
 
       {/* Header */}
       <header className="border-b border-slate-200 pb-5">
@@ -267,54 +287,14 @@ export default function VorMorPage() {
             </section>
           )}
 
-          {/* Editor de formulario */}
+          {/* Editor de formulario + campos personalizados */}
           {canEdit && (
-            <section className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">Configurar formulario</h3>
-
-              {/* Selector VOR / MOR */}
-              <div className="flex gap-3 mb-6">
-                {['VOR','MOR'].map(t => (
-                  <button key={t} type="button"
-                    onClick={() => {
-                      const def = t === 'VOR' ? vorDef : morDef;
-                      setConfigForm({ type: t, title: def?.title || '', description: def?.description || '' });
-                    }}
-                    className={`px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${configForm.type === t ? (t === 'VOR' ? 'bg-sky-600 text-white' : 'bg-rose-600 text-white') : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-                    {t}
-                  </button>
-                ))}
-              </div>
-
-              <form onSubmit={handleSaveConfig} className="space-y-4">
-                <div>
-                  <label className={LABEL}>Título del formulario *</label>
-                  <input required value={configForm.title} onChange={e => setConfigForm(p => ({...p, title: e.target.value}))} className={INPUT} placeholder={`Ej: Reporte Voluntario de Ocurrencia — ${configForm.type}`} />
-                </div>
-                <div>
-                  <label className={LABEL}>Descripción / instrucciones</label>
-                  <textarea rows={3} value={configForm.description} onChange={e => setConfigForm(p => ({...p, description: e.target.value}))} className={`${INPUT} resize-none`} placeholder="Texto de ayuda que verá el reportante al abrir el formulario..." />
-                </div>
-                <button type="submit" disabled={savingConfig}
-                  className="bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-black px-6 py-3 rounded-2xl text-xs uppercase tracking-widest transition-colors">
-                  {savingConfig ? 'Guardando...' : `Guardar formulario ${configForm.type}`}
-                </button>
-              </form>
-
-              {/* Estado actual */}
-              <div className="mt-6 grid grid-cols-2 gap-3 pt-5 border-t border-slate-100">
-                {[{ t: 'VOR', def: vorDef, color: 'sky' }, { t: 'MOR', def: morDef, color: 'rose' }].map(({ t, def, color }) => (
-                  <div key={t} className={`rounded-2xl px-4 py-3 border ${def ? (color === 'sky' ? 'bg-sky-50 border-sky-200' : 'bg-rose-50 border-rose-200') : 'bg-slate-50 border-slate-200'}`}>
-                    <p className="text-xs font-black uppercase text-slate-500">{t}</p>
-                    {def ? (
-                      <p className="text-xs text-slate-700 font-medium mt-1 truncate">{def.title}</p>
-                    ) : (
-                      <p className="text-xs text-slate-400 mt-1">No configurado</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
+            <FormBuilder
+              configForm={configForm} setConfigForm={setConfigForm}
+              vorDef={vorDef} morDef={morDef}
+              savingConfig={savingConfig} handleSaveConfig={handleSaveConfig}
+              INPUT={INPUT} LABEL={LABEL}
+            />
           )}
         </div>
       )}
@@ -456,6 +436,21 @@ export default function VorMorPage() {
                     </div>
                   )}
 
+                  {/* Respuestas a campos personalizados */}
+                  {selected.custom_responses && Object.keys(selected.custom_responses).length > 0 && (
+                    <div>
+                      <p className={LABEL}>Campos adicionales</p>
+                      <div className="space-y-2">
+                        {Object.entries(selected.custom_responses).map(([k, v]) => (
+                          <div key={k} className="bg-slate-50 rounded-xl px-3 py-2 border border-slate-100">
+                            <p className="text-xs text-slate-400 font-bold">{k}</p>
+                            <p className="text-sm text-slate-700 mt-0.5">{String(v)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Archivos adjuntos */}
                   {selected.attachments?.length > 0 && (
                     <div>
@@ -546,5 +541,247 @@ export default function VorMorPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  FormBuilder — editor de campos personalizados VOR/MOR
+// ─────────────────────────────────────────────────────────────────────────────
+const FIELD_TYPES = [
+  { value: 'text',     label: 'Texto corto' },
+  { value: 'textarea', label: 'Texto largo' },
+  { value: 'date',     label: 'Fecha' },
+  { value: 'select',   label: 'Selección (lista)' },
+  { value: 'checkbox', label: 'Casilla (sí/no)' },
+];
+
+function FormBuilder({ configForm, setConfigForm, vorDef, morDef, savingConfig, handleSaveConfig, INPUT, LABEL }) {
+  const [newField, setNewField] = useState({ label: '', type: 'text', required: false, placeholder: '', options: '' });
+  const [editFieldIdx, setEditFieldIdx] = useState(null);
+  const [editField, setEditField]       = useState(null);
+
+  const fields = configForm.custom_fields || [];
+
+  const switchType = (t) => {
+    const def = t === 'VOR' ? vorDef : morDef;
+    setConfigForm(p => ({
+      ...p,
+      type:          t,
+      title:         def?.title || '',
+      description:   def?.description || '',
+      custom_fields: def?.custom_fields || [],
+    }));
+    setEditFieldIdx(null);
+  };
+
+  const addField = () => {
+    if (!newField.label.trim()) return;
+    const field = {
+      id:          crypto.randomUUID(),
+      label:       newField.label.trim(),
+      type:        newField.type,
+      required:    newField.required,
+      placeholder: newField.placeholder.trim(),
+      options:     newField.type === 'select' ? newField.options.split('\n').map(o => o.trim()).filter(Boolean) : [],
+    };
+    setConfigForm(p => ({ ...p, custom_fields: [...(p.custom_fields || []), field] }));
+    setNewField({ label: '', type: 'text', required: false, placeholder: '', options: '' });
+  };
+
+  const removeField = (idx) => {
+    setConfigForm(p => ({ ...p, custom_fields: p.custom_fields.filter((_, i) => i !== idx) }));
+  };
+
+  const moveField = (idx, dir) => {
+    const arr = [...fields];
+    const target = idx + dir;
+    if (target < 0 || target >= arr.length) return;
+    [arr[idx], arr[target]] = [arr[target], arr[idx]];
+    setConfigForm(p => ({ ...p, custom_fields: arr }));
+  };
+
+  const startEditField = (idx) => {
+    const f = fields[idx];
+    setEditFieldIdx(idx);
+    setEditField({ ...f, options: (f.options || []).join('\n') });
+  };
+
+  const saveEditField = () => {
+    const updated = {
+      ...editField,
+      label:   editField.label.trim(),
+      options: editField.type === 'select' ? editField.options.split('\n').map(o => o.trim()).filter(Boolean) : [],
+    };
+    const arr = [...fields];
+    arr[editFieldIdx] = updated;
+    setConfigForm(p => ({ ...p, custom_fields: arr }));
+    setEditFieldIdx(null);
+    setEditField(null);
+  };
+
+  const FINPUT = 'w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400 transition-all';
+  const FLABEL = 'block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5';
+
+  return (
+    <section className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-6">
+      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Configurar formulario</h3>
+
+      {/* Selector VOR / MOR */}
+      <div className="flex gap-3">
+        {['VOR','MOR'].map(t => (
+          <button key={t} type="button" onClick={() => switchType(t)}
+            className={`px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${configForm.type === t ? (t === 'VOR' ? 'bg-sky-600 text-white' : 'bg-rose-600 text-white') : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {/* Título y descripción */}
+      <form onSubmit={handleSaveConfig} className="space-y-4">
+        <div>
+          <label className={FLABEL}>Título del formulario *</label>
+          <input required value={configForm.title} onChange={e => setConfigForm(p => ({...p, title: e.target.value}))} className={FINPUT} placeholder={`Ej: Reporte Voluntario — ${configForm.type}`} />
+        </div>
+        <div>
+          <label className={FLABEL}>Instrucciones para el reportante</label>
+          <textarea rows={2} value={configForm.description} onChange={e => setConfigForm(p => ({...p, description: e.target.value}))} className={`${FINPUT} resize-none`} placeholder="Texto de ayuda visible en el formulario público..." />
+        </div>
+
+        {/* ── Campos personalizados ── */}
+        <div className="border-t border-slate-100 pt-5">
+          <div className="flex items-center justify-between mb-4">
+            <label className={FLABEL + ' mb-0'}>Campos adicionales ({fields.length})</label>
+          </div>
+
+          {/* Lista de campos */}
+          {fields.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {fields.map((f, idx) => (
+                <div key={f.id}>
+                  {editFieldIdx === idx && editField ? (
+                    /* Modo edición inline */
+                    <div className="bg-sky-50 border-2 border-sky-300 rounded-2xl p-4 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className={FLABEL}>Etiqueta *</label>
+                          <input value={editField.label} onChange={e => setEditField(p => ({...p, label: e.target.value}))} className={FINPUT} />
+                        </div>
+                        <div>
+                          <label className={FLABEL}>Tipo</label>
+                          <select value={editField.type} onChange={e => setEditField(p => ({...p, type: e.target.value}))} className={FINPUT}>
+                            {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      {editField.type !== 'checkbox' && editField.type !== 'date' && (
+                        <div>
+                          <label className={FLABEL}>Placeholder</label>
+                          <input value={editField.placeholder || ''} onChange={e => setEditField(p => ({...p, placeholder: e.target.value}))} className={FINPUT} placeholder="Texto de ayuda dentro del campo..." />
+                        </div>
+                      )}
+                      {editField.type === 'select' && (
+                        <div>
+                          <label className={FLABEL}>Opciones (una por línea)</label>
+                          <textarea rows={3} value={editField.options || ''} onChange={e => setEditField(p => ({...p, options: e.target.value}))} className={`${FINPUT} resize-none`} placeholder={'Opción A\nOpción B\nOpción C'} />
+                        </div>
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={editField.required} onChange={e => setEditField(p => ({...p, required: e.target.checked}))} className="size-4 rounded" />
+                        <span className="text-xs font-black text-slate-600 uppercase tracking-widest">Campo obligatorio</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={saveEditField} className="flex-1 bg-sky-600 hover:bg-sky-500 text-white py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-colors">Guardar</button>
+                        <button type="button" onClick={() => { setEditFieldIdx(null); setEditField(null); }} className="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-xl text-xs font-black transition-colors">Cancelar</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 bg-slate-50 rounded-2xl px-4 py-3 border border-slate-100 group hover:border-sky-200 transition-all">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-slate-700">{f.label}</span>
+                        <span className="ml-2 text-xs text-slate-400">{FIELD_TYPES.find(t => t.value === f.type)?.label}</span>
+                        {f.required && <span className="ml-2 text-xs text-red-500 font-bold">*obligatorio</span>}
+                      </div>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button type="button" onClick={() => moveField(idx, -1)} disabled={idx === 0} className="text-slate-400 hover:text-slate-700 disabled:opacity-30 transition-colors">
+                          <span className="material-symbols-outlined text-base">arrow_upward</span>
+                        </button>
+                        <button type="button" onClick={() => moveField(idx, 1)} disabled={idx === fields.length - 1} className="text-slate-400 hover:text-slate-700 disabled:opacity-30 transition-colors">
+                          <span className="material-symbols-outlined text-base">arrow_downward</span>
+                        </button>
+                        <button type="button" onClick={() => startEditField(idx)} className="text-slate-400 hover:text-sky-600 transition-colors">
+                          <span className="material-symbols-outlined text-base">edit</span>
+                        </button>
+                        <button type="button" onClick={() => removeField(idx)} className="text-slate-400 hover:text-red-500 transition-colors">
+                          <span className="material-symbols-outlined text-base">delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Formulario nuevo campo */}
+          <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-3">
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Nuevo campo</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={FLABEL}>Etiqueta *</label>
+                <input value={newField.label} onChange={e => setNewField(p => ({...p, label: e.target.value}))} className={FINPUT} placeholder="Ej: Número de vuelo" />
+              </div>
+              <div>
+                <label className={FLABEL}>Tipo</label>
+                <select value={newField.type} onChange={e => setNewField(p => ({...p, type: e.target.value}))} className={FINPUT}>
+                  {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+            </div>
+            {newField.type !== 'checkbox' && newField.type !== 'date' && (
+              <input value={newField.placeholder} onChange={e => setNewField(p => ({...p, placeholder: e.target.value}))} className={FINPUT} placeholder="Placeholder (texto de ayuda en el campo)..." />
+            )}
+            {newField.type === 'select' && (
+              <textarea rows={3} value={newField.options} onChange={e => setNewField(p => ({...p, options: e.target.value}))} className={`${FINPUT} resize-none`} placeholder={'Opción A\nOpción B\nOpción C'} />
+            )}
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={newField.required} onChange={e => setNewField(p => ({...p, required: e.target.checked}))} className="size-4 rounded" />
+                <span className="text-xs font-black text-slate-600 uppercase tracking-widest">Obligatorio</span>
+              </label>
+              <button type="button" onClick={addField} disabled={!newField.label.trim()}
+                className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-colors">
+                <span className="material-symbols-outlined text-base">add</span>
+                Agregar campo
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" disabled={savingConfig}
+          className={`w-full disabled:opacity-50 text-white font-black py-3.5 rounded-2xl text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2 ${configForm.type === 'VOR' ? 'bg-sky-600 hover:bg-sky-500' : 'bg-rose-600 hover:bg-rose-500'}`}>
+          {savingConfig
+            ? <><span className="material-symbols-outlined animate-spin text-base">progress_activity</span> Guardando...</>
+            : <><span className="material-symbols-outlined text-base">save</span> Guardar formulario {configForm.type}</>
+          }
+        </button>
+      </form>
+
+      {/* Estado actual */}
+      <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100">
+        {[{ t: 'VOR', def: vorDef, color: 'sky' }, { t: 'MOR', def: morDef, color: 'rose' }].map(({ t, def, color }) => (
+          <div key={t} className={`rounded-2xl px-4 py-3 border ${def ? (color === 'sky' ? 'bg-sky-50 border-sky-200' : 'bg-rose-50 border-rose-200') : 'bg-slate-50 border-slate-200'}`}>
+            <p className="text-xs font-black uppercase text-slate-500">{t}</p>
+            {def ? (
+              <>
+                <p className="text-xs text-slate-700 font-medium mt-1 truncate">{def.title}</p>
+                <p className="text-xs text-slate-400">{(def.custom_fields || []).length} campos extra</p>
+              </>
+            ) : (
+              <p className="text-xs text-slate-400 mt-1">No configurado</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }

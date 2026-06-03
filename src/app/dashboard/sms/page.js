@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 
@@ -72,6 +73,12 @@ export default function SMSReportPage() {
 
   return (
     <div className="flex flex-col h-full -m-8 bg-[#f8f6f6] text-left animate-in fade-in duration-500 pb-20">
+      <div className="px-8 pt-5">
+        <Link href="/dashboard/safety" className="inline-flex items-center gap-1.5 text-xs font-black text-slate-400 hover:text-slate-700 uppercase tracking-widest transition-colors">
+          <span className="material-symbols-outlined text-base">arrow_back</span>
+          Seguridad Operacional
+        </Link>
+      </div>
       <header className="bg-white border-b border-slate-200 px-8 py-6 sticky top-0 z-40 flex justify-between items-center text-left">
         <div>
           <h2 className="text-2xl font-black text-[#1A202C] tracking-tight uppercase">Seguridad Operacional (SMS)</h2>

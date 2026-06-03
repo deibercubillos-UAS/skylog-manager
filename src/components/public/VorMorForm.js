@@ -34,6 +34,7 @@ export default function VorMorForm({ orgCode, type, orgName, formDef }) {
     description:         '',
     immediate_actions:   '',
     contributing_factors:'',
+    _custom:             {},   // campos personalizados {fieldId: value}
   });
 
   const set = (k) => (e) => setForm(prev => ({ ...prev, [k]: e.target.value }));
@@ -81,9 +82,11 @@ export default function VorMorForm({ orgCode, type, orgName, formDef }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
-          reporter_name:  form.reporter_name.trim()  || null,
-          reporter_email: form.reporter_email.trim() || null,
+          reporter_name:    form.reporter_name.trim()  || null,
+          reporter_email:   form.reporter_email.trim() || null,
           attachments,
+          custom_responses: form._custom || {},
+          _custom:          undefined,
         }),
       });
       const data = await res.json();
@@ -120,7 +123,7 @@ export default function VorMorForm({ orgCode, type, orgName, formDef }) {
             </div>
           )}
           <button
-            onClick={() => { setStep('form'); setFiles([]); setForm({ reporter_name:'',reporter_email:'',occurrence_date:'',occurrence_time:'',location:'',description:'',immediate_actions:'',contributing_factors:'' }); }}
+            onClick={() => { setStep('form'); setFiles([]); setForm({ reporter_name:'',reporter_email:'',occurrence_date:'',occurrence_time:'',location:'',description:'',immediate_actions:'',contributing_factors:'',_custom:{} }); }}
             className={`w-full ${c.bg} hover:opacity-90 text-white font-black py-3 rounded-2xl text-sm uppercase tracking-widest transition-opacity`}
           >
             Enviar otro reporte
@@ -219,6 +222,65 @@ export default function VorMorForm({ orgCode, type, orgName, formDef }) {
             <textarea rows={3} value={form.contributing_factors} onChange={set('contributing_factors')} className={`${INPUT} resize-none`} placeholder="Condiciones, factores humanos, técnicos u organizacionales..." />
           </div>
         </section>
+
+        {/* Campos personalizados por la org */}
+        {formDef?.custom_fields?.length > 0 && (
+          <section className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-5">Información adicional</h3>
+            <div className="space-y-4">
+              {formDef.custom_fields.map((field) => (
+                <div key={field.id}>
+                  <label className={LABEL}>
+                    {field.label}
+                    {field.required && <span className="text-red-500 ml-1">*</span>}
+                  </label>
+                  {field.type === 'textarea' ? (
+                    <textarea
+                      required={field.required}
+                      rows={3}
+                      className={`${INPUT} resize-none`}
+                      placeholder={field.placeholder || ''}
+                      value={form._custom?.[field.id] || ''}
+                      onChange={e => setForm(prev => ({ ...prev, _custom: { ...(prev._custom || {}), [field.id]: e.target.value } }))}
+                    />
+                  ) : field.type === 'select' ? (
+                    <select
+                      required={field.required}
+                      className={INPUT}
+                      value={form._custom?.[field.id] || ''}
+                      onChange={e => setForm(prev => ({ ...prev, _custom: { ...(prev._custom || {}), [field.id]: e.target.value } }))}
+                    >
+                      <option value="">Seleccionar...</option>
+                      {(field.options || []).map((opt, i) => (
+                        <option key={i} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  ) : field.type === 'checkbox' ? (
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        required={field.required}
+                        className="size-4 rounded"
+                        checked={!!form._custom?.[field.id]}
+                        onChange={e => setForm(prev => ({ ...prev, _custom: { ...(prev._custom || {}), [field.id]: e.target.checked } }))}
+                      />
+                      <span className="text-sm text-slate-700">{field.checkboxLabel || field.label}</span>
+                    </label>
+                  ) : (
+                    <input
+                      type={field.type === 'date' ? 'date' : 'text'}
+                      required={field.required}
+                      className={INPUT}
+                      placeholder={field.placeholder || ''}
+                      value={form._custom?.[field.id] || ''}
+                      onChange={e => setForm(prev => ({ ...prev, _custom: { ...(prev._custom || {}), [field.id]: e.target.value } }))}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Archivos adjuntos */}
         <section className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">

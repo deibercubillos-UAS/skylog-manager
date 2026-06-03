@@ -13,8 +13,8 @@ const SAFETY_MODULES = [
   {
     href:  '/dashboard/safety-config',
     icon:  'settings_input_component',
-    title: 'Formato SORA / Barreras',
-    desc:  'Configura plantillas de evaluación, barreras de seguridad y categorías de riesgo',
+    title: 'Barreras de Seguridad',
+    desc:  'Gestiona y edita las barreras operacionales y requerimientos de seguridad de tu organización',
     color: 'bg-blue-50 border-blue-200 text-blue-600',
     available: true,
   },

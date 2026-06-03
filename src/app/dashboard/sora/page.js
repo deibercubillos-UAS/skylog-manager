@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { sailRoman, sailColor } from '@/lib/soraEngine';
 
@@ -66,6 +67,12 @@ export default function SoraPage() {
       )}
 
       <div className="max-w-6xl mx-auto space-y-6 text-left animate-in fade-in duration-500 pb-20">
+
+        {/* Regreso */}
+        <Link href="/dashboard/safety" className="inline-flex items-center gap-1.5 text-xs font-black text-slate-400 hover:text-slate-700 uppercase tracking-widest transition-colors">
+          <span className="material-symbols-outlined text-base">arrow_back</span>
+          Seguridad Operacional
+        </Link>
 
         {/* ── Page header ─────────────────────────────────────── */}
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-slate-200 pb-4">

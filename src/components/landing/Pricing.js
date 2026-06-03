@@ -9,9 +9,9 @@ const PLANS_BASE = [
     name: 'Piloto',
     badge: null,
     tagline: 'Para el piloto autónomo',
-    monthlyAmount: 15000,
-    annualAmount:  150000,
-    trialDays:     60,
+    monthlyAmount: 20000,
+    annualAmount:  200000,
+    trialDays:     30,
     dark: false,
     popular: false,
     cta: 'Comenzar gratis',
@@ -120,7 +120,7 @@ function trialText(days) {
 }
 
 export default function Pricing() {
-  const [annual, setAnnual] = useState(true);
+  const [annual, setAnnual] = useState(false);
   const [prices, setPrices] = useState(null);
 
   useEffect(() => {
@@ -210,18 +210,6 @@ export default function Pricing() {
                     <p className={`text-4xl font-black ${plan.popular ? 'text-white' : 'text-navy'}`}>
                       A consultar
                     </p>
-                  ) : plan.trialDays ? (
-                    <>
-                      <p className={`text-4xl font-black ${plan.popular ? 'text-white' : 'text-navy'}`}>
-                        Gratis
-                      </p>
-                      <p className={`text-xs font-bold mt-1 ${plan.popular ? 'text-slate-400' : 'text-slate-500'}`}>
-                        {trialText(plan.trialDays)} gratis · luego{' '}
-                        <span className="font-black text-primary">
-                          {fmtCOP(displayAmount)}/mes
-                        </span>
-                      </p>
-                    </>
                   ) : (
                     <>
                       <div className="flex items-baseline gap-1">
@@ -235,6 +223,11 @@ export default function Pricing() {
                       {annual && plan.annualAmount && (
                         <p className={`text-xs font-bold mt-1 ${plan.popular ? 'text-slate-400' : 'text-slate-400'}`}>
                           Facturado {fmtCOP(plan.annualAmount)}/año
+                        </p>
+                      )}
+                      {plan.trialDays && (
+                        <p className={`text-xs font-bold mt-1 ${plan.popular ? 'text-slate-400' : 'text-slate-500'}`}>
+                          🎁 {trialText(plan.trialDays)} gratis al iniciar
                         </p>
                       )}
                     </>

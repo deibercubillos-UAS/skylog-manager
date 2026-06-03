@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 // Campos que se pueden actualizar en una aeronave.
 // Bloqueados: organization_id, owner_id, id, created_at.
 const ALLOWED_AIRCRAFT_FIELDS = [
-  'model', 'manufacturer', 'serial_number', 'registration_number',
+  'model', 'brand', 'serial_number', 'registration_number',
   'weight_grams', 'max_takeoff_weight', 'max_flight_time_min',
   'battery_type', 'drone_class', 'notes', 'status',
   'total_hours', 'last_maintenance_date', 'last_maintenance_hours',

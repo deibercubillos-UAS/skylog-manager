@@ -207,7 +207,7 @@ const STATUS_COLOR = {
   needs_aircraft: 'text-amber-500',
 };
 
-const EMPTY_AIRCRAFT = { model: '', manufacturer: 'DJI', serial_number: '', ruas: '', notes: '' };
+const EMPTY_AIRCRAFT = { model: '', brand: 'DJI', serial_number: '', ruas: '', notes: '' };
 
 export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
   const [state, setState] = useState('idle'); // idle | scanning | ready | uploading | done
@@ -908,8 +908,8 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
                 <div>
                   <label className="text-xs font-black uppercase text-slate-500 tracking-widest block mb-1">Fabricante</label>
                   <input
-                    value={aircraftForm.manufacturer}
-                    onChange={e => setAircraftForm(p => ({ ...p, manufacturer: e.target.value }))}
+                    value={aircraftForm.brand}
+                    onChange={e => setAircraftForm(p => ({ ...p, brand: e.target.value }))}
                     className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-400"
                   />
                 </div>

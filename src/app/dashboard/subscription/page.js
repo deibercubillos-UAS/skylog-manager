@@ -8,7 +8,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 
 // Fallback estático en COP (se sobreescribe con datos de la BD)
 const UPGRADE_PLANS_BASE = [
-  { key: 'piloto',       name: 'Piloto',       monthlyAmount: 15000,   annualAmount: 150000,   trialDays: 60,   limits: '1 drone · 1 usuario',    popular: false },
+  { key: 'piloto',       name: 'Piloto',       monthlyAmount: 20000,   annualAmount: 200000,   trialDays: 30,   limits: '1 drone · 1 usuario',    popular: false },
   { key: 'escuadrilla',  name: 'Escuadrilla',  monthlyAmount: 59000,   annualAmount: 590000,   trialDays: null, limits: '3 drones · 4 usuarios',   popular: false },
   { key: 'flota',        name: 'Flota',        monthlyAmount: 159000,  annualAmount: 1590000,  trialDays: null, limits: '15 drones · 15 usuarios',  popular: true  },
 ];

@@ -13,7 +13,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('aircraft')
-      .select('id,model,manufacturer,serial_number,total_hours,last_maintenance_date,last_maintenance_hours,status,image_url,ruas,created_at')
+      .select('id,model,brand,serial_number,total_hours,last_maintenance_date,last_maintenance_hours,status,image_url,ruas,created_at')
       .eq('organization_id', orgId)
       .order('created_at', { ascending: false });
 

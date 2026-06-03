@@ -1,10 +1,10 @@
 // src/lib/planLimits.js
 
-// Precios COP: piloto $15.000/mes ($150.000/año, 2 meses gratis) · escuadrilla $59.000/mes · flota $159.000/mes
+// Precios COP: piloto $20.000/mes ($200.000/año, 30 días gratis) · escuadrilla $59.000/mes · flota $159.000/mes
 export const PLAN_CONFIG = {
   piloto: {
     name: 'Plan Piloto',
-    price: { monthly: 15000, annual: 150000, freeMonths: 2 },
+    price: { monthly: 20000, annual: 200000, trialDays: 30 },
     allowedRoles: ['piloto'],
     maxDrones: 1,
     maxPilots: 1,
@@ -126,22 +126,22 @@ export const hasPermission = (role, action) => {
 export const EPAYCO_PLANS = {
   piloto: {
     monthly: {
-      amount:      15000,
-      taxBase:     12605,
-      tax:          2395,
-      trialDays:   60,
+      amount:      20000,
+      taxBase:     16807,
+      tax:          3193,
+      trialDays:   30,
       name:        'Bitafly Piloto Mensual',
       description: 'Suscripción mensual - Plan Piloto para operadores UAS individuales',
       epaycoId:    'piloto_mensual',
       planUid:     'a1e0914364d49714f06612a',
     },
     annual: {
-      amount:      150000,
-      taxBase:     126050,
-      tax:          23950,
-      trialDays:   60,
+      amount:      200000,
+      taxBase:     168067,
+      tax:          31933,
+      trialDays:   30,
       name:        'Bitafly Piloto Anual',
-      description: 'Suscripción anual - Plan Piloto (2 meses gratis incluidos)',
+      description: 'Suscripción anual - Plan Piloto (30 días gratis incluidos)',
       epaycoId:    'piloto_anual',
       planUid:     'a1e0935b41baa59fb014a78',
     },

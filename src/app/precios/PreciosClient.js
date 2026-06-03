@@ -25,7 +25,7 @@ const CROSS = () => (
 // Precios fallback en COP
 const PLANS_BASE = [
   {
-    key: 'piloto',     monthlyAmount: 15000,  annualAmount: 150000,  trialDays: 60,
+    key: 'piloto',     monthlyAmount: 20000,  annualAmount: 200000,  trialDays: 30,
     name: 'Piloto',    sub: 'Para el piloto autónomo',  tag: '1 aeronave · 1 usuario',
     cta: 'Comenzar gratis', ctaHref: '/registro', dark: false,
     features: [
@@ -157,15 +157,6 @@ export default function PreciosClient() {
               <div style={{ marginBottom: '8px' }}>
                 {plan.monthlyAmount === null ? (
                   <span style={{ fontSize: '24px', fontWeight: 900, color: plan.dark ? '#fff' : navy }}>A consultar</span>
-                ) : plan.trialDays ? (
-                  <>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                      <span style={{ fontSize: '32px', fontWeight: 900, color: plan.dark ? '#fff' : navy, lineHeight: 1.2 }}>Gratis</span>
-                    </div>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: plan.dark ? '#64748b' : '#94a3b8', marginTop: '4px' }}>
-                      {trialText(plan.trialDays)} gratis · luego <span style={{ fontWeight: 900, color: accent }}>{fmtCOP(dispAmount)}/mes</span>
-                    </div>
-                  </>
                 ) : (
                   <>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
@@ -175,6 +166,11 @@ export default function PreciosClient() {
                     {annual && plan.annualAmount && (
                       <div style={{ fontSize: '11px', fontWeight: 700, color: plan.dark ? '#64748b' : '#94a3b8', marginTop: '4px' }}>
                         Facturado {fmtCOP(plan.annualAmount)}/año
+                      </div>
+                    )}
+                    {plan.trialDays && (
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: accent, marginTop: '4px' }}>
+                        🎁 {trialText(plan.trialDays)} gratis al iniciar
                       </div>
                     )}
                   </>

@@ -238,7 +238,8 @@ const footerLinks = footerLinksAll.filter(link =>
         </nav>
 
         {/* PIE DE SIDEBAR */}
-        <div className="p-3 border-t border-white/5 bg-black/10 space-y-1 shrink-0">
+        {/* pb-20 lg:pb-3 → en mobile la barra inferior (h-16) tapa este bloque; el padding extra lo empuja arriba */}
+        <div className="p-3 pb-20 lg:pb-3 border-t border-white/5 bg-black/10 space-y-1 shrink-0">
           {/* ADMINISTRACIÓN COLAPSABLE */}
           <button
             onClick={() => setIsAdminOpen(!isAdminOpen)}

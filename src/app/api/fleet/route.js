@@ -34,6 +34,10 @@ export async function POST(request) {
     const { orgId, subscription_plan } = await getOrgContext(supabase);
     if (!orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
+    // owner_id es NOT NULL en la tabla aircraft — obtener el user actual
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
     const body = await request.json();
     const { aircraftData } = body;   // currentPlan ignorado: el plan se lee del servidor
 
@@ -52,7 +56,7 @@ export async function POST(request) {
 
     const { data, error } = await supabase
       .from('aircraft')
-      .insert([{ ...aircraftData, organization_id: orgId, status: 'Operativo' }])
+      .insert([{ ...aircraftData, owner_id: user.id, organization_id: orgId, status: 'Operativo' }])
       .select();
 
     if (error) throw error;

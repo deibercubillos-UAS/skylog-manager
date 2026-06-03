@@ -2,12 +2,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-// Visor oficial ArcGIS UAS — Aerocivil / UAEAC Colombia
+// Visor oficial ArcGIS — Aerocivil Colombia (restricciones UAS reales)
+// center: -74.1;4.5 = centro geográfico de Colombia · level=6 = país completo
 const ARCGIS_UAS_URL =
-  'https://uaeac.maps.arcgis.com/apps/webappviewer/index.html?id=d0b1b4a8e2f04c1d9c3b7e5a6f2d8c90';
+  'https://aerocivil.maps.arcgis.com/apps/instant/media/index.html?appid=b4be4d501c8d4bcabd0c35297521c16e&center=-74.1;4.5&level=6';
 
-// Fuente alternativa: visor público de zonas UAS Colombia
-const FALLBACK_AEROCIVIL_URL = 'https://www.aerocivil.gov.co/aerocivil/Paginas/Espacio-aereo.aspx';
+// Fallback si el iframe no carga
+const FALLBACK_AEROCIVIL_URL =
+  'https://aerocivil.maps.arcgis.com/apps/instant/media/index.html?appid=b4be4d501c8d4bcabd0c35297521c16e&center=-74.1;4.5&level=6';
 
 const RESTRICTION_TYPES = [
   {
@@ -145,8 +147,8 @@ export default function MapasRestriccionPage() {
           {!iframeError ? (
             <div className="relative bg-slate-100 border border-slate-200 rounded-3xl overflow-hidden" style={{ height: '600px' }}>
               <iframe
-                src="https://uaeac.maps.arcgis.com/apps/webappviewer/index.html"
-                title="Visor UAS Aerocivil Colombia"
+                src={ARCGIS_UAS_URL}
+                title="Visor UAS Aerocivil Colombia — Restricciones espacio aéreo"
                 className="w-full h-full border-0"
                 onError={() => setIframeError(true)}
                 allow="geolocation"
@@ -186,7 +188,7 @@ export default function MapasRestriccionPage() {
           {/* Abrir en nueva pestaña */}
           <div className="flex flex-wrap gap-3">
             <a
-              href="https://uaeac.maps.arcgis.com/apps/webappviewer/index.html"
+              href={ARCGIS_UAS_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-orange-300 hover:shadow-sm text-xs font-black uppercase tracking-wide text-slate-600 hover:text-orange-600 rounded-2xl transition-all"
@@ -195,13 +197,13 @@ export default function MapasRestriccionPage() {
               Abrir visor completo
             </a>
             <a
-              href="https://www.aerocivil.gov.co/aerocivil/Paginas/Espacio-aereo.aspx"
+              href="https://www.aerocivil.gov.co"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-orange-300 hover:shadow-sm text-xs font-black uppercase tracking-wide text-slate-600 hover:text-orange-600 rounded-2xl transition-all"
             >
               <span className="material-symbols-outlined text-sm">flight_takeoff</span>
-              Espacio aéreo Aerocivil
+              Portal Aerocivil
             </a>
           </div>
         </div>

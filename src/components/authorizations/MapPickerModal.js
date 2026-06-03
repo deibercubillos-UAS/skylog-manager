@@ -8,10 +8,6 @@ import {
   polylineLength, fmtMetres, fmtArea,
 } from '@/lib/kmlGenerator';
 
-// URL del visor oficial de restricciones UAS — Aerocivil Colombia
-const AEROCIVIL_VIEWER = (lat = 4.5, lng = -74.1, level = 10) =>
-  `https://aerocivil.maps.arcgis.com/apps/instant/media/index.html?appid=b4be4d501c8d4bcabd0c35297521c16e&center=${lng};${lat}&level=${level}`;
-
 // Fix Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -31,20 +27,6 @@ const TYPE_LABEL = {
   linear:  'Tramo Lineal',
   circle:  'Circunferencia',
 };
-
-// ─── MapCenterTracker — emite evento con centro actual del mapa ───────────────
-function MapCenterTracker({ onMove }) {
-  const map = useMap();
-  useEffect(() => {
-    const update = () => {
-      const c = map.getCenter();
-      onMove(c.lat, c.lng, map.getZoom());
-    };
-    map.on('moveend', update);
-    return () => map.off('moveend', update);
-  }, [map, onMove]);
-  return null;
-}
 
 // ─── MapController ────────────────────────────────────────────────────────────
 function MapController({ type, setTempPoints }) {
@@ -100,16 +82,10 @@ function GeoStats({ type, points, radius }) {
 
 // ─── Main modal ───────────────────────────────────────────────────────────────
 export default function MapPickerModal({ type, points, onSave, onClose }) {
-  const [tempPoints,       setTempPoints]       = useState(points || []);
-  const [radius,           setRadius]           = useState(500);
-  const [searchQuery,      setSearchQuery]      = useState('');
-  const [isSearching,      setIsSearching]      = useState(false);
-  const [showRestrictions, setShowRestrictions] = useState(false);
-  const [mapCenter,        setMapCenter]        = useState({ lat: 4.5, lng: -74.1, zoom: 6 });
-  const iframeRef = useRef(null);
-
-  // Reconstruye URL del iframe cada vez que el mapa se mueve (sincroniza Aerocivil con Leaflet)
-  const aerocivilUrl = AEROCIVIL_VIEWER(mapCenter.lat, mapCenter.lng, mapCenter.zoom);
+  const [tempPoints,  setTempPoints]  = useState(points || []);
+  const [radius,      setRadius]      = useState(500);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
 
   if (typeof window === 'undefined') return null;
 
@@ -172,29 +148,6 @@ export default function MapPickerModal({ type, points, onSave, onClose }) {
             )}
           </form>
 
-          {/* Restricciones UAS — toggle panel (desktop) / open tab (mobile) */}
-          <button
-            onClick={() => setShowRestrictions(v => !v)}
-            title="Ver restricciones Aerocivil"
-            className={`hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black uppercase tracking-tight transition-all active:scale-95 shrink-0 ${
-              showRestrictions
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-600'
-            }`}
-          >
-            <span className="material-symbols-outlined text-base">layers</span>
-            Restricciones
-          </button>
-          <a
-            href={AEROCIVIL_VIEWER(mapCenter.lat, mapCenter.lng, mapCenter.zoom)}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Ver restricciones Aerocivil"
-            className="md:hidden size-11 flex items-center justify-center rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-all active:scale-95 shrink-0"
-          >
-            <span className="material-symbols-outlined text-xl">layers</span>
-          </a>
-
           {/* Close — always size-11 touch target */}
           <button
             onClick={onClose}
@@ -250,102 +203,58 @@ export default function MapPickerModal({ type, points, onSave, onClose }) {
         </div>
       </header>
 
-      {/* ── Map + optional restrictions panel ──────────────────────────────── */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* ── Map (flex-1 fill) ───────────────────────────────────────────────── */}
+      <div className="flex-1 relative">
+        <MapContainer
+          center={[4.5709, -74.2973]}
+          zoom={6}
+          style={{ height: '100%', width: '100%' }}
+          zoomControl={true}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          />
+          <MapController type={type} setTempPoints={setTempPoints} />
+          <SearchFlyTo />
 
-        {/* Leaflet drawing map */}
-        <div className={`relative transition-all duration-300 ${showRestrictions ? 'w-1/2' : 'w-full'}`}>
-          <MapContainer
-            center={[4.5709, -74.2973]}
-            zoom={6}
-            style={{ height: '100%', width: '100%' }}
-            zoomControl={true}
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          {tempPoints.map((p, i) => <Marker key={i} position={p} />)}
+
+          {type === 'polygon' && tempPoints.length >= 3 && (
+            <Polygon
+              positions={tempPoints}
+              pathOptions={{ color: '#ec5b13', fillColor: '#ec5b13', fillOpacity: 0.25, weight: 2 }}
             />
-            <MapController type={type} setTempPoints={setTempPoints} />
-            <SearchFlyTo />
-            <MapCenterTracker onMove={(lat, lng, zoom) => setMapCenter({ lat, lng, zoom })} />
+          )}
+          {type === 'linear' && tempPoints.length >= 2 && (
+            <Polyline
+              positions={tempPoints}
+              pathOptions={{ color: '#ec5b13', weight: 4, dashArray: '6 3' }}
+            />
+          )}
+          {type === 'circle' && tempPoints.length === 1 && (
+            <Circle
+              center={tempPoints[0]}
+              radius={radius}
+              pathOptions={{ color: '#ec5b13', fillColor: '#ec5b13', fillOpacity: 0.25, weight: 2 }}
+            />
+          )}
+        </MapContainer>
 
-            {tempPoints.map((p, i) => <Marker key={i} position={p} />)}
-
-            {type === 'polygon' && tempPoints.length >= 3 && (
-              <Polygon
-                positions={tempPoints}
-                pathOptions={{ color: '#ec5b13', fillColor: '#ec5b13', fillOpacity: 0.25, weight: 2 }}
-              />
-            )}
-            {type === 'linear' && tempPoints.length >= 2 && (
-              <Polyline
-                positions={tempPoints}
-                pathOptions={{ color: '#ec5b13', weight: 4, dashArray: '6 3' }}
-              />
-            )}
-            {type === 'circle' && tempPoints.length === 1 && (
-              <Circle
-                center={tempPoints[0]}
-                radius={radius}
-                pathOptions={{ color: '#ec5b13', fillColor: '#ec5b13', fillOpacity: 0.25, weight: 2 }}
-              />
-            )}
-          </MapContainer>
-
-          {/* Status bar */}
-          <div className="absolute left-1/2 -translate-x-1/2 z-[600]
-                          bottom-[5.5rem] md:bottom-4
-                          bg-slate-900/90 text-white px-5 py-2.5 rounded-2xl
-                          text-xs font-black uppercase tracking-widest
-                          backdrop-blur-sm border border-white/10
-                          text-center max-w-[calc(100vw-2rem)] md:max-w-sm whitespace-nowrap">
-            {tempPoints.length === 0
-              ? TYPE_HINTS[type]
-              : `${tempPoints.length} punto${tempPoints.length !== 1 ? 's' : ''} marcado${tempPoints.length !== 1 ? 's' : ''}${!canConfirm ? ` · Faltan ${type === 'polygon' ? 3 - tempPoints.length : 2 - tempPoints.length} más` : ' ✓ Listo'}`}
-          </div>
-
-          {/* Geo stats */}
-          <GeoStats type={type} points={tempPoints} radius={radius} />
+        {/* Status bar — above bottom toolbar on mobile, bottom-4 on desktop */}
+        <div className="absolute left-1/2 -translate-x-1/2 z-[600]
+                        bottom-[5.5rem] md:bottom-4
+                        bg-slate-900/90 text-white px-5 py-2.5 rounded-2xl
+                        text-xs font-black uppercase tracking-widest
+                        backdrop-blur-sm border border-white/10
+                        text-center max-w-[calc(100vw-2rem)] md:max-w-sm">
+          {tempPoints.length === 0
+            ? TYPE_HINTS[type]
+            : `${tempPoints.length} punto${tempPoints.length !== 1 ? 's' : ''} marcado${tempPoints.length !== 1 ? 's' : ''}${!canConfirm ? ` · Faltan ${type === 'polygon' ? 3 - tempPoints.length : 2 - tempPoints.length} más` : ' ✓ Listo'}`}
         </div>
 
-        {/* ── ArcGIS Aerocivil restrictions panel (desktop only) ─────────────── */}
-        {showRestrictions && (
-          <div className="w-1/2 flex flex-col border-l border-slate-700 bg-slate-900">
-            {/* Panel header */}
-            <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 border-b border-slate-700 shrink-0">
-              <span className="material-symbols-outlined text-emerald-400 text-base">layers</span>
-              <span className="text-xs font-black uppercase tracking-widest text-emerald-300 flex-1">
-                Restricciones UAS — Aerocivil
-              </span>
-              <span className="text-xs text-slate-500 font-medium">Se sincroniza al mover</span>
-              <a
-                href={aerocivilUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="size-7 flex items-center justify-center rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-400 hover:text-white transition-colors"
-                title="Abrir en nueva pestaña"
-              >
-                <span className="material-symbols-outlined text-sm">open_in_new</span>
-              </a>
-              <button
-                onClick={() => setShowRestrictions(false)}
-                className="size-7 flex items-center justify-center rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-400 hover:text-white transition-colors"
-              >
-                <span className="material-symbols-outlined text-sm">close</span>
-              </button>
-            </div>
-            {/* iframe Aerocivil */}
-            <iframe
-              ref={iframeRef}
-              key={aerocivilUrl}
-              src={aerocivilUrl}
-              title="Restricciones espacio aéreo Aerocivil Colombia"
-              className="flex-1 border-0 w-full"
-              loading="lazy"
-              allow="geolocation"
-            />
-          </div>
-        )}
+        {/* Geo stats */}
+        <GeoStats type={type} points={tempPoints} radius={radius} />
       </div>
 
       {/* ── Mobile bottom action bar ─────────────────────────────────────────── */}

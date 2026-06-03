@@ -106,6 +106,25 @@ export default function PlanVueloPage() {
         </div>
       </header>
 
+      {/* BANNER — verificar restricciones antes de operar */}
+      <a
+        href="/dashboard/safety/mapas"
+        className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-2xl hover:bg-amber-100 hover:border-amber-300 transition-all group"
+      >
+        <span className="material-symbols-outlined text-amber-500 text-xl shrink-0">warning</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-black uppercase tracking-wide text-amber-700">
+            Verifica restricciones del espacio aéreo antes de operar
+          </p>
+          <p className="text-xs text-amber-600 mt-0.5">
+            Zonas prohibidas, CTR, TFR y espacio controlado Colombia · Aerocivil
+          </p>
+        </div>
+        <span className="material-symbols-outlined text-amber-400 group-hover:text-amber-600 text-base shrink-0 transition-colors">
+          arrow_forward
+        </span>
+      </a>
+
       {/* DATOS DE LA OPERACIÓN */}
       <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-6 space-y-5">
         <p className="text-xs font-black uppercase tracking-widest text-slate-400">Datos de la operación</p>

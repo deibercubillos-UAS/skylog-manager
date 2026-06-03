@@ -49,6 +49,7 @@ const EMPTY = {
   type: 'solo',
   role: 'admin',
   companyName: '',
+  nit: '',
   orgCode: '',
 };
 
@@ -318,22 +319,39 @@ export default function RegisterPage() {
                   </Field>
 
                   {form.role === 'admin' ? (
-                    <Field label="Nombre de la empresa" required>
-                      <input required placeholder="Ej: Aerial Colombia S.A.S." value={form.companyName} onChange={set('companyName')}
-                        className={INPUT} />
-                    </Field>
+                    <div className="space-y-4">
+                      <Field label="Nombre de la empresa" required>
+                        <input required placeholder="Ej: Aerial Colombia S.A.S." value={form.companyName} onChange={set('companyName')}
+                          className={INPUT} />
+                      </Field>
+                      <Field label="NIT de la empresa" required>
+                        <div className="relative">
+                          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">badge</span>
+                          <input
+                            required
+                            placeholder="Ej: 900123456-7"
+                            value={form.nit}
+                            onChange={(e) => setVal('nit', e.target.value.replace(/\s/g, ''))}
+                            className={`${INPUT} pl-12 font-mono font-black tracking-widest`}
+                          />
+                        </div>
+                        <p className="text-xs text-slate-400 font-medium mt-1.5 px-1">
+                          El NIT será el código de acceso que comparte con su tripulación.
+                        </p>
+                      </Field>
+                    </div>
                   ) : (
                     <div className="space-y-2">
-                      <Field label="Código de organización (opcional)">
+                      <Field label="NIT de la organización (código de acceso)">
                         <input
-                          placeholder="Ej: ORG-XXXX"
+                          placeholder="Ej: 900123456-7"
                           value={form.orgCode}
                           onChange={set('orgCode')}
-                          className={`${INPUT} uppercase font-black text-center tracking-widest text-primary placeholder:text-slate-300 placeholder:normal-case placeholder:tracking-normal placeholder:font-normal`}
+                          className={`${INPUT} font-mono font-black text-center tracking-widest text-primary placeholder:text-slate-300 placeholder:normal-case placeholder:tracking-normal placeholder:font-normal`}
                         />
                       </Field>
                       <p className="text-xs text-slate-400 font-medium px-1">
-                        Opcional — si no tienes el código ahora, tu administrador puede invitarte después desde el panel.
+                        Opcional — si no tienes el NIT ahora, tu administrador puede invitarte después desde el panel.
                       </p>
                     </div>
                   )}

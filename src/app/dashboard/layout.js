@@ -212,7 +212,7 @@ const footerLinks = footerLinksAll.filter(link =>
           </div>
           <div className="w-px h-6 bg-white/10 shrink-0" />
           <div className="flex flex-col text-right min-w-0">
-            <span className="text-xs font-black text-slate-500 uppercase tracking-tight leading-none">Org ID</span>
+            <span className="text-xs font-black text-slate-500 uppercase tracking-tight leading-none">NIT</span>
             <span className="text-xs font-mono font-bold text-white leading-none mt-0.5">
               {data.org?.unique_code || '---'}
             </span>

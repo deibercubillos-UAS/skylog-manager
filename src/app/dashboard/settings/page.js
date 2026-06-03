@@ -195,10 +195,10 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                     </div>
 
                     <div className="bg-[#1A202C] p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] text-white">
-                        <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em]">ID de Vinculación</p>
+                        <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em]">NIT · Código de acceso</p>
                         <p className="text-xl md:text-2xl font-mono font-black text-orange-500 mt-1">{org.unique_code}</p>
                         <p className="text-xs text-slate-400 mt-4 uppercase leading-tight italic">
-                            Proporcione este código a su tripulación para vincularlos a esta flota.
+                            Comparte este NIT con tu tripulación para que se vinculen a tu organización.
                         </p>
                     </div>
                 </div>

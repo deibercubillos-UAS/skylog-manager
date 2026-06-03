@@ -207,7 +207,7 @@ const STATUS_COLOR = {
   needs_aircraft: 'text-amber-500',
 };
 
-const EMPTY_AIRCRAFT = { model: '', brand: 'DJI', serial_number: '', ruas: '', notes: '' };
+const EMPTY_AIRCRAFT = { model: '', brand: 'DJI', serial_number: '', ruas: '' };
 
 export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
   const [state, setState] = useState('idle'); // idle | scanning | ready | uploading | done
@@ -378,7 +378,6 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
             ...EMPTY_AIRCRAFT,
             serial_number: data.serial ?? '',
             model:         data.modelo  ?? '',
-            notes:         data.nombre  ? `Nombre DJI: ${data.nombre}` : '',
           });
           setAircraftModal({ ...data, pendingFile: fileInfo });
           // Pausar el loop — el modal llama a continueImport cuando termine
@@ -457,7 +456,7 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
           setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'duplicate', result: data } : f));
         } else if (status === 404 && data.needs_aircraft) {
           setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'needs_aircraft', result: data } : f));
-          setAircraftForm({ ...EMPTY_AIRCRAFT, serial_number: data.serial ?? '', model: data.modelo ?? '', notes: data.nombre ? `Nombre DJI: ${data.nombre}` : '' });
+          setAircraftForm({ ...EMPTY_AIRCRAFT, serial_number: data.serial ?? '', model: data.modelo ?? '' });
           setAircraftModal({ ...data, pendingFile: fileInfo });
           return; // Pausar de nuevo
         } else {
@@ -931,12 +930,21 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
                   />
                 </div>
                 <div className="col-span-2">
-                  <label className="text-xs font-black uppercase text-slate-500 tracking-widest block mb-1">Notas</label>
-                  <input
-                    value={aircraftForm.notes}
-                    onChange={e => setAircraftForm(p => ({ ...p, notes: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  />
+                  <a
+                    href="/dashboard/fleet"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start gap-2.5 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2.5 hover:bg-orange-100 transition-all group"
+                  >
+                    <span className="material-symbols-outlined text-orange-500 text-base shrink-0 mt-0.5">build</span>
+                    <div>
+                      <p className="text-xs font-black text-orange-700 uppercase tracking-wide">Mantenimiento técnico</p>
+                      <p className="text-xs text-orange-600 font-medium leading-snug mt-0.5">
+                        Actualiza la fecha del último mantenimiento en <span className="font-black underline underline-offset-2 group-hover:text-orange-800">Flota → editar aeronave</span> después de crearla.
+                      </p>
+                    </div>
+                    <span className="material-symbols-outlined text-orange-400 text-sm shrink-0 mt-0.5 group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+                  </a>
                 </div>
               </div>
 

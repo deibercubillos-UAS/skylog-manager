@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import {
   generateKML, downloadKMZ,
@@ -49,8 +49,11 @@ function todayISO() {
 export default function PlanVueloPage() {
   const [geoType,     setGeoType]     = useState('polygon');
   const [opName,      setOpName]      = useState('');
-  const [flightDate,  setFlightDate]  = useState(todayISO());
+  const [flightDate,  setFlightDate]  = useState('');   // vacío en SSR; se llena en el cliente
   const [takeoffTime, setTakeoffTime] = useState('08:00');
+
+  // Inicializar la fecha en el cliente para evitar hydration mismatch UTC vs. zona local
+  useEffect(() => { setFlightDate(todayISO()); }, []);
   const [notes,       setNotes]       = useState('');
   const [altitude,    setAltitude]    = useState(120);
   const [mapOpen,     setMapOpen]     = useState(false);

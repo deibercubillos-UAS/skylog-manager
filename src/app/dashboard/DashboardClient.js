@@ -110,16 +110,23 @@ export default function DashboardClient() {
               const barHeight = Math.round((m.count / maxVal) * 100);
               return (
                 <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative h-full justify-end">
+                  {/* Valor: siempre visible en mobile, tooltip al hover en desktop */}
+                  {m.count > 0 && (
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                      {/* Mobile: badge permanente */}
+                      <span className="md:hidden text-[10px] font-black text-orange-600">
+                        {m.count}
+                      </span>
+                      {/* Desktop: tooltip hover */}
+                      <span className="hidden md:block bg-slate-900 text-white text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                        {m.count}
+                      </span>
+                    </div>
+                  )}
                   <div
                     className={`w-full max-w-[36px] rounded-t-lg transition-all duration-1000 ease-out shadow-sm ${m.count > 0 ? 'bg-orange-500' : 'bg-slate-100'}`}
                     style={{ height: m.count > 0 ? `${barHeight}%` : '3px' }}
-                  >
-                    {m.count > 0 && (
-                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        {m.count}
-                      </div>
-                    )}
-                  </div>
+                  />
                   <span className="text-xs font-black text-slate-400 uppercase">{m.label}</span>
                 </div>
               );

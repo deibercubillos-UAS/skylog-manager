@@ -170,7 +170,9 @@ export default function LogbookPage() {
                 </button>
 
                 {isEditing && (
-                    <div className="absolute z-50 top-full mt-1 left-0 bg-white rounded-2xl shadow-2xl border border-slate-100 py-1 min-w-[200px] max-h-60 overflow-y-auto">
+                    // right-0 en mobile evita que el dropdown se salga del borde derecho de pantalla (375px)
+                    // md:left-0 md:right-auto restaura el alineado izquierdo en desktop
+                    <div className="absolute z-50 top-full mt-1 right-0 md:left-0 md:right-auto bg-white rounded-2xl shadow-2xl border border-slate-100 py-1 min-w-[200px] max-h-60 overflow-y-auto">
                         <button
                             onClick={() => assignPilot(flight.id, null)}
                             className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-400 hover:bg-slate-50 italic"

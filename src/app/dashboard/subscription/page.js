@@ -6,34 +6,16 @@ import { supabase } from '@/lib/supabase';
 import EpaycoCheckout from '@/components/EpaycoCheckout';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
-const UPGRADE_PLANS = [
-  {
-    key: 'piloto',
-    name: 'Piloto',
-    monthly: '$15.000/mes',
-    annual: '$150.000/año',
-    annualSaving: '2 meses gratis',
-    limits: '1 drone · 1 usuario',
-    trial: '2 meses gratis al suscribirte',
-  },
-  {
-    key: 'escuadrilla',
-    name: 'Escuadrilla',
-    monthly: '$59.000/mes',
-    annual: '$590.000/año',
-    annualSaving: '2 meses gratis',
-    limits: '3 drones · 4 usuarios',
-  },
-  {
-    key: 'flota',
-    name: 'Flota',
-    monthly: '$159.000/mes',
-    annual: '$1.590.000/año',
-    annualSaving: '2 meses gratis',
-    limits: '15 drones · 15 usuarios',
-    popular: true,
-  },
+// Fallback estático en COP (se sobreescribe con datos de la BD)
+const UPGRADE_PLANS_BASE = [
+  { key: 'piloto',       name: 'Piloto',       monthlyAmount: 15000,   annualAmount: 150000,   trialDays: 60,   limits: '1 drone · 1 usuario',    popular: false },
+  { key: 'escuadrilla',  name: 'Escuadrilla',  monthlyAmount: 59000,   annualAmount: 590000,   trialDays: null, limits: '3 drones · 4 usuarios',   popular: false },
+  { key: 'flota',        name: 'Flota',        monthlyAmount: 159000,  annualAmount: 1590000,  trialDays: null, limits: '15 drones · 15 usuarios',  popular: true  },
 ];
+
+function fmtCOP(n) {
+  return '$' + Math.round(n).toLocaleString('es-CO');
+}
 
 export default function SubscriptionPage() {
   const [data, setData] = useState(null);
@@ -42,6 +24,25 @@ export default function SubscriptionPage() {
   const [billing, setBilling] = useState('monthly');
   const [cancelling,   setCancelling]   = useState(false);
   const [showCancelDlg, setShowCancelDlg] = useState(false);
+  const [planPrices, setPlanPrices] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/plans/public')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !d.error) setPlanPrices(d); })
+      .catch(() => {});
+  }, []);
+
+  const UPGRADE_PLANS = UPGRADE_PLANS_BASE.map(p => {
+    const pd = planPrices?.[p.key];
+    if (!pd) return p;
+    return {
+      ...p,
+      monthlyAmount: pd.monthly?.amount  ?? p.monthlyAmount,
+      annualAmount:  pd.annual?.amount   ?? p.annualAmount,
+      trialDays:     pd.monthly?.trialDays ?? pd.annual?.trialDays ?? p.trialDays,
+    };
+  });
 
   useEffect(() => {
     async function load() {
@@ -178,13 +179,19 @@ export default function SubscriptionPage() {
                 <div>
                   <p className="text-xs font-black uppercase tracking-widest text-slate-400">{plan.name}</p>
                   <p className="text-3xl font-black text-navy mt-1">
-                    {billing === 'annual' ? plan.annual : plan.monthly}
+                    {billing === 'annual'
+                      ? `${fmtCOP(plan.annualAmount / 12)}/mes`
+                      : `${fmtCOP(plan.monthlyAmount)}/mes`}
                   </p>
-                  {billing === 'annual' && plan.annualSaving && (
-                    <p className="text-xs text-emerald-600 font-black mt-1">✓ {plan.annualSaving}</p>
+                  {billing === 'annual' && plan.annualAmount && (
+                    <p className="text-xs text-emerald-600 font-black mt-1">
+                      ✓ Facturado {fmtCOP(plan.annualAmount)}/año
+                    </p>
                   )}
-                  {plan.trial && (
-                    <p className="text-xs text-primary font-bold mt-1">🎁 {plan.trial}</p>
+                  {plan.trialDays && (
+                    <p className="text-xs text-primary font-bold mt-1">
+                      🎁 {Math.round(plan.trialDays / 30)} meses gratis al suscribirte
+                    </p>
                   )}
                   <p className="text-xs font-black text-primary uppercase mt-2">{plan.limits}</p>
                 </div>

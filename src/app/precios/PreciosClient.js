@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 
@@ -22,94 +22,99 @@ const CROSS = () => (
   <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#e2e8f0', flexShrink: 0, marginTop: '1px' }}>remove_circle</span>
 );
 
+// Precios fallback en COP
+const PLANS_BASE = [
+  {
+    key: 'piloto',     monthlyAmount: 15000,  annualAmount: 150000,  trialDays: 60,
+    name: 'Piloto',    sub: 'Para el piloto autónomo',  tag: '1 aeronave · 1 usuario',
+    cta: 'Comenzar gratis', ctaHref: '/registro', dark: false,
+    features: [
+      { ok: true,  text: '1 aeronave registrada' },
+      { ok: true,  text: 'Bitácora RAC 100 ilimitada' },
+      { ok: true,  text: 'Alertas de mantenimiento' },
+      { ok: true,  text: 'Hasta 3 baterías' },
+      { ok: true,  text: 'Reporte PDF F-OPS-002' },
+      { ok: false, text: 'Autorizaciones F-OPS-001' },
+      { ok: false, text: 'SMS aeronáutico' },
+      { ok: false, text: 'Multi-usuario' },
+    ],
+  },
+  {
+    key: 'escuadrilla', monthlyAmount: 59000, annualAmount: 590000,  trialDays: null,
+    name: 'Escuadrilla', sub: 'Para pequeñas empresas', tag: '3 aeronaves · 4 usuarios',
+    cta: 'Comenzar ahora', ctaHref: '/registro', dark: false,
+    features: [
+      { ok: true,  text: 'Hasta 3 aeronaves' },
+      { ok: true,  text: 'Hasta 4 usuarios (3 roles)' },
+      { ok: true,  text: 'Bitácora RAC 100 ilimitada' },
+      { ok: true,  text: 'Baterías ilimitadas' },
+      { ok: true,  text: 'Autorizaciones F-OPS-001' },
+      { ok: true,  text: 'SMS básico' },
+      { ok: false, text: 'Auditoría completa' },
+      { ok: false, text: 'Checklists personalizados' },
+    ],
+  },
+  {
+    key: 'flota',      monthlyAmount: 159000, annualAmount: 1590000, trialDays: null,
+    name: 'Flota',     sub: 'Para empresas medianas', tag: '15 aeronaves · 15 usuarios',
+    cta: 'Comenzar ahora', ctaHref: '/registro', dark: true, popular: true,
+    features: [
+      { ok: true, text: 'Hasta 15 aeronaves' },
+      { ok: true, text: '15 usuarios · 5 roles RAC 100' },
+      { ok: true, text: 'Todos los reportes: F-OPS-002, F-MNT-003, F-HUM-005' },
+      { ok: true, text: 'SMS completo con trazabilidad' },
+      { ok: true, text: 'Auditoría y trazabilidad completa' },
+      { ok: true, text: 'Checklists personalizables' },
+      { ok: true, text: 'Soporte prioritario 12h' },
+    ],
+  },
+  {
+    key: 'enterprise', monthlyAmount: null, annualAmount: null, trialDays: null,
+    name: 'Enterprise', sub: 'Para grandes operadores', tag: 'Ilimitado',
+    cta: 'Contactar ventas', ctaHref: 'mailto:soporte@bitafly.com', dark: false,
+    features: [
+      { ok: true, text: 'Todo el plan Flota incluido' },
+      { ok: true, text: 'Aeronaves y usuarios ilimitados' },
+      { ok: true, text: 'White label / marca propia' },
+      { ok: true, text: 'API access + integraciones' },
+      { ok: true, text: 'SLA 99.9% garantizado' },
+      { ok: true, text: 'Soporte dedicado 24/7' },
+      { ok: true, text: 'Onboarding personalizado' },
+    ],
+  },
+];
+
+function fmtCOP(n) {
+  return '$' + Math.round(n).toLocaleString('es-CO');
+}
+
+function trialText(days) {
+  if (!days) return null;
+  const m = Math.round(days / 30);
+  return m === 1 ? '1 mes' : `${m} meses`;
+}
+
 export default function PreciosClient() {
   const [annual, setAnnual] = useState(false);
+  const [prices, setPrices] = useState(null);
 
-  const plans = [
-    {
-      key: 'piloto',
-      name: 'Piloto',
-      sub: 'Para el piloto autónomo',
-      price: 'Gratis',
-      priceNote: annual ? '6 meses · luego $4 USD/mes' : '6 meses · luego $5 USD/mes',
-      tag: '1 aeronave · 1 usuario',
-      cta: 'Comenzar gratis',
-      ctaHref: '/registro',
-      dark: false,
-      features: [
-        { ok: true, text: '1 aeronave registrada' },
-        { ok: true, text: 'Bitácora RAC 100 ilimitada' },
-        { ok: true, text: 'Alertas de mantenimiento' },
-        { ok: true, text: 'Hasta 3 baterías' },
-        { ok: true, text: 'Reporte PDF F-OPS-002' },
-        { ok: false, text: 'Autorizaciones F-OPS-001' },
-        { ok: false, text: 'SMS aeronáutico' },
-        { ok: false, text: 'Multi-usuario' },
-      ],
-    },
-    {
-      key: 'escuadrilla',
-      name: 'Escuadrilla',
-      sub: 'Para pequeñas empresas',
-      price: annual ? '$12' : '$15',
-      priceNote: annual ? 'Facturado $144/año' : 'USD/mes',
-      tag: '3 aeronaves · 4 usuarios',
-      cta: 'Comenzar ahora',
-      ctaHref: '/registro',
-      dark: false,
-      features: [
-        { ok: true, text: 'Hasta 3 aeronaves' },
-        { ok: true, text: 'Hasta 4 usuarios (3 roles)' },
-        { ok: true, text: 'Bitácora RAC 100 ilimitada' },
-        { ok: true, text: 'Baterías ilimitadas' },
-        { ok: true, text: 'Autorizaciones F-OPS-001' },
-        { ok: true, text: 'SMS básico' },
-        { ok: false, text: 'Auditoría completa' },
-        { ok: false, text: 'Checklists personalizados' },
-      ],
-    },
-    {
-      key: 'flota',
-      name: 'Flota',
-      sub: 'Para empresas medianas',
-      price: annual ? '$29' : '$39',
-      priceNote: annual ? 'Facturado $348/año' : 'USD/mes',
-      tag: '15 aeronaves · 15 usuarios',
-      cta: 'Comenzar ahora',
-      ctaHref: '/registro',
-      dark: true,
-      popular: true,
-      features: [
-        { ok: true, text: 'Hasta 15 aeronaves' },
-        { ok: true, text: '15 usuarios · 5 roles RAC 100' },
-        { ok: true, text: 'Todos los reportes: F-OPS-002, F-MNT-003, F-HUM-005' },
-        { ok: true, text: 'SMS completo con trazabilidad' },
-        { ok: true, text: 'Auditoría y trazabilidad completa' },
-        { ok: true, text: 'Checklists personalizables' },
-        { ok: true, text: 'Soporte prioritario 12h' },
-      ],
-    },
-    {
-      key: 'enterprise',
-      name: 'Enterprise',
-      sub: 'Para grandes operadores',
-      price: 'A consultar',
-      priceNote: '',
-      tag: 'Ilimitado',
-      cta: 'Contactar ventas',
-      ctaHref: 'mailto:soporte@bitafly.com',
-      dark: false,
-      features: [
-        { ok: true, text: 'Todo el plan Flota incluido' },
-        { ok: true, text: 'Aeronaves y usuarios ilimitados' },
-        { ok: true, text: 'White label / marca propia' },
-        { ok: true, text: 'API access + integraciones' },
-        { ok: true, text: 'SLA 99.9% garantizado' },
-        { ok: true, text: 'Soporte dedicado 24/7' },
-        { ok: true, text: 'Onboarding personalizado' },
-      ],
-    },
-  ];
+  useEffect(() => {
+    fetch('/api/plans/public')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data && !data.error) setPrices(data); })
+      .catch(() => {});
+  }, []);
+
+  const plans = PLANS_BASE.map(plan => {
+    const pd = prices?.[plan.key];
+    if (!pd) return plan;
+    return {
+      ...plan,
+      monthlyAmount: pd.monthly?.amount  ?? plan.monthlyAmount,
+      annualAmount:  pd.annual?.amount   ?? plan.annualAmount,
+      trialDays:     pd.monthly?.trialDays ?? pd.annual?.trialDays ?? plan.trialDays,
+    };
+  });
 
   return (
     <>
@@ -140,7 +145,9 @@ export default function PreciosClient() {
       {/* PRICING CARDS */}
       <section style={{ padding: '0 32px 80px', background: '#fff' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px', alignItems: 'start' }}>
-          {plans.map(plan => (
+          {plans.map(plan => {
+            const dispAmount = annual && plan.annualAmount ? plan.annualAmount / 12 : plan.monthlyAmount;
+            return (
             <div key={plan.key} style={{ background: plan.dark ? navy : '#fff', border: `1.5px solid ${plan.popular ? accent : '#e2e8f0'}`, borderRadius: '28px', padding: '28px', display: 'flex', flexDirection: 'column', position: 'relative', boxShadow: plan.popular ? '0 24px 48px rgba(26,32,44,0.25)' : 'none' }}>
               {plan.popular && (
                 <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', background: accent, color: '#fff', fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 14px', borderRadius: '9999px', whiteSpace: 'nowrap' }}>Más popular</div>
@@ -148,11 +155,30 @@ export default function PreciosClient() {
               <p style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: plan.dark ? accent : '#94a3b8', marginBottom: '4px' }}>{plan.name}</p>
               <p style={{ fontSize: '11px', color: plan.dark ? '#64748b' : '#94a3b8', marginBottom: '16px' }}>{plan.sub}</p>
               <div style={{ marginBottom: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                  <span style={{ fontSize: plan.price === 'A consultar' ? '24px' : '36px', fontWeight: 900, color: plan.dark ? '#fff' : navy, lineHeight: 1.2 }}>{plan.price}</span>
-                  {plan.key !== 'piloto' && plan.key !== 'enterprise' && <span style={{ fontSize: '11px', fontWeight: 700, color: plan.dark ? '#64748b' : '#94a3b8' }}>USD/mes</span>}
-                </div>
-                {plan.priceNote && <div style={{ fontSize: '11px', fontWeight: 700, color: plan.dark ? '#64748b' : '#94a3b8', marginTop: '4px' }}>{plan.priceNote}</div>}
+                {plan.monthlyAmount === null ? (
+                  <span style={{ fontSize: '24px', fontWeight: 900, color: plan.dark ? '#fff' : navy }}>A consultar</span>
+                ) : plan.trialDays ? (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                      <span style={{ fontSize: '32px', fontWeight: 900, color: plan.dark ? '#fff' : navy, lineHeight: 1.2 }}>Gratis</span>
+                    </div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: plan.dark ? '#64748b' : '#94a3b8', marginTop: '4px' }}>
+                      {trialText(plan.trialDays)} gratis · luego <span style={{ fontWeight: 900, color: accent }}>{fmtCOP(dispAmount)}/mes</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                      <span style={{ fontSize: '28px', fontWeight: 900, color: plan.dark ? '#fff' : navy, lineHeight: 1.2 }}>{fmtCOP(dispAmount)}</span>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: plan.dark ? '#64748b' : '#94a3b8' }}>/mes</span>
+                    </div>
+                    {annual && plan.annualAmount && (
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: plan.dark ? '#64748b' : '#94a3b8', marginTop: '4px' }}>
+                        Facturado {fmtCOP(plan.annualAmount)}/año
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
               <p style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', color: accent, marginBottom: '20px' }}>{plan.tag}</p>
               <Link href={plan.ctaHref} style={{ display: 'block', textAlign: 'center', padding: '12px', background: plan.popular ? accent : navy, color: '#fff', borderRadius: '14px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', textDecoration: 'none', marginBottom: '20px', boxShadow: plan.popular ? '0 4px 14px rgba(236,91,19,0.4)' : 'none' }}>
@@ -167,7 +193,7 @@ export default function PreciosClient() {
                 ))}
               </ul>
             </div>
-          ))}
+          ); })}
         </div>
       </section>
 

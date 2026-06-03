@@ -10,7 +10,7 @@ const DJI_API_KEY = process.env.DJI_API_KEY ?? null;
 export async function parseDjiTxtBuffer(buf) {
   if (!DJI_API_KEY) {
     throw new Error(
-      'DJI_API_KEY no está configurada en el servidor. Agrégala a .env.local:\n  DJI_API_KEY=tu_sdk_key'
+      'La importación DJI no está disponible en este momento. Contacta al soporte: soporte@bitafly.com'
     );
   }
 

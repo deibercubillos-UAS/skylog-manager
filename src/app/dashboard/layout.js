@@ -144,10 +144,10 @@ const navLinks = [
   { name: 'Programación',   icon: 'event_available',         href: '/dashboard/authorizations',  roles: ['superadmin', 'admin', 'jefe_pilotos'],            pilotHidden: true },
   { name: 'Bitácora',       icon: 'menu_book',               href: '/dashboard/logbook',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Reportes',       icon: 'assessment',              href: '/dashboard/reports',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
-  { name: 'Seguridad',      icon: 'health_and_safety',       href: '/dashboard/safety',          roles: ['superadmin', 'admin', 'gerente_sms'],                    pilotHidden: true },
+  { name: 'Seguridad Operacional', icon: 'health_and_safety', href: '/dashboard/safety',          roles: ['superadmin', 'admin', 'gerente_sms'],                    pilotHidden: true },
   { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
   { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
-  { name: 'Protocolos',     icon: 'rule',                    href: '/dashboard/settings/forms',  roles: ['superadmin', 'admin', 'gerente_sms'] },
+  { name: 'Listas de Chequeo', icon: 'rule',                 href: '/dashboard/settings/forms',  roles: ['superadmin', 'admin', 'gerente_sms'] },
 ];
 
 // FILTRAR por rol, plan y flags pilotOnly / pilotHidden

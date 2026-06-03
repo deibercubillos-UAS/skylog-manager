@@ -1,16 +1,17 @@
-﻿'use client';
-import { useState } from 'react';
+'use client';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-const PLANS = [
+// Precios estáticos de respaldo (COP). Se sobreescriben con datos de la BD.
+const PLANS_BASE = [
   {
     key: 'piloto',
     name: 'Piloto',
     badge: null,
     tagline: 'Para el piloto autónomo',
-    monthly: 5,
-    annual: 4,
-    freeMonths: 1,
+    monthlyAmount: 15000,
+    annualAmount:  150000,
+    trialDays:     60,
     dark: false,
     popular: false,
     cta: 'Comenzar gratis',
@@ -21,7 +22,7 @@ const PLANS = [
       '1 usuario (piloto)',
       'Bitácora digital RAC 100 ilimitada',
       'Alertas de mantenimiento básicas',
-      'Gestión de hasta 2 baterías',
+      'Gestión de hasta 3 baterías',
       'Reporte PDF Maestro de Vuelo',
       'Soporte por correo (48h)',
     ],
@@ -32,9 +33,9 @@ const PLANS = [
     name: 'Escuadrilla',
     badge: null,
     tagline: 'Para pequeñas empresas',
-    monthly: 15,
-    annual: 12,
-    freeMonths: null,
+    monthlyAmount: 59000,
+    annualAmount:  590000,
+    trialDays:     null,
     dark: false,
     popular: false,
     cta: 'Comenzar ahora',
@@ -58,9 +59,9 @@ const PLANS = [
     name: 'Flota',
     badge: 'Más popular',
     tagline: 'Para empresas medianas',
-    monthly: 39,
-    annual: 29,
-    freeMonths: null,
+    monthlyAmount: 159000,
+    annualAmount:  1590000,
+    trialDays:     null,
     dark: true,
     popular: true,
     cta: 'Comenzar ahora',
@@ -86,9 +87,9 @@ const PLANS = [
     name: 'Enterprise',
     badge: null,
     tagline: 'Para grandes operadores',
-    monthly: null,
-    annual: null,
-    freeMonths: null,
+    monthlyAmount: null,
+    annualAmount:  null,
+    trialDays:     null,
     dark: false,
     popular: false,
     cta: 'Contactar ventas',
@@ -108,8 +109,37 @@ const PLANS = [
   },
 ];
 
+function fmtCOP(n) {
+  return '$' + Math.round(n).toLocaleString('es-CO');
+}
+
+function trialText(days) {
+  if (!days) return null;
+  const m = Math.round(days / 30);
+  return m === 1 ? '1 mes' : `${m} meses`;
+}
+
 export default function Pricing() {
   const [annual, setAnnual] = useState(true);
+  const [prices, setPrices] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/plans/public')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data && !data.error) setPrices(data); })
+      .catch(() => {});
+  }, []);
+
+  const PLANS = PLANS_BASE.map(plan => {
+    const pd = prices?.[plan.key];
+    if (!pd) return plan;
+    return {
+      ...plan,
+      monthlyAmount: pd.monthly?.amount  ?? plan.monthlyAmount,
+      annualAmount:  pd.annual?.amount   ?? plan.annualAmount,
+      trialDays:     pd.monthly?.trialDays ?? pd.annual?.trialDays ?? plan.trialDays,
+    };
+  });
 
   return (
     <section id="precios" className="py-24 px-6 bg-[#f8f6f6]">
@@ -146,100 +176,106 @@ export default function Pricing() {
 
         {/* Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
-          {PLANS.map((plan) => (
-            <article
-              key={plan.key}
-              className={`relative flex flex-col rounded-[2rem] border p-8 transition-all ${
-                plan.popular
-                  ? 'bg-navy text-white border-primary shadow-2xl shadow-navy/20 xl:scale-105'
-                  : 'bg-white border-slate-200 hover:border-primary/30 hover:shadow-xl'
-              }`}
-            >
-              {plan.badge && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary text-white text-xs font-black uppercase tracking-widest px-4 py-1 rounded-full shadow-lg">
-                  {plan.badge}
-                </div>
-              )}
+          {PLANS.map((plan) => {
+            const displayAmount = annual && plan.annualAmount
+              ? plan.annualAmount / 12
+              : plan.monthlyAmount;
 
-              {/* Nombre y tagline */}
-              <p className={`text-xs font-black uppercase tracking-widest mb-1 ${plan.popular ? 'text-primary' : 'text-slate-400'}`}>
-                {plan.name}
-              </p>
-              <p className={`text-xs mb-5 ${plan.popular ? 'text-slate-400' : 'text-slate-500'}`}>
-                {plan.tagline}
-              </p>
-
-              {/* Precio */}
-              <div className="mb-2">
-                {plan.monthly === null ? (
-                  <p className={`text-4xl font-black ${plan.popular ? 'text-white' : 'text-navy'}`}>
-                    A consultar
-                  </p>
-                ) : plan.freeMonths ? (
-                  <>
-                    <p className={`text-4xl font-black ${plan.popular ? 'text-white' : 'text-navy'}`}>
-                      Gratis
-                    </p>
-                    <p className={`text-xs font-bold mt-1 ${plan.popular ? 'text-slate-400' : 'text-slate-500'}`}>
-                      {plan.freeMonths} mes gratis · luego{' '}
-                      <span className="font-black text-primary">
-                        ${annual ? plan.annual : plan.monthly} USD/mes
-                      </span>
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-baseline gap-1">
-                      <span className={`text-4xl font-black ${plan.popular ? 'text-white' : 'text-navy'}`}>
-                        ${annual ? plan.annual : plan.monthly}
-                      </span>
-                      <span className={`text-xs font-bold ${plan.popular ? 'text-slate-400' : 'text-slate-400'}`}>
-                        USD/mes
-                      </span>
-                    </div>
-                    {annual && (
-                      <p className={`text-xs font-bold mt-1 ${plan.popular ? 'text-slate-400' : 'text-slate-400'}`}>
-                        Facturado ${plan.annual * 12} USD/año
-                      </p>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* Límites */}
-              <p className={`text-xs font-black uppercase tracking-wider mb-6 ${plan.popular ? 'text-primary' : 'text-primary'}`}>
-                {plan.limits}
-              </p>
-
-              {/* CTA */}
-              <Link
-                href={plan.href}
-                className={`text-center py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all mb-8 ${
+            return (
+              <article
+                key={plan.key}
+                className={`relative flex flex-col rounded-[2rem] border p-8 transition-all ${
                   plan.popular
-                    ? 'bg-primary text-white hover:bg-orange-600 shadow-lg shadow-orange-500/20'
-                    : 'bg-navy text-white hover:bg-slate-800'
+                    ? 'bg-navy text-white border-primary shadow-2xl shadow-navy/20 xl:scale-105'
+                    : 'bg-white border-slate-200 hover:border-primary/30 hover:shadow-xl'
                 }`}
               >
-                {plan.cta}
-              </Link>
+                {plan.badge && (
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary text-white text-xs font-black uppercase tracking-widest px-4 py-1 rounded-full shadow-lg">
+                    {plan.badge}
+                  </div>
+                )}
 
-              {/* Features */}
-              <ul className="space-y-2.5 flex-1">
-                {plan.features.map((f) => (
-                  <li key={f} className={`flex items-start gap-2.5 text-xs ${plan.popular ? 'text-slate-300' : 'text-slate-600'}`}>
-                    <span className="material-symbols-outlined text-primary text-base shrink-0 mt-0.5">check_circle</span>
-                    {f}
-                  </li>
-                ))}
-                {plan.missing.map((f) => (
-                  <li key={f} className={`flex items-start gap-2.5 text-xs ${plan.popular ? 'text-slate-600' : 'text-slate-300'}`}>
-                    <span className="material-symbols-outlined text-slate-300 text-base shrink-0 mt-0.5">remove_circle</span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </article>
-          ))}
+                {/* Nombre y tagline */}
+                <p className={`text-xs font-black uppercase tracking-widest mb-1 ${plan.popular ? 'text-primary' : 'text-slate-400'}`}>
+                  {plan.name}
+                </p>
+                <p className={`text-xs mb-5 ${plan.popular ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {plan.tagline}
+                </p>
+
+                {/* Precio */}
+                <div className="mb-2">
+                  {plan.monthlyAmount === null ? (
+                    <p className={`text-4xl font-black ${plan.popular ? 'text-white' : 'text-navy'}`}>
+                      A consultar
+                    </p>
+                  ) : plan.trialDays ? (
+                    <>
+                      <p className={`text-4xl font-black ${plan.popular ? 'text-white' : 'text-navy'}`}>
+                        Gratis
+                      </p>
+                      <p className={`text-xs font-bold mt-1 ${plan.popular ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {trialText(plan.trialDays)} gratis · luego{' '}
+                        <span className="font-black text-primary">
+                          {fmtCOP(displayAmount)}/mes
+                        </span>
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline gap-1">
+                        <span className={`text-3xl font-black ${plan.popular ? 'text-white' : 'text-navy'}`}>
+                          {fmtCOP(displayAmount)}
+                        </span>
+                        <span className={`text-xs font-bold ${plan.popular ? 'text-slate-400' : 'text-slate-400'}`}>
+                          /mes
+                        </span>
+                      </div>
+                      {annual && plan.annualAmount && (
+                        <p className={`text-xs font-bold mt-1 ${plan.popular ? 'text-slate-400' : 'text-slate-400'}`}>
+                          Facturado {fmtCOP(plan.annualAmount)}/año
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Límites */}
+                <p className={`text-xs font-black uppercase tracking-wider mb-6 ${plan.popular ? 'text-primary' : 'text-primary'}`}>
+                  {plan.limits}
+                </p>
+
+                {/* CTA */}
+                <Link
+                  href={plan.href}
+                  className={`text-center py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all mb-8 ${
+                    plan.popular
+                      ? 'bg-primary text-white hover:bg-orange-600 shadow-lg shadow-orange-500/20'
+                      : 'bg-navy text-white hover:bg-slate-800'
+                  }`}
+                >
+                  {plan.cta}
+                </Link>
+
+                {/* Features */}
+                <ul className="space-y-2.5 flex-1">
+                  {plan.features.map((f) => (
+                    <li key={f} className={`flex items-start gap-2.5 text-xs ${plan.popular ? 'text-slate-300' : 'text-slate-600'}`}>
+                      <span className="material-symbols-outlined text-primary text-base shrink-0 mt-0.5">check_circle</span>
+                      {f}
+                    </li>
+                  ))}
+                  {plan.missing.map((f) => (
+                    <li key={f} className={`flex items-start gap-2.5 text-xs ${plan.popular ? 'text-slate-600' : 'text-slate-300'}`}>
+                      <span className="material-symbols-outlined text-slate-300 text-base shrink-0 mt-0.5">remove_circle</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            );
+          })}
         </div>
 
         {/* Banner certificación AeroCivil */}

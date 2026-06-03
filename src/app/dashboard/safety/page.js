@@ -24,7 +24,15 @@ const SAFETY_MODULES = [
     title: 'Reportes SMS',
     desc:  'Sistema de gestión de seguridad operacional — reporte de incidentes',
     color: 'bg-amber-50 border-amber-200 text-amber-600',
-    available: false,
+    available: true,
+  },
+  {
+    href:  '/dashboard/vor-mor',
+    icon:  'volunteer_activism',
+    title: 'VOR / MOR',
+    desc:  'Reportes Voluntarios y Obligatorios de Ocurrencia — formulario público con QR',
+    color: 'bg-sky-50 border-sky-200 text-sky-600',
+    available: true,
   },
   {
     href:  '#',

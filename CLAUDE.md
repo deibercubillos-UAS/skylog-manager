@@ -192,3 +192,71 @@ npm run lint         # ESLint (.eslintrc.json — v8, no flat config)
 
 Ejecutar `/graphify C:\Users\PC\Documents\skylog-manager` para regenerar.
 Ver `graphify-out/graph.html` para exploración visual interactiva.
+
+---
+
+## Rutas de importación — regla crítica
+
+Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están **dos niveles** por debajo de `src/app/api/public/`. El helper `_resolveOrg.js` vive en `src/app/api/public/`. Importar siempre con `'../../_resolveOrg'` (dos niveles), **nunca** `'../_resolveOrg'` (un nivel). Bugs de build en Vercel por este motivo en: `vor/`, `mor/`, `upload/`.
+
+---
+
+## Estado de fases (roadmap)
+
+| Fase | Descripción | Estado |
+|---|---|---|
+| 5a | Mapas de Restricción UAS — visor ArcGIS Aerocivil (`/dashboard/safety/mapas`) | ✅ Completada |
+| 5b | ArcGIS overlay en MapPickerModal (descartada — no intuitiva) | ❌ Revertida |
+| 5b alt | Banner de advertencia en Plan de Vuelo → link a `/dashboard/safety/mapas` | ✅ Completada |
+| 6 | Mobile UX audit y fixes (4 subphases: nav, sidebar, touch, DJI paths) | ✅ Completada |
+| 7 | PWA / Android app para controladores DJI Enterprise | ⏳ Pendiente |
+
+### Commits por fase
+
+| Fase | Commit | Descripción |
+|---|---|---|
+| 5a | `231ec8f` | Visor ArcGIS Aerocivil en Safety |
+| 5a fix | `211f240` | URL oficial Aerocivil corregida |
+| 5b revert | `90deadd` | Revert modal + banner plan-vuelo |
+| 6a | `5b83a29` | Bottom nav: relative, piloto plan, safe-area, FAB label |
+| 6a fix | `f134b59` | Sidebar footer tapado por bottom nav |
+| 6b | `eff23c6` | Tooltips gráfico touch + dropdown piloto overflow |
+| 6c | `9bb683f` | Rutas DJI verticales en mobile |
+
+### Fixes Fase 6 — resumen técnico
+
+| Fix | Archivo | Problema | Solución |
+|---|---|---|---|
+| `relative` en BottomNavItem | `layout.js` | Indicador activo flotaba fuera del ítem | Añadir `relative` al Link |
+| "Planear Vuelo" en bottom nav | `layout.js` | Plan piloto no tenía acceso rápido | Detectar `isPilotoPlan` y mostrar item "Planear" |
+| safe-area sidebar footer | `layout.js` | Logout tapado por bottom nav | `pb-20 lg:pb-3` en footer del sidebar |
+| safe-area contenido | `layout.js` | `pb-24` insuficiente en iPhone | `pb-28` cubre nav + home indicator |
+| FAB label | `layout.js` | Botón `+` sin contexto visual | Añadir label "Nuevo" bajo el ícono |
+| Tooltips gráfico touch | `DashboardClient.js` | `group-hover` invisible en mobile | Badge permanente en mobile, tooltip hover en desktop |
+| Dropdown piloto overflow | `logbook/page.js` | `left-0` se salía en 375px | `right-0 md:left-0` |
+| Rutas DJI mobile | `DjiRcSync.js` | Path horizontal desbordaba pantalla | Vertical list con ícono `subdirectory_arrow_right` en mobile |
+
+### Archivos clave por fase
+
+**Fase 5a/5b:**
+- `src/app/dashboard/safety/mapas/page.js` — visor ArcGIS (tabs: Visor / Referencia)
+- `src/app/dashboard/safety/page.js` — índice de Seguridad Operacional (5 módulos)
+- `src/app/dashboard/plan-vuelo/page.js` — banner ámbar pre-formulario (link a /safety/mapas)
+- `src/components/authorizations/MapPickerModal.js` — modal Leaflet LIMPIO (sin ArcGIS)
+
+**URL ArcGIS oficial Aerocivil:**
+```
+https://aerocivil.maps.arcgis.com/apps/instant/media/index.html?appid=b4be4d501c8d4bcabd0c35297521c16e&center=-74.1;4.5&level=6
+```
+
+---
+
+## Pendientes de infraestructura
+
+- [ ] Ejecutar en Supabase SQL:
+  ```sql
+  UPDATE epayco_plan_config SET amount = 20000, trial_days = 30, updated_at = now() WHERE plan_key = 'piloto' AND billing = 'monthly';
+  UPDATE epayco_plan_config SET amount = 200000, trial_days = 30, updated_at = now() WHERE plan_key = 'piloto' AND billing = 'annual';
+  ```
+- [ ] Agregar `DJI_API_KEY` a variables de entorno de Vercel
+- [ ] Agregar `NEXT_PUBLIC_APP_URL` a variables de entorno de Vercel

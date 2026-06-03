@@ -1,5 +1,5 @@
 ﻿'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import ExcelJS from 'exceljs';
 import DjiRcSync from '@/components/DjiRcSync';
 
@@ -72,6 +72,7 @@ async function downloadTemplate() {
 // Panel principal
 // ──────────────────────────────────────────────
 export default function LogbookImportPanel({ onClose, onSuccess }) {
+  const [isMobile, setIsMobile] = useState(false);
   const [mode, setMode] = useState('excel'); // excel | dji
   const [step, setStep] = useState('upload'); // upload | preview | done
   const [file, setFile] = useState(null);
@@ -80,6 +81,12 @@ export default function LogbookImportPanel({ onClose, onSuccess }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const inputRef = useRef();
+
+  useEffect(() => {
+    const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    setIsMobile(mobile);
+    if (mobile) setMode('dji');
+  }, []);
 
   const ALLOWED_EXCEL_MIME = [
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
@@ -180,10 +187,14 @@ export default function LogbookImportPanel({ onClose, onSuccess }) {
         <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100">
           <div>
             <h2 className="text-xl font-black uppercase tracking-tighter text-navy">
-              {mode === 'dji' ? 'Importar desde DJI RC' : 'Importar Bitácora Histórica'}
+              {mode === 'dji'
+                ? (isMobile ? 'Importar vuelos DJI' : 'Importar desde DJI RC')
+                : 'Importar Bitácora Histórica'}
             </h2>
             <p className="text-xs text-slate-400 font-bold mt-0.5">
-              {mode === 'dji' ? 'Conecta el RC por USB-C y selecciona la carpeta FlightRecord' : 'Solo se aceptan fechas anteriores a hoy'}
+              {mode === 'dji'
+                ? (isMobile ? 'Selecciona los archivos .txt de la carpeta FlightRecord' : 'Conecta el RC por USB-C y selecciona la carpeta FlightRecord')
+                : 'Solo se aceptan fechas anteriores a hoy'}
             </p>
           </div>
           <button
@@ -194,37 +205,39 @@ export default function LogbookImportPanel({ onClose, onSuccess }) {
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-slate-100 px-8">
-          <button
-            onClick={() => setMode('excel')}
-            className={`flex items-center gap-1.5 pb-3 pt-4 pr-6 text-xs font-black uppercase tracking-widest border-b-2 transition-all ${
-              mode === 'excel'
-                ? 'border-orange-500 text-orange-600'
-                : 'border-transparent text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <span className="material-symbols-outlined text-sm">table_chart</span>
-            Excel / CSV
-          </button>
-          <button
-            onClick={() => setMode('dji')}
-            className={`flex items-center gap-1.5 pb-3 pt-4 pr-6 text-xs font-black uppercase tracking-widest border-b-2 transition-all ${
-              mode === 'dji'
-                ? 'border-orange-500 text-orange-600'
-                : 'border-transparent text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <span className="material-symbols-outlined text-sm">flight_takeoff</span>
-            DJI RC
-          </button>
-        </div>
+        {/* Tabs — solo en desktop */}
+        {!isMobile && (
+          <div className="flex border-b border-slate-100 px-8">
+            <button
+              onClick={() => setMode('excel')}
+              className={`flex items-center gap-1.5 pb-3 pt-4 pr-6 text-xs font-black uppercase tracking-widest border-b-2 transition-all ${
+                mode === 'excel'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <span className="material-symbols-outlined text-sm">table_chart</span>
+              Excel / CSV
+            </button>
+            <button
+              onClick={() => setMode('dji')}
+              className={`flex items-center gap-1.5 pb-3 pt-4 pr-6 text-xs font-black uppercase tracking-widest border-b-2 transition-all ${
+                mode === 'dji'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <span className="material-symbols-outlined text-sm">flight_takeoff</span>
+              DJI RC
+            </button>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto p-8 space-y-6">
 
           {/* ── TAB DJI ── */}
           {mode === 'dji' && (
-            <DjiRcSync onImported={onSuccess} />
+            <DjiRcSync onImported={onSuccess} isMobile={isMobile} />
           )}
 
           {/* ── TAB EXCEL ── */}

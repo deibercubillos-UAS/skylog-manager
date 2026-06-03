@@ -1,6 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
+// Instrucciones para desktop (copiar al PC primero)
 const DEVICE_INSTRUCTIONS = {
   rc: {
     label: 'DJI RC',
@@ -86,6 +87,48 @@ const DEVICE_INSTRUCTIONS = {
   },
 };
 
+// Instrucciones para mobile (el usuario está EN el celular)
+const MOBILE_DEVICE_INSTRUCTIONS = {
+  android: {
+    label: 'Android',
+    icon: 'android',
+    steps: [
+      {
+        title: 'Abre el administrador de archivos',
+        detail: 'Usa "Files by Google" o el explorador de archivos nativo de tu celular.',
+      },
+      {
+        title: 'Navega a la carpeta de logs DJI',
+        path: 'Almacenamiento interno → Android → data → dji.go.v5 → files → FlightRecord',
+        note: 'En Android 11+ esta carpeta puede estar restringida vía USB. Usa "Files by Google" → Buscar "FlightRecord", o copia los archivos .txt a la carpeta Descargas.',
+      },
+      {
+        title: 'Toca "Seleccionar archivos" y elige los archivos .txt',
+        detail: 'Navega hasta la carpeta FlightRecord y selecciona los que quieres importar.',
+      },
+    ],
+  },
+  iphone: {
+    label: 'iPhone',
+    icon: 'phone_iphone',
+    steps: [
+      {
+        title: 'Toca "Seleccionar archivos" abajo',
+        detail: 'Se abrirá el selector de archivos del iPhone (app Archivos).',
+      },
+      {
+        title: 'Navega a la carpeta de logs DJI',
+        path: 'En mi iPhone → DJI Fly → FlightRecord',
+        detail: 'Si no ves "En mi iPhone", toca "Explorar" en la parte inferior del selector de archivos.',
+      },
+      {
+        title: 'Selecciona los archivos .txt que quieres importar',
+        detail: 'Mantén presionado para seleccionar múltiples archivos a la vez.',
+      },
+    ],
+  },
+};
+
 // Extrae YYYY-MM-DD del nombre: FlightRecord_2026-05-01_[18-17-11].txt
 function dateFromName(name) {
   const m = name.match(/(\d{4}-\d{2}-\d{2})/);
@@ -166,18 +209,29 @@ const STATUS_COLOR = {
 
 const EMPTY_AIRCRAFT = { model: '', manufacturer: 'DJI', serial_number: '', ruas: '', notes: '' };
 
-export default function DjiRcSync({ onImported }) {
+export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
   const [state, setState] = useState('idle'); // idle | scanning | ready | uploading | done
   const [device, setDevice] = useState('rc'); // rc | android | iphone
   const [files, setFiles] = useState([]);
   const [error, setError] = useState('');
   const [results, setResults] = useState(null);
+  const [isMobile, setIsMobile] = useState(isMobileProp ?? false);
+  const mobileInputRef = useRef(null);
 
   // Modal crear aeronave
   const [aircraftModal, setAircraftModal] = useState(null); // null | { serial, modelo, nombre, pendingFile }
   const [aircraftForm, setAircraftForm] = useState(EMPTY_AIRCRAFT);
   const [creatingAircraft, setCreatingAircraft] = useState(false);
   const [aircraftError, setAircraftError] = useState('');
+
+  useEffect(() => {
+    const mobile = isMobileProp ?? /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    setIsMobile(mobile);
+    if (mobile) {
+      // Auto-detectar tipo de dispositivo
+      setDevice(/iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'iphone' : 'android');
+    }
+  }, [isMobileProp]);
 
   const isSupported =
     typeof window !== 'undefined' && 'showDirectoryPicker' in window;
@@ -280,7 +334,8 @@ export default function DjiRcSync({ onImported }) {
 
   // ── Subir un archivo individual, devuelve { ok, skipped, needsAircraft, data } ──
   const uploadFile = async (fileInfo) => {
-    const fileObj = await fileInfo.handle.getFile();
+    // fileObj puede venir directo (mobile) o desde un handle (desktop)
+    const fileObj = fileInfo.fileObj ?? await fileInfo.handle.getFile();
     const fd = new FormData();
     fd.append('file', fileObj, fileInfo.name);
     const res  = await fetch('/api/logbook/import-dji', { method: 'POST', body: fd });
@@ -454,6 +509,44 @@ export default function DjiRcSync({ onImported }) {
     }
   };
 
+  // ── Selección de archivos en mobile (input[type=file]) ───────
+  const handleMobileFileSelect = async (e) => {
+    const selectedFiles = Array.from(e.target.files ?? []);
+    // Limpiar input para que el usuario pueda volver a seleccionar los mismos archivos
+    if (mobileInputRef.current) mobileInputRef.current.value = '';
+    if (!selectedFiles.length) return;
+
+    const txtFiles = selectedFiles.filter(f => /\.txt$/i.test(f.name));
+    if (!txtFiles.length) {
+      setError('No se encontraron archivos .txt de DJI. Asegúrate de seleccionar los archivos de la carpeta FlightRecord.');
+      return;
+    }
+
+    setState('scanning');
+    const found = txtFiles.map(fileObj => ({
+      name:     fileObj.name,
+      fileObj,          // File object directo (no handle)
+      handle:   null,
+      selected: true,
+      status:   'pending',
+      result:   null,
+    }));
+
+    found.sort((a, b) => b.name.localeCompare(a.name));
+
+    const existingSet = await checkExisting(found);
+    const withStatus = found.map(f => {
+      const date = dateFromName(f.name);
+      const time = timeFromName(f.name);
+      const key  = date && time ? `${date}|${time}` : null;
+      const isDuplicate = key && existingSet.has(key);
+      return { ...f, selected: !isDuplicate, status: isDuplicate ? 'duplicate' : 'pending' };
+    });
+
+    setFiles(withStatus);
+    setState('ready');
+  };
+
   // ── Reiniciar ─────────────────────────────────────────────────
   const handleReset = () => {
     setState('idle');
@@ -464,8 +557,8 @@ export default function DjiRcSync({ onImported }) {
 
   const selectedCount = files.filter(f => f.selected && f.status === 'pending').length;
 
-  // ── Browser no compatible ─────────────────────────────────────
-  if (!isSupported) {
+  // ── Browser no compatible (solo desktop sin showDirectoryPicker) ──
+  if (!isSupported && !isMobile) {
     return (
       <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center space-y-3">
         <span className="material-symbols-outlined text-4xl text-amber-500 block">browser_not_supported</span>
@@ -480,6 +573,12 @@ export default function DjiRcSync({ onImported }) {
     );
   }
 
+  // ── Seleccionar instrucciones según modo ──────────────────────
+  const activeInstructions = isMobile ? MOBILE_DEVICE_INSTRUCTIONS : DEVICE_INSTRUCTIONS;
+  const activeTabs = isMobile
+    ? Object.entries(MOBILE_DEVICE_INSTRUCTIONS)
+    : Object.entries(DEVICE_INSTRUCTIONS);
+
   return (
     <div className="space-y-5">
 
@@ -489,7 +588,7 @@ export default function DjiRcSync({ onImported }) {
 
           {/* Tabs */}
           <div className="flex border-b border-slate-200 bg-slate-50">
-            {Object.entries(DEVICE_INSTRUCTIONS).map(([key, dev]) => (
+            {activeTabs.map(([key, dev]) => (
               <button
                 key={key}
                 onClick={() => setDevice(key)}
@@ -508,7 +607,7 @@ export default function DjiRcSync({ onImported }) {
           {/* Contenido del tab activo */}
           <div className="p-5 space-y-3 bg-white">
             <ol className="space-y-3">
-              {DEVICE_INSTRUCTIONS[device].steps.map((step, i) => (
+              {(activeInstructions[device] ?? Object.values(activeInstructions)[0]).steps.map((step, i) => (
                 <li key={i} className="flex gap-3">
                   <span className="shrink-0 w-5 h-5 rounded-full bg-orange-100 text-orange-600 text-xs font-black flex items-center justify-center mt-0.5">
                     {i + 1}
@@ -539,18 +638,20 @@ export default function DjiRcSync({ onImported }) {
               ))}
             </ol>
 
-            <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100">
-              <span className="material-symbols-outlined text-slate-400 text-sm">info</span>
-              <p className="text-xs text-slate-400 font-medium">
-                El navegador no puede leer dispositivos USB directamente — es necesario copiar la carpeta al PC primero.
-              </p>
-            </div>
+            {!isMobile && (
+              <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100">
+                <span className="material-symbols-outlined text-slate-400 text-sm">info</span>
+                <p className="text-xs text-slate-400 font-medium">
+                  El navegador no puede leer dispositivos USB directamente — es necesario copiar la carpeta al PC primero.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* ── Botón principal ────────────────────────────────────── */}
-      {state === 'idle' && (
+      {state === 'idle' && !isMobile && (
         <button
           onClick={handleSelectFolder}
           className="w-full py-5 bg-navy text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl hover:bg-slate-700 transition-all active:scale-95 flex items-center justify-center gap-2"
@@ -558,6 +659,27 @@ export default function DjiRcSync({ onImported }) {
           <span className="material-symbols-outlined text-sm">folder_open</span>
           Seleccionar carpeta FlightRecord
         </button>
+      )}
+
+      {/* ── Botón mobile ───────────────────────────────────────── */}
+      {state === 'idle' && isMobile && (
+        <>
+          <input
+            ref={mobileInputRef}
+            type="file"
+            multiple
+            accept=".txt"
+            className="hidden"
+            onChange={handleMobileFileSelect}
+          />
+          <button
+            onClick={() => mobileInputRef.current?.click()}
+            className="w-full py-5 bg-navy text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined text-sm">upload_file</span>
+            Seleccionar archivos DJI
+          </button>
+        </>
       )}
 
       {/* ── Escaneando ──────────────────────────────────────────── */}

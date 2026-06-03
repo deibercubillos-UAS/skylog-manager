@@ -616,19 +616,40 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
                     {step.detail && (
                       <p className="text-xs text-slate-500 font-medium leading-relaxed">{step.detail}</p>
                     )}
-                    {step.path && (
-                      <code className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded-lg font-mono block leading-relaxed mt-1">
-                        {step.path.split('→').map((seg, j, arr) => (
-                          <span key={j}>
-                            {j > 0 && <span className="text-slate-400 mx-1">→</span>}
-                            <span className={j === arr.length - 1 ? 'font-black text-orange-600' : ''}>{seg.trim()}</span>
-                          </span>
-                        ))}
-                      </code>
-                    )}
+                    {step.path && (() => {
+                      const segments = step.path.split('→').map(s => s.trim());
+                      return (
+                        <>
+                          {/* Desktop: ruta horizontal en una línea con scroll si es muy larga */}
+                          <code className="hidden sm:block text-xs bg-slate-100 text-slate-700 px-2 py-1.5 rounded-lg font-mono leading-relaxed mt-1 overflow-x-auto whitespace-nowrap">
+                            {segments.map((seg, j) => (
+                              <span key={j}>
+                                {j > 0 && <span className="text-slate-400 mx-1">→</span>}
+                                <span className={j === segments.length - 1 ? 'font-black text-orange-600' : ''}>{seg}</span>
+                              </span>
+                            ))}
+                          </code>
+                          {/* Mobile: ruta vertical — cada segmento en su propia línea */}
+                          <div className="sm:hidden mt-1.5 bg-slate-100 rounded-xl overflow-hidden">
+                            {segments.map((seg, j) => (
+                              <div key={j} className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-200/60 last:border-0">
+                                {j === 0 ? (
+                                  <span className="material-symbols-outlined text-slate-400 text-sm shrink-0">folder</span>
+                                ) : (
+                                  <span className="material-symbols-outlined text-slate-300 text-sm shrink-0 ml-1">subdirectory_arrow_right</span>
+                                )}
+                                <span className={`text-xs font-mono break-all ${j === segments.length - 1 ? 'font-black text-orange-600' : 'text-slate-600'}`}>
+                                  {seg}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      );
+                    })()}
                     {step.note && (
-                      <div className="flex gap-1.5 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 mt-1">
-                        <span className="material-symbols-outlined text-amber-500 text-sm shrink-0 mt-0.5">warning</span>
+                      <div className="flex gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5 mt-1.5">
+                        <span className="material-symbols-outlined text-amber-500 text-base shrink-0 mt-0.5">warning</span>
                         <p className="text-xs text-amber-700 font-medium leading-relaxed">{step.note}</p>
                       </div>
                     )}

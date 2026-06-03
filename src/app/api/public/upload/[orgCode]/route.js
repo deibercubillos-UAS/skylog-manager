@@ -6,7 +6,7 @@
  * Límites: 10 MB por archivo, tipos: jpg/png/webp/heic/pdf
  */
 import { NextResponse } from 'next/server';
-import { resolveOrg, supabaseAdmin } from '../_resolveOrg';
+import { resolveOrg, supabaseAdmin } from '../../_resolveOrg';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'];
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB

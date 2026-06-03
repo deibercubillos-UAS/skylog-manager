@@ -7,7 +7,7 @@
  */
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import { resolveOrg, supabaseAdmin } from '../_resolveOrg';
+import { resolveOrg, supabaseAdmin } from '../../_resolveOrg';
 
 export async function GET(request, { params }) {
     try {

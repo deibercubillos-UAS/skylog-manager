@@ -237,6 +237,8 @@ npm run lint         # ESLint (.eslintrc.json — v8, no flat config)
 - **Idioma del código**: mezcla español/inglés (variables/UI en español, código base en inglés)
 - **ESLint**: usa `.eslintrc.json` (eslint v8) — NO `eslint.config.mjs` (flat config v9 — incompatible)
 - **Superadmin**: rol interno, nunca mostrarlo en UI pública ni documentación
+- **Fuente de titulares**: `font-lexend` (var `--font-lexend`) para headings del landing. `font-sans` (Public Sans) para el resto. Ambas declaradas en `layout.js` vía `next/font/google`.
+- **Skip link**: usa `focus-visible:` (no `focus:`). Garantiza que solo aparece con navegación por teclado, nunca con clic de mouse.
 
 ---
 
@@ -265,6 +267,11 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 | Replay 1 | FlightReplayModal integrado en Bitácora y SMS (modal + botón por vuelo) | ✅ Completada |
 | Replay 2 | Almacenamiento persistente en Supabase Storage (gzip, 2MB, signed URL 1h) | ✅ Completada |
 | Replay 3 | Cuotas por plan, landing pages dinámicas, master admin, pg_cron nocturno | ✅ Completada |
+| UX-3 | VorMorForm.js — stepper 3 pasos, accesibilidad, éxito con "¿Qué pasa después?" | ✅ Completada |
+| UX-4 | DashboardClient.js — KPI hero, trend badge, chart accesible (figure/table sr-only) | ✅ Completada |
+| UX-5 | subscription/manage — plan card, upgrade CTAs, modal anti-churn, cancelación | ✅ Completada |
+| UX-6 | Landing — fuente Lexend, micro-interacciones Hero/Features/Pricing, trust badges | ✅ Completada |
+| UX-7 | SORA — progressive disclosure: primer JARUS, leyenda SAIL, filas expandibles, contexto por paso | ✅ Completada |
 | 7 | PWA / Android app para controladores DJI Enterprise | ⏳ Pendiente |
 
 ### Commits por fase
@@ -296,6 +303,13 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 | Replay 2 | `819c2bd` | Storage gzip + signed URL + auto-load + botón naranja/gris optimista |
 | Replay 3 | `8ea10e8` | Cuotas DB + enforcement API + master admin + Pricing dinámica + Features + comparativa |
 | Replay 3-E | `0ff0557` | pg_cron cleanup_expired_replays() — limpieza nocturna 03:00 UTC |
+| UX-3 | `5f31c9a` | VorMorForm: stepper, accesibilidad, éxito con timeline "qué pasa después" |
+| UX-4 | `1190ae4` | DashboardClient: KPI hero, trend badge, chart figure/figcaption + sr-only table |
+| UX-5 | `a337708` | subscription/manage: plan card, upgrade CTAs, anti-churn retention modal |
+| UX-6 | `0b8ff35` | Landing: Lexend font, Hero stagger+float+trust badges, Features stagger, Pricing lift |
+| UX-7 | `d9bb71a` | SORA: progressive disclosure — primer, SAIL legend, filas expandibles, step context |
+| Fix skip-link + logo | `f69b03e` | focus: → focus-visible: en skip link; logo imagen en navbar landing |
+| Fix nav documentacion | `35db1fb` | Agregar "Preguntas" y logo al nav de /documentacion |
 
 ### Fixes Fase 6 — resumen técnico
 
@@ -326,6 +340,19 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 - `src/components/landing/Features.js` — tarjeta "Replay GPS Animado"
 - `src/app/comparativa-bitafly-airdata/page.js` — fila telemetría actualizada
 - `supabase/migrations/20260604_replay_quota_and_cron.sql` — columnas cuota + pg_cron
+
+**Ciclo UX (Fases 3-7) — archivos clave:**
+- `src/components/public/VorMorForm.js` — formulario público VOR/MOR con stepper 3 pasos
+- `src/app/dashboard/DashboardClient.js` — dashboard principal con KPIs accesibles y chart semántico
+- `src/app/dashboard/subscription/manage/page.js` — gestión suscripción con plan card, upgrade CTAs y retention modal
+- `src/components/landing/Hero.js` — hero con stagger, float, trust badges, shimmer CTA
+- `src/components/landing/Features.js` — grid con stagger y Lexend
+- `src/components/landing/Pricing.js` — cards con hover lift y precios Lexend + tabular-nums
+- `src/app/dashboard/sora/page.js` — SORA con accordions, KPIs, filas expandibles, empty state educativo
+- `src/components/sora/SoraWizard.js` — wizard con contexto por paso y tooltip JARUS
+
+**⚠️ Navbars duplicados — regla:**
+Las páginas `/documentacion` y otras fuera del landing tienen su propio `<header>` hardcodeado en el archivo `page.js`. Si se agrega un link al nav del landing (`src/app/page.js`), hay que replicarlo manualmente en `src/app/documentacion/page.js`. Pendiente refactorizar a un componente `<LandingNav>` compartido.
 
 **URL ArcGIS oficial Aerocivil:**
 ```

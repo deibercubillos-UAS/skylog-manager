@@ -7,8 +7,8 @@ import SEOFooter from '@/components/seo/SEOFooter';
 const faqItems = [
   { q: '¿El plan gratuito requiere tarjeta de crédito?', a: 'No. El plan Piloto es gratuito por 6 meses sin necesidad de tarjeta de crédito. Solo necesitas un correo electrónico para registrarte. Al finalizar los 6 meses, puedes elegir continuar con el plan de pago o contactarnos para extender el período gratuito si estás en proceso de certificación.' },
   { q: '¿Puedo cambiar de plan en cualquier momento?', a: 'Sí. Puedes actualizar o degradar tu plan en cualquier momento desde el panel de suscripción. Los cambios aplican al siguiente período de facturación. Si actualizas, el acceso a las nuevas funciones es inmediato.' },
-  { q: '¿Hay descuento por pago anual?', a: 'Sí. El pago anual tiene un descuento del 20%. El plan Escuadrilla pasa de $15 USD/mes a $12 USD/mes. El plan Flota pasa de $39 USD/mes a $29 USD/mes. Selecciona "Anual" en el toggle de precios para ver los valores exactos.' },
-  { q: '¿Los pagos son en pesos colombianos o dólares?', a: 'Los precios están expresados en USD como referencia estable. El cobro se realiza a través de Wompi en pesos colombianos a la TRM del día. Aceptamos tarjetas Visa, Mastercard y PSE.' },
+  { q: '¿Hay descuento por pago anual?', a: 'Sí. El pago anual tiene un descuento del 20%. El plan Escuadrilla pasa de $59.000/mes a $49.000/mes (equivalente). El plan Flota pasa de $159.000/mes a $132.500/mes (equivalente). Selecciona "Anual" en el toggle de precios para ver los valores exactos.' },
+  { q: '¿Los pagos son en pesos colombianos o dólares?', a: 'Todos los precios son en pesos colombianos (COP). El cobro se realiza a través de ePayco. Aceptamos tarjetas Visa, Mastercard, débito y PSE.' },
   { q: '¿Qué pasa con mis datos si cancelo?', a: 'Tus datos se conservan durante 90 días después de la cancelación, período durante el cual puedes exportar tus bitácoras, reportes y datos de flota en PDF o Excel. Transcurrido ese período, los datos son eliminados de forma permanente.' },
 ];
 

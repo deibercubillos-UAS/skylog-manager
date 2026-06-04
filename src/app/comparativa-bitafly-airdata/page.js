@@ -24,7 +24,7 @@ const faqSchema = {
     { '@type': 'Question', name: '¿AirData UAV funciona con la RAC 100 colombiana?', acceptedAnswer: { '@type': 'Answer', text: 'No. AirData UAV fue diseñado para el mercado anglosajón y no genera los formatos oficiales exigidos por la AeroCivil colombiana (F-OPS-002, F-MNT-003, F-HUM-005, F-OPS-001). Tampoco gestiona el CPR colombiano ni los roles definidos en la RAC 100.' } },
     { '@type': 'Question', name: '¿Bitafly puede importar logs de DJI como AirData?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. Bitafly importa archivos .TXT de los controladores DJI RC y RC 2 automáticamente. Los datos del vuelo (duración, altitud máxima, telemetría de batería) se pre-llenan en la bitácora sin digitar nada manualmente.' } },
     { '@type': 'Question', name: '¿Es posible usar AirData y Bitafly al mismo tiempo?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. Algunos operadores usan AirData para análisis de telemetría y Bitafly para el cumplimiento regulatorio colombiano (bitácora oficial, mantenimiento, SMS y autorizaciones AeroCivil). Son plataformas complementarias.' } },
-    { '@type': 'Question', name: '¿Bitafly es más barato que AirData UAV?', acceptedAnswer: { '@type': 'Answer', text: 'Bitafly tiene un plan gratuito de 6 meses sin tarjeta. Los planes pagos inician en $15 USD/mes. AirData Pro cuesta $11,99 USD/mes pero sin soporte para la normativa colombiana. Para cumplimiento RAC 100, Bitafly es la única opción funcional independientemente del precio.' } },
+    { '@type': 'Question', name: '¿Bitafly es más barato que AirData UAV?', acceptedAnswer: { '@type': 'Answer', text: 'Bitafly tiene un plan gratuito con 1 mes gratis sin tarjeta. Los planes pagos inician en $20.000 COP/mes. AirData Pro cuesta $11,99 USD/mes pero sin soporte para la normativa colombiana. Para cumplimiento RAC 100, Bitafly es la única opción funcional independientemente del precio.' } },
   ],
 };
 
@@ -41,12 +41,12 @@ const ROWS = [
   { feature: 'Análisis SORA',                   bitafly: '✅ GRC/ARC/SAIL asistido',       airdata: '❌ No existe' },
   { feature: 'Roles RAC 100 (Jefe Pilotos, etc)',bitafly:'✅ 5 roles específicos RAC 100', airdata: '❌ No contempla' },
   { feature: 'CPR con alertas de vencimiento',  bitafly: '✅ 30 y 7 días antes',           airdata: '❌ No existe' },
-  { feature: 'Pago en pesos colombianos (PSE)', bitafly: '✅ Wompi — PSE y tarjetas CO',   airdata: '❌ Solo USD/tarjeta int.' },
+  { feature: 'Pago en pesos colombianos (PSE)', bitafly: '✅ ePayco — PSE y tarjetas CO',   airdata: '❌ Solo USD/tarjeta int.' },
   { feature: 'Soporte en español Colombia',     bitafly: '✅ WhatsApp + email UTC-5',       airdata: '❌ Email en inglés' },
   { feature: 'Replay animado de vuelo',         bitafly: '✅ GPS + joystick + batería',    airdata: '✅ Telemetría avanzada' },
   { feature: 'Análisis avanzado telemetría',    bitafly: '✅ Replay GPS + alertas + batería', airdata: '✅ Líder global' },
   { feature: 'Plan gratuito',                   bitafly: '✅ 6 meses sin tarjeta',          airdata: '✅ Limitado' },
-  { feature: 'Precio base',                     bitafly: '$15 USD/mes',                    airdata: '$11,99 USD/mes' },
+  { feature: 'Precio base',                     bitafly: '$20.000 COP/mes',                airdata: '$11,99 USD/mes' },
 ];
 
 export default function ComparativaPage() {

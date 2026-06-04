@@ -30,10 +30,11 @@ const FASES = [
     colorSolid: 'bg-orange-500',
     roles: ['Admin'],
     duracion: '~15 min',
-    desc: 'El primer paso es crear la cuenta de tu organización y dejar la plataforma lista para que tu equipo pueda operar. Aquí defines la identidad corporativa, vinculas a tu tripulación y configuras los parámetros de seguridad.',
+    desc: 'El primer paso es crear la cuenta de tu organización y dejar la plataforma lista para que tu equipo pueda operar. Aquí defines la identidad corporativa, vinculas a tu tripulación, cargas el historial previo con la plantilla Excel y configuras los parámetros de seguridad.',
     pasos: [
       { icon: 'how_to_reg', title: 'Crear cuenta de organización', desc: 'Regístrate en /registro con tu correo corporativo. La plataforma crea automáticamente una organización con un código único de vinculación.' },
       { icon: 'business', title: 'Configurar identidad corporativa', desc: 'En Configuración → Organización completa la razón social, NIT/cédula, número de explotador DAN, representante legal, teléfono, dirección y correo oficial. Sube el logo de la empresa.' },
+      { icon: 'table_view', title: 'Cargar datos históricos con plantilla Excel', desc: 'Si ya tienes información de vuelos, pilotos, aeronaves o baterías en registros anteriores, descarga la plantilla Excel oficial desde Bitácora → Importar → Descargar Plantilla. Llena las columnas con tus datos existentes (aeronave, piloto, fecha, hora despegue/aterrizaje, baterías, condiciones) y cárgala. El sistema valida el formato, detecta duplicados y registra el historial completo en un solo paso. Ideal para migrar desde Excel de la AeroCivil o bitácoras manuales.' },
       { icon: 'link', title: 'Vincular tripulación', desc: 'Comparte el código único de tu organización a tus pilotos y gerentes. Cada miembro se registra y usa ese código para unirse a tu flota. El administrador asigna el rol correspondiente.' },
       { icon: 'badge', title: 'Configurar roles y permisos', desc: 'Bitafly tiene 4 roles: Administrador, Gerente SMS, Jefe de Pilotos y Piloto. Cada rol tiene permisos específicos sobre los módulos del sistema.' },
       { icon: 'policy', title: 'Registrar pólizas de seguro', desc: 'En Configuración → Pólizas registra las pólizas de seguro de la flota: aseguradora, número de póliza, vigencia y aeronave cubierta. El sistema alerta cuando se acercan los vencimientos.' },
@@ -43,11 +44,12 @@ const FASES = [
     roles_tabla: [
       { accion: 'Crear y editar organización', admin: true, gerente: false, jefe: false, piloto: false },
       { accion: 'Gestionar usuarios y roles', admin: true, gerente: false, jefe: false, piloto: false },
+      { accion: 'Importar datos con plantilla Excel', admin: true, gerente: false, jefe: true, piloto: false },
       { accion: 'Registrar pólizas de seguro', admin: true, gerente: false, jefe: false, piloto: false },
       { accion: 'Configurar parámetros SMS', admin: true, gerente: true, jefe: false, piloto: false },
       { accion: 'Ver configuración', admin: true, gerente: 'ver', jefe: 'ver', piloto: false },
     ],
-    nota: 'El código único de vinculación lo encuentras en Configuración → Organización → ID de Vinculación. Compártelo solo con personas de confianza ya que da acceso a unirse a tu organización.',
+    nota: 'La plantilla Excel acepta el formato estándar de la AeroCivil. Si tienes registros en hojas de cálculo propias, solo asegúrate de que las columnas de aeronave, piloto, fecha y horas de vuelo coincidan con los encabezados de la plantilla. Los registros duplicados (misma aeronave, fecha y hora de despegue) se ignoran automáticamente para evitar conteos dobles.',
   },
   {
     id: 'fase-2',

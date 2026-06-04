@@ -1,4 +1,5 @@
 ﻿import Link from 'next/link';
+import Image from 'next/image';
 import NavMobile from '@/components/landing/NavMobile';
 import DashboardMockup from '@/components/landing/DashboardMockup';
 import Pricing from '@/components/landing/Pricing';
@@ -197,10 +198,10 @@ export default function LandingPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
 
-      {/* Skip-link para accesibilidad (mejora SEO indirectamente) */}
+      {/* Skip-link para accesibilidad — solo visible con navegación por teclado (Tab), nunca con clic */}
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-navy focus:text-white focus:px-4 focus:py-2 focus:rounded-xl"
+        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:bg-navy focus-visible:text-white focus-visible:px-4 focus-visible:py-2 focus-visible:rounded-xl focus-visible:text-sm focus-visible:font-black"
       >
         Saltar al contenido principal
       </a>
@@ -212,7 +213,15 @@ export default function LandingPage() {
             className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between"
             aria-label="Navegación principal"
           >
-            <Link href="/" className="flex items-center gap-2" aria-label="Bitafly inicio">
+            <Link href="/" className="flex items-center gap-2.5" aria-label="Bitafly — inicio">
+              <Image
+                src="/logo.png"
+                alt=""
+                width={36}
+                height={36}
+                className="h-9 w-auto"
+                priority
+              />
               <span className="text-2xl font-black text-navy uppercase tracking-tighter">
                 Bitafly
               </span>

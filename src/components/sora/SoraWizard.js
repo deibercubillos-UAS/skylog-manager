@@ -12,12 +12,12 @@ import {
 } from '@/lib/soraEngine';
 
 const STEPS = [
-  { id: 1, label: 'Identificación'   },
-  { id: 2, label: 'Riesgo Terrestre' },
-  { id: 3, label: 'Mitigaciones'     },
-  { id: 4, label: 'Riesgo Aéreo'     },
-  { id: 5, label: 'Mitigaciones'     },
-  { id: 6, label: 'SAIL + OSOs'      },
+  { id: 1, label: 'Identificación',   context: 'Datos básicos de la operación que vas a evaluar. Puedes guardar como borrador y completar más tarde.' },
+  { id: 2, label: 'Riesgo Terrestre', context: 'El GRC Intrínseco depende del tamaño de tu aeronave y del tipo de zona donde vas a operar. Selecciona la combinación más cercana a tu misión.' },
+  { id: 3, label: 'Mitigaciones',     context: 'Las mitigaciones M1/M2/M3 reducen el GRC Intrínseco. Solo aplica las que realmente vas a implementar en la operación.' },
+  { id: 4, label: 'Riesgo Aéreo',     context: 'El ARC Inicial refleja la densidad de tráfico aéreo tripulado en tu zona de vuelo. Consulta la carta aeronáutica si no conoces la clase de espacio aéreo.' },
+  { id: 5, label: 'Mitigaciones',     context: 'Las mitigaciones estratégicas reducen el ARC hasta en 2 niveles. Solo marca las que estén formalmente documentadas y verificables.' },
+  { id: 6, label: 'SAIL + OSOs',      context: 'El SAIL es el resultado final. Los OSOs (Operational Safety Objectives) son los requisitos que debes demostrar ante la Aerocivil para este nivel de riesgo.' },
 ];
 
 const ARC_COLS = ['ARC-a', 'ARC-b', 'ARC-c', 'ARC-d'];
@@ -707,8 +707,17 @@ export default function SoraWizard({ onClose, onSaved }) {
         <div className="flex items-center justify-between px-5 md:px-8 pt-4 md:pt-7 pb-4 md:pb-5 border-b border-slate-100">
           <div className="min-w-0">
             <h3 className="text-lg md:text-xl font-black uppercase tracking-tighter text-slate-900 flex items-center gap-2">
-              <span className="material-symbols-outlined text-orange-500">verified_user</span>
-              <span className="truncate">Evaluación SORA — JARUS v2.0</span>
+              <span className="material-symbols-outlined text-orange-500" aria-hidden="true">verified_user</span>
+              <span className="truncate">Evaluación SORA</span>
+              <span className="group relative hidden md:inline-flex">
+                <span className="material-symbols-outlined text-slate-300 text-base cursor-help hover:text-orange-400 transition-colors"
+                      aria-label="Qué es JARUS v2.0">help</span>
+                <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 bg-slate-900 text-white text-xs rounded-xl px-3 py-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50 leading-relaxed shadow-xl"
+                      role="tooltip">
+                  <strong>JARUS v2.0</strong> — Joint Authorities for Rulemaking on Unmanned Systems.
+                  Marco internacional adoptado por la Aerocivil Colombia (RAC 100, Categoría Específica).
+                </span>
+              </span>
             </h3>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
               Paso {step} de {STEPS.length} — {STEPS[step - 1].label}
@@ -750,7 +759,14 @@ export default function SoraWizard({ onClose, onSaved }) {
         </div>
 
         {/* ── Step body ──────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto px-5 md:px-8 py-4 md:py-5">
+        <div className="flex-1 overflow-y-auto px-5 md:px-8 py-4 md:py-5 space-y-4">
+          {/* Contexto del paso — progressive disclosure */}
+          <div className="flex items-start gap-2.5 bg-orange-50 border border-orange-100 rounded-2xl px-4 py-3">
+            <span className="material-symbols-outlined text-orange-400 text-base mt-0.5 shrink-0" aria-hidden="true">info</span>
+            <p className="text-xs text-orange-700 font-medium leading-relaxed">
+              {STEPS[step - 1].context}
+            </p>
+          </div>
           {renderStep()}
         </div>
 

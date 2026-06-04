@@ -28,6 +28,25 @@ if (!SECRET) {
   process.exit(1);
 }
 
+// ── CORS — permite peticiones directas desde el browser de Bitafly ────────────
+const ALLOWED_ORIGINS = [
+  'https://bitafly.com',
+  'https://www.bitafly.com',
+  'http://localhost:3000',   // desarrollo local
+];
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-secret');
+  res.setHeader('Access-Control-Max-Age', '86400'); // cachear preflight 24h
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
 app.use(express.json({ limit: '10mb' }));
 
 // ── Leer body raw como Buffer (para endpoints .dat) ───────────────────────────

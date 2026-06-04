@@ -4,8 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { PERMISSIONS } from '@/lib/roles';
 import dynamic from 'next/dynamic';
 
-const FlightReplayModal    = dynamic(() => import('@/components/FlightReplayModal'),    { ssr: false });
-const LogbookImportPanel   = dynamic(() => import('@/components/LogbookImportPanel'),   { ssr: false });
+const FlightReplayModal = dynamic(() => import('@/components/FlightReplayModal'), { ssr: false });
+const DjiRcSync         = dynamic(() => import('@/components/DjiRcSync'),         { ssr: false });
 
 const CAN_EDIT_PILOT = ['superadmin', 'admin', 'jefe_pilotos'];
 
@@ -227,7 +227,7 @@ export default function LogbookPage() {
             {/* Panel importación DJI / Excel */}
             {showImport && (
                 <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
-                    <LogbookImportPanel onSuccess={() => { loadData(true); }} />
+                    <DjiRcSync onImported={() => loadData(true)} />
                 </div>
             )}
 

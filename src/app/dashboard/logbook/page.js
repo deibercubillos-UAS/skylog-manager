@@ -4,7 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { PERMISSIONS } from '@/lib/roles';
 import dynamic from 'next/dynamic';
 
-const FlightReplayModal = dynamic(() => import('@/components/FlightReplayModal'), { ssr: false });
+const FlightReplayModal    = dynamic(() => import('@/components/FlightReplayModal'),    { ssr: false });
+const LogbookImportPanel   = dynamic(() => import('@/components/LogbookImportPanel'),   { ssr: false });
 
 const CAN_EDIT_PILOT = ['superadmin', 'admin', 'jefe_pilotos'];
 
@@ -21,6 +22,8 @@ export default function LogbookPage() {
     const [editingPilot, setEditingPilot] = useState(null); // flightId siendo editado
     const [savingPilot, setSavingPilot] = useState(null);
     const pilotDropdownRef = useRef(null);
+
+    const [showImport, setShowImport] = useState(false);
 
     const canEditPilot   = CAN_EDIT_PILOT.includes(userRole);
     const canViewReplay  = PERMISSIONS.canViewFlightReplay.includes(userRole);
@@ -202,11 +205,31 @@ export default function LogbookPage() {
                         {filteredFlights.length} Registros encontrados
                     </p>
                 </div>
-                <button
-                    onClick={clearFilters}
-                    className="w-full sm:w-auto px-4 py-3 text-xs font-black uppercase text-slate-400 hover:text-orange-600 transition-colors border border-slate-200 rounded-xl"
-                >Limpiar filtros</button>
+                <div className="flex gap-2 w-full sm:w-auto">
+                    <button
+                        onClick={() => setShowImport(v => !v)}
+                        className={`flex items-center gap-2 px-4 py-3 text-xs font-black uppercase rounded-xl border transition-all ${
+                            showImport
+                                ? 'bg-orange-600 text-white border-orange-600 shadow-md shadow-orange-500/20'
+                                : 'text-orange-600 border-orange-300 hover:bg-orange-50'
+                        }`}
+                    >
+                        <span className="material-symbols-outlined text-sm">upload_file</span>
+                        {showImport ? 'Cerrar importación' : 'Importar vuelos'}
+                    </button>
+                    <button
+                        onClick={clearFilters}
+                        className="flex-1 sm:flex-none px-4 py-3 text-xs font-black uppercase text-slate-400 hover:text-orange-600 transition-colors border border-slate-200 rounded-xl"
+                    >Limpiar filtros</button>
+                </div>
             </header>
+
+            {/* Panel importación DJI / Excel */}
+            {showImport && (
+                <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+                    <LogbookImportPanel onSuccess={() => { loadData(true); }} />
+                </div>
+            )}
 
             {/* Mobile: filtros simples */}
             <div className="md:hidden bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-sm">
@@ -303,8 +326,11 @@ export default function LogbookPage() {
                                                             : 'bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-600'
                                                     }`}
                                                 >
-                                                    <span className="material-symbols-outlined text-base">
-                                                        {hasReplay ? 'play_circle' : 'play_circle_outline'}
+                                                    <span
+                                                        className="material-symbols-outlined text-base"
+                                                        style={hasReplay ? undefined : { fontVariationSettings: "'FILL' 0" }}
+                                                    >
+                                                        play_circle
                                                     </span>
                                                 </button>
                                             </td>

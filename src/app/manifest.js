@@ -8,7 +8,7 @@ export default function manifest() {
       'Plataforma SaaS para operadores de drones en Colombia. Bitácora RAC 100, mantenimiento, SMS aeronáutico y autorizaciones AeroCivil.',
 
     // Navigation
-    start_url: '/',
+    start_url: '/dashboard',
     scope: '/',
 
     // Display — prefer standalone, fall back gracefully
@@ -28,18 +28,31 @@ export default function manifest() {
     categories: ['business', 'productivity', 'utilities'],
     prefer_related_applications: false,
 
-    // Icons
-    // NOTE: For full PWA install quality, add these files to /public:
-    //   /icon-192.png  (192×192, solid orange background with white logo)
-    //   /icon-512.png  (512×512, same design)
-    //   /icon-maskable-512.png  (512×512 with ~20% safe-zone padding for adaptive icons)
-    // Until then we use the available logo.png as a best-effort fallback.
+    // Icons — todos los tamaños requeridos para instalación PWA en Android/DJI RC
     icons: [
       {
-        src: '/logo.png',
-        sizes: '320x277',
+        src: '/icons/icon-192.png',
+        sizes: '192x192',
         type: 'image/png',
         purpose: 'any',
+      },
+      {
+        src: '/icons/icon-192-maskable.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
+      {
+        src: '/icons/icon-512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-512-maskable.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable',
       },
     ],
 
@@ -50,22 +63,29 @@ export default function manifest() {
         short_name: 'Bitácora',
         description: 'Ver y registrar vuelos',
         url: '/dashboard/logbook',
-        icons: [{ src: '/logo.png', sizes: '320x277', type: 'image/png' }],
+        icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
       },
       {
         name: 'Autorizar Misión',
         short_name: 'Misión',
         description: 'Crear autorización de vuelo',
-        url: '/dashboard/authorizations',
-        icons: [{ src: '/logo.png', sizes: '320x277', type: 'image/png' }],
+        url: '/dashboard/plan-vuelo',
+        icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
       },
       {
         name: 'Mantenimiento',
         short_name: 'Mantenimiento',
         description: 'Registrar intervención técnica',
         url: '/dashboard/maintenance',
-        icons: [{ src: '/logo.png', sizes: '320x277', type: 'image/png' }],
+        icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
       },
     ],
+
+    // Screenshots — descomentar cuando existan los archivos en /public/screenshots/
+    // Mejoran el diálogo de instalación en Chrome/Android pero son opcionales.
+    // screenshots: [
+    //   { src: '/screenshots/screenshot-dashboard.png', sizes: '1080x1920', type: 'image/png', form_factor: 'narrow', label: 'Panel principal con KPIs de flota' },
+    //   { src: '/screenshots/screenshot-logbook.png',   sizes: '1080x1920', type: 'image/png', form_factor: 'narrow', label: 'Bitácora de vuelos RAC 100' },
+    // ],
   };
 }

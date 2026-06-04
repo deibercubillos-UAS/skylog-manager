@@ -1,6 +1,10 @@
 ﻿'use client';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
+import { PERMISSIONS } from '@/lib/roles';
+import dynamic from 'next/dynamic';
+
+const FlightReplayModal = dynamic(() => import('@/components/FlightReplayModal'), { ssr: false });
 
 const CAN_EDIT_PILOT = ['superadmin', 'admin', 'jefe_pilotos'];
 
@@ -18,7 +22,9 @@ export default function LogbookPage() {
     const [savingPilot, setSavingPilot] = useState(null);
     const pilotDropdownRef = useRef(null);
 
-    const canEditPilot = CAN_EDIT_PILOT.includes(userRole);
+    const canEditPilot   = CAN_EDIT_PILOT.includes(userRole);
+    const canViewReplay  = PERMISSIONS.canViewFlightReplay.includes(userRole);
+    const [replayFlight, setReplayFlight] = useState(null); // { id, label }
 
     const [filters, setFilters] = useState({
         date: '',
@@ -185,6 +191,7 @@ export default function LogbookPage() {
     if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">AUDITANDO REGISTROS...</div>;
 
     return (
+        <>
         <div className="space-y-8 text-left animate-in fade-in duration-700 pb-20">
             <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 border-b border-slate-200 pb-4">
                 <div>
@@ -252,6 +259,7 @@ export default function LogbookPage() {
                                 <th className="px-4 py-4">Condición</th>
                                 <th className="px-4 py-4">T.T Posterior</th>
                                 <th className="px-4 py-4">Piloto (PIC)</th>
+                                {canViewReplay && <th className="px-4 py-4 w-16"></th>}
                             </tr>
                             <tr className="bg-white border-b-2 border-slate-100">
                                 <th className="px-2 py-2"><input type="date" className="w-full p-2 bg-slate-50 rounded-lg text-xs font-bold outline-none focus:ring-1 focus:ring-orange-500" value={filters.date} onChange={e => setFilters(f => ({...f, date: e.target.value}))} /></th>
@@ -262,6 +270,7 @@ export default function LogbookPage() {
                                 <th className="px-2 py-2"><select className="w-full p-2 bg-slate-50 rounded-lg text-xs font-bold outline-none" value={filters.condition} onChange={e => setFilters(f => ({...f, condition: e.target.value}))}><option value="">TODAS</option><option value="VMC">VMC</option><option value="IMC">IMC</option><option value="NIGHT">NOCTURNO</option></select></th>
                                 <th className="px-2 py-2"></th>
                                 <th className="px-2 py-2"><select className="w-full p-2 bg-slate-50 rounded-lg text-xs font-bold outline-none" value={filters.pilot} onChange={e => setFilters(f => ({...f, pilot: e.target.value}))}><option value="">TODOS</option>{uniquePilots.map(p => <option key={p} value={p}>{p}</option>)}</select></th>
+                                {canViewReplay && <th className="px-2 py-2"></th>}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -275,6 +284,20 @@ export default function LogbookPage() {
                                     <td className="px-4 py-4"><span className="bg-slate-100 px-2 py-0.5 rounded text-xs font-black">{f.visual_condition}</span></td>
                                     <td className="px-4 py-4 font-black">{f.aircraft?.total_hours?.toFixed(2)}h</td>
                                     <td className="px-4 py-4"><PilotCell flight={f} /></td>
+                                    {canViewReplay && (
+                                        <td className="px-2 py-3">
+                                            <button
+                                                onClick={() => setReplayFlight({
+                                                    id: f.id,
+                                                    label: `${f.mission_id || f.flight_date} · ${f.aircraft?.model ?? ''}`
+                                                })}
+                                                title="Ver Replay de Vuelo"
+                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-500 hover:text-orange-600 transition-all hover:scale-110 active:scale-95"
+                                            >
+                                                <span className="material-symbols-outlined text-base">play_circle</span>
+                                            </button>
+                                        </td>
+                                    )}
                                 </tr>
                             ))}
                         </tbody>
@@ -300,5 +323,15 @@ export default function LogbookPage() {
                 </div>
             )}
         </div>
+
+        {/* Modal Replay de Vuelo */}
+        {canViewReplay && (
+            <FlightReplayModal
+                open={!!replayFlight}
+                onClose={() => setReplayFlight(null)}
+                flightLabel={replayFlight?.label}
+            />
+        )}
+        </>
     );
 }

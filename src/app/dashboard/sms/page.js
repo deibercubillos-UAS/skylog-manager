@@ -3,14 +3,19 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import nextDynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
+import { PERMISSIONS } from '@/lib/roles';
+
+const FlightReplayModal = nextDynamic(() => import('@/components/FlightReplayModal'), { ssr: false });
 
 export default function SMSReportPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const [flights, setFlights] = useState([]);
+  const [replayOpen, setReplayOpen] = useState(false);
   
   const [formData, setFormData] = useState({
     flight_id: '',
@@ -41,7 +46,9 @@ export default function SMSReportPage() {
     init();
   }, []);
 
-  const canEdit = ['superadmin', 'admin', 'gerente_sms'].includes(userProfile?.role);
+  const canEdit        = ['superadmin', 'admin', 'gerente_sms'].includes(userProfile?.role);
+  const canViewReplay  = PERMISSIONS.canViewFlightReplay.includes(userProfile?.role);
+  const selectedFlight = flights.find(f => f.id === formData.flight_id);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -108,10 +115,23 @@ export default function SMSReportPage() {
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8">
              <div className="space-y-2">
                 <label className="text-xs font-black uppercase text-slate-400 ml-1">Vuelo Asociado</label>
-                <select disabled={!canEdit} className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={formData.flight_id} onChange={e => setFormData({...formData, flight_id: e.target.value})}>
-                  <option value="">Seleccionar Misión...</option>
-                  {flights.map(f => <option key={f.id} value={f.id}>{f.flight_number} - {f.location}</option>)}
-                </select>
+                <div className="flex gap-2 items-center">
+                  <select disabled={!canEdit} className="flex-1 p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={formData.flight_id} onChange={e => setFormData({...formData, flight_id: e.target.value})}>
+                    <option value="">Seleccionar Misión...</option>
+                    {flights.map(f => <option key={f.id} value={f.id}>{f.flight_number} - {f.location}</option>)}
+                  </select>
+                  {canViewReplay && formData.flight_id && (
+                    <button
+                      type="button"
+                      onClick={() => setReplayOpen(true)}
+                      title="Ver Replay de este vuelo"
+                      className="shrink-0 flex items-center gap-1.5 px-4 py-3 bg-orange-50 hover:bg-orange-100 text-orange-600 font-black text-xs rounded-2xl transition-all hover:scale-105 active:scale-95 border border-orange-200"
+                    >
+                      <span className="material-symbols-outlined text-base">play_circle</span>
+                      Replay
+                    </button>
+                  )}
+                </div>
              </div>
              <div className="space-y-2">
                 <label className="text-xs font-black uppercase text-slate-400 ml-1">Fecha y Hora del Suceso</label>
@@ -133,6 +153,15 @@ export default function SMSReportPage() {
           )}
         </form>
       </main>
+
+      {/* Modal Replay del vuelo asociado */}
+      {canViewReplay && (
+        <FlightReplayModal
+          open={replayOpen}
+          onClose={() => setReplayOpen(false)}
+          flightLabel={selectedFlight ? `${selectedFlight.flight_number ?? ''} · ${selectedFlight.location ?? ''}`.trim() : undefined}
+        />
+      )}
     </div>
   );
 }

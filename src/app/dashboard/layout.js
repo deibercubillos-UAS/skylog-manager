@@ -157,7 +157,6 @@ const navLinks = [
   { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
   { name: 'Listas de Chequeo', icon: 'rule',                 href: '/dashboard/settings/forms',  roles: ['superadmin', 'admin', 'gerente_sms'] },
   { name: 'Manual MO',        icon: 'menu_book',             href: '/dashboard/manual-operaciones', roles: ['superadmin', 'admin', 'jefe_pilotos'], pilotHidden: true },
-  { name: 'Replay de Vuelo', icon: 'route',                 href: '/dashboard/dev/flight-replay',  roles: ['superadmin', 'admin'], pilotHidden: true, devBadge: true },
 ];
 
 // FILTRAR por rol, plan y flags pilotOnly / pilotHidden

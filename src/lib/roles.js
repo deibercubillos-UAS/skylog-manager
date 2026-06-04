@@ -40,6 +40,7 @@ export const PERMISSIONS = {
     canManageSMS:       ['superadmin', 'admin', 'gerente_sms'],
     canViewSMS:         ['superadmin', 'admin', 'gerente_sms'],
     canManageSafetyConfig: ['superadmin', 'admin', 'gerente_sms'],
+    canViewFlightReplay:   ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],
 };
 
 // Helper: ¿el usuario tiene un permiso?

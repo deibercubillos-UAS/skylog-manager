@@ -1,0 +1,404 @@
+'use client';
+/**
+ * FlightReplayModal
+ * Modal fullscreen que combina:
+ *   - Upload / parseo del .txt DJI (browser WASM)
+ *   - FlightReplayView con animación, joysticks, batería y alertas
+ *
+ * Uso:
+ *   <FlightReplayModal
+ *     open={true}
+ *     onClose={() => setOpen(false)}
+ *     flightLabel="SKY-001 · 2025-06-01"   // opcional — label del vuelo
+ *   />
+ */
+import { useState, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+
+const FlightReplayView = dynamic(
+  () => import('@/components/dev/FlightReplayView'),
+  { ssr: false, loading: () => <ModalSpinner text="Cargando visor..." /> }
+);
+
+// ── Alertas ──────────────────────────────────────────────────────
+const ALERT_DEFS = [
+  { key: 'isCompassError',        label: 'Error de brújula',              severity: 'critical' },
+  { key: 'isVibrating',           label: 'Vibraciones anormales',         severity: 'warning'  },
+  { key: 'waveError',             label: 'Error evasión obstáculos',      severity: 'warning'  },
+  { key: 'isOutOfLimit',          label: 'Fuera del límite de vuelo',     severity: 'critical' },
+  { key: 'isNotEnoughForce',      label: 'Empuje insuficiente',           severity: 'critical' },
+  { key: 'isBarometerDeadInAir',  label: 'Fallo barómetro en vuelo',      severity: 'critical' },
+  { key: 'isMotorBlocked',        label: 'Motor bloqueado',               severity: 'critical' },
+  { key: 'isPropellerCatapult',   label: 'Protección hélice activa',      severity: 'warning'  },
+  { key: 'isAcceletorOverRange',  label: 'Acelerómetro fuera de rango',   severity: 'warning'  },
+];
+const FLIGHT_ACTION_ALERTS = new Set([
+  'WarningPowerGoHome','WarningPowerLanding','SmartPowerGoHome','SmartPowerLanding',
+  'LowVoltageLanding','LowVoltageGoHome','SeriousLowVoltageLanding',
+  'OutOfControlGoHome','AvoidGroundLanding','BatteryForceLanding','MCProtectGoHome',
+  'MotorblockLanding','AppRequestForceLanding','FakeBatteryLanding','IMUErrorRTH',
+]);
+const FLIGHT_ACTION_LABELS = {
+  WarningPowerGoHome:       'RTH por batería baja (advertencia)',
+  WarningPowerLanding:      'Aterrizaje por batería baja (advertencia)',
+  SmartPowerGoHome:         'RTH inteligente por batería baja',
+  SmartPowerLanding:        'Aterrizaje inteligente por batería baja',
+  LowVoltageLanding:        'Aterrizaje por voltaje bajo',
+  LowVoltageGoHome:         'RTH por voltaje bajo',
+  SeriousLowVoltageLanding: 'ATERRIZAJE DE EMERGENCIA — voltaje crítico',
+  OutOfControlGoHome:       'RTH por pérdida de señal RC',
+  AvoidGroundLanding:       'Aterrizaje por proximidad al suelo',
+  BatteryForceLanding:      'Aterrizaje forzado por batería',
+  MCProtectGoHome:          'RTH por protección del controlador',
+  MotorblockLanding:        'Aterrizaje por bloqueo de motor',
+  AppRequestForceLanding:   'Aterrizaje forzado por la app',
+  FakeBatteryLanding:       'Aterrizaje — batería no reconocida',
+  IMUErrorRTH:              'RTH por error IMU',
+};
+
+function detectAlerts(frames) {
+  const alerts = [], prev = {};
+  let prevAction = null, prevVoltWarn = 0;
+  frames.forEach((f) => {
+    const osd = f.osd;
+    if (!osd) return;
+    const t = osd.flyTime ?? 0;
+    ALERT_DEFS.forEach(({ key, label, severity }) => {
+      if (osd[key] && !prev[key]) alerts.push({ t, type: key, label, severity });
+      prev[key] = osd[key];
+    });
+    const vw = osd.voltageWarning ?? 0;
+    if (vw > prevVoltWarn) alerts.push({
+      t, type: 'voltageWarning',
+      severity: vw >= 2 ? 'critical' : 'warning',
+      label: vw >= 2 ? 'Voltaje CRÍTICO — aterrizaje inminente' : 'Advertencia de voltaje bajo',
+    });
+    prevVoltWarn = vw;
+    const action = typeof osd.flightAction === 'string' ? osd.flightAction : null;
+    if (action && action !== prevAction && FLIGHT_ACTION_ALERTS.has(action)) {
+      alerts.push({ t, type: 'flightAction', severity: 'critical',
+        label: FLIGHT_ACTION_LABELS[action] ?? action });
+    }
+    prevAction = action;
+  });
+  return alerts;
+}
+
+function normalizeRC(val) {
+  if (val == null) return 0;
+  if (val > 2) return (val / 1024) * 2 - 1;
+  return (val - 0.5) * 2;
+}
+
+function buildTelemetry(frames) {
+  const MAX = 12000;
+  const step = frames.length > MAX ? Math.floor(frames.length / MAX) : 1;
+  const out = [];
+  for (let i = 0; i < frames.length; i += step) {
+    const f = frames[i], osd = f.osd, bat = f.battery, rc = f.rc;
+    if (!osd) continue;
+    out.push({
+      t:           osd.flyTime        ?? i * 0.1,
+      lat:         osd.latitude       ?? null,
+      lng:         osd.longitude      ?? null,
+      alt:         osd.height         ?? osd.altitude ?? 0,
+      yaw:         osd.yaw            ?? 0,
+      pitch:       osd.pitch          ?? 0,
+      roll:        osd.roll           ?? 0,
+      speedH:      Math.hypot(osd.xSpeed ?? 0, osd.ySpeed ?? 0),
+      speedV:      osd.zSpeed         ?? 0,
+      gpsNum:      osd.gpsNum         ?? 0,
+      flightMode:  typeof osd.flycState === 'string' ? osd.flycState
+                 : typeof osd.flightMode === 'string' ? osd.flightMode : null,
+      flightAction: typeof osd.flightAction === 'string' ? osd.flightAction : null,
+      bat:         bat?.chargeLevel   ?? null,
+      voltage:     bat?.voltage       ?? null,
+      cellVolts:   bat?.cellVoltages  ?? null,
+      rc_ail:      rc ? normalizeRC(rc.aileron)  : null,
+      rc_ele:      rc ? normalizeRC(rc.elevator) : null,
+      rc_thr:      rc ? normalizeRC(rc.throttle) : null,
+      rc_rud:      rc ? normalizeRC(rc.rudder)   : null,
+      hasGps:      !!(osd.latitude && Math.abs(osd.latitude) <= 90 && osd.latitude !== 0),
+    });
+  }
+  return out;
+}
+
+function calcDistance(frames) {
+  let total = 0;
+  for (let i = 1; i < frames.length; i++) {
+    const a = frames[i-1].osd, b = frames[i].osd;
+    if (!a?.latitude || !b?.latitude) continue;
+    const R = 6371000, dLat = (b.latitude-a.latitude)*Math.PI/180, dLon = (b.longitude-a.longitude)*Math.PI/180;
+    const x = Math.sin(dLat/2)**2 + Math.cos(a.latitude*Math.PI/180)*Math.cos(b.latitude*Math.PI/180)*Math.sin(dLon/2)**2;
+    total += R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+  }
+  return Math.round(total);
+}
+
+// ── Componente principal ─────────────────────────────────────────
+export default function FlightReplayModal({ open, onClose, flightLabel }) {
+  const [state, setState]       = useState('idle');   // idle | loading | done | error
+  const [flightData, setFlight] = useState(null);
+  const [error, setError]       = useState(null);
+  const [dragging, setDragging] = useState(false);
+  const [fileName, setFileName] = useState(null);
+  const [progress, setProgress] = useState(null);
+  const inputRef = useRef(null);
+
+  const reset = useCallback(() => {
+    setState('idle'); setFlight(null); setError(null);
+    setFileName(null); setProgress(null);
+  }, []);
+
+  const handleClose = useCallback(() => { reset(); onClose(); }, [reset, onClose]);
+
+  const processFile = useCallback(async (file) => {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.txt')) {
+      setError('Solo se aceptan archivos .txt de log DJI.'); return;
+    }
+
+    setFileName(file.name);
+    setState('loading');
+    setError(null);
+    setFlight(null);
+
+    try {
+      setProgress('Leyendo archivo localmente...');
+      const arrayBuf = await file.arrayBuffer();
+      const uint8    = new Uint8Array(arrayBuf);
+
+      setProgress('Cargando parser DJI (WASM)...');
+      const { DJILog } = await import('dji-log-parser-js');
+      const parser = new DJILog(uint8);
+
+      if (parser.version === 0) {
+        setError('El archivo no es un log DJI válido.'); setState('error'); return;
+      }
+
+      setProgress(`Log v${parser.version} detectado. Extrayendo frames...`);
+      let frames = [];
+
+      if (parser.version < 13) {
+        try { frames = parser.frames() ?? []; } catch { frames = []; }
+      } else {
+        setProgress('Log cifrado (v13+). Obteniendo keychains de DJI...');
+        try {
+          const keychains = await parser.fetchKeychains('proxy', '/api/dev/dji-keychains-proxy');
+          setProgress('Descifrando frames...');
+          frames = parser.frames(keychains) ?? [];
+        } catch {
+          try { frames = parser.frames() ?? []; } catch { frames = []; }
+          if (!frames.length) {
+            setError(`No se pudo descifrar el log v${parser.version}. Verifica DJI_API_KEY en Vercel.`);
+            setState('error'); return;
+          }
+        }
+      }
+
+      if (!frames.length) {
+        setError('El archivo no contiene frames de vuelo.'); setState('error'); return;
+      }
+
+      setProgress('Extrayendo telemetría y alertas...');
+      const telemetry = buildTelemetry(frames);
+      const gpsFrames = frames.filter(f =>
+        f.osd?.latitude && Math.abs(f.osd.latitude) <= 90 && f.osd.latitude !== 0 &&
+        f.osd?.longitude && Math.abs(f.osd.longitude) <= 180 && f.osd.longitude !== 0
+      );
+
+      if (!gpsFrames.length) {
+        setError('El log no contiene datos GPS.'); setState('error'); return;
+      }
+
+      const MAX_PATH = 2000;
+      const pathStep = gpsFrames.length > MAX_PATH ? Math.floor(gpsFrames.length / MAX_PATH) : 1;
+      const path = [];
+      for (let i = 0; i < gpsFrames.length; i += pathStep) {
+        const f = gpsFrames[i];
+        path.push({ lat: f.osd.latitude, lng: f.osd.longitude, alt: f.osd.height ?? 0, t: f.osd.flyTime ?? i * 0.1 });
+      }
+
+      const alerts  = detectAlerts(frames);
+      let details   = {};
+      try { details = parser.details ?? {}; } catch {}
+      let records   = [];
+      try { records = parser.records() ?? []; } catch {}
+      const recoverRec = records.find(r => r.type === 'Recover')?.content ?? {};
+
+      const altVals   = gpsFrames.map(f => f.osd?.height ?? 0).filter(Boolean);
+      const speedVals = gpsFrames.map(f => Math.hypot(f.osd?.xSpeed ?? 0, f.osd?.ySpeed ?? 0)).filter(Boolean);
+      const batVals   = frames.map(f => f.battery?.chargeLevel).filter(v => v != null);
+      const totalDuration = telemetry.length > 0 ? telemetry[telemetry.length - 1].t : gpsFrames.length * 0.1;
+
+      const meta = {
+        version:      parser.version,
+        totalFrames:  frames.length,
+        gpsFrames:    gpsFrames.length,
+        pathPoints:   path.length,
+        serial:       details.aircraftSn ?? recoverRec.aircraftSn ?? null,
+        model:        details.subType    ?? details.productType   ?? null,
+        startTime:    details.startTime  ?? null,
+        durationS:    details.totalTime  ?? totalDuration,
+        totalDuration,
+        altMax:       altVals.length   ? Math.max(...altVals)                              : null,
+        speedMax:     speedVals.length ? Math.max(...speedVals)                            : null,
+        speedAvg:     speedVals.length ? speedVals.reduce((a,b)=>a+b,0)/speedVals.length  : null,
+        distanceM:    calcDistance(gpsFrames),
+        batStart:     batVals[0]               ?? null,
+        batEnd:       batVals[batVals.length-1] ?? null,
+        hasRC:        frames.some(f => f.rc?.aileron != null),
+        alertCount:   alerts.length,
+      };
+
+      setFlight({ path, telemetry, alerts, meta });
+      setState('done');
+    } catch (err) {
+      console.error('[flight-replay]', err);
+      setError('Error inesperado: ' + err.message);
+      setState('error');
+    } finally {
+      setProgress(null);
+    }
+  }, []);
+
+  const onDrop = useCallback((e) => {
+    e.preventDefault(); setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
+  }, [processFile]);
+
+  if (!open) return null;
+
+  return (
+    // Overlay
+    <div
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center"
+      onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
+    >
+      {/* Contenedor del modal */}
+      <div className="relative w-full h-full bg-slate-950 flex flex-col overflow-hidden">
+
+        {/* Replay activo — ocupa todo el espacio */}
+        {state === 'done' && flightData && (
+          <>
+            <FlightReplayView
+              flightData={flightData}
+              fileName={fileName}
+              onReset={reset}
+            />
+            {/* Botón cerrar superpuesto */}
+            <button
+              onClick={handleClose}
+              className="absolute top-3 right-3 z-50 w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center transition-colors"
+              title="Cerrar replay"
+            >
+              <span className="material-symbols-outlined text-slate-300 text-base">close</span>
+            </button>
+          </>
+        )}
+
+        {/* Pantalla de carga / upload */}
+        {state !== 'done' && (
+          <div className="flex-1 flex flex-col items-center justify-center">
+
+            {/* Header */}
+            <div className="mb-8 text-center">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <span className="material-symbols-outlined text-orange-500 text-2xl">route</span>
+                <h2 className="text-lg font-black uppercase tracking-tight text-white">Replay de Vuelo</h2>
+              </div>
+              {flightLabel && (
+                <p className="text-xs text-orange-400 font-mono mt-1">{flightLabel}</p>
+              )}
+              <p className="text-slate-500 text-xs mt-1">Sube el archivo .txt del log DJI para visualizar el vuelo</p>
+            </div>
+
+            {/* Drop zone */}
+            {state !== 'loading' && (
+              <div
+                onDragOver={e => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={onDrop}
+                onClick={() => inputRef.current?.click()}
+                className={`w-80 flex flex-col items-center gap-4 p-10 rounded-3xl border-2 border-dashed cursor-pointer transition-all ${
+                  dragging ? 'border-orange-400 bg-orange-950/30 scale-[1.02]'
+                           : 'border-slate-700 hover:border-orange-600 hover:bg-slate-900'
+                }`}
+              >
+                <span className="material-symbols-outlined text-5xl text-slate-600">
+                  {dragging ? 'file_open' : 'upload_file'}
+                </span>
+                <div className="text-center">
+                  <p className="text-sm font-black text-slate-300">{dragging ? 'Suelta aquí' : 'Log DJI (.txt)'}</p>
+                  <p className="text-xs text-slate-500 mt-1">Arrastra o haz clic</p>
+                  <p className="text-[10px] text-orange-400/70 mt-0.5 font-mono">DJI Fly · GO 4 · Pilot 2</p>
+                </div>
+                <div className="flex items-center gap-1.5 bg-slate-800 rounded-lg px-3 py-1.5">
+                  <span className="material-symbols-outlined text-green-500 text-xs">lock</span>
+                  <p className="text-[10px] text-slate-400">Procesado localmente — no se sube</p>
+                </div>
+                <input ref={inputRef} type="file" accept=".txt"
+                  onChange={e => processFile(e.target.files?.[0])} className="hidden" />
+              </div>
+            )}
+
+            {/* Loading */}
+            {state === 'loading' && (
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-14 h-14 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                <div className="text-center">
+                  <p className="text-sm font-black text-white">{fileName}</p>
+                  <p className="text-xs text-slate-400 mt-1 max-w-xs text-center">{progress}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Error */}
+            {state === 'error' && error && (
+              <div className="mt-4 w-80 bg-red-950/50 border border-red-800 rounded-2xl p-4">
+                <div className="flex items-start gap-2">
+                  <span className="material-symbols-outlined text-red-400 text-base shrink-0 mt-0.5">error</span>
+                  <p className="text-xs text-red-300">{error}</p>
+                </div>
+                <button onClick={reset}
+                  className="mt-3 w-full text-xs font-black text-slate-400 hover:text-white transition-colors">
+                  Intentar con otro archivo
+                </button>
+              </div>
+            )}
+
+            {/* Instrucciones */}
+            {state === 'idle' && (
+              <div className="mt-6 text-center space-y-1">
+                <p className="text-[10px] text-slate-600 uppercase tracking-widest font-bold">¿Dónde está el archivo?</p>
+                <p className="text-[10px] text-slate-600">DJI RC 2: Almac. interno → DJI → FlightRecord</p>
+                <p className="text-[10px] text-slate-600">Android: DJI Fly → files → FlightRecord</p>
+                <p className="text-[10px] text-slate-600">iPhone: iTunes → Archivos → DJI Fly</p>
+              </div>
+            )}
+
+            {/* Botón cerrar */}
+            <button onClick={handleClose}
+              className="mt-8 flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors">
+              <span className="material-symbols-outlined text-sm">close</span>
+              Cerrar
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ModalSpinner({ text }) {
+  return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs text-slate-500">{text}</p>
+      </div>
+    </div>
+  );
+}

@@ -3,20 +3,6 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
 const CAN_EDIT_PILOT = ['superadmin', 'admin', 'jefe_pilotos'];
-import dynamic from 'next/dynamic';
-
-// Lazy: ExcelJS pesa ~250 KB. Solo carga cuando el usuario abre el panel de importación.
-const LogbookImportPanel = dynamic(
-  () => import('@/components/LogbookImportPanel'),
-  {
-    loading: () => (
-      <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    ),
-    ssr: false,
-  }
-);
 
 const PAGE_SIZE = 30;
 
@@ -26,7 +12,6 @@ export default function LogbookPage() {
     const [loadingMore, setLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(false);
     const [offset, setOffset] = useState(0);
-    const [showImport, setShowImport] = useState(false);
     const [userRole, setUserRole] = useState(null);
     const [pilots, setPilots] = useState([]);
     const [editingPilot, setEditingPilot] = useState(null); // flightId siendo editado
@@ -200,13 +185,6 @@ export default function LogbookPage() {
     if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">AUDITANDO REGISTROS...</div>;
 
     return (
-        <>
-        {showImport && (
-            <LogbookImportPanel
-                onClose={() => setShowImport(false)}
-                onSuccess={() => { setShowImport(false); loadData(); }}
-            />
-        )}
         <div className="space-y-8 text-left animate-in fade-in duration-700 pb-20">
             <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 border-b border-slate-200 pb-4">
                 <div>
@@ -215,19 +193,10 @@ export default function LogbookPage() {
                         {filteredFlights.length} Registros encontrados
                     </p>
                 </div>
-                <div className="flex gap-2 w-full sm:w-auto">
-                    <button
-                        onClick={clearFilters}
-                        className="flex-1 sm:flex-none px-4 py-3 text-xs font-black uppercase text-slate-400 hover:text-orange-600 transition-colors border border-slate-200 rounded-xl"
-                    >Limpiar</button>
-                    <button
-                        onClick={() => setShowImport(true)}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-navy text-white px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm active:scale-95"
-                    >
-                        <span className="material-symbols-outlined text-sm">upload_file</span>
-                        Importar
-                    </button>
-                </div>
+                <button
+                    onClick={clearFilters}
+                    className="w-full sm:w-auto px-4 py-3 text-xs font-black uppercase text-slate-400 hover:text-orange-600 transition-colors border border-slate-200 rounded-xl"
+                >Limpiar filtros</button>
             </header>
 
             {/* Mobile: filtros simples */}
@@ -331,6 +300,5 @@ export default function LogbookPage() {
                 </div>
             )}
         </div>
-        </>
     );
 }

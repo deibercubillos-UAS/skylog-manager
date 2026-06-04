@@ -1,6 +1,6 @@
 ﻿'use client';
 export const dynamic = 'force-dynamic';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import FileUpload from '@/components/FileUpload';
 import { hasPermission } from '@/lib/roles';
@@ -14,6 +14,57 @@ export default function SettingsPage() {
     const [org, setOrg] = useState(null);
     const [profile, setProfile] = useState(null);
     const [aircraft, setAircraft] = useState([]);
+
+    // ── Onboarding Express ──────────────────────────────────────────────
+    const [obDownloading, setObDownloading] = useState(false);
+    const [obUploading,   setObUploading]   = useState(false);
+    const [obResult,      setObResult]      = useState(null); // resultado del import
+    const [obError,       setObError]       = useState(null);
+    const obFileRef = useRef(null);
+
+    async function handleObDownload() {
+        setObDownloading(true);
+        setObError(null);
+        try {
+            const res = await fetch('/api/onboarding/template');
+            if (!res.ok) throw new Error('Error descargando la plantilla');
+            const blob   = await res.blob();
+            const url    = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href     = url;
+            anchor.download = `Bitafly-Onboarding-${new Date().toISOString().split('T')[0]}.xlsx`;
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            setObError(e.message);
+        } finally {
+            setObDownloading(false);
+        }
+    }
+
+    async function handleObUpload(file) {
+        if (!file) return;
+        if (!file.name.endsWith('.xlsx')) { setObError('Solo se aceptan archivos .xlsx'); return; }
+        if (file.size > 10_000_000) { setObError('Archivo demasiado grande (máx 10 MB)'); return; }
+        setObUploading(true);
+        setObError(null);
+        setObResult(null);
+        try {
+            const fd = new FormData();
+            fd.append('file', file);
+            const res  = await fetch('/api/onboarding/import', { method: 'POST', body: fd });
+            const body = await res.json();
+            if (!res.ok) throw new Error(body.error || `Error ${res.status}`);
+            setObResult(body);
+        } catch (e) {
+            setObError(e.message);
+        } finally {
+            setObUploading(false);
+            if (obFileRef.current) obFileRef.current.value = '';
+        }
+    }
 const [policies, setPolicies] = useState([]);
 const [editingPolicy, setEditingPolicy] = useState(null);
 const [showPolicyForm, setShowPolicyForm] = useState(false);
@@ -178,6 +229,127 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
 <p className="text-slate-500 text-xs md:text-sm font-bold uppercase mt-2 tracking-widest">Identidad Legal y Pólizas de Seguro</p>
                 </div>
             </header>
+
+            {/* ── INICIO RÁPIDO — Onboarding Express ─────────────────── */}
+            <section className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-700 bg-gradient-to-r from-orange-600/20 to-transparent">
+                    <span className="material-symbols-outlined text-2xl text-orange-400">rocket_launch</span>
+                    <div>
+                        <p className="text-sm font-black text-white">Inicio Rápido — Onboarding Express</p>
+                        <p className="text-xs text-slate-400">¿Tienes tu información en Excel? Descarga la plantilla, llénala y súbela para configurar todo en un paso.</p>
+                    </div>
+                </div>
+
+                <div className="p-5 space-y-4">
+                    {/* Pasos visuales */}
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                        {[
+                            { icon: 'download', label: '1. Descargar', desc: 'Plantilla .xlsx con 8 hojas guiadas' },
+                            { icon: 'edit',     label: '2. Llenar',    desc: 'Org · Tripulación · Flota · Baterías · más' },
+                            { icon: 'upload_file', label: '3. Subir',  desc: 'Bitafly importa todo automáticamente' },
+                        ].map(s => (
+                            <div key={s.icon} className="bg-slate-700/50 rounded-xl p-3">
+                                <span className="material-symbols-outlined text-xl text-orange-400 block mb-1">{s.icon}</span>
+                                <p className="text-xs font-black text-white">{s.label}</p>
+                                <p className="text-[10px] text-slate-400 mt-0.5">{s.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Botones */}
+                    <div className="flex flex-wrap gap-3">
+                        <button
+                            type="button"
+                            onClick={handleObDownload}
+                            disabled={obDownloading}
+                            className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-50
+                                text-white text-xs font-black uppercase tracking-wide rounded-xl px-4 py-2.5 transition-colors">
+                            {obDownloading
+                                ? <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                                : <span className="material-symbols-outlined text-sm">download</span>
+                            }
+                            {obDownloading ? 'Generando...' : 'Descargar plantilla .xlsx'}
+                        </button>
+
+                        <input ref={obFileRef} type="file" accept=".xlsx" className="hidden"
+                            onChange={e => handleObUpload(e.target.files?.[0])} />
+                        <button
+                            type="button"
+                            onClick={() => obFileRef.current?.click()}
+                            disabled={obUploading}
+                            className="flex items-center gap-2 bg-sky-700 hover:bg-sky-600 disabled:opacity-50
+                                text-white text-xs font-black uppercase tracking-wide rounded-xl px-4 py-2.5 transition-colors">
+                            {obUploading
+                                ? <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                                : <span className="material-symbols-outlined text-sm">upload_file</span>
+                            }
+                            {obUploading ? 'Importando...' : 'Subir plantilla llenada'}
+                        </button>
+                    </div>
+
+                    {/* Error */}
+                    {obError && (
+                        <div className="bg-red-900/30 border border-red-500/40 rounded-xl p-3 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-red-400 text-sm">error</span>
+                            <p className="text-xs text-red-300">{obError}</p>
+                            <button onClick={() => setObError(null)} className="ml-auto text-slate-500 hover:text-white">
+                                <span className="material-symbols-outlined text-xs">close</span>
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Resultado del import */}
+                    {obResult && (
+                        <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-4 space-y-3">
+                            <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-emerald-400">check_circle</span>
+                                <p className="text-sm font-black text-white">
+                                    Importación completada — {obResult.totalCreated} registros creados
+                                    {obResult.totalSkipped > 0 && `, ${obResult.totalSkipped} omitidos (ya existían)`}
+                                </p>
+                                <button onClick={() => setObResult(null)} className="ml-auto text-slate-500 hover:text-white">
+                                    <span className="material-symbols-outlined text-sm">close</span>
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                                {[
+                                    { key: 'org',         label: 'Organización', icon: 'business',       val: obResult.results?.org?.updated ? 'Actualizada' : 'Sin cambios' },
+                                    { key: 'flota',       label: 'Aeronaves',    icon: 'flight',          val: `+${obResult.results?.flota?.created || 0}` },
+                                    { key: 'tripulacion', label: 'Pilotos',      icon: 'group',           val: `+${obResult.results?.tripulacion?.created || 0}` },
+                                    { key: 'baterias',    label: 'Baterías',     icon: 'battery_charging_full', val: `+${obResult.results?.baterias?.created || 0}` },
+                                    { key: 'polizas',     label: 'Pólizas RCE',  icon: 'shield',          val: `+${obResult.results?.polizas?.created || 0}` },
+                                    { key: 'contactos',   label: 'Contactos',    icon: 'emergency',       val: `+${obResult.results?.contactos?.created || 0}` },
+                                    { key: 'bitacora',    label: 'Vuelos',       icon: 'menu_book',       val: `+${obResult.results?.bitacora?.inserted || 0}` },
+                                ].map(item => (
+                                    <div key={item.key} className="bg-slate-800 rounded-lg px-3 py-2 flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-sm text-slate-400">{item.icon}</span>
+                                        <div>
+                                            <p className="text-[10px] text-slate-400">{item.label}</p>
+                                            <p className="text-xs font-black text-emerald-400">{item.val}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            {/* Errores por sección */}
+                            {Object.entries(obResult.results || {}).some(([, v]) => v?.errors?.length > 0) && (
+                                <details className="mt-1">
+                                    <summary className="text-xs text-orange-400 cursor-pointer font-semibold">Ver advertencias</summary>
+                                    <div className="mt-2 space-y-1">
+                                        {Object.entries(obResult.results).map(([section, v]) =>
+                                            (v?.errors || []).map((e, i) => (
+                                                <p key={`${section}-${i}`} className="text-[11px] text-orange-300">
+                                                    [{section}] {e}
+                                                </p>
+                                            ))
+                                        )}
+                                    </div>
+                                </details>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </section>
 
             <form onSubmit={handleUpdate} className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-10">
                 

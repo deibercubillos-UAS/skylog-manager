@@ -6,10 +6,12 @@ import { supabase } from "@/lib/supabase";
 import Image from 'next/image';
 import { ROLE_LABELS, PERMISSIONS, hasPermission } from '@/lib/roles';
 import PwaInstallBanner from '@/components/PwaInstallBanner';
+import OnboardingBanner from '@/components/OnboardingBanner';
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const [data, setData] = useState({ profile: null, org: null });
+  const [aircraftCount, setAircraftCount] = useState(null); // null = aún cargando
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeFlight, setActiveFlight] = useState(null);
@@ -52,8 +54,8 @@ export default function DashboardLayout({ children }) {
           }
         }
 
-        // Cargar organización EN PARALELO con el primer vuelo activo
-        const [orgRes, flightRes] = await Promise.all([
+        // Cargar organización EN PARALELO con el primer vuelo activo y count de aeronaves
+        const [orgRes, flightRes, acCountRes] = await Promise.all([
           supabase
             .from('organizations')
             .select('id,company_name,unique_code,tax_id,logo_url,subscription_plan')
@@ -66,10 +68,15 @@ export default function DashboardLayout({ children }) {
             .is('landing_time', null)
             .order('created_at', { ascending: false })
             .limit(1)
-            .maybeSingle()
+            .maybeSingle(),
+          supabase
+            .from('aircraft')
+            .select('id', { count: 'exact', head: true })
+            .eq('organization_id', prof.organization_id),
         ]);
 
         setData({ profile: prof, org: orgRes.data });
+        setAircraftCount(acCountRes.count ?? 0);
         setActiveFlight(flightRes.data);
 
         // Suscripción Realtime: si el admin actualiza el plan o el rol desde Supabase,
@@ -220,6 +227,11 @@ const footerLinks = footerLinksAll.filter(link =>
             </span>
           </div>
         </div>
+
+        {/* Banner onboarding — solo admin/superadmin, org sin aeronaves */}
+        {PERMISSIONS.canManageFleet.includes(data.profile?.role) && aircraftCount !== null && (
+          <OnboardingBanner aircraftCount={aircraftCount} />
+        )}
 
         {/* Banner instalación PWA — solo mobile/controles DJI, se auto-oculta */}
         <PwaInstallBanner />

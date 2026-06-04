@@ -24,9 +24,7 @@ export async function GET() {
         console.log(`Intento de acceso Master - Usuario: ${user.email} - Rol: ${profile?.role}`);
 
         if (profile?.role !== 'superadmin') {
-            return NextResponse.json({ 
-                error: `Acceso Denegado. Su rol actual es: ${profile?.role}. Se requiere: superadmin` 
-            }, { status: 403 });
+            return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 });
         }
 
         const { data, error } = await adminSupabase

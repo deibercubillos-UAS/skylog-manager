@@ -27,6 +27,7 @@ export async function POST(req) {
       .eq('id', user.id)
       .single();
 
+
     if (profError || !profile) {
       return NextResponse.json({ error: "Perfil no encontrado" }, { status: 403 });
     }
@@ -36,7 +37,7 @@ export async function POST(req) {
     }
 
     // ── Validar payload ──────────────────────────────────────────────────────
-    const { email, role, orgName, inviterName } = await req.json();
+    const { email, role } = await req.json();
 
     if (!isValidEmail(email)) {
       return NextResponse.json({ error: "Email inválido" }, { status: 400 });
@@ -46,9 +47,14 @@ export async function POST(req) {
       return NextResponse.json({ error: `Rol inválido. Permitidos: ${INVITABLE_ROLES.join(', ')}` }, { status: 400 });
     }
 
-    // Usar el nombre del perfil autenticado si no viene del body
-    const senderName = inviterName || profile.full_name || 'Un administrador';
-    const orgDisplayName = orgName || 'su organización';
+    // Nombre e org siempre desde el perfil autenticado (nunca del body — previene phishing)
+    const senderName = profile.full_name || 'Un administrador';
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('company_name')
+      .eq('id', profile.organization_id)
+      .single();
+    const orgDisplayName = org?.company_name || 'su organización';
 
     // ── Enviar invitación ────────────────────────────────────────────────────
     const resend = new Resend(process.env.RESEND_API_KEY);

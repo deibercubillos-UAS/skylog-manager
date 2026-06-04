@@ -13,7 +13,7 @@ export async function GET(request) {
     try {
         const supabase = await createClientSSR();
         const ctx = await getOrgContext(supabase);
-        if (!ctx) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+        if (!ctx?.orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
         const { searchParams } = new URL(request.url);
         const type   = searchParams.get('type');     // 'VOR' | 'MOR' | null
@@ -64,7 +64,7 @@ export async function POST(request) {
     try {
         const supabase = await createClientSSR();
         const ctx = await getOrgContext(supabase);
-        if (!ctx) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+        if (!ctx?.orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
         // Solo admin, gerente_sms y superadmin pueden configurar formularios
         if (!['admin', 'gerente_sms', 'superadmin'].includes(ctx.role)) {

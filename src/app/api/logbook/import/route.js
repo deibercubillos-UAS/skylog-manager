@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
+import { PERMISSIONS } from '@/lib/roles';
 // ExcelJS se importa dinámicamente dentro del handler para reducir el cold start
 // del serverless function en Vercel (~600 kB menos en el módulo inicial).
 
@@ -85,9 +86,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Perfil sin organización asignada' }, { status: 403 });
     }
 
-    // Solo admin, jefe_pilotos y superadmin pueden importar
-    const allowedRoles = ['superadmin', 'admin', 'jefe_pilotos'];
-    if (!allowedRoles.includes(prof.role)) {
+    if (!PERMISSIONS.canImportFlights.includes(prof.role)) {
       return NextResponse.json({ error: 'Sin permisos para importar vuelos' }, { status: 403 });
     }
 

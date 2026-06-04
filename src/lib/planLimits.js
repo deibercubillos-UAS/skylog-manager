@@ -88,38 +88,6 @@ export const canAddResource = (planKey, currentCount, type) => {
   return currentCount < limit;
 };
 
-/**
- * Función para verificar permisos según el Rol Operativo.
- * @param {string} role - El rol del usuario (ej: 'jefe_pilotos', 'gerente_sms')
- * @param {string} action - La acción a realizar
- */
-export const hasPermission = (role, action) => {
-  const permissions = {
-    admin: ['all'],
-    jefe_pilotos: [
-      'manage_fleet', 
-      'manage_pilots', 
-      'view_logbook', 
-      'register_flight'
-    ],
-    gerente_sms: [
-      'view_logbook', 
-      'manage_sora', 
-      'manage_checklist', 
-      'view_incidents',
-      'view_reports'
-    ],
-    piloto: [
-      'register_flight', 
-      'view_my_flights',
-      'view_fleet'
-    ]
-  };
-  
-  const userPerms = permissions[role] || permissions['piloto'];
-  return userPerms.includes('all') || userPerms.includes(action);
-};
-
 // Precios en COP para ePayco
 // IVA incluido (19%): taxBase = floor(amount / 1.19) · tax = amount - taxBase
 // trial_days: 60 en piloto = 2 meses gratis antes del primer cobro

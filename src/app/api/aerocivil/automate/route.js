@@ -2,6 +2,7 @@ import { NextResponse }                        from 'next/server';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { decrypt }                             from '@/app/api/aerocivil/credentials/route';
 import { generateKML }                         from '@/lib/kmlGenerator';
+import { PERMISSIONS }                         from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,7 @@ async function getSession(supabase) {
   return { user, prof };
 }
 
-const ALLOWED_ROLES = ['superadmin', 'admin', 'jefe_pilotos'];
+const ALLOWED_ROLES = PERMISSIONS.canManageAerocivil;
 
 // ── POST /api/aerocivil/automate — lanza un job de automatización ─────────────
 export async function POST(request) {

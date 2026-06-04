@@ -1,10 +1,9 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { NextResponse } from 'next/server';
+import { PERMISSIONS } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
-
-const CAN_EDIT_PILOT = ['superadmin', 'admin', 'jefe_pilotos'];
 
 // PATCH /api/logbook/:id  { pilot_id }
 export async function PATCH(request, { params }) {
@@ -13,7 +12,7 @@ export async function PATCH(request, { params }) {
     const { orgId, role } = await getOrgContext(supabase);
     if (!orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    if (!CAN_EDIT_PILOT.includes(role)) {
+    if (!PERMISSIONS.canEditPilotPic.includes(role)) {
       return NextResponse.json({ error: 'Sin permiso para editar pilotos de vuelo.' }, { status: 403 });
     }
 

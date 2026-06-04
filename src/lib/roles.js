@@ -20,8 +20,9 @@ export const ROLE_DESCRIPTIONS = {
     piloto: 'Operador de campo.'
 };
 
-// Matriz de permisos — fuente única para UI
+// Matriz de permisos — fuente única para UI y API routes
 export const PERMISSIONS = {
+    // Existentes
     canManageOps:       ['superadmin', 'admin', 'jefe_pilotos'],
     canViewAudit:       ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],
     canViewFinance:     ['superadmin', 'admin', 'gerente_sms'],
@@ -30,7 +31,15 @@ export const PERMISSIONS = {
     canEditOrg:         ['superadmin', 'admin'],
     canManageInsurance: ['superadmin', 'admin'],
     canFly:             ['superadmin', 'admin', 'jefe_pilotos', 'piloto'],
-    canAccessMaster:    ['superadmin']
+    canAccessMaster:    ['superadmin'],
+    // Nuevas — reemplazan arrays inline en API routes y páginas
+    canManageFleet:     ['superadmin', 'admin', 'jefe_pilotos'],
+    canEditPilotPic:    ['superadmin', 'admin', 'jefe_pilotos'],
+    canImportFlights:   ['superadmin', 'admin', 'jefe_pilotos'],
+    canManageAerocivil: ['superadmin', 'admin', 'jefe_pilotos'],
+    canManageSMS:       ['superadmin', 'admin', 'gerente_sms'],
+    canViewSMS:         ['superadmin', 'admin', 'gerente_sms'],
+    canManageSafetyConfig: ['superadmin', 'admin', 'gerente_sms'],
 };
 
 // Helper: ¿el usuario tiene un permiso?

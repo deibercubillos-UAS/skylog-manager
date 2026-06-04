@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClientSSR } from '@/lib/supabaseServer';
 import { createClient } from '@supabase/supabase-js';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
+import { PERMISSIONS } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,7 +57,7 @@ async function getOrgAndRole(supabaseUser) {
   return { user, prof };
 }
 
-const ALLOWED_ROLES = ['superadmin', 'admin', 'jefe_pilotos'];
+const ALLOWED_ROLES = PERMISSIONS.canManageAerocivil;
 
 // ─── GET: estado de credenciales (sin exponer la contraseña) ──
 export async function GET() {

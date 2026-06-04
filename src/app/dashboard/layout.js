@@ -55,7 +55,7 @@ export default function DashboardLayout({ children }) {
         const [orgRes, flightRes] = await Promise.all([
           supabase
             .from('organizations')
-            .select('id,company_name,unique_code,logo_url,subscription_plan')
+            .select('id,company_name,unique_code,tax_id,logo_url,subscription_plan')
             .eq('id', prof.organization_id)
             .single(),
           supabase
@@ -214,7 +214,7 @@ const footerLinks = footerLinksAll.filter(link =>
           <div className="flex flex-col text-right min-w-0">
             <span className="text-xs font-black text-slate-500 uppercase tracking-tight leading-none">NIT</span>
             <span className="text-xs font-mono font-bold text-white leading-none mt-0.5">
-              {data.org?.unique_code || '---'}
+              {data.org?.tax_id || '---'}
             </span>
           </div>
         </div>

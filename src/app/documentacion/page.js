@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import NavMobile from '@/components/landing/NavMobile';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
@@ -269,14 +270,16 @@ export default function DocumentacionPage() {
       {/* ── HEADER ── */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100">
         <nav className="max-w-7xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2" aria-label="Bitafly inicio">
+          <Link href="/" className="flex items-center gap-2.5" aria-label="Bitafly — inicio">
+            <Image src="/logo.png" alt="" width={36} height={36} className="h-8 md:h-9 w-auto" priority />
             <span className="text-xl md:text-2xl font-black text-navy uppercase tracking-tighter">Bitafly</span>
           </Link>
           <ul className="hidden md:flex items-center gap-8 text-sm font-bold text-slate-600">
-            <li><Link href="/#funciones" className="hover:text-primary transition-colors">Funciones</Link></li>
-            <li><Link href="/#cumplimiento" className="hover:text-primary transition-colors">RAC 100</Link></li>
-            <li><Link href="/documentacion" className="text-primary border-b-2 border-primary pb-0.5">Guía</Link></li>
-            <li><Link href="/#precios" className="hover:text-primary transition-colors">Precios</Link></li>
+            <li><Link href="/#funciones"     className="hover:text-primary transition-colors">Funciones</Link></li>
+            <li><Link href="/#cumplimiento"  className="hover:text-primary transition-colors">RAC 100</Link></li>
+            <li><Link href="/documentacion"  className="text-primary border-b-2 border-primary pb-0.5">Guía</Link></li>
+            <li><Link href="/#precios"       className="hover:text-primary transition-colors">Precios</Link></li>
+            <li><Link href="/#faq"           className="hover:text-primary transition-colors">Preguntas</Link></li>
           </ul>
           <div className="flex items-center gap-2 md:gap-3">
             <Link href="/login" className="hidden sm:inline-block text-xs font-black uppercase tracking-widest text-slate-600 hover:text-primary transition-colors">

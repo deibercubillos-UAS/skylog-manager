@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { resolveOrg, supabaseAdmin } from '../../_resolveOrg';
 import { escHtml } from '@/lib/emailHelpers';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 
 export async function GET(request, { params }) {
     try {
@@ -37,6 +38,13 @@ export async function GET(request, { params }) {
 
 export async function POST(request, { params }) {
     try {
+        // Rate limiting: máx 5 reportes MOR por IP por minuto
+        const ip = getClientIp(request);
+        const { allowed } = checkRateLimit(`mor:${ip}`, { limit: 5, windowMs: 60_000 });
+        if (!allowed) {
+            return NextResponse.json({ error: 'Demasiadas solicitudes. Intenta de nuevo en un minuto.' }, { status: 429 });
+        }
+
         const { orgCode } = await params;
         const org = await resolveOrg(orgCode);
         if (!org) return NextResponse.json({ error: 'Organización no encontrada' }, { status: 404 });
@@ -69,7 +77,8 @@ export async function POST(request, { params }) {
             return NextResponse.json({ error: 'La descripción del evento es obligatoria' }, { status: 400 });
         }
 
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+        // IP para auditoría básica (reutilizar la ya extraída para rate limiting)
+        const submitterIp = ip;
 
         const { data: submission, error: insertErr } = await supabaseAdmin
             .from('vor_mor_submissions')
@@ -87,7 +96,7 @@ export async function POST(request, { params }) {
                 contributing_factors: contributing_factors?.trim() || null,
                 attachments: attachments || [],
                 custom_responses: custom_responses || {},
-                ip_address: ip,
+                ip_address: submitterIp,
             }])
             .select('id, is_anonymous')
             .single();

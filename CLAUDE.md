@@ -34,6 +34,7 @@ src/
 ├── components/
 │   ├── DjiRcSync.js       ← importación DJI: instrucciones por dispositivo, modal crear aeronave
 │   ├── LogbookImportPanel.js ← panel de importación (Excel/CSV + DJI RC)
+│   ├── FlightReplayModal.js ← modal replay GPS animado (upload .txt + visualización + guardado)
 │   ├── authorizations/    ← BasicForm, AerocivilForm, MapPickerModal
 │   ├── landing/           ← landing page / marketing
 │   └── settings/          ← panels de configuración
@@ -45,7 +46,7 @@ src/
 │   ├── djiParser.js        ← parseDjiTxtBuffer() — server-side, requiere DJI_API_KEY
 │   ├── epayco.js           ← listSubscriptions(), cancelSubscription(), cancelSubscriptionsByEmail()
 │   └── epaycoActivation.js ← activatePlanForUser(), resolvePendingForUser() — idempotente
-dji-parser/            ← módulo independiente: parsea archivos .dat DJI
+dji-parser/            ← módulo independiente: parsea archivos .txt DJI
 railway-robot/         ← Playwright automator para sistema externo (Railway)
 supabase/migrations/   ← migraciones SQL
 graphify-out/          ← grafo de conocimiento del proyecto (graph.html, graph.json)
@@ -78,7 +79,7 @@ Tablas principales:
 - `organizations` — organizaciones (tenant principal)
 - `pilots` — pilotos registrados por org
 - `aircraft` — aeronaves (fleet); campo `total_hours` se actualiza automáticamente al importar vuelos DJI
-- `flights` — bitácora de vuelos; campo `pilot_id` editable por admin/jefe_pilotos. Constraint `UNIQUE NULLS NOT DISTINCT (organization_id, aircraft_id, flight_date, takeoff_time)` — previene duplicados. Actualizar `total_hours` siempre vía RPC `increment_aircraft_hours(p_id, p_hours)` (atómica).
+- `flights` — bitácora de vuelos; campo `pilot_id` editable por admin/jefe_pilotos. Constraint `UNIQUE NULLS NOT DISTINCT (organization_id, aircraft_id, flight_date, takeoff_time)` — previene duplicados. Actualizar `total_hours` siempre vía RPC `increment_aircraft_hours(p_id, p_hours)` (atómica). Campo `replay_path` — ruta en Supabase Storage del replay guardado (nullable).
 - `flight_authorizations` — autorizaciones de vuelo (RAC 100 / Aerocivil)
 - `batteries` — gestión de baterías; campo `cycles` se actualiza automáticamente al importar vuelos DJI
 - `battery_logs` — logs de uso de baterías
@@ -91,6 +92,7 @@ Tablas principales:
 - `aerocivil_submissions` — solicitudes enviadas a Aerocivil
 - `pending_subscriptions` — intents de pago ePayco (reference, user_id, plan_key, billing); el webhook/verify los borra al activar. Filas huérfanas = webhook nunca ejecutó.
 - `processed_webhook_refs` — tabla de idempotencia para replay protection del webhook ePayco. Columnas: `ref_payco TEXT PK`, `processed_at TIMESTAMPTZ`.
+- `epayco_plan_config` — configuración de planes ePayco. Columnas clave: `plan_key`, `billing`, `amount`, `trial_days`, `replay_retention_days` (días de retención replay, 0=permanente), `replay_max_flights` (máx vuelos con replay, 0=ilimitado). Editable desde `/admin/master`.
 
 ---
 
@@ -101,6 +103,7 @@ Tablas principales:
 
 **Permisos clave por rol**:
 - `jefe_pilotos` + `admin` + `superadmin`: pueden editar el piloto (PIC) de cualquier vuelo vía `PATCH /api/logbook/:id`
+- `admin` + `gerente_sms` + `jefe_pilotos` + `superadmin`: pueden ver y guardar Replay de Vuelo (`PERMISSIONS.canViewFlightReplay`)
 - Todos los roles: pueden importar vuelos DJI desde el RC
 - `admin` + `superadmin`: gestión completa de organización, flota, suscripción
 
@@ -163,6 +166,50 @@ El componente `src/components/DjiRcSync.js` maneja todo el flujo:
 
 ---
 
+## Replay de Vuelo (Fases 1-3)
+
+Permite revisar cualquier vuelo cuadro a cuadro: ruta GPS animada, joysticks RC, batería y alertas. Solo archivos `.txt` de DJI (el soporte `.dat` fue descartado).
+
+### Arquitectura
+
+- **Parser**: `dji-log-parser-js` (WASM) — browser-side, no requiere servidor
+- **Compresión**: `CompressionStream('gzip')` nativo del browser — sin dependencias externas
+- **Storage**: bucket privado `flight-replays` en Supabase Storage. Path: `orgs/{orgId}/replays/{flightId}.json.gz`
+- **Tamaño máximo**: 2 MB por replay (JSON telemetría muestreada ~12k puntos → gzip → ~60-150 KB)
+- **Signed URL**: 1 hora de validez — se genera en cada descarga
+- **Permisos**: `PERMISSIONS.canViewFlightReplay` = `['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos']`
+
+### Cuotas por plan (en `epayco_plan_config`)
+
+| Plan | Días retención | Máx vuelos con replay |
+|---|---|---|
+| `piloto` | 30 días | 10 vuelos |
+| `escuadrilla` | 90 días | 50 vuelos |
+| `flota` | 180 días | 200 vuelos |
+| `enterprise` | 0 (permanente) | 0 (ilimitado) |
+
+**Enforcement en POST**: si se alcanza `replay_max_flights`, elimina el vuelo más antiguo antes de guardar (sliding window).  
+**Enforcement en GET**: si `flight_date` supera `replay_retention_days`, limpia el archivo de Storage y devuelve 404.  
+**Limpieza nocturna**: función `cleanup_expired_replays()` vía pg_cron — corre a las 03:00 UTC.
+
+### Archivos clave
+
+| Archivo | Rol |
+|---|---|
+| `src/components/FlightReplayModal.js` | Modal completo: upload .txt → parse → visualización → guardar en Storage |
+| `src/app/api/flights/[id]/replay/route.js` | GET (signed URL + expiración) · POST (enforcement cuota + upload) · DELETE |
+| `src/app/api/org/replay-quota/route.js` | GET — devuelve `{ replayCount, maxFlights, retentionDays, isUnlimited, plan }` |
+| `src/app/dashboard/logbook/page.js` | Botón 🔴 naranja (tiene replay) / ⚫ gris (no tiene) por fila |
+| `src/app/dashboard/sms/page.js` | Botón "Replay" junto al selector de vuelo |
+
+### Landing pages actualizadas
+
+- `src/components/landing/Pricing.js` — fila de replay generada dinámicamente desde `/api/plans/public` (cambia sola cuando el admin edita la cuota)
+- `src/components/landing/Features.js` — tarjeta "Replay GPS Animado" con badge NUEVO
+- `src/app/comparativa-bitafly-airdata/page.js` — fila `Análisis avanzado telemetría` → ✅
+
+---
+
 ## Railway Robot
 
 Módulo en `railway-robot/` — automatizador Playwright para un sistema externo.
@@ -215,6 +262,9 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 | 5b alt | Banner de advertencia en Plan de Vuelo → link a `/dashboard/safety/mapas` | ✅ Completada |
 | 6 | Mobile UX audit y fixes (4 subphases: nav, sidebar, touch, DJI paths) | ✅ Completada |
 | Auditoría | Auditoría completa de seguridad, rendimiento y deuda técnica (39 hallazgos) | ✅ Completada |
+| Replay 1 | FlightReplayModal integrado en Bitácora y SMS (modal + botón por vuelo) | ✅ Completada |
+| Replay 2 | Almacenamiento persistente en Supabase Storage (gzip, 2MB, signed URL 1h) | ✅ Completada |
+| Replay 3 | Cuotas por plan, landing pages dinámicas, master admin, pg_cron nocturno | ✅ Completada |
 | 7 | PWA / Android app para controladores DJI Enterprise | ⏳ Pendiente |
 
 ### Commits por fase
@@ -242,6 +292,10 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 | Auditoría 4-B | `901973d` | Rate limiting autenticación (login, register, reset) |
 | Auditoría 5-A | `5783508` | Rendimiento + hallazgos bajos (token body, service role, NULL duplicate) |
 | Auditoría 5-B | `abb4bc8` | Centralizar permisos en PERMISSIONS + eliminar dead code |
+| Replay 1 | `(fase 1)` | FlightReplayModal + botón bitácora + botón SMS + PERMISSIONS.canViewFlightReplay |
+| Replay 2 | `819c2bd` | Storage gzip + signed URL + auto-load + botón naranja/gris optimista |
+| Replay 3 | `8ea10e8` | Cuotas DB + enforcement API + master admin + Pricing dinámica + Features + comparativa |
+| Replay 3-E | `0ff0557` | pg_cron cleanup_expired_replays() — limpieza nocturna 03:00 UTC |
 
 ### Fixes Fase 6 — resumen técnico
 
@@ -263,6 +317,15 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 - `src/app/dashboard/safety/page.js` — índice de Seguridad Operacional (5 módulos)
 - `src/app/dashboard/plan-vuelo/page.js` — banner ámbar pre-formulario (link a /safety/mapas)
 - `src/components/authorizations/MapPickerModal.js` — modal Leaflet LIMPIO (sin ArcGIS)
+
+**Replay de Vuelo (Fases 1-3):**
+- `src/components/FlightReplayModal.js` — modal replay (upload + visualización + Storage)
+- `src/app/api/flights/[id]/replay/route.js` — GET/POST/DELETE con enforcement de cuota
+- `src/app/api/org/replay-quota/route.js` — cuota actual de la org
+- `src/components/landing/Pricing.js` — fila replay dinámica desde BD
+- `src/components/landing/Features.js` — tarjeta "Replay GPS Animado"
+- `src/app/comparativa-bitafly-airdata/page.js` — fila telemetría actualizada
+- `supabase/migrations/20260604_replay_quota_and_cron.sql` — columnas cuota + pg_cron
 
 **URL ArcGIS oficial Aerocivil:**
 ```

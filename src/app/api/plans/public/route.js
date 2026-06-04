@@ -15,7 +15,7 @@ export async function GET() {
     );
     const { data, error } = await anon
       .from('epayco_plan_config')
-      .select('plan_key, billing, amount, trial_days')
+      .select('plan_key, billing, amount, trial_days, replay_retention_days, replay_max_flights')
       .order('plan_key')
       .order('billing');
 
@@ -26,8 +26,10 @@ export async function GET() {
     for (const row of data ?? []) {
       if (!result[row.plan_key]) result[row.plan_key] = {};
       result[row.plan_key][row.billing] = {
-        amount:    row.amount,
-        trialDays: row.trial_days ?? null,
+        amount:               row.amount,
+        trialDays:            row.trial_days ?? null,
+        replayRetentionDays:  row.replay_retention_days ?? 30,
+        replayMaxFlights:     row.replay_max_flights ?? 10,
       };
     }
 

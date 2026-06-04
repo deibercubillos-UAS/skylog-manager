@@ -63,7 +63,14 @@ function PlanesTab() {
 
   const startEdit = (p) => {
     setEditId(p.id);
-    setForm({ name: p.name, description: p.description || '', amount: p.amount, trial_days: p.trial_days });
+    setForm({
+      name:                   p.name,
+      description:            p.description || '',
+      amount:                 p.amount,
+      trial_days:             p.trial_days,
+      replay_retention_days:  p.replay_retention_days ?? 30,
+      replay_max_flights:     p.replay_max_flights    ?? 10,
+    });
     setMsg('');
   };
 
@@ -73,7 +80,14 @@ function PlanesTab() {
       const res = await fetch('/api/epayco/config', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editId, ...form, amount: Number(form.amount), trial_days: Number(form.trial_days) }),
+        body: JSON.stringify({
+        id:                   editId,
+        ...form,
+        amount:               Number(form.amount),
+        trial_days:           Number(form.trial_days),
+        replay_retention_days: Number(form.replay_retention_days),
+        replay_max_flights:    Number(form.replay_max_flights),
+      }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -157,6 +171,18 @@ function PlanesTab() {
                     </div>
                   </div>
 
+                  {/* Resumen replay */}
+                  {editId !== p.id && (
+                    <div className="flex items-center gap-3 text-xs font-mono text-slate-500">
+                      <span className="material-symbols-outlined text-sm text-orange-500/60">play_circle</span>
+                      <span>
+                        Replay: {p.replay_max_flights === 0 ? '∞ vuelos' : `${p.replay_max_flights} vuelos`}
+                        {' · '}
+                        {p.replay_retention_days === 0 ? 'permanente' : `${p.replay_retention_days} días`}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Form de edición (inline) */}
                   {editId === p.id ? (
                     <div className="bg-black/30 rounded-2xl p-6 space-y-4 border border-orange-500/20">
@@ -200,6 +226,38 @@ function PlanesTab() {
                             onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                             className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white text-sm font-medium outline-none focus:border-orange-500/50"
                           />
+                        </div>
+                      </div>
+
+                      {/* Replay de Vuelo */}
+                      <div className="border-t border-white/5 pt-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="material-symbols-outlined text-orange-500 text-base">play_circle</span>
+                          <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Replay de Vuelo</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-black uppercase text-slate-500 tracking-widest">Días de retención</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={form.replay_retention_days}
+                              onChange={e => setForm(f => ({ ...f, replay_retention_days: e.target.value }))}
+                              className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white text-sm font-mono outline-none focus:border-orange-500/50"
+                            />
+                            <p className="text-xs text-slate-600">0 = historial permanente</p>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-black uppercase text-slate-500 tracking-widest">Máx. vuelos con replay</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={form.replay_max_flights}
+                              onChange={e => setForm(f => ({ ...f, replay_max_flights: e.target.value }))}
+                              className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white text-sm font-mono outline-none focus:border-orange-500/50"
+                            />
+                            <p className="text-xs text-slate-600">0 = ilimitados</p>
+                          </div>
                         </div>
                       </div>
 

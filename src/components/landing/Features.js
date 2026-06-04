@@ -43,6 +43,14 @@ export default function Features() {
       title: "Reportes de Auditoría",
       desc: "Exporta historiales de vuelo, mantenimientos y sucesos SMS en PDF, Excel y CSV listos para auditorías.",
       tag: "PRO"
+    },
+    {
+      id: 7,
+      icon: "route",
+      title: "Replay GPS Animado",
+      desc: "Revisa cada vuelo cuadro a cuadro: ruta GPS, joysticks RC, batería y alertas en tiempo real. Directo desde la bitácora.",
+      tag: "NUEVO",
+      highlight: true,
     }
   ];
 
@@ -68,8 +76,16 @@ export default function Features() {
         {/* Grid de Características */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((f) => (
-            <div key={f.id} className="group relative p-10 rounded-[2.5rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-[#ec5b13]/50 transition-all hover:shadow-2xl overflow-hidden text-left">
-              <span className="absolute top-6 right-8 text-xs font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest group-hover:text-[#ec5b13] transition-colors">
+            <div key={f.id} className={`group relative p-10 rounded-[2.5rem] border transition-all hover:shadow-2xl overflow-hidden text-left ${
+              f.highlight
+                ? 'bg-orange-50 dark:bg-orange-950/20 border-[#ec5b13]/40 hover:border-[#ec5b13] shadow-lg shadow-orange-500/10'
+                : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-[#ec5b13]/50'
+            }`}>
+              <span className={`absolute top-6 right-8 text-xs font-black uppercase tracking-widest transition-colors ${
+                f.highlight
+                  ? 'text-[#ec5b13]'
+                  : 'text-slate-300 dark:text-slate-600 group-hover:text-[#ec5b13]'
+              }`}>
                 {f.tag}
               </span>
 

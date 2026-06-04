@@ -130,14 +130,43 @@ export default function Pricing() {
       .catch(() => {});
   }, []);
 
+  // Genera texto de replay a partir de cuotas del plan
+  function replayFeatureText(planKey, pd) {
+    const maxFlights    = pd?.monthly?.replayMaxFlights     ?? pd?.annual?.replayMaxFlights;
+    const retentionDays = pd?.monthly?.replayRetentionDays  ?? pd?.annual?.replayRetentionDays;
+    if (maxFlights == null) return null;
+    const flightsTxt = maxFlights === 0    ? 'Replays ilimitados' : `${maxFlights} replays GPS`;
+    const daysTxt    = retentionDays === 0 ? 'historial permanente'
+                     : retentionDays >= 180 ? `${Math.round(retentionDays / 30)} meses de historial`
+                     : retentionDays >= 30  ? `${Math.round(retentionDays / 30)} mes${Math.round(retentionDays / 30) > 1 ? 'es' : ''} de historial`
+                     : `${retentionDays} días de historial`;
+    return `${flightsTxt} · ${daysTxt}`;
+  }
+
   const PLANS = PLANS_BASE.map(plan => {
     const pd = prices?.[plan.key];
-    if (!pd) return plan;
+    const replayText = replayFeatureText(plan.key, pd);
+    const baseFeatures = [...plan.features];
+
+    // Insertar fila de replay si tenemos datos de la BD
+    if (replayText) {
+      // Reemplazar si ya existe una fila de replay, o insertar al inicio
+      const replayIdx = baseFeatures.findIndex(f => f.toLowerCase().includes('replay'));
+      if (replayIdx >= 0) {
+        baseFeatures[replayIdx] = replayText;
+      } else {
+        // Insertar después del primer feature de bitácora (segundo elemento aprox)
+        baseFeatures.splice(1, 0, replayText);
+      }
+    }
+
+    if (!pd) return { ...plan, features: baseFeatures };
     return {
       ...plan,
-      monthlyAmount: pd.monthly?.amount  ?? plan.monthlyAmount,
-      annualAmount:  pd.annual?.amount   ?? plan.annualAmount,
+      monthlyAmount: pd.monthly?.amount    ?? plan.monthlyAmount,
+      annualAmount:  pd.annual?.amount     ?? plan.annualAmount,
       trialDays:     pd.monthly?.trialDays ?? pd.annual?.trialDays ?? plan.trialDays,
+      features:      baseFeatures,
     };
   });
 

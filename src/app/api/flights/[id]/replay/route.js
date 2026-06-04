@@ -12,11 +12,38 @@ const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
 async function getFlightOrg(supabase, flightId, orgId) {
   const { data } = await supabase
     .from('flights')
-    .select('id, organization_id, replay_path')
+    .select('id, organization_id, replay_path, flight_date')
     .eq('id', flightId)
     .eq('organization_id', orgId)
     .single();
   return data ?? null;
+}
+
+// Lee la cuota del plan vigente de la org (usa billing=monthly como referencia)
+async function getOrgQuota(admin, orgId) {
+  // Leer plan del primer perfil admin de la org
+  // Leer plan del primer admin o cualquier perfil de la org
+  const { data: prof } = await admin
+    .from('profiles')
+    .select('subscription_plan')
+    .eq('organization_id', orgId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  const plan = prof?.subscription_plan ?? 'piloto';
+
+  const { data: cfg } = await admin
+    .from('epayco_plan_config')
+    .select('replay_retention_days, replay_max_flights')
+    .eq('plan_key', plan)
+    .eq('billing', 'monthly')
+    .single();
+
+  return {
+    retentionDays: cfg?.replay_retention_days ?? 30,
+    maxFlights:    cfg?.replay_max_flights    ?? 10,
+    plan,
+  };
 }
 
 // ── GET /api/flights/[id]/replay ───────────────────────────────────────
@@ -30,11 +57,30 @@ export async function GET(_req, { params }) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
+    const admin  = createAdminClient();
     const flight = await getFlightOrg(supabase, params.id, ctx.orgId);
     if (!flight)             return NextResponse.json({ error: 'Vuelo no encontrado' }, { status: 404 });
     if (!flight.replay_path) return NextResponse.json({ error: 'Este vuelo no tiene replay guardado' }, { status: 404 });
 
-    const admin = createAdminClient();
+    // Verificar expiración por cuota del plan
+    const quota = await getOrgQuota(admin, ctx.orgId);
+    if (quota.retentionDays > 0 && flight.flight_date) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - quota.retentionDays);
+      if (new Date(flight.flight_date) < cutoff) {
+        // Limpiar replay expirado
+        await admin.storage.from(BUCKET).remove([flight.replay_path]);
+        await admin.from('flights')
+          .update({ replay_path: null })
+          .eq('id', params.id)
+          .eq('organization_id', ctx.orgId);
+        return NextResponse.json({
+          error: `Replay expirado (retención: ${quota.retentionDays} días en tu plan ${quota.plan})`,
+          expired: true,
+        }, { status: 404 });
+      }
+    }
+
     const { data, error } = await admin.storage
       .from(BUCKET)
       .createSignedUrl(flight.replay_path, 3600); // 1 hora
@@ -62,6 +108,41 @@ export async function POST(req, { params }) {
     const flight = await getFlightOrg(supabase, params.id, ctx.orgId);
     if (!flight) return NextResponse.json({ error: 'Vuelo no encontrado' }, { status: 404 });
 
+    const admin = createAdminClient();
+
+    // ── Enforcement de cuota: eliminar el más antiguo si se alcanza el límite ──
+    const quota = await getOrgQuota(admin, ctx.orgId);
+    if (quota.maxFlights > 0) {
+      // Contar replays actuales de la org (excluyendo este vuelo si ya tiene uno)
+      const { count } = await admin
+        .from('flights')
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', ctx.orgId)
+        .not('replay_path', 'is', null)
+        .neq('id', params.id);
+
+      if ((count ?? 0) >= quota.maxFlights) {
+        // Eliminar el más antiguo
+        const { data: oldest } = await admin
+          .from('flights')
+          .select('id, replay_path')
+          .eq('organization_id', ctx.orgId)
+          .not('replay_path', 'is', null)
+          .neq('id', params.id)
+          .order('flight_date', { ascending: true })
+          .limit(1)
+          .single();
+
+        if (oldest?.replay_path) {
+          await admin.storage.from(BUCKET).remove([oldest.replay_path]);
+          await admin.from('flights')
+            .update({ replay_path: null })
+            .eq('id', oldest.id)
+            .eq('organization_id', ctx.orgId);
+        }
+      }
+    }
+
     // Leer body como ArrayBuffer
     const arrayBuffer = await req.arrayBuffer();
     if (arrayBuffer.byteLength > MAX_SIZE) {
@@ -71,7 +152,6 @@ export async function POST(req, { params }) {
       return NextResponse.json({ error: 'Body vacío' }, { status: 400 });
     }
 
-    const admin       = createAdminClient();
     const storagePath = `orgs/${ctx.orgId}/replays/${params.id}.json.gz`;
 
     // Subir a Storage (upsert si ya existe)

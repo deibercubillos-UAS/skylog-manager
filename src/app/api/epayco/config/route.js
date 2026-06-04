@@ -43,7 +43,7 @@ export async function PATCH(request) {
     return NextResponse.json({ error: 'Solo superadmin' }, { status: 403 });
   }
 
-  const { id, name, description, amount, trial_days } = await request.json();
+  const { id, name, description, amount, trial_days, replay_retention_days, replay_max_flights } = await request.json();
   if (!id || !name || !amount) {
     return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
   }
@@ -78,10 +78,12 @@ export async function PATCH(request) {
     .from('epayco_plan_config')
     .update({
       name,
-      description:  description || current.description,
-      amount:       Number(amount),
-      trial_days:   trial_days ?? current.trial_days,
-      updated_at:   new Date().toISOString(),
+      description:           description || current.description,
+      amount:                Number(amount),
+      trial_days:            trial_days ?? current.trial_days,
+      replay_retention_days: replay_retention_days != null ? Number(replay_retention_days) : current.replay_retention_days,
+      replay_max_flights:    replay_max_flights    != null ? Number(replay_max_flights)    : current.replay_max_flights,
+      updated_at:            new Date().toISOString(),
     })
     .eq('id', id);
 

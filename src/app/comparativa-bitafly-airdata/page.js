@@ -43,7 +43,8 @@ const ROWS = [
   { feature: 'CPR con alertas de vencimiento',  bitafly: '✅ 30 y 7 días antes',           airdata: '❌ No existe' },
   { feature: 'Pago en pesos colombianos (PSE)', bitafly: '✅ Wompi — PSE y tarjetas CO',   airdata: '❌ Solo USD/tarjeta int.' },
   { feature: 'Soporte en español Colombia',     bitafly: '✅ WhatsApp + email UTC-5',       airdata: '❌ Email en inglés' },
-  { feature: 'Análisis avanzado telemetría',    bitafly: '🔄 En desarrollo',               airdata: '✅ Líder global' },
+  { feature: 'Replay animado de vuelo',         bitafly: '✅ GPS + joystick + batería',    airdata: '✅ Telemetría avanzada' },
+  { feature: 'Análisis avanzado telemetría',    bitafly: '✅ Replay GPS + alertas + batería', airdata: '✅ Líder global' },
   { feature: 'Plan gratuito',                   bitafly: '✅ 6 meses sin tarjeta',          airdata: '✅ Limitado' },
   { feature: 'Precio base',                     bitafly: '$15 USD/mes',                    airdata: '$11,99 USD/mes' },
 ];

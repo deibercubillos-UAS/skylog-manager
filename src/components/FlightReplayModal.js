@@ -396,6 +396,9 @@ export default function FlightReplayModal({ open, onClose, flightId, hasReplay, 
   return (
     // Overlay
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={flightLabel ? `Replay de vuelo: ${flightLabel}` : 'Replay de Vuelo'}
       className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center"
       onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
     >
@@ -428,10 +431,10 @@ export default function FlightReplayModal({ open, onClose, flightId, hasReplay, 
               )}
               <button
                 onClick={handleClose}
-                className="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center transition-colors"
-                title="Cerrar replay"
+                aria-label="Cerrar replay"
+                className="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center transition-colors focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:outline-none"
               >
-                <span className="material-symbols-outlined text-slate-300 text-base">close</span>
+                <span className="material-symbols-outlined text-slate-300 text-base" aria-hidden="true">close</span>
               </button>
             </div>
           </>
@@ -460,7 +463,11 @@ export default function FlightReplayModal({ open, onClose, flightId, hasReplay, 
                 onDragLeave={() => setDragging(false)}
                 onDrop={onDrop}
                 onClick={() => inputRef.current?.click()}
-                className={`w-80 flex flex-col items-center gap-4 p-10 rounded-3xl border-2 border-dashed cursor-pointer transition-all ${
+                role="button"
+                aria-label="Subir archivo de log DJI (.txt) — arrastra o haz clic"
+                tabIndex={0}
+                onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && inputRef.current?.click()}
+                className={`w-80 flex flex-col items-center gap-4 p-10 rounded-3xl border-2 border-dashed cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:outline-none ${
                   dragging ? 'border-orange-400 bg-orange-950/30 scale-[1.02]'
                            : 'border-slate-700 hover:border-orange-600 hover:bg-slate-900'
                 }`}
@@ -478,6 +485,7 @@ export default function FlightReplayModal({ open, onClose, flightId, hasReplay, 
                   <p className="text-[10px] text-slate-400">Procesado localmente — el .txt no se sube</p>
                 </div>
                 <input ref={inputRef} type="file" accept=".txt"
+                  aria-label="Seleccionar archivo de log DJI (.txt)"
                   onChange={e => processFile(e.target.files?.[0])} className="hidden" />
               </div>
             )}

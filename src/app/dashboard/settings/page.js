@@ -395,13 +395,14 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                             <h4 className="col-span-full text-xs font-black text-orange-600 uppercase tracking-[0.2em] border-b pb-2">01. Datos de Registro</h4>
                             
                             <div className="col-span-full space-y-1">
-                                <label className="text-xs font-black uppercase text-slate-400 ml-1">Razón Social</label>
-                                <input required className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.company_name || ''} onChange={e => setOrg({...org, company_name: e.target.value})} />
+                                <label htmlFor="org-company-name" className="text-xs font-black uppercase text-slate-600 ml-1">Razón Social</label>
+                                <input id="org-company-name" required className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={org.company_name || ''} onChange={e => setOrg({...org, company_name: e.target.value})} />
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-xs font-black uppercase text-slate-400 ml-1">Tipo Identificación</label>
-                                <select 
+                                <label htmlFor="org-tax-id-type" className="text-xs font-black uppercase text-slate-600 ml-1">Tipo Identificación</label>
+                                <select
+                                    id="org-tax-id-type"
                                     className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500"
                                     value={org.tax_id_type || 'NIT'}
                                     onChange={e => setOrg({...org, tax_id_type: e.target.value})}
@@ -413,37 +414,37 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-xs font-black uppercase text-slate-400 ml-1">N° Documento</label>
-                                <input required className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.tax_id || ''} onChange={e => setOrg({...org, tax_id: e.target.value})} />
+                                <label htmlFor="org-tax-id" className="text-xs font-black uppercase text-slate-600 ml-1">N° Documento</label>
+                                <input id="org-tax-id" required className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={org.tax_id || ''} onChange={e => setOrg({...org, tax_id: e.target.value})} />
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-xs font-black uppercase text-slate-400 ml-1">N° Explotador (DAN)</label>
-                                <input className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.dan_number || ''} onChange={e => setOrg({...org, dan_number: e.target.value})} />
+                                <label htmlFor="org-dan" className="text-xs font-black uppercase text-slate-600 ml-1">N° Explotador (DAN)</label>
+                                <input id="org-dan" className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={org.dan_number || ''} onChange={e => setOrg({...org, dan_number: e.target.value})} />
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-xs font-black uppercase text-slate-400 ml-1">Representante Legal</label>
-                                <input className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.legal_rep || ''} onChange={e => setOrg({...org, legal_rep: e.target.value})} />
+                                <label htmlFor="org-legal-rep" className="text-xs font-black uppercase text-slate-600 ml-1">Representante Legal</label>
+                                <input id="org-legal-rep" className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={org.legal_rep || ''} onChange={e => setOrg({...org, legal_rep: e.target.value})} />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pt-4">
                             <h4 className="col-span-full text-xs font-black text-orange-600 uppercase tracking-[0.2em] border-b pb-2">02. Contacto Administrativo</h4>
-                            
+
                             <div className="space-y-1">
-                                <label className="text-xs font-black uppercase text-slate-400 ml-1">Email Corporativo</label>
-                                <input type="email" className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.operator_email || ''} onChange={e => setOrg({...org, operator_email: e.target.value})} />
+                                <label htmlFor="org-email" className="text-xs font-black uppercase text-slate-600 ml-1">Email Corporativo</label>
+                                <input id="org-email" type="email" className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={org.operator_email || ''} onChange={e => setOrg({...org, operator_email: e.target.value})} />
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-xs font-black uppercase text-slate-400 ml-1">Teléfono</label>
-                                <input className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.phone || ''} onChange={e => setOrg({...org, phone: e.target.value})} />
+                                <label htmlFor="org-phone" className="text-xs font-black uppercase text-slate-600 ml-1">Teléfono</label>
+                                <input id="org-phone" className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={org.phone || ''} onChange={e => setOrg({...org, phone: e.target.value})} />
                             </div>
 
                             <div className="col-span-full space-y-1">
-                                <label className="text-xs font-black uppercase text-slate-400 ml-1">Dirección Oficial</label>
-                                <input className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={org.address || ''} onChange={e => setOrg({...org, address: e.target.value})} />
+                                <label htmlFor="org-address" className="text-xs font-black uppercase text-slate-600 ml-1">Dirección Oficial</label>
+                                <input id="org-address" className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={org.address || ''} onChange={e => setOrg({...org, address: e.target.value})} />
                             </div>
                         </div>
 
@@ -581,35 +582,35 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
             </h3>
 
             <div className="space-y-1">
-                <label className="text-xs font-black uppercase text-slate-400 ml-1">Empresa Aseguradora</label>
-                <input required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={policyForm.insurance_company} onChange={e => setPolicyForm({...policyForm, insurance_company: e.target.value})} />
+                <label htmlFor="policy-insurer" className="text-xs font-black uppercase text-slate-600 ml-1">Empresa Aseguradora</label>
+                <input id="policy-insurer" required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={policyForm.insurance_company} onChange={e => setPolicyForm({...policyForm, insurance_company: e.target.value})} />
             </div>
 
             <div className="space-y-1">
-                <label className="text-xs font-black uppercase text-slate-400 ml-1">Número de Póliza</label>
-                <input required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-mono font-bold text-sm" value={policyForm.policy_number} onChange={e => setPolicyForm({...policyForm, policy_number: e.target.value})} />
+                <label htmlFor="policy-number" className="text-xs font-black uppercase text-slate-600 ml-1">Número de Póliza</label>
+                <input id="policy-number" required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-mono font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={policyForm.policy_number} onChange={e => setPolicyForm({...policyForm, policy_number: e.target.value})} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                    <label className="text-xs font-black uppercase text-slate-400 ml-1">Inicio Cobertura</label>
-                    <input required type="date" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={policyForm.start_date} onChange={e => setPolicyForm({...policyForm, start_date: e.target.value})} />
+                    <label htmlFor="policy-start" className="text-xs font-black uppercase text-slate-600 ml-1">Inicio Cobertura</label>
+                    <input id="policy-start" required type="date" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={policyForm.start_date} onChange={e => setPolicyForm({...policyForm, start_date: e.target.value})} />
                 </div>
                 <div className="space-y-1">
-                    <label className="text-xs font-black uppercase text-slate-400 ml-1">Fin Cobertura</label>
-                    <input required type="date" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={policyForm.end_date} onChange={e => setPolicyForm({...policyForm, end_date: e.target.value})} />
+                    <label htmlFor="policy-end" className="text-xs font-black uppercase text-slate-600 ml-1">Fin Cobertura</label>
+                    <input id="policy-end" required type="date" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={policyForm.end_date} onChange={e => setPolicyForm({...policyForm, end_date: e.target.value})} />
                 </div>
             </div>
 
             <div className="space-y-1">
-                <label className="text-xs font-black uppercase text-slate-400 ml-1">Aplica a</label>
-                <select className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm" value={policyForm.aircraft_id} onChange={e => setPolicyForm({...policyForm, aircraft_id: e.target.value})}>
+                <label htmlFor="policy-aircraft" className="text-xs font-black uppercase text-slate-600 ml-1">Aplica a</label>
+                <select id="policy-aircraft" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={policyForm.aircraft_id} onChange={e => setPolicyForm({...policyForm, aircraft_id: e.target.value})}>
                     <option value="">🛡️ TODA LA FLOTA</option>
                     {aircraft.map(a => (
                         <option key={a.id} value={a.id}>{a.model} ({a.serial_number})</option>
                     ))}
                 </select>
-                <p className="text-xs text-slate-400 mt-1 ml-1 uppercase">Si seleccionas "Toda la flota", cubre todas las aeronaves registradas.</p>
+                <p className="text-xs text-slate-500 mt-1 ml-1 uppercase">Si seleccionas "Toda la flota", cubre todas las aeronaves registradas.</p>
             </div>
 
             <div className="flex gap-3 pt-2">

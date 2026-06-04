@@ -188,6 +188,14 @@ const footerLinks = footerLinksAll.filter(link =>
   return (
     <div className="flex h-screen bg-[#f8f6f6] font-display overflow-hidden text-left">
 
+      {/* Skip to main content — accesibilidad teclado */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-orange-600 focus:text-white focus:font-black focus:text-xs focus:uppercase focus:rounded-xl focus:shadow-lg"
+      >
+        Ir al contenido principal
+      </a>
+
       {/* ── SIDEBAR DINÁMICO ─────────────────────────────────────────────── */}
       <aside className={`
           fixed inset-y-0 left-0 z-[150] w-64 bg-[#1A202C] text-white flex flex-col
@@ -237,7 +245,7 @@ const footerLinks = footerLinksAll.filter(link =>
         <PwaInstallBanner />
 
         {/* NAV PRINCIPAL */}
-        <nav className="flex-1 p-3 space-y-0.5 mt-2 overflow-y-auto custom-scrollbar">
+        <nav aria-label="Menú lateral" className="flex-1 p-3 space-y-0.5 mt-2 overflow-y-auto custom-scrollbar">
           {filteredLinks.map(link => (
             <Link
               key={link.href}
@@ -319,8 +327,12 @@ const footerLinks = footerLinksAll.filter(link =>
       {/* OVERLAY MÓVIL */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140] lg:hidden"
+          role="button"
+          aria-label="Cerrar menú"
+          tabIndex={0}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140] lg:hidden cursor-pointer"
           onClick={() => setSidebarOpen(false)}
+          onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && setSidebarOpen(false)}
         />
       )}
 
@@ -397,7 +409,8 @@ const footerLinks = footerLinksAll.filter(link =>
 
         {/* CONTENIDO DE PÁGINA */}
         {/* pb-28 mobile = 7rem ≥ barra inferior (4rem) + safe-area máximo iPhone (2.125rem) + respiro */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10 pb-28 lg:pb-10">
+        {/* id="main-content" — destino del skip link de accesibilidad */}
+        <div id="main-content" className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10 pb-28 lg:pb-10">
           {children}
         </div>
       </main>
@@ -405,6 +418,7 @@ const footerLinks = footerLinksAll.filter(link =>
       {/* ── BARRA DE NAVEGACIÓN INFERIOR — solo mobile ───────────────────── */}
       {/* safe-area-inset-bottom: padding dinámico para iPhone con home indicator */}
       <nav
+        aria-label="Navegación principal"
         className="lg:hidden fixed bottom-0 left-0 right-0 z-[200] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}
       >

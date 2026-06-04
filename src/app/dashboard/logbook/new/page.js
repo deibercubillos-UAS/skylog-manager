@@ -151,8 +151,8 @@ export default function NewOperationPage() {
                             <section className="bg-white p-6 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-200 space-y-6">
                                 <div className="grid grid-cols-1 gap-4 md:gap-6">
                                     <div className="space-y-1">
-                                        <label className="text-xs font-black uppercase text-slate-400 ml-1">Orden de Vuelo</label>
-                                        <select className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={form.auth_id} onChange={e => handleAuthChange(e.target.value)}>
+                                        <label htmlFor="new-flight-auth" className="text-xs font-black uppercase text-slate-600 ml-1">Orden de Vuelo</label>
+                                        <select id="new-flight-auth" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={form.auth_id} onChange={e => handleAuthChange(e.target.value)}>
                                             <option value="">-- Seleccionar Misión --</option>
                                             {resources.auths.map(a => <option key={a.id} value={a.id}>{a.mission_id} - {a.location}</option>)}
                                         </select>
@@ -168,21 +168,21 @@ export default function NewOperationPage() {
                                     )}
 
                                     <div className="space-y-1">
-                                        <label className="text-xs font-black uppercase text-slate-400 ml-1">Batería</label>
-                                        <select className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={form.battery_id} onChange={e => setForm({...form, battery_id: e.target.value})}>
+                                        <label htmlFor="new-flight-battery" className="text-xs font-black uppercase text-slate-600 ml-1">Batería</label>
+                                        <select id="new-flight-battery" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={form.battery_id} onChange={e => setForm({...form, battery_id: e.target.value})}>
                                             <option value="">-- Seleccionar Batería --</option>
                                             {resources.batteries.map(b => <option key={b.id} value={b.id}>{b.brand} {b.model} ({b.serial_number})</option>)}
                                         </select>
                                     </div>
-                                    
+
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
-                                            <label className="text-xs font-black uppercase text-slate-400 ml-1">Hora Despegue</label>
-                                            <input type="time" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold" onChange={e => setForm({...form, takeoff_time: e.target.value})} />
+                                            <label htmlFor="new-flight-takeoff" className="text-xs font-black uppercase text-slate-600 ml-1">Hora Despegue</label>
+                                            <input id="new-flight-takeoff" type="time" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold outline-none focus:ring-2 focus:ring-orange-500" onChange={e => setForm({...form, takeoff_time: e.target.value})} />
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-xs font-black uppercase text-slate-400 ml-1">Condición</label>
-                                            <select className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold" value={form.visual_condition} onChange={e => setForm({...form, visual_condition: e.target.value})}>
+                                            <label htmlFor="new-flight-condition" className="text-xs font-black uppercase text-slate-600 ml-1">Condición</label>
+                                            <select id="new-flight-condition" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold outline-none focus:ring-2 focus:ring-orange-500" value={form.visual_condition} onChange={e => setForm({...form, visual_condition: e.target.value})}>
                                                 <option value="VMC">VMC</option><option value="IMC">IMC</option><option value="NIGHT">NIGHT</option>
                                             </select>
                                         </div>
@@ -237,8 +237,8 @@ export default function NewOperationPage() {
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <label className="text-xs font-black uppercase text-slate-400">Motivo de cancelación (opcional)</label>
-                        <textarea
+                        <label htmlFor="cancel-notes" className="text-xs font-black uppercase text-slate-600">Motivo de cancelación (opcional)</label>
+                        <textarea id="cancel-notes"
                             rows="3"
                             value={cancelNotes}
                             onChange={e => setCancelNotes(e.target.value)}

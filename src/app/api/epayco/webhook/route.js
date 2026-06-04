@@ -52,6 +52,21 @@ export async function POST(request) {
 
     const supabase = makeSupabase();
 
+    // ── Replay protection: insertar ref_payco en tabla de idempotencia ────────
+    // Si el mismo webhook llega dos veces (red retry de ePayco), el segundo
+    // devuelve 200 inmediatamente sin volver a activar el plan.
+    const refPayco = params.x_ref_payco;
+    if (refPayco) {
+      const { error: refErr } = await supabase
+        .from('processed_webhook_refs')
+        .insert({ ref_payco: refPayco });
+      if (refErr?.code === '23505') {
+        // Unique violation: este webhook ya fue procesado
+        console.log(`ePayco webhook duplicado ignorado: ref=${refPayco}`);
+        return NextResponse.json({ received: true });
+      }
+    }
+
     // ── 1. Intentar por extras (checkout widget) ──────────────────────────────
     let planKey = params.x_extra1;
     let billing = params.x_extra2;
@@ -113,10 +128,12 @@ export async function POST(request) {
     }
 
     // ── Activar plan (helper compartido, idempotente) ─────────────────────────
+    // billing fallback a 'monthly' si los pasos 1-4 no lo resolvieron,
+    // para evitar que un plan anual se active con expiración de solo 1 mes (BUG-14)
     await activatePlanForUser(supabase, {
       userId,
       planKey,
-      billing,
+      billing:        billing || 'monthly',
       subscriptionId: params.x_subscription_id || null,
       ref:            params.x_ref_payco || null,
     });

@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { resolveOrg, supabaseAdmin } from '../../_resolveOrg';
+import { escHtml } from '@/lib/emailHelpers';
 
 export async function GET(request, { params }) {
     try {
@@ -123,20 +124,21 @@ async function notifySms({ org, submission, type, reporter_name, reporter_email,
 
         const resend = new Resend(resendKey);
         const isAnonymous = !reporter_name;
-        const reporterLabel = isAnonymous ? 'Anónimo' : reporter_name;
+        const reporterLabel = isAnonymous ? 'Anónimo' : escHtml(reporter_name);
+        const safeDescription = escHtml(description?.substring(0, 200)) + (description?.length > 200 ? '…' : '');
         const dashUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://bitafly.com'}/dashboard/seguridad-operacional?tab=reportes`;
 
         for (const recipient of recipients) {
             await resend.emails.send({
                 from: 'BitaFly <no-reply@bitafly.com>',
                 to: recipient.email,
-                subject: `[MOR] ⚠️ Nuevo reporte obligatorio — ${org.company_name}`,
+                subject: `[MOR] ⚠️ Nuevo reporte obligatorio — ${escHtml(org.company_name)}`,
                 html: `
-                    <p>Hola ${recipient.first_name},</p>
-                    <p>Se ha recibido un nuevo <strong>Reporte Obligatorio de Ocurrencia (MOR)</strong> en ${org.company_name}. Este reporte requiere atención según la regulación RAC 100.</p>
+                    <p>Hola ${escHtml(recipient.first_name)},</p>
+                    <p>Se ha recibido un nuevo <strong>Reporte Obligatorio de Ocurrencia (MOR)</strong> en ${escHtml(org.company_name)}. Este reporte requiere atención según la regulación RAC 100.</p>
                     <table style="border-collapse:collapse;width:100%;max-width:500px">
                         <tr><td style="padding:6px 0;color:#64748b;font-size:13px">Reportante</td><td style="padding:6px 0;font-weight:bold">${reporterLabel}</td></tr>
-                        <tr><td style="padding:6px 0;color:#64748b;font-size:13px">Descripción</td><td style="padding:6px 0">${description?.substring(0, 200)}${description?.length > 200 ? '…' : ''}</td></tr>
+                        <tr><td style="padding:6px 0;color:#64748b;font-size:13px">Descripción</td><td style="padding:6px 0">${safeDescription}</td></tr>
                     </table>
                     ${isAnonymous && reporter_email ? '<p style="color:#64748b;font-size:12px;font-style:italic">El reportante proporcionó email pero prefirió mantenerse anónimo.</p>' : ''}
                     <p><a href="${dashUrl}" style="background:#dc2626;color:white;padding:10px 20px;text-decoration:none;border-radius:6px;display:inline-block;margin-top:8px">Ver reporte urgente en BitaFly</a></p>

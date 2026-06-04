@@ -1,8 +1,8 @@
 import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
+import { escHtml } from '@/lib/emailHelpers';
 
 export async function POST(req) {
-  const resend = new Resend(process.env.RESEND_API_KEY);
   try {
     const { name, email, company, message } = await req.json();
 
@@ -10,11 +10,11 @@ export async function POST(req) {
     await resend.emails.send({
       from: 'BitaFly Soporte <soporte@bitafly.com>',
       to: ['soporte@bitafly.com'],
-      replyTo: email,// Donde quieres recibir los leads
-      subject: `Nueva Consulta: ${company}`,
-      html: `<p><strong>Nombre:</strong> ${name}</p>
-             <p><strong>Email:</strong> ${email}</p>
-             <p><strong>Mensaje:</strong> ${message}</p>`
+      replyTo: email,
+      subject: `Nueva Consulta: ${escHtml(company)}`,
+      html: `<p><strong>Nombre:</strong> ${escHtml(name)}</p>
+             <p><strong>Email:</strong> ${escHtml(email)}</p>
+             <p><strong>Mensaje:</strong> ${escHtml(message)}</p>`,
     });
 
     return NextResponse.json({ message: "Enviado" });

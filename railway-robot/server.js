@@ -91,6 +91,8 @@ function extractMultipartFile(buffer, boundary) {
 
 // ── Middleware de autenticación ────────────────────────────────────────────
 app.use((req, res, next) => {
+  // Preflight CORS — nunca lleva x-api-secret; el middleware CORS ya respondió con 204
+  if (req.method === 'OPTIONS') return next();
   if (req.path === '/health') return next();
   const incoming = req.headers['x-api-secret'];
   if (!incoming || incoming !== SECRET) {

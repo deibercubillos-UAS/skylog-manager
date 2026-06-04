@@ -35,6 +35,146 @@ const SEVERITY_BG    = { critical: 'bg-red-900/60 border-red-700', warning: 'bg-
 const SEVERITY_TEXT  = { critical: 'text-red-300',  warning: 'text-amber-300' };
 
 const SPEEDS = [1, 2, 5, 10];
+const MOTOR_COLORS = ['#EC5B13', '#3b82f6', '#22c55e', '#a855f7']; // M1 naranja, M2 azul, M3 verde, M4 morado
+
+// ── Motor gauge circular ──────────────────────────────────────────
+function MotorGauge({ motor, rpm, current, tempC, maxRpm = 8000 }) {
+  const pct    = Math.min(rpm / maxRpm, 1);
+  const angle  = pct * 270 - 135;  // arco de 270°, de -135° a +135°
+  const color  = MOTOR_COLORS[(motor - 1) % 4];
+  const R      = 28, cx = 35, cy = 38, stroke = 5;
+  const circum = 2 * Math.PI * R;
+  // Arco de progreso (270° del círculo)
+  const arcLen = pct * (circum * 0.75);
+  // Color temperatura
+  const tempColor = !tempC ? '#475569' : tempC > 70 ? '#ef4444' : tempC > 55 ? '#f59e0b' : '#22c55e';
+
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <div className="relative" style={{ width: 70, height: 60 }}>
+        <svg width="70" height="60" viewBox="0 0 70 70">
+          {/* Track */}
+          <circle cx={cx} cy={cy} r={R} fill="none" stroke="#1e293b" strokeWidth={stroke}
+            strokeDasharray={`${circum * 0.75} ${circum}`}
+            strokeDashoffset={circum * 0.125}
+            strokeLinecap="round"
+            transform={`rotate(-225 ${cx} ${cy})`}
+          />
+          {/* Progreso */}
+          <circle cx={cx} cy={cy} r={R} fill="none" stroke={color} strokeWidth={stroke}
+            strokeDasharray={`${arcLen} ${circum}`}
+            strokeDashoffset={circum * 0.125}
+            strokeLinecap="round"
+            transform={`rotate(-225 ${cx} ${cy})`}
+            style={{ transition: 'stroke-dasharray 0.15s ease' }}
+          />
+          {/* RPM en el centro */}
+          <text x={cx} y={cy - 2} textAnchor="middle" fill="white" fontSize="9" fontWeight="bold" fontFamily="monospace">
+            {rpm > 0 ? (rpm >= 1000 ? `${(rpm/1000).toFixed(1)}k` : rpm) : '---'}
+          </text>
+          <text x={cx} y={cy + 8} textAnchor="middle" fill="#64748b" fontSize="6">RPM</text>
+          {/* Número de motor */}
+          <text x={cx} y={cy + 18} textAnchor="middle" fill={color} fontSize="7" fontWeight="black">M{motor}</text>
+        </svg>
+      </div>
+      {/* Corriente y temperatura */}
+      <div className="flex gap-1.5 items-center">
+        <span className="text-[9px] font-mono text-slate-400">
+          {current > 0 ? `${current.toFixed(1)}A` : '---'}
+        </span>
+        {tempC != null && (
+          <span className="text-[9px] font-mono" style={{ color: tempColor }}>
+            {tempC}°
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Score de balance de motores ───────────────────────────────────
+function MotorBalanceScore({ motors }) {
+  if (!motors?.length) return null;
+  const rpms = motors.map(m => m.rpm).filter(r => r > 100);
+  if (rpms.length < 2) return null;
+  const avg    = rpms.reduce((a,b) => a+b, 0) / rpms.length;
+  const maxDev = Math.max(...rpms.map(r => Math.abs(r - avg) / avg));
+  const score  = Math.round((1 - maxDev) * 100);
+  const color  = score >= 95 ? 'text-green-400' : score >= 85 ? 'text-amber-400' : 'text-red-400';
+  const bg     = score >= 95 ? 'bg-green-900/40' : score >= 85 ? 'bg-amber-900/40' : 'bg-red-900/40';
+  const label  = score >= 95 ? 'Motores equilibrados' : score >= 85 ? 'Leve desbalance' : '¡Revisar hélices!';
+
+  return (
+    <div className={`rounded-xl p-2 ${bg} flex items-center gap-2`}>
+      <span className="material-symbols-outlined text-sm" style={{ color: score >= 95 ? '#22c55e' : score >= 85 ? '#f59e0b' : '#ef4444' }}>
+        {score >= 95 ? 'check_circle' : score >= 85 ? 'warning' : 'error'}
+      </span>
+      <div>
+        <p className={`text-[10px] font-black ${color}`}>{score}% balance</p>
+        <p className="text-[9px] text-slate-400">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Gráfico RPM motores (SVG) ─────────────────────────────────────
+function MotorChart({ telemetry, currentTime, totalDuration, onSeek }) {
+  const svgRef = useRef(null);
+  const W = 800, H = 48;
+
+  const lines = useMemo(() => {
+    const hasMotors = telemetry.some(f => f.motors?.length > 0);
+    if (!hasMotors || totalDuration === 0) return [];
+    // Máximo RPM para normalizar
+    let maxRpm = 0;
+    telemetry.forEach(f => f.motors?.forEach(m => { if (m.rpm > maxRpm) maxRpm = m.rpm; }));
+    if (maxRpm === 0) return [];
+
+    return [0,1,2,3].map(mi => ({
+      color: MOTOR_COLORS[mi],
+      points: telemetry
+        .filter(f => f.motors?.[mi]?.rpm != null)
+        .map(f => ({
+          x: (f.t / totalDuration) * W,
+          y: H - (f.motors[mi].rpm / maxRpm) * (H - 4) - 2,
+        })),
+    }));
+  }, [telemetry, totalDuration]);
+
+  const playX = totalDuration > 0 ? (currentTime / totalDuration) * W : 0;
+
+  const handleClick = (e) => {
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    onSeek((e.clientX - rect.left) / rect.width * totalDuration);
+  };
+
+  if (!lines.length) return (
+    <div className="w-full h-full flex items-center justify-center bg-slate-950">
+      <p className="text-[10px] text-slate-600">Sin datos de motor (requiere archivo .dat)</p>
+    </div>
+  );
+
+  return (
+    <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
+      className="w-full h-full cursor-pointer" onClick={handleClick}>
+      <rect width={W} height={H} fill="#0f172a"/>
+      {lines.map((l, i) => l.points.length > 1 && (
+        <polyline key={i} points={l.points.map(p=>`${p.x},${p.y}`).join(' ')}
+          fill="none" stroke={l.color} strokeWidth="1.2" opacity="0.8"/>
+      ))}
+      {/* Leyenda */}
+      {[0,1,2,3].map(i => (
+        <g key={i}>
+          <rect x={8 + i * 40} y={3} width={8} height={3} fill={MOTOR_COLORS[i]} rx="1"/>
+          <text x={18 + i * 40} y={7} fill={MOTOR_COLORS[i]} fontSize="6">M{i+1}</text>
+        </g>
+      ))}
+      <line x1={playX} y1="0" x2={playX} y2={H} stroke="white" strokeWidth="1.5" opacity="0.9"/>
+      <circle cx={playX} cy={H/2} r="4" fill="white" opacity="0.9"/>
+    </svg>
+  );
+}
 
 // ── Joystick mini ─────────────────────────────────────────────────
 function Joystick({ x, y, label, sublabel }) {
@@ -153,10 +293,12 @@ export default function FlightReplayView({ flightData, fileName, onReset }) {
   const totalDuration = meta.totalDuration ?? meta.durationS ?? 0;
 
   // ── Estado de playback ────────────────────────────────────────
-  const [isPlaying, setIsPlaying]   = useState(false);
-  const [speed, setSpeed]           = useState(1);
+  const [isPlaying, setIsPlaying]     = useState(false);
+  const [speed, setSpeed]             = useState(1);
   const [displayTime, setDisplayTime] = useState(0);
-  const [showAlerts, setShowAlerts] = useState(true);
+  const [showAlerts, setShowAlerts]   = useState(true);
+  const [rightTab, setRightTab]       = useState('telemetry'); // 'telemetry' | 'motors'
+  const [bottomChart, setBottomChart] = useState('battery');   // 'battery' | 'motors'
 
   // Refs para el loop de animación (evitan closures estales)
   const timeRef    = useRef(0);
@@ -369,124 +511,221 @@ export default function FlightReplayView({ flightData, fileName, onReset }) {
           />
         </main>
 
-        {/* ── Panel derecho: telemetría en vivo ────────────────── */}
-        <aside className="w-48 shrink-0 flex flex-col border-l border-slate-800 bg-slate-900 overflow-y-auto">
+        {/* ── Panel derecho ────────────────────────────────────── */}
+        <aside className="w-52 shrink-0 flex flex-col border-l border-slate-800 bg-slate-900 overflow-hidden">
 
-          {/* Tiempo actual */}
-          <div className="px-3 py-2 border-b border-slate-800 text-center">
-            <p className="text-lg font-black text-white font-mono tracking-wider">
-              {fmtTime(displayTime)}
-            </p>
-            <p className="text-[10px] text-slate-500">/ {fmtTime(totalDuration)}</p>
-          </div>
-
-          {/* Métricas live */}
-          <div className="p-3 space-y-2 border-b border-slate-800">
-            {[
-              { icon: 'landscape', label: 'Altitud',   value: f?.alt != null ? `${f.alt.toFixed(1)} m` : '---' },
-              { icon: 'speed',     label: 'Vel. H',    value: f?.speedH != null ? `${f.speedH.toFixed(1)} m/s` : '---' },
-              { icon: 'arrow_upward', label: 'Vel. V',  value: f?.speedV != null ? `${(f.speedV > 0 ? '+' : '')}${f.speedV.toFixed(1)} m/s` : '---' },
-              { icon: 'satellite_alt', label: 'GPS',   value: f?.gpsNum != null ? `${f.gpsNum} sat` : '---' },
-            ].map(s => (
-              <div key={s.label} className="flex items-center justify-between">
-                <div className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-xs text-slate-500">{s.icon}</span>
-                  <span className="text-[10px] text-slate-500">{s.label}</span>
-                </div>
-                <span className="text-[10px] font-black text-slate-200">{s.value}</span>
-              </div>
-            ))}
-            {/* Modo de vuelo */}
-            {f?.flightMode && (
-              <div className="bg-slate-800 rounded-lg px-2 py-1 text-center">
-                <p className="text-[9px] text-slate-500 uppercase tracking-wide">Modo</p>
-                <p className="text-[10px] font-black text-orange-400">{f.flightMode}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Batería */}
-          <div className="p-3 border-b border-slate-800 space-y-2">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Batería</p>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    (f?.bat ?? 100) > 40 ? 'bg-green-500' :
-                    (f?.bat ?? 100) > 20 ? 'bg-amber-500' : 'bg-red-500'
-                  }`}
-                  style={{ width: `${f?.bat ?? 0}%` }}
-                />
-              </div>
-              <span className={`text-sm font-black ${batColor}`}>
-                {f?.bat != null ? `${f.bat}%` : '---'}
-              </span>
+          {/* Tiempo + tabs */}
+          <div className="border-b border-slate-800">
+            <div className="px-3 py-1.5 text-center">
+              <p className="text-lg font-black text-white font-mono tracking-wider">{fmtTime(displayTime)}</p>
+              <p className="text-[10px] text-slate-500">/ {fmtTime(totalDuration)}</p>
             </div>
-            {f?.voltage != null && (
-              <p className="text-[10px] text-slate-400 font-mono">{f.voltage.toFixed(2)} V</p>
-            )}
-            {/* Celdas de batería */}
-            {f?.cellVolts && f.cellVolts.length > 0 && (
-              <div className="space-y-0.5">
-                {f.cellVolts.map((v, i) => (
-                  <div key={i} className="flex items-center gap-1.5">
-                    <span className="text-[9px] text-slate-600 w-4">C{i+1}</span>
-                    <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${v > 3.7 ? 'bg-green-500' : v > 3.5 ? 'bg-amber-400' : 'bg-red-500'}`}
-                        style={{ width: `${Math.min(((v - 3.0) / (4.2 - 3.0)) * 100, 100)}%` }}
-                      />
-                    </div>
-                    <span className="text-[9px] text-slate-500 font-mono w-8 text-right">{v.toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* Tab selector */}
+            <div className="flex border-t border-slate-800">
+              <button onClick={() => setRightTab('telemetry')}
+                className={`flex-1 py-1.5 text-[10px] font-black uppercase tracking-wide transition-colors flex items-center justify-center gap-1 ${
+                  rightTab === 'telemetry' ? 'text-orange-400 bg-slate-800' : 'text-slate-500 hover:text-slate-300'
+                }`}>
+                <span className="material-symbols-outlined text-xs">monitoring</span>
+                Telemetría
+              </button>
+              <button onClick={() => setRightTab('motors')}
+                className={`flex-1 py-1.5 text-[10px] font-black uppercase tracking-wide transition-colors flex items-center justify-center gap-1 ${
+                  rightTab === 'motors'    ? 'text-orange-400 bg-slate-800' : 'text-slate-500 hover:text-slate-300'
+                }`}>
+                <span className="material-symbols-outlined text-xs">settings</span>
+                Motores
+                {!meta.hasMotors && <span className="text-[8px] text-slate-600">.dat</span>}
+              </button>
+            </div>
           </div>
 
-          {/* Joysticks RC */}
-          {meta.hasRC ? (
-            <div className="p-3 space-y-3">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Control RC</p>
-              <div className="flex justify-around">
-                <Joystick
-                  x={f?.rc_rud}
-                  y={f?.rc_thr}
-                  label="Izq."
-                  sublabel="Throt · Rud"
-                />
-                <Joystick
-                  x={f?.rc_ail}
-                  y={f?.rc_ele}
-                  label="Der."
-                  sublabel="Ail · Ele"
-                />
-              </div>
-              {/* Valores numéricos */}
-              <div className="grid grid-cols-2 gap-1 text-[9px]">
+          {/* ── TAB: TELEMETRÍA ─────────────────────────────────── */}
+          {rightTab === 'telemetry' && (
+            <div className="flex-1 overflow-y-auto">
+              {/* Métricas live */}
+              <div className="p-3 space-y-2 border-b border-slate-800">
                 {[
-                  ['Thr', f?.rc_thr], ['Rud', f?.rc_rud],
-                  ['Ail', f?.rc_ail], ['Ele', f?.rc_ele],
-                ].map(([k, v]) => (
-                  <div key={k} className="flex justify-between bg-slate-800 rounded px-1.5 py-0.5">
-                    <span className="text-slate-500">{k}</span>
-                    <span className="font-mono text-slate-300">{v != null ? v.toFixed(2) : '---'}</span>
+                  { icon: 'landscape',     label: 'Altitud', value: f?.alt    != null ? `${f.alt.toFixed(1)} m`                                : '---' },
+                  { icon: 'speed',         label: 'Vel. H',  value: f?.speedH != null ? `${f.speedH.toFixed(1)} m/s`                           : '---' },
+                  { icon: 'arrow_upward',  label: 'Vel. V',  value: f?.speedV != null ? `${f.speedV > 0 ? '+' : ''}${f.speedV.toFixed(1)} m/s` : '---' },
+                  { icon: 'satellite_alt', label: 'GPS',     value: f?.gpsNum != null ? `${f.gpsNum} sat`                                       : '---' },
+                ].map(s => (
+                  <div key={s.label} className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs text-slate-500">{s.icon}</span>
+                      <span className="text-[10px] text-slate-500">{s.label}</span>
+                    </div>
+                    <span className="text-[10px] font-black text-slate-200">{s.value}</span>
                   </div>
                 ))}
+                {f?.flightMode && (
+                  <div className="bg-slate-800 rounded-lg px-2 py-1 text-center">
+                    <p className="text-[9px] text-slate-500 uppercase tracking-wide">Modo</p>
+                    <p className="text-[10px] font-black text-orange-400">{f.flightMode}</p>
+                  </div>
+                )}
               </div>
+
+              {/* Batería */}
+              <div className="p-3 border-b border-slate-800 space-y-2">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Batería</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full transition-all ${
+                      (f?.bat ?? 100) > 40 ? 'bg-green-500' : (f?.bat ?? 100) > 20 ? 'bg-amber-500' : 'bg-red-500'
+                    }`} style={{ width: `${f?.bat ?? 0}%` }} />
+                  </div>
+                  <span className={`text-sm font-black ${batColor}`}>{f?.bat != null ? `${f.bat}%` : '---'}</span>
+                </div>
+                {f?.voltage != null && <p className="text-[10px] text-slate-400 font-mono">{f.voltage.toFixed(2)} V</p>}
+                {f?.cellVolts?.length > 0 && (
+                  <div className="space-y-0.5">
+                    {f.cellVolts.map((v, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                        <span className="text-[9px] text-slate-600 w-4">C{i+1}</span>
+                        <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${v > 3.7 ? 'bg-green-500' : v > 3.5 ? 'bg-amber-400' : 'bg-red-500'}`}
+                            style={{ width: `${Math.min(((v-3.0)/(4.2-3.0))*100,100)}%` }}/>
+                        </div>
+                        <span className="text-[9px] text-slate-500 font-mono w-8 text-right">{v.toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Joysticks RC */}
+              {meta.hasRC ? (
+                <div className="p-3 space-y-3">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Control RC</p>
+                  <div className="flex justify-around">
+                    <Joystick x={f?.rc_rud} y={f?.rc_thr} label="Izq." sublabel="Throt · Rud"/>
+                    <Joystick x={f?.rc_ail} y={f?.rc_ele} label="Der." sublabel="Ail · Ele"/>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1 text-[9px]">
+                    {[['Thr', f?.rc_thr], ['Rud', f?.rc_rud], ['Ail', f?.rc_ail], ['Ele', f?.rc_ele]].map(([k, v]) => (
+                      <div key={k} className="flex justify-between bg-slate-800 rounded px-1.5 py-0.5">
+                        <span className="text-slate-500">{k}</span>
+                        <span className="font-mono text-slate-300">{v != null ? v.toFixed(2) : '---'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 text-center">
+                  <p className="text-[10px] text-slate-600">RC no registrado en este log</p>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="p-3 text-center">
-              <p className="text-[10px] text-slate-600">RC no registrado en este log</p>
+          )}
+
+          {/* ── TAB: MOTORES ──────────────────────────────────────── */}
+          {rightTab === 'motors' && (
+            <div className="flex-1 overflow-y-auto p-3 space-y-3">
+
+              {!meta.hasMotors ? (
+                /* Sin datos de motor — solo .dat */
+                <div className="flex flex-col items-center justify-center h-full gap-3 py-8">
+                  <span className="material-symbols-outlined text-4xl text-slate-700">settings</span>
+                  <div className="text-center">
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-wide">Datos no disponibles</p>
+                    <p className="text-[10px] text-slate-600 mt-1 leading-relaxed">
+                      Los datos de motor requieren un archivo <span className="font-mono text-orange-500">.dat</span> del dron
+                    </p>
+                    <p className="text-[9px] text-slate-700 mt-2">(.txt no contiene RPM ni corriente por motor)</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Score de balance */}
+                  <MotorBalanceScore motors={f?.motors} />
+
+                  {/* 4 gauges en grid 2×2 */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {[1,2,3,4].map(mi => {
+                      const mdata = f?.motors?.find(m => m.motor === mi);
+                      return (
+                        <div key={mi} className="bg-slate-800 rounded-xl p-1.5 flex flex-col items-center">
+                          <MotorGauge
+                            motor={mi}
+                            rpm={mdata?.rpm ?? 0}
+                            current={mdata?.current ?? 0}
+                            tempC={mdata?.tempC}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Tabla de valores actuales */}
+                  <div className="bg-slate-800 rounded-xl overflow-hidden">
+                    <div className="grid grid-cols-4 text-center border-b border-slate-700">
+                      {[1,2,3,4].map(i => (
+                        <div key={i} className="py-1 text-[9px] font-black" style={{ color: MOTOR_COLORS[i-1] }}>M{i}</div>
+                      ))}
+                    </div>
+                    {/* RPM */}
+                    <div className="grid grid-cols-4 text-center border-b border-slate-700/50 py-1">
+                      {[1,2,3,4].map(i => {
+                        const m = f?.motors?.find(m => m.motor === i);
+                        return <div key={i} className="text-[9px] font-mono text-slate-300">{m?.rpm ?? '---'}</div>;
+                      })}
+                    </div>
+                    <div className="grid grid-cols-4 text-center py-0.5">
+                      {[1,2,3,4].fill('RPM').map((l,i) => (
+                        <div key={i} className="text-[8px] text-slate-600">{l}</div>
+                      ))}
+                    </div>
+                    {/* Corriente */}
+                    <div className="grid grid-cols-4 text-center border-t border-slate-700/50 border-b border-slate-700/50 py-1">
+                      {[1,2,3,4].map(i => {
+                        const m = f?.motors?.find(m => m.motor === i);
+                        return <div key={i} className="text-[9px] font-mono text-slate-300">{m?.current != null ? `${m.current.toFixed(1)}` : '---'}</div>;
+                      })}
+                    </div>
+                    <div className="grid grid-cols-4 text-center py-0.5">
+                      {[1,2,3,4].fill('A').map((l,i) => (
+                        <div key={i} className="text-[8px] text-slate-600">{l}</div>
+                      ))}
+                    </div>
+                    {/* Temperatura */}
+                    <div className="grid grid-cols-4 text-center border-t border-slate-700/50 py-1">
+                      {[1,2,3,4].map(i => {
+                        const m = f?.motors?.find(m => m.motor === i);
+                        const t = m?.tempC;
+                        const tc = !t ? 'text-slate-600' : t > 70 ? 'text-red-400' : t > 55 ? 'text-amber-400' : 'text-green-400';
+                        return <div key={i} className={`text-[9px] font-mono ${tc}`}>{t != null ? `${t}°` : '---'}</div>;
+                      })}
+                    </div>
+                    <div className="grid grid-cols-4 text-center py-0.5">
+                      {[1,2,3,4].fill('°C').map((l,i) => (
+                        <div key={i} className="text-[8px] text-slate-600">{l}</div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </aside>
       </div>
 
-      {/* ── BOTTOM: timeline + battery chart ──────────────────── */}
+      {/* ── BOTTOM: timeline + charts ─────────────────────────── */}
       <div className="shrink-0 bg-slate-900 border-t border-slate-800">
-        {/* Scrubber de tiempo */}
+        {/* Selector de gráfico inferior + scrubber */}
         <div className="px-4 py-1 flex items-center gap-3">
+          {/* Toggle batería / motores */}
+          <div className="flex bg-slate-800 rounded-lg p-0.5 gap-0.5 shrink-0">
+            <button onClick={() => setBottomChart('battery')}
+              className={`px-2 py-0.5 rounded text-[9px] font-black transition-colors ${bottomChart === 'battery' ? 'bg-orange-600 text-white' : 'text-slate-500 hover:text-white'}`}>
+              🔋
+            </button>
+            <button onClick={() => setBottomChart('motors')}
+              className={`px-2 py-0.5 rounded text-[9px] font-black transition-colors ${bottomChart === 'motors' ? 'bg-orange-600 text-white' : 'text-slate-500 hover:text-white'}`}>
+              ⚙️
+            </button>
+          </div>
           <span className="text-[10px] font-mono text-slate-500 w-10 text-right shrink-0">
             {fmtTime(displayTime)}
           </span>
@@ -504,15 +743,24 @@ export default function FlightReplayView({ flightData, fileName, onReset }) {
           </span>
         </div>
 
-        {/* Gráfico de batería + alertas */}
+        {/* Gráfico inferior: batería o RPM motores */}
         <div className="px-4 pb-2 h-12">
-          <BatteryChart
-            telemetry={telemetry}
-            alerts={alerts}
-            currentTime={displayTime}
-            totalDuration={totalDuration}
-            onSeek={t => { pause(); seek(t); }}
-          />
+          {bottomChart === 'battery' ? (
+            <BatteryChart
+              telemetry={telemetry}
+              alerts={alerts}
+              currentTime={displayTime}
+              totalDuration={totalDuration}
+              onSeek={t => { pause(); seek(t); }}
+            />
+          ) : (
+            <MotorChart
+              telemetry={telemetry}
+              currentTime={displayTime}
+              totalDuration={totalDuration}
+              onSeek={t => { pause(); seek(t); }}
+            />
+          )}
         </div>
       </div>
     </div>

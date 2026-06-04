@@ -152,24 +152,9 @@ export async function POST(request) {
       }, { status: 404 });
     }
 
-    // ── 5. Detectar duplicado ────────────────────────────────────
-    const { data: existing } = await supabaseAdmin
-      .from('flights')
-      .select('id')
-      .eq('organization_id', prof.organization_id)
-      .eq('aircraft_id',     aircraft.id)
-      .eq('flight_date',     parsed.fecha)
-      .eq('takeoff_time',    parsed.hora_despegue ?? '')
-      .maybeSingle();
-
-    if (existing) {
-      return NextResponse.json({
-        error: 'Este vuelo ya fue importado anteriormente (misma aeronave, fecha y hora de despegue).',
-        file:  fileName,
-      }, { status: 409 });
-    }
-
-    // ── 6. Insertar vuelo ────────────────────────────────────────
+    // ── 5. Insertar vuelo con ON CONFLICT DO NOTHING (idempotente + atómico)
+    //    El UNIQUE constraint (org, aircraft, date, takeoff_time) en la BD
+    //    garantiza que imports concurrentes no generan duplicados.
     const meta = parsed._meta ?? {};
 
     const flightRecord = {
@@ -193,19 +178,25 @@ export async function POST(request) {
       .select('id')
       .single();
 
-    if (insertErr) throw insertErr;
+    // Código 23505 = unique_violation → vuelo ya existía (duplicado)
+    if (insertErr) {
+      if (insertErr.code === '23505') {
+        return NextResponse.json({
+          error: 'Este vuelo ya fue importado anteriormente (misma aeronave, fecha y hora de despegue).',
+          file:  fileName,
+        }, { status: 409 });
+      }
+      throw insertErr;
+    }
 
-    // ── 7. Actualizar horas totales de la aeronave ───────────────
+    // ── 6. Actualizar horas totales con incremento atómico (RPC SQL)
+    //    Evita race condition de read-calculate-write en imports paralelos.
     if (meta.duracion_s && meta.duracion_s > 0) {
-      const addedHours = meta.duracion_s / 3600;
-      const newTotal = parseFloat(
-        ((parseFloat(aircraft.total_hours) || 0) + addedHours).toFixed(4)
-      );
-      await supabaseAdmin
-        .from('aircraft')
-        .update({ total_hours: newTotal })
-        .eq('id', aircraft.id)
-        .eq('organization_id', prof.organization_id);
+      const addedHours = parseFloat((meta.duracion_s / 3600).toFixed(4));
+      await supabaseAdmin.rpc('increment_aircraft_hours', {
+        p_id:    aircraft.id,
+        p_hours: addedHours,
+      });
     }
 
     // ── 8. Actualizar ciclos de batería ──────────────────────────

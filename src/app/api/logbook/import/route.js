@@ -207,17 +207,25 @@ export async function POST(request) {
       });
     }
 
-    // 6. Insertar vuelos válidos
-    const { error: insertErr } = await supabaseAdmin
+    // 6. Insertar vuelos válidos — ON CONFLICT DO NOTHING (idempotente)
+    //    El UNIQUE constraint (org, aircraft, date, takeoff_time) en la BD
+    //    evita duplicados si se importa el mismo Excel dos veces.
+    const { error: insertErr, data: insertedRows } = await supabaseAdmin
       .from('flights')
-      .insert(valid);
+      .upsert(valid, {
+        onConflict: 'organization_id,aircraft_id,flight_date,takeoff_time',
+        ignoreDuplicates: true,
+      })
+      .select('id, aircraft_id, takeoff_time, landing_time');
 
     if (insertErr) throw insertErr;
 
-    // 7. Actualizar total_hours de cada aeronave con las horas de los vuelos importados
-    //    Solo se procesan vuelos que tienen ambas horas (despegue y aterrizaje)
+    // 7. Actualizar total_hours de cada aeronave con incremento atómico (RPC SQL)
+    //    Solo se suman las horas de los vuelos REALMENTE insertados (no duplicados).
+    //    Evita race condition de read-calculate-write en imports paralelos.
+    const reallyInserted = insertedRows ?? [];
     const hoursByAircraft = {};
-    valid.forEach(f => {
+    reallyInserted.forEach(f => {
       if (f.takeoff_time && f.landing_time) {
         const [h1, m1] = f.takeoff_time.split(':').map(Number);
         const [h2, m2] = f.landing_time.split(':').map(Number);
@@ -228,24 +236,20 @@ export async function POST(request) {
     });
 
     await Promise.all(
-      Object.entries(hoursByAircraft).map(async ([aircraftId, addedHours]) => {
-        const aircraft = aircraftList.find(a => a.id === aircraftId);
-        if (!aircraft) return;
-        const newTotal = parseFloat(
-          (parseFloat(aircraft.total_hours || 0) + addedHours).toFixed(2)
-        );
-        await supabaseAdmin
-          .from('aircraft')
-          .update({ total_hours: newTotal })
-          .eq('id', aircraftId)
-          .eq('organization_id', prof.organization_id); // seguridad: cross-tenant guard
-      })
+      Object.entries(hoursByAircraft).map(([aircraftId, addedHours]) =>
+        supabaseAdmin.rpc('increment_aircraft_hours', {
+          p_id:    aircraftId,
+          p_hours: parseFloat(addedHours.toFixed(4)),
+        })
+      )
     );
 
+    const duplicatesIgnored = valid.length - reallyInserted.length;
     return NextResponse.json({
-      success: true,
-      inserted: valid.length,
-      skipped: invalid.length,
+      success:  true,
+      inserted: reallyInserted.length,
+      duplicates_ignored: duplicatesIgnored,
+      skipped:  invalid.length,
       invalid,
     });
 

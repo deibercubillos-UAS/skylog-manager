@@ -157,6 +157,7 @@ const navLinks = [
   { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
   { name: 'Listas de Chequeo', icon: 'rule',                 href: '/dashboard/settings/forms',  roles: ['superadmin', 'admin', 'gerente_sms'] },
   { name: 'Manual MO',        icon: 'menu_book',             href: '/dashboard/manual-operaciones', roles: ['superadmin', 'admin', 'jefe_pilotos'], pilotHidden: true },
+  { name: 'Replay de Vuelo', icon: 'route',                 href: '/dashboard/dev/flight-replay',  roles: ['superadmin', 'admin'], pilotHidden: true, devBadge: true },
 ];
 
 // FILTRAR por rol, plan y flags pilotOnly / pilotHidden
@@ -249,7 +250,10 @@ const footerLinks = footerLinksAll.filter(link =>
               }`}
             >
               <span className="material-symbols-outlined text-lg shrink-0">{link.icon}</span>
-              {link.name}
+              <span className="flex-1 truncate">{link.name}</span>
+              {link.devBadge && (
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 uppercase tracking-wide shrink-0">DEV</span>
+              )}
             </Link>
           ))}
         </nav>

@@ -136,22 +136,138 @@ function calcDistance(frames) {
   return Math.round(total);
 }
 
+// ── Gzip helpers (Web Streams API) ───────────────────────────────
+async function gzipJson(obj) {
+  const json    = JSON.stringify(obj);
+  const bytes   = new TextEncoder().encode(json);
+  const stream  = new CompressionStream('gzip');
+  const writer  = stream.writable.getWriter();
+  writer.write(bytes);
+  writer.close();
+  const chunks  = [];
+  const reader  = stream.readable.getReader();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+  }
+  const total  = chunks.reduce((s, c) => s + c.length, 0);
+  const result = new Uint8Array(total);
+  let offset   = 0;
+  for (const c of chunks) { result.set(c, offset); offset += c.length; }
+  return result;
+}
+
+async function gunzipJson(arrayBuffer) {
+  const stream  = new DecompressionStream('gzip');
+  const writer  = stream.writable.getWriter();
+  writer.write(new Uint8Array(arrayBuffer));
+  writer.close();
+  const chunks  = [];
+  const reader  = stream.readable.getReader();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+  }
+  const total  = chunks.reduce((s, c) => s + c.length, 0);
+  const result = new Uint8Array(total);
+  let offset   = 0;
+  for (const c of chunks) { result.set(c, offset); offset += c.length; }
+  return JSON.parse(new TextDecoder().decode(result));
+}
+
 // ── Componente principal ─────────────────────────────────────────
-export default function FlightReplayModal({ open, onClose, flightLabel }) {
+// Props:
+//   open        — boolean, controla visibilidad
+//   onClose     — fn() al cerrar
+//   flightId    — string | null — id del vuelo en BD (para guardar/cargar)
+//   hasReplay   — boolean — si true, carga automáticamente desde Storage
+//   flightLabel — string opcional para mostrar en el header
+//   onReplaySaved — fn() llamado cuando se guarda exitosamente (para actualizar UI padre)
+export default function FlightReplayModal({ open, onClose, flightId, hasReplay, flightLabel, onReplaySaved }) {
   const [state, setState]       = useState('idle');   // idle | loading | done | error
   const [flightData, setFlight] = useState(null);
   const [error, setError]       = useState(null);
   const [dragging, setDragging] = useState(false);
   const [fileName, setFileName] = useState(null);
   const [progress, setProgress] = useState(null);
+  const [saveOpt, setSaveOpt]   = useState(true);   // checkbox "guardar replay"
+  const [saving, setSaving]     = useState(false);
+  const [saved, setSaved]       = useState(false);
   const inputRef = useRef(null);
 
   const reset = useCallback(() => {
     setState('idle'); setFlight(null); setError(null);
-    setFileName(null); setProgress(null);
+    setFileName(null); setProgress(null); setSaved(false);
   }, []);
 
   const handleClose = useCallback(() => { reset(); onClose(); }, [reset, onClose]);
+
+  // ── Cargar replay guardado en Storage ──────────────────────────
+  const loadSavedReplay = useCallback(async () => {
+    if (!flightId) return;
+    setState('loading');
+    setProgress('Cargando replay guardado...');
+    try {
+      const res = await fetch(`/api/flights/${flightId}/replay`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'No se pudo cargar el replay');
+      }
+      const { signedUrl } = await res.json();
+      setProgress('Descargando datos...');
+      const blob = await fetch(signedUrl);
+      if (!blob.ok) throw new Error('Error al descargar el replay');
+      const buf  = await blob.arrayBuffer();
+      setProgress('Descomprimiendo...');
+      const data = await gunzipJson(buf);
+      setFlight(data);
+      setFileName(flightLabel ?? 'replay guardado');
+      setSaved(true);
+      setState('done');
+    } catch (err) {
+      setError(err.message);
+      setState('error');
+    } finally {
+      setProgress(null);
+    }
+  }, [flightId, flightLabel]);
+
+  // Auto-cargar si tiene replay al abrir
+  const prevOpen = useRef(false);
+  if (open && !prevOpen.current && hasReplay && state === 'idle') {
+    loadSavedReplay();
+  }
+  prevOpen.current = open;
+
+  // ── Guardar replay en Storage ───────────────────────────────────
+  const saveReplay = useCallback(async (data) => {
+    if (!flightId) return;
+    setSaving(true);
+    try {
+      setProgress('Comprimiendo replay...');
+      const compressed = await gzipJson(data);
+      setProgress('Guardando en la nube...');
+      const res = await fetch(`/api/flights/${flightId}/replay`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body:    compressed,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.warn('[replay-save]', err.error);
+      } else {
+        setSaved(true);
+        if (onReplaySaved) onReplaySaved();
+      }
+    } catch (err) {
+      console.warn('[replay-save]', err.message);
+    } finally {
+      setSaving(false);
+      setProgress(null);
+    }
+  }, [flightId, onReplaySaved]);
 
   const processFile = useCallback(async (file) => {
     if (!file) return;
@@ -252,8 +368,14 @@ export default function FlightReplayModal({ open, onClose, flightLabel }) {
         alertCount:   alerts.length,
       };
 
-      setFlight({ path, telemetry, alerts, meta });
+      const result = { path, telemetry, alerts, meta };
+      setFlight(result);
       setState('done');
+
+      // Guardar en Storage si el usuario optó y hay un flightId
+      if (flightId && saveOpt) {
+        saveReplay(result);
+      }
     } catch (err) {
       console.error('[flight-replay]', err);
       setError('Error inesperado: ' + err.message);
@@ -261,7 +383,7 @@ export default function FlightReplayModal({ open, onClose, flightLabel }) {
     } finally {
       setProgress(null);
     }
-  }, []);
+  }, [flightId, saveOpt, saveReplay]);
 
   const onDrop = useCallback((e) => {
     e.preventDefault(); setDragging(false);
@@ -288,14 +410,30 @@ export default function FlightReplayModal({ open, onClose, flightLabel }) {
               fileName={fileName}
               onReset={reset}
             />
-            {/* Botón cerrar superpuesto */}
-            <button
-              onClick={handleClose}
-              className="absolute top-3 right-3 z-50 w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center transition-colors"
-              title="Cerrar replay"
-            >
-              <span className="material-symbols-outlined text-slate-300 text-base">close</span>
-            </button>
+            {/* Controles superpuestos: cerrar + estado guardado */}
+            <div className="absolute top-3 right-3 z-50 flex items-center gap-2">
+              {/* Badge de estado guardado */}
+              {flightId && (
+                saving ? (
+                  <div className="flex items-center gap-1.5 bg-slate-800/90 rounded-lg px-2 py-1">
+                    <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-[10px] text-slate-400">Guardando...</span>
+                  </div>
+                ) : saved ? (
+                  <div className="flex items-center gap-1.5 bg-green-900/70 rounded-lg px-2 py-1">
+                    <span className="material-symbols-outlined text-green-400 text-xs">cloud_done</span>
+                    <span className="text-[10px] text-green-400">Guardado</span>
+                  </div>
+                ) : null
+              )}
+              <button
+                onClick={handleClose}
+                className="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center transition-colors"
+                title="Cerrar replay"
+              >
+                <span className="material-symbols-outlined text-slate-300 text-base">close</span>
+              </button>
+            </div>
           </>
         )}
 
@@ -337,12 +475,28 @@ export default function FlightReplayModal({ open, onClose, flightLabel }) {
                 </div>
                 <div className="flex items-center gap-1.5 bg-slate-800 rounded-lg px-3 py-1.5">
                   <span className="material-symbols-outlined text-green-500 text-xs">lock</span>
-                  <p className="text-[10px] text-slate-400">Procesado localmente — no se sube</p>
+                  <p className="text-[10px] text-slate-400">Procesado localmente — el .txt no se sube</p>
                 </div>
                 <input ref={inputRef} type="file" accept=".txt"
                   onChange={e => processFile(e.target.files?.[0])} className="hidden" />
               </div>
             )}
+
+            {/* Opción de guardado — solo si hay flightId vinculado */}
+            {state !== 'loading' && flightId && (
+              <label className="mt-4 flex items-center gap-2 cursor-pointer select-none group">
+                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                  saveOpt ? 'bg-orange-500 border-orange-500' : 'border-slate-600 group-hover:border-slate-400'
+                }`} onClick={() => setSaveOpt(v => !v)}>
+                  {saveOpt && <span className="material-symbols-outlined text-white text-[10px]">check</span>}
+                </div>
+                <span className="text-[11px] text-slate-400 group-hover:text-slate-300 transition-colors">
+                  Guardar replay para próximas revisiones
+                  <span className="ml-1 text-slate-600">(~100 KB en la nube)</span>
+                </span>
+              </label>
+            )}
+
 
             {/* Loading */}
             {state === 'loading' && (

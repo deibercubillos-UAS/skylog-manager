@@ -29,6 +29,7 @@ export async function GET(request) {
                 notes,
                 incidents,
                 imported,
+                replay_path,
                 pilots:pilot_id(name),
                 aircraft:aircraft_id(model, serial_number, total_hours)
             `)

@@ -24,7 +24,9 @@ export default function LogbookPage() {
 
     const canEditPilot   = CAN_EDIT_PILOT.includes(userRole);
     const canViewReplay  = PERMISSIONS.canViewFlightReplay.includes(userRole);
-    const [replayFlight, setReplayFlight] = useState(null); // { id, label }
+    const [replayFlight, setReplayFlight] = useState(null); // { id, label, hasReplay }
+    // Optimistic: track which flights tuvieron replay guardado en esta sesión
+    const [savedReplays, setSavedReplays] = useState(() => new Set());
 
     const [filters, setFilters] = useState({
         date: '',
@@ -284,20 +286,30 @@ export default function LogbookPage() {
                                     <td className="px-4 py-4"><span className="bg-slate-100 px-2 py-0.5 rounded text-xs font-black">{f.visual_condition}</span></td>
                                     <td className="px-4 py-4 font-black">{f.aircraft?.total_hours?.toFixed(2)}h</td>
                                     <td className="px-4 py-4"><PilotCell flight={f} /></td>
-                                    {canViewReplay && (
-                                        <td className="px-2 py-3">
-                                            <button
-                                                onClick={() => setReplayFlight({
-                                                    id: f.id,
-                                                    label: `${f.mission_id || f.flight_date} · ${f.aircraft?.model ?? ''}`
-                                                })}
-                                                title="Ver Replay de Vuelo"
-                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-500 hover:text-orange-600 transition-all hover:scale-110 active:scale-95"
-                                            >
-                                                <span className="material-symbols-outlined text-base">play_circle</span>
-                                            </button>
-                                        </td>
-                                    )}
+                                    {canViewReplay && (() => {
+                                        const hasReplay = !!(f.replay_path || savedReplays.has(f.id));
+                                        return (
+                                            <td className="px-2 py-3">
+                                                <button
+                                                    onClick={() => setReplayFlight({
+                                                        id: f.id,
+                                                        label: `${f.mission_id || f.flight_date} · ${f.aircraft?.model ?? ''}`,
+                                                        hasReplay,
+                                                    })}
+                                                    title={hasReplay ? 'Ver Replay guardado' : 'Subir log para ver Replay'}
+                                                    className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all hover:scale-110 active:scale-95 ${
+                                                        hasReplay
+                                                            ? 'bg-orange-100 hover:bg-orange-200 text-orange-500'
+                                                            : 'bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-600'
+                                                    }`}
+                                                >
+                                                    <span className="material-symbols-outlined text-base">
+                                                        {hasReplay ? 'play_circle' : 'play_circle_outline'}
+                                                    </span>
+                                                </button>
+                                            </td>
+                                        );
+                                    })()}
                                 </tr>
                             ))}
                         </tbody>
@@ -329,7 +341,14 @@ export default function LogbookPage() {
             <FlightReplayModal
                 open={!!replayFlight}
                 onClose={() => setReplayFlight(null)}
+                flightId={replayFlight?.id}
+                hasReplay={replayFlight?.hasReplay ?? false}
                 flightLabel={replayFlight?.label}
+                onReplaySaved={() => setSavedReplays(prev => {
+                    const next = new Set(prev);
+                    next.add(replayFlight?.id);
+                    return next;
+                })}
             />
         )}
         </>

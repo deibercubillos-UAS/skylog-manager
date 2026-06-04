@@ -226,7 +226,7 @@ export default function LogbookPage() {
 
             {/* Panel importación DJI / Excel */}
             {showImport && (
-                <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden p-6">
                     <DjiRcSync onImported={() => loadData(true)} />
                 </div>
             )}

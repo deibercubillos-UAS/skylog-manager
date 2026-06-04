@@ -794,17 +794,20 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
                   </div>
                 </div>
                 {dupCount > 0 && newCount === 0 && (
-                  <p className="text-xs text-slate-400 font-medium px-1">
-                    Todos los archivos ya fueron importados. Puedes seleccionarlos manualmente para reimportar.
-                  </p>
+                  <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-4 py-3">
+                    <span className="material-symbols-outlined text-green-500 text-base shrink-0">check_circle</span>
+                    <p className="text-xs text-green-700 font-bold">
+                      Todos los vuelos de este RC ya están en la bitácora.
+                    </p>
+                  </div>
                 )}
               </div>
             );
           })()}
 
-          {/* Archivos */}
+          {/* Archivos — los duplicados (ya importados) se ocultan */}
           <div className="bg-slate-50 rounded-2xl overflow-hidden divide-y divide-slate-100 max-h-64 overflow-y-auto">
-            {files.map(f => {
+            {files.filter(f => f.status !== 'duplicate').map(f => {
               const date = dateFromName(f.name);
               const time = timeFromName(f.name);
               const icon = STATUS_ICON[f.status];

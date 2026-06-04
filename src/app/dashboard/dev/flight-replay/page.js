@@ -157,86 +157,11 @@ export default function FlightReplayPage() {
   const [progress, setProgress] = useState(null);
   const inputRef = useRef(null);
 
-  // ── Flujo .dat: subida directa al Railway ──────────────────────
-  const processDatFile = useCallback(async (file) => {
-    setFileName(file.name);
-    setState('loading');
-    setError(null);
-    setFlight(null);
-    setProgress('Obteniendo endpoint de procesamiento...');
-
-    try {
-      // 1. Obtener URL + secret del Railway vía Vercel (evita exponer el secret)
-      const urlRes = await fetch('/api/dev/dat-parse');
-      if (!urlRes.ok) {
-        const err = await urlRes.json().catch(() => ({}));
-        throw new Error(err.error || 'No se pudo conectar al microservicio Railway.');
-      }
-      const { uploadUrl, secret } = await urlRes.json();
-
-      // 2. Subir el .dat directamente al Railway con progreso
-      setProgress(`Subiendo ${(file.size / 1024 / 1024).toFixed(0)} MB al procesador...`);
-
-      const form = new FormData();
-      form.append('file', file);
-
-      // XMLHttpRequest para poder trackear progreso de subida
-      const result = await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', uploadUrl);
-        xhr.setRequestHeader('x-api-secret', secret);
-
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            const pct = Math.round((e.loaded / e.total) * 100);
-            setProgress(`Subiendo al procesador: ${pct}% (${(e.loaded/1024/1024).toFixed(0)}/${(e.total/1024/1024).toFixed(0)} MB)`);
-          }
-        };
-
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try { resolve(JSON.parse(xhr.responseText)); }
-            catch { reject(new Error('Respuesta inválida del procesador')); }
-          } else {
-            try {
-              const err = JSON.parse(xhr.responseText);
-              reject(new Error(err.error || `Error ${xhr.status} en el procesador`));
-            } catch { reject(new Error(`Error ${xhr.status} en el procesador Railway`)); }
-          }
-        };
-        xhr.onerror = () => reject(new Error('Error de red al conectar con Railway. Verifica que el robot esté activo.'));
-        xhr.send(form);
-      });
-
-      setProgress('Procesando resultado...');
-
-      if (!result.path?.length) {
-        throw new Error('El archivo no contiene datos GPS válidos.');
-      }
-
-      // El resultado de Railway ya tiene el mismo schema que .txt
-      // pero con meta.source = 'dat' y campos extra (hasMotors, hasImu)
-      setFlight(result);
-      setState('done');
-
-    } catch (err) {
-      console.error('[dat-upload]', err);
-      setError(err.message);
-      setState('error');
-    } finally {
-      setProgress(null);
-    }
-  }, []);
-
   const processFile = useCallback(async (file) => {
     if (!file) return;
-    const isDat = file.name.toLowerCase().endsWith('.dat');
-    const isTxt = file.name.toLowerCase().endsWith('.txt');
-    if (!isDat && !isTxt) {
-      setError('Solo se aceptan archivos .txt o .dat de log DJI.'); return;
+    if (!file.name.toLowerCase().endsWith('.txt')) {
+      setError('Solo se aceptan archivos .txt de log DJI.'); return;
     }
-    // Archivos .dat → Railway (pueden pesar 500MB)
-    if (isDat) { processDatFile(file); return; }
 
     setFileName(file.name);
     setState('loading');
@@ -382,7 +307,7 @@ export default function FlightReplayPage() {
           <h1 className="text-xl font-black uppercase tracking-tight text-white">Replay de Vuelo</h1>
           <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[10px] font-black uppercase">DEV</span>
         </div>
-        <p className="text-slate-500 text-xs">.txt → browser (WASM) · .dat → Railway (datos completos + motores)</p>
+        <p className="text-slate-500 text-xs">Archivo .txt de DJI Fly — procesado localmente en el browser</p>
       </div>
 
       {/* Drop zone */}
@@ -403,13 +328,13 @@ export default function FlightReplayPage() {
           <div className="text-center">
             <p className="text-sm font-black text-slate-300">{dragging ? 'Suelta aquí' : 'Sube el log DJI'}</p>
             <p className="text-xs text-slate-500 mt-1">Arrastra o haz clic</p>
-                  <p className="text-[10px] text-orange-400/70 mt-0.5 font-mono">.txt (browser) · .dat (Railway)</p>
+            <p className="text-[10px] text-orange-400/70 mt-0.5 font-mono">.txt · DJI Fly / GO 4</p>
           </div>
           <div className="flex items-center gap-1.5 bg-slate-800 rounded-lg px-3 py-1.5">
             <span className="material-symbols-outlined text-green-500 text-xs">lock</span>
             <p className="text-[10px] text-slate-400">El archivo no se sube — procesado en el browser</p>
           </div>
-          <input ref={inputRef} type="file" accept=".txt,.dat"
+          <input ref={inputRef} type="file" accept=".txt"
             onChange={e => processFile(e.target.files?.[0])} className="hidden" />
         </div>
       )}

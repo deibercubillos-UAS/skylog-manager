@@ -20,19 +20,17 @@ export default function DashboardClient() {
   useEffect(() => {
     async function load() {
       try {
-        // Nombre del usuario — lectura del token local (sin roundtrip a Auth)
+        // Nombre del usuario desde el token local — sin roundtrip a la BD.
+        // user_metadata.first_name se establece en el registro y se actualiza
+        // desde settings/profile. getSession() lee la cookie local sin round-trip.
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) { window.location.href = '/login'; return; }
 
-        const [profRes, dashRes] = await Promise.all([
-          supabase.from('profiles').select('full_name').eq('id', session.user.id).single(),
-          fetch('/api/dashboard'),
-        ]);
+        const meta = session.user.user_metadata ?? {};
+        const name = meta.first_name || meta.full_name?.split(' ')[0] || 'Operador';
+        setFirstName(name);
 
-        if (profRes.data?.full_name) {
-          setFirstName(profRes.data.full_name.split(' ')[0]);
-        }
-
+        const dashRes = await fetch('/api/dashboard');
         const json = await dashRes.json();
         setData(json);
       } catch (e) {

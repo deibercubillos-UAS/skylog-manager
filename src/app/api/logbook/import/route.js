@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
-import ExcelJS from 'exceljs';
+// ExcelJS se importa dinámicamente dentro del handler para reducir el cold start
+// del serverless function en Vercel (~600 kB menos en el módulo inicial).
 
 export const dynamic = 'force-dynamic';
 
@@ -108,6 +109,7 @@ export async function POST(request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    const { default: ExcelJS } = await import('exceljs');
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer);
     const ws = workbook.worksheets[0];

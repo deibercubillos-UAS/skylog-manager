@@ -13,23 +13,26 @@ export async function GET(request) {
         if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
 
-        // 1. Obtener datos del piloto
-        const { data: pilot, error } = await supabase
-            .from('pilots')
-            .select('*')
-            .eq('organization_id', prof.organization_id)
-            .eq('id', pilotId)
-            .single();
+        // Parallelizar: pilot y flights son independientes entre sí
+        const [
+            { data: pilot, error },
+            { data: flights },
+        ] = await Promise.all([
+            supabase
+                .from('pilots')
+                .select('*')
+                .eq('organization_id', prof.organization_id)
+                .eq('id', pilotId)
+                .single(),
+            supabase
+                .from('flights')
+                .select('total_time')
+                .eq('pilot_id', pilotId)
+                .eq('organization_id', prof.organization_id),
+        ]);
 
         if (error) throw error;
 
-        // 2. Calcular Horas Totales desde la tabla de vuelos (filtrado por org para evitar cross-tenant leak)
-        const { data: flights } = await supabase
-            .from('flights')
-            .select('total_time')
-            .eq('pilot_id', pilotId)
-            .eq('organization_id', prof.organization_id);
-        
         const totalHours = flights?.reduce((acc, f) => acc + (parseFloat(f.total_time) || 0), 0) || 0;
 
         // Retornamos el piloto con el agregado de horas

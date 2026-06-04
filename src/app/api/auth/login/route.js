@@ -25,10 +25,9 @@ export async function POST(request) {
       return NextResponse.json({ error: error.message }, { status: 401 });
     }
 
-    return NextResponse.json({
-      session: data.session,
-      message: "Sesión iniciada correctamente"
-    }, { status: 200 });
+    // No retornar el session object — los tokens están en las cookies HttpOnly.
+    // Exponerlos en el body los hace visibles en DevTools y logs de red (B-1).
+    return NextResponse.json({ message: "Sesión iniciada correctamente" }, { status: 200 });
 
   } catch (err) {
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });

@@ -1,14 +1,19 @@
 // GET /api/plans/public — precios actuales de planes para landing pages (sin auth)
 // Lee epayco_plan_config y devuelve { piloto: { monthly, annual }, escuadrilla: {...}, ... }
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabaseServer';
+import { createClient as createJSClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const admin = createAdminClient();
-    const { data, error } = await admin
+    // Usar cliente anon (no service role) — epayco_plan_config es lectura pública.
+    // Reducir la superficie del service role key (B-4).
+    const anon = createJSClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
+    const { data, error } = await anon
       .from('epayco_plan_config')
       .select('plan_key, billing, amount, trial_days')
       .order('plan_key')

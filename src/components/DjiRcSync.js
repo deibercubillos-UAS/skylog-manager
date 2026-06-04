@@ -246,6 +246,7 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
     typeof window !== 'undefined' && 'showDirectoryPicker' in window;
 
   // ── Verificar duplicados contra la BD ─────────────────────────
+  // Usa POST para evitar límite de URL con carpetas grandes (>50 archivos)
   const checkExisting = async (files) => {
     const pairs = files
       .map(f => {
@@ -258,9 +259,11 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
     if (!pairs.length) return new Set();
 
     try {
-      const res = await fetch(
-        `/api/logbook/import-dji?pairs=${encodeURIComponent(pairs.join(','))}`
-      );
+      const res = await fetch('/api/logbook/import-dji/check', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ pairs }),
+      });
       if (!res.ok) return new Set();
       const { existing } = await res.json();
       return new Set(existing ?? []);
@@ -386,8 +389,8 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
           );
           setAircraftForm({
             ...EMPTY_AIRCRAFT,
-            serial_number: data.serial ?? '',
-            model:         data.modelo  ?? '',
+            serial_number: String(data.serial  ?? ''),
+            model:         String(data.modelo  ?? ''),
           });
           setAircraftModal({ ...data, pendingFile: fileInfo });
           // Pausar el loop — el modal llama a continueImport cuando termine
@@ -468,7 +471,7 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
           setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'duplicate', result: data } : f));
         } else if (status === 404 && data.needs_aircraft) {
           setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'needs_aircraft', result: data } : f));
-          setAircraftForm({ ...EMPTY_AIRCRAFT, serial_number: data.serial ?? '', model: data.modelo ?? '' });
+          setAircraftForm({ ...EMPTY_AIRCRAFT, serial_number: String(data.serial ?? ''), model: String(data.modelo ?? '') });
           setAircraftModal({ ...data, pendingFile: fileInfo });
           return; // Pausar de nuevo
         } else {
@@ -493,7 +496,7 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
 
   // ── Crear aeronave desde modal ────────────────────────────────
   const handleCreateAircraft = async () => {
-    if (!aircraftForm.model.trim() || !aircraftForm.serial_number.trim()) {
+    if (!String(aircraftForm.model ?? '').trim() || !String(aircraftForm.serial_number ?? '').trim()) {
       setAircraftError('Modelo y serial son obligatorios.');
       return;
     }
@@ -1055,7 +1058,7 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
                 </button>
                 <button
                   onClick={handleCreateAircraft}
-                  disabled={creatingAircraft || !aircraftForm.model.trim()}
+                  disabled={creatingAircraft || !String(aircraftForm.model ?? '').trim()}
                   className="flex-1 py-3 bg-orange-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-500/20 disabled:opacity-40 transition-all flex items-center justify-center gap-2"
                 >
                   {creatingAircraft

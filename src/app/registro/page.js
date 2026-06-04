@@ -138,7 +138,7 @@ export default function RegisterPage() {
           {step === 1 && (
             <div className="space-y-6 animate-in fade-in duration-300">
               <div>
-                <h1 className="text-3xl font-black text-navy uppercase tracking-tighter">Elige tu plan</h1>
+                <h1 className="font-lexend text-3xl font-black text-navy uppercase tracking-tighter">Elige tu plan</h1>
                 <p className="text-slate-500 text-sm mt-1">Puedes cambiar de plan en cualquier momento.</p>
               </div>
 
@@ -202,7 +202,7 @@ export default function RegisterPage() {
           {step === 2 && (
             <form onSubmit={goNext} className="space-y-5 animate-in fade-in duration-300">
               <div>
-                <h1 className="text-3xl font-black text-navy uppercase tracking-tighter">Tus datos</h1>
+                <h1 className="font-lexend text-3xl font-black text-navy uppercase tracking-tighter">Tus datos</h1>
                 <p className="text-slate-500 text-sm mt-1">Información de tu cuenta Bitafly.</p>
               </div>
 
@@ -272,7 +272,7 @@ export default function RegisterPage() {
           {step === 3 && (
             <form onSubmit={handleRegister} className="space-y-6 animate-in fade-in duration-300">
               <div>
-                <h1 className="text-3xl font-black text-navy uppercase tracking-tighter">Tu cuenta</h1>
+                <h1 className="font-lexend text-3xl font-black text-navy uppercase tracking-tighter">Tu cuenta</h1>
                 <p className="text-slate-500 text-sm mt-1">¿Cómo vas a usar Bitafly?</p>
               </div>
 

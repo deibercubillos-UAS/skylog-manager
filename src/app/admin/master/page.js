@@ -587,8 +587,8 @@ export default function MasterPanel() {
               <select value={edit.subscription_plan} onChange={e => setEdit({ ...edit, subscription_plan: e.target.value })}
                 className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white font-bold text-sm outline-none focus:border-orange-500/50">
                 <option value="piloto">Piloto — Gratis</option>
-                <option value="escuadrilla">Escuadrilla — $12 USD/mes</option>
-                <option value="flota">Flota — $29 USD/mes</option>
+                <option value="escuadrilla">Escuadrilla — $59.000 COP/mes</option>
+                <option value="flota">Flota — $159.000 COP/mes</option>
                 <option value="enterprise">Enterprise — Personalizado</option>
               </select>
             </div>

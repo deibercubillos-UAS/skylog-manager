@@ -75,6 +75,7 @@ function InspectModal({ result, onClose }) {
               </div>
 
               {step.screenshot ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={`data:image/png;base64,${step.screenshot}`}
                   alt={step.label}

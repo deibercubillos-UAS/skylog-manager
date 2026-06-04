@@ -86,7 +86,8 @@ useEffect(() => {
                     <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col items-center text-center">
                         <div className="size-32 bg-slate-100 rounded-full border-4 border-white shadow-xl flex items-center justify-center overflow-hidden mb-4 relative group">
                             {profile.avatar_url ? (
-                                <img src={profile.avatar_url} className="size-full object-cover" loading="lazy" decoding="async" />
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={profile.avatar_url} alt="Foto de perfil" className="size-full object-cover" loading="lazy" decoding="async" />
                             ) : (
                                 <span className="material-symbols-outlined text-5xl text-slate-300">person</span>
                             )}

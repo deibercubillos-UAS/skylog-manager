@@ -1,5 +1,6 @@
 ﻿'use client';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -50,7 +51,7 @@ export default function Users() {
                 </div>
                 
                 <div className="flex items-center gap-4">
-                  <img src={user.avatar} alt={user.name} className="size-12 rounded-2xl object-cover border-2 border-white shadow-sm" width={48} height={48} loading="lazy" />
+                  <Image src={user.avatar} alt={user.name} className="size-12 rounded-2xl object-cover border-2 border-white shadow-sm" width={48} height={48} unoptimized />
                   <div>
                     <p className="text-sm font-black text-[#1A202C] dark:text-white uppercase tracking-tight">{user.name}</p>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{user.role} en <span className="text-[#ec5b13]">{user.company}</span></p>

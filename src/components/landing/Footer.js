@@ -1,4 +1,5 @@
 ﻿'use client';
+import Image from 'next/image';
 
 export default function Footer() {
   return (
@@ -6,10 +7,10 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex flex-col items-center gap-6">
           <div className="flex items-center gap-3">
-             <img src="/logo.png" className="size-10 object-contain" alt="BitaFly" width={40} height={40} loading="lazy" />
-             <span className="text-xl font-black uppercase tracking-tighter">BitaFly Manager</span>
+             <Image src="/logo.png" className="size-10 object-contain" alt="Bitafly" width={40} height={40} />
+             <span className="text-xl font-black uppercase tracking-tighter">Bitafly</span>
           </div>
-          <p className="text-xs font-black uppercase text-slate-500 tracking-[0.3em]">© 2024 BitaFly UAS Manager - Aviation Systems</p>
+          <p className="text-xs font-black uppercase text-slate-500 tracking-[0.3em]">© 2025 Bitafly — Gestión de Operadores UAS en Colombia</p>
           <a href="mailto:soporte@bitafly.com" className="text-xs font-bold text-orange-400 hover:text-orange-300 tracking-wider">
              soporte@bitafly.com
           </a>

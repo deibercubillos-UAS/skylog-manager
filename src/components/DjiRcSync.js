@@ -196,6 +196,7 @@ const STATUS_ICON = {
   duplicate:      'sync',
   error:          'error',
   needs_aircraft: 'flight',
+  ok_no_battery:  'check_circle',
 };
 
 const STATUS_COLOR = {
@@ -205,9 +206,11 @@ const STATUS_COLOR = {
   duplicate:      'text-slate-400',
   error:          'text-red-500',
   needs_aircraft: 'text-amber-500',
+  ok_no_battery:  'text-green-500',
 };
 
 const EMPTY_AIRCRAFT = { model: '', brand: 'DJI', serial_number: '', ruas: '' };
+const EMPTY_BATTERY  = { brand: 'DJI', model: '', serial_number: '', cycles: 0, health_status: 100 };
 
 export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
   const [state, setState] = useState('idle'); // idle | scanning | ready | uploading | done
@@ -223,6 +226,12 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
   const [aircraftForm, setAircraftForm] = useState(EMPTY_AIRCRAFT);
   const [creatingAircraft, setCreatingAircraft] = useState(false);
   const [aircraftError, setAircraftError] = useState('');
+
+  // Modal crear batería (no bloquea el import — se ofrece inline al finalizar)
+  const [batteryModal, setBatteryModal] = useState(null); // null | { serial_bateria, ciclos_bateria, modelo_bateria, fileName }
+  const [batteryForm, setBatteryForm] = useState(EMPTY_BATTERY);
+  const [creatingBattery, setCreatingBattery] = useState(false);
+  const [batteryError, setBatteryError] = useState('');
 
   useEffect(() => {
     const mobile = isMobileProp ?? /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -361,8 +370,9 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
 
         if (status === 200 || status === 201) {
           imported++;
+          const fileStatus = data.needs_battery ? 'ok_no_battery' : 'ok';
           setFiles(prev =>
-            prev.map(f => f.name === fileInfo.name ? { ...f, status: 'ok', result: data } : f)
+            prev.map(f => f.name === fileInfo.name ? { ...f, status: fileStatus, result: data } : f)
           );
         } else if (status === 409) {
           skipped++;
@@ -417,8 +427,9 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
       const { status, data } = await uploadFile(pendingFile);
       if (status === 200 || status === 201) {
         imported++;
+        const fileStatus = data.needs_battery ? 'ok_no_battery' : 'ok';
         setFiles(prev =>
-          prev.map(f => f.name === pendingFile.name ? { ...f, status: 'ok', result: data } : f)
+          prev.map(f => f.name === pendingFile.name ? { ...f, status: fileStatus, result: data } : f)
         );
       } else {
         errors++;
@@ -450,7 +461,8 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
         const { status, data } = await uploadFile(fileInfo);
         if (status === 200 || status === 201) {
           rImported++;
-          setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'ok', result: data } : f));
+          const fileStatus = data.needs_battery ? 'ok_no_battery' : 'ok';
+          setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: fileStatus, result: data } : f));
         } else if (status === 409) {
           rSkipped++;
           setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'duplicate', result: data } : f));
@@ -505,6 +517,44 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
     } catch (err) {
       setAircraftError(err.message);
       setCreatingAircraft(false);
+    }
+  };
+
+  // ── Crear batería desde modal inline ─────────────────────────
+  const handleCreateBattery = async () => {
+    if (!batteryForm.serial_number.trim()) {
+      setBatteryError('El serial es obligatorio.');
+      return;
+    }
+    setCreatingBattery(true);
+    setBatteryError('');
+    try {
+      const res  = await fetch('/api/fleet/batteries', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(batteryForm),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setBatteryError(data.error || 'Error al crear la batería.');
+        setCreatingBattery(false);
+        return;
+      }
+      // Marcar el archivo como ok completo
+      setFiles(prev =>
+        prev.map(f =>
+          f.name === batteryModal.fileName
+            ? { ...f, status: 'ok', result: { ...f.result, needs_battery: false,
+                bateria_actualizada: { serial: data.serial_number, ciclos_anteriores: 0, ciclos_nuevos: data.cycles ?? 0 } } }
+            : f
+        )
+      );
+      setBatteryModal(null);
+      setBatteryForm(EMPTY_BATTERY);
+      setCreatingBattery(false);
+    } catch (err) {
+      setBatteryError(err.message);
+      setCreatingBattery(false);
     }
   };
 
@@ -827,6 +877,23 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
                         Aeronave no registrada · SN: {f.result?.serial}
                       </p>
                     )}
+                    {f.status === 'ok_no_battery' && (
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-xs text-sky-600 font-bold">
+                          Vuelo importado · Batería SN {f.result?.serial_bateria} no registrada
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBatteryForm({ ...EMPTY_BATTERY, serial_number: f.result?.serial_bateria ?? '', cycles: f.result?.ciclos_bateria ?? 0, model: f.result?.modelo_bateria ?? '' });
+                            setBatteryModal({ serial_bateria: f.result?.serial_bateria, ciclos_bateria: f.result?.ciclos_bateria, modelo_bateria: f.result?.modelo_bateria, fileName: f.name });
+                          }}
+                          className="shrink-0 bg-sky-600 text-white px-2 py-0.5 rounded-lg text-xs font-black hover:bg-sky-700 transition-all"
+                        >
+                          + Registrar
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </label>
               );
@@ -991,6 +1058,111 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
                   {creatingAircraft
                     ? <><span className="material-symbols-outlined text-sm animate-spin">sync</span>Creando...</>
                     : <><span className="material-symbols-outlined text-sm">add</span>Crear y continuar</>
+                  }
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: crear batería ─────────────────────────────────── */}
+      {batteryModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white rounded-[2rem] shadow-2xl overflow-hidden">
+
+            {/* Header */}
+            <div className="bg-sky-50 border-b border-sky-100 px-6 py-5">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-sky-500 text-2xl">battery_charging_full</span>
+                <div>
+                  <p className="text-sm font-black text-slate-900 uppercase tracking-tight">
+                    Batería no registrada
+                  </p>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    SN detectado: <code className="bg-sky-100 px-1.5 rounded font-mono">{batteryModal.serial_bateria}</code>
+                    {batteryModal.modelo_bateria && <span className="ml-2 text-slate-400">· {batteryModal.modelo_bateria}</span>}
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-sky-700 font-medium mt-3 leading-relaxed">
+                El vuelo fue importado correctamente. Esta batería no está registrada en tu flota. Regístrala ahora o omite para hacerlo después.
+              </p>
+            </div>
+
+            {/* Form */}
+            <div className="px-6 py-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-black uppercase text-slate-500 tracking-widest block mb-1">Fabricante</label>
+                  <input
+                    value={batteryForm.brand}
+                    onChange={e => setBatteryForm(p => ({ ...p, brand: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-black uppercase text-slate-500 tracking-widest block mb-1">Modelo</label>
+                  <input
+                    value={batteryForm.model}
+                    onChange={e => setBatteryForm(p => ({ ...p, model: e.target.value }))}
+                    placeholder="Ej: TB60"
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-xs font-black uppercase text-slate-500 tracking-widest block mb-1">Serial (SN)</label>
+                  <input
+                    value={batteryForm.serial_number}
+                    onChange={e => setBatteryForm(p => ({ ...p, serial_number: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-black uppercase text-slate-500 tracking-widest block mb-1">Ciclos actuales</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={batteryForm.cycles}
+                    onChange={e => setBatteryForm(p => ({ ...p, cycles: Number(e.target.value) }))}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-black uppercase text-slate-500 tracking-widest block mb-1">Salud (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={batteryForm.health_status}
+                    onChange={e => setBatteryForm(p => ({ ...p, health_status: Number(e.target.value) }))}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400"
+                  />
+                </div>
+              </div>
+
+              {batteryError && (
+                <div className="flex gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+                  <span className="material-symbols-outlined text-red-400 text-sm shrink-0">error</span>
+                  <p className="text-xs text-red-600 font-bold">{batteryError}</p>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={() => { setBatteryModal(null); setBatteryError(''); }}
+                  className="flex-1 py-3 text-xs font-black text-slate-400 uppercase border border-slate-200 rounded-2xl hover:border-slate-400 transition-all"
+                >
+                  Omitir
+                </button>
+                <button
+                  onClick={handleCreateBattery}
+                  disabled={creatingBattery || !batteryForm.serial_number.trim()}
+                  className="flex-1 py-3 bg-sky-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-sky-500/20 disabled:opacity-40 transition-all flex items-center justify-center gap-2"
+                >
+                  {creatingBattery
+                    ? <><span className="material-symbols-outlined text-sm animate-spin">sync</span>Creando...</>
+                    : <><span className="material-symbols-outlined text-sm">add</span>Registrar batería</>
                   }
                 </button>
               </div>

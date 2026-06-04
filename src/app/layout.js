@@ -111,14 +111,15 @@ export const metadata = {
   },
   icons: {
     icon: [
-      { url: '/logo.png', type: 'image/png', sizes: '320x277' },
+      { url: '/icons/icon-192.png', type: 'image/png', sizes: '192x192' },
+      { url: '/icons/icon-512.png', type: 'image/png', sizes: '512x512' },
     ],
-    shortcut: '/logo.png',
+    shortcut: '/icons/icon-192.png',
     apple: [
-      { url: '/logo.png', sizes: '320x277', type: 'image/png' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
     ],
     other: [
-      { rel: 'apple-touch-icon', url: '/logo.png' },
+      { rel: 'apple-touch-icon', url: '/icons/icon-192.png' },
     ],
   },
   manifest: '/manifest.webmanifest',
@@ -270,6 +271,16 @@ export default function RootLayout({ children }) {
             l.href='${MATERIAL_SYMBOLS_URL}';
             document.head.appendChild(l);
           })();
+        `}</Script>
+
+        {/* Service Worker — registrar después del primer paint para no bloquear */}
+        <Script id="register-sw" strategy="afterInteractive">{`
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+              navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                .catch(function(err) { console.warn('[SW] registro fallido:', err); });
+            });
+          }
         `}</Script>
 
         <SpeedInsights />

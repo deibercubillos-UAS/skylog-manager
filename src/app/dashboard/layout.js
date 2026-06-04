@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Image from 'next/image';
 import { ROLE_LABELS, PERMISSIONS, hasPermission } from '@/lib/roles';
+import PwaInstallBanner from '@/components/PwaInstallBanner';
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
@@ -218,6 +219,9 @@ const footerLinks = footerLinksAll.filter(link =>
             </span>
           </div>
         </div>
+
+        {/* Banner instalación PWA — solo mobile/controles DJI, se auto-oculta */}
+        <PwaInstallBanner />
 
         {/* NAV PRINCIPAL */}
         <nav className="flex-1 p-3 space-y-0.5 mt-2 overflow-y-auto custom-scrollbar">

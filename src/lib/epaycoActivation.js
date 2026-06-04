@@ -35,7 +35,15 @@ export async function resolvePendingForUser(supabase, userId) {
  * @param {string} [opts.subscriptionId]    epayco_subscription_id
  * @param {string} [opts.ref]               epayco_ref (x_ref_payco)
  */
+// Planes de pago válidos — cualquier otro valor en planKey es un error
+const VALID_PAID_PLANS = ['escuadrilla', 'flota', 'enterprise'];
+
 export async function activatePlanForUser(supabase, { userId, planKey, billing, subscriptionId = null, ref = null }) {
+  // Validar que planKey sea uno de los planes de pago conocidos
+  if (!planKey || !VALID_PAID_PLANS.includes(planKey)) {
+    throw new Error(`plan_key inválido o no reconocido: "${planKey}". Valores permitidos: ${VALID_PAID_PLANS.join(', ')}`);
+  }
+
   const now       = new Date();
   const expiresAt = new Date(now);
   if (billing === 'annual') expiresAt.setFullYear(expiresAt.getFullYear() + 1);

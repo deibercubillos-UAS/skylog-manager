@@ -7,8 +7,13 @@ export const dynamic = 'force-dynamic';
 
 // ─── Cifrado AES-256-GCM ─────────────────────────────────────
 const ALGO = 'aes-256-gcm';
-// AEROCIVIL_SALT debe definirse en .env.local para instalaciones nuevas.
-// El fallback mantiene compatibilidad con credenciales ya cifradas existentes.
+// AEROCIVIL_SALT debe estar definido en variables de entorno de Vercel.
+// El fallback 'bitafly-aerocivil-v1' mantiene compatibilidad con credenciales
+// ya cifradas, pero debe reemplazarse con una variable de entorno real.
+// TODO: una vez que AEROCIVIL_SALT esté en Vercel, remover el fallback y lanzar error.
+if (!process.env.AEROCIVIL_SALT) {
+  console.error('[SECURITY] AEROCIVIL_SALT no está definido en variables de entorno. Usando valor por defecto inseguro. Agregar a Vercel Dashboard → Settings → Environment Variables.');
+}
 const SALT = process.env.AEROCIVIL_SALT || 'bitafly-aerocivil-v1';
 
 function getKey() {

@@ -3,6 +3,7 @@
 // GET  /api/epayco/plans?debug → muestra respuesta cruda de ePayco sin modificar nada
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabaseServer';
+import crypto from 'crypto';
 import { createPlan, listPlans } from '@/lib/epayco';
 import { EPAYCO_PLANS } from '@/lib/planLimits';
 
@@ -19,7 +20,11 @@ function extractIdPlan(p) {
 
 export async function GET(request) {
   const adminKey = request.headers.get('x-admin-key');
-  if (adminKey !== process.env.ADMIN_SECRET) {
+  const secret = process.env.ADMIN_SECRET ?? '';
+  const key    = adminKey ?? '';
+  const valid  = key.length === secret.length &&
+    crypto.timingSafeEqual(Buffer.from(key), Buffer.from(secret));
+  if (!valid) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
@@ -83,7 +88,11 @@ export async function GET(request) {
 
 export async function POST(request) {
   const adminKey = request.headers.get('x-admin-key');
-  if (adminKey !== process.env.ADMIN_SECRET) {
+  const secret = process.env.ADMIN_SECRET ?? '';
+  const key    = adminKey ?? '';
+  const valid  = key.length === secret.length &&
+    crypto.timingSafeEqual(Buffer.from(key), Buffer.from(secret));
+  if (!valid) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 

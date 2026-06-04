@@ -16,7 +16,12 @@ export async function POST(request) {
     const body   = await request.text();
     const params = Object.fromEntries(new URLSearchParams(body));
 
-    console.log('ePayco webhook recibido:', JSON.stringify(params));
+    // Log mínimo — sin PII (no loguear email, nombre, tarjeta, monto completo)
+    console.log('ePayco webhook recibido:', JSON.stringify({
+      ref:    params.x_ref_payco,
+      state:  params.x_transaction_state,
+      amount: params.x_amount,
+    }));
 
     // ── Verificación de firma ─────────────────────────────────────────────────
     const custId     = process.env.EPAYCO_P_CUST_ID;

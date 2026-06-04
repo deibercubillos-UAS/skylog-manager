@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { Resend } from 'resend';
+import { escHtml } from '@/lib/emailHelpers';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -90,7 +91,8 @@ export async function PATCH(request, { params }) {
             const { error: updateErr } = await supabaseAdmin
                 .from('vor_mor_submissions')
                 .update(updates)
-                .eq('id', id);
+                .eq('id', id)
+                .eq('organization_id', ctx.orgId);  // guard org en el update (RLS consistency)
             if (updateErr) throw updateErr;
         }
 
@@ -121,14 +123,14 @@ async function notifyReporter({ email, reporterName, type, submissionId, message
         if (!resendKey) return;
 
         const resend = new Resend(resendKey);
-        const saludo = reporterName ? `Hola ${reporterName},` : 'Hola,';
+        const saludo = reporterName ? `Hola ${escHtml(reporterName)},` : 'Hola,';
         const statusLabels = {
             recibido: 'Recibido',
             en_investigacion: 'En investigación',
             cerrado: 'Cerrado',
             archivado: 'Archivado',
         };
-        const statusLabel = statusLabels[newStatus] || newStatus;
+        const statusLabel = escHtml(statusLabels[newStatus] || newStatus);
 
         await resend.emails.send({
             from: 'BitaFly <no-reply@bitafly.com>',
@@ -136,13 +138,13 @@ async function notifyReporter({ email, reporterName, type, submissionId, message
             subject: `Actualización de tu reporte ${type} — Estado: ${statusLabel}`,
             html: `
                 <p>${saludo}</p>
-                <p>El equipo de Seguridad Operacional ha actualizado el estado de tu reporte <strong>${type}</strong>.</p>
+                <p>El equipo de Seguridad Operacional ha actualizado el estado de tu reporte <strong>${escHtml(type)}</strong>.</p>
                 <p><strong>Estado actual:</strong> ${statusLabel}</p>
                 <div style="background:#f8fafc;border-left:4px solid #0f172a;padding:12px 16px;margin:16px 0">
-                    ${message.replace(/\n/g, '<br>')}
+                    ${escHtml(message).replace(/\n/g, '<br>')}
                 </div>
                 <p style="color:#64748b;font-size:12px">Tu identidad permanece protegida. Este mensaje fue enviado por el equipo de SMS de la organización.</p>
-                <p style="color:#64748b;font-size:12px">Referencia del reporte: ${submissionId}</p>
+                <p style="color:#64748b;font-size:12px">Referencia del reporte: ${escHtml(submissionId)}</p>
             `,
         });
     } catch (_) {

@@ -59,11 +59,15 @@ graphify-out/          ← grafo de conocimiento del proyecto (graph.html, graph
 |---|---|---|
 | `createClientSSR()` | `src/lib/supabaseServer.js` | Cliente Supabase SSR — usado en TODOS los API routes |
 | `getOrgContext()` | `src/lib/apiAuth.js` | Extrae orgId + role + subscription_plan del JWT |
-| `activatePlanForUser()` | `src/lib/epaycoActivation.js` | Activa plan en profiles + borra pending_subscriptions (idempotente) |
+| `activatePlanForUser()` | `src/lib/epaycoActivation.js` | Activa plan en profiles + borra pending_subscriptions (idempotente). Valida `planKey` contra whitelist `VALID_PAID_PLANS`. |
 | `parseDjiTxtBuffer()` | `src/lib/djiParser.js` | Parsea log .txt DJI; extrae serial_aeronave, serial_bateria, ciclos, horas |
 | `createAdminClient()` | `src/lib/supabaseServer.js` | Cliente admin (service role) para operaciones privilegiadas |
+| `checkRateLimit()` | `src/lib/rateLimiter.js` | Rate limiting en memoria por IP — usado en auth y endpoints públicos |
+| `escHtml()` | `src/lib/emailHelpers.js` | Escapa HTML en variables de usuario antes de interpolar en templates de email |
+| `PERMISSIONS` | `src/lib/roles.js` | Fuente única de permisos por rol — usar siempre en lugar de arrays inline |
 
 **Regla**: Antes de tocar cualquier API route, leer `src/lib/supabaseServer.js` y `src/lib/apiAuth.js`.
+**Regla de permisos**: Nunca hardcodear `['superadmin','admin','jefe_pilotos']`. Usar `PERMISSIONS.canXxx` de `src/lib/roles.js`.
 
 ---
 
@@ -74,7 +78,7 @@ Tablas principales:
 - `organizations` — organizaciones (tenant principal)
 - `pilots` — pilotos registrados por org
 - `aircraft` — aeronaves (fleet); campo `total_hours` se actualiza automáticamente al importar vuelos DJI
-- `flights` — bitácora de vuelos; campo `pilot_id` editable por admin/jefe_pilotos
+- `flights` — bitácora de vuelos; campo `pilot_id` editable por admin/jefe_pilotos. Constraint `UNIQUE NULLS NOT DISTINCT (organization_id, aircraft_id, flight_date, takeoff_time)` — previene duplicados. Actualizar `total_hours` siempre vía RPC `increment_aircraft_hours(p_id, p_hours)` (atómica).
 - `flight_authorizations` — autorizaciones de vuelo (RAC 100 / Aerocivil)
 - `batteries` — gestión de baterías; campo `cycles` se actualiza automáticamente al importar vuelos DJI
 - `battery_logs` — logs de uso de baterías
@@ -86,6 +90,7 @@ Tablas principales:
 - `colombia_geo` — geometría geográfica Colombia (municipios, departamentos)
 - `aerocivil_submissions` — solicitudes enviadas a Aerocivil
 - `pending_subscriptions` — intents de pago ePayco (reference, user_id, plan_key, billing); el webhook/verify los borra al activar. Filas huérfanas = webhook nunca ejecutó.
+- `processed_webhook_refs` — tabla de idempotencia para replay protection del webhook ePayco. Columnas: `ref_payco TEXT PK`, `processed_at TIMESTAMPTZ`.
 
 ---
 
@@ -209,6 +214,7 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 | 5b | ArcGIS overlay en MapPickerModal (descartada — no intuitiva) | ❌ Revertida |
 | 5b alt | Banner de advertencia en Plan de Vuelo → link a `/dashboard/safety/mapas` | ✅ Completada |
 | 6 | Mobile UX audit y fixes (4 subphases: nav, sidebar, touch, DJI paths) | ✅ Completada |
+| Auditoría | Auditoría completa de seguridad, rendimiento y deuda técnica (39 hallazgos) | ✅ Completada |
 | 7 | PWA / Android app para controladores DJI Enterprise | ⏳ Pendiente |
 
 ### Commits por fase
@@ -222,6 +228,20 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 | 6a fix | `f134b59` | Sidebar footer tapado por bottom nav |
 | 6b | `eff23c6` | Tooltips gráfico touch + dropdown piloto overflow |
 | 6c | `9bb683f` | Rutas DJI verticales en mobile |
+| Auditoría 1-A | `fade91d` | Auth guards en reports + cross-tenant leak |
+| Auditoría 1-B | `f1949ec` | Auth null check, info disclosure, phishing invite |
+| Auditoría 1-C | `069d68f` | Mass-assignment allowlists (sms, form-templates) |
+| Auditoría 1-D | `14542ff` | HTML escape en emails públicos + emailHelpers.js |
+| Auditoría 1-E | `d930000` | XSS notificación VOR/MOR + org guard update + PII log |
+| Auditoría 1-F | `5c26fba` | File upload size + MIME validation |
+| Auditoría 1-G | `d5f2924` | Timing-safe compare, salt warning, plan_key whitelist |
+| Auditoría 2-B | `775dd3e` | Imports atómicos: ON CONFLICT + RPC total_hours |
+| Auditoría 2-C | `d7d9dc9` | Ordering correcto en register y delete |
+| Auditoría 3-A | `19f96c8` | Webhook replay protection + billing fallback + IDOR batteries |
+| Auditoría 4-A | `3a5039f` | Rate limiting endpoints públicos (VOR, MOR, contact) |
+| Auditoría 4-B | `901973d` | Rate limiting autenticación (login, register, reset) |
+| Auditoría 5-A | `5783508` | Rendimiento + hallazgos bajos (token body, service role, NULL duplicate) |
+| Auditoría 5-B | `abb4bc8` | Centralizar permisos en PERMISSIONS + eliminar dead code |
 
 ### Fixes Fase 6 — resumen técnico
 
@@ -260,3 +280,28 @@ https://aerocivil.maps.arcgis.com/apps/instant/media/index.html?appid=b4be4d501c
   ```
 - [ ] Agregar `DJI_API_KEY` a variables de entorno de Vercel
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a variables de entorno de Vercel
+- [ ] Agregar `AEROCIVIL_SALT` a variables de entorno de Vercel → luego remover el fallback hardcodeado en `src/app/api/aerocivil/credentials/route.js` (buscar el comentario `TODO`)
+
+---
+
+## Seguridad — convenciones post-auditoría
+
+### Patrones obligatorios en API routes
+- **Rate limiting**: todo endpoint público sin auth debe usar `checkRateLimit()` de `src/lib/rateLimiter.js`
+- **HTML escape en emails**: todo campo de usuario que se interpole en HTML de Resend debe pasar por `escHtml()` de `src/lib/emailHelpers.js`
+- **Mass-assignment**: nunca `insert([{ ...body, ... }])`. Siempre definir un objeto con campos explícitos permitidos
+- **Auth guard**: después de `getUser()`, siempre verificar `if (!user) return 401` antes de usar `user.id`
+- **Permisos**: usar `PERMISSIONS.canXxx` de `src/lib/roles.js`, nunca arrays inline de roles
+- **total_hours**: actualizar siempre vía RPC `increment_aircraft_hours(p_id, p_hours)` — nunca read-calculate-write
+
+### Objetos de seguridad en Supabase (aplicados 2026-06-03)
+- Constraint `UNIQUE NULLS NOT DISTINCT (organization_id, aircraft_id, flight_date, takeoff_time)` en `flights`
+- Tabla `processed_webhook_refs` — idempotencia del webhook ePayco
+- Función `increment_aircraft_hours(p_id uuid, p_hours numeric)` — incremento atómico
+- Índices: `idx_vor_mor_org_type`, `idx_flights_org_pilot`, `idx_aircraft_serial_trgm`, `idx_batteries_serial_trgm`
+
+### Archivos de seguridad nuevos
+| Archivo | Propósito |
+|---|---|
+| `src/lib/emailHelpers.js` | `escHtml()` — escape HTML para emails |
+| `src/lib/rateLimiter.js` | `checkRateLimit()` + `getClientIp()` — rate limiting sin deps externas |

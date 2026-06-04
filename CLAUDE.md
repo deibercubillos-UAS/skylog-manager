@@ -272,7 +272,7 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 | UX-5 | subscription/manage — plan card, upgrade CTAs, modal anti-churn, cancelación | ✅ Completada |
 | UX-6 | Landing — fuente Lexend, micro-interacciones Hero/Features/Pricing, trust badges | ✅ Completada |
 | UX-7 | SORA — progressive disclosure: primer JARUS, leyenda SAIL, filas expandibles, contexto por paso | ✅ Completada |
-| 7 | PWA / Android app para controladores DJI Enterprise | ⏳ Pendiente |
+| 7 | PWA / Android app para controladores DJI Enterprise | ✅ Completada |
 
 ### Commits por fase
 
@@ -310,6 +310,9 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 | UX-7 | `d9bb71a` | SORA: progressive disclosure — primer, SAIL legend, filas expandibles, step context |
 | Fix skip-link + logo | `f69b03e` | focus: → focus-visible: en skip link; logo imagen en navbar landing |
 | Fix nav documentacion | `35db1fb` | Agregar "Preguntas" y logo al nav de /documentacion |
+| Fix precios COP | `43192e4` | USD→COP en registro, precios, comparativa, JSON-LD, Wompi→ePayco |
+| Fix img warnings | `c1e801a` | img→Image en Footer/Users/dashboard, font-lexend en /registro h1s |
+| Fase 7 — PWA | `5bbf9eb` | manifest icons correctos + PwaInstallBanner (prompt nativo + DJI RC fallback) |
 
 ### Fixes Fase 6 — resumen técnico
 

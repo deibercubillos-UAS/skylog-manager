@@ -85,7 +85,15 @@ export async function POST(request) {
             email, password, email_confirm: true,
             user_metadata: { first_name: firstName, last_name: lastName, role: normalizedRole, organization_id: targetOrgId }
         });
-        if (authErr) throw authErr;
+
+        if (authErr) {
+            // Si createUser falla, limpiar la org recién creada para evitar org huérfana.
+            // Solo aplica a orgs creadas en ESTE request (targetOrgId no nulo).
+            if (targetOrgId) {
+                await supabaseAdmin.from('organizations').delete().eq('id', targetOrgId);
+            }
+            throw authErr;
+        }
 
         // Upsert: el trigger on_auth_user_created ya pudo haber insertado el perfil base,
         // así que actualizamos con los datos completos del formulario de registro.

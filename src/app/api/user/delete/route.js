@@ -26,26 +26,35 @@ export async function DELETE() {
             { auth: { autoRefreshToken: false, persistSession: false } }
         );
 
-        // 1. Eliminar datos de la organización solo si es el único miembro
-        const { count } = await supabase
+        // 1. Obtener org_id del usuario ANTES de borrarlo (una sola query — evita double-fetch bug)
+        const { data: prof } = await supabase
             .from('profiles')
-            .select('id', { count: 'exact', head: true })
-            .eq('organization_id', (
-                await supabase.from('profiles').select('organization_id').eq('id', user.id).single()
-            ).data?.organization_id);
+            .select('organization_id')
+            .eq('id', user.id)
+            .single();
 
-        // Si es el único miembro, eliminar la organización (cascade borra aeronaves, vuelos, etc.)
-        if (count === 1) {
-            const { data: prof } = await supabase
-                .from('profiles').select('organization_id').eq('id', user.id).single();
-            if (prof?.organization_id) {
-                await adminClient.from('organizations').delete().eq('id', prof.organization_id);
-            }
+        const orgId = prof?.organization_id ?? null;
+
+        // 2. Contar miembros de la org (solo si tiene org)
+        let isLastMember = false;
+        if (orgId) {
+            const { count } = await supabase
+                .from('profiles')
+                .select('id', { count: 'exact', head: true })
+                .eq('organization_id', orgId);
+            isLastMember = count === 1;
         }
 
-        // 2. Eliminar el usuario de auth.users (cascade elimina profiles por FK)
+        // 3. Eliminar usuario de auth.users PRIMERO (cascade elimina profiles por FK).
+        //    Si esto falla, la org sigue intacta — sin estado corrupto.
         const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id);
         if (deleteError) throw deleteError;
+
+        // 4. Si era el único miembro, eliminar la organización (cascade borra flota, vuelos, etc.)
+        //    El usuario ya fue eliminado — su JWT es inválido. Operación segura.
+        if (isLastMember && orgId) {
+            await adminClient.from('organizations').delete().eq('id', orgId);
+        }
 
         return NextResponse.json({ message: 'Cuenta eliminada correctamente' });
     } catch (err) {

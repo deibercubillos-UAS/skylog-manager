@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { uniqueSlug } from '@/lib/slugify';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 
 // Roles que se pueden auto-asignar en el formulario de registro público.
 // Nunca permitir: superadmin, gerente_sms, jefe_pilotos (se asignan por un admin después).
@@ -8,6 +9,13 @@ const ALLOWED_REGISTRATION_ROLES = ['piloto', 'admin'];
 
 export async function POST(request) {
     try {
+        // Rate limiting: máx 5 registros por IP por hora (previene creación masiva de cuentas)
+        const ip = getClientIp(request);
+        const { allowed } = checkRateLimit(`register:${ip}`, { limit: 5, windowMs: 3_600_000 });
+        if (!allowed) {
+            return NextResponse.json({ error: 'Demasiados registros desde esta dirección. Intenta más tarde.' }, { status: 429 });
+        }
+
         const body = await request.json();
         const { email, password, firstName, lastName, phone, city, type, role, orgCode, companyName, nit } = body;
         const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);

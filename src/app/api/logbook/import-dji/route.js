@@ -102,6 +102,9 @@ export async function POST(request) {
     if (buf.length < 64) {
       return NextResponse.json({ error: 'Archivo demasiado pequeño — no es un log DJI válido' }, { status: 422 });
     }
+    if (buf.length > 50_000_000) {
+      return NextResponse.json({ error: 'Archivo demasiado grande (máx 50 MB)' }, { status: 413 });
+    }
 
     // ── 3. Parsear con dji-log-parser-js ─────────────────────────
     let parsed;
@@ -245,6 +248,6 @@ export async function POST(request) {
 
   } catch (err) {
     console.error('[import-dji]', err.message);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: 'Error interno al procesar el archivo' }, { status: 500 });
   }
 }

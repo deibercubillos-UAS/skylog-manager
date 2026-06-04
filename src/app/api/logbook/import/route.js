@@ -95,6 +95,18 @@ export async function POST(request) {
     const file = formData.get('file');
     if (!file) return NextResponse.json({ error: 'Archivo no recibido' }, { status: 400 });
 
+    // Validar tamaño y tipo antes de leer el buffer (evita OOM con archivos grandes)
+    if (file.size > 5_000_000) {
+      return NextResponse.json({ error: 'Archivo demasiado grande (máx 5 MB)' }, { status: 413 });
+    }
+    const ALLOWED_MIME = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel',
+    ];
+    if (!ALLOWED_MIME.includes(file.type)) {
+      return NextResponse.json({ error: 'Formato no válido. Solo se aceptan archivos .xlsx o .xls' }, { status: 415 });
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer);

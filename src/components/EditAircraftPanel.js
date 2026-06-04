@@ -1,38 +1,46 @@
 'use client';
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import FileUpload from './FileUpload';
 import { toast } from '@/lib/toast';
 
 export default function EditAircraftPanel({ aircraft, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [form, setForm] = useState({
-    brand: aircraft?.brand || '',
-    model: aircraft?.model || '',
+    brand:         aircraft?.brand         || '',
+    model:         aircraft?.model         || '',
     serial_number: aircraft?.serial_number || '',
-    ruas: aircraft?.ruas || '',
-    image_url: aircraft?.image_url || '',
-    total_hours: aircraft?.total_hours || 0
+    ruas:          aircraft?.ruas          || '',
+    image_url:     aircraft?.image_url     || '',
+    total_hours:   aircraft?.total_hours   || 0,
   });
 
   const handleUpdate = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setSaveError('');
     try {
-      const { error } = await supabase.from('aircraft').update({
-        brand: form.brand,
-        model: form.model,
-        serial_number: form.serial_number,
-        ruas: form.ruas,
-        image_url: form.image_url,
-        total_hours: parseFloat(form.total_hours || 0)
-      }).eq('id', aircraft.id);
-
-      if (error) throw error;
-      toast.success("Aeronave actualizada correctamente.");
+      const res = await fetch(`/api/fleet/${aircraft.id}`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          updateData: {
+            brand:         form.brand,
+            model:         form.model,
+            serial_number: form.serial_number,
+            ruas:          form.ruas,
+            image_url:     form.image_url,
+            total_hours:   parseFloat(form.total_hours || 0),
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+      toast.success('Aeronave actualizada correctamente.');
       onSuccess();
     } catch (err) {
-      toast.error("Error: " + err.message);
+      setSaveError(err.message);
+      toast.error('Error al guardar: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -82,7 +90,13 @@ export default function EditAircraftPanel({ aircraft, onClose, onSuccess }) {
       </div>
 
       {/* Footer fijo — botón siempre visible */}
-      <div className="shrink-0 px-6 py-4 border-t border-slate-100 bg-white">
+      <div className="shrink-0 px-6 py-4 border-t border-slate-100 bg-white space-y-3">
+        {saveError && (
+          <div className="flex gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+            <span className="material-symbols-outlined text-red-400 text-sm shrink-0">error</span>
+            <p className="text-xs text-red-600 font-bold">{saveError}</p>
+          </div>
+        )}
         <button form="edit-aircraft-form" type="submit" disabled={loading}
           className="w-full py-4 bg-slate-900 text-white font-black rounded-xl uppercase text-xs shadow-lg disabled:opacity-60 active:scale-95 transition-all">
           {loading ? 'Actualizando...' : 'GUARDAR CAMBIOS'}

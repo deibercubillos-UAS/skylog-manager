@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 // Instrucciones para desktop (copiar al PC primero)
 const DEVICE_INSTRUCTIONS = {
@@ -245,6 +245,18 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
   const isSupported =
     typeof window !== 'undefined' && 'showDirectoryPicker' in window;
 
+  // ── Bloquear navegación mientras se importa ───────────────────
+  const isUploading = state === 'uploading';
+  useEffect(() => {
+    if (!isUploading) return;
+    const handler = (e) => {
+      e.preventDefault();
+      e.returnValue = ''; // Chrome requiere asignar a returnValue
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isUploading]);
+
   // ── Verificar duplicados contra la BD ─────────────────────────
   // Usa POST para evitar límite de URL con carpetas grandes (>50 archivos)
   const checkExisting = async (files) => {
@@ -344,14 +356,33 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
         : f
     ));
 
-  // ── Subir un archivo individual, devuelve { ok, skipped, needsAircraft, data } ──
+  // ── Subir un archivo individual ───────────────────────────────
   const uploadFile = async (fileInfo) => {
-    // fileObj puede venir directo (mobile) o desde un handle (desktop)
     const fileObj = fileInfo.fileObj ?? await fileInfo.handle.getFile();
+
+    // Rechazar archivos >50 MB antes de enviarlos (evita 413 del servidor)
+    if (fileObj.size > 50 * 1024 * 1024) {
+      return { status: 413, data: { error: 'Archivo demasiado grande (máx 50 MB)' } };
+    }
+
     const fd = new FormData();
     fd.append('file', fileObj, fileInfo.name);
-    const res  = await fetch('/api/logbook/import-dji', { method: 'POST', body: fd });
-    const data = await res.json();
+
+    let res;
+    try {
+      res = await fetch('/api/logbook/import-dji', { method: 'POST', body: fd });
+    } catch (networkErr) {
+      return { status: 0, data: { error: 'Error de red: ' + networkErr.message } };
+    }
+
+    // Parsear JSON de forma segura — respuestas de error del servidor pueden ser HTML
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      data = { error: `Error ${res.status} del servidor` };
+    }
+
     return { status: res.status, data };
   };
 
@@ -633,6 +664,20 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
 
   return (
     <div className="space-y-5">
+
+      {/* ── Banner: no cambies de página durante la importación ── */}
+      {isUploading && (
+        <div className="sticky top-0 z-30 flex items-center gap-3 bg-orange-600 text-white px-4 py-3 rounded-2xl shadow-lg shadow-orange-500/30 animate-pulse">
+          <span className="material-symbols-outlined text-xl shrink-0">warning</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-black uppercase tracking-wide">Importación en progreso</p>
+            <p className="text-xs font-medium opacity-90 leading-snug">
+              No cambies de página ni cierres el navegador hasta que finalice.
+            </p>
+          </div>
+          <span className="material-symbols-outlined text-xl shrink-0 animate-spin">sync</span>
+        </div>
+      )}
 
       {/* ── Instrucciones con tabs ─────────────────────────────── */}
       {(state === 'idle' || state === 'scanning') && (

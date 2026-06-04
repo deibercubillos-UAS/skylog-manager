@@ -12,7 +12,7 @@ const ALLOWED_AIRCRAFT_FIELDS = [
   'battery_type', 'drone_class', 'notes', 'status',
   'total_hours', 'last_maintenance_date', 'last_maintenance_hours',
   'image_url', 'purchase_date', 'insurance_expiry', 'remote_id',
-  'color', 'firmware_version', 'category',
+  'color', 'firmware_version', 'category', 'ruas',
 ];
 
 export async function PATCH(request, { params }) {

@@ -11,6 +11,7 @@ export async function GET(request) {
 
         const supabase = await createClientSSR();
         const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
 
         const { data, error } = await supabase

@@ -10,6 +10,7 @@ export async function GET(request) {
 
         const supabase = await createClientSSR();
         const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
 
         // 1. Obtener datos del piloto
@@ -22,11 +23,12 @@ export async function GET(request) {
 
         if (error) throw error;
 
-        // 2. Calcular Horas Totales desde la tabla de vuelos
+        // 2. Calcular Horas Totales desde la tabla de vuelos (filtrado por org para evitar cross-tenant leak)
         const { data: flights } = await supabase
             .from('flights')
             .select('total_time')
-            .eq('pilot_id', pilotId);
+            .eq('pilot_id', pilotId)
+            .eq('organization_id', prof.organization_id);
         
         const totalHours = flights?.reduce((acc, f) => acc + (parseFloat(f.total_time) || 0), 0) || 0;
 

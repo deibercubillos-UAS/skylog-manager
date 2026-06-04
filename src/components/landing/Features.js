@@ -62,9 +62,9 @@ export default function Features() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-20 gap-6">
           <div className="max-w-2xl">
             <p className="text-[#ec5b13] text-xs font-black uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
-              <span className="w-8 h-px bg-[#ec5b13]"></span> Capacidades del Sistema
+              <span className="w-8 h-px bg-[#ec5b13]" aria-hidden="true"></span> Capacidades del Sistema
             </p>
-            <h2 className="text-4xl md:text-5xl font-black text-[#1A202C] dark:text-white uppercase tracking-tighter leading-tight">
+            <h2 className="font-lexend text-4xl md:text-5xl font-black text-[#1A202C] dark:text-white uppercase tracking-tighter leading-tight">
               Ingeniería para el <span className="text-[#ec5b13]">Control Total</span> de tu operación.
             </h2>
           </div>
@@ -76,11 +76,13 @@ export default function Features() {
         {/* Grid de Características */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((f) => (
-            <div key={f.id} className={`group relative p-10 rounded-[2.5rem] border transition-all hover:shadow-2xl overflow-hidden text-left ${
+            <div key={f.id}
+                 className={`group relative p-10 rounded-[2.5rem] border transition-all hover:shadow-2xl hover:-translate-y-1 overflow-hidden text-left animate-in fade-in slide-in-from-bottom-4 duration-500 ${
               f.highlight
                 ? 'bg-orange-50 dark:bg-orange-950/20 border-[#ec5b13]/40 hover:border-[#ec5b13] shadow-lg shadow-orange-500/10'
                 : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-[#ec5b13]/50'
-            }`}>
+            }`}
+                 style={{ animationDelay: `${(f.id - 1) * 80}ms`, animationFillMode: 'both' }}>
               <span className={`absolute top-6 right-8 text-xs font-black uppercase tracking-widest transition-colors ${
                 f.highlight
                   ? 'text-[#ec5b13]'
@@ -95,7 +97,7 @@ export default function Features() {
                 </span>
               </div>
 
-              <h3 className="text-xl font-black text-[#1A202C] dark:text-white uppercase tracking-tight mb-3">
+              <h3 className="font-lexend text-xl font-black text-[#1A202C] dark:text-white uppercase tracking-tight mb-3">
                 {f.title}
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">

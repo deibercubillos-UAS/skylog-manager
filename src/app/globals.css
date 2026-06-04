@@ -62,6 +62,25 @@ body {
   animation: grow-up 1s ease-out forwards;
 }
 
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33%       { transform: translateY(-10px) rotate(0.3deg); }
+  66%       { transform: translateY(-5px) rotate(-0.2deg); }
+}
+.animate-float {
+  animation: float 7s ease-in-out infinite;
+}
+
+@keyframes shimmer-slide {
+  from { background-position: -200% center; }
+  to   { background-position:  200% center; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, #ec5b13 0%, #f97316 40%, #ec5b13 60%, #c2410c 100%);
+  background-size: 200% auto;
+  animation: shimmer-slide 2.5s linear infinite;
+}
+
 /* Mejora foco visible para accesibilidad (cumple WCAG y suma puntos en Lighthouse SEO) */
 :focus-visible {
   outline: 2px solid var(--color-primary);

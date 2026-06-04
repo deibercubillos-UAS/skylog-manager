@@ -11,7 +11,8 @@ const config = {
       },
       fontFamily: {
         // Esto vincula la variable de layout.js con Tailwind
-        sans: ['var(--font-public-sans)', 'sans-serif'],
+        sans:   ['var(--font-public-sans)', 'sans-serif'],
+        lexend: ['var(--font-lexend)', 'var(--font-public-sans)', 'sans-serif'],
       },
     },
   },

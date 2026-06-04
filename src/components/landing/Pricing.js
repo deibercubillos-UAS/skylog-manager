@@ -177,7 +177,7 @@ export default function Pricing() {
         {/* Header */}
         <div className="text-center mb-14 space-y-4">
           <p className="text-xs font-black uppercase tracking-[0.3em] text-primary">Precios</p>
-          <h2 className="text-3xl md:text-5xl font-black text-navy uppercase tracking-tighter">
+          <h2 className="font-lexend text-3xl md:text-5xl font-black text-navy uppercase tracking-tighter">
             Planes que <span className="text-primary">crecen con tu flota</span>
           </h2>
           <p className="text-slate-500 max-w-2xl mx-auto">
@@ -213,10 +213,10 @@ export default function Pricing() {
             return (
               <article
                 key={plan.key}
-                className={`relative flex flex-col rounded-[2rem] border p-8 transition-all ${
+                className={`relative flex flex-col rounded-[2rem] border p-8 transition-all duration-300 ${
                   plan.popular
-                    ? 'bg-navy text-white border-primary shadow-2xl shadow-navy/20 xl:scale-105'
-                    : 'bg-white border-slate-200 hover:border-primary/30 hover:shadow-xl'
+                    ? 'bg-navy text-white border-primary shadow-2xl shadow-navy/20 xl:scale-105 hover:-translate-y-1 hover:shadow-3xl'
+                    : 'bg-white border-slate-200 hover:border-primary/30 hover:shadow-xl hover:-translate-y-1'
                 }`}
               >
                 {plan.badge && (
@@ -226,7 +226,7 @@ export default function Pricing() {
                 )}
 
                 {/* Nombre y tagline */}
-                <p className={`text-xs font-black uppercase tracking-widest mb-1 ${plan.popular ? 'text-primary' : 'text-slate-400'}`}>
+                <p className={`font-lexend text-xs font-black uppercase tracking-widest mb-1 ${plan.popular ? 'text-primary' : 'text-slate-400'}`}>
                   {plan.name}
                 </p>
                 <p className={`text-xs mb-5 ${plan.popular ? 'text-slate-400' : 'text-slate-500'}`}>
@@ -242,7 +242,7 @@ export default function Pricing() {
                   ) : (
                     <>
                       <div className="flex items-baseline gap-1">
-                        <span className={`text-3xl font-black ${plan.popular ? 'text-white' : 'text-navy'}`}>
+                        <span className={`font-lexend text-3xl font-black tabular-nums transition-all duration-300 ${plan.popular ? 'text-white' : 'text-navy'}`}>
                           {fmtCOP(displayAmount)}
                         </span>
                         <span className={`text-xs font-bold ${plan.popular ? 'text-slate-400' : 'text-slate-400'}`}>

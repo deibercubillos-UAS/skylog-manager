@@ -1,5 +1,5 @@
 import "./globals.css";
-import { Public_Sans } from "next/font/google";
+import { Public_Sans, Lexend } from "next/font/google";
 import { GoogleAnalytics } from '@next/third-parties/google';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/next';
@@ -9,6 +9,13 @@ const publicSans = Public_Sans({
   subsets: ["latin"],
   variable: "--font-public-sans",
   display: "swap",
+});
+
+const lexend = Lexend({
+  subsets: ["latin"],
+  variable: "--font-lexend",
+  display: "swap",
+  weight: ['400', '700', '900'],
 });
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/+$/, '');
@@ -141,7 +148,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="es-CO" className={`${publicSans.variable} scroll-smooth`}>
+    <html lang="es-CO" className={`${publicSans.variable} ${lexend.variable} scroll-smooth`}>
       <head>
         {/*
           dns-prefetch (no preconnect): la fuente se carga async con afterInteractive,

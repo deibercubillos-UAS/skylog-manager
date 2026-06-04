@@ -53,8 +53,13 @@ export async function POST(request) {
 
     const body = await request.json();
 
+    // Allowlist explícita — evita mass-assignment (ej: inyectar id para pisar template ajeno)
     const { data, error } = await supabase.from('form_templates').upsert({
-        ...body,
+        identifier: body.identifier,
+        name:       body.name,
+        form_code:  body.form_code,
+        version:    body.version,
+        schema:     body.schema,
         owner_id:   user.id,
         updated_at: new Date().toISOString(),
     }).select();

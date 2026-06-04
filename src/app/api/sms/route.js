@@ -45,10 +45,26 @@ export async function POST(request) {
     const body = await request.json();
     const { reportData } = body;
 
+    // Allowlist explícita — evita mass-assignment sobre columnas sensibles (id, created_at, etc.)
+    const safeData = {
+      flight_id:             reportData?.flight_id             ?? null,
+      severity:              reportData?.severity              ?? null,
+      occurrence_date:       reportData?.occurrence_date       ?? null,
+      location:              reportData?.location              ?? null,
+      event_type:            reportData?.event_type            ?? null,
+      damage_description:    reportData?.damage_description    ?? null,
+      damaged_parts:         reportData?.damaged_parts         ?? null,
+      third_party_damage:    reportData?.third_party_damage    ?? null,
+      aircraft_status_post:  reportData?.aircraft_status_post  ?? null,
+      narrative:             reportData?.narrative             ?? null,
+      immediate_actions:     reportData?.immediate_actions     ?? null,
+      status:                reportData?.status                ?? 'borrador',
+    };
+
     const { data, error } = await supabase
       .from('sms_reports')
       .insert([{
-        ...reportData,
+        ...safeData,
         owner_id:        user.id,
         organization_id: orgId,
       }])

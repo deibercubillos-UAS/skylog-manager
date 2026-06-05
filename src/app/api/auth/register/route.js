@@ -117,8 +117,10 @@ export async function POST(request) {
 
         // ── Sanitizar rol: solo 'piloto' o 'admin' son válidos al registrarse ──
         let normalizedRole = ALLOWED_REGISTRATION_ROLES.includes(role) ? role : 'piloto';
-        // Registro individual siempre es piloto sin org propia
-        if (type === 'solo') normalizedRole = 'piloto';
+        // Piloto independiente (type='solo') = admin de su propia org.
+        // role='admin' + plan='piloto' → "Piloto Independiente" en el layout.
+        // Esto le da permisos RLS completos sobre su flota y mantenimiento.
+        if (type === 'solo') normalizedRole = 'admin';
 
         let targetOrgId = null;
         let createdNewOrg = false; // ← true cuando se inserta una org nueva en este request

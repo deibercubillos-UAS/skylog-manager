@@ -16,8 +16,10 @@ export default function AddBatteryPanel({ onClose, onSuccess }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al registrar la batería.');
+      const text = await res.text();
+      let data = {};
+      try { data = text ? JSON.parse(text) : {}; } catch { /* body no era JSON */ }
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}: ${res.statusText || 'Error al registrar la batería.'}`);
       toast.success('Batería añadida al inventario.');
       onSuccess();
     } catch (err) {

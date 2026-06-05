@@ -26,6 +26,7 @@ export async function POST(request) {
         if (type === 'solo') normalizedRole = 'piloto';
 
         let targetOrgId = null;
+        let createdNewOrg = false; // ← true cuando se inserta una org nueva en este request
 
         if (type === 'solo' || normalizedRole === 'admin') {
             // Admin con NIT: usar NIT como unique_code (código de acceso de la org)
@@ -64,6 +65,7 @@ export async function POST(request) {
             const { data: org, error: orgErr } = await supabaseAdmin.from('organizations').insert([orgInsert]).select().single();
             if (orgErr) throw orgErr;
             targetOrgId = org.id;
+            createdNewOrg = true;
         } else {
             // Quien se une a una org existente puede ingresar el NIT o un código
             const code = orgCode ? orgCode.replace(/\s|\./g, '').toUpperCase() : null;
@@ -82,6 +84,7 @@ export async function POST(request) {
                 }]).select().single();
                 if (orgErr) throw orgErr;
                 targetOrgId = org.id;
+                createdNewOrg = true;
             } else {
                 const { data: org, error: orgErr } = await supabaseAdmin.from('organizations').select('id').eq('unique_code', code).single();
                 if (orgErr || !org) throw new Error('NIT / código de organización inválido');
@@ -117,6 +120,24 @@ export async function POST(request) {
             city,
             subscription_plan: 'piloto',
         }, { onConflict: 'id' });
+
+        // Auto-crear registro de piloto cuando el usuario crea su propia org
+        // (piloto independiente o admin de empresa nueva).
+        // La org es nueva en este request → no puede haber pilotos previos.
+        if (createdNewOrg && targetOrgId) {
+            await supabaseAdmin.from('pilots').insert([{
+                organization_id: targetOrgId,
+                owner_id:        authData.user.id,
+                name:            `${firstName} ${lastName}`.trim(),
+                email:           email,
+                phone:           phone || null,
+                city:            city  || null,
+                pilot_role:      'Piloto',
+                is_active:       true,
+            }]);
+            // Error no-crítico: si falla, el usuario igual puede crear el piloto
+            // manualmente desde Tripulación. No propagamos el error.
+        }
 
         return NextResponse.json({ success: true });
     } catch (err) {

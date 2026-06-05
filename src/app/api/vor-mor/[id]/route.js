@@ -8,13 +8,12 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { Resend } from 'resend';
 import { escHtml } from '@/lib/emailHelpers';
+import { PERMISSIONS } from '@/lib/roles';
 
 const getAdminClient = () => createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-const SMS_ROLES = ['admin', 'gerente_sms', 'superadmin'];
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  GET: detalle del reporte
@@ -56,7 +55,7 @@ export async function PATCH(request, { params }) {
         const supabase = await createClientSSR();
         const ctx = await getOrgContext(supabase);
         if (!ctx) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-        if (!SMS_ROLES.includes(ctx.role)) {
+        if (!PERMISSIONS.canManageSMS.includes(ctx.role)) {
             return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
         }
 

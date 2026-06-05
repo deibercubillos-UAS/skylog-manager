@@ -1,6 +1,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { NextResponse } from 'next/server';
+import { PERMISSIONS } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -93,8 +94,7 @@ export async function DELETE(request, { params }) {
       .eq('id', user.id)
       .single();
 
-    const rolesAutorizados = ['superadmin', 'admin', 'jefe_pilotos'];
-    if (!rolesAutorizados.includes(profile?.role)) {
+    if (!PERMISSIONS.canManageFleet.includes(profile?.role)) {
       return NextResponse.json({ error: 'Sin permisos para dar de baja tripulantes' }, { status: 403 });
     }
 

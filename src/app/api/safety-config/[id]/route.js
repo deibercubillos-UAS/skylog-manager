@@ -1,6 +1,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { NextResponse } from 'next/server';
+import { PERMISSIONS } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,7 @@ export async function PATCH(request, { params }) {
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-    if (!['superadmin', 'admin', 'gerente_sms'].includes(profile?.role)) {
+    if (!PERMISSIONS.canManageSafetyConfig.includes(profile?.role)) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
@@ -52,8 +53,7 @@ export async function DELETE(request, { params }) {
 
     // Verificar rol
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-    const allowedRoles = ['superadmin', 'admin', 'gerente_sms'];
-    if (!allowedRoles.includes(profile?.role)) {
+    if (!PERMISSIONS.canManageSafetyConfig.includes(profile?.role)) {
       return NextResponse.json({ error: 'Sin permisos para eliminar protocolos' }, { status: 403 });
     }
 

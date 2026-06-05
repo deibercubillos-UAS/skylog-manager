@@ -5,6 +5,7 @@
 import { NextResponse } from 'next/server';
 import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
+import { PERMISSIONS } from '@/lib/roles';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  GET: listar reportes de la org
@@ -67,7 +68,7 @@ export async function POST(request) {
         if (!ctx?.orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
         // Solo admin, gerente_sms y superadmin pueden configurar formularios
-        if (!['admin', 'gerente_sms', 'superadmin'].includes(ctx.role)) {
+        if (!PERMISSIONS.canManageSMS.includes(ctx.role)) {
             return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
         }
 

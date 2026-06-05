@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
+import { PERMISSIONS } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,8 +38,7 @@ export async function POST(request) {
     if (!orgId) return NextResponse.json({ error: "Sin organización asignada" }, { status: 403 });
 
     // Solo admin y gerente_sms pueden emitir reportes oficiales
-    const ALLOWED_ROLES = ['admin', 'gerente_sms', 'superadmin'];
-    if (!ALLOWED_ROLES.includes(role)) {
+    if (!PERMISSIONS.canManageSMS.includes(role)) {
       return NextResponse.json({ error: "Solo el Gerente SMS puede emitir reportes oficiales." }, { status: 403 });
     }
 

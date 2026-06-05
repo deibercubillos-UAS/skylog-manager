@@ -7,6 +7,7 @@ import { Resend } from 'resend';
 import { resolveOrg, supabaseAdmin } from '../../_resolveOrg';
 import { escHtml } from '@/lib/emailHelpers';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
+import { PERMISSIONS } from '@/lib/roles';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  GET: definición del formulario VOR para la org
@@ -136,7 +137,7 @@ async function notifySms({ org, submission, type, reporter_name, reporter_email,
             .from('profiles')
             .select('email, first_name')
             .eq('organization_id', org.id)
-            .in('role', ['gerente_sms', 'admin', 'superadmin']);
+            .in('role', PERMISSIONS.canManageSMS);
 
         if (!recipients?.length) return;
 

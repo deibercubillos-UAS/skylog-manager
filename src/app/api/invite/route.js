@@ -1,11 +1,12 @@
 import { Resend } from 'resend';
 import { createClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
+import { PERMISSIONS, ASSIGNABLE_ROLES } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
-// Roles que pueden ser asignados mediante invitación
-const INVITABLE_ROLES = ['piloto', 'jefe_pilotos', 'gerente_sms', 'admin'];
+// Roles que pueden ser asignados mediante invitación (fuente única: roles.js)
+const INVITABLE_ROLES = ASSIGNABLE_ROLES; // ['admin', 'gerente_sms', 'jefe_pilotos', 'piloto']
 
 // Validación de formato de email
 function isValidEmail(email) {
@@ -32,7 +33,7 @@ export async function POST(req) {
       return NextResponse.json({ error: "Perfil no encontrado" }, { status: 403 });
     }
 
-    if (!['admin', 'superadmin'].includes(profile.role)) {
+    if (!PERMISSIONS.canChangeRoles.includes(profile.role)) {
       return NextResponse.json({ error: "No tiene permisos para enviar invitaciones" }, { status: 403 });
     }
 

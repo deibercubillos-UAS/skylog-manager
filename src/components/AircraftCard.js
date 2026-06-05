@@ -2,8 +2,6 @@
 import { useState, useRef, useEffect } from 'react';
 
 export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, canManageStatus }) {
-  if (!aircraft) return null;
-
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -14,6 +12,8 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  if (!aircraft) return null;
 
   const hours = parseFloat(aircraft.total_hours || 0);
   const lastMaintHours = parseFloat(aircraft.last_maintenance_hours || 0);

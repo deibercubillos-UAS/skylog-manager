@@ -173,13 +173,15 @@ const filteredLinks = navLinks.filter(link =>
 
 const footerLinksAll = [
     { name: 'Configurar Organización', icon: 'settings',        href: '/dashboard/settings',          roles: ['superadmin', 'admin'] },
-    { name: 'Inicio Rápido (Excel)',   icon: 'upload_file',     href: '/dashboard/settings#inicio-rapido', roles: ['superadmin', 'admin'] },
+    { name: 'Inicio Rápido (Excel)',   icon: 'upload_file',     href: '/dashboard/settings#inicio-rapido', roles: ['superadmin', 'admin'], pilotHidden: true },
     { name: 'Gestión de Usuarios',     icon: 'groups',          href: '/dashboard/users',             roles: ['superadmin', 'admin'], paidOnly: true },
     { name: 'Mi Perfil',               icon: 'account_circle',  href: '/dashboard/settings/profile',  roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
     { name: 'Suscripción',             icon: 'payments',        href: '/dashboard/subscription',      roles: ['superadmin', 'admin', 'gerente_sms'] },
 ];
 const footerLinks = footerLinksAll.filter(link =>
-  link.roles.includes(role) && (!link.paidOnly || isPaidPlan)
+  link.roles.includes(role) &&
+  (!link.paidOnly    || isPaidPlan) &&
+  (!link.pilotHidden || !isPilotoPlan)
 );
 
   // ── Links para la barra de navegación inferior (mobile) ─────────────────

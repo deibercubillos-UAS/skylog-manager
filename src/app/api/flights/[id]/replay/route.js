@@ -12,7 +12,7 @@ const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
 async function getFlightOrg(supabase, flightId, orgId) {
   const { data } = await supabase
     .from('flights')
-    .select('id, organization_id, replay_path, flight_date')
+    .select('id, organization_id, replay_path, flight_date, created_at')
     .eq('id', flightId)
     .eq('organization_id', orgId)
     .single();
@@ -62,12 +62,15 @@ export async function GET(_req, { params }) {
     if (!flight)             return NextResponse.json({ error: 'Vuelo no encontrado' }, { status: 404 });
     if (!flight.replay_path) return NextResponse.json({ error: 'Este vuelo no tiene replay guardado' }, { status: 404 });
 
-    // Verificar expiración por cuota del plan
+    // Verificar expiración por cuota del plan.
+    // Usamos created_at (fecha de importación/guardado del replay) y NO flight_date,
+    // porque un vuelo de hace 40 días importado hoy no debe expirar inmediatamente.
     const quota = await getOrgQuota(admin, ctx.orgId);
-    if (quota.retentionDays > 0 && flight.flight_date) {
+    const replayAgeRef = flight.created_at ?? flight.flight_date;
+    if (quota.retentionDays > 0 && replayAgeRef) {
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - quota.retentionDays);
-      if (new Date(flight.flight_date) < cutoff) {
+      if (new Date(replayAgeRef) < cutoff) {
         // Limpiar replay expirado
         await admin.storage.from(BUCKET).remove([flight.replay_path]);
         await admin.from('flights')

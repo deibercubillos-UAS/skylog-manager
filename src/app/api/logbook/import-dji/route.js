@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { parseDjiTxtBuffer } from '@/lib/djiParser';
 import { detectAlerts, buildTelemetry } from '@/lib/djiTelemetry';
+import { canAddResource } from '@/lib/planLimits';
 
 export const dynamic = 'force-dynamic';
 
@@ -301,18 +302,12 @@ export async function POST(request) {
       });
     }
 
-    // ── 10. Actualizar ciclos de batería ─────────────────────────
-    let bateria_actualizada = null;
-    let needs_battery       = false;
-    let serial_bateria      = null;
-    let ciclos_bateria      = null;
-    let modelo_bateria      = null;
+    // ── 10. Batería: actualizar ciclos o crear automáticamente ───────
+    // Todo server-side con supabaseAdmin — no depende del rol del usuario.
+    let bateria_actualizada  = null;
+    let battery_auto_created = false;
 
     if (meta.serial_bateria && meta.ciclos_bateria != null) {
-      serial_bateria  = meta.serial_bateria;
-      ciclos_bateria  = meta.ciclos_bateria;
-      modelo_bateria  = meta.modelo_bateria ?? null;
-
       const { data: bat } = await supabaseAdmin
         .from('batteries')
         .select('id, serial_number, cycles')
@@ -321,6 +316,7 @@ export async function POST(request) {
         .maybeSingle();
 
       if (bat) {
+        // Batería ya registrada — actualizar ciclos si es mayor
         const newCycles = Math.max(meta.ciclos_bateria, bat.cycles ?? 0);
         if (newCycles > (bat.cycles ?? 0)) {
           await supabaseAdmin
@@ -334,7 +330,37 @@ export async function POST(request) {
           ciclos_nuevos:     newCycles,
         };
       } else {
-        needs_battery = true;
+        // Batería no registrada → crear automáticamente si el plan lo permite
+        const { count: batCount } = await supabaseAdmin
+          .from('batteries')
+          .select('id', { count: 'exact', head: true })
+          .eq('organization_id', prof.organization_id);
+
+        if (canAddResource(prof.subscription_plan, batCount ?? 0, 'battery')) {
+          const { error: batInsertErr } = await supabaseAdmin
+            .from('batteries')
+            .insert([{
+              owner_id:        user.id,
+              organization_id: prof.organization_id,
+              brand:           'DJI',
+              model:           meta.modelo_bateria ?? '',
+              serial_number:   meta.serial_bateria.trim().toUpperCase(),
+              cycles:          meta.ciclos_bateria ?? 0,
+              health_status:   100,
+              status:          'Operativo',
+            }]);
+
+          if (!batInsertErr) {
+            battery_auto_created = true;
+            bateria_actualizada  = {
+              serial:        meta.serial_bateria,
+              ciclos_nuevos: meta.ciclos_bateria,
+              created:       true,
+            };
+          } else {
+            console.error('[import-dji] battery auto-create:', batInsertErr.message);
+          }
+        }
       }
     }
 
@@ -412,10 +438,7 @@ export async function POST(request) {
       duracion:            meta.duracion_s     ?? null,
       altMax:              meta.altitud_max_m  ?? null,
       bateria_actualizada,
-      needs_battery,
-      serial_bateria:      needs_battery ? serial_bateria  : undefined,
-      ciclos_bateria:      needs_battery ? ciclos_bateria  : undefined,
-      modelo_bateria:      needs_battery ? modelo_bateria  : undefined,
+      battery_auto_created,
       has_alerts:          hasAlerts,
       alerts_count:        alerts.length,
       mission_auto:        missionId ? true : false,

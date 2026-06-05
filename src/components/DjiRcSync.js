@@ -377,26 +377,6 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
     }
   };
 
-  // ── Auto-crear batería con datos del .txt (sin modal) ─────────
-  const autoCreateBattery = async (data) => {
-    try {
-      const res = await fetch('/api/fleet/batteries', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          brand:         'DJI',
-          model:         data.modelo_bateria || '',
-          serial_number: data.serial_bateria,
-          cycles:        data.ciclos_bateria  || 0,
-          health_status: 100,
-        }),
-      });
-      return res.ok;
-    } catch {
-      return false;
-    }
-  };
-
   // ── Subir un archivo individual ───────────────────────────────
   const uploadFile = async (fileInfo) => {
     const fileObj = fileInfo.fileObj ?? await fileInfo.handle.getFile();
@@ -445,15 +425,9 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
 
         if (status === 200 || status === 201) {
           imported++;
-          // Auto-crear batería si no está registrada
-          let resultData = data;
-          if (data.needs_battery && data.serial_bateria) {
-            const battCreated = await autoCreateBattery(data);
-            resultData = { ...data, battery_auto_created: battCreated };
-          }
           setFiles(prev =>
             prev.map(f => f.name === fileInfo.name
-              ? { ...f, status: 'ok', result: resultData }
+              ? { ...f, status: 'ok', result: data }
               : f
             )
           );
@@ -475,11 +449,7 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
               const retry = await uploadFile(fileInfo);
               if (retry.status === 200 || retry.status === 201) {
                 imported++;
-                let retryData = { ...retry.data, aircraft_auto_created: model };
-                if (retry.data.needs_battery && retry.data.serial_bateria) {
-                  const battCreated = await autoCreateBattery(retry.data);
-                  retryData = { ...retryData, battery_auto_created: battCreated };
-                }
+                const retryData = { ...retry.data, aircraft_auto_created: model };
                 setFiles(prev =>
                   prev.map(f => f.name === fileInfo.name ? { ...f, status: 'ok', result: retryData } : f)
                 );
@@ -547,9 +517,8 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
       const { status, data } = await uploadFile(pendingFile);
       if (status === 200 || status === 201) {
         imported++;
-        const fileStatus = data.needs_battery ? 'ok_no_battery' : 'ok';
         setFiles(prev =>
-          prev.map(f => f.name === pendingFile.name ? { ...f, status: fileStatus, result: data } : f)
+          prev.map(f => f.name === pendingFile.name ? { ...f, status: 'ok', result: data } : f)
         );
       } else {
         errors++;
@@ -581,12 +550,7 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
         const { status, data } = await uploadFile(fileInfo);
         if (status === 200 || status === 201) {
           rImported++;
-          let resultData = data;
-          if (data.needs_battery && data.serial_bateria) {
-            const battCreated = await autoCreateBattery(data);
-            resultData = { ...data, battery_auto_created: battCreated };
-          }
-          setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'ok', result: resultData } : f));
+          setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'ok', result: data } : f));
         } else if (status === 409) {
           rSkipped++;
           setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'duplicate', result: data } : f));
@@ -599,11 +563,7 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
               const retry = await uploadFile(fileInfo);
               if (retry.status === 200 || retry.status === 201) {
                 rImported++;
-                let retryData = { ...retry.data, aircraft_auto_created: model };
-                if (retry.data.needs_battery && retry.data.serial_bateria) {
-                  const battCreated = await autoCreateBattery(retry.data);
-                  retryData = { ...retryData, battery_auto_created: battCreated };
-                }
+                const retryData = { ...retry.data, aircraft_auto_created: model };
                 setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'ok', result: retryData } : f));
               } else {
                 rErrors++;

@@ -116,6 +116,9 @@ export async function parseDjiTxtBuffer(buf) {
     tipo_mision:      null,
     notas:            details.aircraftName ? `Aeronave: ${details.aircraftName}` : null,
     incidentes:       'NO',
+    // Raw frames — disponibles para el servidor (detección de alertas, replay).
+    // No se almacenan en BD; solo se usan durante el procesamiento del import.
+    _frames: frames,
     _meta: {
       fuente:               'TXT_V13',
       log_version:          parser.version,

@@ -30,6 +30,8 @@ export async function GET(request) {
                 incidents,
                 imported,
                 replay_path,
+                has_alerts,
+                alerts_json,
                 pilots:pilot_id(name),
                 aircraft:aircraft_id(model, serial_number, total_hours)
             `)

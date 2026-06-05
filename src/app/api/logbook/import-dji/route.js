@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { parseDjiTxtBuffer } from '@/lib/djiParser';
+import { detectAlerts, buildTelemetry } from '@/lib/djiTelemetry';
 
 export const dynamic = 'force-dynamic';
+
+const BUCKET   = 'flight-replays';
+const MAX_REPLAY = 2 * 1024 * 1024; // 2 MB
 
 /**
  * GET /api/logbook/import-dji?pairs=2026-05-01|18:17,2026-04-30|14:30
@@ -72,6 +76,31 @@ export async function GET(request) {
   }
 }
 
+// ── Helpers cuota replay ─────────────────────────────────────────────────────
+async function getOrgReplayQuota(admin, orgId) {
+  const { data: prof } = await admin
+    .from('profiles')
+    .select('subscription_plan')
+    .eq('organization_id', orgId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  const plan = prof?.subscription_plan ?? 'piloto';
+
+  const { data: cfg } = await admin
+    .from('epayco_plan_config')
+    .select('replay_retention_days, replay_max_flights')
+    .eq('plan_key', plan)
+    .eq('billing', 'monthly')
+    .single();
+
+  return {
+    retentionDays: cfg?.replay_retention_days ?? 30,
+    maxFlights:    cfg?.replay_max_flights    ?? 10,
+    plan,
+  };
+}
+
 export async function POST(request) {
   try {
     // ── 1. Autenticar ────────────────────────────────────────────
@@ -81,7 +110,7 @@ export async function POST(request) {
 
     const { data: prof } = await supabaseUser
       .from('profiles')
-      .select('organization_id, role')
+      .select('organization_id, role, subscription_plan')
       .eq('id', user.id)
       .single();
 
@@ -131,9 +160,10 @@ export async function POST(request) {
       }, { status: 422 });
     }
 
-    // ── 4. Buscar aeronave por serial ────────────────────────────
     const supabaseAdmin = createAdminClient();
+    const frames        = parsed._frames ?? [];
 
+    // ── 4. Buscar aeronave por serial ────────────────────────────
     const { data: aircraft } = await supabaseAdmin
       .from('aircraft')
       .select('id, serial_number, total_hours')
@@ -152,24 +182,97 @@ export async function POST(request) {
       }, { status: 404 });
     }
 
-    // ── 5. Insertar vuelo con ON CONFLICT DO NOTHING (idempotente + atómico)
-    //    El UNIQUE constraint (org, aircraft, date, takeoff_time) en la BD
-    //    garantiza que imports concurrentes no generan duplicados.
+    // ── 5. Detectar alertas ──────────────────────────────────────
+    let alerts     = [];
+    let hasAlerts  = false;
+    try {
+      if (frames.length > 0) {
+        alerts    = detectAlerts(frames);
+        hasAlerts = alerts.length > 0;
+      }
+    } catch (alertErr) {
+      console.error('[import-dji] alert detection:', alertErr.message);
+    }
+
+    // ── 6. Auto-asignar piloto ───────────────────────────────────
+    // a) Plan 'piloto' → buscar registro propio del usuario
+    // b) Cualquier plan → se completará con la autorización si hay coincidencia
+    let pilotId = null;
+    if (prof.subscription_plan === 'piloto') {
+      try {
+        // Primero por email
+        const { data: byEmail } = await supabaseAdmin
+          .from('pilots')
+          .select('id')
+          .eq('organization_id', prof.organization_id)
+          .eq('email', user.email)
+          .maybeSingle();
+        if (byEmail) {
+          pilotId = byEmail.id;
+        } else {
+          // Fallback: piloto registrado por este usuario
+          const { data: byOwner } = await supabaseAdmin
+            .from('pilots')
+            .select('id')
+            .eq('organization_id', prof.organization_id)
+            .eq('owner_id', user.id)
+            .maybeSingle();
+          pilotId = byOwner?.id ?? null;
+        }
+      } catch (pErr) {
+        console.error('[import-dji] pilot lookup:', pErr.message);
+      }
+    }
+
+    // ── 7. Buscar autorización de vuelo coincidente ──────────────
+    // Coincide si la fecha de la autorización == fecha del vuelo
+    // y el aircraft_id coincide (preferido) o no importa.
+    let missionId   = null;
+    let missionType = parsed.tipo_mision ?? null;
+    try {
+      const { data: authMatches } = await supabaseAdmin
+        .from('flight_authorizations')
+        .select('id, mission_id, mission_type, pilot_id, aircraft_id, scheduled_at')
+        .eq('organization_id', prof.organization_id)
+        .neq('status', 'cancelado')
+        .gte('scheduled_at', `${parsed.fecha}T00:00:00`)
+        .lte('scheduled_at', `${parsed.fecha}T23:59:59`)
+        .order('scheduled_at', { ascending: true })
+        .limit(10);
+
+      if (authMatches?.length) {
+        // Preferir la que coincide con la aeronave; si no, la primera del día
+        const match = authMatches.find(a => a.aircraft_id === aircraft.id) ?? authMatches[0];
+        missionId   = match.mission_id   ?? null;
+        missionType = match.mission_type ?? missionType;
+        // Solo auto-asignar piloto de la autorización si no viene del plan piloto
+        if (!pilotId && match.pilot_id) pilotId = match.pilot_id;
+      }
+    } catch (authErr) {
+      console.error('[import-dji] authorization lookup:', authErr.message);
+    }
+
+    // ── 8. Insertar vuelo ────────────────────────────────────────
+    // Con ON CONFLICT DO NOTHING vía el UNIQUE constraint de la BD.
     const meta = parsed._meta ?? {};
 
     const flightRecord = {
       owner_id:         user.id,
       organization_id:  prof.organization_id,
       aircraft_id:      aircraft.id,
+      pilot_id:         pilotId,
       flight_date:      parsed.fecha,
       takeoff_time:     parsed.hora_despegue    ?? null,
       landing_time:     parsed.hora_aterrizaje  ?? null,
-      mission_type:     parsed.tipo_mision      ?? null,
+      mission_id:       missionId,
+      mission_type:     missionType,
       visual_condition: parsed.condicion_visual ?? 'VMC',
       location:         parsed.ubicacion        ?? null,
       notes:            parsed.notas            ?? null,
       incidents:        parsed.incidentes === 'SI',
       imported:         true,
+      has_alerts:       hasAlerts,
+      alerts_json:      alerts,
     };
 
     const { data: inserted, error: insertErr } = await supabaseAdmin
@@ -189,8 +292,7 @@ export async function POST(request) {
       throw insertErr;
     }
 
-    // ── 6. Actualizar horas totales con incremento atómico (RPC SQL)
-    //    Evita race condition de read-calculate-write en imports paralelos.
+    // ── 9. Actualizar horas totales con incremento atómico (RPC SQL) ──
     if (meta.duracion_s && meta.duracion_s > 0) {
       const addedHours = parseFloat((meta.duracion_s / 3600).toFixed(4));
       await supabaseAdmin.rpc('increment_aircraft_hours', {
@@ -199,9 +301,18 @@ export async function POST(request) {
       });
     }
 
-    // ── 8. Actualizar ciclos de batería ──────────────────────────
+    // ── 10. Actualizar ciclos de batería ─────────────────────────
     let bateria_actualizada = null;
+    let needs_battery       = false;
+    let serial_bateria      = null;
+    let ciclos_bateria      = null;
+    let modelo_bateria      = null;
+
     if (meta.serial_bateria && meta.ciclos_bateria != null) {
+      serial_bateria  = meta.serial_bateria;
+      ciclos_bateria  = meta.ciclos_bateria;
+      modelo_bateria  = meta.modelo_bateria ?? null;
+
       const { data: bat } = await supabaseAdmin
         .from('batteries')
         .select('id, serial_number, cycles')
@@ -218,14 +329,80 @@ export async function POST(request) {
             .eq('id', bat.id);
         }
         bateria_actualizada = {
-          serial: bat.serial_number,
+          serial:            bat.serial_number,
           ciclos_anteriores: bat.cycles ?? 0,
           ciclos_nuevos:     newCycles,
         };
+      } else {
+        needs_battery = true;
       }
     }
 
-    // ── 9. Respuesta ─────────────────────────────────────────────
+    // ── 11. Generar y guardar replay automáticamente ─────────────
+    // Build telemetry → Node.js gzip → Supabase Storage, con enforcement de cuota.
+    let replayPath = null;
+    if (frames.length > 0) {
+      try {
+        const telemetry = buildTelemetry(frames);
+        const payload   = JSON.stringify({ alerts, telemetry });
+        const { gzipSync } = await import('zlib');
+        const gzipped   = gzipSync(Buffer.from(payload));
+
+        if (gzipped.length <= MAX_REPLAY) {
+          // Enforcement de cuota (igual que POST /api/flights/[id]/replay)
+          const quota = await getOrgReplayQuota(supabaseAdmin, prof.organization_id);
+          if (quota.maxFlights > 0) {
+            const { count } = await supabaseAdmin
+              .from('flights')
+              .select('id', { count: 'exact', head: true })
+              .eq('organization_id', prof.organization_id)
+              .not('replay_path', 'is', null)
+              .neq('id', inserted.id);
+
+            if ((count ?? 0) >= quota.maxFlights) {
+              const { data: oldest } = await supabaseAdmin
+                .from('flights')
+                .select('id, replay_path')
+                .eq('organization_id', prof.organization_id)
+                .not('replay_path', 'is', null)
+                .neq('id', inserted.id)
+                .order('flight_date', { ascending: true })
+                .limit(1)
+                .single();
+
+              if (oldest?.replay_path) {
+                await supabaseAdmin.storage.from(BUCKET).remove([oldest.replay_path]);
+                await supabaseAdmin.from('flights')
+                  .update({ replay_path: null })
+                  .eq('id', oldest.id);
+              }
+            }
+          }
+
+          replayPath = `orgs/${prof.organization_id}/replays/${inserted.id}.json.gz`;
+          const { error: uploadErr } = await supabaseAdmin.storage
+            .from(BUCKET)
+            .upload(replayPath, gzipped, {
+              contentType:  'application/gzip',
+              upsert:       true,
+              cacheControl: '3600',
+            });
+
+          if (uploadErr) {
+            console.error('[import-dji] replay upload:', uploadErr.message);
+            replayPath = null;
+          } else {
+            await supabaseAdmin.from('flights')
+              .update({ replay_path: replayPath })
+              .eq('id', inserted.id);
+          }
+        }
+      } catch (replayErr) {
+        console.error('[import-dji] replay build:', replayErr.message);
+      }
+    }
+
+    // ── 12. Respuesta ─────────────────────────────────────────────
     return NextResponse.json({
       success:             true,
       file:                fileName,
@@ -235,6 +412,15 @@ export async function POST(request) {
       duracion:            meta.duracion_s     ?? null,
       altMax:              meta.altitud_max_m  ?? null,
       bateria_actualizada,
+      needs_battery,
+      serial_bateria:      needs_battery ? serial_bateria  : undefined,
+      ciclos_bateria:      needs_battery ? ciclos_bateria  : undefined,
+      modelo_bateria:      needs_battery ? modelo_bateria  : undefined,
+      has_alerts:          hasAlerts,
+      alerts_count:        alerts.length,
+      mission_auto:        missionId ? true : false,
+      pilot_auto:          pilotId   ? true : false,
+      replay_auto:         replayPath ? true : false,
     });
 
   } catch (err) {

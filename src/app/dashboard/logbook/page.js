@@ -137,6 +137,48 @@ export default function LogbookPage() {
         }
     };
 
+    // Celda de alertas: muestra icono naranja/rojo con tooltip si el vuelo tuvo alertas
+    const AlertsCell = ({ flight }) => {
+        if (!flight.has_alerts) {
+            return <td className="px-3 py-4"></td>;
+        }
+        const critical = (flight.alerts_json ?? []).some(a => a.severity === 'critical');
+        const count    = (flight.alerts_json ?? []).length;
+        return (
+            <td className="px-3 py-4">
+                <div className="group relative inline-flex">
+                    <span
+                        title={`${count} alerta${count !== 1 ? 's' : ''} durante el vuelo — abrir Replay para detalles`}
+                        className={`flex items-center justify-center w-7 h-7 rounded-lg cursor-help transition-all hover:scale-110 ${
+                            critical
+                                ? 'bg-red-100 text-red-500 hover:bg-red-200'
+                                : 'bg-orange-100 text-orange-500 hover:bg-orange-200'
+                        }`}
+                    >
+                        <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
+                            warning
+                        </span>
+                    </span>
+                    {/* Tooltip con listado breve de alertas */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 w-56 bg-slate-900 text-white text-xs rounded-xl p-3 shadow-2xl pointer-events-none">
+                        <p className="font-black uppercase tracking-wider mb-1.5 text-orange-300">Alertas detectadas</p>
+                        <ul className="space-y-1">
+                            {(flight.alerts_json ?? []).slice(0, 5).map((a, i) => (
+                                <li key={i} className={`flex items-start gap-1 ${a.severity === 'critical' ? 'text-red-300' : 'text-yellow-200'}`}>
+                                    <span className="shrink-0 mt-0.5">•</span>
+                                    <span>{a.label}</span>
+                                </li>
+                            ))}
+                            {(flight.alerts_json ?? []).length > 5 && (
+                                <li className="text-slate-400 text-xs">+{(flight.alerts_json ?? []).length - 5} más…</li>
+                            )}
+                        </ul>
+                    </div>
+                </div>
+            </td>
+        );
+    };
+
     // Celda de piloto: editable para roles autorizados, solo lectura para el resto
     const PilotCell = ({ flight }) => {
         const isEditing = editingPilot === flight.id;
@@ -257,7 +299,21 @@ export default function LogbookPage() {
                         <div key={f.id} className="p-4 space-y-1.5">
                             <div className="flex items-start justify-between gap-2">
                                 <div className="min-w-0">
-                                    <p className="text-xs font-black font-mono text-orange-600">{f.mission_id || 'N/A'}</p>
+                                    <div className="flex items-center gap-1.5">
+                                        <p className="text-xs font-black font-mono text-orange-600">{f.mission_id || 'N/A'}</p>
+                                        {f.has_alerts && (
+                                            <span
+                                                title={`${(f.alerts_json ?? []).length} alerta(s) — ver Replay para detalles`}
+                                                className={`inline-flex items-center justify-center w-4 h-4 rounded ${
+                                                    (f.alerts_json ?? []).some(a => a.severity === 'critical')
+                                                        ? 'bg-red-100 text-red-500'
+                                                        : 'bg-orange-100 text-orange-500'
+                                                }`}
+                                            >
+                                                <span className="material-symbols-outlined" style={{ fontSize: '12px', fontVariationSettings: "'FILL' 1" }}>warning</span>
+                                            </span>
+                                        )}
+                                    </div>
                                     <p className="text-xs font-bold text-slate-800 truncate">{f.aircraft?.model || 'UAS'}</p>
                                     <div className="text-xs text-slate-400 font-bold"><PilotCell flight={f} /></div>
                                 </div>
@@ -284,6 +340,9 @@ export default function LogbookPage() {
                                 <th className="px-4 py-4">Condición</th>
                                 <th className="px-4 py-4">T.T Posterior</th>
                                 <th className="px-4 py-4">Piloto (PIC)</th>
+                                <th className="px-3 py-4 w-10" title="Alertas detectadas durante el vuelo">
+                                    <span className="material-symbols-outlined text-base text-slate-400">warning</span>
+                                </th>
                                 {canViewReplay && <th className="px-4 py-4 w-16"></th>}
                             </tr>
                             <tr className="bg-white border-b-2 border-slate-100">
@@ -295,6 +354,7 @@ export default function LogbookPage() {
                                 <th className="px-2 py-2"><select aria-label="Filtrar por condición visual" className="w-full p-2 bg-slate-50 rounded-lg text-xs font-bold outline-none focus:ring-1 focus:ring-orange-500" value={filters.condition} onChange={e => setFilters(f => ({...f, condition: e.target.value}))}><option value="">TODAS</option><option value="VMC">VMC</option><option value="IMC">IMC</option><option value="NIGHT">NOCTURNO</option></select></th>
                                 <th className="px-2 py-2"></th>
                                 <th className="px-2 py-2"><select aria-label="Filtrar por piloto" className="w-full p-2 bg-slate-50 rounded-lg text-xs font-bold outline-none focus:ring-1 focus:ring-orange-500" value={filters.pilot} onChange={e => setFilters(f => ({...f, pilot: e.target.value}))}><option value="">TODOS</option>{uniquePilots.map(p => <option key={p} value={p}>{p}</option>)}</select></th>
+                                <th className="px-2 py-2"></th>
                                 {canViewReplay && <th className="px-2 py-2"></th>}
                             </tr>
                         </thead>
@@ -309,6 +369,7 @@ export default function LogbookPage() {
                                     <td className="px-4 py-4"><span className="bg-slate-100 px-2 py-0.5 rounded text-xs font-black">{f.visual_condition}</span></td>
                                     <td className="px-4 py-4 font-black">{f.aircraft?.total_hours?.toFixed(2)}h</td>
                                     <td className="px-4 py-4"><PilotCell flight={f} /></td>
+                                    <AlertsCell flight={f} />
                                     {canViewReplay && (() => {
                                         const hasReplay = !!(f.replay_path || savedReplays.has(f.id));
                                         return (

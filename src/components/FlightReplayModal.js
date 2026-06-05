@@ -296,7 +296,7 @@ export default function FlightReplayModal({ open, onClose, flightId, hasReplay, 
       role="dialog"
       aria-modal="true"
       aria-label={flightLabel ? `Replay de vuelo: ${flightLabel}` : 'Replay de Vuelo'}
-      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center"
+      className="fixed inset-0 z-[500] bg-black/80 backdrop-blur-sm flex items-center justify-center"
       onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
     >
       {/* Contenedor del modal */}

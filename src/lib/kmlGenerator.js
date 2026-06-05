@@ -51,7 +51,8 @@ function coordString(points, altM = 0) {
  * @returns {string} KML document as string
  */
 export function generateKML(geoType, points, radiusM = 500, name = 'Operación UAS', altM = 120, desc = '') {
-  if (!points || points.length === 0) return null;
+  // points puede ser null/vacío — se genera KML con solo datos de operación (sin geometría)
+  if (!name?.trim()) return null;
 
   let placemark = '';
 
@@ -116,7 +117,8 @@ export function generateKML(geoType, points, radiusM = 500, name = 'Operación U
       </Polygon>
     </Placemark>`;
   } else {
-    return null;
+    // Sin geometría válida — KML solo con datos de la operación (sin polígono)
+    placemark = '';
   }
 
   const description = desc

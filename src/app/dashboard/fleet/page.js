@@ -7,6 +7,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import AircraftCard from '@/components/AircraftCard';
 import BatteryCard from '@/components/BatteryCard';
 import TechCard from '@/components/TechCard';
+import { PLAN_CONFIG } from '@/lib/planLimits';
 
 // Paneles: carga diferida → no bloquean el bundle inicial
 const AddAircraftPanel  = dynamic(() => import('@/components/AddAircraftPanel'),  { ssr: false });
@@ -21,6 +22,7 @@ export default function FleetPage() {
   const [batteries, setBatteries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
+  const [planKey, setPlanKey] = useState('piloto');
   const [tech, setTech] = useState([]);
   const [editingTech, setEditingTech] = useState(null);
   const [activePanel, setActivePanel] = useState(null);
@@ -35,10 +37,13 @@ export default function FleetPage() {
       if (!user) return;
 
       // 1. Obtener Perfil y Rol
-      const { data: prof } = await supabase.from('profiles').select('role, organization_id').eq('id', user.id).single();
-      
-      // VITAL: Guardar el rol en el estado
-      if (prof) setUserRole(prof.role);
+      const { data: prof } = await supabase.from('profiles').select('role, organization_id, subscription_plan').eq('id', user.id).single();
+
+      // VITAL: Guardar el rol y el plan en el estado
+      if (prof) {
+        setUserRole(prof.role);
+        setPlanKey(prof.subscription_plan || 'piloto');
+      }
 
       if (prof?.organization_id) {
         const [resDrones, resBatteries, resTech] = await Promise.all([
@@ -62,6 +67,13 @@ setTech(resTech.data || []);
 
   // LÓGICA DE PERMISOS: Solo estos roles pueden modificar la flota
   const canManage = ['superadmin', 'admin', 'jefe_pilotos'].includes(userRole);
+
+  // Límites del plan
+  const planCfg      = PLAN_CONFIG[planKey] ?? PLAN_CONFIG.piloto;
+  const maxDrones    = planCfg.maxDrones    === Infinity ? Infinity : planCfg.maxDrones;
+  const maxBatteries = planCfg.maxBatteries === null     ? Infinity : planCfg.maxBatteries;
+  const droneAtLimit   = drones.length    >= maxDrones;
+  const batteryAtLimit = batteries.length >= maxBatteries;
 
   const handleDelete = (id, table) => {
     const labels = { aircraft: 'aeronave', batteries: 'batería', inventory_items: 'equipo' };
@@ -109,15 +121,21 @@ setTech(resTech.data || []);
           <p className="text-slate-400 text-xs font-black uppercase">{drones.length} UNIDADES</p>
       </div>
 
-      {/* BOTÓN REPARADO: Se muestra si el rol es válido */}
       {canManage && (
-          <button 
-              onClick={() => setActivePanel('drone')} 
-              className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
+        droneAtLimit ? (
+          <span className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-black text-slate-400 uppercase">
+            <span className="material-symbols-outlined text-sm">lock</span>
+            Límite del plan ({drones.length}/{maxDrones === Infinity ? '∞' : maxDrones})
+          </span>
+        ) : (
+          <button
+            onClick={() => setActivePanel('drone')}
+            className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
           >
-              <span className="material-symbols-outlined text-sm">add_circle</span>
-              Nuevo UAS
+            <span className="material-symbols-outlined text-sm">add_circle</span>
+            Nuevo UAS
           </button>
+        )
       )}
       </header>
 
@@ -161,13 +179,20 @@ setTech(resTech.data || []);
                     <p className="text-slate-400 text-xs font-black uppercase">{batteries.length} UNIDADES</p>
                 </div>
                 {canManage && (
-                    <button 
-                        onClick={() => setActivePanel('battery')}
-                        className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
+                  batteryAtLimit ? (
+                    <span className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-black text-slate-400 uppercase">
+                      <span className="material-symbols-outlined text-sm">lock</span>
+                      Límite del plan ({batteries.length}/{maxBatteries === Infinity ? '∞' : maxBatteries})
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setActivePanel('battery')}
+                      className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
                     >
-                        <span className="material-symbols-outlined text-sm">add_circle</span>
-                        Nueva Batería
+                      <span className="material-symbols-outlined text-sm">add_circle</span>
+                      Nueva Batería
                     </button>
+                  )
                 )}
             </header> 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

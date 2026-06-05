@@ -77,7 +77,7 @@ export default function PlanVueloPage() {
       notes.trim() ? `Observaciones: ${notes.trim()}` : null,
     ].filter(Boolean).join('\n');
 
-    const kml = generateKML(geoType, zone.points, zone.radius, name, altitude, desc);
+    const kml = generateKML(geoType, zone?.points ?? null, zone?.radius ?? 500, name, altitude, desc);
     if (!kml) return;
     setDownloading(true);
     const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
@@ -86,7 +86,8 @@ export default function PlanVueloPage() {
   }, [zone, opName, geoType, altitude, flightDate, takeoffTime, notes]);
 
   const summary    = zone ? getSummary(geoType, zone.points, zone.radius) : null;
-  const canDownload = !!summary;
+  // Se puede descargar con solo el nombre de la operación; la zona es opcional pero enriquece el KMZ
+  const canDownload = !!opName.trim();
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -315,8 +316,9 @@ export default function PlanVueloPage() {
           <div>
             <p className="text-sm font-black text-navy">Archivo KMZ</p>
             <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-              Compatible con Google Earth y el portal de AeroCivil (Apéndice 13 · RAC 100).
-              {!canDownload && ' Define primero la zona en el mapa para habilitar la descarga.'}
+                Compatible con Google Earth y el portal de AeroCivil (Apéndice 13 · RAC 100).
+              {!canDownload && ' Ingresa el nombre de la operación para habilitar la descarga.'}
+              {canDownload && !zone && ' Opcional: define la zona en el mapa para incluir geometría en el KMZ.'}
             </p>
           </div>
         </div>

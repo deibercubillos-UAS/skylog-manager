@@ -87,7 +87,7 @@ useEffect(() => {
     async function loadOrgData() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) { window.location.href = '/login'; return; }
-        const { data: prof } = await supabase.from('profiles').select('organization_id, role').eq('id', session.user.id).single();
+        const { data: prof } = await supabase.from('profiles').select('organization_id, role, subscription_plan').eq('id', session.user.id).single();
         setProfile(prof);
 
         // Carga org, aeronaves y pólizas en paralelo — elimina roundtrip secuencial
@@ -230,7 +230,8 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                 </div>
             </header>
 
-            {/* ── INICIO RÁPIDO — Onboarding Express ─────────────────── */}
+            {/* ── INICIO RÁPIDO — Onboarding Express (oculto para piloto independiente) ── */}
+            {profile?.subscription_plan !== 'piloto' && (
             <section id="inicio-rapido" className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-700 bg-gradient-to-r from-orange-600/20 to-transparent">
@@ -350,6 +351,7 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                     )}
                 </div>
             </section>
+            )}
 
             <form onSubmit={handleUpdate} className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-10">
                 

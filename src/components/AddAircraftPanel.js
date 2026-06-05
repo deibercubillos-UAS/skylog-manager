@@ -1,6 +1,5 @@
 'use client';
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import FileUpload from './FileUpload';
 import { toast } from '@/lib/toast';
 
@@ -16,23 +15,25 @@ export default function AddAircraftPanel({ onClose, onSuccess }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
-      const cleanData = {
-        brand: form.brand,
-        model: form.model,
-        serial_number: form.serial_number,
-        ruas: form.ruas,
-        image_url: form.image_url,
-        total_hours: parseFloat(form.total_hours || 0),
-        last_maintenance_hours: parseFloat(form.last_maintenance_hours || 0),
-        last_maintenance_date: form.last_maintenance_date === '' ? null : form.last_maintenance_date,
-        owner_id: user.id,
-        organization_id: prof.organization_id,
-        status: 'Operativo',
-      };
-      const { error } = await supabase.from('aircraft').insert([cleanData]);
-      if (error) throw error;
+      // Rutar por /api/fleet para que el servidor verifique límites del plan
+      const res = await fetch('/api/fleet', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          aircraftData: {
+            brand:                  form.brand,
+            model:                  form.model,
+            serial_number:          form.serial_number,
+            ruas:                   form.ruas,
+            image_url:              form.image_url,
+            total_hours:            parseFloat(form.total_hours || 0),
+            last_maintenance_hours: parseFloat(form.last_maintenance_hours || 0),
+            last_maintenance_date:  form.last_maintenance_date === '' ? null : form.last_maintenance_date,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al registrar la aeronave.');
       toast.success('Aeronave inscrita correctamente.');
       onSuccess();
     } catch (err) {

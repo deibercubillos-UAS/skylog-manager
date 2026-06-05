@@ -157,11 +157,22 @@ export default function PilotsPage() {
                 <div className="min-w-0">
                   <p className="text-sm font-black text-slate-900 truncate">{p.name}</p>
                   <p className="text-xs text-slate-400 font-bold uppercase truncate">{p.pilot_role || p.position || 'Piloto'}</p>
-                  {ms && (
-                    <span className={`inline-block mt-1 px-2 py-0.5 rounded-lg text-xs font-black border ${ms.color}`}>
-                      {ms.label}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {ms && (
+                      <span className={`px-2 py-0.5 rounded-lg text-xs font-black border ${ms.color}`}>
+                        {ms.label}
+                      </span>
+                    )}
+                    {(() => {
+                      const docs = [p.id_doc_url, p.pilot_course_url, p.theoretical_exam_url, p.medical_cert_url].filter(Boolean);
+                      return docs.length > 0 ? (
+                        <span className="flex items-center gap-0.5 text-[10px] font-black text-emerald-600">
+                          <span className="material-symbols-outlined text-sm">folder</span>
+                          {docs.length}/4
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
                 </div>
               </div>
               {canManage && (
@@ -200,6 +211,7 @@ export default function PilotsPage() {
                 <th className="px-6 py-4">Rol / Habilitaciones</th>
                 <th className="px-6 py-4">Licencia</th>
                 <th className="px-6 py-4">Estado Médico</th>
+                <th className="px-6 py-4">Docs</th>
                 {canManage && <th className="px-6 py-4 text-right">Acciones</th>}
               </tr>
             </thead>
@@ -227,6 +239,19 @@ export default function PilotsPage() {
                       ) : (
                         <span className="text-slate-300 text-xs">—</span>
                       )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {(() => {
+                        const docs = [p.id_doc_url, p.pilot_course_url, p.theoretical_exam_url, p.medical_cert_url].filter(Boolean);
+                        return docs.length > 0 ? (
+                          <span className="flex items-center gap-1 text-xs font-black text-emerald-600">
+                            <span className="material-symbols-outlined text-sm">folder</span>
+                            {docs.length}/4
+                          </span>
+                        ) : (
+                          <span className="text-slate-300 text-xs">—</span>
+                        );
+                      })()}
                     </td>
                     {canManage && (
                       <td className="px-6 py-4 text-right">

@@ -1,6 +1,5 @@
 'use client';
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 
 export default function AddBatteryPanel({ onClose, onSuccess }) {
@@ -11,21 +10,18 @@ export default function AddBatteryPanel({ onClose, onSuccess }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
-
-      const { error } = await supabase.from('batteries').insert([{
-        ...form,
-        owner_id: user.id,
-        organization_id: prof.organization_id,
-        status: 'Operativo'
-      }]);
-
-      if (error) throw error;
-      toast.success("Batería añadida al inventario.");
+      // Rutar por /api/fleet/batteries para que el servidor verifique límites del plan
+      const res = await fetch('/api/fleet/batteries', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al registrar la batería.');
+      toast.success('Batería añadida al inventario.');
       onSuccess();
     } catch (err) {
-      toast.error("Error: " + err.message);
+      toast.error('Error: ' + err.message);
     } finally {
       setLoading(false);
     }

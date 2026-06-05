@@ -192,9 +192,10 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
             {/* 03. DOCUMENTOS */}
             <div className="space-y-3">
               <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Documentación Adjunta (PDF/JPG)</p>
-              <FileUpload path="crew/docs" label="Cédula" onUploadSuccess={(url) => setForm({...form, id_doc_url: url})} />
-              <FileUpload path="crew/docs" label="Diploma Curso" onUploadSuccess={(url) => setForm({...form, pilot_course_url: url})} />
-              <FileUpload path="crew/docs" label="Examen Médico" onUploadSuccess={(url) => setForm({...form, medical_cert_url: url})} />
+              <FileUpload path="crew/docs" label="Cédula / Documento de Identidad" onUploadSuccess={(url) => setForm({...form, id_doc_url: url})} />
+              <FileUpload path="crew/docs" label="Diploma Curso Piloto UAS" onUploadSuccess={(url) => setForm({...form, pilot_course_url: url})} />
+              <FileUpload path="crew/docs" label="Examen Teórico Aerocivil" onUploadSuccess={(url) => setForm({...form, theoretical_exam_url: url})} />
+              <FileUpload path="crew/docs" label="Certificado Médico Aeronáutico" onUploadSuccess={(url) => setForm({...form, medical_cert_url: url})} />
             </div>
 
             {/* 04. ADICIONES */}

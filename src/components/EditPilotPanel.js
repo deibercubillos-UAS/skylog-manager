@@ -137,10 +137,34 @@ export default function EditPilotPanel({ pilot, onClose, onSuccess, canEditMedic
 
           {/* 04. DOCUMENTOS */}
           <div className="space-y-3">
-            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Actualizar Documentos (PDF/JPG)</p>
-            <FileUpload path="crew/docs" label="Cédula" onUploadSuccess={(url) => setForm({...form, id_doc_url: url})} />
-            <FileUpload path="crew/docs" label="Diploma Curso Piloto" onUploadSuccess={(url) => setForm({...form, pilot_course_url: url})} />
-            <FileUpload path="crew/docs" label="Certificado Médico" onUploadSuccess={(url) => setForm({...form, medical_cert_url: url})} />
+            <p className="text-xs font-black text-orange-600 uppercase tracking-widest border-b pb-2">04. Documentos del Piloto</p>
+
+            {/* Links a documentos ya cargados */}
+            {(form.id_doc_url || form.pilot_course_url || form.theoretical_exam_url || form.medical_cert_url) && (
+              <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100 space-y-2">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Archivos cargados</p>
+                {[
+                  { url: form.id_doc_url,           label: 'Cédula / Identidad' },
+                  { url: form.pilot_course_url,     label: 'Diploma Curso Piloto UAS' },
+                  { url: form.theoretical_exam_url, label: 'Examen Teórico Aerocivil' },
+                  { url: form.medical_cert_url,     label: 'Certificado Médico' },
+                ].filter(d => d.url).map(d => (
+                  <a key={d.label} href={d.url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-xs font-bold text-orange-600 hover:text-orange-800 truncate">
+                    <span className="material-symbols-outlined text-sm shrink-0">description</span>
+                    <span className="truncate">{d.label}</span>
+                    <span className="material-symbols-outlined text-sm shrink-0 ml-auto">open_in_new</span>
+                  </a>
+                ))}
+              </div>
+            )}
+
+            {/* Subir / reemplazar */}
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Subir o reemplazar (PDF / JPG)</p>
+            <FileUpload path="crew/docs" label="Cédula / Documento de Identidad"   onUploadSuccess={(url) => setForm({...form, id_doc_url: url})} />
+            <FileUpload path="crew/docs" label="Diploma Curso Piloto UAS"          onUploadSuccess={(url) => setForm({...form, pilot_course_url: url})} />
+            <FileUpload path="crew/docs" label="Examen Teórico Aerocivil"          onUploadSuccess={(url) => setForm({...form, theoretical_exam_url: url})} />
+            <FileUpload path="crew/docs" label="Certificado Médico Aeronáutico"    onUploadSuccess={(url) => setForm({...form, medical_cert_url: url})} />
           </div>
 
           {/* 05. ADICIONES */}

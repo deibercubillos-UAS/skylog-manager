@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 // Instrucciones para desktop (copiar al PC primero)
 const DEVICE_INSTRUCTIONS = {

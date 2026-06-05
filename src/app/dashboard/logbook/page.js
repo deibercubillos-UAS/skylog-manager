@@ -26,6 +26,7 @@ export default function LogbookPage() {
     const [showImport, setShowImport] = useState(false);
 
     const canEditPilot   = CAN_EDIT_PILOT.includes(userRole);
+    const canDeleteEntry = PERMISSIONS.canDeleteLogbook.includes(userRole);
     const canViewReplay  = PERMISSIONS.canViewFlightReplay.includes(userRole);
     const [replayFlight, setReplayFlight] = useState(null); // { id, label, hasReplay }
     // Optimistic: track which flights tuvieron replay guardado en esta sesión
@@ -115,6 +116,21 @@ export default function LogbookPage() {
 
     const clearFilters = () => {
         setFilters({ date: '', mission_id: '', model: '', serial: '', type: '', condition: '', pilot: '' });
+    };
+
+    const deleteFlight = async (flightId) => {
+        if (!window.confirm('¿Eliminar este registro de bitácora? Esta acción es irreversible.')) return;
+        try {
+            const res = await fetch(`/api/logbook/${flightId}`, { method: 'DELETE' });
+            if (!res.ok) {
+                const data = await res.json();
+                alert(data.error || 'Error al eliminar el registro.');
+                return;
+            }
+            setFlights(prev => prev.filter(f => f.id !== flightId));
+        } catch {
+            alert('Error de red al eliminar el registro.');
+        }
     };
 
     const assignPilot = async (flightId, pilotId) => {
@@ -317,9 +333,18 @@ export default function LogbookPage() {
                                     <p className="text-xs font-bold text-slate-800 truncate">{f.aircraft?.model || 'UAS'}</p>
                                     <div className="text-xs text-slate-400 font-bold"><PilotCell flight={f} /></div>
                                 </div>
-                                <div className="text-right shrink-0">
+                                <div className="text-right shrink-0 flex flex-col items-end gap-1">
                                     <span className="bg-slate-100 px-2 py-0.5 rounded text-xs font-black">{f.visual_condition}</span>
-                                    <p className="text-xs font-black text-orange-600 mt-1">{f.aircraft?.total_hours?.toFixed(2)}h</p>
+                                    <p className="text-xs font-black text-orange-600">{f.aircraft?.total_hours?.toFixed(2)}h</p>
+                                    {canDeleteEntry && (
+                                        <button
+                                            onClick={() => deleteFlight(f.id)}
+                                            aria-label="Eliminar registro"
+                                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 text-red-400 hover:bg-red-600 hover:text-white transition-all active:scale-95 mt-1"
+                                        >
+                                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>delete</span>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                             <p className="text-xs text-slate-400">{f.flight_date} · <span className="uppercase">{f.mission_type}</span></p>
@@ -344,6 +369,7 @@ export default function LogbookPage() {
                                     <span className="material-symbols-outlined text-base text-slate-400">warning</span>
                                 </th>
                                 {canViewReplay && <th className="px-4 py-4 w-16"></th>}
+                                {canDeleteEntry && <th className="px-2 py-4 w-10"></th>}
                             </tr>
                             <tr className="bg-white border-b-2 border-slate-100">
                                 <th className="px-2 py-2"><input type="date" aria-label="Filtrar por fecha" className="w-full p-2 bg-slate-50 rounded-lg text-xs font-bold outline-none focus:ring-1 focus:ring-orange-500" value={filters.date} onChange={e => setFilters(f => ({...f, date: e.target.value}))} /></th>
@@ -356,6 +382,7 @@ export default function LogbookPage() {
                                 <th className="px-2 py-2"><select aria-label="Filtrar por piloto" className="w-full p-2 bg-slate-50 rounded-lg text-xs font-bold outline-none focus:ring-1 focus:ring-orange-500" value={filters.pilot} onChange={e => setFilters(f => ({...f, pilot: e.target.value}))}><option value="">TODOS</option>{uniquePilots.map(p => <option key={p} value={p}>{p}</option>)}</select></th>
                                 <th className="px-2 py-2"></th>
                                 {canViewReplay && <th className="px-2 py-2"></th>}
+                                {canDeleteEntry && <th className="px-2 py-2"></th>}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -397,6 +424,17 @@ export default function LogbookPage() {
                                             </td>
                                         );
                                     })()}
+                                    {canDeleteEntry && (
+                                        <td className="px-2 py-3">
+                                            <button
+                                                onClick={() => deleteFlight(f.id)}
+                                                aria-label="Eliminar registro de bitácora"
+                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-400 hover:bg-red-600 hover:text-white transition-all hover:scale-110 active:scale-95"
+                                            >
+                                                <span className="material-symbols-outlined text-base">delete</span>
+                                            </button>
+                                        </td>
+                                    )}
                                 </tr>
                             ))}
                         </tbody>

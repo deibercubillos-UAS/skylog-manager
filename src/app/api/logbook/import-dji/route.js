@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { parseDjiTxtBuffer } from '@/lib/djiParser';
-import { detectAlerts, buildTelemetry } from '@/lib/djiTelemetry';
+import { detectAlerts, buildTelemetry, buildPath, buildMeta } from '@/lib/djiTelemetry';
 import { canAddResource } from '@/lib/planLimits';
 
 export const dynamic = 'force-dynamic';
@@ -370,7 +370,9 @@ export async function POST(request) {
     if (frames.length > 0) {
       try {
         const telemetry = buildTelemetry(frames);
-        const payload   = JSON.stringify({ alerts, telemetry });
+        const path      = buildPath(frames);
+        const replayMeta = buildMeta(frames, meta, alerts);
+        const payload   = JSON.stringify({ path, telemetry, alerts, meta: replayMeta });
         const { gzipSync } = await import('zlib');
         const gzipped   = gzipSync(Buffer.from(payload));
 

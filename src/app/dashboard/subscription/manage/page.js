@@ -16,7 +16,7 @@ const PLANS = {
     batteries:'3',
     replay:   '10 vuelos · 30 días',
     roles:    '1 rol',
-    features: { maintenance: false, sms: false, authorizations: false, audit: false, checklist: false, whiteLabel: false },
+    features: { maintenance: true,  sms: false, authorizations: false, audit: false, checklist: false, whiteLabel: false },
   },
   escuadrilla: {
     label:    'Escuadrilla',

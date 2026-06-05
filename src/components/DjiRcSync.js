@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 // Instrucciones para desktop (copiar al PC primero)
 const DEVICE_INSTRUCTIONS = {
@@ -209,7 +209,7 @@ const STATUS_COLOR = {
   ok_no_battery:  'text-green-500',
 };
 
-const EMPTY_AIRCRAFT = { model: '', brand: 'DJI', serial_number: '', ruas: '', total_hours: 0 };
+const EMPTY_AIRCRAFT = { model: '', brand: 'DJI', serial_number: '', ruas: '' };
 const EMPTY_BATTERY  = { brand: 'DJI', model: '', serial_number: '', cycles: 0, health_status: 100 };
 
 export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
@@ -232,31 +232,6 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
   const [batteryForm, setBatteryForm] = useState(EMPTY_BATTERY);
   const [creatingBattery, setCreatingBattery] = useState(false);
   const [batteryError, setBatteryError] = useState('');
-
-  // Rastrear qué archivos ya pasaron por el modal de batería (crear o omitir)
-  // para evitar que el mismo modal aparezca dos veces
-  const handledBatteryNamesRef = useRef(new Set());
-
-  // Auto-abrir modal de batería al terminar import (o cuando se cierra el anterior)
-  useEffect(() => {
-    if (state !== 'done' || batteryModal) return;
-    const next = files.find(
-      f => f.status === 'ok_no_battery' && !handledBatteryNamesRef.current.has(f.name)
-    );
-    if (!next) return;
-    setBatteryForm({
-      ...EMPTY_BATTERY,
-      serial_number: next.result?.serial_bateria ?? '',
-      cycles:        next.result?.ciclos_bateria  ?? 0,
-      model:         next.result?.modelo_bateria  ?? '',
-    });
-    setBatteryModal({
-      serial_bateria:  next.result?.serial_bateria,
-      ciclos_bateria:  next.result?.ciclos_bateria,
-      modelo_bateria:  next.result?.modelo_bateria,
-      fileName:        next.name,
-    });
-  }, [state, files, batteryModal]);
 
   useEffect(() => {
     const mobile = isMobileProp ?? /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -381,6 +356,47 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
         : f
     ));
 
+  // ── Auto-crear aeronave con datos del .txt (sin modal) ───────
+  const autoCreateAircraft = async (data) => {
+    try {
+      const res = await fetch('/api/fleet', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          aircraftData: {
+            model:         data.modelo || 'Aeronave DJI',
+            brand:         'DJI',
+            serial_number: data.serial,
+            total_hours:   0,
+          },
+        }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  };
+
+  // ── Auto-crear batería con datos del .txt (sin modal) ─────────
+  const autoCreateBattery = async (data) => {
+    try {
+      const res = await fetch('/api/fleet/batteries', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          brand:         'DJI',
+          model:         data.modelo_bateria || '',
+          serial_number: data.serial_bateria,
+          cycles:        data.ciclos_bateria  || 0,
+          health_status: 100,
+        }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  };
+
   // ── Subir un archivo individual ───────────────────────────────
   const uploadFile = async (fileInfo) => {
     const fileObj = fileInfo.fileObj ?? await fileInfo.handle.getFile();
@@ -429,9 +445,17 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
 
         if (status === 200 || status === 201) {
           imported++;
-          const fileStatus = data.needs_battery ? 'ok_no_battery' : 'ok';
+          // Auto-crear batería si no está registrada
+          let resultData = data;
+          if (data.needs_battery && data.serial_bateria) {
+            const battCreated = await autoCreateBattery(data);
+            resultData = { ...data, battery_auto_created: battCreated };
+          }
           setFiles(prev =>
-            prev.map(f => f.name === fileInfo.name ? { ...f, status: fileStatus, result: data } : f)
+            prev.map(f => f.name === fileInfo.name
+              ? { ...f, status: 'ok', result: resultData }
+              : f
+            )
           );
         } else if (status === 409) {
           skipped++;
@@ -439,18 +463,55 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
             prev.map(f => f.name === fileInfo.name ? { ...f, status: 'duplicate', result: data } : f)
           );
         } else if (status === 404 && data.needs_aircraft) {
-          // Aeronave no registrada — pausar e invocar modal
-          setFiles(prev =>
-            prev.map(f => f.name === fileInfo.name ? { ...f, status: 'needs_aircraft', result: data } : f)
-          );
-          setAircraftForm({
-            ...EMPTY_AIRCRAFT,
-            serial_number: String(data.serial  ?? ''),
-            model:         String(data.modelo  ?? ''),
-          });
-          setAircraftModal({ ...data, pendingFile: fileInfo });
-          // Pausar el loop — el modal llama a continueImport cuando termine
-          return;
+          // Aeronave no registrada — intentar auto-crear con datos del .txt
+          const model = String(data.modelo ?? '').trim();
+          if (model) {
+            const acCreated = await autoCreateAircraft(data);
+            if (acCreated) {
+              // Reintentar el vuelo ahora que la aeronave existe
+              setFiles(prev =>
+                prev.map(f => f.name === fileInfo.name ? { ...f, status: 'loading' } : f)
+              );
+              const retry = await uploadFile(fileInfo);
+              if (retry.status === 200 || retry.status === 201) {
+                imported++;
+                let retryData = { ...retry.data, aircraft_auto_created: model };
+                if (retry.data.needs_battery && retry.data.serial_bateria) {
+                  const battCreated = await autoCreateBattery(retry.data);
+                  retryData = { ...retryData, battery_auto_created: battCreated };
+                }
+                setFiles(prev =>
+                  prev.map(f => f.name === fileInfo.name ? { ...f, status: 'ok', result: retryData } : f)
+                );
+              } else if (retry.status === 409) {
+                skipped++;
+                setFiles(prev =>
+                  prev.map(f => f.name === fileInfo.name ? { ...f, status: 'duplicate', result: retry.data } : f)
+                );
+              } else {
+                errors++;
+                setFiles(prev =>
+                  prev.map(f => f.name === fileInfo.name ? { ...f, status: 'error', result: retry.data } : f)
+                );
+              }
+            } else {
+              // Auto-crear falló (límite de plan u otro) → pausar con modal
+              setFiles(prev =>
+                prev.map(f => f.name === fileInfo.name ? { ...f, status: 'needs_aircraft', result: data } : f)
+              );
+              setAircraftForm({ ...EMPTY_AIRCRAFT, serial_number: String(data.serial ?? ''), model });
+              setAircraftModal({ ...data, pendingFile: fileInfo });
+              return;
+            }
+          } else {
+            // Sin modelo en el .txt → pedir al usuario con modal
+            setFiles(prev =>
+              prev.map(f => f.name === fileInfo.name ? { ...f, status: 'needs_aircraft', result: data } : f)
+            );
+            setAircraftForm({ ...EMPTY_AIRCRAFT, serial_number: String(data.serial ?? ''), model: '' });
+            setAircraftModal({ ...data, pendingFile: fileInfo });
+            return;
+          }
         } else {
           errors++;
           setFiles(prev =>
@@ -520,16 +581,46 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
         const { status, data } = await uploadFile(fileInfo);
         if (status === 200 || status === 201) {
           rImported++;
-          const fileStatus = data.needs_battery ? 'ok_no_battery' : 'ok';
-          setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: fileStatus, result: data } : f));
+          let resultData = data;
+          if (data.needs_battery && data.serial_bateria) {
+            const battCreated = await autoCreateBattery(data);
+            resultData = { ...data, battery_auto_created: battCreated };
+          }
+          setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'ok', result: resultData } : f));
         } else if (status === 409) {
           rSkipped++;
           setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'duplicate', result: data } : f));
         } else if (status === 404 && data.needs_aircraft) {
-          setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'needs_aircraft', result: data } : f));
-          setAircraftForm({ ...EMPTY_AIRCRAFT, serial_number: String(data.serial ?? ''), model: String(data.modelo ?? '') });
-          setAircraftModal({ ...data, pendingFile: fileInfo });
-          return; // Pausar de nuevo
+          const model = String(data.modelo ?? '').trim();
+          if (model) {
+            const acCreated = await autoCreateAircraft(data);
+            if (acCreated) {
+              setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'loading' } : f));
+              const retry = await uploadFile(fileInfo);
+              if (retry.status === 200 || retry.status === 201) {
+                rImported++;
+                let retryData = { ...retry.data, aircraft_auto_created: model };
+                if (retry.data.needs_battery && retry.data.serial_bateria) {
+                  const battCreated = await autoCreateBattery(retry.data);
+                  retryData = { ...retryData, battery_auto_created: battCreated };
+                }
+                setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'ok', result: retryData } : f));
+              } else {
+                rErrors++;
+                setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'error', result: retry.data } : f));
+              }
+            } else {
+              setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'needs_aircraft', result: data } : f));
+              setAircraftForm({ ...EMPTY_AIRCRAFT, serial_number: String(data.serial ?? ''), model });
+              setAircraftModal({ ...data, pendingFile: fileInfo });
+              return;
+            }
+          } else {
+            setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'needs_aircraft', result: data } : f));
+            setAircraftForm({ ...EMPTY_AIRCRAFT, serial_number: String(data.serial ?? ''), model: '' });
+            setAircraftModal({ ...data, pendingFile: fileInfo });
+            return;
+          }
         } else {
           rErrors++;
           setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'error', result: data } : f));
@@ -600,16 +691,14 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
         return;
       }
       // Marcar el archivo como ok completo
-      const handledFileName = batteryModal.fileName;
       setFiles(prev =>
         prev.map(f =>
-          f.name === handledFileName
+          f.name === batteryModal.fileName
             ? { ...f, status: 'ok', result: { ...f.result, needs_battery: false,
                 bateria_actualizada: { serial: data.serial_number, ciclos_anteriores: 0, ciclos_nuevos: data.cycles ?? 0 } } }
             : f
         )
       );
-      handledBatteryNamesRef.current.add(handledFileName);
       setBatteryModal(null);
       setBatteryForm(EMPTY_BATTERY);
       setCreatingBattery(false);
@@ -663,7 +752,6 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
     setFiles([]);
     setResults(null);
     setError('');
-    handledBatteryNamesRef.current = new Set();
   };
 
   const selectedCount = files.filter(f => f.selected && f.status === 'pending').length;
@@ -944,9 +1032,19 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
                           {f.result?.duracion ? `${Math.round(f.result.duracion / 60)} min` : 'Importado'}
                           {f.result?.altMax ? ` · ${f.result.altMax} m` : ''}
                         </p>
+                        {f.result?.aircraft_auto_created && (
+                          <p className="text-xs text-blue-500 font-bold">
+                            ✈ {f.result.aircraft_auto_created} registrada
+                          </p>
+                        )}
                         {f.result?.bateria_actualizada && (
                           <p className="text-xs text-sky-500 font-bold">
                             🔋 {f.result.bateria_actualizada.serial} · {f.result.bateria_actualizada.ciclos_anteriores}→{f.result.bateria_actualizada.ciclos_nuevos} ciclos
+                          </p>
+                        )}
+                        {f.result?.battery_auto_created && (
+                          <p className="text-xs text-sky-500 font-bold">
+                            🔋 Batería registrada automáticamente
                           </p>
                         )}
                       </div>
@@ -1097,23 +1195,6 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
                   />
                 </div>
                 <div className="col-span-2">
-                  <label className="text-xs font-black uppercase text-slate-500 tracking-widest block mb-1">
-                    Horas totales acumuladas (T.T)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={aircraftForm.total_hours}
-                    onChange={e => setAircraftForm(p => ({ ...p, total_hours: parseFloat(e.target.value) || 0 }))}
-                    placeholder="0.00"
-                    className="w-full border-2 border-orange-100 bg-white rounded-xl px-3 py-2 text-sm font-black text-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  />
-                  <p className="text-xs text-slate-400 mt-1 leading-snug">
-                    Ingresa las horas que ya tiene el equipo antes de registrarlo en Bitafly. Si es nuevo, deja 0.
-                  </p>
-                </div>
-                <div className="col-span-2">
                   <a
                     href="/dashboard/fleet"
                     target="_blank"
@@ -1246,11 +1327,7 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
 
               <div className="flex gap-3 pt-1">
                 <button
-                  onClick={() => {
-                    handledBatteryNamesRef.current.add(batteryModal.fileName);
-                    setBatteryModal(null);
-                    setBatteryError('');
-                  }}
+                  onClick={() => { setBatteryModal(null); setBatteryError(''); }}
                   className="flex-1 py-3 text-xs font-black text-slate-400 uppercase border border-slate-200 rounded-2xl hover:border-slate-400 transition-all"
                 >
                   Omitir

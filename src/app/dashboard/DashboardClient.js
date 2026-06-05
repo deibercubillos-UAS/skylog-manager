@@ -1,7 +1,11 @@
 'use client';
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+
+// Banner de instalación PWA — solo en dashboard, flotante en esquina
+const PwaInstallBanner = dynamic(() => import('@/components/PwaInstallBanner'), { ssr: false });
 
 export default function DashboardClient() {
   const [data,           setData]          = useState(null);
@@ -259,6 +263,13 @@ export default function DashboardClient() {
           <EmptyState icon="flight_takeoff" message="Sin actividad operativa" sub="Los vuelos registrados aparecerán aquí" />
         )}
       </section>
+
+      {/* PWA install banner — flotante en esquina inferior derecha, no invade contenido */}
+      <div className="fixed bottom-24 lg:bottom-6 right-4 z-40 w-72 pointer-events-none">
+        <div className="pointer-events-auto rounded-2xl overflow-hidden shadow-2xl">
+          <PwaInstallBanner />
+        </div>
+      </div>
     </div>
   );
 }

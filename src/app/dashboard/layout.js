@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Image from 'next/image';
 import { ROLE_LABELS, PERMISSIONS, hasPermission } from '@/lib/roles';
-import PwaInstallBanner from '@/components/PwaInstallBanner';
 import OnboardingBanner from '@/components/OnboardingBanner';
 
 export default function DashboardLayout({ children }) {
@@ -240,9 +239,6 @@ const footerLinks = footerLinksAll.filter(link =>
         {PERMISSIONS.canManageFleet.includes(data.profile?.role) && aircraftCount !== null && (
           <OnboardingBanner aircraftCount={aircraftCount} />
         )}
-
-        {/* Banner instalación PWA — solo mobile/controles DJI, se auto-oculta */}
-        <PwaInstallBanner />
 
         {/* NAV PRINCIPAL */}
         <nav aria-label="Menú lateral" className="flex-1 p-3 space-y-0.5 mt-2 overflow-y-auto custom-scrollbar">

@@ -1,5 +1,5 @@
-﻿'use client';
-import { useState } from 'react';
+'use client';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import AuthSidePanel from '@/components/AuthSidePanel';
 
@@ -20,6 +20,7 @@ const PLANS = [
     limits: '3 drones · 4 usuarios',
     icon: 'group',
     popular: true,
+    paid: true,
   },
   {
     key: 'flota',
@@ -28,6 +29,7 @@ const PLANS = [
     sub: 'o $1.590.000/año (−20%)',
     limits: '15 drones · 15 usuarios',
     icon: 'precision_manufacturing',
+    paid: true,
   },
   {
     key: 'enterprise',
@@ -40,10 +42,13 @@ const PLANS = [
   },
 ];
 
-const STEPS = ['Plan', 'Datos', 'Cuenta'];
+// Pasos: para plan gratuito son 3, para planes de pago se agrega el paso 4 (pago)
+const STEPS_FREE = ['Plan', 'Datos', 'Cuenta'];
+const STEPS_PAID = ['Plan', 'Datos', 'Cuenta', 'Pago'];
 
 const EMPTY = {
   selectedPlan: 'piloto',
+  billing: 'monthly',
   firstName: '', lastName: '', email: '', password: '',
   phone: '', city: '',
   type: 'solo',
@@ -60,6 +65,15 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Estado para el flujo de pago
+  const [pendingRef, setPendingRef] = useState(null);   // reference del pending_registration
+  const [epaycoTab, setEpaycoTab] = useState(null);     // referencia a la pestaña abierta
+  const [payStatus, setPayStatus] = useState('pending'); // 'pending' | 'completed' | 'expired'
+  const pollRef = useRef(null);
+
+  const isPaidPlan = PLANS.find(p => p.key === form.selectedPlan)?.paid ?? false;
+  const STEPS = isPaidPlan ? STEPS_PAID : STEPS_FREE;
+
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
   const setVal = (field, val) => setForm((f) => ({ ...f, [field]: val }));
 
@@ -69,7 +83,30 @@ export default function RegisterPage() {
     setStep((s) => s + 1);
   };
 
-  const handleRegister = async (e) => {
+  // Limpieza del polling al desmontar
+  useEffect(() => {
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, []);
+
+  const startPolling = (ref) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/auth/register-status?ref=${encodeURIComponent(ref)}`);
+        const data = await res.json();
+        if (data.status === 'completed') {
+          clearInterval(pollRef.current);
+          setPayStatus('completed');
+        } else if (data.status === 'expired' || data.status === 'not_found') {
+          clearInterval(pollRef.current);
+          setPayStatus('expired');
+        }
+      } catch {/* silencioso */}
+    }, 5000);
+  };
+
+  // Para plan gratuito (piloto): crear cuenta directamente
+  const handleRegisterFree = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -87,6 +124,51 @@ export default function RegisterPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Para planes de pago: guardar pending + abrir ePayco en nueva pestaña
+  const handleInitiatePayment = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/register-pending', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al iniciar el pago');
+
+      // Avanzar al paso 4 (pantalla de espera)
+      setPendingRef(data.reference);
+      setStep(4);
+
+      // Abrir ePayco en nueva pestaña
+      const tab = window.open(data.epaycoUrl, '_blank', 'noopener');
+      setEpaycoTab(tab);
+
+      // Iniciar polling de estado
+      startPolling(data.reference);
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const reopenPaymentTab = async () => {
+    if (!pendingRef) return;
+    const res = await fetch(`/api/auth/register-status?ref=${encodeURIComponent(pendingRef)}`);
+    const data = await res.json();
+    // Recalcular URL por el plan/billing del form
+    const planCfg = {
+      escuadrilla: { monthly: 'a1dea39b3836c9ee300a1b4', annual: 'a1dea83a021a7cbb106d996' },
+      flota:       { monthly: 'a1deab1b8bef2c21807e912', annual: 'a1deaea5d185a11c30a7419' },
+    };
+    const uid = planCfg[form.selectedPlan]?.[form.billing];
+    if (uid) window.open(`https://subscription-landing.epayco.co/plan/${uid}`, '_blank', 'noopener');
   };
 
   return (
@@ -184,6 +266,29 @@ export default function RegisterPage() {
                 ))}
               </div>
 
+              {/* Selector mensual / anual para planes de pago */}
+              {isPaidPlan && (
+                <div className="flex gap-2 bg-slate-100 rounded-xl p-1">
+                  {[
+                    { key: 'monthly', label: 'Mensual' },
+                    { key: 'annual',  label: 'Anual (−20%)' },
+                  ].map(b => (
+                    <button
+                      key={b.key}
+                      type="button"
+                      onClick={() => setVal('billing', b.key)}
+                      className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+                        form.billing === b.key
+                          ? 'bg-white text-navy shadow-sm'
+                          : 'text-slate-400 hover:text-slate-600'
+                      }`}
+                    >
+                      {b.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <button
                 onClick={goNext}
                 className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all"
@@ -208,19 +313,26 @@ export default function RegisterPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Nombre" required>
-                  <input required placeholder="Carlos" value={form.firstName} onChange={set('firstName')}
-                    className={INPUT} />
+                  <input required placeholder="Carlos" value={form.firstName} onChange={set('firstName')} className={INPUT} />
                 </Field>
                 <Field label="Apellido" required>
-                  <input required placeholder="Rodríguez" value={form.lastName} onChange={set('lastName')}
-                    className={INPUT} />
+                  <input required placeholder="Rodríguez" value={form.lastName} onChange={set('lastName')} className={INPUT} />
                 </Field>
               </div>
 
               <Field label="Correo electrónico" required>
-                <input required type="email" placeholder="correo@empresa.com" value={form.email} onChange={set('email')}
-                  className={INPUT} />
+                <input required type="email" placeholder="correo@empresa.com" value={form.email} onChange={set('email')} className={INPUT} />
               </Field>
+
+              {/* Para planes de pago, recordar usar el mismo email en ePayco */}
+              {isPaidPlan && form.email && (
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                  <span className="material-symbols-outlined text-amber-500 text-base mt-0.5 shrink-0">info</span>
+                  <p className="text-xs font-bold text-amber-800">
+                    Al pagar en ePayco, <strong>usa el mismo correo</strong>: <span className="font-mono">{form.email}</span>
+                  </p>
+                </div>
+              )}
 
               <Field label="Contraseña" required>
                 <div className="relative">
@@ -237,21 +349,17 @@ export default function RegisterPage() {
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                     aria-label="Mostrar/ocultar contraseña"
                   >
-                    <span className="material-symbols-outlined text-xl">
-                      {showPass ? 'visibility_off' : 'visibility'}
-                    </span>
+                    <span className="material-symbols-outlined text-xl">{showPass ? 'visibility_off' : 'visibility'}</span>
                   </button>
                 </div>
               </Field>
 
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Teléfono">
-                  <input placeholder="+57 300 000 0000" value={form.phone} onChange={set('phone')}
-                    className={INPUT} />
+                  <input placeholder="+57 300 000 0000" value={form.phone} onChange={set('phone')} className={INPUT} />
                 </Field>
                 <Field label="Ciudad">
-                  <input placeholder="Bogotá" value={form.city} onChange={set('city')}
-                    className={INPUT} />
+                  <input placeholder="Bogotá" value={form.city} onChange={set('city')} className={INPUT} />
                 </Field>
               </div>
 
@@ -270,7 +378,7 @@ export default function RegisterPage() {
 
           {/* ── PASO 3: Organización ── */}
           {step === 3 && (
-            <form onSubmit={handleRegister} className="space-y-6 animate-in fade-in duration-300">
+            <form onSubmit={isPaidPlan ? handleInitiatePayment : handleRegisterFree} className="space-y-6 animate-in fade-in duration-300">
               <div>
                 <h1 className="font-lexend text-3xl font-black text-navy uppercase tracking-tighter">Tu cuenta</h1>
                 <p className="text-slate-500 text-sm mt-1">¿Cómo vas a usar Bitafly?</p>
@@ -296,17 +404,15 @@ export default function RegisterPage() {
                 ))}
               </div>
 
-              {/* Solo */}
               {form.type === 'solo' && (
                 <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4 text-sm text-slate-600 leading-relaxed">
                   <p className="font-black text-navy text-xs uppercase tracking-widest mb-1">
                     Plan {PLANS.find(p => p.key === form.selectedPlan)?.name}
                   </p>
-                  Se creará tu perfil como Piloto Independiente. Podrás unirte a una organización en cualquier momento con el código de tu empresa.
+                  Se creará tu perfil como Piloto Independiente. Podrás unirte a una organización con el código de tu empresa.
                 </div>
               )}
 
-              {/* Empresa */}
               {form.type === 'company' && (
                 <div className="space-y-4">
                   <Field label="Tu rol en la empresa">
@@ -321,8 +427,7 @@ export default function RegisterPage() {
                   {form.role === 'admin' ? (
                     <div className="space-y-4">
                       <Field label="Nombre de la empresa" required>
-                        <input required placeholder="Ej: Aerial Colombia S.A.S." value={form.companyName} onChange={set('companyName')}
-                          className={INPUT} />
+                        <input required placeholder="Ej: Aerial Colombia S.A.S." value={form.companyName} onChange={set('companyName')} className={INPUT} />
                       </Field>
                       <Field label="NIT de la empresa" required>
                         <div className="relative">
@@ -351,7 +456,7 @@ export default function RegisterPage() {
                         />
                       </Field>
                       <p className="text-xs text-slate-400 font-medium px-1">
-                        Opcional — si no tienes el NIT ahora, tu administrador puede invitarte después desde el panel.
+                        Opcional — si no tienes el NIT ahora, tu administrador puede invitarte después.
                       </p>
                     </div>
                   )}
@@ -368,7 +473,12 @@ export default function RegisterPage() {
                   {loading ? (
                     <>
                       <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Creando cuenta...
+                      {isPaidPlan ? 'Preparando pago...' : 'Creando cuenta...'}
+                    </>
+                  ) : isPaidPlan ? (
+                    <>
+                      <span className="material-symbols-outlined text-lg">payment</span>
+                      Ir a pagar
                     </>
                   ) : 'Crear cuenta'}
                 </button>
@@ -381,6 +491,98 @@ export default function RegisterPage() {
                 <a href="#" className="text-primary hover:underline">Política de privacidad</a>.
               </p>
             </form>
+          )}
+
+          {/* ── PASO 4: Esperando pago (solo planes de pago) ── */}
+          {step === 4 && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              {payStatus === 'pending' && (
+                <>
+                  <div className="text-center space-y-3">
+                    <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center mx-auto">
+                      <span className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin block" />
+                    </div>
+                    <h1 className="font-lexend text-2xl font-black text-navy uppercase tracking-tighter">Esperando pago</h1>
+                    <p className="text-slate-500 text-sm">
+                      Completa el pago en la pestaña que se abrió. <br />
+                      Tu cuenta se creará automáticamente al confirmar el pago.
+                    </p>
+                  </div>
+
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2">
+                    <p className="text-xs font-black text-amber-800 uppercase tracking-wide flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-base">info</span>
+                      Importante
+                    </p>
+                    <p className="text-xs font-bold text-amber-700">
+                      En ePayco, usa el correo <span className="font-mono bg-amber-100 px-1 rounded">{form.email}</span> para que tu cuenta se active correctamente.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <button
+                      onClick={reopenPaymentTab}
+                      className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-primary text-white font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all"
+                    >
+                      <span className="material-symbols-outlined text-lg">open_in_new</span>
+                      Abrir ventana de pago
+                    </button>
+                    <p className="text-center text-xs text-slate-400">
+                      Esta página se actualizará automáticamente cuando el pago sea confirmado.
+                    </p>
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <button
+                      onClick={() => { if (pollRef.current) clearInterval(pollRef.current); setStep(3); setPendingRef(null); }}
+                      className="w-full text-center text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      ← Volver a revisar mis datos
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {payStatus === 'completed' && (
+                <div className="text-center space-y-5 animate-in fade-in duration-500">
+                  <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
+                    <span className="material-symbols-outlined text-4xl text-emerald-500" style={{ fontVariationSettings: "'FILL' 1" }}>
+                      check_circle
+                    </span>
+                  </div>
+                  <div>
+                    <h1 className="font-lexend text-3xl font-black text-navy uppercase tracking-tighter">¡Bienvenido a Bitafly!</h1>
+                    <p className="text-slate-500 text-sm mt-2">
+                      Tu cuenta está activa con el plan <strong>{PLANS.find(p => p.key === form.selectedPlan)?.name}</strong>.
+                    </p>
+                  </div>
+                  <Link
+                    href="/login"
+                    className="block w-full bg-navy text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all text-center"
+                  >
+                    Iniciar sesión
+                  </Link>
+                </div>
+              )}
+
+              {payStatus === 'expired' && (
+                <div className="text-center space-y-5">
+                  <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto">
+                    <span className="material-symbols-outlined text-3xl text-red-400">timer_off</span>
+                  </div>
+                  <div>
+                    <h1 className="font-lexend text-2xl font-black text-navy uppercase tracking-tighter">Sesión expirada</h1>
+                    <p className="text-slate-500 text-sm mt-2">El tiempo de espera venció. Vuelve al inicio para intentar de nuevo.</p>
+                  </div>
+                  <button
+                    onClick={() => { setStep(1); setForm(EMPTY); setPendingRef(null); setPayStatus('pending'); }}
+                    className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all"
+                  >
+                    Comenzar de nuevo
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </main>

@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
-import { activatePlanForUser, resolvePendingForUser } from '@/lib/epaycoActivation';
+import { activatePlanForUser, resolvePendingForUser, createAccountFromPendingRegistration } from '@/lib/epaycoActivation';
 
 function makeSupabase() {
   return createClient(
@@ -118,6 +118,21 @@ export async function POST(request) {
           .eq('epayco_id', epaycoIdPlan)
           .single();
         if (cfg) { planKey = cfg.plan_key; billing = cfg.billing; }
+      }
+    }
+
+    // ── 3.5. Nuevo usuario: buscar en pending_registrations por email ────────────
+    // Cuando el usuario se registró pero aún no tiene cuenta (pagó antes de crearla)
+    if (!userId && params.x_customer_email) {
+      const newUserId = await createAccountFromPendingRegistration(supabase, params.x_customer_email, {
+        planKey:        planKey || null,
+        billing:        billing || 'monthly',
+        subscriptionId: params.x_subscription_id || null,
+        ref:            params.x_ref_payco || null,
+      });
+      if (newUserId) {
+        console.log(`✓ Cuenta nueva creada desde pending_registration vía webhook: user=${newUserId}`);
+        return NextResponse.json({ success: true });
       }
     }
 

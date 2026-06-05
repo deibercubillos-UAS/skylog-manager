@@ -16,7 +16,7 @@
 src/
 ├── app/
 │   ├── api/           ← Todos los endpoints (Next.js route handlers)
-│   │   ├── auth/      ← register, login, reset-password
+│   │   ├── auth/      ← register, login, reset-password, activate-pending, validate-join
 │   │   ├── flights/   ← authorize (autorizaciones de vuelo)
 │   │   ├── pilots/    ← CRUD pilotos
 │   │   ├── fleet/     ← CRUD aeronaves
@@ -91,6 +91,7 @@ Tablas principales:
 - `colombia_geo` — geometría geográfica Colombia (municipios, departamentos)
 - `aerocivil_submissions` — solicitudes enviadas a Aerocivil
 - `pending_subscriptions` — intents de pago ePayco (reference, user_id, plan_key, billing); el webhook/verify los borra al activar. Filas huérfanas = webhook nunca ejecutó.
+- `pending_registrations` — registros pre-pago del flujo "pago antes de cuenta" en `/registro`. Columnas: `reference`, `email`, `plan_key`, `billing`, `completed_at`, `expires_at` (3h). Solo accesible con service_role. El webhook y `activate-pending` los marcan con `completed_at` al crear la cuenta.
 - `processed_webhook_refs` — tabla de idempotencia para replay protection del webhook ePayco. Columnas: `ref_payco TEXT PK`, `processed_at TIMESTAMPTZ`.
 - `epayco_plan_config` — configuración de planes ePayco. Columnas clave: `plan_key`, `billing`, `amount`, `trial_days`, `replay_retention_days` (días de retención replay, 0=permanente), `replay_max_flights` (máx vuelos con replay, 0=ilimitado). Editable desde `/admin/master`.
 
@@ -123,6 +124,17 @@ Tablas principales:
 4. El webhook `POST /api/epayco/webhook` también activa el plan (camino principal)
 5. Ambos usan `activatePlanForUser()` de `lib/epaycoActivation.js` — idempotente
 
+**Flujo "pago antes de cuenta"** (para planes de pago en `/registro`):
+- `POST /api/auth/register-pending` — guarda datos en `pending_registrations` (expira 3h), devuelve URL ePayco
+- `POST /api/auth/activate-pending` — verificación manual: consulta suscripciones ePayco por email y crea cuenta si encuentra activa. Rate limit 10/hr. Sin auth.
+- El webhook también detecta `x_customer_email` en `pending_registrations` y crea la cuenta automáticamente.
+- El cliente (`/registro`) llama `activate-pending` al montar el paso 4, al volver de la pestaña ePayco (`visibilitychange`), y con el botón "Ya pagué — Verificar".
+
+**Flujo "Unirse a organización"** (empleados sin pago):
+- `GET /api/auth/validate-join?nit=XXX&role=XXX` — verifica que la org exista por NIT y que el rol esté disponible. Roles disponibles: `piloto`, `jefe_pilotos`, `gerente_sms`.
+- `POST /api/auth/register` con `joinMode: true` — crea cuenta free vinculada a org existente. Verifica unicidad de roles y límite de pilotos del plan.
+- Solo el gerente general (`admin`) paga; el resto de la org se registra gratis.
+
 **URLs configuradas en panel ePayco**:
 - Respuesta: `https://bitafly.com/dashboard/subscription/response`
 - Confirmación: `https://bitafly.com/api/epayco/webhook`
@@ -130,6 +142,7 @@ Tablas principales:
 **Cancelación**:
 - `POST /api/subscription/cancel` — cancela en ePayco y degrada plan a `piloto` en Supabase
 - Si `epayco_subscription_id` es null → fallback: `cancelSubscriptionsByEmail()` busca por email en la lista de suscripciones
+- ⚠️ **Bug conocido**: la API de ePayco **NO incluye el email** en los objetos de suscripción (`/recurring/v1/subscriptions/{apiKey}`). Solo devuelve `idCustomer` (ID interno). `cancelSubscriptionsByEmail()` siempre retorna `matched: 0`. Para cancelar manualmente, usar `cancelSubscription(uid)` directamente con el `_id` de la suscripción (visible en el panel de ePayco o via el endpoint de listado).
 
 **Diagnóstico problemas de pago**:
 - Revisar `pending_subscriptions` huérfanas (el webhook las borra → filas = webhook no corrió)
@@ -273,6 +286,8 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 | UX-6 | Landing — fuente Lexend, micro-interacciones Hero/Features/Pricing, trust badges | ✅ Completada |
 | UX-7 | SORA — progressive disclosure: primer JARUS, leyenda SAIL, filas expandibles, contexto por paso | ✅ Completada |
 | 7 | PWA / Android app para controladores DJI Enterprise | ✅ Completada |
+| Registro v2 | Flujo pago-antes-cuenta + "Unirse a organización" gratis + verificación manual | ✅ Completada |
+| Fix AircraftCard | Mover early return después de hooks (React Rules of Hooks) — corregía 3 builds ERROR | ✅ Completada |
 
 ### Commits por fase
 
@@ -313,6 +328,8 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 | Fix precios COP | `43192e4` | USD→COP en registro, precios, comparativa, JSON-LD, Wompi→ePayco |
 | Fix img warnings | `c1e801a` | img→Image en Footer/Users/dashboard, font-lexend en /registro h1s |
 | Fase 7 — PWA | `5bbf9eb` | manifest icons correctos + PwaInstallBanner (prompt nativo + DJI RC fallback) |
+| Fix AircraftCard hooks | `45c0b9e` | Mover early return después de useState/useRef/useEffect — corregía build ERROR |
+| Registro v2 | `ac17cdca` | activate-pending + validate-join + joinMode en register + /registro rediseñado |
 
 ### Fixes Fase 6 — resumen técnico
 
@@ -343,6 +360,12 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 - `src/components/landing/Features.js` — tarjeta "Replay GPS Animado"
 - `src/app/comparativa-bitafly-airdata/page.js` — fila telemetría actualizada
 - `supabase/migrations/20260604_replay_quota_and_cron.sql` — columnas cuota + pg_cron
+
+**Registro v2 — archivos clave:**
+- `src/app/registro/page.js` — flujo completo: selección modo → crear org / unirse a org → pago/gratis
+- `src/app/api/auth/activate-pending/route.js` — verificación manual post-pago (polling ePayco por email)
+- `src/app/api/auth/validate-join/route.js` — valida NIT de org y disponibilidad de rol antes de unirse
+- `src/app/api/auth/register/route.js` — soporta `joinMode: true` para unirse a org existente sin pago
 
 **Ciclo UX (Fases 3-7) — archivos clave:**
 - `src/components/public/VorMorForm.js` — formulario público VOR/MOR con stepper 3 pasos

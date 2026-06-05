@@ -12,7 +12,8 @@
  *     flightLabel="SKY-001 · 2025-06-01"   // opcional — label del vuelo
  *   />
  */
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { detectAlerts, buildTelemetry } from '@/lib/djiTelemetry';
 
@@ -288,10 +289,15 @@ export default function FlightReplayModal({ open, onClose, flightId, hasReplay, 
     if (file) processFile(file);
   }, [processFile]);
 
-  if (!open) return null;
+  // Portal target — solo disponible en el cliente
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
-  return (
-    // Overlay
+  if (!open || !mounted) return null;
+
+  const modal = (
+    // Overlay — renderizado en document.body vía Portal para evitar
+    // problemas de stacking context del dashboard layout
     <div
       role="dialog"
       aria-modal="true"
@@ -426,6 +432,8 @@ export default function FlightReplayModal({ open, onClose, flightId, hasReplay, 
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }
 
 function ModalSpinner({ text }) {

@@ -12,15 +12,26 @@
  */
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
+// Lazy — no crear el cliente hasta que se llame la función (evita "supabaseUrl is required" en build)
+const getAdminClient = () => createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-export { supabaseAdmin };
+export { getAdminClient };
+
+// supabaseAdmin lazy — no instancia el cliente en tiempo de módulo (evita el error de build cuando las env vars no están disponibles)
+export const supabaseAdmin = new Proxy({}, {
+    get(_t, prop) {
+        const client = getAdminClient();
+        const val = client[prop];
+        return typeof val === 'function' ? val.bind(client) : val;
+    }
+});
 
 export async function resolveOrg(param) {
     if (!param) return null;
+    const supabaseAdmin = getAdminClient();
 
     // 1. Intentar por slug (lowercase, ya normalizado)
     const slug = param.toLowerCase().trim();

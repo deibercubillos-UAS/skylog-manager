@@ -8,13 +8,11 @@ export const dynamic = 'force-dynamic';
 
 // ─── Cifrado AES-256-GCM ─────────────────────────────────────
 const ALGO = 'aes-256-gcm';
-const SALT = process.env.AEROCIVIL_SALT;
-if (!SALT) {
-  throw new Error('[aerocivil/credentials] AEROCIVIL_SALT no configurado en variables de entorno.');
-}
 
 function getKey() {
+  const SALT   = process.env.AEROCIVIL_SALT;
   const secret = process.env.AEROCIVIL_ENCRYPTION_KEY;
+  if (!SALT)   throw new Error('[aerocivil/credentials] AEROCIVIL_SALT no configurado en variables de entorno.');
   if (!secret) throw new Error('AEROCIVIL_ENCRYPTION_KEY no configurado en variables de entorno');
   return scryptSync(secret, SALT, 32);
 }

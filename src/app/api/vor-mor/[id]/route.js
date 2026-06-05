@@ -9,7 +9,7 @@ import { getOrgContext } from '@/lib/apiAuth';
 import { Resend } from 'resend';
 import { escHtml } from '@/lib/emailHelpers';
 
-const supabaseAdmin = createClient(
+const getAdminClient = () => createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
@@ -26,6 +26,7 @@ export async function GET(request, { params }) {
         const ctx = await getOrgContext(supabase);
         if (!ctx) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
+        const supabaseAdmin = getAdminClient();
         const { data, error } = await supabaseAdmin
             .from('vor_mor_submissions')
             .select('*')
@@ -59,6 +60,7 @@ export async function PATCH(request, { params }) {
             return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
         }
 
+        const supabaseAdmin = getAdminClient();
         // Verificar que el reporte pertenece a la org
         const { data: existing } = await supabaseAdmin
             .from('vor_mor_submissions')

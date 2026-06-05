@@ -124,7 +124,7 @@ function BatteryChart({ telemetry, alerts, currentTime, totalDuration, onSeek })
 }
 
 // ── Componente principal ─────────────────────────────────────────
-export default function FlightReplayView({ flightData, fileName, onReset }) {
+export default function FlightReplayView({ flightData, fileName, onReset, onClose, saving, saved }) {
   const { path, telemetry, alerts, meta } = flightData;
   const totalDuration = meta.totalDuration ?? meta.durationS ?? 0;
 
@@ -213,26 +213,26 @@ export default function FlightReplayView({ flightData, fileName, onReset }) {
     : f.bat > 40 ? 'text-green-400' : f.bat > 20 ? 'text-amber-400' : 'text-red-400';
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col bg-slate-950 text-white overflow-hidden">
+    <div className="h-full flex flex-col bg-slate-950 text-white overflow-hidden">
 
       {/* ── HEADER ─────────────────────────────────────────────── */}
       <header className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800 bg-slate-900 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-lg bg-orange-500/20 flex items-center justify-center">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-orange-500/20 flex items-center justify-center shrink-0">
             <span className="material-symbols-outlined text-orange-500 text-sm">route</span>
           </div>
-          <div>
-            <p className="text-xs font-black text-white truncate max-w-[200px]">{fileName}</p>
+          <div className="min-w-0">
+            <p className="text-xs font-black text-white truncate max-w-[160px] md:max-w-[260px]">{fileName}</p>
             <p className="text-[10px] text-slate-500">
-              {meta.model ?? 'DJI'} · {meta.serial ?? '---'} · {fmtTime(totalDuration)} de vuelo
+              {meta.model ?? 'DJI'} · {meta.serial ?? '---'} · {fmtTime(totalDuration)}
               {meta.alertCount > 0 && (
-                <span className="ml-2 text-red-400 font-bold">{meta.alertCount} alertas</span>
+                <span className="ml-2 text-red-400 font-bold">{meta.alertCount} alerta{meta.alertCount !== 1 ? 's' : ''}</span>
               )}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
           <div className="flex bg-slate-800 rounded-lg p-0.5 gap-0.5">
             {SPEEDS.map(s => (
               <button key={s} onClick={() => changeSpeed(s)}
@@ -251,11 +251,34 @@ export default function FlightReplayView({ flightData, fileName, onReset }) {
             className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-colors">
             <span className="material-symbols-outlined text-base text-slate-300">skip_previous</span>
           </button>
-          <button onClick={onReset}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-black text-slate-400 hover:text-white border border-slate-700 rounded-xl transition-colors">
-            <span className="material-symbols-outlined text-sm">upload_file</span>
-            Otro archivo
-          </button>
+          {onReset && (
+            <button onClick={onReset}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-2 text-xs font-black text-slate-400 hover:text-white border border-slate-700 rounded-xl transition-colors">
+              <span className="material-symbols-outlined text-sm">upload_file</span>
+              Otro archivo
+            </button>
+          )}
+          {/* Badge guardado */}
+          {saving && (
+            <div className="flex items-center gap-1 bg-slate-800 rounded-lg px-2 py-1">
+              <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+              <span className="hidden sm:inline text-[10px] text-slate-400">Guardando</span>
+            </div>
+          )}
+          {saved && !saving && (
+            <div className="flex items-center gap-1 bg-green-900/70 rounded-lg px-2 py-1">
+              <span className="material-symbols-outlined text-green-400 text-xs">cloud_done</span>
+              <span className="hidden sm:inline text-[10px] text-green-400">Guardado</span>
+            </div>
+          )}
+          {/* Botón cerrar — siempre visible */}
+          {onClose && (
+            <button onClick={onClose}
+              aria-label="Cerrar replay"
+              className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-colors focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:outline-none">
+              <span className="material-symbols-outlined text-slate-300 text-base">close</span>
+            </button>
+          )}
         </div>
       </header>
 

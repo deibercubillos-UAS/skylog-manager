@@ -304,37 +304,14 @@ export default function FlightReplayModal({ open, onClose, flightId, hasReplay, 
 
         {/* Replay activo — ocupa todo el espacio */}
         {state === 'done' && flightData && (
-          <>
-            <FlightReplayView
-              flightData={flightData}
-              fileName={fileName}
-              onReset={reset}
-            />
-            {/* Controles superpuestos: cerrar + estado guardado */}
-            <div className="absolute top-3 right-3 z-50 flex items-center gap-2">
-              {/* Badge de estado guardado */}
-              {flightId && (
-                saving ? (
-                  <div className="flex items-center gap-1.5 bg-slate-800/90 rounded-lg px-2 py-1">
-                    <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-[10px] text-slate-400">Guardando...</span>
-                  </div>
-                ) : saved ? (
-                  <div className="flex items-center gap-1.5 bg-green-900/70 rounded-lg px-2 py-1">
-                    <span className="material-symbols-outlined text-green-400 text-xs">cloud_done</span>
-                    <span className="text-[10px] text-green-400">Guardado</span>
-                  </div>
-                ) : null
-              )}
-              <button
-                onClick={handleClose}
-                aria-label="Cerrar replay"
-                className="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center transition-colors focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:outline-none"
-              >
-                <span className="material-symbols-outlined text-slate-300 text-base" aria-hidden="true">close</span>
-              </button>
-            </div>
-          </>
+          <FlightReplayView
+            flightData={flightData}
+            fileName={fileName}
+            onReset={reset}
+            onClose={handleClose}
+            saving={saving}
+            saved={saved}
+          />
         )}
 
         {/* Pantalla de carga / upload */}

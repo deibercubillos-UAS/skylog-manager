@@ -70,6 +70,8 @@ export async function POST(request, { params }) {
       .maybeSingle();
 
     // 1. Transferir la aeronave
+    //    - organization_id pasa a la org destino (el receptor ve el drone + total_hours)
+    //    - Los vuelos (bitácora) NO se mueven: quedan como registro histórico en la org origen
     const { error: aircraftErr } = await supabaseAdmin
       .from('aircraft')
       .update({
@@ -83,19 +85,7 @@ export async function POST(request, { params }) {
 
     if (aircraftErr) throw aircraftErr;
 
-    // 2. Transferir vuelos de esta aeronave (pilot_id se desasigna: puede no existir en destino)
-    const { error: flightsErr } = await supabaseAdmin
-      .from('flights')
-      .update({
-        organization_id: targetOrgId,
-        pilot_id: null,
-      })
-      .eq('aircraft_id', id)
-      .eq('organization_id', orgId);
-
-    if (flightsErr) throw flightsErr;
-
-    // 3. Transferir registros de mantenimiento
+    // 2. Transferir registros de mantenimiento (historial técnico viaja con la aeronave)
     const { error: maintErr } = await supabaseAdmin
       .from('maintenance_logs')
       .update({ organization_id: targetOrgId })
@@ -105,9 +95,14 @@ export async function POST(request, { params }) {
     // mantenimiento es no-crítico: si falla no revierte la transferencia
     if (maintErr) console.warn('[fleet/transfer] Error transfiriendo maintenance_logs:', maintErr.message);
 
+    // NOTA: Los registros de vuelo (flights) quedan en la org origen como
+    //       registro histórico de la bitácora. El receptor recibe la aeronave
+    //       con sus horas totales (total_hours) y su historial de mantenimiento,
+    //       pero los registros de misiones específicas permanecen privados.
+
     return NextResponse.json({
       success: true,
-      message: `Aeronave transferida a ${targetOrg?.name || 'la organización destino'} correctamente. Los pilotos asignados a los vuelos fueron desasignados.`,
+      message: `Aeronave transferida a ${targetOrg?.name || 'la organización destino'} correctamente. Las horas de vuelo (${aircraft.model}) y el historial de mantenimiento fueron transferidos. Los registros de bitácora quedan en tu historial privado.`,
     });
   } catch (err) {
     console.error('[fleet/transfer]', err.message);

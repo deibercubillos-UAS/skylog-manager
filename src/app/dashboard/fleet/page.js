@@ -53,9 +53,14 @@ function BajaModal({ aircraft, onClose, onSuccess }) {
           </div>
         </div>
 
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-          <p className="text-xs font-bold text-amber-800">
-            La aeronave quedará inactiva pero sus datos, bitácora y mantenimiento se conservarán. Esta acción puede revertirse editando el estado manualmente.
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 space-y-2">
+          <p className="text-xs font-bold text-amber-800 flex items-start gap-2">
+            <span className="material-symbols-outlined text-sm text-amber-600 mt-0.5 shrink-0">block</span>
+            La aeronave quedará retirada del servicio y no podrá usarse para nuevos vuelos.
+          </p>
+          <p className="text-xs font-bold text-amber-700 flex items-start gap-2">
+            <span className="material-symbols-outlined text-sm text-amber-500 mt-0.5 shrink-0">history</span>
+            Su bitácora, mantenimiento y todas las horas registradas se conservan como registro histórico permanente.
           </p>
         </div>
 
@@ -126,12 +131,14 @@ function TransferModal({ aircraft, onClose, onSuccess }) {
           </div>
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 space-y-1">
-          <p className="text-xs font-bold text-blue-800">
-            La aeronave y todos sus registros de vuelo y mantenimiento se moverán a la organización destino.
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 space-y-2">
+          <p className="text-xs font-bold text-blue-800 flex items-start gap-2">
+            <span className="material-symbols-outlined text-sm text-blue-500 mt-0.5 shrink-0">check_circle</span>
+            Se transfieren: aeronave, horas de vuelo acumuladas e historial de mantenimiento.
           </p>
-          <p className="text-xs font-bold text-blue-700">
-            Los pilotos asignados a los vuelos serán desasignados (pueden no existir en la organización destino).
+          <p className="text-xs font-bold text-blue-700 flex items-start gap-2">
+            <span className="material-symbols-outlined text-sm text-slate-400 mt-0.5 shrink-0">lock</span>
+            Tus registros de bitácora quedan en tu historial privado — no se comparten con el receptor.
           </p>
         </div>
 

@@ -147,7 +147,15 @@ export default function RegisterPage() {
       const res    = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
       const result = await res.json();
       if (!result.success) throw new Error(result.error || 'Error al registrar');
-      window.location.href = '/login?registered=1';
+      // Auto-login: ingresar directamente al dashboard sin pasar por login
+      const { createClient } = await import('@supabase/supabase-js');
+      const sb = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      );
+      const { error: signInErr } = await sb.auth.signInWithPassword({ email: form.email, password: form.password });
+      if (signInErr) { window.location.href = '/login?registered=1'; return; }
+      window.location.href = '/dashboard';
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };

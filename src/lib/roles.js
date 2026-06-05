@@ -23,7 +23,7 @@ export const ROLE_DESCRIPTIONS = {
 // Matriz de permisos — fuente única para UI y API routes
 export const PERMISSIONS = {
     // Existentes
-    canManageOps:       ['superadmin', 'admin', 'jefe_pilotos'],
+    canManageOps:       ['superadmin', 'admin', 'jefe_pilotos', 'piloto'],
     canViewAudit:       ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],
     canViewFinance:     ['superadmin', 'admin', 'gerente_sms'],
     canChangeRoles:     ['superadmin', 'admin'],
@@ -33,7 +33,7 @@ export const PERMISSIONS = {
     canFly:             ['superadmin', 'admin', 'jefe_pilotos', 'piloto'],
     canAccessMaster:    ['superadmin'],
     // Nuevas — reemplazan arrays inline en API routes y páginas
-    canManageFleet:          ['superadmin', 'admin', 'jefe_pilotos'],
+    canManageFleet:          ['superadmin', 'admin', 'jefe_pilotos', 'piloto'],
     canEditPilotPic:         ['superadmin', 'admin', 'jefe_pilotos'],
     canEditLogbook:          ['superadmin', 'jefe_pilotos'],
     canDeleteLogbook:        ['superadmin', 'jefe_pilotos'],

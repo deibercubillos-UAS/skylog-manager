@@ -1,6 +1,7 @@
 'use client';
 import { useState, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { supabase } from '@/lib/supabase';
 import {
   generateKML, downloadKMZ,
   fmtMetres, fmtArea,
@@ -59,6 +60,29 @@ export default function PlanVueloPage() {
   const [mapOpen,     setMapOpen]     = useState(false);
   const [zone,        setZone]        = useState(null);
   const [downloading, setDownloading] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+
+  // Datos del piloto para el encabezado del PDF
+  const [pilotInfo, setPilotInfo] = useState(null);
+  useEffect(() => {
+    async function loadPilot() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('full_name, first_name, email, role, organization_id')
+        .eq('id', user.id)
+        .single();
+      if (!prof) return;
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('company_name, tax_id')
+        .eq('id', prof.organization_id)
+        .maybeSingle();
+      setPilotInfo({ ...prof, orgName: org?.company_name || '', orgNit: org?.tax_id || '' });
+    }
+    loadPilot();
+  }, []);
 
   const handleMapSave = useCallback(({ points, radius }) => {
     setZone({ points, radius });
@@ -88,6 +112,161 @@ export default function PlanVueloPage() {
   const summary    = zone ? getSummary(geoType, zone.points, zone.radius) : null;
   // Se puede descargar con solo el nombre de la operación; la zona es opcional pero enriquece el KMZ
   const canDownload = !!opName.trim();
+
+  const handleDownloadPdf = useCallback(async () => {
+    if (!canDownload) return;
+    setGeneratingPdf(true);
+    try {
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const W = 210; const M = 18;
+
+      // ── Encabezado ─────────────────────────────────────────
+      doc.setFillColor(26, 32, 44);
+      doc.rect(0, 0, W, 28, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PLAN DE VUELO — BITAFLY', M, 13);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Plataforma de gestión de operaciones UAS · bitafly.com', M, 20);
+
+      let y = 38;
+
+      // ── Datos del piloto ────────────────────────────────────
+      doc.setFillColor(248, 246, 246);
+      doc.roundedRect(M, y, W - M * 2, 28, 3, 3, 'F');
+      doc.setTextColor(26, 32, 44);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.text('ELABORADO POR', M + 4, y + 6);
+      doc.setFont('helvetica', 'normal');
+      const pilotName = pilotInfo?.full_name || pilotInfo?.first_name || 'Piloto';
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(pilotName, M + 4, y + 14);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      const orgLine = pilotInfo?.orgName ? `${pilotInfo.orgName}${pilotInfo.orgNit ? ' · NIT ' + pilotInfo.orgNit : ''}` : '';
+      if (orgLine) doc.text(orgLine, M + 4, y + 20);
+      doc.text(`Correo: ${pilotInfo?.email || ''}`, M + 4, y + 26);
+      // Fecha de generación en la esquina
+      const genDate = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Generado: ${genDate}`, W - M - 50, y + 6, { align: 'left' });
+
+      y += 36;
+
+      // ── Datos de la operación ───────────────────────────────
+      doc.setTextColor(26, 32, 44);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text('DATOS DE LA OPERACIÓN', M, y);
+      doc.setDrawColor(234, 88, 12);
+      doc.setLineWidth(0.6);
+      doc.line(M, y + 2, W - M, y + 2);
+      y += 8;
+
+      const fields = [
+        ['Nombre de la operación', opName || '—'],
+        ['Fecha de vuelo', flightDate ? new Date(flightDate + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'],
+        ['Hora de despegue', takeoffTime || '—'],
+        ['Altitud máxima AGL', `${altitude} m${altitude > 120 ? '  ⚠ Requiere autorización RAC 100.32' : ''}`],
+      ];
+      doc.setFontSize(9);
+      for (const [label, value] of fields) {
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(100, 116, 139);
+        doc.text(label + ':', M, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(26, 32, 44);
+        doc.text(value, M + 55, y);
+        y += 7;
+      }
+
+      if (notes.trim()) {
+        y += 2;
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(100, 116, 139);
+        doc.text('Observaciones:', M, y);
+        y += 6;
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(26, 32, 44);
+        const lines = doc.splitTextToSize(notes.trim(), W - M * 2);
+        doc.text(lines, M, y);
+        y += lines.length * 5 + 4;
+      }
+
+      // ── Zona de vuelo ───────────────────────────────────────
+      if (summary) {
+        y += 4;
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(26, 32, 44);
+        doc.text('ZONA DE VUELO', M, y);
+        doc.setDrawColor(234, 88, 12);
+        doc.setLineWidth(0.6);
+        doc.line(M, y + 2, W - M, y + 2);
+        y += 8;
+
+        const geoLabel = GEO_TYPES.find(t => t.key === geoType)?.label || geoType;
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(100, 116, 139);
+        doc.text('Tipo de zona:', M, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(26, 32, 44);
+        doc.text(geoLabel, M + 55, y);
+        y += 7;
+
+        for (const s of summary) {
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(100, 116, 139);
+          doc.text(s.label + ':', M, y);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(26, 32, 44);
+          doc.text(String(s.value), M + 55, y);
+          y += 7;
+        }
+
+        // Coordenadas
+        if (zone?.points?.length) {
+          y += 2;
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(100, 116, 139);
+          doc.text('Coordenadas:', M, y);
+          y += 6;
+          doc.setFontSize(7.5);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(26, 32, 44);
+          zone.points.slice(0, 20).forEach((pt, i) => {
+            doc.text(`  ${i + 1}. Lat ${pt.lat.toFixed(6)}, Lng ${pt.lng.toFixed(6)}`, M, y);
+            y += 5;
+          });
+          if (zone.points.length > 20) {
+            doc.setTextColor(100, 116, 139);
+            doc.text(`  … y ${zone.points.length - 20} punto(s) adicional(es)`, M, y);
+            y += 5;
+          }
+        }
+      }
+
+      // ── Pie de página ───────────────────────────────────────
+      doc.setFontSize(7);
+      doc.setTextColor(148, 163, 184);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Este documento es de uso interno. Verifique el espacio aéreo en Aerocivil antes de operar.', M, 285);
+      doc.text('BitaFly · bitafly.com', W - M, 285, { align: 'right' });
+
+      const slug = (opName || 'plan-vuelo').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      doc.save(`${slug}-plan-vuelo.pdf`);
+    } catch (err) {
+      console.error('PDF error:', err);
+    } finally {
+      setGeneratingPdf(false);
+    }
+  }, [canDownload, opName, flightDate, takeoffTime, altitude, notes, zone, summary, geoType, pilotInfo]);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -307,43 +486,69 @@ export default function PlanVueloPage() {
         </div>
       )}
 
-      {/* DESCARGA KMZ */}
+      {/* DESCARGAS */}
       <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-6 space-y-4">
         <div className="flex items-start gap-3">
           <div className="size-9 bg-slate-100 rounded-xl flex items-center justify-center shrink-0">
             <span className="material-symbols-outlined text-slate-500 text-lg">download</span>
           </div>
           <div>
-            <p className="text-sm font-black text-navy">Archivo KMZ</p>
+            <p className="text-sm font-black text-navy">Descargar plan de vuelo</p>
             <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                Compatible con Google Earth y el portal de AeroCivil (Apéndice 13 · RAC 100).
-              {!canDownload && ' Ingresa el nombre de la operación para habilitar la descarga.'}
-              {canDownload && !zone && ' Opcional: define la zona en el mapa para incluir geometría en el KMZ.'}
+              {!canDownload && 'Ingresa el nombre de la operación para habilitar las descargas.'}
+              {canDownload && !zone && 'Define la zona en el mapa para incluir geometría en el KMZ.'}
+              {canDownload && zone && 'KMZ para AeroCivil (Apéndice 13 · RAC 100) o PDF con encabezado del piloto.'}
             </p>
           </div>
         </div>
 
-        <button
-          onClick={handleDownload}
-          disabled={!canDownload || downloading}
-          className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg ${
-            canDownload && !downloading
-              ? 'bg-[#1A202C] text-white hover:bg-slate-800 shadow-slate-900/20'
-              : 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none'
-          }`}
-        >
-          {downloading ? (
-            <>
-              <span className="size-4 border-2 border-white border-b-transparent rounded-full animate-spin" />
-              Generando KMZ…
-            </>
-          ) : (
-            <>
-              <span className="material-symbols-outlined text-lg">download</span>
-              Descargar KMZ
-            </>
-          )}
-        </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* KMZ */}
+          <button
+            onClick={handleDownload}
+            disabled={!canDownload || downloading}
+            className={`py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg ${
+              canDownload && !downloading
+                ? 'bg-[#1A202C] text-white hover:bg-slate-800 shadow-slate-900/20'
+                : 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none'
+            }`}
+          >
+            {downloading ? (
+              <>
+                <span className="size-4 border-2 border-white border-b-transparent rounded-full animate-spin" />
+                Generando…
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-lg">download</span>
+                Descargar KMZ
+              </>
+            )}
+          </button>
+
+          {/* PDF */}
+          <button
+            onClick={handleDownloadPdf}
+            disabled={!canDownload || generatingPdf}
+            className={`py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg ${
+              canDownload && !generatingPdf
+                ? 'bg-orange-600 text-white hover:bg-orange-700 shadow-orange-900/20'
+                : 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none'
+            }`}
+          >
+            {generatingPdf ? (
+              <>
+                <span className="size-4 border-2 border-white border-b-transparent rounded-full animate-spin" />
+                Generando PDF…
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-lg">picture_as_pdf</span>
+                Descargar PDF
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* NOTA INFORMATIVA */}

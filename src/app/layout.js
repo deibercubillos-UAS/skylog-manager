@@ -160,7 +160,7 @@ export default function RootLayout({ children }) {
         <link rel="dns-prefetch" href="https://va.vercel-scripts.com" />
         <link rel="dns-prefetch" href="https://vitals.vercel-insights.com" />
         {process.env.NEXT_PUBLIC_GA_ID && <link rel="dns-prefetch" href="https://www.google-analytics.com" />}
-        {process.env.NEXT_PUBLIC_GA_ID && <link rel="dns-prefetch" href="https://www.googletagmanager.com" />}
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         {/*
           Material Symbols — carga NO bloqueante (afterInteractive).
           <link rel="stylesheet"> externo bloqueaba FCP/LCP en Slow 4G:
@@ -268,7 +268,25 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="font-sans antialiased">
+        {/* Google Tag Manager (noscript) — debe ser lo primero en <body> */}
+        <noscript>
+          <iframe
+            src="https://www.googletagmanager.com/ns.html?id=GTM-TTT98NMJ"
+            height="0" width="0"
+            style={{ display: 'none', visibility: 'hidden' }}
+          />
+        </noscript>
+
         {children}
+
+        {/* Google Tag Manager — afterInteractive para no bloquear FCP/LCP */}
+        <Script id="gtm" strategy="afterInteractive">{`
+          (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+          new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+          j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+          'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+          })(window,document,'script','dataLayer','GTM-TTT98NMJ');
+        `}</Script>
 
         {/* Material Symbols — async, no bloquea FCP ni LCP */}
         <Script id="load-material-symbols" strategy="afterInteractive">{`

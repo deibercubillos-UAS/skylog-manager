@@ -2,10 +2,15 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { uniqueSlug } from '@/lib/slugify';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
+import { PLAN_CONFIG } from '@/lib/planLimits';
 
 // Roles que se pueden auto-asignar en el formulario de registro público.
-// Nunca permitir: superadmin, gerente_sms, jefe_pilotos (se asignan por un admin después).
+// Nunca permitir: superadmin (se asigna manualmente en BD).
 const ALLOWED_REGISTRATION_ROLES = ['piloto', 'admin'];
+// Roles disponibles para el flujo de "unirse a organización"
+const JOIN_ALLOWED_ROLES = ['piloto', 'jefe_pilotos', 'gerente_sms'];
+// Roles únicos por org (solo puede haber 1)
+const UNIQUE_ROLES = ['jefe_pilotos', 'gerente_sms'];
 
 export async function POST(request) {
     try {
@@ -17,8 +22,98 @@ export async function POST(request) {
         }
 
         const body = await request.json();
-        const { email, password, firstName, lastName, phone, city, type, role, orgCode, companyName, nit } = body;
+        const { email, password, firstName, lastName, phone, city, type, role, orgCode, companyName, nit, joinMode } = body;
         const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+        // ── FLUJO JOIN: Unirse a organización existente (gratis, sin crear org) ──
+        if (joinMode === true) {
+            if (!JOIN_ALLOWED_ROLES.includes(role)) {
+                return NextResponse.json({ error: 'Rol no permitido para unirse a una organización.' }, { status: 400 });
+            }
+            if (!orgCode) {
+                return NextResponse.json({ error: 'NIT de la organización requerido.' }, { status: 400 });
+            }
+
+            const nit = orgCode.replace(/[\s\-.]/g, '').toUpperCase();
+            const { data: org } = await supabaseAdmin
+                .from('organizations')
+                .select('id, company_name')
+                .eq('unique_code', nit)
+                .maybeSingle();
+
+            if (!org) throw new Error('NIT inválido. La organización no existe en Bitafly.');
+
+            const targetOrgId = org.id;
+
+            // Verificar disponibilidad del rol
+            if (UNIQUE_ROLES.includes(role)) {
+                const { count } = await supabaseAdmin
+                    .from('profiles')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('organization_id', targetOrgId)
+                    .eq('role', role);
+                if ((count ?? 0) > 0) {
+                    const labels = { jefe_pilotos: 'Jefe de Pilotos', gerente_sms: 'Gerente SMS' };
+                    throw new Error(`El rol "${labels[role] || role}" ya está ocupado en ${org.company_name}.`);
+                }
+            }
+
+            if (role === 'piloto') {
+                const { data: adminProf } = await supabaseAdmin
+                    .from('profiles')
+                    .select('subscription_plan')
+                    .eq('organization_id', targetOrgId)
+                    .eq('role', 'admin')
+                    .maybeSingle();
+                const planKey    = adminProf?.subscription_plan || 'piloto';
+                const maxPilots  = PLAN_CONFIG[planKey]?.maxPilots;
+                if (maxPilots !== null && maxPilots !== undefined) {
+                    const { count } = await supabaseAdmin
+                        .from('profiles')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('organization_id', targetOrgId)
+                        .eq('role', 'piloto');
+                    if ((count ?? 0) >= maxPilots) {
+                        throw new Error(`Límite de pilotos alcanzado (${maxPilots}) para el plan de ${org.company_name}.`);
+                    }
+                }
+            }
+
+            // Crear auth user
+            const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
+                email, password, email_confirm: true,
+                user_metadata: { first_name: firstName, last_name: lastName, role, organization_id: targetOrgId },
+            });
+            if (authErr) throw authErr;
+
+            // Crear perfil (plan piloto — el plan lo paga el admin de la org)
+            await supabaseAdmin.from('profiles').upsert({
+                id:               authData.user.id,
+                email,
+                first_name:       firstName,
+                last_name:        lastName,
+                full_name:        `${firstName} ${lastName}`.trim(),
+                role,
+                organization_id:  targetOrgId,
+                phone:            phone || null,
+                city:             city  || null,
+                subscription_plan: 'piloto',
+            }, { onConflict: 'id' });
+
+            // Auto-crear piloto
+            await supabaseAdmin.from('pilots').insert([{
+                organization_id: targetOrgId,
+                owner_id:        authData.user.id,
+                name:            `${firstName} ${lastName}`.trim(),
+                email,
+                phone:           phone || null,
+                city:            city  || null,
+                pilot_role:      'Piloto',
+                is_active:       true,
+            }]).catch(() => {});
+
+            return NextResponse.json({ success: true });
+        }
 
         // ── Sanitizar rol: solo 'piloto' o 'admin' son válidos al registrarse ──
         let normalizedRole = ALLOWED_REGISTRATION_ROLES.includes(role) ? role : 'piloto';

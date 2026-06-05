@@ -80,6 +80,12 @@ export default function RegisterPage() {
   // Limpieza del polling
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
+  // Planes de pago → siempre tipo "empresa"; plan piloto → tipo "solo"
+  useEffect(() => {
+    setVal('type', isPaidPlan ? 'company' : 'solo');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPaidPlan]);
+
   // Visibilidad: cuando el usuario vuelve al tab desde ePayco → verificar
   useEffect(() => {
     const onVisible = () => {
@@ -621,24 +627,28 @@ export default function RegisterPage() {
             <form onSubmit={isPaidPlan ? handleInitiatePayment : handleRegisterFree} className="space-y-6 animate-in fade-in duration-300">
               <div>
                 <h1 className="font-lexend text-3xl font-black text-navy uppercase tracking-tighter">Tu cuenta</h1>
-                <p className="text-slate-500 text-sm mt-1">¿Cómo vas a operar?</p>
+                <p className="text-slate-500 text-sm mt-1">
+                  {isPaidPlan ? 'Datos de tu organización.' : '¿Cómo vas a operar?'}
+                </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { key: 'solo',    label: 'Piloto Independiente', sub: 'Opero por mi cuenta', icon: 'person' },
-                  { key: 'company', label: 'Empresa / Organización', sub: 'Soy el gerente general', icon: 'business' },
-                ].map(t => (
-                  <button key={t.key} type="button" onClick={() => setVal('type', t.key)}
-                    className={`p-4 rounded-2xl border-2 text-left transition-all ${form.type === t.key ? 'border-primary bg-orange-50' : 'border-slate-200 hover:border-slate-300 bg-white'}`}>
-                    <span className={`material-symbols-outlined text-xl mb-1 block ${form.type === t.key ? 'text-primary' : 'text-slate-400'}`}>{t.icon}</span>
-                    <p className={`text-xs font-black uppercase ${form.type === t.key ? 'text-primary' : 'text-navy'}`}>{t.label}</p>
-                    <p className="text-xs text-slate-400 font-medium mt-0.5">{t.sub}</p>
-                  </button>
-                ))}
-              </div>
+              {!isPaidPlan && (
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { key: 'solo',    label: 'Piloto Independiente', sub: 'Opero por mi cuenta', icon: 'person' },
+                    { key: 'company', label: 'Empresa / Organización', sub: 'Soy el gerente general', icon: 'business' },
+                  ].map(t => (
+                    <button key={t.key} type="button" onClick={() => setVal('type', t.key)}
+                      className={`p-4 rounded-2xl border-2 text-left transition-all ${form.type === t.key ? 'border-primary bg-orange-50' : 'border-slate-200 hover:border-slate-300 bg-white'}`}>
+                      <span className={`material-symbols-outlined text-xl mb-1 block ${form.type === t.key ? 'text-primary' : 'text-slate-400'}`}>{t.icon}</span>
+                      <p className={`text-xs font-black uppercase ${form.type === t.key ? 'text-primary' : 'text-navy'}`}>{t.label}</p>
+                      <p className="text-xs text-slate-400 font-medium mt-0.5">{t.sub}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
 
-              {form.type === 'company' && (
+              {(isPaidPlan || form.type === 'company') && (
                 <div className="space-y-4">
                   <Field label="Nombre de la empresa" required>
                     <input required placeholder="Ej: Aerial Colombia S.A.S." value={form.companyName} onChange={set('companyName')} className={INPUT} />

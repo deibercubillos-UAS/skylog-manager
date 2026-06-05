@@ -41,8 +41,8 @@ function Joystick({ x, y, label, sublabel }) {
   const cy = 50 - (y ?? 0) * 38;
   const hasData = x != null;
   return (
-    <div className="flex flex-col items-center gap-1">
-      <svg width="80" height="80" viewBox="0 0 100 100">
+    <div className="flex flex-col items-center gap-1 min-w-0">
+      <svg width="64" height="64" viewBox="0 0 100 100">
         <circle cx="50" cy="50" r="46" fill="#1e293b" stroke="#334155" strokeWidth="1.5"/>
         <line x1="50" y1="8"  x2="50" y2="92" stroke="#334155" strokeWidth="0.8"/>
         <line x1="8"  y1="50" x2="92" y2="50" stroke="#334155" strokeWidth="0.8"/>
@@ -406,7 +406,7 @@ export default function FlightReplayView({ flightData, fileName, onReset, onClos
             {meta.hasRC ? (
               <div className="p-3 space-y-3">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Control RC</p>
-                <div className="flex justify-around">
+                <div className="flex justify-center gap-2">
                   <Joystick x={f?.rc_rud} y={f?.rc_thr} label="Izq." sublabel="Throt · Rud"/>
                   <Joystick x={f?.rc_ail} y={f?.rc_ele} label="Der." sublabel="Ail · Ele"/>
                 </div>

@@ -13,35 +13,37 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
 // ── Ícono SVG del dron (vista top, rotable) ──────────────────────
-const DRONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
+// Tamaño reducido (28×28) para no tapar el mapa satelital.
+// Forma: cruz de brazos + rotores pequeños + cuerpo mínimo + indicador frontal.
+const DRONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 44 44">
   <!-- Brazos diagonales -->
-  <line x1="22" y1="22" x2="6"  y2="6"  stroke="#EC5B13" stroke-width="2.5" stroke-linecap="round"/>
-  <line x1="22" y1="22" x2="38" y2="6"  stroke="#EC5B13" stroke-width="2.5" stroke-linecap="round"/>
-  <line x1="22" y1="22" x2="6"  y2="38" stroke="#EC5B13" stroke-width="2.5" stroke-linecap="round"/>
-  <line x1="22" y1="22" x2="38" y2="38" stroke="#EC5B13" stroke-width="2.5" stroke-linecap="round"/>
-  <!-- Rotores -->
-  <circle cx="6"  cy="6"  r="6" fill="none" stroke="white" stroke-width="1.5" opacity="0.85"/>
-  <circle cx="38" cy="6"  r="6" fill="none" stroke="white" stroke-width="1.5" opacity="0.85"/>
-  <circle cx="6"  cy="38" r="6" fill="none" stroke="white" stroke-width="1.5" opacity="0.85"/>
-  <circle cx="38" cy="38" r="6" fill="none" stroke="white" stroke-width="1.5" opacity="0.85"/>
-  <!-- Cuerpo -->
-  <rect x="16" y="16" width="12" height="12" rx="3" fill="#EC5B13"/>
-  <!-- Indicador frontal (flecha hacia arriba = Norte del dron) -->
-  <polygon points="22,5 19,13 25,13" fill="#fff" opacity="0.9"/>
+  <line x1="22" y1="22" x2="8"  y2="8"  stroke="#EC5B13" stroke-width="3" stroke-linecap="round"/>
+  <line x1="22" y1="22" x2="36" y2="8"  stroke="#EC5B13" stroke-width="3" stroke-linecap="round"/>
+  <line x1="22" y1="22" x2="8"  y2="36" stroke="#EC5B13" stroke-width="3" stroke-linecap="round"/>
+  <line x1="22" y1="22" x2="36" y2="36" stroke="#EC5B13" stroke-width="3" stroke-linecap="round"/>
+  <!-- Rotores (más pequeños) -->
+  <circle cx="8"  cy="8"  r="5" fill="none" stroke="white" stroke-width="1.5" opacity="0.9"/>
+  <circle cx="36" cy="8"  r="5" fill="none" stroke="white" stroke-width="1.5" opacity="0.9"/>
+  <circle cx="8"  cy="36" r="5" fill="none" stroke="white" stroke-width="1.5" opacity="0.9"/>
+  <circle cx="36" cy="36" r="5" fill="none" stroke="white" stroke-width="1.5" opacity="0.9"/>
+  <!-- Cuerpo central mínimo -->
+  <circle cx="22" cy="22" r="4" fill="#EC5B13"/>
+  <!-- Indicador frontal -->
+  <polygon points="22,8 20,15 24,15" fill="#fff" opacity="0.95"/>
 </svg>`;
 
 function createDroneIcon(yaw = 0) {
   return L.divIcon({
     className: '',
     html: `<div style="
-      width:44px; height:44px;
+      width:28px; height:28px;
       transform: rotate(${yaw}deg);
       transform-origin: center;
-      filter: drop-shadow(0 2px 6px rgba(0,0,0,.7));
+      filter: drop-shadow(0 1px 4px rgba(0,0,0,.8));
       transition: transform 0.1s linear;
     ">${DRONE_SVG}</div>`,
-    iconSize:   [44, 44],
-    iconAnchor: [22, 22],
+    iconSize:   [28, 28],
+    iconAnchor: [14, 14],
   });
 }
 

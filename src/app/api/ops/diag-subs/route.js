@@ -1,7 +1,6 @@
 /**
- * GET /api/ops/diag-subs?token=XXX
+ * GET /api/ops/diag-subs?token=XXX&cancel=ID
  * ENDPOINT TEMPORAL — eliminar después de usar
- * Muestra las suscripciones raw de ePayco para diagnóstico
  */
 import { NextResponse } from 'next/server';
 
@@ -30,32 +29,46 @@ export async function GET(request) {
   if (searchParams.get('token') !== SECRET)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const cancelId = searchParams.get('cancel');
+
   try {
     const token = await getToken();
+    const hdrs = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      type: 'sdk-jwt',
+      lang: 'NODE',
+      Authorization: `Bearer ${token}`,
+    };
+
+    // Cancelar por ID si se pasó el parámetro cancel
+    if (cancelId) {
+      const res = await fetch(`${BASE}/recurring/v1/subscription/cancel`, {
+        method: 'POST',
+        headers: hdrs,
+        body: JSON.stringify({ id: cancelId, public_key: PUB_KEY() }),
+      });
+      const json = await res.json();
+      return NextResponse.json({ cancelled: cancelId, response: json });
+    }
+
+    // Listar todas
     const res = await fetch(`${BASE}/recurring/v1/subscriptions/${PUB_KEY()}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        type: 'sdk-jwt',
-        lang: 'NODE',
-        Authorization: `Bearer ${token}`,
-      },
+      headers: hdrs,
       cache: 'no-store',
     });
     const raw = await res.json();
-    // Extraer el array donde sea que esté
     const arr = Array.isArray(raw) ? raw : (raw.data ?? raw.subscriptions ?? raw);
-    // Resumir: mostrar campos de email + status + id de cada suscripción
     const summary = Array.isArray(arr)
       ? arr.map(s => ({
-          id:    s.id || s.uid || s._id || s.subscription_id,
-          email: s.email || s.customer_data?.email || s.cliente?.email || s.subscriber?.email || s.payer?.email,
+          id:    s._id || s.id || s.uid,
+          email: s.email || s.customer_data?.email || s.cliente?.email,
           status: s.status || s.state,
-          plan:  s.plan || s.id_plan || s.plan_id,
-          _keys: Object.keys(s),
+          plan:  s.idPlan || s.plan?.idClient,
+          idCustomer: s.idCustomer,
         }))
       : arr;
-    return NextResponse.json({ count: Array.isArray(arr) ? arr.length : '?', summary, raw });
+    return NextResponse.json({ count: Array.isArray(arr) ? arr.length : '?', summary });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

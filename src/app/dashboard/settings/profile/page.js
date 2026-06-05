@@ -3,10 +3,15 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import FileUpload from '@/components/FileUpload';
 import { toast } from '@/lib/toast';
+import { useRouter } from 'next/navigation';
 export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [profile, setProfile] = useState(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
+    const router = useRouter();
 
     // REEMPLACE EL BLOQUE useEffect (Líneas 10 a 18 aprox) POR ESTE:
 useEffect(() => {
@@ -65,6 +70,24 @@ useEffect(() => {
         setUpdating(false);
     }
 };
+
+    const handleDeleteAccount = async () => {
+        if (deleteConfirmText !== 'ELIMINAR') return;
+        setDeleteLoading(true);
+        try {
+            const res = await fetch('/api/auth/delete-account', { method: 'DELETE' });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Error al eliminar la cuenta.');
+            }
+            await supabase.auth.signOut();
+            window.location.href = '/?cuenta=eliminada';
+        } catch (err) {
+            toast.error(err.message);
+        } finally {
+            setDeleteLoading(false);
+        }
+    };
 
     if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">CARGANDO EXPEDIENTE...</div>;
 
@@ -170,6 +193,59 @@ useEffect(() => {
                     </div>
                 </div>
             </form>
+            {/* ZONA DE PELIGRO — Eliminar cuenta */}
+            <section className="bg-white border border-red-100 rounded-[2rem] p-8 space-y-4">
+                <div className="flex items-start gap-3">
+                    <span className="material-symbols-outlined text-red-400 text-2xl mt-0.5 shrink-0">warning</span>
+                    <div>
+                        <h3 className="font-black text-slate-900 uppercase text-sm tracking-wide">Zona de peligro</h3>
+                        <p className="text-xs font-bold text-slate-400 mt-1">
+                            Eliminar tu cuenta es permanente e irreversible. Se borrarán tu perfil, organización, flota, bitácoras y todos los datos asociados. Si tienes una suscripción activa, se cancelará automáticamente.
+                        </p>
+                    </div>
+                </div>
+
+                {!showDeleteConfirm ? (
+                    <button
+                        type="button"
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="flex items-center gap-2 px-5 py-3 rounded-xl border border-red-200 text-red-500 text-xs font-black uppercase hover:bg-red-50 transition-colors"
+                    >
+                        <span className="material-symbols-outlined text-base">delete_forever</span>
+                        Eliminar mi cuenta
+                    </button>
+                ) : (
+                    <div className="bg-red-50 border border-red-200 rounded-2xl p-5 space-y-4">
+                        <p className="text-xs font-bold text-red-700">
+                            Para confirmar, escribe <span className="font-mono font-black bg-red-100 px-1 rounded">ELIMINAR</span> en el campo:
+                        </p>
+                        <input
+                            type="text"
+                            value={deleteConfirmText}
+                            onChange={e => setDeleteConfirmText(e.target.value.toUpperCase())}
+                            placeholder="ELIMINAR"
+                            className="w-full p-3 bg-white border border-red-300 rounded-xl text-sm font-mono font-black text-red-700 placeholder-red-200 focus:outline-none focus:ring-2 focus:ring-red-400"
+                        />
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
+                                className="flex-1 py-3 rounded-xl border border-slate-200 text-xs font-black uppercase text-slate-500 hover:bg-slate-50"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleDeleteAccount}
+                                disabled={deleteConfirmText !== 'ELIMINAR' || deleteLoading}
+                                className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                {deleteLoading ? 'Eliminando...' : 'Confirmar eliminación'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </section>
         </div>
     );
 }

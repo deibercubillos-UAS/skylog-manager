@@ -42,6 +42,26 @@ export default function LogbookPage() {
         pilot: ''
     });
 
+    // Llamado por DjiRcSync tras cada vuelo importado con éxito.
+    // Busca el vuelo recién insertado por ID y lo añade al tope de la lista.
+    const handleFlightImported = async (importData) => {
+        if (!importData?.flight_id) { loadData(true); return; }
+        try {
+            const res = await fetch(`/api/logbook?limit=1&id=${importData.flight_id}`);
+            if (!res.ok) return;
+            const rows = await res.json();
+            const newFlight = Array.isArray(rows) ? rows[0] : null;
+            if (!newFlight) return;
+            setFlights(prev => {
+                // Evitar duplicados (si ya existe, no añadir)
+                if (prev.some(f => f.id === newFlight.id)) return prev;
+                return [newFlight, ...prev];
+            });
+        } catch {
+            // Fallback silencioso: no interrumpir la importación
+        }
+    };
+
     const loadData = async (reset = true) => {
         try {
             const currentOffset = reset ? 0 : offset;
@@ -285,7 +305,7 @@ export default function LogbookPage() {
             {/* Panel importación DJI / Excel */}
             {showImport && (
                 <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden p-6">
-                    <DjiRcSync onImported={() => loadData(true)} />
+                    <DjiRcSync onImported={() => loadData(true)} onFlightImported={handleFlightImported} />
                 </div>
             )}
 

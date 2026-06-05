@@ -212,7 +212,7 @@ const STATUS_COLOR = {
 const EMPTY_AIRCRAFT = { model: '', brand: 'DJI', serial_number: '', ruas: '' };
 const EMPTY_BATTERY  = { brand: 'DJI', model: '', serial_number: '', cycles: 0, health_status: 100 };
 
-export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
+export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMobileProp }) {
   const [state, setState] = useState('idle'); // idle | scanning | ready | uploading | done
   const [device, setDevice] = useState('rc'); // rc | android | iphone
   const [files, setFiles] = useState([]);
@@ -431,6 +431,7 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
               : f
             )
           );
+          onFlightImported?.(data);
         } else if (status === 409) {
           skipped++;
           setFiles(prev =>
@@ -453,6 +454,7 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
                 setFiles(prev =>
                   prev.map(f => f.name === fileInfo.name ? { ...f, status: 'ok', result: retryData } : f)
                 );
+                onFlightImported?.(retryData);
               } else if (retry.status === 409) {
                 skipped++;
                 setFiles(prev =>
@@ -520,6 +522,7 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
         setFiles(prev =>
           prev.map(f => f.name === pendingFile.name ? { ...f, status: 'ok', result: data } : f)
         );
+        onFlightImported?.(data);
       } else {
         errors++;
         setFiles(prev =>
@@ -551,6 +554,7 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
         if (status === 200 || status === 201) {
           rImported++;
           setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'ok', result: data } : f));
+          onFlightImported?.(data);
         } else if (status === 409) {
           rSkipped++;
           setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'duplicate', result: data } : f));
@@ -565,6 +569,7 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
                 rImported++;
                 const retryData = { ...retry.data, aircraft_auto_created: model };
                 setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'ok', result: retryData } : f));
+                onFlightImported?.(retryData);
               } else {
                 rErrors++;
                 setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'error', result: retry.data } : f));

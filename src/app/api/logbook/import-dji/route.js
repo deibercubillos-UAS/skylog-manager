@@ -434,6 +434,7 @@ export async function POST(request) {
     return NextResponse.json({
       success:             true,
       file:                fileName,
+      flight_id:           inserted.id,          // ← para actualizar la bitácora en tiempo real
       message:             `Vuelo del ${parsed.fecha} importado correctamente.`,
       fecha:               parsed.fecha,
       serial:              parsed.serial_aeronave,

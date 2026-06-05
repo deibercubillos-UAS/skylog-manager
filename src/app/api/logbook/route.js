@@ -9,13 +9,14 @@ export async function GET(request) {
         const { searchParams } = new URL(request.url);
         const limit  = Math.min(parseInt(searchParams.get('limit')  || '30'), 500);
         const offset = parseInt(searchParams.get('offset') || '0');
+        const idFilter = searchParams.get('id') || null;
 
         const supabase = await createClientSSR();
         const { orgId } = await getOrgContext(supabase);
         if (!orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         const prof = { organization_id: orgId }; // compat alias
 
-        const { data, error } = await supabase
+        let query = supabase
             .from('flights')
             .select(`
                 id,
@@ -36,8 +37,15 @@ export async function GET(request) {
                 aircraft:aircraft_id(model, serial_number, total_hours)
             `)
             .eq('organization_id', prof.organization_id)
-            .order('flight_date', { ascending: false })
-            .range(offset, offset + limit - 1);
+            .order('flight_date', { ascending: false });
+
+        if (idFilter) {
+            query = query.eq('id', idFilter);
+        } else {
+            query = query.range(offset, offset + limit - 1);
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
 

@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Image from 'next/image';
 import { ROLE_LABELS, PERMISSIONS, hasPermission } from '@/lib/roles';
-import OnboardingBanner from '@/components/OnboardingBanner';
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
@@ -241,11 +240,6 @@ const footerLinks = footerLinksAll.filter(link =>
             </span>
           </div>
         </div>
-
-        {/* Banner onboarding — solo admin/superadmin, org sin aeronaves */}
-        {PERMISSIONS.canManageFleet.includes(data.profile?.role) && aircraftCount !== null && (
-          <OnboardingBanner aircraftCount={aircraftCount} />
-        )}
 
         {/* NAV PRINCIPAL */}
         <nav aria-label="Menú lateral" className="flex-1 p-3 space-y-0.5 mt-2 overflow-y-auto custom-scrollbar">

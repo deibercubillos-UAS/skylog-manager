@@ -6,12 +6,15 @@ import { supabase } from '@/lib/supabase';
 
 // Banner de instalación PWA — solo en dashboard, flotante en esquina
 const PwaInstallBanner = dynamic(() => import('@/components/PwaInstallBanner'), { ssr: false });
+const OnboardingBanner = dynamic(() => import('@/components/OnboardingBanner'), { ssr: false });
 
 export default function DashboardClient() {
   const [data,           setData]          = useState(null);
   const [loading,        setLoading]       = useState(true);
   const [firstName,      setFirstName]     = useState('Operador');
   const [planActivated,  setPlanActivated] = useState(false);
+  const [profilePlan,    setProfilePlan]   = useState(null);
+  const [profileRole,    setProfileRole]   = useState(null);
 
   useEffect(() => {
     if (sessionStorage.getItem('plan_activated')) {
@@ -33,6 +36,27 @@ export default function DashboardClient() {
         const meta = session.user.user_metadata ?? {};
         const name = meta.first_name || meta.full_name?.split(' ')[0] || 'Operador';
         setFirstName(name);
+
+        // Perfil para plan/rol (OnboardingBanner)
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('role, subscription_plan, organization_id')
+          .eq('id', session.user.id)
+          .single();
+        if (prof) {
+          setProfileRole(prof.role);
+          // El plan puede estar en la org también
+          if (prof.organization_id) {
+            const { data: org } = await supabase
+              .from('organizations')
+              .select('subscription_plan')
+              .eq('id', prof.organization_id)
+              .maybeSingle();
+            setProfilePlan(org?.subscription_plan || prof.subscription_plan || 'piloto');
+          } else {
+            setProfilePlan(prof.subscription_plan || 'piloto');
+          }
+        }
 
         const dashRes = await fetch('/api/dashboard');
         const json = await dashRes.json();
@@ -67,6 +91,11 @@ export default function DashboardClient() {
 
   return (
     <div className="space-y-5 md:space-y-8 animate-in fade-in duration-700 text-left pb-4">
+
+      {/* BANNER ONBOARDING — solo admin/jefe_pilotos, org sin aeronaves, NO para piloto independiente */}
+      {profileRole && profilePlan && profilePlan !== 'piloto' && data && (
+        <OnboardingBanner aircraftCount={data.stats?.fleetCount ?? 0} />
+      )}
 
       {/* BANNER PLAN ACTIVADO */}
       {planActivated && (

@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 import AuthSidePanel from '@/components/AuthSidePanel';
 
 // ── Planes (solo para el flujo "crear") ───────────────────────────────────────
@@ -148,12 +149,7 @@ export default function RegisterPage() {
       const result = await res.json();
       if (!result.success) throw new Error(result.error || 'Error al registrar');
       // Auto-login: ingresar directamente al dashboard sin pasar por login
-      const { createClient } = await import('@supabase/supabase-js');
-      const sb = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      );
-      const { error: signInErr } = await sb.auth.signInWithPassword({ email: form.email, password: form.password });
+      const { error: signInErr } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
       if (signInErr) { window.location.href = '/login?registered=1'; return; }
       window.location.href = '/dashboard';
     } catch (err) { setError(err.message); }

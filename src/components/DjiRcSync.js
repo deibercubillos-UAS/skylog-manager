@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 // Instrucciones para desktop (copiar al PC primero)
 const DEVICE_INSTRUCTIONS = {
@@ -209,7 +209,7 @@ const STATUS_COLOR = {
   ok_no_battery:  'text-green-500',
 };
 
-const EMPTY_AIRCRAFT = { model: '', brand: 'DJI', serial_number: '', ruas: '' };
+const EMPTY_AIRCRAFT = { model: '', brand: 'DJI', serial_number: '', ruas: '', total_hours: 0 };
 const EMPTY_BATTERY  = { brand: 'DJI', model: '', serial_number: '', cycles: 0, health_status: 100 };
 
 export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
@@ -232,6 +232,31 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
   const [batteryForm, setBatteryForm] = useState(EMPTY_BATTERY);
   const [creatingBattery, setCreatingBattery] = useState(false);
   const [batteryError, setBatteryError] = useState('');
+
+  // Rastrear qué archivos ya pasaron por el modal de batería (crear o omitir)
+  // para evitar que el mismo modal aparezca dos veces
+  const handledBatteryNamesRef = useRef(new Set());
+
+  // Auto-abrir modal de batería al terminar import (o cuando se cierra el anterior)
+  useEffect(() => {
+    if (state !== 'done' || batteryModal) return;
+    const next = files.find(
+      f => f.status === 'ok_no_battery' && !handledBatteryNamesRef.current.has(f.name)
+    );
+    if (!next) return;
+    setBatteryForm({
+      ...EMPTY_BATTERY,
+      serial_number: next.result?.serial_bateria ?? '',
+      cycles:        next.result?.ciclos_bateria  ?? 0,
+      model:         next.result?.modelo_bateria  ?? '',
+    });
+    setBatteryModal({
+      serial_bateria:  next.result?.serial_bateria,
+      ciclos_bateria:  next.result?.ciclos_bateria,
+      modelo_bateria:  next.result?.modelo_bateria,
+      fileName:        next.name,
+    });
+  }, [state, files, batteryModal]);
 
   useEffect(() => {
     const mobile = isMobileProp ?? /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -575,14 +600,16 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
         return;
       }
       // Marcar el archivo como ok completo
+      const handledFileName = batteryModal.fileName;
       setFiles(prev =>
         prev.map(f =>
-          f.name === batteryModal.fileName
+          f.name === handledFileName
             ? { ...f, status: 'ok', result: { ...f.result, needs_battery: false,
                 bateria_actualizada: { serial: data.serial_number, ciclos_anteriores: 0, ciclos_nuevos: data.cycles ?? 0 } } }
             : f
         )
       );
+      handledBatteryNamesRef.current.add(handledFileName);
       setBatteryModal(null);
       setBatteryForm(EMPTY_BATTERY);
       setCreatingBattery(false);
@@ -636,6 +663,7 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
     setFiles([]);
     setResults(null);
     setError('');
+    handledBatteryNamesRef.current = new Set();
   };
 
   const selectedCount = files.filter(f => f.selected && f.status === 'pending').length;
@@ -1069,6 +1097,23 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
                   />
                 </div>
                 <div className="col-span-2">
+                  <label className="text-xs font-black uppercase text-slate-500 tracking-widest block mb-1">
+                    Horas totales acumuladas (T.T)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={aircraftForm.total_hours}
+                    onChange={e => setAircraftForm(p => ({ ...p, total_hours: parseFloat(e.target.value) || 0 }))}
+                    placeholder="0.00"
+                    className="w-full border-2 border-orange-100 bg-white rounded-xl px-3 py-2 text-sm font-black text-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  />
+                  <p className="text-xs text-slate-400 mt-1 leading-snug">
+                    Ingresa las horas que ya tiene el equipo antes de registrarlo en Bitafly. Si es nuevo, deja 0.
+                  </p>
+                </div>
+                <div className="col-span-2">
                   <a
                     href="/dashboard/fleet"
                     target="_blank"
@@ -1201,7 +1246,11 @@ export default function DjiRcSync({ onImported, isMobile: isMobileProp }) {
 
               <div className="flex gap-3 pt-1">
                 <button
-                  onClick={() => { setBatteryModal(null); setBatteryError(''); }}
+                  onClick={() => {
+                    handledBatteryNamesRef.current.add(batteryModal.fileName);
+                    setBatteryModal(null);
+                    setBatteryError('');
+                  }}
                   className="flex-1 py-3 text-xs font-black text-slate-400 uppercase border border-slate-200 rounded-2xl hover:border-slate-400 transition-all"
                 >
                   Omitir

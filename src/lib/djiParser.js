@@ -119,7 +119,7 @@ export async function parseDjiTxtBuffer(buf) {
     _meta: {
       fuente:               'TXT_V13',
       log_version:          parser.version,
-      modelo_aeronave:      details.productType  ?? null,
+      modelo_aeronave:      formatProductType(details.productType),
       nombre_aeronave:      details.aircraftName ?? null,
       serial_aeronave_full,
       serial_camara,
@@ -153,6 +153,80 @@ export async function parseDjiTxtBuffer(buf) {
       bateria_cap_diseno,
     },
   };
+}
+
+// ── Product type formatter ───────────────────────────────────────
+// La librería devuelve strings como "Mini3Pro", "MavicAir2S", etc.
+// Para modelos desconocidos devuelve { Unknown: N } — lo ignoramos.
+const PRODUCT_TYPE_OVERRIDES = {
+  Phantom34K:          'Phantom 3 4K',
+  Phantom4ProV2:       'Phantom 4 Pro V2',
+  Phantom4RTK:         'Phantom 4 RTK',
+  Phantom4Multispectral: 'Phantom 4 Multispectral',
+  Matrice200V2:        'Matrice 200 V2',
+  Matrice210V2:        'Matrice 210 V2',
+  Matrice210RTKV2:     'Matrice 210 RTK V2',
+  Matrice300RTK:       'Matrice 300 RTK',
+  Matrice350RTK:       'Matrice 350 RTK',
+  Matrice30:           'Matrice 30',
+  MavicAir2S:          'Mavic Air 2S',
+  Mini2SE:             'Mini 2 SE',
+  Mini3Pro:            'Mini 3 Pro',
+  Mini4Pro:            'Mini 4 Pro',
+  Mavic2:              'Mavic 2',
+  Mavic2Enterprise:    'Mavic 2 Enterprise',
+  Mavic3Pro:           'Mavic 3 Pro',
+  Mavic3Enterprise:    'Mavic 3 Enterprise',
+  MavicAir2:           'Mavic Air 2',
+  MavicAir:            'Mavic Air',
+  MavicPro:            'Mavic Pro',
+  MavicMini:           'Mavic Mini',
+  Mavic3:              'Mavic 3',
+  Mavic3Classic:       'Mavic 3 Classic',
+  Mini3:               'Mini 3',
+  Mini2:               'Mini 2',
+  MiniSE:              'Mini SE',
+  Inspire1:            'Inspire 1',
+  Inspire2:            'Inspire 2',
+  Phantom3Standard:    'Phantom 3 Standard',
+  Phantom3Advanced:    'Phantom 3 Advanced',
+  Phantom3Pro:         'Phantom 3 Professional',
+  Phantom3SE:          'Phantom 3 SE',
+  Phantom4:            'Phantom 4',
+  Phantom4Pro:         'Phantom 4 Pro',
+  Phantom4Advanced:    'Phantom 4 Advanced',
+  OSMOPlus:            'OSMO+',
+  OSMOMobile:          'OSMO Mobile',
+  OSMORaw:             'OSMO Raw',
+  OSMOPro:             'OSMO Pro',
+  OSMO:                'OSMO',
+  N3FC:                'N3 FC',
+  AG405:               'AG 405',
+  Spark:               'Spark',
+  Avata:               'Avata',
+  Avata2:              'Avata 2',
+  FPV:                 'FPV',
+  None:                null,
+};
+
+function formatProductType(pt) {
+  if (pt == null) return null;
+  // Número directo (versiones antiguas de la librería)
+  if (typeof pt === 'number') return null;
+  // { Unknown: N } → modelo no reconocido por la librería
+  if (typeof pt === 'object') return null;
+  // String conocido con override específico
+  if (Object.prototype.hasOwnProperty.call(PRODUCT_TYPE_OVERRIDES, pt)) {
+    return PRODUCT_TYPE_OVERRIDES[pt];
+  }
+  // String desconocido: separar camelCase genéricamente
+  const formatted = pt
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .replace(/([a-zA-Z])(\d)/g, '$1 $2')
+    .replace(/(\d)([a-zA-Z])/g, '$1 $2')
+    .trim();
+  return formatted || null;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────

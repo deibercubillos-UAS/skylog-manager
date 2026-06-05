@@ -60,7 +60,10 @@ export async function parseDjiTxtBuffer(buf) {
   const compRec = records.find(r =>
     r.type === 'ComponentSerial' && r.content?.componentType === 'Aircraft'
   );
+  // ComponentSerial tiene el serial completo en modelos recientes (Mini 5 Pro, etc.).
+  // Si existe, lo usamos como serial principal para la búsqueda de aeronave.
   const serial_aeronave_full = compRec?.content?.serial ?? serial_aeronave;
+  const serial_final = serial_aeronave_full ?? serial_aeronave;
 
   // ── Firmware ────────────────────────────────────────────────────
   const firmwares = {};
@@ -107,7 +110,7 @@ export async function parseDjiTxtBuffer(buf) {
     : null;
 
   return {
-    serial_aeronave,
+    serial_aeronave: serial_final,
     fecha,
     hora_despegue,
     hora_aterrizaje,

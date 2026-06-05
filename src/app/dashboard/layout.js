@@ -140,6 +140,11 @@ const plan = data.org?.subscription_plan || data.profile?.subscription_plan || '
 const isPaidPlan  = !['piloto', null, undefined, ''].includes(plan);
 const isPilotoPlan = plan === 'piloto'; // solo piloto autónomo (sin SMS, sin auditoría)
 
+// Label visible del rol: piloto independiente (admin + plan piloto) → "Piloto Independiente"
+const displayRole = (isPilotoPlan && role === 'admin')
+  ? 'Piloto Independiente'
+  : (ROLE_LABELS[role] || role);
+
 // pilotHidden: true  → se oculta cuando el plan es 'piloto' (sin importar el rol)
 // pilotOnly: true    → se muestra SOLO cuando el plan es 'piloto'
 const navLinks = [
@@ -147,7 +152,7 @@ const navLinks = [
   { name: 'Mi Flota',       icon: 'precision_manufacturing', href: '/dashboard/fleet',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Tripulación',    icon: 'group',                   href: '/dashboard/pilots',          roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
   { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      roles: ['superadmin', 'admin', 'jefe_pilotos', 'piloto'], pilotOnly: true },
+  { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      roles: ['superadmin', 'admin', 'jefe_pilotos', 'piloto'] },
   { name: 'Programación',   icon: 'event_available',         href: '/dashboard/authorizations',  roles: ['superadmin', 'admin', 'jefe_pilotos'],            pilotHidden: true },
   { name: 'Bitácora',       icon: 'menu_book',               href: '/dashboard/logbook',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Reportes',       icon: 'assessment',              href: '/dashboard/reports',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
@@ -168,6 +173,7 @@ const filteredLinks = navLinks.filter(link =>
 
 const footerLinksAll = [
     { name: 'Configurar Organización', icon: 'settings',        href: '/dashboard/settings',          roles: ['superadmin', 'admin'] },
+    { name: 'Inicio Rápido (Excel)',   icon: 'upload_file',     href: '/dashboard/settings#inicio-rapido', roles: ['superadmin', 'admin'] },
     { name: 'Gestión de Usuarios',     icon: 'groups',          href: '/dashboard/users',             roles: ['superadmin', 'admin'], paidOnly: true },
     { name: 'Mi Perfil',               icon: 'account_circle',  href: '/dashboard/settings/profile',  roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
     { name: 'Suscripción',             icon: 'payments',        href: '/dashboard/subscription',      roles: ['superadmin', 'admin', 'gerente_sms'] },
@@ -389,7 +395,7 @@ const footerLinks = footerLinksAll.filter(link =>
                   {data.profile?.full_name}
                 </p>
                 <p className="text-xs font-bold text-orange-500 uppercase mt-0.5">
-                  {ROLE_LABELS[data.profile?.role] || data.profile?.role}
+                  {displayRole}
                 </p>
               </div>
               <div className="size-10 rounded-full bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">

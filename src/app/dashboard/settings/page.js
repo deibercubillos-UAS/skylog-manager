@@ -231,7 +231,7 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
             </header>
 
             {/* ── INICIO RÁPIDO — Onboarding Express ─────────────────── */}
-            <section className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+            <section id="inicio-rapido" className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-700 bg-gradient-to-r from-orange-600/20 to-transparent">
                     <span className="material-symbols-outlined text-2xl text-orange-400">rocket_launch</span>

@@ -107,6 +107,16 @@ Tablas principales:
 - `admin` + `gerente_sms` + `jefe_pilotos` + `superadmin`: pueden ver y guardar Replay de Vuelo (`PERMISSIONS.canViewFlightReplay`)
 - Todos los roles: pueden importar vuelos DJI desde el RC
 - `admin` + `superadmin`: gestión completa de organización, flota, suscripción
+- `piloto` (independiente): puede gestionar su propia flota, baterías, tecnología y mantenimiento (`canManageFleet` + `canManageOps` incluyen `piloto`). Puede ver y actualizar su suscripción.
+
+**Piloto Independiente** (role=`admin` + plan=`piloto`):
+- Se registra en `/registro` con tipo `solo` → crea su propia organización
+- El selector "Piloto Independiente / Organización" solo aparece para el plan piloto (para planes de pago siempre se asume company)
+- Al registrarse, hace auto-login directo al dashboard (sin pasar por /login)
+- En el layout se muestra como "Piloto Independiente" (no "Gerente General")
+- Ve la sección **Suscripción** en el sidebar para poder hacer upgrade
+- Su plan incluye: flota (1 drone), mantenimiento, replay básico. No incluye: SMS, auditoría, SORA, reportes
+- El **OnboardingBanner** ("Configura tu organización…") NO se muestra al piloto independiente
 
 **Planes** (definidos en `src/lib/planLimits.js`):
 - `piloto` — free (plan base al registrarse)
@@ -288,6 +298,8 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 | 7 | PWA / Android app para controladores DJI Enterprise | ✅ Completada |
 | Registro v2 | Flujo pago-antes-cuenta + "Unirse a organización" gratis + verificación manual | ✅ Completada |
 | Fix AircraftCard | Mover early return después de hooks (React Rules of Hooks) — corregía 3 builds ERROR | ✅ Completada |
+| Linter Supabase | Corrección de todos los ERRORs/WARNs/INFOs del Supabase Security Advisor | ✅ Completada |
+| UX Piloto Indep. | Auto-login post-registro, suscripción en sidebar, flota+mantenimiento, PDF plan-vuelo | ✅ Completada |
 
 ### Commits por fase
 
@@ -330,6 +342,12 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 | Fase 7 — PWA | `5bbf9eb` | manifest icons correctos + PwaInstallBanner (prompt nativo + DJI RC fallback) |
 | Fix AircraftCard hooks | `45c0b9e` | Mover early return después de useState/useRef/useEffect — corregía build ERROR |
 | Registro v2 | `ac17cdca` | activate-pending + validate-join + joinMode en register + /registro rediseñado |
+| Linter Supabase | `(migración)` | `20260605_security_linter_fixes.sql` — RLS processed_webhook_refs, search_path functions, vor_mor policy, emergency_contacts, epayco_plan_config, pending_* |
+| Build fixes | `(commits)` | Module-level createClient → lazy factory en vor-mor/[id], _resolveOrg, aerocivil/credentials |
+| Replay UX | `(commits)` | Dron más pequeño (28px), joystick overflow fix; tipo org forzado para planes pago |
+| UX Piloto | `6e8990d` | Auto-login, Suscripción en sidebar, canManageFleet+canManageOps incluyen piloto, PDF plan-vuelo |
+| Fix banner/sub | `1a21642` | OnboardingBanner → dashboard (no layout), subscription guard canManageFleet, auto-login singleton |
+| Fix maint. plan | `e7cfac0` | Plan piloto: maintenance: true en tabla de características de suscripción |
 
 ### Fixes Fase 6 — resumen técnico
 
@@ -349,8 +367,15 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 **Fase 5a/5b:**
 - `src/app/dashboard/safety/mapas/page.js` — visor ArcGIS (tabs: Visor / Referencia)
 - `src/app/dashboard/safety/page.js` — índice de Seguridad Operacional (5 módulos)
-- `src/app/dashboard/plan-vuelo/page.js` — banner ámbar pre-formulario (link a /safety/mapas)
+- `src/app/dashboard/plan-vuelo/page.js` — banner ámbar + KMZ + **PDF con encabezado del piloto** (jsPDF, botón naranja)
 - `src/components/authorizations/MapPickerModal.js` — modal Leaflet LIMPIO (sin ArcGIS)
+
+**UX Piloto Independiente:**
+- `src/app/registro/page.js` — auto-login post-registro con `supabase` singleton; tipo forzado a `company` para planes de pago
+- `src/app/dashboard/layout.js` — Suscripción visible para rol `piloto`; OnboardingBanner removido del sidebar
+- `src/app/dashboard/DashboardClient.js` — OnboardingBanner en top del dashboard (solo planes de pago)
+- `src/app/dashboard/subscription/layout.js` — guard cambiado de `canViewFinance` → `canManageFleet`
+- `src/lib/roles.js` — `canManageFleet` y `canManageOps` incluyen `'piloto'`
 
 **Replay de Vuelo (Fases 1-3):**
 - `src/components/FlightReplayModal.js` — modal replay (upload + visualización + Storage)
@@ -389,11 +414,7 @@ https://aerocivil.maps.arcgis.com/apps/instant/media/index.html?appid=b4be4d501c
 
 ## Pendientes de infraestructura
 
-- [ ] Ejecutar en Supabase SQL:
-  ```sql
-  UPDATE epayco_plan_config SET amount = 20000, trial_days = 30, updated_at = now() WHERE plan_key = 'piloto' AND billing = 'monthly';
-  UPDATE epayco_plan_config SET amount = 200000, trial_days = 30, updated_at = now() WHERE plan_key = 'piloto' AND billing = 'annual';
-  ```
+- [x] ~~Ejecutar UPDATE epayco_plan_config precios piloto~~ — ejecutado 2026-06-05
 - [ ] Agregar `DJI_API_KEY` a variables de entorno de Vercel
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a variables de entorno de Vercel
 - [ ] Agregar `AEROCIVIL_SALT` a variables de entorno de Vercel → luego remover el fallback hardcodeado en `src/app/api/aerocivil/credentials/route.js` (buscar el comentario `TODO`)
@@ -409,6 +430,16 @@ https://aerocivil.maps.arcgis.com/apps/instant/media/index.html?appid=b4be4d501c
 - **Auth guard**: después de `getUser()`, siempre verificar `if (!user) return 401` antes de usar `user.id`
 - **Permisos**: usar `PERMISSIONS.canXxx` de `src/lib/roles.js`, nunca arrays inline de roles
 - **total_hours**: actualizar siempre vía RPC `increment_aircraft_hours(p_id, p_hours)` — nunca read-calculate-write
+
+### Supabase Security Linter (aplicado 2026-06-05)
+Migración `supabase/migrations/20260605_security_linter_fixes.sql`:
+- **ERROR**: RLS habilitado en `processed_webhook_refs` + política restrictiva deny para anon/authenticated
+- **WARN**: `SET search_path = public` en `set_updated_at`, `increment_aircraft_hours`, `cleanup_expired_replays`
+- **WARN**: `REVOKE EXECUTE ON FUNCTION cleanup_expired_replays() FROM anon, authenticated`
+- **WARN**: `vor_mor_submissions` INSERT policy reemplaza `WITH CHECK (true)` → valida org existente
+- **WARN**: `pg_trgm` movida a schema `extensions` (los índices GIN existentes siguen funcionando por OID)
+- **INFO**: Políticas añadidas a `emergency_contacts`, `epayco_plan_config` (lectura pública), `pending_registrations`, `pending_subscriptions`
+- **PENDIENTE dashboard**: `auth_leaked_password_protection` — habilitar en Authentication > Settings > Password Strength
 
 ### Objetos de seguridad en Supabase (aplicados 2026-06-03)
 - Constraint `UNIQUE NULLS NOT DISTINCT (organization_id, aircraft_id, flight_date, takeoff_time)` en `flights`

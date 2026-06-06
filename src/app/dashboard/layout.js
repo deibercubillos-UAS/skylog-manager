@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Image from 'next/image';
 import { ROLE_LABELS, PERMISSIONS, hasPermission } from '@/lib/roles';
+import { GracePeriodContext } from '@/lib/gracePeriodContext';
+import { useRouter } from 'next/navigation';
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
@@ -15,6 +17,8 @@ export default function DashboardLayout({ children }) {
   const [activeFlight, setActiveFlight] = useState(null);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [accessExpired, setAccessExpired] = useState(false);
+  const [gracePeriod, setGracePeriod]     = useState({ isGracePeriod: false, daysLeft: 0 });
+  const router = useRouter();
 
   // Sidebar abierto por defecto solo en desktop
   useEffect(() => { setSidebarOpen(window.innerWidth >= 1024); }, []);
@@ -53,25 +57,32 @@ export default function DashboardLayout({ children }) {
           }
         }
 
-        // ── Verificar acceso expirado ────────────────────────────────────────
-        // Si el usuario fue dado de baja como piloto en su org hace más de 30 días
-        // Y no adquirió el plan piloto independiente → mostrar pantalla de acceso expirado.
-        // Los pilotos independientes (plan='piloto') ya tienen su propia org: skip.
+        // ── Verificar período de gracia / acceso expirado ───────────────────
+        // Solo aplica a usuarios con cuenta en una org ajena (no pilotos independientes).
         if (prof.subscription_plan !== 'piloto' && prof.organization_id) {
-          const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-          const { data: expiredPilot } = await supabase
+          const { data: deactivatedPilot } = await supabase
             .from('pilots')
-            .select('id')
+            .select('deactivated_at')
             .eq('organization_id', prof.organization_id)
             .eq('owner_id', user.id)
             .eq('is_active', false)
             .not('deactivated_at', 'is', null)
-            .lt('deactivated_at', cutoff)
             .maybeSingle();
-          if (expiredPilot) {
-            setAccessExpired(true);
-            setLoading(false);
-            return;
+
+          if (deactivatedPilot?.deactivated_at) {
+            const deactivatedMs = new Date(deactivatedPilot.deactivated_at).getTime();
+            const elapsedDays   = (Date.now() - deactivatedMs) / (1000 * 60 * 60 * 24);
+
+            if (elapsedDays >= 30) {
+              // Acceso completamente expirado
+              setAccessExpired(true);
+              setLoading(false);
+              return;
+            } else {
+              // Período de gracia: solo Dashboard + Bitácora, sin acciones
+              const daysLeft = Math.ceil(30 - elapsedDays);
+              setGracePeriod({ isGracePeriod: true, daysLeft });
+            }
           }
         }
 
@@ -147,6 +158,18 @@ export default function DashboardLayout({ children }) {
         refreshActiveFlight();
       }
   }, [pathname, data.profile?.organization_id]);
+
+  // EFECTO 3: Redirigir a /dashboard si intenta navegar fuera de las rutas permitidas en período de gracia
+  useEffect(() => {
+    if (!gracePeriod.isGracePeriod) return;
+    const allowed = ['/dashboard', '/dashboard/logbook'];
+    const isAllowed = allowed.some(r => pathname === r || pathname.startsWith(r + '/'));
+    // Excepción: /dashboard/logbook/new está bloqueado (no puede crear vuelos)
+    const isBlocked = pathname.startsWith('/dashboard/logbook/new');
+    if (!isAllowed || isBlocked) {
+      router.replace('/dashboard');
+    }
+  }, [pathname, gracePeriod.isGracePeriod]);
 
   // Cierra el menú automáticamente al navegar en móviles
   useEffect(() => {
@@ -229,12 +252,17 @@ const navLinks = [
 ];
 
 // FILTRAR por rol, plan y flags pilotOnly / pilotHidden
-const filteredLinks = navLinks.filter(link =>
-  link.roles.includes(role) &&
-  (!link.paidOnly     || isPaidPlan) &&
-  (!link.pilotHidden  || !isPilotoPlan) &&
-  (!link.pilotOnly    || isPilotoPlan)
-);
+// En período de gracia: solo Dashboard y Bitácora
+const GRACE_ALLOWED_HREFS = ['/dashboard', '/dashboard/logbook'];
+const filteredLinks = navLinks.filter(link => {
+  if (gracePeriod.isGracePeriod) return GRACE_ALLOWED_HREFS.includes(link.href);
+  return (
+    link.roles.includes(role) &&
+    (!link.paidOnly     || isPaidPlan) &&
+    (!link.pilotHidden  || !isPilotoPlan) &&
+    (!link.pilotOnly    || isPilotoPlan)
+  );
+});
 
 const footerLinksAll = [
     { name: 'Configurar Organización', icon: 'settings',        href: '/dashboard/settings',          roles: ['superadmin', 'admin'] },
@@ -474,7 +502,28 @@ const footerLinks = footerLinksAll.filter(link =>
         {/* pb-28 mobile = 7rem ≥ barra inferior (4rem) + safe-area máximo iPhone (2.125rem) + respiro */}
         {/* id="main-content" — destino del skip link de accesibilidad */}
         <div id="main-content" className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10 pb-28 lg:pb-10">
-          {children}
+          {/* Banner período de gracia */}
+          {gracePeriod.isGracePeriod && (
+            <div className="mb-6 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
+              <span className="material-symbols-outlined text-amber-500 text-xl shrink-0 mt-0.5">schedule</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black text-amber-800">
+                  Acceso de solo lectura — {gracePeriod.daysLeft} día{gracePeriod.daysLeft !== 1 ? 's' : ''} restante{gracePeriod.daysLeft !== 1 ? 's' : ''}
+                </p>
+                <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
+                  Fuiste dado de baja de tu organización. Solo puedes ver el Dashboard y la Bitácora.
+                  Crea una cuenta de Piloto Independiente para seguir registrando tus vuelos.
+                </p>
+              </div>
+              <a href="/registro?tipo=solo"
+                 className="shrink-0 px-3 py-1.5 bg-amber-500 text-white text-xs font-black uppercase tracking-wide rounded-xl hover:bg-amber-600 transition-colors whitespace-nowrap">
+                Crear cuenta
+              </a>
+            </div>
+          )}
+          <GracePeriodContext.Provider value={gracePeriod}>
+            {children}
+          </GracePeriodContext.Provider>
         </div>
       </main>
 

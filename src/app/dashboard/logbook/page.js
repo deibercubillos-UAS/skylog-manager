@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { PERMISSIONS } from '@/lib/roles';
+import { useGracePeriod } from '@/lib/gracePeriodContext';
 import dynamic from 'next/dynamic';
 
 const FlightReplayModal = dynamic(() => import('@/components/FlightReplayModal'), { ssr: false });
@@ -12,6 +13,7 @@ const CAN_EDIT_PILOT = ['superadmin', 'admin', 'jefe_pilotos'];
 const PAGE_SIZE = 30;
 
 export default function LogbookPage() {
+    const { isGracePeriod } = useGracePeriod();
     const [flights, setFlights] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -32,7 +34,7 @@ export default function LogbookPage() {
 
     const canEditPilot   = CAN_EDIT_PILOT.includes(userRole);
     const canDeleteEntry = PERMISSIONS.canDeleteLogbook.includes(userRole);
-    const canViewReplay  = PERMISSIONS.canViewFlightReplay.includes(userRole);
+    const canViewReplay  = PERMISSIONS.canViewFlightReplay.includes(userRole) && !isGracePeriod;
     const [replayFlight, setReplayFlight] = useState(null); // { id, label, hasReplay }
     // Optimistic: track which flights tuvieron replay guardado en esta sesión
     const [savedReplays, setSavedReplays] = useState(() => new Set());
@@ -363,17 +365,19 @@ export default function LogbookPage() {
                     </p>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
-                    <button
-                        onClick={() => setShowImport(v => !v)}
-                        className={`flex items-center gap-2 px-4 py-3 text-xs font-black uppercase rounded-xl border transition-all ${
-                            showImport
-                                ? 'bg-orange-600 text-white border-orange-600 shadow-md shadow-orange-500/20'
-                                : 'text-orange-600 border-orange-300 hover:bg-orange-50'
-                        }`}
-                    >
-                        <span className="material-symbols-outlined text-sm">upload_file</span>
-                        {showImport ? 'Cerrar importación' : 'Importar vuelos'}
-                    </button>
+                    {!isGracePeriod && (
+                        <button
+                            onClick={() => setShowImport(v => !v)}
+                            className={`flex items-center gap-2 px-4 py-3 text-xs font-black uppercase rounded-xl border transition-all ${
+                                showImport
+                                    ? 'bg-orange-600 text-white border-orange-600 shadow-md shadow-orange-500/20'
+                                    : 'text-orange-600 border-orange-300 hover:bg-orange-50'
+                            }`}
+                        >
+                            <span className="material-symbols-outlined text-sm">upload_file</span>
+                            {showImport ? 'Cerrar importación' : 'Importar vuelos'}
+                        </button>
+                    )}
                     <button
                         onClick={clearFilters}
                         className="flex-1 sm:flex-none px-4 py-3 text-xs font-black uppercase text-slate-400 hover:text-orange-600 transition-colors border border-slate-200 rounded-xl"
@@ -381,8 +385,8 @@ export default function LogbookPage() {
                 </div>
             </header>
 
-            {/* Panel importación DJI / Excel */}
-            {showImport && (
+            {/* Panel importación DJI / Excel — oculto en período de gracia */}
+            {showImport && !isGracePeriod && (
                 <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden p-6">
                     <DjiRcSync onImported={() => loadData(true)} onFlightImported={handleFlightImported} />
                 </div>

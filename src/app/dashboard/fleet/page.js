@@ -234,8 +234,10 @@ export default function FleetPage() {
   const planCfg      = PLAN_CONFIG[planKey] ?? PLAN_CONFIG.piloto;
   const maxDrones    = planCfg.maxDrones    === Infinity ? Infinity : planCfg.maxDrones;
   const maxBatteries = planCfg.maxBatteries === null     ? Infinity : planCfg.maxBatteries;
+  const maxTech      = (planCfg.maxTech === null || planCfg.maxTech === Infinity) ? Infinity : planCfg.maxTech;
   const droneAtLimit   = activeDrones.length  >= maxDrones;
   const batteryAtLimit = batteries.length     >= maxBatteries;
+  const techAtLimit    = tech.length          >= maxTech;
 
   const handleDeleteBattery = (id) => {
     setConfirmDlg({
@@ -369,13 +371,20 @@ export default function FleetPage() {
             <p className="text-slate-400 text-xs font-black uppercase">{tech.length} PAYLOADS</p>
           </div>
           {canManage && (
-            <button
-              onClick={() => setActivePanel('tech')}
-              className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
-            >
-              <span className="material-symbols-outlined text-sm">add_circle</span>
-              Nuevo Payload
-            </button>
+            techAtLimit ? (
+              <span className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-black text-slate-400 uppercase">
+                <span className="material-symbols-outlined text-sm">lock</span>
+                Límite del plan ({tech.length}/{maxTech === Infinity ? '∞' : maxTech})
+              </span>
+            ) : (
+              <button
+                onClick={() => setActivePanel('tech')}
+                className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
+              >
+                <span className="material-symbols-outlined text-sm">add_circle</span>
+                Nuevo Payload
+              </button>
+            )
           )}
         </header>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

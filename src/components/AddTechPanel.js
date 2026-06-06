@@ -1,6 +1,5 @@
 'use client';
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 
 export default function AddTechPanel({ onClose, onSuccess }) {
@@ -11,23 +10,16 @@ export default function AddTechPanel({ onClose, onSuccess }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
-
-      if (!prof?.organization_id) throw new Error("OrgID no detectado");
-
-      const { error } = await supabase.from('inventory_items').insert([{
-        category: form.category,
-        brand: form.brand,
-        model: form.model,
-        serial_number: form.serial_number,
-        name: `${form.brand} ${form.model}`,
-        organization_id: prof.organization_id,
-        owner_id: user.id,
-        status: 'Operativo'
-      }]);
-
-      if (error) throw error;
+      // Rutar por /api/fleet/tech para que el servidor verifique límites del plan
+      const res = await fetch('/api/fleet/tech', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const text = await res.text();
+      let data = {};
+      try { data = text ? JSON.parse(text) : {}; } catch { /* body no era JSON */ }
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}: ${res.statusText || 'Error al registrar el equipo.'}`);
       toast.success("Equipo registrado correctamente.");
       onSuccess();
     } catch (err) {

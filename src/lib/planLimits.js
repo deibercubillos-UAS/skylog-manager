@@ -9,6 +9,7 @@ export const PLAN_CONFIG = {
     maxDrones: 1,
     maxPilots: 1,
     maxBatteries: 3,
+    maxTech: 3,
     features: {
       maintenance: 'basic',
       reports: 'basic',         // Solo Maestro de Vuelo sin logo corporativo
@@ -27,6 +28,7 @@ export const PLAN_CONFIG = {
     maxDrones: 3,
     maxPilots: 4,
     maxBatteries: null,         // Ilimitadas
+    maxTech: null,              // Ilimitados
     features: {
       maintenance: true,        // Alertas automáticas
       reports: 'partial',       // F-OPS-002 + F-MNT-003
@@ -45,6 +47,7 @@ export const PLAN_CONFIG = {
     maxDrones: 15,
     maxPilots: 15,
     maxBatteries: null,
+    maxTech: null,
     features: {
       maintenance: 'advanced',
       reports: 'full',          // F-OPS-002 + F-MNT-003 + F-HUM-005
@@ -63,6 +66,7 @@ export const PLAN_CONFIG = {
     maxDrones: Infinity,
     maxPilots: Infinity,
     maxBatteries: null,
+    maxTech: null,
     features: {
       maintenance: 'advanced',
       reports: 'full',
@@ -87,6 +91,10 @@ export const canAddResource = (planKey, currentCount, type) => {
   if (type === 'battery') {
     if (plan.maxBatteries === null || plan.maxBatteries === Infinity) return true;
     return currentCount < plan.maxBatteries;
+  }
+  if (type === 'tech') {
+    if (plan.maxTech === null || plan.maxTech === Infinity) return true;
+    return currentCount < plan.maxTech;
   }
   const limit = type === 'drone' ? plan.maxDrones : plan.maxPilots;
   return currentCount < limit;

@@ -100,6 +100,10 @@ export async function POST(request) {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(buffer);
 
+    // Diagnóstico (temporal): nombres EXACTOS de las hojas del archivo subido
+    const sheetNames = wb.worksheets.map(w => w.name);
+    console.log('[onboarding/import] hojas:', JSON.stringify(sheetNames));
+
     const admin   = createAdminClient();
     const orgId   = ctx.orgId;
     const userId  = ctx.userId;
@@ -144,8 +148,11 @@ export async function POST(request) {
 
     // ── 2. FLOTA (antes que tripulación y baterías — FK) ─────────────────
     const wsFlota = wb.getWorksheet('✈️ Flota');
+    console.log('[onboarding/import] wsFlota encontrada:', !!wsFlota);
     if (wsFlota) {
       const rows = readSheet(wsFlota);
+      console.log('[onboarding/import] Flota filas leídas:', rows.length,
+        'keys:', JSON.stringify(rows[0] ? Object.keys(rows[0]) : []));
 
       // Cargar seriales existentes para dedup
       const { data: existingAC } = await admin
@@ -553,6 +560,8 @@ export async function POST(request) {
       results.baterias.skipped +
       results.polizas.skipped +
       results.bitacora.duplicates;
+
+    console.log('[onboarding/import] resultado:', JSON.stringify({ totalCreated, totalSkipped, results }));
 
     return NextResponse.json({ success: true, results, totalCreated, totalSkipped });
 

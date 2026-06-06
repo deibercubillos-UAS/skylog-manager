@@ -78,8 +78,9 @@ Tablas principales:
 - `flights` — `pilot_id` + `mission_id` editables vía PATCH. `replay_path` nullable. `plan_id` FK → flight_plans. Constraint UNIQUE NULLS NOT DISTINCT `(org_id, aircraft_id, flight_date, takeoff_time)`.
 - `maintenance_logs` — tiene `attachment_path TEXT` (bucket `maintenance-docs`, signed URL 1h)
 - `flight_plans` — planeaciones guardadas. `status` 'active'/'archived' (soft-delete). RLS por org.
-- `flight_authorizations` · `sms_reports` · `sora_templates` · `checklist_templates`
-- `form_templates` · `inventory_items` · `mission_inventory_logs` · `colombia_geo`
+- `flight_authorizations` — misiones programadas. `plan_data jsonb` guarda la planeación (op_name, geo_type, points, radius, altitude, takeoff_time, notes) para regenerar KMZ/PDF en Programación Activa.
+- `sms_reports` · `sora_templates` · `checklist_templates`
+- `form_templates` · `inventory_items` · `mission_inventory_logs` · `colombia_geo` (sin coordenadas — solo Código/Nombre Departamento/Municipio)
 - `pending_subscriptions` — intents ePayco (filas huérfanas = webhook no corrió)
 - `pending_registrations` — registro pre-pago (expira 3h, service_role only)
 - `processed_webhook_refs` — idempotencia webhook (`ref_payco PK`)
@@ -181,6 +182,25 @@ Tablas principales:
 - Si el email YA tiene cuenta Bitafly → ve banner en su dashboard (`InvitationsBanner` ← `GET /api/invitations/pending` por email). Si no → correo a `/registro`.
 - **Aceptar** (`POST /api/invitations/accept {token}`): une al invitado a la org con el rol asignado; si es dueño único de su org actual, transfiere su data (mismo patrón que join-org) y marca la origen `[Migrada]`. Vincula `pilots.profile_id` y marca `accepted`. **Rechazar**: `POST /api/invitations/reject`.
 - Badges en `/dashboard/pilots`: "Invitación pendiente" / "Aceptado" / "rechazada".
+
+---
+
+## Planeación, Programación y Despacho
+
+**Planear Vuelo** (`/dashboard/plan-vuelo`): `pilotOnly` — solo el piloto independiente lo ve en el nav. Usa el componente reutilizable `components/FlightPlanner.js` (mapa + zona + KMZ + PDF + guardar planeación).
+
+**Programación** (`/dashboard/authorizations`, roles admin/jefe_pilotos): crear misión. Pestañas **Misión Básica** y **Apéndice 13**.
+- **Misión Básica** = `BasicForm` unificado: datos de misión (PIC, UAS, tipo RAC 100, depto/municipio, fecha, hora) + zona en mapa (geo_type, altitud) + descargas KMZ/PDF, todo en un solo form.
+- Al elegir municipio se geocodifica `"Municipio, Depto, Colombia"` vía **Nominatim** (sin API key) para centrar el `MapPickerModal` (`initialCenter`/`initialZoom`). Falla → Bogotá.
+- KMZ/PDF se generan con `lib/flightPlanDocs.js` (`GEO_TYPES`, `getZoneSummary`, `downloadFlightKMZ`, `generateFlightPlanPdf`) — fuente única compartida con FlightPlanner.
+- Al autorizar, envía `plan_data` (zona/altitud/notas) para guardarlo en `flight_authorizations`.
+
+**Programación Activa** (`/dashboard/programacion-activa`, sección propia en nav): lista misiones autorizadas con descarga **KMZ/PDF por misión** (regeneradas desde `plan_data`). Misiones viejas sin `plan_data` descargan sin geometría.
+
+**Despacho** (`/dashboard/logbook/new`):
+- Sin selector de batería (se actualiza al subir DJI). 
+- Rol `piloto` solo ve órdenes donde es el PIC asignado (filtra `auths` por su `pilots.id`); managers ven todas.
+- Desplegable "Detalles de la programación" al pie muestra el `plan_data` + campos de la misión seleccionada.
 
 ---
 

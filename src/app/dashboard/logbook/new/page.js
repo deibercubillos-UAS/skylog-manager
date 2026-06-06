@@ -6,20 +6,36 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from '@/lib/toast';
 
+const MISSION_TYPES = [
+    'Fotografía / Video',
+    'Inspección técnica',
+    'Mapeo / Fotogrametría',
+    'Agricultura de precisión',
+    'Vigilancia / Seguridad',
+    'Búsqueda y rescate',
+    'Entrenamiento / Práctica',
+    'Recreativo',
+    'Otro',
+];
+
 export default function NewOperationPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [resources, setResources] = useState({ auths: [], batteries: [] });
+    const [resources, setResources] = useState({ auths: [], batteries: [], aircraft: [] });
     const [healthDone, setHealthDone] = useState(false);
     const [healthEnabled, setHealthEnabled] = useState(true);
     const [preflightEnabled, setPreflightEnabled] = useState(true);
     const [briefingEnabled, setBriefingEnabled] = useState(true);
 
+    // Plan del usuario — el piloto individual tiene un despacho simplificado
+    const [isPilotoPlan, setIsPilotoPlan] = useState(false);
+    const [myPilotId, setMyPilotId] = useState(null);
+
     // FLUJO: data -> health -> preflight -> briefing (los pasos se saltan si están desactivados)
     const [step, setStep] = useState('data');
     const [dynamicLabels, setDynamicLabels] = useState([]);
-    const [form, setForm] = useState({ auth_id: '', battery_id: '', takeoff_time: '', visual_condition: 'VMC', notes: '' });
+    const [form, setForm] = useState({ auth_id: '', battery_id: '', aircraft_id: '', mission_type: '', has_plan: false, takeoff_time: '', visual_condition: 'VMC', notes: '' });
     const [checks, setChecks] = useState({ health: {}, briefing: {}, preflight: {} });
     const [selectedAuth, setSelectedAuth] = useState(null);
     const [cancelNotes, setCancelNotes] = useState('');
@@ -31,18 +47,39 @@ export default function NewOperationPage() {
         async function init() {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
-                const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
-                const [auths, batteries, health, org] = await Promise.all([
+                const { data: prof } = await supabase.from('profiles').select('organization_id, subscription_plan').eq('id', user.id).single();
+                const pilotPlan = prof?.subscription_plan === 'piloto';
+                setIsPilotoPlan(pilotPlan);
+
+                const [auths, batteries, aircraft, health, org] = await Promise.all([
                     fetch('/api/flights/authorize').then(r => r.json()),
                     supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).eq('status', 'Operativo'),
+                    supabase.from('aircraft').select('id, model, serial_number').eq('organization_id', prof.organization_id).neq('status', 'Baja'),
                     supabase.from('daily_health_checks').select('*').eq('user_id', user.id).eq('check_date', new Date().toISOString().split('T')[0]),
                     supabase.from('organizations').select('enable_health_check, enable_preflight, enable_briefing').eq('id', prof.organization_id).single()
                 ]);
-                setResources({ auths: auths || [], batteries: batteries.data || [] });
+
+                const aircraftList = aircraft.data || [];
+                setResources({ auths: auths || [], batteries: batteries.data || [], aircraft: aircraftList });
                 setHealthDone(health.data?.length > 0);
                 setHealthEnabled(org.data?.enable_health_check ?? true);
                 setPreflightEnabled(org.data?.enable_preflight ?? true);
                 setBriefingEnabled(org.data?.enable_briefing ?? true);
+
+                // Piloto individual: resolver su registro de piloto y auto-seleccionar su única aeronave
+                if (pilotPlan) {
+                    const { data: pilotRow } = await supabase
+                        .from('pilots')
+                        .select('id')
+                        .eq('organization_id', prof.organization_id)
+                        .or(`email.eq.${user.email},owner_id.eq.${user.id}`)
+                        .limit(1)
+                        .maybeSingle();
+                    setMyPilotId(pilotRow?.id ?? null);
+                    if (aircraftList.length === 1) {
+                        setForm(prev => ({ ...prev, aircraft_id: aircraftList[0].id }));
+                    }
+                }
             } finally { setLoading(false); }
         }
         init();
@@ -94,38 +131,66 @@ export default function NewOperationPage() {
         setSaving(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            const selectedAuth = resources.auths.find(a => a.id === form.auth_id);
-            const orgId = selectedAuth.organization_id;
+            const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
 
-            // 1. Crear el Vuelo (Insertamos y esperamos confirmación)
-            const { data: flight, error: fErr } = await supabase.from('flights').insert([{ 
-                battery_id: form.battery_id,
-                takeoff_time: form.takeoff_time,
-                visual_condition: form.visual_condition,
-                notes: form.notes,
-                auth_id: selectedAuth.id, 
-                pilot_id: selectedAuth.pilot_id, 
-                aircraft_id: selectedAuth.aircraft_id, 
-                location: selectedAuth.location, 
-                mission_id: selectedAuth.mission_id, 
-                flight_date: new Date().toISOString().split('T')[0], 
-                organization_id: orgId, 
-                owner_id: user.id 
-            }]).select().single();
+            let flightRecord;
 
+            if (isPilotoPlan) {
+                // ── Despacho simplificado: piloto individual ──────────────────
+                // Sin orden de vuelo ni batería (la batería se actualiza al subir
+                // los registros DJI). El piloto es siempre el dueño de la cuenta.
+                const planNote = form.has_plan ? 'Planeación de vuelo: realizada.' : null;
+                const combinedNotes = [form.notes?.trim() || null, planNote].filter(Boolean).join(' ') || null;
+
+                flightRecord = {
+                    takeoff_time:    form.takeoff_time || null,
+                    visual_condition: form.visual_condition,
+                    notes:           combinedNotes,
+                    mission_type:    form.mission_type || null,
+                    pilot_id:        myPilotId,
+                    aircraft_id:     form.aircraft_id,
+                    flight_date:     new Date().toISOString().split('T')[0],
+                    organization_id: prof.organization_id,
+                    owner_id:        user.id,
+                };
+            } else {
+                // ── Despacho con orden de vuelo (organizaciones) ──────────────
+                const selectedAuth = resources.auths.find(a => a.id === form.auth_id);
+                flightRecord = {
+                    battery_id:      form.battery_id,
+                    takeoff_time:    form.takeoff_time,
+                    visual_condition: form.visual_condition,
+                    notes:           form.notes,
+                    auth_id:         selectedAuth.id,
+                    pilot_id:        selectedAuth.pilot_id,
+                    aircraft_id:     selectedAuth.aircraft_id,
+                    location:        selectedAuth.location,
+                    mission_id:      selectedAuth.mission_id,
+                    flight_date:     new Date().toISOString().split('T')[0],
+                    organization_id: selectedAuth.organization_id,
+                    owner_id:        user.id,
+                };
+            }
+
+            const orgId = flightRecord.organization_id;
+
+            // 1. Crear el vuelo
+            const { data: flight, error: fErr } = await supabase.from('flights').insert([flightRecord]).select().single();
             if (fErr) throw fErr;
 
-            // 2. Guardar resultados
-            await Promise.all([
+            // 2. Guardar resultados de las listas de chequeo
+            const tasks = [
                 supabase.from('results_health').insert([{ flight_id: flight.id, checks: checks.health, organization_id: orgId }]),
                 supabase.from('results_briefing').insert([{ flight_id: flight.id, checks: checks.briefing, organization_id: orgId }]),
                 supabase.from('results_preflight').insert([{ flight_id: flight.id, checks: checks.preflight, organization_id: orgId }]),
-                supabase.from('flight_authorizations').update({ status: 'realizado' }).eq('id', form.auth_id)
-            ]);
+            ];
+            // Solo marcar la orden como realizada cuando existe (flujo con auth)
+            if (!isPilotoPlan && form.auth_id) {
+                tasks.push(supabase.from('flight_authorizations').update({ status: 'realizado' }).eq('id', form.auth_id));
+            }
+            await Promise.all(tasks);
 
             toast.success("¡Autorizado volar! Redirigiendo al cierre de misión...");
-            
-            // REDIRECCIÓN FORZADA AL NAVEGADOR
             window.location.href = `/dashboard/logbook/finalize?id=${flight.id}`;
 
         } catch (err) {
@@ -166,7 +231,86 @@ export default function NewOperationPage() {
             <main className="flex-1 overflow-y-auto p-4 md:p-12">
                 <div className="max-w-3xl mx-auto space-y-6 md:space-y-8 pb-20">
                     
-                    {step === 'data' && (
+                    {step === 'data' && isPilotoPlan && (
+                        <div className="space-y-6 animate-in slide-in-from-bottom duration-500">
+                            <section className="bg-white p-6 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-200 space-y-6">
+                                <div className="grid grid-cols-1 gap-4 md:gap-6">
+
+                                    {/* Tipo de vuelo */}
+                                    <div className="space-y-1">
+                                        <label htmlFor="pi-mission-type" className="text-xs font-black uppercase text-slate-600 ml-1">Tipo de Vuelo <span className="text-orange-600">*</span></label>
+                                        <select id="pi-mission-type" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={form.mission_type} onChange={e => setForm({...form, mission_type: e.target.value})}>
+                                            <option value="">-- Seleccionar tipo --</option>
+                                            {MISSION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                        </select>
+                                    </div>
+
+                                    {/* Aeronave */}
+                                    <div className="space-y-1">
+                                        <label htmlFor="pi-aircraft" className="text-xs font-black uppercase text-slate-600 ml-1">Aeronave <span className="text-orange-600">*</span></label>
+                                        {resources.aircraft.length === 0 ? (
+                                            <Link href="/dashboard/fleet" className="block w-full p-4 bg-amber-50 border border-amber-200 rounded-2xl font-bold text-xs text-amber-700">
+                                                No tienes aeronaves registradas. Toca para añadir una en Flota.
+                                            </Link>
+                                        ) : (
+                                            <select id="pi-aircraft" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={form.aircraft_id} onChange={e => setForm({...form, aircraft_id: e.target.value})}>
+                                                <option value="">-- Seleccionar aeronave --</option>
+                                                {resources.aircraft.map(a => <option key={a.id} value={a.id}>{a.model} ({a.serial_number})</option>)}
+                                            </select>
+                                        )}
+                                    </div>
+
+                                    {/* Planeación de vuelo */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-black uppercase text-slate-600 ml-1">Planeación de Vuelo</label>
+                                        <div className="flex flex-col sm:flex-row gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setForm({...form, has_plan: !form.has_plan})}
+                                                className={`flex-1 p-4 rounded-2xl font-black text-xs uppercase border-2 transition-all flex items-center justify-center gap-2 ${form.has_plan ? 'bg-emerald-50 border-emerald-500 text-emerald-700' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
+                                            >
+                                                <span className="material-symbols-outlined text-base">{form.has_plan ? 'check_circle' : 'radio_button_unchecked'}</span>
+                                                Ya tengo mi planeación
+                                            </button>
+                                            <a
+                                                href="/dashboard/plan-vuelo"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex-1 p-4 rounded-2xl font-black text-xs uppercase border-2 border-orange-200 text-orange-600 hover:bg-orange-50 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <span className="material-symbols-outlined text-base">map</span>
+                                                Crear planeación
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    {/* Hora de despegue + condición */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <label htmlFor="pi-takeoff" className="text-xs font-black uppercase text-slate-600 ml-1">Hora Despegue <span className="text-orange-600">*</span></label>
+                                            <input id="pi-takeoff" type="time" value={form.takeoff_time} className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold outline-none focus:ring-2 focus:ring-orange-500" onChange={e => setForm({...form, takeoff_time: e.target.value})} />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label htmlFor="pi-condition" className="text-xs font-black uppercase text-slate-600 ml-1">Condición</label>
+                                            <select id="pi-condition" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold outline-none focus:ring-2 focus:ring-orange-500" value={form.visual_condition} onChange={e => setForm({...form, visual_condition: e.target.value})}>
+                                                <option value="VMC">VMC</option><option value="IMC">IMC</option><option value="NIGHT">NIGHT</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <p className="text-xs font-bold text-slate-400 bg-slate-50 rounded-2xl p-4 flex items-start gap-2">
+                                        <span className="material-symbols-outlined text-base text-slate-300 mt-0.5 shrink-0">info</span>
+                                        La batería y las horas de vuelo se actualizan automáticamente al subir los registros DJI.
+                                    </p>
+                                </div>
+                                <div className="flex flex-col gap-3 pt-4">
+                                    <button disabled={!form.mission_type || !form.aircraft_id || !form.takeoff_time} onClick={handleNextStep} className="w-full py-5 bg-orange-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl disabled:bg-slate-200 transition-all active:scale-95">{safetySteps.length === 0 ? 'Registrar Vuelo' : 'Continuar a Seguridad'}</button>
+                                </div>
+                            </section>
+                        </div>
+                    )}
+
+                    {step === 'data' && !isPilotoPlan && (
                         <div className="space-y-6 animate-in slide-in-from-bottom duration-500">
                             <section className="bg-white p-6 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-200 space-y-6">
                                 <div className="grid grid-cols-1 gap-4 md:gap-6">
@@ -235,7 +379,7 @@ export default function NewOperationPage() {
                                 ) : (
                                     <button disabled={!dynamicLabels.every(l => checks[step][l.field_number] === true) || saving} onClick={handleFinalize} className="w-full py-5 bg-emerald-600 text-white rounded-[2rem] font-black uppercase text-xs shadow-xl disabled:bg-slate-200 active:scale-95">Aprobar Vuelo</button>
                                 )}
-                                <button onClick={() => setShowCancelModal(true)} className="w-full py-3 bg-red-50 text-red-600 rounded-[2rem] font-black uppercase text-xs border border-red-100">Abortar Operación</button>
+                                <button onClick={() => isPilotoPlan ? router.back() : setShowCancelModal(true)} className="w-full py-3 bg-red-50 text-red-600 rounded-[2rem] font-black uppercase text-xs border border-red-100">Abortar Operación</button>
                             </div>
                         </div>
                     )}

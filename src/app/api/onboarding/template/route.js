@@ -57,6 +57,22 @@ export async function GET() {
       contacts:   contactsRes.data || [],
     };
 
+    // Diagnóstico (temporal): conteos y errores por sección
+    console.log('[onboarding/template] org=', orgId, JSON.stringify({
+      org:       !!orgRes.data,
+      pilots:    pilotsRes.data?.length || 0,
+      aircraft:  aircraftRes.data?.length || 0,
+      batteries: batteriesRes.data?.length || 0,
+      errs: {
+        org:       orgRes.error?.message || null,
+        pilots:    pilotsRes.error?.message || null,
+        aircraft:  aircraftRes.error?.message || null,
+        batteries: batteriesRes.error?.message || null,
+        policies:  policiesRes.error?.message || null,
+        contacts:  contactsRes.error?.message || null,
+      },
+    }));
+
     const { generateOnboardingTemplate } = await import('@/lib/onboardingTemplate');
     const buffer = await generateOnboardingTemplate(data);
 

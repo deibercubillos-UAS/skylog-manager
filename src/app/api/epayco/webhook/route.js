@@ -102,12 +102,18 @@ export async function POST(request) {
     }
 
     // ── 1. Intentar por extras (checkout widget) ──────────────────────────────
-    // OJO: en subscription-landing, ePayco mete el UID del plan en x_extra1,
-    // que NO es nuestro plan_key. Solo aceptamos x_extra1 si es un plan válido.
+    // OJO: en subscription-landing, ePayco rellena x_extra1/2/3 con UIDs internos
+    // de su plataforma (NO con nuestros valores). Solo los aceptamos si tienen
+    // el formato esperado:
+    //  - x_extra1 → plan_key válido
+    //  - x_extra2 → billing válido
+    //  - x_extra3 → UUID (nuestros user.id son UUID; los UID de ePayco no lo son)
     const VALID_PLAN_KEYS = ['escuadrilla', 'flota', 'enterprise'];
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
     let planKey = VALID_PLAN_KEYS.includes(params.x_extra1) ? params.x_extra1 : null;
     let billing = ['monthly', 'annual'].includes(params.x_extra2) ? params.x_extra2 : null;
-    let userId  = params.x_extra3 || null;
+    let userId  = UUID_RE.test(params.x_extra3 || '') ? params.x_extra3 : null;
 
     // ── 2. Intentar por referencia en pending_subscriptions ──────────────────
     if (!userId) {

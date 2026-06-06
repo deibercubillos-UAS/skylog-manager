@@ -28,6 +28,7 @@ src/
 │   │   ├── sms/       ← reportes SMS
 │   │   ├── reports/   ← generación de reportes PDF/Excel
 │   │   ├── dashboard/ ← KPIs
+│   │   ├── flight-plans/ ← GET/POST/DELETE planes de vuelo guardados
 │   │   └── admin/master/ ← panel superadmin (middleware protege /api/admin/*)
 │   └── dashboard/     ← páginas del dashboard (client-side)
 │       └── subscription/response/ ← página de retorno post-pago (llama /api/epayco/verify)
@@ -45,7 +46,8 @@ src/
 │   ├── reportGenerators.js ← PDF (jsPDF + autoTable), Excel (ExcelJS)
 │   ├── djiParser.js        ← parseDjiTxtBuffer() — server-side, requiere DJI_API_KEY
 │   ├── epayco.js           ← listSubscriptions(), cancelSubscription(), cancelSubscriptionsByEmail()
-│   └── epaycoActivation.js ← activatePlanForUser(), resolvePendingForUser() — idempotente
+│   ├── epaycoActivation.js ← activatePlanForUser(), resolvePendingForUser() — idempotente
+│   └── checklistDefaults.js ← CHECKLIST_DEFAULTS (salud/preflight/briefing) + buildChecklistRows()
 dji-parser/            ← módulo independiente: parsea archivos .txt DJI
 railway-robot/         ← Playwright automator para sistema externo (Railway)
 supabase/migrations/   ← migraciones SQL
@@ -66,6 +68,7 @@ graphify-out/          ← grafo de conocimiento del proyecto (graph.html, graph
 | `checkRateLimit()` | `src/lib/rateLimiter.js` | Rate limiting en memoria por IP — usado en auth y endpoints públicos |
 | `escHtml()` | `src/lib/emailHelpers.js` | Escapa HTML en variables de usuario antes de interpolar en templates de email |
 | `PERMISSIONS` | `src/lib/roles.js` | Fuente única de permisos por rol — usar siempre en lugar de arrays inline |
+| `CHECKLIST_DEFAULTS` | `src/lib/checklistDefaults.js` | Plantillas básicas para protocolos salud (8 items), pre-vuelo (14 items), briefing (12 items). `buildChecklistRows(formType, orgId, model)` genera filas listas para upsert. |
 
 **Regla**: Antes de tocar cualquier API route, leer `src/lib/supabaseServer.js` y `src/lib/apiAuth.js`.
 **Regla de permisos**: Nunca hardcodear `['superadmin','admin','jefe_pilotos']`. Usar `PERMISSIONS.canXxx` de `src/lib/roles.js`.
@@ -83,7 +86,7 @@ Tablas principales:
 - `flight_authorizations` — autorizaciones de vuelo (RAC 100 / Aerocivil)
 - `batteries` — gestión de baterías; campo `cycles` se actualiza automáticamente al importar vuelos DJI
 - `battery_logs` — logs de uso de baterías
-- `maintenance_logs` — mantenimiento
+- `maintenance_logs` — mantenimiento; columna `attachment_path TEXT` para documentos adjuntos (ruta en bucket `maintenance-docs`)
 - `sms_reports` — reportes SMS (Safety Management System)
 - `sora_templates` / `checklist_templates` — plantillas SORA y checklists
 - `form_templates` / `form_settings` — formularios personalizables
@@ -94,6 +97,8 @@ Tablas principales:
 - `pending_registrations` — registros pre-pago del flujo "pago antes de cuenta" en `/registro`. Columnas: `reference`, `email`, `plan_key`, `billing`, `completed_at`, `expires_at` (3h). Solo accesible con service_role. El webhook y `activate-pending` los marcan con `completed_at` al crear la cuenta.
 - `processed_webhook_refs` — tabla de idempotencia para replay protection del webhook ePayco. Columnas: `ref_payco TEXT PK`, `processed_at TIMESTAMPTZ`.
 - `epayco_plan_config` — configuración de planes ePayco. Columnas clave: `plan_key`, `billing`, `amount`, `trial_days`, `replay_retention_days` (días de retención replay, 0=permanente), `replay_max_flights` (máx vuelos con replay, 0=ilimitado). Editable desde `/admin/master`.
+- `flight_plans` — planeaciones de vuelo guardadas. Columnas: `id`, `organization_id`, `owner_id`, `name`, `geo_type`, `points JSONB`, `radius`, `altitude`, `flight_date`, `takeoff_time`, `location`, `notes`, `status` ('active'/'archived'). RLS por org. Índice: `idx_flight_plans_org(organization_id, status)`. La bitácora guarda `plan_id` (FK → flight_plans, ON DELETE SET NULL) para rastrear qué planeación se usó.
+- `organizations` — columnas de toggle de protocolos: `enable_health_check BOOLEAN DEFAULT true`, `enable_preflight BOOLEAN DEFAULT true`, `enable_briefing BOOLEAN DEFAULT true`.
 
 ---
 
@@ -119,6 +124,9 @@ Tablas principales:
 - El **OnboardingBanner** ("Configura tu organización…") NO se muestra al piloto independiente
 - Puede **dar de baja** aeronaves (retiro permanente, registros históricos se conservan)
 - Puede **transferir** aeronaves a otra org: transfiere drone + horas acumuladas + mantenimiento; la bitácora de vuelos queda en la org origen como historial privado
+- Flujo de **despacho simplificado** (`/dashboard/logbook/new`): no requiere orden de vuelo ni batería manual. Solo pide tipo de vuelo (`mission_type`), aeronave, planeación guardada (opcional) y hora de despegue. Las baterías se actualizan al importar los logs DJI después.
+- El **piloto se auto-asigna** al dueño de la cuenta: si no existe registro en `pilots` para el usuario, `/api/logbook/import-dji` lo crea automáticamente con nombre del perfil y `owner_id`.
+- **Planeaciones de vuelo**: puede guardar una planeación en `/dashboard/plan-vuelo` (nombre + geometría + altitud + fecha + hora) y seleccionarla antes de volar. El plan prellena hora de despegue y notas, y queda enlazado al vuelo via `plan_id`.
 
 **⚠️ Regla crítica — rol del piloto independiente en BD**:
 El `register/route.js` asigna `role='admin'` para `type='solo'`. Si se registró con un bug anterior (`role='piloto'`), la migración `20260605_fix_solo_pilot_role.sql` lo corrige. Las políticas RLS de `aircraft`, `batteries`, `inventory_items` y `maintenance_logs` usan `private.can_manage_ops()` que solo permite `['superadmin','admin','jefe_pilotos']` — un `role='piloto'` en BD bloquearía los INSERTs aunque el código JS lo permita.
@@ -193,6 +201,7 @@ El componente `src/components/DjiRcSync.js` maneja todo el flujo:
    - Si existe → inserta vuelo + actualiza `aircraft.total_hours`
    - Si hay `serial_bateria` y `ciclos_bateria` → actualiza `batteries.cycles` si el valor es mayor
 5. **Edición de piloto post-importación**: en la bitácora, roles `admin`/`jefe_pilotos`/`superadmin` pueden asignar/cambiar el piloto (PIC) con un dropdown inline (`PATCH /api/logbook/:id`)
+6. **Auto-creación de piloto para plan `piloto`**: si al importar no existe registro en `pilots` para el usuario (`owner_id` o email), el route lo crea automáticamente con nombre del perfil (`first_name + last_name`), evitando el estado "Sin asignar"
 
 ---
 
@@ -320,6 +329,14 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 | Fix roles piloto | register/route.js: type='solo' → role='admin'; migración BD corrige perfiles existentes | ✅ Completada |
 | Fix batteries route | /api/fleet/batteries commiteado (era solo local); canAddResource branch 'battery' commiteado | ✅ Completada |
 | Fleet piloto | Transferencia (sin bitácora), baja permanente, límites baterías y payloads para plan piloto | ✅ Completada |
+| Mant. adjuntos | Archivos adjuntos opcionales en mantenimiento (bucket `maintenance-docs`, 10MB, signed URL) | ✅ Completada |
+| Mapa ciudad | MapPickerModal se centra en la ciudad del perfil del piloto (CITY_COORDS dictionary 50+ ciudades) | ✅ Completada |
+| Fix AircraftCard | `overflow-hidden` movido al wrapper de imagen — el dropdown ya no se corta | ✅ Completada |
+| Misión bitácora | Nº misión editable inline en bitácora (click→input→blur/Enter); `PATCH /api/logbook/:id` acepta `mission_id` | ✅ Completada |
+| Auto-piloto DJI | Import DJI auto-crea registro en `pilots` si no existe para cuenta plan `piloto` | ✅ Completada |
+| Checklists v2 | Plantillas básicas + toggle ON/OFF para salud, pre-vuelo y briefing; `enable_preflight`/`enable_briefing` en orgs | ✅ Completada |
+| Despacho piloto | Flujo simplificado para piloto individual: sin orden de vuelo, sin batería manual; pide `mission_type` + aeronave + hora | ✅ Completada |
+| Flight plans | Guardar planeación en `/plan-vuelo` + selector antes de volar; tabla `flight_plans` + `flights.plan_id` | ✅ Completada |
 
 ### Commits por fase
 
@@ -375,6 +392,13 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 | Fix battery count 2 | `20d3154` | Admin client para conteo confiable en batteries route |
 | Fix canAddResource | `8a2de97` | Branch 'battery' en canAddResource commiteado (era solo local — root cause) |
 | Tech limits | `1481de1` | maxTech en planLimits, /api/fleet/tech route, AddTechPanel via API, UI lock badge |
+| Mant. adjuntos | `609da89` | AddMaintenancePanel con upload drag-drop; maintenance route + signed URL en tabla/cards |
+| Mapa ciudad | `55b4b1e` | CITY_COORDS + resolveCityCoords() en plan-vuelo; initialCenter/Zoom en MapPickerModal |
+| Fix AircraftCard overflow | `c543047` | overflow-hidden al wrapper imagen; dropdown ya no se corta |
+| Misión + auto-piloto | `279dec1` | MissionCell editable inline; PATCH logbook/:id acepta mission_id; auto-crea pilot plan piloto |
+| Checklists v2 | `9bf1bee` | checklistDefaults.js; toggles enable_preflight/briefing en orgs; FormSettingsClient reescrito |
+| Despacho piloto | `9e54880` | logbook/new bifurcación isPilotoPlan: sin auth/batería; MISSION_TYPES; auto-selección aeronave |
+| Flight plans | `3dab610` | flight_plans table + /api/flight-plans + guardar btn en plan-vuelo + selector en despacho |
 
 ### Fixes Fase 6 — resumen técnico
 
@@ -394,7 +418,7 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 **Fase 5a/5b:**
 - `src/app/dashboard/safety/mapas/page.js` — visor ArcGIS (tabs: Visor / Referencia)
 - `src/app/dashboard/safety/page.js` — índice de Seguridad Operacional (5 módulos)
-- `src/app/dashboard/plan-vuelo/page.js` — banner ámbar + KMZ + **PDF con encabezado del piloto** (jsPDF, botón naranja)
+- `src/app/dashboard/plan-vuelo/page.js` — banner ámbar + KMZ + **PDF con encabezado del piloto** (jsPDF) + **Guardar planeación** (POST `/api/flight-plans`, botón verde con check animado) + centrado en ciudad del perfil via `CITY_COORDS`
 - `src/components/authorizations/MapPickerModal.js` — modal Leaflet LIMPIO (sin ArcGIS)
 
 **UX Piloto Independiente:**
@@ -403,6 +427,26 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 - `src/app/dashboard/DashboardClient.js` — OnboardingBanner en top del dashboard (solo planes de pago)
 - `src/app/dashboard/subscription/layout.js` — guard cambiado de `canViewFinance` → `canManageFleet`
 - `src/lib/roles.js` — `canManageFleet` y `canManageOps` incluyen `'piloto'`
+
+**Piloto Independiente — mejoras 2026-06-06:**
+- `src/components/AddMaintenancePanel.js` — drag-drop upload; valida MIME y tamaño (10MB); POST con `attachment_path`; rollback si POST falla; excluye aeronaves en Baja
+- `src/app/dashboard/maintenance/page.js` — columna "Adjunto" + signed URL client-side (1h); `loadingDoc` state por fila
+- `src/app/api/maintenance/route.js` — GET/POST incluyen `attachment_path` en allowlist
+- `supabase/migrations/20260606_maintenance_attachments.sql` — `attachment_path` en `maintenance_logs` + bucket `maintenance-docs` + RLS por org
+- `src/app/dashboard/plan-vuelo/page.js` — `CITY_COORDS` dictionary 50+ ciudades; `resolveCityCoords(city)` → exact→partial→Bogotá; `handleSavePlan()` POST `/api/flight-plans`; botón "Guardar planeación para volar" verde con check animado
+- `src/components/authorizations/MapPickerModal.js` — acepta `initialCenter` e `initialZoom` props (antes hardcodeado a Colombia zoom 6)
+- `src/components/AircraftCard.js` — `overflow-hidden` movido al wrapper de imagen; root div ya no corta dropdowns
+- `src/app/api/logbook/[id]/route.js` — PATCH acepta `mission_id` además de `pilot_id`; allowlist dinámica; SELECT devuelve `mission_id`
+- `src/app/dashboard/logbook/page.js` — `MissionCell` componente: inline edit para editores, read-only para pilotos; spinner durante save
+- `src/app/api/logbook/import-dji/route.js` — si `plan='piloto'` y no hay registro en `pilots`, lo crea automáticamente con datos del perfil
+- `src/lib/checklistDefaults.js` — `CHECKLIST_DEFAULTS` para salud/preflight/briefing; `buildChecklistRows()` helper
+- `src/app/dashboard/settings/forms/FormSettingsClient.js` — `ENABLE_COLUMN` map para 3 protocolos; `toggleEnabled()`; `handleLoadDefaults()`; toggle card para los 3 tipos
+- `src/app/dashboard/settings/forms/page.js` — query incluye `enable_preflight`, `enable_briefing`
+- `supabase/migrations/20260606_form_toggles.sql` — `enable_preflight`, `enable_briefing` en `organizations`
+- `src/app/dashboard/logbook/new/page.js` — `isPilotoPlan` bifurcación: flujo simplificado (sin auth, sin batería), `MISSION_TYPES`, auto-selección aeronave, selector planeaciones guardadas, `handleSelectPlan()` prellena campos
+- `src/app/api/flight-plans/route.js` — GET/POST/DELETE planeaciones (allowlist, `canManageOps`, soft-delete)
+- `supabase/migrations/20260606_flight_plans.sql` — tabla `flight_plans` + RLS por org + índice
+- `supabase/migrations/20260606_flights_plan_id.sql` — `flights.plan_id UUID REFERENCES flight_plans(id) ON DELETE SET NULL`
 
 **Replay de Vuelo (Fases 1-3):**
 - `src/components/FlightReplayModal.js` — modal replay (upload + visualización + Storage)

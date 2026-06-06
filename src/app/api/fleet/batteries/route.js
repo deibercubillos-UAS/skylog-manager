@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClientSSR } from '@/lib/supabaseServer';
+import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { canAddResource } from '@/lib/planLimits';
 import { hasPermission } from '@/lib/roles';
@@ -38,9 +38,10 @@ export async function POST(request) {
     }
 
     // ── Verificar límite del plan ─────────────────────────────────
-    // Usamos select('id') sin head:true — el conteo HEAD de PostgREST
-    // puede ignorar filtros RLS/org en algunas configuraciones.
-    const { data: existingBatteries } = await supabase
+    // Usamos admin client con filtro explícito de orgId para evitar
+    // cualquier interferencia de RLS o sesión en el conteo.
+    const supabaseAdmin = createAdminClient();
+    const { data: existingBatteries } = await supabaseAdmin
       .from('batteries')
       .select('id')
       .eq('organization_id', orgId);
@@ -49,7 +50,7 @@ export async function POST(request) {
 
     if (!canAddResource(subscription_plan, currentBatteryCount, 'battery')) {
       return NextResponse.json(
-        { error: `Tu plan ha llegado al límite de baterías (máx ${subscription_plan === 'piloto' ? 3 : '∞'}).` },
+        { error: `Tu plan ha llegado al límite de baterías (${currentBatteryCount}/3 registradas).` },
         { status: 402 }
       );
     }

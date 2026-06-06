@@ -38,12 +38,16 @@ export async function POST(request) {
     }
 
     // ── Verificar límite del plan ─────────────────────────────────
-    const { count } = await supabase
+    // Usamos select('id') sin head:true — el conteo HEAD de PostgREST
+    // puede ignorar filtros RLS/org en algunas configuraciones.
+    const { data: existingBatteries } = await supabase
       .from('batteries')
-      .select('*', { count: 'exact', head: true })
+      .select('id')
       .eq('organization_id', orgId);
 
-    if (!canAddResource(subscription_plan, count || 0, 'battery')) {
+    const currentBatteryCount = existingBatteries?.length ?? 0;
+
+    if (!canAddResource(subscription_plan, currentBatteryCount, 'battery')) {
       return NextResponse.json(
         { error: `Tu plan ha llegado al límite de baterías (máx ${subscription_plan === 'piloto' ? 3 : '∞'}).` },
         { status: 402 }

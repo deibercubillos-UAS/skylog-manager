@@ -331,12 +331,13 @@ export async function POST(request) {
         };
       } else {
         // Batería no registrada → crear automáticamente si el plan lo permite
-        const { count: batCount } = await supabaseAdmin
+        const { data: existingBats } = await supabaseAdmin
           .from('batteries')
-          .select('id', { count: 'exact', head: true })
+          .select('id')
           .eq('organization_id', prof.organization_id);
+        const batCount = existingBats?.length ?? 0;
 
-        if (canAddResource(prof.subscription_plan, batCount ?? 0, 'battery')) {
+        if (canAddResource(prof.subscription_plan, batCount, 'battery')) {
           const { error: batInsertErr } = await supabaseAdmin
             .from('batteries')
             .insert([{

@@ -156,6 +156,16 @@ export default function BasicForm({ pilots, drones, org, loadData }) {
             mission_type: form.mission_type,
             scheduled_at: form.scheduled_at,
             location: `${form.municipality}, ${form.department}`,
+            // Guardar la planeación para regenerar KMZ/PDF desde Programación Activa
+            plan_data: {
+                op_name:      form.op_name?.trim() || form.mission_type,
+                geo_type:     geoType,
+                points:       zone?.points ?? [],
+                radius:       zone?.radius ?? null,
+                altitude:     form.altitude,
+                takeoff_time: form.takeoff_time,
+                notes:        form.notes?.trim() || null,
+            },
         };
         try {
             const res = await fetch('/api/flights/authorize', {

@@ -13,9 +13,9 @@ export async function GET() {
         const { data, error } = await supabase
             .from('flight_authorizations')
             .select(`
-                id,mission_id,scheduled_at,location,mission_type,status,created_at,
+                id,mission_id,scheduled_at,location,mission_type,status,created_at,plan_data,
                 pilot_id,aircraft_id,organization_id,
-                pilots:pilot_id(name, phone, id_number),
+                pilots:pilot_id(name, phone, id_number, email),
                 aircraft:aircraft_id(model, serial_number, total_hours),
                 payload:payload_id(brand, model, category, serial_number),
                 observer:observer_id(name)

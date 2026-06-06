@@ -1,41 +1,15 @@
-﻿'use client';
-import { useState, useEffect, useCallback } from 'react';
+'use client';
+import { useState } from 'react';
 import Link from 'next/link';
 import BasicForm from '@/components/authorizations/BasicForm';
 import AerocivilForm from '@/components/authorizations/AerocivilForm';
 
 export default function MissionControlClient({ initialData }) {
     const [activeTab, setActiveTab] = useState('basica');
-    const [missions, setMissions] = useState([]);
-    const [loadingMissions, setLoadingMissions] = useState(true);
     const { pilots, drones, org, userRole } = initialData;
 
-    // CARGAR TABLA DE PROGRAMACIÓN
-    const loadData = useCallback(async () => {
-        setLoadingMissions(true);
-        try {
-            const res = await fetch('/api/flights/authorize');
-            const data = await res.json();
-            setMissions(Array.isArray(data) ? data : []);
-        } catch (e) {
-            console.error('Error cargando programación', e);
-        } finally {
-            setLoadingMissions(false);
-        }
-    }, []);
-
-    useEffect(() => { loadData(); }, [loadData]);
-
-    const statusBadge = (status) => {
-        const map = {
-            autorizado: 'bg-orange-50 text-orange-600 border-orange-200',
-            realizado:  'bg-emerald-50 text-emerald-600 border-emerald-200',
-            cancelado:  'bg-red-50 text-red-600 border-red-200',
-        };
-        const label = (status || 'autorizado').toUpperCase();
-        const cls = map[status] || 'bg-slate-50 text-slate-500 border-slate-200';
-        return <span className={`px-2.5 py-1 rounded-full text-xs font-black uppercase border ${cls}`}>{label}</span>;
-    };
+    // Tras crear una misión, no refrescamos tabla aquí (vive en Programación Activa)
+    const loadData = () => {};
 
     return (
         <div className="space-y-10 pb-20 animate-in fade-in duration-700 text-left">
@@ -47,8 +21,9 @@ export default function MissionControlClient({ initialData }) {
                         Centro de Control: {org?.company_name}
                     </p>
                 </div>
-                <Link href="/dashboard" className="text-xs font-black text-primary uppercase underline">
-                    Volver al mando
+                <Link href="/dashboard/programacion-activa" className="text-xs font-black text-primary uppercase underline flex items-center gap-1">
+                    <span className="material-symbols-outlined text-base">flight_takeoff</span>
+                    Ver programación activa
                 </Link>
             </header>
 
@@ -76,90 +51,6 @@ export default function MissionControlClient({ initialData }) {
                     <AerocivilForm pilots={pilots} drones={drones} org={org} userRole={userRole} loadData={loadData} />
                 </div>
             )}
-
-            {/* TABLA DE PROGRAMACIONES */}
-            <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-6 md:p-8 border-b bg-slate-50/50 flex justify-between items-center">
-                    <div>
-                        <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Programación Activa</h3>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
-                            {missions.length} misiones registradas
-                        </p>
-                    </div>
-                    <button
-                        onClick={loadData}
-                        className="px-4 py-2 text-xs font-black uppercase text-slate-400 hover:text-orange-600 transition-colors"
-                    >
-                        Refrescar
-                    </button>
-                </div>
-
-                {loadingMissions ? (
-                    <div className="p-16 text-center text-slate-400 font-black text-xs uppercase tracking-widest animate-pulse">
-                        Cargando programación...
-                    </div>
-                ) : missions.length === 0 ? (
-                    <div className="p-16 text-center">
-                        <span className="material-symbols-outlined text-5xl text-slate-200">event_available</span>
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-4">Sin misiones programadas</p>
-                    </div>
-                ) : (
-                    <>
-                        {/* Mobile cards */}
-                        <div className="md:hidden divide-y divide-slate-100">
-                            {missions.map(m => (
-                                <div key={m.id} className="p-4 space-y-2">
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div className="min-w-0">
-                                            <p className="text-xs font-black font-mono text-orange-600">{m.mission_id}</p>
-                                            <p className="text-xs font-bold text-slate-800 mt-0.5 truncate">{m.pilots?.name || '---'}</p>
-                                            <p className="text-xs text-slate-400 uppercase font-bold truncate">{m.aircraft?.model || '---'}</p>
-                                        </div>
-                                        {statusBadge(m.status)}
-                                    </div>
-                                    <div className="flex items-center gap-3 text-xs text-slate-400">
-                                        <span className="font-bold">{m.scheduled_at}</span>
-                                        {m.location && <span className="truncate">· {m.location}</span>}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Desktop table */}
-                        <div className="hidden md:block overflow-x-auto">
-                            <table className="w-full text-left min-w-[900px]">
-                                <thead>
-                                    <tr className="bg-slate-50 text-xs font-black uppercase text-slate-400 tracking-widest border-b">
-                                        <th className="px-5 py-4">N° Misión</th>
-                                        <th className="px-5 py-4">Fecha</th>
-                                        <th className="px-5 py-4">Piloto (PIC)</th>
-                                        <th className="px-5 py-4">Aeronave</th>
-                                        <th className="px-5 py-4">Ubicación</th>
-                                        <th className="px-5 py-4">Tipo</th>
-                                        <th className="px-5 py-4 text-right">Estado</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {missions.map(m => (
-                                        <tr key={m.id} className="hover:bg-orange-50/30 transition-all text-xs">
-                                            <td className="px-5 py-4 font-black font-mono text-orange-600">{m.mission_id}</td>
-                                            <td className="px-5 py-4 text-slate-700 whitespace-nowrap">{m.scheduled_at}</td>
-                                            <td className="px-5 py-4 font-bold text-slate-900">{m.pilots?.name || '---'}</td>
-                                            <td className="px-5 py-4 text-xs text-slate-500">
-                                                {m.aircraft?.model || '---'}
-                                                {m.aircraft?.serial_number && <span className="block font-mono text-xs text-slate-400">S/N {m.aircraft.serial_number}</span>}
-                                            </td>
-                                            <td className="px-5 py-4 text-xs text-slate-500 max-w-[200px] truncate">{m.location}</td>
-                                            <td className="px-5 py-4 text-xs uppercase text-slate-500 max-w-[180px] truncate">{m.mission_type}</td>
-                                            <td className="px-5 py-4 text-right">{statusBadge(m.status)}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </>
-                )}
-            </section>
 
             {/* FOOTER DE ESTADO */}
             <div className="flex items-center gap-4 px-6 py-4 bg-slate-50 rounded-2xl border border-slate-100">

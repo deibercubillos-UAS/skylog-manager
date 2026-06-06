@@ -12,7 +12,7 @@ export async function GET() {
 
         const { data, error } = await supabase
             .from('maintenance_logs')
-            .select('id,aircraft_id,maintenance_type,description,hours_at_service,technician_name,created_at,aircraft:aircraft_id(model,serial_number)')
+            .select('id,aircraft_id,maintenance_type,description,hours_at_service,technician_name,created_at,attachment_path,aircraft:aircraft_id(model,serial_number)')
             .eq('organization_id', orgId)
             .order('created_at', { ascending: false })
             .limit(200);
@@ -36,12 +36,13 @@ export async function POST(request) {
 
         // 1. Registrar el Mantenimiento (compatibilidad con columnas legadas)
         const { data: log, error: mErr } = await supabase.from('maintenance_logs').insert([{
-            aircraft_id: body.aircraft_id,
+            aircraft_id:      body.aircraft_id,
             maintenance_type: body.maintenance_type,
-            description: body.description,
+            description:      body.description,
             hours_at_service: body.hours_at_service,
-            technician_name: body.technician_name,
-            organization_id: orgId
+            technician_name:  body.technician_name,
+            organization_id:  orgId,
+            attachment_path:  body.attachment_path || null,
         }]).select().single();
 
         if (mErr) throw mErr;

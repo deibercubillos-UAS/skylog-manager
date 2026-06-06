@@ -53,6 +53,25 @@ export default function BasicForm({ pilots, drones, org, loadData }) {
     const [mapOpen, setMapOpen] = useState(false);
     const [downloading, setDownloading] = useState(false);
     const [generatingPdf, setGeneratingPdf] = useState(false);
+    const [mapCenter, setMapCenter] = useState([4.7110, -74.0721]); // Bogotá por defecto
+    const [mapZoom, setMapZoom] = useState(12);
+
+    // Geocodifica "Municipio, Departamento, Colombia" para centrar el mapa.
+    // Usa Nominatim (OpenStreetMap), sin API key. Falla en silencio → Bogotá.
+    const geocodeMunicipality = async (muni, dept) => {
+        if (!muni) return;
+        try {
+            const q = encodeURIComponent(`${muni}, ${dept}, Colombia`);
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${q}`, {
+                headers: { 'Accept': 'application/json' },
+            });
+            const data = await res.json();
+            if (Array.isArray(data) && data[0]) {
+                setMapCenter([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+                setMapZoom(13);
+            }
+        } catch { /* mantiene el centro actual */ }
+    };
 
     // CARGA DE GEOGRAFÍA
     useEffect(() => {
@@ -210,7 +229,7 @@ export default function BasicForm({ pilots, drones, org, loadData }) {
                         </div>
                         <div className="space-y-1">
                             <label className="text-xs font-black text-slate-500 uppercase ml-1">Municipio</label>
-                            <select required disabled={!form.department} className={inputCls + ' disabled:opacity-30'} value={form.municipality} onChange={e => setForm({...form, municipality: e.target.value})}>
+                            <select required disabled={!form.department} className={inputCls + ' disabled:opacity-30'} value={form.municipality} onChange={e => { setForm({...form, municipality: e.target.value}); geocodeMunicipality(e.target.value, form.department); }}>
                                 <option value="">— Seleccionar —</option>
                                 {geo.munis.map(m => <option key={m} value={m}>{m}</option>)}
                             </select>
@@ -306,6 +325,8 @@ export default function BasicForm({ pilots, drones, org, loadData }) {
                 <MapPickerModal
                     type={geoType}
                     points={zone?.points || []}
+                    initialCenter={mapCenter}
+                    initialZoom={mapZoom}
                     onSave={({ points, radius }) => { setZone({ points, radius }); setMapOpen(false); }}
                     onClose={() => setMapOpen(false)}
                 />

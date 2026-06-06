@@ -73,7 +73,8 @@ lib/
 Tablas principales:
 - `profiles` — users, tiene `org_id`, `role`, `plan`, `epayco_subscription_id`, `subscription_expires_at`
 - `organizations` — tenant. Tiene `enable_health_check`, `enable_preflight`, `enable_briefing` (toggles protocolos)
-- `pilots` · `aircraft` · `batteries` · `battery_logs`
+- `pilots` · `aircraft` · `batteries` · `battery_logs`. `pilots.invitation_status` 'pending'/'accepted'/'rejected'/null · `pilots.profile_id` se vincula al aceptar invitación
+- `invitations` — invitación de tripulante: `email`, `role`, `organization_id`, `status`, `token` (UNIQUE, para enlaces), `pilot_id`, `invited_by`, `name`, `accepted_at`
 - `flights` — `pilot_id` + `mission_id` editables vía PATCH. `replay_path` nullable. `plan_id` FK → flight_plans. Constraint UNIQUE NULLS NOT DISTINCT `(org_id, aircraft_id, flight_date, takeoff_time)`.
 - `maintenance_logs` — tiene `attachment_path TEXT` (bucket `maintenance-docs`, signed URL 1h)
 - `flight_plans` — planeaciones guardadas. `status` 'active'/'archived' (soft-delete). RLS por org.
@@ -158,6 +159,22 @@ Tablas principales:
 4. Inserta vuelo + actualiza `total_hours` vía RPC + actualiza `batteries.cycles` si mayor
 5. Plan `piloto`: auto-crea registro en `pilots` si no existe (evita "Sin asignar")
 6. `parseDjiTxtBuffer()` requiere `DJI_API_KEY` en env (WASM, server-side)
+
+---
+
+## Onboarding Express (Excel) + Invitación de tripulantes
+
+**Plantilla** (`lib/onboardingTemplate.js`, `GET /api/onboarding/template`): genera/descarga un .xlsx con hojas por sección (`🏢 Organización`, `👥 Tripulación`, `✈️ Flota`, `🔋 Baterías`, `📋 Pólizas RCE`, `🚨 Contactos Emergencia`, `📒 Bitácora`). Se **pre-llena con los datos actuales de la org** si existen; si una sección está vacía muestra ejemplos. Bitácora nunca se pre-llena.
+
+**Import** (`POST /api/onboarding/import`): lee cada hoja por nombre exacto (con emoji).
+- ⚠️ **Las columnas obligatorias llevan ` *` en el encabezado** (`Serial / S/N *`). `readSheet()` quita el ` *` al leer para que las claves coincidan con los nombres limpios — NO romper esto.
+- Dedup: aeronaves/baterías por serial, pilotos por cédula, pólizas por número, contactos por (nombre+teléfono). Re-subir es idempotente.
+
+**Tripulantes con invitación**: al importar la hoja Tripulación, cada fila con email crea el piloto con `invitation_status='pending'` y dispara `createCrewInvitation()` (`lib/invitations.js`):
+- Registra fila en `invitations` (token único) y envía correo (Resend, `escHtml`).
+- Si el email YA tiene cuenta Bitafly → ve banner en su dashboard (`InvitationsBanner` ← `GET /api/invitations/pending` por email). Si no → correo a `/registro`.
+- **Aceptar** (`POST /api/invitations/accept {token}`): une al invitado a la org con el rol asignado; si es dueño único de su org actual, transfiere su data (mismo patrón que join-org) y marca la origen `[Migrada]`. Vincula `pilots.profile_id` y marca `accepted`. **Rechazar**: `POST /api/invitations/reject`.
+- Badges en `/dashboard/pilots`: "Invitación pendiente" / "Aceptado" / "rechazada".
 
 ---
 

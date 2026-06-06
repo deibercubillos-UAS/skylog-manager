@@ -37,7 +37,9 @@ function getCellValue(cell) {
   if (val === null || val === undefined) return '';
   if (val instanceof Date) return val;
   if (typeof val === 'object') {
-    if (val.richText)            return val.richText.map(r => r.text).join('');
+    if (val.richText)             return val.richText.map(r => r.text).join('');
+    if (val.text !== undefined)   return val.text;        // celda con hipervínculo { text, hyperlink }
+    if (val.hyperlink !== undefined) return val.hyperlink;
     if (val.result !== undefined) return val.result ?? '';
     return String(val);
   }
@@ -229,8 +231,9 @@ export async function POST(request) {
       };
 
       const { data: existingPilots } = await admin
-        .from('pilots').select('id_number').eq('organization_id', orgId);
-      const existingIds = new Set((existingPilots || []).map(p => String(p.id_number || '').trim()));
+        .from('pilots').select('id_number, email').eq('organization_id', orgId);
+      const existingIds    = new Set((existingPilots || []).map(p => String(p.id_number || '').trim()).filter(Boolean));
+      const existingEmails = new Set((existingPilots || []).map(p => String(p.email || '').trim().toLowerCase()).filter(Boolean));
 
       // Datos para los correos de invitación
       const { data: orgRow } = await admin
@@ -239,6 +242,7 @@ export async function POST(request) {
         .from('profiles').select('full_name').eq('id', userId).maybeSingle();
       const orgName    = orgRow?.company_name || 'tu organización';
       const senderName = senderRow?.full_name || 'Un administrador';
+      const selfEmail  = String(ctx.user?.email || '').trim().toLowerCase();
 
       let pilotCount = existingIds.size;
       const toInvite = []; // { pilotId, name, email, role }
@@ -246,17 +250,24 @@ export async function POST(request) {
       for (const r of rows) {
         const name     = str(r['Nombre Completo']);
         const idNumber = str(r['Número Cédula / Pasaporte']);
+        const emailRaw = str(r['Email']);
+        const emailLc  = emailRaw.toLowerCase();
 
         if (!name) {
           results.tripulacion.errors.push(`Fila ${r._row}: nombre es obligatorio`);
           continue;
         }
+        // Dedup por cédula O por email (evita duplicar a quien ya está, incl. uno mismo)
         if (idNumber && existingIds.has(idNumber)) {
           results.tripulacion.skipped++;
           continue;
         }
+        if (emailLc && existingEmails.has(emailLc)) {
+          results.tripulacion.skipped++;
+          continue;
+        }
         if (!canAddResource(plan, pilotCount, 'pilot')) {
-          results.tripulacion.errors.push(`Fila ${r._row}: límite de pilotos del plan alcanzado (${plan})`);
+          results.tripulacion.errors.push(`Fila ${r._row}: límite de tripulantes del plan alcanzado (${plan})`);
           continue;
         }
 
@@ -287,7 +298,9 @@ export async function POST(request) {
           results.tripulacion.created++;
           pilotCount++;
           if (idNumber) existingIds.add(idNumber);
-          if (email && inserted?.id) {
+          if (emailLc) existingEmails.add(emailLc);
+          // Invitar solo si tiene email y NO es el propio importador
+          if (email && inserted?.id && emailLc !== selfEmail) {
             toInvite.push({ pilotId: inserted.id, name, email, role });
           }
         }

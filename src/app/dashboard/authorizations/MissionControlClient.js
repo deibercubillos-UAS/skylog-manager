@@ -1,11 +1,8 @@
 ﻿'use client';
 import { useState, useEffect, useCallback } from 'react';
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import BasicForm from '@/components/authorizations/BasicForm';
 import AerocivilForm from '@/components/authorizations/AerocivilForm';
-
-const FlightPlanner = dynamic(() => import('@/components/FlightPlanner'), { ssr: false });
 
 export default function MissionControlClient({ initialData }) {
     const [activeTab, setActiveTab] = useState('basica');
@@ -73,14 +70,7 @@ export default function MissionControlClient({ initialData }) {
 
             {/* CONTENIDO */}
             {activeTab === 'basica' ? (
-                <div className="space-y-8">
-                    {/* Planeación de la misión: mapa + KMZ + PDF */}
-                    <FlightPlanner showHeader={false} />
-                    {/* Formulario de misión básica */}
-                    <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6 md:p-12">
-                        <BasicForm pilots={pilots} drones={drones} org={org} userRole={userRole} loadData={loadData} />
-                    </div>
-                </div>
+                <BasicForm pilots={pilots} drones={drones} org={org} userRole={userRole} loadData={loadData} />
             ) : (
                 <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6 md:p-12">
                     <AerocivilForm pilots={pilots} drones={drones} org={org} userRole={userRole} loadData={loadData} />

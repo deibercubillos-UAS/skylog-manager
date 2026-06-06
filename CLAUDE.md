@@ -19,7 +19,7 @@ src/
 │   │   ├── auth/      ← register, login, reset-password, activate-pending, validate-join
 │   │   ├── flights/   ← authorize (autorizaciones de vuelo)
 │   │   ├── pilots/    ← CRUD pilotos
-│   │   ├── fleet/     ← CRUD aeronaves
+│   │   ├── fleet/     ← CRUD aeronaves, baterías (/batteries), tecnología (/tech)
 │   │   ├── logbook/   ← bitácora (flights, batteries, inventory, pilots)
 │   │   │   └── [id]/  ← PATCH pilot_id en un vuelo (restringido a admin/jefe_pilotos)
 │   │   ├── epayco/    ← webhook, verify-on-return, checkout
@@ -115,13 +115,29 @@ Tablas principales:
 - Al registrarse, hace auto-login directo al dashboard (sin pasar por /login)
 - En el layout se muestra como "Piloto Independiente" (no "Gerente General")
 - Ve la sección **Suscripción** en el sidebar para poder hacer upgrade
-- Su plan incluye: flota (1 drone), mantenimiento, replay básico. No incluye: SMS, auditoría, SORA, reportes
+- Su plan incluye: flota (1 drone, 3 baterías, 3 payloads), mantenimiento, replay básico. No incluye: SMS, auditoría, SORA, reportes
 - El **OnboardingBanner** ("Configura tu organización…") NO se muestra al piloto independiente
+- Puede **dar de baja** aeronaves (retiro permanente, registros históricos se conservan)
+- Puede **transferir** aeronaves a otra org: transfiere drone + horas acumuladas + mantenimiento; la bitácora de vuelos queda en la org origen como historial privado
+
+**⚠️ Regla crítica — rol del piloto independiente en BD**:
+El `register/route.js` asigna `role='admin'` para `type='solo'`. Si se registró con un bug anterior (`role='piloto'`), la migración `20260605_fix_solo_pilot_role.sql` lo corrige. Las políticas RLS de `aircraft`, `batteries`, `inventory_items` y `maintenance_logs` usan `private.can_manage_ops()` que solo permite `['superadmin','admin','jefe_pilotos']` — un `role='piloto'` en BD bloquearía los INSERTs aunque el código JS lo permita.
 
 **Planes** (definidos en `src/lib/planLimits.js`):
 - `piloto` — free (plan base al registrarse)
 - `escuadrilla`, `flota`, `enterprise` — pagos vía ePayco
-- `canAddResource()` verifica límites de aeronaves/pilotos/baterías por plan
+- `canAddResource()` verifica límites de aeronaves/pilotos/baterías/tecnología por plan
+
+**Límites por plan** (`src/lib/planLimits.js`):
+
+| Recurso | piloto | escuadrilla | flota | enterprise |
+|---|---|---|---|---|
+| Drones | 1 | 3 | 15 | ∞ |
+| Pilotos | 1 | 4 | 15 | ∞ |
+| Baterías | 3 | ∞ | ∞ | ∞ |
+| Tecnología/Payloads | 3 | ∞ | ∞ | ∞ |
+
+**Regla de conteo**: usar `createAdminClient()` con filtro explícito `eq('organization_id', orgId)` y `.length` del array — NO usar `{ count: 'exact', head: true }` (el HEAD de PostgREST puede ignorar filtros RLS y devolver conteo global).
 
 ---
 
@@ -300,6 +316,10 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 | Fix AircraftCard | Mover early return después de hooks (React Rules of Hooks) — corregía 3 builds ERROR | ✅ Completada |
 | Linter Supabase | Corrección de todos los ERRORs/WARNs/INFOs del Supabase Security Advisor | ✅ Completada |
 | UX Piloto Indep. | Auto-login post-registro, suscripción en sidebar, flota+mantenimiento, PDF plan-vuelo | ✅ Completada |
+| GTM | Google Tag Manager (GTM-TTT98NMJ) instalado en layout.js (noscript + afterInteractive) | ✅ Completada |
+| Fix roles piloto | register/route.js: type='solo' → role='admin'; migración BD corrige perfiles existentes | ✅ Completada |
+| Fix batteries route | /api/fleet/batteries commiteado (era solo local); canAddResource branch 'battery' commiteado | ✅ Completada |
+| Fleet piloto | Transferencia (sin bitácora), baja permanente, límites baterías y payloads para plan piloto | ✅ Completada |
 
 ### Commits por fase
 
@@ -348,6 +368,13 @@ Los route handlers bajo `src/app/api/public/[feature]/[orgCode]/route.js` están
 | UX Piloto | `6e8990d` | Auto-login, Suscripción en sidebar, canManageFleet+canManageOps incluyen piloto, PDF plan-vuelo |
 | Fix banner/sub | `1a21642` | OnboardingBanner → dashboard (no layout), subscription guard canManageFleet, auto-login singleton |
 | Fix maint. plan | `e7cfac0` | Plan piloto: maintenance: true en tabla de características de suscripción |
+| GTM install | `450867f` | Google Tag Manager GTM-TTT98NMJ en layout.js |
+| Fix batteries route | `5a3ca80` | /api/fleet/batteries commiteado por primera vez; AddBatteryPanel usa res.text() |
+| Transfer/baja | `b4c48c6` | Transferencia sin bitácora; baja permanente con historial |
+| Fix battery count | `079fe62` | head:true → select('id').length en conteo de baterías y DJI import |
+| Fix battery count 2 | `20d3154` | Admin client para conteo confiable en batteries route |
+| Fix canAddResource | `8a2de97` | Branch 'battery' en canAddResource commiteado (era solo local — root cause) |
+| Tech limits | `1481de1` | maxTech en planLimits, /api/fleet/tech route, AddTechPanel via API, UI lock badge |
 
 ### Fixes Fase 6 — resumen técnico
 
@@ -415,9 +442,12 @@ https://aerocivil.maps.arcgis.com/apps/instant/media/index.html?appid=b4be4d501c
 ## Pendientes de infraestructura
 
 - [x] ~~Ejecutar UPDATE epayco_plan_config precios piloto~~ — ejecutado 2026-06-05
+- [x] ~~Instalar Google Tag Manager~~ — GTM-TTT98NMJ en layout.js (commit `450867f`)
 - [ ] Agregar `DJI_API_KEY` a variables de entorno de Vercel
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a variables de entorno de Vercel
 - [ ] Agregar `AEROCIVIL_SALT` a variables de entorno de Vercel → luego remover el fallback hardcodeado en `src/app/api/aerocivil/credentials/route.js` (buscar el comentario `TODO`)
+- [ ] Habilitar `auth_leaked_password_protection` en Supabase → Authentication > Settings > Password Strength
+- [ ] Revisar y commitear archivos locales pendientes: `src/app/registro/page.js`, `src/app/dashboard/subscription/response/page.js`, `src/lib/analytics.js`
 
 ---
 

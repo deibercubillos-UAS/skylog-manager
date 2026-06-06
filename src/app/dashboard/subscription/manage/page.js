@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
 // ── Datos de planes ─────────────────────────────────────────────────────────
 
@@ -95,8 +96,17 @@ function FeatureRow({ icon, label, value }) {
   );
 }
 
+// ── Roles disponibles para unirse ────────────────────────────────────────────
+const JOIN_ROLES = [
+  { value: 'piloto',       label: 'Piloto',        hint: 'Registra vuelos y opera aeronaves' },
+  { value: 'jefe_pilotos', label: 'Jefe de Pilotos', hint: 'Gestiona pilotos y aprueba vuelos' },
+  { value: 'gerente_sms',  label: 'Gerente SMS',   hint: 'Gestiona seguridad operacional' },
+];
+
 // ── Componente principal ─────────────────────────────────────────────────────
 export default function ManageSubscriptionPage() {
+  const router = useRouter();
+
   const [loading, setLoading]           = useState(true);
   const [profile, setProfile]           = useState(null);
   const [billing, setBilling]           = useState('monthly');
@@ -106,6 +116,18 @@ export default function ManageSubscriptionPage() {
   const [cancelDone, setCancelDone]     = useState(false);
   const [cancelError, setCancelError]   = useState('');
   const retentionRef = useRef(null);
+
+  // ── Estado "Unirme a organización" ────────────────────────────────────────
+  const [joinNit,        setJoinNit]        = useState('');
+  const [joinSearching,  setJoinSearching]  = useState(false);
+  const [joinOrg,        setJoinOrg]        = useState(null);   // { orgId, orgName, plan }
+  const [joinOrgError,   setJoinOrgError]   = useState('');
+  const [joinRole,       setJoinRole]       = useState('piloto');
+  const [joinConfirming, setJoinConfirming] = useState(false);  // modal visible
+  const [joining,        setJoining]        = useState(false);
+  const [joinDone,       setJoinDone]       = useState(false);
+  const [joinError,      setJoinError]      = useState('');
+  const joinConfirmRef = useRef(null);
 
   useEffect(() => {
     async function load() {
@@ -173,6 +195,54 @@ export default function ManageSubscriptionPage() {
       setCancelError(e.message);
     } finally {
       setCancelling(false);
+    }
+  }
+
+  // Auto-focus modal de confirmación de unirse
+  useEffect(() => {
+    if (joinConfirming && joinConfirmRef.current) joinConfirmRef.current.focus();
+  }, [joinConfirming]);
+
+  // ── Buscar org por NIT ─────────────────────────────────────────────────────
+  async function handleSearchOrg(e) {
+    e.preventDefault();
+    const nit = joinNit.trim();
+    if (!nit) return;
+    setJoinSearching(true);
+    setJoinOrg(null);
+    setJoinOrgError('');
+    try {
+      const res  = await fetch(`/api/auth/validate-join?nit=${encodeURIComponent(nit)}`);
+      const json = await res.json();
+      if (!json.valid) throw new Error(json.error || 'NIT no encontrado');
+      setJoinOrg({ orgId: json.orgId, orgName: json.orgName, plan: json.plan });
+    } catch (e) {
+      setJoinOrgError(e.message);
+    } finally {
+      setJoinSearching(false);
+    }
+  }
+
+  // ── Confirmar unión ────────────────────────────────────────────────────────
+  async function handleJoinOrg() {
+    setJoining(true);
+    setJoinError('');
+    try {
+      const res  = await fetch('/api/auth/join-org', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nit: joinNit.trim(), role: joinRole }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Error al unirse');
+      setJoinDone(true);
+      setJoinConfirming(false);
+      // Recargar la sesión para reflejar el nuevo org/rol
+      setTimeout(() => router.push('/dashboard'), 2500);
+    } catch (e) {
+      setJoinError(e.message);
+    } finally {
+      setJoining(false);
     }
   }
 
@@ -344,6 +414,116 @@ export default function ManageSubscriptionPage() {
         </section>
       )}
 
+      {/* ── Unirse a organización (solo plan piloto) ──────────────────────── */}
+      {planKey === 'piloto' && !joinDone && (
+        <section aria-label="Unirme a una organización"
+                 className="border border-slate-200 rounded-2xl p-6 bg-slate-50/60 space-y-5">
+          <div className="flex items-start gap-3">
+            <div className="size-10 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-orange-600 text-xl" aria-hidden="true">corporate_fare</span>
+            </div>
+            <div>
+              <h4 className="font-black text-slate-800 text-sm uppercase tracking-wide">Unirme a una organización</h4>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Si perteneces a una empresa que ya usa BitaFly, ingresa su NIT para transferir
+                toda tu bitácora y flota a esa organización.
+              </p>
+            </div>
+          </div>
+
+          {/* Buscador de NIT */}
+          <form onSubmit={handleSearchOrg} className="flex gap-2">
+            <input
+              type="text"
+              value={joinNit}
+              onChange={e => { setJoinNit(e.target.value); setJoinOrg(null); setJoinOrgError(''); }}
+              placeholder="NIT de la organización (ej. 900123456)"
+              className="flex-1 px-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-sm font-medium focus:border-orange-400 focus:outline-none transition-colors"
+              disabled={joinSearching}
+              aria-label="NIT de la organización destino"
+            />
+            <button
+              type="submit"
+              disabled={joinSearching || !joinNit.trim()}
+              className="px-5 py-3 bg-slate-800 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+            >
+              {joinSearching
+                ? <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                : <span className="material-symbols-outlined text-sm">search</span>}
+              {joinSearching ? 'Buscando...' : 'Buscar'}
+            </button>
+          </form>
+
+          {/* Error de búsqueda */}
+          {joinOrgError && (
+            <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 rounded-xl px-4 py-3" role="alert">
+              <span className="material-symbols-outlined text-sm shrink-0">error</span>
+              {joinOrgError}
+            </div>
+          )}
+
+          {/* Org encontrada → selección de rol */}
+          {joinOrg && (
+            <div className="bg-white border-2 border-emerald-200 rounded-2xl p-5 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-emerald-500">check_circle</span>
+                <div>
+                  <p className="text-sm font-black text-slate-800">{joinOrg.orgName}</p>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide">Plan {joinOrg.plan} · NIT {joinNit.trim()}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-black text-slate-500 uppercase tracking-widest">¿Con qué rol te unirás?</p>
+                <div className="grid gap-2">
+                  {JOIN_ROLES.map(r => (
+                    <label key={r.value}
+                           className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                             joinRole === r.value
+                               ? 'border-orange-400 bg-orange-50'
+                               : 'border-slate-100 bg-slate-50 hover:border-slate-200'
+                           }`}>
+                      <input
+                        type="radio"
+                        name="joinRole"
+                        value={r.value}
+                        checked={joinRole === r.value}
+                        onChange={() => setJoinRole(r.value)}
+                        className="accent-orange-500"
+                      />
+                      <div>
+                        <p className="text-sm font-black text-slate-800">{r.label}</p>
+                        <p className="text-xs text-slate-500">{r.hint}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={() => setJoinConfirming(true)}
+                className="w-full py-3 bg-[#ec5b13] text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-orange-600 transition-all flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-sm">transit_enterexit</span>
+                Unirme a {joinOrg.orgName}
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ── Banner éxito unión ────────────────────────────────────────────── */}
+      {joinDone && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-start gap-3 animate-in fade-in duration-500"
+             role="status" aria-live="polite">
+          <span className="material-symbols-outlined text-emerald-500 text-2xl shrink-0">check_circle</span>
+          <div>
+            <p className="text-sm font-black text-emerald-800">¡Te uniste exitosamente!</p>
+            <p className="text-xs text-emerald-700 mt-0.5">Tu bitácora y flota han sido transferidas. Redirigiendo al dashboard...</p>
+          </div>
+        </div>
+      )}
+
       {/* ── Danger zone (cancel) ─────────────────────────────────────────── */}
       {isPaid && !cancelDone && (
         <section aria-label="Zona de cancelación"
@@ -363,6 +543,73 @@ export default function ManageSubscriptionPage() {
             </div>
           </div>
         </section>
+      )}
+
+      {/* ── Modal confirmación de unirse ─────────────────────────────────── */}
+      {joinConfirming && joinOrg && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+             role="dialog" aria-modal="true" aria-labelledby="join-title"
+             onClick={e => { if (e.target === e.currentTarget && !joining) setJoinConfirming(false); }}>
+          <div ref={joinConfirmRef} tabIndex={-1}
+               className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 space-y-6 outline-none">
+
+            <div className="flex items-start gap-4">
+              <div className="size-12 rounded-2xl bg-orange-100 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-orange-600" aria-hidden="true">corporate_fare</span>
+              </div>
+              <div>
+                <h3 id="join-title" className="text-xl font-black text-slate-900 uppercase tracking-tighter">
+                  ¿Confirmas la unión?
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">Esta acción transferirá toda tu data y no se puede deshacer.</p>
+              </div>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2">
+              <p className="text-xs font-black text-amber-800 uppercase tracking-wide flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm">warning</span>
+                Lo que ocurrirá
+              </p>
+              <ul className="space-y-1.5">
+                {[
+                  `Tu rol cambiará a: ${JOIN_ROLES.find(r => r.value === joinRole)?.label}`,
+                  `Tu flota y baterías pasarán a ${joinOrg.orgName}`,
+                  'Tu bitácora completa de vuelos se transferirá',
+                  'Tu planeaciones de vuelo se transferirán',
+                  'Tu cuenta de piloto independiente quedará inactiva',
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-amber-800">
+                    <span className="material-symbols-outlined text-xs mt-0.5 shrink-0">arrow_right</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {joinError && (
+              <p className="text-xs text-red-600 bg-red-50 rounded-xl px-3 py-2" role="alert">{joinError}</p>
+            )}
+
+            <div className="flex flex-col gap-2.5">
+              <button
+                onClick={handleJoinOrg}
+                disabled={joining}
+                className="w-full py-3.5 rounded-xl bg-[#ec5b13] text-white text-xs font-black uppercase tracking-widest hover:bg-orange-600 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {joining
+                  ? <><span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>Transfiriendo...</>
+                  : <><span className="material-symbols-outlined text-sm">transit_enterexit</span>Confirmar unión</>}
+              </button>
+              <button
+                onClick={() => { setJoinConfirming(false); setJoinError(''); }}
+                disabled={joining}
+                className="w-full py-2.5 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors disabled:opacity-40"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Retention modal ──────────────────────────────────────────────── */}

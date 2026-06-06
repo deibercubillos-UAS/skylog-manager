@@ -51,7 +51,9 @@ function readSheet(ws) {
   if (!ws) return [];
   const headers = {};
   ws.getRow(1).eachCell((cell, col) => {
-    const h = str(getCellValue(cell));
+    // Quitar el sufijo " *" que marca columnas obligatorias en la plantilla,
+    // para que las claves coincidan con los nombres limpios que usa el importador.
+    const h = str(getCellValue(cell)).replace(/\s*\*\s*$/, '');
     if (h) headers[col] = h;
   });
   const rows = [];
@@ -354,16 +356,29 @@ export async function POST(request) {
     const wsContactos = wb.getWorksheet('🚨 Contactos Emergencia');
     if (wsContactos) {
       const rows = readSheet(wsContactos);
-      const inserts = [];
 
+      // Dedup por (nombre + teléfono) para que re-subir un template pre-llenado
+      // no cree contactos duplicados.
+      const { data: existingContacts } = await admin
+        .from('emergency_contacts').select('name, phone').eq('organization_id', orgId);
+      const contactKey = (n, p) => `${str(n).toLowerCase()}|${str(p)}`;
+      const existingContactKeys = new Set(
+        (existingContacts || []).map(c => contactKey(c.name, c.phone))
+      );
+
+      const inserts = [];
       for (const r of rows) {
-        const name = str(r['Nombre Completo']);
+        const name  = str(r['Nombre Completo']);
         if (!name) continue;
+        const phone = str(r['Teléfono']) || null;
+        const key   = contactKey(name, phone);
+        if (existingContactKeys.has(key)) { results.contactos.skipped++; continue; }
+        existingContactKeys.add(key);
         inserts.push({
           organization_id: orgId,
           name,
           role:  str(r['Cargo / Rol'])  || null,
-          phone: str(r['Teléfono'])     || null,
+          phone,
           email: str(r['Email'])        || null,
           notes: str(r['Notas'])        || null,
         });

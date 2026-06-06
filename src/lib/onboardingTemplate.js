@@ -104,8 +104,11 @@ function styleRange(ws, rowStart, rowEnd, colStart, colEnd, style) {
   }
 }
 
-// Crea una hoja de datos con cabecera naranja y filas de ejemplo
-function setupDataSheet(ws, columns, exampleRows = []) {
+// Crea una hoja de datos con cabecera naranja.
+// Si `realRows` trae datos existentes de la org, se escriben como datos reales
+// (estilo blanco) y se omiten las filas de ejemplo. Si no, se muestran los
+// ejemplos en azul suave.
+function setupDataSheet(ws, columns, exampleRows = [], realRows = null) {
   ws.views = [{ state: 'frozen', ySplit: 1 }];
   ws.properties.defaultRowHeight = 22;
 
@@ -119,24 +122,27 @@ function setupDataSheet(ws, columns, exampleRows = []) {
     ws.getColumn(i + 1).width = col.width || 20;
   });
 
-  // Filas de ejemplo (en azul suave)
-  exampleRows.forEach((row, ri) => {
+  const usingReal = Array.isArray(realRows) && realRows.length > 0;
+  const dataRows  = usingReal ? realRows : exampleRows;
+
+  // Filas de datos: reales (blanco) o ejemplos (azul suave)
+  dataRows.forEach((row, ri) => {
     const wsRow = ws.getRow(ri + 2);
     wsRow.height = 20;
     columns.forEach((col, ci) => {
       const cell = wsRow.getCell(ci + 1);
       cell.value = row[ci] !== undefined ? row[ci] : '';
-      Object.assign(cell, guideStyle());
-      cell.font      = guideStyle().font;
-      cell.fill      = guideStyle().fill;
-      cell.alignment = guideStyle().alignment;
-      cell.border    = guideStyle().border;
+      const st = usingReal ? dataStyle((ri + 2) % 2 === 0) : guideStyle();
+      cell.font      = st.font;
+      cell.fill      = st.fill;
+      cell.alignment = st.alignment;
+      cell.border    = st.border;
       if (col.numFmt)  cell.numFmt  = col.numFmt;
     });
   });
 
   // Filas vacías para llenado (20 filas)
-  const startEmpty = exampleRows.length + 2;
+  const startEmpty = dataRows.length + 2;
   for (let r = startEmpty; r < startEmpty + 20; r++) {
     const wsRow = ws.getRow(r);
     wsRow.height = 20;
@@ -353,8 +359,17 @@ function buildBienvenidaSheet(wb) {
   });
 }
 
+// Convierte una fecha de la BD (string 'YYYY-MM-DD' o Date) a Date para Excel
+function toExcelDate(v) {
+  if (!v) return '';
+  if (v instanceof Date) return isNaN(v.getTime()) ? '' : v;
+  const s = String(v).slice(0, 10);
+  const d = new Date(s + 'T00:00:00Z');
+  return isNaN(d.getTime()) ? '' : d;
+}
+
 // ── HOJA ORGANIZACIÓN ─────────────────────────────────────────────────────
-function buildOrgSheet(wb) {
+function buildOrgSheet(wb, org = null) {
   const ws = wb.addWorksheet('🏢 Organización');
 
   const columns = [
@@ -370,7 +385,12 @@ function buildOrgSheet(wb) {
   ];
 
   const example = [['Empresa Drones Colombia SAS', 'NIT', '900123456-7', 'DAN-2024-001', 'Carlos Gómez Pérez', 'ops@dronesco.com', '+57 1 234 5678', 'Cra 7 #45-89, Bogotá D.C.', 'EDC']];
-  setupDataSheet(ws, columns, example);
+  const real = org ? [[
+    org.company_name || '', org.tax_id_type || '', org.tax_id || '',
+    org.dan_number || '', org.legal_rep || '', org.operator_email || '',
+    org.phone || '', org.address || '', org.flight_prefix || '',
+  ]] : null;
+  setupDataSheet(ws, columns, example, real);
 
   // Dropdown Tipo Documento (col 2, filas 2-22)
   addDropdown(ws, 2, 2, 22, 'tipos_doc');
@@ -381,7 +401,7 @@ function buildOrgSheet(wb) {
 }
 
 // ── HOJA TRIPULACIÓN ──────────────────────────────────────────────────────
-function buildTripulacionSheet(wb) {
+function buildTripulacionSheet(wb, pilots = null) {
   const ws = wb.addWorksheet('👥 Tripulación');
 
   const columns = [
@@ -400,13 +420,18 @@ function buildTripulacionSheet(wb) {
     ['Juan Carlos Rodríguez', '1012345678', 'CIPU-2024-0001', new Date('2025-08-15'), 'Jefe de Pilotos', '+57 300 123 4567', 'juan@dronesco.com', 'María Rodríguez', '+57 311 987 6543'],
     ['Laura Martínez Suárez', '52876543',   'CIPU-2024-0002', new Date('2025-03-20'), 'Piloto',          '+57 315 456 7890', 'laura@dronesco.com', 'Pedro Martínez',  '+57 320 111 2233'],
   ];
-  const lastRow = setupDataSheet(ws, columns, example);
+  const real = (pilots && pilots.length) ? pilots.map(p => [
+    p.name || '', p.id_number || '', p.license_number || '',
+    toExcelDate(p.medical_expiry), p.pilot_role || '', p.phone || '',
+    p.email || '', p.emergency_contact_name || '', p.emergency_contact_phone || '',
+  ]) : null;
+  const lastRow = setupDataSheet(ws, columns, example, real);
 
   addDropdown(ws, 5, 2, lastRow, 'roles_piloto');
 }
 
 // ── HOJA FLOTA ────────────────────────────────────────────────────────────
-function buildFlotaSheet(wb) {
+function buildFlotaSheet(wb, aircraft = null) {
   const ws = wb.addWorksheet('✈️ Flota');
 
   const columns = [
@@ -423,14 +448,18 @@ function buildFlotaSheet(wb) {
     ['DJI',  'Phantom 4 RTK',   'SN9876543210XYZ', 'RUAS-2024-0002',  45.0, 'Operativo'],
     ['Autel', 'EVO II Pro',      'SNAUTEL00112233', '',                12.3, 'Mantenimiento'],
   ];
-  const lastRow = setupDataSheet(ws, columns, example);
+  const real = (aircraft && aircraft.length) ? aircraft.map(a => [
+    a.brand || '', a.model || '', a.serial_number || '',
+    a.ruas || '', a.total_hours ?? 0, a.status || 'Operativo',
+  ]) : null;
+  const lastRow = setupDataSheet(ws, columns, example, real);
 
   addDropdown(ws, 1, 2, lastRow, 'fabricantes');
   addDropdown(ws, 6, 2, lastRow, 'estados_aeronave');
 }
 
 // ── HOJA BATERÍAS ─────────────────────────────────────────────────────────
-function buildBateriasSheet(wb) {
+function buildBateriasSheet(wb, batteries = null) {
   const ws = wb.addWorksheet('🔋 Baterías');
 
   const columns = [
@@ -445,7 +474,10 @@ function buildBateriasSheet(wb) {
     ['BAT002-M300-SERIE2', 'DJI', 92,  'SN1234567890ABC'],
     ['BAT003-P4R-SERIE1',  'DJI', 120, 'SN9876543210XYZ'],
   ];
-  setupDataSheet(ws, columns, example);
+  const real = (batteries && batteries.length) ? batteries.map(b => [
+    b.serial_number || '', b.brand || '', b.cycles ?? 0, b._aircraft_serial || '',
+  ]) : null;
+  setupDataSheet(ws, columns, example, real);
 
   // Nota
   ws.getCell('A28').value = '* En "Serial Aeronave Asignada" usa el mismo S/N que escribiste en la hoja ✈️ Flota.';
@@ -453,7 +485,7 @@ function buildBateriasSheet(wb) {
 }
 
 // ── HOJA PÓLIZAS RCE ──────────────────────────────────────────────────────
-function buildPolizasSheet(wb) {
+function buildPolizasSheet(wb, policies = null) {
   const ws = wb.addWorksheet('📋 Pólizas RCE');
 
   const columns = [
@@ -468,7 +500,12 @@ function buildPolizasSheet(wb) {
     ['Seguros Bolívar', 'POL-2024-001234', new Date('2024-01-01'), new Date('2024-12-31'), 'SN1234567890ABC'],
     ['Allianz',         'POL-2024-005678', new Date('2024-03-01'), new Date('2025-02-28'), 'FLOTA'],
   ];
-  setupDataSheet(ws, columns, example);
+  const real = (policies && policies.length) ? policies.map(p => [
+    p.insurance_company || '', p.policy_number || '',
+    toExcelDate(p.start_date), toExcelDate(p.end_date),
+    p._aircraft_serial || 'FLOTA',
+  ]) : null;
+  setupDataSheet(ws, columns, example, real);
 
   // Nota
   ws.getCell('A28').value = '* Escribe "FLOTA" en la última columna si la póliza cubre toda la flota (no solo una aeronave).';
@@ -476,7 +513,7 @@ function buildPolizasSheet(wb) {
 }
 
 // ── HOJA CONTACTOS DE EMERGENCIA ──────────────────────────────────────────
-function buildContactosSheet(wb) {
+function buildContactosSheet(wb, contacts = null) {
   const ws = wb.addWorksheet('🚨 Contactos Emergencia');
 
   const columns = [
@@ -492,7 +529,10 @@ function buildContactosSheet(wb) {
     ['Sandra López Vargas',  'Coordinadora de Operaciones', '+57 310 999 8877', 'sandra@dronesco.com', 'Lunes a viernes'],
     ['Defensa Civil Local',  'Apoyo externo',         '+57 1 800 111 444', '',                    'Solo emergencias mayores'],
   ];
-  setupDataSheet(ws, columns, example);
+  const real = (contacts && contacts.length) ? contacts.map(c => [
+    c.name || '', c.role || '', c.phone || '', c.email || '', c.notes || '',
+  ]) : null;
+  setupDataSheet(ws, columns, example, real);
 }
 
 // ── HOJA BITÁCORA ─────────────────────────────────────────────────────────
@@ -536,7 +576,12 @@ function buildBitacoraSheet(wb) {
 
 // ── FUNCIÓN PRINCIPAL ─────────────────────────────────────────────────────
 
-export async function generateOnboardingTemplate() {
+/**
+ * @param {object} [data] datos actuales de la org para pre-llenar la plantilla.
+ *   { org, pilots, aircraft, batteries, policies, contacts }
+ *   Si se omite, se genera la plantilla en blanco con ejemplos.
+ */
+export async function generateOnboardingTemplate(data = {}) {
   const ExcelJS = (await import('exceljs')).default;
   const wb = new ExcelJS.Workbook();
 
@@ -547,15 +592,15 @@ export async function generateOnboardingTemplate() {
   wb.properties.date1904 = false;
 
   // Orden de creación = orden de las pestañas en Excel
-  buildListasSheet(wb);        // Oculta — listas para dropdowns
-  buildBienvenidaSheet(wb);    // Hoja 1
-  buildOrgSheet(wb);           // Hoja 2
-  buildTripulacionSheet(wb);   // Hoja 3
-  buildFlotaSheet(wb);         // Hoja 4
-  buildBateriasSheet(wb);      // Hoja 5
-  buildPolizasSheet(wb);       // Hoja 6
-  buildContactosSheet(wb);     // Hoja 7
-  buildBitacoraSheet(wb);      // Hoja 8
+  buildListasSheet(wb);                       // Oculta — listas para dropdowns
+  buildBienvenidaSheet(wb);                   // Hoja 1
+  buildOrgSheet(wb, data.org);                // Hoja 2
+  buildTripulacionSheet(wb, data.pilots);     // Hoja 3
+  buildFlotaSheet(wb, data.aircraft);         // Hoja 4
+  buildBateriasSheet(wb, data.batteries);     // Hoja 5
+  buildPolizasSheet(wb, data.policies);       // Hoja 6
+  buildContactosSheet(wb, data.contacts);     // Hoja 7
+  buildBitacoraSheet(wb);                     // Hoja 8 (historial — no se pre-llena)
 
   // La primera hoja activa al abrir debe ser Bienvenida
   wb.views = [{ activeTab: 1 }]; // índice 1 = segunda hoja (índice 0 es _LISTAS oculta)

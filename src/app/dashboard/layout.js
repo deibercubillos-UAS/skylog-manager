@@ -14,6 +14,7 @@ export default function DashboardLayout({ children }) {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeFlight, setActiveFlight] = useState(null);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [accessExpired, setAccessExpired] = useState(false);
 
   // Sidebar abierto por defecto solo en desktop
   useEffect(() => { setSidebarOpen(window.innerWidth >= 1024); }, []);
@@ -49,6 +50,28 @@ export default function DashboardLayout({ children }) {
           if (newOrg) {
             await supabase.from('profiles').update({ organization_id: newOrg.id }).eq('id', user.id);
             prof.organization_id = newOrg.id;
+          }
+        }
+
+        // ── Verificar acceso expirado ────────────────────────────────────────
+        // Si el usuario fue dado de baja como piloto en su org hace más de 30 días
+        // Y no adquirió el plan piloto independiente → mostrar pantalla de acceso expirado.
+        // Los pilotos independientes (plan='piloto') ya tienen su propia org: skip.
+        if (prof.subscription_plan !== 'piloto' && prof.organization_id) {
+          const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+          const { data: expiredPilot } = await supabase
+            .from('pilots')
+            .select('id')
+            .eq('organization_id', prof.organization_id)
+            .eq('owner_id', user.id)
+            .eq('is_active', false)
+            .not('deactivated_at', 'is', null)
+            .lt('deactivated_at', cutoff)
+            .maybeSingle();
+          if (expiredPilot) {
+            setAccessExpired(true);
+            setLoading(false);
+            return;
           }
         }
 
@@ -131,6 +154,49 @@ export default function DashboardLayout({ children }) {
   }, [pathname]);
 
   if (loading) return <div className="h-screen flex items-center justify-center bg-[#1A202C] text-white font-black animate-pulse">CARGANDO BITAFLY...</div>;
+
+  if (accessExpired) return (
+    <div className="min-h-screen flex items-center justify-center bg-[#f7f8fa] px-4">
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-10 text-center space-y-6">
+        <div className="size-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto">
+          <span className="material-symbols-outlined text-4xl text-slate-400">lock</span>
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Acceso expirado</h1>
+          <p className="text-sm text-slate-500 leading-relaxed">
+            Han pasado más de 30 días desde que fuiste dado de baja de tu organización.
+            Tu historial de vuelos permanece seguro en la organización, pero ya no puedes acceder a él desde esta cuenta.
+          </p>
+        </div>
+        <div className="border-t border-slate-100" />
+        <div className="space-y-3">
+          <p className="text-sm font-black text-slate-700 uppercase tracking-widest">¿Quieres seguir volando?</p>
+          <p className="text-sm text-slate-500 leading-relaxed">
+            Crea tu cuenta de <strong>Piloto Independiente</strong> — es gratuita. Tendrás tu propia bitácora,
+            flota y planeaciones de vuelo desde el primer día.
+          </p>
+          <ul className="text-left space-y-2 pt-1">
+            {['1 aeronave registrada','Hasta 3 baterías y 3 payloads','Bitácora de vuelos propia',
+              'Mantenimiento de aeronaves','Replay GPS de tus últimos 10 vuelos'].map(item => (
+              <li key={item} className="flex items-center gap-2 text-sm text-slate-700">
+                <span className="material-symbols-outlined text-sm text-emerald-500 shrink-0">check_circle</span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <a href="/registro?tipo=solo"
+           className="block w-full py-4 bg-[#ec5b13] text-white text-sm font-black uppercase tracking-widest rounded-2xl hover:bg-orange-600 transition-all text-center">
+          Crear mi cuenta gratuita
+        </a>
+        <button
+          onClick={async () => { const { supabase: sb } = await import('@/lib/supabase'); await sb.auth.signOut(); window.location.href = '/login'; }}
+          className="text-xs text-slate-400 hover:text-slate-600 transition-colors underline">
+          Cerrar sesión
+        </button>
+      </div>
+    </div>
+  );
 
   const role = data.profile?.role;
 

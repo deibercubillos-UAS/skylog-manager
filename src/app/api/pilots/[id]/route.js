@@ -115,10 +115,11 @@ export async function DELETE(request, { params }) {
       .eq('id', orgId)
       .maybeSingle();
 
-    // Borrado lógico verificando org
+    // Borrado lógico verificando org — graba deactivated_at para enforcement de 30 días
+    const now = new Date().toISOString();
     const { error } = await supabase
       .from('pilots')
-      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .update({ is_active: false, updated_at: now, deactivated_at: now })
       .eq('id', id)
       .eq('organization_id', orgId);
 
@@ -136,7 +137,7 @@ export async function DELETE(request, { params }) {
           from:    'BitaFly <no-reply@bitafly.com>',
           replyTo: 'soporte@bitafly.com',
           to:      [pilot.email.trim()],
-          subject: `Tu acceso a ${org?.company_name || 'BitaFly'} finalizará en 30 días`,
+          subject: `Tu acceso a ${org?.company_name || 'BitaFly'} ha finalizado`,
           html: `
 <!DOCTYPE html>
 <html lang="es">
@@ -160,28 +161,14 @@ export async function DELETE(request, { params }) {
             <p style="margin:0 0 16px;font-size:16px;color:#1a202c;">Hola, <strong>${pilotName}</strong></p>
 
             <p style="margin:0 0 16px;font-size:15px;color:#4a5568;line-height:1.6;">
-              Tu perfil fue dado de baja en <strong>${orgName}</strong>.
-              Los registros de vuelo quedan en poder de la organización — eso no cambia.
+              Te informamos que tu perfil ha sido dado de baja en <strong>${orgName}</strong>.
+              A partir de ahora ya no tendrás acceso al dashboard de esa organización.
             </p>
 
-            <!-- Aviso de 30 días -->
-            <table width="100%" cellpadding="0" cellspacing="0"
-                   style="background:#fffbeb;border:1px solid #f6d860;border-radius:12px;margin-bottom:24px;">
-              <tr><td style="padding:20px 24px;">
-                <p style="margin:0 0 8px;font-size:13px;font-weight:900;color:#92660a;text-transform:uppercase;letter-spacing:0.05em;">
-                  ⏳ Tienes 30 días de acceso
-                </p>
-                <p style="margin:0;font-size:14px;color:#78580e;line-height:1.6;">
-                  Durante <strong>30 días</strong> podrás consultar tu historial desde tu cuenta actual.
-                  Pasado ese plazo, <strong>perderás el acceso a la bitácora</strong> de ${orgName}.
-                  Los datos permanecen seguros en la organización, pero ya no serán visibles para ti.
-                </p>
-              </td></tr>
-            </table>
-
             <p style="margin:0 0 24px;font-size:15px;color:#4a5568;line-height:1.6;">
-              Si quieres continuar registrando tus vuelos de forma independiente,
-              crea tu propia cuenta de <strong>Piloto Independiente</strong> — es gratuita.
+              Sin embargo, <strong>tu historial de vuelos no desaparece</strong>. Puedes registrarte
+              como <strong>Piloto Independiente</strong> en BitaFly y reclamar tu bitácora dentro
+              de los próximos <strong>30 días</strong>.
             </p>
 
             <!-- Cuadro de beneficios -->
@@ -195,7 +182,7 @@ export async function DELETE(request, { params }) {
                   ${[
                     '1 aeronave registrada',
                     'Hasta 3 baterías y 3 payloads',
-                    'Tu propia bitácora de vuelos',
+                    'Bitácora de vuelos completa',
                     'Mantenimiento de aeronaves',
                     'Planeación y despacho de vuelos',
                     'Replay GPS de tus últimos 10 vuelos',
@@ -223,8 +210,9 @@ export async function DELETE(request, { params }) {
             </table>
 
             <p style="margin:0;font-size:13px;color:#718096;line-height:1.6;">
-              ¿Tienes preguntas? Escríbenos a
+              Si tienes preguntas, escríbenos a
               <a href="mailto:soporte@bitafly.com" style="color:#ec5b13;">soporte@bitafly.com</a>.
+              <br>Tu bitácora es tuya — no dejes que se pierda.
             </p>
           </td>
         </tr>

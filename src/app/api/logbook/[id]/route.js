@@ -47,7 +47,7 @@ export async function DELETE(request, { params }) {
   }
 }
 
-// PATCH /api/logbook/:id  { pilot_id }
+// PATCH /api/logbook/:id  { pilot_id?, mission_id? }
 export async function PATCH(request, { params }) {
   try {
     const supabase = await createClientSSR();
@@ -55,18 +55,42 @@ export async function PATCH(request, { params }) {
     if (!orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     if (!PERMISSIONS.canEditPilotPic.includes(role)) {
-      return NextResponse.json({ error: 'Sin permiso para editar pilotos de vuelo.' }, { status: 403 });
+      return NextResponse.json({ error: 'Sin permiso para editar este vuelo.' }, { status: 403 });
     }
 
     const { id } = await params;
-    const { pilot_id } = await request.json();
+    const body = await request.json();
 
-    // pilot_id puede ser null (desasignar) o un UUID
-    if (pilot_id !== null && typeof pilot_id !== 'string') {
-      return NextResponse.json({ error: 'pilot_id inválido.' }, { status: 400 });
+    // Campos permitidos: pilot_id y/o mission_id
+    const patch = {};
+
+    if ('pilot_id' in body) {
+      const { pilot_id } = body;
+      if (pilot_id !== null && typeof pilot_id !== 'string') {
+        return NextResponse.json({ error: 'pilot_id inválido.' }, { status: 400 });
+      }
+      if (pilot_id) {
+        const { data: pilot } = await supabase
+          .from('pilots')
+          .select('id')
+          .eq('id', pilot_id)
+          .eq('organization_id', orgId)
+          .maybeSingle();
+        if (!pilot) return NextResponse.json({ error: 'Piloto no encontrado en tu organización.' }, { status: 404 });
+      }
+      patch.pilot_id = pilot_id;
     }
 
-    // Verificar que el vuelo pertenece a la organización
+    if ('mission_id' in body) {
+      const val = body.mission_id;
+      patch.mission_id = val ? String(val).trim().slice(0, 100) : null;
+    }
+
+    if (Object.keys(patch).length === 0) {
+      return NextResponse.json({ error: 'Nada que actualizar.' }, { status: 400 });
+    }
+
+    // Verificar que el vuelo pertenece a la org
     const { data: flight, error: fetchErr } = await supabase
       .from('flights')
       .select('id')
@@ -77,24 +101,12 @@ export async function PATCH(request, { params }) {
     if (fetchErr) throw fetchErr;
     if (!flight) return NextResponse.json({ error: 'Vuelo no encontrado.' }, { status: 404 });
 
-    // Verificar que el pilot_id pertenece a la misma organización (si no es null)
-    if (pilot_id) {
-      const { data: pilot } = await supabase
-        .from('pilots')
-        .select('id')
-        .eq('id', pilot_id)
-        .eq('organization_id', orgId)
-        .maybeSingle();
-
-      if (!pilot) return NextResponse.json({ error: 'Piloto no encontrado en tu organización.' }, { status: 404 });
-    }
-
     const { data: updated, error: updateErr } = await supabase
       .from('flights')
-      .update({ pilot_id, updated_at: new Date().toISOString() })
+      .update({ ...patch, updated_at: new Date().toISOString() })
       .eq('id', id)
       .eq('organization_id', orgId)
-      .select('id, pilot_id, pilots:pilot_id(id, name)')
+      .select('id, pilot_id, mission_id, pilots:pilot_id(id, name)')
       .single();
 
     if (updateErr) throw updateErr;

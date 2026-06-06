@@ -23,6 +23,11 @@ export default function LogbookPage() {
     const [savingPilot, setSavingPilot] = useState(null);
     const pilotDropdownRef = useRef(null);
 
+    const [editingMission, setEditingMission] = useState(null); // flightId cuyo mission_id se edita
+    const [missionDraft, setMissionDraft] = useState('');
+    const [savingMission, setSavingMission] = useState(null);
+    const missionInputRef = useRef(null);
+
     const [showImport, setShowImport] = useState(false);
 
     const canEditPilot   = CAN_EDIT_PILOT.includes(userRole);
@@ -153,6 +158,27 @@ export default function LogbookPage() {
         }
     };
 
+    const assignMission = async (flightId, newMissionId) => {
+        const trimmed = newMissionId?.trim() || null;
+        setSavingMission(flightId);
+        setEditingMission(null);
+        try {
+            const res = await fetch(`/api/logbook/${flightId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mission_id: trimmed }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setFlights(prev => prev.map(f =>
+                    f.id === flightId ? { ...f, mission_id: data.flight.mission_id } : f
+                ));
+            }
+        } finally {
+            setSavingMission(null);
+        }
+    };
+
     const assignPilot = async (flightId, pilotId) => {
         setSavingPilot(flightId);
         setEditingPilot(null);
@@ -271,6 +297,59 @@ export default function LogbookPage() {
         );
     };
 
+    // Celda de N° misión: editable inline para roles autorizados (mismo permiso que piloto)
+    const MissionCell = ({ flight }) => {
+        const isEditing = editingMission === flight.id;
+        const isSaving  = savingMission  === flight.id;
+        const current   = flight.mission_id || '';
+
+        if (!canEditPilot) {
+            return (
+                <span className={current ? 'font-black font-mono text-orange-600' : 'text-slate-300 italic text-xs'}>
+                    {current || 'N/A'}
+                </span>
+            );
+        }
+
+        if (isEditing) {
+            return (
+                <input
+                    ref={missionInputRef}
+                    autoFocus
+                    type="text"
+                    maxLength={100}
+                    defaultValue={current}
+                    placeholder="Ej: F-OPS-001"
+                    className="w-28 px-2 py-1 text-xs font-mono font-bold border-2 border-orange-400 rounded-lg outline-none focus:ring-2 focus:ring-orange-200 bg-white"
+                    onBlur={e  => assignMission(flight.id, e.target.value)}
+                    onKeyDown={e => {
+                        if (e.key === 'Enter')  { e.target.blur(); }
+                        if (e.key === 'Escape') { setEditingMission(null); }
+                    }}
+                />
+            );
+        }
+
+        return (
+            <button
+                onClick={() => { setMissionDraft(current); setEditingMission(flight.id); }}
+                disabled={isSaving}
+                className={`flex items-center gap-1.5 group rounded-lg px-2 py-1 -mx-2 -my-1 transition-all ${
+                    isSaving ? 'opacity-50' : 'hover:bg-orange-50'
+                }`}
+                title="Clic para editar el número de misión"
+            >
+                {isSaving
+                    ? <span className="material-symbols-outlined text-sm text-orange-400 animate-spin">sync</span>
+                    : <span className="material-symbols-outlined text-sm text-slate-300 group-hover:text-orange-400 transition-colors">edit</span>
+                }
+                <span className={current ? 'font-black font-mono text-orange-600' : 'text-slate-300 italic text-xs'}>
+                    {current || 'N/A'}
+                </span>
+            </button>
+        );
+    };
+
     if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">AUDITANDO REGISTROS...</div>;
 
     return (
@@ -336,7 +415,7 @@ export default function LogbookPage() {
                             <div className="flex items-start justify-between gap-2">
                                 <div className="min-w-0">
                                     <div className="flex items-center gap-1.5">
-                                        <p className="text-xs font-black font-mono text-orange-600">{f.mission_id || 'N/A'}</p>
+                                        <MissionCell flight={f} />
                                         {f.has_alerts && (
                                             <span
                                                 title={`${(f.alerts_json ?? []).length} alerta(s) — ver Replay para detalles`}
@@ -409,7 +488,7 @@ export default function LogbookPage() {
                             {filteredFlights.map((f) => (
                                 <tr key={f.id} className="hover:bg-orange-50/30 transition-all text-xs font-medium text-slate-700 cursor-pointer">
                                     <td className="px-4 py-4 whitespace-nowrap">{f.flight_date}</td>
-                                    <td className="px-4 py-4 font-black text-orange-600 font-mono">{f.mission_id || '---'}</td>
+                                    <td className="px-4 py-4"><MissionCell flight={f} /></td>
                                     <td className="px-4 py-4 font-bold text-slate-900">{f.aircraft?.model}</td>
                                     <td className="px-4 py-4 font-mono text-xs">{f.aircraft?.serial_number}</td>
                                     <td className="px-4 py-4 text-xs uppercase">{f.mission_type}</td>

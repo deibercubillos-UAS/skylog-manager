@@ -196,32 +196,54 @@ export async function POST(request) {
     }
 
     // ── 6. Auto-asignar piloto ───────────────────────────────────
-    // a) Plan 'piloto' → buscar registro propio del usuario
-    // b) Cualquier plan → se completará con la autorización si hay coincidencia
+    // Plan 'piloto' (piloto independiente) → el dueño de la cuenta ES el piloto.
+    // Se busca su registro en pilots por email, luego por owner_id.
+    // Si no existe (registro fallido al crear la cuenta), se crea automáticamente.
     let pilotId = null;
     if (prof.subscription_plan === 'piloto') {
       try {
-        // Primero por email
         const { data: byEmail } = await supabaseAdmin
           .from('pilots')
           .select('id')
           .eq('organization_id', prof.organization_id)
           .eq('email', user.email)
           .maybeSingle();
+
         if (byEmail) {
           pilotId = byEmail.id;
         } else {
-          // Fallback: piloto registrado por este usuario
           const { data: byOwner } = await supabaseAdmin
             .from('pilots')
             .select('id')
             .eq('organization_id', prof.organization_id)
             .eq('owner_id', user.id)
             .maybeSingle();
-          pilotId = byOwner?.id ?? null;
+
+          if (byOwner) {
+            pilotId = byOwner.id;
+          } else {
+            // El registro en pilots no existe (error silencioso en registro).
+            // Crearlo automáticamente para que todos los vuelos queden asignados.
+            const fullName = [prof.first_name, prof.last_name].filter(Boolean).join(' ').trim()
+              || prof.full_name
+              || 'Piloto';
+            const { data: created } = await supabaseAdmin
+              .from('pilots')
+              .insert([{
+                organization_id: prof.organization_id,
+                owner_id:        user.id,
+                name:            fullName,
+                email:           user.email,
+                pilot_role:      'Piloto',
+                is_active:       true,
+              }])
+              .select('id')
+              .single();
+            pilotId = created?.id ?? null;
+          }
         }
       } catch (pErr) {
-        console.error('[import-dji] pilot lookup:', pErr.message);
+        console.error('[import-dji] pilot lookup/create:', pErr.message);
       }
     }
 

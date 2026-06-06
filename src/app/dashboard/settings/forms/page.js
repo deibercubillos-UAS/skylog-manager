@@ -15,7 +15,7 @@ export default async function FormSettingsPage() {
     
     const [dronesRes, orgRes, defsRes] = await Promise.all([
         supabase.from('aircraft').select('model').eq('organization_id', profile?.organization_id),
-        supabase.from('organizations').select('enable_health_check, company_name').eq('id', profile?.organization_id).single(),
+        supabase.from('organizations').select('enable_health_check, enable_preflight, enable_briefing, company_name').eq('id', profile?.organization_id).single(),
         supabase.from('form_definitions')
             .select('*')
             .eq('organization_id', profile?.organization_id)
@@ -31,6 +31,8 @@ export default async function FormSettingsPage() {
         organizationId: profile?.organization_id,
         models: [...new Set(dronesRes.data?.map(d => d.model))],
         healthEnabled: orgRes.data?.enable_health_check ?? true,
+        preflightEnabled: orgRes.data?.enable_preflight ?? true,
+        briefingEnabled: orgRes.data?.enable_briefing ?? true,
         companyName: orgRes.data?.company_name,
         initialLabels: initialLabels
     };

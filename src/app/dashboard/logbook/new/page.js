@@ -13,9 +13,11 @@ export default function NewOperationPage() {
     const [resources, setResources] = useState({ auths: [], batteries: [] });
     const [healthDone, setHealthDone] = useState(false);
     const [healthEnabled, setHealthEnabled] = useState(true);
-    
-    // FLUJO: data -> health -> preflight -> briefing
-    const [step, setStep] = useState('data'); 
+    const [preflightEnabled, setPreflightEnabled] = useState(true);
+    const [briefingEnabled, setBriefingEnabled] = useState(true);
+
+    // FLUJO: data -> health -> preflight -> briefing (los pasos se saltan si están desactivados)
+    const [step, setStep] = useState('data');
     const [dynamicLabels, setDynamicLabels] = useState([]);
     const [form, setForm] = useState({ auth_id: '', battery_id: '', takeoff_time: '', visual_condition: 'VMC', notes: '' });
     const [checks, setChecks] = useState({ health: {}, briefing: {}, preflight: {} });
@@ -34,11 +36,13 @@ export default function NewOperationPage() {
                     fetch('/api/flights/authorize').then(r => r.json()),
                     supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).eq('status', 'Operativo'),
                     supabase.from('daily_health_checks').select('*').eq('user_id', user.id).eq('check_date', new Date().toISOString().split('T')[0]),
-                    supabase.from('organizations').select('enable_health_check').eq('id', prof.organization_id).single()
+                    supabase.from('organizations').select('enable_health_check, enable_preflight, enable_briefing').eq('id', prof.organization_id).single()
                 ]);
                 setResources({ auths: auths || [], batteries: batteries.data || [] });
                 setHealthDone(health.data?.length > 0);
                 setHealthEnabled(org.data?.enable_health_check ?? true);
+                setPreflightEnabled(org.data?.enable_preflight ?? true);
+                setBriefingEnabled(org.data?.enable_briefing ?? true);
             } finally { setLoading(false); }
         }
         init();
@@ -64,10 +68,26 @@ export default function NewOperationPage() {
 
     const handleCheck = (num, value) => setChecks(prev => ({ ...prev, [step]: { ...prev[step], [num]: value } }));
 
+    // Pasos de seguridad activos, en orden. Health se omite si está desactivado o ya se hizo hoy.
+    const safetySteps = [
+        (healthEnabled && !healthDone) ? 'health' : null,
+        preflightEnabled ? 'preflight' : null,
+        briefingEnabled ? 'briefing' : null,
+    ].filter(Boolean);
+
+    // Último paso activo: en él se muestra el botón "Aprobar Vuelo"
+    const lastStep = safetySteps[safetySteps.length - 1] || null;
+    const isLastStep = step === lastStep;
+
     const handleNextStep = () => {
-        if (step === 'data') setStep(!healthEnabled || healthDone ? 'preflight' : 'health');
-        else if (step === 'health') setStep('preflight');
-        else if (step === 'preflight') setStep('briefing');
+        if (step === 'data') {
+            // Si no hay pasos de seguridad activos, aprobar directamente
+            if (safetySteps.length === 0) { handleFinalize(); return; }
+            setStep(safetySteps[0]);
+            return;
+        }
+        const idx = safetySteps.indexOf(step);
+        if (idx >= 0 && idx < safetySteps.length - 1) setStep(safetySteps[idx + 1]);
     };
 
     const handleFinalize = async () => {
@@ -210,10 +230,10 @@ export default function NewOperationPage() {
                             </div>
 
                             <div className="flex flex-col gap-4 mt-10">
-                                {step !== 'briefing' ? (
+                                {!isLastStep ? (
                                     <button onClick={handleNextStep} className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs shadow-xl active:scale-95">Siguiente Protocolo</button>
                                 ) : (
-                                    <button disabled={!dynamicLabels.every(l => checks.briefing[l.field_number] === true) || saving} onClick={handleFinalize} className="w-full py-5 bg-emerald-600 text-white rounded-[2rem] font-black uppercase text-xs shadow-xl disabled:bg-slate-200 active:scale-95">Aprobar Vuelo</button>
+                                    <button disabled={!dynamicLabels.every(l => checks[step][l.field_number] === true) || saving} onClick={handleFinalize} className="w-full py-5 bg-emerald-600 text-white rounded-[2rem] font-black uppercase text-xs shadow-xl disabled:bg-slate-200 active:scale-95">Aprobar Vuelo</button>
                                 )}
                                 <button onClick={() => setShowCancelModal(true)} className="w-full py-3 bg-red-50 text-red-600 rounded-[2rem] font-black uppercase text-xs border border-red-100">Abortar Operación</button>
                             </div>

@@ -85,25 +85,29 @@ export async function POST(request) {
 
     const supabase = makeSupabase();
 
-    // ── Replay protection: insertar ref_payco en tabla de idempotencia ────────
-    // Si el mismo webhook llega dos veces (red retry de ePayco), el segundo
-    // devuelve 200 inmediatamente sin volver a activar el plan.
+    // ── Replay protection: solo saltamos si YA se procesó con éxito ──────────
+    // El INSERT se hace al final, tras activar el plan. Así un fallo transitorio
+    // no bloquea permanentemente un reintento legítimo de ePayco.
     const refPayco = params.x_ref_payco;
     if (refPayco) {
-      const { error: refErr } = await supabase
+      const { data: already } = await supabase
         .from('processed_webhook_refs')
-        .insert({ ref_payco: refPayco });
-      if (refErr?.code === '23505') {
-        // Unique violation: este webhook ya fue procesado
+        .select('ref_payco')
+        .eq('ref_payco', refPayco)
+        .maybeSingle();
+      if (already) {
         console.log(`ePayco webhook duplicado ignorado: ref=${refPayco}`);
         return NextResponse.json({ received: true });
       }
     }
 
     // ── 1. Intentar por extras (checkout widget) ──────────────────────────────
-    let planKey = params.x_extra1;
-    let billing = params.x_extra2;
-    let userId  = params.x_extra3;
+    // OJO: en subscription-landing, ePayco mete el UID del plan en x_extra1,
+    // que NO es nuestro plan_key. Solo aceptamos x_extra1 si es un plan válido.
+    const VALID_PLAN_KEYS = ['escuadrilla', 'flota', 'enterprise'];
+    let planKey = VALID_PLAN_KEYS.includes(params.x_extra1) ? params.x_extra1 : null;
+    let billing = ['monthly', 'annual'].includes(params.x_extra2) ? params.x_extra2 : null;
+    let userId  = params.x_extra3 || null;
 
     // ── 2. Intentar por referencia en pending_subscriptions ──────────────────
     if (!userId) {
@@ -141,15 +145,29 @@ export async function POST(request) {
       if (pending) { planKey = pending.planKey; billing = pending.billing; }
     }
 
-    // ── 5. Último recurso: mapear id_plan de ePayco → planKey/billing ──────────
+    // ── 5. Último recurso: mapear id_plan/UID de ePayco → planKey/billing ──────
     if (!planKey) {
+      // 5a. Por epayco_id (id_plan textual)
       const epaycoIdPlan = params.x_description_plan || params.x_plan_id || params.x_extra4;
       if (epaycoIdPlan) {
         const { data: cfg } = await supabase
           .from('epayco_plan_config')
           .select('plan_key, billing')
           .eq('epayco_id', epaycoIdPlan)
-          .single();
+          .maybeSingle();
+        if (cfg) { planKey = cfg.plan_key; billing = cfg.billing; }
+      }
+    }
+
+    if (!planKey) {
+      // 5b. Por epayco_uid (el UID que subscription-landing envía en x_extra1)
+      const uid = params.x_extra1 || params.x_id_plan || null;
+      if (uid) {
+        const { data: cfg } = await supabase
+          .from('epayco_plan_config')
+          .select('plan_key, billing')
+          .eq('epayco_uid', uid)
+          .maybeSingle();
         if (cfg) { planKey = cfg.plan_key; billing = cfg.billing; }
       }
     }
@@ -185,6 +203,13 @@ export async function POST(request) {
       subscriptionId: params.x_subscription_id || null,
       ref:            params.x_ref_payco || null,
     });
+
+    // Marcar como procesado SOLO tras activar con éxito (idempotencia real)
+    if (refPayco) {
+      await supabase.from('processed_webhook_refs')
+        .insert({ ref_payco: refPayco })
+        .then(() => {}, () => {}); // ignora violación de unique en carreras
+    }
 
     console.log(`✓ Suscripción activada vía webhook: user=${userId} plan=${planKey} billing=${billing}`);
     return NextResponse.json({ success: true });

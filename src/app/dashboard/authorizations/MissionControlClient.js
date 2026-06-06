@@ -1,8 +1,11 @@
 ﻿'use client';
 import { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import BasicForm from '@/components/authorizations/BasicForm';
 import AerocivilForm from '@/components/authorizations/AerocivilForm';
+
+const FlightPlanner = dynamic(() => import('@/components/FlightPlanner'), { ssr: false });
 
 export default function MissionControlClient({ initialData }) {
     const [activeTab, setActiveTab] = useState('basica');
@@ -66,16 +69,26 @@ export default function MissionControlClient({ initialData }) {
                 >
                     Apéndice 13
                 </button>
+                <button
+                    onClick={() => setActiveTab('planear')}
+                    className={`flex-1 sm:flex-none sm:px-8 py-3 rounded-xl text-xs font-black uppercase transition-all ${activeTab === 'planear' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'}`}
+                >
+                    Planear (Mapa · KMZ · PDF)
+                </button>
             </div>
 
             {/* FORMULARIOS */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6 md:p-12">
-                {activeTab === 'basica' ? (
-                    <BasicForm pilots={pilots} drones={drones} org={org} userRole={userRole} loadData={loadData} />
-                ) : (
-                    <AerocivilForm pilots={pilots} drones={drones} org={org} userRole={userRole} loadData={loadData} />
-                )}
-            </div>
+            {activeTab === 'planear' ? (
+                <FlightPlanner showHeader={false} />
+            ) : (
+                <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6 md:p-12">
+                    {activeTab === 'basica' ? (
+                        <BasicForm pilots={pilots} drones={drones} org={org} userRole={userRole} loadData={loadData} />
+                    ) : (
+                        <AerocivilForm pilots={pilots} drones={drones} org={org} userRole={userRole} loadData={loadData} />
+                    )}
+                </div>
+            )}
 
             {/* TABLA DE PROGRAMACIONES */}
             <section className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">

@@ -31,11 +31,12 @@ export default function NewOperationPage() {
     // Plan del usuario — el piloto individual tiene un despacho simplificado
     const [isPilotoPlan, setIsPilotoPlan] = useState(false);
     const [myPilotId, setMyPilotId] = useState(null);
+    const [flightPlans, setFlightPlans] = useState([]);
 
     // FLUJO: data -> health -> preflight -> briefing (los pasos se saltan si están desactivados)
     const [step, setStep] = useState('data');
     const [dynamicLabels, setDynamicLabels] = useState([]);
-    const [form, setForm] = useState({ auth_id: '', battery_id: '', aircraft_id: '', mission_type: '', has_plan: false, takeoff_time: '', visual_condition: 'VMC', notes: '' });
+    const [form, setForm] = useState({ auth_id: '', battery_id: '', aircraft_id: '', mission_type: '', plan_id: '', has_plan: false, takeoff_time: '', visual_condition: 'VMC', notes: '' });
     const [checks, setChecks] = useState({ health: {}, briefing: {}, preflight: {} });
     const [selectedAuth, setSelectedAuth] = useState(null);
     const [cancelNotes, setCancelNotes] = useState('');
@@ -51,15 +52,17 @@ export default function NewOperationPage() {
                 const pilotPlan = prof?.subscription_plan === 'piloto';
                 setIsPilotoPlan(pilotPlan);
 
-                const [auths, batteries, aircraft, health, org] = await Promise.all([
+                const [auths, batteries, aircraft, health, org, plans] = await Promise.all([
                     fetch('/api/flights/authorize').then(r => r.json()),
                     supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).eq('status', 'Operativo'),
                     supabase.from('aircraft').select('id, model, serial_number').eq('organization_id', prof.organization_id).neq('status', 'Baja'),
                     supabase.from('daily_health_checks').select('*').eq('user_id', user.id).eq('check_date', new Date().toISOString().split('T')[0]),
-                    supabase.from('organizations').select('enable_health_check, enable_preflight, enable_briefing').eq('id', prof.organization_id).single()
+                    supabase.from('organizations').select('enable_health_check, enable_preflight, enable_briefing').eq('id', prof.organization_id).single(),
+                    fetch('/api/flight-plans').then(r => r.ok ? r.json() : [])
                 ]);
 
                 const aircraftList = aircraft.data || [];
+                setFlightPlans(Array.isArray(plans) ? plans : []);
                 setResources({ auths: auths || [], batteries: batteries.data || [], aircraft: aircraftList });
                 setHealthDone(health.data?.length > 0);
                 setHealthEnabled(org.data?.enable_health_check ?? true);
@@ -103,6 +106,18 @@ export default function NewOperationPage() {
         setForm(prev => ({ ...prev, auth_id: id }));
     };
 
+    // Seleccionar un plan de vuelo guardado → prellena datos vacíos del despacho
+    const handleSelectPlan = (planId) => {
+        const plan = flightPlans.find(p => p.id === planId);
+        setForm(prev => ({
+            ...prev,
+            plan_id:      planId,
+            has_plan:     !!planId,
+            takeoff_time: prev.takeoff_time || plan?.takeoff_time?.slice(0, 5) || '',
+            notes:        prev.notes || plan?.name || '',
+        }));
+    };
+
     const handleCheck = (num, value) => setChecks(prev => ({ ...prev, [step]: { ...prev[step], [num]: value } }));
 
     // Pasos de seguridad activos, en orden. Health se omite si está desactivado o ya se hizo hoy.
@@ -142,6 +157,7 @@ export default function NewOperationPage() {
                 const planNote = form.has_plan ? 'Planeación de vuelo: realizada.' : null;
                 const combinedNotes = [form.notes?.trim() || null, planNote].filter(Boolean).join(' ') || null;
 
+                const selPlan = flightPlans.find(p => p.id === form.plan_id);
                 flightRecord = {
                     takeoff_time:    form.takeoff_time || null,
                     visual_condition: form.visual_condition,
@@ -149,6 +165,8 @@ export default function NewOperationPage() {
                     mission_type:    form.mission_type || null,
                     pilot_id:        myPilotId,
                     aircraft_id:     form.aircraft_id,
+                    plan_id:         form.plan_id || null,
+                    location:        selPlan?.location || null,
                     flight_date:     new Date().toISOString().split('T')[0],
                     organization_id: prof.organization_id,
                     owner_id:        user.id,
@@ -262,26 +280,30 @@ export default function NewOperationPage() {
 
                                     {/* Planeación de vuelo */}
                                     <div className="space-y-2">
-                                        <label className="text-xs font-black uppercase text-slate-600 ml-1">Planeación de Vuelo</label>
-                                        <div className="flex flex-col sm:flex-row gap-3">
-                                            <button
-                                                type="button"
-                                                onClick={() => setForm({...form, has_plan: !form.has_plan})}
-                                                className={`flex-1 p-4 rounded-2xl font-black text-xs uppercase border-2 transition-all flex items-center justify-center gap-2 ${form.has_plan ? 'bg-emerald-50 border-emerald-500 text-emerald-700' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
-                                            >
-                                                <span className="material-symbols-outlined text-base">{form.has_plan ? 'check_circle' : 'radio_button_unchecked'}</span>
-                                                Ya tengo mi planeación
-                                            </button>
-                                            <a
-                                                href="/dashboard/plan-vuelo"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex-1 p-4 rounded-2xl font-black text-xs uppercase border-2 border-orange-200 text-orange-600 hover:bg-orange-50 transition-all flex items-center justify-center gap-2"
-                                            >
-                                                <span className="material-symbols-outlined text-base">map</span>
-                                                Crear planeación
-                                            </a>
-                                        </div>
+                                        <label htmlFor="pi-plan" className="text-xs font-black uppercase text-slate-600 ml-1">Planeación de Vuelo <span className="normal-case font-bold text-slate-300">(opcional)</span></label>
+                                        {flightPlans.length > 0 ? (
+                                            <select id="pi-plan" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={form.plan_id} onChange={e => handleSelectPlan(e.target.value)}>
+                                                <option value="">-- Sin planeación / vuelo libre --</option>
+                                                {flightPlans.map(p => (
+                                                    <option key={p.id} value={p.id}>
+                                                        {p.name}{p.flight_date ? ` · ${p.flight_date}` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <p className="text-xs font-bold text-slate-400 bg-slate-50 rounded-2xl p-4">
+                                                Aún no tienes planeaciones guardadas.
+                                            </p>
+                                        )}
+                                        <a
+                                            href="/dashboard/plan-vuelo"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1.5 text-xs font-black uppercase text-orange-600 hover:text-orange-700 ml-1 mt-1"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">add_location_alt</span>
+                                            Crear nueva planeación
+                                        </a>
                                     </div>
 
                                     {/* Hora de despegue + condición */}

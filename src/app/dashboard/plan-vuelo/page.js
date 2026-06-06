@@ -2,6 +2,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/lib/toast';
 import {
   generateKML, downloadKMZ,
   fmtMetres, fmtArea,
@@ -131,6 +132,8 @@ export default function PlanVueloPage() {
   const [zone,        setZone]        = useState(null);
   const [downloading, setDownloading] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [savingPlan, setSavingPlan] = useState(false);
+  const [planSaved, setPlanSaved] = useState(false);
 
   // Datos del piloto para el encabezado del PDF y ciudad para centrar el mapa
   const [pilotInfo,   setPilotInfo]   = useState(null);
@@ -168,6 +171,9 @@ export default function PlanVueloPage() {
     setMapOpen(false);
   }, []);
 
+  // Si el usuario edita el plan tras guardarlo, permitir volver a guardar
+  useEffect(() => { setPlanSaved(false); }, [opName, geoType, zone, altitude, flightDate, takeoffTime, notes]);
+
   const handleDownload = useCallback(async () => {
     if (!zone?.points) return;
     const name = opName.trim() || 'Operación UAS';
@@ -187,6 +193,38 @@ export default function PlanVueloPage() {
     await downloadKMZ(kml, `${slug}.kmz`);
     setDownloading(false);
   }, [zone, opName, geoType, altitude, flightDate, takeoffTime, notes]);
+
+  // Guardar la planeación en la BD para seleccionarla luego al despachar el vuelo
+  const handleSavePlan = useCallback(async () => {
+    if (!opName.trim()) { toast.warn('Ingresa el nombre de la operación.'); return; }
+    setSavingPlan(true);
+    try {
+      const res = await fetch('/api/flight-plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name:         opName.trim(),
+          geo_type:     geoType,
+          points:       zone?.points ?? [],
+          radius:       zone?.radius ?? null,
+          altitude:     altitude,
+          flight_date:  flightDate || null,
+          takeoff_time: takeoffTime || null,
+          notes:        notes.trim() || null,
+        }),
+      });
+      const text = await res.text();
+      let data = {};
+      try { data = text ? JSON.parse(text) : {}; } catch { /* no JSON */ }
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+      setPlanSaved(true);
+      toast.success('Planeación guardada. Podrás seleccionarla al despachar el vuelo.');
+    } catch (err) {
+      toast.error('No se pudo guardar: ' + err.message);
+    } finally {
+      setSavingPlan(false);
+    }
+  }, [opName, geoType, zone, altitude, flightDate, takeoffTime, notes]);
 
   const summary    = zone ? getSummary(geoType, zone.points, zone.radius) : null;
   // Se puede descargar con solo el nombre de la operación; la zona es opcional pero enriquece el KMZ
@@ -580,6 +618,36 @@ export default function PlanVueloPage() {
             </p>
           </div>
         </div>
+
+        {/* GUARDAR PLANEACIÓN — queda registrada para seleccionarla al volar */}
+        <button
+          onClick={handleSavePlan}
+          disabled={!canDownload || savingPlan}
+          className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg ${
+            planSaved
+              ? 'bg-emerald-600 text-white shadow-emerald-900/20'
+              : canDownload && !savingPlan
+                ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-900/20'
+                : 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none'
+          }`}
+        >
+          {savingPlan ? (
+            <>
+              <span className="size-4 border-2 border-white border-b-transparent rounded-full animate-spin" />
+              Guardando…
+            </>
+          ) : planSaved ? (
+            <>
+              <span className="material-symbols-outlined text-lg">check_circle</span>
+              Planeación guardada
+            </>
+          ) : (
+            <>
+              <span className="material-symbols-outlined text-lg">bookmark_add</span>
+              Guardar planeación para volar
+            </>
+          )}
+        </button>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* KMZ */}

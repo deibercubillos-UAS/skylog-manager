@@ -53,9 +53,13 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Webhook no configurado' }, { status: 500 });
     }
 
-    const sigRaw = [custId, privateKey,
+    // Firma oficial de ePayco: 6 campos, SIN x_transaction_state.
+    // sha256(p_cust_id_cliente ^ p_key ^ x_ref_payco ^ x_transaction_id ^ x_amount ^ x_currency_code)
+    const pKey = process.env.EPAYCO_P_KEY || privateKey; // p_key si existe, si no private_key
+
+    const sigRaw = [custId, pKey,
       params.x_ref_payco, params.x_transaction_id,
-      params.x_amount, params.x_currency_code, params.x_transaction_state,
+      params.x_amount, params.x_currency_code,
     ].join('^');
 
     const expectedSig = crypto.createHash('sha256').update(sigRaw).digest('hex');
@@ -65,10 +69,11 @@ export async function POST(request) {
       // Log diagnóstico: muestra los valores usados para la firma (sin PII)
       console.error('ePayco webhook: firma inválida', {
         custId_len:      custId.length,
-        privateKey_len:  privateKey.length,
+        pKey_len:        pKey.length,
+        usingPKeyEnv:    !!process.env.EPAYCO_P_KEY,
         expected:        expectedSig,
         received:        receivedSig,
-        sigRaw_preview:  `${custId}^[key]^${params.x_ref_payco}^${params.x_transaction_id}^${params.x_amount}^${params.x_currency_code}^${params.x_transaction_state}`,
+        sigRaw_preview:  `${custId}^[key]^${params.x_ref_payco}^${params.x_transaction_id}^${params.x_amount}^${params.x_currency_code}`,
       });
       return NextResponse.json({ error: 'Firma inválida' }, { status: 401 });
     }

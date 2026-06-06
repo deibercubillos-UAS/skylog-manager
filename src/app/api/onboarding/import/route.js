@@ -3,6 +3,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { getOrgContext }                       from '@/lib/apiAuth';
 import { PERMISSIONS }                         from '@/lib/roles';
 import { canAddResource }                      from '@/lib/planLimits';
+import { createCrewInvitation, roleFromPilotRole } from '@/lib/invitations';
 
 export const dynamic = 'force-dynamic';
 
@@ -107,7 +108,7 @@ export async function POST(request) {
     const results = {
       org:        { updated: false, name: null },
       flota:      { created: 0, skipped: 0, errors: [] },
-      tripulacion:{ created: 0, skipped: 0, errors: [] },
+      tripulacion:{ created: 0, skipped: 0, invited: 0, errors: [] },
       baterias:   { created: 0, skipped: 0, errors: [] },
       polizas:    { created: 0, skipped: 0, errors: [] },
       contactos:  { created: 0, skipped: 0 },
@@ -204,7 +205,16 @@ export async function POST(request) {
         .from('pilots').select('id_number').eq('organization_id', orgId);
       const existingIds = new Set((existingPilots || []).map(p => String(p.id_number || '').trim()));
 
+      // Datos para los correos de invitación
+      const { data: orgRow } = await admin
+        .from('organizations').select('company_name').eq('id', orgId).maybeSingle();
+      const { data: senderRow } = await admin
+        .from('profiles').select('full_name').eq('id', userId).maybeSingle();
+      const orgName    = orgRow?.company_name || 'tu organización';
+      const senderName = senderRow?.full_name || 'Un administrador';
+
       let pilotCount = existingIds.size;
+      const toInvite = []; // { pilotId, name, email, role }
 
       for (const r of rows) {
         const name     = str(r['Nombre Completo']);
@@ -224,21 +234,25 @@ export async function POST(request) {
         }
 
         const medExp = parseDate(r['Vencimiento Médico']);
+        const email  = str(r['Email']) || null;
+        const role   = str(r['Rol']) || 'Piloto';
 
-        const { error } = await admin.from('pilots').insert({
+        // Si tiene email se invita → queda 'pending'; sin email se agrega sin invitación.
+        const { data: inserted, error } = await admin.from('pilots').insert({
           organization_id:         orgId,
           owner_id:                userId,
           name,
           id_number:               idNumber || null,
           license_number:          str(r['CIPU / N° Licencia']) || null,
           medical_expiry:          medExp,
-          pilot_role:              str(r['Rol']) || 'Piloto',
+          pilot_role:              role,
           phone:                   str(r['Teléfono']) || null,
-          email:                   str(r['Email']) || null,
+          email,
           emergency_contact_name:  str(r['Contacto Emergencia — Nombre']) || null,
           emergency_contact_phone: str(r['Contacto Emergencia — Teléfono']) || null,
           is_active:               true,
-        });
+          invitation_status:       email ? 'pending' : null,
+        }).select('id').single();
 
         if (error) {
           results.tripulacion.errors.push(`Fila ${r._row}: ${error.message}`);
@@ -246,6 +260,28 @@ export async function POST(request) {
           results.tripulacion.created++;
           pilotCount++;
           if (idNumber) existingIds.add(idNumber);
+          if (email && inserted?.id) {
+            toInvite.push({ pilotId: inserted.id, name, email, role });
+          }
+        }
+      }
+
+      // Crear invitaciones + enviar correos (fuera del bucle de inserción)
+      for (const inv of toInvite) {
+        try {
+          await createCrewInvitation(admin, {
+            orgId,
+            invitedBy:  userId,
+            pilotId:    inv.pilotId,
+            name:       inv.name,
+            email:      inv.email,
+            role:       roleFromPilotRole(inv.role),
+            orgName,
+            senderName,
+          });
+          results.tripulacion.invited++;
+        } catch (e) {
+          results.tripulacion.errors.push(`Invitación a ${inv.email}: ${e.message}`);
         }
       }
     }

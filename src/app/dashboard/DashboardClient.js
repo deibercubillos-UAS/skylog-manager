@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
 // Banner de instalación PWA — solo en dashboard, flotante en esquina
-const PwaInstallBanner = dynamic(() => import('@/components/PwaInstallBanner'), { ssr: false });
-const OnboardingBanner = dynamic(() => import('@/components/OnboardingBanner'), { ssr: false });
+const PwaInstallBanner  = dynamic(() => import('@/components/PwaInstallBanner'), { ssr: false });
+const OnboardingBanner  = dynamic(() => import('@/components/OnboardingBanner'), { ssr: false });
+const InvitationsBanner = dynamic(() => import('@/components/InvitationsBanner'), { ssr: false });
 
 export default function DashboardClient() {
   const [data,           setData]          = useState(null);
@@ -91,6 +92,9 @@ export default function DashboardClient() {
 
   return (
     <div className="space-y-5 md:space-y-8 animate-in fade-in duration-700 text-left pb-4">
+
+      {/* BANNER INVITACIONES PENDIENTES — para quien fue invitado a una org */}
+      <InvitationsBanner />
 
       {/* BANNER ONBOARDING — solo admin/jefe_pilotos, org sin aeronaves, NO para piloto independiente */}
       {profileRole && profilePlan && profilePlan !== 'piloto' && data && (

@@ -104,6 +104,14 @@ export default function PilotsPage() {
     setEditingPilot(pilot);
   };
 
+  // ── Badge de estado de invitación ──────────────────────────────────────
+  const invitationBadge = (status) => {
+    if (status === 'pending')  return { color: 'bg-amber-100 text-amber-700 border-amber-200',     label: 'Invitación pendiente' };
+    if (status === 'accepted') return { color: 'bg-emerald-100 text-emerald-700 border-emerald-200', label: 'Aceptado' };
+    if (status === 'rejected') return { color: 'bg-red-100 text-red-600 border-red-200',           label: 'Invitación rechazada' };
+    return null;
+  };
+
   // ── Helpers de estado médico ───────────────────────────────────────────
   const medicalStatus = (expiry) => {
     if (!expiry) return null;
@@ -158,6 +166,14 @@ export default function PilotsPage() {
                   <p className="text-sm font-black text-slate-900 truncate">{p.name}</p>
                   <p className="text-xs text-slate-400 font-bold uppercase truncate">{p.pilot_role || p.position || 'Piloto'}</p>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {(() => {
+                      const ib = invitationBadge(p.invitation_status);
+                      return ib ? (
+                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black border ${ib.color}`}>
+                          {ib.label}
+                        </span>
+                      ) : null;
+                    })()}
                     {ms && (
                       <span className={`px-2 py-0.5 rounded-lg text-xs font-black border ${ms.color}`}>
                         {ms.label}
@@ -228,6 +244,14 @@ export default function PilotsPage() {
                         <div>
                           <p className="font-black text-slate-900 text-sm">{p.name}</p>
                           {p.email && <p className="text-xs text-slate-400">{p.email}</p>}
+                          {(() => {
+                            const ib = invitationBadge(p.invitation_status);
+                            return ib ? (
+                              <span className={`inline-block mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black border ${ib.color}`}>
+                                {ib.label}
+                              </span>
+                            ) : null;
+                          })()}
                         </div>
                       </div>
                     </td>

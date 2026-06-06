@@ -129,6 +129,12 @@ export default function ManageSubscriptionPage() {
   const [joinError,      setJoinError]      = useState('');
   const joinConfirmRef = useRef(null);
 
+  // ── Estado "Verificar pago pendiente" ────────────────────────────────────
+  const [pendingRef,     setPendingRef]     = useState('');
+  const [verifying,      setVerifying]      = useState(false);
+  const [verifyResult,   setVerifyResult]   = useState(null);   // { activated, planName, reason }
+  const [showVerify,     setShowVerify]     = useState(false);
+
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -141,6 +147,15 @@ export default function ManageSubscriptionPage() {
         setProfile(data);
       }
       setLoading(false);
+
+      // Detectar referencia guardada desde la página de retorno de ePayco
+      try {
+        const storedRef = sessionStorage.getItem('epayco_pending_ref');
+        if (storedRef) {
+          setPendingRef(storedRef);
+          setShowVerify(true);
+        }
+      } catch {}
     }
     load();
   }, []);
@@ -178,6 +193,42 @@ export default function ManageSubscriptionPage() {
       alert('Error al iniciar pago: ' + e.message);
     } finally {
       setUpgrading(null);
+    }
+  }
+
+  // ── Verificar pago pendiente ───────────────────────────────────────────────
+  async function handleVerifyPending() {
+    const ref = pendingRef.trim();
+    if (!ref) return;
+    setVerifying(true);
+    setVerifyResult(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sesión no disponible — vuelve a iniciar sesión');
+      const res  = await fetch('/api/epayco/verify', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body:    JSON.stringify({ ref_payco: ref }),
+      });
+      const json = await res.json();
+      setVerifyResult(json);
+      if (json.activated) {
+        try { sessionStorage.removeItem('epayco_pending_ref'); } catch {}
+        // Refrescar perfil para mostrar el nuevo plan
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('subscription_plan, subscription_expires_at, epayco_subscription_id, email')
+            .eq('id', user.id)
+            .single();
+          setProfile(data);
+        }
+      }
+    } catch (e) {
+      setVerifyResult({ activated: false, reason: e.message });
+    } finally {
+      setVerifying(false);
     }
   }
 
@@ -412,6 +463,86 @@ export default function ManageSubscriptionPage() {
             })}
           </div>
         </section>
+      )}
+
+      {/* ── Verificar pago pendiente ─────────────────────────────────────── */}
+      {(showVerify || !isPaid) && !verifyResult?.activated && (
+        <section aria-label="Verificar pago pendiente"
+                 className={`border rounded-2xl p-6 space-y-4 ${showVerify ? 'border-orange-300 bg-orange-50/60' : 'border-slate-200 bg-slate-50/40'}`}>
+          <div className="flex items-start gap-3">
+            <div className="size-10 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-orange-600 text-xl" aria-hidden="true">receipt_long</span>
+            </div>
+            <div className="flex-1">
+              <h4 className="font-black text-slate-800 text-sm uppercase tracking-wide flex items-center gap-2">
+                {showVerify ? '¡Pago detectado! Activar plan' : '¿Ya pagaste? Verificar pago'}
+              </h4>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                {showVerify
+                  ? 'Encontramos una referencia de pago reciente. Haz clic para activar tu plan ahora.'
+                  : 'Si realizaste un pago y tu plan no se actualizó, ingresa la referencia de la transacción (visible en el correo de confirmación de ePayco).'}
+              </p>
+            </div>
+            {!showVerify && (
+              <button onClick={() => setShowVerify(true)}
+                      className="text-xs font-black text-orange-600 hover:text-orange-700 underline shrink-0">
+                Verificar
+              </button>
+            )}
+          </div>
+
+          {showVerify && (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={pendingRef}
+                onChange={e => { setPendingRef(e.target.value); setVerifyResult(null); }}
+                placeholder="Referencia ePayco (ej. bitafly_escuadrilla_monthly_...)"
+                className="flex-1 px-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-sm font-medium focus:border-orange-400 focus:outline-none transition-colors font-mono"
+                disabled={verifying}
+                aria-label="Referencia de transacción ePayco"
+              />
+              <button
+                onClick={handleVerifyPending}
+                disabled={verifying || !pendingRef.trim()}
+                className="px-5 py-3 bg-[#ec5b13] text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-orange-600 disabled:opacity-50 transition-colors flex items-center gap-2"
+              >
+                {verifying
+                  ? <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                  : <span className="material-symbols-outlined text-sm">verified</span>}
+                {verifying ? 'Verificando...' : 'Activar'}
+              </button>
+            </div>
+          )}
+
+          {verifyResult && !verifyResult.activated && (
+            <div className="flex items-start gap-2 text-xs text-red-600 bg-red-50 rounded-xl px-4 py-3" role="alert">
+              <span className="material-symbols-outlined text-sm shrink-0">error</span>
+              <span>
+                {verifyResult.reason === 'no_encontrada'   && 'Referencia no encontrada en ePayco. Verifica que sea la correcta.'}
+                {verifyResult.reason === 'no_aprobada'     && `Pago no aprobado (estado: ${verifyResult.state || 'desconocido'}).`}
+                {verifyResult.reason === 'no_coincide_usuario' && 'El pago no coincide con tu cuenta. Contacta soporte.'}
+                {verifyResult.reason === 'plan_no_resuelto' && 'No se pudo determinar el plan. Contacta soporte con tu referencia.'}
+                {verifyResult.reason === 'sin_referencia'  && 'Ingresa la referencia del pago.'}
+                {!['no_encontrada','no_aprobada','no_coincide_usuario','plan_no_resuelto','sin_referencia'].includes(verifyResult.reason)
+                  && (verifyResult.reason || 'Error inesperado. Contacta soporte en hola@bitafly.com.')}
+              </span>
+            </div>
+          )}
+        </section>
+      )}
+
+      {verifyResult?.activated && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-start gap-3 animate-in fade-in duration-500"
+             role="status" aria-live="polite">
+          <span className="material-symbols-outlined text-emerald-500 text-2xl shrink-0">check_circle</span>
+          <div>
+            <p className="text-sm font-black text-emerald-800">
+              ¡Plan {verifyResult.planName || ''} activado correctamente!
+            </p>
+            <p className="text-xs text-emerald-700 mt-0.5">Tu suscripción está activa. La página se actualizó con tu nuevo plan.</p>
+          </div>
+        </div>
       )}
 
       {/* ── Unirse a organización (solo plan piloto) ──────────────────────── */}

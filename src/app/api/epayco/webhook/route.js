@@ -1,4 +1,5 @@
 // POST /api/epayco/webhook
+// GET  /api/epayco/webhook  → ePayco verifica la URL antes de usarla (debe devolver 200)
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
@@ -11,16 +12,36 @@ function makeSupabase() {
   );
 }
 
+// ePayco hace GET a la URL de confirmación para verificar que existe
+export async function GET() {
+  return NextResponse.json({ ok: true });
+}
+
 export async function POST(request) {
   try {
-    const body   = await request.text();
-    const params = Object.fromEntries(new URLSearchParams(body));
+    const rawBody   = await request.text();
+    const contentType = request.headers.get('content-type') || '';
 
-    // Log mínimo — sin PII (no loguear email, nombre, tarjeta, monto completo)
+    // ePayco puede enviar el body como JSON o como form-urlencoded
+    let params = {};
+    if (contentType.includes('application/json')) {
+      try { params = JSON.parse(rawBody); } catch { params = {}; }
+    } else {
+      try { params = Object.fromEntries(new URLSearchParams(rawBody)); } catch { params = {}; }
+      // Si URLSearchParams no encontró nada, intentar JSON como fallback
+      if (Object.keys(params).length === 0 && rawBody.trim().startsWith('{')) {
+        try { params = JSON.parse(rawBody); } catch { params = {}; }
+      }
+    }
+
+    // Log diagnóstico (sin PII)
     console.log('ePayco webhook recibido:', JSON.stringify({
-      ref:    params.x_ref_payco,
-      state:  params.x_transaction_state,
-      amount: params.x_amount,
+      contentType,
+      ref:          params.x_ref_payco,
+      state:        params.x_transaction_state,
+      amount:       params.x_amount,
+      sig_received: (params.x_signature || '').slice(0, 8),
+      keys:         Object.keys(params).join(','),
     }));
 
     // ── Verificación de firma ─────────────────────────────────────────────────
@@ -28,7 +49,7 @@ export async function POST(request) {
     const privateKey = process.env.EPAYCO_PRIVATE_KEY;
 
     if (!custId || !privateKey) {
-      console.error('EPAYCO_P_CUST_ID o EPAYCO_PRIVATE_KEY no configurados');
+      console.error('EPAYCO_P_CUST_ID o EPAYCO_PRIVATE_KEY no configurados en Vercel');
       return NextResponse.json({ error: 'Webhook no configurado' }, { status: 500 });
     }
 
@@ -41,7 +62,14 @@ export async function POST(request) {
     const receivedSig = (params.x_signature || '').toLowerCase();
 
     if (expectedSig !== receivedSig) {
-      console.warn('ePayco webhook: firma inválida', { expected: expectedSig.slice(0,8), received: receivedSig.slice(0,8) });
+      // Log diagnóstico: muestra los valores usados para la firma (sin PII)
+      console.error('ePayco webhook: firma inválida', {
+        custId_len:      custId.length,
+        privateKey_len:  privateKey.length,
+        expected:        expectedSig,
+        received:        receivedSig,
+        sigRaw_preview:  `${custId}^[key]^${params.x_ref_payco}^${params.x_transaction_id}^${params.x_amount}^${params.x_currency_code}^${params.x_transaction_state}`,
+      });
       return NextResponse.json({ error: 'Firma inválida' }, { status: 401 });
     }
 

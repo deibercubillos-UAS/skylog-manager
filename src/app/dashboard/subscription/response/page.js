@@ -41,6 +41,7 @@ export default function PaymentResponsePage() {
       }
 
       // ── Verificar con ePayco y activar plan ────────────────────────────────
+      let activatedPlan = null;
       if (ref) {
         try {
           const res  = await fetch('/api/epayco/verify', {
@@ -53,6 +54,7 @@ export default function PaymentResponsePage() {
           });
           const json = await res.json().catch(() => ({}));
           if (json.activated) {
+            activatedPlan = json;
             setPlanName(json.planName || '');
             try { sessionStorage.removeItem('epayco_pending_ref'); } catch {}
           }
@@ -70,10 +72,27 @@ export default function PaymentResponsePage() {
       } catch {}
 
       setStatus('confirmed');
-      redirectTimer = setTimeout(() => {
-        sessionStorage.setItem('plan_activated', '1');
-        window.location.href = '/dashboard';
-      }, 2500);
+
+      // ── Si la página está en una pestaña nueva abierta desde manage ────────
+      const isPopup = !!window.opener && !window.opener.closed;
+      if (isPopup && activatedPlan) {
+        try {
+          window.opener.postMessage({
+            type:     'BITAFLY_PLAN_ACTIVATED',
+            planKey:  activatedPlan.planSlug  || '',
+            planName: activatedPlan.planName  || '',
+            expiresAt: activatedPlan.expiresAt || null,
+          }, window.location.origin);
+        } catch {}
+        // Cerrar esta pestaña luego de mostrar brevemente el mensaje de éxito
+        redirectTimer = setTimeout(() => window.close(), 2000);
+      } else {
+        // Flujo normal: redirigir al dashboard
+        redirectTimer = setTimeout(() => {
+          sessionStorage.setItem('plan_activated', '1');
+          window.location.href = '/dashboard';
+        }, 2500);
+      }
     }
 
     verifyAndRedirect();
@@ -123,13 +142,13 @@ export default function PaymentResponsePage() {
         </h2>
         <p className="text-slate-500 mt-4 text-sm font-medium leading-relaxed">
           {confirmed
-            ? <>{planName ? <>Plan <strong>{planName}</strong> activado.</> : 'Tu nuevo plan ha sido activado.'}<br/><strong>Regresando al dashboard...</strong></>
+            ? <>{planName ? <>Plan <strong>{planName}</strong> activado.</> : 'Tu nuevo plan ha sido activado.'}<br/><strong>Cerrando esta ventana...</strong></>
             : <>Estamos confirmando tu pago con el banco.<br/><strong>Tu nuevo plan se activará en unos segundos.</strong></>
           }
         </p>
         <div className="mt-10">
           <p className="text-xs font-black uppercase text-slate-400 tracking-widest animate-pulse">
-            {confirmed ? 'Redirigiendo al dashboard...' : 'Iniciando sistemas BitaFly Pro...'}
+            {confirmed ? 'Volviendo a BitaFly...' : 'Iniciando sistemas BitaFly Pro...'}
           </p>
         </div>
       </div>

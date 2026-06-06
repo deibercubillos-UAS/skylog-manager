@@ -172,6 +172,27 @@ export default function ManageSubscriptionPage() {
   const expiresAt = formatDate(profile?.subscription_expires_at);
   const nextPlans = PLAN_ORDER.slice(PLAN_ORDER.indexOf(planKey) + 1);
 
+  // ── Escuchar mensaje de activación desde la pestaña de ePayco ───────────
+  useEffect(() => {
+    function onMessage(e) {
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type !== 'BITAFLY_PLAN_ACTIVATED') return;
+
+      const { planKey: newPlan, planName: newPlanName, expiresAt } = e.data;
+      // Actualizar profile en estado sin recargar la página
+      setProfile(p => ({
+        ...p,
+        subscription_plan:       newPlan,
+        subscription_expires_at: expiresAt || null,
+      }));
+      setVerifyResult({ activated: true, planName: newPlanName || newPlan });
+      setUpgrading(null);
+      try { sessionStorage.removeItem('epayco_pending_ref'); } catch {}
+    }
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+
   // ── Upgrade handler ────────────────────────────────────────────────────────
   async function handleUpgrade(targetPlan) {
     setUpgrading(targetPlan);
@@ -187,11 +208,13 @@ export default function ManageSubscriptionPage() {
         body: JSON.stringify({ planKey: targetPlan, billing }),
       });
       const json = await res.json();
-      if (json.url) window.location.href = json.url;
-      else throw new Error(json.error || 'No se pudo iniciar el pago');
+      if (!json.url) throw new Error(json.error || 'No se pudo iniciar el pago');
+
+      // Abrir ePayco en nueva pestaña — la pestaña cerrará sola al terminar
+      window.open(json.url, '_blank', 'noopener');
+      // upgrading se limpia cuando llegue el postMessage (o el usuario cancela)
     } catch (e) {
       alert('Error al iniciar pago: ' + e.message);
-    } finally {
       setUpgrading(null);
     }
   }
@@ -446,16 +469,16 @@ export default function ManageSubscriptionPage() {
 
                   <button
                     onClick={() => handleUpgrade(pk)}
-                    disabled={upgrading === pk}
+                    disabled={!!upgrading}
                     aria-label={`Actualizar a plan ${np.label}`}
                     className={`w-full py-3 rounded-xl text-xs font-black uppercase tracking-widest text-white transition-all
                       ${nc.btn} disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2`}>
                     {upgrading === pk ? (
-                      <><span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>Redirigiendo...</>
+                      <><span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>Esperando pago...</>
                     ) : isEnt ? (
                       <><span className="material-symbols-outlined text-sm">mail</span>Contactar ventas</>
                     ) : (
-                      <><span className="material-symbols-outlined text-sm">upgrade</span>Actualizar a {np.label}</>
+                      <><span className="material-symbols-outlined text-sm">open_in_new</span>Actualizar a {np.label}</>
                     )}
                   </button>
                 </div>

@@ -135,6 +135,13 @@ export default function ManageSubscriptionPage() {
   const [verifyResult,   setVerifyResult]   = useState(null);   // { activated, planName, reason }
   const [showVerify,     setShowVerify]     = useState(false);
 
+  // ── Refs para el polling del pago (no provocan re-render) ──────────────────
+  const pollRef         = useRef(null);  // interval de polling del perfil
+  const winWatchRef     = useRef(null);  // interval que vigila el cierre del popup
+  const payWindowRef    = useRef(null);  // referencia a la pestaña de ePayco
+  const baselinePlanRef = useRef(null);  // plan antes de iniciar el pago
+  const pollDeadlineRef = useRef(null);  // timestamp límite del polling
+
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -172,30 +179,68 @@ export default function ManageSubscriptionPage() {
   const expiresAt = formatDate(profile?.subscription_expires_at);
   const nextPlans = PLAN_ORDER.slice(PLAN_ORDER.indexOf(planKey) + 1);
 
+  // Marca un upgrade como exitoso y limpia el estado de polling
+  function markActivated({ newPlan, newPlanName, expiresAt }) {
+    setProfile(p => ({
+      ...p,
+      subscription_plan:       newPlan,
+      subscription_expires_at: expiresAt || p?.subscription_expires_at || null,
+    }));
+    setVerifyResult({ activated: true, planName: newPlanName || PLANS[newPlan]?.label || newPlan });
+    setUpgrading(null);
+    stopPolling();
+    try { sessionStorage.removeItem('epayco_pending_ref'); } catch {}
+  }
+
+  function stopPolling() {
+    if (pollRef.current)     { clearInterval(pollRef.current);   pollRef.current = null; }
+    if (winWatchRef.current) { clearInterval(winWatchRef.current); winWatchRef.current = null; }
+    payWindowRef.current   = null;
+    baselinePlanRef.current = null;
+    pollDeadlineRef.current = null;
+  }
+
+  // Consulta el perfil; si el plan ya es pago (distinto del baseline) → activado
+  async function pollProfileOnce() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      const { data } = await supabase
+        .from('profiles')
+        .select('subscription_plan, subscription_expires_at')
+        .eq('id', user.id)
+        .single();
+      if (!data) return false;
+      const base = baselinePlanRef.current;
+      const isPaidNow = data.subscription_plan && data.subscription_plan !== 'piloto';
+      if (isPaidNow && data.subscription_plan !== base) {
+        markActivated({
+          newPlan:   data.subscription_plan,
+          expiresAt: data.subscription_expires_at,
+        });
+        return true;
+      }
+    } catch { /* reintentar en el próximo tick */ }
+    return false;
+  }
+
   // ── Escuchar mensaje de activación desde la pestaña de ePayco ───────────
   useEffect(() => {
     function onMessage(e) {
       if (e.origin !== window.location.origin) return;
       if (e.data?.type !== 'BITAFLY_PLAN_ACTIVATED') return;
-
       const { planKey: newPlan, planName: newPlanName, expiresAt } = e.data;
-      // Actualizar profile en estado sin recargar la página
-      setProfile(p => ({
-        ...p,
-        subscription_plan:       newPlan,
-        subscription_expires_at: expiresAt || null,
-      }));
-      setVerifyResult({ activated: true, planName: newPlanName || newPlan });
-      setUpgrading(null);
-      try { sessionStorage.removeItem('epayco_pending_ref'); } catch {}
+      markActivated({ newPlan, newPlanName, expiresAt });
     }
     window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
+    return () => { window.removeEventListener('message', onMessage); stopPolling(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Upgrade handler ────────────────────────────────────────────────────────
   async function handleUpgrade(targetPlan) {
     setUpgrading(targetPlan);
+    setVerifyResult(null);
     try {
       if (targetPlan === 'enterprise') {
         window.open('mailto:hola@bitafly.com?subject=Plan%20Enterprise', '_blank');
@@ -210,12 +255,45 @@ export default function ManageSubscriptionPage() {
       const json = await res.json();
       if (!json.url) throw new Error(json.error || 'No se pudo iniciar el pago');
 
-      // Abrir ePayco en nueva pestaña — la pestaña cerrará sola al terminar
-      window.open(json.url, '_blank', 'noopener');
-      // upgrading se limpia cuando llegue el postMessage (o el usuario cancela)
+      // Abrir ePayco en nueva pestaña (sin noopener: necesitamos la referencia
+      // para detectar el cierre y recibir el postMessage de retorno).
+      const win = window.open(json.url, '_blank');
+      payWindowRef.current    = win;
+      baselinePlanRef.current = planKey; // plan antes del pago
+      pollDeadlineRef.current = Date.now() + 1000 * 60 * 10; // hasta 10 min
+
+      // Polling del perfil: el webhook de ePayco activa el plan server-side,
+      // así detectamos el cambio aunque ePayco no redirija a nuestra página.
+      stopPolling();
+      pollRef.current = setInterval(() => {
+        if (Date.now() > pollDeadlineRef.current) {
+          stopPolling();
+          setUpgrading(null);
+          setShowVerify(true); // ofrecer verificación manual como último recurso
+          return;
+        }
+        pollProfileOnce();
+      }, 4000);
+
+      // Vigilar el cierre de la ventana de pago: al cerrarse, hacemos un
+      // barrido extra de verificación durante ~40s antes de rendirnos.
+      if (win) {
+        winWatchRef.current = setInterval(async () => {
+          if (win.closed) {
+            clearInterval(winWatchRef.current);
+            winWatchRef.current = null;
+            // Extender el polling unos segundos por si el webhook tarda
+            const grace = Date.now() + 40000;
+            if (pollDeadlineRef.current > grace) pollDeadlineRef.current = grace;
+            const ok = await pollProfileOnce();
+            if (!ok) setShowVerify(true);
+          }
+        }, 1500);
+      }
     } catch (e) {
       alert('Error al iniciar pago: ' + e.message);
       setUpgrading(null);
+      stopPolling();
     }
   }
 
@@ -410,6 +488,15 @@ export default function ManageSubscriptionPage() {
         <section aria-label="Opciones de actualización">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-sm font-black uppercase tracking-widest text-slate-500">Actualizar plan</h4>
+            <div className="flex items-center gap-3">
+            {upgrading && (
+              <button
+                onClick={() => { stopPolling(); setUpgrading(null); }}
+                className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-red-500 transition-colors flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">close</span>
+                Cancelar espera
+              </button>
+            )}
             {/* Billing toggle */}
             <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1" role="group" aria-label="Ciclo de facturación">
               {['monthly', 'annual'].map(b => (
@@ -423,7 +510,23 @@ export default function ManageSubscriptionPage() {
                 </button>
               ))}
             </div>
+            </div>
           </div>
+
+          {/* Aviso mientras se espera la confirmación del pago */}
+          {upgrading && (
+            <div className="mb-4 bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-start gap-3"
+                 role="status" aria-live="polite">
+              <span className="material-symbols-outlined text-orange-500 animate-spin mt-0.5">progress_activity</span>
+              <div>
+                <p className="text-sm font-black text-orange-800">Esperando confirmación del pago…</p>
+                <p className="text-xs text-orange-700 mt-0.5 leading-relaxed">
+                  Completa el pago en la pestaña de ePayco. Tu plan se activará aquí automáticamente
+                  en cuanto el pago sea aprobado — no cierres esta página.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className={`grid gap-4 ${nextPlans.length === 1 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
             {nextPlans.map(pk => {

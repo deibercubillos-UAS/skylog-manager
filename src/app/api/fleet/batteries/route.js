@@ -48,9 +48,12 @@ export async function POST(request) {
 
     const currentBatteryCount = existingBatteries?.length ?? 0;
 
-    if (!canAddResource(subscription_plan, currentBatteryCount, 'battery')) {
+    const canAdd = canAddResource(subscription_plan, currentBatteryCount, 'battery');
+    console.error('[batteries] plan check:', { subscription_plan, currentBatteryCount, canAdd });
+
+    if (!canAdd) {
       return NextResponse.json(
-        { error: `Tu plan ha llegado al límite de baterías (${currentBatteryCount}/3 registradas).` },
+        { error: `Límite de baterías: ${currentBatteryCount} registradas, plan="${subscription_plan}", maxBatteries check failed.` },
         { status: 402 }
       );
     }

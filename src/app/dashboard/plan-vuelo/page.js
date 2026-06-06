@@ -42,6 +42,76 @@ function getSummary(geoType, points, radius) {
   return null;
 }
 
+// ── Mapa de ciudades colombianas principales → [lat, lng] ────────────────────
+// Normalización: minúsculas, sin tildes
+const CITY_COORDS = {
+  'bogota':          [4.7110, -74.0721],
+  'bogotá':          [4.7110, -74.0721],
+  'medellin':        [6.2518, -75.5636],
+  'medellín':        [6.2518, -75.5636],
+  'cali':            [3.4516, -76.5320],
+  'barranquilla':    [10.9639, -74.7964],
+  'cartagena':       [10.3910, -75.4794],
+  'bucaramanga':     [7.1193, -73.1227],
+  'pereira':         [4.8133, -75.6961],
+  'manizales':       [5.0703, -75.5138],
+  'cucuta':          [7.8939, -72.5078],
+  'cúcuta':          [7.8939, -72.5078],
+  'ibague':          [4.4389, -75.2322],
+  'ibagué':          [4.4389, -75.2322],
+  'santa marta':     [11.2408, -74.2110],
+  'villavicencio':   [4.1533, -73.6350],
+  'pasto':           [1.2136, -77.2811],
+  'neiva':           [2.9273, -75.2820],
+  'armenia':         [4.5339, -75.6811],
+  'monteria':        [8.7579, -75.8814],
+  'montería':        [8.7579, -75.8814],
+  'tunja':           [5.5353, -73.3678],
+  'popayan':         [2.4419, -76.6070],
+  'popayán':         [2.4419, -76.6070],
+  'valledupar':      [10.4631, -73.2532],
+  'sincelejo':       [9.3047, -75.3978],
+  'florencia':       [1.6144, -75.6062],
+  'riohacha':        [11.5448, -72.9070],
+  'quibdo':          [5.6919, -76.6583],
+  'quibdó':          [5.6919, -76.6583],
+  'yopal':           [5.3378, -72.3953],
+  'arauca':          [7.0898, -70.7617],
+  'mocoa':           [1.1523, -76.6490],
+  'leticia':         [-4.2153, -69.9406],
+  'san andres':      [12.5847, -81.7006],
+  'san andrés':      [12.5847, -81.7006],
+  'bello':           [6.3391, -75.5578],
+  'soacha':          [4.5792, -74.2167],
+  'soledad':         [10.9125, -74.7689],
+  'itagui':          [6.1847, -75.5989],
+  'itagüí':          [6.1847, -75.5989],
+  'envigado':        [6.1694, -75.5827],
+  'dosquebradas':    [4.8392, -75.6628],
+  'palmira':         [3.5394, -76.3036],
+  'buenaventura':    [3.8819, -77.0307],
+  'barrancabermeja': [7.0650, -73.8530],
+  'tulua':           [4.0836, -76.1961],
+  'tuluá':           [4.0836, -76.1961],
+  'ipiales':         [0.8294, -77.6439],
+};
+
+const BOGOTA = [4.7110, -74.0721];
+
+/**
+ * Resuelve la ciudad del perfil a coordenadas [lat, lng].
+ * Hace búsqueda insensible a mayúsculas. Fallback: Bogotá.
+ */
+function resolveCityCoords(city) {
+  if (!city) return BOGOTA;
+  const key = city.trim().toLowerCase();
+  // Búsqueda exacta
+  if (CITY_COORDS[key]) return CITY_COORDS[key];
+  // Búsqueda parcial (ej: "Bogotá D.C." → "bogotá")
+  const found = Object.keys(CITY_COORDS).find(k => key.includes(k) || k.includes(key));
+  return found ? CITY_COORDS[found] : BOGOTA;
+}
+
 // Fecha de hoy en formato YYYY-MM-DD
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -62,15 +132,18 @@ export default function PlanVueloPage() {
   const [downloading, setDownloading] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
 
-  // Datos del piloto para el encabezado del PDF
-  const [pilotInfo, setPilotInfo] = useState(null);
+  // Datos del piloto para el encabezado del PDF y ciudad para centrar el mapa
+  const [pilotInfo,   setPilotInfo]   = useState(null);
+  const [mapCenter,   setMapCenter]   = useState([4.7110, -74.0721]); // Bogotá por defecto
+  const [mapZoom,     setMapZoom]     = useState(12);
+
   useEffect(() => {
     async function loadPilot() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const { data: prof } = await supabase
         .from('profiles')
-        .select('full_name, first_name, email, role, organization_id')
+        .select('full_name, first_name, email, role, organization_id, city')
         .eq('id', user.id)
         .single();
       if (!prof) return;
@@ -80,6 +153,12 @@ export default function PlanVueloPage() {
         .eq('id', prof.organization_id)
         .maybeSingle();
       setPilotInfo({ ...prof, orgName: org?.company_name || '', orgNit: org?.tax_id || '' });
+
+      // Resolver centro del mapa a partir de la ciudad del perfil
+      if (prof.city) {
+        const coords = resolveCityCoords(prof.city);
+        setMapCenter(coords);
+      }
     }
     loadPilot();
   }, []);
@@ -568,6 +647,8 @@ export default function PlanVueloPage() {
         <MapPickerModal
           type={geoType}
           points={zone?.points || []}
+          initialCenter={mapCenter}
+          initialZoom={mapZoom}
           onSave={handleMapSave}
           onClose={() => setMapOpen(false)}
         />

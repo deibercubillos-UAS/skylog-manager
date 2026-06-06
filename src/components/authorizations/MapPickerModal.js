@@ -81,7 +81,7 @@ function GeoStats({ type, points, radius }) {
 }
 
 // ─── Main modal ───────────────────────────────────────────────────────────────
-export default function MapPickerModal({ type, points, onSave, onClose }) {
+export default function MapPickerModal({ type, points, onSave, onClose, initialCenter, initialZoom }) {
   const [tempPoints,  setTempPoints]  = useState(points || []);
   const [radius,      setRadius]      = useState(500);
   const [searchQuery, setSearchQuery] = useState('');
@@ -206,8 +206,8 @@ export default function MapPickerModal({ type, points, onSave, onClose }) {
       {/* ── Map (flex-1 fill) ───────────────────────────────────────────────── */}
       <div className="flex-1 relative">
         <MapContainer
-          center={[4.5709, -74.2973]}
-          zoom={6}
+          center={initialCenter || [4.7110, -74.0721]}
+          zoom={initialZoom ?? 12}
           style={{ height: '100%', width: '100%' }}
           zoomControl={true}
         >

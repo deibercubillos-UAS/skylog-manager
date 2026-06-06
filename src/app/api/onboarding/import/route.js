@@ -104,6 +104,9 @@ export async function POST(request) {
     const sheetNames = wb.worksheets.map(w => w.name);
     console.log('[onboarding/import] hojas:', JSON.stringify(sheetNames));
 
+    // Diagnóstico estructurado (temporal): se escribe al final en _debug_import_log
+    const _diag = { sheetNames, sections: {} };
+
     const admin   = createAdminClient();
     const orgId   = ctx.orgId;
     const userId  = ctx.userId;
@@ -148,11 +151,19 @@ export async function POST(request) {
 
     // ── 2. FLOTA (antes que tripulación y baterías — FK) ─────────────────
     const wsFlota = wb.getWorksheet('✈️ Flota');
-    console.log('[onboarding/import] wsFlota encontrada:', !!wsFlota);
     if (wsFlota) {
       const rows = readSheet(wsFlota);
-      console.log('[onboarding/import] Flota filas leídas:', rows.length,
-        'keys:', JSON.stringify(rows[0] ? Object.keys(rows[0]) : []));
+      _diag.sections.flota = {
+        found: true,
+        rowsRead: rows.length,
+        keys: rows[0] ? Object.keys(rows[0]) : [],
+        sample: rows.slice(0, 3).map(r => ({
+          fab: r['Fabricante'], mod: r['Modelo'], serial: r['Serial / S/N'],
+        })),
+      };
+    } else { _diag.sections.flota = { found: false }; }
+    if (wsFlota) {
+      const rows = readSheet(wsFlota);
 
       // Cargar seriales existentes para dedup
       const { data: existingAC } = await admin
@@ -207,6 +218,13 @@ export async function POST(request) {
     const wsTripulacion = wb.getWorksheet('👥 Tripulación');
     if (wsTripulacion) {
       const rows = readSheet(wsTripulacion);
+      _diag.sections.tripulacion = {
+        found: true, rowsRead: rows.length,
+        keys: rows[0] ? Object.keys(rows[0]) : [],
+        sample: rows.slice(0, 3).map(r => ({
+          name: r['Nombre Completo'], ced: r['Número Cédula / Pasaporte'], email: r['Email'],
+        })),
+      };
 
       const { data: existingPilots } = await admin
         .from('pilots').select('id_number').eq('organization_id', orgId);
@@ -562,6 +580,14 @@ export async function POST(request) {
       results.bitacora.duplicates;
 
     console.log('[onboarding/import] resultado:', JSON.stringify({ totalCreated, totalSkipped, results }));
+
+    // Diagnóstico (temporal): persistir para inspección directa
+    try {
+      _diag.results = results;
+      _diag.totalCreated = totalCreated;
+      _diag.totalSkipped = totalSkipped;
+      await admin.from('_debug_import_log').insert({ org_id: orgId, payload: _diag });
+    } catch (e) { console.warn('debug log falló:', e.message); }
 
     return NextResponse.json({ success: true, results, totalCreated, totalSkipped });
 

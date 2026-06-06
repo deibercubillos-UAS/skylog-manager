@@ -109,8 +109,10 @@ export async function POST(request) {
 
     const admin   = createAdminClient();
     const orgId   = ctx.orgId;
-    const userId  = ctx.userId;
+    const userId  = ctx.user?.id;   // getOrgContext retorna `user`, no `userId`
     const plan    = ctx.subscription_plan || 'piloto';
+
+    if (!userId) return NextResponse.json({ error: 'Sesión inválida' }, { status: 401 });
 
     const results = {
       org:        { updated: false, name: null },
@@ -316,12 +318,6 @@ export async function POST(request) {
     if (wsBaterias) {
       const rows = readSheet(wsBaterias);
 
-      // Mapa de serial → id de aeronave (para FK)
-      const { data: aircraftList } = await admin
-        .from('aircraft').select('id, serial_number').eq('organization_id', orgId);
-      const acMap = {};
-      (aircraftList || []).forEach(a => { acMap[a.serial_number.toUpperCase()] = a.id; });
-
       const { data: existingBat } = await admin
         .from('batteries').select('serial_number').eq('organization_id', orgId);
       const existingBatSerials = new Set((existingBat || []).map(b => b.serial_number.toUpperCase()));
@@ -337,19 +333,14 @@ export async function POST(request) {
           continue;
         }
 
-        const acSerial    = str(r['Serial Aeronave Asignada']).toUpperCase();
-        const aircraft_id = acSerial ? (acMap[acSerial] || null) : null;
-        if (acSerial && !aircraft_id) {
-          results.baterias.errors.push(`Fila ${r._row}: serial de aeronave "${acSerial}" no encontrado en la flota importada`);
-        }
-
+        // Nota: la tabla `batteries` no vincula a aeronave; la columna
+        // "Serial Aeronave Asignada" es informativa y no se almacena.
         const { error } = await admin.from('batteries').insert({
           organization_id: orgId,
           owner_id:        userId,
           serial_number:   serial,
           brand:           str(r['Marca']) || null,
           cycles:          num(r['Ciclos Acumulados']) || 0,
-          aircraft_id,
         });
 
         if (error) {

@@ -86,6 +86,19 @@ export const PLAN_CONFIG = {
  * @param {number} currentCount - Cuántos tiene registrados actualmente
  * @param {string} type - 'drone' o 'pilot'
  */
+/**
+ * ¿Esta fila de tripulación cuenta contra el límite de tripulantes del plan?
+ * Gerente General y Gerente SMS NO cuentan (son roles de gestión).
+ * Cuentan: Piloto, Jefe de Pilotos, Observador.
+ * @param {string} pilotRole - texto del rol (pilot_role) o rol del sistema
+ */
+export const crewCountsForLimit = (pilotRole) => {
+  const s = String(pilotRole || '').toLowerCase();
+  // 'gerente' cubre "Gerente SMS" y "Gerente General"; 'gerente_sms'/'admin' (roles de sistema)
+  if (s.includes('gerente') || s === 'gerente_sms' || s === 'admin') return false;
+  return true;
+};
+
 export const canAddResource = (planKey, currentCount, type) => {
   const plan = PLAN_CONFIG[planKey] || PLAN_CONFIG.piloto;
   if (type === 'battery') {

@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { canAddResource } from '@/lib/planLimits';
+import { canAddResource, crewCountsForLimit } from '@/lib/planLimits';
 import FileUpload from './FileUpload';
 import { toast } from '@/lib/toast';
 
@@ -14,8 +14,9 @@ export default function AddManualPilotPanel({ onClose, onSuccess, currentPlan, c
     e.preventDefault();
     setLoading(true);
 
-    if (!canAddResource(currentPlan, currentCount, 'pilot')) {
-      toast.warn(`Límite de plan: tu plan ${currentPlan} no permite más pilotos.`);
+    // Gerente General y Gerente SMS no cuentan contra el límite
+    if (crewCountsForLimit(formData.pilot_role) && !canAddResource(currentPlan, currentCount, 'pilot')) {
+      toast.warn(`Límite de plan: tu plan ${currentPlan} no permite más tripulantes.`);
       setLoading(false);
       return;
     }

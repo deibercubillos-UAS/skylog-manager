@@ -2,7 +2,7 @@ import { NextResponse }                        from 'next/server';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { getOrgContext }                       from '@/lib/apiAuth';
 import { PERMISSIONS }                         from '@/lib/roles';
-import { canAddResource }                      from '@/lib/planLimits';
+import { canAddResource, crewCountsForLimit }  from '@/lib/planLimits';
 import { createCrewInvitation, roleFromPilotRole } from '@/lib/invitations';
 
 export const dynamic = 'force-dynamic';
@@ -207,7 +207,7 @@ export async function POST(request) {
       const rows = readSheet(wsTripulacion);
 
       const { data: existingPilots } = await admin
-        .from('pilots').select('id_number, email').eq('organization_id', orgId);
+        .from('pilots').select('id_number, email, pilot_role').eq('organization_id', orgId);
       const existingIds    = new Set((existingPilots || []).map(p => String(p.id_number || '').trim()).filter(Boolean));
       const existingEmails = new Set((existingPilots || []).map(p => String(p.email || '').trim().toLowerCase()).filter(Boolean));
 
@@ -220,7 +220,8 @@ export async function POST(request) {
       const senderName = senderRow?.full_name || 'Un administrador';
       const selfEmail  = String(ctx.user?.email || '').trim().toLowerCase();
 
-      let pilotCount = existingIds.size;
+      // Solo cuentan contra el límite los tripulantes que NO son gerentes
+      let pilotCount = (existingPilots || []).filter(p => crewCountsForLimit(p.pilot_role)).length;
       const toInvite = []; // { pilotId, name, email, role }
 
       for (const r of rows) {
@@ -242,14 +243,17 @@ export async function POST(request) {
           results.tripulacion.skipped++;
           continue;
         }
-        if (!canAddResource(plan, pilotCount, 'pilot')) {
+
+        const role   = str(r['Rol']) || 'Piloto';
+        const counts = crewCountsForLimit(role); // gerentes no cuentan
+
+        if (counts && !canAddResource(plan, pilotCount, 'pilot')) {
           results.tripulacion.errors.push(`Fila ${r._row}: límite de tripulantes del plan alcanzado (${plan})`);
           continue;
         }
 
         const medExp = parseDate(r['Vencimiento Médico']);
         const email  = str(r['Email']) || null;
-        const role   = str(r['Rol']) || 'Piloto';
 
         // Si tiene email se invita → queda 'pending'; sin email se agrega sin invitación.
         const { data: inserted, error } = await admin.from('pilots').insert({
@@ -272,7 +276,7 @@ export async function POST(request) {
           results.tripulacion.errors.push(`Fila ${r._row}: ${error.message}`);
         } else {
           results.tripulacion.created++;
-          pilotCount++;
+          if (counts) pilotCount++; // gerentes no incrementan el cupo
           if (idNumber) existingIds.add(idNumber);
           if (emailLc) existingEmails.add(emailLc);
           // Invitar solo si tiene email y NO es el propio importador

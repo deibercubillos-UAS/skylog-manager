@@ -1,6 +1,6 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
-import { canAddResource } from '@/lib/planLimits';
+import { canAddResource, crewCountsForLimit } from '@/lib/planLimits';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -43,18 +43,23 @@ export async function POST(request) {
       return NextResponse.json({ error: 'El nombre del piloto es obligatorio' }, { status: 400 });
     }
 
-    // ── Verificar límite de pilotos según plan ────────────────────────────
-    const { count } = await supabase
-      .from('pilots')
-      .select('*', { count: 'exact', head: true })
-      .eq('organization_id', orgId)
-      .eq('is_active', true);
+    // ── Verificar límite de tripulantes según plan ────────────────────────
+    // Gerente General y Gerente SMS NO cuentan contra el límite.
+    const newRole = pilotData.pilot_role || pilotData.position || 'Piloto';
+    if (crewCountsForLimit(newRole)) {
+      const { data: activePilots } = await supabase
+        .from('pilots')
+        .select('pilot_role')
+        .eq('organization_id', orgId)
+        .eq('is_active', true);
+      const count = (activePilots || []).filter(p => crewCountsForLimit(p.pilot_role)).length;
 
-    if (!canAddResource(subscription_plan, count || 0, 'pilot')) {
-      return NextResponse.json(
-        { error: `Tu plan ${subscription_plan.toUpperCase()} ha llegado al límite de pilotos.` },
-        { status: 403 }
-      );
+      if (!canAddResource(subscription_plan, count, 'pilot')) {
+        return NextResponse.json(
+          { error: `Tu plan ${subscription_plan.toUpperCase()} ha llegado al límite de tripulantes.` },
+          { status: 403 }
+        );
+      }
     }
 
     const { data, error } = await supabase

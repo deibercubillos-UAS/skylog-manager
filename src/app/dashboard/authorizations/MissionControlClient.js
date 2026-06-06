@@ -69,24 +69,21 @@ export default function MissionControlClient({ initialData }) {
                 >
                     Apéndice 13
                 </button>
-                <button
-                    onClick={() => setActiveTab('planear')}
-                    className={`flex-1 sm:flex-none sm:px-8 py-3 rounded-xl text-xs font-black uppercase transition-all ${activeTab === 'planear' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'}`}
-                >
-                    Planear (Mapa · KMZ · PDF)
-                </button>
             </div>
 
-            {/* FORMULARIOS */}
-            {activeTab === 'planear' ? (
-                <FlightPlanner showHeader={false} />
+            {/* CONTENIDO */}
+            {activeTab === 'basica' ? (
+                <div className="space-y-8">
+                    {/* Planeación de la misión: mapa + KMZ + PDF */}
+                    <FlightPlanner showHeader={false} />
+                    {/* Formulario de misión básica */}
+                    <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6 md:p-12">
+                        <BasicForm pilots={pilots} drones={drones} org={org} userRole={userRole} loadData={loadData} />
+                    </div>
+                </div>
             ) : (
                 <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6 md:p-12">
-                    {activeTab === 'basica' ? (
-                        <BasicForm pilots={pilots} drones={drones} org={org} userRole={userRole} loadData={loadData} />
-                    ) : (
-                        <AerocivilForm pilots={pilots} drones={drones} org={org} userRole={userRole} loadData={loadData} />
-                    )}
+                    <AerocivilForm pilots={pilots} drones={drones} org={org} userRole={userRole} loadData={loadData} />
                 </div>
             )}
 

@@ -240,7 +240,7 @@ const navLinks = [
   { name: 'Mi Flota',       icon: 'precision_manufacturing', href: '/dashboard/fleet',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Tripulación',    icon: 'group',                   href: '/dashboard/pilots',          roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
   { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      roles: ['superadmin', 'admin', 'jefe_pilotos', 'piloto'] },
+  { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      roles: ['superadmin', 'admin', 'jefe_pilotos', 'piloto'], pilotOnly: true },
   { name: 'Programación',   icon: 'event_available',         href: '/dashboard/authorizations',  roles: ['superadmin', 'admin', 'jefe_pilotos'],            pilotHidden: true },
   { name: 'Bitácora',       icon: 'menu_book',               href: '/dashboard/logbook',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Reportes',       icon: 'assessment',              href: '/dashboard/reports',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },

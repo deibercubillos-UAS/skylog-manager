@@ -84,6 +84,10 @@ export const PLAN_CONFIG = {
  */
 export const canAddResource = (planKey, currentCount, type) => {
   const plan = PLAN_CONFIG[planKey] || PLAN_CONFIG.piloto;
+  if (type === 'battery') {
+    if (plan.maxBatteries === null || plan.maxBatteries === Infinity) return true;
+    return currentCount < plan.maxBatteries;
+  }
   const limit = type === 'drone' ? plan.maxDrones : plan.maxPilots;
   return currentCount < limit;
 };

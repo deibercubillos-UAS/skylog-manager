@@ -36,7 +36,9 @@ export default function NewOperationPage() {
     // FLUJO: data -> health -> preflight -> briefing (los pasos se saltan si están desactivados)
     const [step, setStep] = useState('data');
     const [dynamicLabels, setDynamicLabels] = useState([]);
-    const [form, setForm] = useState({ auth_id: '', battery_id: '', aircraft_id: '', mission_type: '', plan_id: '', has_plan: false, takeoff_time: '', visual_condition: 'VMC', notes: '' });
+    const [form, setForm] = useState({ auth_id: '', aircraft_id: '', mission_type: '', plan_id: '', has_plan: false, takeoff_time: '', visual_condition: 'VMC', notes: '' });
+    const [userRole, setUserRole] = useState(null);
+    const [showAuthDetails, setShowAuthDetails] = useState(false);
     const [checks, setChecks] = useState({ health: {}, briefing: {}, preflight: {} });
     const [selectedAuth, setSelectedAuth] = useState(null);
     const [cancelNotes, setCancelNotes] = useState('');
@@ -48,9 +50,10 @@ export default function NewOperationPage() {
         async function init() {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
-                const { data: prof } = await supabase.from('profiles').select('organization_id, subscription_plan').eq('id', user.id).single();
+                const { data: prof } = await supabase.from('profiles').select('organization_id, subscription_plan, role').eq('id', user.id).single();
                 const pilotPlan = prof?.subscription_plan === 'piloto';
                 setIsPilotoPlan(pilotPlan);
+                setUserRole(prof?.role || null);
 
                 const [auths, batteries, aircraft, health, org, plans] = await Promise.all([
                     fetch('/api/flights/authorize').then(r => r.json()),
@@ -69,19 +72,20 @@ export default function NewOperationPage() {
                 setPreflightEnabled(org.data?.enable_preflight ?? true);
                 setBriefingEnabled(org.data?.enable_briefing ?? true);
 
-                // Piloto individual: resolver su registro de piloto y auto-seleccionar su única aeronave
-                if (pilotPlan) {
-                    const { data: pilotRow } = await supabase
-                        .from('pilots')
-                        .select('id')
-                        .eq('organization_id', prof.organization_id)
-                        .or(`email.eq.${user.email},owner_id.eq.${user.id}`)
-                        .limit(1)
-                        .maybeSingle();
-                    setMyPilotId(pilotRow?.id ?? null);
-                    if (aircraftList.length === 1) {
-                        setForm(prev => ({ ...prev, aircraft_id: aircraftList[0].id }));
-                    }
+                // Resolver el registro de piloto del usuario (para todos los planes/roles).
+                // Sirve para el despacho del piloto individual y para filtrar las
+                // órdenes de vuelo del piloto asignado en organizaciones.
+                const { data: pilotRow } = await supabase
+                    .from('pilots')
+                    .select('id')
+                    .eq('organization_id', prof.organization_id)
+                    .or(`email.eq.${user.email},owner_id.eq.${user.id},profile_id.eq.${user.id}`)
+                    .limit(1)
+                    .maybeSingle();
+                setMyPilotId(pilotRow?.id ?? null);
+
+                if (pilotPlan && aircraftList.length === 1) {
+                    setForm(prev => ({ ...prev, aircraft_id: aircraftList[0].id }));
                 }
             } finally { setLoading(false); }
         }
@@ -100,9 +104,16 @@ export default function NewOperationPage() {
         loadLabels();
     }, [step, selectedAuth]);
 
+    // El piloto (rol 'piloto') solo ve las órdenes donde es el PIC asignado.
+    // Managers (admin, jefe_pilotos, gerente_sms) ven todas para despachar.
+    const visibleAuths = (userRole === 'piloto' && myPilotId)
+        ? resources.auths.filter(a => a.pilot_id === myPilotId)
+        : resources.auths;
+
     const handleAuthChange = (id) => {
         const auth = resources.auths.find(a => a.id === id);
         setSelectedAuth(auth || null);
+        setShowAuthDetails(false);
         setForm(prev => ({ ...prev, auth_id: id }));
     };
 
@@ -175,7 +186,6 @@ export default function NewOperationPage() {
                 // ── Despacho con orden de vuelo (organizaciones) ──────────────
                 const selectedAuth = resources.auths.find(a => a.id === form.auth_id);
                 flightRecord = {
-                    battery_id:      form.battery_id,
                     takeoff_time:    form.takeoff_time,
                     visual_condition: form.visual_condition,
                     notes:           form.notes,
@@ -340,8 +350,13 @@ export default function NewOperationPage() {
                                         <label htmlFor="new-flight-auth" className="text-xs font-black uppercase text-slate-600 ml-1">Orden de Vuelo</label>
                                         <select id="new-flight-auth" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={form.auth_id} onChange={e => handleAuthChange(e.target.value)}>
                                             <option value="">-- Seleccionar Misión --</option>
-                                            {resources.auths.map(a => <option key={a.id} value={a.id}>{a.mission_id} - {a.location}</option>)}
+                                            {visibleAuths.map(a => <option key={a.id} value={a.id}>{a.mission_id} - {a.location}</option>)}
                                         </select>
+                                        {userRole === 'piloto' && visibleAuths.length === 0 && (
+                                            <p className="text-xs font-bold text-slate-400 bg-slate-50 rounded-2xl p-4 mt-2">
+                                                No tienes vuelos asignados por el momento.
+                                            </p>
+                                        )}
                                     </div>
 
                                     {selectedAuth && (
@@ -352,14 +367,6 @@ export default function NewOperationPage() {
                                             <InfoBox label="Lugar" val={selectedAuth.location} />
                                         </div>
                                     )}
-
-                                    <div className="space-y-1">
-                                        <label htmlFor="new-flight-battery" className="text-xs font-black uppercase text-slate-600 ml-1">Batería</label>
-                                        <select id="new-flight-battery" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={form.battery_id} onChange={e => setForm({...form, battery_id: e.target.value})}>
-                                            <option value="">-- Seleccionar Batería --</option>
-                                            {resources.batteries.map(b => <option key={b.id} value={b.id}>{b.brand} {b.model} ({b.serial_number})</option>)}
-                                        </select>
-                                    </div>
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
@@ -375,9 +382,14 @@ export default function NewOperationPage() {
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-3 pt-4">
-                                    <button disabled={!form.auth_id || !form.battery_id || !form.takeoff_time} onClick={handleNextStep} className="w-full py-5 bg-orange-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl disabled:bg-slate-200 transition-all active:scale-95">Continuar a Seguridad</button>
+                                    <button disabled={!form.auth_id || !form.takeoff_time} onClick={handleNextStep} className="w-full py-5 bg-orange-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl disabled:bg-slate-200 transition-all active:scale-95">Continuar a Seguridad</button>
                                     {form.auth_id && <button onClick={() => setShowCancelModal(true)} className="w-full py-3 text-red-500 font-black uppercase text-xs">Cancelar Misión</button>}
                                 </div>
+
+                                {/* DETALLES DE LA PROGRAMACIÓN — desplegable */}
+                                {selectedAuth && (
+                                    <AuthDetails auth={selectedAuth} open={showAuthDetails} onToggle={() => setShowAuthDetails(v => !v)} />
+                                )}
                             </section>
                         </div>
                     )}
@@ -450,6 +462,47 @@ export default function NewOperationPage() {
             </div>
         )}
     </>
+    );
+}
+
+function AuthDetails({ auth, open, onToggle }) {
+    const pd = auth.plan_data || {};
+    const fmtDate = (d) => d ? String(d).slice(0, 10) : '—';
+    const geoLabel = { polygon: 'Polígono', linear: 'Tramo lineal', circle: 'Circunferencia' }[pd.geo_type] || '—';
+    const rows = [
+        ['N° Misión',        auth.mission_id],
+        ['Operación',        pd.op_name || auth.mission_type],
+        ['Tipo de misión',   auth.mission_type],
+        ['Piloto (PIC)',     auth.pilots?.name],
+        ['Aeronave',         auth.aircraft?.model ? `${auth.aircraft.model}${auth.aircraft.serial_number ? ' · ' + auth.aircraft.serial_number : ''}` : null],
+        ['Ubicación',        auth.location],
+        ['Fecha programada', fmtDate(auth.scheduled_at)],
+        ['Hora de despegue', pd.takeoff_time || null],
+        ['Altitud máx. AGL', pd.altitude != null ? `${pd.altitude} m` : null],
+        ['Zona',             pd.points?.length ? `${geoLabel} · ${pd.points.length} punto(s)` : null],
+        ['Observaciones',    pd.notes || null],
+    ].filter(([, v]) => v != null && v !== '');
+
+    return (
+        <div className="mt-4 border border-slate-200 rounded-2xl overflow-hidden">
+            <button onClick={onToggle} className="w-full flex items-center justify-between px-5 py-4 bg-slate-50 hover:bg-slate-100 transition-colors">
+                <span className="text-xs font-black uppercase tracking-widest text-slate-600 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-base text-orange-500">description</span>
+                    Detalles de la programación
+                </span>
+                <span className={`material-symbols-outlined text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}>expand_more</span>
+            </button>
+            {open && (
+                <div className="p-5 space-y-2 animate-in slide-in-from-top-2 duration-300">
+                    {rows.map(([label, val]) => (
+                        <div key={label} className="flex items-start justify-between gap-4 text-xs py-1.5 border-b border-slate-50 last:border-0">
+                            <span className="font-black uppercase text-slate-400 shrink-0">{label}</span>
+                            <span className="font-bold text-slate-800 text-right">{val}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
     );
 }
 

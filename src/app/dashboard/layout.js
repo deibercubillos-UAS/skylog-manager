@@ -268,7 +268,7 @@ const footerLinksAll = [
     { name: 'Configurar Organización', icon: 'settings',        href: '/dashboard/settings',          roles: ['superadmin', 'admin'] },
     { name: 'Gestión de Usuarios',     icon: 'groups',          href: '/dashboard/users',             roles: ['superadmin', 'admin'], paidOnly: true },
     { name: 'Mi Perfil',               icon: 'account_circle',  href: '/dashboard/settings/profile',  roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-    { name: 'Suscripción',             icon: 'payments',        href: '/dashboard/subscription/manage', roles: ['superadmin', 'admin', 'piloto'] },
+    { name: 'Suscripción',             icon: 'payments',        href: '/dashboard/subscription', roles: ['superadmin', 'admin', 'piloto'] },
 ];
 const footerLinks = footerLinksAll.filter(link =>
   link.roles.includes(role) &&

@@ -115,7 +115,7 @@ export default function PaymentResponsePage() {
             </p>
           </div>
           <a
-            href={`/login?next=${encodeURIComponent('/dashboard/subscription/manage')}`}
+            href={`/login?next=${encodeURIComponent('/dashboard/subscription')}`}
             className="block w-full py-3.5 bg-[#ec5b13] text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-orange-600 transition-all">
             Iniciar sesión para activar
           </a>

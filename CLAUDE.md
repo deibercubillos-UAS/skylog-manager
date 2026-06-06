@@ -103,6 +103,8 @@ Tablas principales:
 | Baterías | 3 | ∞ | ∞ | ∞ |
 | Tech/Payloads | 3 | ∞ | ∞ | ∞ |
 
+**Conteo de tripulantes** (`crewCountsForLimit(pilotRole)` en `planLimits.js`): **Gerente General y Gerente SMS NO cuentan** contra el límite de "Pilotos"; sí cuentan Piloto, Jefe de Pilotos y Observador. Aplicado en: import onboarding, `POST /api/pilots`, `AddManualPilotPanel`, medidor de uso en `/api/subscription`.
+
 ### Piloto Independiente (role=`admin` + plan=`piloto`)
 
 - Se registra como `type='solo'` → crea su propia org. Auto-login directo al dashboard.
@@ -168,7 +170,11 @@ Tablas principales:
 
 **Import** (`POST /api/onboarding/import`): lee cada hoja por nombre exacto (con emoji).
 - ⚠️ **Las columnas obligatorias llevan ` *` en el encabezado** (`Serial / S/N *`). `readSheet()` quita el ` *` al leer para que las claves coincidan con los nombres limpios — NO romper esto.
-- Dedup: aeronaves/baterías por serial, pilotos por cédula, pólizas por número, contactos por (nombre+teléfono). Re-subir es idempotente.
+- ⚠️ **`owner_id` viene de `ctx.user.id`** (NO `ctx.userId`, que no existe en `getOrgContext`). Si es null, todo insert falla por NOT NULL.
+- ⚠️ **Celdas con hipervínculo** (Excel auto-enlaza emails) llegan como `{text, hyperlink}` — `getCellValue()` devuelve `.text`, si no parsea como `[object Object]`.
+- ⚠️ **`batteries` NO tiene columna `aircraft_id`** — no insertar ese campo. "Serial Aeronave Asignada" del Excel es informativo.
+- Dedup: aeronaves/baterías por serial, pilotos por **cédula O email**, pólizas por número, contactos por (nombre+teléfono). Re-subir es idempotente.
+- Nunca se auto-invita: filas con el email del propio importador se omiten.
 
 **Tripulantes con invitación**: al importar la hoja Tripulación, cada fila con email crea el piloto con `invitation_status='pending'` y dispara `createCrewInvitation()` (`lib/invitations.js`):
 - Registra fila en `invitations` (token único) y envía correo (Resend, `escHtml`).

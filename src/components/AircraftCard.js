@@ -33,8 +33,8 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
   const inactive = isBaja || isTransferred;
 
   return (
-    <div className={`bg-white rounded-[2rem] border overflow-hidden shadow-sm flex flex-col sm:flex-row group hover:shadow-md transition-all text-left ${inactive ? 'border-slate-200 opacity-60' : 'border-slate-200'}`}>
-      <div className="w-full sm:w-40 h-40 sm:h-auto bg-slate-100 shrink-0 relative">
+    <div className={`bg-white rounded-[2rem] border shadow-sm flex flex-col sm:flex-row group hover:shadow-md transition-all text-left ${inactive ? 'border-slate-200 opacity-60' : 'border-slate-200'}`}>
+      <div className="w-full sm:w-40 h-40 sm:h-auto bg-slate-100 shrink-0 relative overflow-hidden rounded-t-[2rem] sm:rounded-l-[2rem] sm:rounded-tr-none">
         <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${aircraft.image_url || 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=400'})` }}></div>
         {inactive && (
           <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center">

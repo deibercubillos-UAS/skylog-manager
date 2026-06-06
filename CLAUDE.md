@@ -25,7 +25,7 @@ app/
 │   ├── epayco/        ← webhook, verify, checkout
 │   ├── subscription/  ← cancel
 │   ├── sora/ · sms/ · reports/ · dashboard/
-│   └── admin/master/  ← superadmin (middleware protege /api/admin/*)
+│   └── admin/master/  ← superadmin (middleware protege /api/admin/*) + epayco-subscriptions (listar/cancelar)
 └── dashboard/         ← páginas client-side
 
 components/
@@ -110,16 +110,31 @@ Tablas principales:
 - **Despacho simplificado**: no requiere orden de vuelo ni batería. Pide `mission_type` + aeronave + hora de despegue. Baterías se sincronizan al importar DJI.
 - **Auto-piloto DJI**: si no existe registro en `pilots` al importar, se crea automáticamente con datos del perfil.
 - **Planeaciones**: guarda en `/plan-vuelo`, selecciona antes de volar desde `/logbook/new`.
-- **Unirse a org**: desde `/dashboard/subscription/manage`, ingresa NIT, elige rol → `POST /api/auth/join-org` transfiere toda la data (aircraft, batteries, flights, pilots, flight_plans, etc.) al nuevo org y actualiza `profiles.organization_id + role`. La org origen queda marcada como `[Migrada]`.
+- **Unirse a org**: desde `/dashboard/subscription`, ingresa NIT, elige rol → `POST /api/auth/join-org` transfiere toda la data (aircraft, batteries, flights, pilots, flight_plans, etc.) al nuevo org y actualiza `profiles.organization_id + role`. La org origen queda marcada como `[Migrada]`.
 - OnboardingBanner NO se muestra al piloto independiente.
 
 ---
 
 ## Pagos (ePayco)
 
-**Flujo principal**: checkout → `subscription-landing.epayco.co/plan/{uid}` → webhook `POST /api/epayco/webhook` activa plan → `activatePlanForUser()`.  
-**Red de seguridad**: al volver, `/dashboard/subscription/response` llama `POST /api/epayco/verify`.  
-`redirect_url` y `confirmation_url` se configuran en el **panel de ePayco**, NO via API.
+**Suscripción**: una sola página `/dashboard/subscription` (la antigua `/manage` redirige ahí). Maneja upgrade, cancelación, verificar pago, unirse a org y período de gracia.
+
+**Flujo de pago (nueva pestaña + polling)**:
+1. `/dashboard/subscription` → `POST /api/epayco/checkout` inserta intent en `pending_subscriptions` (con `plan_key` + `billing` + `user_id`) y devuelve URL `subscription-landing.epayco.co/plan/{uid}`.
+2. Abre ePayco en **nueva pestaña** (`window.open` SIN `noopener` — se necesita la referencia para detectar cierre y recibir `postMessage`).
+3. El **webhook** (`POST /api/epayco/webhook`) activa el plan server-side vía `activatePlanForUser()`.
+4. La página padre hace **polling del perfil cada 4s** (hasta 10 min) y actualiza la UI en cuanto el plan cambia — NO depende de que ePayco redirija.
+5. Si ePayco sí redirige a `/dashboard/subscription/response` y la página es popup, envía `postMessage(BITAFLY_PLAN_ACTIVATED)` al padre y se autocierra.
+6. **Red de seguridad manual**: panel "Verificar pago" en la misma página → `POST /api/epayco/verify` con el `ref_payco` del correo de ePayco (requiere sesión).
+
+**⚠️ Webhook de ePayco — reglas críticas (todas verificadas en prod):**
+- **Body es JSON**, NO form-urlencoded. `URLSearchParams` devuelve `{}` silenciosamente → parsear con `JSON.parse` (detectar por `content-type`).
+- **Firma = 6 campos** (NO incluir `x_transaction_state`): `sha256(p_cust_id_cliente ^ p_key ^ x_ref_payco ^ x_transaction_id ^ x_amount ^ x_currency_code)`. Key desde `EPAYCO_P_KEY` (fallback `EPAYCO_PRIVATE_KEY`).
+- **`x_extra1/2/3` NO son nuestros valores** en subscription-landing — ePayco los rellena con UIDs internos suyos. Solo aceptar `x_extra1` si es plan válido, `x_extra2` si es `monthly|annual`, `x_extra3` si es **UUID** (nuestros `user.id`). Si no, resolver por email (`x_customer_email`) + `pending_subscriptions`.
+- **Resolución de plan/usuario** (en orden): extras válidos → `pending_subscriptions` by reference → email → `resolvePendingForUser()` → mapeo `epayco_plan_config.epayco_id`/`epayco_uid`.
+- Debe responder **GET 200** (ePayco verifica la URL antes de usarla) — sin GET handler da 405.
+- **Idempotencia**: insertar `ref_payco` en `processed_webhook_refs` SOLO tras activar con éxito (no antes — un fallo bloquearía reintentos legítimos).
+- `redirect_url` y `confirmation_url` se configuran en el **panel de ePayco**, NO via API.
 
 **Flujo pago-antes-cuenta** (`/registro` planes de pago):
 - `POST /api/auth/register-pending` → guarda en `pending_registrations`, devuelve URL ePayco
@@ -128,9 +143,9 @@ Tablas principales:
 
 **Flujo unirse a org** (empleados): `GET /api/auth/validate-join?nit=&role=` → `POST /api/auth/register` con `joinMode: true`.
 
-**Cancelación**: `POST /api/subscription/cancel`. Si `epayco_subscription_id` es null, busca por email (⚠️ la API de ePayco NO devuelve email — `cancelSubscriptionsByEmail()` siempre retorna `matched: 0`; cancelar manualmente con `_id` desde el panel).
+**Cancelación**: `POST /api/subscription/cancel`. Si `epayco_subscription_id` es null, busca por email (⚠️ la API de ePayco NO devuelve email — `cancelSubscriptionsByEmail()` siempre retorna `matched: 0`). Para cancelar por código: **panel Master `/admin/master` → tab Suscripciones** (`/api/admin/master/epayco-subscriptions` lista y cancela por `_id`, y degrada el perfil a piloto).
 
-**Diagnóstico**: revisar `pending_subscriptions` huérfanas · logs Vercel `/api/epayco/webhook` · `secure.epayco.co/validation/v1/reference/{ref}`.
+**Diagnóstico**: logs Vercel `/api/epayco/webhook` (muestra `contentType`, `keys`, firma) · `pending_subscriptions` huérfanas · `secure.epayco.co/validation/v1/reference/{ref}`.
 
 ---
 
@@ -188,7 +203,7 @@ Tablas principales:
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a Vercel env vars
 - [ ] Agregar `AEROCIVIL_SALT` a Vercel env vars → remover fallback en `src/app/api/aerocivil/credentials/route.js` (buscar `TODO`)
 - [ ] Habilitar `auth_leaked_password_protection` → Supabase > Authentication > Settings > Password Strength
-- [ ] Commitear archivos locales pendientes: `src/app/registro/page.js`, `src/app/dashboard/subscription/response/page.js`, `src/lib/analytics.js`
+- [x] `EPAYCO_P_KEY` agregada a Vercel (firma del webhook)
 
 ---
 

@@ -4,7 +4,11 @@ import Link from 'next/link';
 import { toast } from '@/lib/toast';
 import { getZoneSummary, downloadFlightKMZ, generateFlightPlanPdf } from '@/lib/flightPlanDocs';
 
-export default function ProgramacionActivaClient() {
+export default function ProgramacionActivaClient({
+  pilotEmail = null,   // si se pasa, solo muestra misiones de ese piloto (vista del piloto)
+  readOnly = false,    // oculta el botón "Nueva misión"
+  title = 'Programación Activa',
+} = {}) {
   const [missions, setMissions] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [busy, setBusy]         = useState(null); // `${id}:kmz` | `${id}:pdf`
@@ -14,13 +18,18 @@ export default function ProgramacionActivaClient() {
     try {
       const res = await fetch('/api/flights/authorize');
       const data = await res.json();
-      setMissions(Array.isArray(data) ? data : []);
+      let rows = Array.isArray(data) ? data : [];
+      if (pilotEmail) {
+        const me = String(pilotEmail).toLowerCase();
+        rows = rows.filter(m => String(m.pilots?.email || '').toLowerCase() === me);
+      }
+      setMissions(rows);
     } catch (e) {
       console.error('Error cargando programación', e);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pilotEmail]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -76,16 +85,20 @@ export default function ProgramacionActivaClient() {
       {/* HEADER */}
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 border-b border-slate-200 pb-5">
         <div>
-          <h2 className="text-2xl md:text-3xl font-black text-navy uppercase tracking-tighter">Programación Activa</h2>
-          <p className="text-slate-400 text-xs font-black uppercase mt-1">{missions.length} misiones registradas</p>
+          <h2 className="text-2xl md:text-3xl font-black text-navy uppercase tracking-tighter">{title}</h2>
+          <p className="text-slate-400 text-xs font-black uppercase mt-1">
+            {missions.length} {pilotEmail ? 'misiones asignadas a ti' : 'misiones registradas'}
+          </p>
         </div>
         <div className="flex gap-2">
           <button onClick={loadData} className="px-4 py-2.5 text-xs font-black uppercase text-slate-500 hover:text-orange-600 transition-colors flex items-center gap-1.5">
             <span className="material-symbols-outlined text-base">sync</span> Refrescar
           </button>
-          <Link href="/dashboard/authorizations" className="px-5 py-2.5 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-orange-700 transition-all flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-base">add</span> Nueva misión
-          </Link>
+          {!readOnly && (
+            <Link href="/dashboard/authorizations" className="px-5 py-2.5 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-orange-700 transition-all flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-base">add</span> Nueva misión
+            </Link>
+          )}
         </div>
       </header>
 
@@ -96,10 +109,14 @@ export default function ProgramacionActivaClient() {
       ) : missions.length === 0 ? (
         <div className="bg-white rounded-[2rem] border border-slate-200 p-16 text-center">
           <span className="material-symbols-outlined text-5xl text-slate-200">event_available</span>
-          <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-4">Sin misiones programadas</p>
-          <Link href="/dashboard/authorizations" className="inline-block mt-5 px-6 py-3 bg-navy text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all">
-            Programar una misión
-          </Link>
+          <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-4">
+            {pilotEmail ? 'No tienes vuelos programados' : 'Sin misiones programadas'}
+          </p>
+          {!readOnly && (
+            <Link href="/dashboard/authorizations" className="inline-block mt-5 px-6 py-3 bg-navy text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all">
+              Programar una misión
+            </Link>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">

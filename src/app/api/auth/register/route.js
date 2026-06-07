@@ -100,17 +100,48 @@ export async function POST(request) {
                 subscription_plan: 'piloto',
             }, { onConflict: 'id' });
 
-            // Auto-crear piloto
-            await supabaseAdmin.from('pilots').insert([{
-                organization_id: targetOrgId,
-                owner_id:        authData.user.id,
-                name:            `${firstName} ${lastName}`.trim(),
-                email,
-                phone:           phone || null,
-                city:            city  || null,
-                pilot_role:      'Piloto',
-                is_active:       true,
-            }]).catch(() => {});
+            // Vincular con la invitación / piloto existente si lo hay.
+            // Si la org ya tenía un piloto con este email (p.ej. importado o invitado),
+            // se reutiliza esa fila: se vincula al perfil y se marca como aceptado
+            // (evita duplicados y el badge "Invitación pendiente" permanente).
+            const emailLc = String(email || '').trim().toLowerCase();
+            const { data: existingPilot } = await supabaseAdmin
+                .from('pilots')
+                .select('id')
+                .eq('organization_id', targetOrgId)
+                .ilike('email', emailLc)
+                .maybeSingle();
+
+            if (existingPilot) {
+                await supabaseAdmin.from('pilots').update({
+                    owner_id:          authData.user.id,
+                    profile_id:        authData.user.id,
+                    invitation_status: 'accepted',
+                    is_active:         true,
+                    phone:             phone || undefined,
+                    city:              city  || undefined,
+                }).eq('id', existingPilot.id).catch(() => {});
+            } else {
+                await supabaseAdmin.from('pilots').insert([{
+                    organization_id: targetOrgId,
+                    owner_id:        authData.user.id,
+                    profile_id:      authData.user.id,
+                    name:            `${firstName} ${lastName}`.trim(),
+                    email,
+                    phone:           phone || null,
+                    city:            city  || null,
+                    pilot_role:      'Piloto',
+                    is_active:       true,
+                }]).catch(() => {});
+            }
+
+            // Marcar como aceptada cualquier invitación pendiente para este email/org.
+            await supabaseAdmin.from('invitations')
+                .update({ status: 'accepted', accepted_at: new Date().toISOString() })
+                .eq('organization_id', targetOrgId)
+                .ilike('email', emailLc)
+                .eq('status', 'pending')
+                .catch(() => {});
 
             return NextResponse.json({ success: true });
         }

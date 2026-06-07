@@ -226,7 +226,10 @@ export default function DashboardLayout({ children }) {
 // Plan: verificar en org Y en profile para no bloquear usuarios válidos
 const plan = data.org?.subscription_plan || data.profile?.subscription_plan || 'piloto';
 const isPaidPlan  = !['piloto', null, undefined, ''].includes(plan);
-const isPilotoPlan = plan === 'piloto'; // solo piloto autónomo (sin SMS, sin auditoría)
+// Piloto autónomo = dueño de su propia org (role 'admin') en plan piloto.
+// Los miembros de una org (piloto/jefe/gsms) tienen profile.subscription_plan='piloto'
+// pero NO son autónomos — no deben heredar la navegación del piloto independiente.
+const isPilotoPlan = plan === 'piloto' && role === 'admin';
 
 // Label visible del rol: piloto independiente (admin + plan piloto) → "Piloto Independiente"
 const displayRole = (isPilotoPlan && role === 'admin')

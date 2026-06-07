@@ -51,7 +51,10 @@ export default function NewOperationPage() {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 const { data: prof } = await supabase.from('profiles').select('organization_id, subscription_plan, role').eq('id', user.id).single();
-                const pilotPlan = prof?.subscription_plan === 'piloto';
+                // Piloto independiente = dueño de su propia org (role 'admin') en plan piloto.
+                // Los miembros de una org (piloto/jefe/gsms) también tienen profile.subscription_plan='piloto',
+                // pero NO son independientes: deben usar el despacho con orden de vuelo.
+                const pilotPlan = prof?.subscription_plan === 'piloto' && prof?.role === 'admin';
                 setIsPilotoPlan(pilotPlan);
                 setUserRole(prof?.role || null);
 

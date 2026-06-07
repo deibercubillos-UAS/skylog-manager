@@ -11,6 +11,7 @@ export default function PilotDashboard({ firstName }) {
   const [orgCode, setOrgCode] = useState(null);
   const [stats, setStats] = useState({ scheduled: 0, completed: 0, hours: '0.0' });
   const [scheduled, setScheduled] = useState([]); // misiones programadas (pendientes)
+  const [monthly, setMonthly] = useState([]);     // [{ label, hours }] últimos 6 meses
 
   useEffect(() => {
     (async () => {
@@ -37,27 +38,45 @@ export default function PilotDashboard({ firstName }) {
           .limit(1).maybeSingle();
         const myPilotId = pilot?.id || null;
 
-        // Vuelos realizados por el piloto + horas
+        // Duración de un vuelo en horas (total_time, o estimada por horario)
+        const flightHours = (f) => {
+          if (f.total_time) return Number(f.total_time);
+          if (f.takeoff_time && f.landing_time) {
+            const [h1, m1] = f.takeoff_time.split(':').map(Number);
+            const [h2, m2] = f.landing_time.split(':').map(Number);
+            const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+            if (diff > 0) return diff / 60;
+          }
+          return 0;
+        };
+
+        // Vuelos realizados por el piloto + horas + gráfica mensual
         let completed = 0, hours = 0;
+        const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        const now = new Date();
+        const buckets = [];
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          buckets.push({ label: monthNames[d.getMonth()], year: d.getFullYear(), month: d.getMonth() + 1, hours: 0 });
+        }
         if (myPilotId) {
           const { data: flights } = await supabase
             .from('flights')
-            .select('total_time, takeoff_time, landing_time')
+            .select('total_time, takeoff_time, landing_time, flight_date')
             .eq('organization_id', orgId)
             .eq('pilot_id', myPilotId);
           completed = flights?.length || 0;
-          hours = (flights || []).reduce((acc, f) => {
-            if (f.total_time) return acc + Number(f.total_time);
-            // Fallback: estimar a partir de horas de despegue/aterrizaje
-            if (f.takeoff_time && f.landing_time) {
-              const [h1, m1] = f.takeoff_time.split(':').map(Number);
-              const [h2, m2] = f.landing_time.split(':').map(Number);
-              const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-              if (diff > 0) return acc + diff / 60;
+          (flights || []).forEach(f => {
+            const h = flightHours(f);
+            hours += h;
+            if (f.flight_date) {
+              const [fy, fm] = f.flight_date.split('-').map(Number);
+              const b = buckets.find(x => x.year === fy && x.month === fm);
+              if (b) b.hours += h;
             }
-            return acc;
-          }, 0);
+          });
         }
+        setMonthly(buckets.map(b => ({ label: b.label, hours: b.hours })));
 
         // Misiones programadas y asignadas a mí (autorize ya excluye realizado/cancelado)
         let mine = [];
@@ -107,6 +126,48 @@ export default function PilotDashboard({ firstName }) {
         <KPICard title="Vuelos Realizados"  value={stats.completed}   icon="task_alt"       color="text-emerald-500" />
         <KPICard title="Vuelos Pendientes"  value={stats.scheduled}   icon="event_upcoming" color="text-orange-500" />
       </section>
+
+      {/* Gráfica de horas mensuales */}
+      <figure className="bg-white p-5 md:p-8 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col h-[240px] md:h-[320px]"
+        aria-label={`Horas de vuelo por mes — últimos 6 meses. ${monthly.map(m => `${m.label}: ${m.hours.toFixed(1)} horas`).join(', ')}.`}>
+        <figcaption className="mb-4 md:mb-8">
+          <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em]">Horas Mensuales</h3>
+          <span className="text-xs font-bold text-slate-400 mt-0.5 inline-block">Últimos 6 meses</span>
+        </figcaption>
+        <div className="flex-1 flex items-end justify-around gap-1 md:gap-2 px-1 border-b border-slate-100 pb-3" role="img" aria-hidden="true">
+          {(() => {
+            const maxH = Math.max(...monthly.map(m => m.hours), 1);
+            return monthly.map((m, i) => {
+              const barHeight = Math.round((m.hours / maxH) * 100);
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative h-full justify-end"
+                  title={`${m.label}: ${m.hours.toFixed(1)}h`}>
+                  {m.hours > 0 && (
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                      <span className="md:hidden text-[10px] font-black text-orange-600">{m.hours.toFixed(1)}</span>
+                      <span className="hidden md:block bg-slate-900 text-white text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                        {m.hours.toFixed(1)}h
+                      </span>
+                    </div>
+                  )}
+                  <div
+                    className={`w-full max-w-[36px] rounded-t-lg transition-all duration-1000 ease-out shadow-sm ${m.hours > 0 ? 'bg-orange-500' : 'bg-slate-100'}`}
+                    style={{ height: m.hours > 0 ? `${barHeight}%` : '3px' }}
+                  />
+                  <span className="text-xs font-black text-slate-400 uppercase">{m.label}</span>
+                </div>
+              );
+            });
+          })()}
+        </div>
+        <table className="sr-only">
+          <caption>Horas de vuelo por mes — últimos 6 meses</caption>
+          <thead><tr><th scope="col">Mes</th><th scope="col">Horas</th></tr></thead>
+          <tbody>
+            {monthly.map((m, i) => <tr key={i}><td>{m.label}</td><td>{m.hours.toFixed(1)}</td></tr>)}
+          </tbody>
+        </table>
+      </figure>
 
       {/* Accesos a reportes */}
       <section className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4" aria-label="Reportes de ocurrencia">

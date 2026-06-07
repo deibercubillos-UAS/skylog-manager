@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 const PwaInstallBanner  = dynamic(() => import('@/components/PwaInstallBanner'), { ssr: false });
 const OnboardingBanner  = dynamic(() => import('@/components/OnboardingBanner'), { ssr: false });
 const InvitationsBanner = dynamic(() => import('@/components/InvitationsBanner'), { ssr: false });
+const PilotDashboard    = dynamic(() => import('./PilotDashboard'), { ssr: false });
 
 export default function DashboardClient() {
   const [data,           setData]          = useState(null);
@@ -79,6 +80,11 @@ export default function DashboardClient() {
       </div>
     </div>
   );
+
+  // Piloto de organización: dashboard personalizado con su propia información.
+  if (profileRole === 'piloto') {
+    return <PilotDashboard firstName={firstName} />;
+  }
 
   const counts   = data?.chart?.map(m => m.count) || [0];
   const maxVal   = Math.max(...counts, 1);

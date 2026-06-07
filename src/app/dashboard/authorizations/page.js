@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabaseServer';
 import { redirect } from 'next/navigation';
 import MissionControlClient from './MissionControlClient';
+import { getOrgPlan } from '@/lib/orgPlan';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,12 +22,10 @@ export default async function AuthorizePage() {
 
   if (!['superadmin', 'admin', 'jefe_pilotos'].includes(profile?.role)) redirect('/dashboard');
 
-  const { data: org } = await supabase.from('organizations').select('subscription_plan').eq('id', profile.organization_id).single();
-  // Default a 'piloto' SOLO si ambos están null/undefined explícitamente.
-  // No redirigir automáticamente — renderizar un mensaje informativo para
-  // evitar ping-pong con /dashboard/plan-vuelo (esa misma página tiene su
-  // propio sidebar que llevaría aquí otra vez).
-  const plan = org?.subscription_plan || profile?.subscription_plan || 'piloto';
+  // El plan efectivo de la org vive en el perfil del admin (organizations no
+  // tiene columna de plan). Usar el plan del miembro bloquearía al Jefe de
+  // Pilotos (cuyo profile.subscription_plan es 'piloto').
+  const plan = await getOrgPlan(supabase, profile.organization_id, profile?.subscription_plan || 'piloto');
   if (plan === 'piloto') {
     return (
       <div className="max-w-xl mx-auto py-16 px-6 text-center animate-in fade-in duration-500">

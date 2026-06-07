@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabaseServer';
 import { redirect } from 'next/navigation';
+import { getOrgPlan } from '@/lib/orgPlan';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,19 +15,13 @@ export default async function PlanVueloLayout({ children }) {
     .eq('id', user.id)
     .single();
 
-  // Verificar plan en org primero, luego en profile
-  const orgPlan = profile?.organization_id
-    ? (await supabase
-        .from('organizations')
-        .select('subscription_plan')
-        .eq('id', profile.organization_id)
-        .single()).data?.subscription_plan
-    : null;
+  // Plan efectivo de la org (vive en el perfil del admin; organizations no
+  // tiene columna de plan).
+  const plan = await getOrgPlan(supabase, profile?.organization_id, profile?.subscription_plan || 'piloto');
 
-  const plan = orgPlan || profile?.subscription_plan || 'piloto';
-
-  // Esta página es exclusiva del plan piloto
-  if (plan !== 'piloto') redirect('/dashboard/authorizations');
+  // Planear Vuelo es para el piloto independiente Y para el piloto de org.
+  // Los managers de un plan pagado usan Programación.
+  if (plan !== 'piloto' && profile?.role !== 'piloto') redirect('/dashboard/authorizations');
 
   return <>{children}</>;
 }

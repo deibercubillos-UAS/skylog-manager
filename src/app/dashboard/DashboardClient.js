@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { getOrgPlan } from '@/lib/orgPlan';
 
 // Banner de instalación PWA — solo en dashboard, flotante en esquina
 const PwaInstallBanner  = dynamic(() => import('@/components/PwaInstallBanner'), { ssr: false });
@@ -47,17 +48,10 @@ export default function DashboardClient() {
           .single();
         if (prof) {
           setProfileRole(prof.role);
-          // El plan puede estar en la org también
-          if (prof.organization_id) {
-            const { data: org } = await supabase
-              .from('organizations')
-              .select('subscription_plan')
-              .eq('id', prof.organization_id)
-              .maybeSingle();
-            setProfilePlan(org?.subscription_plan || prof.subscription_plan || 'piloto');
-          } else {
-            setProfilePlan(prof.subscription_plan || 'piloto');
-          }
+          // El plan efectivo de la org vive en el perfil del admin
+          // (organizations no tiene columna subscription_plan).
+          const plan = await getOrgPlan(supabase, prof.organization_id, prof.subscription_plan || 'piloto');
+          setProfilePlan(plan);
         }
 
         const dashRes = await fetch('/api/dashboard');

@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import Image from 'next/image';
 import { ROLE_LABELS, PERMISSIONS, hasPermission } from '@/lib/roles';
 import { GracePeriodContext } from '@/lib/gracePeriodContext';
+import { getOrgPlan } from '@/lib/orgPlan';
 import { useRouter } from 'next/navigation';
 
 export default function DashboardLayout({ children }) {
@@ -86,11 +87,15 @@ export default function DashboardLayout({ children }) {
           }
         }
 
-        // Cargar organización EN PARALELO con el primer vuelo activo y count de aeronaves
-        const [orgRes, flightRes, acCountRes] = await Promise.all([
+        // Cargar organización EN PARALELO con el primer vuelo activo, count de
+        // aeronaves y el plan efectivo de la org.
+        // ⚠️ organizations NO tiene columna subscription_plan — seleccionarla
+        // hacía fallar TODA la consulta (error 42703) y dejaba org=null
+        // (nombre/NIT/logo no cargaban). El plan se deriva del perfil del admin.
+        const [orgRes, flightRes, acCountRes, orgPlan] = await Promise.all([
           supabase
             .from('organizations')
-            .select('id,company_name,unique_code,tax_id,logo_url,subscription_plan')
+            .select('id,company_name,unique_code,tax_id,logo_url')
             .eq('id', prof.organization_id)
             .single(),
           supabase
@@ -105,9 +110,10 @@ export default function DashboardLayout({ children }) {
             .from('aircraft')
             .select('id', { count: 'exact', head: true })
             .eq('organization_id', prof.organization_id),
+          getOrgPlan(supabase, prof.organization_id, prof.subscription_plan || 'piloto'),
         ]);
 
-        setData({ profile: prof, org: orgRes.data });
+        setData({ profile: prof, org: orgRes.data, orgPlan });
         setAircraftCount(acCountRes.count ?? 0);
         setActiveFlight(flightRes.data);
 
@@ -223,8 +229,8 @@ export default function DashboardLayout({ children }) {
 
   const role = data.profile?.role;
 
-// Plan: verificar en org Y en profile para no bloquear usuarios válidos
-const plan = data.org?.subscription_plan || data.profile?.subscription_plan || 'piloto';
+// Plan efectivo de la org (derivado del perfil del admin); fallback al del propio perfil
+const plan = data.orgPlan || data.profile?.subscription_plan || 'piloto';
 const isPaidPlan  = !['piloto', null, undefined, ''].includes(plan);
 // Piloto autónomo = dueño de su propia org (role 'admin') en plan piloto.
 // Los miembros de una org (piloto/jefe/gsms) tienen profile.subscription_plan='piloto'
@@ -334,7 +340,7 @@ const footerLinks = footerLinksAll.filter(link =>
           <div className="flex flex-col min-w-0">
             <span className="text-xs font-black text-slate-500 uppercase tracking-tight leading-none">Plan</span>
             <span className="text-xs font-black text-orange-400 uppercase truncate mt-0.5">
-              {data.profile?.subscription_plan || 'PILOTO'}
+              {plan || 'piloto'}
             </span>
           </div>
           <div className="w-px h-6 bg-white/10 shrink-0" />

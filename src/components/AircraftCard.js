@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 
-export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, canManageStatus }) {
+export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, canManage = true, canManageStatus }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -54,8 +54,8 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
             )}
           </div>
           <div className="flex gap-2 shrink-0 relative" ref={menuRef}>
-            {/* Botón Editar — siempre visible si no está en baja/transferido */}
-            {!inactive && (
+            {/* Botón Editar — solo si puede gestionar la flota y no está en baja/transferido */}
+            {canManage && !inactive && (
               <button onClick={() => onEdit(aircraft)}
                 className="size-11 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-orange-600 transition-colors active:scale-95">
                 <span className="material-symbols-outlined text-lg">edit_square</span>
@@ -63,7 +63,7 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
             )}
 
             {/* Menú de opciones adicionales */}
-            {!inactive && (
+            {canManage && !inactive && (
               <div className="relative">
                 <button
                   onClick={() => setMenuOpen(v => !v)}

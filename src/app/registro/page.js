@@ -3,13 +3,14 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import AuthSidePanel from '@/components/AuthSidePanel';
+import { trackEvent } from '@/lib/analytics';
 
 // ── Planes (solo para el flujo "crear") ───────────────────────────────────────
 const PLANS = [
-  { key: 'piloto',      name: 'Piloto',      price: 'Gratis 1 mes', sub: 'luego $20.000/mes',           limits: '1 dron · 1 usuario',   icon: 'person' },
-  { key: 'escuadrilla', name: 'Escuadrilla', price: '$59.000/mes',   sub: 'o $590.000/año (−20%)',       limits: '3 drones · 4 usuarios', icon: 'group',                popular: true, paid: true },
-  { key: 'flota',       name: 'Flota',       price: '$159.000/mes',  sub: 'o $1.590.000/año (−20%)',     limits: '15 drones · 15 usuarios', icon: 'precision_manufacturing', paid: true },
-  { key: 'enterprise',  name: 'Enterprise',  price: 'A consultar',   sub: 'contactar ventas',            limits: 'Ilimitado',             icon: 'rocket_launch',        contact: true },
+  { key: 'piloto',      name: 'Piloto',      price: 'Gratis 1 mes', sub: 'luego $20.000/mes',           limits: '1 dron · 1 usuario',   icon: 'person',                rawPrice: 0 },
+  { key: 'escuadrilla', name: 'Escuadrilla', price: '$59.000/mes',   sub: 'o $590.000/año (−20%)',       limits: '3 drones · 4 usuarios', icon: 'group',                popular: true, paid: true, rawPrice: 59000 },
+  { key: 'flota',       name: 'Flota',       price: '$159.000/mes',  sub: 'o $1.590.000/año (−20%)',     limits: '15 drones · 15 usuarios', icon: 'precision_manufacturing', paid: true,  rawPrice: 159000 },
+  { key: 'enterprise',  name: 'Enterprise',  price: 'A consultar',   sub: 'contactar ventas',            limits: 'Ilimitado',             icon: 'rocket_launch',        contact: true, rawPrice: 0 },
 ];
 
 const ROLES_JOIN = [
@@ -103,6 +104,12 @@ export default function RegisterPage() {
       const data = await res.json();
       if (data.status === 'completed') {
         if (pollRef.current) clearInterval(pollRef.current);
+        trackEvent('sign_up', { method: 'email', plan: form.selectedPlan });
+        trackEvent('purchase', {
+          currency: 'COP',
+          value: PLANS.find(p => p.key === form.selectedPlan)?.rawPrice ?? 0,
+          items: [{ item_id: form.selectedPlan, item_name: `BitaFly ${form.selectedPlan}` }],
+        });
         setPayStatus('completed');
       } else if (data.status === 'expired' || data.status === 'not_found') {
         if (pollRef.current) clearInterval(pollRef.current);
@@ -151,6 +158,7 @@ export default function RegisterPage() {
       // Auto-login: ingresar directamente al dashboard sin pasar por login
       const { error: signInErr } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
       if (signInErr) { window.location.href = '/login?registered=1'; return; }
+      trackEvent('sign_up', { method: 'email', plan: form.selectedPlan || 'piloto' });
       window.location.href = '/dashboard';
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -218,7 +226,11 @@ export default function RegisterPage() {
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error || 'Error al crear la cuenta');
-      window.location.href = '/login?registered=1';
+      trackEvent('sign_up', { method: 'join_org', plan: 'free', role: joinRole });
+      // Auto-login: ingresar directamente al dashboard sin pasar por login
+      const { error: signInErr } = await supabase.auth.signInWithPassword({ email: joinForm.email, password: joinForm.password });
+      if (signInErr) { window.location.href = '/login?registered=1'; return; }
+      window.location.href = '/dashboard';
     } catch (err) { setJoinError(err.message); }
     finally { setJoinLoading(false); }
   };

@@ -270,7 +270,9 @@ const footerLinksAll = [
     { name: 'Configurar Organización', icon: 'settings',        href: '/dashboard/settings',          roles: ['superadmin', 'admin'] },
     { name: 'Gestión de Usuarios',     icon: 'groups',          href: '/dashboard/users',             roles: ['superadmin', 'admin'], paidOnly: true },
     { name: 'Mi Perfil',               icon: 'account_circle',  href: '/dashboard/settings/profile',  roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-    { name: 'Suscripción',             icon: 'payments',        href: '/dashboard/subscription', roles: ['superadmin', 'admin', 'piloto'] },
+    // Solo el dueño de la cuenta gestiona la suscripción (admin = Gerente General
+    // o Piloto Independiente). Los tripulantes de una org (piloto/jefe/gsms) no la ven.
+    { name: 'Suscripción',             icon: 'payments',        href: '/dashboard/subscription', roles: ['superadmin', 'admin'] },
 ];
 const footerLinks = footerLinksAll.filter(link =>
   link.roles.includes(role) &&

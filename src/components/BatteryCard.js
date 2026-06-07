@@ -1,5 +1,5 @@
 'use client';
-export default function BatteryCard({ battery, onEdit, onDelete }) {
+export default function BatteryCard({ battery, onEdit, onDelete, canManage = true }) {
   const MAX_CYCLES = 200;
   const currentCycles = Number(battery?.cycles || 0);
   const cycleProgress = Math.min(100, (currentCycles / MAX_CYCLES) * 100);
@@ -31,16 +31,18 @@ export default function BatteryCard({ battery, onEdit, onDelete }) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-1">
-        <button onClick={() => onEdit(battery)}
-          className="size-11 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 hover:text-orange-600 transition-colors active:scale-95">
-          <span className="material-symbols-outlined text-lg">edit</span>
-        </button>
-        <button onClick={() => onDelete(battery?.id)}
-          className="size-11 rounded-xl bg-red-50 flex items-center justify-center text-slate-200 hover:text-red-500 transition-colors active:scale-95">
-          <span className="material-symbols-outlined text-lg">delete</span>
-        </button>
-      </div>
+      {canManage && (
+        <div className="flex flex-col gap-1">
+          <button onClick={() => onEdit(battery)}
+            className="size-11 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 hover:text-orange-600 transition-colors active:scale-95">
+            <span className="material-symbols-outlined text-lg">edit</span>
+          </button>
+          <button onClick={() => onDelete(battery?.id)}
+            className="size-11 rounded-xl bg-red-50 flex items-center justify-center text-slate-200 hover:text-red-500 transition-colors active:scale-95">
+            <span className="material-symbols-outlined text-lg">delete</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

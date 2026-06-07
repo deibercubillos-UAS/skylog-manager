@@ -1,5 +1,5 @@
 'use client';
-export default function TechCard({ item, onEdit, onDelete }) {
+export default function TechCard({ item, onEdit, onDelete, canManage = true }) {
   if (!item) return null;
 
   return (
@@ -22,16 +22,18 @@ export default function TechCard({ item, onEdit, onDelete }) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-1">
-        <button onClick={() => onEdit(item)}
-          className="size-11 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 hover:text-orange-600 transition-colors active:scale-95">
-          <span className="material-symbols-outlined text-lg">edit</span>
-        </button>
-        <button onClick={() => onDelete(item.id)}
-          className="size-11 rounded-xl bg-red-50 flex items-center justify-center text-slate-200 hover:text-red-500 transition-colors active:scale-95">
-          <span className="material-symbols-outlined text-lg">delete</span>
-        </button>
-      </div>
+      {canManage && (
+        <div className="flex flex-col gap-1">
+          <button onClick={() => onEdit(item)}
+            className="size-11 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 hover:text-orange-600 transition-colors active:scale-95">
+            <span className="material-symbols-outlined text-lg">edit</span>
+          </button>
+          <button onClick={() => onDelete(item.id)}
+            className="size-11 rounded-xl bg-red-50 flex items-center justify-center text-slate-200 hover:text-red-500 transition-colors active:scale-95">
+            <span className="material-symbols-outlined text-lg">delete</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

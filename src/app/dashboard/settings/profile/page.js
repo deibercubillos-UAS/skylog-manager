@@ -11,7 +11,54 @@ export default function ProfilePage() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
+    // Expediente del piloto (tabla pilots) — gestionado por el propio tripulante
+    const [docs, setDocs] = useState(null);
+    const [savingDocs, setSavingDocs] = useState(false);
     const router = useRouter();
+
+    useEffect(() => {
+        async function loadDocs() {
+            try {
+                const res = await fetch('/api/pilots/my-documents');
+                const data = await res.json();
+                setDocs(data.pilot || {
+                    id_doc_url: null, pilot_course_url: null, theoretical_exam_url: null,
+                    medical_cert_url: null, medical_expiry: '', cipu_number: '',
+                    emergency_contact_name: '', emergency_contact_phone: '',
+                });
+            } catch {
+                setDocs({});
+            }
+        }
+        loadDocs();
+    }, []);
+
+    const handleSaveDocs = async () => {
+        setSavingDocs(true);
+        try {
+            const res = await fetch('/api/pilots/my-documents', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id_doc_url:              docs.id_doc_url,
+                    pilot_course_url:        docs.pilot_course_url,
+                    theoretical_exam_url:    docs.theoretical_exam_url,
+                    medical_cert_url:        docs.medical_cert_url,
+                    medical_expiry:          docs.medical_expiry || null,
+                    cipu_number:             docs.cipu_number || null,
+                    emergency_contact_name:  docs.emergency_contact_name || null,
+                    emergency_contact_phone: docs.emergency_contact_phone || null,
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Error al guardar');
+            toast.success('Documentos actualizados. Se notificó a tus superiores.');
+        } catch (err) {
+            toast.error('Error al guardar documentos: ' + err.message);
+        } finally {
+            setSavingDocs(false);
+        }
+    };
 
     // REEMPLACE EL BLOQUE useEffect (Líneas 10 a 18 aprox) POR ESTE:
 useEffect(() => {
@@ -193,6 +240,102 @@ useEffect(() => {
                     </div>
                 </div>
             </form>
+            {/* EXPEDIENTE DEL PILOTO — documentos (tabla pilots) */}
+            {docs && (
+              <section className="bg-white border border-slate-200 rounded-[2rem] p-8 md:p-10 space-y-8 shadow-sm">
+                <div className="flex items-start gap-3 border-b pb-4">
+                  <span className="material-symbols-outlined text-orange-500 text-2xl mt-0.5 shrink-0">folder_shared</span>
+                  <div>
+                    <h3 className="font-black text-slate-900 uppercase text-lg tracking-tighter">Documentos del Piloto</h3>
+                    <p className="text-xs font-bold text-slate-400 mt-1">
+                      Carga tus documentos aeronáuticos. Al actualizarlos se notificará al Gerente General,
+                      Jefe de Pilotos y Gerente SMS para su revisión.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Credenciales numéricas */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-1">
+                    <label className="text-xs font-black text-slate-400 uppercase ml-1">Número CIPU</label>
+                    <input
+                      className="w-full p-4 bg-slate-50 rounded-2xl border-none font-black text-orange-600 uppercase text-sm"
+                      placeholder="CO-CIPU-XXXX"
+                      value={docs.cipu_number || ''}
+                      onChange={e => setDocs({ ...docs, cipu_number: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-black text-slate-400 uppercase ml-1">Vencimiento Certificado Médico</label>
+                    <input
+                      type="date"
+                      className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm"
+                      value={docs.medical_expiry || ''}
+                      onChange={e => setDocs({ ...docs, medical_expiry: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Contacto de emergencia */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <h4 className="col-span-1 md:col-span-2 text-xs font-black text-red-600 uppercase tracking-[0.2em] border-b pb-2">Contacto de Emergencia</h4>
+                  <div className="space-y-1">
+                    <label className="text-xs font-black text-slate-400 uppercase ml-1">Nombre Completo</label>
+                    <input
+                      className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm"
+                      value={docs.emergency_contact_name || ''}
+                      onChange={e => setDocs({ ...docs, emergency_contact_name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-black text-slate-400 uppercase ml-1">Teléfono</label>
+                    <input
+                      className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm"
+                      value={docs.emergency_contact_phone || ''}
+                      onChange={e => setDocs({ ...docs, emergency_contact_phone: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Documentos cargados */}
+                {(docs.id_doc_url || docs.pilot_course_url || docs.theoretical_exam_url || docs.medical_cert_url) && (
+                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-2">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Archivos cargados</p>
+                    {[
+                      { url: docs.id_doc_url,           label: 'Cédula / Identidad' },
+                      { url: docs.pilot_course_url,     label: 'Diploma Curso UAS' },
+                      { url: docs.theoretical_exam_url, label: 'Examen Teórico Aerocivil' },
+                      { url: docs.medical_cert_url,     label: 'Certificado Médico' },
+                    ].filter(d => d.url).map(d => (
+                      <a key={d.label} href={d.url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-xs font-bold text-orange-600 hover:text-orange-800 truncate">
+                        <span className="material-symbols-outlined text-sm shrink-0">description</span>
+                        <span className="truncate">{d.label}</span>
+                        <span className="material-symbols-outlined text-sm shrink-0 ml-auto">open_in_new</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+
+                {/* Subir / reemplazar */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FileUpload path="crew/docs" label="Cédula / Documento de Identidad"  onUploadSuccess={(url) => setDocs(d => ({ ...d, id_doc_url: url }))} />
+                  <FileUpload path="crew/docs" label="Diploma Curso Piloto UAS"         onUploadSuccess={(url) => setDocs(d => ({ ...d, pilot_course_url: url }))} />
+                  <FileUpload path="crew/docs" label="Examen Teórico Aerocivil"         onUploadSuccess={(url) => setDocs(d => ({ ...d, theoretical_exam_url: url }))} />
+                  <FileUpload path="crew/docs" label="Certificado Médico Aeronáutico"   onUploadSuccess={(url) => setDocs(d => ({ ...d, medical_cert_url: url }))} />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSaveDocs}
+                  disabled={savingDocs}
+                  className="w-full py-5 bg-orange-600 text-white font-black rounded-[2rem] shadow-xl uppercase text-xs tracking-widest transition-all hover:bg-slate-900 active:scale-95 disabled:opacity-60"
+                >
+                  {savingDocs ? 'GUARDANDO Y NOTIFICANDO...' : 'GUARDAR DOCUMENTOS'}
+                </button>
+              </section>
+            )}
+
             {/* ZONA DE PELIGRO — Eliminar cuenta */}
             <section className="bg-white border border-red-100 rounded-[2rem] p-8 space-y-4">
                 <div className="flex items-start gap-3">

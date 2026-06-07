@@ -33,7 +33,9 @@ export const PERMISSIONS = {
     canFly:             ['superadmin', 'admin', 'jefe_pilotos', 'piloto'],
     canAccessMaster:    ['superadmin'],
     // Nuevas — reemplazan arrays inline en API routes y páginas
-    canManageFleet:          ['superadmin', 'admin', 'jefe_pilotos', 'piloto'],
+    // Piloto (dentro de org) es solo-lectura en flota. El Piloto Independiente
+    // tiene role='admin', así que conserva la gestión completa.
+    canManageFleet:          ['superadmin', 'admin', 'jefe_pilotos'],
     canEditPilotPic:         ['superadmin', 'admin', 'jefe_pilotos'],
     canEditLogbook:          ['superadmin', 'jefe_pilotos'],
     canDeleteLogbook:        ['superadmin', 'jefe_pilotos'],

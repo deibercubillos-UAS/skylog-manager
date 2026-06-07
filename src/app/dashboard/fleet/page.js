@@ -324,6 +324,7 @@ export default function FleetPage() {
               onEdit={setEditingDrone}
               onBaja={setBajaTarget}
               onTransfer={setTransferTarget}
+              canManage={canManage}
               canManageStatus={canManageStatus}
             />
           ))}
@@ -354,6 +355,7 @@ export default function FleetPage() {
                     onEdit={setEditingDrone}
                     onBaja={setBajaTarget}
                     onTransfer={setTransferTarget}
+                    canManage={canManage}
                     canManageStatus={canManageStatus}
                   />
                 ))}
@@ -389,7 +391,7 @@ export default function FleetPage() {
         </header>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {tech.map(t => (
-            <TechCard key={t.id} item={t} onEdit={setEditingTech} onDelete={(id) => handleDeleteTech(id)} />
+            <TechCard key={t.id} item={t} onEdit={setEditingTech} onDelete={(id) => handleDeleteTech(id)} canManage={canManage} />
           ))}
         </div>
       </section>
@@ -420,7 +422,7 @@ export default function FleetPage() {
         </header>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {batteries.map(b => (
-            <BatteryCard key={b.id} battery={b} onEdit={setEditingBattery} onDelete={(id) => handleDeleteBattery(id)} />
+            <BatteryCard key={b.id} battery={b} onEdit={setEditingBattery} onDelete={(id) => handleDeleteBattery(id)} canManage={canManage} />
           ))}
         </div>
       </section>

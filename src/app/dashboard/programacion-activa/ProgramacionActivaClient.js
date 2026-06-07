@@ -6,6 +6,7 @@ import { getZoneSummary, downloadFlightKMZ, generateFlightPlanPdf } from '@/lib/
 
 export default function ProgramacionActivaClient({
   pilotEmail = null,   // si se pasa, solo muestra misiones de ese piloto (vista del piloto)
+  pilotId = null,      // filtro preferido por pilot_id (más fiable que el email)
   readOnly = false,    // oculta el botón "Nueva misión"
   title = 'Programación Activa',
 } = {}) {
@@ -19,9 +20,13 @@ export default function ProgramacionActivaClient({
       const res = await fetch('/api/flights/authorize');
       const data = await res.json();
       let rows = Array.isArray(data) ? data : [];
-      if (pilotEmail) {
-        const me = String(pilotEmail).toLowerCase();
-        rows = rows.filter(m => String(m.pilots?.email || '').toLowerCase() === me);
+      // Vista del piloto: filtra por pilot_id (preferido) o por email como respaldo.
+      if (pilotId || pilotEmail) {
+        const me = String(pilotEmail || '').toLowerCase();
+        rows = rows.filter(m =>
+          (pilotId && m.pilot_id === pilotId) ||
+          (me && String(m.pilots?.email || '').toLowerCase() === me)
+        );
       }
       setMissions(rows);
     } catch (e) {
@@ -29,7 +34,7 @@ export default function ProgramacionActivaClient({
     } finally {
       setLoading(false);
     }
-  }, [pilotEmail]);
+  }, [pilotEmail, pilotId]);
 
   useEffect(() => { loadData(); }, [loadData]);
 

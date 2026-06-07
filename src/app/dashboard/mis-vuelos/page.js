@@ -7,13 +7,31 @@ export const dynamic = 'force-dynamic';
 
 export default function MisVuelosPage() {
   const [email, setEmail] = useState(null);
+  const [pilotId, setPilotId] = useState(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setEmail(session?.user?.email || null);
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
+      if (!user) { setReady(true); return; }
+      setEmail(user.email || null);
+
+      // Perfil → organización, luego localizar la fila pilots vinculada al usuario
+      const { data: prof } = await supabase
+        .from('profiles').select('organization_id').eq('id', user.id).single();
+      if (prof?.organization_id) {
+        const { data: pilot } = await supabase
+          .from('pilots')
+          .select('id')
+          .eq('organization_id', prof.organization_id)
+          .or(`profile_id.eq.${user.id},owner_id.eq.${user.id},email.eq.${user.email}`)
+          .limit(1)
+          .maybeSingle();
+        setPilotId(pilot?.id || null);
+      }
       setReady(true);
-    });
+    })();
   }, []);
 
   if (!ready) {
@@ -23,6 +41,7 @@ export default function MisVuelosPage() {
   return (
     <ProgramacionActivaClient
       pilotEmail={email}
+      pilotId={pilotId}
       readOnly
       title="Mis Vuelos Programados"
     />

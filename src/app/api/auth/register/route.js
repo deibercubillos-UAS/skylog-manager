@@ -22,7 +22,8 @@ export async function POST(request) {
         }
 
         const body = await request.json();
-        const { email, password, firstName, lastName, phone, city, type, role, orgCode, companyName, nit, joinMode } = body;
+        const { email, password, firstName, lastName, phone, city, type, role, orgCode, companyName, nit, joinMode, attribution } = body;
+        const signupAttribution = (attribution && typeof attribution === 'object') ? (attribution.first || null) : null;
         const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
         // ── FLUJO JOIN: Unirse a organización existente (gratis, sin crear org) ──
@@ -98,6 +99,7 @@ export async function POST(request) {
                 phone:            phone || null,
                 city:             city  || null,
                 subscription_plan: 'piloto',
+                signup_attribution: signupAttribution,
             }, { onConflict: 'id' });
 
             // Vincular con la invitación / piloto existente si lo hay.
@@ -247,6 +249,7 @@ export async function POST(request) {
             phone,
             city,
             subscription_plan: 'piloto',
+            signup_attribution: signupAttribution,
         }, { onConflict: 'id' });
 
         // Auto-crear registro de piloto cuando el usuario crea su propia org

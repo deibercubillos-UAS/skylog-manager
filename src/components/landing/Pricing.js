@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { trackEvent } from '@/lib/analytics';
 
 // Precios estáticos de respaldo (COP). Se sobreescriben con datos de la BD.
 const PLANS_BASE = [
@@ -122,6 +123,8 @@ function trialText(days) {
 export default function Pricing() {
   const [annual, setAnnual] = useState(false);
   const [prices, setPrices] = useState(null);
+
+  useEffect(() => { trackEvent('view_pricing', {}); }, []);
 
   useEffect(() => {
     fetch('/api/plans/public')

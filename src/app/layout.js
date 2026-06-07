@@ -4,6 +4,7 @@ import { GoogleAnalytics } from '@next/third-parties/google';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/next';
 import Script from 'next/script';
+import AttributionTracker from '@/components/AttributionTracker';
 
 const publicSans = Public_Sans({
   subsets: ["latin"],
@@ -280,6 +281,9 @@ export default function RootLayout({ children }) {
             style={{ display: 'none', visibility: 'hidden' }}
           />
         </noscript>
+
+        {/* Captura de atribución de marketing (UTM + referrer) — sin UI */}
+        <AttributionTracker />
 
         {children}
 

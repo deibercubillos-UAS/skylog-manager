@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import AuthSidePanel from '@/components/AuthSidePanel';
 import { trackEvent } from '@/lib/analytics';
+import { attributionParams, getAttribution } from '@/lib/attribution';
 
 // ── Planes (solo para el flujo "crear") ───────────────────────────────────────
 const PLANS = [
@@ -104,11 +105,12 @@ export default function RegisterPage() {
       const data = await res.json();
       if (data.status === 'completed') {
         if (pollRef.current) clearInterval(pollRef.current);
-        trackEvent('sign_up', { method: 'email', plan: form.selectedPlan });
+        trackEvent('sign_up', { method: 'email', plan: form.selectedPlan, ...attributionParams() });
         trackEvent('purchase', {
           currency: 'COP',
           value: PLANS.find(p => p.key === form.selectedPlan)?.rawPrice ?? 0,
           items: [{ item_id: form.selectedPlan, item_name: `BitaFly ${form.selectedPlan}` }],
+          ...attributionParams(),
         });
         setPayStatus('completed');
       } else if (data.status === 'expired' || data.status === 'not_found') {
@@ -152,13 +154,13 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      const res    = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const res    = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, attribution: getAttribution() }) });
       const result = await res.json();
       if (!result.success) throw new Error(result.error || 'Error al registrar');
       // Auto-login: ingresar directamente al dashboard sin pasar por login
       const { error: signInErr } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
       if (signInErr) { window.location.href = '/login?registered=1'; return; }
-      trackEvent('sign_up', { method: 'email', plan: form.selectedPlan || 'piloto' });
+      trackEvent('sign_up', { method: 'email', plan: form.selectedPlan || 'piloto', ...attributionParams() });
       window.location.href = '/dashboard';
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -168,7 +170,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      const res  = await fetch('/api/auth/register-pending', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const res  = await fetch('/api/auth/register-pending', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, attribution: getAttribution() }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al iniciar el pago');
       setPendingRef(data.reference);
@@ -222,11 +224,12 @@ export default function RegisterPage() {
           role:     joinRole,
           orgCode:  joinNit,
           joinMode: true,
+          attribution: getAttribution(),
         }),
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.error || 'Error al crear la cuenta');
-      trackEvent('sign_up', { method: 'join_org', plan: 'free', role: joinRole });
+      trackEvent('sign_up', { method: 'join_org', plan: 'free', role: joinRole, ...attributionParams() });
       // Auto-login: ingresar directamente al dashboard sin pasar por login
       const { error: signInErr } = await supabase.auth.signInWithPassword({ email: joinForm.email, password: joinForm.password });
       if (signInErr) { window.location.href = '/login?registered=1'; return; }
@@ -254,7 +257,7 @@ export default function RegisterPage() {
               {/* Opción 1: Nueva org / piloto independiente */}
               <button
                 type="button"
-                onClick={() => { setMode('crear'); setCreateStep(1); setError(''); }}
+                onClick={() => { trackEvent('begin_registration', { flow: 'crear' }); setMode('crear'); setCreateStep(1); setError(''); }}
                 className="w-full p-6 rounded-3xl border-2 border-slate-200 hover:border-primary bg-white text-left transition-all group hover:shadow-lg"
               >
                 <div className="flex items-start gap-4">
@@ -273,7 +276,7 @@ export default function RegisterPage() {
               {/* Opción 2: Unirse a org existente */}
               <button
                 type="button"
-                onClick={() => { setMode('unirse'); setJoinStep(1); setJoinError(''); }}
+                onClick={() => { trackEvent('begin_registration', { flow: 'unirse' }); setMode('unirse'); setJoinStep(1); setJoinError(''); }}
                 className="w-full p-6 rounded-3xl border-2 border-slate-200 hover:border-blue-500 bg-white text-left transition-all group hover:shadow-lg"
               >
                 <div className="flex items-start gap-4">

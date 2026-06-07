@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
+import NewsletterSignup from '@/components/NewsletterSignup';
 import { BLOG_POSTS } from '@/lib/blogPosts';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
@@ -163,8 +164,13 @@ export default function BlogIndex() {
             </div>
           )}
 
+          {/* ── Captura de leads (newsletter) ──────────────────────────── */}
+          <div className="mt-16">
+            <NewsletterSignup source="blog" />
+          </div>
+
           {/* ── CTA ───────────────────────────────────────────────────── */}
-          <div className="mt-16 bg-orange-50 border border-orange-100 rounded-3xl p-8 md:p-10 text-center">
+          <div className="mt-8 bg-orange-50 border border-orange-100 rounded-3xl p-8 md:p-10 text-center">
             <p className="text-xs font-black uppercase tracking-widest text-orange-600 mb-3">
               Gestiona tu operación
             </p>

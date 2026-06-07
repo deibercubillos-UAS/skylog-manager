@@ -16,6 +16,10 @@ const lexend = Lexend({
   variable: "--font-lexend",
   display: "swap",
   weight: ['400', '700', '900'],
+  // Lexend solo se usa debajo del pliegue (Pricing, Features, registro).
+  // No precargarla libera ancho de banda crítico para Public Sans (la fuente
+  // del H1 del hero = elemento LCP en móvil), mejorando FCP/LCP en 4G lento.
+  preload: false,
 });
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/+$/, '');

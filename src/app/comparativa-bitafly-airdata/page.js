@@ -56,7 +56,7 @@ const ROWS = [
   { feature: 'Bitácora RAC 100 (F-OPS-002)',          bitafly: '✅ Nativo',                      airdata: '❌ No soporta' },
   { feature: 'Autorizaciones AeroCivil (F-OPS-001)',   bitafly: '✅ Incluido',                    airdata: '❌ No disponible' },
   { feature: 'SMS aeronáutico',                        bitafly: '✅ Completo',                    airdata: '❌ No disponible' },
-  { feature: 'Reportes oficiales RAC 100',             bitafly: '✅ F-OPS-002, F-MNT-003, F-HUM-005', airdata: '❌ No' },
+  { feature: 'Reportes RAC 100 configurables',         bitafly: '✅ F-OPS-002, F-MNT-003, F-HUM-005', airdata: '❌ No' },
   { feature: 'Análisis SORA',                          bitafly: '✅ Incluido',                    airdata: '❌ No' },
   { feature: 'Idioma',                                 bitafly: '✅ Español',                     airdata: '⚠️ Inglés' },
   { feature: 'Precios en COP',                         bitafly: '✅ Sí',                          airdata: '❌ USD solamente' },
@@ -71,7 +71,7 @@ const REASONS = [
     icon: 'gavel',
     title: 'RAC 100 nativo desde el primer día',
     description:
-      'Bitafly fue diseñado específicamente para cumplir la normativa colombiana. Bitácora F-OPS-002, autorizaciones F-OPS-001, SMS aeronáutico y reportes oficiales están integrados — no son add-ons ni workarounds.',
+      'Bitafly fue diseñado específicamente para cumplir la normativa colombiana. Bitácora, autorizaciones, SMS aeronáutico y reportes RAC 100 (con tu propio código de formato, F-OPS-002 y F-OPS-001 por defecto) están integrados — no son add-ons ni workarounds.',
   },
   {
     icon: 'payments',

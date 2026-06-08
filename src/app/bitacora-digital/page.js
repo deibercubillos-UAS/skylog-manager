@@ -4,7 +4,7 @@ import SEOFooter from '@/components/seo/SEOFooter';
 
 export const metadata = {
   title: 'Bitácora Digital de Vuelo para Drones RAC 100 en Colombia',
-  description: 'Registra cada vuelo de drones con los campos exigidos por la AeroCivil. Bitácora digital RAC 100 formato F-OPS-002. Suma automática de horas, reportes PDF instantáneos. Prueba gratis.',
+  description: 'Registra cada vuelo de drones con los campos exigidos por la RAC 100. Bitácora digital con tu propio código de formato (F-OPS-002 por defecto, personalizable). Suma automática de horas, reportes PDF instantáneos. Prueba gratis.',
   keywords: ['bitácora digital drones', 'bitácora vuelo RAC 100', 'F-OPS-002', 'registro vuelos drones Colombia', 'bitácora UAS AeroCivil'],
   alternates: { canonical: '/bitacora-digital' },
   openGraph: {
@@ -18,8 +18,9 @@ const faqSchema = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
   "mainEntity": [
-    { "@type": "Question", "name": "¿Qué es la bitácora digital de vuelo para drones?", "acceptedAnswer": { "@type": "Answer", "text": "La bitácora digital de vuelo es el registro electrónico obligatorio según la RAC 100 de la AeroCivil colombiana. Documenta misión, aeronave, tripulación, batería, condiciones meteorológicas y tiempos de vuelo. Bitafly genera el formato oficial F-OPS-002 en PDF." } },
-    { "@type": "Question", "name": "¿El formato F-OPS-002 de Bitafly es válido para la AeroCivil?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. El F-OPS-002 generado por Bitafly incluye todos los campos exigidos por la UAEAC: código de formato, versión, logo corporativo, misión, aeronave matriculada, tripulación certificada y firma del jefe de pilotos." } },
+    { "@type": "Question", "name": "¿Qué es la bitácora digital de vuelo para drones?", "acceptedAnswer": { "@type": "Answer", "text": "La bitácora digital de vuelo es el registro electrónico obligatorio según la RAC 100 de la AeroCivil colombiana. Documenta misión, aeronave, tripulación, batería, condiciones meteorológicas y tiempos de vuelo. Bitafly la genera en PDF con tu propio código de formato (F-OPS-002 por defecto)." } },
+    { "@type": "Question", "name": "¿El código F-OPS-002 es un formato oficial de la AeroCivil?", "acceptedAnswer": { "@type": "Answer", "text": "No. La RAC 100 exige llevar la bitácora pero no impone un código de formato: cada empresa define su nomenclatura de control documental en su manual de operaciones. Bitafly trae F-OPS-002 por defecto y lo puedes personalizar para alinearlo con tu manual." } },
+    { "@type": "Question", "name": "¿La bitácora de Bitafly es válida para la AeroCivil?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. La bitácora generada por Bitafly incluye todos los campos exigidos por la RAC 100: tu código de formato, versión, logo corporativo, misión, aeronave matriculada, tripulación certificada y firma del jefe de pilotos." } },
     { "@type": "Question", "name": "¿Cuántos vuelos puedo registrar en Bitafly?", "acceptedAnswer": { "@type": "Answer", "text": "La bitácora digital es ilimitada en todos los planes de Bitafly, incluyendo el plan gratuito." } },
     { "@type": "Question", "name": "¿Puedo registrar vuelos desde el celular en campo?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Bitafly es una app web responsive que funciona desde cualquier celular o tablet con conexión a internet. Tu tripulación abre el navegador, inicia sesión y registra el vuelo desde el sitio de operación sin necesidad de instalar nada." } },
   ],
@@ -62,7 +63,7 @@ export default function BitacoraDigitalPage() {
       <section style={{padding:'80px 32px 72px',background:'#fff'}}>
         <div className="grid grid-cols-1 lg:grid-cols-2" style={{maxWidth:'1100px',margin:'0 auto',gap:'56px',alignItems:'center'}}>
           <div>
-            <div style={s.badge}><div style={s.dot}/><span style={s.badgeText}>Formato F-OPS-002 · UAEAC</span></div>
+            <div style={s.badge}><div style={s.dot}/><span style={s.badgeText}>Formato F-OPS-002 · configurable</span></div>
             <h1 style={s.h1}>Bitácora Digital de Vuelo para <span style={s.accent}>Drones RAC 100</span></h1>
             <p style={s.desc}>Registra cada operación UAS con los campos exigidos por la AeroCivil. Genera el Maestro de Vuelo F-OPS-002 en PDF en segundos. Sin Excel, sin papel.</p>
             <div style={{display:'flex',gap:'12px',flexWrap:'wrap'}}>
@@ -105,7 +106,7 @@ export default function BitacoraDigitalPage() {
       <div style={s.darkBand}>
         <div className="grid grid-cols-2 sm:grid-cols-4" style={{maxWidth:'1100px',margin:'0 auto',gap:'32px',textAlign:'center'}}>
           <div><div style={s.statVal}>∞</div><div style={s.statLbl}>Vuelos registrables</div></div>
-          <div><div style={s.statVal}>F-OPS-002</div><div style={s.statLbl}>Formato oficial</div></div>
+          <div><div style={s.statVal}>F-OPS-002</div><div style={s.statLbl}>Código por defecto</div></div>
           <div><div style={s.statVal}>PDF</div><div style={s.statLbl}>Exportación instantánea</div></div>
           <div><div style={s.statVal}>0</div><div style={s.statLbl}>Datos en papel</div></div>
         </div>
@@ -124,7 +125,7 @@ export default function BitacoraDigitalPage() {
               { icon:'person', title:'Tripulación y PIC', desc:'Asignación del Piloto en Comando (PIC) con verificación de certificado vigente. Validación automática del médico aeronáutico antes del vuelo.' },
               { icon:'battery_charging_full', title:'Batería Utilizada', desc:'Registro de batería con número de serie, ciclos acumulados y estado. Alerta automática si la batería supera el umbral de ciclos configurado.' },
               { icon:'flight_takeoff', title:'Tiempos de Vuelo', desc:'Hora de despegue y aterrizaje con cálculo automático del tiempo total. Suma acumulada a las horas totales de la aeronave y del piloto.' },
-              { icon:'cloud_done', title:'Condiciones Meteorológicas', desc:'Registro de condiciones del clima, visibilidad y viento en el momento de la operación. Campo obligatorio para el reporte oficial F-OPS-002.' },
+              { icon:'cloud_done', title:'Condiciones Meteorológicas', desc:'Registro de condiciones del clima, visibilidad y viento en el momento de la operación. Campo obligatorio de la bitácora según la RAC 100.' },
               { icon:'timer', title:'Horas Acumuladas Automáticas', desc:'Cada vuelo registrado suma automáticamente las horas al totalizador de la aeronave y al libro de vuelo del piloto. Sin cálculos manuales.' },
             ].map(item => (
               <article key={item.icon} style={s.card}>
@@ -166,7 +167,7 @@ export default function BitacoraDigitalPage() {
         </div>
       </div>
 
-      <SEOFooter brandDesc="Bitácora digital RAC 100 para operadores UAS en Colombia. Formato F-OPS-002 oficial." />
+      <SEOFooter brandDesc="Bitácora digital RAC 100 para operadores UAS en Colombia. Formato F-OPS-002 configurable." />
     </>
   );
 }

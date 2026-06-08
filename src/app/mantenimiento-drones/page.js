@@ -4,7 +4,7 @@ import SEOFooter from '@/components/seo/SEOFooter';
 
 export const metadata = {
   title: 'Software de Mantenimiento de Drones y Baterías LiPo',
-  description: 'Controla el mantenimiento de tus drones y baterías LiPo con alertas automáticas a 200 horas o 6 meses. Genera el formato F-MNT-003 exigido por la AeroCivil. Prueba gratis.',
+  description: 'Controla el mantenimiento de tus drones y baterías LiPo con alertas automáticas a 200 horas o 6 meses. Genera el Registro de Baterías que exige la RAC 100, con tu propio código de formato (F-MNT-003 por defecto). Prueba gratis.',
   keywords: ['mantenimiento drones Colombia', 'baterías LiPo drones', 'F-MNT-003', 'mantenimiento UAS AeroCivil', 'software mantenimiento aeronaves drones'],
   alternates: { canonical: '/mantenimiento-drones' },
   openGraph: {
@@ -19,7 +19,7 @@ const faqSchema = {
   "@type": "FAQPage",
   "mainEntity": [
     { "@type": "Question", "name": "¿Cada cuánto se debe hacer mantenimiento a un dron según la RAC 100?", "acceptedAnswer": { "@type": "Answer", "text": "Según la RAC 100 de la AeroCivil, los drones deben recibir mantenimiento preventivo al alcanzar 200 horas de vuelo acumuladas o cada 6 meses calendario, lo que ocurra primero. Bitafly envía alertas automáticas antes de llegar a estos umbrales." } },
-    { "@type": "Question", "name": "¿Qué es el formato F-MNT-003?", "acceptedAnswer": { "@type": "Answer", "text": "El F-MNT-003 es el Registro de Baterías exigido por la UAEAC. Documenta el número de serie de cada batería, los ciclos acumulados, el estado (operativa, inflada, retirada) y cada intervención de mantenimiento. Bitafly lo genera en PDF automáticamente." } },
+    { "@type": "Question", "name": "¿Qué es el formato F-MNT-003?", "acceptedAnswer": { "@type": "Answer", "text": "F-MNT-003 es el código con el que Bitafly identifica por defecto el Registro de Baterías. No es un formato oficial de la AeroCivil: la RAC 100 exige llevar el registro, pero cada operador define su propia nomenclatura en su manual de operaciones. Documenta el número de serie de cada batería, los ciclos acumulados, el estado (operativa, inflada, retirada) y cada intervención. Bitafly lo genera en PDF con el código que tú definas." } },
     { "@type": "Question", "name": "¿Cuántos ciclos aguanta una batería LiPo de dron?", "acceptedAnswer": { "@type": "Answer", "text": "La mayoría de fabricantes recomienda retirar las baterías LiPo entre 150 y 300 ciclos de carga/descarga. Bitafly permite configurar el umbral por batería (200 ciclos por defecto) y alerta automáticamente cuando se acerca al límite." } },
     { "@type": "Question", "name": "¿Puedo configurar el umbral de ciclos por batería?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Aunque el valor por defecto es 200 ciclos, puedes configurar el umbral individualmente por batería según las recomendaciones del fabricante o los criterios de seguridad de tu organización." } },
   ],
@@ -45,7 +45,7 @@ export default function MantenimientoDronesPage() {
               Software de <span style={{color:accent}}>Mantenimiento de Drones</span> y Baterías LiPo
             </h1>
             <p style={{fontSize:'16px',fontWeight:500,color:'#64748b',lineHeight:1.65,maxWidth:'480px',marginBottom:'28px'}}>
-              Alertas automáticas a 200 horas de vuelo o 6 meses. Control de ciclos de baterías LiPo. Historial completo de intervenciones. Formato F-MNT-003 oficial en PDF.
+              Alertas automáticas a 200 horas de vuelo o 6 meses. Control de ciclos de baterías LiPo. Historial completo de intervenciones. Registro de Baterías en PDF con tu propio código de formato (F-MNT-003 por defecto).
             </p>
             <div style={{display:'flex',gap:'12px',flexWrap:'wrap'}}>
               <Link href="/registro" style={{display:'inline-flex',alignItems:'center',gap:'8px',background:accent,color:'#fff',padding:'14px 28px',borderRadius:'16px',fontSize:'12px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.1em',textDecoration:'none',boxShadow:'0 8px 24px rgba(236,91,19,0.3)'}}>
@@ -98,7 +98,7 @@ export default function MantenimientoDronesPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4" style={{maxWidth:'1100px',margin:'0 auto',gap:'32px',textAlign:'center'}}>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>200h</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Umbral mantenimiento</div></div>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>200</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Ciclos batería por defecto</div></div>
-          <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>F-MNT-003</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Formato oficial</div></div>
+          <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>F-MNT-003</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Código por defecto</div></div>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>∞</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Baterías registrables</div></div>
         </div>
       </div>
@@ -119,7 +119,7 @@ export default function MantenimientoDronesPage() {
               { icon:'battery_charging_full', title:'Control de Ciclos LiPo', desc:'Registro de ciclos por batería con umbral configurable. Detecta inflamiento, registra eventos anómalos y previene fallos en operación crítica.' },
               { icon:'engineering', title:'Historial de Intervenciones', desc:'Trazabilidad completa de cada cambio de hélice, calibración de sensores, revisión de motores y reparación. Con fecha, técnico responsable y horas al momento.' },
               { icon:'notification_important', title:'Bloqueo Preventivo', desc:'Opción de bloquear el registro de nuevos vuelos en aeronaves con mantenimiento vencido, evitando operaciones fuera de cumplimiento.' },
-              { icon:'trending_up', title:'Reporte F-MNT-003 en PDF', desc:'Exporta el Registro de Baterías oficial con número de serie, ciclos, estado de cada batería e historial de intervenciones. Listo para auditorías.' },
+              { icon:'trending_up', title:'Reporte F-MNT-003 en PDF', desc:'Exporta el Registro de Baterías con número de serie, ciclos, estado de cada batería e historial de intervenciones, usando tu propio código de formato. Listo para auditorías.' },
             ].map(item => (
               <article key={item.icon} style={{background:'#fff',border:'1.5px solid #f1f5f9',borderRadius:'28px',padding:'28px'}}>
                 <div style={{width:'48px',height:'48px',background:'rgba(236,91,19,0.08)',borderRadius:'14px',display:'flex',alignItems:'center',justifyContent:'center',color:accent,marginBottom:'16px'}}><span className="material-symbols-outlined">{item.icon}</span></div>
@@ -164,7 +164,7 @@ export default function MantenimientoDronesPage() {
         </div>
       </div>
 
-      <SEOFooter brandDesc="Mantenimiento de drones y baterías LiPo con cumplimiento RAC 100. Formato F-MNT-003 oficial." />
+      <SEOFooter brandDesc="Mantenimiento de drones y baterías LiPo con cumplimiento RAC 100. Formato F-MNT-003 configurable." />
     </>
   );
 }

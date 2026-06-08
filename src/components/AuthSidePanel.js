@@ -7,7 +7,7 @@ const BENEFITS = [
   { icon: 'build',              text: 'Mantenimiento y alertas automáticas de aeronaves' },
   { icon: 'battery_charging_full', text: 'Control de ciclos de baterías LiPo' },
   { icon: 'health_and_safety', text: 'SMS aeronáutico con trazabilidad de incidentes' },
-  { icon: 'assessment',         text: 'Reportes oficiales PDF listos para AeroCivil' },
+  { icon: 'assessment',         text: 'Reportes RAC 100 en PDF listos para AeroCivil' },
 ];
 
 export default function AuthSidePanel({ mode = 'login' }) {

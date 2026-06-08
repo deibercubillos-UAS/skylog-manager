@@ -6,12 +6,12 @@ const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').rep
 
 export const metadata = {
   title: 'Digital Drone Logbook for Colombia (RAC 100 Compliant)',
-  description: 'The only drone flight logbook built for Colombia\'s RAC 100 regulation. Automatically generates F-OPS-002 PDF, tracks flight hours and battery cycles. Free 6-month trial.',
+  description: 'The only drone flight logbook built for Colombia\'s RAC 100 regulation. Generates the flight log PDF with your own format code (F-OPS-002 by default), tracks flight hours and battery cycles. Free 6-month trial.',
   keywords: ['drone logbook colombia', 'UAV logbook colombia', 'RAC 100 flight log', 'digital flight logbook colombia', 'RPAS logbook aerocivil'],
   alternates: { canonical: '/drone-logbook-colombia' },
   openGraph: {
     title: 'Digital Drone Logbook for Colombia — RAC 100 Compliant | Bitafly',
-    description: 'Automated F-OPS-002 generation, flight hour tracking and battery cycle management for UAS operators in Colombia.',
+    description: 'Automated flight log generation (F-OPS-002 by default), flight hour tracking and battery cycle management for UAS operators in Colombia.',
     url: `${SITE_URL}/drone-logbook-colombia`,
     type: 'website',
     locale: 'en_US',
@@ -22,8 +22,8 @@ const faqSchema = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
   mainEntity: [
-    { '@type': 'Question', name: 'What is RAC 100 in Colombia?', acceptedAnswer: { '@type': 'Answer', text: 'RAC 100 (Colombian Aeronautical Regulation Part 100) is the regulatory framework issued by the UAEAC (AeroCivil) that governs all commercial drone operations in Colombia. It requires operators to maintain a digital flight logbook (format F-OPS-002), document maintenance, implement a Safety Management System (SMS), and obtain flight authorizations.' } },
-    { '@type': 'Question', name: 'What is the F-OPS-002 format?', acceptedAnswer: { '@type': 'Answer', text: 'The F-OPS-002 is the official AeroCivil flight log format required for each commercial drone operation in Colombia. It must include flight date, takeoff and landing times, aircraft registration, pilot CPR number, mission type, battery status, and the chief pilot\'s signature. Bitafly generates this PDF automatically.' } },
+    { '@type': 'Question', name: 'What is RAC 100 in Colombia?', acceptedAnswer: { '@type': 'Answer', text: 'RAC 100 (Colombian Aeronautical Regulation Part 100) is the regulatory framework issued by the UAEAC (AeroCivil) that governs all commercial drone operations in Colombia. It requires operators to maintain a digital flight logbook, document maintenance, implement a Safety Management System (SMS), and obtain flight authorizations.' } },
+    { '@type': 'Question', name: 'What is the F-OPS-002 format?', acceptedAnswer: { '@type': 'Answer', text: 'F-OPS-002 is the code Bitafly uses by default for the flight log. It is not an official AeroCivil format: RAC 100 requires keeping the flight log, but each operator defines its own document-control nomenclature in its operations manual. The log must include flight date, takeoff and landing times, aircraft registration, pilot CPR number, mission type, battery status, and the chief pilot\'s signature. Bitafly generates this PDF automatically with the code you choose.' } },
     { '@type': 'Question', name: 'Can I use Bitafly if my team speaks English?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Bitafly\'s interface is primarily in Spanish (Colombian) since it\'s designed for the Colombian regulatory framework. However, international operators working in Colombia can use it without difficulty — the forms are straightforward and the generated PDFs comply with AeroCivil requirements regardless of the user\'s native language.' } },
     { '@type': 'Question', name: 'Does Bitafly support DJI flight log import?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Bitafly imports .TXT files from DJI RC and RC 2 controllers automatically via USB. Flight data — duration, maximum altitude, battery telemetry — pre-fills the logbook without manual entry.' } },
   ],
@@ -32,7 +32,7 @@ const faqSchema = {
 const accent = '#ec5b13';
 
 const FEATURES = [
-  { icon: 'menu_book',         title: 'F-OPS-002 Auto-generation', desc: 'Every flight generates the official AeroCivil PDF with your aircraft registration, pilot CPR, mission type and all required fields.' },
+  { icon: 'menu_book',         title: 'F-OPS-002 Auto-generation', desc: 'Every flight generates the flight log PDF — with your own format code (F-OPS-002 by default) — including aircraft registration, pilot CPR, mission type and all required fields.' },
   { icon: 'timer',             title: 'Automatic Hour Tracking',   desc: 'Flight hours accumulate automatically per aircraft. Maintenance alerts trigger at 200 hours or 6 months — whichever comes first.' },
   { icon: 'battery_charging_full', title: 'Battery Cycle Control', desc: 'Track charge cycles per battery serial number. Configurable retirement threshold. F-MNT-003 PDF for AeroCivil audits.' },
   { icon: 'flight_takeoff',    title: 'DJI Log Import',            desc: 'Connect your DJI RC via USB. Bitafly reads .TXT flight logs and pre-fills the logbook automatically.' },
@@ -59,7 +59,7 @@ export default function DroneLogbookColombiaPage() {
             </h1>
             <p style={{ fontSize: '16px', fontWeight: 500, color: '#64748b', lineHeight: 1.65, maxWidth: '480px', marginBottom: '28px' }}>
               The only drone flight management platform built specifically for Colombia's <strong>RAC 100</strong> regulation.
-              Automatically generates the F-OPS-002 PDF required by AeroCivil for every commercial flight.
+              Automatically generates the flight log PDF required by RAC 100 for every commercial flight — with your own format code (F-OPS-002 by default).
             </p>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <Link href="/registro" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: accent, color: '#fff', padding: '14px 28px', borderRadius: '16px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', textDecoration: 'none', boxShadow: '0 8px 24px rgba(236,91,19,0.3)' }}>

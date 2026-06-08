@@ -9,7 +9,7 @@ const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').rep
 // METADATA específico del landing (sobrescribe el global con copy de mayor densidad)
 export const metadata = {
   title: 'Software de Gestión para Drones en Colombia | Bitafly',
-  description: 'Plataforma SaaS líder para operadores UAS en Colombia. Bitácora digital RAC 100, mantenimiento, baterías, SMS aeronáutico, autorizaciones AeroCivil y reportes oficiales. Comienza gratis.',
+  description: 'Plataforma SaaS líder para operadores UAS en Colombia. Bitácora digital RAC 100, mantenimiento, baterías, SMS aeronáutico, autorizaciones AeroCivil y reportes RAC 100 con tu propio código de formato. Comienza gratis.',
   alternates: {
     canonical: '/',
   },
@@ -25,11 +25,11 @@ export const metadata = {
 const FAQS = [
   {
     q: '¿Qué es Bitafly?',
-    a: 'Bitafly es una plataforma SaaS diseñada para operadores de drones (UAS) en Colombia. Centraliza la bitácora digital, el mantenimiento de aeronaves y baterías, el sistema de gestión de seguridad operacional (SMS), las autorizaciones de vuelo ante la AeroCivil y la generación de reportes oficiales para auditorías RAC 100.',
+    a: 'Bitafly es una plataforma SaaS diseñada para operadores de drones (UAS) en Colombia. Centraliza la bitácora digital, el mantenimiento de aeronaves y baterías, el sistema de gestión de seguridad operacional (SMS), las autorizaciones de vuelo ante la AeroCivil y la generación de reportes para auditorías RAC 100, con tu propio código de formato.',
   },
   {
     q: '¿Bitafly cumple con la normativa RAC 100 de la AeroCivil?',
-    a: 'Sí. Cada módulo de Bitafly está diseñado con base en los formatos exigidos por la Unidad Administrativa Especial de Aeronáutica Civil de Colombia (UAEAC). Los reportes generados (F-OPS-002 Maestro de Vuelo, F-MNT-003 Baterías, F-HUM-005 Personal) cumplen con los códigos y trazabilidad exigidos por la RAC 100.',
+    a: 'Sí. Cada módulo de Bitafly está diseñado con base en los registros exigidos por la Unidad Administrativa Especial de Aeronáutica Civil de Colombia (UAEAC). La RAC 100 no impone códigos de formato oficiales: cada operador define su nomenclatura en su manual. Los reportes generados (Maestro de Vuelo, Baterías y Personal, con códigos F-OPS-002, F-MNT-003 y F-HUM-005 por defecto, personalizables) cumplen con la trazabilidad exigida por la RAC 100.',
   },
   {
     q: '¿Puedo registrar los vuelos desde el campo?',
@@ -41,7 +41,7 @@ const FAQS = [
   },
   {
     q: '¿Cómo se gestionan las autorizaciones de vuelo ante AeroCivil?',
-    a: 'Bitafly genera el formato F-OPS-001 con todos los datos exigidos por AeroCivil: zona de operación, coordenadas, fecha, tripulación, aeronave matriculada, póliza vigente y misión. Estamos integrando la radicación automática en el portal de AeroCivil.',
+    a: 'Bitafly genera tu solicitud de autorización (formato F-OPS-001 por defecto, personalizable) con todos los datos exigidos por AeroCivil: zona de operación, coordenadas, fecha, tripulación, aeronave matriculada, póliza vigente y misión. Estamos integrando la radicación automática en el portal de AeroCivil.',
   },
   {
     q: '¿Mis datos están seguros?',
@@ -56,8 +56,8 @@ const FAQS = [
     a: 'No. Bitafly es 100% en la nube. Solo necesitas un navegador (Chrome, Safari, Firefox, Edge) en computador, tablet o celular. Las actualizaciones son automáticas y no requieres equipo de TI.',
   },
   {
-    q: '¿Genera los reportes oficiales para auditorías de la AeroCivil?',
-    a: 'Sí. Bitafly genera en PDF los formatos oficiales: Maestro de Vuelo, Registro de Baterías, Bitácora de Piloto y Expediente de Tripulante. Cada reporte incluye logo corporativo, código de formato y versión, listo para presentar en una inspección.',
+    q: '¿Genera los reportes para auditorías de la AeroCivil?',
+    a: 'Sí. Bitafly genera en PDF los reportes que exige la RAC 100: Maestro de Vuelo, Registro de Baterías, Bitácora de Piloto y Expediente de Tripulante. Cada reporte incluye logo corporativo, tu código de formato y versión, listo para presentar en una inspección. Los códigos no son oficiales de la AeroCivil: los defines tú según tu manual de operaciones.',
   },
   {
     q: '¿Qué pasa con los datos históricos si me cambio a Bitafly?',
@@ -99,8 +99,8 @@ const FEATURES = [
   },
   {
     icon: 'assessment',
-    title: 'Reportes Oficiales',
-    desc: 'Exporta en PDF los formatos Maestro de Vuelo, Registro de Baterías y Bitácora de Piloto con logo, código de formato y versión. Cumplimiento documental garantizado.',
+    title: 'Reportes RAC 100',
+    desc: 'Exporta en PDF el Maestro de Vuelo, Registro de Baterías y Bitácora de Piloto con logo, tu propio código de formato y versión. Cumplimiento documental garantizado.',
   },
   {
     icon: 'admin_panel_settings',
@@ -124,7 +124,7 @@ const softwareSchema = {
   applicationSubCategory: 'Aviation Management Software',
   operatingSystem: 'Web, iOS, Android',
   description:
-    'Plataforma SaaS para operadores UAS (drones) en Colombia. Bitácora digital RAC 100, mantenimiento, SMS aeronáutico, autorizaciones AeroCivil y reportes oficiales.',
+    'Plataforma SaaS para operadores UAS (drones) en Colombia. Bitácora digital RAC 100, mantenimiento, SMS aeronáutico, autorizaciones AeroCivil y reportes RAC 100 con tu propio código de formato.',
   url: SITE_URL,
   inLanguage: 'es-CO',
   featureList: FEATURES.map((f) => f.title).join(', '),
@@ -158,7 +158,7 @@ const webPageSchema = {
   'isPartOf': { '@id': `${SITE_URL}/#website` },
   'about': { '@id': `${SITE_URL}/#software` },
   'inLanguage': 'es-CO',
-  'description': 'Plataforma SaaS líder para operadores UAS en Colombia. Bitácora digital RAC 100, mantenimiento, baterías, SMS aeronáutico, autorizaciones AeroCivil y reportes oficiales.',
+  'description': 'Plataforma SaaS líder para operadores UAS en Colombia. Bitácora digital RAC 100, mantenimiento, baterías, SMS aeronáutico, autorizaciones AeroCivil y reportes RAC 100 con tu propio código de formato.',
 };
 
 // JSON-LD: FAQPage (rich result de preguntas frecuentes)
@@ -337,17 +337,19 @@ export default function LandingPage() {
                 <p className="text-slate-600 leading-relaxed">
                   La Reglamentación Aeronáutica Colombiana 100 es el marco normativo de la
                   UAEAC para operaciones con sistemas de aeronaves no tripuladas (UAS).
-                  Bitafly traduce cada requisito documental en un módulo digital con códigos
-                  de formato, versión, trazabilidad y firma.
+                  Bitafly traduce cada requisito documental en un módulo digital con tus
+                  propios códigos de formato, versión, trazabilidad y firma. La RAC 100 no
+                  impone una nomenclatura: cada operador la define en su manual y tú la
+                  personalizas en Bitafly.
                 </p>
                 <ul className="space-y-3 text-sm">
                   {[
-                    'Bitácora oficial F-OPS-002 con horas totales por aeronave',
-                    'Registro de baterías F-MNT-003 con control de ciclos',
-                    'Bitácora de piloto F-HUM-005 con horas por tripulante',
+                    'Bitácora de vuelo (F-OPS-002 por defecto) con horas totales por aeronave',
+                    'Registro de baterías (F-MNT-003 por defecto) con control de ciclos',
+                    'Bitácora de piloto (F-HUM-005 por defecto) con horas por tripulante',
                     'Sistema SMS con clasificación de incidente, grave y accidente',
                     'Expediente de tripulante con anexos digitales',
-                    'Reportes en PDF con logo, código y versión corporativa',
+                    'Reportes en PDF con logo, tu código de formato y versión corporativa',
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-3">
                       <span className="material-symbols-outlined text-primary text-lg shrink-0 mt-0.5">
@@ -370,12 +372,12 @@ export default function LandingPage() {
                 </div>
                 <p className="text-slate-300 text-sm leading-relaxed">
                   Cuando llega una visita de inspección de la AeroCivil, abres Bitafly y
-                  exportas en segundos los reportes solicitados con la cabecera oficial de
+                  exportas en segundos los reportes solicitados con la cabecera corporativa de
                   tu organización. Sin Excels dispersos. Sin papeles perdidos.
                 </p>
                 <div className="border-t border-white/10 pt-6 space-y-3">
                   <p className="text-xs font-black uppercase tracking-widest text-primary">
-                    Reportes oficiales generados
+                    Reportes RAC 100 generados
                   </p>
                   <ul className="space-y-2 font-mono text-xs text-slate-300">
                     <li className="flex justify-between">

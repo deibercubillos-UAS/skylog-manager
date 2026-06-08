@@ -646,7 +646,7 @@ export async function generateChapter5(org, pilots, aircraft) {
   const annexC = [
     new Paragraph({ children: [], pageBreakBefore: true }),
     h1(docx, 'Anexo C — Formatos de Referencia'),
-    bodyPara(docx, `Los siguientes formatos oficiales son gestionados digitalmente a través de la plataforma Bitafly (bitafly.com). Su diligenciamiento es obligatorio para las operaciones de ${orgName}.`),
+    bodyPara(docx, `Los siguientes formatos de control documental de ${orgName} se gestionan digitalmente a través de la plataforma Bitafly (bitafly.com). Los códigos son la nomenclatura interna adoptada por la organización (no son formatos oficiales impuestos por la AeroCivil) y su diligenciamiento es obligatorio para las operaciones de ${orgName}.`),
     spacer(docx),
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },

@@ -52,7 +52,7 @@ export const metadata = {
     default: 'Bitafly — Software para Drones en Colombia',
     template: '%s | Bitafly',
   },
-  description: 'Software para operadores UAS en Colombia. Bitácora digital RAC 100, mantenimiento de drones y baterías, SMS aeronáutico, autorizaciones AeroCivil y reportes oficiales en una sola plataforma. Prueba gratis.',
+  description: 'Software para operadores UAS en Colombia. Bitácora digital RAC 100, mantenimiento de drones y baterías, SMS aeronáutico, autorizaciones AeroCivil y reportes RAC 100 con tu propio código de formato, en una sola plataforma. Prueba gratis.',
   applicationName: 'Bitafly',
   keywords: [
     'software drones Colombia',
@@ -205,7 +205,7 @@ export default function RootLayout({ children }) {
                 "caption": "Bitafly — Software para operadores de drones en Colombia"
               },
               "image": { "@id": `${SITE_URL}/#logo` },
-              "description": "Plataforma SaaS para operadores UAS en Colombia. Bitácora digital RAC 100, mantenimiento de drones, SMS aeronáutico, autorizaciones AeroCivil y reportes oficiales.",
+              "description": "Plataforma SaaS para operadores UAS en Colombia. Bitácora digital RAC 100, mantenimiento de drones, SMS aeronáutico, autorizaciones AeroCivil y reportes RAC 100 con tu propio código de formato.",
               "email": "soporte@bitafly.com",
               "foundingDate": "2024",
               "address": {

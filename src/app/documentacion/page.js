@@ -6,11 +6,11 @@ const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').rep
 
 export const metadata = {
   title: 'Documentación | Bitafly — Guía de Usuario',
-  description: 'Guía completa de uso de Bitafly: configuración inicial, gestión de flota, planificación de misiones, bitácora digital, seguridad SMS y reportes oficiales RAC 100.',
+  description: 'Guía completa de uso de Bitafly: configuración inicial, gestión de flota, planificación de misiones, bitácora digital, seguridad SMS y reportes RAC 100 con tu propio código de formato.',
   alternates: { canonical: '/documentacion' },
   openGraph: {
     title: 'Documentación Bitafly — Guía de Usuario Completa',
-    description: 'Aprende a usar Bitafly paso a paso: desde la configuración hasta los reportes oficiales para la AeroCivil.',
+    description: 'Aprende a usar Bitafly paso a paso: desde la configuración hasta los reportes RAC 100 para la AeroCivil.',
     url: `${SITE_URL}/documentacion`,
     type: 'website',
   },
@@ -128,7 +128,7 @@ const FASES = [
       { icon: 'battery_charging_full', title: 'Seleccionar baterías utilizadas', desc: 'Marca las baterías empleadas en el vuelo. El sistema suma automáticamente un ciclo a cada una y actualiza el conteo total.' },
       { icon: 'timer', title: 'Calcular tiempo de vuelo', desc: 'Con los tiempos de despegue y aterrizaje, Bitafly calcula automáticamente la duración del vuelo y la suma a las horas totales de la aeronave y del piloto.' },
       { icon: 'warning', title: 'Registrar incidentes o anomalías', desc: 'Si ocurre cualquier evento anormal durante el vuelo, regístralo en el campo de incidentes. Esto puede derivar en un reporte SMS dependiendo de la clasificación.' },
-      { icon: 'note_add', title: 'Observaciones y cierre', desc: 'Agrega notas operacionales, condiciones de aterrizaje y firma digital del piloto al mando. El vuelo queda registrado en la bitácora oficial.' },
+      { icon: 'note_add', title: 'Observaciones y cierre', desc: 'Agrega notas operacionales, condiciones de aterrizaje y firma digital del piloto al mando. El vuelo queda registrado en la bitácora de la organización.' },
       { icon: 'build', title: 'Registrar mantenimiento post-vuelo', desc: 'Si se realizó alguna intervención en la aeronave (limpieza, ajuste, calibración), regístrala en Mantenimiento. El sistema actualiza el historial técnico.' },
       { icon: 'sync', title: 'Importar vuelos desde DJI RC', desc: 'En Bitácora → Importar DJI, copia la carpeta FlightRecord desde tu controlador DJI RC 2, Android o iPhone al PC. Bitafly detecta automáticamente la aeronave por número de serie, actualiza las horas de vuelo y los ciclos de batería. Si la aeronave no existe, ofrece crearla pre-llenada.' },
       { icon: 'replay', title: 'Replay GPS animado', desc: 'Desde cualquier vuelo en la bitácora, pulsa el botón de replay (naranja = guardado, gris = disponible). Sube el archivo .txt del DJI y revisa la ruta GPS cuadro a cuadro: posición, joysticks RC, nivel de batería y alertas en tiempo real. El replay se guarda en la nube según las cuotas de tu plan.' },
@@ -189,10 +189,10 @@ const FASES = [
     colorSolid: 'bg-purple-600',
     roles: ['Admin', 'Gerente SMS', 'Jefe de Pilotos'],
     duracion: '~5 min por reporte',
-    desc: 'Bitafly genera en un clic todos los reportes oficiales exigidos por la AeroCivil en PDF con membrete corporativo. Además, desde el panel de administración gestionas usuarios, planes y configuración avanzada.',
+    desc: 'Bitafly genera en un clic todos los reportes que exige la RAC 100 en PDF con membrete corporativo y tu propio código de formato. Además, desde el panel de administración gestionas usuarios, planes y configuración avanzada.',
     pasos: [
-      { icon: 'summarize', title: 'Centro de reportes', desc: 'En Reportes selecciona el tipo de reporte: Maestro de Vuelo (F-OPS-002), Registro de Baterías (F-MNT-003), Bitácora de Piloto (F-HUM-005) o Expediente de Tripulante.' },
-      { icon: 'menu_book', title: 'Reporte de bitácora oficial', desc: 'Filtra por rango de fechas, aeronave o piloto y exporta el Maestro de Vuelo en PDF. Incluye logo corporativo, código de formato, versión y todas las columnas exigidas por RAC 100.' },
+      { icon: 'summarize', title: 'Centro de reportes', desc: 'En Reportes selecciona el tipo de reporte: Maestro de Vuelo (F-OPS-002), Registro de Baterías (F-MNT-003), Bitácora de Piloto (F-HUM-005) o Expediente de Tripulante. Los códigos de formato son configurables por la organización.' },
+      { icon: 'menu_book', title: 'Reporte de bitácora', desc: 'Filtra por rango de fechas, aeronave o piloto y exporta el Maestro de Vuelo en PDF. Incluye logo corporativo, tu código de formato, versión y todas las columnas exigidas por la RAC 100.' },
       { icon: 'precision_manufacturing', title: 'Reporte de flota y mantenimiento', desc: 'Genera el estado actual de toda la flota: horas por aeronave, próximas revisiones, historial de mantenimiento y estado de pólizas de seguro.' },
       { icon: 'person', title: 'Expediente de tripulación', desc: 'Exporta el expediente completo de cada tripulante: datos personales, licencias, horas voladas por aeronave, exámenes médicos y registro de capacitaciones.' },
       { icon: 'group', title: 'Gestión de usuarios y roles', desc: 'En Configuración → Usuarios ve todos los miembros activos, cambia sus roles, desactiva accesos o envía invitaciones a nuevos miembros del equipo.' },
@@ -336,7 +336,7 @@ export default function DocumentacionPage() {
           </h1>
           <p className="text-slate-300 text-sm md:text-lg max-w-2xl mx-auto leading-relaxed">
             Guía completa paso a paso para operadores UAS. Desde la configuración
-            hasta los reportes oficiales para la AeroCivil.
+            hasta los reportes RAC 100 para la AeroCivil.
           </p>
 
           {/* Chips de fases — solo desktop (en mobile hay la sticky nav) */}

@@ -35,7 +35,7 @@ const faqSchema = {
       name: '¿Es Bitafly mejor que GEODRONE para cumplir la RAC 100?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Bitafly incluye bitácora RAC 100 ilimitada (F-OPS-002), autorizaciones AeroCivil (F-OPS-001), SMS aeronáutico completo con trazabilidad, análisis SORA y reportes oficiales. GEODRONE ofrece funcionalidades parciales en estas áreas. Si tu operación debe cumplir plenamente la normativa de la UAEAC / Aerocivil, Bitafly cubre todos los requerimientos de forma nativa.',
+        text: 'Bitafly incluye bitácora RAC 100 ilimitada (F-OPS-002 por defecto), autorizaciones AeroCivil (F-OPS-001 por defecto), SMS aeronáutico completo con trazabilidad, análisis SORA y reportes RAC 100 con tu propio código de formato. GEODRONE ofrece funcionalidades parciales en estas áreas. Si tu operación debe cumplir plenamente la normativa de la UAEAC / Aerocivil, Bitafly cubre todos los requerimientos de forma nativa.',
       },
     },
     {

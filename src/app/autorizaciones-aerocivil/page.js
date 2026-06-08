@@ -4,7 +4,7 @@ import SEOFooter from '@/components/seo/SEOFooter';
 
 export const metadata = {
   title: 'Autorizaciones de Vuelo AeroCivil para Drones F-OPS-001',
-  description: 'Genera el formato F-OPS-001 de autorización de vuelo para drones ante la AeroCivil en segundos. Coordenadas, polígono de operación, póliza vigente y firma digital. Cumplimiento RAC 100.',
+  description: 'Genera tu solicitud de autorización de vuelo para drones ante la AeroCivil en segundos (formato F-OPS-001 por defecto, configurable). Coordenadas, polígono de operación, póliza vigente y firma digital. Cumplimiento RAC 100.',
   keywords: ['autorización vuelo drones AeroCivil', 'F-OPS-001', 'permiso vuelo drone Colombia', 'UAEAC drones', 'autorización UAS Colombia'],
   alternates: { canonical: '/autorizaciones-aerocivil' },
   openGraph: {
@@ -18,8 +18,9 @@ const faqSchema = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
   "mainEntity": [
-    { "@type": "Question", "name": "¿Qué es el formato F-OPS-001 de la AeroCivil?", "acceptedAnswer": { "@type": "Answer", "text": "El F-OPS-001 es el formato de Solicitud de Autorización de Vuelo exigido por la UAEAC para operaciones de drones (UAS) en Colombia. Incluye datos de la aeronave, tripulación certificada, zona de operación con coordenadas, póliza de responsabilidad civil vigente y firma del responsable de la operación." } },
-    { "@type": "Question", "name": "¿Necesito autorización de la AeroCivil para volar un dron en Colombia?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Según la RAC 100, las operaciones comerciales o de trabajo aéreo con drones en Colombia requieren autorización previa de la UAEAC mediante el formato F-OPS-001. Bitafly genera este formato automáticamente con los datos de tu aeronave y tripulación registrados en la plataforma." } },
+    { "@type": "Question", "name": "¿Qué es el formato F-OPS-001?", "acceptedAnswer": { "@type": "Answer", "text": "F-OPS-001 es el código con el que Bitafly identifica por defecto la Solicitud de Autorización de Vuelo. La RAC 100 exige tramitar la autorización ante la UAEAC, pero no impone un código de formato: cada operador define su nomenclatura en su manual. La solicitud incluye datos de la aeronave, tripulación certificada, zona de operación con coordenadas, póliza vigente y firma del responsable." } },
+    { "@type": "Question", "name": "¿El código F-OPS-001 es oficial de la AeroCivil?", "acceptedAnswer": { "@type": "Answer", "text": "No. La autorización de vuelo sí es un trámite obligatorio ante la UAEAC, pero el código F-OPS-001 es nomenclatura de control documental que cada empresa define en su manual de operaciones. Bitafly lo trae por defecto y lo puedes personalizar." } },
+    { "@type": "Question", "name": "¿Necesito autorización de la AeroCivil para volar un dron en Colombia?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Según la RAC 100, las operaciones comerciales o de trabajo aéreo con drones en Colombia requieren autorización previa de la UAEAC. Bitafly genera la solicitud automáticamente (con tu código de formato, F-OPS-001 por defecto) usando los datos de tu aeronave y tripulación registrados en la plataforma." } },
     { "@type": "Question", "name": "¿Puedo reutilizar una autorización anterior para una zona similar?", "acceptedAnswer": { "@type": "Answer", "text": "Bitafly guarda el historial completo de autorizaciones. Puedes duplicar una autorización anterior y modificar la fecha, aeronave o coordenadas para generar una nueva solicitud rápidamente sin empezar desde cero." } },
     { "@type": "Question", "name": "¿Qué información debe incluir el F-OPS-001?", "acceptedAnswer": { "@type": "Answer", "text": "El F-OPS-001 debe incluir: datos del operador certificado (ESUAS), aeronave matriculada con número de serie, tripulación con certificados vigentes, zona de operación con coordenadas geográficas, póliza de responsabilidad civil vigente, fecha y hora de la operación, y firma del responsable." } },
   ],
@@ -39,13 +40,13 @@ export default function AutorizacionesAerocivilPage() {
           <div>
             <div style={{display:'inline-flex',alignItems:'center',gap:'7px',background:'rgba(236,91,19,0.08)',border:'1px solid rgba(236,91,19,0.2)',borderRadius:'9999px',padding:'5px 14px',marginBottom:'20px'}}>
               <div style={{width:'6px',height:'6px',borderRadius:'50%',background:accent}}/>
-              <span style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.15em',color:accent}}>Formato F-OPS-001 · UAEAC</span>
+              <span style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.15em',color:accent}}>Formato F-OPS-001 · configurable</span>
             </div>
             <h1 style={{fontSize:'clamp(36px,4vw,52px)',fontWeight:900,textTransform:'uppercase',letterSpacing:'-0.04em',lineHeight:1.02,color:'#1A202C',marginBottom:'20px'}}>
               Autorizaciones de Vuelo <span style={{color:accent}}>AeroCivil</span> para Drones en Segundos
             </h1>
             <p style={{fontSize:'16px',fontWeight:500,color:'#64748b',lineHeight:1.65,maxWidth:'480px',marginBottom:'28px'}}>
-              Genera el formato F-OPS-001 con coordenadas del polígono de operación, aeronave matriculada, póliza vigente y firma digital. Listo para radicar ante la UAEAC.
+              Genera tu solicitud de autorización (formato F-OPS-001 por defecto) con coordenadas del polígono de operación, aeronave matriculada, póliza vigente y firma digital. Listo para radicar ante la UAEAC.
             </p>
             <div style={{display:'flex',gap:'12px',flexWrap:'wrap'}}>
               <Link href="/registro" style={{display:'inline-flex',alignItems:'center',gap:'8px',background:accent,color:'#fff',padding:'14px 28px',borderRadius:'16px',fontSize:'12px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.1em',textDecoration:'none',boxShadow:'0 8px 24px rgba(236,91,19,0.3)'}}>
@@ -55,7 +56,7 @@ export default function AutorizacionesAerocivilPage() {
                 Ver cumplimiento RAC 100
               </Link>
             </div>
-            <p style={{fontSize:'11px',fontWeight:700,color:'#94a3b8',marginTop:'14px'}}>Formato F-OPS-001 oficial · Datos vinculados desde tu flota · PDF instantáneo</p>
+            <p style={{fontSize:'11px',fontWeight:700,color:'#94a3b8',marginTop:'14px'}}>Formato F-OPS-001 configurable · Datos vinculados desde tu flota · PDF instantáneo</p>
           </div>
           {/* Auth form mockup */}
           <div style={{background:'#fff',border:'1.5px solid #e2e8f0',borderRadius:'24px',overflow:'hidden',boxShadow:'0 8px 32px rgba(0,0,0,0.06)'}}>
@@ -91,7 +92,7 @@ export default function AutorizacionesAerocivilPage() {
       {/* DARK BAND */}
       <div style={{background:'#1A202C',color:'#fff',padding:'56px 32px'}}>
         <div className="grid grid-cols-2 sm:grid-cols-4" style={{maxWidth:'1100px',margin:'0 auto',gap:'32px',textAlign:'center'}}>
-          <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>F-OPS-001</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Formato oficial UAEAC</div></div>
+          <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>F-OPS-001</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Código por defecto</div></div>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>&lt;60s</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Tiempo de generación</div></div>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>PDF</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Listo para radicar</div></div>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>100%</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Campos obligatorios</div></div>
@@ -103,7 +104,7 @@ export default function AutorizacionesAerocivilPage() {
         <div style={{maxWidth:'1100px',margin:'0 auto'}}>
           <div style={{textAlign:'center',marginBottom:'56px'}}>
             <div style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.3em',color:accent,marginBottom:'12px'}}>Módulo de autorizaciones</div>
-            <h2 style={{fontSize:'clamp(28px,3vw,44px)',fontWeight:900,textTransform:'uppercase',letterSpacing:'-0.04em',color:'#1A202C'}}>Del registro al formato oficial <span style={{color:accent}}>en un clic</span></h2>
+            <h2 style={{fontSize:'clamp(28px,3vw,44px)',fontWeight:900,textTransform:'uppercase',letterSpacing:'-0.04em',color:'#1A202C'}}>Del registro a la solicitud <span style={{color:accent}}>en un clic</span></h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{gap:'20px'}}>
             {[
@@ -112,7 +113,7 @@ export default function AutorizacionesAerocivilPage() {
               { icon:'label_important', title:'Póliza de Responsabilidad Civil', desc:'Vinculación de la póliza de RC vigente con número de póliza, aseguradora y fecha de vencimiento. Alerta automática 30 días antes del vencimiento.' },
               { icon:'gavel', title:'Historial de Autorizaciones', desc:'Registro completo de todas las autorizaciones emitidas con estado (pendiente, aprobada, vencida) y acceso rápido a cada PDF generado.' },
               { icon:'flight_takeoff', title:'Vinculación con Bitácora', desc:'Cada vuelo registrado en la bitácora puede vincularse a su autorización correspondiente, creando el expediente completo de la operación.' },
-              { icon:'picture_as_pdf', title:'PDF con Logo Corporativo', desc:'El F-OPS-001 generado incluye el logo de tu organización, código de formato oficial, versión y firma digital del responsable. Listo para presentar o radicar.' },
+              { icon:'picture_as_pdf', title:'PDF con Logo Corporativo', desc:'La solicitud generada incluye el logo de tu organización, tu código de formato (F-OPS-001 por defecto), versión y firma digital del responsable. Listo para presentar o radicar.' },
             ].map(item => (
               <article key={item.icon} style={{background:'#fff',border:'1.5px solid #f1f5f9',borderRadius:'28px',padding:'28px'}}>
                 <div style={{width:'48px',height:'48px',background:'rgba(236,91,19,0.08)',borderRadius:'14px',display:'flex',alignItems:'center',justifyContent:'center',color:accent,marginBottom:'16px'}}><span className="material-symbols-outlined">{item.icon}</span></div>

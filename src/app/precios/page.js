@@ -36,7 +36,7 @@ const softwareSchema = {
   "operatingSystem": "Web, iOS, Android",
   "url": SITE_URL,
   "inLanguage": "es-CO",
-  "description": "Plataforma SaaS para operadores UAS en Colombia. Bitácora digital RAC 100, mantenimiento, SMS aeronáutico, autorizaciones AeroCivil y reportes oficiales.",
+  "description": "Plataforma SaaS para operadores UAS en Colombia. Bitácora digital RAC 100, mantenimiento, SMS aeronáutico, autorizaciones AeroCivil y reportes RAC 100 con tu propio código de formato.",
   "publisher": { "@id": `${SITE_URL}/#organization` },
   "offers": [
     {

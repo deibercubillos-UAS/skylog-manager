@@ -9,7 +9,7 @@ export const metadata = {
   alternates: { canonical: '/rac-100' },
   openGraph: {
     title: 'Cumplimiento RAC 100 Drones Colombia | Bitafly',
-    description: 'Bitafly cumple con la RAC 100 de la Aeronáutica Civil. Bitácoras oficiales F-OPS-002, F-MNT-003, F-HUM-005 y SMS aeronáutico.',
+    description: 'Bitafly cumple con la RAC 100 de la Aeronáutica Civil. Bitácora, baterías y libro de piloto en PDF con tu propio código de formato (F-OPS-002, F-MNT-003, F-HUM-005 por defecto) y SMS aeronáutico.',
     url: 'https://bitafly.com/rac-100',
   },
 };
@@ -19,8 +19,9 @@ const faqSchema = {
   "@type": "FAQPage",
   "mainEntity": [
     { "@type": "Question", "name": "¿Qué es la RAC 100 de la AeroCivil?", "acceptedAnswer": { "@type": "Answer", "text": "La RAC 100 (Reglamentación Aeronáutica Colombiana 100) es el marco normativo de la UAEAC que regula las operaciones con sistemas de aeronaves no tripuladas (UAS/drones) en Colombia, exigiendo bitácoras, SMS, mantenimiento documentado y autorizaciones de vuelo." } },
-    { "@type": "Question", "name": "¿Qué formatos exige la AeroCivil para drones?", "acceptedAnswer": { "@type": "Answer", "text": "La AeroCivil exige el F-OPS-002 (Maestro de Vuelo), F-MNT-003 (Registro de Baterías), F-HUM-005 (Bitácora de Piloto) y F-OPS-001 (Solicitud de Autorización de Vuelo). Bitafly genera todos en PDF." } },
-    { "@type": "Question", "name": "¿Bitafly genera los reportes RAC 100 automáticamente?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Bitafly genera en PDF todos los formatos oficiales con logo corporativo, código de formato, versión y trazabilidad completa. Listos para presentar en inspecciones de la AeroCivil." } },
+    { "@type": "Question", "name": "¿Qué registros exige la AeroCivil para drones?", "acceptedAnswer": { "@type": "Answer", "text": "La RAC 100 exige llevar el Maestro de Vuelo (bitácora), el Registro de Baterías, la Bitácora de Piloto y la Solicitud de Autorización de Vuelo. La AeroCivil no impone un código de formato: cada operador define su nomenclatura en su manual. Bitafly los genera en PDF con los códigos que tú definas (F-OPS-002, F-MNT-003, F-HUM-005, F-OPS-001 por defecto)." } },
+    { "@type": "Question", "name": "¿Los códigos F-OPS-002, F-MNT-003 son oficiales de la AeroCivil?", "acceptedAnswer": { "@type": "Answer", "text": "No. La RAC 100 no define códigos de formato oficiales: cada empresa crea su propia nomenclatura de control documental en su manual de operaciones. Bitafly trae estos códigos por defecto y permite que cada organización los personalice para alinearlos con sus manuales." } },
+    { "@type": "Question", "name": "¿Bitafly genera los reportes RAC 100 automáticamente?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Bitafly genera en PDF todos los reportes con logo corporativo, tu código de formato, versión y trazabilidad completa. Listos para presentar en inspecciones de la AeroCivil." } },
   ],
 };
 
@@ -68,10 +69,10 @@ export default function RAC100Page() {
           <div style={{maxWidth:'720px'}}>
             <div style={s.badge}><div style={s.dot}/><span style={s.badgeText}>UAEAC · Colombia · 2024</span></div>
             <h1 style={s.h1}>Cumplimiento <span style={s.span}>RAC 100</span> para Operadores de Drones en Colombia</h1>
-            <p style={s.desc}>Bitafly traduce cada exigencia de la Reglamentación Aeronáutica Colombiana 100 en módulos digitales con trazabilidad, firma y formatos oficiales. Auditorías sin sorpresas.</p>
+            <p style={s.desc}>Bitafly traduce cada exigencia de la Reglamentación Aeronáutica Colombiana 100 en módulos digitales con trazabilidad, firma y reportes con tu propio código de formato. Auditorías sin sorpresas.</p>
             <div style={s.ctas}>
               <Link href="/registro" style={s.btnPrimary}><span className="material-symbols-outlined" style={{fontSize:'18px'}}>verified</span>Comenzar gratis</Link>
-              <Link href="/reportes-auditoria" style={s.btnGhost}>Ver reportes oficiales</Link>
+              <Link href="/reportes-auditoria" style={s.btnGhost}>Ver reportes RAC 100</Link>
             </div>
           </div>
         </div>
@@ -80,7 +81,7 @@ export default function RAC100Page() {
       {/* DARK BAND */}
       <div style={s.darkBand}>
         <div className="grid grid-cols-2 sm:grid-cols-4" style={{maxWidth:'1100px',margin:'0 auto',gap:'32px',textAlign:'center'}}>
-          <div><div style={s.statVal}>4</div><div style={s.statLbl}>Formatos oficiales generados</div></div>
+          <div><div style={s.statVal}>4</div><div style={s.statLbl}>Reportes RAC 100 generados</div></div>
           <div><div style={s.statVal}>100%</div><div style={s.statLbl}>Trazabilidad documental</div></div>
           <div><div style={s.statVal}>0</div><div style={s.statLbl}>Excels dispersos</div></div>
           <div><div style={s.statVal}>PDF</div><div style={s.statLbl}>Exportación instantánea</div></div>
@@ -134,9 +135,9 @@ export default function RAC100Page() {
       <section style={{padding:'80px 32px',background:'#fff'}}>
         <div className="grid grid-cols-1 lg:grid-cols-2" style={{maxWidth:'1100px',margin:'0 auto',gap:'56px',alignItems:'center'}}>
           <div>
-            <div style={s.overline}>Formatos oficiales UAEAC</div>
-            <h2 style={s.h2}>Todos los formatos que pide la <span style={s.span}>AeroCivil</span></h2>
-            <p style={{fontSize:'14px',color:'#64748b',lineHeight:1.75,marginBottom:'24px'}}>Bitafly genera cada uno de los formatos exigidos por la UAEAC en PDF con logo corporativo, código oficial, versión y firma digital. Listos para presentar en cualquier inspección.</p>
+            <div style={s.overline}>Formatos RAC 100 · configurables</div>
+            <h2 style={s.h2}>Todos los registros que pide la <span style={s.span}>AeroCivil</span></h2>
+            <p style={{fontSize:'14px',color:'#64748b',lineHeight:1.75,marginBottom:'24px'}}>Bitafly genera cada registro exigido por la RAC 100 en PDF con logo corporativo, versión y firma digital. Los códigos de formato no son oficiales de la AeroCivil: cada operador los define en su manual y tú los personalizas en Bitafly (vienen por defecto los de abajo).</p>
             <ul style={s.checkList}>
               <li style={s.checkItem}><span className="material-symbols-outlined" style={{fontSize:'18px',color:'#ec5b13',flexShrink:0}}>check_circle</span><div><strong>F-OPS-002</strong> — Maestro de Vuelo (bitácora digital)</div></li>
               <li style={s.checkItem}><span className="material-symbols-outlined" style={{fontSize:'18px',color:'#ec5b13',flexShrink:0}}>check_circle</span><div><strong>F-MNT-003</strong> — Registro de Baterías LiPo</div></li>
@@ -190,7 +191,7 @@ export default function RAC100Page() {
         <p style={{fontSize:'15px',color:'#94a3b8',maxWidth:'560px',margin:'0 auto 32px'}}>Bitafly cumple la RAC 100 de la AeroCivil por ti. Empieza gratis hoy.</p>
         <div style={{display:'flex',gap:'12px',justifyContent:'center',flexWrap:'wrap'}}>
           <Link href="/registro" style={s.btnWhite}><span className="material-symbols-outlined" style={{fontSize:'18px'}}>verified</span>Comenzar gratis</Link>
-          <Link href="/reportes-auditoria" style={s.btnOutlineWhite}>Ver reportes oficiales</Link>
+          <Link href="/reportes-auditoria" style={s.btnOutlineWhite}>Ver reportes RAC 100</Link>
         </div>
       </div>
 

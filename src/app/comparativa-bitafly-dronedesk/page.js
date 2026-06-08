@@ -35,7 +35,7 @@ const faqSchema = {
       name: '¿Sirve Dronedesk para cumplir la RAC 100 en Colombia?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Dronedesk es una plataforma británica diseñada en torno a la normativa de la CAA del Reino Unido. No incluye los formatos oficiales de la Aerocivil colombiana (F-OPS-001, F-OPS-002), ni la bitácora RAC 100, ni el SMS aeronáutico exigido por la UAEAC. Bitafly cubre estos requerimientos de forma nativa porque está construido específicamente para operadores UAS en Colombia.',
+        text: 'Dronedesk es una plataforma británica diseñada en torno a la normativa de la CAA del Reino Unido. No incluye los reportes que exige la RAC 100 colombiana (bitácora, baterías, libro de piloto, solicitud de autorización), ni el SMS aeronáutico exigido por la UAEAC. Bitafly cubre estos requerimientos de forma nativa porque está construido específicamente para operadores UAS en Colombia, y permite usar el código de formato que defina tu manual (F-OPS-001, F-OPS-002 por defecto).',
       },
     },
     {
@@ -73,7 +73,7 @@ const breadcrumbSchema = {
 
 const ROWS = [
   { feature: 'Cumplimiento RAC 100 (UAEAC)',           bitafly: '✅ Nativo',                            competitor: '❌ Diseñado para CAA Reino Unido' },
-  { feature: 'Formatos AeroCivil (F-OPS-001/002)',     bitafly: '✅ Incluidos',                          competitor: '❌ No disponible' },
+  { feature: 'Reportes RAC 100 (F-OPS-001/002)',       bitafly: '✅ Incluidos',                          competitor: '❌ No disponible' },
   { feature: 'Idioma español',                          bitafly: '✅ 100% en español',                   competitor: '❌ Solo inglés' },
   { feature: 'Precios en pesos colombianos (COP)',      bitafly: '✅ Desde $20.000 COP/mes',             competitor: '❌ En libras (GBP)' },
   { feature: 'SMS aeronáutico completo',                bitafly: '✅ Con trazabilidad',                  competitor: '⚠️ Enfoque europeo' },

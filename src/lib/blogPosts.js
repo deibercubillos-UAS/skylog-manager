@@ -45,7 +45,7 @@ export const BLOG_POSTS = [
 <p>El operador debe elaborar y mantener actualizado un <strong>Manual de Operaciones (MO)</strong> que describa procedimientos normales, de emergencia, gestión de riesgos, responsabilidades y protocolos de comunicación. La AeroCivil puede auditarlo en cualquier momento.</p>
 
 <h3>4. Bitácora digital de vuelo (F-OPS-002)</h3>
-<p>Cada vuelo debe quedar registrado en la <strong>Bitácora de Vuelo</strong> según el formato <strong>F-OPS-002</strong>. Este documento debe incluir: fecha, piloto, aeronave (matrícula y serial), condiciones meteorológicas, horas de vuelo, incidentes y firma del jefe de pilotos.</p>
+<p>Cada vuelo debe quedar registrado en la <strong>Bitácora de Vuelo</strong>. La RAC 100 no impone un código de formato oficial: cada operador define su propia nomenclatura en su manual de operaciones (en Bitafly se identifica por defecto como <strong>F-OPS-002</strong>, y lo puedes personalizar). Este documento debe incluir: fecha, piloto, aeronave (matrícula y serial), condiciones meteorológicas, horas de vuelo, incidentes y firma del jefe de pilotos.</p>
 <p>Bitafly genera automáticamente el F-OPS-002 en PDF con todos los campos requeridos, desde cualquier dispositivo móvil. <a href="/bitacora-digital">Conoce la bitácora digital →</a></p>
 
 <h3>5. Sistema de Gestión de Seguridad (SMS)</h3>
@@ -80,24 +80,24 @@ export const BLOG_POSTS = [
     slug:            'bitacora-digital-drone-f-ops-002',
     title:           'Bitácora digital de vuelo para drones: guía completa del formato F-OPS-002',
     metaTitle:       'Bitácora Digital Drone F-OPS-002 Colombia | Guía 2026 | Bitafly',
-    metaDescription: 'Aprende qué campos exige el F-OPS-002 de la AeroCivil, por qué la bitácora digital agiliza el cumplimiento RAC 100 y cómo generarla automáticamente con Bitafly.',
+    metaDescription: 'Aprende qué campos debe contener la bitácora de vuelo según la RAC 100, por qué la bitácora digital agiliza el cumplimiento y cómo generarla con tu propio código de formato (F-OPS-002 por defecto) en Bitafly.',
     publishedAt:     '2025-03-18',
     updatedAt:       '2026-06-07',
     readingTime:     6,
     category:        'Operaciones',
     keywords:        ['bitácora digital drones', 'F-OPS-002', 'bitácora vuelo RAC 100', 'registro vuelos AeroCivil'],
-    excerpt:         'El formato F-OPS-002 es la bitácora oficial de vuelo exigida por la AeroCivil para operadores RPAS en Colombia. Aquí te explicamos cada campo y cómo automatizarla.',
+    excerpt:         'La bitácora de vuelo es un registro exigido por la RAC 100 para operadores RPAS en Colombia. Su código de formato no es oficial: lo define cada operador (F-OPS-002 por defecto en Bitafly). Aquí te explicamos cada campo y cómo automatizarla.',
     coverAlt:        'Bitácora digital de vuelo para drones F-OPS-002 Colombia',
     body: `
-<p>La <strong>bitácora de vuelo</strong> es uno de los documentos más importantes para un operador RPAS en Colombia. No es opcional: la <strong>RAC 100</strong> exige que cada vuelo comercial quede documentado en el formato oficial <strong>F-OPS-002</strong>, con firma del jefe de pilotos.</p>
+<p>La <strong>bitácora de vuelo</strong> es uno de los documentos más importantes para un operador RPAS en Colombia. No es opcional: la <strong>RAC 100</strong> exige que cada vuelo comercial quede documentado, con firma del jefe de pilotos. Lo que la norma <em>no</em> impone es un código de formato: cada operador define su propia nomenclatura en su manual de operaciones.</p>
 
-<p>En este artículo te explicamos exactamente qué campos contiene, por qué la bitácora digital es la forma más inteligente de cumplir este requisito y cómo Bitafly te genera el PDF en segundos.</p>
+<p>En este artículo te explicamos exactamente qué campos contiene la bitácora, por qué la bitácora digital es la forma más inteligente de cumplir este requisito y cómo Bitafly te genera el PDF en segundos.</p>
 
 <h2>¿Qué es el F-OPS-002?</h2>
-<p>El F-OPS-002 es el formato oficial de la <strong>UAEAC</strong> para el registro de vuelos de sistemas remotamente pilotados. Su nombre completo es "Formato de Registro de Operaciones UAS" y debe conservarse disponible para auditoría durante al menos dos años.</p>
+<p><strong>F-OPS-002</strong> es el código con el que Bitafly identifica por defecto la bitácora de vuelo (Maestro de Vuelo). No es un formato oficial de la UAEAC: es un código de control documental que tú puedes cambiar para que coincida con el de tu manual de operaciones. La RAC 100 exige llevar este registro y conservarlo disponible para auditoría durante al menos dos años, sin imponer su nomenclatura.</p>
 
-<h2>Campos obligatorios del F-OPS-002</h2>
-<p>El formato exige registrar, como mínimo, los siguientes datos por vuelo:</p>
+<h2>Campos obligatorios de la bitácora</h2>
+<p>La RAC 100 exige registrar, como mínimo, los siguientes datos por vuelo:</p>
 <ul>
   <li><strong>Fecha y hora de despegue y aterrizaje</strong></li>
   <li><strong>Ubicación de la operación</strong> (coordenadas o descripción del área)</li>
@@ -128,7 +128,7 @@ export const BLOG_POSTS = [
   <li><strong>Asigna el piloto</strong> — verifica CPR vigente y alerta si está por vencer</li>
   <li><strong>Registra los datos del vuelo</strong> — formulario optimizado para móvil, con selección de tipo de misión y condición meteorológica</li>
   <li><strong>El sistema suma las horas</strong> — el contador Hobbs se actualiza automáticamente</li>
-  <li><strong>Descarga el F-OPS-002 en PDF</strong> — con logo corporativo, firma digital y todos los campos AeroCivil</li>
+  <li><strong>Descarga la bitácora en PDF</strong> — con tu código de formato (F-OPS-002 por defecto), logo corporativo, firma digital y todos los campos que pide la AeroCivil</li>
 </ol>
 <p>Además, puedes importar automáticamente datos de vuelo desde los registros de tu controlador DJI RC o RC 2, sin digitar nada manualmente.</p>
 
@@ -360,12 +360,12 @@ export const BLOG_POSTS = [
     body: `
 <p>El mercado de software para operadores de drones creció exponencialmente en los últimos cinco años. Hay plataformas de planificación de vuelo, análisis fotogramétrico, gestión de flotas y cumplimiento normativo. Pero si operas en Colombia, no cualquier herramienta te sirve.</p>
 
-<p>La <strong>RAC 100</strong> tiene exigencias específicas que la mayoría de plataformas globales simplemente no contemplan: el formato F-OPS-002, los requisitos del SMS para el mercado colombiano, la integración con los procesos de la AeroCivil y la generación de documentos en español con nomenclatura oficial.</p>
+<p>La <strong>RAC 100</strong> tiene exigencias específicas que la mayoría de plataformas globales simplemente no contemplan: la bitácora de vuelo con todos sus campos, los requisitos del SMS para el mercado colombiano, la integración con los procesos de la AeroCivil y la generación de documentos en español con la nomenclatura de control documental que defina tu manual de operaciones.</p>
 
 <h2>Las 7 funcionalidades que sí necesitas</h2>
 
-<h3>1. Bitácora digital conforme al F-OPS-002</h3>
-<p>El software debe generar exactamente el formato que exige la AeroCivil, no una bitácora genérica. Esto incluye: campos de matrícula UAEAC, CPR del piloto, horas de vuelo acumuladas, condición VMC/IMC y firma del jefe de pilotos.</p>
+<h3>1. Bitácora digital con todos los campos de la RAC 100</h3>
+<p>El software debe generar una bitácora con todos los campos que exige la AeroCivil, no una genérica, y permitirte usar el código de formato de tu manual (F-OPS-002 por defecto en Bitafly). Esto incluye: campos de matrícula UAEAC, CPR del piloto, horas de vuelo acumuladas, condición VMC/IMC y firma del jefe de pilotos.</p>
 
 <h3>2. Gestión de certificaciones con alertas de vencimiento</h3>
 <p>Los certificados de los pilotos (CPR), seguros de RC y matrículas de aeronaves tienen fechas de vencimiento. Un buen software te alerta antes de que expiren, no después.</p>
@@ -406,20 +406,22 @@ export const BLOG_POSTS = [
   // ─── 7. Formatos AeroCivil ────────────────────────────────────────────────
   {
     slug:            'formatos-aerocivil-drones-colombia',
-    title:           'Formatos oficiales AeroCivil para drones: F-OPS-001, F-OPS-002, F-MNT-003 y F-HUM-005',
-    metaTitle:       'Formatos AeroCivil Drones: F-OPS-001, F-OPS-002, F-MNT-003, F-HUM-005 | Bitafly',
-    metaDescription: 'Guía completa de los formatos oficiales que exige la UAEAC para operadores de drones en Colombia: qué son, qué campos contienen y cómo Bitafly los genera automáticamente.',
+    title:           'Formatos de control documental RAC 100 para drones: F-OPS-001, F-OPS-002, F-MNT-003 y F-HUM-005',
+    metaTitle:       'Formatos Drones RAC 100: F-OPS-001, F-OPS-002, F-MNT-003, F-HUM-005 | Bitafly',
+    metaDescription: 'Guía de los registros que exige la RAC 100 a operadores de drones en Colombia. Los códigos de formato no son oficiales: cada operador los define en su manual. Bitafly los genera con tu nomenclatura.',
     publishedAt:     '2025-05-28',
     updatedAt:       '2026-06-07',
     readingTime:     7,
     category:        'Normativa',
     keywords:        ['formato F-OPS-001 aerocivil', 'formato F-OPS-002 aerocivil', 'F-MNT-003 drones', 'F-HUM-005 aerocivil', 'formatos drones Colombia', 'documentos RAC 100'],
-    excerpt:         'La AeroCivil exige cuatro formatos oficiales a todos los operadores UAS en Colombia. Aquí te explicamos qué es cada uno, cuándo se usa y qué campos debes llenar.',
-    coverAlt:        'Formatos oficiales AeroCivil para operadores de drones Colombia',
+    excerpt:         'La RAC 100 exige llevar cuatro registros clave a los operadores UAS en Colombia. La AeroCivil no fija sus códigos de formato: cada operador los define en su manual. Aquí te explicamos qué es cada uno y qué campos debe contener.',
+    coverAlt:        'Formatos de control documental RAC 100 para operadores de drones Colombia',
     body: `
-<p>Si operas drones comercialmente en Colombia bajo la <strong>RAC 100</strong>, debes conocer cuatro formatos oficiales de la <strong>UAEAC (AeroCivil)</strong>. No son opcionales: cada auditoría o inspección puede solicitarlos, y tenerlos incompletos o desactualizados es una infracción directa.</p>
+<p>Si operas drones comercialmente en Colombia bajo la <strong>RAC 100</strong>, debes conocer cuatro registros clave de tu sistema de gestión documental. No son opcionales: cada auditoría o inspección de la <strong>UAEAC (AeroCivil)</strong> puede solicitarlos, y tenerlos incompletos o desactualizados es una infracción directa.</p>
 
-<p>La buena noticia: Bitafly genera todos estos documentos en PDF con un clic, con los datos de tu operación ya cargados. Aquí te explicamos qué es cada uno.</p>
+<p><strong>Aclaración importante:</strong> los códigos <em>F-OPS-001</em>, <em>F-OPS-002</em>, <em>F-MNT-003</em> y <em>F-HUM-005</em> <strong>no son formatos oficiales de la AeroCivil</strong>. La RAC 100 exige llevar los registros, pero no impone una nomenclatura: cada empresa crea sus propios códigos de control interno en su manual de operaciones. Los códigos que verás aquí son los que Bitafly trae por defecto, y <strong>cada organización puede personalizarlos</strong> para alinearlos con sus manuales.</p>
+
+<p>La buena noticia: Bitafly genera todos estos documentos en PDF con un clic, con los datos de tu operación ya cargados y con el código de formato que tú definas. Aquí te explicamos qué es cada uno.</p>
 
 <h2>F-OPS-001 — Solicitud de Autorización de Vuelo</h2>
 
@@ -454,7 +456,7 @@ export const BLOG_POSTS = [
 <h2>F-OPS-002 — Maestro de Vuelo (Bitácora)</h2>
 
 <h3>¿Para qué sirve?</h3>
-<p>El <strong>F-OPS-002</strong> es el registro oficial de cada vuelo realizado. Es el documento más consultado en inspecciones: la AeroCivil puede pedir los últimos 12 meses de bitácora en cualquier momento.</p>
+<p>El <strong>F-OPS-002</strong> (código por defecto en Bitafly, editable) es el registro de cada vuelo realizado. Es el documento más consultado en inspecciones: la AeroCivil puede pedir los últimos 12 meses de bitácora en cualquier momento.</p>
 
 <h3>¿Cuándo se diligencia?</h3>
 <p>Debe completarse por cada vuelo comercial realizado, sin excepción. No hay plazo mínimo de horas: si el vuelo fue de 10 minutos, debe registrarse igual.</p>
@@ -553,7 +555,7 @@ export const BLOG_POSTS = [
 
 <h3>Cumplimiento RAC 100</h3>
 <p><strong>AirData UAV</strong>: No tiene ningún módulo específico para la normativa colombiana. No genera el F-OPS-002, el F-MNT-003 ni el F-HUM-005. No contempla el rol de Jefe de Pilotos, el CPR colombiano ni las autorizaciones de la UAEAC.</p>
-<p><strong>Bitafly</strong>: Construido exclusivamente sobre la RAC 100. Genera los 4 formatos oficiales AeroCivil en PDF, gestiona CPR con alertas de vencimiento, y tiene roles específicos de la normativa colombiana (Gerente SMS, Jefe de Pilotos, Observador).</p>
+<p><strong>Bitafly</strong>: Construido exclusivamente sobre la RAC 100. Genera en PDF los 4 reportes que exige la norma (bitácora, baterías, libro de piloto y solicitud de autorización) con el código de formato que defina tu manual, gestiona CPR con alertas de vencimiento, y tiene roles específicos de la normativa colombiana (Gerente SMS, Jefe de Pilotos, Observador).</p>
 
 <h3>Bitácora de vuelo</h3>
 <p><strong>AirData UAV</strong>: Tiene un flight log viewer excelente para analizar telemetría. Puede importar logs de DJI, Autel, Skydio. Pero la "bitácora" es un repositorio de datos de vuelo, no el documento regulatorio colombiano.</p>

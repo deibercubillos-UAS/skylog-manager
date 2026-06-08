@@ -6,7 +6,7 @@ export default function Features() {
       id: 1,
       icon: "verified_user",
       title: "Cumplimiento RAC 100",
-      desc: "Generación automatizada de la Bitácora Oficial exigida por la Aerocivil. Olvídate de los registros manuales en Excel.",
+      desc: "Generación automatizada de la bitácora que exige la RAC 100, con tu propio código de formato. Olvídate de los registros manuales en Excel.",
       tag: "LEGAL"
     },
     {

@@ -359,7 +359,7 @@ export default function LogbookPage() {
         <div className="space-y-8 text-left animate-in fade-in duration-700 pb-20">
             <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 border-b border-slate-200 pb-4">
                 <div>
-                    <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">Bitácora Oficial</h2>
+                    <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">Bitácora de Vuelo</h2>
                     <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">
                         {filteredFlights.length} Registros encontrados
                     </p>

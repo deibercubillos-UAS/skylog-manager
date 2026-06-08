@@ -166,6 +166,7 @@ export default function RootLayout({ children }) {
         <link rel="dns-prefetch" href="https://vitals.vercel-insights.com" />
         {process.env.NEXT_PUBLIC_GA_ID && <link rel="dns-prefetch" href="https://www.google-analytics.com" />}
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        {process.env.NEXT_PUBLIC_CLARITY_ID && <link rel="dns-prefetch" href="https://www.clarity.ms" />}
         {/*
           Material Symbols — carga NO bloqueante (afterInteractive).
           <link rel="stylesheet"> externo bloqueaba FCP/LCP en Slow 4G:
@@ -315,6 +316,18 @@ export default function RootLayout({ children }) {
             });
           }
         `}</Script>
+
+        {/* Microsoft Clarity — heatmaps + grabaciones de sesión. afterInteractive
+            para no bloquear FCP/LCP. Se activa solo si NEXT_PUBLIC_CLARITY_ID existe. */}
+        {process.env.NEXT_PUBLIC_CLARITY_ID && (
+          <Script id="ms-clarity" strategy="afterInteractive">{`
+            (function(c,l,a,r,i,t,y){
+              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+              t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+              y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            })(window, document, "clarity", "script", "${process.env.NEXT_PUBLIC_CLARITY_ID}");
+          `}</Script>
+        )}
 
         <SpeedInsights />
         <Analytics />

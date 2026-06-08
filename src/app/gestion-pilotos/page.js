@@ -3,7 +3,7 @@ import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 
 export const metadata = {
-  title: 'Gestión de Pilotos de Drones y Certificaciones CPR Colombia',
+  title: 'Gestión de Pilotos de Drones y Certificaciones CPR',
   description: 'Gestiona tu tripulación UAS: certificados CPR, vencimientos, historial de vuelo por piloto y asignación a misiones. Cumplimiento RAC 100 para operadores de drones en Colombia.',
   keywords: ['gestión pilotos drones Colombia', 'CPR piloto remoto', 'certificación piloto UAS', 'tripulación RPAS RAC 100', 'piloto remoto Colombia'],
   alternates: { canonical: '/gestion-pilotos' },

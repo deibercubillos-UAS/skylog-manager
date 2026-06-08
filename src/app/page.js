@@ -8,7 +8,7 @@ const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').rep
 
 // METADATA específico del landing (sobrescribe el global con copy de mayor densidad)
 export const metadata = {
-  title: 'Bitafly | Software de Gestión para Operadores de Drones en Colombia',
+  title: 'Software de Gestión para Drones en Colombia | Bitafly',
   description: 'Plataforma SaaS líder para operadores UAS en Colombia. Bitácora digital RAC 100, mantenimiento, baterías, SMS aeronáutico, autorizaciones AeroCivil y reportes oficiales. Comienza gratis.',
   alternates: {
     canonical: '/',

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { saveHandle, getHandle } from '@/lib/idbHandleStore';
+import { saveHandle, getHandle, clearHandle } from '@/lib/idbHandleStore';
 
 // Clave bajo la que se recuerda la carpeta FlightRecord en IndexedDB.
 const FLIGHTRECORD_KEY = 'dji-flightrecord';
@@ -377,17 +377,26 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
     try {
       const perm = await savedHandle.requestPermission({ mode: 'read' });
       if (perm !== 'granted') {
-        setError('Permiso denegado para la carpeta guardada. Usa "Seleccionar carpeta FlightRecord".');
+        setError('Permiso denegado para la carpeta guardada. Usa "Elegir otra carpeta" para seleccionarla de nuevo.');
         return;
       }
       setState('scanning');
       await scanFlightRecordDir(savedHandle);
     } catch (err) {
-      if (err.name !== 'AbortError') {
-        setError('No se pudo acceder a la carpeta guardada: ' + err.message);
-      }
+      if (err.name === 'AbortError') return;
+      // Handle obsoleto (carpeta movida/borrada/sin permiso) → olvidarlo para no insistir.
+      await clearHandle(FLIGHTRECORD_KEY);
+      setSavedHandle(null);
+      setError('La carpeta guardada ya no está disponible. Selecciónala de nuevo.');
       setState('idle');
     }
+  };
+
+  // ── Olvidar la carpeta recordada (Fase 4) ─────────────────────
+  const handleForgetFolder = async () => {
+    await clearHandle(FLIGHTRECORD_KEY);
+    setSavedHandle(null);
+    setError('');
   };
 
   // ── Selección individual y masiva ──────────────────────────────
@@ -922,6 +931,17 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
         >
           <span className="material-symbols-outlined text-sm">folder_open</span>
           {savedHandle ? 'Elegir otra carpeta' : 'Seleccionar carpeta FlightRecord'}
+        </button>
+      )}
+
+      {/* ── Olvidar carpeta recordada ──────────────────────────── */}
+      {state === 'idle' && !isMobile && savedHandle && (
+        <button
+          onClick={handleForgetFolder}
+          className="w-full text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center gap-1.5 py-1"
+        >
+          <span className="material-symbols-outlined text-sm">delete_outline</span>
+          Olvidar esta carpeta
         </button>
       )}
 

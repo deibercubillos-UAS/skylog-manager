@@ -144,7 +144,7 @@ export default function PreciosClient() {
 
       {/* PRICING CARDS */}
       <section style={{ padding: '0 32px 80px', background: '#fff' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px', alignItems: 'start' }}>
+        <div className="max-w-[1100px] mx-auto grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4" style={{ alignItems: 'start' }}>
           {plans.map(plan => {
             const dispAmount = annual && plan.annualAmount ? plan.annualAmount / 12 : plan.monthlyAmount;
             return (
@@ -196,8 +196,8 @@ export default function PreciosClient() {
       {/* ESUAS banner */}
       <section style={{ padding: '0 32px 80px', background: '#fff' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <div style={{ background: '#fff', border: '1.5px solid rgba(236,91,19,0.2)', borderRadius: '28px', padding: '32px 36px', display: 'grid', gridTemplateColumns: '1fr auto', gap: '24px', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: '18px', alignItems: 'flex-start' }}>
+          <div className="flex flex-col md:flex-row gap-6 md:items-center" style={{ background: '#fff', border: '1.5px solid rgba(236,91,19,0.2)', borderRadius: '28px', padding: '32px 36px' }}>
+            <div style={{ display: 'flex', gap: '18px', alignItems: 'flex-start', flex: 1 }}>
               <div style={{ width: '48px', height: '48px', background: 'rgba(236,91,19,0.08)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <span className="material-symbols-outlined" style={{ color: accent, fontSize: '24px' }}>verified_user</span>
               </div>
@@ -207,7 +207,7 @@ export default function PreciosClient() {
                 <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.65, maxWidth: '620px' }}>Accede a Bitafly <strong>sin costo</strong> durante todo el proceso. Sabemos que cumplir la RAC 100 tiene un costo, y queremos ser parte de la solución. Contáctanos con tu número de radicado.</p>
               </div>
             </div>
-            <a href="mailto:soporte@bitafly.com" style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px', background: accent, color: '#fff', padding: '14px 22px', borderRadius: '16px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', textDecoration: 'none', whiteSpace: 'nowrap', boxShadow: '0 4px 14px rgba(236,91,19,0.3)' }}>
+            <a href="mailto:soporte@bitafly.com" className="flex shrink-0 items-center justify-center gap-2" style={{ background: accent, color: '#fff', padding: '14px 22px', borderRadius: '16px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', textDecoration: 'none', whiteSpace: 'nowrap', boxShadow: '0 4px 14px rgba(236,91,19,0.3)' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>gavel</span>Solicitar acceso
             </a>
           </div>

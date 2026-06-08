@@ -3,8 +3,8 @@ import Image from 'next/image';
 
 export default function SEOFooter({ brandDesc = 'Bitácora digital RAC 100 para operadores UAS en Colombia.' }) {
   return (
-    <footer style={{background:'#0F1419',color:'#64748b',padding:'56px 32px 32px'}}>
-      <div style={{maxWidth:'1100px',margin:'0 auto',display:'grid',gridTemplateColumns:'2fr 1fr 1fr',gap:'40px',marginBottom:'40px'}}>
+    <footer className="bg-[#0F1419] text-slate-500 px-8 pt-14 pb-8">
+      <div className="max-w-[1100px] mx-auto grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr] gap-10 mb-10">
         <div>
           <Link href="/" style={{display:'inline-flex',alignItems:'center',gap:'10px',textDecoration:'none',marginBottom:'12px'}}>
             {/* next/image: auto-WebP, lazy load, no CLS */}
@@ -34,7 +34,7 @@ export default function SEOFooter({ brandDesc = 'Bitácora digital RAC 100 para 
           </ul>
         </div>
       </div>
-      <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'24px',display:'flex',justifyContent:'space-between',fontSize:'11px'}}>
+      <div className="border-t border-white/[0.06] pt-6 flex flex-col sm:flex-row justify-between gap-2" style={{fontSize:'11px'}}>
         <span>© 2025 Bitafly Operations. Todos los derechos reservados.</span>
         <span>Hecho en Colombia para operadores UAS</span>
       </div>

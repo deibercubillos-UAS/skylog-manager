@@ -594,7 +594,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="max-w-6xl mx-auto mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between gap-4 text-xs uppercase tracking-widest">
+          <div className="max-w-6xl mx-auto mt-12 pt-8 border-t border-white/5 flex flex-col sm:flex-row justify-between gap-2 text-xs tracking-wide">
             <p>© {new Date().getFullYear()} Bitafly Operations. Todos los derechos reservados.</p>
             <p>Hecho en Colombia para operadores UAS</p>
           </div>

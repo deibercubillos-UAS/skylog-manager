@@ -325,7 +325,7 @@ export default function Pricing() {
           </div>
           <a
             href="#contacto"
-            className="shrink-0 bg-primary text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20 text-center"
+            className="shrink-0 w-full md:w-auto bg-primary text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20 text-center block"
           >
             Solicitar acceso
           </a>

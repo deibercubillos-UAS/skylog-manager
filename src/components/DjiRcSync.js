@@ -284,6 +284,45 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
     }
   };
 
+  // ── Escanear una carpeta FlightRecord ya resuelta → preparar lista ──
+  // Lógica compartida por el pick manual (handleSelectFolder) y, más adelante,
+  // por la carpeta recordada. Recibe el handle de FlightRecord ya localizado.
+  const scanFlightRecordDir = async (dirHandle) => {
+    const found = [];
+    for await (const [name, handle] of dirHandle.entries()) {
+      if (handle.kind === 'file' && /\.txt$/i.test(name)) {
+        found.push({ name, handle, selected: true, status: 'pending', result: null });
+      }
+    }
+
+    if (!found.length) {
+      setError('La carpeta "FlightRecord" está vacía. Aún no hay vuelos registrados en este RC.');
+      setState('idle');
+      return;
+    }
+
+    // Más recientes primero
+    found.sort((a, b) => b.name.localeCompare(a.name));
+
+    // Verificar cuáles ya están importados (una sola consulta)
+    const existingSet = await checkExisting(found);
+
+    const withStatus = found.map(f => {
+      const date = dateFromName(f.name);
+      const time = timeFromName(f.name);
+      const key  = date && time ? `${date}|${time}` : null;
+      const isDuplicate = key && existingSet.has(key);
+      return {
+        ...f,
+        selected: !isDuplicate, // Pre-deseleccionar duplicados
+        status:   isDuplicate ? 'duplicate' : 'pending',
+      };
+    });
+
+    setFiles(withStatus);
+    setState('ready');
+  };
+
   // ── Seleccionar carpeta del RC ─────────────────────────────────
   const handleSelectFolder = async () => {
     setError('');
@@ -299,39 +338,7 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
         return;
       }
 
-      const found = [];
-      for await (const [name, handle] of dirHandle.entries()) {
-        if (handle.kind === 'file' && /\.txt$/i.test(name)) {
-          found.push({ name, handle, selected: true, status: 'pending', result: null });
-        }
-      }
-
-      if (!found.length) {
-        setError('La carpeta "FlightRecord" está vacía. Aún no hay vuelos registrados en este RC.');
-        setState('idle');
-        return;
-      }
-
-      // Más recientes primero
-      found.sort((a, b) => b.name.localeCompare(a.name));
-
-      // Verificar cuáles ya están importados (una sola consulta)
-      const existingSet = await checkExisting(found);
-
-      const withStatus = found.map(f => {
-        const date = dateFromName(f.name);
-        const time = timeFromName(f.name);
-        const key  = date && time ? `${date}|${time}` : null;
-        const isDuplicate = key && existingSet.has(key);
-        return {
-          ...f,
-          selected: !isDuplicate, // Pre-deseleccionar duplicados
-          status:   isDuplicate ? 'duplicate' : 'pending',
-        };
-      });
-
-      setFiles(withStatus);
-      setState('ready');
+      await scanFlightRecordDir(dirHandle);
     } catch (err) {
       if (err.name !== 'AbortError') {
         setError('No se pudo acceder a la carpeta: ' + err.message);

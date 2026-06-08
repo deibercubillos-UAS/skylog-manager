@@ -3,7 +3,7 @@ import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 
 export const metadata = {
-  title: 'Software para Operadores UAS Certificados en Colombia | Bitafly',
+  title: 'Software para Operadores UAS Certificados en Colombia',
   description: 'Bitafly es la plataforma diseñada para operadores UAS certificados ante la AeroCivil en Colombia. Gestión de flota, tripulación, bitácora RAC 100, SMS y autorizaciones de vuelo en una sola plataforma.',
   keywords: ['operadores UAS Colombia', 'ESUAS AeroCivil', 'certificación operador drones Colombia', 'software ESUAS', 'plataforma UAS Colombia'],
   alternates: { canonical: '/operadores-uas' },

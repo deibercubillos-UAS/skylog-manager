@@ -5,7 +5,7 @@ import SEOFooter from '@/components/seo/SEOFooter';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
 export const metadata = {
-  title: 'Digital Drone Logbook for Colombia (RAC 100 Compliant) | Bitafly',
+  title: 'Digital Drone Logbook for Colombia (RAC 100 Compliant)',
   description: 'The only drone flight logbook built for Colombia\'s RAC 100 regulation. Automatically generates F-OPS-002 PDF, tracks flight hours and battery cycles. Free 6-month trial.',
   keywords: ['drone logbook colombia', 'UAV logbook colombia', 'RAC 100 flight log', 'digital flight logbook colombia', 'RPAS logbook aerocivil'],
   alternates: { canonical: '/drone-logbook-colombia' },

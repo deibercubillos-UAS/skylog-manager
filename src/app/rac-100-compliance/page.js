@@ -5,7 +5,7 @@ import SEOFooter from '@/components/seo/SEOFooter';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
 export const metadata = {
-  title: 'RAC 100 Compliance for Drone Operators in Colombia | Bitafly',
+  title: 'RAC 100 Compliance for Drone Operators in Colombia',
   description: 'Complete guide to RAC 100 compliance for commercial drone operators in Colombia. Requirements, official AeroCivil formats, certifications and how Bitafly automates compliance.',
   keywords: ['RAC 100 compliance colombia', 'drone regulations colombia', 'aerocivil drone requirements', 'RPAS colombia compliance', 'UAS regulations colombia', 'drone certification colombia'],
   alternates: { canonical: '/rac-100-compliance' },

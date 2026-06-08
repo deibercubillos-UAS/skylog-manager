@@ -3,7 +3,7 @@ import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 
 export const metadata = {
-  title: 'Planificación de Vuelos de Drones y KML para AeroCivil Colombia | Bitafly',
+  title: 'Planificación de Vuelos de Drones y KML para AeroCivil',
   description: 'Planea operaciones RPAS en Colombia: define el área en un mapa interactivo, genera el archivo KML para la AeroCivil y gestiona tus autorizaciones de vuelo. Cumplimiento RAC 100.',
   keywords: ['planificación vuelos drones Colombia', 'KML AeroCivil drones', 'plan de vuelo RPAS Colombia', 'mapa operación drones', 'área operación KML'],
   alternates: { canonical: '/plan-vuelo-drones' },

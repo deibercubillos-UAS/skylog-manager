@@ -5,7 +5,7 @@ import SEOFooter from '@/components/seo/SEOFooter';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
 export const metadata = {
-  title: 'Bitafly vs GEODRONE: ¿cuál es mejor para operadores UAS en Colombia? | Bitafly',
+  title: 'Bitafly vs GEODRONE: ¿cuál es mejor para drones en Colombia?',
   description:
     'Comparativa entre Bitafly y GEODRONE (Tecnidrones) para operadores de drones en Colombia. Precios transparentes, prueba gratis 30 días, sincronización DJI y cumplimiento RAC 100 completo.',
   keywords: [

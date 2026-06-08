@@ -3,7 +3,7 @@ import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 
 export const metadata = {
-  title: 'Bitácora Digital de Vuelo para Drones RAC 100 | Bitafly Colombia',
+  title: 'Bitácora Digital de Vuelo para Drones RAC 100 en Colombia',
   description: 'Registra cada vuelo de drones con los campos exigidos por la AeroCivil. Bitácora digital RAC 100 formato F-OPS-002. Suma automática de horas, reportes PDF instantáneos. Prueba gratis.',
   keywords: ['bitácora digital drones', 'bitácora vuelo RAC 100', 'F-OPS-002', 'registro vuelos drones Colombia', 'bitácora UAS AeroCivil'],
   alternates: { canonical: '/bitacora-digital' },

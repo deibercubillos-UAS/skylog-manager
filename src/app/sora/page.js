@@ -3,7 +3,7 @@ import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 
 export const metadata = {
-  title: 'Análisis SORA para Operadores de Drones en Colombia | Bitafly',
+  title: 'Análisis SORA para Operadores de Drones en Colombia',
   description: 'Evalúa el riesgo de tus operaciones RPAS con el método SORA (JARUS v2). Calcula GRC, ARC y SAIL automáticamente. Genera el documento para la AeroCivil en minutos.',
   keywords: ['SORA drones Colombia', 'análisis riesgo RPAS', 'JARUS SORA Colombia', 'SAIL operaciones UAS', 'autorización BVLOS Colombia'],
   alternates: { canonical: '/sora' },

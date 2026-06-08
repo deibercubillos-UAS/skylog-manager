@@ -3,7 +3,7 @@ import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 
 export const metadata = {
-  title: 'Autorizaciones de Vuelo AeroCivil para Drones F-OPS-001 | Bitafly Colombia',
+  title: 'Autorizaciones de Vuelo AeroCivil para Drones F-OPS-001',
   description: 'Genera el formato F-OPS-001 de autorización de vuelo para drones ante la AeroCivil en segundos. Coordenadas, polígono de operación, póliza vigente y firma digital. Cumplimiento RAC 100.',
   keywords: ['autorización vuelo drones AeroCivil', 'F-OPS-001', 'permiso vuelo drone Colombia', 'UAEAC drones', 'autorización UAS Colombia'],
   alternates: { canonical: '/autorizaciones-aerocivil' },

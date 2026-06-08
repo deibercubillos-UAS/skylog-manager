@@ -56,6 +56,5 @@ export default function sitemap() {
     { url: `${SITE_URL}/reportes-auditoria`,         lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
     { url: `${SITE_URL}/comparativa-bitafly-airdata`,   lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${SITE_URL}/comparativa-bitafly-geodrone`,  lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${SITE_URL}/comparativa-bitafly-dronedesk`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
   ];
 }

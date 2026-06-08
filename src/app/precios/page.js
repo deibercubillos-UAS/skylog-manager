@@ -1,7 +1,7 @@
 import PreciosClient from './PreciosClient';
 
 export const metadata = {
-  title: 'Planes y Precios para Operadores de Drones en Colombia | Bitafly',
+  title: 'Planes y Precios para Operadores de Drones en Colombia',
   description: 'Bitafly desde gratis hasta Enterprise. Plan Piloto con 1 mes gratis, Escuadrilla $59.000/mes, Flota $159.000/mes. Sin contratos. Cumplimiento RAC 100 incluido. Paga con PSE o tarjeta.',
   keywords: ['precios software drones Colombia', 'plan drones RAC 100', 'software UAS precio Colombia', 'bitácora drones gratis', 'plataforma drones mensual anual'],
   alternates: { canonical: '/precios' },

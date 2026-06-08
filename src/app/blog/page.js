@@ -44,7 +44,7 @@ function buildBlogSchemas(posts) {
 }
 
 export const metadata = {
-  title: 'Blog sobre Drones en Colombia | RAC 100, Normativa y Operaciones | Bitafly',
+  title: 'Blog sobre Drones en Colombia: RAC 100, Normativa y Operaciones',
   metaTitle: 'Blog Drones Colombia — RAC 100, Normativa, Operaciones UAS | Bitafly',
   description: 'Guías, normativa y recursos para operadores de drones en Colombia. RAC 100, registro UAEAC, SMS aeronáutico, SORA y más. Publicado por el equipo de Bitafly.',
   alternates: { canonical: '/blog' },

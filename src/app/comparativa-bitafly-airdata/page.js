@@ -5,7 +5,7 @@ import SEOFooter from '@/components/seo/SEOFooter';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
 export const metadata = {
-  title: 'Bitafly vs AirData UAV: ¿cuál es mejor para operar drones en Colombia? | Bitafly',
+  title: 'Bitafly vs AirData UAV: ¿cuál es mejor en Colombia?',
   description:
     'Comparativa entre Bitafly y AirData UAV para operadores de drones en Colombia. Bitafly es nativo RAC 100, con precios en COP, soporte en español y trámites AeroCivil incluidos.',
   keywords: ['bitafly vs airdata', 'alternativa airdata colombia', 'airdata uav colombia', 'software drones colombia comparativa', 'mejor plataforma drones colombia'],

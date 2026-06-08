@@ -3,7 +3,7 @@ import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 
 export const metadata = {
-  title: 'Gestión de Flota de Drones para Empresas en Colombia | Bitafly',
+  title: 'Gestión de Flota de Drones para Empresas en Colombia',
   description: 'Software de gestión de flota de drones para empresas en Colombia. Registra aeronaves, controla horas de vuelo, monitorea estado y cumple la RAC 100 de la AeroCivil. Prueba gratis.',
   keywords: ['gestión flota drones Colombia', 'software flota UAS', 'control drones empresa', 'administración aeronaves Colombia', 'flota drones RAC 100'],
   alternates: { canonical: '/gestion-flota-drones' },

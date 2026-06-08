@@ -3,7 +3,7 @@ import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 
 export const metadata = {
-  title: 'Reportes y Auditoría AeroCivil para Drones — Formatos Oficiales PDF | Bitafly',
+  title: 'Reportes y Auditoría AeroCivil para Drones — Formatos PDF',
   description: 'Genera en segundos los reportes oficiales exigidos por la AeroCivil: F-OPS-002 Maestro de Vuelo, F-MNT-003 Baterías, F-HUM-005 Bitácora de Piloto. PDF con logo corporativo y código de formato.',
   keywords: ['reportes auditoría AeroCivil drones', 'F-OPS-002 PDF', 'reportes RAC 100 Colombia', 'auditoría drones Colombia', 'formatos oficiales UAS UAEAC'],
   alternates: { canonical: '/reportes-auditoria' },

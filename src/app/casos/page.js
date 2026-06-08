@@ -6,7 +6,7 @@ import { CASE_STUDIES } from '@/lib/caseStudies';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
 export const metadata = {
-  title: 'Casos de Éxito — Operadores de Drones en Colombia | Bitafly',
+  title: 'Casos de Éxito — Operadores de Drones en Colombia',
   description: 'Descubre cómo operadores UAS en Bogotá, Medellín y Cali gestionan su flota, cumplen la RAC 100 y obtienen la certificación ESUAS con Bitafly.',
   alternates: { canonical: '/casos' },
   openGraph: {

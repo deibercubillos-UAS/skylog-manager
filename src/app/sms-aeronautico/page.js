@@ -3,7 +3,7 @@ import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 
 export const metadata = {
-  title: 'SMS Aeronáutico para Operadores de Drones UAS Colombia | Bitafly',
+  title: 'SMS Aeronáutico para Operadores de Drones UAS Colombia',
   description: 'Sistema de Gestión de Seguridad (SMS) aeronáutico para operadores UAS en Colombia. Clasificación de incidentes, accidentes y eventos de seguridad según RAC 100. Trazabilidad completa para auditorías AeroCivil.',
   keywords: ['SMS aeronáutico drones', 'sistema gestión seguridad UAS', 'incidentes drones Colombia', 'seguridad operacional UAS', 'RAC 100 SMS'],
   alternates: { canonical: '/sms-aeronautico' },

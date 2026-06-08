@@ -3,7 +3,7 @@ import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 
 export const metadata = {
-  title: 'Software de Mantenimiento de Drones y Baterías LiPo | Bitafly Colombia',
+  title: 'Software de Mantenimiento de Drones y Baterías LiPo',
   description: 'Controla el mantenimiento de tus drones y baterías LiPo con alertas automáticas a 200 horas o 6 meses. Genera el formato F-MNT-003 exigido por la AeroCivil. Prueba gratis.',
   keywords: ['mantenimiento drones Colombia', 'baterías LiPo drones', 'F-MNT-003', 'mantenimiento UAS AeroCivil', 'software mantenimiento aeronaves drones'],
   alternates: { canonical: '/mantenimiento-drones' },

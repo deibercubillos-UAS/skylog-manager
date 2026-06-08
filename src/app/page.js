@@ -1,6 +1,6 @@
 ﻿import Link from 'next/link';
 import Image from 'next/image';
-import NavMobile from '@/components/landing/NavMobile';
+import LandingNav from '@/components/landing/LandingNav';
 import DashboardMockup from '@/components/landing/DashboardMockup';
 import Pricing from '@/components/landing/Pricing';
 
@@ -198,80 +198,8 @@ export default function LandingPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
 
-      {/* Skip-link para accesibilidad — solo visible con navegación por teclado (Tab), nunca con clic */}
-      <a
-        href="#main"
-        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:bg-navy focus-visible:text-white focus-visible:px-4 focus-visible:py-2 focus-visible:rounded-xl focus-visible:text-sm focus-visible:font-black"
-      >
-        Saltar al contenido principal
-      </a>
-
       <div className="min-h-screen bg-white text-slate-800">
-        {/* ==================== NAVEGACIÓN ==================== */}
-        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 relative">
-          <nav
-            className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between"
-            aria-label="Navegación principal"
-          >
-            <Link href="/" className="flex items-center gap-2.5" aria-label="Bitafly — inicio">
-              <Image
-                src="/logo.png"
-                alt=""
-                width={36}
-                height={36}
-                className="h-9 w-auto"
-                priority
-              />
-              <span className="text-2xl font-black text-navy uppercase tracking-tighter">
-                Bitafly
-              </span>
-            </Link>
-
-            <ul className="hidden md:flex items-center gap-8 text-sm font-bold text-slate-600">
-              <li>
-                <a href="#funciones" className="hover:text-primary transition-colors">
-                  Funciones
-                </a>
-              </li>
-              <li>
-                <a href="#cumplimiento" className="hover:text-primary transition-colors">
-                  RAC 100
-                </a>
-              </li>
-              <li>
-                <Link href="/documentacion" className="hover:text-primary transition-colors">
-                  Guía
-                </Link>
-              </li>
-              <li>
-                <a href="#precios" className="hover:text-primary transition-colors">
-                  Precios
-                </a>
-              </li>
-              <li>
-                <a href="#faq" className="hover:text-primary transition-colors">
-                  Preguntas
-                </a>
-              </li>
-            </ul>
-
-            <div className="flex items-center gap-3">
-              <Link
-                href="/login"
-                className="hidden sm:inline-block text-xs font-black uppercase tracking-widest text-slate-600 hover:text-primary transition-colors"
-              >
-                Ingresar
-              </Link>
-              <Link
-                href="/registro"
-                className="hidden sm:inline-block bg-primary text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-md hover:bg-orange-600 transition-all"
-              >
-                Comenzar gratis
-              </Link>
-              <NavMobile />
-            </div>
-          </nav>
-        </header>
+        <LandingNav />
 
         <main id="main">
           {/* ==================== HERO ==================== */}

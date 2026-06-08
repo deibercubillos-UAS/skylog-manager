@@ -35,7 +35,7 @@ export default function GestionFlotaDronesPage() {
 
       {/* HERO */}
       <section style={{padding:'80px 32px 72px',background:'#fff'}}>
-        <div style={{maxWidth:'1100px',margin:'0 auto',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'56px',alignItems:'center'}}>
+        <div className="grid grid-cols-1 lg:grid-cols-2" style={{maxWidth:'1100px',margin:'0 auto',gap:'56px',alignItems:'center'}}>
           <div>
             <div style={{display:'inline-flex',alignItems:'center',gap:'7px',background:'rgba(236,91,19,0.08)',border:'1px solid rgba(236,91,19,0.2)',borderRadius:'9999px',padding:'5px 14px',marginBottom:'20px'}}>
               <div style={{width:'6px',height:'6px',borderRadius:'50%',background:accent}}/>
@@ -58,7 +58,7 @@ export default function GestionFlotaDronesPage() {
             <p style={{fontSize:'11px',fontWeight:700,color:'#94a3b8',marginTop:'14px'}}>Hasta 15 aeronaves en el plan Flota · Ilimitadas en Enterprise</p>
           </div>
           {/* Fleet grid mockup */}
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px'}}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{gap:'10px'}}>
             {[
               { name:'DJI M350 RTK', serial:'MAT350-CO-0041', hours:'89.5h', status:'Operativo', statusColor:'#22c55e', statusBg:'#f0fdf4', statusBorder:'#bbf7d0', hoursColor:accent },
               { name:'Autel EVO II', serial:'AUT-EVO-0008', hours:'198.2h', status:'Mant.', statusColor:'#d97706', statusBg:'#fffbeb', statusBorder:'#fde68a', hoursColor:'#d97706' },
@@ -89,7 +89,7 @@ export default function GestionFlotaDronesPage() {
 
       {/* DARK BAND */}
       <div style={{background:'#1A202C',color:'#fff',padding:'56px 32px'}}>
-        <div style={{maxWidth:'1100px',margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'32px',textAlign:'center'}}>
+        <div className="grid grid-cols-2 sm:grid-cols-4" style={{maxWidth:'1100px',margin:'0 auto',gap:'32px',textAlign:'center'}}>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>15</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Aeronaves plan Flota</div></div>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>∞</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Aeronaves Enterprise</div></div>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>5</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Estados de aeronave</div></div>
@@ -104,7 +104,7 @@ export default function GestionFlotaDronesPage() {
             <div style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.3em',color:accent,marginBottom:'12px'}}>Módulo de flota</div>
             <h2 style={{fontSize:'clamp(28px,3vw,44px)',fontWeight:900,textTransform:'uppercase',letterSpacing:'-0.04em',color:'#1A202C'}}>Control total de <span style={{color:accent}}>cada aeronave</span></h2>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'20px'}}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{gap:'20px'}}>
             {[
               { icon:'pin', title:'Registro de Aeronaves', desc:'Modelo, fabricante, número de serie, matrícula UAEAC, fecha de adquisición y foto. Perfil completo de cada aeronave de la flota.' },
               { icon:'trending_up', title:'Horas Totales en Tiempo Real', desc:'Cada vuelo registrado suma automáticamente al totalizador de la aeronave. Visualiza las horas en el panel de flota sin cálculos manuales.' },

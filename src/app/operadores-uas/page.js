@@ -62,7 +62,7 @@ export default function OperadoresUASPage() {
 
       {/* DARK BAND */}
       <div style={{background:'#1A202C',color:'#fff',padding:'56px 32px'}}>
-        <div style={{maxWidth:'1100px',margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'32px',textAlign:'center'}}>
+        <div className="grid grid-cols-2 sm:grid-cols-4" style={{maxWidth:'1100px',margin:'0 auto',gap:'32px',textAlign:'center'}}>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>5</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Roles operacionales</div></div>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>4</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Formatos RAC 100</div></div>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>∞</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Aeronaves y usuarios</div></div>
@@ -77,7 +77,7 @@ export default function OperadoresUASPage() {
             <div style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.3em',color:accent,marginBottom:'12px'}}>Para cada tipo de operador</div>
             <h2 style={{fontSize:'clamp(28px,3vw,44px)',fontWeight:900,textTransform:'uppercase',letterSpacing:'-0.04em',color:'#1A202C'}}>Bitafly escala con <span style={{color:accent}}>tu operación</span></h2>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'20px'}}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{gap:'20px'}}>
             {[
               { plan:'Plan Piloto', planBg:'rgba(236,91,19,0.08)', planBorder:'rgba(236,91,19,0.2)', planColor:accent, icon:'person_check', title:'Piloto Autónomo', desc:'Un dron, un piloto. Bitácora digital ilimitada, mantenimiento con alertas, gestión de baterías y reporte F-OPS-002 en PDF. 6 meses gratuito.', featured:false },
               { plan:'Plan Escuadrilla', planBg:'rgba(26,32,44,0.06)', planBorder:'rgba(26,32,44,0.1)', planColor:'#1A202C', icon:'groups', title:'Pequeña Empresa', desc:'Hasta 3 aeronaves y 4 usuarios con 3 roles operacionales. Autorizaciones F-OPS-001, SMS básico y reportes PDF Maestro de Vuelo y Baterías.', featured:false },
@@ -101,7 +101,7 @@ export default function OperadoresUASPage() {
 
       {/* ROLES + ESUAS BANNER */}
       <section style={{padding:'80px 32px',background:'#fff'}}>
-        <div style={{maxWidth:'1100px',margin:'0 auto',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'56px',alignItems:'center'}}>
+        <div className="grid grid-cols-1 lg:grid-cols-2" style={{maxWidth:'1100px',margin:'0 auto',gap:'56px',alignItems:'center'}}>
           <div>
             <div style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.3em',color:accent,marginBottom:'12px'}}>Estructura corporativa real</div>
             <h2 style={{fontSize:'clamp(28px,3vw,44px)',fontWeight:900,textTransform:'uppercase',letterSpacing:'-0.04em',color:'#1A202C',marginBottom:'16px'}}>5 roles operacionales <span style={{color:accent}}>según la RAC 100</span></h2>

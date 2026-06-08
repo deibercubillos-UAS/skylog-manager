@@ -50,7 +50,7 @@ export default function SoraPage() {
 
       {/* HERO */}
       <section style={{ padding: '80px 32px 72px', background: '#fff' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '56px', alignItems: 'center' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2" style={{ maxWidth: '1100px', margin: '0 auto', gap: '56px', alignItems: 'center' }}>
           <div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'rgba(236,91,19,0.08)', border: '1px solid rgba(236,91,19,0.2)', borderRadius: '9999px', padding: '5px 14px', marginBottom: '20px' }}>
               <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: accent }} />
@@ -96,7 +96,7 @@ export default function SoraPage() {
             <p style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: accent, marginBottom: '12px' }}>Proceso</p>
             <h2 style={{ fontSize: 'clamp(28px,3vw,44px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.04em', color: '#1A202C' }}>Análisis SORA en 6 pasos</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '20px' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: '20px' }}>
             {STEPS.map(s => (
               <div key={s.n} style={{ background: '#fff', border: '1.5px solid #f1f5f9', borderRadius: '20px', padding: '24px' }}>
                 <div style={{ fontSize: '28px', fontWeight: 900, color: accent, letterSpacing: '-0.04em', marginBottom: '8px' }}>{s.n}</div>

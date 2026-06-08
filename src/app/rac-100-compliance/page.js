@@ -80,7 +80,7 @@ export default function Rac100CompliancePage() {
             <p style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: accent, marginBottom: '12px' }}>Regulatory requirements</p>
             <h2 style={{ fontSize: 'clamp(28px,3vw,40px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.04em', color: '#1A202C' }}>8 core compliance requirements</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '16px' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: '16px' }}>
             {REQUIREMENTS.map((r, i) => (
               <div key={i} style={{ background: '#fff', border: '1.5px solid #f1f5f9', borderRadius: '20px', padding: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
                 <div style={{ width: '32px', height: '32px', background: 'rgba(236,91,19,0.08)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: accent, flexShrink: 0, fontSize: '13px', fontWeight: 900 }}>
@@ -103,7 +103,7 @@ export default function Rac100CompliancePage() {
             <p style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: accent, marginBottom: '12px' }}>How Bitafly helps</p>
             <h2 style={{ fontSize: 'clamp(24px,2.5vw,36px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.04em', color: '#1A202C' }}>Automate your RAC 100 compliance</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: '20px' }}>
             {[
               { need: 'F-OPS-002 flight logbook',    solution: 'Auto-generated PDF after every flight. No manual entry.', href: '/drone-logbook-colombia' },
               { need: 'F-MNT-003 battery records',   solution: 'Cycle tracking per battery serial. Retirement alerts.', href: '/mantenimiento-drones' },

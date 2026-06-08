@@ -60,7 +60,7 @@ export default function BitacoraDigitalPage() {
 
       {/* HERO */}
       <section style={{padding:'80px 32px 72px',background:'#fff'}}>
-        <div style={{maxWidth:'1100px',margin:'0 auto',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'56px',alignItems:'center'}}>
+        <div className="grid grid-cols-1 lg:grid-cols-2" style={{maxWidth:'1100px',margin:'0 auto',gap:'56px',alignItems:'center'}}>
           <div>
             <div style={s.badge}><div style={s.dot}/><span style={s.badgeText}>Formato F-OPS-002 · UAEAC</span></div>
             <h1 style={s.h1}>Bitácora Digital de Vuelo para <span style={s.accent}>Drones RAC 100</span></h1>
@@ -103,7 +103,7 @@ export default function BitacoraDigitalPage() {
 
       {/* DARK BAND */}
       <div style={s.darkBand}>
-        <div style={s.darkBandInner}>
+        <div className="grid grid-cols-2 sm:grid-cols-4" style={{maxWidth:'1100px',margin:'0 auto',gap:'32px',textAlign:'center'}}>
           <div><div style={s.statVal}>∞</div><div style={s.statLbl}>Vuelos registrables</div></div>
           <div><div style={s.statVal}>F-OPS-002</div><div style={s.statLbl}>Formato oficial</div></div>
           <div><div style={s.statVal}>PDF</div><div style={s.statLbl}>Exportación instantánea</div></div>
@@ -118,7 +118,7 @@ export default function BitacoraDigitalPage() {
             <div style={s.overline}>Campos del registro</div>
             <h2 style={s.h2}>Todo lo que exige la <span style={s.accent}>AeroCivil</span> en un solo formulario</h2>
           </div>
-          <div style={s.cardsGrid}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{gap:'20px'}}>
             {[
               { icon:'precision_manufacturing', title:'Aeronave y Matrícula', desc:'Selección de aeronave registrada con modelo, número de serie y matrícula UAEAC. Vinculación automática a horas totales acumuladas.' },
               { icon:'person', title:'Tripulación y PIC', desc:'Asignación del Piloto en Comando (PIC) con verificación de certificado vigente. Validación automática del médico aeronáutico antes del vuelo.' },

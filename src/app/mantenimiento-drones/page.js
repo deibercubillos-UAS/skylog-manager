@@ -35,7 +35,7 @@ export default function MantenimientoDronesPage() {
 
       {/* HERO */}
       <section style={{padding:'80px 32px 72px',background:'#fff'}}>
-        <div style={{maxWidth:'1100px',margin:'0 auto',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'56px',alignItems:'center'}}>
+        <div className="grid grid-cols-1 lg:grid-cols-2" style={{maxWidth:'1100px',margin:'0 auto',gap:'56px',alignItems:'center'}}>
           <div>
             <div style={{display:'inline-flex',alignItems:'center',gap:'7px',background:'rgba(236,91,19,0.08)',border:'1px solid rgba(236,91,19,0.2)',borderRadius:'9999px',padding:'5px 14px',marginBottom:'20px'}}>
               <div style={{width:'6px',height:'6px',borderRadius:'50%',background:accent}}/>
@@ -95,7 +95,7 @@ export default function MantenimientoDronesPage() {
 
       {/* DARK BAND */}
       <div style={{background:'#1A202C',color:'#fff',padding:'56px 32px'}}>
-        <div style={{maxWidth:'1100px',margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'32px',textAlign:'center'}}>
+        <div className="grid grid-cols-2 sm:grid-cols-4" style={{maxWidth:'1100px',margin:'0 auto',gap:'32px',textAlign:'center'}}>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>200h</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Umbral mantenimiento</div></div>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>200</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Ciclos batería por defecto</div></div>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>F-MNT-003</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Formato oficial</div></div>
@@ -112,7 +112,7 @@ export default function MantenimientoDronesPage() {
               Todo el mantenimiento de tu flota <span style={{color:accent}}>bajo control</span>
             </h2>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'20px'}}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{gap:'20px'}}>
             {[
               { icon:'timer', title:'Alertas por Horas de Vuelo', desc:'Alerta automática cuando la aeronave alcanza 200 horas de vuelo acumuladas. Umbral configurable según las recomendaciones del fabricante.' },
               { icon:'sync', title:'Alertas por Calendario', desc:'Recordatorio automático cada 6 meses calendario desde la última intervención técnica, independiente de las horas de vuelo acumuladas.' },

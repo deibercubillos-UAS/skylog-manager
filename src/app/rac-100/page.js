@@ -79,7 +79,7 @@ export default function RAC100Page() {
 
       {/* DARK BAND */}
       <div style={s.darkBand}>
-        <div style={s.darkBandInner}>
+        <div className="grid grid-cols-2 sm:grid-cols-4" style={{maxWidth:'1100px',margin:'0 auto',gap:'32px',textAlign:'center'}}>
           <div><div style={s.statVal}>4</div><div style={s.statLbl}>Formatos oficiales generados</div></div>
           <div><div style={s.statVal}>100%</div><div style={s.statLbl}>Trazabilidad documental</div></div>
           <div><div style={s.statVal}>0</div><div style={s.statLbl}>Excels dispersos</div></div>
@@ -95,7 +95,7 @@ export default function RAC100Page() {
             <h2 style={s.h2}>¿Qué exige la <span style={s.span}>RAC 100</span> a los operadores UAS?</h2>
             <p style={s.sectionDesc}>La Reglamentación Aeronáutica Colombiana 100 define los requisitos operacionales, documentales y de seguridad para todos los operadores de sistemas de aeronaves no tripuladas en Colombia.</p>
           </div>
-          <div style={s.cardsGrid}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{gap:'20px'}}>
             <article style={s.card}>
               <div style={s.cardIcon}><span className="material-symbols-outlined">menu_book</span></div>
               <h3 style={s.cardTitle}>Bitácora de Vuelo</h3>
@@ -132,7 +132,7 @@ export default function RAC100Page() {
 
       {/* FORMATOS OFICIALES */}
       <section style={{padding:'80px 32px',background:'#fff'}}>
-        <div style={{maxWidth:'1100px',margin:'0 auto',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'56px',alignItems:'center'}}>
+        <div className="grid grid-cols-1 lg:grid-cols-2" style={{maxWidth:'1100px',margin:'0 auto',gap:'56px',alignItems:'center'}}>
           <div>
             <div style={s.overline}>Formatos oficiales UAEAC</div>
             <h2 style={s.h2}>Todos los formatos que pide la <span style={s.span}>AeroCivil</span></h2>

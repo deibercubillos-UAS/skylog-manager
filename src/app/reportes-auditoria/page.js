@@ -35,7 +35,7 @@ export default function ReportesAuditoriaPage() {
 
       {/* HERO */}
       <section style={{padding:'80px 32px 72px',background:'#fff'}}>
-        <div style={{maxWidth:'1100px',margin:'0 auto',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'56px',alignItems:'center'}}>
+        <div className="grid grid-cols-1 lg:grid-cols-2" style={{maxWidth:'1100px',margin:'0 auto',gap:'56px',alignItems:'center'}}>
           <div>
             <div style={{display:'inline-flex',alignItems:'center',gap:'7px',background:'rgba(236,91,19,0.08)',border:'1px solid rgba(236,91,19,0.2)',borderRadius:'9999px',padding:'5px 14px',marginBottom:'20px'}}>
               <div style={{width:'6px',height:'6px',borderRadius:'50%',background:accent}}/>
@@ -93,7 +93,7 @@ export default function ReportesAuditoriaPage() {
 
       {/* DARK BAND */}
       <div style={{background:'#1A202C',color:'#fff',padding:'56px 32px'}}>
-        <div style={{maxWidth:'1100px',margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'32px',textAlign:'center'}}>
+        <div className="grid grid-cols-2 sm:grid-cols-4" style={{maxWidth:'1100px',margin:'0 auto',gap:'32px',textAlign:'center'}}>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>4</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Formatos oficiales</div></div>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>&lt;5s</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Tiempo de generación</div></div>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>PDF</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Con logo corporativo</div></div>
@@ -108,7 +108,7 @@ export default function ReportesAuditoriaPage() {
             <div style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.3em',color:accent,marginBottom:'12px'}}>Reportes oficiales</div>
             <h2 style={{fontSize:'clamp(28px,3vw,44px)',fontWeight:900,textTransform:'uppercase',letterSpacing:'-0.04em',color:'#1A202C'}}>Cada formato que exige <span style={{color:accent}}>la AeroCivil</span></h2>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'20px',maxWidth:'800px',margin:'0 auto'}}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{gap:'20px',maxWidth:'800px',margin:'0 auto'}}>
             {[
               { icon:'description', code:'F-OPS-002', title:'Maestro de Vuelo', desc:'Registro cronológico de todos los vuelos del período: aeronave, tripulación, misión, tiempos y horas acumuladas. El reporte principal de la bitácora digital.', features:['Filtro por período, aeronave o piloto', 'Total de horas por aeronave', 'Logo corporativo y código oficial'] },
               { icon:'table_view', code:'F-MNT-003', title:'Registro de Baterías', desc:'Estado de cada batería con número de serie, ciclos acumulados, historial de intervenciones y estado actual. Esencial para inspecciones técnicas.', features:['Ciclos por batería con historial', 'Estado: Operativa / Retirada', 'Eventos de inflamiento registrados'] },

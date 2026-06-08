@@ -79,7 +79,7 @@ export const BLOG_POSTS = [
   {
     slug:            'bitacora-digital-drone-f-ops-002',
     title:           'Bitácora digital de vuelo para drones: guía completa del formato F-OPS-002',
-    metaTitle:       'Bitácora Digital Drone F-OPS-002 Colombia | Guía 2025 | Bitafly',
+    metaTitle:       'Bitácora Digital Drone F-OPS-002 Colombia | Guía 2026 | Bitafly',
     metaDescription: 'Aprende qué campos exige el F-OPS-002 de la AeroCivil, por qué la bitácora digital agiliza el cumplimiento RAC 100 y cómo generarla automáticamente con Bitafly.',
     publishedAt:     '2025-03-18',
     updatedAt:       '2026-06-07',
@@ -145,20 +145,20 @@ export const BLOG_POSTS = [
   // ─── 3. Registro UAEAC ────────────────────────────────────────────────────
   {
     slug:            'como-registrar-drone-uaeac-colombia-2025',
-    title:           'Cómo registrar tu dron ante la UAEAC en Colombia: paso a paso 2025',
-    metaTitle:       'Cómo Registrar tu Drone en Colombia UAEAC 2025 | Paso a Paso',
-    metaDescription: 'Guía completa para matricular tu drone ante la AeroCivil de Colombia en 2025. Documentos necesarios, costos, plazos y errores comunes a evitar.',
+    title:           'Cómo registrar tu dron ante la UAEAC en Colombia: paso a paso 2026',
+    metaTitle:       'Cómo Registrar tu Drone en Colombia UAEAC 2026 | Paso a Paso',
+    metaDescription: 'Guía completa para matricular tu drone ante la AeroCivil de Colombia en 2026. Documentos necesarios, costos, plazos y errores comunes a evitar.',
     publishedAt:     '2025-04-02',
     updatedAt:       '2026-06-07',
     readingTime:     5,
     category:        'Trámites',
-    keywords:        ['registrar drone Colombia', 'matrícula RPAS UAEAC', 'SIRAC AeroCivil', 'registro drone AeroCivil 2025'],
+    keywords:        ['registrar drone Colombia', 'matrícula RPAS UAEAC', 'SIRAC AeroCivil', 'registro drone AeroCivil 2026'],
     excerpt:         'Todo operador debe matricular su RPAS ante la UAEAC antes de operar comercialmente. Te explicamos el proceso completo, los documentos que necesitas y cuánto demora.',
     coverAlt:        'Registro de drones ante la UAEAC AeroCivil Colombia',
     body: `
 <p>Antes de realizar cualquier operación comercial con tu dron en Colombia, debes <strong>matricular la aeronave ante la UAEAC</strong> a través del portal SIRAC. Sin este registro, el vuelo es ilegal y estás expuesto a sanciones.</p>
 
-<p>En esta guía te explicamos el proceso actualizado para 2025, los documentos que necesitas y los errores más comunes que cometen los operadores nuevos.</p>
+<p>En esta guía te explicamos el proceso actualizado para 2026, los documentos que necesitas y los errores más comunes que cometen los operadores nuevos.</p>
 
 <h2>¿Qué drones deben registrarse?</h2>
 <p>Según la RAC 100, deben matricularse ante la UAEAC todos los RPAS con <strong>peso de despegue superior a 250 gramos</strong> que se usen con fines comerciales o que operen en espacio aéreo no segregado. Los drones de uso recreativo menor a 250 g tienen un proceso simplificado.</p>
@@ -187,7 +187,7 @@ export const BLOG_POSTS = [
 <p>Una vez obtenida la matrícula, debes <strong>marcar físicamente el dron</strong> con el número asignado, de forma legible y en lugar visible. El tamaño mínimo de los caracteres es de 6 mm. Puedes usar stickers, grabado láser o marcación con pintura permanente.</p>
 
 <h2>¿Cuánto vale la matrícula?</h2>
-<p>La tasa aeronáutica para registro de RPAS en Colombia depende del peso de la aeronave y se actualiza anualmente. Para el año 2025, consulta los valores vigentes directamente en el portal SIRAC o contáctanos para orientarte.</p>
+<p>La tasa aeronáutica para registro de RPAS en Colombia depende del peso de la aeronave y se actualiza anualmente. Para el año 2026, consulta los valores vigentes directamente en el portal SIRAC o contáctanos para orientarte.</p>
 
 <h2>Errores comunes que retrasan el trámite</h2>
 <ul>
@@ -347,16 +347,16 @@ export const BLOG_POSTS = [
   // ─── 6. Software drones Colombia ─────────────────────────────────────────
   {
     slug:            'software-gestion-operadores-drones-colombia-2025',
-    title:           'Software para operadores de drones en Colombia: qué necesitas realmente en 2025',
-    metaTitle:       'Software Operadores Drones Colombia 2025 | Comparativo | Bitafly',
-    metaDescription: 'Qué funcionalidades debe tener un software de gestión para operadores RPAS en Colombia: RAC 100, bitácora, SMS, autorizaciones AeroCivil. Guía 2025.',
+    title:           'Software para operadores de drones en Colombia: qué necesitas realmente en 2026',
+    metaTitle:       'Software Operadores Drones Colombia 2026 | Comparativo | Bitafly',
+    metaDescription: 'Qué funcionalidades debe tener un software de gestión para operadores RPAS en Colombia: RAC 100, bitácora, SMS, autorizaciones AeroCivil. Guía 2026.',
     publishedAt:     '2025-05-10',
     updatedAt:       '2026-06-07',
     readingTime:     6,
     category:        'Herramientas',
-    keywords:        ['software drones Colombia', 'software gestión UAS', 'plataforma operadores RPAS', 'herramientas operadores drones 2025'],
+    keywords:        ['software drones Colombia', 'software gestión UAS', 'plataforma operadores RPAS', 'herramientas operadores drones 2026'],
     excerpt:         'No todo software de drones sirve para el mercado colombiano. La RAC 100 tiene exigencias específicas que la mayoría de plataformas globales no cubren. Te explicamos qué buscar.',
-    coverAlt:        'Software de gestión para operadores de drones en Colombia 2025',
+    coverAlt:        'Software de gestión para operadores de drones en Colombia 2026',
     body: `
 <p>El mercado de software para operadores de drones creció exponencialmente en los últimos cinco años. Hay plataformas de planificación de vuelo, análisis fotogramétrico, gestión de flotas y cumplimiento normativo. Pero si operas en Colombia, no cualquier herramienta te sirve.</p>
 
@@ -393,7 +393,7 @@ export const BLOG_POSTS = [
 </ul>
 
 <h2>¿Por qué una plataforma global no es suficiente?</h2>
-<p>Herramientas como Airdata UAV o DJI FlySafe son excelentes para lo que hacen, pero no generan el F-OPS-002, no tienen el flujo de autorizaciones de la AeroCivil colombiana, no están en español colombiano y no contemplan los roles específicos de la RAC 100 (jefe de pilotos, gerente SMS, observador).</p>
+<p>Herramientas como Airdata UAV o DJI FlightHub 2 son excelentes para lo que hacen, pero no generan el F-OPS-002, no tienen el flujo de autorizaciones de la AeroCivil colombiana, no están en español colombiano y no contemplan los roles específicos de la RAC 100 (jefe de pilotos, gerente SMS, observador).</p>
 
 <h2>Bitafly: diseñado para Colombia desde el primer día</h2>
 <p>Bitafly es la única plataforma construida específicamente para la RAC 100. No es una adaptación de un producto global: es una plataforma que nació del contacto directo con operadores UAS colombianos y con los requisitos reales de la AeroCivil.</p>
@@ -528,7 +528,7 @@ export const BLOG_POSTS = [
   {
     slug:            'bitafly-vs-airdata-uav-colombia',
     title:           'Bitafly vs AirData UAV: ¿cuál elegir para operar drones en Colombia?',
-    metaTitle:       'Bitafly vs AirData UAV Colombia 2025: Comparativa Completa',
+    metaTitle:       'Bitafly vs AirData UAV Colombia 2026: Comparativa Completa',
     metaDescription: 'Comparativa directa: Bitafly vs AirData UAV para operadores de drones en Colombia. RAC 100, idioma, precios, bitácora digital y soporte. ¿Cuál cumple la normativa colombiana?',
     publishedAt:     '2025-06-01',
     updatedAt:       '2026-06-07',
@@ -573,7 +573,7 @@ export const BLOG_POSTS = [
 
 <h3>Precio</h3>
 <p><strong>AirData UAV</strong>: Plan gratuito limitado. Plan Pro desde $11,99 USD/mes. Business desde $27,99 USD/mes. Cobrado en dólares, sin opción en pesos colombianos.</p>
-<p><strong>Bitafly</strong>: Plan gratuito por 6 meses (sin tarjeta). Planes pagos desde $15 USD/mes. Cobrado a través de Wompi en pesos colombianos a la TRM del día. Acepta PSE y tarjetas nacionales.</p>
+<p><strong>Bitafly</strong>: Plan Piloto desde $19.900 COP/mes. Cobrado a través de ePayco en pesos colombianos. Acepta PSE y tarjetas nacionales.</p>
 
 <h3>Soporte</h3>
 <p><strong>AirData UAV</strong>: Soporte en inglés vía email y comunidad. Respuesta en horas o días hábiles según el plan.</p>
@@ -607,7 +607,7 @@ export const BLOG_POSTS = [
   {
     slug:            'checklist-vuelo-drones-rac-100-colombia',
     title:           'Checklist de vuelo para drones RAC 100: todo lo que debes verificar antes de despegar',
-    metaTitle:       'Checklist Vuelo Drones RAC 100 Colombia 2025 | Bitafly',
+    metaTitle:       'Checklist Vuelo Drones RAC 100 Colombia 2026 | Bitafly',
     metaDescription: 'Checklist completo de pre-vuelo para operadores de drones en Colombia bajo la RAC 100: documentos, aeronave, batería, espacio aéreo y tripulación. Descargable.',
     publishedAt:     '2025-06-01',
     updatedAt:       '2026-06-07',
@@ -783,7 +783,7 @@ export const BLOG_POSTS = [
 
 <h2>Software de gestión de flota para Colombia</h2>
 <p>Bitafly centraliza el inventario de tu flota, suma horas de vuelo automáticamente por aeronave con cada registro en la bitácora, alerta cuando se acerca el umbral de mantenimiento (200 h o 6 meses), y genera el F-MNT-003 de baterías en PDF.</p>
-<p>El módulo de flota es ilimitado en número de aeronaves en el plan Flota y Enterprise. En el plan Escuadrilla soporta hasta 5 aeronaves.</p>
+<p>El módulo de flota es ilimitado en número de aeronaves en el plan Flota y Enterprise. En el plan Escuadrilla soporta hasta 3 aeronaves.</p>
 <p><a href="/gestion-flota-drones">Ver módulo de flota →</a></p>
 <p><a href="/mantenimiento-drones">Ver módulo de mantenimiento →</a></p>
 <p><a href="/registro">Comenzar gratis →</a></p>

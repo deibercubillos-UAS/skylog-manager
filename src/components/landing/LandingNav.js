@@ -472,10 +472,15 @@ export default function LandingNav() {
       </nav>
 
       {/* ── Mobile menu panel ── */}
+      {/* pointer-events-none + invisible cuando está cerrado: el panel interno es
+          position:absolute y escapa del recorte max-h-0/overflow-hidden, así que
+          sin esto quedaría una capa invisible captando los toques sobre la página. */}
       <div
         id="mobile-menu"
         className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out ${
-          mobileOpen ? 'max-h-[90vh] opacity-100' : 'max-h-0 opacity-0'
+          mobileOpen
+            ? 'max-h-[90vh] opacity-100 pointer-events-auto'
+            : 'max-h-0 opacity-0 pointer-events-none invisible'
         }`}
         aria-hidden={!mobileOpen}
       >

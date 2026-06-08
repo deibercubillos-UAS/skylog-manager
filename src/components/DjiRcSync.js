@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { saveHandle } from '@/lib/idbHandleStore';
+import { saveHandle, getHandle } from '@/lib/idbHandleStore';
 
 // Clave bajo la que se recuerda la carpeta FlightRecord en IndexedDB.
 const FLIGHTRECORD_KEY = 'dji-flightrecord';
@@ -223,6 +223,7 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
   const [error, setError] = useState('');
   const [results, setResults] = useState(null);
   const [isMobile, setIsMobile] = useState(isMobileProp ?? false);
+  const [savedHandle, setSavedHandle] = useState(null); // carpeta FlightRecord recordada
   const mobileInputRef = useRef(null);
 
   // Modal crear aeronave
@@ -245,6 +246,17 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
       setDevice(/iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'iphone' : 'android');
     }
   }, [isMobileProp]);
+
+  // ── Cargar la carpeta recordada al montar (solo desktop con File System API) ──
+  useEffect(() => {
+    if (isMobile) return;
+    if (typeof window === 'undefined' || !('showDirectoryPicker' in window)) return;
+    let cancelled = false;
+    getHandle(FLIGHTRECORD_KEY).then(h => {
+      if (!cancelled && h) setSavedHandle(h);
+    });
+    return () => { cancelled = true; };
+  }, [isMobile]);
 
   const isSupported =
     typeof window !== 'undefined' && 'showDirectoryPicker' in window;
@@ -345,11 +357,34 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
       // Recordar esta carpeta para futuras sincronizaciones (Fase 2).
       // Fire-and-forget: saveHandle falla en silencio, nunca rompe el import.
       saveHandle(FLIGHTRECORD_KEY, dirHandle);
+      setSavedHandle(dirHandle);
 
       await scanFlightRecordDir(dirHandle);
     } catch (err) {
       if (err.name !== 'AbortError') {
         setError('No se pudo acceder a la carpeta: ' + err.message);
+      }
+      setState('idle');
+    }
+  };
+
+  // ── Sincronización rápida con la carpeta recordada (Fase 3) ───
+  // Reutiliza el handle guardado: el clic es el gesto que permite requestPermission,
+  // así que no hay que volver a navegar la ruta.
+  const handleQuickSync = async () => {
+    if (!savedHandle) return;
+    setError('');
+    try {
+      const perm = await savedHandle.requestPermission({ mode: 'read' });
+      if (perm !== 'granted') {
+        setError('Permiso denegado para la carpeta guardada. Usa "Seleccionar carpeta FlightRecord".');
+        return;
+      }
+      setState('scanning');
+      await scanFlightRecordDir(savedHandle);
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        setError('No se pudo acceder a la carpeta guardada: ' + err.message);
       }
       setState('idle');
     }
@@ -864,14 +899,29 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
         </div>
       )}
 
+      {/* ── Sincronización rápida con carpeta recordada ────────── */}
+      {state === 'idle' && !isMobile && savedHandle && (
+        <button
+          onClick={handleQuickSync}
+          className="w-full py-5 bg-orange-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl shadow-orange-500/20 hover:bg-orange-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+        >
+          <span className="material-symbols-outlined text-sm">sync</span>
+          Sincronizar de nuevo · carpeta guardada
+        </button>
+      )}
+
       {/* ── Botón principal ────────────────────────────────────── */}
       {state === 'idle' && !isMobile && (
         <button
           onClick={handleSelectFolder}
-          className="w-full py-5 bg-navy text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl hover:bg-slate-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+          className={`w-full py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 ${
+            savedHandle
+              ? 'bg-white text-navy border border-slate-200 hover:border-slate-400'
+              : 'bg-navy text-white hover:bg-slate-700'
+          }`}
         >
           <span className="material-symbols-outlined text-sm">folder_open</span>
-          Seleccionar carpeta FlightRecord
+          {savedHandle ? 'Elegir otra carpeta' : 'Seleccionar carpeta FlightRecord'}
         </button>
       )}
 

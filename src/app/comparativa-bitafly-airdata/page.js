@@ -5,13 +5,15 @@ import SEOFooter from '@/components/seo/SEOFooter';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
 export const metadata = {
-  title: 'Bitafly vs AirData UAV: Comparativa para Operadores en Colombia | Bitafly',
-  description: 'Compara Bitafly y AirData UAV para operadores de drones en Colombia. RAC 100, idioma español, bitácora digital, precios en pesos y soporte local. ¿Cuál cumple la normativa colombiana?',
+  title: 'Bitafly vs AirData UAV: ¿cuál es mejor para operar drones en Colombia? | Bitafly',
+  description:
+    'Comparativa entre Bitafly y AirData UAV para operadores de drones en Colombia. Bitafly es nativo RAC 100, con precios en COP, soporte en español y trámites AeroCivil incluidos.',
   keywords: ['bitafly vs airdata', 'alternativa airdata colombia', 'airdata uav colombia', 'software drones colombia comparativa', 'mejor plataforma drones colombia'],
   alternates: { canonical: '/comparativa-bitafly-airdata' },
   openGraph: {
     title: 'Bitafly vs AirData UAV — Comparativa para Colombia | Bitafly',
-    description: 'AirData es el líder global. Bitafly es la opción diseñada para la RAC 100 colombiana. Compara ambas plataformas punto a punto.',
+    description:
+      'AirData es una herramienta global. Bitafly está hecho para la RAC 100 colombiana. Compara características, precios y soporte.',
     url: `${SITE_URL}/comparativa-bitafly-airdata`,
     type: 'website',
   },
@@ -21,32 +23,68 @@ const faqSchema = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
   mainEntity: [
-    { '@type': 'Question', name: '¿AirData UAV funciona con la RAC 100 colombiana?', acceptedAnswer: { '@type': 'Answer', text: 'No. AirData UAV fue diseñado para el mercado anglosajón y no genera los formatos oficiales exigidos por la AeroCivil colombiana (F-OPS-002, F-MNT-003, F-HUM-005, F-OPS-001). Tampoco gestiona el CPR colombiano ni los roles definidos en la RAC 100.' } },
-    { '@type': 'Question', name: '¿Bitafly puede importar logs de DJI como AirData?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. Bitafly importa archivos .TXT de los controladores DJI RC y RC 2 automáticamente. Los datos del vuelo (duración, altitud máxima, telemetría de batería) se pre-llenan en la bitácora sin digitar nada manualmente.' } },
-    { '@type': 'Question', name: '¿Es posible usar AirData y Bitafly al mismo tiempo?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. Algunos operadores usan AirData para análisis de telemetría y Bitafly para el cumplimiento regulatorio colombiano (bitácora oficial, mantenimiento, SMS y autorizaciones AeroCivil). Son plataformas complementarias.' } },
-    { '@type': 'Question', name: '¿Bitafly es más barato que AirData UAV?', acceptedAnswer: { '@type': 'Answer', text: 'Bitafly tiene un plan gratuito con 1 mes gratis sin tarjeta. Los planes pagos inician en $20.000 COP/mes. AirData Pro cuesta $11,99 USD/mes pero sin soporte para la normativa colombiana. Para cumplimiento RAC 100, Bitafly es la única opción funcional independientemente del precio.' } },
+    {
+      '@type': 'Question',
+      name: '¿Bitafly reemplaza completamente a AirData UAV para operadores en Colombia?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Para operadores que deben cumplir con la RAC 100 (Aerocivil / UAEAC), Bitafly ofrece funcionalidades que AirData no tiene: bitácora en formato F-OPS-002, autorizaciones de vuelo F-OPS-001, SMS aeronáutico y análisis SORA. Ambas plataformas sincronizan vuelos DJI y tienen replay GPS, pero solo Bitafly está adaptado a la normativa colombiana.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: '¿Cuánto cuesta Bitafly comparado con AirData UAV?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'El plan base de Bitafly es $20.000 COP/mes (aproximadamente USD 5), mientras que AirData UAV cobra desde USD 36/mes (~$150.000 COP). Además, Bitafly factura en pesos colombianos, eliminando la variabilidad del TRM.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: '¿Bitafly funciona con drones DJI igual que AirData?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Sí. Bitafly permite importar los archivos de registro DJI (.txt) para crear entradas de bitácora automáticamente, actualizar horas de vuelo y ciclos de baterías. Adicionalmente, ofrece replay GPS animado de las trayectorias de vuelo.',
+      },
+    },
   ],
 };
 
 const accent = '#ec5b13';
 
 const ROWS = [
-  { feature: 'Idioma de la plataforma',         bitafly: '✅ Español colombiano',         airdata: '❌ Inglés (sin ES local)' },
-  { feature: 'Bitácora F-OPS-002',              bitafly: '✅ Generación automática PDF',   airdata: '❌ No existe' },
-  { feature: 'Formato F-MNT-003 baterías',      bitafly: '✅ Generación automática PDF',   airdata: '❌ No existe' },
-  { feature: 'Formato F-HUM-005 pilotos',       bitafly: '✅ Generación automática PDF',   airdata: '❌ No existe' },
-  { feature: 'Autorización F-OPS-001 AeroCivil',bitafly: '✅ Con KML del área',            airdata: '❌ No existe' },
-  { feature: 'Importar logs DJI RC',            bitafly: '✅ Automático vía USB',          airdata: '✅ Automático' },
-  { feature: 'SMS aeronáutico',                 bitafly: '✅ Incidentes, acciones, PDF',   airdata: '❌ No existe' },
-  { feature: 'Análisis SORA',                   bitafly: '✅ GRC/ARC/SAIL asistido',       airdata: '❌ No existe' },
-  { feature: 'Roles RAC 100 (Jefe Pilotos, etc)',bitafly:'✅ 5 roles específicos RAC 100', airdata: '❌ No contempla' },
-  { feature: 'CPR con alertas de vencimiento',  bitafly: '✅ 30 y 7 días antes',           airdata: '❌ No existe' },
-  { feature: 'Pago en pesos colombianos (PSE)', bitafly: '✅ ePayco — PSE y tarjetas CO',   airdata: '❌ Solo USD/tarjeta int.' },
-  { feature: 'Soporte en español Colombia',     bitafly: '✅ WhatsApp + email UTC-5',       airdata: '❌ Email en inglés' },
-  { feature: 'Replay animado de vuelo',         bitafly: '✅ GPS + joystick + batería',    airdata: '✅ Telemetría avanzada' },
-  { feature: 'Análisis avanzado telemetría',    bitafly: '✅ Replay GPS + alertas + batería', airdata: '✅ Líder global' },
-  { feature: 'Plan gratuito',                   bitafly: '✅ 6 meses sin tarjeta',          airdata: '✅ Limitado' },
-  { feature: 'Precio base',                     bitafly: '$20.000 COP/mes',                airdata: '$11,99 USD/mes' },
+  { feature: 'Bitácora RAC 100 (F-OPS-002)',          bitafly: '✅ Nativo',                      airdata: '❌ No soporta' },
+  { feature: 'Autorizaciones AeroCivil (F-OPS-001)',   bitafly: '✅ Incluido',                    airdata: '❌ No disponible' },
+  { feature: 'SMS aeronáutico',                        bitafly: '✅ Completo',                    airdata: '❌ No disponible' },
+  { feature: 'Reportes oficiales RAC 100',             bitafly: '✅ F-OPS-002, F-MNT-003, F-HUM-005', airdata: '❌ No' },
+  { feature: 'Análisis SORA',                          bitafly: '✅ Incluido',                    airdata: '❌ No' },
+  { feature: 'Idioma',                                 bitafly: '✅ Español',                     airdata: '⚠️ Inglés' },
+  { feature: 'Precios en COP',                         bitafly: '✅ Sí',                          airdata: '❌ USD solamente' },
+  { feature: 'Soporte en español',                     bitafly: '✅ 24h',                         airdata: '❌ No' },
+  { feature: 'Sincronización DJI',                     bitafly: '✅ Sí',                          airdata: '✅ Sí' },
+  { feature: 'Replay GPS',                             bitafly: '✅ Sí',                          airdata: '✅ Sí' },
+  { feature: 'Precio base',                            bitafly: '✅ $20.000 COP/mes',             airdata: '❌ ~$150.000 COP/mes' },
+];
+
+const REASONS = [
+  {
+    icon: 'gavel',
+    title: 'RAC 100 nativo desde el primer día',
+    description:
+      'Bitafly fue diseñado específicamente para cumplir la normativa colombiana. Bitácora F-OPS-002, autorizaciones F-OPS-001, SMS aeronáutico y reportes oficiales están integrados — no son add-ons ni workarounds.',
+  },
+  {
+    icon: 'payments',
+    title: 'Precios en pesos colombianos',
+    description:
+      'Sin conversiones de moneda, sin sorpresas en la factura. Los planes de Bitafly se cobran en COP, con tarifas pensadas para el mercado colombiano. Desde $20.000 COP/mes para el piloto autónomo.',
+  },
+  {
+    icon: 'support_agent',
+    title: 'Soporte local en español',
+    description:
+      'Cuando tienes una duda sobre un trámite AeroCivil o un procedimiento RAC 100, necesitas respuestas en español y de alguien que entiende el contexto colombiano. Nuestro equipo responde en menos de 24h.',
+  },
 ];
 
 export default function ComparativaPage() {
@@ -56,123 +94,146 @@ export default function ComparativaPage() {
       <SEONav />
 
       {/* HERO */}
-      <section style={{ background: '#fff', padding: '72px 32px 60px' }}>
-        <div style={{ maxWidth: '860px', margin: '0 auto', textAlign: 'center' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'rgba(236,91,19,0.08)', border: '1px solid rgba(236,91,19,0.2)', borderRadius: '9999px', padding: '5px 14px', marginBottom: '20px' }}>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: accent }} />
-            <span style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: accent }}>Comparativa · Colombia 2025</span>
-          </div>
-          <h1 style={{ fontSize: 'clamp(32px,4vw,52px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.04em', lineHeight: 1.02, color: '#1A202C', marginBottom: '20px' }}>
-            Bitafly vs <span style={{ color: '#64748b' }}>AirData UAV</span>:<br />
-            <span style={{ color: accent }}>¿cuál elegir para Colombia?</span>
+      <section className="bg-navy text-white py-20 px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <span className="inline-block text-xs font-black uppercase tracking-widest text-orange-400 mb-4">
+            Comparativa · Colombia
+          </span>
+          <h1 className="font-lexend text-3xl md:text-5xl font-black uppercase tracking-tighter leading-tight mb-6">
+            Bitafly vs AirData UAV:<br />
+            <span className="text-orange-400">¿cuál es mejor para operar drones en Colombia?</span>
           </h1>
-          <p style={{ fontSize: '17px', color: '#64748b', lineHeight: 1.65, maxWidth: '600px', margin: '0 auto 32px' }}>
-            AirData es el líder global en gestión de drones. Bitafly es la única plataforma diseñada específicamente para la <strong>RAC 100 colombiana</strong>. Compara ambas antes de decidir.
+          <p className="text-slate-300 text-lg max-w-2xl mx-auto leading-relaxed mb-8">
+            AirData es una herramienta global. Bitafly está hecho para la{' '}
+            <strong className="text-white">RAC 100 colombiana</strong> — con los formularios,
+            trámites y normativa de Aerocivil integrados desde el primer día.
           </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/registro" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: accent, color: '#fff', padding: '14px 28px', borderRadius: '16px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', textDecoration: 'none', boxShadow: '0 8px 24px rgba(236,91,19,0.3)' }}>
-              Probar Bitafly gratis
-            </Link>
-            <Link href="/precios" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', border: '1.5px solid #e2e8f0', color: '#475569', padding: '14px 28px', borderRadius: '16px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', textDecoration: 'none' }}>
-              Ver precios
-            </Link>
-          </div>
+          <Link
+            href="/registro"
+            className="inline-flex items-center gap-2 bg-orange-500 text-white px-8 py-4 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-orange-600 transition-colors shadow-xl shadow-orange-900/30"
+          >
+            Comenzar gratis 30 días
+            <span className="material-symbols-outlined text-base">arrow_forward</span>
+          </Link>
         </div>
       </section>
 
       {/* TABLA COMPARATIVA */}
-      <section style={{ background: '#f8f6f6', padding: '64px 32px' }}>
-        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-          <p style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: accent, marginBottom: '8px', textAlign: 'center' }}>Comparativa punto a punto</p>
-          <h2 style={{ fontSize: 'clamp(24px,2.5vw,36px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.04em', color: '#1A202C', marginBottom: '32px', textAlign: 'center' }}>15 criterios clave</h2>
+      <section className="py-20 px-6 bg-[#f8f6f6]">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="text-xs font-black uppercase tracking-widest text-orange-600 mb-3">
+              Comparativa de funciones
+            </p>
+            <h2 className="font-lexend text-2xl md:text-4xl font-black uppercase tracking-tight text-navy">
+              Función a función
+            </h2>
+          </div>
 
-          <div style={{ background: '#fff', borderRadius: '20px', overflow: 'hidden', border: '1.5px solid #f1f5f9' }}>
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
             {/* Header */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', background: '#1A202C', padding: '14px 20px' }}>
-              <span style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#64748b' }}>Característica</span>
-              <span style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: accent, textAlign: 'center' }}>Bitafly</span>
-              <span style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#64748b', textAlign: 'center' }}>AirData UAV</span>
+            <div className="grid grid-cols-3 bg-navy text-white text-xs font-black uppercase tracking-widest">
+              <div className="p-5">Característica</div>
+              <div className="p-5 text-center border-l border-white/10 text-orange-400">Bitafly</div>
+              <div className="p-5 text-center border-l border-white/10 text-slate-400">AirData UAV</div>
             </div>
             {/* Rows */}
             {ROWS.map((r, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', padding: '13px 20px', borderBottom: i < ROWS.length - 1 ? '1px solid #f1f5f9' : 'none', background: i % 2 === 0 ? '#fff' : '#fafafa', alignItems: 'center' }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: '#1A202C' }}>{r.feature}</span>
-                <span style={{ fontSize: '12px', color: r.bitafly.startsWith('✅') ? '#16a34a' : r.bitafly.startsWith('❌') ? '#dc2626' : '#64748b', fontWeight: 700, textAlign: 'center' }}>{r.bitafly}</span>
-                <span style={{ fontSize: '12px', color: r.airdata.startsWith('✅') ? '#16a34a' : r.airdata.startsWith('❌') ? '#dc2626' : '#64748b', fontWeight: 700, textAlign: 'center' }}>{r.airdata}</span>
+              <div
+                key={i}
+                className={`grid grid-cols-3 border-t border-slate-100 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}
+              >
+                <div className="p-4 pl-5 flex items-center text-sm font-medium text-navy">{r.feature}</div>
+                <div className={`p-4 flex items-center justify-center text-xs font-bold border-l border-slate-100 ${r.bitafly.startsWith('✅') ? 'text-green-700' : r.bitafly.startsWith('❌') ? 'text-red-600' : 'text-slate-600'}`}>
+                  {r.bitafly}
+                </div>
+                <div className={`p-4 flex items-center justify-center text-xs font-bold border-l border-slate-100 ${r.airdata.startsWith('✅') ? 'text-green-700' : r.airdata.startsWith('❌') ? 'text-red-600' : 'text-slate-500'}`}>
+                  {r.airdata}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-xs text-slate-400 text-center mt-4">
+            Comparativa basada en funciones disponibles en junio de 2026. Precios AirData UAV convertidos con TRM referencial.
+          </p>
+        </div>
+      </section>
+
+      {/* POR QUÉ ELEGIR BITAFLY */}
+      <section className="py-20 px-6 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-14">
+            <p className="text-xs font-black uppercase tracking-widest text-orange-600 mb-3">
+              Por qué elegir Bitafly
+            </p>
+            <h2 className="font-lexend text-2xl md:text-4xl font-black uppercase tracking-tight text-navy">
+              ¿Por qué los operadores colombianos eligen Bitafly?
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {REASONS.map(reason => (
+              <article
+                key={reason.title}
+                className="bg-[#f8f6f6] rounded-3xl p-8 border border-slate-100 hover:border-orange-200 hover:shadow-md transition-all"
+              >
+                <div className="size-12 bg-orange-50 rounded-2xl flex items-center justify-center mb-5">
+                  <span className="material-symbols-outlined text-orange-500 text-2xl">{reason.icon}</span>
+                </div>
+                <h3 className="font-lexend text-base font-black uppercase tracking-tight text-navy mb-3 leading-snug">
+                  {reason.title}
+                </h3>
+                <p className="text-sm text-slate-500 leading-relaxed">{reason.description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-20 px-6 bg-[#f8f6f6]">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="text-xs font-black uppercase tracking-widest text-orange-600 mb-3">
+              Preguntas frecuentes
+            </p>
+            <h2 className="font-lexend text-2xl md:text-3xl font-black uppercase tracking-tight text-navy">
+              Resolvemos tus dudas
+            </h2>
+          </div>
+
+          <div className="space-y-4">
+            {faqSchema.mainEntity.map((q, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+                <h3 className="text-sm font-black text-navy mb-3 leading-snug">{q.name}</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">{q.acceptedAnswer.text}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* VEREDICTO */}
-      <section style={{ background: '#fff', padding: '64px 32px' }}>
-        <div style={{ maxWidth: '860px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-          <div style={{ background: 'rgba(236,91,19,0.05)', border: '1.5px solid rgba(236,91,19,0.2)', borderRadius: '20px', padding: '28px' }}>
-            <p style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: accent, marginBottom: '12px' }}>Elige Bitafly si…</p>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {[
-                'Operas comercialmente en Colombia bajo la RAC 100',
-                'Necesitas el F-OPS-002, F-MNT-003 y F-OPS-001 en PDF',
-                'Debes gestionar CPR, SMS aeronáutico y roles normativos',
-                'Quieres soporte en español colombiano y pago en COP',
-                'Estás en proceso de certificación ESUAS ante la AeroCivil',
-              ].map((t, i) => (
-                <li key={i} style={{ fontSize: '13px', color: '#475569', fontWeight: 500, paddingLeft: '20px', position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 0, color: accent, fontWeight: 900 }}>→</span> {t}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div style={{ background: '#f8f6f6', border: '1.5px solid #f1f5f9', borderRadius: '20px', padding: '28px' }}>
-            <p style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#64748b', marginBottom: '12px' }}>Elige AirData si…</p>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {[
-                'Tu operación es internacional (EE.UU., Europa, Oceanía)',
-                'Necesitas análisis avanzado de telemetría de vuelo',
-                'No tienes obligación de cumplir la RAC 100 colombiana',
-                'Tu equipo trabaja cómodamente en inglés técnico',
-                'Usas drones exóticos con logs no estándar',
-              ].map((t, i) => (
-                <li key={i} style={{ fontSize: '13px', color: '#64748b', fontWeight: 500, paddingLeft: '20px', position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 0, color: '#94a3b8', fontWeight: 900 }}>→</span> {t}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-        <p style={{ textAlign: 'center', fontSize: '13px', color: '#94a3b8', marginTop: '24px', maxWidth: '600px', margin: '24px auto 0' }}>
-          💡 Muchos operadores colombianos usan <strong>ambas plataformas</strong>: AirData para análisis de telemetría y Bitafly para el cumplimiento regulatorio.
-        </p>
-      </section>
-
-      {/* FAQ */}
-      <section style={{ background: '#f8f6f6', padding: '64px 32px' }}>
-        <div style={{ maxWidth: '720px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(22px,2.5vw,32px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.04em', color: '#1A202C', marginBottom: '32px', textAlign: 'center' }}>Preguntas frecuentes</h2>
-          {faqSchema.mainEntity.map((q, i) => (
-            <div key={i} style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '20px', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A202C', marginBottom: '8px' }}>{q.name}</h3>
-              <p style={{ fontSize: '14px', color: '#64748b', lineHeight: 1.7 }}>{q.acceptedAnswer.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* CTA FINAL */}
-      <section style={{ background: '#1A202C', padding: '72px 32px', textAlign: 'center' }}>
-        <div style={{ maxWidth: '580px', margin: '0 auto' }}>
-          <p style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: accent, marginBottom: '16px' }}>Sin tarjeta de crédito</p>
-          <h2 style={{ fontSize: 'clamp(26px,3vw,40px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.04em', color: '#fff', marginBottom: '16px' }}>
-            Prueba Bitafly 6 meses gratis
-          </h2>
-          <p style={{ fontSize: '15px', color: '#94a3b8', marginBottom: '28px', lineHeight: 1.6 }}>
-            Bitácora RAC 100, mantenimiento, SMS y autorizaciones AeroCivil. Diseñado para Colombia. Sin contratos.
+      <section className="py-20 px-6 bg-navy text-white">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-xs font-black uppercase tracking-widest text-orange-400 mb-4">
+            Pruébalo sin riesgo
           </p>
-          <Link href="/registro" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: accent, color: '#fff', padding: '16px 36px', borderRadius: '16px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', textDecoration: 'none', boxShadow: '0 8px 24px rgba(236,91,19,0.4)' }}>
-            Comenzar gratis ahora
+          <h2 className="font-lexend text-2xl md:text-4xl font-black uppercase tracking-tighter mb-5 leading-tight">
+            Comienza gratis 30 días
+          </h2>
+          <p className="text-slate-300 text-base leading-relaxed mb-8 max-w-xl mx-auto">
+            Sin tarjeta de crédito. Sin compromisos. Registra tus drones, sube tus vuelos DJI
+            y genera tu primera bitácora RAC 100 en minutos.
+          </p>
+          <Link
+            href="/registro"
+            className="inline-flex items-center gap-2 bg-orange-500 text-white px-8 py-4 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-orange-600 transition-colors shadow-xl shadow-orange-900/40"
+          >
+            Comenzar gratis 30 días
+            <span className="material-symbols-outlined text-base">arrow_forward</span>
           </Link>
-          <p style={{ fontSize: '11px', color: '#475569', marginTop: '14px' }}>¿Ya tienes cuenta? <Link href="/login" style={{ color: accent, textDecoration: 'none', fontWeight: 700 }}>Ingresar →</Link></p>
         </div>
       </section>
 

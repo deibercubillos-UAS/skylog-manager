@@ -1,5 +1,9 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
+import { saveHandle } from '@/lib/idbHandleStore';
+
+// Clave bajo la que se recuerda la carpeta FlightRecord en IndexedDB.
+const FLIGHTRECORD_KEY = 'dji-flightrecord';
 
 // Instrucciones para desktop (copiar al PC primero)
 const DEVICE_INSTRUCTIONS = {
@@ -337,6 +341,10 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
         setState('idle');
         return;
       }
+
+      // Recordar esta carpeta para futuras sincronizaciones (Fase 2).
+      // Fire-and-forget: saveHandle falla en silencio, nunca rompe el import.
+      saveHandle(FLIGHTRECORD_KEY, dirHandle);
 
       await scanFlightRecordDir(dirHandle);
     } catch (err) {

@@ -43,26 +43,37 @@ const nextConfig = {
 
   // Headers personalizados — caché agresivo en assets que nunca cambian
   async headers() {
+    // ⚠️ El caché `immutable` SOLO debe aplicarse en producción. En `next dev`
+    // los chunks de /_next/static/* (app/page.js, app/layout.js, not-found.js…)
+    // se sirven SIN hash de contenido; con `immutable, max-age=1año` el navegador
+    // los cachea para siempre. Al recompilar, webpack.js trae un `?v=` nuevo
+    // (runtime nuevo) pero los chunks de página se sirven del caché viejo →
+    // desincronización → "Cannot read properties of undefined (reading 'call')"
+    // en webpack.js + mismatch de hidratación #document. Sobrevive a `rm -rf .next`
+    // y a reiniciar el server porque el caché vive en el navegador.
+    const isProd = process.env.NODE_ENV === 'production';
+    const immutable = 'public, max-age=31536000, immutable';
+
     return [
-      {
-        // Logo, favicon y demás archivos en /public
-        source: '/(.*)\\.(png|jpg|jpeg|gif|webp|avif|ico|svg)$',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
-      },
+      ...(isProd
+        ? [
+            {
+              // Logo, favicon y demás archivos en /public
+              source: '/(.*)\\.(png|jpg|jpeg|gif|webp|avif|ico|svg)$',
+              headers: [{ key: 'Cache-Control', value: immutable }],
+            },
+            {
+              // _next/static: assets con hash en el nombre → inmutables para siempre
+              source: '/_next/static/(.*)',
+              headers: [{ key: 'Cache-Control', value: immutable }],
+            },
+          ]
+        : []),
       {
         // Robots y sitemap — caché corto para que actualizaciones lleguen rápido
         source: '/(robots.txt|sitemap.xml|manifest.webmanifest)',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=3600, s-maxage=86400' },
-        ],
-      },
-      {
-        // _next/static: assets con hash en el nombre → inmutables para siempre
-        source: '/_next/static/(.*)',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
       },
       {

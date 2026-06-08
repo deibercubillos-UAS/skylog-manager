@@ -307,15 +307,44 @@ export default function RootLayout({ children }) {
           })();
         `}</Script>
 
-        {/* Service Worker — registrar después del primer paint para no bloquear */}
-        <Script id="register-sw" strategy="afterInteractive">{`
-          if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-              navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                .catch(function(err) { console.warn('[SW] registro fallido:', err); });
-            });
-          }
-        `}</Script>
+        {/*
+          Service Worker — SOLO en producción.
+
+          En desarrollo el SW rompe el dev server: cachea /_next/static/* con
+          cache-first y / con stale-while-revalidate, pero `next dev` regenera los
+          chunks de webpack en cada compilación. El SW sirve el runtime/chunks
+          viejos → desincronización → "Cannot read properties of undefined
+          (reading 'call')" en webpack.js + mismatch de hidratación #document.
+          Como el caché vive en el navegador, sobrevive a `rm -rf .next` y a
+          reiniciar el servidor. En prod los chunks tienen hash inmutable, así que
+          cache-first es correcto.
+
+          En dev además desregistramos cualquier SW previo y limpiamos sus cachés
+          para auto-reparar navegadores que ya quedaron con el SW instalado.
+        */}
+        {process.env.NODE_ENV === 'production' ? (
+          <Script id="register-sw" strategy="afterInteractive">{`
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                  .catch(function(err) { console.warn('[SW] registro fallido:', err); });
+              });
+            }
+          `}</Script>
+        ) : (
+          <Script id="unregister-sw" strategy="afterInteractive">{`
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function(regs){
+                regs.forEach(function(r){ r.unregister(); });
+              });
+            }
+            if (window.caches && caches.keys) {
+              caches.keys().then(function(keys){
+                keys.forEach(function(k){ caches.delete(k); });
+              });
+            }
+          `}</Script>
+        )}
 
         {/* Microsoft Clarity — heatmaps + grabaciones de sesión. afterInteractive
             para no bloquear FCP/LCP. Se activa solo si NEXT_PUBLIC_CLARITY_ID existe. */}

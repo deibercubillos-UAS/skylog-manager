@@ -49,7 +49,7 @@ const MATERIAL_SYMBOLS_URL =
 export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Bitafly | Software de Gestión para Operadores de Drones en Colombia',
+    default: 'Bitafly — Software para Drones en Colombia',
     template: '%s | Bitafly',
   },
   description: 'Software para operadores UAS en Colombia. Bitácora digital RAC 100, mantenimiento de drones y baterías, SMS aeronáutico, autorizaciones AeroCivil y reportes oficiales en una sola plataforma. Prueba gratis.',
@@ -88,7 +88,7 @@ export const metadata = {
     locale: 'es_CO',
     url: SITE_URL,
     siteName: 'Bitafly',
-    title: 'Bitafly | Software de Gestión para Operadores de Drones en Colombia',
+    title: 'Bitafly — Software para Drones en Colombia',
     description: 'Bitácora digital RAC 100, mantenimiento, SMS aeronáutico y autorizaciones AeroCivil para operadores UAS en Colombia.',
     images: [
       {

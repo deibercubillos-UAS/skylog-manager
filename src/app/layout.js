@@ -145,12 +145,15 @@ export default function RootLayout({ children }) {
     <html lang="es-CO" className={`${publicSans.variable} ${lexend.variable} scroll-smooth`}>
       <head>
         {/*
-          Material Symbols auto-alojado: precarga del woff2 (mismo origen, alta
-          prioridad) para que los íconos estén listos al primer paint. crossOrigin
-          es obligatorio aun en mismo origen porque las fuentes se piden en modo CORS;
-          sin él, el navegador haría una segunda petición y el preload no contaría.
+          Material Symbols auto-alojado: precarga del woff2 (mismo origen).
+          fetchPriority="low": el font pesa ~312KB y los íconos están casi todos
+          bajo el pliegue; en prioridad alta competía por el ancho de banda en 4G
+          con la fuente del H1 (el elemento LCP), retrasando el LCP a ~4s en mobile.
+          Con prioridad baja arranca temprano pero cede el ancho de banda a los
+          recursos críticos (fuente del hero, CSS, JS). crossOrigin es obligatorio
+          aun en mismo origen porque las fuentes se piden en modo CORS.
         */}
-        <link rel="preload" href={MATERIAL_SYMBOLS_FONT} as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href={MATERIAL_SYMBOLS_FONT} as="font" type="font/woff2" crossOrigin="anonymous" fetchPriority="low" />
         <link rel="dns-prefetch" href="https://va.vercel-scripts.com" />
         <link rel="dns-prefetch" href="https://vitals.vercel-insights.com" />
         {process.env.NEXT_PUBLIC_GA_ID && <link rel="dns-prefetch" href="https://www.google-analytics.com" />}
@@ -270,8 +273,16 @@ export default function RootLayout({ children }) {
 
         {children}
 
-        {/* Google Tag Manager — afterInteractive para no bloquear FCP/LCP */}
-        <Script id="gtm" strategy="afterInteractive">{`
+        {/*
+          Google Tag Manager — lazyOnload (no afterInteractive).
+          GTM arrastra una cadena de tags (GA, LinkedIn Ads, Doubleclick, ~300KB)
+          que ejecutándose con afterInteractive competía con la hidratación y
+          bloqueaba el hilo principal: el LCP del hero quedaba en ~3.7s de "render
+          delay" puro (medido con Lighthouse). lazyOnload difiere todo eso hasta
+          que la página está inactiva (post-load), liberando la ventana crítica.
+          La analítica sigue registrando, solo se inicializa unos ms más tarde.
+        */}
+        <Script id="gtm" strategy="lazyOnload">{`
           (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
           new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
           j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
@@ -320,10 +331,10 @@ export default function RootLayout({ children }) {
           `}</Script>
         )}
 
-        {/* Microsoft Clarity — heatmaps + grabaciones de sesión. afterInteractive
-            para no bloquear FCP/LCP. Se activa solo si NEXT_PUBLIC_CLARITY_ID existe. */}
+        {/* Microsoft Clarity — heatmaps + grabaciones de sesión. lazyOnload
+            (terceros, no crítico). Se activa solo si NEXT_PUBLIC_CLARITY_ID existe. */}
         {process.env.NEXT_PUBLIC_CLARITY_ID && (
-          <Script id="ms-clarity" strategy="afterInteractive">{`
+          <Script id="ms-clarity" strategy="lazyOnload">{`
             (function(c,l,a,r,i,t,y){
               c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
               t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;

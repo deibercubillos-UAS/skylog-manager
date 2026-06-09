@@ -9,16 +9,17 @@ import AttributionTracker from '@/components/AttributionTracker';
 const publicSans = Public_Sans({
   subsets: ["latin"],
   variable: "--font-public-sans",
-  // display: "optional" en vez de "swap". Public Sans es la fuente del H1 del
-  // hero (elemento LCP en móvil). Con "swap" el H1 se pintaba en la fuente de
-  // respaldo y luego REPINTABA a Public Sans al llegar el woff2 — ese repintado
-  // tardío disparaba el LCP a 4-6s en 4G lento (medido con Lighthouse). Con
-  // "optional" el navegador da ~100ms: si la fuente está lista (caché tibia,
-  // conexión normal) usa Public Sans; si no, se queda en el respaldo para esa
-  // visita SIN repintar → el LCP = primer paint (~1.5s) y consistente.
-  // next/font iguala las métricas del respaldo (adjustFontFallback), así que
-  // CLS sigue en 0 y la diferencia visual es mínima.
+  // display:"optional" + preload:false = fuente completamente fuera de la ruta crítica.
+  // Con preload:true (default), next/font añade <link rel="preload"> y mete el
+  // woff2 (~40KB) como tercer eslabón en la cadena crítica: HTML→CSS→woff2.
+  // Eso bloquea el primer paint del H1 hasta que la fuente llega (2310ms de
+  // "render delay" medido en PageSpeed Insights). Con preload:false el navegador
+  // pinta el H1 con la fuente del sistema inmediatamente; Public Sans carga en
+  // background y en visitas con caché llega en los ~100ms que permite "optional".
+  // next/font sigue ajustando las métricas del respaldo (adjustFontFallback)
+  // para que CLS sea 0 incluso si la fuente nunca llega.
   display: "optional",
+  preload: false,
 });
 
 const lexend = Lexend({

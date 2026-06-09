@@ -58,8 +58,8 @@ const nextConfig = {
       ...(isProd
         ? [
             {
-              // Logo, favicon y demás archivos en /public
-              source: '/(.*)\\.(png|jpg|jpeg|gif|webp|avif|ico|svg)$',
+              // Logo, favicon, fuentes y demás archivos en /public
+              source: '/(.*)\\.(png|jpg|jpeg|gif|webp|avif|ico|svg|woff2|woff|ttf)$',
               headers: [{ key: 'Cache-Control', value: immutable }],
             },
             {

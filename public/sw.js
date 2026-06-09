@@ -21,6 +21,7 @@ const OFFLINE_URL   = '/offline.html';
 const PRECACHE_URLS = [
   OFFLINE_URL,
   '/dashboard',
+  '/fonts/material-symbols-outlined.woff2',
 ];
 
 // ── Install: pre-cachear el shell ──────────────────────────────────────────

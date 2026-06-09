@@ -26,25 +26,14 @@ const lexend = Lexend({
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/+$/, '');
 
 /*
- * MATERIAL SYMBOLS — ejes fijos, sin icon_names.
- *
- * El parámetro icon_names= de Google Fonts solo funciona desde browsers
- * con sesión de Google autenticada; retorna 400 desde otros contextos,
- * rompiendo la carga completa de la fuente.
- *
- * Compromiso adoptado:
- *  - Ejes fijos @24,400,0,0 (en lugar de rangos variables 20..48 / 100..700 / etc.)
- *    → fuente estática, más liviana que la variable completa (~370 KB)
- *    → todos los ~3,000 glifos disponibles, sin riesgo de íconos rotos
- *  - display=swap: muestra fallback de texto mientras carga (visible)
- *    en lugar de invisible 3 s (display=block).
- *
- * Resultado: la fuente carga correctamente en todos los navegadores
- * y contextos de red. Google la cachea en el CDN del usuario tras la
- * primera visita.
+ * MATERIAL SYMBOLS — auto-alojado en /public/fonts/material-symbols-outlined.woff2
+ * (eje estático @24,400,0,0, ~312KB, todos los glifos). Se precarga en <head> y
+ * el @font-face vive en globals.css. Antes se inyectaba la hoja de Google con
+ * afterInteractive, lo que retrasaba los íconos hasta después de la hidratación.
+ * Mismo origen + preload = carga inmediata, sin round-trips a Google, cacheable
+ * por el Service Worker para operación offline. Ver globals.css.
  */
-const MATERIAL_SYMBOLS_URL =
-  `https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap`;
+const MATERIAL_SYMBOLS_FONT = '/fonts/material-symbols-outlined.woff2';
 
 export const metadata = {
   metadataBase: new URL(SITE_URL),
@@ -156,24 +145,17 @@ export default function RootLayout({ children }) {
     <html lang="es-CO" className={`${publicSans.variable} ${lexend.variable} scroll-smooth`}>
       <head>
         {/*
-          dns-prefetch (no preconnect): la fuente se carga async con afterInteractive,
-          así que la conexión a Google Fonts no necesita estar lista antes del primer
-          paint. dns-prefetch prepara el DNS sin bloquear ni consumir sockets.
+          Material Symbols auto-alojado: precarga del woff2 (mismo origen, alta
+          prioridad) para que los íconos estén listos al primer paint. crossOrigin
+          es obligatorio aun en mismo origen porque las fuentes se piden en modo CORS;
+          sin él, el navegador haría una segunda petición y el preload no contaría.
         */}
-        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+        <link rel="preload" href={MATERIAL_SYMBOLS_FONT} as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://va.vercel-scripts.com" />
         <link rel="dns-prefetch" href="https://vitals.vercel-insights.com" />
         {process.env.NEXT_PUBLIC_GA_ID && <link rel="dns-prefetch" href="https://www.google-analytics.com" />}
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         {process.env.NEXT_PUBLIC_CLARITY_ID && <link rel="dns-prefetch" href="https://www.clarity.ms" />}
-        {/*
-          Material Symbols — carga NO bloqueante (afterInteractive).
-          <link rel="stylesheet"> externo bloqueaba FCP/LCP en Slow 4G:
-          2 round-trips a Google (CSS + font file) = ~400-600ms de retraso.
-          Ahora el font se inyecta después del primer paint: FCP/LCP inmediatos,
-          íconos aparecen ~50ms después (imperceptible). display=swap = fallback texto.
-        */}
 
         {/*
           Schema.org — inline <script> (no afterInteractive) para que Googlebot
@@ -297,15 +279,7 @@ export default function RootLayout({ children }) {
           })(window,document,'script','dataLayer','GTM-TTT98NMJ');
         `}</Script>
 
-        {/* Material Symbols — async, no bloquea FCP ni LCP */}
-        <Script id="load-material-symbols" strategy="afterInteractive">{`
-          (function(){
-            var l=document.createElement('link');
-            l.rel='stylesheet';
-            l.href='${MATERIAL_SYMBOLS_URL}';
-            document.head.appendChild(l);
-          })();
-        `}</Script>
+        {/* Material Symbols: auto-alojado y precargado en <head> (ver arriba) */}
 
         {/*
           Service Worker — SOLO en producción.

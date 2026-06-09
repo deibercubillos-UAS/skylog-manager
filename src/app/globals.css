@@ -20,16 +20,22 @@ body {
 }
 
 /*
- * Material Symbols — carga async (afterInteractive).
- * Mientras el font no está disponible, los íconos muestran el nombre como texto
- * (ej: "check_circle"). Esto es aceptable: mejora FCP/LCP -400ms en mobile
- * vs. bloquear el render completo esperando a Google Fonts.
- * display=swap en la URL asegura que el fallback sea texto visible, no invisible.
- *
- * Para ocultar el nombre del ícono mientras carga (si prefieres invisible a texto):
- *   font-size: 0 → pero hace que los íconos no ocupen espacio → layout shift.
- *   Mejor dejar display=swap y aceptar el texto momentáneo.
+ * Material Symbols — AUTO-ALOJADO (mismo origen) para carga fluida.
+ * El woff2 (~312KB, todos los glifos) vive en /public/fonts y se precarga en
+ * <head> (layout.js). Antes se inyectaba la hoja de Google con afterInteractive:
+ * el font no empezaba a cargar hasta DESPUÉS de la hidratación y mostraba el
+ * nombre del icono como texto ("check_circle") mientras llegaba — lento y feo.
+ * Mismo origen + preload = sin DNS/TLS/CORS a Google ni espera a la hidratación;
+ * el Service Worker lo cachea para uso offline. font-display: block evita el
+ * parpadeo de texto: al estar precargado y local, el bloqueo es imperceptible.
  */
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('/fonts/material-symbols-outlined.woff2') format('woff2');
+}
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined', sans-serif;
   font-weight: normal;

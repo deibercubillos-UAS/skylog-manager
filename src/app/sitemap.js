@@ -50,6 +50,7 @@ export default function sitemap() {
     { url: `${SITE_URL}/autorizaciones-aerocivil`,   lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${SITE_URL}/gestion-flota-drones`,       lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${SITE_URL}/sora`,                       lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${SITE_URL}/replay-gps-drones`,          lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${SITE_URL}/gestion-pilotos`,            lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
     { url: `${SITE_URL}/plan-vuelo-drones`,          lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
     { url: `${SITE_URL}/operadores-uas`,             lastModified: now, changeFrequency: 'monthly', priority: 0.75 },

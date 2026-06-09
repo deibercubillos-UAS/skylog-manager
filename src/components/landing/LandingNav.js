@@ -13,7 +13,8 @@ const PLATFORM_ITEMS = [
   { href: '/sms-aeronautico',        icon: 'health_and_safety',label: 'SMS Aeronáutico',     desc: 'Seguridad operacional' },
   { href: '/autorizaciones-aerocivil',icon:'approval',         label: 'Autorizaciones',      desc: 'F-OPS-001 AeroCivil' },
   { href: '/sora',                   icon: 'radar',            label: 'SORA',                desc: 'Espacio aéreo controlado' },
-  { href: '/reportes-auditoria',     icon: 'assessment',       label: 'Reportes',            desc: 'PDFs oficiales' },
+  { href: '/replay-gps-drones',      icon: 'my_location',      label: 'Replay GPS',          desc: 'Reproduce el vuelo', badge: 'Nuevo' },
+  { href: '/reportes-auditoria',     icon: 'assessment',       label: 'Reportes',            desc: 'PDFs RAC 100' },
   { href: '/gestion-pilotos',        icon: 'group',            label: 'Pilotos',             desc: 'Expediente y licencias' },
   { href: '/plan-vuelo-drones',      icon: 'map',              label: 'Plan de Vuelo',       desc: 'KMZ y polígonos' },
 ];
@@ -62,7 +63,14 @@ function MegaMenu({ onClose }) {
               {item.icon}
             </span>
             <div>
-              <p className="text-sm font-bold text-navy group-hover:text-primary transition-colors">{item.label}</p>
+              <p className="flex items-center gap-1.5 text-sm font-bold text-navy group-hover:text-primary transition-colors">
+                {item.label}
+                {item.badge && (
+                  <span className="bg-primary text-white text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-full leading-none">
+                    {item.badge}
+                  </span>
+                )}
+              </p>
               <p className="text-xs text-slate-500 mt-0.5">{item.desc}</p>
             </div>
           </Link>
@@ -72,7 +80,7 @@ function MegaMenu({ onClose }) {
       {/* Footer strip */}
       <div className="bg-slate-50 px-6 py-3 flex items-center justify-between border-t border-slate-100">
         <p className="text-xs text-slate-500">
-          <span className="font-bold text-navy">9 módulos</span> · Cumplimiento RAC 100 completo
+          <span className="font-bold text-navy">10 módulos</span> · Cumplimiento RAC 100 completo
         </p>
         <Link
           href="/rac-100"

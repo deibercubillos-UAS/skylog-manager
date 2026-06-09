@@ -791,6 +791,75 @@ export const BLOG_POSTS = [
 <p><a href="/registro">Comenzar gratis →</a></p>
 `,
   },
+
+  // ─── 11. Replay GPS de vuelo ──────────────────────────────────────────────
+  {
+    slug:            'replay-gps-analizar-vuelos-drone',
+    title:           'Cómo analizar tus vuelos con el replay GPS: reproduce la operación cuadro a cuadro',
+    metaTitle:       'Replay GPS de Vuelo para Drones: Analiza tus Operaciones | Bitafly',
+    metaDescription: 'Aprende a reproducir tus vuelos de drone cuadro a cuadro con el replay GPS: ruta, altitud, velocidad, batería y joysticks del DJI RC/RC 2. Para análisis, capacitación e investigación de incidentes.',
+    publishedAt:     '2026-06-08',
+    updatedAt:       '2026-06-08',
+    readingTime:     6,
+    category:        'Operaciones',
+    keywords:        ['replay GPS drones', 'análisis de vuelo drone', 'telemetría DJI', 'reproducción de vuelo', 'investigación de incidentes UAS', 'capacitación pilotos drone'],
+    excerpt:         'El replay GPS reconstruye tu vuelo sobre el mapa con toda la telemetría sincronizada. Es una de las herramientas más potentes para analizar la operación, capacitar pilotos e investigar incidentes. Aquí te mostramos cómo aprovecharla.',
+    coverAlt:        'Replay GPS de vuelo de drone sobre el mapa con telemetría',
+    body: `
+<p>Registrar un vuelo en la bitácora te dice <em>qué</em> voló: aeronave, piloto, duración, batería. Pero no te dice <em>cómo</em> voló. Para eso existe el <strong>replay GPS</strong>: la reproducción animada de la operación, dibujada sobre el mapa con toda la telemetría sincronizada en el tiempo.</p>
+
+<p>Es, posiblemente, la herramienta que más rápido convence a un operador de que el papel se quedó corto. En este artículo te explicamos qué reconstruye, cómo generarlo desde tu control DJI y para qué lo usan los operadores serios en Colombia.</p>
+
+<h2>¿Qué es el replay GPS de vuelo?</h2>
+<p>El replay toma el registro de telemetría que tu dron y tu control guardan durante el vuelo y lo convierte en una reproducción navegable. Puedes avanzar, pausar y retroceder la operación cuadro a cuadro y ver, en cada instante:</p>
+<ul>
+  <li><strong>La ruta GPS</strong> sobre el mapa, con el punto de despegue y la posición del dron en movimiento</li>
+  <li><strong>La altitud</strong> a la que volaba en ese momento</li>
+  <li><strong>La velocidad</strong> horizontal y la <strong>distancia</strong> acumulada</li>
+  <li><strong>El nivel de batería</strong> sincronizado con la ruta</li>
+  <li><strong>Los joysticks del control</strong> (DJI RC/RC 2): qué movimientos hizo el piloto en cada maniobra</li>
+</ul>
+<p>No es un mapa estático ni una captura: es el vuelo entero, reproducible. <a href="/replay-gps-drones">Conoce el módulo de replay GPS →</a></p>
+
+<h2>Cómo generar el replay desde tu control DJI</h2>
+<p>En Bitafly el replay se reconstruye a partir del archivo <code>.txt</code> que tu controlador DJI guarda en la carpeta <strong>FlightRecord</strong>. El procesamiento ocurre en tu propio navegador, así que no necesitas instalar ningún software de escritorio.</p>
+<ol>
+  <li><strong>Copia el registro del control.</strong> Conecta tu DJI RC o RC 2 al computador y copia la carpeta <em>FlightRecord</em> (o el archivo <code>.txt</code> del vuelo).</li>
+  <li><strong>Súbelo desde la bitácora.</strong> En el vuelo ya registrado, pulsa el botón de <em>Replay</em> y arrastra el archivo. Bitafly lo procesa en segundos.</li>
+  <li><strong>Reproduce y analiza.</strong> Usa la línea de tiempo para recorrer el vuelo y revisar cada variable en el momento exacto.</li>
+</ol>
+<p>El replay queda vinculado a su vuelo en la bitácora, de modo que tu expediente operacional —registro + reconstrucción— vive en un solo lugar.</p>
+
+<h2>Cuatro formas de sacarle provecho</h2>
+
+<h3>1. Investigación de incidentes</h3>
+<p>Cuando algo sale mal, los recuerdos del piloto no bastan. El replay reconstruye objetivamente la altura, la velocidad, el consumo de batería y las maniobras justo antes del evento. Es la base ideal para un reporte de tu <a href="/sms-aeronautico">SMS aeronáutico</a>: documentas lo que <em>realmente</em> pasó, no lo que se supone que pasó.</p>
+
+<h3>2. Capacitación de pilotos</h3>
+<p>Revisar los vuelos con el equipo, viendo los movimientos de los joysticks sobre la trayectoria real, convierte cada operación en material de entrenamiento. Se corrige técnica sobre evidencia, no sobre opiniones.</p>
+
+<h3>3. Verificación de cumplimiento</h3>
+<p>¿La operación se mantuvo dentro de la zona y la altitud autorizadas? El replay lo muestra. Antes de reportar a la AeroCivil o de cerrar un trabajo, puedes confirmar que el vuelo respetó los límites de la autorización.</p>
+
+<h3>4. Reporte al cliente</h3>
+<p>Mostrar el área efectivamente cubierta y la ejecución del vuelo con una reproducción visual transmite profesionalismo. Es un diferenciador comercial que pocas operaciones ofrecen.</p>
+
+<h2>¿Cuánto tiempo se guardan los replays?</h2>
+<p>Los replays se almacenan cifrados en la nube y se sirven con enlaces firmados temporales. La cantidad y el tiempo de retención dependen del plan:</p>
+<ul>
+  <li><strong>Piloto:</strong> 10 replays · 30 días</li>
+  <li><strong>Escuadrilla:</strong> 50 replays · 90 días</li>
+  <li><strong>Flota:</strong> 200 replays · 180 días</li>
+  <li><strong>Enterprise:</strong> ilimitados · permanente</li>
+</ul>
+<p>La limpieza de los replays vencidos es automática, así no acumulas archivos que ya no necesitas.</p>
+
+<h2>El replay empieza en la bitácora</h2>
+<p>Como el replay se vincula al vuelo registrado, todo arranca con una buena <a href="/bitacora-digital">bitácora digital</a>: registras la operación, importas el log del DJI y obtienes la reconstrucción. Registro y análisis, en el mismo flujo.</p>
+<p><a href="/replay-gps-drones">Ver el módulo de replay GPS →</a></p>
+<p><a href="/registro">Comienza gratis y reproduce tu primer vuelo →</a></p>
+`,
+  },
 ];
 
 /** Retorna un post por slug, o undefined si no existe */

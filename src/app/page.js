@@ -71,36 +71,50 @@ const FEATURES = [
     icon: 'menu_book',
     title: 'Bitácora Digital RAC 100',
     desc: 'Registra cada vuelo con todos los campos exigidos por la AeroCivil: misión, tripulación, aeronave, batería, condiciones meteorológicas, horas de despegue y aterrizaje. Suma automáticamente las horas totales del dron.',
+    href: '/bitacora-digital',
+  },
+  {
+    icon: 'my_location',
+    title: 'Replay GPS de Vuelo',
+    desc: 'Reproduce cada operación cuadro a cuadro sobre el mapa: ruta GPS, altitud, velocidad, batería y joysticks del control. Importa el log del DJI RC/RC 2 y analiza el vuelo como si estuvieras ahí.',
+    href: '/replay-gps-drones',
+    badge: 'Destacado',
   },
   {
     icon: 'build',
     title: 'Mantenimiento Programado',
     desc: 'Alertas automáticas cuando una aeronave alcanza 200 horas o 6 meses desde la última intervención. Trazabilidad completa de cada cambio de hélice, calibración y reparación.',
+    href: '/mantenimiento-drones',
   },
   {
     icon: 'battery_charging_full',
     title: 'Gestión de Baterías LiPo',
     desc: 'Control de ciclos por batería con umbral configurable (200 ciclos por defecto). Detecta inflamiento, registra eventos y previene fallos en operación crítica.',
+    href: '/mantenimiento-drones',
   },
   {
     icon: 'health_and_safety',
     title: 'SMS Aeronáutico',
     desc: 'Sistema de Gestión de Seguridad Operacional con clasificación de incidentes, narrativa, acciones correctivas y trazabilidad. Listo para auditorías de la AeroCivil.',
+    href: '/sms-aeronautico',
   },
   {
     icon: 'group',
     title: 'Tripulación y Certificados',
     desc: 'Expediente digital por tripulante: certificado médico, licencia, fechas de vencimiento y horas voladas. Alertas 30 días antes del vencimiento del médico.',
+    href: '/gestion-pilotos',
   },
   {
     icon: 'event_available',
     title: 'Autorizaciones de Vuelo',
     desc: 'Generación del formato F-OPS-001 con coordenadas, polígono de operación, póliza vigente y firma digital. Listo para radicar ante AeroCivil.',
+    href: '/autorizaciones-aerocivil',
   },
   {
     icon: 'assessment',
     title: 'Reportes RAC 100',
     desc: 'Exporta en PDF el Maestro de Vuelo, Registro de Baterías y Bitácora de Piloto con logo, tu propio código de formato y versión. Cumplimiento documental garantizado.',
+    href: '/reportes-auditoria',
   },
   {
     icon: 'admin_panel_settings',
@@ -305,20 +319,46 @@ export default function LandingPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {FEATURES.map((f) => (
-                  <article
-                    key={f.title}
-                    className="bg-white p-8 rounded-3xl border border-slate-100 hover:border-primary/30 hover:shadow-xl transition-all"
-                  >
-                    <div className="size-12 bg-orange-50 rounded-2xl flex items-center justify-center text-primary mb-5">
-                      <span className="material-symbols-outlined text-2xl">{f.icon}</span>
-                    </div>
-                    <h3 className="font-black text-navy text-base uppercase tracking-tight mb-2">
-                      {f.title}
-                    </h3>
-                    <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
-                  </article>
-                ))}
+                {FEATURES.map((f) => {
+                  const inner = (
+                    <>
+                      <div className="size-12 bg-orange-50 rounded-2xl flex items-center justify-center text-primary mb-5">
+                        <span className="material-symbols-outlined text-2xl">{f.icon}</span>
+                      </div>
+                      <h3 className="flex items-center gap-2 font-black text-navy text-base uppercase tracking-tight mb-2">
+                        {f.title}
+                        {f.badge && (
+                          <span className="bg-primary text-white text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-full leading-none">
+                            {f.badge}
+                          </span>
+                        )}
+                      </h3>
+                      <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
+                      {f.href && (
+                        <span className="inline-flex items-center gap-1 mt-4 text-xs font-black uppercase tracking-widest text-primary group-hover:gap-2 transition-all">
+                          Ver módulo
+                          <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                        </span>
+                      )}
+                    </>
+                  );
+                  return f.href ? (
+                    <Link
+                      key={f.title}
+                      href={f.href}
+                      className="group bg-white p-8 rounded-3xl border border-slate-100 hover:border-primary/30 hover:shadow-xl transition-all cursor-pointer"
+                    >
+                      {inner}
+                    </Link>
+                  ) : (
+                    <article
+                      key={f.title}
+                      className="bg-white p-8 rounded-3xl border border-slate-100 hover:border-primary/30 hover:shadow-xl transition-all"
+                    >
+                      {inner}
+                    </article>
+                  );
+                })}
               </div>
             </div>
           </section>

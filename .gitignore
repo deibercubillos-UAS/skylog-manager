@@ -44,5 +44,6 @@ next-env.d.ts
 # claude / local tooling
 .claude/
 .clone/
-docs/
+# docs/ — descomentado para versionar documentación del proyecto
+# docs/
 graphify-out/

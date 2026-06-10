@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import { getColombiaGeo } from '@/lib/colombiaGeo';
 import { GEO_TYPES, getZoneSummary, downloadFlightKMZ, generateFlightPlanPdf } from '@/lib/flightPlanDocs';
+import WeatherWidget from '@/components/WeatherWidget';
 
 const MapPickerModal = dynamic(() => import('@/components/authorizations/MapPickerModal'), {
   ssr: false,
@@ -55,6 +56,7 @@ export default function BasicForm({ pilots, drones, org, loadData }) {
     const [generatingPdf, setGeneratingPdf] = useState(false);
     const [mapCenter, setMapCenter] = useState([4.7110, -74.0721]); // Bogotá por defecto
     const [mapZoom, setMapZoom] = useState(12);
+    const [weatherCoords, setWeatherCoords] = useState(null); // [lat, lon] del municipio seleccionado
 
     // Geocodifica "Municipio, Departamento, Colombia" para centrar el mapa.
     // Usa Nominatim (OpenStreetMap), sin API key. Falla en silencio → Bogotá.
@@ -67,8 +69,11 @@ export default function BasicForm({ pilots, drones, org, loadData }) {
             });
             const data = await res.json();
             if (Array.isArray(data) && data[0]) {
-                setMapCenter([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+                const lat = parseFloat(data[0].lat);
+                const lon = parseFloat(data[0].lon);
+                setMapCenter([lat, lon]);
                 setMapZoom(13);
+                setWeatherCoords([lat, lon]);
             }
         } catch { /* mantiene el centro actual */ }
     };
@@ -244,6 +249,15 @@ export default function BasicForm({ pilots, drones, org, loadData }) {
                                 {geo.munis.map(m => <option key={m} value={m}>{m}</option>)}
                             </select>
                         </div>
+
+                        {weatherCoords && (
+                            <WeatherWidget
+                                lat={weatherCoords[0]}
+                                lon={weatherCoords[1]}
+                                label={form.municipality ? `${form.municipality}, ${form.department}` : undefined}
+                                className="col-span-full"
+                            />
+                        )}
 
                         <div className="space-y-1">
                             <label className="text-xs font-black text-slate-500 uppercase ml-1">Fecha Programada</label>

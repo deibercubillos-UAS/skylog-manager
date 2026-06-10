@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from '@/lib/toast';
+import WeatherWidget from '@/components/WeatherWidget';
 
 const MISSION_TYPES = [
     'Fotografía / Video',
@@ -370,6 +371,23 @@ export default function NewOperationPage() {
                                             <InfoBox label="Lugar" val={selectedAuth.location} />
                                         </div>
                                     )}
+
+                                    {selectedAuth && (() => {
+                                        const pts = selectedAuth.plan_data?.points;
+                                        const coord = Array.isArray(pts) && pts[0];
+                                        if (!coord) return null;
+                                        const lat = Array.isArray(coord) ? coord[0] : coord.lat;
+                                        const lon = Array.isArray(coord) ? coord[1] : coord.lng ?? coord.lon;
+                                        if (!lat || !lon) return null;
+                                        return (
+                                            <WeatherWidget
+                                                lat={lat}
+                                                lon={lon}
+                                                label={selectedAuth.location}
+                                                compact
+                                            />
+                                        );
+                                    })()}
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">

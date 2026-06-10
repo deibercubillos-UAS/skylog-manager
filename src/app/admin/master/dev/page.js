@@ -34,7 +34,6 @@ const DEFAULT_THRESHOLDS = {
   windSpeed:   25,   // km/h máximo en superficie
   windGusts:   35,   // km/h ráfagas máximas
   visibility:  5000, // metros mínimos
-  cloudcover:  80,   // % máximo
   precipitation: 0.1, // mm/h máximo
 };
 
@@ -73,8 +72,6 @@ function evaluate(current, hourly, idx, thr) {
     issues.push(`Ráfagas ${hourly.windgusts_10m[idx]} km/h (máx ${thr.windGusts})`);
   if (hourly.visibility[idx] < thr.visibility)
     issues.push(`Visibilidad ${(hourly.visibility[idx]/1000).toFixed(1)} km (mín ${thr.visibility/1000} km)`);
-  if (hourly.cloudcover[idx] > thr.cloudcover)
-    issues.push(`Nubosidad ${hourly.cloudcover[idx]}% (máx ${thr.cloudcover}%)`);
   if (hourly.precipitation[idx] > thr.precipitation)
     issues.push(`Lluvia ${hourly.precipitation[idx]} mm/h`);
   return issues;
@@ -116,12 +113,12 @@ function flightScore(current, hourly, idx, kpVal) {
   const wind    = s(100 - (current.windspeed / 25) * 100);
   const gusts   = s(100 - ((hourly.windgusts_10m?.[idx] ?? 0) / 35) * 100);
   const vis     = s(((hourly.visibility?.[idx] ?? 10000) / 10000) * 100);
-  const cloud   = s(100 - (hourly.cloudcover?.[idx] ?? 0));
   const precip  = (hourly.precipitation?.[idx] ?? 0) <= 0.1
     ? 100 : s(100 - ((hourly.precipitation[idx] - 0.1) / 2) * 100);
   const precipP = s(100 - (hourly.precipitation_probability?.[idx] ?? 0));
   const kp      = kpVal != null ? s(100 - (kpVal / 6) * 100) : 80;
-  return Math.round(wind*0.25 + gusts*0.20 + vis*0.18 + cloud*0.10 + precip*0.15 + precipP*0.07 + kp*0.05);
+  // Pesos: viento 30%, ráfagas 22%, visibilidad 22%, precipitación 16%, prob.lluvia 5%, Kp 5%
+  return Math.round(wind*0.30 + gusts*0.22 + vis*0.22 + precip*0.16 + precipP*0.05 + kp*0.05);
 }
 
 function ScoreGauge({ score }) {
@@ -546,13 +543,6 @@ function WeatherDevContent() {
                 ok={data.hourly.visibility[currentIdx] >= thr.visibility}
               />
               <MetricCard
-                icon="cloud"
-                label="Nubosidad"
-                value={data.hourly.cloudcover[currentIdx]}
-                unit="%"
-                ok={data.hourly.cloudcover[currentIdx] <= thr.cloudcover}
-              />
-              <MetricCard
                 icon="water_drop"
                 label="Precipitación"
                 value={data.hourly.precipitation[currentIdx]}
@@ -853,9 +843,8 @@ function WeatherDevContent() {
               {showThr && (
                 <div className="px-5 py-4 grid grid-cols-2 md:grid-cols-3 gap-4 bg-slate-900/40">
                   {[
-                    { key: 'windSpeed',    label: 'Viento máx (km/h)',    min: 5,  max: 60 },
-                    { key: 'windGusts',    label: 'Ráfagas máx (km/h)',   min: 5,  max: 80 },
-                    { key: 'cloudcover',   label: 'Nubosidad máx (%)',    min: 10, max: 100 },
+                    { key: 'windSpeed',  label: 'Viento máx (km/h)',  min: 5, max: 60 },
+                    { key: 'windGusts',  label: 'Ráfagas máx (km/h)', min: 5, max: 80 },
                   ].map(({ key, label, min, max }) => (
                     <div key={key}>
                       <label className="text-xs text-slate-500 font-bold uppercase tracking-widest block mb-1">

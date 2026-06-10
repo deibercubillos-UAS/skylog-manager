@@ -78,7 +78,7 @@ export async function GET(request) {
       const kpRaw = await kpRes.json();
       // kpRaw[0] = cabecera ["time_tag", "kp", "observed", "noaa_scale"]
       // kpRaw[1..] = datos, más reciente al final
-      const rows = kpRaw.slice(1).filter(r => r[1] !== null);
+      const rows = kpRaw.slice(1).filter(r => r[1] !== null && !isNaN(parseFloat(r[1])));
       if (rows.length) {
         const last = rows[rows.length - 1];
         kpCurrent = {

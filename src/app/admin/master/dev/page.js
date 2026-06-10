@@ -482,7 +482,7 @@ function WeatherDevContent() {
                 <div>
                   <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-2">Últimas 24h</p>
                   <div className="flex items-end gap-1 h-12">
-                    {data.kp.forecast.map((row, i) => {
+                    {data.kp.forecast.filter(row => row.kp != null && !isNaN(row.kp)).map((row, i) => {
                       const pct = Math.min((row.kp / 9) * 100, 100);
                       const bg = row.kp <= 3 ? 'bg-green-500' : row.kp <= 4 ? 'bg-yellow-500' : 'bg-red-500';
                       const hour = (() => { try { return new Date(row.time.replace(' ', 'T')).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false }); } catch { return ''; } })();

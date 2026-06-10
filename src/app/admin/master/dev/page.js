@@ -190,14 +190,14 @@ export default function WeatherDevPage() {
   // ── Cálculo del índice actual ─────────────────────────────────────────────
   const currentIdx = data ? (() => {
     const now = new Date();
-    const hours = data.hourly.time.map(t => new Date(t));
-    return hours.findIndex(h => h >= now) || 0;
+    const hours = (data.hourly?.time ?? []).map(t => new Date(t));
+    return Math.max(0, hours.findIndex(h => h >= now));
   })() : 0;
 
   // Índice del día actual en el array daily
   const todayIdx = data?.daily ? (() => {
     const today = new Date().toISOString().slice(0, 10);
-    return Math.max(0, data.daily.time.findIndex(t => t === today));
+    return Math.max(0, (data.daily?.time ?? []).findIndex(t => t === today));
   })() : 0;
 
   const sunrise = data?.daily?.sunrise?.[todayIdx]
@@ -421,12 +421,17 @@ export default function WeatherDevPage() {
                     <span className="material-symbols-outlined text-sm">satellite_alt</span>
                     {kpMeta.gps}
                   </p>
-                  {kp?.time && (
-                    <p className="text-xs text-slate-600 mt-1">
-                      Fuente: NOAA · {new Date(kp.time).toLocaleString('es-CO', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}
-                      {kp.status && ` · ${kp.status}`}
-                    </p>
-                  )}
+                  {kp?.time && (() => {
+                    try {
+                      const d = new Date(kp.time.replace(' ', 'T'));
+                      return (
+                        <p className="text-xs text-slate-600 mt-1">
+                          Fuente: NOAA · {d.toLocaleString('es-CO', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}
+                          {kp.status && ` · ${kp.status}`}
+                        </p>
+                      );
+                    } catch { return null; }
+                  })()}
                 </div>
               </div>
 
@@ -438,7 +443,7 @@ export default function WeatherDevPage() {
                     {data.kp.forecast.map((row, i) => {
                       const pct = Math.min((row.kp / 9) * 100, 100);
                       const bg = row.kp <= 3 ? 'bg-green-500' : row.kp <= 4 ? 'bg-yellow-500' : 'bg-red-500';
-                      const hour = new Date(row.time).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
+                      const hour = (() => { try { return new Date(row.time.replace(' ', 'T')).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false }); } catch { return ''; } })();
                       return (
                         <div key={i} className="flex-1 flex flex-col items-center gap-1" title={`${hour} — Kp ${row.kp}`}>
                           <div className="w-full flex items-end" style={{ height: '36px' }}>
@@ -451,7 +456,7 @@ export default function WeatherDevPage() {
                   </div>
                   <div className="flex justify-between mt-1">
                     <span className="text-[9px] text-slate-600">
-                      {data.kp.forecast[0]?.time ? new Date(data.kp.forecast[0].time).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false }) : ''}
+                      {data.kp.forecast[0]?.time ? (() => { try { return new Date(data.kp.forecast[0].time.replace(' ', 'T')).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false }); } catch { return ''; } })() : ''}
                     </span>
                     <span className="text-[9px] text-slate-600">Ahora</span>
                   </div>

@@ -127,17 +127,18 @@ function AltBar({ label, value, max = 60 }) {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 function WeatherDevContent() {
-  const [auth,   setAuth]   = useState('loading'); // 'loading' | 'ok' | 'denied'
-  const [coords, setCoords] = useState({ lat: 4.7110, lon: -74.0721 });
-  const [city,   setCity]   = useState('Bogotá');
-  const [search, setSearch] = useState('');
-  const [data,   setData]   = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error,  setError]  = useState('');
-  const [thr,    setThr]    = useState(DEFAULT_THRESHOLDS);
-  const [showThr, setShowThr] = useState(false);
+  const [auth,     setAuth]     = useState('loading'); // 'loading' | 'ok' | 'denied'
+  const [coords,   setCoords]   = useState({ lat: 4.7110, lon: -74.0721 });
+  const [city,     setCity]     = useState('');
+  const [geoState, setGeoState] = useState('idle'); // 'idle'|'detecting'|'done'|'denied'
+  const [search,   setSearch]   = useState('');
+  const [data,     setData]     = useState(null);
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState('');
+  const [thr,      setThr]      = useState(DEFAULT_THRESHOLDS);
+  const [showThr,  setShowThr]  = useState(false);
 
-  // ── Guard superadmin — solo verifica rol, fetchWeather se encarga de los datos ──
+  // ── Guard superadmin ───────────────────────────────────────────────────────
   useEffect(() => {
     fetch('/api/admin/master/weather-dev?lat=4.71&lon=-74.07')
       .then(r => {
@@ -147,15 +148,42 @@ function WeatherDevContent() {
       .catch(() => setAuth('denied'));
   }, []);
 
-  // ── Geolocalización ───────────────────────────────────────────────────────
+  // ── Reverse geocoding via Nominatim ───────────────────────────────────────
+  const reverseGeocode = useCallback(async (lat, lon) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10&accept-language=es`
+      );
+      const d = await res.json();
+      // Prioridad: ciudad > pueblo > municipio > estado
+      const name = d.address?.city || d.address?.town || d.address?.municipality
+        || d.address?.village || d.address?.county || d.address?.state || 'Ubicación detectada';
+      setCity(name);
+    } catch {
+      setCity('Ubicación detectada');
+    }
+  }, []);
+
+  // ── Geolocalización automática al cargar ──────────────────────────────────
   useEffect(() => {
     if (auth !== 'ok') return;
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) { setCity('Bogotá'); return; }
+    setGeoState('detecting');
     navigator.geolocation.getCurrentPosition(
-      pos => setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-      () => {} // silencioso — usa Bogotá por defecto
+      pos => {
+        const { latitude: lat, longitude: lon } = pos.coords;
+        setCoords({ lat, lon });
+        setGeoState('done');
+        reverseGeocode(lat, lon);
+      },
+      () => {
+        // Permiso denegado o timeout → usar Bogotá
+        setGeoState('denied');
+        setCity('Bogotá');
+      },
+      { timeout: 8000, maximumAge: 60000 }
     );
-  }, [auth]);
+  }, [auth, reverseGeocode]);
 
   // ── Fetch clima ───────────────────────────────────────────────────────────
   const fetchWeather = useCallback(async () => {
@@ -191,9 +219,26 @@ function WeatherDevContent() {
       const { lat, lon, display_name } = results[0];
       setCity(display_name.split(',')[0]);
       setCoords({ lat: parseFloat(lat), lon: parseFloat(lon) });
+      setSearch('');
     } catch {
       setError('Error buscando ubicación');
     }
+  };
+
+  // ── Re-detectar ubicación GPS ─────────────────────────────────────────────
+  const handleGeolocate = () => {
+    if (!navigator.geolocation) { setError('Geolocalización no disponible'); return; }
+    setGeoState('detecting');
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const { latitude: lat, longitude: lon } = pos.coords;
+        setCoords({ lat, lon });
+        setGeoState('done');
+        reverseGeocode(lat, lon);
+      },
+      () => { setGeoState('denied'); setError('Permiso de ubicación denegado'); },
+      { timeout: 8000, maximumAge: 0 } // maximumAge:0 fuerza lectura fresca
+    );
   };
 
   // ── Guards de estado ──────────────────────────────────────────────────────
@@ -291,12 +336,30 @@ function WeatherDevContent() {
           </button>
         </div>
 
+        {/* Ubicación actual */}
+        <div className="flex items-center gap-2 mb-3">
+          {geoState === 'detecting' ? (
+            <span className="flex items-center gap-1.5 text-xs text-orange-400 font-bold">
+              <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+              Detectando ubicación GPS…
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-xs text-slate-500">
+              <span className={`material-symbols-outlined text-sm ${geoState === 'done' ? 'text-green-500' : 'text-slate-600'}`}>
+                {geoState === 'done' ? 'gps_fixed' : geoState === 'denied' ? 'gps_off' : 'location_on'}
+              </span>
+              <span className="text-slate-300 font-bold">{city || 'Bogotá'}</span>
+              <span className="text-slate-600 font-mono">{coords.lat.toFixed(4)}, {coords.lon.toFixed(4)}</span>
+            </span>
+          )}
+        </div>
+
         {/* Búsqueda */}
         <form onSubmit={handleSearch} className="flex gap-2 mb-6">
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar municipio de Colombia..."
+            placeholder="Buscar municipio de Colombia…"
             className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-orange-500/60"
           />
           <button
@@ -307,12 +370,9 @@ function WeatherDevContent() {
           </button>
           <button
             type="button"
-            onClick={() => navigator.geolocation?.getCurrentPosition(
-              p => setCoords({ lat: p.coords.latitude, lon: p.coords.longitude }),
-              () => setError('Geolocalización no disponible')
-            )}
-            className="bg-slate-800 hover:bg-slate-700 px-3 py-2.5 rounded-xl transition-all"
-            title="Usar mi ubicación"
+            onClick={handleGeolocate}
+            disabled={geoState === 'detecting'}
+            className="bg-slate-800 hover:bg-slate-700 disabled:opacity-50 px-3 py-2.5 rounded-xl transition-all"
           >
             <span className="material-symbols-outlined text-base text-slate-400">my_location</span>
           </button>
@@ -355,9 +415,14 @@ function WeatherDevContent() {
                     </span>
                   )}
                 </div>
-                <p className="text-slate-400 text-sm">
-                  {city} · {coords.lat.toFixed(4)}, {coords.lon.toFixed(4)}
-                  {' · '}{data.current_weather.temperature}°C
+                <p className="text-slate-400 text-sm flex items-center gap-1.5 flex-wrap">
+                  <span className={`material-symbols-outlined text-xs ${geoState === 'done' ? 'text-green-500' : 'text-slate-500'}`}>
+                    {geoState === 'done' ? 'gps_fixed' : 'location_on'}
+                  </span>
+                  <span className="font-bold text-slate-300">{city || 'Bogotá'}</span>
+                  <span className="text-slate-600 text-xs font-mono">{coords.lat.toFixed(4)}, {coords.lon.toFixed(4)}</span>
+                  <span className="text-slate-500">·</span>
+                  <span>{data.current_weather.temperature}°C</span>
                 </p>
                 {issues.length > 0 && (
                   <ul className="mt-2 space-y-0.5">

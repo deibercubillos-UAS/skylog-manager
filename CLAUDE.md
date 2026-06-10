@@ -33,6 +33,7 @@ components/
 ├── FlightReplayModal.js ← replay GPS animado
 ├── AddMaintenancePanel.js ← drag-drop upload adjuntos
 ├── AircraftCard.js     ← overflow-hidden en imagen, NO en root (evita cortar dropdowns)
+├── WeatherWidget.js    ← widget de clima reutilizable (ver sección Módulo de Clima)
 ├── authorizations/     ← BasicForm, AerocivilForm, MapPickerModal (acepta initialCenter/initialZoom)
 └── landing/ · settings/
 
@@ -257,6 +258,54 @@ Miembro de una org ajena (se unió por NIT o invitación). `profile.subscription
 **Rutas de importación — regla crítica**: route handlers en `src/app/api/public/[feature]/[orgCode]/route.js` importan `_resolveOrg.js` con `'../../_resolveOrg'` (dos niveles). Un nivel causa build error en Vercel.
 
 **Navbars**: `/documentacion` y similares tienen `<header>` propio hardcodeado — si agregas link al nav del landing (`src/app/page.js`), replicar manualmente.
+
+---
+
+## Módulo de Clima UAV
+
+Integración de condiciones meteorológicas para decisión de vuelo, basada en Open-Meteo (gratis, sin API key) y NOAA Kp (actividad solar).
+
+### APIs
+
+| Ruta | Auth | Descripción |
+|---|---|---|
+| `GET /api/weather/current?lat=X&lon=Y` | `getOrgContext()` — todos los usuarios | Clima actual compacto: score 0-100, canFly, issues, métricas, Kp |
+| `GET /api/admin/master/weather-dev?lat=X&lon=Y` | superadmin | Sandbox completo: hourly 7d + daily 7d + Kp history/forecast |
+
+### Score de vuelo (`calcScore`)
+
+Pesos: viento 10m **30%** · ráfagas **22%** · visibilidad **22%** · precipitación **16%** · prob. lluvia **5%** · Kp **5%**  
+Umbrales (`THR`): windSpeed 25 km/h · windGusts 35 km/h · visibility 5000 m · precipitation 0.1 mm/h  
+**Nubosidad excluida** — la resolución de modelo (~10 km GFS/ECMWF) hace el dato poco confiable para puntos específicos.
+
+### `WeatherWidget` (`components/WeatherWidget.js`)
+
+Props: `{ lat, lon, label?, compact?, className? }`
+
+- `compact=false` (default): tarjeta completa — gauge SVG + semáforo + issues + 4 tiles (viento, ráfagas, visibilidad, lluvia) + footer Kp/temperatura
+- `compact=true`: badge inline APTO/NO APTO + icono clima + viento + temperatura
+
+Maneja estados loading / error / sin coordenadas (retorna null).
+
+### Integraciones
+
+- **Programación** (`components/authorizations/BasicForm.js`): al seleccionar municipio, `geocodeMunicipality()` setea `weatherCoords` con las coords de Nominatim → renderiza `<WeatherWidget>` completo debajo del selector
+- **Despacho** (`app/dashboard/logbook/new/page.js`): al seleccionar orden de vuelo, extrae `selectedAuth.plan_data?.points?.[0]` → renderiza `<WeatherWidget compact>` como badge de aptitud
+
+### Sandbox superadmin (`app/admin/master/dev`)
+
+Vista completa de desarrollo con: ScoreGauge SVG · WindCompass SVG · barras de métricas horarias · pronóstico 7 días (cards diarias) · historial Kp 24h + forecast 24h · GPS automático + reverse geocoding Nominatim · debug de hora/modelo.
+
+### NOAA Kp — gotchas
+
+- El endpoint `noaa-planetary-k-index-forecast.json` cambió de arrays `[time, kp, status]` a objetos `{time_tag, kp, observed_kp, noaa_kp}`. `parseKpRow()` maneja ambos formatos.
+- `JSON.stringify(NaN) === "null"` — filtrar con `!isNaN(kp)` antes de serializar.
+- Las horas en el JSON usan espacio en lugar de `T`: reemplazar con `.replace(' ', 'T')` antes de `new Date()`.
+
+### Open-Meteo — gotchas
+
+- `findIndex(h => h >= now)` devuelve el índice de la PRÓXIMA hora futura, no la actual. Corrección: `futureIdx > 0 ? futureIdx - 1 : 0`.
+- Las fechas hourly vienen sin sufijo de zona horaria → el navegador las interpreta como hora local (correcto con `timezone: America/Bogota`).
 
 ---
 

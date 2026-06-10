@@ -72,6 +72,16 @@ function MetricCard({ icon, label, value, unit, ok }) {
   );
 }
 
+// ── Kp index → color + descripción ──────────────────────────────────────────
+function kpInfo(kp) {
+  if (kp === null || kp === undefined) return { color: 'text-slate-400', bg: 'bg-slate-700', label: 'Sin datos', gps: 'Desconocido' };
+  if (kp <= 1)  return { color: 'text-green-400',  bg: 'bg-green-500',  label: `Kp ${kp} — Tranquilo`,          gps: 'GPS óptimo' };
+  if (kp <= 3)  return { color: 'text-green-300',  bg: 'bg-green-400',  label: `Kp ${kp} — Levemente activo`,   gps: 'GPS sin impacto' };
+  if (kp <= 4)  return { color: 'text-yellow-300', bg: 'bg-yellow-500', label: `Kp ${kp} — Activo`,             gps: 'Leve degradación GPS' };
+  if (kp <= 5)  return { color: 'text-orange-300', bg: 'bg-orange-500', label: `Kp ${kp} — Tormenta G1`,        gps: 'GPS puede fallar' };
+  return          { color: 'text-red-400',    bg: 'bg-red-500',    label: `Kp ${kp} — Tormenta G${Math.min(kp-4,5)}`, gps: 'GPS no confiable' };
+}
+
 // ── Barra de altitud (viento por altura) ──────────────────────────────────────
 function AltBar({ label, value, max = 60 }) {
   const pct = Math.min((value / max) * 100, 100);
@@ -183,6 +193,26 @@ export default function WeatherDevPage() {
     const hours = data.hourly.time.map(t => new Date(t));
     return hours.findIndex(h => h >= now) || 0;
   })() : 0;
+
+  // Índice del día actual en el array daily
+  const todayIdx = data?.daily ? (() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return Math.max(0, data.daily.time.findIndex(t => t === today));
+  })() : 0;
+
+  const sunrise = data?.daily?.sunrise?.[todayIdx]
+    ? new Date(data.daily.sunrise[todayIdx]).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })
+    : '--:--';
+  const sunset = data?.daily?.sunset?.[todayIdx]
+    ? new Date(data.daily.sunset[todayIdx]).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })
+    : '--:--';
+  const daylightHrs = data?.daily?.daylight_duration?.[todayIdx]
+    ? (data.daily.daylight_duration[todayIdx] / 3600).toFixed(1)
+    : null;
+
+  const kp = data?.kp?.current;
+  const kpVal = kp?.kp ?? null;
+  const kpMeta = kpInfo(kpVal);
 
   const issues = data
     ? evaluate(data.current_weather, data.hourly, currentIdx, thr)
@@ -346,6 +376,18 @@ export default function WeatherDevPage() {
                 value={data.hourly.temperature_2m[currentIdx]}
                 unit="°C"
               />
+              <MetricCard
+                icon="wb_twilight"
+                label="Amanecer"
+                value={sunrise}
+                unit="horas"
+              />
+              <MetricCard
+                icon="wb_sunny"
+                label="Atardecer"
+                value={sunset}
+                unit={daylightHrs ? `${daylightHrs}h luz` : 'horas'}
+              />
             </div>
 
             {/* Viento por altitud */}
@@ -357,6 +399,79 @@ export default function WeatherDevPage() {
               <AltBar label="80 m"       value={data.hourly.windspeed_80m[currentIdx]} />
               <AltBar label="120 m"      value={data.hourly.windspeed_120m[currentIdx]} />
               <AltBar label="180 m"      value={data.hourly.windspeed_180m[currentIdx]} />
+            </div>
+
+            {/* Índice Kp solar */}
+            <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3">
+              Índice Kp Solar — Impacto en GPS del Drone
+            </h2>
+            <div className="bg-slate-800/60 rounded-2xl p-5 border border-slate-700/40 mb-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl font-black border-2 ${
+                  kpVal === null ? 'border-slate-600 text-slate-400' :
+                  kpVal <= 3    ? 'border-green-600/60 text-green-300 bg-green-950/40' :
+                  kpVal <= 4    ? 'border-yellow-600/60 text-yellow-300 bg-yellow-950/40' :
+                                  'border-red-600/60 text-red-300 bg-red-950/40'
+                }`}>
+                  {kpVal !== null ? kpVal.toFixed(1) : '—'}
+                </div>
+                <div>
+                  <p className={`text-lg font-black ${kpMeta.color}`}>{kpMeta.label}</p>
+                  <p className="text-sm text-slate-400 flex items-center gap-1.5 mt-0.5">
+                    <span className="material-symbols-outlined text-sm">satellite_alt</span>
+                    {kpMeta.gps}
+                  </p>
+                  {kp?.time && (
+                    <p className="text-xs text-slate-600 mt-1">
+                      Fuente: NOAA · {new Date(kp.time).toLocaleString('es-CO', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}
+                      {kp.status && ` · ${kp.status}`}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Mini gráfica Kp últimas 24h */}
+              {data.kp.forecast?.length > 0 && (
+                <div>
+                  <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-2">Últimas 24h</p>
+                  <div className="flex items-end gap-1 h-12">
+                    {data.kp.forecast.map((row, i) => {
+                      const pct = Math.min((row.kp / 9) * 100, 100);
+                      const bg = row.kp <= 3 ? 'bg-green-500' : row.kp <= 4 ? 'bg-yellow-500' : 'bg-red-500';
+                      const hour = new Date(row.time).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
+                      return (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-1" title={`${hour} — Kp ${row.kp}`}>
+                          <div className="w-full flex items-end" style={{ height: '36px' }}>
+                            <div className={`w-full rounded-t ${bg}`} style={{ height: `${Math.max(pct, 4)}%` }} />
+                          </div>
+                          <span className="text-[9px] text-slate-600 rotate-0 leading-none">{row.kp.toFixed(0)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-[9px] text-slate-600">
+                      {data.kp.forecast[0]?.time ? new Date(data.kp.forecast[0].time).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false }) : ''}
+                    </span>
+                    <span className="text-[9px] text-slate-600">Ahora</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Escala referencia */}
+              <div className="mt-4 grid grid-cols-4 gap-2">
+                {[
+                  { range: '0–3', label: 'Tranquilo', color: 'bg-green-500' },
+                  { range: '4',   label: 'Activo',    color: 'bg-yellow-500' },
+                  { range: '5',   label: 'G1 Storm',  color: 'bg-orange-500' },
+                  { range: '6+',  label: 'G2+ Storm', color: 'bg-red-500' },
+                ].map(s => (
+                  <div key={s.range} className="flex items-center gap-1.5">
+                    <div className={`w-2.5 h-2.5 rounded-full ${s.color} flex-shrink-0`} />
+                    <span className="text-[10px] text-slate-400"><span className="font-bold">{s.range}</span> {s.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Timeline próximas 12h */}

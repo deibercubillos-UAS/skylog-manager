@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 // GET /api/admin/master/weather-dev?lat=4.71&lon=-74.07
-// Proxy hacia Open-Meteo con cache 30 min — solo superadmin
+// Proxy hacia Open-Meteo + NOAA Kp — solo superadmin
 export async function GET(request) {
   try {
     const supabase = await createClientSSR();
@@ -30,8 +30,7 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Coordenadas inválidas' }, { status: 400 });
     }
 
-    // Open-Meteo — gratuito, sin API key, datos GFS/ECMWF
-    // windspeed_10m/80m/120m/180m = viento a distintas altitudes (como UAV Forecast)
+    // ── Open-Meteo (hourly + daily para sunrise/sunset) ───────────────────────
     const url = new URL('https://api.open-meteo.com/v1/forecast');
     url.searchParams.set('latitude', lat);
     url.searchParams.set('longitude', lon);
@@ -51,21 +50,56 @@ export async function GET(request) {
       'windgusts_10m',
       'weathercode',
     ].join(','));
+    // daily: amanecer y atardecer para los próximos 7 días
+    url.searchParams.set('daily', 'sunrise,sunset,daylight_duration');
     url.searchParams.set('current_weather', 'true');
     url.searchParams.set('forecast_days', '7');
     url.searchParams.set('timezone', 'America/Bogota');
     url.searchParams.set('windspeed_unit', 'kmh');
 
-    const res = await fetch(url.toString(), {
-      next: { revalidate: 1800 }, // cache 30 min en servidor
-    });
+    // ── NOAA Kp index (actividad solar) ───────────────────────────────────────
+    // Endpoint público NOAA — sin API key — actualizado cada 15 min
+    // Formato: [[datetime, Kp, observed/estimated/predicted, noaa_scale], ...]
+    const [weatherRes, kpRes] = await Promise.all([
+      fetch(url.toString(), { next: { revalidate: 1800 } }),
+      fetch('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json', {
+        next: { revalidate: 900 }, // cache 15 min — NOAA actualiza cada 15 min
+      }),
+    ]);
 
-    if (!res.ok) {
-      throw new Error(`Open-Meteo respondió ${res.status}`);
+    if (!weatherRes.ok) throw new Error(`Open-Meteo respondió ${weatherRes.status}`);
+
+    const weatherData = await weatherRes.json();
+
+    // Parsear Kp: el array tiene cabecera como primera fila, luego datos
+    let kpCurrent = null;
+    let kpForecast = [];
+    if (kpRes.ok) {
+      const kpRaw = await kpRes.json();
+      // kpRaw[0] = cabecera ["time_tag", "kp", "observed", "noaa_scale"]
+      // kpRaw[1..] = datos, más reciente al final
+      const rows = kpRaw.slice(1).filter(r => r[1] !== null);
+      if (rows.length) {
+        const last = rows[rows.length - 1];
+        kpCurrent = {
+          time: last[0],
+          kp: parseFloat(last[1]),
+          status: last[2], // 'observed' | 'estimated' | 'predicted'
+          scale: last[3],  // 'G0'-'G5' o null
+        };
+        // Últimas 8 lecturas para mini-gráfica (3h cada una = 24h)
+        kpForecast = rows.slice(-8).map(r => ({
+          time: r[0],
+          kp: parseFloat(r[1]),
+          status: r[2],
+        }));
+      }
     }
 
-    const data = await res.json();
-    return NextResponse.json(data);
+    return NextResponse.json({
+      ...weatherData,
+      kp: { current: kpCurrent, forecast: kpForecast },
+    });
   } catch (err) {
     console.error('[weather-dev]', err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });

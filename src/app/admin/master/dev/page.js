@@ -431,7 +431,7 @@ export default function WeatherDevPage() {
               </div>
 
               {/* Mini gráfica Kp últimas 24h */}
-              {data.kp.forecast?.length > 0 && (
+              {data?.kp?.forecast?.length > 0 && (
                 <div>
                   <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-2">Últimas 24h</p>
                   <div className="flex items-end gap-1 h-12">

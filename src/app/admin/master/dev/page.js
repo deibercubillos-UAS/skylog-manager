@@ -259,10 +259,15 @@ function WeatherDevContent() {
   );
 
   // ── Cálculo del índice actual ─────────────────────────────────────────────
+  // findIndex(h >= now) devuelve la hora FUTURA más próxima (ej. 15:00 a las 14:35).
+  // Lo correcto es la última hora PASADA (14:00 a las 14:35) → futureIdx - 1.
   const currentIdx = data ? (() => {
     const now = new Date();
     const hours = (data.hourly?.time ?? []).map(t => new Date(t));
-    return Math.max(0, hours.findIndex(h => h >= now));
+    const futureIdx = hours.findIndex(h => h > now);
+    if (futureIdx > 0) return futureIdx - 1;
+    if (futureIdx === 0) return 0;
+    return Math.max(0, hours.length - 1); // todas pasadas → última
   })() : 0;
 
   // Índice del día actual en el array daily
@@ -438,9 +443,17 @@ function WeatherDevContent() {
             </div>
 
             {/* Métricas actuales */}
-            <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3">
-              Condiciones Actuales
-            </h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xs font-black uppercase tracking-widest text-slate-500">
+                Condiciones Actuales
+              </h2>
+              {data?.hourly?.time?.[currentIdx] && (
+                <span className="text-[10px] text-slate-600 font-mono">
+                  datos de las {new Date(data.hourly.time[currentIdx]).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })}h
+                  {' · '}modelo GFS/ECMWF ~10 km
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
               <MetricCard
                 icon="air"

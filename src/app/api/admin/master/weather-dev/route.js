@@ -58,12 +58,15 @@ export async function GET(request) {
     url.searchParams.set('windspeed_unit', 'kmh');
 
     // ── NOAA Kp index (actividad solar) ───────────────────────────────────────
-    // Endpoint público NOAA — sin API key — actualizado cada 15 min
-    // Formato: [[datetime, Kp, observed/estimated/predicted, noaa_scale], ...]
+    // forecast endpoint: observado (7d pasados) + estimado + predicho (3d futuros)
+    // NOAA cambió el formato de arrays a objetos con keys nombrados:
+    //   {time_tag, kp, observed_kp, noaa_kp}  ← forecast endpoint
+    //   {time_tag, Kp, a_running, station_count} ← historical endpoint
+    // Usamos el forecast porque incluye predicciones de los próximos 3 días.
     const [weatherRes, kpRes] = await Promise.all([
       fetch(url.toString(), { next: { revalidate: 1800 } }),
-      fetch('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json', {
-        next: { revalidate: 900 }, // cache 15 min — NOAA actualiza cada 15 min
+      fetch('https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json', {
+        next: { revalidate: 900 },
       }),
     ]);
 
@@ -71,34 +74,47 @@ export async function GET(request) {
 
     const weatherData = await weatherRes.json();
 
-    // Parsear Kp: el array tiene cabecera como primera fila, luego datos
+    // Parsear Kp — soporta tanto arrays (formato viejo) como objetos (formato nuevo)
+    function parseKpRow(r) {
+      if (Array.isArray(r)) {
+        // formato array: [time_tag, kp, status, noaa_scale]
+        const kp = parseFloat(r[1]);
+        return isNaN(kp) ? null : { time: r[0], kp, status: r[2] ?? null };
+      }
+      // formato objeto: {time_tag, kp, observed_kp, noaa_kp}
+      const kp = parseFloat(r.kp ?? r.Kp);
+      if (isNaN(kp)) return null;
+      const status = r.observed_kp ?? (r.noaa_kp ? 'predicted' : 'observed');
+      return { time: r.time_tag, kp, status };
+    }
+
     let kpCurrent = null;
-    let kpForecast = [];
+    let kpHistory = [];   // últimas 8 lecturas (24h observadas)
+    let kpForecast = [];  // próximas 8 lecturas (24h predichas)
+
     if (kpRes.ok) {
       const kpRaw = await kpRes.json();
-      // kpRaw[0] = cabecera ["time_tag", "kp", "observed", "noaa_scale"]
-      // kpRaw[1..] = datos, más reciente al final
-      const rows = kpRaw.slice(1).filter(r => r[1] !== null && !isNaN(parseFloat(r[1])));
-      if (rows.length) {
-        const last = rows[rows.length - 1];
-        kpCurrent = {
-          time: last[0],
-          kp: parseFloat(last[1]),
-          status: last[2], // 'observed' | 'estimated' | 'predicted'
-          scale: last[3],  // 'G0'-'G5' o null
-        };
-        // Últimas 8 lecturas para mini-gráfica (3h cada una = 24h)
-        kpForecast = rows.slice(-8).map(r => ({
-          time: r[0],
-          kp: parseFloat(r[1]),
-          status: r[2],
-        }));
+      // Si el primer elemento es cabecera (array de strings), descartarlo
+      const rows = (Array.isArray(kpRaw[0]) && typeof kpRaw[0][0] === 'string' && isNaN(parseFloat(kpRaw[0][1])))
+        ? kpRaw.slice(1)
+        : kpRaw;
+
+      const parsed = rows.map(parseKpRow).filter(Boolean);
+      const now = new Date();
+
+      const past   = parsed.filter(r => new Date(r.time.replace(' ', 'T')) <= now);
+      const future = parsed.filter(r => new Date(r.time.replace(' ', 'T')) >  now);
+
+      if (past.length) {
+        kpCurrent = past[past.length - 1];
+        kpHistory = past.slice(-8); // últimas 24h observadas
       }
+      kpForecast = future.slice(0, 8); // próximas 24h predichas
     }
 
     return NextResponse.json({
       ...weatherData,
-      kp: { current: kpCurrent, forecast: kpForecast },
+      kp: { current: kpCurrent, history: kpHistory, forecast: kpForecast },
     });
   } catch (err) {
     console.error('[weather-dev]', err.message);

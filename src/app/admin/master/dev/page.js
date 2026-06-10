@@ -477,33 +477,57 @@ function WeatherDevContent() {
                 </div>
               </div>
 
-              {/* Mini gráfica Kp últimas 24h */}
-              {data?.kp?.forecast?.length > 0 && (
-                <div>
-                  <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-2">Últimas 24h</p>
-                  <div className="flex items-end gap-1 h-12">
-                    {data.kp.forecast.filter(row => row.kp != null && !isNaN(row.kp)).map((row, i) => {
-                      const pct = Math.min((row.kp / 9) * 100, 100);
-                      const bg = row.kp <= 3 ? 'bg-green-500' : row.kp <= 4 ? 'bg-yellow-500' : 'bg-red-500';
-                      const hour = (() => { try { return new Date(row.time.replace(' ', 'T')).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false }); } catch { return ''; } })();
-                      return (
-                        <div key={i} className="flex-1 flex flex-col items-center gap-1" title={`${hour} — Kp ${row.kp}`}>
-                          <div className="w-full flex items-end" style={{ height: '36px' }}>
-                            <div className={`w-full rounded-t ${bg}`} style={{ height: `${Math.max(pct, 4)}%` }} />
-                          </div>
-                          <span className="text-[9px] text-slate-600 rotate-0 leading-none">{row.kp.toFixed(0)}</span>
+              {/* Mini gráficas Kp: 24h pasadas + 24h predichas */}
+              {(() => {
+                const history  = (data?.kp?.history  ?? []).filter(r => r.kp != null && !isNaN(r.kp));
+                const forecast = (data?.kp?.forecast ?? []).filter(r => r.kp != null && !isNaN(r.kp));
+                if (!history.length && !forecast.length) return null;
+                const fmtHour = t => { try { return new Date(String(t).replace(' ', 'T')).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false }); } catch { return ''; } };
+                const renderBar = (row, i, badge) => {
+                  const pct = Math.min((row.kp / 9) * 100, 100);
+                  const bg = row.kp <= 3 ? 'bg-green-500' : row.kp <= 4 ? 'bg-yellow-500' : 'bg-red-500';
+                  const opacity = badge === 'pred' ? 'opacity-60' : '';
+                  return (
+                    <div key={i} className={`flex-1 flex flex-col items-center gap-1 ${opacity}`} title={`${fmtHour(row.time)} — Kp ${row.kp.toFixed(2)} (${row.status ?? badge})`}>
+                      <div className="w-full flex items-end" style={{ height: '36px' }}>
+                        <div className={`w-full rounded-t ${bg} ${badge === 'pred' ? 'border border-dashed border-white/20' : ''}`} style={{ height: `${Math.max(pct, 4)}%` }} />
+                      </div>
+                      <span className="text-[9px] text-slate-600 leading-none">{row.kp.toFixed(0)}</span>
+                    </div>
+                  );
+                };
+                return (
+                  <div className="space-y-3">
+                    {history.length > 0 && (
+                      <div>
+                        <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-2">Últimas 24h — observado</p>
+                        <div className="flex items-end gap-1 h-12">
+                          {history.map((row, i) => renderBar(row, i, 'obs'))}
                         </div>
-                      );
-                    })}
+                        <div className="flex justify-between mt-1">
+                          <span className="text-[9px] text-slate-600">{fmtHour(history[0]?.time)}</span>
+                          <span className="text-[9px] text-slate-600">Ahora</span>
+                        </div>
+                      </div>
+                    )}
+                    {forecast.length > 0 && (
+                      <div>
+                        <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                          Próximas 24h — predicción NOAA
+                          <span className="text-[9px] font-normal text-slate-600 normal-case tracking-normal">(barras semitransparentes)</span>
+                        </p>
+                        <div className="flex items-end gap-1 h-12">
+                          {forecast.map((row, i) => renderBar(row, i, 'pred'))}
+                        </div>
+                        <div className="flex justify-between mt-1">
+                          <span className="text-[9px] text-slate-600">{fmtHour(forecast[0]?.time)}</span>
+                          <span className="text-[9px] text-slate-600">{fmtHour(forecast[forecast.length - 1]?.time)}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex justify-between mt-1">
-                    <span className="text-[9px] text-slate-600">
-                      {data.kp.forecast[0]?.time ? (() => { try { return new Date(data.kp.forecast[0].time.replace(' ', 'T')).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false }); } catch { return ''; } })() : ''}
-                    </span>
-                    <span className="text-[9px] text-slate-600">Ahora</span>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Escala referencia */}
               <div className="mt-4 grid grid-cols-4 gap-2">

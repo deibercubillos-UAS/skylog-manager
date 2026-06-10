@@ -1,5 +1,33 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Component } from 'react';
+
+// ── Error boundary — captura el crash y lo muestra en pantalla ────────────────
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(e) { return { error: e }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-8">
+          <div className="max-w-2xl w-full">
+            <span className="material-symbols-outlined text-5xl text-red-500 block mb-3">bug_report</span>
+            <p className="text-red-400 font-black text-lg mb-2">Error capturado:</p>
+            <pre className="bg-slate-800 text-red-300 text-xs p-4 rounded-xl overflow-auto whitespace-pre-wrap break-all border border-red-800/40">
+              {this.state.error?.message}{'\n\n'}{this.state.error?.stack}
+            </pre>
+            <button
+              onClick={() => this.setState({ error: null })}
+              className="mt-4 bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest text-white transition-all"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ── Umbrales RAC 100 por defecto ──────────────────────────────────────────────
 const DEFAULT_THRESHOLDS = {
@@ -98,7 +126,7 @@ function AltBar({ label, value, max = 60 }) {
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
-export default function WeatherDevPage() {
+function WeatherDevContent() {
   const [auth,   setAuth]   = useState('loading'); // 'loading' | 'ok' | 'denied'
   const [coords, setCoords] = useState({ lat: 4.7110, lon: -74.0721 });
   const [city,   setCity]   = useState('Bogotá');
@@ -600,5 +628,13 @@ export default function WeatherDevPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function WeatherDevPage() {
+  return (
+    <ErrorBoundary>
+      <WeatherDevContent />
+    </ErrorBoundary>
   );
 }

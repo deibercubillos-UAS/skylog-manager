@@ -109,15 +109,13 @@ export default function WeatherDevPage() {
   const [thr,    setThr]    = useState(DEFAULT_THRESHOLDS);
   const [showThr, setShowThr] = useState(false);
 
-  // ── Guard superadmin ──────────────────────────────────────────────────────
+  // ── Guard superadmin — solo verifica rol, fetchWeather se encarga de los datos ──
   useEffect(() => {
     fetch('/api/admin/master/weather-dev?lat=4.71&lon=-74.07')
       .then(r => {
-        if (r.status === 403 || r.status === 401) { setAuth('denied'); return null; }
-        setAuth('ok');
-        return r.json();
+        if (r.status === 403 || r.status === 401) setAuth('denied');
+        else setAuth('ok');
       })
-      .then(d => { if (d) setData(d); })
       .catch(() => setAuth('denied'));
   }, []);
 
@@ -217,6 +215,22 @@ export default function WeatherDevPage() {
   const issues = data
     ? evaluate(data.current_weather, data.hourly, currentIdx, thr)
     : [];
+
+  // Si data llegó sin la estructura esperada (ej. respuesta de error), ignorar
+  if (data && (!data.current_weather || !data.hourly)) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <span className="material-symbols-outlined text-5xl text-orange-500">cloud_off</span>
+          <p className="text-white font-black mt-3">Error cargando datos</p>
+          <p className="text-slate-500 text-sm mt-1">{data.error || 'Respuesta inesperada de la API'}</p>
+          <button onClick={fetchWeather} className="mt-4 bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest text-white transition-all">
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const canFly = data && issues.length === 0;
   const wmo = data ? getWmo(data.current_weather.weathercode) : null;

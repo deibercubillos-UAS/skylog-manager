@@ -50,8 +50,14 @@ export async function GET(request) {
       'windgusts_10m',
       'weathercode',
     ].join(','));
-    // daily: amanecer y atardecer para los próximos 7 días
-    url.searchParams.set('daily', 'sunrise,sunset,daylight_duration');
+    // daily: resumen por día para vista semanal
+    url.searchParams.set('daily', [
+      'sunrise', 'sunset', 'daylight_duration',
+      'weather_code',
+      'temperature_2m_max', 'temperature_2m_min',
+      'wind_speed_10m_max', 'wind_gusts_10m_max',
+      'precipitation_sum', 'precipitation_probability_max',
+    ].join(','));
     url.searchParams.set('current_weather', 'true');
     url.searchParams.set('forecast_days', '7');
     url.searchParams.set('timezone', 'America/Bogota');

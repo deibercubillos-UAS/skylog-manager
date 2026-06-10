@@ -110,8 +110,72 @@ function kpInfo(kp) {
   return          { color: 'text-red-400',    bg: 'bg-red-500',    label: `Kp ${kp} — Tormenta G${Math.min(kp-4,5)}`, gps: 'GPS no confiable' };
 }
 
+// ── Índice de vuelo 0-100 ────────────────────────────────────────────────────
+function flightScore(current, hourly, idx, kpVal) {
+  const s = v => Math.max(0, Math.min(100, v));
+  const wind    = s(100 - (current.windspeed / 25) * 100);
+  const gusts   = s(100 - ((hourly.windgusts_10m?.[idx] ?? 0) / 35) * 100);
+  const vis     = s(((hourly.visibility?.[idx] ?? 10000) / 10000) * 100);
+  const cloud   = s(100 - (hourly.cloudcover?.[idx] ?? 0));
+  const precip  = (hourly.precipitation?.[idx] ?? 0) <= 0.1
+    ? 100 : s(100 - ((hourly.precipitation[idx] - 0.1) / 2) * 100);
+  const precipP = s(100 - (hourly.precipitation_probability?.[idx] ?? 0));
+  const kp      = kpVal != null ? s(100 - (kpVal / 6) * 100) : 80;
+  return Math.round(wind*0.25 + gusts*0.20 + vis*0.18 + cloud*0.10 + precip*0.15 + precipP*0.07 + kp*0.05);
+}
+
+function ScoreGauge({ score }) {
+  const R = 40, C = 2 * Math.PI * R;
+  const fill = C * (score / 100);
+  const color = score >= 80 ? '#22c55e' : score >= 60 ? '#84cc16' : score >= 40 ? '#eab308' : '#ef4444';
+  const label = score >= 80 ? 'Excelente' : score >= 60 ? 'Aceptable' : score >= 40 ? 'Precaución' : 'No volar';
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <svg width="100" height="100" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r={R} fill="none" stroke="#1e293b" strokeWidth="10" />
+        <circle cx="50" cy="50" r={R} fill="none" stroke={color} strokeWidth="10"
+          strokeDasharray={`${fill} ${C - fill}`}
+          strokeDashoffset={C / 4}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dasharray 0.6s ease' }}
+        />
+        <text x="50" y="46" textAnchor="middle" fill="white" fontSize="20" fontWeight="900">{score}</text>
+        <text x="50" y="60" textAnchor="middle" fill="#64748b" fontSize="9" fontWeight="700">/100</text>
+      </svg>
+      <span className="text-xs font-black uppercase tracking-widest" style={{ color }}>{label}</span>
+    </div>
+  );
+}
+
+// ── Brújula de dirección del viento ──────────────────────────────────────────
+const CARDINALS = ['N','NE','E','SE','S','SO','O','NO'];
+function WindCompass({ degrees, speed }) {
+  const cardinal = CARDINALS[Math.round(((degrees ?? 0) % 360) / 45) % 8];
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="relative w-10 h-10">
+        <svg viewBox="0 0 40 40" width="40" height="40">
+          <circle cx="20" cy="20" r="18" fill="#1e293b" stroke="#334155" strokeWidth="1.5"/>
+          {/* Puntos cardinales pequeños */}
+          {[0,90,180,270].map(a => {
+            const rad = (a - 90) * Math.PI / 180;
+            return <circle key={a} cx={20 + 13*Math.cos(rad)} cy={20 + 13*Math.sin(rad)} r="1.5" fill="#475569" />;
+          })}
+          {/* Flecha — apunta hacia donde va el viento (from + 180) */}
+          <g transform={`rotate(${(degrees ?? 0) + 180} 20 20)`}>
+            <polygon points="20,5 23,22 20,19 17,22" fill="#f97316" />
+            <polygon points="20,35 23,18 20,21 17,18" fill="#475569" />
+          </g>
+        </svg>
+      </div>
+      <span className="text-xs font-black text-white">{cardinal}</span>
+      <span className="text-[10px] text-slate-500">{degrees ?? '--'}°</span>
+    </div>
+  );
+}
+
 // ── Barra de altitud (viento por altura) ──────────────────────────────────────
-function AltBar({ label, value, max = 60 }) {
+function AltBar({ label, value, dir, max = 60 }) {
   const pct = Math.min((value / max) * 100, 100);
   const color = value > 35 ? 'bg-red-500' : value > 20 ? 'bg-yellow-500' : 'bg-green-500';
   return (
@@ -120,7 +184,12 @@ function AltBar({ label, value, max = 60 }) {
       <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-xs font-bold text-white w-16">{value} km/h</span>
+      <span className="text-xs font-bold text-white w-14">{value} km/h</span>
+      {dir != null && (
+        <span className="text-[10px] text-slate-500 w-6 text-right">
+          {CARDINALS[Math.round((dir % 360) / 45) % 8]}
+        </span>
+      )}
     </div>
   );
 }
@@ -294,6 +363,10 @@ function WeatherDevContent() {
     ? evaluate(data.current_weather, data.hourly, currentIdx, thr)
     : [];
 
+  const score = data
+    ? flightScore(data.current_weather, data.hourly, currentIdx, kpVal)
+    : null;
+
   // Si data llegó sin la estructura esperada (ej. respuesta de error), ignorar
   if (data && (!data.current_weather || !data.hourly)) {
     return (
@@ -326,7 +399,7 @@ function WeatherDevContent() {
               Módulo Clima UAV
             </h1>
             <p className="text-slate-500 text-xs font-bold uppercase mt-0.5">
-              Fase 1 · Solo superadmin · No afecta producción
+              Fase 2 · Solo superadmin · No afecta producción
             </p>
           </div>
           <button
@@ -403,11 +476,7 @@ function WeatherDevContent() {
                 ? 'bg-green-950/50 border-green-600/60'
                 : 'bg-red-950/50 border-red-600/60'
             }`}>
-              <span className={`material-symbols-outlined text-6xl ${
-                canFly ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {canFly ? 'check_circle' : 'cancel'}
-              </span>
+              {score !== null && <ScoreGauge score={score} />}
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-1">
                   <span className={`text-2xl font-black ${canFly ? 'text-green-300' : 'text-red-300'}`}>
@@ -497,6 +566,19 @@ function WeatherDevContent() {
                 unit="°C"
               />
               <MetricCard
+                icon="humidity_percentage"
+                label="Humedad"
+                value={data.hourly.relativehumidity_2m?.[currentIdx] ?? '--'}
+                unit="%"
+              />
+              <MetricCard
+                icon="rainy"
+                label="Prob. lluvia"
+                value={data.hourly.precipitation_probability?.[currentIdx] ?? '--'}
+                unit="%"
+                ok={(data.hourly.precipitation_probability?.[currentIdx] ?? 0) < 30}
+              />
+              <MetricCard
                 icon="wb_twilight"
                 label="Amanecer"
                 value={sunrise}
@@ -510,15 +592,47 @@ function WeatherDevContent() {
               />
             </div>
 
+            {/* Dirección del viento */}
+            <div className="bg-slate-800/60 rounded-2xl p-5 border border-slate-700/40 mb-6">
+              <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">
+                Dirección del Viento
+              </h2>
+              <div className="flex items-center gap-8">
+                <WindCompass
+                  degrees={data.current_weather.winddirection}
+                  speed={data.current_weather.windspeed}
+                />
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-400">Superficie (10 m)</span>
+                    <span className="font-black text-white">
+                      {CARDINALS[Math.round(((data.hourly.winddirection_10m?.[currentIdx] ?? 0) % 360) / 45) % 8]}
+                      {' · '}{data.hourly.winddirection_10m?.[currentIdx] ?? '--'}°
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-400">Altura (80 m)</span>
+                    <span className="font-black text-white">
+                      {CARDINALS[Math.round(((data.hourly.winddirection_80m?.[currentIdx] ?? 0) % 360) / 45) % 8]}
+                      {' · '}{data.hourly.winddirection_80m?.[currentIdx] ?? '--'}°
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-600 mt-1">
+                    La flecha naranja indica hacia dónde sopla el viento
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Viento por altitud */}
             <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3">
-              Viento por Altitud (como UAV Forecast)
+              Viento por Altitud
             </h2>
             <div className="bg-slate-800/60 rounded-2xl p-5 border border-slate-700/40 mb-6 space-y-3">
-              <AltBar label="10 m (SFC)" value={data.hourly.windspeed_10m[currentIdx]} />
-              <AltBar label="80 m"       value={data.hourly.windspeed_80m[currentIdx]} />
-              <AltBar label="120 m"      value={data.hourly.windspeed_120m[currentIdx]} />
-              <AltBar label="180 m"      value={data.hourly.windspeed_180m[currentIdx]} />
+              <AltBar label="10 m (SFC)" value={data.hourly.windspeed_10m?.[currentIdx] ?? 0}  dir={data.hourly.winddirection_10m?.[currentIdx]} />
+              <AltBar label="80 m"       value={data.hourly.windspeed_80m?.[currentIdx] ?? 0}  dir={data.hourly.winddirection_80m?.[currentIdx]} />
+              <AltBar label="120 m"      value={data.hourly.windspeed_120m?.[currentIdx] ?? 0} />
+              <AltBar label="180 m"      value={data.hourly.windspeed_180m?.[currentIdx] ?? 0} />
             </div>
 
             {/* Índice Kp solar */}
@@ -623,6 +737,57 @@ function WeatherDevContent() {
               </div>
             </div>
 
+            {/* Vista 7 días */}
+            {data?.daily?.time?.length > 0 && (
+              <>
+                <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3">
+                  Pronóstico 7 Días
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 mb-6">
+                  {data.daily.time.map((date, i) => {
+                    const isToday = i === todayIdx;
+                    const wmoDay  = getWmo(data.daily.weather_code?.[i] ?? 0);
+                    const maxW    = data.daily.wind_speed_10m_max?.[i] ?? 0;
+                    const gust    = data.daily.wind_gusts_10m_max?.[i] ?? 0;
+                    const precip  = data.daily.precipitation_sum?.[i] ?? 0;
+                    const precipP = data.daily.precipitation_probability_max?.[i] ?? 0;
+                    const tMax    = data.daily.temperature_2m_max?.[i] ?? '--';
+                    const tMin    = data.daily.temperature_2m_min?.[i] ?? '--';
+                    const dayOk   = maxW <= thr.windSpeed && gust <= thr.windGusts && precip <= 1 && precipP < 50;
+                    const dayName = new Date(date + 'T12:00').toLocaleDateString('es-CO', { weekday: 'short' });
+                    const dayNum  = new Date(date + 'T12:00').toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+                    return (
+                      <div key={date} className={`rounded-xl p-3 text-center border flex flex-col gap-1.5 ${
+                        isToday
+                          ? 'border-orange-600/60 bg-orange-950/30'
+                          : dayOk
+                            ? 'border-green-800/30 bg-green-950/20'
+                            : 'border-red-800/30 bg-red-950/20'
+                      }`}>
+                        <p className={`text-xs font-black uppercase ${isToday ? 'text-orange-400' : 'text-slate-400'}`}>
+                          {isToday ? 'Hoy' : dayName}
+                        </p>
+                        <p className="text-[10px] text-slate-600">{dayNum}</p>
+                        <span className="material-symbols-outlined text-2xl text-slate-300 my-0.5">{wmoDay.icon}</span>
+                        <p className="text-xs font-black text-white">{tMax}° <span className="text-slate-500 font-normal">{tMin}°</span></p>
+                        <div className="flex items-center justify-center gap-1 text-[10px] text-slate-400">
+                          <span className="material-symbols-outlined text-[11px]">air</span>
+                          <span className={maxW > thr.windSpeed ? 'text-red-400 font-black' : ''}>{maxW} km/h</span>
+                        </div>
+                        {precipP > 0 && (
+                          <div className="flex items-center justify-center gap-1 text-[10px] text-blue-400">
+                            <span className="material-symbols-outlined text-[11px]">water_drop</span>
+                            <span>{precipP}%</span>
+                          </div>
+                        )}
+                        <div className={`mt-1 h-1 rounded-full ${dayOk ? 'bg-green-500' : 'bg-red-500'}`} />
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
             {/* Timeline próximas 12h */}
             <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3">
               Próximas 12 Horas
@@ -653,7 +818,15 @@ function WeatherDevContent() {
                       {wmoSlot.icon}
                     </span>
                     <p className="text-xs font-black text-white mt-1">
-                      {data.hourly.windspeed_10m[idx]}<span className="text-slate-500"> km/h</span>
+                      {data.hourly.windspeed_10m?.[idx] ?? '--'}<span className="text-slate-500"> km/h</span>
+                    </p>
+                    {(data.hourly.precipitation_probability?.[idx] ?? 0) > 0 && (
+                      <p className="text-[10px] text-blue-400 mt-0.5">
+                        {data.hourly.precipitation_probability[idx]}%💧
+                      </p>
+                    )}
+                    <p className="text-[10px] text-slate-600 mt-0.5">
+                      {data.hourly.relativehumidity_2m?.[idx] ?? '--'}% HR
                     </p>
                     <div className={`mt-1.5 h-1.5 rounded-full ${ok ? 'bg-green-500' : 'bg-red-500'}`} />
                   </div>
@@ -724,7 +897,7 @@ function WeatherDevContent() {
             {/* Fuente */}
             <p className="text-center text-xs text-slate-600">
               Datos: Open-Meteo (GFS/ECMWF) · Cache 30 min ·{' '}
-              <span className="text-slate-500">Fase 1 de 4</span>
+              <span className="text-slate-500">Fase 2 de 4</span>
             </p>
           </>
         )}

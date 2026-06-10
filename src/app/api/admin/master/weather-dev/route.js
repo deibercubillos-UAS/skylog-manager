@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 // Proxy hacia Open-Meteo con cache 30 min — solo superadmin
 export async function GET(request) {
   try {
-    const supabase = createClientSSR();
+    const supabase = await createClientSSR();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 

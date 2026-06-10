@@ -312,7 +312,7 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
     }
 
     if (!found.length) {
-      setError('La carpeta "FlightRecord" está vacía. Aún no hay vuelos registrados en este RC.');
+      setError('No se encontraron archivos .txt de DJI en la carpeta seleccionada.');
       setState('idle');
       return;
     }
@@ -346,16 +346,12 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
       const rootHandle = await window.showDirectoryPicker({ mode: 'read' });
       setState('scanning');
 
-      // Navegar automáticamente a FlightRecord
-      const dirHandle = await findFlightRecordDir(rootHandle);
-      if (!dirHandle) {
-        setError('No se encontró la carpeta "FlightRecord" en el RC. Asegúrate de seleccionar la raíz del DJI RC y que esté en modo "Transferencia de archivos".');
-        setState('idle');
-        return;
-      }
+      // Intentar localizar una subcarpeta FlightRecord automáticamente.
+      // Si no existe, usar la carpeta seleccionada directamente — el usuario
+      // puede haber copiado los archivos .txt a cualquier carpeta.
+      const dirHandle = (await findFlightRecordDir(rootHandle)) ?? rootHandle;
 
-      // Recordar esta carpeta para futuras sincronizaciones (Fase 2).
-      // Fire-and-forget: saveHandle falla en silencio, nunca rompe el import.
+      // Recordar esta carpeta para futuras sincronizaciones.
       saveHandle(FLIGHTRECORD_KEY, dirHandle);
       setSavedHandle(dirHandle);
 
@@ -741,7 +737,7 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
 
     const txtFiles = selectedFiles.filter(f => /\.txt$/i.test(f.name));
     if (!txtFiles.length) {
-      setError('No se encontraron archivos .txt de DJI. Asegúrate de seleccionar los archivos de la carpeta FlightRecord.');
+      setError('No se encontraron archivos .txt de DJI en la selección.');
       return;
     }
 
@@ -930,7 +926,7 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
           }`}
         >
           <span className="material-symbols-outlined text-sm">folder_open</span>
-          {savedHandle ? 'Elegir otra carpeta' : 'Seleccionar carpeta FlightRecord'}
+          {savedHandle ? 'Elegir otra carpeta' : 'Seleccionar carpeta de vuelos'}
         </button>
       )}
 
@@ -971,7 +967,7 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
         <div className="py-10 text-center space-y-3">
           <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-xs font-black uppercase text-slate-400 tracking-widest">
-            Buscando carpeta FlightRecord...
+            Leyendo archivos de vuelo...
           </p>
         </div>
       )}

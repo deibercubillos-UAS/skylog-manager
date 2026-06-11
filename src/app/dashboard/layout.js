@@ -262,8 +262,9 @@ const navLinks = [
   { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
   { name: 'Listas de Chequeo', icon: 'rule',                 href: '/dashboard/settings/forms',  roles: ['superadmin', 'admin', 'gerente_sms'] },
-  // TODO: reactivar cuando esté listo el Manual de Operaciones
-  // { name: 'Manual MO',        icon: 'menu_book',             href: '/dashboard/manual-operaciones', roles: ['superadmin', 'admin', 'jefe_pilotos'], pilotHidden: true },
+  // Manuales de la empresa: lectura para todos; gestión solo GG/GSMS/JP (gated en la página).
+  // pilotHidden: aplica a organizaciones, no al piloto independiente.
+  { name: 'Manuales',       icon: 'library_books',           href: '/dashboard/manuales',        roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
 ];
 
 // FILTRAR por rol, plan y flags pilotOnly / pilotHidden

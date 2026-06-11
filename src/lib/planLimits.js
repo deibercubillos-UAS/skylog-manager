@@ -99,6 +99,18 @@ export const crewCountsForLimit = (pilotRole) => {
   return true;
 };
 
+/**
+ * ¿Esta fila de tripulación corresponde al Gerente General?
+ * El GG es el dueño / representante legal del negocio, no tripulación operativa:
+ * no se muestra en el roster de Tripulación ni cuenta para los límites de plan.
+ * Valor canónico de pilot_role = "Gerente General" (ver AddPilotPanel/EditPilotPanel).
+ * @param {string} pilotRole - texto del rol (pilot_role) o rol del sistema
+ */
+export const isGerenteGeneral = (pilotRole) => {
+  const s = String(pilotRole || '').toLowerCase().trim();
+  return s === 'gerente general' || s === 'admin';
+};
+
 export const canAddResource = (planKey, currentCount, type) => {
   const plan = PLAN_CONFIG[planKey] || PLAN_CONFIG.piloto;
   if (type === 'battery') {

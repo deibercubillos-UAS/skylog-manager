@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
+import { isGerenteGeneral } from '@/lib/planLimits';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const AddPilotPanel  = dynamic(() => import('@/components/AddPilotPanel'),  { ssr: false });
@@ -63,7 +64,9 @@ export default function PilotsPage() {
           .single(),
       ]);
 
-      setPilots(pilotsRes.data || []);
+      // El Gerente General (dueño/representante legal) no se muestra en el roster
+      // de tripulación — no es tripulación operativa.
+      setPilots((pilotsRes.data || []).filter(p => !isGerenteGeneral(p.pilot_role)));
       setOrgName(orgRes.data?.company_name || 'Mi Organización');
     } catch (err) {
       console.error('Error cargando tripulación:', err.message);

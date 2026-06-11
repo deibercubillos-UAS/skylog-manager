@@ -182,4 +182,140 @@ export function FleetScene({ className }) {
   );
 }
 
-export default { DroneOpsScene, ComplianceScene, FleetScene };
+/* Batería LiPo con conteo de ciclos + alerta de mantenimiento */
+export function BatteryMaintScene({ className }) {
+  return (
+    <svg className={className} style={frame} viewBox="0 0 520 440" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Control de ciclos de baterías LiPo y alertas de mantenimiento programado">
+      <rect x="0.5" y="0.5" width="519" height="439" rx="28" fill="#f8fafc" stroke="#e2e8f0" />
+
+      {/* batería */}
+      <g transform="translate(70 120)">
+        <rect x="0" y="0" width="200" height="110" rx="18" fill="#fff" stroke={NAVY} strokeWidth="3" />
+        <rect x="200" y="38" width="16" height="34" rx="4" fill={NAVY} />
+        {/* celdas de carga */}
+        {[0,1,2].map((i)=>(
+          <rect key={i} x={18 + i*60} y="22" width="46" height="66" rx="8" fill={i<2?ORANGE:'#e2e8f0'} opacity={i<2?0.9:1} />
+        ))}
+        <text x="100" y="135" textAnchor="middle" fontFamily="monospace" fontSize="12" fontWeight="700" fill="#64748b">LiPo · S/N B-0241</text>
+      </g>
+
+      {/* gauge de ciclos */}
+      <g transform="translate(370 175)">
+        <circle cx="0" cy="0" r="56" fill="#fff" stroke="#e2e8f0" strokeWidth="2" />
+        <circle cx="0" cy="0" r="56" fill="none" stroke="#eef2f7" strokeWidth="10" />
+        <path d="M0 -56 A 56 56 0 1 1 -38 41" fill="none" stroke={ORANGE} strokeWidth="10" strokeLinecap="round" />
+        <text x="0" y="-2" textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="800" fill={NAVY}>147</text>
+        <text x="0" y="18" textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="10" fontWeight="700" fill="#94a3b8">CICLOS / 200</text>
+      </g>
+
+      {/* tarjeta de alerta de mantenimiento */}
+      <g transform="translate(70 290)">
+        <rect x="0" y="0" width="380" height="92" rx="18" fill="#fff" stroke="rgba(236,91,19,0.35)" strokeWidth="1.5" />
+        <rect x="0" y="0" width="6" height="92" rx="3" fill={ORANGE} />
+        <circle cx="42" cy="46" r="20" fill="rgba(236,91,19,0.1)" />
+        {/* llave inglesa */}
+        <path d="M50 36 a8 8 0 1 0 -2 11 l-12 12 a3 3 0 0 0 4 4 l12 -12 a8 8 0 0 0 -2 -15 z" fill={ORANGE} />
+        <text x="78" y="40" fontFamily="system-ui, sans-serif" fontSize="13" fontWeight="800" fill={NAVY}>MANTENIMIENTO PROGRAMADO</text>
+        <text x="78" y="60" fontFamily="system-ui, sans-serif" fontSize="12" fill="#64748b">Aeronave a 200 h o 6 meses · revisión requerida</text>
+        <g transform="translate(330 34)"><rect x="0" y="0" width="34" height="24" rx="12" fill="rgba(236,91,19,0.12)" /><text x="17" y="16" textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="10" fontWeight="800" fill={ORANGE}>!</text></g>
+      </g>
+    </svg>
+  );
+}
+
+/* SMS: clasificación de seguridad operacional (incidente / grave / accidente) */
+export function SmsSafetyScene({ className }) {
+  return (
+    <svg className={className} style={frame} viewBox="0 0 520 440" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sistema de gestión de seguridad operacional con clasificación de eventos">
+      <rect x="0.5" y="0.5" width="519" height="439" rx="28" fill="#f8fafc" stroke="#e2e8f0" />
+
+      {/* escudo */}
+      <g transform="translate(120 70)">
+        <path d="M70 0 L130 22 V70 C130 110 104 138 70 152 C36 138 10 110 10 70 V22 Z" fill={NAVY} />
+        <path d="M70 0 L130 22 V70 C130 110 104 138 70 152 C36 138 10 110 10 70 V22 Z" fill="#fff" opacity="0.05" />
+        <path d="M48 74 l16 16 l30 -38" stroke={ORANGE} strokeWidth="7" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+
+      {/* niveles de severidad */}
+      <g transform="translate(70 250)">
+        {[
+          { c: '#22c55e', w: 150, label: 'Incidente', n: '12' },
+          { c: '#f59e0b', w: 110, label: 'Grave', n: '3' },
+          { c: '#ef4444', w: 70, label: 'Accidente', n: '0' },
+        ].map((r, i) => (
+          <g key={i} transform={`translate(0 ${i*44})`}>
+            <circle cx="9" cy="14" r="9" fill={r.c} />
+            <rect x="30" y="6" width={r.w} height="18" rx="9" fill={r.c} opacity="0.18" />
+            <rect x="30" y="6" width={r.w*0.62} height="18" rx="9" fill={r.c} />
+            <text x="250" y="20" textAnchor="end" fontFamily="system-ui, sans-serif" fontSize="13" fontWeight="800" fill={NAVY}>{r.label}</text>
+            <text x="300" y="20" textAnchor="end" fontFamily="monospace" fontSize="13" fontWeight="700" fill={r.c}>{r.n}</text>
+          </g>
+        ))}
+      </g>
+
+      {/* tag F-formato */}
+      <g transform="translate(330 250)">
+        <rect x="0" y="0" width="120" height="120" rx="18" fill="#fff" stroke="#e2e8f0" />
+        <text x="60" y="34" textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="10" fontWeight="800" fill="#94a3b8">REPORTE SMS</text>
+        <circle cx="60" cy="66" r="22" fill="rgba(34,197,94,0.12)" />
+        <path d="M50 66 l7 7 l13 -15" stroke="#16a34a" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <text x="60" y="104" textAnchor="middle" fontFamily="monospace" fontSize="11" fontWeight="700" fill={ORANGE}>F-SMS-004</text>
+      </g>
+    </svg>
+  );
+}
+
+/* Autorización de vuelo: mapa con polígono de operación + coordenadas */
+export function AuthMapScene({ className }) {
+  return (
+    <svg className={className} style={frame} viewBox="0 0 520 440" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Solicitud de autorización de vuelo con polígono de operación sobre el mapa">
+      <defs>
+        <linearGradient id="il-poly" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={ORANGE} stopOpacity="0.22" />
+          <stop offset="1" stopColor={ORANGE} stopOpacity="0.05" />
+        </linearGradient>
+      </defs>
+      <rect x="0.5" y="0.5" width="519" height="439" rx="28" fill="#eef2f7" stroke="#e2e8f0" />
+
+      {/* grilla de mapa */}
+      <g stroke="#dbe2ea" strokeWidth="1">
+        {Array.from({ length: 9 }).map((_, i) => (<line key={'v'+i} x1={40 + i*55} y1="40" x2={40 + i*55} y2="400" />))}
+        {Array.from({ length: 7 }).map((_, i) => (<line key={'h'+i} x1="40" y1={40 + i*60} x2="480" y2={40 + i*60} />))}
+      </g>
+
+      {/* "vías" */}
+      <path d="M40 300 C 160 280, 240 200, 480 220" fill="none" stroke="#cbd5e1" strokeWidth="6" strokeLinecap="round" />
+      <path d="M150 40 C 170 160, 120 260, 200 400" fill="none" stroke="#cbd5e1" strokeWidth="4" strokeLinecap="round" />
+
+      {/* polígono de operación */}
+      <path d="M150 120 L320 100 L390 210 L300 320 L160 290 Z" fill="url(#il-poly)" stroke={ORANGE} strokeWidth="2.5" strokeLinejoin="round" />
+      {[[150,120],[320,100],[390,210],[300,320],[160,290]].map(([x,y],i)=>(
+        <g key={i}><circle cx={x} cy={y} r="6" fill="#fff" stroke={ORANGE} strokeWidth="2.5" /><circle cx={x} cy={y} r="2" fill={ORANGE} /></g>
+      ))}
+
+      {/* pin de despegue */}
+      <g transform="translate(250 200)">
+        <path d="M0 -26 C 14 -26 22 -16 22 -4 C 22 10 0 22 0 22 C 0 22 -22 10 -22 -4 C -22 -16 -14 -26 0 -26 Z" fill={NAVY} />
+        <circle cx="0" cy="-6" r="8" fill="#fff" />
+        <circle cx="0" cy="-6" r="4" fill={ORANGE} />
+      </g>
+
+      {/* lectura de coordenadas */}
+      <g transform="translate(34 350)">
+        <rect x="0" y="0" width="210" height="56" rx="14" fill="#fff" stroke="#e2e8f0" />
+        <text x="14" y="22" fontFamily="system-ui, sans-serif" fontSize="9" fontWeight="800" fill="#94a3b8">ZONA DE OPERACIÓN</text>
+        <text x="14" y="42" fontFamily="monospace" fontSize="12" fontWeight="700" fill={NAVY}>4.6541° N, 74.0938° W</text>
+      </g>
+
+      {/* tag autorización */}
+      <g transform="translate(330 56)">
+        <rect x="0" y="0" width="150" height="46" rx="14" fill={NAVY} />
+        <circle cx="24" cy="23" r="7" fill="#22c55e" />
+        <text x="42" y="20" fontFamily="system-ui, sans-serif" fontSize="11" fontWeight="800" fill="#fff">AUTORIZADO</text>
+        <text x="42" y="34" fontFamily="monospace" fontSize="10" fill={ORANGE}>F-OPS-001</text>
+      </g>
+    </svg>
+  );
+}
+
+export default { DroneOpsScene, ComplianceScene, FleetScene, BatteryMaintScene, SmsSafetyScene, AuthMapScene };

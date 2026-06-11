@@ -2,6 +2,8 @@ import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
+import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
+import { AuthMapScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Autorizaciones de Vuelo AeroCivil para Drones F-OPS-001',
@@ -101,6 +103,22 @@ export default function AutorizacionesAerocivilPage() {
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>100%</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Campos obligatorios</div></div>
         </div>
       </div>
+
+      {/* SPOTLIGHT */}
+      <FeatureSpotlight
+        flip
+        overline="Zona de operación"
+        title={<>Define el <span style={{color:'#ec5b13'}}>polígono</span> y radica ante AeroCivil</>}
+        desc="Dibuja la zona de operación sobre el mapa, fija coordenadas y altitud, y Bitafly arma el formato F-OPS-001 con todos los datos exigidos por la AeroCivil, listo para radicar."
+        bullets={[
+          'Polígono de operación con coordenadas geográficas exactas',
+          'Aeronave matriculada, tripulación y póliza vigente',
+          'Generación del formato F-OPS-001 con firma digital',
+          'Descarga de KMZ y PDF por misión programada',
+        ]}
+      >
+        <AuthMapScene />
+      </FeatureSpotlight>
 
       {/* FUNCIONES */}
       <section style={{padding:'80px 32px',background:'#f8f6f6'}}>

@@ -2,6 +2,8 @@ import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
+import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
+import { SmsSafetyScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'SMS Aeronáutico para Operadores de Drones UAS Colombia',
@@ -92,6 +94,21 @@ export default function SMSAeronauticoPage() {
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>RAC 100</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Cumplimiento normativo</div></div>
         </div>
       </div>
+
+      {/* SPOTLIGHT */}
+      <FeatureSpotlight
+        overline="Seguridad operacional"
+        title={<>Clasifica cada <span style={{color:'#ec5b13'}}>evento</span> de seguridad</>}
+        desc="Registra incidentes, eventos graves y accidentes con su narrativa, acciones correctivas y seguimiento. El SMS queda documentado y listo para una auditoría de la AeroCivil."
+        bullets={[
+          'Clasificación por severidad: incidente, grave y accidente',
+          'Narrativa, causas y acciones correctivas por evento',
+          'Análisis de tendencias de riesgo de tu operación',
+          'Reporte SMS exportable con tu código de formato',
+        ]}
+      >
+        <SmsSafetyScene />
+      </FeatureSpotlight>
 
       {/* FUNCIONES SMS */}
       <section style={{padding:'80px 32px',background:'#f8f6f6'}}>

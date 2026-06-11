@@ -2,6 +2,8 @@ import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
+import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
+import { FleetScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Gestión de Flota de Drones para Empresas en Colombia',
@@ -99,6 +101,21 @@ export default function GestionFlotaDronesPage() {
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>24/7</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Acceso en la nube</div></div>
         </div>
       </div>
+
+      {/* SPOTLIGHT */}
+      <FeatureSpotlight
+        overline="Visión de flota"
+        title={<>Toda tu <span style={{color:'#ec5b13'}}>flota</span> en un solo panel</>}
+        desc="Cada aeronave con sus horas totales, ciclos de batería, estado operativo y próximos mantenimientos. Sin hojas de cálculo dispersas: el panel se actualiza solo al registrar cada vuelo."
+        bullets={[
+          'Horas totales por aeronave actualizadas automáticamente',
+          'Alertas de mantenimiento a 200 h o 6 meses',
+          'Estado en tiempo real: operativa, en revisión o de baja',
+          'Límites de flota por plan, sin sorpresas',
+        ]}
+      >
+        <FleetScene />
+      </FeatureSpotlight>
 
       {/* FUNCIONES */}
       <section style={{padding:'80px 32px',background:'#f8f6f6'}}>

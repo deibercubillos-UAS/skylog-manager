@@ -2,6 +2,8 @@ import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
+import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
+import { BatteryMaintScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Software de Mantenimiento de Drones y Baterías LiPo',
@@ -105,6 +107,22 @@ export default function MantenimientoDronesPage() {
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>∞</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Baterías registrables</div></div>
         </div>
       </div>
+
+      {/* SPOTLIGHT */}
+      <FeatureSpotlight
+        flip
+        overline="Ciclos y alertas"
+        title={<>Mantenimiento <span style={{color:'#ec5b13'}}>predictivo</span> sin hojas de cálculo</>}
+        desc="Bitafly cuenta los ciclos de cada batería LiPo y las horas de cada aeronave por ti. Cuando se acerca un umbral, dispara la alerta antes de que sea un problema en operación."
+        bullets={[
+          'Conteo de ciclos por batería con umbral configurable',
+          'Alerta automática a 200 h o 6 meses desde la última intervención',
+          'Detección y registro de inflamiento de baterías',
+          'Trazabilidad de cada cambio de hélice, calibración y reparación',
+        ]}
+      >
+        <BatteryMaintScene />
+      </FeatureSpotlight>
 
       {/* FUNCIONES */}
       <section style={{padding:'80px 32px',background:'#f8f6f6'}}>

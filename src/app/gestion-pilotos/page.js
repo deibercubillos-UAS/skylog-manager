@@ -2,6 +2,8 @@ import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
+import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
+import { CrewScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Gestión de Pilotos de Drones y Certificaciones CPR',
@@ -91,6 +93,21 @@ export default function GestionPilotosPage() {
           </div>
         </div>
       </section>
+
+            {/* SPOTLIGHT */}
+      <FeatureSpotlight
+        overline="Expediente de tripulación"
+        title={<>Cada piloto con sus <span style={{color:'#ec5b13'}}>certificados</span> al día</>}
+        desc="Médico aeronáutico, licencia, horas voladas y vencimientos por tripulante. Bitafly te avisa 30 días antes de que un certificado expire."
+        bullets={[
+          'Expediente digital por tripulante con anexos',
+          'Alertas 30 días antes del vencimiento del médico',
+          'Horas voladas acumuladas por piloto',
+          'Roles operacionales con permisos granulares',
+        ]}
+      >
+        <CrewScene />
+      </FeatureSpotlight>
 
       {/* FEATURES */}
       <section style={{ background: '#f8f6f6', padding: '72px 32px', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>

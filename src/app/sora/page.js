@@ -2,6 +2,8 @@ import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
+import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
+import { SoraScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Análisis SORA para Operadores de Drones en Colombia',
@@ -90,6 +92,22 @@ export default function SoraPage() {
           </div>
         </div>
       </section>
+
+            {/* SPOTLIGHT */}
+      <FeatureSpotlight
+        flip
+        overline="Evaluación de riesgo"
+        title={<>Determina tu nivel <span style={{color:'#ec5b13'}}>SAIL</span> con SORA</>}
+        desc="Guía paso a paso de la metodología SORA: riesgo en tierra (GRC), riesgo en aire (ARC) y el nivel de aseguramiento SAIL resultante, documentado y exportable."
+        bullets={[
+          'Cálculo de GRC y ARC guiado por la metodología',
+          'Nivel SAIL resultante con OSO aplicables',
+          'Plantillas reutilizables por tipo de operación',
+          'Resultado documentado para tu manual y la UAEAC',
+        ]}
+      >
+        <SoraScene />
+      </FeatureSpotlight>
 
       {/* PASOS */}
       <section style={{ background: '#f8f6f6', padding: '72px 32px', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>

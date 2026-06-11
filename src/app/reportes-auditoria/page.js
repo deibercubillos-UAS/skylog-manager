@@ -2,6 +2,8 @@ import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
+import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
+import { ReportsScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Reportes y Auditoría AeroCivil para Drones — Formatos PDF',
@@ -104,6 +106,22 @@ export default function ReportesAuditoriaPage() {
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>0</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Datos incompletos</div></div>
         </div>
       </div>
+
+            {/* SPOTLIGHT */}
+      <FeatureSpotlight
+        flip
+        overline="Listo para auditoría"
+        title={<>Exporta tus reportes <span style={{color:'#ec5b13'}}>RAC 100</span> en un clic</>}
+        desc="Maestro de Vuelo, Registro de Baterías y Bitácora de Piloto en PDF con tu logo, tu código de formato y versión. Sin armar nada a mano cuando llega la inspección."
+        bullets={[
+          'Maestro de Vuelo, Baterías y Piloto en PDF',
+          'Logo corporativo, tu código de formato y versión',
+          'Trazabilidad y firma lista para la AeroCivil',
+          'Cabecera personalizable según tu manual',
+        ]}
+      >
+        <ReportsScene />
+      </FeatureSpotlight>
 
       {/* REPORTES */}
       <section style={{padding:'80px 32px',background:'#f8f6f6',position:'relative',overflow:'hidden',isolation:'isolate'}}>

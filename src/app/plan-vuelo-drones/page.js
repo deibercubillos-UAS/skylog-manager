@@ -2,6 +2,8 @@ import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
+import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
+import { AuthMapScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Planificación de Vuelos de Drones y KML para AeroCivil',
@@ -94,6 +96,21 @@ export default function PlanVueloDronesPage() {
           </div>
         </div>
       </section>
+
+            {/* SPOTLIGHT */}
+      <FeatureSpotlight
+        overline="Planeación de misión"
+        title={<>Dibuja la zona y genera el <span style={{color:'#ec5b13'}}>KMZ</span></>}
+        desc="Define el polígono de operación sobre el mapa, fija altitud y coordenadas, y descarga el KMZ y el PDF de la planeación listos para tu tripulación y la AeroCivil."
+        bullets={[
+          'Polígono de operación con coordenadas exactas',
+          'Altitud y zona configurables sobre el mapa',
+          'Descarga de KMZ y PDF por planeación',
+          'Guarda planeaciones y reutilízalas antes de volar',
+        ]}
+      >
+        <AuthMapScene />
+      </FeatureSpotlight>
 
       {/* FEATURES */}
       <section style={{ background: '#f8f6f6', padding: '72px 32px', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>

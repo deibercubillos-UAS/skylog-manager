@@ -2,6 +2,8 @@ import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
+import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
+import { ComplianceScene } from '@/components/landing/Illustrations';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
@@ -98,6 +100,22 @@ export default function DroneLogbookColombiaPage() {
           </div>
         </div>
       </section>
+
+            {/* SPOTLIGHT */}
+      <FeatureSpotlight
+        flip
+        overline="Bitácora digital"
+        title={<>Tu logbook de drones <span style={{color:'#ec5b13'}}>RAC 100</span></>}
+        desc="Registra cada vuelo con todos los campos exigidos por la AeroCivil y suma las horas totales del dron automáticamente. El Maestro de Vuelo F-OPS-002 en PDF, sin papel."
+        bullets={[
+          'Todos los campos del Maestro de Vuelo F-OPS-002',
+          'Suma automática de horas totales por aeronave',
+          'Registro desde el celular en el sitio de operación',
+          'Bitácora ilimitada en todos los planes',
+        ]}
+      >
+        <ComplianceScene />
+      </FeatureSpotlight>
 
       {/* FEATURES */}
       <section style={{ background: '#f8f6f6', padding: '72px 32px', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>

@@ -4,6 +4,8 @@ import SEOFooter from '@/components/seo/SEOFooter';
 import SEOBreadcrumb from '@/components/seo/SEOBreadcrumb';
 import SocialProofStrip from '@/components/seo/SocialProofStrip';
 import Decor from '@/components/landing/Decor';
+import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
+import { ReplayScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Replay GPS de Vuelo para Drones — Reproduce tu Vuelo DJI',
@@ -200,6 +202,21 @@ export default function ReplayGpsDronesPage() {
           <div><div style={s.statVal}>0</div><div style={s.statLbl}>Software a instalar</div></div>
         </div>
       </div>
+
+            {/* SPOTLIGHT */}
+      <FeatureSpotlight
+        overline="Análisis post-vuelo"
+        title={<>Reproduce cada vuelo <span style={{color:'#ec5b13'}}>cuadro a cuadro</span></>}
+        desc="Importa el log del DJI RC y revive la operación sobre el mapa: ruta GPS, altitud, velocidad, batería y los joysticks del control, segundo a segundo."
+        bullets={[
+          'Ruta GPS animada sobre el mapa con línea de tiempo',
+          'Telemetría de altitud, velocidad y batería en cada punto',
+          'Posición de los joysticks del control en tiempo real',
+          'Importación directa del log del DJI RC / RC 2',
+        ]}
+      >
+        <ReplayScene />
+      </FeatureSpotlight>
 
       {/* FEATURES */}
       <section style={{padding:'80px 32px',background:'#f8f6f6',position:'relative',overflow:'hidden',isolation:'isolate'}}>

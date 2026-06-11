@@ -318,4 +318,165 @@ export function AuthMapScene({ className }) {
   );
 }
 
-export default { DroneOpsScene, ComplianceScene, FleetScene, BatteryMaintScene, SmsSafetyScene, AuthMapScene };
+/* Replay GPS: ruta de vuelo sobre mapa + panel de telemetría */
+export function ReplayScene({ className }) {
+  return (
+    <svg className={className} style={frame} viewBox="0 0 520 440" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Replay de vuelo: ruta GPS sobre el mapa con telemetría de altitud, velocidad y batería">
+      <rect x="0.5" y="0.5" width="519" height="439" rx="28" fill="#eef2f7" stroke="#e2e8f0" />
+
+      {/* mapa */}
+      <g transform="translate(40 40)">
+        <rect x="0" y="0" width="440" height="240" rx="16" fill="#f8fafc" stroke="#e2e8f0" />
+        <g stroke="#e2e8f0" strokeWidth="1">
+          {Array.from({ length: 7 }).map((_, i) => (<line key={'v'+i} x1={i*63} y1="0" x2={i*63} y2="240" />))}
+          {Array.from({ length: 4 }).map((_, i) => (<line key={'h'+i} x1="0" y1={i*60} x2="440" y2={i*60} />))}
+        </g>
+        {/* ruta recorrida (sólida) + restante (punteada) */}
+        <path d="M40 200 C 110 90, 190 150, 250 120" fill="none" stroke={ORANGE} strokeWidth="4" strokeLinecap="round" />
+        <path d="M250 120 C 320 95, 360 170, 410 60" fill="none" stroke={ORANGE} strokeWidth="3" strokeDasharray="2 8" strokeLinecap="round" opacity="0.4" />
+        {/* punto de inicio */}
+        <circle cx="40" cy="200" r="6" fill="#fff" stroke={NAVY} strokeWidth="2.5" />
+        {/* dron en posición actual */}
+        <g transform="translate(250 120)">
+          <circle cx="0" cy="0" r="16" fill={ORANGE} opacity="0.15" />
+          <g stroke={NAVY} strokeWidth="3" strokeLinecap="round"><line x1="0" y1="0" x2="-10" y2="-7"/><line x1="0" y1="0" x2="10" y2="-7"/><line x1="0" y1="0" x2="-10" y2="7"/><line x1="0" y1="0" x2="10" y2="7"/></g>
+          {[[-10,-7],[10,-7],[-10,7],[10,7]].map(([x,y],i)=>(<circle key={i} cx={x} cy={y} r="4" fill="none" stroke={ORANGE} strokeWidth="1.5" />))}
+          <rect x="-6" y="-5" width="12" height="10" rx="3" fill={NAVY} />
+        </g>
+      </g>
+
+      {/* panel de telemetría */}
+      <g transform="translate(40 296)">
+        <rect x="0" y="0" width="440" height="104" rx="16" fill={NAVY} />
+        {[
+          { label: 'ALTITUD', val: '84 m', pct: 0.6, x: 20 },
+          { label: 'VELOCIDAD', val: '12 m/s', pct: 0.45, x: 160 },
+          { label: 'BATERÍA', val: '68%', pct: 0.68, x: 300 },
+        ].map((m) => (
+          <g key={m.label} transform={`translate(${m.x} 22)`}>
+            <text x="0" y="0" fontFamily="system-ui, sans-serif" fontSize="9" fontWeight="800" letterSpacing="1" fill="#64748b">{m.label}</text>
+            <text x="0" y="22" fontFamily="system-ui, sans-serif" fontSize="18" fontWeight="800" fill="#fff">{m.val}</text>
+            <rect x="0" y="32" width="110" height="6" rx="3" fill="rgba(255,255,255,0.1)" />
+            <rect x="0" y="32" width={110*m.pct} height="6" rx="3" fill={ORANGE} />
+          </g>
+        ))}
+        {/* scrubber */}
+        <g transform="translate(20 80)">
+          <rect x="0" y="0" width="400" height="5" rx="2.5" fill="rgba(255,255,255,0.12)" />
+          <rect x="0" y="0" width="230" height="5" rx="2.5" fill={ORANGE} />
+          <circle cx="230" cy="2.5" r="7" fill="#fff" />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+/* Tripulación: roster de pilotos con estado de certificados */
+export function CrewScene({ className }) {
+  const rows = [
+    { ini: 'C', name: 'C. Martínez', role: 'Jefe de Pilotos', ok: true, chip: 'Médico vigente' },
+    { ini: 'A', name: 'A. García', role: 'Piloto', ok: true, chip: 'Licencia OK' },
+    { ini: 'L', name: 'L. Ríos', role: 'Piloto', ok: false, chip: 'Médico 28 días' },
+  ];
+  return (
+    <svg className={className} style={frame} viewBox="0 0 520 440" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Expediente de tripulación con estado y vencimiento de certificados de cada piloto">
+      <rect x="0.5" y="0.5" width="519" height="439" rx="28" fill="#f8fafc" stroke="#e2e8f0" />
+      {/* cabecera */}
+      <g transform="translate(50 46)">
+        <rect x="0" y="0" width="420" height="44" rx="14" fill={NAVY} />
+        <text x="18" y="27" fontFamily="system-ui, sans-serif" fontSize="12" fontWeight="800" fill="#fff">TRIPULACIÓN</text>
+        <text x="402" y="27" textAnchor="end" fontFamily="monospace" fontSize="10" fill={ORANGE}>F-HUM-005</text>
+      </g>
+      {/* filas */}
+      {rows.map((r, i) => (
+        <g key={i} transform={`translate(50 ${108 + i*92})`}>
+          <rect x="0" y="0" width="420" height="76" rx="16" fill="#fff" stroke={r.ok ? '#e2e8f0' : 'rgba(236,91,19,0.35)'} strokeWidth="1.5" />
+          <circle cx="44" cy="38" r="22" fill={ORANGE} />
+          <text x="44" y="44" textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="16" fontWeight="800" fill="#fff">{r.ini}</text>
+          <text x="82" y="32" fontFamily="system-ui, sans-serif" fontSize="13" fontWeight="800" fill={NAVY}>{r.name}</text>
+          <text x="82" y="50" fontFamily="system-ui, sans-serif" fontSize="11" fill="#94a3b8">{r.role}</text>
+          {/* chip de estado */}
+          <g transform="translate(250 24)">
+            <rect x="0" y="0" width="150" height="28" rx="14" fill={r.ok ? 'rgba(34,197,94,0.12)' : 'rgba(236,91,19,0.12)'} />
+            <circle cx="18" cy="14" r="5" fill={r.ok ? '#22c55e' : ORANGE} />
+            <text x="32" y="18" fontFamily="system-ui, sans-serif" fontSize="11" fontWeight="700" fill={r.ok ? '#16a34a' : ORANGE}>{r.chip}</text>
+          </g>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+/* Reportes: stack de PDFs con código de formato y descarga */
+export function ReportsScene({ className }) {
+  const docs = [
+    { code: 'F-HUM-005', title: 'Bitácora de Piloto', x: 110, y: 56, rot: -7 },
+    { code: 'F-MNT-003', title: 'Registro de Baterías', x: 150, y: 78, rot: 4 },
+    { code: 'F-OPS-002', title: 'Maestro de Vuelo', x: 130, y: 110, rot: 0 },
+  ];
+  return (
+    <svg className={className} style={frame} viewBox="0 0 520 440" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Reportes RAC 100 exportados en PDF con código de formato y descarga">
+      <rect x="0.5" y="0.5" width="519" height="439" rx="28" fill="#f8fafc" stroke="#e2e8f0" />
+      {docs.map((d, i) => (
+        <g key={i} transform={`translate(${d.x} ${d.y}) rotate(${d.rot})`}>
+          <rect x="0" y="0" width="260" height="250" rx="14" fill="#fff" stroke="#e2e8f0" strokeWidth="1.5" />
+          <rect x="0" y="0" width="260" height="46" rx="14" fill={NAVY} />
+          <rect x="0" y="30" width="260" height="16" fill={NAVY} />
+          <circle cx="26" cy="23" r="10" fill={ORANGE} />
+          <path d="M21 23 l3.5 3.5 l6.5 -7.5" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          <text x="44" y="20" fontFamily="system-ui, sans-serif" fontSize="10" fontWeight="800" fill="#fff">{d.title}</text>
+          <text x="44" y="34" fontFamily="monospace" fontSize="9" fill={ORANGE}>{d.code}</text>
+          {i === docs.length - 1 && (
+            <>
+              {[0,1,2,3].map((k)=>(<g key={k}><rect x="24" y={70 + k*22} width={[180,150,170,120][k]} height="6" rx="3" fill="#cbd5e1" /></g>))}
+              {/* botón descargar PDF */}
+              <g transform="translate(24 170)">
+                <rect x="0" y="0" width="212" height="42" rx="12" fill="rgba(236,91,19,0.1)" stroke="rgba(236,91,19,0.3)" />
+                <path d="M22 14 v12 m0 0 l-5 -5 m5 5 l5 -5" stroke={ORANGE} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                <text x="44" y="26" fontFamily="system-ui, sans-serif" fontSize="12" fontWeight="800" fill={ORANGE}>DESCARGAR PDF</text>
+              </g>
+            </>
+          )}
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+/* SORA: matriz de evaluación de riesgo con nivel SAIL */
+export function SoraScene({ className }) {
+  const cells = [
+    ['#bbf7d0','#bbf7d0','#fde68a','#fde68a','#fecaca'],
+    ['#bbf7d0','#fde68a','#fde68a','#fecaca','#fecaca'],
+    ['#fde68a','#fde68a','#fecaca','#fecaca','#fca5a5'],
+    ['#fde68a','#fecaca','#fecaca','#fca5a5','#fca5a5'],
+  ];
+  return (
+    <svg className={className} style={frame} viewBox="0 0 520 440" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Evaluación de riesgo SORA con matriz y nivel de aseguramiento SAIL">
+      <rect x="0.5" y="0.5" width="519" height="439" rx="28" fill="#f8fafc" stroke="#e2e8f0" />
+      {/* matriz */}
+      <g transform="translate(60 70)">
+        <text x="0" y="-14" fontFamily="system-ui, sans-serif" fontSize="10" fontWeight="800" letterSpacing="1" fill="#94a3b8">RIESGO EN TIERRA (GRC) × RIESGO EN AIRE (ARC)</text>
+        {cells.map((row, r) => row.map((c, col) => {
+          const sel = r === 2 && col === 2;
+          return (
+            <g key={`${r}-${col}`}>
+              <rect x={col*76} y={r*58} width="68" height="50" rx="8" fill={c} opacity={sel ? 1 : 0.55} stroke={sel ? NAVY : 'transparent'} strokeWidth={sel ? 3 : 0} />
+              {sel && <text x={col*76+34} y={r*58+30} textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="12" fontWeight="800" fill={NAVY}>SAIL III</text>}
+            </g>
+          );
+        }))}
+      </g>
+      {/* tarjeta resultado */}
+      <g transform="translate(60 322)">
+        <rect x="0" y="0" width="400" height="70" rx="16" fill="#fff" stroke="#e2e8f0" />
+        <circle cx="40" cy="35" r="22" fill="rgba(236,91,19,0.1)" />
+        <text x="40" y="41" textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="14" fontWeight="800" fill={ORANGE}>III</text>
+        <text x="76" y="30" fontFamily="system-ui, sans-serif" fontSize="13" fontWeight="800" fill={NAVY}>NIVEL DE ASEGURAMIENTO SAIL III</text>
+        <text x="76" y="50" fontFamily="system-ui, sans-serif" fontSize="11" fill="#64748b">Robustez media · OSO aplicables definidos</text>
+      </g>
+    </svg>
+  );
+}
+
+export default { DroneOpsScene, ComplianceScene, FleetScene, BatteryMaintScene, SmsSafetyScene, AuthMapScene, ReplayScene, CrewScene, ReportsScene, SoraScene };

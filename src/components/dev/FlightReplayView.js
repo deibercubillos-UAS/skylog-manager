@@ -9,6 +9,7 @@
  */
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import WeatherWidget from '@/components/WeatherWidget';
 
 const FlightAnimMap = dynamic(() => import('./FlightAnimMap'), { ssr: false });
 
@@ -124,7 +125,7 @@ function BatteryChart({ telemetry, alerts, currentTime, totalDuration, onSeek })
 }
 
 // ── Componente principal ─────────────────────────────────────────
-export default function FlightReplayView({ flightData, fileName, onReset, onClose, saving, saved }) {
+export default function FlightReplayView({ flightData, fileName, onReset, onClose, saving, saved, weatherCoords, weatherDate, weatherHour }) {
   const { path, telemetry, alerts, meta } = flightData;
   const totalDuration = meta.totalDuration ?? meta.durationS ?? 0;
 
@@ -312,6 +313,23 @@ export default function FlightReplayView({ flightData, fileName, onReset, onClos
                 <p className="text-slate-300 leading-snug">{a.label}</p>
               </button>
             ))}
+
+            {/* Clima durante el vuelo — debajo de las alertas */}
+            {weatherCoords && weatherDate && (
+              <div className="pt-2 mt-1 border-t border-slate-800">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-xs">cloud</span>
+                  Clima del vuelo
+                </p>
+                <WeatherWidget
+                  lat={weatherCoords.lat}
+                  lon={weatherCoords.lon}
+                  date={weatherDate}
+                  hour={weatherHour}
+                  className="!p-2.5"
+                />
+              </div>
+            )}
           </div>
 
           {/* Stats resumen */}

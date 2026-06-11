@@ -18,7 +18,6 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { detectAlerts, buildTelemetry } from '@/lib/djiTelemetry';
-import WeatherWidget from '@/components/WeatherWidget';
 
 const FlightReplayView = dynamic(
   () => import('@/components/dev/FlightReplayView'),
@@ -96,7 +95,6 @@ export default function FlightReplayModal({ open, onClose, flightId, hasReplay, 
   const [saveOpt, setSaveOpt]   = useState(true);   // checkbox "guardar replay"
   const [saving, setSaving]     = useState(false);
   const [saved, setSaved]       = useState(false);
-  const [weatherOpen, setWeatherOpen] = useState(true); // panel clima colapsable
   const inputRef = useRef(null);
 
   // Derivar coordenadas y hora del primer punto del path GPS
@@ -327,57 +325,17 @@ export default function FlightReplayModal({ open, onClose, flightId, hasReplay, 
 
         {/* Replay activo — ocupa todo el espacio */}
         {state === 'done' && flightData && (
-          <div className="relative w-full h-full">
-            <FlightReplayView
-              flightData={flightData}
-              fileName={fileName}
-              onReset={reset}
-              onClose={handleClose}
-              saving={saving}
-              saved={saved}
-            />
-
-            {/* Panel de clima histórico — esquina superior derecha, colapsable */}
-            {weatherCoords && flightDate && (
-              <div className="absolute top-14 right-3 z-30 w-72 max-w-[calc(100vw-1.5rem)]">
-                {weatherOpen ? (
-                  <div className="rounded-2xl overflow-hidden shadow-2xl shadow-black/60 border border-white/10 backdrop-blur-md bg-slate-900/90">
-                    <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[11px]">cloud</span>
-                        Clima durante el vuelo
-                      </span>
-                      <button
-                        onClick={() => setWeatherOpen(false)}
-                        className="text-slate-500 hover:text-white transition-colors"
-                        aria-label="Ocultar panel de clima"
-                      >
-                        <span className="material-symbols-outlined text-sm">close</span>
-                      </button>
-                    </div>
-                    <div className="p-2">
-                      <WeatherWidget
-                        lat={weatherCoords.lat}
-                        lon={weatherCoords.lon}
-                        date={flightDate}
-                        hour={weatherHour}
-                        className="!bg-transparent !border-0 !rounded-none"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setWeatherOpen(true)}
-                    className="flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md border border-white/10 rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors shadow-lg"
-                    aria-label="Mostrar clima del vuelo"
-                  >
-                    <span className="material-symbols-outlined text-sm">cloud</span>
-                    Clima
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+          <FlightReplayView
+            flightData={flightData}
+            fileName={fileName}
+            onReset={reset}
+            onClose={handleClose}
+            saving={saving}
+            saved={saved}
+            weatherCoords={weatherCoords}
+            weatherDate={flightDate}
+            weatherHour={weatherHour}
+          />
         )}
 
         {/* Pantalla de carga / upload */}

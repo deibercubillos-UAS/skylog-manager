@@ -22,13 +22,13 @@ const NAVY = '#1A202C';
 
 export default function FeatureSpotlight({ overline, title, desc, bullets = [], children, flip = false, bg = '#fff' }) {
   return (
-    <section style={{ padding: '80px 32px', background: bg, position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+    <section className="relative overflow-hidden isolate px-6 lg:px-8 py-16 lg:py-20" style={{ background: bg }}>
       <Decor variant="light" />
       <div
-        className="grid grid-cols-1 lg:grid-cols-2"
-        style={{ maxWidth: '1100px', margin: '0 auto', gap: '56px', alignItems: 'center' }}
+        className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center"
+        style={{ maxWidth: '1100px', margin: '0 auto' }}
       >
-        <div style={{ order: flip ? 2 : 1 }}>
+        <div className={flip ? 'order-1 lg:order-2' : undefined}>
           {overline && (
             <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: ACCENT, marginBottom: '12px' }}>
               {overline}
@@ -53,7 +53,7 @@ export default function FeatureSpotlight({ overline, title, desc, bullets = [], 
             </ul>
           )}
         </div>
-        <div style={{ order: flip ? 1 : 2 }}>
+        <div className={flip ? 'order-2 lg:order-1' : undefined}>
           {children}
         </div>
       </div>

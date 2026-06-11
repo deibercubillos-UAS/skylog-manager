@@ -3,6 +3,7 @@ import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import SEOBreadcrumb from '@/components/seo/SEOBreadcrumb';
 import SocialProofStrip from '@/components/seo/SocialProofStrip';
+import Decor from '@/components/landing/Decor';
 
 export const metadata = {
   title: 'Replay GPS de Vuelo para Drones — Reproduce tu Vuelo DJI',
@@ -80,7 +81,8 @@ export default function ReplayGpsDronesPage() {
       <SEOBreadcrumb items={[{ label: 'Plataforma', href: '/#funciones' }, { label: 'Replay GPS de Vuelo' }]} />
 
       {/* HERO */}
-      <section style={{padding:'80px 32px 72px',background:'#fff'}}>
+      <section style={{padding:'80px 32px 72px',background:'#fff',position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="hero" />
         <div className="grid grid-cols-1 lg:grid-cols-2" style={{maxWidth:'1100px',margin:'0 auto',gap:'56px',alignItems:'center'}}>
           <div>
             <div style={s.badge}><div style={s.dot}/><span style={s.badgeText}>Replay GPS · Telemetría DJI</span></div>
@@ -189,7 +191,8 @@ export default function ReplayGpsDronesPage() {
       </section>
 
       {/* DARK BAND */}
-      <div style={{background:'#1A202C',color:'#fff',padding:'56px 32px'}}>
+      <div style={{background:'#1A202C',color:'#fff',padding:'56px 32px',position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="dark" />
         <div className="grid grid-cols-2 sm:grid-cols-4" style={{maxWidth:'1100px',margin:'0 auto',gap:'32px',textAlign:'center'}}>
           <div><div style={s.statVal}>GPS</div><div style={s.statLbl}>Ruta cuadro a cuadro</div></div>
           <div><div style={s.statVal}>5+</div><div style={s.statLbl}>Variables de telemetría</div></div>
@@ -316,7 +319,8 @@ export default function ReplayGpsDronesPage() {
       <SocialProofStrip heading="Operadores que analizan sus vuelos con Bitafly" />
 
       {/* CTA */}
-      <div style={{background:'#1A202C',padding:'80px 32px',textAlign:'center'}}>
+      <div style={{background:'#1A202C',padding:'80px 32px',textAlign:'center',position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="dark" />
         <h2 style={{fontSize:'clamp(28px,3vw,44px)',fontWeight:900,textTransform:'uppercase',letterSpacing:'-0.04em',color:'#fff',marginBottom:'12px'}}>Vuelve a volar <span style={s.accent}>cada misión</span></h2>
         <p style={{fontSize:'15px',color:'#94a3b8',maxWidth:'560px',margin:'0 auto 32px'}}>Sube el log de tu DJI y reproduce el vuelo cuadro a cuadro. Disponible en todos los planes.</p>
         <div style={{display:'flex',gap:'12px',justifyContent:'center',flexWrap:'wrap'}}>

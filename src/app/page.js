@@ -3,6 +3,7 @@ import Image from 'next/image';
 import LandingNav from '@/components/landing/LandingNav';
 import DashboardMockup from '@/components/landing/DashboardMockup';
 import Pricing from '@/components/landing/Pricing';
+import Decor from '@/components/landing/Decor';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
@@ -217,8 +218,9 @@ export default function LandingPage() {
 
         <main id="main">
           {/* ==================== HERO ==================== */}
-          <section className="relative overflow-hidden px-6 pt-16 pb-20 md:pt-24 md:pb-28">
-            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <section className="relative isolate overflow-hidden px-6 pt-16 pb-20 md:pt-24 md:pb-28">
+            <Decor variant="hero" />
+            <div className="relative z-10 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
               {/* Columna texto */}
               <div className="flex flex-col gap-7">
                 <p className="inline-flex items-center gap-2 bg-orange-50 text-primary px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest w-fit">
@@ -267,13 +269,14 @@ export default function LandingPage() {
 
           {/* ==================== TRUST BAR ==================== */}
           <section
-            className="bg-navy text-white py-12 px-6"
+            className="relative isolate overflow-hidden bg-navy text-white py-12 px-6"
             aria-labelledby="trust-heading"
           >
+            <Decor variant="dark" />
             <h2 id="trust-heading" className="sr-only">
               Métricas de confianza
             </h2>
-            <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div className="relative z-10 max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
               <div>
                 <p className="text-3xl md:text-4xl font-black text-primary">100%</p>
                 <p className="text-xs font-black uppercase tracking-widest text-slate-400 mt-2">
@@ -302,8 +305,9 @@ export default function LandingPage() {
           </section>
 
           {/* ==================== FUNCIONES ==================== */}
-          <section id="funciones" className="py-24 px-6 bg-[#f8f6f6]">
-            <div className="max-w-6xl mx-auto">
+          <section id="funciones" className="relative isolate overflow-hidden py-24 px-6 bg-[#f8f6f6]">
+            <Decor variant="light" />
+            <div className="relative z-10 max-w-6xl mx-auto">
               <div className="text-center mb-16 space-y-4">
                 <p className="text-xs font-black uppercase tracking-[0.3em] text-primary">
                   Funciones
@@ -401,8 +405,9 @@ export default function LandingPage() {
                 </ul>
               </div>
 
-              <div className="bg-navy text-white p-10 rounded-[2.5rem] shadow-2xl space-y-6">
-                <div className="flex items-center gap-3">
+              <div className="relative isolate overflow-hidden bg-navy text-white p-10 rounded-[2.5rem] shadow-2xl space-y-6">
+                <Decor variant="dark" />
+                <div className="relative z-10 flex items-center gap-3">
                   <span className="material-symbols-outlined text-primary text-3xl">
                     gavel
                   </span>
@@ -410,12 +415,12 @@ export default function LandingPage() {
                     Auditoría sin sorpresas
                   </h3>
                 </div>
-                <p className="text-slate-300 text-sm leading-relaxed">
+                <p className="relative z-10 text-slate-300 text-sm leading-relaxed">
                   Cuando llega una visita de inspección de la AeroCivil, abres Bitafly y
                   exportas en segundos los reportes solicitados con la cabecera corporativa de
                   tu organización. Sin Excels dispersos. Sin papeles perdidos.
                 </p>
-                <div className="border-t border-white/10 pt-6 space-y-3">
+                <div className="relative z-10 border-t border-white/10 pt-6 space-y-3">
                   <p className="text-xs font-black uppercase tracking-widest text-primary">
                     Reportes RAC 100 generados
                   </p>
@@ -535,8 +540,9 @@ export default function LandingPage() {
           </section>
 
           {/* ==================== CTA FINAL ==================== */}
-          <section className="py-24 px-6 bg-navy text-white">
-            <div className="max-w-4xl mx-auto text-center space-y-8">
+          <section className="relative isolate overflow-hidden py-24 px-6 bg-navy text-white">
+            <Decor variant="dark" />
+            <div className="relative z-10 max-w-4xl mx-auto text-center space-y-8">
               <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter leading-tight">
                 Lleva tu operación UAS al{' '}
                 <span className="text-primary">siguiente nivel</span>

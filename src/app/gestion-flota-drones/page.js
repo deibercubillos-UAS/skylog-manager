@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
+import Decor from '@/components/landing/Decor';
 
 export const metadata = {
   title: 'Gestión de Flota de Drones para Empresas en Colombia',
@@ -34,7 +35,8 @@ export default function GestionFlotaDronesPage() {
       <SEONav />
 
       {/* HERO */}
-      <section style={{padding:'80px 32px 72px',background:'#fff'}}>
+      <section style={{padding:'80px 32px 72px',background:'#fff',position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="hero" />
         <div className="grid grid-cols-1 lg:grid-cols-2" style={{maxWidth:'1100px',margin:'0 auto',gap:'56px',alignItems:'center'}}>
           <div>
             <div style={{display:'inline-flex',alignItems:'center',gap:'7px',background:'rgba(236,91,19,0.08)',border:'1px solid rgba(236,91,19,0.2)',borderRadius:'9999px',padding:'5px 14px',marginBottom:'20px'}}>
@@ -88,7 +90,8 @@ export default function GestionFlotaDronesPage() {
       </section>
 
       {/* DARK BAND */}
-      <div style={{background:'#1A202C',color:'#fff',padding:'56px 32px'}}>
+      <div style={{background:'#1A202C',color:'#fff',padding:'56px 32px',position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="dark" />
         <div className="grid grid-cols-2 sm:grid-cols-4" style={{maxWidth:'1100px',margin:'0 auto',gap:'32px',textAlign:'center'}}>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>15</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Aeronaves plan Flota</div></div>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>∞</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Aeronaves Enterprise</div></div>
@@ -143,7 +146,8 @@ export default function GestionFlotaDronesPage() {
       </section>
 
       {/* CTA */}
-      <div style={{background:'#1A202C',padding:'80px 32px',textAlign:'center'}}>
+      <div style={{background:'#1A202C',padding:'80px 32px',textAlign:'center',position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="dark" />
         <h2 style={{fontSize:'clamp(28px,3vw,44px)',fontWeight:900,textTransform:'uppercase',letterSpacing:'-0.04em',color:'#fff',marginBottom:'12px'}}>Tu flota de drones <span style={{color:accent}}>organizada y en regla</span></h2>
         <p style={{fontSize:'15px',color:'#94a3b8',maxWidth:'560px',margin:'0 auto 32px'}}>Control de horas, mantenimiento, tripulación y documentación RAC 100 en una sola plataforma.</p>
         <div style={{display:'flex',gap:'12px',justifyContent:'center',flexWrap:'wrap'}}>

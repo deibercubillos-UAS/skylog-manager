@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
+import Decor from '@/components/landing/Decor';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
@@ -50,7 +51,8 @@ export default function Rac100CompliancePage() {
       <SEONav />
 
       {/* HERO */}
-      <section style={{ background: '#1A202C', padding: '80px 32px 72px', color: '#fff' }}>
+      <section style={{ background: '#1A202C', padding: '80px 32px 72px', color: '#fff', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+        <Decor variant="dark" />
         <div style={{ maxWidth: '860px', margin: '0 auto', textAlign: 'center' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'rgba(236,91,19,0.15)', border: '1px solid rgba(236,91,19,0.3)', borderRadius: '9999px', padding: '5px 14px', marginBottom: '20px' }}>
             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: accent }} />
@@ -136,7 +138,8 @@ export default function Rac100CompliancePage() {
       </section>
 
       {/* CTA */}
-      <section style={{ background: '#1A202C', padding: '72px 32px', textAlign: 'center' }}>
+      <section style={{ background: '#1A202C', padding: '72px 32px', textAlign: 'center', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+        <Decor variant="dark" />
         <div style={{ maxWidth: '580px', margin: '0 auto' }}>
           <p style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: accent, marginBottom: '16px' }}>Free 6-month trial</p>
           <h2 style={{ fontSize: 'clamp(26px,3vw,40px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.04em', color: '#fff', marginBottom: '16px' }}>

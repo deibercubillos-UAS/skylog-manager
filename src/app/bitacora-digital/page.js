@@ -3,6 +3,7 @@ import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import SEOBreadcrumb from '@/components/seo/SEOBreadcrumb';
 import SocialProofStrip from '@/components/seo/SocialProofStrip';
+import Decor from '@/components/landing/Decor';
 
 export const metadata = {
   title: 'Bitácora Digital de Vuelo para Drones RAC 100 en Colombia',
@@ -63,7 +64,8 @@ export default function BitacoraDigitalPage() {
       <SEOBreadcrumb items={[{ label: 'Plataforma', href: '/#funciones' }, { label: 'Bitácora Digital RAC 100' }]} />
 
       {/* HERO */}
-      <section style={{padding:'80px 32px 72px',background:'#fff'}}>
+      <section style={{padding:'80px 32px 72px',background:'#fff',position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="hero" />
         <div className="grid grid-cols-1 lg:grid-cols-2" style={{maxWidth:'1100px',margin:'0 auto',gap:'56px',alignItems:'center'}}>
           <div>
             <div style={s.badge}><div style={s.dot}/><span style={s.badgeText}>Formato F-OPS-002 · configurable</span></div>
@@ -106,7 +108,8 @@ export default function BitacoraDigitalPage() {
       </section>
 
       {/* DARK BAND */}
-      <div style={s.darkBand}>
+      <div style={{...s.darkBand,position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="dark" />
         <div className="grid grid-cols-2 sm:grid-cols-4" style={{maxWidth:'1100px',margin:'0 auto',gap:'32px',textAlign:'center'}}>
           <div><div style={s.statVal}>∞</div><div style={s.statLbl}>Vuelos registrables</div></div>
           <div><div style={s.statVal}>F-OPS-002</div><div style={s.statLbl}>Código por defecto</div></div>
@@ -163,7 +166,8 @@ export default function BitacoraDigitalPage() {
       <SocialProofStrip heading="Operadores que ya registran sus vuelos con Bitafly" />
 
       {/* CTA */}
-      <div style={{background:'#1A202C',padding:'80px 32px',textAlign:'center'}}>
+      <div style={{background:'#1A202C',padding:'80px 32px',textAlign:'center',position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="dark" />
         <h2 style={{fontSize:'clamp(28px,3vw,44px)',fontWeight:900,textTransform:'uppercase',letterSpacing:'-0.04em',color:'#fff',marginBottom:'12px'}}>Tu primera bitácora en <span style={s.accent}>menos de 5 minutos</span></h2>
         <p style={{fontSize:'15px',color:'#94a3b8',maxWidth:'560px',margin:'0 auto 32px'}}>Configura tu organización, agrega tu dron y registra el primer vuelo. Sin papel, sin Excel.</p>
         <div style={{display:'flex',gap:'12px',justifyContent:'center',flexWrap:'wrap'}}>

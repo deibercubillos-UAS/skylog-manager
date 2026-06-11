@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
+import Decor from '@/components/landing/Decor';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
@@ -115,7 +116,8 @@ export default function ComparativaDronedeskPage() {
       <SEONav />
 
       {/* HERO */}
-      <section className="bg-navy text-white py-20 px-6">
+      <section className="relative overflow-hidden isolate bg-navy text-white py-20 px-6">
+        <Decor variant="dark" />
         <div className="max-w-4xl mx-auto text-center">
           <span className="inline-block text-xs font-black uppercase tracking-widest text-orange-400 mb-4">
             Comparativa · Colombia
@@ -244,7 +246,8 @@ export default function ComparativaDronedeskPage() {
       </section>
 
       {/* CTA FINAL */}
-      <section className="py-20 px-6 bg-navy text-white">
+      <section className="relative overflow-hidden isolate py-20 px-6 bg-navy text-white">
+        <Decor variant="dark" />
         <div className="max-w-3xl mx-auto text-center">
           <p className="text-xs font-black uppercase tracking-widest text-orange-400 mb-4">
             Pruébalo sin riesgo

@@ -3,6 +3,7 @@ import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import SEOBreadcrumb from '@/components/seo/SEOBreadcrumb';
 import SocialProofStrip from '@/components/seo/SocialProofStrip';
+import Decor from '@/components/landing/Decor';
 
 export const metadata = {
   title: 'Cumplimiento RAC 100 Drones Colombia | Bitácora Digital AeroCivil',
@@ -67,7 +68,8 @@ export default function RAC100Page() {
       <SEOBreadcrumb items={[{ label: 'Cumplimiento RAC 100' }]} />
 
       {/* HERO */}
-      <section style={{padding:'80px 32px 72px',background:'#fff'}}>
+      <section style={{padding:'80px 32px 72px',background:'#fff',position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="hero" />
         <div style={{maxWidth:'1100px',margin:'0 auto'}}>
           <div style={{maxWidth:'720px'}}>
             <div style={s.badge}><div style={s.dot}/><span style={s.badgeText}>UAEAC · Colombia · 2024</span></div>
@@ -82,8 +84,9 @@ export default function RAC100Page() {
       </section>
 
       {/* DARK BAND */}
-      <div style={s.darkBand}>
-        <div className="grid grid-cols-2 sm:grid-cols-4" style={{maxWidth:'1100px',margin:'0 auto',gap:'32px',textAlign:'center'}}>
+      <div style={{...s.darkBand,position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="dark" />
+        <div className="grid grid-cols-2 sm:grid-cols-4" style={{maxWidth:'1100px',margin:'0 auto',gap:'32px',textAlign:'center',position:'relative',zIndex:1}}>
           <div><div style={s.statVal}>4</div><div style={s.statLbl}>Reportes RAC 100 generados</div></div>
           <div><div style={s.statVal}>100%</div><div style={s.statLbl}>Trazabilidad documental</div></div>
           <div><div style={s.statVal}>0</div><div style={s.statLbl}>Excels dispersos</div></div>
@@ -191,12 +194,15 @@ export default function RAC100Page() {
       <SocialProofStrip heading="Operadores que confían en Bitafly para su cumplimiento RAC 100" />
 
       {/* CTA */}
-      <div style={s.ctaBand}>
+      <div style={{...s.ctaBand,position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="dark" />
+        <div style={{position:'relative',zIndex:1}}>
         <h2 style={{fontSize:'clamp(28px,3vw,44px)',fontWeight:900,textTransform:'uppercase',letterSpacing:'-0.04em',color:'#fff',marginBottom:'12px'}}>Tu operación <span style={s.span}>en regla</span> desde el primer vuelo</h2>
         <p style={{fontSize:'15px',color:'#94a3b8',maxWidth:'560px',margin:'0 auto 32px'}}>Bitafly cumple la RAC 100 de la AeroCivil por ti. Empieza gratis hoy.</p>
         <div style={{display:'flex',gap:'12px',justifyContent:'center',flexWrap:'wrap'}}>
           <Link href="/registro" style={s.btnWhite}><span className="material-symbols-outlined" style={{fontSize:'18px'}}>verified</span>Comenzar gratis</Link>
           <Link href="/reportes-auditoria" style={s.btnOutlineWhite}>Ver reportes RAC 100</Link>
+        </div>
         </div>
       </div>
 

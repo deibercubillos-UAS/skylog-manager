@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
+import Decor from '@/components/landing/Decor';
 
 export const metadata = {
   title: 'Autorizaciones de Vuelo AeroCivil para Drones F-OPS-001',
@@ -35,7 +36,8 @@ export default function AutorizacionesAerocivilPage() {
       <SEONav />
 
       {/* HERO */}
-      <section style={{padding:'80px 32px 72px',background:'#fff'}}>
+      <section style={{padding:'80px 32px 72px',background:'#fff',position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="hero" />
         <div className="grid grid-cols-1 lg:grid-cols-2" style={{maxWidth:'1100px',margin:'0 auto',gap:'56px',alignItems:'center'}}>
           <div>
             <div style={{display:'inline-flex',alignItems:'center',gap:'7px',background:'rgba(236,91,19,0.08)',border:'1px solid rgba(236,91,19,0.2)',borderRadius:'9999px',padding:'5px 14px',marginBottom:'20px'}}>
@@ -90,7 +92,8 @@ export default function AutorizacionesAerocivilPage() {
       </section>
 
       {/* DARK BAND */}
-      <div style={{background:'#1A202C',color:'#fff',padding:'56px 32px'}}>
+      <div style={{background:'#1A202C',color:'#fff',padding:'56px 32px',position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="dark" />
         <div className="grid grid-cols-2 sm:grid-cols-4" style={{maxWidth:'1100px',margin:'0 auto',gap:'32px',textAlign:'center'}}>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>F-OPS-001</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Código por defecto</div></div>
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>&lt;60s</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>Tiempo de generación</div></div>
@@ -145,7 +148,8 @@ export default function AutorizacionesAerocivilPage() {
       </section>
 
       {/* CTA */}
-      <div style={{background:'#1A202C',padding:'80px 32px',textAlign:'center'}}>
+      <div style={{background:'#1A202C',padding:'80px 32px',textAlign:'center',position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="dark" />
         <h2 style={{fontSize:'clamp(28px,3vw,44px)',fontWeight:900,textTransform:'uppercase',letterSpacing:'-0.04em',color:'#fff',marginBottom:'12px'}}>Tu F-OPS-001 en <span style={{color:accent}}>menos de 60 segundos</span></h2>
         <p style={{fontSize:'15px',color:'#94a3b8',maxWidth:'560px',margin:'0 auto 32px'}}>Datos de tu flota pre-poblados, póliza vinculada, PDF listo para radicar ante la AeroCivil.</p>
         <div style={{display:'flex',gap:'12px',justifyContent:'center',flexWrap:'wrap'}}>

@@ -565,8 +565,8 @@ export default function LandingPage() {
 
         {/* ==================== FOOTER ==================== */}
         <footer className="bg-[#0F1419] text-slate-400 py-16 px-6 border-t border-white/5">
-          <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
-            <div className="col-span-2">
+          <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_1fr] gap-8 text-sm">
+            <div className="col-span-2 md:col-span-1">
               <p className="text-2xl font-black text-white uppercase tracking-tighter">
                 Bitafly
               </p>
@@ -578,60 +578,31 @@ export default function LandingPage() {
 
             <div className="space-y-3">
               <p className="text-xs font-black uppercase tracking-widest text-white">
-                Producto
+                Plataforma
               </p>
               <ul className="space-y-2 text-xs">
-                <li>
-                  <a href="#funciones" className="hover:text-primary transition-colors">
-                    Funciones
-                  </a>
-                </li>
-                <li>
-                  <a href="#precios" className="hover:text-primary transition-colors">
-                    Precios
-                  </a>
-                </li>
-                <li>
-                  <a href="#cumplimiento" className="hover:text-primary transition-colors">
-                    Cumplimiento RAC
-                  </a>
-                </li>
-                <li>
-                  <Link href="/documentacion" className="hover:text-primary transition-colors">
-                    Documentación
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/login" className="hover:text-primary transition-colors">
-                    Iniciar sesión
-                  </Link>
-                </li>
+                <li><a href="#funciones" className="hover:text-primary transition-colors">Funciones</a></li>
+                <li><a href="#precios" className="hover:text-primary transition-colors">Precios</a></li>
+                <li><a href="#cumplimiento" className="hover:text-primary transition-colors">Cumplimiento RAC</a></li>
+                <li><Link href="/bitacora-digital" className="hover:text-primary transition-colors">Bitácora Digital</Link></li>
+                <li><Link href="/replay-gps-drones" className="hover:text-primary transition-colors">Replay GPS</Link></li>
+                <li><Link href="/documentacion" className="hover:text-primary transition-colors">Documentación</Link></li>
+                <li><Link href="/login" className="hover:text-primary transition-colors">Iniciar sesión</Link></li>
               </ul>
             </div>
 
             <div className="space-y-3">
               <p className="text-xs font-black uppercase tracking-widest text-white">
-                Empresa
+                Recursos
               </p>
               <ul className="space-y-2 text-xs">
-                <li>
-                  <a href="#faq" className="hover:text-primary transition-colors">
-                    Preguntas frecuentes
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="mailto:soporte@bitafly.com"
-                    className="hover:text-primary transition-colors"
-                  >
-                    Contacto
-                  </a>
-                </li>
-                <li>
-                  <Link href="/registro" className="hover:text-primary transition-colors">
-                    Comenzar gratis
-                  </Link>
-                </li>
+                <li><Link href="/blog" className="hover:text-primary transition-colors">Blog</Link></li>
+                <li><Link href="/casos" className="hover:text-primary transition-colors">Casos de Éxito</Link></li>
+                <li><Link href="/comparativa-bitafly-airdata" className="hover:text-primary transition-colors">Bitafly vs AirData</Link></li>
+                <li><Link href="/rac-100" className="hover:text-primary transition-colors">Cumplimiento RAC 100</Link></li>
+                <li><a href="#faq" className="hover:text-primary transition-colors">Preguntas frecuentes</a></li>
+                <li><a href="mailto:soporte@bitafly.com" className="hover:text-primary transition-colors">soporte@bitafly.com</a></li>
+                <li><Link href="/registro" className="hover:text-primary transition-colors">Comenzar gratis</Link></li>
               </ul>
             </div>
           </div>

@@ -326,3 +326,15 @@ summary { list-style: none; }
   margin-top: 0.1rem;
   min-width: 1.25rem;
 }
+
+/* ─── FAQ accordion chevron animation (feature landing pages) ────────────────
+   Feature pages use inline-style <details>/<summary> without Tailwind's
+   group-open variant. The .faq-chevron class is placed on the expand_more
+   Material Symbol inside the summary. CSS-native: no JS needed.          */
+summary .faq-chevron {
+  transition: transform 200ms ease;
+  flex-shrink: 0;
+}
+details[open] summary .faq-chevron {
+  transform: rotate(180deg);
+}

@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
+import SEOBreadcrumb from '@/components/seo/SEOBreadcrumb';
+import SocialProofStrip from '@/components/seo/SocialProofStrip';
 
 export const metadata = {
   title: 'Cumplimiento RAC 100 Drones Colombia | Bitácora Digital AeroCivil',
@@ -62,6 +64,7 @@ export default function RAC100Page() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <SEONav />
+      <SEOBreadcrumb items={[{ label: 'Cumplimiento RAC 100' }]} />
 
       {/* HERO */}
       <section style={{padding:'80px 32px 72px',background:'#fff'}}>
@@ -177,13 +180,15 @@ export default function RAC100Page() {
             <details key={i} style={{background:'#fff',border:'1.5px solid #f1f5f9',borderRadius:'18px',overflow:'hidden',marginBottom:'10px'}}>
               <summary style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 22px',cursor:'pointer',listStyle:'none',fontSize:'14px',fontWeight:900,color:'#1A202C'}}>
                 {item.name}
-                <span className="material-symbols-outlined" style={{fontSize:'20px',color:'#ec5b13',flexShrink:0}}>expand_more</span>
+                <span className="material-symbols-outlined faq-chevron" style={{fontSize:'20px',color:'#ec5b13',flexShrink:0}}>expand_more</span>
               </summary>
               <p style={{padding:'0 22px 18px',fontSize:'13px',color:'#64748b',lineHeight:1.7}}>{item.acceptedAnswer.text}</p>
             </details>
           ))}
         </div>
       </section>
+
+      <SocialProofStrip heading="Operadores que confían en Bitafly para su cumplimiento RAC 100" />
 
       {/* CTA */}
       <div style={s.ctaBand}>

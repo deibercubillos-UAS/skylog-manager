@@ -242,6 +242,43 @@ Miembro de una org ajena (se unió por NIT o invitación). `profile.subscription
 
 ---
 
+## Manuales de la Empresa
+
+Repositorio de manuales corporativos con versionado y notificación a toda la org. Aplica a **organizaciones** (oculto para el piloto independiente vía `pilotHidden`).
+
+### Datos (Supabase)
+
+- `company_manuals` — manual + versión vigente: `title`, `category` (CHECK: `MO|SMS|MANTENIMIENTO|ORGANIZACION|SOP|OTRO`), `current_version`, `current_effective_date`, `current_file_path`, `status` (`active|archived`), `created_by`. RLS por org.
+- `manual_versions` — historial inmutable: `manual_id` (FK ON DELETE CASCADE), `version`, `effective_date`, `file_path`, `comments`, `uploaded_by`. RLS por org.
+- **Bucket** privado `company-manuals` (25 MB, PDF/Word/Excel), path `orgs/{orgId}/manuals/{manualId}/{ts}-{archivo}`. Signed URL 1h.
+- **RLS**: lectura para todos los miembros (`private.user_org_id()`); insert/update/delete solo managers (`private.user_is_manager()` = admin/superadmin/gerente_sms/jefe_pilotos). Mismas reglas en las 3 políticas de `storage.objects`.
+
+### Permisos (`roles.js`)
+
+- `canManageManuals` = GG + GSMS + JP (+ superadmin) — cargar/actualizar/eliminar.
+- `canViewManuals` = todos los roles (incluye piloto) — consultar/descargar.
+
+### API (`/api/manuals`)
+
+| Ruta | Método | Quién | Descripción |
+|---|---|---|---|
+| `/api/manuals` | GET | todos | Lista manuales activos de la org |
+| `/api/manuals` | POST | managers | Crea manual + 1ª versión (multipart) + notifica. Crea la fila primero para obtener `id`; si la subida falla hace rollback de la fila huérfana |
+| `/api/manuals/[id]` | GET | todos | Detalle + historial de versiones |
+| `/api/manuals/[id]` | PATCH | managers | Edita título/categoría/estado |
+| `/api/manuals/[id]` | DELETE | managers | Borra manual + versiones + archivos del bucket |
+| `/api/manuals/[id]/versions` | POST | managers | Publica nueva versión (multipart) + actualiza `current_*` + notifica |
+| `/api/manuals/[id]/download` | GET | todos | Signed URL 1h — vigente o `?versionId=` del historial |
+
+- **Subida**: `lib/manualStorage.js` (`uploadManualFile`, valida tamaño/MIME, sanitiza nombre). Usa `createAdminClient()` (bypassa RLS; el gate es el permiso a nivel de API).
+- **Notificación**: `lib/manualNotify.js` (`notifyManualChange`) — Resend + `escHtml`, correo a TODOS los miembros de la org (excepto el actor) en cada carga/versión. Fire-and-forget.
+
+### UI (`/dashboard/manuales`)
+
+`page.js` (client) lista los manuales agrupados por categoría en cards (versión vigente + fecha), con descarga, modal de historial (descarga por versión + comentarios) y, para managers, "Cargar Manual" / "Nueva versión" / eliminar. `layout.js` hace guard server-side con `canViewManuals`. Ítem de nav "Manuales" (`library_books`).
+
+---
+
 ## Convenciones de código
 
 - **API routes**: siempre `createClientSSR()` + `getOrgContext()`. Auth guard: `if (!user) return 401` antes de usar `user.id`.

@@ -97,7 +97,8 @@ export default function RAC100Page() {
       </div>
 
       {/* QUÉ ES RAC 100 */}
-      <section style={{padding:'80px 32px',background:'#f8f6f6'}}>
+      <section style={{padding:'80px 32px',background:'#f8f6f6',position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="light" />
         <div style={{maxWidth:'1100px',margin:'0 auto'}}>
           <div style={{textAlign:'center',marginBottom:'56px'}}>
             <div style={s.overline}>Marco normativo</div>
@@ -175,7 +176,8 @@ export default function RAC100Page() {
       </section>
 
       {/* FAQ */}
-      <section style={s.faqSection}>
+      <section style={{...s.faqSection,position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="light" />
         <div style={s.faqInner}>
           <div style={{textAlign:'center',marginBottom:'48px'}}>
             <div style={s.overline}>Normativa RAC 100 — Preguntas</div>

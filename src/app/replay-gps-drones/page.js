@@ -202,7 +202,8 @@ export default function ReplayGpsDronesPage() {
       </div>
 
       {/* FEATURES */}
-      <section style={{padding:'80px 32px',background:'#f8f6f6'}}>
+      <section style={{padding:'80px 32px',background:'#f8f6f6',position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="light" />
         <div style={{maxWidth:'1100px',margin:'0 auto'}}>
           <div style={{textAlign:'center',marginBottom:'56px'}}>
             <div style={s.overline}>Qué reconstruye</div>
@@ -263,7 +264,8 @@ export default function ReplayGpsDronesPage() {
       </section>
 
       {/* RETENCIÓN POR PLAN */}
-      <section style={{padding:'80px 32px',background:'#f8f6f6'}}>
+      <section style={{padding:'80px 32px',background:'#f8f6f6',position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="light" />
         <div style={{maxWidth:'1100px',margin:'0 auto'}}>
           <div style={{textAlign:'center',marginBottom:'48px'}}>
             <div style={s.overline}>Almacenamiento en la nube</div>
@@ -298,7 +300,8 @@ export default function ReplayGpsDronesPage() {
       </section>
 
       {/* FAQ */}
-      <section style={{background:'#fff',padding:'80px 32px'}}>
+      <section style={{background:'#fff',padding:'80px 32px',position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="light" />
         <div style={{maxWidth:'760px',margin:'0 auto'}}>
           <div style={{textAlign:'center',marginBottom:'48px'}}>
             <div style={s.overline}>Replay GPS — Preguntas</div>

@@ -121,7 +121,8 @@ export default function ComparativaPage() {
       </section>
 
       {/* TABLA COMPARATIVA */}
-      <section className="py-20 px-6 bg-[#f8f6f6]">
+      <section className="relative overflow-hidden isolate py-20 px-6 bg-[#f8f6f6]">
+        <Decor variant="light" />
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <p className="text-xs font-black uppercase tracking-widest text-orange-600 mb-3">
@@ -163,7 +164,8 @@ export default function ComparativaPage() {
       </section>
 
       {/* POR QUÉ ELEGIR BITAFLY */}
-      <section className="py-20 px-6 bg-white">
+      <section className="relative overflow-hidden isolate py-20 px-6 bg-white">
+        <Decor variant="light" />
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
             <p className="text-xs font-black uppercase tracking-widest text-orange-600 mb-3">
@@ -194,7 +196,8 @@ export default function ComparativaPage() {
       </section>
 
       {/* FAQ */}
-      <section className="py-20 px-6 bg-[#f8f6f6]">
+      <section className="relative overflow-hidden isolate py-20 px-6 bg-[#f8f6f6]">
+        <Decor variant="light" />
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
             <p className="text-xs font-black uppercase tracking-widest text-orange-600 mb-3">

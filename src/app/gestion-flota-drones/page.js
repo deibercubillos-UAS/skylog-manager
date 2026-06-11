@@ -118,7 +118,8 @@ export default function GestionFlotaDronesPage() {
       </FeatureSpotlight>
 
       {/* FUNCIONES */}
-      <section style={{padding:'80px 32px',background:'#f8f6f6'}}>
+      <section style={{padding:'80px 32px',background:'#f8f6f6',position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="light" />
         <div style={{maxWidth:'1100px',margin:'0 auto'}}>
           <div style={{textAlign:'center',marginBottom:'56px'}}>
             <div style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.3em',color:accent,marginBottom:'12px'}}>Módulo de flota</div>
@@ -144,7 +145,8 @@ export default function GestionFlotaDronesPage() {
       </section>
 
       {/* FAQ */}
-      <section style={{background:'#f8f6f6',padding:'80px 32px'}}>
+      <section style={{background:'#f8f6f6',padding:'80px 32px',position:'relative',overflow:'hidden',isolation:'isolate'}}>
+        <Decor variant="light" />
         <div style={{maxWidth:'760px',margin:'0 auto'}}>
           <div style={{textAlign:'center',marginBottom:'48px'}}>
             <div style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.3em',color:accent,marginBottom:'12px'}}>Gestión de flota — Preguntas</div>

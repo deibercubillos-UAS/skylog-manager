@@ -100,7 +100,8 @@ export default function DroneLogbookColombiaPage() {
       </section>
 
       {/* FEATURES */}
-      <section style={{ background: '#f8f6f6', padding: '72px 32px' }}>
+      <section style={{ background: '#f8f6f6', padding: '72px 32px', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+        <Decor variant="light" />
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
             <p style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: accent, marginBottom: '12px' }}>Everything you need</p>
@@ -121,7 +122,8 @@ export default function DroneLogbookColombiaPage() {
       </section>
 
       {/* FAQ */}
-      <section style={{ background: '#fff', padding: '72px 32px' }}>
+      <section style={{ background: '#fff', padding: '72px 32px', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+        <Decor variant="light" />
         <div style={{ maxWidth: '720px', margin: '0 auto' }}>
           <h2 style={{ fontSize: 'clamp(24px,2.5vw,36px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.04em', color: '#1A202C', marginBottom: '36px', textAlign: 'center' }}>Frequently asked questions</h2>
           {faqSchema.mainEntity.map((q, i) => (

@@ -97,3 +97,232 @@ body {
 /* Quita el marker default de <details> en Safari/Firefox para custom summary */
 summary::-webkit-details-marker { display: none; }
 summary { list-style: none; }
+
+/* ═══════════════════════════════════════════════════════════════
+   BLOG ARTICLE — tipografía completa + componentes visuales
+   Tailwind Typography no está instalado, estas reglas reemplazan
+   el plugin "prose" para los artículos del blog.
+   ═══════════════════════════════════════════════════════════════ */
+
+.blog-article {
+  font-size: 1.0625rem;
+  line-height: 1.8;
+  color: #374151;
+}
+.blog-article > * + * { margin-top: 1.375rem; }
+
+.blog-article p { color: #374151; line-height: 1.8; margin: 0; }
+
+.blog-article h2 {
+  font-size: 1.35rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  color: #1A202C;
+  margin-top: 2.75rem !important;
+  margin-bottom: 0.625rem !important;
+  padding-top: 1.125rem;
+  padding-bottom: 0.5rem;
+  border-top: 2px solid #f1f5f9;
+  scroll-margin-top: 90px;
+}
+.blog-article h2:first-of-type { margin-top: 1.5rem !important; }
+
+.blog-article h3 {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  color: #1A202C;
+  margin-top: 1.875rem !important;
+  margin-bottom: 0.375rem !important;
+}
+
+.blog-article ul,
+.blog-article ol {
+  padding-left: 1.5rem;
+  color: #374151;
+  margin: 0.75rem 0;
+}
+.blog-article ul { list-style-type: disc; }
+.blog-article ol { list-style-type: decimal; }
+.blog-article li { margin-bottom: 0.4rem; line-height: 1.75; }
+.blog-article li::marker { color: #ec5b13; font-weight: 700; }
+
+.blog-article strong { color: #111827; font-weight: 700; }
+.blog-article em { font-style: italic; color: #4b5563; }
+
+.blog-article a {
+  color: #ea580c;
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 1px solid #fed7aa;
+  transition: border-color 0.15s, color 0.15s;
+}
+.blog-article a:hover { color: #c2410c; border-bottom-color: #c2410c; }
+
+.blog-article blockquote {
+  border-left: 4px solid #fb923c;
+  padding: 0.75rem 1.25rem;
+  background: #fff7ed;
+  border-radius: 0 0.5rem 0.5rem 0;
+  color: #374151;
+  font-style: italic;
+  margin: 1.5rem 0 !important;
+}
+
+.blog-article code {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+  font-size: 0.875em;
+  color: #0f172a;
+}
+
+.blog-article figure { margin: 2rem 0 !important; }
+.blog-article figcaption {
+  font-size: 0.8125rem;
+  color: #64748b;
+  text-align: center;
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+/* ── Callout boxes ──────────────────────────────────────── */
+.callout {
+  display: flex;
+  gap: 0.875rem;
+  padding: 1rem 1.25rem;
+  border-radius: 0.875rem;
+  margin: 1.875rem 0 !important;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  align-items: flex-start;
+}
+.callout-icon {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.15rem;
+}
+.callout-body { flex: 1; }
+.callout-body strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 800;
+}
+
+.callout.info    { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; }
+.callout.info    .callout-icon { color: #3b82f6; }
+.callout.info    .callout-body strong { color: #1e40af; }
+
+.callout.warning { background: #fffbeb; border: 1px solid #fde68a; color: #78350f; }
+.callout.warning .callout-icon { color: #d97706; }
+.callout.warning .callout-body strong { color: #92400e; }
+
+.callout.tip     { background: #f0fdf4; border: 1px solid #bbf7d0; color: #14532d; }
+.callout.tip     .callout-icon { color: #16a34a; }
+.callout.tip     .callout-body strong { color: #15803d; }
+
+.callout.important { background: #fff1f2; border: 1px solid #fecdd3; color: #881337; }
+.callout.important .callout-icon { color: #e11d48; }
+.callout.important .callout-body strong { color: #9f1239; }
+
+/* ── Pull quote ─────────────────────────────────────────── */
+.pullquote {
+  font-size: 1.1875rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: #1A202C;
+  border-left: 4px solid #ec5b13;
+  padding: 1rem 1.5rem;
+  margin: 2rem 0 !important;
+  background: linear-gradient(135deg, #fff7ed 0%, #fffdf5 100%);
+  border-radius: 0 0.875rem 0.875rem 0;
+  font-style: italic;
+}
+
+/* ── Stats row ──────────────────────────────────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.875rem;
+  margin: 1.875rem 0 !important;
+}
+.stats-row .stat-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.875rem;
+  padding: 1.125rem 0.875rem;
+  text-align: center;
+}
+.stats-row .stat-item .num {
+  font-size: 1.625rem;
+  font-weight: 900;
+  color: #ec5b13;
+  line-height: 1;
+  display: block;
+}
+.stats-row .stat-item .lbl {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin-top: 0.3rem;
+  display: block;
+}
+
+/* ── Comparison table inside article ───────────────────── */
+.blog-article table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  margin: 1.75rem 0 !important;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+.blog-article th {
+  background: #1A202C;
+  color: #f1f5f9;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.75rem 1rem;
+  text-align: left;
+}
+.blog-article td {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #374151;
+  vertical-align: top;
+}
+.blog-article tr:last-child td { border-bottom: none; }
+.blog-article tr:nth-child(even) td { background: #f8fafc; }
+
+/* ── TOC sidebar link hover ─────────────────────────────── */
+.toc-link {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  color: #64748b;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  line-height: 1.45;
+}
+.toc-link:hover { background: #fff7ed; color: #ea580c; }
+.toc-link .toc-num {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: #cbd5e1;
+  margin-top: 0.1rem;
+  min-width: 1.25rem;
+}

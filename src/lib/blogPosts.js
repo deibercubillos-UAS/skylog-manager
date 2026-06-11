@@ -23,6 +23,12 @@ export const BLOG_POSTS = [
 
 <p>Si usas un dron con fines comerciales —inspección, topografía, filmación, agricultura, vigilancia— estás obligado a cumplirla. No cumplirla puede implicar suspensión de operaciones, multas y responsabilidad civil o penal en caso de accidente.</p>
 
+<div class="stats-row">
+  <div class="stat-item"><div class="num">250 g</div><div class="lbl">Peso mínimo para registrar el RPAS</div></div>
+  <div class="stat-item"><div class="num">7</div><div class="lbl">Obligaciones principales del operador</div></div>
+  <div class="stat-item"><div class="num">2 años</div><div class="lbl">Conservar registros de vuelo</div></div>
+</div>
+
 <h2>¿A quién aplica la RAC 100?</h2>
 <p>La norma aplica a cualquier persona natural o jurídica que opere un RPAS con fines distintos al recreo dentro del espacio aéreo colombiano. Específicamente cubre:</p>
 <ul>
@@ -67,6 +73,11 @@ export const BLOG_POSTS = [
   <li><strong>Inmovilización</strong> de la aeronave</li>
   <li>Responsabilidad civil o penal en caso de accidente por negligencia operacional</li>
 </ul>
+
+<div class="callout important">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>Importante</strong> La UAEAC puede suspender la certificación del operador y las matrículas de aeronaves sin previo aviso ante infracción grave. Las sanciones aplican aunque el vuelo no haya causado daños: el incumplimiento documental es suficiente.</div>
+</div>
 
 <h2>¿Cómo gestionar el cumplimiento RAC 100 eficientemente?</h2>
 <p>El mayor desafío para los operadores no es entender la norma, sino <em>mantener el cumplimiento activo</em> operación tras operación: bitácoras al día, certificaciones vigentes, seguros actualizados, autorizaciones obtenidas a tiempo.</p>
@@ -122,6 +133,11 @@ export const BLOG_POSTS = [
 </ul>
 <p>La <strong>bitácora digital</strong> resuelve todos estos puntos: el operador registra el vuelo desde el celular en campo, el sistema calcula automáticamente las horas acumuladas, y el PDF con todos los campos del F-OPS-002 está disponible en segundos para descarga o auditoría.</p>
 
+<div class="callout tip">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>Tip operacional</strong> Registra el vuelo <em>antes de salir del sitio de operación</em>. Los datos de hora, batería y condición meteorológica son más precisos en campo que horas después. En Bitafly el formulario está optimizado para celular y tarda menos de 2 minutos.</div>
+</div>
+
 <h2>Cómo funciona la bitácora digital de Bitafly</h2>
 <ol>
   <li><strong>Selecciona la aeronave</strong> — el sistema carga automáticamente matrícula, serial y modelo</li>
@@ -163,6 +179,11 @@ export const BLOG_POSTS = [
 <h2>¿Qué drones deben registrarse?</h2>
 <p>Según la RAC 100, deben matricularse ante la UAEAC todos los RPAS con <strong>peso de despegue superior a 250 gramos</strong> que se usen con fines comerciales o que operen en espacio aéreo no segregado. Los drones de uso recreativo menor a 250 g tienen un proceso simplificado.</p>
 
+<div class="callout info">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>¿Qué drones aplican?</strong> La obligación de matrícula aplica a RPAS con <strong>peso de despegue superior a 250 g</strong> usados comercialmente. Los menores de 250 g tienen proceso simplificado, pero igualmente deben estar registrados si operan en espacio aéreo no segregado.</div>
+</div>
+
 <h2>Documentos necesarios para el registro</h2>
 <ul>
   <li><strong>Cédula de ciudadanía o RUT</strong> (persona natural o jurídica)</li>
@@ -196,6 +217,11 @@ export const BLOG_POSTS = [
   <li>Seguro de RC vencido al momento de radicar</li>
   <li>Peso de despegue mal declarado (siempre usar el MTOW, no el peso sin batería)</li>
 </ul>
+
+<div class="callout warning">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+  <div class="callout-body"><strong>Error frecuente</strong> Usar el peso del dron <em>sin batería</em> como MTOW (Maximum Take-Off Weight) es una de las causas más comunes de rechazo. La AeroCivil requiere el peso <strong>con batería y carga completa</strong>. Para un DJI Mavic 3, el MTOW es 895 g, no 673 g.</div>
+</div>
 
 <h2>¿Y si tengo varios drones?</h2>
 <p>Cada aeronave requiere su propio trámite de matrícula. En Bitafly puedes gestionar toda tu flota desde un solo lugar: matrículas, vencimientos, historial de mantenimiento y horas de vuelo de cada aeronave. <a href="/gestion-flota-drones">Conoce el módulo de flota →</a></p>
@@ -238,6 +264,11 @@ export const BLOG_POSTS = [
   <li>Operadores que obtienen <strong>autorización de operación especial</strong> de la AeroCivil</li>
 </ul>
 <p>Incluso si no estás en esta categoría, implementar un SMS voluntario es una práctica que diferencia a los operadores profesionales.</p>
+
+<div class="callout important">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>No esperes a necesitarlo</strong> La AeroCivil evalúa si el SMS existe y si funciona en la práctica. Un manual guardado en un cajón sin evidencia de uso no pasa una auditoría. El SMS debe demostrar actividad: reportes, acciones correctivas, auditorías internas documentadas.</div>
+</div>
 
 <h2>Componentes prácticos del SMS para operadores RPAS</h2>
 
@@ -318,6 +349,11 @@ export const BLOG_POSTS = [
   <li><strong>SAIL V-VI</strong>: Operaciones de alto riesgo (BVLOS sobre áreas habitadas). Requiere certificación formal del RPAS y demostración de redundancias técnicas.</li>
 </ul>
 
+<div class="callout info">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>La mayoría de operaciones VLOS comunes quedan en SAIL I-II</strong> Una inspección de infraestructura VLOS en área rural con un drone de 2 kg típicamente resulta en SAIL I o II: requisitos manejables sin certificación especial del equipo. Las operaciones sobre zonas urbanas o BVLOS pueden escalar rápidamente a SAIL III-IV.</div>
+</div>
+
 <h2>Pasos para hacer un análisis SORA</h2>
 <ol>
   <li><strong>Define el concepto de operación (CONOPS)</strong>: área, altitud, tipo de vuelo, aeronave</li>
@@ -359,6 +395,8 @@ export const BLOG_POSTS = [
     coverAlt:        'Software de gestión para operadores de drones en Colombia 2026',
     body: `
 <p>El mercado de software para operadores de drones creció exponencialmente en los últimos cinco años. Hay plataformas de planificación de vuelo, análisis fotogramétrico, gestión de flotas y cumplimiento normativo. Pero si operas en Colombia, no cualquier herramienta te sirve.</p>
+
+<blockquote class="pullquote">No todo software de gestión de drones sirve para Colombia. La RAC 100 tiene exigencias muy específicas que las plataformas globales simplemente no contemplan.</blockquote>
 
 <p>La <strong>RAC 100</strong> tiene exigencias específicas que la mayoría de plataformas globales simplemente no contemplan: la bitácora de vuelo con todos sus campos, los requisitos del SMS para el mercado colombiano, la integración con los procesos de la AeroCivil y la generación de documentos en español con la nomenclatura de control documental que defina tu manual de operaciones.</p>
 
@@ -418,6 +456,11 @@ export const BLOG_POSTS = [
     coverAlt:        'Formatos de control documental RAC 100 para operadores de drones Colombia',
     body: `
 <p>Si operas drones comercialmente en Colombia bajo la <strong>RAC 100</strong>, debes conocer cuatro registros clave de tu sistema de gestión documental. No son opcionales: cada auditoría o inspección de la <strong>UAEAC (AeroCivil)</strong> puede solicitarlos, y tenerlos incompletos o desactualizados es una infracción directa.</p>
+
+<div class="callout important">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>Los códigos F-OPS-001, F-OPS-002, F-MNT-003 y F-HUM-005 no son nombres oficiales de la AeroCivil</strong> — son los identificadores que Bitafly usa por defecto en su sistema de control documental. Cada organización puede y debe asignar sus propios códigos en su Manual de Operaciones. Lo que la RAC 100 exige es llevar los registros, no usar nombres específicos.</div>
+</div>
 
 <p><strong>Aclaración importante:</strong> los códigos <em>F-OPS-001</em>, <em>F-OPS-002</em>, <em>F-MNT-003</em> y <em>F-HUM-005</em> <strong>no son formatos oficiales de la AeroCivil</strong>. La RAC 100 exige llevar los registros, pero no impone una nomenclatura: cada empresa crea sus propios códigos de control interno en su manual de operaciones. Los códigos que verás aquí son los que Bitafly trae por defecto, y <strong>cada organización puede personalizarlos</strong> para alinearlos con sus manuales.</p>
 
@@ -545,6 +588,12 @@ export const BLOG_POSTS = [
 <p>En esta comparativa directa analizamos ambas plataformas en los criterios que más importan para operadores en Colombia.</p>
 
 <h2>Resumen rápido</h2>
+
+<div class="callout tip">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>TL;DR</strong> Si operas bajo la RAC 100, necesitas Bitafly para el cumplimiento normativo. AirData es complementario — excelente para análisis avanzado de telemetría pero no reemplaza los formatos colombianos ni la gestión de CPR. Muchos operadores serios usan <em>ambos</em>.</div>
+</div>
+
 <p>Si necesitas cumplir la RAC 100 de la AeroCivil, gestionar pilotos con CPR colombiano, generar el F-OPS-002 y el F-MNT-003, y operar todo en español colombiano: <strong>Bitafly es la única opción que cubre todos estos requisitos</strong>. AirData es excelente para análisis de vuelo y telemetría, pero no fue diseñado para la normativa colombiana.</p>
 
 <h2>Comparativa detallada</h2>
@@ -622,6 +671,11 @@ export const BLOG_POSTS = [
 <p>La <strong>RAC 100</strong> exige que cada operación de drones siga procedimientos documentados de pre-vuelo. Un checklist no es solo un requisito normativo — es la herramienta que previene accidentes, protege tu certificación y demuestra profesionalismo ante clientes y autoridades.</p>
 
 <p>Esta lista cubre todos los puntos críticos que debe verificar un operador antes de despegar en Colombia.</p>
+
+<div class="callout warning">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+  <div class="callout-body"><strong>El checklist no es opcional</strong> En caso de accidente o incidente, la AeroCivil revisará si se ejecutó un protocolo de pre-vuelo documentado. Si no hay evidencia de la verificación, la responsabilidad del operador aumenta significativamente. Bitafly registra cada ítem del checklist junto con la bitácora del vuelo.</div>
+</div>
 
 <h2>1. Documentación obligatoria</h2>
 <p>Antes de salir al campo, confirma que tienes disponibles o accesibles:</p>
@@ -730,6 +784,12 @@ export const BLOG_POSTS = [
     body: `
 <p>Pasar de operar un solo drone a gestionar una flota es un salto operacional significativo. Cada aeronave adicional multiplica las obligaciones: matrícula propia, contador de horas independiente, mantenimiento diferenciado, seguro específico. Y todo debe quedar documentado según la <strong>RAC 100</strong> para cualquier auditoría de la AeroCivil.</p>
 
+<div class="stats-row">
+  <div class="stat-item"><div class="num">200 h</div><div class="lbl">Límite mantenimiento preventivo mayor</div></div>
+  <div class="stat-item"><div class="num">6 meses</div><div class="lbl">Límite por calendario (lo primero)</div></div>
+  <div class="stat-item"><div class="num">200</div><div class="lbl">Ciclos típicos de retiro de baterías</div></div>
+</div>
+
 <p>Esta guía está dirigida a <strong>Explotadores de Sistemas UAS (ESUAS)</strong> certificados o en proceso de certificación que operan múltiples aeronaves en Colombia.</p>
 
 <h2>¿Qué implica tener una flota de drones en Colombia?</h2>
@@ -783,6 +843,11 @@ export const BLOG_POSTS = [
 <h3>Mantenimiento basado en calendario, no en horas</h3>
 <p>Una aeronave que vuela 5 horas al mes necesita mantenimiento cada 40 meses por horas — pero la RAC 100 exige también el límite de 6 meses por calendario. El criterio correcto es "lo que ocurra primero", no solo uno de los dos.</p>
 
+<div class="callout warning">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+  <div class="callout-body"><strong>Error crítico en flotas</strong> No confundas el contador de horas de la app del controlador DJI con el contador de horas de la AeroCivil. El contador DJI puede resetearse y no es el documento oficial. El contador válido es el que lleva la bitácora de vuelo acumulada por aeronave — que Bitafly mantiene automáticamente.</div>
+</div>
+
 <h2>Software de gestión de flota para Colombia</h2>
 <p>Bitafly centraliza el inventario de tu flota, suma horas de vuelo automáticamente por aeronave con cada registro en la bitácora, alerta cuando se acerca el umbral de mantenimiento (200 h o 6 meses), y genera el F-MNT-003 de baterías en PDF.</p>
 <p>El módulo de flota es ilimitado en número de aeronaves en el plan Flota y Enterprise. En el plan Escuadrilla soporta hasta 3 aeronaves.</p>
@@ -820,6 +885,11 @@ export const BLOG_POSTS = [
   <li><strong>Los joysticks del control</strong> (DJI RC/RC 2): qué movimientos hizo el piloto en cada maniobra</li>
 </ul>
 <p>No es un mapa estático ni una captura: es el vuelo entero, reproducible. <a href="/replay-gps-drones">Conoce el módulo de replay GPS →</a></p>
+
+<div class="callout tip">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>Compatible con DJI RC y RC 2</strong> El replay de Bitafly reconstruye los joysticks del piloto cuando el log proviene de un <strong>DJI RC o RC 2</strong> (los controladores con pantalla integrada). Los logs de la app DJI Fly desde smartphone no incluyen los movimientos del joystick pero sí toda la telemetría de la aeronave.</div>
+</div>
 
 <h2>Cómo generar el replay desde tu control DJI</h2>
 <p>En Bitafly el replay se reconstruye a partir del archivo <code>.txt</code> que tu controlador DJI guarda en la carpeta <strong>FlightRecord</strong>. El procesamiento ocurre en tu propio navegador, así que no necesitas instalar ningún software de escritorio.</p>
@@ -876,6 +946,11 @@ export const BLOG_POSTS = [
     coverAlt:        'Certificado de Explotador UAS CDO AeroCivil Colombia RAC 100',
     body: `
 <p>Desde el <strong>1 de mayo de 2025</strong>, la <strong>UAEAC (AeroCivil)</strong> exige que todos los operadores de drones comerciales en Colombia en la <em>categoría específica</em> cuenten con el <strong>CDO: Certificado de Explotador UAS</strong>. Sin este certificado, cualquier operación comercial es irregular y puede resultar en multas, suspensión o inmovilización de equipos.</p>
+
+<div class="callout important">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>Obligatorio desde el 1 de mayo de 2025</strong> Si operas drones comercialmente sin el CDO, tu operación es irregular ante la AeroCivil. Esto no solo expone al operador a sanciones: también invalida tu seguro de RC en caso de accidente, ya que la operación fue ilegal desde el inicio.</div>
+</div>
 
 <p>Si tienes una empresa que usa drones para inspección, topografía, agricultura, filmación u otro servicio, esto te aplica directamente. Aquí te explicamos todo lo que necesitas saber.</p>
 
@@ -1051,6 +1126,11 @@ export const BLOG_POSTS = [
     coverAlt:        'Mantenimiento preventivo de drones RAC 100 Colombia operadores UAS',
     body: `
 <p>El <strong>mantenimiento preventivo</strong> es uno de los pilares del cumplimiento RAC 100 en Colombia. La norma no solo exige operar de forma segura: exige <em>demostrar</em> que tus aeronaves están en condiciones de vuelo con registros documentados de cada intervención técnica.</p>
+
+<div class="callout info">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>La regla base: 200 horas o 6 meses</strong> La RAC 100 establece el mantenimiento preventivo mayor cada <strong>200 horas de vuelo acumuladas</strong> o cada <strong>6 meses calendario</strong>, lo que ocurra primero. Para baterías LiPo, el umbral típico es <strong>200 ciclos de carga/descarga</strong>, aunque puede variar según el fabricante.</div>
+</div>
 
 <p>Un programa de mantenimiento bien implementado tiene además un beneficio económico directo: los drones profesionales tienen un costo de reposición entre $15 y $150 millones de pesos. Un motor quemado por falta de inspección puede ser más costoso que un año de mantenimiento preventivo.</p>
 
@@ -1311,6 +1391,12 @@ export const BLOG_POSTS = [
 
 <h3>Paso 4 — Examen de idoneidad</h3>
 <p>Desde el <strong>1 de mayo de 2025</strong>, AeroCivil exige un <strong>Certificado de Idoneidad</strong> para todos los pilotos que soliciten el CPR. Este examen es administrado directamente por la UAEAC o por entidades autorizadas y evalúa los conocimientos teóricos del candidato.</p>
+
+<div class="callout warning">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+  <div class="callout-body"><strong>Requisito vigente desde mayo 2025</strong> Sin el <strong>Certificado de Idoneidad</strong>, AeroCivil NO emite el CPR. Este examen es independiente del aval de tu OEA — debes agendarlo por separado con la UAEAC antes de radicar el trámite en SGDEA. Muchos candidatos pierden semanas por no anticipar este paso.</div>
+</div>
+
 <p>Sin el certificado de idoneidad, AeroCivil no emite el CPR.</p>
 
 <h3>Paso 5 — Tramitar el CPR en SGDEA</h3>

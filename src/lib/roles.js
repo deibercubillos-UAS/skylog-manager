@@ -46,6 +46,9 @@ export const PERMISSIONS = {
     canViewSMS:         ['superadmin', 'admin', 'gerente_sms'],
     canManageSafetyConfig: ['superadmin', 'admin', 'gerente_sms'],
     canViewFlightReplay:   ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],
+    // Manuales de la empresa — gestión solo GG+GSMS+JP; lectura/descarga todos.
+    canManageManuals:   ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],
+    canViewManuals:     ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'],
 };
 
 // Helper: ¿el usuario tiene un permiso?

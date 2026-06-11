@@ -20,15 +20,17 @@ function MiniGauge({ score }) {
 }
 
 /*
- * WeatherWidget — muestra condiciones actuales para un punto (lat/lon).
+ * WeatherWidget — muestra condiciones meteorológicas para un punto (lat/lon).
  *
  * Props:
  *   lat, lon      — coordenadas del punto de vuelo (requeridos)
  *   label         — texto descriptivo de la ubicación (opcional)
  *   compact       — true = solo score + semáforo inline, sin detalles
  *   className     — clases adicionales para el contenedor
+ *   date          — 'YYYY-MM-DD' — si se pasa, consulta el archivo histórico
+ *   hour          — número 0-23  — hora del vuelo (se usa con date)
  */
-export default function WeatherWidget({ lat, lon, label, compact = false, className = '' }) {
+export default function WeatherWidget({ lat, lon, label, compact = false, className = '', date, hour }) {
   const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
@@ -37,7 +39,10 @@ export default function WeatherWidget({ lat, lon, label, compact = false, classN
     if (!lat || !lon) return;
     setLoading(true);
     setError('');
-    fetch(`/api/weather/current?lat=${lat}&lon=${lon}`)
+    const url = date
+      ? `/api/weather/historical?lat=${lat}&lon=${lon}&date=${date}&hour=${hour ?? 0}`
+      : `/api/weather/current?lat=${lat}&lon=${lon}`;
+    fetch(url)
       .then(r => r.json())
       .then(d => {
         if (d.error) throw new Error(d.error);
@@ -45,7 +50,7 @@ export default function WeatherWidget({ lat, lon, label, compact = false, classN
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
-  }, [lat, lon]);
+  }, [lat, lon, date, hour]);
 
   if (!lat || !lon) return null;
 
@@ -94,8 +99,24 @@ export default function WeatherWidget({ lat, lon, label, compact = false, classN
     ? 'border-green-800/40 bg-green-950/30'
     : 'border-red-800/40 bg-red-950/30';
 
+  // Formato de fecha/hora para encabezado histórico
+  const historicalLabel = data.historical && data.flightDate
+    ? (() => {
+        const [y, m, d2] = data.flightDate.split('-');
+        const pad = n => String(n).padStart(2, '0');
+        return `${d2}/${m}/${y} · ${pad(data.flightHour ?? 0)}:00h`;
+      })()
+    : null;
+
   return (
     <div className={`rounded-2xl border p-4 ${borderCls} ${className}`}>
+      {/* Encabezado histórico */}
+      {historicalLabel && (
+        <div className="flex items-center gap-1.5 mb-2.5 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+          <span className="material-symbols-outlined text-[11px]">history</span>
+          Condiciones al momento del vuelo · {historicalLabel}
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center gap-3 mb-3">
         <MiniGauge score={data.score} />

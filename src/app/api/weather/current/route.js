@@ -1,3 +1,4 @@
+import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { NextResponse } from 'next/server';
 
@@ -41,7 +42,8 @@ function calcScore(windspeed, gusts, visibility, precipitation, precipProb, kpVa
 // GET /api/weather/current?lat=4.71&lon=-74.07
 export async function GET(request) {
   try {
-    const { user } = await getOrgContext(request);
+    const supabase = await createClientSSR();
+    const { user } = await getOrgContext(supabase);
     if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const { searchParams } = new URL(request.url);

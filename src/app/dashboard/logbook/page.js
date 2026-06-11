@@ -509,6 +509,8 @@ export default function LogbookPage() {
                                                         id: f.id,
                                                         label: `${f.mission_id || f.flight_date} · ${f.aircraft?.model ?? ''}`,
                                                         hasReplay,
+                                                        flightDate:   f.flight_date   ?? null,
+                                                        takeoffTime:  f.takeoff_time  ?? null,
                                                     })}
                                                     aria-label={hasReplay ? `Ver Replay del vuelo ${f.mission_id || f.flight_date}` : `Subir log para Replay del vuelo ${f.mission_id || f.flight_date}`}
                                                     className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all hover:scale-110 active:scale-95 focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:outline-none ${
@@ -572,6 +574,8 @@ export default function LogbookPage() {
                 flightId={replayFlight?.id}
                 hasReplay={replayFlight?.hasReplay ?? false}
                 flightLabel={replayFlight?.label}
+                flightDate={replayFlight?.flightDate}
+                takeoffTime={replayFlight?.takeoffTime}
                 onReplaySaved={() => setSavedReplays(prev => {
                     const next = new Set(prev);
                     next.add(replayFlight?.id);

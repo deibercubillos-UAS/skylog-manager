@@ -4,7 +4,8 @@ import SEOFooter from '@/components/seo/SEOFooter';
 import SEOBreadcrumb from '@/components/seo/SEOBreadcrumb';
 import SocialProofStrip from '@/components/seo/SocialProofStrip';
 import Decor from '@/components/landing/Decor';
-import { ComplianceScene } from '@/components/landing/Illustrations';
+import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
+import { ComplianceScene, ReportsScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Cumplimiento RAC 100 Drones Colombia | Bitácora Digital AeroCivil',
@@ -95,6 +96,22 @@ export default function RAC100Page() {
           <div><div style={s.statVal}>PDF</div><div style={s.statLbl}>Exportación instantánea</div></div>
         </div>
       </div>
+
+            {/* SPOTLIGHT */}
+      <FeatureSpotlight
+        flip
+        overline="Documentación lista"
+        title={<>Todos tus registros RAC 100 <span style={{color:'#ec5b13'}}>en PDF</span></>}
+        desc="Cuando llega la inspección de la AeroCivil, exportas en segundos el Maestro de Vuelo, el Registro de Baterías y la Bitácora de Piloto con tu logo, código de formato y versión."
+        bullets={[
+          'Maestro de Vuelo, Baterías y Piloto en PDF',
+          'Logo, código de formato y versión corporativa',
+          'Trazabilidad y firma para auditoría',
+          'Códigos configurables según tu manual',
+        ]}
+      >
+        <ReportsScene />
+      </FeatureSpotlight>
 
       {/* QUÉ ES RAC 100 */}
       <section style={{padding:'80px 32px',background:'#f8f6f6',position:'relative',overflow:'hidden',isolation:'isolate'}}>

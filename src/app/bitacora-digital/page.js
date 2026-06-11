@@ -4,6 +4,8 @@ import SEOFooter from '@/components/seo/SEOFooter';
 import SEOBreadcrumb from '@/components/seo/SEOBreadcrumb';
 import SocialProofStrip from '@/components/seo/SocialProofStrip';
 import Decor from '@/components/landing/Decor';
+import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
+import { DroneOpsScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Bitácora Digital de Vuelo para Drones RAC 100 en Colombia',
@@ -117,6 +119,22 @@ export default function BitacoraDigitalPage() {
           <div><div style={s.statVal}>0</div><div style={s.statLbl}>Datos en papel</div></div>
         </div>
       </div>
+
+            {/* SPOTLIGHT */}
+      <FeatureSpotlight
+        flip
+        overline="Desde el sitio de operación"
+        title={<>Registra cada vuelo <span style={{color:'#ec5b13'}}>en segundos</span></>}
+        desc="Tu tripulación abre el navegador en el celular, selecciona la misión y registra despegue, aterrizaje, batería y condiciones. Las horas totales del dron se suman solas."
+        bullets={[
+          'Registro responsive desde celular o tablet',
+          'Despegue, aterrizaje y tiempo total automáticos',
+          'Batería, PIC y aeronave vinculados a la misión',
+          'Suma de horas totales por aeronave sin cálculos',
+        ]}
+      >
+        <DroneOpsScene />
+      </FeatureSpotlight>
 
       {/* CAMPOS */}
       <section style={{padding:'80px 32px',background:'#f8f6f6',position:'relative',overflow:'hidden',isolation:'isolate'}}>

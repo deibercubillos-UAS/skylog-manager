@@ -2,7 +2,8 @@ import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
-import { DroneOpsScene } from '@/components/landing/Illustrations';
+import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
+import { DroneOpsScene, FleetScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Software para Operadores UAS Certificados en Colombia',
@@ -74,6 +75,22 @@ export default function OperadoresUASPage() {
           <div><div style={{fontSize:'36px',fontWeight:900,color:accent}}>100%</div><div style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.2em',color:'#64748b',marginTop:'6px'}}>En la nube</div></div>
         </div>
       </div>
+
+            {/* SPOTLIGHT */}
+      <FeatureSpotlight
+        flip
+        overline="Una sola plataforma"
+        title={<>Gestiona toda tu <span style={{color:'#ec5b13'}}>operación UAS</span></>}
+        desc="Desde el piloto individual hasta el gran explotador ESUAS: flota, tripulación, bitácora, mantenimiento y SMS centralizados, con horas y alertas siempre al día."
+        bullets={[
+          'Flota completa con horas y mantenimientos',
+          'Tripulación con certificados y vencimientos',
+          'Bitácora, SMS y autorizaciones integradas',
+          'Escala de 1 dron a flotas de decenas',
+        ]}
+      >
+        <FleetScene />
+      </FeatureSpotlight>
 
       {/* PARA QUIÉN */}
       <section style={{padding:'80px 32px',background:'#f8f6f6',position:'relative',overflow:'hidden',isolation:'isolate'}}>

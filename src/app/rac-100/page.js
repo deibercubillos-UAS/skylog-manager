@@ -4,6 +4,7 @@ import SEOFooter from '@/components/seo/SEOFooter';
 import SEOBreadcrumb from '@/components/seo/SEOBreadcrumb';
 import SocialProofStrip from '@/components/seo/SocialProofStrip';
 import Decor from '@/components/landing/Decor';
+import { ComplianceScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Cumplimiento RAC 100 Drones Colombia | Bitácora Digital AeroCivil',
@@ -70,8 +71,8 @@ export default function RAC100Page() {
       {/* HERO */}
       <section style={{padding:'80px 32px 72px',background:'#fff',position:'relative',overflow:'hidden',isolation:'isolate'}}>
         <Decor variant="hero" />
-        <div style={{maxWidth:'1100px',margin:'0 auto'}}>
-          <div style={{maxWidth:'720px'}}>
+        <div className="grid grid-cols-1 lg:grid-cols-2" style={{maxWidth:'1100px',margin:'0 auto',gap:'56px',alignItems:'center'}}>
+          <div>
             <div style={s.badge}><div style={s.dot}/><span style={s.badgeText}>UAEAC · Colombia · 2024</span></div>
             <h1 style={s.h1}>Cumplimiento <span style={s.span}>RAC 100</span> para Operadores de Drones en Colombia</h1>
             <p style={s.desc}>Bitafly traduce cada exigencia de la Reglamentación Aeronáutica Colombiana 100 en módulos digitales con trazabilidad, firma y reportes con tu propio código de formato. Auditorías sin sorpresas.</p>
@@ -80,6 +81,7 @@ export default function RAC100Page() {
               <Link href="/reportes-auditoria" style={s.btnGhost}>Ver reportes RAC 100</Link>
             </div>
           </div>
+          <ComplianceScene />
         </div>
       </section>
 

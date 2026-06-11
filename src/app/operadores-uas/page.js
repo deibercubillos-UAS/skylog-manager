@@ -2,6 +2,7 @@ import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
+import { DroneOpsScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Software para Operadores UAS Certificados en Colombia',
@@ -37,8 +38,8 @@ export default function OperadoresUASPage() {
       {/* HERO */}
       <section style={{padding:'80px 32px 72px',background:'#fff',position:'relative',overflow:'hidden',isolation:'isolate'}}>
         <Decor variant="hero" />
-        <div style={{maxWidth:'1100px',margin:'0 auto'}}>
-          <div style={{maxWidth:'720px'}}>
+        <div className="grid grid-cols-1 lg:grid-cols-2" style={{maxWidth:'1100px',margin:'0 auto',gap:'56px',alignItems:'center'}}>
+          <div>
             <div style={{display:'inline-flex',alignItems:'center',gap:'7px',background:'rgba(236,91,19,0.08)',border:'1px solid rgba(236,91,19,0.2)',borderRadius:'9999px',padding:'5px 14px',marginBottom:'20px'}}>
               <div style={{width:'6px',height:'6px',borderRadius:'50%',background:accent}}/>
               <span style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.15em',color:accent}}>ESUAS · AeroCivil · Colombia</span>
@@ -59,6 +60,7 @@ export default function OperadoresUASPage() {
             </div>
             <p style={{fontSize:'11px',fontWeight:700,color:'#94a3b8',marginTop:'14px'}}>Gratis durante certificación ESUAS · Sin tarjeta de crédito</p>
           </div>
+          <DroneOpsScene />
         </div>
       </section>
 

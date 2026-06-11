@@ -860,6 +860,517 @@ export const BLOG_POSTS = [
 <p><a href="/registro">Comienza gratis y reproduce tu primer vuelo →</a></p>
 `,
   },
+
+  // ─── 12. CDO Certificado Explotador UAS ──────────────────────────────────
+  {
+    slug:            'cdo-certificado-explotador-uas-colombia',
+    title:           'CDO: qué es el Certificado de Explotador UAS y cómo obtenerlo en Colombia',
+    metaTitle:       'CDO Certificado Explotador UAS Colombia 2026 | Guía AeroCivil | Bitafly',
+    metaDescription: 'Todo sobre el Certificado de Explotador UAS (CDO) exigido por AeroCivil desde mayo 2025. Requisitos, pasos, documentos y cuánto tarda el proceso en Colombia.',
+    publishedAt:     '2026-06-10',
+    updatedAt:       '2026-06-10',
+    readingTime:     8,
+    category:        'Trámites',
+    keywords:        ['CDO aerocivil drones', 'certificado explotador UAS colombia', 'habilitacion operador drones aerocivil', 'RAC 100 certificacion empresa drones', 'ESUAS colombia'],
+    excerpt:         'Desde mayo de 2025, operar drones comercialmente en Colombia sin el CDO (Certificado de Explotador UAS) es ilegal. Te explicamos qué es, quién lo necesita y cómo tramitarlo ante AeroCivil paso a paso.',
+    coverAlt:        'Certificado de Explotador UAS CDO AeroCivil Colombia RAC 100',
+    body: `
+<p>Desde el <strong>1 de mayo de 2025</strong>, la <strong>UAEAC (AeroCivil)</strong> exige que todos los operadores de drones comerciales en Colombia en la <em>categoría específica</em> cuenten con el <strong>CDO: Certificado de Explotador UAS</strong>. Sin este certificado, cualquier operación comercial es irregular y puede resultar en multas, suspensión o inmovilización de equipos.</p>
+
+<p>Si tienes una empresa que usa drones para inspección, topografía, agricultura, filmación u otro servicio, esto te aplica directamente. Aquí te explicamos todo lo que necesitas saber.</p>
+
+<!-- IMAGEN: Diagrama proceso CDO -->
+<figure style="margin:2rem 0;text-align:center;">
+<svg viewBox="0 0 760 220" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;border-radius:16px;background:#f8fafc;">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+  <!-- Paso 1 -->
+  <rect x="20" y="70" width="120" height="80" rx="12" fill="#fff7ed" stroke="#ec5b13" stroke-width="1.5"/>
+  <text x="80" y="100" text-anchor="middle" font-size="11" font-weight="700" fill="#ec5b13">PASO 1</text>
+  <text x="80" y="116" text-anchor="middle" font-size="10" fill="#475569">Reúne</text>
+  <text x="80" y="130" text-anchor="middle" font-size="10" fill="#475569">documentos</text>
+  <!-- Flecha -->
+  <line x1="140" y1="110" x2="168" y2="110" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+  <!-- Paso 2 -->
+  <rect x="170" y="70" width="120" height="80" rx="12" fill="#fff7ed" stroke="#ec5b13" stroke-width="1.5"/>
+  <text x="230" y="100" text-anchor="middle" font-size="11" font-weight="700" fill="#ec5b13">PASO 2</text>
+  <text x="230" y="116" text-anchor="middle" font-size="10" fill="#475569">Solicitud</text>
+  <text x="230" y="130" text-anchor="middle" font-size="10" fill="#475569">SGDEA</text>
+  <!-- Flecha -->
+  <line x1="290" y1="110" x2="318" y2="110" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+  <!-- Paso 3 -->
+  <rect x="320" y="70" width="120" height="80" rx="12" fill="#fff7ed" stroke="#ec5b13" stroke-width="1.5"/>
+  <text x="380" y="100" text-anchor="middle" font-size="11" font-weight="700" fill="#ec5b13">PASO 3</text>
+  <text x="380" y="116" text-anchor="middle" font-size="10" fill="#475569">Inspección</text>
+  <text x="380" y="130" text-anchor="middle" font-size="10" fill="#475569">AeroCivil</text>
+  <!-- Flecha -->
+  <line x1="440" y1="110" x2="468" y2="110" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+  <!-- Paso 4 -->
+  <rect x="470" y="70" width="120" height="80" rx="12" fill="#fff7ed" stroke="#ec5b13" stroke-width="1.5"/>
+  <text x="530" y="100" text-anchor="middle" font-size="11" font-weight="700" fill="#ec5b13">PASO 4</text>
+  <text x="530" y="116" text-anchor="middle" font-size="10" fill="#475569">Emisión</text>
+  <text x="530" y="130" text-anchor="middle" font-size="10" fill="#475569">CDO (5 años)</text>
+  <!-- Flecha -->
+  <line x1="590" y1="110" x2="618" y2="110" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+  <!-- Paso 5 -->
+  <rect x="620" y="70" width="120" height="80" rx="12" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="680" y="100" text-anchor="middle" font-size="11" font-weight="700" fill="#16a34a">LISTO</text>
+  <text x="680" y="116" text-anchor="middle" font-size="10" fill="#475569">Operar</text>
+  <text x="680" y="130" text-anchor="middle" font-size="10" fill="#475569">legalmente ✅</text>
+  <!-- Título -->
+  <text x="380" y="30" text-anchor="middle" font-size="13" font-weight="800" fill="#1A202C">Proceso para obtener el CDO ante AeroCivil</text>
+  <text x="380" y="48" text-anchor="middle" font-size="10" fill="#94a3b8">Categoría Específica — RAC 100 Colombia</text>
+</svg>
+<figcaption style="font-size:12px;color:#94a3b8;margin-top:8px;">Proceso simplificado para obtener el Certificado de Explotador UAS (CDO) ante la UAEAC.</figcaption>
+</figure>
+
+<h2>¿Qué es el CDO?</h2>
+<p>El <strong>CDO (Certificado de Explotador UAS)</strong> es el documento oficial emitido por la <strong>UAEAC</strong> que acredita que una organización o persona natural cumple con todos los requisitos técnicos, operacionales y de seguridad para explotar sistemas de aeronaves no tripuladas en la <em>categoría específica</em> de la RAC 100.</p>
+
+<p>Antes del RAC 100, el sistema era más informal: bastaba con registrarse como explotador ante AeroCivil. Con el nuevo reglamento, la habilitación implica una evaluación real de tus capacidades operacionales, tu manual de operaciones y tu sistema de gestión de seguridad.</p>
+
+<p>El CDO tiene una <strong>vigencia de 5 años</strong> y debe renovarse antes de su vencimiento.</p>
+
+<h2>¿Quién necesita el CDO?</h2>
+<p>Debes tramitar el CDO si:</p>
+<ul>
+  <li>Operas drones con fines <strong>comerciales o industriales</strong> (inspección, cartografía, filmación, agricultura, seguridad)</li>
+  <li>Tu RPAS tiene un <strong>peso de despegue superior a los límites de la categoría abierta</strong> (generalmente más de 25 kg o con características especiales)</li>
+  <li>Realizas operaciones <strong>fuera de la línea visual (BVLOS)</strong>, nocturnas o sobre aglomeraciones</li>
+  <li>Eres una empresa que presta <strong>servicios UAS a terceros</strong></li>
+</ul>
+
+<p>No necesitas CDO si solo operas en la <em>categoría abierta</em> (vuelos recreativos o comerciales de bajo riesgo con drones ligeros en zonas no restringidas), aunque sí debes registrar el RPAS.</p>
+
+<h2>Requisitos para obtener el CDO</h2>
+
+<h3>1. Manual de Operaciones (MO)</h3>
+<p>Documento que describe cómo opera tu organización: procedimientos normales y de emergencia, gestión de riesgos, responsabilidades, protocolos de comunicación y lista de personal. AeroCivil lo revisa en detalle.</p>
+
+<h3>2. Pilotos certificados con CPR vigente</h3>
+<p>Debes contar con al menos un <strong>Piloto Remoto Certificado (CPR)</strong> emitido por una Organización de Entrenamiento Aprobada (OEA) reconocida por la UAEAC.</p>
+
+<h3>3. Aeronaves registradas con matrícula UAEAC</h3>
+<p>Cada RPAS que operes debe estar matriculado en el <strong>portal SIRAC</strong> con sus datos técnicos, número de serie y datos del propietario.</p>
+
+<h3>4. Sistema de Gestión de Seguridad (SMS)</h3>
+<p>Para operaciones de mayor complejidad, debes tener implementado un SMS aeronáutico: identificación de peligros, análisis de riesgos, acciones correctivas y registros de incidentes. <a href="/aeronautico">El módulo SMS de Bitafly te ayuda a implementarlo →</a></p>
+
+<h3>5. Seguro de responsabilidad civil extracontractual</h3>
+<p>Póliza vigente que cubra daños a terceros durante las operaciones. El monto mínimo varía según el peso máximo de despegue del RPAS.</p>
+
+<h3>6. Bitácora de vuelo al día</h3>
+<p>Demostrar que llevas registro de todos tus vuelos. <a href="/bitacora-digital">Bitafly genera la bitácora RAC 100 automáticamente →</a></p>
+
+<!-- IMAGEN: Tabla de documentos -->
+<figure style="margin:2rem 0;">
+<svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;border-radius:16px;background:#fff;border:1.5px solid #f1f5f9;">
+  <text x="350" y="30" text-anchor="middle" font-size="13" font-weight="800" fill="#1A202C">Documentos requeridos para el CDO</text>
+  <!-- Filas -->
+  <rect x="20" y="45" width="660" height="36" rx="8" fill="#f8fafc"/>
+  <text x="44" y="68" font-size="11" fill="#ec5b13" font-weight="700">📄</text>
+  <text x="64" y="68" font-size="11" fill="#1A202C" font-weight="600">Manual de Operaciones (MO)</text>
+  <text x="500" y="68" font-size="10" fill="#22c55e" font-weight="700">Obligatorio</text>
+
+  <rect x="20" y="85" width="660" height="36" rx="8" fill="#fff"/>
+  <text x="44" y="108" font-size="11" fill="#ec5b13" font-weight="700">👤</text>
+  <text x="64" y="108" font-size="11" fill="#1A202C" font-weight="600">Certificados CPR de pilotos vigentes</text>
+  <text x="500" y="108" font-size="10" fill="#22c55e" font-weight="700">Obligatorio</text>
+
+  <rect x="20" y="125" width="660" height="36" rx="8" fill="#f8fafc"/>
+  <text x="44" y="148" font-size="11" fill="#ec5b13" font-weight="700">✈️</text>
+  <text x="64" y="148" font-size="11" fill="#1A202C" font-weight="600">Matrículas UAEAC de cada RPAS</text>
+  <text x="500" y="148" font-size="10" fill="#22c55e" font-weight="700">Obligatorio</text>
+
+  <rect x="20" y="165" width="660" height="36" rx="8" fill="#fff"/>
+  <text x="44" y="188" font-size="11" fill="#ec5b13" font-weight="700">🛡️</text>
+  <text x="64" y="188" font-size="11" fill="#1A202C" font-weight="600">Seguro de responsabilidad civil vigente</text>
+  <text x="500" y="188" font-size="10" fill="#22c55e" font-weight="700">Obligatorio</text>
+
+  <rect x="20" y="205" width="660" height="36" rx="8" fill="#f8fafc"/>
+  <text x="44" y="228" font-size="11" fill="#ec5b13" font-weight="700">📋</text>
+  <text x="64" y="228" font-size="11" fill="#1A202C" font-weight="600">Sistema de Gestión de Seguridad (SMS)</text>
+  <text x="500" y="228" font-size="10" fill="#d97706" font-weight="700">Según complejidad</text>
+
+  <rect x="20" y="245" width="660" height="28" rx="8" fill="#fff"/>
+  <text x="44" y="264" font-size="11" fill="#ec5b13" font-weight="700">📒</text>
+  <text x="64" y="264" font-size="11" fill="#1A202C" font-weight="600">Registro de vuelos (bitácora)</text>
+  <text x="500" y="264" font-size="10" fill="#22c55e" font-weight="700">Obligatorio</text>
+</svg>
+<figcaption style="font-size:12px;color:#94a3b8;margin-top:8px;">Lista de documentos exigidos por AeroCivil para la emisión del CDO.</figcaption>
+</figure>
+
+<h2>Paso a paso: cómo tramitar el CDO</h2>
+
+<h3>Paso 1 — Prepara tu documentación</h3>
+<p>Elabora o actualiza tu Manual de Operaciones. Si no tienes uno, Bitafly puede generarte la estructura base con todos los apartados que AeroCivil revisa. Reúne los CPR de tus pilotos, matrículas de aeronaves y póliza de seguro vigente.</p>
+
+<h3>Paso 2 — Radica la solicitud en SGDEA</h3>
+<p>Ingresa al sistema <strong>SGDEA (Sistema de Gestión Documental Electrónico de Aerocivil)</strong> con la opción <em>"comunicación oficial UAS - Drones - Explotadores UAS"</em>. Adjunta todos los documentos en PDF y espera el número de radicado.</p>
+
+<h3>Paso 3 — Inspección y evaluación</h3>
+<p>AeroCivil asignará un inspector que revisará tu Manual de Operaciones y puede solicitar una visita de verificación para evaluar tus instalaciones y procedimientos en campo.</p>
+
+<h3>Paso 4 — Emisión del CDO</h3>
+<p>Si todo está en orden, AeroCivil emite el <strong>CDO con vigencia de 5 años</strong>. El certificado incluye: número de registro, nombre del explotador, tipo de operaciones autorizadas, aeronaves inscritas y fecha de vencimiento.</p>
+
+<h2>¿Cuánto tiempo tarda?</h2>
+<p>El proceso completo puede tomar entre <strong>4 y 12 semanas</strong>, dependiendo de la carga de trabajo de AeroCivil y la completitud de tu documentación. La causa más común de demora es el Manual de Operaciones incompleto.</p>
+
+<h2>¿Qué pasa si opero sin CDO?</h2>
+<ul>
+  <li>Multas económicas proporcionales a la infracción</li>
+  <li>Suspensión de operaciones hasta obtener la certificación</li>
+  <li>Inmovilización de aeronaves</li>
+  <li>Responsabilidad civil agravada en caso de accidente</li>
+</ul>
+
+<h2>Cómo Bitafly te ayuda a mantener el CDO vigente</h2>
+<p>Obtener el CDO es solo el primer paso. Mantenerlo requiere: bitácora al día, SMS documentado, pilotos con CPR vigente y aeronaves con mantenimiento al día.</p>
+<p>Bitafly centraliza todo esto en una plataforma diseñada para la RAC 100: alertas de vencimiento de CPR y pólizas, generación automática de la bitácora, módulo SMS completo y reportes de auditoría en un clic.</p>
+<p><a href="/certificacion/explotador-uas">Ver cómo Bitafly te prepara para el CDO →</a></p>
+<p><a href="/registro">Comenzar gratis — sin tarjeta de crédito →</a></p>
+`,
+  },
+
+  // ─── 13. Mantenimiento preventivo drones RAC 100 ──────────────────────────
+  {
+    slug:            'mantenimiento-preventivo-drones-rac-100',
+    title:           'Mantenimiento preventivo de drones bajo la RAC 100: guía completa para operadores en Colombia',
+    metaTitle:       'Mantenimiento Preventivo Drones RAC 100 Colombia 2026 | Bitafly',
+    metaDescription: 'Guía completa de mantenimiento preventivo de drones para operadores RAC 100 en Colombia. Intervalos, registros F-MNT-003, baterías y alertas automáticas con Bitafly.',
+    publishedAt:     '2026-06-10',
+    updatedAt:       '2026-06-10',
+    readingTime:     7,
+    category:        'Operaciones',
+    keywords:        ['mantenimiento drones colombia', 'mantenimiento preventivo RPAS', 'F-MNT-003 drones', 'registro mantenimiento drone RAC 100', 'horas vuelo drone mantenimiento'],
+    excerpt:         'La RAC 100 exige registrar cada intervención técnica sobre tus aeronaves. Un programa de mantenimiento preventivo no solo cumple la norma: extiende la vida útil de tus equipos y previene accidentes costosos.',
+    coverAlt:        'Mantenimiento preventivo de drones RAC 100 Colombia operadores UAS',
+    body: `
+<p>El <strong>mantenimiento preventivo</strong> es uno de los pilares del cumplimiento RAC 100 en Colombia. La norma no solo exige operar de forma segura: exige <em>demostrar</em> que tus aeronaves están en condiciones de vuelo con registros documentados de cada intervención técnica.</p>
+
+<p>Un programa de mantenimiento bien implementado tiene además un beneficio económico directo: los drones profesionales tienen un costo de reposición entre $15 y $150 millones de pesos. Un motor quemado por falta de inspección puede ser más costoso que un año de mantenimiento preventivo.</p>
+
+<!-- IMAGEN: Dashboard de mantenimiento -->
+<figure style="margin:2rem 0;text-align:center;">
+<svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;border-radius:16px;background:#0f172a;">
+  <text x="350" y="28" text-anchor="middle" font-size="13" font-weight="800" fill="#f8fafc">Panel de Mantenimiento — Bitafly</text>
+
+  <!-- Aeronave 1 -->
+  <rect x="20" y="45" width="200" height="100" rx="12" fill="#1e293b" stroke="#ec5b13" stroke-width="1.5"/>
+  <text x="36" y="70" font-size="10" font-weight="700" fill="#ec5b13">DJI M350 RTK</text>
+  <text x="36" y="84" font-size="9" fill="#94a3b8">MAT350-CO-0041</text>
+  <text x="36" y="104" font-size="20" font-weight="900" fill="#ec5b13">89.5h</text>
+  <text x="36" y="118" font-size="9" fill="#94a3b8">Próximo mant: 200h</text>
+  <rect x="36" y="126" width="164" height="6" rx="3" fill="#334155"/>
+  <rect x="36" y="126" width="73" height="6" rx="3" fill="#ec5b13"/>
+  <text x="220" y="136" font-size="8" fill="#ec5b13" text-anchor="end">44%</text>
+
+  <!-- Aeronave 2 - en alerta -->
+  <rect x="240" y="45" width="200" height="100" rx="12" fill="#1e293b" stroke="#f59e0b" stroke-width="2"/>
+  <text x="256" y="70" font-size="10" font-weight="700" fill="#f59e0b">⚠️ Autel EVO II</text>
+  <text x="256" y="84" font-size="9" fill="#94a3b8">AUT-EVO-0008</text>
+  <text x="256" y="104" font-size="20" font-weight="900" fill="#f59e0b">198.2h</text>
+  <text x="256" y="118" font-size="9" fill="#f59e0b">¡Mant. próximo! &lt;2h</text>
+  <rect x="256" y="126" width="164" height="6" rx="3" fill="#334155"/>
+  <rect x="256" y="126" width="160" height="6" rx="3" fill="#f59e0b"/>
+  <text x="440" y="136" font-size="8" fill="#f59e0b" text-anchor="end">99%</text>
+
+  <!-- Aeronave 3 -->
+  <rect x="460" y="45" width="220" height="100" rx="12" fill="#1e293b" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="476" y="70" font-size="10" font-weight="700" fill="#22c55e">DJI Mavic 3E</text>
+  <text x="476" y="84" font-size="9" fill="#94a3b8">MAV3E-CO-0021</text>
+  <text x="476" y="104" font-size="20" font-weight="900" fill="#22c55e">67.1h</text>
+  <text x="476" y="118" font-size="9" fill="#94a3b8">Próximo mant: 200h</text>
+  <rect x="476" y="126" width="184" height="6" rx="3" fill="#334155"/>
+  <rect x="476" y="126" width="62" height="6" rx="3" fill="#22c55e"/>
+  <text x="660" y="136" font-size="8" fill="#22c55e" text-anchor="end">33%</text>
+
+  <!-- Historial -->
+  <rect x="20" y="160" width="660" height="80" rx="12" fill="#1e293b"/>
+  <text x="36" y="180" font-size="10" font-weight="700" fill="#f8fafc">Últimas intervenciones</text>
+  <text x="36" y="198" font-size="9" fill="#94a3b8">05 Jun 2026</text>
+  <text x="120" y="198" font-size="9" fill="#f8fafc">Revisión de hélices y motores</text>
+  <text x="560" y="198" font-size="9" fill="#22c55e">DJI M350</text>
+  <text x="36" y="214" font-size="9" fill="#94a3b8">28 May 2026</text>
+  <text x="120" y="214" font-size="9" fill="#f8fafc">Cambio de baterías (ciclo 180)</text>
+  <text x="560" y="214" font-size="9" fill="#f59e0b">Autel EVO II</text>
+  <text x="36" y="230" font-size="9" fill="#94a3b8">15 May 2026</text>
+  <text x="120" y="230" font-size="9" fill="#f8fafc">Calibración IMU y gimbal</text>
+  <text x="560" y="230" font-size="9" fill="#22c55e">Mavic 3E</text>
+</svg>
+<figcaption style="font-size:12px;color:#94a3b8;margin-top:8px;">El panel de mantenimiento de Bitafly muestra el estado de cada aeronave y alerta antes de llegar al intervalo crítico.</figcaption>
+</figure>
+
+<h2>Lo que exige la RAC 100 en materia de mantenimiento</h2>
+<p>La RAC 100 establece que el operador debe:</p>
+<ul>
+  <li>Llevar un <strong>registro de mantenimiento</strong> por cada aeronave, con fecha, tipo de intervención, técnico responsable y horas de vuelo al momento de la intervención</li>
+  <li>Definir en su <strong>Manual de Operaciones</strong> los intervalos de mantenimiento preventivo y los criterios de aeronavegabilidad</li>
+  <li>No operar una aeronave que haya superado su intervalo de mantenimiento sin la inspección correspondiente</li>
+  <li>Conservar los registros disponibles para auditoría por al menos <strong>2 años</strong></li>
+</ul>
+
+<p>El código documental que identifica el registro de mantenimiento se denomina <strong>F-MNT-003</strong> en Bitafly por defecto, pero cada operador puede definir su propia nomenclatura en su manual.</p>
+
+<h2>Intervalos de mantenimiento recomendados</h2>
+<p>La RAC 100 no fija intervalos universales: el fabricante y el manual de operaciones los definen. Sin embargo, estas son las prácticas estándar de la industria:</p>
+
+<h3>Mantenimiento por horas de vuelo</h3>
+<ul>
+  <li><strong>Cada 50 horas</strong>: inspección visual de hélices, motores, estructura y conectores. Limpieza general.</li>
+  <li><strong>Cada 100 horas</strong>: revisión de motores brushless (resistencia y continuidad), calibración de IMU y compás, verificación de firmware.</li>
+  <li><strong>Cada 200 horas</strong>: revisión completa del sistema de vuelo, inspección de rodamientos, prueba de todos los actuadores.</li>
+  <li><strong>Cada 400 horas</strong>: mantenimiento mayor — reemplazo preventivo de motores y ESC según historial.</li>
+</ul>
+
+<h3>Mantenimiento por tiempo (calendario)</h3>
+<ul>
+  <li><strong>Mensual</strong>: inspección visual post-vuelo, verificación de propelas y batería.</li>
+  <li><strong>Semestral</strong>: revisión completa independientemente de las horas acumuladas.</li>
+  <li><strong>Anual</strong>: inspección certificada si el fabricante lo exige.</li>
+</ul>
+
+<h2>Mantenimiento de baterías LiPo/LiHV</h2>
+<p>Las baterías son el componente de mayor desgaste y mayor riesgo en los drones. La RAC 100 exige registrar los ciclos de cada batería:</p>
+
+<!-- IMAGEN: Tabla ciclos de batería -->
+<figure style="margin:2rem 0;">
+<svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;border-radius:16px;background:#fff;border:1.5px solid #f1f5f9;">
+  <text x="350" y="26" text-anchor="middle" font-size="12" font-weight="800" fill="#1A202C">Ciclos de vida útil por tipo de batería</text>
+  <!-- Encabezados -->
+  <rect x="20" y="35" width="660" height="28" rx="6" fill="#f8fafc"/>
+  <text x="100" y="54" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">Tipo batería</text>
+  <text x="260" y="54" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">Ciclos típicos</text>
+  <text x="420" y="54" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">Retirar si capacidad &lt;</text>
+  <text x="590" y="54" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">Acción</text>
+  <!-- Fila 1 -->
+  <text x="100" y="86" font-size="10" fill="#1A202C" text-anchor="middle">DJI Intelligent Battery</text>
+  <text x="260" y="86" font-size="10" fill="#1A202C" text-anchor="middle">200 – 400</text>
+  <text x="420" y="86" font-size="10" fill="#d97706" text-anchor="middle">80% capacidad original</text>
+  <text x="590" y="86" font-size="10" fill="#dc2626" text-anchor="middle">Baja de servicio</text>
+  <!-- Fila 2 -->
+  <rect x="20" y="95" width="660" height="28" rx="0" fill="#f8fafc"/>
+  <text x="100" y="114" font-size="10" fill="#1A202C" text-anchor="middle">LiHV aftermarket</text>
+  <text x="260" y="114" font-size="10" fill="#1A202C" text-anchor="middle">150 – 300</text>
+  <text x="420" y="114" font-size="10" fill="#d97706" text-anchor="middle">75% capacidad original</text>
+  <text x="590" y="114" font-size="10" fill="#dc2626" text-anchor="middle">Reemplazar</text>
+  <!-- Fila 3 -->
+  <text x="100" y="142" font-size="10" fill="#1A202C" text-anchor="middle">LiPo agrícola (alta cap.)</text>
+  <text x="260" y="142" font-size="10" fill="#1A202C" text-anchor="middle">100 – 200</text>
+  <text x="420" y="142" font-size="10" fill="#d97706" text-anchor="middle">70% capacidad original</text>
+  <text x="590" y="142" font-size="10" fill="#dc2626" text-anchor="middle">Reemplazar</text>
+  <!-- Fila 4 -->
+  <rect x="20" y="151" width="660" height="28" rx="0" fill="#f8fafc"/>
+  <text x="100" y="170" font-size="10" fill="#1A202C" text-anchor="middle">Batería hidrógeno/fuel cell</text>
+  <text x="260" y="170" font-size="10" fill="#1A202C" text-anchor="middle">Per fabricante</text>
+  <text x="420" y="170" font-size="10" fill="#1A202C" text-anchor="middle">Según datasheet</text>
+  <text x="590" y="170" font-size="10" fill="#1A202C" text-anchor="middle">Mantenimiento OEM</text>
+</svg>
+<figcaption style="font-size:12px;color:#94a3b8;margin-top:8px;">Referencia de ciclos de vida útil por tipo de batería. Bitafly registra los ciclos automáticamente al importar logs DJI.</figcaption>
+</figure>
+
+<ul>
+  <li>Registra el número de ciclos de cada batería en el F-MNT-003</li>
+  <li>Almacena las baterías LiPo al <strong>50-60% de carga</strong> si no se usarán por más de 3 días</li>
+  <li>Nunca cargues una batería hinchada (swollen) — es señal de celda dañada y riesgo de incendio</li>
+  <li>Bitafly registra los ciclos automáticamente al importar los logs DJI desde el control remoto</li>
+</ul>
+
+<h2>El registro F-MNT-003: qué debe incluir</h2>
+<p>Cada intervención de mantenimiento debe quedar documentada con:</p>
+<ul>
+  <li>Fecha de la intervención</li>
+  <li>Aeronave: modelo, serial, matrícula UAEAC</li>
+  <li>Horas de vuelo acumuladas al momento del mantenimiento</li>
+  <li>Tipo de mantenimiento: preventivo, correctivo o post-incidente</li>
+  <li>Descripción de la intervención realizada</li>
+  <li>Piezas reemplazadas (número de parte, lote)</li>
+  <li>Técnico responsable: nombre y firma</li>
+  <li>Próxima fecha o horas de mantenimiento programado</li>
+</ul>
+
+<h2>Errores comunes que llevan a infracciones RAC 100</h2>
+<ol>
+  <li><strong>No documentar</strong> las revisiones rutinarias por considerarlas menores</li>
+  <li><strong>Superar el intervalo</strong> de mantenimiento por carga operativa</li>
+  <li><strong>No registrar</strong> el reemplazo de hélices tras un accidente menor</li>
+  <li><strong>Usar baterías</strong> con ciclos vencidos sin registro de baja</li>
+  <li><strong>No actualizar</strong> el firmware de la aeronave después de una intervención</li>
+</ol>
+
+<h2>Cómo Bitafly automatiza el mantenimiento</h2>
+<p>Bitafly suma automáticamente las horas de cada vuelo al totalizador de la aeronave. Cuando se acerca el umbral de mantenimiento (configurable, por defecto 200 horas o 6 meses), el sistema envía una <strong>alerta automática</strong> al administrador y bloquea el despacho de esa aeronave hasta que se registre el mantenimiento.</p>
+<p>El registro genera el <strong>F-MNT-003 en PDF</strong> con todos los campos de la RAC 100, listo para adjuntar en caso de auditoría.</p>
+<p><a href="/mantenimiento-drones">Ver el módulo de mantenimiento de Bitafly →</a></p>
+<p><a href="/registro">Comenzar gratis — sin tarjeta de crédito →</a></p>
+`,
+  },
+
+  // ─── 14. Certificado Piloto Remoto CPR ────────────────────────────────────
+  {
+    slug:            'certificado-piloto-remoto-drones-colombia',
+    title:           'Certificado de Piloto Remoto (CPR): cómo obtenerlo para volar drones en Colombia',
+    metaTitle:       'Certificado Piloto Remoto CPR Drones Colombia 2026 | Guía Completa | Bitafly',
+    metaDescription: 'Guía completa para obtener el Certificado de Piloto Remoto (CPR) en Colombia bajo la RAC 100. Requisitos, OEAs autorizadas, examen teórico y costo del trámite.',
+    publishedAt:     '2026-06-10',
+    updatedAt:       '2026-06-10',
+    readingTime:     7,
+    category:        'Trámites',
+    keywords:        ['certificado piloto remoto colombia', 'CPR drones colombia', 'licencia piloto drone colombia', 'OEA drones colombia', 'curso piloto drone aerocivil'],
+    excerpt:         'El Certificado de Piloto Remoto (CPR) es el documento que acredita que estás habilitado para volar drones comercialmente en Colombia. Sin él, cualquier operación en categoría específica es irregular. Aquí te decimos cómo obtenerlo.',
+    coverAlt:        'Certificado de Piloto Remoto CPR drones Colombia AeroCivil RAC 100',
+    body: `
+<p>Si quieres volar drones con fines comerciales en Colombia, necesitas el <strong>Certificado de Piloto Remoto (CPR)</strong>. Este documento, emitido por la <strong>UAEAC (AeroCivil)</strong>, acredita que has recibido entrenamiento aeronáutico formal y que estás habilitado para operar sistemas RPAS en la <em>categoría específica</em> de la RAC 100.</p>
+
+<p>No confundas el CPR con un curso genérico de drones: el CPR es un certificado oficial aeronáutico, expedido únicamente por organizaciones autorizadas por AeroCivil, y tiene validez legal ante cualquier inspección.</p>
+
+<!-- IMAGEN: Ruta para obtener el CPR -->
+<figure style="margin:2rem 0;text-align:center;">
+<svg viewBox="0 0 700 240" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;border-radius:16px;background:#f8fafc;">
+  <text x="350" y="28" text-anchor="middle" font-size="13" font-weight="800" fill="#1A202C">Ruta para obtener el CPR en Colombia</text>
+
+  <!-- Círculos numerados -->
+  <circle cx="80" cy="130" r="36" fill="#fff7ed" stroke="#ec5b13" stroke-width="2"/>
+  <text x="80" y="122" text-anchor="middle" font-size="20" font-weight="900" fill="#ec5b13">1</text>
+  <text x="80" y="138" text-anchor="middle" font-size="9" fill="#475569">Elegir</text>
+  <text x="80" y="150" text-anchor="middle" font-size="9" fill="#475569">una OEA</text>
+
+  <line x1="116" y1="130" x2="154" y2="130" stroke="#ec5b13" stroke-width="2" stroke-dasharray="4"/>
+
+  <circle cx="190" cy="130" r="36" fill="#fff7ed" stroke="#ec5b13" stroke-width="2"/>
+  <text x="190" y="122" text-anchor="middle" font-size="20" font-weight="900" fill="#ec5b13">2</text>
+  <text x="190" y="138" text-anchor="middle" font-size="9" fill="#475569">Curso</text>
+  <text x="190" y="150" text-anchor="middle" font-size="9" fill="#475569">teórico</text>
+
+  <line x1="226" y1="130" x2="264" y2="130" stroke="#ec5b13" stroke-width="2" stroke-dasharray="4"/>
+
+  <circle cx="300" cy="130" r="36" fill="#fff7ed" stroke="#ec5b13" stroke-width="2"/>
+  <text x="300" y="122" text-anchor="middle" font-size="20" font-weight="900" fill="#ec5b13">3</text>
+  <text x="300" y="138" text-anchor="middle" font-size="9" fill="#475569">Vuelos</text>
+  <text x="300" y="150" text-anchor="middle" font-size="9" fill="#475569">prácticos</text>
+
+  <line x1="336" y1="130" x2="374" y2="130" stroke="#ec5b13" stroke-width="2" stroke-dasharray="4"/>
+
+  <circle cx="410" cy="130" r="36" fill="#fff7ed" stroke="#ec5b13" stroke-width="2"/>
+  <text x="410" y="122" text-anchor="middle" font-size="20" font-weight="900" fill="#ec5b13">4</text>
+  <text x="410" y="138" text-anchor="middle" font-size="9" fill="#475569">Examen</text>
+  <text x="410" y="150" text-anchor="middle" font-size="9" fill="#475569">AeroCivil</text>
+
+  <line x1="446" y1="130" x2="484" y2="130" stroke="#ec5b13" stroke-width="2" stroke-dasharray="4"/>
+
+  <circle cx="520" cy="130" r="36" fill="#fff7ed" stroke="#ec5b13" stroke-width="2"/>
+  <text x="520" y="122" text-anchor="middle" font-size="20" font-weight="900" fill="#ec5b13">5</text>
+  <text x="520" y="138" text-anchor="middle" font-size="9" fill="#475569">Trámite</text>
+  <text x="520" y="150" text-anchor="middle" font-size="9" fill="#475569">en SGDEA</text>
+
+  <line x1="556" y1="130" x2="594" y2="130" stroke="#22c55e" stroke-width="2" stroke-dasharray="4"/>
+
+  <circle cx="630" cy="130" r="36" fill="#f0fdf4" stroke="#22c55e" stroke-width="2"/>
+  <text x="630" y="125" text-anchor="middle" font-size="16" fill="#22c55e">✅</text>
+  <text x="630" y="142" text-anchor="middle" font-size="9" fill="#16a34a" font-weight="700">CPR</text>
+  <text x="630" y="154" text-anchor="middle" font-size="9" fill="#16a34a">emitido</text>
+
+  <text x="350" y="210" text-anchor="middle" font-size="10" fill="#94a3b8">Duración total estimada: 4 a 12 semanas según la OEA elegida</text>
+</svg>
+<figcaption style="font-size:12px;color:#94a3b8;margin-top:8px;">Ruta completa para obtener el Certificado de Piloto Remoto (CPR) en Colombia.</figcaption>
+</figure>
+
+<h2>¿Quién necesita el CPR?</h2>
+<p>El CPR es obligatorio para cualquier persona que:</p>
+<ul>
+  <li>Opere drones con fines <strong>comerciales</strong> (inspección, cartografía, publicidad, agricultura, seguridad)</li>
+  <li>Sea el <strong>Piloto en Comando (PIC)</strong> de cualquier vuelo en categoría específica</li>
+  <li>Quiera ser <strong>contratado como piloto de drones</strong> por una empresa certificada</li>
+</ul>
+<p>Los vuelos recreativos de bajo riesgo en categoría abierta no requieren CPR, pero sí el registro del RPAS si pesa más de 250 g.</p>
+
+<h2>Paso a paso para obtener el CPR</h2>
+
+<h3>Paso 1 — Elegir una OEA (Organización de Entrenamiento Aprobada)</h3>
+<p>Solo las organizaciones con <strong>Certificado de Instrucción para Aviación Civil (CIAC RAC 141)</strong> emitido por AeroCivil pueden entrenar pilotos de drones. No cualquier academia de drones es una OEA válida.</p>
+<p>Verifica que la OEA que eliges tenga el CIAC vigente antes de inscribirte. AeroCivil tiene disponible el listado de OEAs autorizadas en su portal oficial.</p>
+
+<h3>Paso 2 — Curso teórico</h3>
+<p>El programa de entrenamiento incluye, como mínimo:</p>
+<ul>
+  <li><strong>Regulación aeronáutica</strong>: RAC 100, espacio aéreo colombiano, zonas restringidas</li>
+  <li><strong>Meteorología</strong>: lectura de condiciones meteorológicas para operaciones UAS</li>
+  <li><strong>Navegación</strong>: coordenadas, mapas, planificación de ruta</li>
+  <li><strong>Sistemas UAS</strong>: funcionamiento del RPAS, sensores, baterías, comunicaciones</li>
+  <li><strong>Procedimientos de emergencia</strong>: protocolos ante fallo de motor, pérdida de señal, viento extremo</li>
+  <li><strong>Gestión de riesgos</strong>: metodología SORA básica</li>
+</ul>
+<p>La duración varía entre OEAs: típicamente entre 40 y 80 horas de instrucción teórica.</p>
+
+<h3>Paso 3 — Horas de vuelo práctico</h3>
+<p>El candidato debe completar un mínimo de <strong>horas de vuelo supervisado</strong> en campo con instructor. Las horas mínimas las define la OEA según el tipo de operación para el que se certifica el piloto.</p>
+
+<h3>Paso 4 — Examen de idoneidad</h3>
+<p>Desde el <strong>1 de mayo de 2025</strong>, AeroCivil exige un <strong>Certificado de Idoneidad</strong> para todos los pilotos que soliciten el CPR. Este examen es administrado directamente por la UAEAC o por entidades autorizadas y evalúa los conocimientos teóricos del candidato.</p>
+<p>Sin el certificado de idoneidad, AeroCivil no emite el CPR.</p>
+
+<h3>Paso 5 — Tramitar el CPR en SGDEA</h3>
+<p>Con el aval de la OEA y el certificado de idoneidad, radicas la solicitud del CPR en el <strong>SGDEA de AeroCivil</strong>. El trámite incluye el pago de la tasa aeronáutica correspondiente y puede tardar entre 2 y 6 semanas.</p>
+
+<!-- IMAGEN: Requisitos CPR -->
+<figure style="margin:2rem 0;">
+<svg viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;border-radius:16px;background:#fff;border:1.5px solid #f1f5f9;">
+  <text x="350" y="26" text-anchor="middle" font-size="12" font-weight="800" fill="#1A202C">Requisitos para tramitar el CPR ante AeroCivil</text>
+  <rect x="20" y="40" width="660" height="30" rx="6" fill="#f8fafc"/>
+  <text x="44" y="60" font-size="11" fill="#22c55e" font-weight="700">✅</text>
+  <text x="64" y="60" font-size="11" fill="#1A202C">Certificado de finalización del curso emitido por la OEA (CIAC RAC 141)</text>
+
+  <text x="44" y="92" font-size="11" fill="#22c55e" font-weight="700">✅</text>
+  <text x="64" y="92" font-size="11" fill="#1A202C">Certificado de Idoneidad (examen teórico AeroCivil — obligatorio desde mayo 2025)</text>
+
+  <rect x="20" y="104" width="660" height="30" rx="6" fill="#f8fafc"/>
+  <text x="44" y="124" font-size="11" fill="#22c55e" font-weight="700">✅</text>
+  <text x="64" y="124" font-size="11" fill="#1A202C">Cédula de ciudadanía o documento de identidad vigente</text>
+
+  <text x="44" y="156" font-size="11" fill="#22c55e" font-weight="700">✅</text>
+  <text x="64" y="156" font-size="11" fill="#1A202C">Certificado médico aeronáutico (Clase II o equivalente según OEA)</text>
+
+  <rect x="20" y="168" width="660" height="30" rx="6" fill="#f8fafc"/>
+  <text x="44" y="188" font-size="11" fill="#22c55e" font-weight="700">✅</text>
+  <text x="64" y="188" font-size="11" fill="#1A202C">Pago de tasa aeronáutica UAEAC</text>
+</svg>
+<figcaption style="font-size:12px;color:#94a3b8;margin-top:8px;">Lista de documentos requeridos por AeroCivil para la emisión del CPR.</figcaption>
+</figure>
+
+<h2>¿Cuánto cuesta obtener el CPR?</h2>
+<p>El costo total varía según la OEA y la ciudad:</p>
+<ul>
+  <li><strong>Curso en OEA</strong>: entre $1.500.000 y $4.000.000 COP según duración y modalidad</li>
+  <li><strong>Tasa aeronáutica UAEAC</strong>: según tarifa vigente de AeroCivil (consultar portal oficial)</li>
+  <li><strong>Certificado médico</strong>: entre $150.000 y $400.000 COP según el médico examinador</li>
+</ul>
+<p>Costo total estimado: entre <strong>$2.000.000 y $5.000.000 COP</strong> dependiendo de la OEA.</p>
+
+<h2>Vigencia y renovación del CPR</h2>
+<ul>
+  <li>El CPR tiene una <strong>vigencia de 2 años</strong></li>
+  <li>Para renovarlo se requiere demostrar horas de vuelo recientes y certificado médico vigente</li>
+  <li>Bitafly te alerta cuando el CPR de tus pilotos está próximo a vencer</li>
+</ul>
+
+<h2>CPR vs. otros certificados: diferencias clave</h2>
+<ul>
+  <li><strong>CPR</strong>: habilita al piloto individual para volar. Lo necesita cada piloto.</li>
+  <li><strong>CDO</strong>: habilita a la empresa/organización para operar. Lo necesita el explotador.</li>
+  <li><strong>Matrícula UAEAC</strong>: registro de la aeronave. Lo necesita cada RPAS.</li>
+</ul>
+<p>Para operar legalmente bajo RAC 100, una empresa necesita los tres: CDO, pilotos con CPR y aeronaves con matrícula.</p>
+
+<h2>Gestiona los CPR de tu equipo con Bitafly</h2>
+<p>Bitafly registra la fecha de vencimiento del CPR de cada piloto en tu organización y te envía alertas automáticas antes de que expire. Así evitas despachar a un piloto con certificación vencida, lo que constituye infracción directa a la RAC 100.</p>
+<p><a href="/gestion-flota-drones">Ver gestión de tripulación en Bitafly →</a></p>
+<p><a href="/registro">Comenzar gratis — sin tarjeta de crédito →</a></p>
+`,
+  },
 ];
 
 /** Retorna un post por slug, o undefined si no existe */

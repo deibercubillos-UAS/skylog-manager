@@ -270,7 +270,10 @@ Integración de condiciones meteorológicas para decisión de vuelo, basada en O
 | Ruta | Auth | Descripción |
 |---|---|---|
 | `GET /api/weather/current?lat=X&lon=Y` | `getOrgContext()` — todos los usuarios | Clima actual compacto: score 0-100, canFly, issues, métricas, Kp |
+| `GET /api/weather/historical?lat=X&lon=Y&date=YYYY-MM-DD&hour=0-23` | `getOrgContext()` — todos los usuarios | Clima histórico (Open-Meteo Archive): mismo shape que current + `historical:true`, `flightDate`, `flightHour`. Caché 24h (datos pasados inmutables). |
 | `GET /api/admin/master/weather-dev?lat=X&lon=Y` | superadmin | Sandbox completo: hourly 7d + daily 7d + Kp history/forecast |
+
+**Gotcha auth**: `getOrgContext(supabase)` recibe un **cliente Supabase** creado con `createClientSSR()`, NO el objeto `request`. Pasar el request crashea con "Cannot read properties of undefined (reading 'getUser')".
 
 ### Score de vuelo (`calcScore`)
 
@@ -280,10 +283,11 @@ Umbrales (`THR`): windSpeed 25 km/h · windGusts 35 km/h · visibility 5000 m ·
 
 ### `WeatherWidget` (`components/WeatherWidget.js`)
 
-Props: `{ lat, lon, label?, compact?, className? }`
+Props: `{ lat, lon, label?, compact?, className?, date?, hour? }`
 
 - `compact=false` (default): tarjeta completa — gauge SVG + semáforo + issues + 4 tiles (viento, ráfagas, visibilidad, lluvia) + footer Kp/temperatura
 - `compact=true`: badge inline APTO/NO APTO + icono clima + viento + temperatura
+- `date` + `hour`: activa modo histórico → consulta `/api/weather/historical`. Muestra encabezado "Condiciones al momento del vuelo · DD/MM/YYYY HH:00h"
 
 Maneja estados loading / error / sin coordenadas (retorna null).
 
@@ -291,6 +295,7 @@ Maneja estados loading / error / sin coordenadas (retorna null).
 
 - **Programación** (`components/authorizations/BasicForm.js`): al seleccionar municipio, `geocodeMunicipality()` setea `weatherCoords` con las coords de Nominatim → renderiza `<WeatherWidget>` completo debajo del selector
 - **Despacho** (`app/dashboard/logbook/new/page.js`): al seleccionar orden de vuelo, extrae `selectedAuth.plan_data?.points?.[0]` → renderiza `<WeatherWidget compact>` como badge de aptitud
+- **Replay GPS** (`components/FlightReplayModal.js`): panel colapsable en esquina superior derecha del modal. Extrae `lat/lon` del primer punto del `flightData.path`, `date` del prop `flightDate` y `hour` del prop `takeoffTime`. Solo aparece si ambos coords y fecha están disponibles. `logbook/page.js` pasa `flightDate` y `takeoffTime` al modal al abrir el replay.
 
 ### Sandbox superadmin (`app/admin/master/dev`)
 

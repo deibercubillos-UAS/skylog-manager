@@ -74,7 +74,7 @@ lib/
 Tablas principales:
 - `profiles` — users, tiene `organization_id`, `role`, `subscription_plan`, `epayco_subscription_id`, `subscription_expires_at` (NO existe `org_id` ni `plan`; `organizations` no tiene columna de plan)
 - `organizations` — tenant. Tiene `enable_health_check`, `enable_preflight`, `enable_briefing` (toggles protocolos)
-- `pilots` · `aircraft` · `batteries` · `battery_logs`. `pilots.invitation_status` 'pending'/'accepted'/'rejected'/null · `pilots.profile_id` se vincula al aceptar invitación
+- `pilots` · `aircraft` · `batteries` · `battery_logs`. `pilots.invitation_status` 'pending'/'accepted'/'rejected'/null · `pilots.profile_id` se vincula al aceptar invitación · `pilots.avatar_url`/`aerocivil_additions` (jsonb)/`notes`
 - `invitations` — invitación de tripulante: `email`, `role`, `organization_id`, `status`, `token` (UNIQUE, para enlaces), `pilot_id`, `invited_by`, `name`, `accepted_at`
 - `flights` — `pilot_id` + `mission_id` editables vía PATCH. `replay_path` nullable. `plan_id` FK → flight_plans. Constraint `uq_flights_org_aircraft_date_time` UNIQUE NULLS NOT DISTINCT `(organization_id, aircraft_id, flight_date, takeoff_time)`.
 - `maintenance_logs` — tiene `attachment_path TEXT` (bucket `maintenance-docs`, signed URL 1h)
@@ -410,9 +410,11 @@ Vista completa de desarrollo con: ScoreGauge SVG · WindCompass SVG · barras de
 
 - [ ] Agregar `DJI_API_KEY` a Vercel env vars
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a Vercel env vars
-- [ ] Agregar `AEROCIVIL_SALT` a Vercel env vars → remover fallback en `src/app/api/aerocivil/credentials/route.js` (buscar `TODO`)
+- [ ] Agregar `AEROCIVIL_SALT` a Vercel env vars (el fallback inseguro ya fue removido — el endpoint lanza error si falta la variable)
 - [ ] Habilitar `auth_leaked_password_protection` → Supabase > Authentication > Settings > Password Strength
+- [ ] **⚠️ CRÍTICO**: el bucket `documents` es PÚBLICO y contiene cédulas/certificados médicos/diplomas de tripulantes. Migrar a bucket privado + signed URLs (guardar *path* en vez de URL pública en `pilots.id_doc_url` etc.) — ver `docs/plan-mejoras-auditoria.md`
 - [x] `EPAYCO_P_KEY` agregada a Vercel (firma del webhook)
+- [x] Auditoría 2026-06-12: mass-assignment corregido en `POST /api/pilots`/`POST /api/fleet`, columnas `pilots.avatar_url`/`aerocivil_additions`/`notes` aseguradas, políticas legacy del bucket `documents` (borrado/subida cross-tenant) eliminadas, índices FK + RLS initplan optimizados (`supabase/migrations/20260612_audit_fixes.sql`)
 
 ---
 

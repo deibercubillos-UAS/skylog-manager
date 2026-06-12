@@ -8,6 +8,7 @@ import { ROLE_LABELS, PERMISSIONS, hasPermission } from '@/lib/roles';
 import { GracePeriodContext } from '@/lib/gracePeriodContext';
 import { getOrgPlan } from '@/lib/orgPlan';
 import { useRouter } from 'next/navigation';
+import NotificationBell from '@/components/NotificationBell';
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
@@ -492,6 +493,8 @@ const footerLinks = footerLinksAll.filter(link =>
                 </Link>
               </div>
             )}
+
+            <NotificationBell />
 
             <Link
               href="/dashboard/settings/profile"

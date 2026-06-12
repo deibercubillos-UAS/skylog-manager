@@ -1,6 +1,9 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+
+const AnnouncementComposer = dynamic(() => import('@/components/AnnouncementComposer'), { ssr: false });
 
 const POLL_MS = 45_000;
 
@@ -28,12 +31,13 @@ function timeAgo(iso) {
   try { return new Date(iso).toLocaleDateString('es-CO'); } catch { return ''; }
 }
 
-export default function NotificationBell() {
+export default function NotificationBell({ canAnnounce = false }) {
   const router = useRouter();
   const [items, setItems]   = useState([]);
   const [unread, setUnread] = useState(0);
   const [open, setOpen]     = useState(false);
   const [loading, setLoading] = useState(false);
+  const [composer, setComposer] = useState(false);
   const wrapRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -117,11 +121,22 @@ export default function NotificationBell() {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
             <p className="text-xs font-black uppercase tracking-widest text-slate-700">Notificaciones</p>
-            {unread > 0 && (
-              <button onClick={markAll} className="text-[11px] font-black text-orange-600 hover:underline uppercase tracking-wide">
-                Marcar todo leído
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              {unread > 0 && (
+                <button onClick={markAll} className="text-[11px] font-black text-orange-600 hover:underline uppercase tracking-wide">
+                  Marcar todo leído
+                </button>
+              )}
+              {canAnnounce && (
+                <button
+                  onClick={() => { setOpen(false); setComposer(true); }}
+                  className="flex items-center gap-1 text-[11px] font-black text-slate-600 hover:text-orange-600 uppercase tracking-wide"
+                >
+                  <span className="material-symbols-outlined text-sm">campaign</span>
+                  Anuncio
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Lista */}
@@ -171,6 +186,13 @@ export default function NotificationBell() {
             })}
           </div>
         </div>
+      )}
+
+      {composer && (
+        <AnnouncementComposer
+          onClose={() => setComposer(false)}
+          onSent={load}
+        />
       )}
     </div>
   );

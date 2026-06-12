@@ -494,7 +494,7 @@ const footerLinks = footerLinksAll.filter(link =>
               </div>
             )}
 
-            <NotificationBell />
+            <NotificationBell canAnnounce={hasPermission(role, 'canSendAnnouncements')} />
 
             <Link
               href="/dashboard/settings/profile"

@@ -49,6 +49,8 @@ export const PERMISSIONS = {
     // Manuales de la empresa — gestión solo GG+GSMS+JP; lectura/descarga todos.
     canManageManuals:   ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],
     canViewManuals:     ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'],
+    // Anuncios en la campana — los publican GG/GSMS/JP (+ superadmin)
+    canSendAnnouncements: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],
 };
 
 // Helper: ¿el usuario tiene un permiso?

@@ -2,10 +2,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { supabase } from '@/lib/supabase';
 
 const AnnouncementComposer = dynamic(() => import('@/components/AnnouncementComposer'), { ssr: false });
 
-const POLL_MS = 45_000;
+// Realtime es la vía principal; el polling queda como red de seguridad (intervalo largo).
+const POLL_MS = 120_000;
 
 // type → ícono + color de acento
 const TYPE_META = {
@@ -50,12 +52,29 @@ export default function NotificationBell({ canAnnounce = false }) {
     } catch { /* silencioso */ }
   }, []);
 
-  // Carga inicial + polling (pausado si la pestaña está oculta)
+  // Carga inicial + polling de respaldo (pausado si la pestaña está oculta)
   useEffect(() => {
     load();
     const tick = () => { if (document.visibilityState === 'visible') load(); };
     const t = setInterval(tick, POLL_MS);
     return () => clearInterval(t);
+  }, [load]);
+
+  // Realtime: actualización instantánea ante cualquier cambio de mis notificaciones
+  useEffect(() => {
+    let channel;
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (cancelled || !user) return;
+      channel = supabase
+        .channel(`notifications:${user.id}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'notifications', filter: `profile_id=eq.${user.id}` },
+          () => load())
+        .subscribe();
+    })();
+    return () => { cancelled = true; if (channel) supabase.removeChannel(channel); };
   }, [load]);
 
   // Al abrir, refresca; cerrar al hacer clic afuera o Escape

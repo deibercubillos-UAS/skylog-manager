@@ -412,7 +412,7 @@ Vista completa de desarrollo con: ScoreGauge SVG · WindCompass SVG · barras de
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a Vercel env vars
 - [ ] Agregar `AEROCIVIL_SALT` a Vercel env vars (el fallback inseguro ya fue removido — el endpoint lanza error si falta la variable)
 - [ ] Habilitar `auth_leaked_password_protection` → Supabase > Authentication > Settings > Password Strength
-- [ ] **⚠️ CRÍTICO**: el bucket `documents` es PÚBLICO y contiene cédulas/certificados médicos/diplomas de tripulantes. Migrar a bucket privado + signed URLs (guardar *path* en vez de URL pública en `pilots.id_doc_url` etc.) — ver `docs/plan-mejoras-auditoria.md`
+- [x] **Bucket `documents` privado** (Fase G, 2026-06-12): era PÚBLICO con cédulas/certificados médicos/diplomas accesibles sin auth. Ahora privado; acceso vía `GET /api/documents/open?path=` (valida org → 302 a signed URL 1h). `FileUpload.js` guarda *path*; `lib/docUrl.js` (`docPath`/`docOpenUrl`) resuelve paths y URLs legacy. Consumidores (avatares, links de docs, PDF de expediente) usan el endpoint. URLs públicas en BD migradas a paths (`supabase/migrations/20260612_documents_private.sql`). Nota: el CDN puede servir copias cacheadas de URLs ya accedidas hasta ~1h.
 - [x] `EPAYCO_P_KEY` agregada a Vercel (firma del webhook)
 - [x] Auditoría 2026-06-12: mass-assignment corregido en `POST /api/pilots`/`POST /api/fleet`, columnas `pilots.avatar_url`/`aerocivil_additions`/`notes` aseguradas, políticas legacy del bucket `documents` (borrado/subida cross-tenant) eliminadas, índices FK + RLS initplan optimizados (`supabase/migrations/20260612_audit_fixes.sql`)
 

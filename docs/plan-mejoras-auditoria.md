@@ -8,7 +8,20 @@ Lo ya corregido está en `supabase/migrations/20260612_audit_fixes.sql` y en el 
 
 ## P0 — Crítico (privacidad / habeas data)
 
-### 1. Bucket `documents` público con datos personales sensibles
+### 1. Bucket `documents` público con datos personales sensibles — ✅ RESUELTO (Fase G, 2026-06-12)
+
+**Implementado**: bucket `documents` ahora privado. Acceso vía `GET /api/documents/open?path=`
+(valida que el path pertenezca a la org → 302 a signed URL 1h). `FileUpload.js` guarda el
+*path* del objeto; `lib/docUrl.js` (`docPath`/`docOpenUrl`) resuelve tanto paths nuevos como
+URLs públicas legacy. Consumidores migrados: avatares (header, perfil, usuarios — de
+`next/image` a `<img>`), links de documentos (EditPilotPanel, settings/profile) y el link
+"VER DOCUMENTO" del PDF de expediente (reportGenerators, URL absoluta al endpoint). URLs
+públicas en BD convertidas a paths y bucket marcado privado
+(`supabase/migrations/20260612_documents_private.sql`). Verificado en prod: URL pública →
+400 (origen), endpoint sin sesión → 401. ⚠️ Residual: el CDN puede servir copias cacheadas
+de URLs exactas ya accedidas hasta que expira el TTL (~1h).
+
+<details><summary>Plan original (referencia)</summary>
 
 **Problema**: el bucket `documents` es público (31 archivos hoy: cédulas, certificados
 médicos aeronáuticos, diplomas UAS en `{orgId}/crew/docs/*.pdf`). Cualquiera con la URL
@@ -30,6 +43,8 @@ descarga el documento sin autenticación. Las URLs públicas quedan persistidas 
 
 **Esfuerzo**: ~1 día. **Riesgo**: medio (tocar todos los consumidores); mitigable haciendo
 el switch a privado como último paso reversible.
+
+</details>
 
 ---
 

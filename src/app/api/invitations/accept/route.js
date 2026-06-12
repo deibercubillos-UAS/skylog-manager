@@ -4,8 +4,25 @@
 // invitación como aceptada y el piloto destino queda 'accepted' y vinculado.
 import { NextResponse } from 'next/server';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
+import { createNotifications } from '@/lib/notify';
+import { labelForRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
+
+// Avisa a GG + Jefe de Pilotos que alguien se unió (fire-and-forget)
+async function notifyJoin(targetOrgId, name, role, actorId) {
+  try {
+    await createNotifications({
+      orgId: targetOrgId,
+      roles: ['admin', 'jefe_pilotos'],
+      type: 'invitation',
+      title: `${name} se unió al equipo`,
+      body: `Aceptó la invitación como ${labelForRole(role)}.`,
+      link: '/dashboard/pilots',
+      actorId,
+    });
+  } catch (e) { console.warn('[invitations/accept] notif:', e.message); }
+}
 
 // Tablas con organization_id que se transfieren cuando el invitado es dueño
 // único de su organización actual (piloto independiente).
@@ -50,10 +67,13 @@ export async function POST(request) {
     const currentOrgId = prof?.organization_id || null;
     const targetOrgId  = inv.organization_id;
 
+    const joinName = prof?.full_name || user.email || invEmail;
+
     if (currentOrgId === targetOrgId) {
       // Ya está en la org: solo cerrar la invitación y vincular el piloto
       await admin.from('invitations').update({ status: 'accepted', accepted_at: new Date().toISOString() }).eq('id', inv.id);
       if (inv.pilot_id) await admin.from('pilots').update({ invitation_status: 'accepted', profile_id: user.id }).eq('id', inv.pilot_id);
+      await notifyJoin(targetOrgId, joinName, inv.role, user.id);
       return NextResponse.json({ success: true });
     }
 
@@ -104,6 +124,8 @@ export async function POST(request) {
 
     const { data: org } = await admin
       .from('organizations').select('company_name').eq('id', targetOrgId).maybeSingle();
+
+    await notifyJoin(targetOrgId, joinName, inv.role, user.id);
 
     return NextResponse.json({ success: true, orgName: org?.company_name || null });
   } catch (err) {

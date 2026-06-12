@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
+import { createNotifications } from '@/lib/notify';
 import { Resend } from 'resend';
 import { escHtml } from '@/lib/emailHelpers';
 
@@ -102,12 +103,24 @@ export async function PATCH(request) {
       if (updErr) throw updErr;
     }
 
-    // ── Notificar a GG / JP / GSMS de la organización (no a sí mismo) ──
+    // ── Notificar a GG / JP / GSMS (correo + campana in-app, no a sí mismo) ──
     try {
       await notifyManagers(admin, { orgId, pilot, actorId: user.id });
     } catch (e) {
       console.warn('[my-documents] notificación no enviada:', e.message);
     }
+    try {
+      await createNotifications({
+        orgId,
+        roles: ['admin', 'jefe_pilotos', 'gerente_sms'],
+        type: 'document_updated',
+        title: `${pilot.name || 'Un tripulante'} actualizó su expediente`,
+        body: 'Revisa sus documentos en la sección Tripulación.',
+        link: '/dashboard/pilots',
+        actorId: user.id,
+        metadata: { pilot_id: pilot.id },
+      });
+    } catch (e) { console.warn('[my-documents] notif in-app:', e.message); }
 
     return NextResponse.json({ success: true, pilotId: pilot.id });
   } catch (err) {

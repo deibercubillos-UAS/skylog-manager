@@ -1,5 +1,6 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
+import { createNotifications } from '@/lib/notify';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -95,6 +96,35 @@ export async function POST(request) {
         }]).select();
 
         if (error) throw error;
+
+        // ── Notificar: Jefe de Pilotos + GG (Programación Activa) y el PIC piloto (Mis Vuelos)
+        try {
+            const inserted = data[0];
+            const when = inserted.scheduled_at ? String(inserted.scheduled_at).slice(0, 10) : null;
+            const detail = [inserted.location, when].filter(Boolean).join(' · ') || 'Nueva misión programada';
+            const meta = { authorization_id: inserted.id, mission_id: missionId };
+
+            await createNotifications({
+                orgId, roles: ['admin', 'jefe_pilotos'], type: 'flight_scheduled',
+                title: `Vuelo programado · ${missionId}`, body: detail,
+                link: '/dashboard/programacion-activa', actorId: user.id, metadata: meta,
+            });
+
+            // El PIC, si es rol piloto, ve sus misiones en "Mis Vuelos"
+            if (inserted.pilot_id) {
+                const { data: pr } = await supabase
+                    .from('pilots').select('profile_id, profiles:profile_id(role)')
+                    .eq('id', inserted.pilot_id).maybeSingle();
+                if (pr?.profile_id && pr?.profiles?.role === 'piloto') {
+                    await createNotifications({
+                        orgId, profileIds: [pr.profile_id], type: 'flight_scheduled',
+                        title: `Tienes un vuelo asignado · ${missionId}`, body: detail,
+                        link: '/dashboard/mis-vuelos', actorId: user.id, metadata: meta,
+                    });
+                }
+            }
+        } catch (e) { console.warn('[authorize] notif:', e.message); }
+
         return NextResponse.json(data[0]);
     } catch (err) { return NextResponse.json({ error: err.message }, { status: 500 }); }
 }

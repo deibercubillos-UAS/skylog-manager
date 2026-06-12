@@ -3,6 +3,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { parseDjiTxtBuffer } from '@/lib/djiParser';
 import { detectAlerts, buildTelemetry, buildPath, buildMeta } from '@/lib/djiTelemetry';
 import { canAddResource } from '@/lib/planLimits';
+import { createNotifications } from '@/lib/notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -451,6 +452,22 @@ export async function POST(request) {
       } catch (replayErr) {
         console.error('[import-dji] replay build:', replayErr.message);
       }
+    }
+
+    // ── Alerta de dron: si el vuelo importado trae alertas, avisar a JP/GG/GSMS
+    if (hasAlerts && alerts.length) {
+      try {
+        await createNotifications({
+          orgId: prof.organization_id,
+          roles: ['admin', 'jefe_pilotos', 'gerente_sms'],
+          type: 'drone_alert',
+          title: `Alertas en vuelo del ${parsed.fecha}`,
+          body: `${alerts.length} alerta(s) detectada(s) al importar el vuelo (${parsed.serial_aeronave || 'aeronave'}).`,
+          link: '/dashboard/logbook',
+          actorId: user.id,
+          metadata: { flight_id: inserted.id, alerts_count: alerts.length },
+        });
+      } catch (e) { console.warn('[import-dji] notif alerta:', e.message); }
     }
 
     // ── 12. Respuesta ─────────────────────────────────────────────

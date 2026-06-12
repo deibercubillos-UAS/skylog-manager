@@ -4,6 +4,7 @@ import { getOrgContext } from '@/lib/apiAuth';
 import { hasPermission } from '@/lib/roles';
 import { uploadManualFile } from '@/lib/manualStorage';
 import { notifyManualChange } from '@/lib/manualNotify';
+import { createNotifications } from '@/lib/notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -129,9 +130,21 @@ export async function POST(request) {
       .single();
     if (uErr) throw uErr;
 
-    // 5. Notificar a toda la empresa (fire-and-forget)
+    // 5. Notificar a toda la empresa (correo + campana in-app, fire-and-forget)
     try { await notifyManualChange({ orgId, manual: updated, version: ver, actorId: user.id, action: 'created' }); }
     catch (e) { console.warn('[manuals] notificación no enviada:', e.message); }
+    try {
+      await createNotifications({
+        orgId,
+        roles: ['admin', 'gerente_sms', 'jefe_pilotos', 'piloto'],
+        type: 'manual_published',
+        title: `Manual cargado · ${updated.title}`,
+        body: `Versión ${ver.version} vigente desde ${ver.effective_date}.`,
+        link: '/dashboard/manuales',
+        actorId: user.id,
+        metadata: { manual_id: updated.id, version_id: ver.id },
+      });
+    } catch (e) { console.warn('[manuals] notif in-app:', e.message); }
 
     return NextResponse.json(updated, { status: 201 });
   } catch (err) {

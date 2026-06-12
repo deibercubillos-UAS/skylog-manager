@@ -3,6 +3,7 @@
 // El piloto destino queda con invitation_status='rejected' para que el admin lo vea.
 import { NextResponse } from 'next/server';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
+import { createNotifications } from '@/lib/notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ export async function POST(request) {
     const admin = createAdminClient();
     const { data: inv } = await admin
       .from('invitations')
-      .select('id, email, status, pilot_id')
+      .select('id, email, status, pilot_id, organization_id')
       .eq('token', token)
       .maybeSingle();
 
@@ -33,6 +34,21 @@ export async function POST(request) {
     await admin.from('invitations').update({ status: 'rejected' }).eq('id', inv.id);
     if (inv.pilot_id) {
       await admin.from('pilots').update({ invitation_status: 'rejected' }).eq('id', inv.pilot_id);
+    }
+
+    // Avisar a GG + Jefe de Pilotos del rechazo
+    if (inv.organization_id) {
+      try {
+        await createNotifications({
+          orgId: inv.organization_id,
+          roles: ['admin', 'jefe_pilotos'],
+          type: 'invitation',
+          title: 'Invitación rechazada',
+          body: `${invEmail} rechazó la invitación al equipo.`,
+          link: '/dashboard/pilots',
+          actorId: user.id,
+        });
+      } catch (e) { console.warn('[invitations/reject] notif:', e.message); }
     }
 
     return NextResponse.json({ success: true });

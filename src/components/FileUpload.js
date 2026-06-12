@@ -61,12 +61,9 @@ export default function FileUpload({ path, onUploadSuccess, label }) {
 
       if (uploadError) throw uploadError;
 
-      // 4. Obtener URL pública
-      const { data: { publicUrl } } = supabase.storage
-        .from(BUCKET)
-        .getPublicUrl(filePath);
-
-      onUploadSuccess(publicUrl);
+      // 4. Devolver el PATH del objeto (no URL pública). El bucket `documents`
+      //    es privado: el acceso se hace vía /api/documents/open (signed URL).
+      onUploadSuccess(filePath);
 
     } catch (error) {
       console.error("Error en FileUpload:", error.message);

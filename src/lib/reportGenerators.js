@@ -2,8 +2,19 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { docPath } from '@/lib/docUrl';
 
 const cleanText = (val) => val ? String(val).toUpperCase() : '';
+
+// Link de apertura segura (absoluto) para incrustar en el PDF — resuelve a una
+// signed URL fresca vía /api/documents/open. Bucket `documents` privado.
+const docLink = (stored) => {
+  const p = docPath(stored);
+  if (!p) return '';
+  const origin = (typeof window !== 'undefined' && window.location?.origin)
+    || process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
+  return `${origin}/api/documents/open?path=${encodeURIComponent(p)}`;
+};
 
 // Devuelve doc.lastAutoTable.finalY de forma segura (evita crash con datos vacíos o tabla no renderizada)
 const safeAutoTableY = (doc, fallback = 40) => doc.lastAutoTable?.finalY ?? fallback;
@@ -239,12 +250,13 @@ export const generatePilotDossier = (pilot, config) => {
         didDrawCell: (data) => {
             // Lógica para hacer los links clickeables solo en la columna 2
             if (data.section === 'body' && data.column.index === 2) {
-                let url = '';
-                if (data.row.index === 0) url = pilot.id_doc_url;
-                if (data.row.index === 1) url = pilot.pilot_course_url;
-                if (data.row.index === 2) url = pilot.theoretical_exam_url;
-                if (data.row.index === 3) url = pilot.medical_cert_url;
-                
+                let stored = '';
+                if (data.row.index === 0) stored = pilot.id_doc_url;
+                if (data.row.index === 1) stored = pilot.pilot_course_url;
+                if (data.row.index === 2) stored = pilot.theoretical_exam_url;
+                if (data.row.index === 3) stored = pilot.medical_cert_url;
+
+                const url = docLink(stored);
                 if (url) {
                     doc.setTextColor(0, 0, 255);
                     doc.textWithLink("VER DOCUMENTO", data.cell.x + 3, data.cell.y + 6, { url: url });

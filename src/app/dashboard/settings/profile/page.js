@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import FileUpload from '@/components/FileUpload';
 import { toast } from '@/lib/toast';
 import { useRouter } from 'next/navigation';
+import { docOpenUrl } from '@/lib/docUrl';
 export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
@@ -157,7 +158,7 @@ useEffect(() => {
                         <div className="size-32 bg-slate-100 rounded-full border-4 border-white shadow-xl flex items-center justify-center overflow-hidden mb-4 relative group">
                             {profile.avatar_url ? (
                                 // eslint-disable-next-line @next/next/no-img-element
-                                <img src={profile.avatar_url} alt="Foto de perfil" className="size-full object-cover" loading="lazy" decoding="async" />
+                                <img src={docOpenUrl(profile.avatar_url)} alt="Foto de perfil" className="size-full object-cover" loading="lazy" decoding="async" />
                             ) : (
                                 <span className="material-symbols-outlined text-5xl text-slate-300">person</span>
                             )}
@@ -307,7 +308,7 @@ useEffect(() => {
                       { url: docs.theoretical_exam_url, label: 'Examen Teórico Aerocivil' },
                       { url: docs.medical_cert_url,     label: 'Certificado Médico' },
                     ].filter(d => d.url).map(d => (
-                      <a key={d.label} href={d.url} target="_blank" rel="noopener noreferrer"
+                      <a key={d.label} href={docOpenUrl(d.url)} target="_blank" rel="noopener noreferrer"
                         className="flex items-center gap-2 text-xs font-bold text-orange-600 hover:text-orange-800 truncate">
                         <span className="material-symbols-outlined text-sm shrink-0">description</span>
                         <span className="truncate">{d.label}</span>

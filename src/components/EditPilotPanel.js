@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import FileUpload from './FileUpload';
 import { toast } from '@/lib/toast';
+import { docOpenUrl } from '@/lib/docUrl';
 
 const AEROCIVIL_ADDITIONS = [
     "PBMO SUPERIOR A 25 KG Y HASTA 250 KG", "DISPERSIÓN", "ASPERSIÓN", "ENJAMBRE",
@@ -149,7 +150,7 @@ export default function EditPilotPanel({ pilot, onClose, onSuccess, canEditMedic
                   { url: form.theoretical_exam_url, label: 'Examen Teórico Aerocivil' },
                   { url: form.medical_cert_url,     label: 'Certificado Médico' },
                 ].filter(d => d.url).map(d => (
-                  <a key={d.label} href={d.url} target="_blank" rel="noopener noreferrer"
+                  <a key={d.label} href={docOpenUrl(d.url)} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-2 text-xs font-bold text-orange-600 hover:text-orange-800 truncate">
                     <span className="material-symbols-outlined text-sm shrink-0">description</span>
                     <span className="truncate">{d.label}</span>

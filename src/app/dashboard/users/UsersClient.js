@@ -1,9 +1,9 @@
 ﻿'use client';
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { ROLE_LABELS, ASSIGNABLE_ROLES, labelForRole } from '@/lib/roles';
 import { toast } from '@/lib/toast';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { docOpenUrl } from '@/lib/docUrl';
 
 export default function UsersClient({ currentUserId, currentRole, organization }) {
     const [users, setUsers] = useState([]);
@@ -123,7 +123,7 @@ export default function UsersClient({ currentUserId, currentRole, organization }
                                 <div key={u.id} className="p-4 space-y-3">
                                     <div className="flex items-center gap-3">
                                         <div className="size-10 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
-                                            {u.avatar_url ? <Image src={u.avatar_url} alt={u.full_name} className="size-full object-cover" width={40} height={40} unoptimized /> : <span className="material-symbols-outlined text-slate-400 text-xl">person</span>}
+                                            {u.avatar_url ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={docOpenUrl(u.avatar_url)} alt={u.full_name} className="size-full object-cover" width={40} height={40} /> : <span className="material-symbols-outlined text-slate-400 text-xl">person</span>}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-black text-slate-900 uppercase text-xs truncate">
@@ -178,7 +178,7 @@ export default function UsersClient({ currentUserId, currentRole, organization }
                                             <td className="px-6 py-5">
                                                 <div className="flex items-center gap-3">
                                                     <div className="size-10 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
-                                                        {u.avatar_url ? <Image src={u.avatar_url} alt={u.full_name} className="size-full object-cover" width={40} height={40} unoptimized /> : <span className="material-symbols-outlined text-slate-400 text-xl">person</span>}
+                                                        {u.avatar_url ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={docOpenUrl(u.avatar_url)} alt={u.full_name} className="size-full object-cover" width={40} height={40} /> : <span className="material-symbols-outlined text-slate-400 text-xl">person</span>}
                                                     </div>
                                                     <div>
                                                         <div className="font-black text-slate-900 uppercase text-xs">

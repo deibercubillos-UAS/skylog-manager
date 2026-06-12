@@ -3,12 +3,12 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import Image from 'next/image';
 import { ROLE_LABELS, PERMISSIONS, hasPermission } from '@/lib/roles';
 import { GracePeriodContext } from '@/lib/gracePeriodContext';
 import { getOrgPlan } from '@/lib/orgPlan';
 import { useRouter } from 'next/navigation';
 import NotificationBell from '@/components/NotificationBell';
+import { docOpenUrl } from '@/lib/docUrl';
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
@@ -510,7 +510,8 @@ const footerLinks = footerLinksAll.filter(link =>
               </div>
               <div className="size-10 rounded-full bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
                 {data.profile?.avatar_url ? (
-                  <Image src={data.profile.avatar_url} alt="Avatar" width={40} height={40} className="object-cover w-full h-full" />
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={docOpenUrl(data.profile.avatar_url)} alt="Avatar" width={40} height={40} className="object-cover w-full h-full" />
                 ) : (
                   <span className="material-symbols-outlined text-slate-400 text-xl">person</span>
                 )}

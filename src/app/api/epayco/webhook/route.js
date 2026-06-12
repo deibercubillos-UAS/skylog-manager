@@ -35,7 +35,7 @@ export async function POST(request) {
     }
 
     // Log diagnóstico (sin PII)
-    console.log('ePayco webhook recibido:', JSON.stringify({
+    console.log('[epayco] webhook recibido:', JSON.stringify({
       contentType,
       ref:          params.x_ref_payco,
       state:        params.x_transaction_state,
@@ -96,7 +96,7 @@ export async function POST(request) {
         .eq('ref_payco', refPayco)
         .maybeSingle();
       if (already) {
-        console.log(`ePayco webhook duplicado ignorado: ref=${refPayco}`);
+        console.log(`[epayco] webhook duplicado ignorado: ref=${refPayco}`);
         return NextResponse.json({ received: true });
       }
     }
@@ -188,7 +188,7 @@ export async function POST(request) {
         ref:            params.x_ref_payco || null,
       });
       if (newUserId) {
-        console.log(`✓ Cuenta nueva creada desde pending_registration vía webhook: user=${newUserId}`);
+        console.log(`[epayco] ✓ Cuenta nueva creada desde pending_registration vía webhook: user=${newUserId}`);
         return NextResponse.json({ success: true });
       }
     }
@@ -217,7 +217,7 @@ export async function POST(request) {
         .then(() => {}, () => {}); // ignora violación de unique en carreras
     }
 
-    console.log(`✓ Suscripción activada vía webhook: user=${userId} plan=${planKey} billing=${billing}`);
+    console.log(`[epayco] ✓ Suscripción activada vía webhook: user=${userId} plan=${planKey} billing=${billing}`);
     return NextResponse.json({ success: true });
 
   } catch (err) {

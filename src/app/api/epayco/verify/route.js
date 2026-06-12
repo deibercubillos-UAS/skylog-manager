@@ -89,7 +89,7 @@ export async function POST(request) {
       ref:            tx.x_ref_payco || ref_payco,
     });
 
-    console.log(`✓ Suscripción activada vía verify: user=${user.id} plan=${planKey}`);
+    console.log(`[epayco] ✓ Suscripción activada vía verify: user=${user.id} plan=${planKey}`);
     return NextResponse.json({
       activated: true,
       planSlug:  planKey,

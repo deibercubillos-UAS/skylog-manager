@@ -178,7 +178,7 @@ export async function createAccountFromPendingRegistration(supabase, email, paym
     .update({ completed_at: new Date().toISOString(), completed_user_id: userId })
     .eq('id', pending.id);
 
-  console.log(`✓ Cuenta creada desde pending_registration: user=${userId} plan=${planKey}`);
+  console.log(`[epayco] ✓ Cuenta creada desde pending_registration: user=${userId} plan=${planKey}`);
   return userId;
 }
 

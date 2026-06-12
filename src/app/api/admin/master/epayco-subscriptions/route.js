@@ -48,7 +48,7 @@ export async function POST(request) {
     const { id } = await request.json();
     if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 });
 
-    console.log(`[epayco-subscriptions] cancelando id=${id} por superadmin=${user.email}`);
+    console.log(`[master] epayco-subscriptions cancelando id=${id} por superadmin=${user.email}`);
     const result = await cancelSubscription(id);
 
     // También limpiar el perfil en Supabase si hay un usuario con ese subscription_id
@@ -66,7 +66,7 @@ export async function POST(request) {
         subscription_expires_at: null,
         updated_at:              new Date().toISOString(),
       }).eq('id', p.id);
-      console.log(`[epayco-subscriptions] perfil degradado a piloto: ${p.email}`);
+      console.log(`[master] epayco-subscriptions perfil degradado a piloto: ${p.email}`);
     }
 
     return NextResponse.json({ ok: true, epayco: result, profilesUpdated: profiles?.length || 0 });

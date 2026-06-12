@@ -86,7 +86,7 @@ export async function POST(request) {
         });
 
         if (userId) {
-          console.log(`✓ [activate-pending] Cuenta creada manualmente: user=${userId} plan=${pending.plan_key}`);
+          console.log(`[epayco] ✓ activate-pending — Cuenta creada manualmente: user=${userId} plan=${pending.plan_key}`);
           return NextResponse.json({ status: 'completed', plan_key: pending.plan_key });
         }
       }

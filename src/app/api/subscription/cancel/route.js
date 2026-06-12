@@ -23,17 +23,17 @@ export async function POST(request) {
       // Camino principal: tenemos el ID guardado
       try {
         await cancelSubscription(profile.epayco_subscription_id);
-        console.log(`✓ Cancel ePayco OK uid=${profile.epayco_subscription_id} user=${user.id}`);
+        console.log(`[epayco] ✓ Cancel OK uid=${profile.epayco_subscription_id} user=${user.id}`);
       } catch (err) {
         console.error(`✗ Cancel ePayco falló uid=${profile.epayco_subscription_id}:`, err.message);
       }
     } else {
       // Fallback: buscar por email en listado de suscripciones de ePayco
       const email = profile?.email || user.email;
-      console.log(`Cancel fallback: buscando suscripciones por email=${email} user=${user.id}`);
+      console.log(`[epayco] Cancel fallback: buscando suscripciones por email=${email} user=${user.id}`);
       try {
         const result = await cancelSubscriptionsByEmail(email);
-        console.log(`Cancel by email: matched=${result.matched}`, JSON.stringify(result.results));
+        console.log(`[epayco] Cancel by email: matched=${result.matched}`, JSON.stringify(result.results));
       } catch (err) {
         console.error('Cancel by email falló:', err.message);
       }

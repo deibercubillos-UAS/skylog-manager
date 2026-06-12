@@ -21,7 +21,7 @@ export async function GET() {
         if (profError) throw new Error("Perfil no encontrado en la base de datos.");
 
         // LOG DE SEGURIDAD (Se ve en los logs de Vercel)
-        console.log(`Intento de acceso Master - Usuario: ${user.email} - Rol: ${profile?.role}`);
+        console.log(`[master] Intento de acceso - Usuario: ${user.email} - Rol: ${profile?.role}`);
 
         if (profile?.role !== 'superadmin') {
             return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 });
@@ -77,7 +77,7 @@ export async function PATCH(request) {
             return NextResponse.json({ error: "No hay campos válidos para actualizar" }, { status: 400 });
         }
 
-        console.log(`PATCH /api/admin/master — ${user.email} actualizando perfil ${targetUserId}:`, Object.keys(safeUpdate));
+        console.log(`[master] PATCH — ${user.email} actualizando perfil ${targetUserId}:`, Object.keys(safeUpdate));
 
         const { data, error } = await adminSupabase
             .from('profiles')

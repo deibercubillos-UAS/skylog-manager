@@ -325,7 +325,12 @@ Campana in-app en el header del dashboard. Una notificación por destinatario, d
 | Expediente actualizado | `pilots/my-documents` PATCH | GG+JP+GSMS |
 | Anuncio | `notifications/announce` | roles elegidos |
 
-**Pendiente (Fase F)**: `maintenance_due` (condición por tiempo → cron diario), Supabase Realtime (reemplazar polling), retención pg_cron de leídas viejas.
+### Tiempo real, mantenimiento y retención (pg_cron)
+
+- **Realtime**: `notifications` está en la publicación `supabase_realtime` (REPLICA IDENTITY FULL). La campana se suscribe a `postgres_changes` filtrado por `profile_id` → actualización instantánea. El polling baja a 120 s como red de seguridad.
+- **`notify_maintenance_due()`** (cron `0 13 * * *`): notifica a GG+JP cuando una aeronave alcanza el umbral del dashboard (`hours_since ≥ 180` o `days_since ≥ 165`; crítico en 195h/175d). Dedup de 7 días por aeronave/usuario para no repetir a diario.
+- **`cleanup_old_notifications()`** (cron `0 4 * * *`): borra leídas >60 días y cualquiera >180 días.
+- ⚠️ Ambas funciones son `SECURITY DEFINER` con `EXECUTE` **revocado** a `PUBLIC/anon/authenticated` (solo el cron las ejecuta) — no exponerlas vía `/rest/v1/rpc`.
 
 ---
 

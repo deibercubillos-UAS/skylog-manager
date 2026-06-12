@@ -11,6 +11,7 @@ const PLATFORM_LINKS = [
   { href: '/replay-gps-drones',       label: 'Replay GPS' },
   { href: '/gestion-pilotos',         label: 'Pilotos y Licencias' },
   { href: '/plan-vuelo-drones',       label: 'Plan de Vuelo KMZ' },
+  { href: '/clima-drones',           label: 'Clima y Meteorología' },
   { href: '/sora',                    label: 'Análisis SORA' },
 ];
 

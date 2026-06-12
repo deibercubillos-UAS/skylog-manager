@@ -82,6 +82,13 @@ const FEATURES = [
     badge: 'Destacado',
   },
   {
+    icon: 'partly_cloudy_day',
+    title: 'Clima y Meteorología UAV',
+    desc: 'Verifica viento, ráfagas, visibilidad, lluvia e índice Kp del GPS antes de cada vuelo. Score de aptitud 0-100 integrado en la programación y el despacho.',
+    href: '/clima-drones',
+    badge: 'Nuevo',
+  },
+  {
     icon: 'build',
     title: 'Mantenimiento Programado',
     desc: 'Alertas automáticas cuando una aeronave alcanza 200 horas o 6 meses desde la última intervención. Trazabilidad completa de cada cambio de hélice, calibración y reparación.',

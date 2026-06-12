@@ -17,6 +17,7 @@ const PLATFORM_ITEMS = [
   { href: '/reportes-auditoria',     icon: 'assessment',       label: 'Reportes',            desc: 'PDFs RAC 100' },
   { href: '/gestion-pilotos',        icon: 'group',            label: 'Pilotos',             desc: 'Expediente y licencias' },
   { href: '/plan-vuelo-drones',      icon: 'map',              label: 'Plan de Vuelo',       desc: 'KMZ y polígonos' },
+  { href: '/clima-drones',           icon: 'partly_cloudy_day',label: 'Clima UAV',           desc: 'Verificación pre-vuelo', badge: 'Nuevo' },
 ];
 
 // ── Recursos dropdown items ───────────────────────────────────────────────────

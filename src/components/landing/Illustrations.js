@@ -479,4 +479,67 @@ export function SoraScene({ className }) {
   );
 }
 
-export default { DroneOpsScene, ComplianceScene, FleetScene, BatteryMaintScene, SmsSafetyScene, AuthMapScene, ReplayScene, CrewScene, ReportsScene, SoraScene };
+/* Clima UAV: tarjeta de aptitud de vuelo (score + métricas + Kp/GPS) */
+export function WeatherScene({ className }) {
+  const GREEN = '#22c55e';
+  const R = 40, C = 2 * Math.PI * R, pct = 0.82;
+  const tiles = [
+    { label: 'VIENTO', val: '14', unit: 'km/h', bad: false },
+    { label: 'RÁFAGAS', val: '22', unit: 'km/h', bad: false },
+    { label: 'VISIB.', val: '9.0', unit: 'km', bad: false },
+    { label: 'LLUVIA', val: '10', unit: '%', bad: false },
+  ];
+  return (
+    <svg className={className} style={frame} viewBox="0 0 520 440" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Verificación meteorológica pre-vuelo: score de aptitud, viento, ráfagas, visibilidad, lluvia e índice Kp para GPS">
+      <rect x="0.5" y="0.5" width="519" height="439" rx="28" fill="#eef2f7" stroke="#e2e8f0" />
+
+      {/* tarjeta de clima */}
+      <g transform="translate(60 50)">
+        <rect x="0" y="0" width="400" height="340" rx="22" fill={NAVY} />
+
+        {/* sol/nube decorativo */}
+        <g transform="translate(330 34)" opacity="0.9">
+          <circle cx="0" cy="0" r="14" fill="#fbbf24" />
+          <path d="M-22 14 a12 12 0 0 1 4 -23 a16 16 0 0 1 30 4 a11 11 0 0 1 2 19 z" fill="#cbd5e1" />
+        </g>
+
+        {/* gauge + estado */}
+        <g transform="translate(70 80)">
+          <circle cx="0" cy="0" r={R} fill="none" stroke="#1e293b" strokeWidth="9" />
+          <circle cx="0" cy="0" r={R} fill="none" stroke={GREEN} strokeWidth="9" strokeLinecap="round"
+            strokeDasharray={`${C * pct} ${C * (1 - pct)}`} strokeDashoffset={C / 4} transform="rotate(-90)" />
+          <text x="0" y="8" textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="26" fontWeight="800" fill="#fff">82</text>
+        </g>
+        <g transform="translate(130 52)">
+          <rect x="0" y="0" width="150" height="30" rx="15" fill="rgba(34,197,94,0.16)" />
+          <circle cx="20" cy="15" r="6" fill={GREEN} />
+          <text x="34" y="20" fontFamily="system-ui, sans-serif" fontSize="12" fontWeight="800" fill={GREEN}>APTO PARA VOLAR</text>
+          <text x="0" y="56" fontFamily="system-ui, sans-serif" fontSize="11" fill="#94a3b8">Bogotá · Parcialmente nublado · 07:15h</text>
+        </g>
+
+        {/* tiles de métricas */}
+        <g transform="translate(20 150)">
+          {tiles.map((t, i) => (
+            <g key={t.label} transform={`translate(${i*92} 0)`}>
+              <rect x="0" y="0" width="84" height="74" rx="12" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" />
+              <text x="42" y="28" textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="18" fontWeight="800" fill="#fff">{t.val}</text>
+              <text x="42" y="44" textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="9" fill="#64748b">{t.unit}</text>
+              <text x="42" y="62" textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="9" fontWeight="700" letterSpacing="0.5" fill="#94a3b8">{t.label}</text>
+            </g>
+          ))}
+        </g>
+
+        {/* fila Kp / GPS */}
+        <g transform="translate(20 250)">
+          <rect x="0" y="0" width="360" height="44" rx="12" fill="rgba(34,197,94,0.08)" stroke="rgba(34,197,94,0.2)" />
+          <circle cx="26" cy="22" r="7" fill={GREEN} />
+          <text x="44" y="19" fontFamily="system-ui, sans-serif" fontSize="11" fontWeight="800" fill="#fff">ÍNDICE Kp 2.0 · GPS ÓPTIMO</text>
+          <text x="44" y="34" fontFamily="system-ui, sans-serif" fontSize="10" fill="#94a3b8">Actividad geomagnética baja · señal estable</text>
+          <text x="340" y="27" textAnchor="end" fontFamily="monospace" fontSize="11" fontWeight="700" fill={GREEN}>NOAA</text>
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+export default { DroneOpsScene, ComplianceScene, FleetScene, BatteryMaintScene, SmsSafetyScene, AuthMapScene, ReplayScene, CrewScene, ReportsScene, SoraScene, WeatherScene };

@@ -31,6 +31,7 @@ const RESOURCES_LINKS = [
   { href: '/comparativa-bitafly-airdata',     label: 'Bitafly vs AirData' },
   { href: '/comparativa-bitafly-dronedesk',   label: 'Bitafly vs Dronedesk' },
   { href: '/comparativa-bitafly-geodrone',    label: 'Bitafly vs GeoDrone' },
+  { href: '/comparativa-bitafly-uav-forecast', label: 'Bitafly vs UAV Forecast' },
 ];
 
 const lnkStyle = { fontSize: '12px', color: '#64748b', textDecoration: 'none' };

@@ -1457,6 +1457,243 @@ export const BLOG_POSTS = [
 <p><a href="/registro">Comenzar gratis — sin tarjeta de crédito →</a></p>
 `,
   },
+
+  // ─── 12. Clima y meteorología para drones ────────────────────────────────
+  {
+    slug:            'como-leer-clima-antes-volar-dron-colombia',
+    title:           'Cómo leer las condiciones meteorológicas antes de volar un dron en Colombia',
+    metaTitle:       'Clima para Volar Drones Colombia: Viento, Kp y Score de Aptitud | Bitafly',
+    metaDescription: 'Guía práctica para interpretar viento, ráfagas, visibilidad, lluvia e índice Kp antes de cada vuelo de dron en Colombia. Con los umbrales reales de la RAC 100.',
+    publishedAt:     '2026-06-12',
+    readingTime:     8,
+    category:        'Operaciones',
+    keywords:        ['clima drones colombia', 'meteorología UAS', 'viento drones vuelo', 'índice Kp GPS drones', 'condiciones vuelo drones', 'weather drones colombia'],
+    excerpt:         'El clima es el factor operacional más subestimado por los pilotos de drones. Viento en calma en tierra puede ser turbulencia severa a 80 metros. Te explicamos las 6 variables que determinan si puedes volar y qué valores son el límite.',
+    coverAlt:        'Condiciones meteorológicas para volar drones en Colombia — viento, ráfagas e índice Kp',
+    body: `
+<p>El clima es el factor operacional más subestimado por los pilotos de drones. Un día aparentemente tranquilo en tierra puede tener vientos a 80 metros que superan los límites del fabricante. Una mañana despejada puede esconder actividad geomagnética que degrade el GPS hasta hacer el vuelo inseguro.</p>
+
+<p>En este artículo te explicamos las <strong>6 variables meteorológicas</strong> que todo piloto de drones debe verificar antes de despegar en Colombia, los umbrales de referencia y cómo interpretar cada dato.</p>
+
+<div class="stats-row">
+  <div class="stat-item"><div class="num">6</div><div class="lbl">Variables que afectan la seguridad del vuelo</div></div>
+  <div class="stat-item"><div class="num">25 km/h</div><div class="lbl">Umbral de viento para operar con precaución</div></div>
+  <div class="stat-item"><div class="num">5 km</div><div class="lbl">Visibilidad mínima recomendada para VLOS</div></div>
+</div>
+
+<h2>¿Por qué la meteorología importa más en drones que en aviación tripulada?</h2>
+
+<p>Los drones tienen tres desventajas frente a las aeronaves tripuladas que los hacen mucho más vulnerables al clima:</p>
+
+<ul>
+  <li><strong>Menor masa</strong>: un dron de 900 g es arrastrado por una ráfaga que apenas movería un Cessna. La relación entre área frontal y masa penaliza a los RPAS pequeños.</li>
+  <li><strong>Sin piloto a bordo</strong>: el piloto en tierra no "siente" el avión. La telemetría llega con latencia y puede fallar. La percepción situacional es radicalmente inferior.</li>
+  <li><strong>Dependencia del GPS</strong>: la mayoría de los drones DJI en modo GPS dependen de una señal satelital precisa. La actividad geomagnética (índice Kp) puede reducir esa precisión o causar derivas peligrosas.</li>
+</ul>
+
+<blockquote class="pullquote">El viento en tierra es solo una referencia. A 80 metros de altura, en una zona con relieve o vegetación alta, la velocidad puede ser 2x o 3x mayor.</blockquote>
+
+<h2>Las 6 variables que debes verificar (y su peso en la decisión de volar)</h2>
+
+<p>Bitafly evalúa 6 factores para calcular el <strong>score de aptitud de vuelo</strong> (0–100). Cada variable tiene un peso diferente basado en su impacto real en la seguridad operacional:</p>
+
+<!-- IMAGEN: Score weights diagram -->
+<figure style="margin:2rem 0;">
+<svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;border-radius:16px;background:#f8fafc;border:1.5px solid #e2e8f0;">
+  <text x="350" y="28" text-anchor="middle" font-size="13" font-weight="800" fill="#1A202C">Ponderación del score de aptitud de vuelo</text>
+
+  <!-- Variable rows -->
+  <!-- Viento -->
+  <rect x="20" y="45" width="660" height="30" rx="6" fill="#fff" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="36" y="65" font-size="11" fill="#1A202C" font-weight="600">Velocidad del viento (10 m)</text>
+  <rect x="280" y="51" width="180" height="16" rx="8" fill="#dbeafe"/>
+  <rect x="280" y="51" width="54" height="16" rx="8" fill="#3b82f6"/>
+  <text x="470" y="64" font-size="11" fill="#3b82f6" font-weight="700">30%</text>
+  <text x="600" y="64" font-size="10" fill="#64748b">Límite: 25 km/h</text>
+
+  <!-- Ráfagas -->
+  <rect x="20" y="82" width="660" height="30" rx="6" fill="#f8fafc" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="36" y="102" font-size="11" fill="#1A202C" font-weight="600">Ráfagas de viento</text>
+  <rect x="280" y="88" width="180" height="16" rx="8" fill="#dbeafe"/>
+  <rect x="280" y="88" width="39.6" height="16" rx="8" fill="#6366f1"/>
+  <text x="470" y="101" font-size="11" fill="#6366f1" font-weight="700">22%</text>
+  <text x="600" y="101" font-size="10" fill="#64748b">Límite: 35 km/h</text>
+
+  <!-- Visibilidad -->
+  <rect x="20" y="119" width="660" height="30" rx="6" fill="#fff" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="36" y="139" font-size="11" fill="#1A202C" font-weight="600">Visibilidad horizontal</text>
+  <rect x="280" y="125" width="180" height="16" rx="8" fill="#dbeafe"/>
+  <rect x="280" y="125" width="39.6" height="16" rx="8" fill="#0ea5e9"/>
+  <text x="470" y="138" font-size="11" fill="#0ea5e9" font-weight="700">22%</text>
+  <text x="600" y="138" font-size="10" fill="#64748b">Límite: 5.000 m</text>
+
+  <!-- Precipitación -->
+  <rect x="20" y="156" width="660" height="30" rx="6" fill="#f8fafc" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="36" y="176" font-size="11" fill="#1A202C" font-weight="600">Precipitación (mm/h)</text>
+  <rect x="280" y="162" width="180" height="16" rx="8" fill="#dbeafe"/>
+  <rect x="280" y="162" width="28.8" height="16" rx="8" fill="#22c55e"/>
+  <text x="470" y="175" font-size="11" fill="#22c55e" font-weight="700">16%</text>
+  <text x="600" y="175" font-size="10" fill="#64748b">Límite: 0.1 mm/h</text>
+
+  <!-- Prob lluvia -->
+  <rect x="20" y="193" width="660" height="30" rx="6" fill="#fff" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="36" y="213" font-size="11" fill="#1A202C" font-weight="600">Probabilidad de lluvia (%)</text>
+  <rect x="280" y="199" width="180" height="16" rx="8" fill="#dbeafe"/>
+  <rect x="280" y="199" width="9" height="16" rx="8" fill="#f59e0b"/>
+  <text x="470" y="212" font-size="11" fill="#f59e0b" font-weight="700">5%</text>
+  <text x="600" y="212" font-size="10" fill="#64748b">Variable</text>
+
+  <!-- Kp -->
+  <rect x="20" y="230" width="660" height="25" rx="6" fill="#f8fafc" stroke="#f1f5f9" stroke-width="1"/>
+  <text x="36" y="247" font-size="11" fill="#1A202C" font-weight="600">Índice Kp (actividad geomagnética)</text>
+  <rect x="280" y="236" width="180" height="13" rx="6" fill="#dbeafe"/>
+  <rect x="280" y="236" width="9" height="13" rx="6" fill="#ec5b13"/>
+  <text x="470" y="247" font-size="11" fill="#ec5b13" font-weight="700">5%</text>
+  <text x="600" y="247" font-size="10" fill="#64748b">Kp ≤ 4: normal</text>
+</svg>
+<figcaption style="font-size:12px;color:#94a3b8;margin-top:8px;">Pesos exactos del modelo de score de aptitud de vuelo de Bitafly. Fuente: <code>calcScore()</code> en la API del módulo de clima.</figcaption>
+</figure>
+
+<h2>Variable 1: Velocidad del viento (peso: 30%)</h2>
+
+<p>La velocidad del viento en superficie es el factor más determinante. La fuente de Bitafly —<strong>Open-Meteo</strong>— reporta el viento a <strong>10 metros de altura</strong>, que es la altura estándar meteorológica. En la práctica, el viento a la altitud de vuelo del dron (30–120 m) puede ser significativamente mayor.</p>
+
+<p><strong>Umbrales de referencia:</strong></p>
+<ul>
+  <li><strong>&lt; 15 km/h</strong>: condiciones excelentes. Vuelo estable, sin correcciones significativas del autopiloto.</li>
+  <li><strong>15–25 km/h</strong>: condiciones aceptables. El autopiloto compensa bien, pero el tiempo de vuelo se reduce por mayor consumo de batería.</li>
+  <li><strong>25–35 km/h</strong>: zona de precaución. La mayoría de drones DJI operan, pero cerca de su límite. No recomendado para drones pequeños (&lt;250 g) ni para filmación de precisión.</li>
+  <li><strong>&gt; 35 km/h</strong>: no volar. Por encima de este umbral, el dron puede perder estabilidad y no recuperar posición.</li>
+</ul>
+
+<div class="callout warning">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+  <div class="callout-body"><strong>El viento a 10 m no es el viento a 80 m</strong> En zonas con edificios, vegetación alta o relieve complejo, el perfil de viento vertical puede triplicar la velocidad entre el suelo y la altitud de vuelo. Si el pronóstico dice 15 km/h pero hay árboles que se mueven visiblemente, sube el doble como referencia interna.</div>
+</div>
+
+<h2>Variable 2: Ráfagas (peso: 22%)</h2>
+
+<p>Las ráfagas son picos de viento cortos (segundos) que pueden superar en 50–100% la velocidad media. Son especialmente peligrosas porque el autopiloto del dron puede no alcanzar a compensar antes de que la aeronave se desplace significativamente.</p>
+
+<p>El umbral de 35 km/h en ráfagas es conservador por diseño: incluso un dron con clasificación de viento de 12 m/s (~43 km/h) puede ser destabilizado momentáneamente por una ráfaga que supere esa velocidad durante 1–2 segundos.</p>
+
+<h2>Variable 3: Visibilidad horizontal (peso: 22%)</h2>
+
+<p>La <strong>RAC 100</strong> exige que las operaciones VLOS (Visual Line of Sight) se realicen en condiciones que permitan mantener contacto visual directo con el RPAS en todo momento. Si no puedes ver el dron, no puedes operar en categoría VLOS.</p>
+
+<p>La visibilidad puede reducirse por:</p>
+<ul>
+  <li><strong>Niebla</strong>: frecuente en las madrugadas y mañanas en zonas altas de Colombia (Bogotá, Manizales, Pasto)</li>
+  <li><strong>Lluvia intensa</strong>: reduce la visibilidad y además daña la electrónica del dron</li>
+  <li><strong>Neblina / calima</strong>: común en temporadas de quema en los llanos o valles</li>
+  <li><strong>Humo industrial o de incendios</strong>: puede aparecer sin previo aviso</li>
+</ul>
+
+<p>El umbral de 5.000 metros de visibilidad es el mínimo recomendado para operación VLOS segura. Por debajo de 3.000 metros, la operación es de alto riesgo a menos que el dron esté dentro del alcance visual directo del piloto en todo momento.</p>
+
+<h2>Variable 4: Precipitación (peso: 16%)</h2>
+
+<p>Cualquier cantidad de lluvia activa es una señal de no volar. Los drones comerciales estándar (DJI Mavic, Air, Mini) <strong>NO son resistentes al agua</strong> — solo el Matrice 350, Agras y algunos modelos industriales tienen clasificación IP real para lluvia.</p>
+
+<p>El umbral de 0.1 mm/h es deliberadamente estricto: incluso una llovizna muy fina puede penetrar en motores y circuitos, y la electrónica dañada por agua no siempre falla inmediatamente — puede fallar en el siguiente vuelo, sin aviso.</p>
+
+<div class="callout important">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>La humedad acumulada también cuenta</strong> Volar justo después de una lluvia intensa, con vegetación empapada y alta humedad relativa, puede ser tan dañino como volar durante la lluvia. Espera al menos 30 minutos tras una lluvia significativa antes de despegar.</div>
+</div>
+
+<h2>Variable 5: Probabilidad de lluvia (peso: 5%)</h2>
+
+<p>Este dato no mide la lluvia actual, sino la probabilidad de que llueva en la hora del pronóstico. Es un indicador de riesgo futuro: si la probabilidad supera el 60–70%, planea que la operación puede interrumpirse y ten siempre un protocolo de aterrizaje de emergencia activo.</p>
+
+<p>En Colombia, especialmente en las regiones Andina, Pacífica y Amazónica, la probabilidad de lluvia puede pasar de 10% a 80% en menos de una hora. Los modelos meteorológicos tienen menor precisión en regiones montañosas complejas como la cordillera Colombiana.</p>
+
+<h2>Variable 6: Índice Kp — la variable que nadie enseña (peso: 5%)</h2>
+
+<p>El <strong>índice Kp</strong> (Planetary K-index) mide la actividad geomagnética global causada por tormentas solares. Es una escala de 0 a 9: valores normales son 0–3; valores de 5+ indican tormenta geomagnética.</p>
+
+<p>¿Por qué importa para los drones? Porque <strong>los drones en modo GPS dependen de señales satelitales</strong> que se degradan durante actividad geomagnética elevada:</p>
+
+<ul>
+  <li><strong>Kp 0–3</strong>: GPS óptimo, sin impacto operacional</li>
+  <li><strong>Kp 4</strong>: degradación leve. La precisión del GPS puede reducirse. Aumenta el riesgo de deriva en modo posición.</li>
+  <li><strong>Kp 5–6</strong>: tormenta moderada. El modo GPS puede ser poco confiable. No volar BVLOS ni en zonas sin espacio de aterrizaje de emergencia.</li>
+  <li><strong>Kp 7+</strong>: tormenta fuerte. El GPS puede perder Fix o tener errores de posición de decenas de metros. Alto riesgo de pérdida de control.</li>
+</ul>
+
+<!-- IMAGEN: Escala Kp -->
+<figure style="margin:2rem 0;">
+<svg viewBox="0 0 700 90" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;border-radius:12px;background:#fff;border:1.5px solid #f1f5f9;padding:8px;">
+  <text x="350" y="20" text-anchor="middle" font-size="11" font-weight="800" fill="#1A202C">Escala del índice Kp y su impacto en operaciones de drones</text>
+
+  <!-- Kp 0-3 -->
+  <rect x="20" y="30" width="145" height="48" rx="10" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="92" y="52" text-anchor="middle" font-size="18" font-weight="900" fill="#16a34a">Kp 0–3</text>
+  <text x="92" y="70" text-anchor="middle" font-size="9" fill="#15803d" font-weight="600">GPS óptimo · APTO</text>
+
+  <!-- Kp 4 -->
+  <rect x="175" y="30" width="145" height="48" rx="10" fill="#fefce8" stroke="#ca8a04" stroke-width="1.5"/>
+  <text x="247" y="52" text-anchor="middle" font-size="18" font-weight="900" fill="#a16207">Kp 4</text>
+  <text x="247" y="70" text-anchor="middle" font-size="9" fill="#a16207" font-weight="600">Degradación leve · PRECAUCIÓN</text>
+
+  <!-- Kp 5-6 -->
+  <rect x="330" y="30" width="145" height="48" rx="10" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+  <text x="402" y="52" text-anchor="middle" font-size="18" font-weight="900" fill="#c2410c">Kp 5–6</text>
+  <text x="402" y="70" text-anchor="middle" font-size="9" fill="#c2410c" font-weight="600">Tormenta moderada · NO BVLOS</text>
+
+  <!-- Kp 7+ -->
+  <rect x="485" y="30" width="200" height="48" rx="10" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="585" y="52" text-anchor="middle" font-size="18" font-weight="900" fill="#dc2626">Kp 7+</text>
+  <text x="585" y="70" text-anchor="middle" font-size="9" fill="#dc2626" font-weight="600">Tormenta fuerte · NO VOLAR</text>
+</svg>
+<figcaption style="font-size:12px;color:#94a3b8;margin-top:8px;">Clasificación del índice Kp y su impacto en la seguridad de operaciones RPAS. Datos: NOAA Space Weather Prediction Center.</figcaption>
+</figure>
+
+<p>Colombia está en latitudes ecuatoriales, lo que normalmente la protege de los efectos más severos de las tormentas geomagnéticas. Sin embargo, eventos extremos (Kp 7+) como la tormenta de mayo de 2024 afectaron el GPS en toda Latinoamérica.</p>
+
+<h2>¿Cómo interpretar el score de aptitud 0–100?</h2>
+
+<p>Bitafly combina las 6 variables en un score único:</p>
+
+<ul>
+  <li><strong>80–100</strong>: Condiciones excelentes. Verde. Vuela con confianza.</li>
+  <li><strong>60–79</strong>: Condiciones aceptables. Verde claro. Monitorea el viento y el Kp.</li>
+  <li><strong>40–59</strong>: Precaución. Naranja. Una o más variables están cerca del límite. Evalúa si la misión puede esperar.</li>
+  <li><strong>0–39</strong>: No volar. Rojo. Al menos una variable supera los umbrales de seguridad.</li>
+</ul>
+
+<div class="callout tip">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>El score es un guía, no un reemplazante del juicio del piloto</strong> Los modelos meteorológicos tienen una resolución espacial de ~10 km. En Colombia, con relieve complejo, las condiciones pueden variar dramáticamente en distancias menores. Siempre verifica las condiciones en sitio antes de armar la aeronave.</div>
+</div>
+
+<h2>Colombia tiene algunas particularidades meteorológicas</h2>
+
+<p>El clima colombiano es especialmente complejo para las operaciones de drones:</p>
+
+<ul>
+  <li><strong>Régimen bimodal de lluvias</strong>: en la zona Andina hay dos temporadas de lluvia (marzo–mayo y septiembre–noviembre). La variabilidad diaria es alta: mañanas despejadas, tardes lluviosas.</li>
+  <li><strong>Vientos alisios</strong>: en la Orinoquia y el Caribe, los vientos alisios pueden superar 20–25 km/h en temporadas secas (diciembre–marzo).</li>
+  <li><strong>Microclimas de valle</strong>: ciudades como Cali, Medellín o Bucaramanga tienen microclimas creados por los valles que generan variaciones de viento muy localizadas y difíciles de predecir con modelos globales.</li>
+  <li><strong>Altitud</strong>: en Bogotá (2.600 m), la densidad del aire es ~23% menor que al nivel del mar. Esto reduce la eficiencia de las hélices y la velocidad aerodinámica efectiva.</li>
+</ul>
+
+<h2>Cómo verificar el clima antes de volar con Bitafly</h2>
+
+<p>El módulo de clima de Bitafly está integrado directamente en el flujo operacional, no es una herramienta separada:</p>
+
+<ol>
+  <li><strong>Al programar una misión</strong> (Programación → Misión Básica): al seleccionar el municipio, aparece el widget de clima completo con el score de aptitud, las 6 métricas y el índice Kp para ese punto geográfico.</li>
+  <li><strong>Al despachar</strong> (Bitácora → Nuevo vuelo): al seleccionar la orden de vuelo autorizada, aparece un badge compacto APTO / NO APTO con viento y temperatura actuales.</li>
+  <li><strong>En el Replay GPS</strong>: al revisar un vuelo pasado, el widget muestra las condiciones históricas al momento exacto del vuelo — para análisis de incidentes o auditorías SMS.</li>
+</ol>
+
+<p>La fuente de datos es <strong>Open-Meteo</strong> (actualización cada 30 minutos) con el índice Kp de <strong>NOAA SWPC</strong> (actualización cada 15 minutos). No requiere API key ni suscripción adicional.</p>
+
+<p><a href="/clima-drones">Conoce el módulo completo de clima y meteorología UAV →</a></p>
+<p><a href="/registro">Comienza gratis — verifica el clima antes de tu próximo vuelo →</a></p>
+`,
+  },
 ];
 
 /** Retorna un post por slug, o undefined si no existe */

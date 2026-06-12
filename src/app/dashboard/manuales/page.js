@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import { hasPermission } from '@/lib/roles';
+import { generateAckActaPdf } from '@/lib/manualActaPdf';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const CATEGORIES = {
@@ -228,6 +229,7 @@ export default function ManualesPage() {
       {ackRosterOf && (
         <AckRosterModal
           manual={ackRosterOf}
+          orgName={orgName}
           onClose={() => setAckRosterOf(null)}
         />
       )}
@@ -520,8 +522,9 @@ function HistoryModal({ manual, onClose, onDownload }) {
 }
 
 // ── Modal: seguimiento de lectura (managers) ───────────────────────────────
-function AckRosterModal({ manual, onClose }) {
+function AckRosterModal({ manual, orgName, onClose }) {
   const [data, setData] = useState(null); // { read, total, version, members }
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -536,6 +539,18 @@ function AckRosterModal({ manual, onClose }) {
       }
     })();
   }, [manual.id]);
+
+  const exportPdf = async () => {
+    if (!data) return;
+    setExporting(true);
+    try {
+      await generateAckActaPdf({ manual, data, orgName });
+    } catch (err) {
+      toast.error('No se pudo generar el acta: ' + err.message);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const pct = data && data.total > 0 ? Math.round((data.read / data.total) * 100) : 0;
 
@@ -552,10 +567,17 @@ function AckRosterModal({ manual, onClose }) {
               </p>
             </div>
           </div>
-          <button onClick={onClose} aria-label="Cerrar"
-            className="w-9 h-9 rounded-xl bg-white border border-slate-200 hover:border-slate-400 flex items-center justify-center transition-all shrink-0">
-            <span className="material-symbols-outlined text-slate-400 text-base">close</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={exportPdf} disabled={!data || exporting} aria-label="Exportar acta en PDF"
+              className="flex items-center gap-1.5 bg-slate-900 hover:bg-orange-600 text-white px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wide transition-all active:scale-95 disabled:opacity-40">
+              <span className={`material-symbols-outlined text-sm ${exporting ? 'animate-spin' : ''}`}>{exporting ? 'sync' : 'picture_as_pdf'}</span>
+              <span className="hidden sm:inline">{exporting ? 'Generando...' : 'Acta PDF'}</span>
+            </button>
+            <button onClick={onClose} aria-label="Cerrar"
+              className="w-9 h-9 rounded-xl bg-white border border-slate-200 hover:border-slate-400 flex items-center justify-center transition-all">
+              <span className="material-symbols-outlined text-slate-400 text-base">close</span>
+            </button>
+          </div>
         </div>
 
         {/* Barra de progreso */}

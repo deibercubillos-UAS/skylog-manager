@@ -136,7 +136,7 @@ export default function NotificationBell({ canAnnounce = false }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-200 z-[120] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed left-3 right-3 top-[4.5rem] w-auto sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 z-[120] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
             <p className="text-xs font-black uppercase tracking-widest text-slate-700">Notificaciones</p>
@@ -159,7 +159,7 @@ export default function NotificationBell({ canAnnounce = false }) {
           </div>
 
           {/* Lista */}
-          <div className="max-h-[60vh] overflow-y-auto">
+          <div className="max-h-[calc(100vh-7.5rem)] sm:max-h-[60vh] overflow-y-auto">
             {loading && items.length === 0 ? (
               <p className="text-xs font-black text-slate-300 uppercase tracking-widest text-center py-10 animate-pulse">Cargando...</p>
             ) : items.length === 0 ? (

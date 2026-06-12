@@ -57,7 +57,7 @@ lib/
 |---|---|---|
 | `createClientSSR()` | `supabaseServer.js` | Cliente Supabase SSR — usar en TODOS los API routes |
 | `createAdminClient()` | `supabaseServer.js` | Service role — para operaciones privilegiadas / conteos confiables |
-| `getOrgContext()` | `apiAuth.js` | Extrae `user`, `orgId`, `role`, `plan` del JWT |
+| `getOrgContext()` | `apiAuth.js` | Extrae `user`, `orgId`, `role`, `subscription_plan` del JWT (la clave es `subscription_plan`, no `plan`) |
 | `PERMISSIONS.canXxx` | `roles.js` | Fuente única de permisos — NUNCA arrays inline de roles |
 | `activatePlanForUser()` | `epaycoActivation.js` | Activa plan en profiles + limpia pending_subscriptions (idempotente) |
 | `canAddResource()` | `planLimits.js` | Verifica límites de flota/pilotos/baterías/tech por plan |
@@ -72,16 +72,17 @@ lib/
 ## Base de datos
 
 Tablas principales:
-- `profiles` — users, tiene `org_id`, `role`, `plan`, `epayco_subscription_id`, `subscription_expires_at`
+- `profiles` — users, tiene `organization_id`, `role`, `subscription_plan`, `epayco_subscription_id`, `subscription_expires_at` (NO existe `org_id` ni `plan`; `organizations` no tiene columna de plan)
 - `organizations` — tenant. Tiene `enable_health_check`, `enable_preflight`, `enable_briefing` (toggles protocolos)
 - `pilots` · `aircraft` · `batteries` · `battery_logs`. `pilots.invitation_status` 'pending'/'accepted'/'rejected'/null · `pilots.profile_id` se vincula al aceptar invitación
 - `invitations` — invitación de tripulante: `email`, `role`, `organization_id`, `status`, `token` (UNIQUE, para enlaces), `pilot_id`, `invited_by`, `name`, `accepted_at`
-- `flights` — `pilot_id` + `mission_id` editables vía PATCH. `replay_path` nullable. `plan_id` FK → flight_plans. Constraint UNIQUE NULLS NOT DISTINCT `(org_id, aircraft_id, flight_date, takeoff_time)`.
+- `flights` — `pilot_id` + `mission_id` editables vía PATCH. `replay_path` nullable. `plan_id` FK → flight_plans. Constraint `uq_flights_org_aircraft_date_time` UNIQUE NULLS NOT DISTINCT `(organization_id, aircraft_id, flight_date, takeoff_time)`.
 - `maintenance_logs` — tiene `attachment_path TEXT` (bucket `maintenance-docs`, signed URL 1h)
 - `flight_plans` — planeaciones guardadas. `status` 'active'/'archived' (soft-delete). RLS por org.
 - `flight_authorizations` — misiones programadas. `plan_data jsonb` guarda la planeación (op_name, geo_type, points, radius, altitude, takeoff_time, notes) para regenerar KMZ/PDF en Programación Activa.
-- `sms_reports` · `sora_templates` · `checklist_templates`
-- `form_templates` · `inventory_items` · `mission_inventory_logs` · `colombia_geo` (sin coordenadas — solo Código/Nombre Departamento/Municipio)
+- `sms_reports` · `sora_assessments` · `daily_health_checks` · `pilot_endorsements`
+- `form_definitions` (campos de formulario por aeronave — los checklists se generan combinando esto con `lib/checklistDefaults.js`) · `inventory_items` · `mission_inventory_logs` · `mission_types` · `colombia_geo` (sin coordenadas — solo Código/Nombre Departamento/Municipio)
+- `vor_mor_definitions` · `vor_mor_submissions` (reportes VOR/MOR) · `emergency_contacts` · `insurance_policies` · `leads`
 - `pending_subscriptions` — intents ePayco (filas huérfanas = webhook no corrió)
 - `pending_registrations` — registro pre-pago (expira 3h, service_role only)
 - `processed_webhook_refs` — idempotencia webhook (`ref_payco PK`)

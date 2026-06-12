@@ -22,14 +22,27 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('company_manuals')
-      .select('id,title,category,current_version,current_effective_date,current_file_path,status,created_at,updated_at')
+      .select('id,title,category,current_version,current_effective_date,current_file_path,current_version_id,status,created_at,updated_at')
       .eq('organization_id', orgId)
       .eq('status', 'active')
       .order('category', { ascending: true })
       .order('title', { ascending: true });
 
     if (error) throw error;
-    return NextResponse.json(data || []);
+
+    // Estado de acuse del usuario actual sobre la versión vigente de cada manual
+    const { data: myAcks } = await supabase
+      .from('manual_acknowledgments')
+      .select('version_id')
+      .eq('organization_id', orgId)
+      .eq('profile_id', user.id);
+    const ackedVersions = new Set((myAcks || []).map(a => a.version_id));
+
+    const withAck = (data || []).map(m => ({
+      ...m,
+      acknowledged: !!m.current_version_id && ackedVersions.has(m.current_version_id),
+    }));
+    return NextResponse.json(withAck);
   } catch (err) {
     console.error('[manuals GET]', err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -108,6 +121,7 @@ export async function POST(request) {
         current_version:        ver.version,
         current_effective_date: ver.effective_date,
         current_file_path:      ver.file_path,
+        current_version_id:     ver.id,
         updated_at:             new Date().toISOString(),
       })
       .eq('id', manual.id)

@@ -66,6 +66,7 @@ export async function POST(request, { params }) {
         current_version:        ver.version,
         current_effective_date: ver.effective_date,
         current_file_path:      ver.file_path,
+        current_version_id:     ver.id,
         updated_at:             new Date().toISOString(),
       })
       .eq('id', manual.id)

@@ -29,7 +29,9 @@ export default function ManualesPage() {
 
   const [formModal,  setFormModal]  = useState(null); // { mode: 'create'|'version', manual? }
   const [historyOf,  setHistoryOf]  = useState(null); // manual seleccionado para historial
+  const [ackRosterOf, setAckRosterOf] = useState(null); // manual para panel de seguimiento (managers)
   const [confirmDlg, setConfirmDlg] = useState(null);
+  const [acking,     setAcking]     = useState(null); // id del manual con acuse en curso
 
   const canManage = hasPermission(role, 'canManageManuals');
 
@@ -76,6 +78,22 @@ export default function ManualesPage() {
       window.open(data.signedUrl, '_blank', 'noopener');
     } catch (err) {
       toast.error(err.message);
+    }
+  };
+
+  // Acuse de lectura de la versión vigente
+  const acknowledge = async (manualId) => {
+    setAcking(manualId);
+    try {
+      const res = await fetch(`/api/manuals/${manualId}/acknowledge`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo registrar');
+      setManuals(prev => prev.map(m => m.id === manualId ? { ...m, acknowledged: true } : m));
+      toast.success('Lectura confirmada.');
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setAcking(null);
     }
   };
 
@@ -172,8 +190,11 @@ export default function ManualesPage() {
                     key={m.id}
                     manual={m}
                     canManage={canManage}
+                    acking={acking === m.id}
+                    onAcknowledge={() => acknowledge(m.id)}
                     onDownload={() => download(m.id)}
                     onHistory={() => setHistoryOf(m)}
+                    onAckRoster={() => setAckRosterOf(m)}
                     onNewVersion={() => setFormModal({ mode: 'version', manual: m })}
                     onDelete={() => handleDelete(m)}
                   />
@@ -203,13 +224,22 @@ export default function ManualesPage() {
         />
       )}
 
+      {/* Modal: seguimiento de lectura (managers) */}
+      {ackRosterOf && (
+        <AckRosterModal
+          manual={ackRosterOf}
+          onClose={() => setAckRosterOf(null)}
+        />
+      )}
+
       {confirmDlg && <ConfirmModal {...confirmDlg} onCancel={() => setConfirmDlg(null)} />}
     </div>
   );
 }
 
 // ── Tarjeta de manual ──────────────────────────────────────────────────────
-function ManualCard({ manual, canManage, onDownload, onHistory, onNewVersion, onDelete }) {
+function ManualCard({ manual, canManage, acking, onAcknowledge, onDownload, onHistory, onAckRoster, onNewVersion, onDelete }) {
+  const acked = manual.acknowledged;
   return (
     <div className="bg-white rounded-3xl border border-slate-200 p-5 flex flex-col gap-4 hover:border-orange-200 hover:shadow-md transition-all">
       <div className="flex items-start gap-3">
@@ -228,7 +258,26 @@ function ManualCard({ manual, canManage, onDownload, onHistory, onNewVersion, on
             </span>
           </div>
         </div>
+        {/* Chip de estado de lectura del usuario actual */}
+        <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide border ${
+          acked ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200'
+        }`}>
+          <span className="material-symbols-outlined text-[13px]">{acked ? 'task_alt' : 'schedule'}</span>
+          {acked ? 'Leído' : 'Pendiente'}
+        </span>
       </div>
+
+      {/* Acuse de lectura del usuario */}
+      {!acked && (
+        <button
+          onClick={onAcknowledge}
+          disabled={acking}
+          className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wide transition-all active:scale-95 disabled:opacity-50"
+        >
+          <span className={`material-symbols-outlined text-sm ${acking ? 'animate-spin' : ''}`}>{acking ? 'sync' : 'check_circle'}</span>
+          {acking ? 'Registrando...' : 'He leído esta versión'}
+        </button>
+      )}
 
       <div className="flex items-center gap-2 flex-wrap">
         <button
@@ -247,6 +296,13 @@ function ManualCard({ manual, canManage, onDownload, onHistory, onNewVersion, on
         </button>
         {canManage && (
           <>
+            <button
+              onClick={onAckRoster}
+              className="flex items-center gap-1.5 border border-slate-200 hover:border-slate-400 text-slate-600 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wide transition-all"
+            >
+              <span className="material-symbols-outlined text-sm">how_to_reg</span>
+              Seguimiento
+            </button>
             <button
               onClick={onNewVersion}
               className="flex items-center gap-1.5 border border-orange-200 text-orange-600 hover:bg-orange-50 px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wide transition-all"
@@ -455,6 +511,87 @@ function HistoryModal({ manual, onClose, onDownload }) {
               {v.comments && (
                 <p className="text-xs text-slate-500 font-medium mt-2 leading-relaxed border-t border-slate-100 pt-2">{v.comments}</p>
               )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Modal: seguimiento de lectura (managers) ───────────────────────────────
+function AckRosterModal({ manual, onClose }) {
+  const [data, setData] = useState(null); // { read, total, version, members }
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`/api/manuals/${manual.id}/acknowledgments`);
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Error');
+        setData(json);
+      } catch (err) {
+        toast.error(err.message);
+        setData({ read: 0, total: 0, members: [] });
+      }
+    })();
+  }, [manual.id]);
+
+  const pct = data && data.total > 0 ? Math.round((data.read / data.total) * 100) : 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="w-full max-w-lg bg-white rounded-[2rem] shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
+        <div className="bg-slate-50 border-b border-slate-100 px-6 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="material-symbols-outlined text-slate-500 text-2xl">how_to_reg</span>
+            <div className="min-w-0">
+              <p className="text-sm font-black text-slate-900 uppercase tracking-tight truncate">Seguimiento de lectura</p>
+              <p className="text-xs text-slate-500 font-medium mt-0.5 truncate">
+                {manual.title} · v{data?.version || manual.current_version || '—'}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} aria-label="Cerrar"
+            className="w-9 h-9 rounded-xl bg-white border border-slate-200 hover:border-slate-400 flex items-center justify-center transition-all shrink-0">
+            <span className="material-symbols-outlined text-slate-400 text-base">close</span>
+          </button>
+        </div>
+
+        {/* Barra de progreso */}
+        {data && (
+          <div className="px-6 py-4 border-b border-slate-100">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
+                {data.read}/{data.total} leído{data.read !== 1 ? 's' : ''}
+              </span>
+              <span className="text-xs font-black text-emerald-600">{pct}%</span>
+            </div>
+            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        )}
+
+        <div className="p-5 overflow-y-auto space-y-1.5">
+          {data === null ? (
+            <p className="text-xs font-black text-slate-300 uppercase tracking-widest text-center py-10 animate-pulse">Cargando...</p>
+          ) : data.members.length === 0 ? (
+            <p className="text-xs font-bold text-slate-400 text-center py-10">Sin miembros en la organización.</p>
+          ) : data.members.map(m => (
+            <div key={m.profile_id} className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className={`material-symbols-outlined text-base shrink-0 ${m.acknowledged_at ? 'text-emerald-500' : 'text-slate-300'}`}>
+                  {m.acknowledged_at ? 'task_alt' : 'radio_button_unchecked'}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs font-black text-slate-800 truncate">{m.name}</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">{m.role}</p>
+                </div>
+              </div>
+              <span className={`text-[11px] font-bold shrink-0 ${m.acknowledged_at ? 'text-emerald-600' : 'text-amber-500'}`}>
+                {m.acknowledged_at ? fmtDate(m.acknowledged_at) : 'Pendiente'}
+              </span>
             </div>
           ))}
         </div>

@@ -62,9 +62,22 @@ export async function POST(request) {
       }
     }
 
+    // Campos explícitos — nunca insertar el body completo (mass-assignment)
+    const ALLOWED_FIELDS = [
+      'name', 'email', 'phone', 'id_type', 'id_number', 'position',
+      'license_number', 'license_category', 'cipu_number', 'medical_expiry',
+      'pilot_role', 'notes', 'avatar_url', 'aerocivil_additions',
+      'id_doc_url', 'medical_cert_url', 'pilot_course_url', 'theoretical_exam_url',
+      'emergency_contact_name', 'emergency_contact_phone',
+    ];
+    const cleanData = {};
+    for (const f of ALLOWED_FIELDS) {
+      if (pilotData[f] !== undefined) cleanData[f] = pilotData[f];
+    }
+
     const { data, error } = await supabase
       .from('pilots')
-      .insert([{ ...pilotData, owner_id: user.id, organization_id: orgId, is_active: true }])
+      .insert([{ ...cleanData, owner_id: user.id, organization_id: orgId, is_active: true }])
       .select()
       .single();
 

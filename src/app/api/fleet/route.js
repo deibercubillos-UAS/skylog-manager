@@ -54,9 +54,20 @@ export async function POST(request) {
       );
     }
 
+    // Campos explícitos — nunca insertar el body completo (mass-assignment)
+    const ALLOWED_FIELDS = [
+      'brand', 'model', 'serial_number', 'ruas', 'mtow', 'image_url',
+      'total_hours', 'last_maintenance_date', 'last_maintenance_hours',
+      'maintenance_interval_hours', 'next_maintenance_date', 'rce_url', 'dan_url',
+    ];
+    const cleanData = {};
+    for (const f of ALLOWED_FIELDS) {
+      if (aircraftData[f] !== undefined) cleanData[f] = aircraftData[f];
+    }
+
     const { data, error } = await supabase
       .from('aircraft')
-      .insert([{ ...aircraftData, owner_id: user.id, organization_id: orgId, status: 'Operativo' }])
+      .insert([{ ...cleanData, owner_id: user.id, organization_id: orgId, status: 'Operativo' }])
       .select();
 
     if (error) throw error;

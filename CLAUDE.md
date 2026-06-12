@@ -107,6 +107,8 @@ Tablas principales:
 
 **Conteo de tripulantes** (`crewCountsForLimit(pilotRole)` en `planLimits.js`): **Gerente General y Gerente SMS NO cuentan** contra el límite de "Pilotos"; sí cuentan Piloto, Jefe de Pilotos y Observador. Aplicado en: import onboarding, `POST /api/pilots`, `AddManualPilotPanel`, medidor de uso en `/api/subscription`.
 
+**Gerente General fuera del roster** (`isGerenteGeneral(pilotRole)` en `planLimits.js`): el GG es el dueño/representante legal, no tripulación operativa. La página de Tripulación (`/dashboard/pilots`) **filtra** las filas `pilots` con `pilot_role` "Gerente General" (o rol de sistema `admin`) — no aparecen en la lista ni en el contador "N miembros". Valor canónico de `pilot_role` = "Gerente General" (ver `AddPilotPanel`/`EditPilotPanel`).
+
 ### Piloto Independiente (role=`admin` + plan=`piloto`)
 
 - Se registra como `type='solo'` → crea su propia org. Auto-login directo al dashboard.
@@ -172,8 +174,8 @@ Miembro de una org ajena (se unió por NIT o invitación). `profile.subscription
 ## Importación DJI
 
 `DjiRcSync.js` + `POST /api/logbook/import-dji`:
-1. Navegador NO puede leer USB/MTP — usuario debe copiar `FlightRecord` al PC
-2. El componente busca `FlightRecord` automáticamente (rutas conocidas + fallback recursivo 6 niveles)
+1. Navegador NO puede leer USB/MTP — usuario debe copiar los logs `.txt` al PC
+2. El componente busca una subcarpeta `FlightRecord` (rutas conocidas + fallback recursivo 6 niveles); **si no la encuentra, escanea directamente la carpeta seleccionada** — el usuario puede tener los `.txt` en cualquier carpeta, no es obligatorio que se llame `FlightRecord`. En mobile, selección directa de archivos `.txt`.
 3. Extrae SN aeronave → si no existe en la org → `{ needs_aircraft: true }` → modal crear aeronave
 4. Inserta vuelo + actualiza `total_hours` vía RPC + actualiza `batteries.cycles` si mayor
 5. Plan `piloto`: auto-crea registro en `pilots` si no existe (evita "Sin asignar")

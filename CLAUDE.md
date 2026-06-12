@@ -291,6 +291,44 @@ Repositorio de manuales corporativos con versionado y notificación a toda la or
 
 ---
 
+## Notificaciones (campana)
+
+Campana in-app en el header del dashboard. Una notificación por destinatario, dirigida por rol.
+
+### Datos + helper
+
+- Tabla `notifications` (una fila por destinatario): `organization_id`, `profile_id`, `type` (CHECK: `flight_scheduled|flight_dispatched|manual_published|drone_alert|maintenance_due|invitation|document_updated|vor_mor|announcement|system`), `title`, `body`, `link`, `actor_id`, `metadata jsonb`, `read_at`, `created_at`. Índices: `(profile_id, created_at DESC)`, parcial `WHERE read_at IS NULL`, `(organization_id)`.
+- **RLS**: cada usuario solo SELECT/UPDATE/DELETE de las suyas (`profile_id = auth.uid()`). **Sin política de INSERT** → solo el service role crea notificaciones.
+- **`lib/notify.js`** `createNotifications({ orgId, roles?, profileIds?, type, title, body, link, actorId, metadata, includeActor })`: resuelve destinatarios por rol y/o ids (validados contra la org, sin cross-tenant), excluye al actor por defecto, fan-out con `createAdminClient()`. Fire-and-forget.
+
+### API
+
+| Ruta | Método | Descripción |
+|---|---|---|
+| `/api/notifications` | GET | Lista del usuario (`?limit`) + `unreadCount` |
+| `/api/notifications/read` | POST | `{ id }` una · `{ all: true }` todas; devuelve `unreadCount` |
+| `/api/notifications/[id]` | DELETE | Descarta una propia |
+| `/api/notifications/announce` | POST | Anuncio a la org (managers, `canSendAnnouncements`); `{ title, body?, roles? }` |
+
+### UI
+
+`components/NotificationBell.js` (en el header, prop `canAnnounce`): ícono + badge numérico de no leídas; panel con lista (ícono por tipo, no leídas resaltadas, leídas apagadas), "Marcar todo leído", descartar por ítem, clic → marca leída + navega al `link`. **Polling cada 45 s** (pausado si la pestaña está oculta). `components/AnnouncementComposer.js`: modal para managers (título/mensaje/roles destino).
+
+### Fuentes de eventos (`createNotifications` en flujos existentes)
+
+| Evento | Origen | Destinatarios |
+|---|---|---|
+| Manual cargado / nueva versión | `manuals` POST · versions | todos |
+| Vuelo programado | `flights/authorize` POST | JP+GG (Programación Activa) + PIC piloto (Mis Vuelos) |
+| Alerta de dron | `import-dji` (`hasAlerts`) | JP+GG+GSMS |
+| Invitación aceptada/rechazada | `invitations/accept`·`reject` | GG+JP |
+| Expediente actualizado | `pilots/my-documents` PATCH | GG+JP+GSMS |
+| Anuncio | `notifications/announce` | roles elegidos |
+
+**Pendiente (Fase F)**: `maintenance_due` (condición por tiempo → cron diario), Supabase Realtime (reemplazar polling), retención pg_cron de leídas viejas.
+
+---
+
 ## Convenciones de código
 
 - **API routes**: siempre `createClientSSR()` + `getOrgContext()`. Auth guard: `if (!user) return 401` antes de usar `user.id`.

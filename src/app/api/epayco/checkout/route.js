@@ -10,9 +10,12 @@ export async function POST(request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-  const { planKey, billing } = await request.json();
+  const { planKey, billing, partnerCode } = await request.json();
   const cfg = EPAYCO_PLANS[planKey]?.[billing];
   if (!cfg) return NextResponse.json({ error: 'Plan inválido' }, { status: 400 });
+
+  // Código de socio/asesor (opcional) — normalizado; se valida en el webhook (P7)
+  const code = partnerCode ? String(partnerCode).trim().toUpperCase().slice(0, 32) : null;
 
   // Referencia única para este intent
   const reference = `bitafly_${planKey}_${billing}_${user.id}_${Date.now()}`;
@@ -29,6 +32,7 @@ export async function POST(request) {
     plan_key:  planKey,
     billing,
     epayco_id: cfg.epaycoId,
+    partner_code: code,
   });
 
   if (error) {

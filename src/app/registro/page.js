@@ -59,6 +59,7 @@ export default function RegisterPage() {
   const [pendingRef, setPendingRef]   = useState(null);
   const [payStatus,  setPayStatus]    = useState('pending');
   const [grantToken, setGrantToken]   = useState(null); // regalo de perfil gratis (socio)
+  const [partnerCode, setPartnerCode] = useState('');   // código de escuela/asesor (opcional)
   const pollRef = useRef(null);
 
   // ── Flujo UNIRSE ───────────────────────────────────────────────────────────
@@ -107,6 +108,9 @@ export default function RegisterPage() {
         setMode('crear');
         setForm(p => ({ ...p, selectedPlan: 'piloto' }));
       }
+      // Código de socio/asesor en el enlace (opcional)
+      const code = qs.get('code') || qs.get('ref');
+      if (code) setPartnerCode(code.trim().toUpperCase());
     } catch { /* no-op */ }
   }, []);
 
@@ -198,7 +202,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      const res  = await fetch('/api/auth/register-pending', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, attribution: getAttribution() }) });
+      const res  = await fetch('/api/auth/register-pending', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, partnerCode, attribution: getAttribution() }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al iniciar el pago');
       setPendingRef(data.reference);
@@ -662,6 +666,13 @@ export default function RegisterPage() {
                 <Field label="Teléfono"><input placeholder="+57 300 000 0000" value={form.phone} onChange={set('phone')} className={INPUT} /></Field>
                 <Field label="Ciudad"><input placeholder="Bogotá" value={form.city} onChange={set('city')} className={INPUT} /></Field>
               </div>
+
+              {isPaidPlan && (
+                <Field label="Código de escuela / asesor (opcional)">
+                  <input placeholder="Ej: EAC-XB12" value={partnerCode}
+                    onChange={e => setPartnerCode(e.target.value.toUpperCase())} className={`${INPUT} font-mono`} />
+                </Field>
+              )}
 
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setCreateStep(1)} className="px-6 py-4 rounded-2xl border border-slate-200 text-sm font-black text-slate-500 hover:border-slate-400 transition-all">Atrás</button>

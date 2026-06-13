@@ -110,6 +110,7 @@ export default function ManageSubscriptionPage() {
   const [loading, setLoading]           = useState(true);
   const [profile, setProfile]           = useState(null);
   const [billing, setBilling]           = useState('monthly');
+  const [partnerCode, setPartnerCode]   = useState('');   // código de escuela/asesor (opcional)
   const [upgrading, setUpgrading]       = useState(null);   // planKey being checked out
   const [showRetention, setShowRetention] = useState(false);
   const [cancelling, setCancelling]     = useState(false);
@@ -250,7 +251,7 @@ export default function ManageSubscriptionPage() {
       const res = await fetch('/api/epayco/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planKey: targetPlan, billing }),
+        body: JSON.stringify({ planKey: targetPlan, billing, partnerCode }),
       });
       const json = await res.json();
       if (!json.url) throw new Error(json.error || 'No se pudo iniciar el pago');
@@ -527,6 +528,14 @@ export default function ManageSubscriptionPage() {
               </div>
             </div>
           )}
+
+          {/* Código de escuela / asesor (opcional) */}
+          <div className="mb-4">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Código de escuela / asesor (opcional)</label>
+            <input value={partnerCode} onChange={e => setPartnerCode(e.target.value.toUpperCase())}
+              placeholder="Ej: EAC-XB12"
+              className="w-full mt-1 p-3 bg-slate-50 rounded-xl text-sm font-mono font-bold border border-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-400" />
+          </div>
 
           <div className={`grid gap-4 ${nextPlans.length === 1 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
             {nextPlans.map(pk => {

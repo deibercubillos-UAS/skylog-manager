@@ -101,6 +101,7 @@ export async function POST(request) {
           companyName: companyName || null,
           nit:         nit   || null,
           orgCode:     orgCode || null,
+          partner_code: body.partnerCode ? String(body.partnerCode).trim().toUpperCase().slice(0, 32) : null,
         },
       });
 

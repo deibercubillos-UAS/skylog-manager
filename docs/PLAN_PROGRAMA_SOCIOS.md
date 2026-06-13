@@ -143,7 +143,7 @@ Pestaña `/admin/master` → **Socios**:
 | P3  | Rol `partner` + panel `/socio` base (login, guard, layout) | ✅ | Medio |
 | P4  | Regalar perfil gratis: form de correo + `free_grant` (unicidad) + envío de invitación | ✅ | Medio |
 | P5  | Activación del perfil gratis al registrarse (plan piloto + expiry) | ✅ | Medio |
-| P6  | Captura del código en la compra (campo opcional) + guardar en el intent | ⬜ | Medio |
+| P6  | Captura del código en la compra (campo opcional) + guardar en el intent | ✅ | Medio |
 | P7  | Webhook: crear `referral` + `referral_commissions` del ciclo (idempotente) | ⬜ | Alto* |
 | P8  | Comisión recurrente: nueva fila por cada ciclo de pago confirmado | ⬜ | Alto* |
 | P9  | Cron de expiración: degradar a lectura + retención 3 meses + aviso | ⬜ | Medio |
@@ -239,3 +239,18 @@ Pestaña `/admin/master` → **Socios**:
   `status='activado'` + `redeemed_org_id`. Idempotente (no re-activa).
 - Archivos: `api/auth/register/route.js`, `registro/page.js`.
 - Verificación: `npm run build` OK. La expiración/degradado va en P9.
+
+### P6 — Captura del código de venta ✅ (2026-06-13)
+
+- BD: `pending_subscriptions.partner_code` (nueva columna); en pago-antes-cuenta el código va en
+  `pending_registrations.reg_data.partner_code`.
+- Checkout `/api/epayco/checkout`: acepta `partnerCode` (normalizado) → lo guarda en el intent.
+- `register-pending`: guarda `partner_code` en `reg_data`.
+- UI: campo **opcional** "Código de escuela / asesor" en `registro` (paso de datos, plan pagado) y
+  en `/dashboard/subscription` (upgrade). Prefill desde `?code=`/`?ref=` en el enlace.
+- Código **opcional** → no bloquea compra orgánica. La validación/atribución real se hace en el
+  webhook (P7).
+- Migración: `supabase/migrations/20260613_partners_pending_code.sql`.
+- Archivos: `epayco/checkout/route.js`, `auth/register-pending/route.js`, `registro/page.js`,
+  `dashboard/subscription/page.js`.
+- Verificación: `npm run build` OK.

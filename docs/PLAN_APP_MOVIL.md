@@ -51,7 +51,7 @@ Objetivo: preparar terreno nativo sin cambiar el comportamiento web.
 
 | Fase | Descripción | Estado |
 |------|-------------|--------|
-| F2.1 | `lib/platform.js`: detectar entorno (web / android / ios), API única | ⬜ |
+| F2.1 | `lib/platform.js`: detectar entorno (web / android / ios), API única | ✅ |
 | F2.2 | Encapsular importación DJI detrás del bridge (web igual; native delega) | ⬜ |
 
 ## ETAPA 3 — App Android → APK + Google Play
@@ -168,6 +168,16 @@ Solo diagnóstico, sin cambios en el código.
 - Nota: el sello de build dinámico no fue necesario; network-first resuelve el objetivo.
 
 **Etapa 1 (PWA instalable) COMPLETA** salvo screenshot `narrow` (F1.4, polish opcional).
+
+### F2.1 — Capa de plataforma ✅ (2026-06-13)
+
+- Qué se hizo: `lib/platform.js` — detección de entorno sin depender de Capacitor
+  (lee `window.Capacitor` en runtime). API: `getPlatform()`, `isNative()`, `isWeb()`,
+  `isAndroidApp()`, `isIOSApp()`, `capabilities` (nativeFlightImport / backgroundFlightSync /
+  nativePush) y `platformInfo()`.
+- En web pura todo resuelve a 'web' → comportamiento sin cambios.
+- Archivos tocados: `lib/platform.js` (nuevo). Sin consumidores aún.
+- Verificación: `npm run build` OK.
 
 <!-- Plantilla para próximas fases:
 ### Fx.y — Título ✅/🔄 (fecha)

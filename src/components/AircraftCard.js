@@ -1,5 +1,16 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
+import { docOpenUrl } from '@/lib/docUrl';
+
+const DEFAULT_AIRCRAFT_IMG = 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=400';
+
+function resolveImg(raw) {
+  if (!raw) return DEFAULT_AIRCRAFT_IMG;
+  // URL externa (no Supabase): usar directo
+  if (raw.startsWith('http') && !raw.includes('supabase.co')) return raw;
+  // Path del bucket privado o URL pública Supabase legacy → signed URL vía endpoint
+  return docOpenUrl(raw) || DEFAULT_AIRCRAFT_IMG;
+}
 
 export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, canManage = true, canManageStatus }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -35,7 +46,7 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
   return (
     <div className={`bg-white rounded-[2rem] border shadow-sm flex flex-col sm:flex-row group hover:shadow-md transition-all text-left ${inactive ? 'border-slate-200 opacity-60' : 'border-slate-200'}`}>
       <div className="w-full sm:w-40 h-40 sm:h-auto bg-slate-100 shrink-0 relative overflow-hidden rounded-t-[2rem] sm:rounded-l-[2rem] sm:rounded-tr-none">
-        <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${aircraft.image_url || 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=400'})` }}></div>
+        <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${resolveImg(aircraft.image_url)})` }}></div>
         {inactive && (
           <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center">
             <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${isBaja ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'}`}>

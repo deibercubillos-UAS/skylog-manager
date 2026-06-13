@@ -34,7 +34,11 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Documento no encontrado' }, { status: 404 });
     }
 
-    return NextResponse.redirect(data.signedUrl, 302);
+    const res = NextResponse.redirect(data.signedUrl, 302);
+    // Cache en el navegador 55 min (< 1h de validez de la signed URL).
+    // 'private' evita que proxies intermedios cacheen documentos de un usuario.
+    res.headers.set('Cache-Control', 'private, max-age=3300, immutable');
+    return res;
   } catch (err) {
     console.error('[documents/open]', err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });

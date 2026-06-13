@@ -185,6 +185,12 @@ Miembro de una org ajena (se unió por NIT o invitación). `profile.subscription
 6. `parseDjiTxtBuffer()` requiere `DJI_API_KEY` en env (WASM, server-side)
 7. **Vuelos de 0 minutos se omiten** (`durationHours <= 0` → `{ skipped: true }`, HTTP 200). `DjiRcSync` los marca con estado `skipped` ("Vuelo de 0 min — omitido"), cuenta en `skipped`, NO los inserta ni incrementa horas.
 
+**Auto-sincronización** ("elegir carpeta una vez → cargue automático"):
+- **Escritorio Chrome/Edge (y RC vía PC)**: File System Access API. El handle de la carpeta se persiste en IndexedDB (`idbHandleStore`, key `dji-flightrecord`). Toggle "Auto-sincronización" (pref en `localStorage` `bitafly_dji_autosync`) activa un **sondeo cada 20s** (`AUTOSYNC_INTERVAL_MS`) que detecta `.txt` nuevos (dedup vs BD con `/import-dji/check`) y los importa solos vía `uploadFile`. Pausa si la pestaña está oculta o hay import manual en curso. Si el permiso del handle expiró, pide pulsar "Sincronizar" una vez (gesto de usuario para `requestPermission`).
+- **Android Chrome**: NO soporta `showDirectoryPicker`. Usa `<input webkitdirectory>` para elegir la carpeta FlightRecord completa de una vez → auto-importa lo nuevo en esa pasada. No hay vigilancia en segundo plano (limitación de la plataforma web).
+- **iOS Safari**: NO soporta selección de carpeta → `<input multiple>` de archivos `.txt`, con auto-import tras seleccionar.
+- `handleImport(explicitList?)` acepta una lista explícita para la auto-importación tras escaneo.
+
 ---
 
 ## Mantenimiento de Aeronaves

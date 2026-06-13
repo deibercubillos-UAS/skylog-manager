@@ -75,6 +75,8 @@ Tablas principales:
 - `profiles` — users, tiene `organization_id`, `role`, `subscription_plan`, `epayco_subscription_id`, `subscription_expires_at` (NO existe `org_id` ni `plan`; `organizations` no tiene columna de plan)
 - `organizations` — tenant. Tiene `enable_health_check`, `enable_preflight`, `enable_briefing` (toggles protocolos)
 - `pilots` · `aircraft` · `batteries` · `battery_logs`. `pilots.invitation_status` 'pending'/'accepted'/'rejected'/null · `pilots.profile_id` se vincula al aceptar invitación · `pilots.avatar_url`/`aerocivil_additions` (jsonb)/`notes`
+  - `aircraft` mantenimiento: `maintenance_interval_hours` (default 200), `maintenance_interval_days` (default 180), `operational_status` ('disponible'/'en_mantenimiento', CHECK, NOT NULL), `last_status_change`. Ver sección **Mantenimiento de Aeronaves**. La foto va en `image_url` (bucket público `fleet-images`, ver Convenciones).
+- `flights` — además de los campos de PATCH: `total_time` (double precision, **horas**) es la duración real del vuelo. La bitácora muestra duración desde `total_time` (fallback takeoff/landing); el import DJI lo calcula de `duracion_s/3600`.
 - `invitations` — invitación de tripulante: `email`, `role`, `organization_id`, `status`, `token` (UNIQUE, para enlaces), `pilot_id`, `invited_by`, `name`, `accepted_at`
 - `flights` — `pilot_id` + `mission_id` editables vía PATCH. `replay_path` nullable. `plan_id` FK → flight_plans. Constraint `uq_flights_org_aircraft_date_time` UNIQUE NULLS NOT DISTINCT `(organization_id, aircraft_id, flight_date, takeoff_time)`.
 - `maintenance_logs` — tiene `attachment_path TEXT` (bucket `maintenance-docs`, signed URL 1h)
@@ -178,9 +180,22 @@ Miembro de una org ajena (se unió por NIT o invitación). `profile.subscription
 1. Navegador NO puede leer USB/MTP — usuario debe copiar los logs `.txt` al PC
 2. El componente busca una subcarpeta `FlightRecord` (rutas conocidas + fallback recursivo 6 niveles); **si no la encuentra, escanea directamente la carpeta seleccionada** — el usuario puede tener los `.txt` en cualquier carpeta, no es obligatorio que se llame `FlightRecord`. En mobile, selección directa de archivos `.txt`.
 3. Extrae SN aeronave → si no existe en la org → `{ needs_aircraft: true }` → modal crear aeronave
-4. Inserta vuelo + actualiza `total_hours` vía RPC + actualiza `batteries.cycles` si mayor
+4. Inserta vuelo (guarda `total_time` en horas) + actualiza `total_hours` vía RPC + actualiza `batteries.cycles` si mayor
 5. Plan `piloto`: auto-crea registro en `pilots` si no existe (evita "Sin asignar")
 6. `parseDjiTxtBuffer()` requiere `DJI_API_KEY` en env (WASM, server-side)
+7. **Vuelos de 0 minutos se omiten** (`durationHours <= 0` → `{ skipped: true }`, HTTP 200). `DjiRcSync` los marca con estado `skipped` ("Vuelo de 0 min — omitido"), cuenta en `skipped`, NO los inserta ni incrementa horas.
+
+---
+
+## Mantenimiento de Aeronaves
+
+Configuración de mantenimiento mayor por aeronave, con cambio de estado automático y bloqueo de despacho.
+
+- **Columnas** (`aircraft`): `maintenance_interval_hours` (cada N horas, default 200), `maintenance_interval_days` (cada N días, default 180), `operational_status` ('disponible'/'en_mantenimiento'), `last_status_change`.
+- **UI** (`EditAircraftPanel`): sección "Configuración de Mantenimiento" con inputs de intervalo (horas/días), indicador de cuánto falta para el próximo mantenimiento, y toggle manual Disponible / En mantenimiento. `AircraftCard` muestra badge "EN MANTENIMIENTO".
+- **API** (`PATCH /api/fleet/[id]`): acepta los 3 campos nuevos. Si el cliente NO manda `operational_status`, `calcAutoStatus()` evalúa los umbrales contra `total_hours`/`last_maintenance_*` y puede auto-marcar `en_mantenimiento`. Si manda `disponible` manualmente, lo respeta y sella `last_status_change`.
+- **Guard de despacho** (`logbook/new`): el selector de aeronaves filtra `.neq('operational_status', 'en_mantenimiento')`. `AddMaintenancePanel` SÍ las incluye (es para registrarles mantenimiento).
+- **Cron** (`check_aircraft_maintenance_due()`, `30 13 * * *` = 8:30 AM Colombia): evalúa todas las aeronaves disponibles, marca `en_mantenimiento` las que superan umbral y notifica a GG+JP (`notifications` tipo `maintenance_due`). `SECURITY DEFINER`, EXECUTE revocado a PUBLIC. Migraciones: `20260613_aircraft_maintenance_config.sql` + `20260613_aircraft_maintenance_cron.sql`.
 
 ---
 
@@ -201,6 +216,11 @@ Miembro de una org ajena (se unió por NIT o invitación). `profile.subscription
 - Si el email YA tiene cuenta Bitafly → ve banner en su dashboard (`InvitationsBanner` ← `GET /api/invitations/pending` por email). Si no → correo a `/registro`.
 - **Aceptar** (`POST /api/invitations/accept {token}`): une al invitado a la org con el rol asignado; si es dueño único de su org actual, transfiere su data (mismo patrón que join-org) y marca la origen `[Migrada]`. Vincula `pilots.profile_id` y marca `accepted`. **Rechazar**: `POST /api/invitations/reject`.
 - Badges en `/dashboard/pilots`: "Invitación pendiente" / "Aceptado" / "rechazada".
+
+**⚠️ Reglas críticas de invitación por correo (verificadas en prod):**
+- **Resend NO lanza excepción en errores de API** — retorna `{ data, error }`. Hay que inspeccionar `error` o el envío falla en silencio (Resend "no recibe nada"). Aplicado en `/api/invite` (devuelve 502 si `error`) y `lib/invitations.js` (`sendInvitationEmail` hace `throw`).
+- **El rol llega como label textual**: `AddPilotPanel` envía `pilot_role` = "Piloto"/"Jefe de Pilotos"/"Gerente SMS"/"Gerente General". `/api/invite` los normaliza con `roleFromPilotRole()` ANTES de validar contra `ASSIGNABLE_ROLES` — sin esto daba **400 antes de llegar a Resend**. `roleFromPilotRole` mapea "general"→`admin`, "jefe"→`jefe_pilotos`, "sms"/"gerente"→`gerente_sms`, resto→`piloto`; acepta también roles de sistema tal cual.
+- El correo muestra una etiqueta amigable (`ROLE_LABEL`), no el rol de sistema crudo.
 
 ---
 
@@ -340,7 +360,8 @@ Campana in-app en el header del dashboard. Una notificación por destinatario, d
 - **Permisos**: `PERMISSIONS.canXxx` — nunca hardcodear `['superadmin','admin','jefe_pilotos']`
 - **Mass-assignment**: nunca `insert([{ ...body }])` — siempre campos explícitos
 - **Rate limiting**: todo endpoint público sin auth usa `checkRateLimit()`
-- **Emails**: todo campo de usuario en HTML de Resend pasa por `escHtml()`
+- **Emails**: todo campo de usuario en HTML de Resend pasa por `escHtml()`. **Siempre revisar `{ error }` del `resend.emails.send()`** — el SDK no lanza en fallos de API.
+- **Imágenes de flota**: bucket **público** `fleet-images` (NO `documents`). `FleetImageUpload.js` sube y retorna URL pública directa (sin signed URL → carga instantánea). Path `{orgId}/drones/{ts}_{slug}.{ext}`. `AircraftCard.resolveImg()` sirve directo las URLs `/object/public/fleet-images/`; las legacy de `documents` siguen pasando por `docOpenUrl`. Migración `20260613_fleet_images_bucket.sql`. El bucket privado `documents` queda solo para documentos sensibles (cédulas, certificados, etc.).
 - **Componentes**: `.js` (no TypeScript), Tailwind CSS
 - **ESLint**: `.eslintrc.json` (v8) — NO `eslint.config.mjs` (v9 flat config, incompatible)
 - **Fuentes**: `font-lexend` para headings landing, `font-sans` (Public Sans) para el resto

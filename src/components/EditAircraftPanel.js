@@ -47,7 +47,7 @@ export default function EditAircraftPanel({ aircraft, onClose, onSuccess }) {
   };
 
   return (
-    <aside className="fixed z-[200] bg-white flex flex-col text-left
+    <aside className="fixed z-[300] bg-white flex flex-col text-left
       bottom-0 left-0 right-0 rounded-t-3xl max-h-[92vh]
       md:bottom-auto md:inset-y-0 md:left-auto md:right-0 md:rounded-none md:w-96
       shadow-[0_-4px_30px_rgba(0,0,0,0.14)] md:shadow-2xl

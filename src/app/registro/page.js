@@ -83,22 +83,26 @@ export default function RegisterPage() {
   // Limpieza del polling
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
+  // Prerellenar el correo desde ?email= (enlaces de invitación). Client-only.
+  useEffect(() => {
+    try {
+      const email = new URLSearchParams(window.location.search).get('email');
+      if (email) {
+        const clean = email.trim();
+        setForm(p => ({ ...p, email: clean }));
+        setJoinForm(p => ({ ...p, email: clean }));
+      }
+    } catch { /* no-op */ }
+  }, []);
+
   // Planes de pago → siempre tipo "empresa"; plan piloto → tipo "solo"
   useEffect(() => {
     setVal('type', isPaidPlan ? 'company' : 'solo');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPaidPlan]);
 
-  // Visibilidad: cuando el usuario vuelve al tab desde ePayco → verificar
-  useEffect(() => {
-    const onVisible = () => {
-      if (!document.hidden && pendingRef && payStatus === 'pending') checkStatus(pendingRef);
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [pendingRef, payStatus, checkStatus]);
-
   // ── Verificación de estado (polling) ───────────────────────────────────────
+  // ⚠️ Definir ANTES del efecto que lo referencia en sus deps (evita TDZ → crash).
   const checkStatus = useCallback(async (ref) => {
     try {
       const res  = await fetch(`/api/auth/register-status?ref=${encodeURIComponent(ref)}`);
@@ -125,6 +129,15 @@ export default function RegisterPage() {
     checkStatus(ref); // verificar inmediatamente
     pollRef.current = setInterval(() => checkStatus(ref), 5000);
   }, [checkStatus]);
+
+  // Visibilidad: cuando el usuario vuelve al tab desde ePayco → verificar
+  useEffect(() => {
+    const onVisible = () => {
+      if (!document.hidden && pendingRef && payStatus === 'pending') checkStatus(pendingRef);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [pendingRef, payStatus, checkStatus]);
 
   // ── Activar pago manualmente (botón "Ya pagué") ────────────────────────────
   const activatePending = async () => {

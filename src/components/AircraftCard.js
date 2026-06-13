@@ -44,6 +44,7 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
   const isBaja = aircraft.status === 'Baja';
   const isTransferred = aircraft.status === 'Transferido';
   const inactive = isBaja || isTransferred;
+  const inMaintenance = !inactive && aircraft.operational_status === 'en_mantenimiento';
 
   return (
     <div className={`bg-white rounded-[2rem] border shadow-sm flex flex-col sm:flex-row group hover:shadow-md transition-all text-left ${inactive ? 'border-slate-200 opacity-60' : 'border-slate-200'}`}>
@@ -64,6 +65,12 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
             <p className="text-orange-600 text-xs font-black font-mono tracking-widest mt-1">RUAS: {aircraft.ruas || '---'}</p>
             {isBaja && aircraft.baja_reason && (
               <p className="text-red-500 text-[10px] font-bold mt-1 truncate">Baja: {aircraft.baja_reason}</p>
+            )}
+            {inMaintenance && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-0.5 mt-1">
+                <span className="material-symbols-outlined text-xs">build</span>
+                EN MANTENIMIENTO
+              </span>
             )}
           </div>
           <div className="flex gap-2 shrink-0 relative" ref={menuRef}>

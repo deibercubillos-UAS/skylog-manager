@@ -13,7 +13,24 @@ export default function EditAircraftPanel({ aircraft, onClose, onSuccess }) {
     ruas:          aircraft?.ruas          || '',
     image_url:     aircraft?.image_url     || '',
     total_hours:   aircraft?.total_hours   || 0,
+    // Mantenimiento configurable
+    maintenance_interval_hours: aircraft?.maintenance_interval_hours ?? 200,
+    maintenance_interval_days:  aircraft?.maintenance_interval_days  ?? 180,
+    operational_status:         aircraft?.operational_status         || 'disponible',
   });
+
+  // Horas y días desde el último mantenimiento (solo lectura, informativo)
+  const hours       = parseFloat(aircraft?.total_hours || 0);
+  const lastH       = parseFloat(aircraft?.last_maintenance_hours || 0);
+  const diffH       = Math.max(0, hours - lastH).toFixed(1);
+  const lastDate    = aircraft?.last_maintenance_date ? new Date(aircraft.last_maintenance_date) : null;
+  const daysSince   = lastDate
+    ? Math.floor((Date.now() - lastDate.getTime()) / 86400000)
+    : null;
+  const intH        = parseInt(form.maintenance_interval_hours || 0, 10);
+  const intD        = parseInt(form.maintenance_interval_days  || 0, 10);
+  const hRemain     = intH > 0 ? Math.max(0, intH - parseFloat(diffH)) : null;
+  const dRemain     = (intD > 0 && daysSince !== null) ? Math.max(0, intD - daysSince) : null;
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -31,6 +48,9 @@ export default function EditAircraftPanel({ aircraft, onClose, onSuccess }) {
             ruas:          form.ruas,
             image_url:     form.image_url,
             total_hours:   parseFloat(form.total_hours || 0),
+            maintenance_interval_hours: parseInt(form.maintenance_interval_hours || 0, 10),
+            maintenance_interval_days:  parseInt(form.maintenance_interval_days  || 0, 10),
+            operational_status:         form.operational_status,
           },
         }),
       });
@@ -84,6 +104,93 @@ export default function EditAircraftPanel({ aircraft, onClose, onSuccess }) {
               <label className="text-xs font-black uppercase text-slate-400">Control de Horas (T.T)</label>
               <input type="number" step="0.01" className="w-full p-3 bg-white border-2 border-orange-100 rounded-xl font-black text-xl text-orange-600 mt-1" value={form.total_hours} onChange={e => setForm({...form, total_hours: e.target.value})} />
               <p className="text-xs text-slate-400 mt-1 uppercase ml-1">Ajuste manual de tiempo acumulado</p>
+            </div>
+          </div>
+
+          {/* ── Sección mantenimiento ─────────────────────────────────── */}
+          <div className="pt-1">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="material-symbols-outlined text-base text-slate-400">build</span>
+              <label className="text-xs font-black uppercase text-slate-500 tracking-wide">Configuración de Mantenimiento</label>
+            </div>
+
+            {/* Intervalo */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Cada N horas</label>
+                <input
+                  type="number" min="0" step="1"
+                  className="w-full p-3 bg-slate-50 rounded-xl border-none font-black text-sm mt-1"
+                  value={form.maintenance_interval_hours}
+                  onChange={e => setForm({...form, maintenance_interval_hours: e.target.value})}
+                  placeholder="200"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Cada N días</label>
+                <input
+                  type="number" min="0" step="1"
+                  className="w-full p-3 bg-slate-50 rounded-xl border-none font-black text-sm mt-1"
+                  value={form.maintenance_interval_days}
+                  onChange={e => setForm({...form, maintenance_interval_days: e.target.value})}
+                  placeholder="180"
+                />
+              </div>
+            </div>
+
+            {/* Indicador progreso */}
+            {(hRemain !== null || dRemain !== null) && (
+              <div className="bg-slate-50 rounded-xl p-3 mb-3 space-y-1.5 text-xs font-bold text-slate-500">
+                {hRemain !== null && (
+                  <p>
+                    <span className="text-slate-400">Horas desde último mant.:</span>
+                    {' '}<span className={parseFloat(diffH) >= intH ? 'text-red-600' : 'text-slate-700'}>{diffH}h</span>
+                    {' · '}
+                    <span className={hRemain === 0 ? 'text-red-600' : 'text-emerald-600'}>
+                      {hRemain === 0 ? '¡Umbral alcanzado!' : `Faltan ${hRemain}h`}
+                    </span>
+                  </p>
+                )}
+                {dRemain !== null && (
+                  <p>
+                    <span className="text-slate-400">Días desde último mant.:</span>
+                    {' '}<span className={daysSince >= intD ? 'text-red-600' : 'text-slate-700'}>{daysSince}d</span>
+                    {' · '}
+                    <span className={dRemain === 0 ? 'text-red-600' : 'text-emerald-600'}>
+                      {dRemain === 0 ? '¡Umbral alcanzado!' : `Faltan ${dRemain}d`}
+                    </span>
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Toggle estado operacional */}
+            <div>
+              <label className="text-[10px] font-black text-slate-400 uppercase ml-1 block mb-1.5">Estado operacional</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForm({...form, operational_status: 'disponible'})}
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase transition-all border-2
+                    ${form.operational_status === 'disponible'
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-200'
+                      : 'bg-white text-slate-400 border-slate-200 hover:border-emerald-300'}`}
+                >
+                  <span className="material-symbols-outlined text-sm align-middle mr-1">check_circle</span>
+                  Disponible
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({...form, operational_status: 'en_mantenimiento'})}
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase transition-all border-2
+                    ${form.operational_status === 'en_mantenimiento'
+                      ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-200'
+                      : 'bg-white text-slate-400 border-slate-200 hover:border-amber-300'}`}
+                >
+                  <span className="material-symbols-outlined text-sm align-middle mr-1">build_circle</span>
+                  En mantenimiento
+                </button>
+              </div>
             </div>
           </div>
         </form>

@@ -28,18 +28,27 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
 
   if (!aircraft) return null;
 
+  // Intervalos configurables (con defaults). 0 = sin límite por ese criterio.
+  const intervalHours = parseInt(aircraft.maintenance_interval_hours ?? 200, 10);
+  const intervalDays  = parseInt(aircraft.maintenance_interval_days  ?? 180, 10);
+
   const hours = parseFloat(aircraft.total_hours || 0);
   const lastMaintHours = parseFloat(aircraft.last_maintenance_hours || 0);
   const diffHours = Math.max(0, hours - lastMaintHours);
-  const hourProgress = Math.min(100, (diffHours / 200) * 100);
+  const hourProgress = intervalHours > 0 ? Math.min(100, (diffHours / intervalHours) * 100) : 0;
 
   const creationDate = aircraft.created_at ? new Date(aircraft.created_at) : new Date();
   const lastDate = aircraft.last_maintenance_date ? new Date(aircraft.last_maintenance_date) : creationDate;
   const daysSince = Math.ceil(Math.abs(new Date() - lastDate) / (1000 * 60 * 60 * 24));
-  const timeProgress = Math.min(100, (daysSince / 182) * 100);
+  const timeProgress = intervalDays > 0 ? Math.min(100, (daysSince / intervalDays) * 100) : 0;
+
+  // Vencido si supera horas O tiempo (cuando el criterio está activo)
+  const hoursDue = intervalHours > 0 && diffHours >= intervalHours;
+  const daysDue  = intervalDays  > 0 && daysSince >= intervalDays;
+  const isDue = hoursDue || daysDue;
 
   const finalProgress = Math.max(hourProgress, timeProgress);
-  let barColor = finalProgress >= 90 ? "bg-red-600" : finalProgress >= 75 ? "bg-orange-500" : "bg-emerald-500";
+  let barColor = isDue ? "bg-red-600" : finalProgress >= 75 ? "bg-orange-500" : "bg-emerald-500";
 
   const isBaja = aircraft.status === 'Baja';
   const isTransferred = aircraft.status === 'Transferido';
@@ -135,6 +144,18 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
           <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div className={`h-full ${inactive ? 'bg-slate-300' : barColor} transition-all duration-1000`} style={{ width: `${finalProgress}%` }}></div>
           </div>
+          {!inactive && (
+            <p className="text-[10px] font-bold text-slate-400">
+              {isDue ? (
+                <span className="text-red-600">Mantenimiento vencido</span>
+              ) : intervalHours > 0 ? (
+                <>Próximo mant.: <span className="text-slate-600">{Math.max(0, intervalHours - diffHours).toFixed(0)}h restantes</span>
+                {intervalDays > 0 && <span className="text-slate-400"> · {Math.max(0, intervalDays - daysSince)}d</span>}</>
+              ) : intervalDays > 0 ? (
+                <>Próximo mant.: <span className="text-slate-600">{Math.max(0, intervalDays - daysSince)}d restantes</span></>
+              ) : null}
+            </p>
+          )}
         </div>
       </div>
     </div>

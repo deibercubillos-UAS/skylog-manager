@@ -3,11 +3,49 @@
 // Se activa cuando un componente hijo lanza un error no manejado en el cliente.
 import { useEffect } from 'react';
 
+// Detecta el error que lanza Next cuando un chunk dinámico (import dinámico)
+// ya no existe — típico tras un nuevo deploy con la pestaña abierta.
+function isChunkLoadError(error) {
+  const msg = String(error?.message || '');
+  return (
+    error?.name === 'ChunkLoadError' ||
+    /Loading chunk [\d]+ failed/i.test(msg) ||
+    /Loading CSS chunk/i.test(msg) ||
+    /import\(\) .*failed/i.test(msg) ||
+    /Failed to fetch dynamically imported module/i.test(msg)
+  );
+}
+
 export default function DashboardError({ error, reset }) {
+  const chunkError = isChunkLoadError(error);
+  const RELOAD_KEY = 'bitafly_chunk_reloaded';
+  // En el primer chunk error aún no hay flag → vamos a recargar (mostrar spinner).
+  const willReload = chunkError && typeof window !== 'undefined' && !sessionStorage.getItem(RELOAD_KEY);
+
   useEffect(() => {
+    if (chunkError) {
+      // Chunk obsoleto tras deploy → recargar una sola vez para traer el bundle nuevo.
+      if (!sessionStorage.getItem(RELOAD_KEY)) {
+        sessionStorage.setItem(RELOAD_KEY, '1');
+        window.location.reload();
+        return;
+      }
+      // Ya recargamos y sigue fallando → limpiar el flag y mostrar la UI de error.
+      sessionStorage.removeItem(RELOAD_KEY);
+    }
     // Puedes enviar el error a Sentry u otro servicio aquí
     console.error('[DashboardError]', error);
-  }, [error]);
+  }, [error, chunkError]);
+
+  // Mientras se recarga por chunk obsoleto, mostrar un placeholder discreto.
+  if (willReload) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+        <span className="material-symbols-outlined text-4xl text-primary animate-spin">progress_activity</span>
+        <p className="text-xs font-black uppercase tracking-widest text-slate-400">Actualizando aplicación…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center px-6 animate-in fade-in duration-500">

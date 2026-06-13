@@ -139,7 +139,7 @@ Pestaña `/admin/master` → **Socios**:
 | Fase | Descripción | Estado | Riesgo |
 |------|-------------|--------|--------|
 | P1  | Migración BD: tablas + RLS (partners, codes, members, free_grants, referrals, commissions) | ✅ | Bajo |
-| P2  | Máster: CRUD de socios (%, cupos, free_days, activar) + generar códigos | ⬜ | Bajo |
+| P2  | Máster: CRUD de socios (%, cupos, free_days, activar) + generar códigos | ✅ | Bajo |
 | P3  | Rol `partner` + panel `/socio` base (login, guard, layout) | ⬜ | Medio |
 | P4  | Regalar perfil gratis: form de correo + `free_grant` (unicidad) + envío de invitación | ⬜ | Medio |
 | P5  | Activación del perfil gratis al registrarse (plan piloto + expiry) | ⬜ | Medio |
@@ -193,3 +193,15 @@ Pestaña `/admin/master` → **Socios**:
   `free_grants.email` UNIQUE (1 por correo) y `purge_after` para el borrado automático a 3 meses.
 - Migración: `supabase/migrations/20260613_partners_program.sql` (aplicada en Supabase).
 - Verificación: 6 tablas con `rls=true` y 1 policy cada una. No toca tablas existentes.
+
+### P2 — Máster: CRUD de socios ✅ (2026-06-13)
+
+- API `/api/admin/master/partners` (guard superadmin, service role): GET (lista + códigos +
+  nº miembros), POST (crear socio + código, o `action:'add_code'`), PATCH (nombre/%/cupos/días/
+  estado), DELETE (soft → inactivo).
+- Código con **iniciales del nombre** + sufijo aleatorio sin chars ambiguos (ej. `EAC-XB12`),
+  unicidad verificada en BD.
+- UI: pestaña **Socios** (`_SociosTab.js`) en `/admin/master`: crear escuela/asesor, jerarquía
+  asesor→escuela, editar inline, activar/desactivar, copiar y agregar códigos.
+- Archivos: `api/admin/master/partners/route.js`, `_SociosTab.js`, `admin/master/page.js`.
+- Verificación: `npm run build` OK.

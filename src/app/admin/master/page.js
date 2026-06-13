@@ -2,11 +2,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import SuscripcionesTab from './_SuscripcionesTab';
 import PlanesTab from './_PlanesTab';
+import SociosTab from './_SociosTab';
 
 const TABS = [
   { id: 'users',  label: 'Usuarios',          icon: 'group' },
   { id: 'subs',   label: 'Suscripciones',     icon: 'subscriptions' },
   { id: 'planes', label: 'Planes ePayco',     icon: 'credit_card' },
+  { id: 'socios', label: 'Socios',            icon: 'handshake' },
 ];
 
 const PLANS = ['piloto', 'escuadrilla', 'flota', 'enterprise'];
@@ -178,6 +180,9 @@ export default function MasterPanel() {
 
         {/* Tab: Planes ePayco */}
         {activeTab === 'planes' && <PlanesTab />}
+
+        {/* Tab: Socios (escuelas / asesores) */}
+        {activeTab === 'socios' && <SociosTab />}
 
         {/* Tab: Usuarios */}
         {activeTab === 'users' && <>

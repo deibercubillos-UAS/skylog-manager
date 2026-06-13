@@ -140,7 +140,7 @@ Pestaña `/admin/master` → **Socios**:
 |------|-------------|--------|--------|
 | P1  | Migración BD: tablas + RLS (partners, codes, members, free_grants, referrals, commissions) | ✅ | Bajo |
 | P2  | Máster: CRUD de socios (%, cupos, free_days, activar) + generar códigos | ✅ | Bajo |
-| P3  | Rol `partner` + panel `/socio` base (login, guard, layout) | ⬜ | Medio |
+| P3  | Rol `partner` + panel `/socio` base (login, guard, layout) | ✅ | Medio |
 | P4  | Regalar perfil gratis: form de correo + `free_grant` (unicidad) + envío de invitación | ⬜ | Medio |
 | P5  | Activación del perfil gratis al registrarse (plan piloto + expiry) | ⬜ | Medio |
 | P6  | Captura del código en la compra (campo opcional) + guardar en el intent | ⬜ | Medio |
@@ -204,4 +204,16 @@ Pestaña `/admin/master` → **Socios**:
 - UI: pestaña **Socios** (`_SociosTab.js`) en `/admin/master`: crear escuela/asesor, jerarquía
   asesor→escuela, editar inline, activar/desactivar, copiar y agregar códigos.
 - Archivos: `api/admin/master/partners/route.js`, `_SociosTab.js`, `admin/master/page.js`.
+- Verificación: `npm run build` OK.
+
+### P3 — Panel del socio base ✅ (2026-06-13)
+
+- Identidad: ser "socio" = tener fila en `partner_members` (no se usa rol nuevo en profiles).
+- `/api/socio/me`: contexto del socio (principal, códigos, KPIs: regalados/activos, referidos/
+  activos, comisión pendiente/liquidada). 403 si no es socio. Owner ve también a sus asesores.
+- Panel `/socio`: `layout.js` (guard client) + `page.js` (KPIs + códigos + placeholders).
+- Máster: gestión de **miembros** por socio (vincular por correo Admin/Asesor, quitar) —
+  acciones `add_member`/`remove_member` + UI en `_SociosTab`.
+- Archivos: `api/socio/me/route.js`, `socio/layout.js`, `socio/page.js`,
+  `api/admin/master/partners/route.js`, `_SociosTab.js`.
 - Verificación: `npm run build` OK.

@@ -83,6 +83,36 @@ export default function SociosTab() {
 
   const copy = (txt) => { navigator.clipboard?.writeText(txt); toast.success('Código copiado'); };
 
+  const [memberEmail, setMemberEmail] = useState({}); // {partnerId: email}
+  const [memberRole, setMemberRole]   = useState({}); // {partnerId: role}
+
+  const addMember = async (partnerId) => {
+    const email = (memberEmail[partnerId] || '').trim();
+    if (!email) { toast.warn('Ingresa un correo'); return; }
+    try {
+      const res = await fetch('/api/admin/master/partners', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add_member', partner_id: partnerId, email, role: memberRole[partnerId] || 'owner' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Miembro vinculado');
+      setMemberEmail({ ...memberEmail, [partnerId]: '' });
+      load();
+    } catch (err) { toast.error(err.message); }
+  };
+
+  const removeMember = async (memberId) => {
+    try {
+      const res = await fetch('/api/admin/master/partners', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'remove_member', member_id: memberId }),
+      });
+      if (!res.ok) throw new Error('Error');
+      load();
+    } catch { toast.error('No se pudo quitar'); }
+  };
+
   const startEdit = (p) => {
     setEditId(p.id);
     setEditData({ name: p.name, commission_pct: p.commission_pct, free_seats_limit: p.free_seats_limit ?? '', free_days: p.free_days, status: p.status });
@@ -180,6 +210,31 @@ export default function SociosTab() {
                         </button>
                       ))}
                       <button onClick={() => addCode(p.id)} className="text-xs font-black px-2 py-1 rounded-lg border border-dashed border-slate-300 text-slate-400 hover:text-orange-600 hover:border-orange-300">+ código</button>
+                    </div>
+
+                    {/* Miembros (acceso al panel /socio) */}
+                    <div className="mt-3 pt-3 border-t border-slate-100">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Acceso al panel</p>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {(p.members || []).map(m => (
+                          <span key={m.id} className="inline-flex items-center gap-1 text-xs font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">
+                            {m.email || m.profile_id} <span className="text-slate-400">({m.role})</span>
+                            <button onClick={() => removeMember(m.id)} className="text-slate-400 hover:text-red-500 ml-1"><span className="material-symbols-outlined text-xs">close</span></button>
+                          </span>
+                        ))}
+                        {(p.members || []).length === 0 && <span className="text-xs text-slate-300 italic">Sin miembros</span>}
+                      </div>
+                      <div className="flex gap-2">
+                        <input type="email" placeholder="correo del usuario" value={memberEmail[p.id] || ''}
+                          onChange={e => setMemberEmail({ ...memberEmail, [p.id]: e.target.value })}
+                          className="flex-1 min-w-0 p-2 bg-slate-50 rounded-lg text-xs font-bold" />
+                        <select value={memberRole[p.id] || 'owner'} onChange={e => setMemberRole({ ...memberRole, [p.id]: e.target.value })}
+                          className="p-2 bg-slate-50 rounded-lg text-xs font-bold">
+                          <option value="owner">Admin</option>
+                          <option value="asesor">Asesor</option>
+                        </select>
+                        <button onClick={() => addMember(p.id)} className="px-3 py-2 bg-slate-900 text-white rounded-lg text-xs font-black uppercase">Vincular</button>
+                      </div>
                     </div>
                   </div>
                   <div className="flex gap-2 shrink-0">

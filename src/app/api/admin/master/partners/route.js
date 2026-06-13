@@ -48,17 +48,23 @@ export async function GET() {
     const [{ data: partners }, { data: codes }, { data: members }] = await Promise.all([
       admin.from('partners').select('*').order('created_at', { ascending: false }),
       admin.from('partner_codes').select('id, partner_id, code, active'),
-      admin.from('partner_members').select('partner_id'),
+      admin.from('partner_members').select('id, partner_id, role, profile_id, profiles:profile_id(email, full_name)'),
     ]);
     const codesByPartner = {};
     (codes || []).forEach(c => { (codesByPartner[c.partner_id] ||= []).push(c); });
-    const memberCount = {};
-    (members || []).forEach(m => { memberCount[m.partner_id] = (memberCount[m.partner_id] || 0) + 1; });
+    const membersByPartner = {};
+    (members || []).forEach(m => {
+      (membersByPartner[m.partner_id] ||= []).push({
+        id: m.id, role: m.role, profile_id: m.profile_id,
+        email: m.profiles?.email || null, name: m.profiles?.full_name || null,
+      });
+    });
 
     const result = (partners || []).map(p => ({
       ...p,
       codes: codesByPartner[p.id] || [],
-      member_count: memberCount[p.id] || 0,
+      members: membersByPartner[p.id] || [],
+      member_count: (membersByPartner[p.id] || []).length,
     }));
     return NextResponse.json(result);
   } catch (err) {
@@ -84,6 +90,27 @@ export async function POST(request) {
         .insert({ partner_id: body.partner_id, code }).select().single();
       if (error) throw error;
       return NextResponse.json(data);
+    }
+
+    // Vincular un usuario (por email) como miembro del socio
+    if (body.action === 'add_member') {
+      if (!body.partner_id || !body.email) return NextResponse.json({ error: 'partner_id y email requeridos' }, { status: 400 });
+      const email = String(body.email).trim().toLowerCase();
+      const { data: prof } = await admin.from('profiles').select('id').ilike('email', email).maybeSingle();
+      if (!prof) return NextResponse.json({ error: 'No existe un usuario con ese correo. Debe registrarse primero.' }, { status: 404 });
+      const role = body.role === 'owner' ? 'owner' : 'asesor';
+      const { error } = await admin.from('partner_members')
+        .upsert({ partner_id: body.partner_id, profile_id: prof.id, role }, { onConflict: 'partner_id,profile_id' });
+      if (error) throw error;
+      return NextResponse.json({ success: true });
+    }
+
+    // Quitar un miembro
+    if (body.action === 'remove_member') {
+      if (!body.member_id) return NextResponse.json({ error: 'member_id requerido' }, { status: 400 });
+      const { error } = await admin.from('partner_members').delete().eq('id', body.member_id);
+      if (error) throw error;
+      return NextResponse.json({ success: true });
     }
 
     // Crear socio

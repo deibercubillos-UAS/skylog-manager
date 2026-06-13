@@ -58,8 +58,15 @@ export async function POST(req) {
     const orgDisplayName = org?.company_name || 'su organización';
 
     // ── Enviar invitación ────────────────────────────────────────────────────
+    if (!process.env.RESEND_API_KEY) {
+      console.error('[invite] RESEND_API_KEY no configurada');
+      return NextResponse.json({ error: 'El servicio de correo no está configurado.' }, { status: 500 });
+    }
+
     const resend = new Resend(process.env.RESEND_API_KEY);
-    const data = await resend.emails.send({
+    // ⚠️ El SDK de Resend NO lanza en errores de API — retorna { data, error }.
+    // Hay que inspeccionar `error` o el envío falla silenciosamente.
+    const { data, error } = await resend.emails.send({
       from: 'BitaFly <no-reply@bitafly.com>',
       replyTo: 'soporte@bitafly.com',
       to: [email.trim()],
@@ -80,8 +87,14 @@ export async function POST(req) {
       `,
     });
 
-    return NextResponse.json(data);
+    if (error) {
+      console.error('[invite] Resend error:', error);
+      return NextResponse.json({ error: error.message || 'No se pudo enviar el correo de invitación.' }, { status: 502 });
+    }
+
+    return NextResponse.json({ success: true, id: data?.id });
   } catch (error) {
+    console.error('[invite]', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

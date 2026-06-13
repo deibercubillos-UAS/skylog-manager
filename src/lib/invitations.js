@@ -104,7 +104,8 @@ export async function sendInvitationEmail({ to, name, orgName, senderName, role,
     ? { url: `${SITE()}/login?next=${encodeURIComponent('/dashboard')}`, label: 'Ver invitación en mi dashboard' }
     : { url: `${SITE()}/registro?email=${encodeURIComponent(to)}`,       label: 'Crear mi cuenta y unirme' };
 
-  await resend.emails.send({
+  // ⚠️ Resend retorna { data, error } — no lanza en errores de API.
+  const { error } = await resend.emails.send({
     from:    'BitaFly <no-reply@bitafly.com>',
     replyTo: 'soporte@bitafly.com',
     to:      [to],
@@ -147,4 +148,9 @@ export async function sendInvitationEmail({ to, name, orgName, senderName, role,
   </table>
 </body></html>`,
   });
+
+  if (error) {
+    // Propagar para que createCrewInvitation lo registre con el email afectado.
+    throw new Error(error.message || 'Resend rechazó el envío');
+  }
 }

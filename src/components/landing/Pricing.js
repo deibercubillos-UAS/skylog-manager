@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { fmtCOP } from '@/lib/formatters';
 import Link from 'next/link';
 import { trackEvent } from '@/lib/analytics';
 
@@ -109,10 +110,6 @@ const PLANS_BASE = [
     missing: [],
   },
 ];
-
-function fmtCOP(n) {
-  return '$' + Math.round(n).toLocaleString('es-CO');
-}
 
 function trialText(days) {
   if (!days) return null;

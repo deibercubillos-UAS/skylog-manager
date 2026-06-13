@@ -1,6 +1,7 @@
 ﻿'use client';
 import { useState, useEffect } from 'react';
 import { toast } from '@/lib/toast';
+import { fmtDateTimeMed } from '@/lib/formatters';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const ALLOWED_ROLES = ['superadmin', 'admin', 'jefe_pilotos'];
@@ -374,9 +375,6 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
     );
   };
 
-  const fmtDate = (d) =>
-    d ? new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
-
   // ── Render ───────────────────────────────────────────────────
   return (
     <>
@@ -460,9 +458,9 @@ export default function AerocivilCredentialsSection({ orgId, role }) {
 
           <div className="md:col-span-2 flex items-center justify-between bg-slate-50 rounded-2xl p-4 gap-3 flex-wrap">
             <p className="text-xs font-black text-slate-400 uppercase">
-              Última actualización: <span className="text-slate-600">{fmtDate(creds.updated_at)}</span>
+              Última actualización: <span className="text-slate-600">{fmtDateTimeMed(creds.updated_at)}</span>
               {creds.last_verified_at && (
-                <> · Verificado: <span className="text-emerald-600">{fmtDate(creds.last_verified_at)}</span></>
+                <> · Verificado: <span className="text-emerald-600">{fmtDateTimeMed(creds.last_verified_at)}</span></>
               )}
             </p>
             <div className="flex items-center gap-3">

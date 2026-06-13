@@ -1,21 +1,17 @@
 // Genera el "Acta de divulgación y constancia de lectura" de un manual en PDF.
 // Evidencia documental para auditorías RAC 100 / SMS. Cliente-side (jsPDF).
 
+import { fmtDateShort } from '@/lib/formatters';
+
 const NAVY   = [26, 32, 44];
 const ORANGE = [236, 91, 19];
 const GREY   = [100, 116, 139];
 
-function fmtDate(d) {
-  if (!d) return '—';
-  const dt = new Date(d);
-  if (isNaN(dt)) return String(d).slice(0, 10);
-  const p = (n) => String(n).padStart(2, '0');
-  return `${p(dt.getDate())}/${p(dt.getMonth() + 1)}/${dt.getFullYear()}`;
-}
-
 function fmtDateTime(d) {
+  if (!d) return '—';
   const p = (n) => String(n).padStart(2, '0');
-  return `${fmtDate(d)} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  const dt = new Date(d);
+  return `${fmtDateShort(d)} ${p(dt.getHours())}:${p(dt.getMinutes())}`;
 }
 
 function slug(s) {
@@ -57,7 +53,7 @@ export async function generateAckActaPdf({ manual, data, orgName }) {
   const rows = [
     ['Manual',            manual?.title || '—'],
     ['Versión vigente',   `v${version}`],
-    ['Fecha de vigencia', fmtDate(manual?.current_effective_date)],
+    ['Fecha de vigencia', fmtDateShort(manual?.current_effective_date)],
     ['Organización',      orgName || '—'],
     ['Generado',          fmtDateTime(now)],
   ];
@@ -91,7 +87,7 @@ export async function generateAckActaPdf({ manual, data, orgName }) {
     m.name || '—',
     m.role || '—',
     m.acknowledged_at ? 'Leído' : 'Pendiente',
-    m.acknowledged_at ? fmtDate(m.acknowledged_at) : '—',
+    m.acknowledged_at ? fmtDateShort(m.acknowledged_at) : '—',
   ]);
 
   autoTable(doc, {

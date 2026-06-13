@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import { fmtDateTimeMed } from '@/lib/formatters';
 
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
@@ -51,13 +52,6 @@ const MANUALS = [
   },
 ];
 
-function fmtDate(iso) {
-  if (!iso) return null;
-  return new Date(iso).toLocaleString('es-CO', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
-}
 
 function fmtSize(bytes) {
   if (!bytes) return null;
@@ -316,7 +310,7 @@ export default function ManualOperacionesPage() {
                     {/* Info de versión personalizada */}
                     {isCustom && vi.updatedAt && (
                       <p className="text-[11px] text-sky-400/70 mt-1">
-                        Guardada el {fmtDate(vi.updatedAt)}
+                        Guardada el {fmtDateTimeMed(vi.updatedAt)}
                         {vi.size ? ` · ${fmtSize(vi.size)}` : ''}
                       </p>
                     )}

@@ -21,16 +21,7 @@ const HEADING2 = '2D3748'; // Subtítulo oscuro
 
 // ── Helpers de formato ────────────────────────────────────────────────────
 
-function fmtDate(d = new Date()) {
-  if (typeof d === 'string') d = new Date(d);
-  return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
-}
-
-function fmtDateShort(d) {
-  if (!d) return '—';
-  const date = typeof d === 'string' ? new Date(d) : d;
-  return date.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
+import { fmtDateLong as fmtDate, fmtDateNumeric as fmtDateShort } from '@/lib/formatters';
 
 // Función auxiliar para crear texto con estilos inline
 function styledRun(docx, text, opts = {}) {

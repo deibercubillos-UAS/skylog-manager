@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import { hasPermission } from '@/lib/roles';
 import { generateAckActaPdf } from '@/lib/manualActaPdf';
+import { fmtDateShort as fmtDate } from '@/lib/formatters';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const CATEGORIES = {
@@ -15,12 +16,6 @@ const CATEGORIES = {
   OTRO:          'Otro',
 };
 const CATEGORY_ORDER = Object.keys(CATEGORIES);
-
-const fmtDate = (d) => {
-  if (!d) return '—';
-  const [y, m, day] = String(d).slice(0, 10).split('-');
-  return `${day}/${m}/${y}`;
-};
 
 export default function ManualesPage() {
   const [manuals, setManuals]   = useState([]);

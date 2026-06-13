@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { fmtDateMed } from '@/lib/formatters';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { sailRoman, sailColor } from '@/lib/soraEngine';
 
 const SoraWizard = dynamic(() => import('@/components/sora/SoraWizard'), { ssr: false });
+
+const fmtDate = fmtDateMed;
 
 // ── Datos estáticos ──────────────────────────────────────────────────────────
 
@@ -268,10 +271,6 @@ export default function SoraPage() {
   };
 
   useEffect(() => { loadAssessments(); }, []);
-
-  const fmtDate = d => d
-    ? new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
-    : '—';
 
   // KPIs
   const kpis = assessments.length > 0 ? (() => {

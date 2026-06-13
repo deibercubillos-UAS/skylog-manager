@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { fmtCOP } from '@/lib/formatters';
 import { useRouter } from 'next/navigation';
 
 const FALLBACK_PRICES = {
@@ -82,10 +83,7 @@ const FAQ = [
   },
 ];
 
-function fmtCOP(n) {
-  if (!n) return 'Gratis';
-  return '$' + Math.round(n).toLocaleString('es-CO');
-}
+
 
 export default function SelectPlanPage() {
   const router = useRouter();
@@ -218,13 +216,13 @@ export default function SelectPlanPage() {
                     <>
                       <div className="flex items-baseline gap-1">
                         <span className={`text-3xl font-black ${plan.dark ? 'text-white' : 'text-[#1A202C]'}`}>
-                          {fmtCOP(monthlyPrice)}
+                          {fmtCOP(monthlyPrice, { free: true })}
                         </span>
                         <span className="text-xs font-bold text-slate-400">/mes</span>
                       </div>
                       {annual && annualTotal > 0 && (
                         <p className="text-xs font-bold text-slate-400 mt-1">
-                          Facturado {fmtCOP(annualTotal)}/año
+                          Facturado {fmtCOP(annualTotal, { free: true })}/año
                         </p>
                       )}
                     </>

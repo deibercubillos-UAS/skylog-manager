@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
+import { fmtCOP } from '@/lib/formatters';
 
 const faqItems = [
   { q: '¿El plan gratuito requiere tarjeta de crédito?', a: 'No. El plan Piloto es gratuito por 6 meses sin necesidad de tarjeta de crédito. Solo necesitas un correo electrónico para registrarte. Al finalizar los 6 meses, puedes elegir continuar con el plan de pago o contactarnos para extender el período gratuito si estás en proceso de certificación.' },
@@ -83,10 +84,6 @@ const PLANS_BASE = [
     ],
   },
 ];
-
-function fmtCOP(n) {
-  return '$' + Math.round(n).toLocaleString('es-CO');
-}
 
 function trialText(days) {
   if (!days) return null;

@@ -1,9 +1,12 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { saveHandle, getHandle, clearHandle } from '@/lib/idbHandleStore';
 
 // Clave bajo la que se recuerda la carpeta FlightRecord en IndexedDB.
 const FLIGHTRECORD_KEY = 'dji-flightrecord';
+// Preferencia de auto-sincronización (persistida en localStorage).
+const AUTOSYNC_KEY = 'bitafly_dji_autosync';
+const AUTOSYNC_INTERVAL_MS = 20000; // sondeo cada 20s (solo donde hay File System API)
 
 // Instrucciones para desktop (copiar al PC primero)
 const DEVICE_INSTRUCTIONS = {
@@ -228,6 +231,12 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
   const [savedHandle, setSavedHandle] = useState(null); // carpeta FlightRecord recordada
   const mobileInputRef = useRef(null);
 
+  // ── Auto-sincronización (solo donde hay File System Access API) ──
+  const [autoSync, setAutoSync]       = useState(false);
+  const [autoStatus, setAutoStatus]   = useState('');   // texto del último sondeo
+  const autoTimerRef = useRef(null);
+  const autoBusyRef  = useRef(false);   // evita sondeos solapados
+
   // Modal crear aeronave
   const [aircraftModal, setAircraftModal] = useState(null); // null | { serial, modelo, nombre, pendingFile }
   const [aircraftForm, setAircraftForm] = useState(EMPTY_AIRCRAFT);
@@ -249,16 +258,19 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
     }
   }, [isMobileProp]);
 
-  // ── Cargar la carpeta recordada al montar (solo desktop con File System API) ──
+  // ── Cargar la carpeta recordada + preferencia de auto-sync al montar ──
+  // (File System Access API: Chrome/Edge escritorio; el RC funciona vía PC)
   useEffect(() => {
-    if (isMobile) return;
     if (typeof window === 'undefined' || !('showDirectoryPicker' in window)) return;
     let cancelled = false;
     getHandle(FLIGHTRECORD_KEY).then(h => {
       if (!cancelled && h) setSavedHandle(h);
     });
+    try {
+      if (localStorage.getItem(AUTOSYNC_KEY) === '1') setAutoSync(true);
+    } catch { /* localStorage no disponible */ }
     return () => { cancelled = true; };
-  }, [isMobile]);
+  }, []);
 
   const isSupported =
     typeof window !== 'undefined' && 'showDirectoryPicker' in window;
@@ -465,8 +477,10 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
   };
 
   // ── Importar archivos seleccionados ───────────────────────────
-  const handleImport = async () => {
-    const toImport = files.filter(f => f.selected && f.status === 'pending');
+  // Acepta una lista explícita (auto-importación tras escaneo) o usa el estado.
+  const handleImport = async (explicitList) => {
+    const source = Array.isArray(explicitList) ? explicitList : files;
+    const toImport = source.filter(f => f.selected && f.status === 'pending');
     if (!toImport.length) return;
 
     setState('uploading');
@@ -780,6 +794,88 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
 
     setFiles(withStatus);
     setState('ready');
+
+    // Auto-importar de inmediato lo nuevo (sin botón aparte). Si todo es duplicado,
+    // no hace nada y queda la lista visible.
+    const pendingNew = withStatus.filter(f => f.selected && f.status === 'pending');
+    if (pendingNew.length) {
+      await handleImport(withStatus);
+    }
+  };
+
+  // ── Auto-importación de la carpeta recordada (File System API) ──
+  // Sondea la carpeta y trae solo los .txt nuevos, sin intervención del usuario.
+  // Ref para evitar closures obsoletas y dependencias en el efecto de sondeo.
+  const autoImportRef = useRef(null);
+  autoImportRef.current = async () => {
+    if (autoBusyRef.current) return;
+    const handle = savedHandle;
+    if (!handle) return;
+
+    // En segundo plano no se puede solicitar permiso — solo continuar si ya está concedido.
+    let perm = 'granted';
+    try { perm = await handle.queryPermission?.({ mode: 'read' }); } catch { return; }
+    if (perm && perm !== 'granted') {
+      setAutoStatus('Permiso pendiente — pulsa "Sincronizar" una vez');
+      return;
+    }
+
+    autoBusyRef.current = true;
+    try {
+      const found = [];
+      for await (const [name, h] of handle.entries()) {
+        if (h.kind === 'file' && /\.txt$/i.test(name)) found.push({ name, handle: h });
+      }
+      if (!found.length) { setAutoStatus('Carpeta vacía'); return; }
+
+      const existingSet = await checkExisting(found);
+      const fresh = found.filter(f => {
+        const date = dateFromName(f.name), time = timeFromName(f.name);
+        const key = date && time ? `${date}|${time}` : null;
+        return !(key && existingSet.has(key));
+      });
+      if (!fresh.length) { setAutoStatus('Sin vuelos nuevos'); return; }
+
+      let imported = 0;
+      for (const f of fresh) {
+        const { status, data } = await uploadFile({ name: f.name, handle: f.handle, fileObj: null });
+        if ((status === 200 || status === 201) && !data.skipped) {
+          imported++;
+          onFlightImported?.(data);
+        }
+        // needs_aircraft / errores: se omiten en segundo plano (el import manual los gestiona)
+      }
+      if (imported > 0) onImported?.();
+      setAutoStatus(imported > 0 ? `${imported} vuelo(s) nuevo(s) sincronizado(s)` : 'Sin vuelos nuevos');
+    } catch {
+      // Carpeta inaccesible (movida / sin permiso) — no romper el ciclo
+    } finally {
+      autoBusyRef.current = false;
+    }
+  };
+
+  // Ciclo de sondeo cada 20s mientras auto-sync esté activo y haya carpeta recordada.
+  useEffect(() => {
+    if (!autoSync || !savedHandle || !isSupported) return;
+    const tick = () => {
+      if (typeof document !== 'undefined' && document.hidden) return; // pausar si la pestaña está oculta
+      if (state === 'uploading' || state === 'scanning') return;       // no chocar con import manual
+      autoImportRef.current?.();
+    };
+    tick(); // primer sondeo inmediato
+    autoTimerRef.current = setInterval(tick, AUTOSYNC_INTERVAL_MS);
+    return () => clearInterval(autoTimerRef.current);
+    // autoImportRef es estable; state se relee en cada re-ejecución del efecto.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSync, savedHandle, isSupported, state]);
+
+  const toggleAutoSync = () => {
+    setAutoSync(prev => {
+      const next = !prev;
+      try { localStorage.setItem(AUTOSYNC_KEY, next ? '1' : '0'); } catch { /* no-op */ }
+      if (!next) setAutoStatus('');
+      return next;
+    });
   };
 
   // ── Reiniciar ─────────────────────────────────────────────────
@@ -921,7 +1017,7 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
       )}
 
       {/* ── Sincronización rápida con carpeta recordada ────────── */}
-      {state === 'idle' && !isMobile && savedHandle && (
+      {state === 'idle' && isSupported && savedHandle && (
         <button
           onClick={handleQuickSync}
           className="w-full py-5 bg-orange-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl shadow-orange-500/20 hover:bg-orange-700 transition-all active:scale-95 flex items-center justify-center gap-2"
@@ -931,8 +1027,43 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
         </button>
       )}
 
+      {/* ── Auto-sincronización (solo donde hay File System API) ── */}
+      {state === 'idle' && isSupported && savedHandle && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-start gap-2.5 min-w-0">
+              <span className="material-symbols-outlined text-orange-500 text-xl shrink-0 mt-0.5">autorenew</span>
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-700">Auto-sincronización</p>
+                <p className="text-[11px] text-slate-400 font-medium leading-snug">
+                  Revisa la carpeta cada 20s e importa los vuelos nuevos automáticamente.
+                </p>
+              </div>
+            </div>
+            {/* Toggle */}
+            <button
+              onClick={toggleAutoSync}
+              role="switch"
+              aria-checked={autoSync}
+              aria-label="Activar auto-sincronización"
+              className={`relative w-12 h-7 rounded-full shrink-0 transition-colors ${autoSync ? 'bg-orange-500' : 'bg-slate-200'}`}
+            >
+              <span className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${autoSync ? 'translate-x-5' : ''}`} />
+            </button>
+          </div>
+          {autoSync && (
+            <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100">
+              <span className="material-symbols-outlined text-emerald-500 text-sm animate-pulse">radio_button_checked</span>
+              <p className="text-[11px] font-bold text-slate-500">
+                Vigilando carpeta{autoStatus ? ` · ${autoStatus}` : '…'}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Botón principal ────────────────────────────────────── */}
-      {state === 'idle' && !isMobile && (
+      {state === 'idle' && isSupported && (
         <button
           onClick={handleSelectFolder}
           className={`w-full py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 ${
@@ -947,7 +1078,7 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
       )}
 
       {/* ── Olvidar carpeta recordada ──────────────────────────── */}
-      {state === 'idle' && !isMobile && savedHandle && (
+      {state === 'idle' && isSupported && savedHandle && (
         <button
           onClick={handleForgetFolder}
           className="w-full text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center gap-1.5 py-1"
@@ -957,24 +1088,46 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
         </button>
       )}
 
-      {/* ── Botón mobile ───────────────────────────────────────── */}
-      {state === 'idle' && isMobile && (
+      {/* ── Botón mobile (sin File System API: iOS / Chrome Android) ── */}
+      {state === 'idle' && !isSupported && (
         <>
-          <input
-            ref={mobileInputRef}
-            type="file"
-            multiple
-            accept=".txt"
-            className="hidden"
-            onChange={handleMobileFileSelect}
-          />
+          {/* Android: webkitdirectory permite elegir la carpeta FlightRecord completa
+              de una vez → se auto-importan los vuelos nuevos. iOS Safari NO soporta
+              selección de carpeta → selección de archivos múltiples. */}
+          {device === 'iphone' ? (
+            <input
+              ref={mobileInputRef}
+              type="file"
+              multiple
+              accept=".txt"
+              className="hidden"
+              onChange={handleMobileFileSelect}
+            />
+          ) : (
+            <input
+              ref={mobileInputRef}
+              type="file"
+              multiple
+              accept=".txt"
+              webkitdirectory=""
+              directory=""
+              className="hidden"
+              onChange={handleMobileFileSelect}
+            />
+          )}
           <button
             onClick={() => mobileInputRef.current?.click()}
             className="w-full py-5 bg-navy text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
           >
-            <span className="material-symbols-outlined text-sm">upload_file</span>
-            Seleccionar archivos DJI
+            <span className="material-symbols-outlined text-sm">{device === 'iphone' ? 'upload_file' : 'folder_open'}</span>
+            {device === 'iphone' ? 'Seleccionar archivos DJI' : 'Seleccionar carpeta de vuelos'}
           </button>
+          <p className="text-[11px] text-slate-400 font-medium text-center leading-snug px-2">
+            {device === 'iphone'
+              ? 'Selecciona los .txt de FlightRecord. Se importan automáticamente los vuelos nuevos.'
+              : 'Elige la carpeta FlightRecord una vez. Se importan automáticamente los vuelos nuevos.'}
+            {' '}En celular/tablet repite el paso cuando tengas vuelos nuevos (el navegador no permite vigilar la carpeta en segundo plano).
+          </p>
         </>
       )}
 

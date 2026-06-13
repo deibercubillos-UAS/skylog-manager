@@ -141,7 +141,7 @@ Pestaña `/admin/master` → **Socios**:
 | P1  | Migración BD: tablas + RLS (partners, codes, members, free_grants, referrals, commissions) | ✅ | Bajo |
 | P2  | Máster: CRUD de socios (%, cupos, free_days, activar) + generar códigos | ✅ | Bajo |
 | P3  | Rol `partner` + panel `/socio` base (login, guard, layout) | ✅ | Medio |
-| P4  | Regalar perfil gratis: form de correo + `free_grant` (unicidad) + envío de invitación | ⬜ | Medio |
+| P4  | Regalar perfil gratis: form de correo + `free_grant` (unicidad) + envío de invitación | ✅ | Medio |
 | P5  | Activación del perfil gratis al registrarse (plan piloto + expiry) | ⬜ | Medio |
 | P6  | Captura del código en la compra (campo opcional) + guardar en el intent | ⬜ | Medio |
 | P7  | Webhook: crear `referral` + `referral_commissions` del ciclo (idempotente) | ⬜ | Alto* |
@@ -217,3 +217,15 @@ Pestaña `/admin/master` → **Socios**:
 - Archivos: `api/socio/me/route.js`, `socio/layout.js`, `socio/page.js`,
   `api/admin/master/partners/route.js`, `_SociosTab.js`.
 - Verificación: `npm run build` OK.
+
+### P4 — Regalar perfil gratis ✅ (2026-06-13)
+
+- API `/api/socio/grants`: GET (lista de regalos del socio) + POST (regalar a un correo).
+  Validaciones: socio activo, **cupo** (NULL=∞), **1 por correo no renovable** (rechaza si el
+  correo ya está en `free_grants` en cualquier estado), y rechaza correos con cuenta existente.
+- Crea `free_grant` (token, `expires_at = now + free_days`, `purge_after = expires_at + 3 meses`),
+  incrementa `free_seats_used`, y envía correo de invitación con enlace
+  `/registro?email=...&grant=<token>` (Resend + escHtml, chequeo de `{error}`).
+- UI: formulario "Regalar perfil gratis" + lista de regalos con estado en `/socio`.
+- Archivos: `api/socio/grants/route.js`, `socio/page.js`.
+- Verificación: `npm run build` OK. La activación del plan al registrarse va en P5.

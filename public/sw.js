@@ -12,7 +12,7 @@
  * Offline fallback: /offline.html si la red falla y la página no está en caché.
  */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const STATIC_CACHE  = `bitafly-static-${CACHE_VERSION}`;
 const PAGES_CACHE   = `bitafly-pages-${CACHE_VERSION}`;
 const OFFLINE_URL   = '/offline.html';
@@ -95,20 +95,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. Páginas del dashboard — stale-while-revalidate
-  //    Sirve la caché inmediatamente, actualiza en background
+  // 4. Páginas del dashboard — network-first
+  //    Siempre intenta la red primero para que tras un deploy el HTML (y sus chunks)
+  //    estén frescos → evita ChunkLoadError por HTML cacheado viejo. La caché solo
+  //    es respaldo offline. El app nativo (Capacitor) así siempre refleja la web.
   if (url.pathname.startsWith('/dashboard') || url.pathname === '/') {
     event.respondWith(
-      caches.open(PAGES_CACHE).then(cache =>
-        cache.match(request).then(cached => {
-          const fetchPromise = fetch(request).then(response => {
-            if (response.ok) cache.put(request, response.clone());
-            return response;
-          }).catch(() => cached || caches.match(OFFLINE_URL));
-
-          return cached || fetchPromise;
+      fetch(request)
+        .then(response => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(PAGES_CACHE).then(cache => cache.put(request, copy));
+          }
+          return response;
         })
-      )
+        .catch(() =>
+          caches.open(PAGES_CACHE).then(cache =>
+            cache.match(request).then(cached => cached || caches.match(OFFLINE_URL))
+          )
+        )
     );
     return;
   }

@@ -43,7 +43,7 @@ Objetivo: instalación limpia en escritorio, Android y RC. Sin tocar lógica de 
 | F1.2 | Unificar el manifest en una sola fuente (borrar duplicado de `public/`) | ✅ |
 | F1.3 | UX de instalación: `beforeinstallprompt` + banner iOS "Agregar a inicio" | ✅ |
 | F1.4 | apple-touch-icon 180px ✅ · screenshot `narrow` pendiente (captura con sesión) | 🔄 |
-| F1.5 | Versionar el SW (sello de build) + revisar estrategia de caché | ⬜ |
+| F1.5 | SW: páginas network-first (anti-stale) + CACHE_VERSION v2 | ✅ |
 
 ## ETAPA 2 — Capa de plataforma (bridge), sin romper la web
 
@@ -156,6 +156,18 @@ Solo diagnóstico, sin cambios en el código.
 - Pendiente: screenshot `narrow` (móvil) para el manifest — requiere captura con sesión
   iniciada (se hará en preview). Es polish opcional del diálogo de instalación Android.
 - Verificación: `npm run build` OK; archivo 180px presente.
+
+### F1.5 — Estrategia de caché del SW ✅ (2026-06-13)
+
+- Qué se hizo: páginas del dashboard pasan de stale-while-revalidate a **network-first**
+  (siempre fresco tras deploy; caché solo respaldo offline) → elimina ChunkLoadError por
+  HTML viejo y garantiza que el app nativo refleje la web. `CACHE_VERSION` v1 → v2 (purga
+  cachés previas en el `activate`).
+- Archivos tocados: `public/sw.js`.
+- Verificación: `npm run build` OK.
+- Nota: el sello de build dinámico no fue necesario; network-first resuelve el objetivo.
+
+**Etapa 1 (PWA instalable) COMPLETA** salvo screenshot `narrow` (F1.4, polish opcional).
 
 <!-- Plantilla para próximas fases:
 ### Fx.y — Título ✅/🔄 (fecha)

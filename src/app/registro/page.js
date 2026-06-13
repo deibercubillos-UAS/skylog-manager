@@ -83,14 +83,21 @@ export default function RegisterPage() {
   // Limpieza del polling
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
-  // Prerellenar el correo desde ?email= (enlaces de invitación). Client-only.
+  // Prerellenar desde el enlace de invitación: ?email= + ?join=1&nit=. Client-only.
   useEffect(() => {
     try {
-      const email = new URLSearchParams(window.location.search).get('email');
+      const qs = new URLSearchParams(window.location.search);
+      const email = qs.get('email');
       if (email) {
         const clean = email.trim();
         setForm(p => ({ ...p, email: clean }));
         setJoinForm(p => ({ ...p, email: clean }));
+      }
+      // Invitación de tripulante → abrir directo en modo "unirse" con el NIT cargado
+      const nit = qs.get('nit');
+      if (qs.get('join') === '1' || nit) {
+        setMode('unirse');
+        if (nit) setJoinNit(nit.trim());
       }
     } catch { /* no-op */ }
   }, []);
@@ -243,10 +250,11 @@ export default function RegisterPage() {
       const result = await res.json();
       if (!result.success) throw new Error(result.error || 'Error al crear la cuenta');
       trackEvent('sign_up', { method: 'join_org', plan: 'free', role: joinRole, ...attributionParams() });
-      // Auto-login: ingresar directamente al dashboard sin pasar por login
+      // Auto-login: ingresar directo y llevar al expediente para cargar documentos
+      // de piloto (cédula, diploma, CIPU, médico…) — completar el perfil en la org.
       const { error: signInErr } = await supabase.auth.signInWithPassword({ email: joinForm.email, password: joinForm.password });
       if (signInErr) { window.location.href = '/login?registered=1'; return; }
-      window.location.href = '/dashboard';
+      window.location.href = '/dashboard/settings/profile?welcome=1';
     } catch (err) { setJoinError(err.message); }
     finally { setJoinLoading(false); }
   };

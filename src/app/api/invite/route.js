@@ -57,10 +57,12 @@ export async function POST(req) {
     const senderName = profile.full_name || 'Un administrador';
     const { data: org } = await supabase
       .from('organizations')
-      .select('company_name')
+      .select('company_name, tax_id, unique_code')
       .eq('id', profile.organization_id)
       .single();
     const orgDisplayName = org?.company_name || 'su organización';
+    // NIT para prellenar el modo "unirse" en el enlace
+    const orgNit = (org?.tax_id || org?.unique_code || '').replace(/[\s\-.]/g, '');
     const ROLE_LABEL = { admin: 'Gerente General', jefe_pilotos: 'Jefe de Pilotos', gerente_sms: 'Gerente SMS', piloto: 'Piloto' };
     const roleLabel = ROLE_LABEL[role] || 'Tripulante';
 
@@ -84,7 +86,7 @@ export async function POST(req) {
           <p><strong>${senderName}</strong> te ha invitado a unirte a su equipo en <strong>BitaFly</strong> como <strong>${roleLabel}</strong>.</p>
           <p>Con BitaFly podrás gestionar tus vuelos, cumplir con la normativa RAC 100 y mantener tu bitácora digital al día.</p>
           <div style="margin-top: 30px;">
-            <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com'}/registro?email=${encodeURIComponent(email.trim())}"
+            <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com'}/registro?email=${encodeURIComponent(email.trim())}&join=1${orgNit ? `&nit=${encodeURIComponent(orgNit)}` : ''}"
                style="background-color: #ec5b13; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
               Aceptar Invitación y Registrarme
             </a>

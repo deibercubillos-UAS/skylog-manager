@@ -15,7 +15,15 @@ export default function ProfilePage() {
     // Expediente del piloto (tabla pilots) — gestionado por el propio tripulante
     const [docs, setDocs] = useState(null);
     const [savingDocs, setSavingDocs] = useState(false);
+    const [welcome, setWelcome] = useState(false);
     const router = useRouter();
+
+    // Banner de bienvenida cuando el tripulante recién se unió a la org (?welcome=1)
+    useEffect(() => {
+        try {
+            if (new URLSearchParams(window.location.search).get('welcome') === '1') setWelcome(true);
+        } catch { /* no-op */ }
+    }, []);
 
     useEffect(() => {
         async function loadDocs() {
@@ -141,6 +149,19 @@ useEffect(() => {
 
     return (
         <div className="max-w-5xl mx-auto space-y-10 text-left animate-in fade-in duration-700 pb-20">
+            {welcome && (
+                <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5 flex items-start gap-3">
+                    <span className="material-symbols-outlined text-orange-600 text-2xl shrink-0">waving_hand</span>
+                    <div>
+                        <p className="text-sm font-black text-slate-900">¡Bienvenido a tu organización!</p>
+                        <p className="text-xs text-slate-600 font-medium leading-relaxed mt-1">
+                            Ya eres parte del equipo. Completa tu expediente cargando tus documentos
+                            (cédula, diploma UAS, examen teórico, certificado médico, CIPU) y tu contacto
+                            de emergencia. Al guardar, se notificará a tus superiores.
+                        </p>
+                    </div>
+                </div>
+            )}
             <header className="flex justify-between items-end border-b pb-6">
                 <div>
                     <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Mi Perfil</h2>

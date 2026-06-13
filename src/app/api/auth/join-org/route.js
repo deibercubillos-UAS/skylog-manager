@@ -49,12 +49,19 @@ export async function POST(request) {
 
     const admin = createAdminClient();
 
-    // ── Buscar org destino ────────────────────────────────────────────────────
-    const { data: targetOrg } = await admin
+    // ── Buscar org destino — por NIT (tax_id) y respaldo unique_code ──────────
+    let { data: targetOrg } = await admin
       .from('organizations')
       .select('id, company_name, unique_code')
-      .eq('unique_code', nit)
+      .eq('tax_id', nit)
       .maybeSingle();
+    if (!targetOrg) {
+      ({ data: targetOrg } = await admin
+        .from('organizations')
+        .select('id, company_name, unique_code')
+        .eq('unique_code', nit)
+        .maybeSingle());
+    }
 
     if (!targetOrg) {
       return NextResponse.json({

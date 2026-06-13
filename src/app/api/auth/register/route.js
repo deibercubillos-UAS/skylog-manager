@@ -36,11 +36,19 @@ export async function POST(request) {
             }
 
             const nit = orgCode.replace(/[\s\-.]/g, '').toUpperCase();
-            const { data: org } = await supabaseAdmin
+            // Resolver org por NIT (tax_id) y, como respaldo, por unique_code interno.
+            let { data: org } = await supabaseAdmin
                 .from('organizations')
                 .select('id, company_name')
-                .eq('unique_code', nit)
+                .eq('tax_id', nit)
                 .maybeSingle();
+            if (!org) {
+                ({ data: org } = await supabaseAdmin
+                    .from('organizations')
+                    .select('id, company_name')
+                    .eq('unique_code', nit)
+                    .maybeSingle());
+            }
 
             if (!org) throw new Error('NIT inválido. La organización no existe en Bitafly.');
 

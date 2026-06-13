@@ -36,12 +36,22 @@ export async function GET(request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY,
     );
 
-    // Buscar org por unique_code (= NIT normalizado)
-    const { data: org } = await supabase
+    // Buscar org por NIT: primero por tax_id (el NIT que conoce el usuario),
+    // luego por unique_code (código interno) como respaldo retrocompatible.
+    const SELECT = 'id, company_name, unique_code';
+    let { data: org } = await supabase
       .from('organizations')
-      .select('id, company_name, unique_code')
-      .eq('unique_code', nit)
+      .select(SELECT)
+      .eq('tax_id', nit)
       .maybeSingle();
+
+    if (!org) {
+      ({ data: org } = await supabase
+        .from('organizations')
+        .select(SELECT)
+        .eq('unique_code', nit)
+        .maybeSingle());
+    }
 
     if (!org) {
       return NextResponse.json({

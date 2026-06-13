@@ -103,7 +103,7 @@ export default function LogbookPage() {
             supabase.from('profiles').select('role').eq('id', session.user.id).single()
                 .then(({ data }) => setUserRole(data?.role ?? null));
         });
-        fetch('/api/pilots').then(r => r.ok ? r.json() : []).then(data => setPilots(Array.isArray(data) ? data : []));
+        fetch('/api/pilots').then(r => { if (!r.ok) { console.warn('[fetch] /api/pilots failed:', r.status); return []; } return r.json(); }).then(data => setPilots(Array.isArray(data) ? data : []));
     }, []);
 
     // Cerrar dropdown al hacer clic fuera

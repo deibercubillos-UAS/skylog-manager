@@ -95,7 +95,7 @@ export default function SelectPlanPage() {
 
   useEffect(() => {
     fetch('/api/plans/public')
-      .then(r => r.ok ? r.json() : null)
+      .then(r => { if (!r.ok) { console.warn('[fetch] /api/plans/public failed:', r.status); return null; } return r.json(); })
       .then(data => { if (data && !data.error) setPrices(data); })
       .catch(() => {});
   }, []);

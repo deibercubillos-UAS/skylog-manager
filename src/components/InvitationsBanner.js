@@ -16,7 +16,7 @@ export default function InvitationsBanner() {
   useEffect(() => {
     let active = true;
     fetch('/api/invitations/pending')
-      .then(r => r.ok ? r.json() : { invitations: [] })
+      .then(r => { if (!r.ok) { console.warn('[fetch] /api/invitations/pending failed:', r.status); return { invitations: [] }; } return r.json(); })
       .then(d => { if (active) setInvs(d.invitations || []); })
       .catch(() => {});
     return () => { active = false; };

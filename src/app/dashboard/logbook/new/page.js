@@ -65,7 +65,7 @@ export default function NewOperationPage() {
                     supabase.from('aircraft').select('id, model, serial_number').eq('organization_id', prof.organization_id).neq('status', 'Baja'),
                     supabase.from('daily_health_checks').select('*').eq('user_id', user.id).eq('check_date', new Date().toISOString().split('T')[0]),
                     supabase.from('organizations').select('enable_health_check, enable_preflight, enable_briefing').eq('id', prof.organization_id).single(),
-                    fetch('/api/flight-plans').then(r => r.ok ? r.json() : [])
+                    fetch('/api/flight-plans').then(r => { if (!r.ok) { console.warn('[fetch] /api/flight-plans failed:', r.status); return []; } return r.json(); })
                 ]);
 
                 const aircraftList = aircraft.data || [];

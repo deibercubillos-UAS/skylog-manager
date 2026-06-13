@@ -58,6 +58,7 @@ export default function RegisterPage() {
   // Pago
   const [pendingRef, setPendingRef]   = useState(null);
   const [payStatus,  setPayStatus]    = useState('pending');
+  const [grantToken, setGrantToken]   = useState(null); // regalo de perfil gratis (socio)
   const pollRef = useRef(null);
 
   // ── Flujo UNIRSE ───────────────────────────────────────────────────────────
@@ -98,6 +99,13 @@ export default function RegisterPage() {
       if (qs.get('join') === '1' || nit) {
         setMode('unirse');
         if (nit) setJoinNit(nit.trim());
+      }
+      // Regalo de perfil gratis (socio) → modo "crear" plan piloto con el token
+      const grant = qs.get('grant');
+      if (grant) {
+        setGrantToken(grant);
+        setMode('crear');
+        setForm(p => ({ ...p, selectedPlan: 'piloto' }));
       }
     } catch { /* no-op */ }
   }, []);
@@ -174,7 +182,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      const res    = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, attribution: getAttribution() }) });
+      const res    = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, grant: grantToken, attribution: getAttribution() }) });
       const result = await res.json();
       if (!result.success) throw new Error(result.error || 'Error al registrar');
       // Auto-login: ingresar directamente al dashboard sin pasar por login

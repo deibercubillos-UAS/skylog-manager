@@ -142,7 +142,7 @@ Pestaña `/admin/master` → **Socios**:
 | P2  | Máster: CRUD de socios (%, cupos, free_days, activar) + generar códigos | ✅ | Bajo |
 | P3  | Rol `partner` + panel `/socio` base (login, guard, layout) | ✅ | Medio |
 | P4  | Regalar perfil gratis: form de correo + `free_grant` (unicidad) + envío de invitación | ✅ | Medio |
-| P5  | Activación del perfil gratis al registrarse (plan piloto + expiry) | ⬜ | Medio |
+| P5  | Activación del perfil gratis al registrarse (plan piloto + expiry) | ✅ | Medio |
 | P6  | Captura del código en la compra (campo opcional) + guardar en el intent | ⬜ | Medio |
 | P7  | Webhook: crear `referral` + `referral_commissions` del ciclo (idempotente) | ⬜ | Alto* |
 | P8  | Comisión recurrente: nueva fila por cada ciclo de pago confirmado | ⬜ | Alto* |
@@ -229,3 +229,13 @@ Pestaña `/admin/master` → **Socios**:
 - UI: formulario "Regalar perfil gratis" + lista de regalos con estado en `/socio`.
 - Archivos: `api/socio/grants/route.js`, `socio/page.js`.
 - Verificación: `npm run build` OK. La activación del plan al registrarse va en P5.
+
+### P5 — Activación del perfil gratis ✅ (2026-06-13)
+
+- `registro`: el enlace `?grant=<token>` abre modo "crear" con plan piloto y envía el token a
+  `/api/auth/register`. (piloto NO es `paid` → usa el flujo de registro libre.)
+- `/api/auth/register`: si llega `grant` válido (existe, mismo correo, no activado) →
+  setea `profiles.subscription_expires_at = free_grant.expires_at` y marca el grant
+  `status='activado'` + `redeemed_org_id`. Idempotente (no re-activa).
+- Archivos: `api/auth/register/route.js`, `registro/page.js`.
+- Verificación: `npm run build` OK. La expiración/degradado va en P9.

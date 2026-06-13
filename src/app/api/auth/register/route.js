@@ -22,7 +22,7 @@ export async function POST(request) {
         }
 
         const body = await request.json();
-        const { email, password, firstName, lastName, phone, city, type, role, orgCode, companyName, nit, joinMode, attribution } = body;
+        const { email, password, firstName, lastName, phone, city, type, role, orgCode, companyName, nit, joinMode, attribution, grant: grantToken } = body;
         const signupAttribution = (attribution && typeof attribution === 'object') ? (attribution.first || null) : null;
         const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -259,6 +259,24 @@ export async function POST(request) {
             subscription_plan: 'piloto',
             signup_attribution: signupAttribution,
         }, { onConflict: 'id' });
+
+        // ── Perfil gratis de socio (grant): activar plan piloto con vencimiento ──
+        if (grantToken) {
+            const { data: g } = await supabaseAdmin
+                .from('free_grants')
+                .select('id, email, status, expires_at')
+                .eq('token', grantToken)
+                .maybeSingle();
+            // Solo si el regalo existe, es para este correo y aún no fue activado
+            if (g && g.email?.toLowerCase() === email.toLowerCase() && g.status !== 'activado') {
+                await supabaseAdmin.from('profiles')
+                    .update({ subscription_expires_at: g.expires_at })
+                    .eq('id', authData.user.id);
+                await supabaseAdmin.from('free_grants')
+                    .update({ status: 'activado', redeemed_org_id: targetOrgId })
+                    .eq('id', g.id);
+            }
+        }
 
         // Auto-crear registro de piloto cuando el usuario crea su propia org
         // (piloto independiente o admin de empresa nueva).

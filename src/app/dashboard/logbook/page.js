@@ -245,6 +245,19 @@ export default function LogbookPage() {
     };
 
     // Celda de piloto: editable para roles autorizados, solo lectura para el resto
+    // Calcula duración del vuelo a partir de takeoff/landing (HH:MM)
+    const flightDuration = (takeoff, landing) => {
+        if (!takeoff) return null;
+        if (!landing) return takeoff; // solo hora de despegue
+        const [h1, m1] = takeoff.split(':').map(Number);
+        const [h2, m2] = landing.split(':').map(Number);
+        const mins = (h2 * 60 + m2) - (h1 * 60 + m1);
+        if (mins <= 0) return takeoff;
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`;
+    };
+
     const PilotCell = ({ flight }) => {
         const isEditing = editingPilot === flight.id;
         const isSaving  = savingPilot  === flight.id;
@@ -273,9 +286,7 @@ export default function LogbookPage() {
                 </button>
 
                 {isEditing && (
-                    // right-0 en mobile evita que el dropdown se salga del borde derecho de pantalla (375px)
-                    // md:left-0 md:right-auto restaura el alineado izquierdo en desktop
-                    <div className="absolute z-50 top-full mt-1 right-0 md:left-0 md:right-auto bg-white rounded-2xl shadow-2xl border border-slate-100 py-1 min-w-[200px] max-h-60 overflow-y-auto">
+                    <div className="absolute z-50 top-full mt-1 left-0 bg-white rounded-2xl shadow-2xl border border-slate-100 py-1 w-[220px] max-w-[calc(100vw-2rem)] max-h-60 overflow-y-auto">
                         <button
                             onClick={() => assignPilot(flight.id, null)}
                             className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-400 hover:bg-slate-50 italic"
@@ -415,45 +426,96 @@ export default function LogbookPage() {
                 <div className="md:hidden divide-y divide-slate-100">
                     {filteredFlights.length === 0 ? (
                         <p className="py-16 text-center text-xs font-black text-slate-300 uppercase tracking-widest">Sin registros</p>
-                    ) : filteredFlights.map(f => (
-                        <div key={f.id} className="p-4 space-y-1.5">
+                    ) : filteredFlights.map(f => {
+                        const dur = flightDuration(f.takeoff_time, f.landing_time);
+                        return (
+                        <div key={f.id} className="p-4 space-y-3">
+
+                            {/* Fila superior: Fecha + condición + eliminar */}
                             <div className="flex items-start justify-between gap-2">
-                                <div className="min-w-0">
-                                    <div className="flex items-center gap-1.5">
-                                        <MissionCell flight={f} />
-                                        {f.has_alerts && (
-                                            <span
-                                                title={`${(f.alerts_json ?? []).length} alerta(s) — ver Replay para detalles`}
-                                                className={`inline-flex items-center justify-center w-4 h-4 rounded ${
-                                                    (f.alerts_json ?? []).some(a => a.severity === 'critical')
-                                                        ? 'bg-red-100 text-red-500'
-                                                        : 'bg-orange-100 text-orange-500'
-                                                }`}
-                                            >
-                                                <span className="material-symbols-outlined" style={{ fontSize: '12px', fontVariationSettings: "'FILL' 1" }}>warning</span>
-                                            </span>
-                                        )}
-                                    </div>
-                                    <p className="text-xs font-bold text-slate-800 truncate">{f.aircraft?.model || 'UAS'}</p>
-                                    <div className="text-xs text-slate-400 font-bold"><PilotCell flight={f} /></div>
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</p>
+                                    <p className="text-xs font-black text-slate-900">
+                                        {f.flight_date}
+                                        {f.takeoff_time && <span className="text-slate-500 font-medium ml-1">· {f.takeoff_time}</span>}
+                                    </p>
+                                    <p className="text-[10px] text-slate-400 uppercase mt-0.5">{f.mission_type}</p>
                                 </div>
-                                <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                                    <span className="bg-slate-100 px-2 py-0.5 rounded text-xs font-black">{f.visual_condition}</span>
-                                    <p className="text-xs font-black text-orange-600">{f.aircraft?.total_hours?.toFixed(2)}h</p>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <span className="bg-slate-100 px-2 py-0.5 rounded text-[10px] font-black uppercase">{f.visual_condition}</span>
                                     {canDeleteEntry && (
                                         <button
                                             onClick={() => deleteFlight(f.id)}
                                             aria-label="Eliminar registro"
-                                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 text-red-400 hover:bg-red-600 hover:text-white transition-all active:scale-95 mt-1"
+                                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 text-red-400 hover:bg-red-600 hover:text-white transition-all active:scale-95"
                                         >
                                             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>delete</span>
                                         </button>
                                     )}
                                 </div>
                             </div>
-                            <p className="text-xs text-slate-400">{f.flight_date} · <span className="uppercase">{f.mission_type}</span></p>
+
+                            {/* Grid 2×2: Misión · Duración / Equipo · Piloto */}
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Misión</p>
+                                    <div className="flex items-center gap-1.5">
+                                        <MissionCell flight={f} />
+                                        {f.has_alerts && (
+                                            <span
+                                                title={`${(f.alerts_json ?? []).length} alerta(s)`}
+                                                className={`inline-flex items-center justify-center w-4 h-4 rounded shrink-0 ${
+                                                    (f.alerts_json ?? []).some(a => a.severity === 'critical')
+                                                        ? 'bg-red-100 text-red-500'
+                                                        : 'bg-orange-100 text-orange-500'
+                                                }`}
+                                            >
+                                                <span className="material-symbols-outlined" style={{ fontSize: '11px', fontVariationSettings: "'FILL' 1" }}>warning</span>
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Duración</p>
+                                    <p className="text-xs font-black text-orange-600">
+                                        {dur || <span className="text-slate-300 font-normal italic">—</span>}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Equipo</p>
+                                    <p className="text-xs font-bold text-slate-800 truncate">{f.aircraft?.model || 'UAS'}</p>
+                                </div>
+
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Piloto</p>
+                                    <PilotCell flight={f} />
+                                </div>
+                            </div>
+
+                            {/* Replay button — si aplica */}
+                            {canViewReplay && (() => {
+                                const hasReplay = !!(f.replay_path || savedReplays.has(f.id));
+                                return hasReplay ? (
+                                    <button
+                                        onClick={() => setReplayFlight({
+                                            id: f.id,
+                                            label: `${f.mission_id || f.flight_date} · ${f.aircraft?.model ?? ''}`,
+                                            hasReplay: true,
+                                            flightDate: f.flight_date,
+                                            takeoffTime: f.takeoff_time,
+                                        })}
+                                        className="flex items-center gap-1.5 text-[10px] font-black text-orange-500 uppercase tracking-widest"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">play_circle</span>
+                                        Ver replay
+                                    </button>
+                                ) : null;
+                            })()}
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 {/* Desktop table */}
@@ -467,7 +529,7 @@ export default function LogbookPage() {
                                 <th className="px-4 py-4">Serie (S/N)</th>
                                 <th className="px-4 py-4">Tipo Op</th>
                                 <th className="px-4 py-4">Condición</th>
-                                <th className="px-4 py-4">T.T Posterior</th>
+                                <th className="px-4 py-4">Duración</th>
                                 <th className="px-4 py-4">Piloto (PIC)</th>
                                 <th className="px-3 py-4 w-10" title="Alertas detectadas durante el vuelo">
                                     <span className="material-symbols-outlined text-base text-slate-400">warning</span>
@@ -498,7 +560,7 @@ export default function LogbookPage() {
                                     <td className="px-4 py-4 font-mono text-xs">{f.aircraft?.serial_number}</td>
                                     <td className="px-4 py-4 text-xs uppercase">{f.mission_type}</td>
                                     <td className="px-4 py-4"><span className="bg-slate-100 px-2 py-0.5 rounded text-xs font-black">{f.visual_condition}</span></td>
-                                    <td className="px-4 py-4 font-black">{f.aircraft?.total_hours?.toFixed(2)}h</td>
+                                    <td className="px-4 py-4 font-black text-orange-600">{flightDuration(f.takeoff_time, f.landing_time) || <span className="text-slate-300 font-normal">—</span>}</td>
                                     <td className="px-4 py-4"><PilotCell flight={f} /></td>
                                     <AlertsCell flight={f} />
                                     {canViewReplay && (() => {

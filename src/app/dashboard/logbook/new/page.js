@@ -62,7 +62,7 @@ export default function NewOperationPage() {
                 const [auths, batteries, aircraft, health, org, plans] = await Promise.all([
                     fetch('/api/flights/authorize').then(r => r.json()),
                     supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).eq('status', 'Operativo'),
-                    supabase.from('aircraft').select('id, model, serial_number').eq('organization_id', prof.organization_id).neq('status', 'Baja'),
+                    supabase.from('aircraft').select('id, model, serial_number, operational_status').eq('organization_id', prof.organization_id).neq('status', 'Baja').neq('operational_status', 'en_mantenimiento'),
                     supabase.from('daily_health_checks').select('*').eq('user_id', user.id).eq('check_date', new Date().toISOString().split('T')[0]),
                     supabase.from('organizations').select('enable_health_check, enable_preflight, enable_briefing').eq('id', prof.organization_id).single(),
                     fetch('/api/flight-plans').then(r => { if (!r.ok) { console.warn('[fetch] /api/flight-plans failed:', r.status); return []; } return r.json(); })

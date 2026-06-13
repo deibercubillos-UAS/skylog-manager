@@ -44,7 +44,7 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
           .from('aircraft')
           .select('*')
           .eq('organization_id', prof.organization_id)
-          .neq('status', 'Baja');        // excluir aeronaves dadas de baja
+          .neq('status', 'Baja');        // excluir aeronaves dadas de baja (en mantenimiento SÍ aparece)
         setDrones(data || []);
       }
     }

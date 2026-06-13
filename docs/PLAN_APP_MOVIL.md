@@ -41,7 +41,7 @@ Objetivo: instalación limpia en escritorio, Android y RC. Sin tocar lógica de 
 |------|-------------|--------|
 | F1.1 | Auditoría PWA (Lighthouse, manifest, SW, archivos) — solo diagnóstico | ✅ |
 | F1.2 | Unificar el manifest en una sola fuente (borrar duplicado de `public/`) | ✅ |
-| F1.3 | UX de instalación: `beforeinstallprompt` + banner iOS "Agregar a inicio" | ⬜ |
+| F1.3 | UX de instalación: `beforeinstallprompt` + banner iOS "Agregar a inicio" | ✅ |
 | F1.4 | Screenshots `narrow` en manifest + apple-touch-icon 180px | ⬜ |
 | F1.5 | Versionar el SW (sello de build) + revisar estrategia de caché | ⬜ |
 
@@ -136,6 +136,18 @@ Solo diagnóstico, sin cambios en el código.
 - Verificación: `npm run build` OK; `/manifest.webmanifest` sigue en la tabla de rutas;
   única referencia restante es `layout.js → manifest: '/manifest.webmanifest'` (correcta).
 - Notas: screenshot `narrow` (móvil) y apple-touch-icon 180px quedan para F1.4.
+
+### F1.3 — UX de instalación ✅ (2026-06-13)
+
+- Qué se hizo: `components/InstallAppPrompt.js` — banner de instalación.
+  - Android/Chrome escritorio: captura `beforeinstallprompt` → botón "Instalar app".
+  - iOS Safari: instrucciones "Compartir → Agregar a pantalla de inicio".
+  - Oculto si ya está instalada (standalone) o si el usuario lo descartó (localStorage).
+  - Se oculta al `appinstalled`.
+- Montado en `dashboard/layout.js` vía `dynamic(..., { ssr:false })` (no afecta bundle inicial).
+- Archivos tocados: `components/InstallAppPrompt.js` (nuevo), `dashboard/layout.js`.
+- Verificación: `npm run build` OK.
+- Notas: probar diálogo real en navegador/preview es opcional (requiere sesión).
 
 <!-- Plantilla para próximas fases:
 ### Fx.y — Título ✅/🔄 (fecha)

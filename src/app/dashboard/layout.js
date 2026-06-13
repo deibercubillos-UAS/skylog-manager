@@ -9,6 +9,9 @@ import { getOrgPlan } from '@/lib/orgPlan';
 import { useRouter } from 'next/navigation';
 import NotificationBell from '@/components/NotificationBell';
 import { docOpenUrl } from '@/lib/docUrl';
+import dynamic from 'next/dynamic';
+
+const InstallAppPrompt = dynamic(() => import('@/components/InstallAppPrompt'), { ssr: false });
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
@@ -548,6 +551,9 @@ const footerLinks = footerLinksAll.filter(link =>
           </GracePeriodContext.Provider>
         </div>
       </main>
+
+      {/* Banner de instalación PWA (Android/escritorio: botón; iOS: instrucciones) */}
+      <InstallAppPrompt />
 
       {/* ── BARRA DE NAVEGACIÓN INFERIOR — solo mobile ───────────────────── */}
       {/* safe-area-inset-bottom: padding dinámico para iPhone con home indicator */}

@@ -40,7 +40,7 @@ Objetivo: instalación limpia en escritorio, Android y RC. Sin tocar lógica de 
 | Fase | Descripción | Estado |
 |------|-------------|--------|
 | F1.1 | Auditoría PWA (Lighthouse, manifest, SW, archivos) — solo diagnóstico | ✅ |
-| F1.2 | Unificar el manifest en una sola fuente (borrar duplicado de `public/`) | ⬜ |
+| F1.2 | Unificar el manifest en una sola fuente (borrar duplicado de `public/`) | ✅ |
 | F1.3 | UX de instalación: `beforeinstallprompt` + banner iOS "Agregar a inicio" | ⬜ |
 | F1.4 | Screenshots `narrow` en manifest + apple-touch-icon 180px | ⬜ |
 | F1.5 | Versionar el SW (sello de build) + revisar estrategia de caché | ⬜ |
@@ -125,6 +125,17 @@ Solo diagnóstico, sin cambios en el código.
 - Lighthouse runtime pendiente (opcional; requiere server + navegador).
 
 **Veredicto:** base PWA sólida y ya instalable. Único punto real: manifest duplicado.
+
+### F1.2 — Unificar manifest ✅ (2026-06-13)
+
+- Qué se hizo: una sola fuente de manifest. Borrado `public/manifest.webmanifest`;
+  se conserva `src/app/manifest.js` (genera `/manifest.webmanifest`).
+- Fusionado lo mejor de ambos: `orientation: 'any'` (tablet/RC landscape), shortcut
+  "Importar DJI" añadido, screenshot `wide` (og-dashboard) activado.
+- Archivos tocados: `src/app/manifest.js` (editado), `public/manifest.webmanifest` (borrado).
+- Verificación: `npm run build` OK; `/manifest.webmanifest` sigue en la tabla de rutas;
+  única referencia restante es `layout.js → manifest: '/manifest.webmanifest'` (correcta).
+- Notas: screenshot `narrow` (móvil) y apple-touch-icon 180px quedan para F1.4.
 
 <!-- Plantilla para próximas fases:
 ### Fx.y — Título ✅/🔄 (fecha)

@@ -18,7 +18,8 @@ export default function manifest() {
     // Appearance
     background_color: '#f8f6f6',
     theme_color: '#ec5b13',
-    orientation: 'portrait-primary',
+    // 'any' — el dashboard se usa en escritorio, tablet y controles DJI (landscape)
+    orientation: 'any',
 
     // Locale
     lang: 'es-CO',
@@ -79,13 +80,25 @@ export default function manifest() {
         url: '/dashboard/maintenance',
         icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
       },
+      {
+        name: 'Importar DJI',
+        short_name: 'DJI',
+        description: 'Importar logs del control DJI',
+        url: '/dashboard/logbook',
+        icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+      },
     ],
 
-    // Screenshots — descomentar cuando existan los archivos en /public/screenshots/
-    // Mejoran el diálogo de instalación en Chrome/Android pero son opcionales.
-    // screenshots: [
-    //   { src: '/screenshots/screenshot-dashboard.png', sizes: '1080x1920', type: 'image/png', form_factor: 'narrow', label: 'Panel principal con KPIs de flota' },
-    //   { src: '/screenshots/screenshot-logbook.png',   sizes: '1080x1920', type: 'image/png', form_factor: 'narrow', label: 'Bitácora de vuelos RAC 100' },
-    // ],
+    // Screenshots — mejoran el diálogo de instalación en Chrome/Android.
+    // 'wide' (og-dashboard) ya existe; la screenshot 'narrow' (móvil) se agrega en F1.4.
+    screenshots: [
+      {
+        src: '/og-dashboard.png',
+        sizes: '1200x630',
+        type: 'image/png',
+        form_factor: 'wide',
+        label: 'Panel principal de BitaFly',
+      },
+    ],
   };
 }

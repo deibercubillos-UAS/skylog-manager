@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import { createClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
 import { PERMISSIONS, ASSIGNABLE_ROLES } from '@/lib/roles';
+import { roleFromPilotRole } from '@/lib/invitations';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,13 +39,17 @@ export async function POST(req) {
     }
 
     // ── Validar payload ──────────────────────────────────────────────────────
-    const { email, role } = await req.json();
+    const { email, role: rawRole } = await req.json();
 
     if (!isValidEmail(email)) {
       return NextResponse.json({ error: "Email inválido" }, { status: 400 });
     }
 
-    if (!role || !INVITABLE_ROLES.includes(role)) {
+    // El cliente puede mandar el rol como label textual ("Piloto", "Jefe de
+    // Pilotos", "Gerente General") o como rol de sistema. Normalizar siempre.
+    const role = roleFromPilotRole(rawRole);
+
+    if (!INVITABLE_ROLES.includes(role)) {
       return NextResponse.json({ error: `Rol inválido. Permitidos: ${INVITABLE_ROLES.join(', ')}` }, { status: 400 });
     }
 
@@ -56,6 +61,8 @@ export async function POST(req) {
       .eq('id', profile.organization_id)
       .single();
     const orgDisplayName = org?.company_name || 'su organización';
+    const ROLE_LABEL = { admin: 'Gerente General', jefe_pilotos: 'Jefe de Pilotos', gerente_sms: 'Gerente SMS', piloto: 'Piloto' };
+    const roleLabel = ROLE_LABEL[role] || 'Tripulante';
 
     // ── Enviar invitación ────────────────────────────────────────────────────
     if (!process.env.RESEND_API_KEY) {
@@ -74,7 +81,7 @@ export async function POST(req) {
       html: `
         <div style="font-family: sans-serif; padding: 20px; color: #1A202C;">
           <h2 style="color: #ec5b13;">¡Hola!</h2>
-          <p><strong>${senderName}</strong> te ha invitado a unirte a su equipo en <strong>BitaFly</strong> como <strong>${role}</strong>.</p>
+          <p><strong>${senderName}</strong> te ha invitado a unirte a su equipo en <strong>BitaFly</strong> como <strong>${roleLabel}</strong>.</p>
           <p>Con BitaFly podrás gestionar tus vuelos, cumplir con la normativa RAC 100 y mantener tu bitácora digital al día.</p>
           <div style="margin-top: 30px;">
             <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com'}/registro?email=${encodeURIComponent(email.trim())}"

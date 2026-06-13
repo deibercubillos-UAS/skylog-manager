@@ -15,7 +15,10 @@ const SITE = () => process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com';
 // Mapea el "Rol" textual de la plantilla/excel a un rol del sistema
 export function roleFromPilotRole(raw) {
   const s = String(raw || '').trim().toLowerCase();
-  if (s.includes('jefe'))   return 'jefe_pilotos';
+  // Ya es un rol de sistema → devolverlo tal cual
+  if (['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'].includes(s)) return s;
+  if (s.includes('jefe'))    return 'jefe_pilotos';
+  if (s.includes('general')) return 'admin';        // Gerente General = dueño/representante
   if (s.includes('sms') || s.includes('gerente')) return 'gerente_sms';
   return 'piloto'; // Piloto, Observador, vacío, etc.
 }

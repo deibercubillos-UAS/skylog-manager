@@ -280,6 +280,21 @@ export async function POST(request) {
     // Con ON CONFLICT DO NOTHING vía el UNIQUE constraint de la BD.
     const meta = parsed._meta ?? {};
 
+    // Duración del vuelo en horas (desde duracion_s en segundos)
+    const durationHours = (meta.duracion_s && meta.duracion_s > 0)
+      ? parseFloat((meta.duracion_s / 3600).toFixed(4))
+      : 0;
+
+    // Omitir vuelos de 0 minutos — no aportan valor a la bitácora (drone encendido
+    // sin despegar, prueba de motores, registro corrupto, etc.)
+    if (durationHours <= 0) {
+      return NextResponse.json({
+        skipped: true,
+        reason:  'Vuelo de 0 minutos — no se registró en la bitácora.',
+        file:    fileName,
+      });
+    }
+
     const flightRecord = {
       owner_id:         user.id,
       organization_id:  prof.organization_id,
@@ -288,6 +303,7 @@ export async function POST(request) {
       flight_date:      parsed.fecha,
       takeoff_time:     parsed.hora_despegue    ?? null,
       landing_time:     parsed.hora_aterrizaje  ?? null,
+      total_time:       durationHours,
       mission_id:       missionId,
       mission_type:     missionType,
       visual_condition: parsed.condicion_visual ?? 'VMC',
@@ -317,13 +333,11 @@ export async function POST(request) {
     }
 
     // ── 9. Actualizar horas totales con incremento atómico (RPC SQL) ──
-    if (meta.duracion_s && meta.duracion_s > 0) {
-      const addedHours = parseFloat((meta.duracion_s / 3600).toFixed(4));
-      await supabaseAdmin.rpc('increment_aircraft_hours', {
-        p_id:    aircraft.id,
-        p_hours: addedHours,
-      });
-    }
+    // durationHours ya validado > 0 arriba
+    await supabaseAdmin.rpc('increment_aircraft_hours', {
+      p_id:    aircraft.id,
+      p_hours: durationHours,
+    });
 
     // ── 10. Batería: actualizar ciclos o crear automáticamente ───────
     // Todo server-side con supabaseAdmin — no depende del rol del usuario.

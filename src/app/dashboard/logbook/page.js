@@ -244,18 +244,23 @@ export default function LogbookPage() {
         );
     };
 
-    // Celda de piloto: editable para roles autorizados, solo lectura para el resto
-    // Calcula duración del vuelo a partir de takeoff/landing (HH:MM)
-    const flightDuration = (takeoff, landing) => {
-        if (!takeoff) return null;
-        if (!landing) return takeoff; // solo hora de despegue
-        const [h1, m1] = takeoff.split(':').map(Number);
-        const [h2, m2] = landing.split(':').map(Number);
-        const mins = (h2 * 60 + m2) - (h1 * 60 + m1);
-        if (mins <= 0) return takeoff;
+    // Duración real del vuelo. Prefiere total_time (horas, double precision);
+    // si no existe, la calcula desde takeoff/landing. NUNCA devuelve la hora de
+    // despegue como duración — si no hay datos suficientes, retorna null → "—".
+    const fmtMinutes = (mins) => {
+        if (mins <= 0) return null;
         const h = Math.floor(mins / 60);
         const m = mins % 60;
         return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`;
+    };
+    const flightDuration = (flight) => {
+        const tt = parseFloat(flight.total_time);
+        if (!isNaN(tt) && tt > 0) return fmtMinutes(Math.round(tt * 60));
+        const { takeoff_time: takeoff, landing_time: landing } = flight;
+        if (!takeoff || !landing) return null;
+        const [h1, m1] = takeoff.split(':').map(Number);
+        const [h2, m2] = landing.split(':').map(Number);
+        return fmtMinutes((h2 * 60 + m2) - (h1 * 60 + m1));
     };
 
     const PilotCell = ({ flight }) => {
@@ -427,7 +432,7 @@ export default function LogbookPage() {
                     {filteredFlights.length === 0 ? (
                         <p className="py-16 text-center text-xs font-black text-slate-300 uppercase tracking-widest">Sin registros</p>
                     ) : filteredFlights.map(f => {
-                        const dur = flightDuration(f.takeoff_time, f.landing_time);
+                        const dur = flightDuration(f);
                         return (
                         <div key={f.id} className="p-4 space-y-3">
 
@@ -560,7 +565,7 @@ export default function LogbookPage() {
                                     <td className="px-4 py-4 font-mono text-xs">{f.aircraft?.serial_number}</td>
                                     <td className="px-4 py-4 text-xs uppercase">{f.mission_type}</td>
                                     <td className="px-4 py-4"><span className="bg-slate-100 px-2 py-0.5 rounded text-xs font-black">{f.visual_condition}</span></td>
-                                    <td className="px-4 py-4 font-black text-orange-600">{flightDuration(f.takeoff_time, f.landing_time) || <span className="text-slate-300 font-normal">—</span>}</td>
+                                    <td className="px-4 py-4 font-black text-orange-600">{flightDuration(f) || <span className="text-slate-300 font-normal">—</span>}</td>
                                     <td className="px-4 py-4"><PilotCell flight={f} /></td>
                                     <AlertsCell flight={f} />
                                     {canViewReplay && (() => {

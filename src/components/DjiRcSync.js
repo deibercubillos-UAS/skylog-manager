@@ -198,6 +198,7 @@ const STATUS_ICON = {
   loading:        'hourglass_empty',
   ok:             'check_circle',
   duplicate:      'sync',
+  skipped:        'timer_off',
   error:          'error',
   needs_aircraft: 'flight',
   ok_no_battery:  'check_circle',
@@ -208,6 +209,7 @@ const STATUS_COLOR = {
   loading:        'text-orange-500 animate-spin',
   ok:             'text-green-500',
   duplicate:      'text-slate-400',
+  skipped:        'text-slate-400',
   error:          'text-red-500',
   needs_aircraft: 'text-amber-500',
   ok_no_battery:  'text-green-500',
@@ -478,7 +480,13 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
       try {
         const { status, data } = await uploadFile(fileInfo);
 
-        if (status === 200 || status === 201) {
+        if ((status === 200 || status === 201) && data.skipped) {
+          // Vuelo de 0 minutos — no se registró
+          skipped++;
+          setFiles(prev =>
+            prev.map(f => f.name === fileInfo.name ? { ...f, status: 'skipped', result: data } : f)
+          );
+        } else if (status === 200 || status === 201) {
           imported++;
           setFiles(prev =>
             prev.map(f => f.name === fileInfo.name
@@ -572,7 +580,12 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
     );
     try {
       const { status, data } = await uploadFile(pendingFile);
-      if (status === 200 || status === 201) {
+      if ((status === 200 || status === 201) && data.skipped) {
+        skipped++;
+        setFiles(prev =>
+          prev.map(f => f.name === pendingFile.name ? { ...f, status: 'skipped', result: data } : f)
+        );
+      } else if (status === 200 || status === 201) {
         imported++;
         setFiles(prev =>
           prev.map(f => f.name === pendingFile.name ? { ...f, status: 'ok', result: data } : f)
@@ -606,7 +619,10 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
       );
       try {
         const { status, data } = await uploadFile(fileInfo);
-        if (status === 200 || status === 201) {
+        if ((status === 200 || status === 201) && data.skipped) {
+          rSkipped++;
+          setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'skipped', result: data } : f));
+        } else if (status === 200 || status === 201) {
           rImported++;
           setFiles(prev => prev.map(f => f.name === fileInfo.name ? { ...f, status: 'ok', result: data } : f));
           onFlightImported?.(data);
@@ -1066,6 +1082,9 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
                     </p>
                     {f.status === 'duplicate' && (
                       <p className="text-xs text-slate-400 font-bold">Ya importado</p>
+                    )}
+                    {f.status === 'skipped' && (
+                      <p className="text-xs text-slate-400 font-bold">Vuelo de 0 min — omitido</p>
                     )}
                     {f.status === 'error' && f.result?.error && (
                       <p className="text-xs text-red-500 font-bold mt-0.5 truncate" title={f.result.error}>

@@ -24,6 +24,7 @@ export async function GET(request) {
                 flight_date,
                 takeoff_time,
                 landing_time,
+                total_time,
                 mission_type,
                 visual_condition,
                 location,

@@ -96,7 +96,7 @@ export default function RegisterPage() {
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [pendingRef, payStatus]);
+  }, [pendingRef, payStatus, checkStatus]);
 
   // ── Verificación de estado (polling) ───────────────────────────────────────
   const checkStatus = useCallback(async (ref) => {
@@ -118,7 +118,7 @@ export default function RegisterPage() {
         setPayStatus('expired');
       }
     } catch { /* silencioso */ }
-  }, []);
+  }, [form.selectedPlan]);
 
   const startPolling = useCallback((ref) => {
     if (pollRef.current) clearInterval(pollRef.current);

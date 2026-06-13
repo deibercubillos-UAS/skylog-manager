@@ -176,7 +176,7 @@ export default function DashboardLayout({ children }) {
     if (!isAllowed || isBlocked) {
       router.replace('/dashboard');
     }
-  }, [pathname, gracePeriod.isGracePeriod]);
+  }, [pathname, gracePeriod.isGracePeriod, router]);
 
   // Cierra el menú automáticamente al navegar en móviles
   useEffect(() => {

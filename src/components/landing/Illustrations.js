@@ -542,4 +542,5 @@ export function WeatherScene({ className }) {
   );
 }
 
-export default { DroneOpsScene, ComplianceScene, FleetScene, BatteryMaintScene, SmsSafetyScene, AuthMapScene, ReplayScene, CrewScene, ReportsScene, SoraScene, WeatherScene };
+const Illustrations = { DroneOpsScene, ComplianceScene, FleetScene, BatteryMaintScene, SmsSafetyScene, AuthMapScene, ReplayScene, CrewScene, ReportsScene, SoraScene, WeatherScene };
+export default Illustrations;

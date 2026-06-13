@@ -61,7 +61,7 @@ export default function FormSettingsClient({ initialData }) {
             setLoading(false);
         }
         fetchLabels();
-    }, [type, selectedModel]);
+    }, [type, selectedModel, initialData.organizationId]);
 
     const handleSave = async () => {
         setSaving(true);

@@ -104,6 +104,7 @@ export default function LogbookPage() {
                 .then(({ data }) => setUserRole(data?.role ?? null));
         });
         fetch('/api/pilots').then(r => { if (!r.ok) { console.warn('[fetch] /api/pilots failed:', r.status); return []; } return r.json(); }).then(data => setPilots(Array.isArray(data) ? data : []));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Cerrar dropdown al hacer clic fuera

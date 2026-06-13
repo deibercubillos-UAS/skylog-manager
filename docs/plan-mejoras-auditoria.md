@@ -60,29 +60,14 @@ el switch a privado como último paso reversible.
 
 ---
 
-## P2 — Calidad de código
+## P2 — Calidad de código ✅ COMPLETADO (2026-06-13)
 
-5. **Centralizar helpers duplicados** en `lib/formatters.js`:
-   `fmtDate` (4 implementaciones: `manualActaPdf.js`, `manualGenerators.js`,
-   `manual-operaciones/page.js`, `flightPlanDocs.js`), `fmtCOP` (3: `landing/Pricing.js`,
-   `precios/PreciosClient.js`, `select-plan/page.js`) y el header PDF repetido
-   (`reportGenerators.js` ×2, `manualActaPdf.js`, `flightPlanDocs.js`).
-6. **Eliminar componentes huérfanos** (verificar que nadie los importa y borrar):
-   `PilotCard`, `AddManualPilotPanel`, `EditAuthorizationPanel`, `EpaycoCheckout`,
-   `InvitePilotPanel`, `LogbookImportPanel`, `MaintenanceDroneCard`, `Navbar`.
-   ⚠️ CLAUDE.md aún referencia `AddManualPilotPanel` — actualizar al limpiar.
-7. **Dependencias sin uso** en `package.json`: `@next/font` (deprecada, 0 imports),
-   `zod` y `@hookform/resolvers` (0 imports — confirmar que no son para features en curso).
-8. **Dividir archivos >800 líneas** (oportunista, al tocarlos): `AerocivilForm.js` (1495),
-   `DjiRcSync.js` (1398), `vor-mor/page.js` (949), `subscription/page.js` (944),
-   `admin/master/dev/page.js` (904), `admin/master/page.js` (832), `SoraWizard.js` (808),
-   `registro/page.js` (801).
-9. **Warnings ESLint** (6): deps faltantes en `useEffect`/`useCallback` en
-   `dashboard/layout.js:179`, `logbook/page.js:107`, `FormSettingsClient.js:64`,
-   `registro/page.js:99,121` y export anónimo en `landing/Illustrations.js:545`.
-10. **Logs de producción**: 14 `console.log` en routes de ePayco/admin — son de
-    auditoría legítima, pero conviene prefijo consistente (`[epayco]`, `[master]`) o
-    un helper `lib/log.js` para filtrarlos en Vercel.
+5. ✅ **Centralizar helpers duplicados** → `lib/formatters.js` (Fase 4, commit `3566e69`)
+6. ✅ **Componentes huérfanos** ya eliminados en limpiezas previas — verificado que ninguno existe en `src/components/`.
+7. ✅ **Dependencias sin uso** ya removidas de `package.json` en limpiezas previas (`@next/font`, `zod`, `@hookform/resolvers` no están). `react-hook-form` sí se usa en `records/[templateId]/page.js`.
+8. ✅ **Dividir archivos >800 líneas** (oportunista): `admin/master/page.js` → `_SuscripcionesTab.js` + `_PlanesTab.js`; `vor-mor/page.js` → `_FormBuilder.js` (Fase 7, commit `3566e69`). Resto (AerocivilForm, DjiRcSync, subscription/page, SoraWizard) son monolitos con estado compartido — posponer al tocarlos.
+9. ✅ **Warnings ESLint** → 0 advertencias (Fase 6, commit `3566e69`).
+10. ✅ **Logs de producción** ya tienen prefijos consistentes `[epayco]` y `[master]` en todos los routes — sin acción adicional.
 
 ## P3 — Base de datos (observación, sin acción inmediata)
 

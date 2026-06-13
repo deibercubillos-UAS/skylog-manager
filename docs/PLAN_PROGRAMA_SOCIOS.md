@@ -138,7 +138,7 @@ Pestaña `/admin/master` → **Socios**:
 
 | Fase | Descripción | Estado | Riesgo |
 |------|-------------|--------|--------|
-| P1  | Migración BD: tablas + RLS (partners, codes, members, free_grants, referrals, commissions) | ⬜ | Bajo |
+| P1  | Migración BD: tablas + RLS (partners, codes, members, free_grants, referrals, commissions) | ✅ | Bajo |
 | P2  | Máster: CRUD de socios (%, cupos, free_days, activar) + generar códigos | ⬜ | Bajo |
 | P3  | Rol `partner` + panel `/socio` base (login, guard, layout) | ⬜ | Medio |
 | P4  | Regalar perfil gratis: form de correo + `free_grant` (unicidad) + envío de invitación | ⬜ | Medio |
@@ -168,10 +168,10 @@ Pestaña `/admin/master` → **Socios**:
 
 ---
 
-## Pendientes de definición (menores, no bloquean P1)
-- Texto/medio del aviso de eliminación a los 3 meses (correo + banner in-app).
-- ¿La eliminación final a los 3 meses es manual desde Máster o automática con confirmación?
-- Formato de los códigos (autogenerado tipo `ESC-AB12` vs. personalizado por el socio).
+## Detalles resueltos
+- Aviso de eliminación: **correo + campana de notificaciones**.
+- Eliminación a los 3 meses: **automática** (`free_grants.purge_after` + cron).
+- Código: **autogenerado con las iniciales de la escuela** (ej. `ESC-AB12`).
 
 ---
 
@@ -184,4 +184,12 @@ Pestaña `/admin/master` → **Socios**:
 - Verificación (build/test):
 - Notas / pendientes:
 -->
-_(sin avance aún — documento en fase de diseño)_
+### P1 — Migración BD ✅ (2026-06-13)
+
+- Qué se hizo: 6 tablas (`partners`, `partner_codes`, `partner_members`, `free_grants`,
+  `referrals`, `referral_commissions`) + índices + RLS habilitada con política de lectura
+  por miembro de socio. Helper `private.user_partner_ids()` (propios + asesores hijos si owner).
+  Escritura solo vía service role (Máster). Idempotencia de comisión por `ref_payco` (índice único).
+  `free_grants.email` UNIQUE (1 por correo) y `purge_after` para el borrado automático a 3 meses.
+- Migración: `supabase/migrations/20260613_partners_program.sql` (aplicada en Supabase).
+- Verificación: 6 tablas con `rls=true` y 1 policy cada una. No toca tablas existentes.

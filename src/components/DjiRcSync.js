@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { saveHandle, getHandle, clearHandle } from '@/lib/idbHandleStore';
+import { postFlightFile } from '@/lib/flightImportBridge';
 
 // Clave bajo la que se recuerda la carpeta FlightRecord en IndexedDB.
 const FLIGHTRECORD_KEY = 'dji-flightrecord';
@@ -447,33 +448,11 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
   };
 
   // ── Subir un archivo individual ───────────────────────────────
+  // La resolución del File es específica de web (handle/fileObj); el POST se
+  // delega al bridge compartido (postFlightFile) que también usará el plugin nativo.
   const uploadFile = async (fileInfo) => {
     const fileObj = fileInfo.fileObj ?? await fileInfo.handle.getFile();
-
-    // Rechazar archivos >50 MB antes de enviarlos (evita 413 del servidor)
-    if (fileObj.size > 50 * 1024 * 1024) {
-      return { status: 413, data: { error: 'Archivo demasiado grande (máx 50 MB)' } };
-    }
-
-    const fd = new FormData();
-    fd.append('file', fileObj, fileInfo.name);
-
-    let res;
-    try {
-      res = await fetch('/api/logbook/import-dji', { method: 'POST', body: fd });
-    } catch (networkErr) {
-      return { status: 0, data: { error: 'Error de red: ' + networkErr.message } };
-    }
-
-    // Parsear JSON de forma segura — respuestas de error del servidor pueden ser HTML
-    let data;
-    try {
-      data = await res.json();
-    } catch {
-      data = { error: `Error ${res.status} del servidor` };
-    }
-
-    return { status: res.status, data };
+    return postFlightFile(fileObj, fileInfo.name);
   };
 
   // ── Importar archivos seleccionados ───────────────────────────

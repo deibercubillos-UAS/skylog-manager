@@ -52,7 +52,7 @@ Objetivo: preparar terreno nativo sin cambiar el comportamiento web.
 | Fase | Descripción | Estado |
 |------|-------------|--------|
 | F2.1 | `lib/platform.js`: detectar entorno (web / android / ios), API única | ✅ |
-| F2.2 | Encapsular importación DJI detrás del bridge (web igual; native delega) | ⬜ |
+| F2.2 | Encapsular importación DJI detrás del bridge (web igual; native delega) | ✅ |
 
 ## ETAPA 3 — App Android → APK + Google Play
 
@@ -178,6 +178,18 @@ Solo diagnóstico, sin cambios en el código.
 - En web pura todo resuelve a 'web' → comportamiento sin cambios.
 - Archivos tocados: `lib/platform.js` (nuevo). Sin consumidores aún.
 - Verificación: `npm run build` OK.
+
+### F2.2 — Bridge de importación DJI ✅ (2026-06-13)
+
+- Qué se hizo: `lib/flightImportBridge.js` — punto único de subida. `postFlightFile(fileObj, name)`
+  centraliza el POST a `/api/logbook/import-dji` (mismo shape `{status,data}`). Stubs nativos
+  `isNativeFlightSource()` / `listNativeFlightFiles()` / `readNativeFlightFile()` para F3.6.
+- `DjiRcSync.uploadFile` ahora solo resuelve el File (web: handle/fileObj) y delega el POST
+  al bridge → web idéntica, POST reutilizable por el plugin nativo.
+- Archivos tocados: `lib/flightImportBridge.js` (nuevo), `components/DjiRcSync.js`.
+- Verificación: `npm run build` OK. Sin cambios de comportamiento web.
+
+**Etapa 2 (capa de plataforma) COMPLETA.**
 
 <!-- Plantilla para próximas fases:
 ### Fx.y — Título ✅/🔄 (fecha)

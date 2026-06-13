@@ -42,7 +42,7 @@ Objetivo: instalación limpia en escritorio, Android y RC. Sin tocar lógica de 
 | F1.1 | Auditoría PWA (Lighthouse, manifest, SW, archivos) — solo diagnóstico | ✅ |
 | F1.2 | Unificar el manifest en una sola fuente (borrar duplicado de `public/`) | ✅ |
 | F1.3 | UX de instalación: `beforeinstallprompt` + banner iOS "Agregar a inicio" | ✅ |
-| F1.4 | Screenshots `narrow` en manifest + apple-touch-icon 180px | ⬜ |
+| F1.4 | apple-touch-icon 180px ✅ · screenshot `narrow` pendiente (captura con sesión) | 🔄 |
 | F1.5 | Versionar el SW (sello de build) + revisar estrategia de caché | ⬜ |
 
 ## ETAPA 2 — Capa de plataforma (bridge), sin romper la web
@@ -148,6 +148,14 @@ Solo diagnóstico, sin cambios en el código.
 - Archivos tocados: `components/InstallAppPrompt.js` (nuevo), `dashboard/layout.js`.
 - Verificación: `npm run build` OK.
 - Notas: probar diálogo real en navegador/preview es opcional (requiere sesión).
+
+### F1.4 — Íconos Apple + screenshots 🔄 (2026-06-13)
+
+- Hecho: generado `public/icons/apple-touch-icon-180.png` (180×180 desde icon-512 con sharp);
+  `layout.js` apunta a él (apple + other rel apple-touch-icon).
+- Pendiente: screenshot `narrow` (móvil) para el manifest — requiere captura con sesión
+  iniciada (se hará en preview). Es polish opcional del diálogo de instalación Android.
+- Verificación: `npm run build` OK; archivo 180px presente.
 
 <!-- Plantilla para próximas fases:
 ### Fx.y — Título ✅/🔄 (fecha)

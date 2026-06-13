@@ -127,10 +127,10 @@ export const metadata = {
     ],
     shortcut: '/icons/icon-192.png',
     apple: [
-      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/apple-touch-icon-180.png', sizes: '180x180', type: 'image/png' },
     ],
     other: [
-      { rel: 'apple-touch-icon', url: '/icons/icon-192.png' },
+      { rel: 'apple-touch-icon', sizes: '180x180', url: '/icons/apple-touch-icon-180.png' },
     ],
   },
   manifest: '/manifest.webmanifest',

@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import FileUpload from './FileUpload';
+import FleetImageUpload from './FleetImageUpload';
 import { toast } from '@/lib/toast';
 
 export default function EditAircraftPanel({ aircraft, onClose, onSuccess }) {
@@ -70,7 +70,7 @@ export default function EditAircraftPanel({ aircraft, onClose, onSuccess }) {
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
         <form id="edit-aircraft-form" onSubmit={handleUpdate} className="space-y-5">
-          <FileUpload path="fleet/drones" label="Cambiar Foto" onUploadSuccess={(url) => setForm({...form, image_url: url})} />
+          <FleetImageUpload onUploadSuccess={(url) => setForm({...form, image_url: url})} />
 
           <div className="space-y-3">
             <div>

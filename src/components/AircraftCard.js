@@ -8,7 +8,9 @@ function resolveImg(raw) {
   if (!raw) return DEFAULT_AIRCRAFT_IMG;
   // URL externa (no Supabase): usar directo
   if (raw.startsWith('http') && !raw.includes('supabase.co')) return raw;
-  // Path del bucket privado o URL pública Supabase legacy → signed URL vía endpoint
+  // Bucket público fleet-images: URL directa, sin roundtrip servidor
+  if (raw.includes('/object/public/fleet-images/')) return raw;
+  // Path del bucket privado `documents` o URL legacy → signed URL vía endpoint
   return docOpenUrl(raw) || DEFAULT_AIRCRAFT_IMG;
 }
 

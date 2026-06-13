@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import FileUpload from './FileUpload';
+import FleetImageUpload from './FleetImageUpload';
 import { toast } from '@/lib/toast';
 
 export default function AddAircraftPanel({ onClose, onSuccess }) {
@@ -67,8 +67,7 @@ export default function AddAircraftPanel({ onClose, onSuccess }) {
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
         <form id="add-aircraft-form" onSubmit={handleSubmit} className="space-y-5">
-          <FileUpload path="fleet/drones" label="Fotografía de Identificación"
-            onUploadSuccess={(url) => setForm({ ...form, image_url: url })} />
+          <FleetImageUpload onUploadSuccess={(url) => setForm({ ...form, image_url: url })} />
 
           <div className="space-y-2">
             <label className="text-xs font-black uppercase text-slate-400">Datos del Fabricante</label>

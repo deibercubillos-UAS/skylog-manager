@@ -145,7 +145,7 @@ Pestaña `/admin/master` → **Socios**:
 | P5  | Activación del perfil gratis al registrarse (plan piloto + expiry) | ✅ | Medio |
 | P6  | Captura del código en la compra (campo opcional) + guardar en el intent | ✅ | Medio |
 | P7  | Webhook: crear `referral` + `referral_commissions` del ciclo (idempotente) | ✅ | Alto* |
-| P8  | Comisión recurrente: nueva fila por cada ciclo de pago confirmado | ⬜ | Alto* |
+| P8  | Comisión recurrente (P7) + corte de comisión al cancelar/expirar | ✅ | Alto* |
 | P9  | Cron de expiración: degradar a lectura + retención 3 meses + aviso | ⬜ | Medio |
 | P10 | Asesores dentro de la escuela (owner invita asesores, código por asesor) | ⬜ | Medio |
 | P11 | Panel socio: reportes de ventas y comisiones (escuela ve a sus asesores) | ⬜ | Medio |
@@ -267,3 +267,13 @@ Pestaña `/admin/master` → **Socios**:
   comisión por ciclo. (P8 añade el corte al cancelar/expirar.)
 - Archivos: `lib/partnerReferral.js` (nuevo), `epayco/webhook/route.js`.
 - Verificación: `npm run build` OK. Área sensible tocada solo de forma aditiva.
+
+### P8 — Corte de comisión al cancelar ✅ (2026-06-14)
+
+- La generación recurrente quedó en P7 (1 comisión por `x_ref_payco`/ciclo).
+- Al cancelar la suscripción se marca `referrals.status='cancelada'` (deja de generar comisión):
+  - `/api/subscription/cancel` (usuario): tras degradar el perfil, corta el referral por `org_id`
+    (admin client, no crítico).
+  - `/api/admin/master/epayco-subscriptions` (Máster): al degradar, corta el referral por org.
+- Archivos: `api/subscription/cancel/route.js`, `api/admin/master/epayco-subscriptions/route.js`.
+- Verificación: `npm run build` OK. La expiración de perfiles gratis (degradado a lectura) va en P9.

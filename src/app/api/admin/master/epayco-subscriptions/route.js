@@ -55,7 +55,7 @@ export async function POST(request) {
     const admin = createAdminClient();
     const { data: profiles } = await admin
       .from('profiles')
-      .select('id, email')
+      .select('id, email, organization_id')
       .eq('epayco_subscription_id', id);
 
     for (const p of profiles || []) {
@@ -67,6 +67,14 @@ export async function POST(request) {
         updated_at:              new Date().toISOString(),
       }).eq('id', p.id);
       console.log(`[master] epayco-subscriptions perfil degradado a piloto: ${p.email}`);
+      // Cortar comisión del socio (el referido deja de pagar)
+      if (p.organization_id) {
+        await admin.from('referrals')
+          .update({ status: 'cancelada' })
+          .eq('org_id', p.organization_id)
+          .eq('status', 'activa')
+          .then(() => {}, () => {});
+      }
     }
 
     return NextResponse.json({ ok: true, epayco: result, profilesUpdated: profiles?.length || 0 });

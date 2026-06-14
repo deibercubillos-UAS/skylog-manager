@@ -1,4 +1,4 @@
-import { createClientSSR } from '@/lib/supabaseServer';
+import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
 import { cancelSubscription, cancelSubscriptionsByEmail } from '@/lib/epayco';
 
@@ -14,7 +14,7 @@ export async function POST(request) {
     // Leer perfil completo antes de cancelar
     const { data: profile } = await supabase
       .from('profiles')
-      .select('epayco_subscription_id, email')
+      .select('epayco_subscription_id, email, organization_id')
       .eq('id', user.id)
       .single();
 
@@ -52,6 +52,20 @@ export async function POST(request) {
       .eq('id', user.id);
 
     if (error) throw error;
+
+    // ── Cortar comisión del socio: el referido deja de pagar → status cancelada ──
+    if (profile?.organization_id) {
+      try {
+        const admin = createAdminClient();
+        await admin.from('referrals')
+          .update({ status: 'cancelada' })
+          .eq('org_id', profile.organization_id)
+          .eq('status', 'activa');
+      } catch (e) {
+        console.error('[socios] no se pudo cancelar referral:', e.message);
+      }
+    }
+
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('Cancel route error:', err.message);

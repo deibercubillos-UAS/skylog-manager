@@ -160,21 +160,23 @@ export default function MasterPanel() {
         </header>
 
         {/* Tabs */}
-        <div className="flex gap-2 border-b border-white/10 pb-0">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-6 py-3 font-black uppercase text-xs tracking-widest border-b-2 transition-all -mb-px ${
-                activeTab === tab.id
-                  ? 'border-orange-500 text-orange-400'
-                  : 'border-transparent text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              <span className="material-symbols-outlined text-base">{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
+        <div className="overflow-x-auto -mx-6 px-6 md:mx-0 md:px-0">
+          <div className="flex gap-1 border-b border-white/10 pb-0 min-w-max md:min-w-0">
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-3 md:px-6 py-3 font-black uppercase text-xs tracking-widest border-b-2 transition-all -mb-px whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'border-orange-500 text-orange-400'
+                    : 'border-transparent text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                <span className="material-symbols-outlined text-base">{tab.icon}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Tab: Suscripciones ePayco */}
@@ -224,16 +226,16 @@ export default function MasterPanel() {
           <div className="flex gap-2 flex-wrap">
             {['all', ...PLANS].map(p => (
               <button key={p} onClick={() => setPlanFilter(p)}
-                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${planFilter === p ? 'bg-orange-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}>
+                className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${planFilter === p ? 'bg-orange-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}>
                 {p === 'all' ? 'Todos' : p}
-                {p !== 'all' && <span className="ml-1.5 opacity-60">{users.filter(u => u.subscription_plan === p).length}</span>}
+                {p !== 'all' && <span className="ml-1 opacity-60">{users.filter(u => u.subscription_plan === p).length}</span>}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Tabla */}
-        <div className="bg-slate-900 rounded-[2rem] border border-white/5 overflow-hidden shadow-2xl">
+        {/* Tabla desktop */}
+        <div className="hidden md:block bg-slate-900 rounded-[2rem] border border-white/5 overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead className="bg-black/40 text-xs uppercase text-slate-500 font-black">
@@ -278,7 +280,6 @@ export default function MasterPanel() {
                           ? new Date(u.subscription_expires_at).toLocaleDateString('es-CO')
                           : '—'}
                       </td>
-                      {/* Activación rápida */}
                       <td className="px-6 py-4">
                         <div className="flex gap-1">
                           {['escuadrilla','flota','enterprise'].map(p => (
@@ -303,6 +304,60 @@ export default function MasterPanel() {
             </table>
           </div>
         </div>
+
+        {/* Cards mobile */}
+        <div className="md:hidden space-y-3">
+          {filtered.length === 0 && (
+            <p className="text-center py-12 text-slate-600 font-bold text-xs uppercase">Sin resultados</p>
+          )}
+          {filtered.map(u => {
+            const expired = u.subscription_expires_at && new Date(u.subscription_expires_at) < new Date();
+            return (
+              <div key={u.id} className="bg-slate-900 border border-white/5 rounded-2xl p-4 space-y-3">
+                {/* Empresa + usuario */}
+                <div>
+                  {u.company_name && (
+                    <p className="text-[10px] font-black uppercase tracking-widest text-orange-400 mb-0.5">{u.company_name}</p>
+                  )}
+                  <p className="font-bold text-white text-sm leading-tight">{u.full_name}</p>
+                  <p className="text-xs text-slate-500 font-mono break-all">{u.email}</p>
+                </div>
+                {/* Chips */}
+                <div className="flex flex-wrap gap-2 items-center">
+                  <span className={`px-2 py-1 rounded text-xs font-black uppercase ${ROLE_STYLE[u.role] || 'bg-slate-700 text-slate-300'}`}>
+                    {u.role}
+                  </span>
+                  <span className={`px-2 py-1 rounded-lg text-xs font-black uppercase ${PLAN_STYLE[u.subscription_plan] || 'bg-slate-700 text-slate-300'}`}>
+                    {u.subscription_plan}
+                  </span>
+                  {expired && <span className="text-xs text-red-400 font-black uppercase">Vencido</span>}
+                  {u.subscription_expires_at && (
+                    <span className="text-xs text-slate-500 font-mono">
+                      hasta {new Date(u.subscription_expires_at).toLocaleDateString('es-CO')}
+                    </span>
+                  )}
+                </div>
+                {/* Acciones */}
+                <div className="flex items-center gap-2 pt-1 border-t border-white/5">
+                  <div className="flex gap-1 flex-1">
+                    {['escuadrilla','flota','enterprise'].map(p => (
+                      <button key={p} onClick={() => quickPlan(u.id, p)}
+                        className={`flex-1 py-2 rounded-xl text-xs font-black uppercase transition-all active:scale-95 ${
+                          u.subscription_plan === p ? 'bg-orange-600 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                        {p === 'escuadrilla' ? 'ESC' : p === 'flota' ? 'FLO' : 'ENT'}
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={() => setEdit({ ...u })}
+                    className="bg-white/10 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase transition-all">
+                    Editar
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
         <p className="text-slate-700 text-xs text-right font-mono">{filtered.length} de {users.length} usuarios</p>
 
         </>} {/* fin tab users */}

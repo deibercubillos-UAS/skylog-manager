@@ -51,7 +51,7 @@ export default function ComisionesTab() {
   return (
     <div className="space-y-6">
       {/* Totales */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: 'Total registros', value: totals.count ?? 0, color: 'text-white' },
           { label: 'Pendiente de pago', value: money(totals.pending), color: 'text-amber-400' },
@@ -65,7 +65,7 @@ export default function ComisionesTab() {
       </div>
 
       {/* Filtros + acción global */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex gap-2">
           {[
             { v: 'pendiente', l: 'Pendientes' },
@@ -100,19 +100,19 @@ export default function ComisionesTab() {
             return (
               <div key={partner.partner_id} className="bg-slate-900 border border-white/5 rounded-2xl overflow-hidden">
                 {/* Header del socio */}
-                <div className="flex items-center justify-between px-6 py-4 gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-4 gap-3">
                   <button onClick={() => setExpanded(v => ({ ...v, [partner.partner_id]: !isOpen }))}
                     className="flex items-center gap-3 min-w-0 cursor-pointer text-left flex-1">
-                    <span className="material-symbols-outlined text-slate-500 text-base">{isOpen ? 'expand_less' : 'expand_more'}</span>
+                    <span className="material-symbols-outlined text-slate-500 text-base shrink-0">{isOpen ? 'expand_less' : 'expand_more'}</span>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-black text-white uppercase tracking-wide text-sm">{partner.partner_name}</p>
                         <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${
                           partner.partner_type === 'escuela' ? 'bg-blue-900/60 text-blue-400' : 'bg-slate-700 text-slate-400'
                         }`}>{partner.partner_type}</span>
                       </div>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        {partner.periods.length} período(s) · Total acumulado: <span className="font-black text-orange-400">{money(partnerTotal)}</span>
+                        {partner.periods.length} período(s) · Total: <span className="font-black text-orange-400">{money(partnerTotal)}</span>
                       </p>
                     </div>
                   </button>
@@ -120,7 +120,7 @@ export default function ComisionesTab() {
                     <button
                       disabled={liquidating[partner.partner_id]}
                       onClick={() => liquidate(allPendingIds, partner.partner_name, partner.partner_id)}
-                      className="shrink-0 px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-60 cursor-pointer transition-all">
+                      className="w-full sm:w-auto shrink-0 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-60 cursor-pointer transition-all">
                       {liquidating[partner.partner_id] ? 'Procesando...' : `Liquidar todo (${allPendingIds.length})`}
                     </button>
                   )}
@@ -128,8 +128,8 @@ export default function ComisionesTab() {
 
                 {/* Períodos (desplegable) */}
                 {isOpen && (
-                  <div className="border-t border-white/5">
-                    <table className="w-full text-xs">
+                  <div className="border-t border-white/5 overflow-x-auto">
+                    <table className="w-full text-xs min-w-[480px]">
                       <thead>
                         <tr className="text-[10px] font-black uppercase tracking-widest text-slate-500 bg-black/20">
                           <th className="text-left px-6 py-3">Período</th>

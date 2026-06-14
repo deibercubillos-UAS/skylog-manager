@@ -181,12 +181,12 @@ export default function SociosTab() {
           {partners.map(p => (
             <div key={p.id} className={`bg-white border rounded-2xl p-5 ${p.status === 'inactivo' ? 'border-slate-200 opacity-60' : 'border-slate-200'}`}>
               {editId === p.id ? (
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 items-end">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-end">
                   <input value={editData.name} onChange={e => setEditData({ ...editData, name: e.target.value })} className="col-span-2 p-2 bg-slate-50 rounded-lg text-sm font-bold" />
                   <input type="number" step="0.01" value={editData.commission_pct} onChange={e => setEditData({ ...editData, commission_pct: e.target.value })} className="p-2 bg-slate-50 rounded-lg text-sm font-bold" placeholder="%" />
                   <input type="number" value={editData.free_seats_limit} onChange={e => setEditData({ ...editData, free_seats_limit: e.target.value })} className="p-2 bg-slate-50 rounded-lg text-sm font-bold" placeholder="cupos" />
                   <input type="number" value={editData.free_days} onChange={e => setEditData({ ...editData, free_days: e.target.value })} className="p-2 bg-slate-50 rounded-lg text-sm font-bold" placeholder="días" />
-                  <div className="col-span-2 md:col-span-5 flex gap-2">
+                  <div className="col-span-2 sm:col-span-5 flex gap-2">
                     <button onClick={() => saveEdit(p.id)} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-black uppercase">Guardar</button>
                     <button onClick={() => { setEditId(null); setEditData({}); }} className="px-4 py-2 bg-slate-100 text-slate-500 rounded-lg text-xs font-black uppercase">Cancelar</button>
                   </div>
@@ -224,16 +224,18 @@ export default function SociosTab() {
                         ))}
                         {(p.members || []).length === 0 && <span className="text-xs text-slate-300 italic">Sin miembros</span>}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <input type="email" placeholder="correo del usuario" value={memberEmail[p.id] || ''}
                           onChange={e => setMemberEmail({ ...memberEmail, [p.id]: e.target.value })}
                           className="flex-1 min-w-0 p-2 bg-slate-50 rounded-lg text-xs font-bold" />
-                        <select value={memberRole[p.id] || 'owner'} onChange={e => setMemberRole({ ...memberRole, [p.id]: e.target.value })}
-                          className="p-2 bg-slate-50 rounded-lg text-xs font-bold">
-                          <option value="owner">Admin</option>
-                          <option value="asesor">Asesor</option>
-                        </select>
-                        <button onClick={() => addMember(p.id)} className="px-3 py-2 bg-slate-900 text-white rounded-lg text-xs font-black uppercase">Vincular</button>
+                        <div className="flex gap-2">
+                          <select value={memberRole[p.id] || 'owner'} onChange={e => setMemberRole({ ...memberRole, [p.id]: e.target.value })}
+                            className="flex-1 p-2 bg-slate-50 rounded-lg text-xs font-bold">
+                            <option value="owner">Admin</option>
+                            <option value="asesor">Asesor</option>
+                          </select>
+                          <button onClick={() => addMember(p.id)} className="px-3 py-2 bg-slate-900 text-white rounded-lg text-xs font-black uppercase whitespace-nowrap">Vincular</button>
+                        </div>
                       </div>
                     </div>
                   </div>

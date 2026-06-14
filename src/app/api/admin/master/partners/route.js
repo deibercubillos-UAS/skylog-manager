@@ -1,5 +1,7 @@
 import { createAdminClient, createClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
+import { Resend } from 'resend';
+import { escHtml } from '@/lib/emailHelpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,17 +94,98 @@ export async function POST(request) {
       return NextResponse.json(data);
     }
 
-    // Vincular un usuario (por email) como miembro del socio
+    // Vincular un usuario (por email) como miembro del socio.
+    // Si tiene cuenta → vincular + correo bienvenida + campana.
+    // Si no tiene cuenta → insertar partner_invitation + correo de invitación.
     if (body.action === 'add_member') {
       if (!body.partner_id || !body.email) return NextResponse.json({ error: 'partner_id y email requeridos' }, { status: 400 });
       const email = String(body.email).trim().toLowerCase();
-      const { data: prof } = await admin.from('profiles').select('id').ilike('email', email).maybeSingle();
-      if (!prof) return NextResponse.json({ error: 'No existe un usuario con ese correo. Debe registrarse primero.' }, { status: 404 });
-      const role = body.role === 'owner' ? 'owner' : 'asesor';
-      const { error } = await admin.from('partner_members')
-        .upsert({ partner_id: body.partner_id, profile_id: prof.id, role }, { onConflict: 'partner_id,profile_id' });
-      if (error) throw error;
-      return NextResponse.json({ success: true });
+      const role  = body.role === 'owner' ? 'owner' : 'asesor';
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bitafly.co';
+
+      // Obtener info del partner para personalizar correos
+      const { data: partner } = await admin
+        .from('partners').select('name, type').eq('id', body.partner_id).single();
+      if (!partner) return NextResponse.json({ error: 'Socio no encontrado' }, { status: 404 });
+
+      // Obtener código activo del partner para mostrarlo en bienvenida
+      const { data: firstCode } = await admin
+        .from('partner_codes').select('code').eq('partner_id', body.partner_id).eq('active', true).limit(1).maybeSingle();
+
+      const { data: prof } = await admin.from('profiles').select('id, full_name').ilike('email', email).maybeSingle();
+
+      if (prof) {
+        // ── Tiene cuenta: vincular + notificar ────────────────────────────────
+        const { error } = await admin.from('partner_members')
+          .upsert({ partner_id: body.partner_id, profile_id: prof.id, role }, { onConflict: 'partner_id,profile_id' });
+        if (error) throw error;
+
+        // Campana in-app (inserción directa — el socio puede ser de cualquier org)
+        try {
+          const { data: profFull } = await admin.from('profiles').select('organization_id').eq('id', prof.id).single();
+          if (profFull?.organization_id) {
+            await admin.from('notifications').insert({
+              organization_id: profFull.organization_id,
+              profile_id:      prof.id,
+              type:            'system',
+              title:           '¡Ya tienes acceso al panel de socio!',
+              body:            `Fuiste vinculado como ${role === 'owner' ? 'dueño' : 'asesor'} de ${partner.name}.`,
+              link:            '/socio',
+            });
+          }
+        } catch { /* no crítico */ }
+
+        // Correo de bienvenida
+        const { error: emailErr } = await resend.emails.send({
+          from:    'BitaFly Socios <no-reply@bitafly.co>',
+          to:      [email],
+          subject: `Bienvenido al programa de socios BitaFly — ${escHtml(partner.name)}`,
+          html: `
+            <p>Hola${prof.full_name ? ` ${escHtml(prof.full_name)}` : ''},</p>
+            <p>Ya tienes acceso al panel de socio de <strong>${escHtml(partner.name)}</strong> en BitaFly.</p>
+            ${firstCode ? `<p>Tu código de ventas: <strong style="font-size:1.3em;letter-spacing:.05em">${escHtml(firstCode.code)}</strong></p>` : ''}
+            <p><a href="${escHtml(appUrl)}/socio" style="background:#ea580c;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Ver mi panel</a></p>
+            <p style="color:#94a3b8;font-size:.85em">— Equipo BitaFly</p>
+          `,
+        });
+        if (emailErr) console.error('[master/partners] Resend bienvenida:', emailErr);
+
+        return NextResponse.json({ success: true, linked: true });
+      } else {
+        // ── No tiene cuenta: crear invitación ────────────────────────────────
+        // Revocar invitaciones anteriores pendientes para este email+partner
+        await admin.from('partner_invitations')
+          .update({ status: 'expirada' })
+          .eq('partner_id', body.partner_id)
+          .eq('email', email)
+          .eq('status', 'pendiente');
+
+        const { data: invite, error: invErr } = await admin.from('partner_invitations')
+          .insert({ partner_id: body.partner_id, email, role })
+          .select('token').single();
+        if (invErr) throw invErr;
+
+        const registerUrl = `${appUrl}/registro?socio_invite=${invite.token}`;
+        const roleLabel   = role === 'owner' ? 'dueño/representante' : 'asesor de ventas';
+
+        const { error: emailErr } = await resend.emails.send({
+          from:    'BitaFly Socios <no-reply@bitafly.co>',
+          to:      [email],
+          subject: `Invitación: únete al programa de socios de ${escHtml(partner.name)} en BitaFly`,
+          html: `
+            <p>Hola,</p>
+            <p>Te han invitado como <strong>${escHtml(roleLabel)}</strong> de <strong>${escHtml(partner.name)}</strong> en el programa de socios de BitaFly.</p>
+            <p>Crea tu cuenta gratuita para acceder a tu panel, ver tus comisiones y gestionar tus clientes:</p>
+            <p><a href="${escHtml(registerUrl)}" style="background:#ea580c;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Crear cuenta y unirme</a></p>
+            <p style="color:#94a3b8;font-size:.8em">Este enlace expira en 7 días. Si no lo solicitaste, puedes ignorarlo.</p>
+            <p style="color:#94a3b8;font-size:.85em">— Equipo BitaFly</p>
+          `,
+        });
+        if (emailErr) console.error('[master/partners] Resend invitación:', emailErr);
+
+        return NextResponse.json({ success: true, linked: false, invited: true });
+      }
     }
 
     // Quitar un miembro

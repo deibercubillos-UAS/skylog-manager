@@ -2,30 +2,52 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from '@/lib/toast';
 
+const TABS = ['Panel', 'Reportes'];
+
 export default function SocioPanel() {
+  const [tab, setTab]         = useState('Panel');
   const [ctx, setCtx]         = useState(null);
   const [grants, setGrants]   = useState([]);
   const [giftEmail, setGiftEmail] = useState('');
   const [gifting, setGifting] = useState(false);
 
   // Asesores
-  const [advisors, setAdvisors]       = useState([]);
   const [showAdvisorForm, setShowAdvisorForm] = useState(false);
-  const [advName, setAdvName]         = useState('');
-  const [advEmail, setAdvEmail]       = useState('');
-  const [inviting, setInviting]       = useState(false);
+  const [advName, setAdvName]   = useState('');
+  const [advEmail, setAdvEmail] = useState('');
+  const [inviting, setInviting] = useState(false);
+
+  // Reportes
+  const [report, setReport]         = useState(null);
+  const [reportMonths, setReportMonths] = useState(3);
+  const [loadingReport, setLoadingReport] = useState(false);
+  const [showDetail, setShowDetail]   = useState(false);
 
   const loadCtx = useCallback(() => {
     fetch('/api/socio/me').then(r => r.ok ? r.json() : null).then(d => {
-      if (d) { setCtx(d); setAdvisors(d.advisors || []); }
+      if (d) setCtx(d);
     }).catch(() => {});
   }, []);
 
   const loadGrants = useCallback(() => {
-    fetch('/api/socio/grants').then(r => r.ok ? r.json() : []).then(d => setGrants(Array.isArray(d) ? d : [])).catch(() => {});
+    fetch('/api/socio/grants').then(r => r.ok ? r.json() : [])
+      .then(d => setGrants(Array.isArray(d) ? d : [])).catch(() => {});
+  }, []);
+
+  const loadReport = useCallback((months) => {
+    setLoadingReport(true);
+    fetch(`/api/socio/reports?months=${months}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(setReport)
+      .catch(() => {})
+      .finally(() => setLoadingReport(false));
   }, []);
 
   useEffect(() => { loadCtx(); loadGrants(); }, [loadCtx, loadGrants]);
+
+  useEffect(() => {
+    if (tab === 'Reportes') loadReport(reportMonths);
+  }, [tab, reportMonths, loadReport]);
 
   const gift = async (e) => {
     e.preventDefault();
@@ -38,8 +60,7 @@ export default function SocioPanel() {
       if (!res.ok) throw new Error(data.error || 'Error al regalar');
       toast.success('Perfil regalado. Se envió la invitación por correo.');
       setGiftEmail('');
-      loadGrants();
-      loadCtx();
+      loadGrants(); loadCtx();
     } catch (err) { toast.error(err.message); }
     finally { setGifting(false); }
   };
@@ -52,7 +73,7 @@ export default function SocioPanel() {
       const res  = await fetch('/api/socio/advisors', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: advName.trim(), email: advEmail.trim() }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al invitar');
-      toast.success(`Asesor ${data.advisor?.name} creado. ${data.linked ? 'Vinculado a su cuenta.' : 'Correo de invitación enviado.'}`);
+      toast.success(`Asesor ${data.advisor?.name} creado. ${data.linked ? 'Vinculado a su cuenta.' : 'Correo enviado.'}`);
       setAdvName(''); setAdvEmail(''); setShowAdvisorForm(false);
       loadCtx();
     } catch (err) { toast.error(err.message); }
@@ -75,6 +96,7 @@ export default function SocioPanel() {
   const copy = (txt) => { navigator.clipboard?.writeText(txt); toast.success('Código copiado'); };
   const money = (n)  => '$' + (Number(n) || 0).toLocaleString('es-CO');
   const isSchoolOwner = ctx.partner?.type === 'escuela' && ctx.member?.role === 'owner';
+  const advisors = ctx.advisors || [];
 
   const KPI = ({ label, value, icon, accent }) => (
     <div className="bg-white border border-slate-200 rounded-2xl p-5">
@@ -86,8 +108,15 @@ export default function SocioPanel() {
     </div>
   );
 
+  const statusChip = (status) => {
+    if (status === 'pendiente') return <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-700">Pendiente</span>;
+    if (status === 'liquidada') return <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">Liquidada</span>;
+    return <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-500">{status}</span>;
+  };
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* Header */}
       <div>
         <h1 className="text-2xl font-black uppercase tracking-tighter text-slate-900">Panel del socio</h1>
         <p className="text-sm text-slate-500">
@@ -95,145 +124,313 @@ export default function SocioPanel() {
         </p>
       </div>
 
-      {/* Códigos */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-5">
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Tus códigos de venta</p>
-        <div className="flex flex-wrap gap-2">
-          {(ctx.codes || []).filter(c => c.active).map(c => (
-            <button key={c.code} onClick={() => copy(c.code)} title="Copiar"
-              className="text-sm font-mono font-black px-3 py-1.5 rounded-lg bg-orange-50 text-orange-700 border border-orange-200 cursor-pointer">
-              {c.code}
-            </button>
-          ))}
-          {!(ctx.codes || []).length && <span className="text-xs text-slate-400 italic">Sin códigos asignados todavía.</span>}
-        </div>
+      {/* Tabs */}
+      <div className="flex gap-1 bg-slate-100 rounded-xl p-1 w-fit">
+        {TABS.map(t => (
+          <button key={t} onClick={() => setTab(t)}
+            className={`px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-colors cursor-pointer ${
+              tab === t ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+            }`}>{t}</button>
+        ))}
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <KPI label="Perfiles regalados" value={s.grants_total ?? 0}     icon="card_giftcard" />
-        <KPI label="Perfiles activos"   value={s.grants_active ?? 0}    icon="check_circle"  accent="text-emerald-600" />
-        <KPI label="Clientes referidos" value={s.referrals_total ?? 0}  icon="groups" />
-        <KPI label="Referidos activos"  value={s.referrals_active ?? 0} icon="trending_up"   accent="text-emerald-600" />
-        <KPI label="Comisión pendiente" value={money(s.commission_pending)} icon="schedule"  accent="text-orange-600" />
-        <KPI label="Comisión liquidada" value={money(s.commission_paid)}    icon="paid" />
-      </div>
-
-      {/* Regalar perfil gratis */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
-        <div>
-          <h2 className="text-sm font-black uppercase tracking-widest text-slate-700">Regalar perfil gratis</h2>
-          <p className="text-xs text-slate-400 font-medium mt-1">
-            Ingresa el correo del beneficiario. Recibirá una invitación con {ctx.partner?.free_days} días gratis.
-            Único por persona, no renovable.
-          </p>
-        </div>
-        <form onSubmit={gift} className="flex gap-2">
-          <input type="email" required value={giftEmail} onChange={e => setGiftEmail(e.target.value)}
-            placeholder="correo@beneficiario.com"
-            className="flex-1 min-w-0 p-3 bg-slate-50 rounded-xl text-sm font-bold" />
-          <button disabled={gifting} className="px-5 py-3 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-60 cursor-pointer">
-            {gifting ? 'Enviando...' : 'Regalar'}
-          </button>
-        </form>
-
-        {grants.length > 0 && (
-          <div className="divide-y divide-slate-100 border-t border-slate-100 pt-2">
-            {grants.map(g => (
-              <div key={g.id} className="flex items-center justify-between py-2 text-xs">
-                <span className="font-bold text-slate-700 truncate">{g.email}</span>
-                <span className={`font-black uppercase px-2 py-0.5 rounded ${
-                  g.status === 'activado'  ? 'bg-emerald-100 text-emerald-700' :
-                  g.status === 'enviado'   ? 'bg-amber-100 text-amber-700' :
-                  g.status === 'degradado' ? 'bg-red-100 text-red-600' :
-                  'bg-slate-100 text-slate-500'
-                }`}>{g.status}</span>
-              </div>
-            ))}
+      {/* ── TAB: PANEL ──────────────────────────────────────────────────────── */}
+      {tab === 'Panel' && (
+        <div className="space-y-8">
+          {/* Códigos */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Tus códigos de venta</p>
+            <div className="flex flex-wrap gap-2">
+              {(ctx.codes || []).filter(c => c.active).map(c => (
+                <button key={c.code} onClick={() => copy(c.code)} title="Copiar"
+                  className="text-sm font-mono font-black px-3 py-1.5 rounded-lg bg-orange-50 text-orange-700 border border-orange-200 cursor-pointer">
+                  {c.code}
+                </button>
+              ))}
+              {!(ctx.codes || []).length && <span className="text-xs text-slate-400 italic">Sin códigos asignados todavía.</span>}
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* ── Asesores (solo escuelas, rol owner) ─────────────────────────────── */}
-      {isSchoolOwner && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
+          {/* KPIs */}
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <KPI label="Perfiles regalados" value={s.grants_total ?? 0}     icon="card_giftcard" />
+            <KPI label="Perfiles activos"   value={s.grants_active ?? 0}    icon="check_circle"  accent="text-emerald-600" />
+            <KPI label="Clientes referidos" value={s.referrals_total ?? 0}  icon="groups" />
+            <KPI label="Referidos activos"  value={s.referrals_active ?? 0} icon="trending_up"   accent="text-emerald-600" />
+            <KPI label="Comisión pendiente" value={money(s.commission_pending)} icon="schedule"  accent="text-orange-600" />
+            <KPI label="Comisión liquidada" value={money(s.commission_paid)}    icon="paid" />
+          </div>
+
+          {/* Regalar perfil */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
             <div>
-              <h2 className="text-sm font-black uppercase tracking-widest text-slate-700">Mis asesores</h2>
-              <p className="text-xs text-slate-400 font-medium mt-0.5">
-                Cada asesor tiene su propio código de ventas y genera comisiones bajo tu cuenta.
+              <h2 className="text-sm font-black uppercase tracking-widest text-slate-700">Regalar perfil gratis</h2>
+              <p className="text-xs text-slate-400 font-medium mt-1">
+                Ingresa el correo del beneficiario. Recibirá una invitación con {ctx.partner?.free_days} días gratis.
+                Único por persona, no renovable.
               </p>
             </div>
-            <button onClick={() => setShowAdvisorForm(v => !v)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-widest cursor-pointer">
-              <span className="material-symbols-outlined text-sm">person_add</span>
-              Invitar
-            </button>
+            <form onSubmit={gift} className="flex gap-2">
+              <input type="email" required value={giftEmail} onChange={e => setGiftEmail(e.target.value)}
+                placeholder="correo@beneficiario.com"
+                className="flex-1 min-w-0 p-3 bg-slate-50 rounded-xl text-sm font-bold" />
+              <button disabled={gifting} className="px-5 py-3 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-60 cursor-pointer">
+                {gifting ? 'Enviando...' : 'Regalar'}
+              </button>
+            </form>
+
+            {grants.length > 0 && (
+              <div className="divide-y divide-slate-100 border-t border-slate-100 pt-2">
+                {grants.map(g => (
+                  <div key={g.id} className="flex items-center justify-between py-2 text-xs">
+                    <span className="font-bold text-slate-700 truncate">{g.email}</span>
+                    <span className={`font-black uppercase px-2 py-0.5 rounded ${
+                      g.status === 'activado'  ? 'bg-emerald-100 text-emerald-700' :
+                      g.status === 'enviado'   ? 'bg-amber-100 text-amber-700' :
+                      g.status === 'degradado' ? 'bg-red-100 text-red-600' :
+                      'bg-slate-100 text-slate-500'
+                    }`}>{g.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Formulario invitación */}
-          {showAdvisorForm && (
-            <form onSubmit={inviteAdvisor} className="grid sm:grid-cols-3 gap-2 p-4 bg-slate-50 rounded-xl">
-              <input required value={advName} onChange={e => setAdvName(e.target.value)}
-                placeholder="Nombre del asesor"
-                className="p-3 bg-white border border-slate-200 rounded-xl text-sm font-bold col-span-1" />
-              <input required type="email" value={advEmail} onChange={e => setAdvEmail(e.target.value)}
-                placeholder="correo@asesor.com"
-                className="p-3 bg-white border border-slate-200 rounded-xl text-sm font-bold col-span-1" />
-              <div className="flex gap-2">
-                <button type="submit" disabled={inviting}
-                  className="flex-1 py-3 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-60 cursor-pointer">
-                  {inviting ? 'Enviando...' : 'Crear'}
-                </button>
-                <button type="button" onClick={() => setShowAdvisorForm(false)}
-                  className="px-3 py-3 bg-slate-200 text-slate-600 rounded-xl text-xs font-black cursor-pointer">
-                  ✕
+          {/* Asesores (solo escuela owner) */}
+          {isSchoolOwner && (
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-widest text-slate-700">Mis asesores</h2>
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">
+                    Cada asesor tiene su propio código de ventas y genera comisiones bajo tu cuenta.
+                  </p>
+                </div>
+                <button onClick={() => setShowAdvisorForm(v => !v)}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-widest cursor-pointer">
+                  <span className="material-symbols-outlined text-sm">person_add</span>
+                  Invitar
                 </button>
               </div>
-            </form>
-          )}
 
-          {/* Lista de asesores */}
-          {advisors.length === 0 ? (
-            <p className="text-xs text-slate-400 italic text-center py-4">Aún no tienes asesores. Invita al primero.</p>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {advisors.map(a => {
-                const activeCode = (a.codes || []).find(c => c.active);
-                const owner = (a.members || []).find(m => m.role === 'owner');
-                return (
-                  <div key={a.id} className="py-3 flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-black text-sm text-slate-800 truncate">{a.name}</p>
-                        {a.status !== 'activo' && (
-                          <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-red-100 text-red-600 rounded">Inactivo</span>
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-400 truncate">
-                        {owner?.email || 'Sin cuenta vinculada'}
-                        {activeCode && (
-                          <> · <button onClick={() => copy(activeCode.code)}
-                            className="font-mono font-black text-orange-600 cursor-pointer hover:underline">{activeCode.code}</button></>
-                        )}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4 shrink-0">
-                      <div className="text-right hidden sm:block">
-                        <p className="text-xs font-black text-slate-700">{a.referrals_active} activos</p>
-                        <p className="text-[10px] text-slate-400">{a.referrals_total} referidos</p>
-                      </div>
-                      {a.status === 'activo' && (
-                        <button onClick={() => deactivateAdvisor(a.id, a.name)} title="Desactivar"
-                          className="text-slate-300 hover:text-red-500 transition-colors cursor-pointer">
-                          <span className="material-symbols-outlined text-lg">person_remove</span>
-                        </button>
-                      )}
-                    </div>
+              {showAdvisorForm && (
+                <form onSubmit={inviteAdvisor} className="grid sm:grid-cols-3 gap-2 p-4 bg-slate-50 rounded-xl">
+                  <input required value={advName} onChange={e => setAdvName(e.target.value)}
+                    placeholder="Nombre del asesor"
+                    className="p-3 bg-white border border-slate-200 rounded-xl text-sm font-bold" />
+                  <input required type="email" value={advEmail} onChange={e => setAdvEmail(e.target.value)}
+                    placeholder="correo@asesor.com"
+                    className="p-3 bg-white border border-slate-200 rounded-xl text-sm font-bold" />
+                  <div className="flex gap-2">
+                    <button type="submit" disabled={inviting}
+                      className="flex-1 py-3 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-60 cursor-pointer">
+                      {inviting ? 'Enviando...' : 'Crear'}
+                    </button>
+                    <button type="button" onClick={() => setShowAdvisorForm(false)}
+                      className="px-3 py-3 bg-slate-200 text-slate-600 rounded-xl text-xs font-black cursor-pointer">✕</button>
                   </div>
-                );
-              })}
+                </form>
+              )}
+
+              {advisors.length === 0 ? (
+                <p className="text-xs text-slate-400 italic text-center py-4">Aún no tienes asesores. Invita al primero.</p>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {advisors.map(a => {
+                    const activeCode = (a.codes || []).find(c => c.active);
+                    const owner = (a.members || []).find(m => m.role === 'owner');
+                    return (
+                      <div key={a.id} className="py-3 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-black text-sm text-slate-800 truncate">{a.name}</p>
+                            {a.status !== 'activo' && (
+                              <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-red-100 text-red-600 rounded">Inactivo</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-400 truncate">
+                            {owner?.email || 'Sin cuenta vinculada'}
+                            {activeCode && (
+                              <> · <button onClick={() => copy(activeCode.code)}
+                                className="font-mono font-black text-orange-600 cursor-pointer hover:underline">{activeCode.code}</button></>
+                            )}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4 shrink-0">
+                          <div className="text-right hidden sm:block">
+                            <p className="text-xs font-black text-slate-700">{a.referrals_active} activos</p>
+                            <p className="text-[10px] text-slate-400">{a.referrals_total} referidos</p>
+                          </div>
+                          {a.status === 'activo' && (
+                            <button onClick={() => deactivateAdvisor(a.id, a.name)} title="Desactivar"
+                              className="text-slate-300 hover:text-red-500 transition-colors cursor-pointer">
+                              <span className="material-symbols-outlined text-lg">person_remove</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* ── TAB: REPORTES ───────────────────────────────────────────────────── */}
+      {tab === 'Reportes' && (
+        <div className="space-y-6">
+          {/* Filtro período */}
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-black uppercase tracking-widest text-slate-400">Período:</span>
+            {[1, 3, 6, 12].map(m => (
+              <button key={m} onClick={() => setReportMonths(m)}
+                className={`px-4 py-1.5 rounded-lg text-xs font-black cursor-pointer transition-colors ${
+                  reportMonths === m ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                }`}>{m === 12 ? '1 año' : `${m} ${m === 1 ? 'mes' : 'meses'}`}</button>
+            ))}
+          </div>
+
+          {loadingReport ? (
+            <p className="text-xs font-black uppercase tracking-widest text-slate-400 animate-pulse">Cargando reporte...</p>
+          ) : !report ? (
+            <p className="text-xs text-slate-400 italic">No se pudo cargar el reporte.</p>
+          ) : (
+            <>
+              {/* Totales propios */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-white border border-slate-200 rounded-2xl p-5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Pagos recibidos</p>
+                  <p className="text-2xl font-black mt-1 text-slate-900">{report.totals?.payments ?? 0}</p>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-2xl p-5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Comisión pendiente</p>
+                  <p className="text-2xl font-black mt-1 text-orange-600">{money(report.totals?.pending)}</p>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-2xl p-5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Comisión liquidada</p>
+                  <p className="text-2xl font-black mt-1 text-slate-900">{money(report.totals?.paid)}</p>
+                </div>
+              </div>
+
+              {/* Desglose por asesor (escuela) */}
+              {isSchoolOwner && (report.advisors?.length > 0) && (
+                <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                  <div className="px-5 py-4 border-b border-slate-100">
+                    <h2 className="text-sm font-black uppercase tracking-widest text-slate-700">Desglose por asesor</h2>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                          <th className="text-left px-5 py-3">Asesor</th>
+                          <th className="text-right px-4 py-3">Referidos</th>
+                          <th className="text-right px-4 py-3">Pagos</th>
+                          <th className="text-right px-4 py-3">Ventas</th>
+                          <th className="text-right px-4 py-3">Pendiente</th>
+                          <th className="text-right px-5 py-3">Liquidado</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {report.advisors.map(a => (
+                          <tr key={a.id} className={a.status !== 'activo' ? 'opacity-50' : ''}>
+                            <td className="px-5 py-3">
+                              <span className="font-black text-slate-800">{a.name}</span>
+                              {a.status !== 'activo' && <span className="ml-2 text-[10px] text-red-500">inactivo</span>}
+                            </td>
+                            <td className="text-right px-4 py-3 text-slate-600">{a.referrals_count}</td>
+                            <td className="text-right px-4 py-3 text-slate-600">{a.payments_count}</td>
+                            <td className="text-right px-4 py-3 font-bold text-slate-800">{money(a.total_sales)}</td>
+                            <td className="text-right px-4 py-3 font-bold text-orange-600">{money(a.commission_pending)}</td>
+                            <td className="text-right px-5 py-3 font-bold text-slate-900">{money(a.commission_paid)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Historial por período */}
+              {report.history?.length > 0 && (
+                <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                  <div className="px-5 py-4 border-b border-slate-100">
+                    <h2 className="text-sm font-black uppercase tracking-widest text-slate-700">Historial por período</h2>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                          <th className="text-left px-5 py-3">Período</th>
+                          <th className="text-right px-4 py-3">Pagos</th>
+                          <th className="text-right px-4 py-3">Ventas</th>
+                          <th className="text-right px-4 py-3">Comisión</th>
+                          <th className="text-right px-5 py-3">Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {report.history.map(h => (
+                          <tr key={h.period}>
+                            <td className="px-5 py-3 font-black text-slate-800">{h.period}</td>
+                            <td className="text-right px-4 py-3 text-slate-600">{h.count}</td>
+                            <td className="text-right px-4 py-3 font-bold text-slate-700">{money(h.sales)}</td>
+                            <td className="text-right px-4 py-3 font-black text-orange-600">{money(h.commission)}</td>
+                            <td className="text-right px-5 py-3">{statusChip(h.status)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Detalle de cada comisión (expandible) */}
+              {report.detail?.length > 0 && (
+                <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                  <button onClick={() => setShowDetail(v => !v)}
+                    className="w-full flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-slate-50 transition-colors">
+                    <h2 className="text-sm font-black uppercase tracking-widest text-slate-700">Detalle de comisiones ({report.detail.length})</h2>
+                    <span className="material-symbols-outlined text-slate-400">{showDetail ? 'expand_less' : 'expand_more'}</span>
+                  </button>
+                  {showDetail && (
+                    <div className="overflow-x-auto border-t border-slate-100">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                            <th className="text-left px-5 py-3">Fecha</th>
+                            <th className="text-left px-4 py-3">Plan</th>
+                            <th className="text-right px-4 py-3">Venta</th>
+                            <th className="text-right px-4 py-3">%</th>
+                            <th className="text-right px-4 py-3">Comisión</th>
+                            <th className="text-right px-5 py-3">Estado</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {report.detail.map(c => (
+                            <tr key={c.id}>
+                              <td className="px-5 py-2.5 text-slate-500">{c.created_at ? new Date(c.created_at).toLocaleDateString('es-CO') : '—'}</td>
+                              <td className="px-4 py-2.5">
+                                <span className="font-bold text-slate-700 capitalize">{c.plan || '—'}</span>
+                                {c.billing && <span className="ml-1 text-slate-400">· {c.billing === 'annual' ? 'anual' : 'mensual'}</span>}
+                              </td>
+                              <td className="text-right px-4 py-2.5 text-slate-600">{money(c.sale_amount)}</td>
+                              <td className="text-right px-4 py-2.5 text-slate-400">{c.commission_pct}%</td>
+                              <td className="text-right px-4 py-2.5 font-black text-orange-600">{money(c.commission_amount)}</td>
+                              <td className="text-right px-5 py-2.5">{statusChip(c.status)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!report.detail?.length && !report.history?.length && (
+                <p className="text-sm text-slate-400 italic text-center py-8">Sin comisiones registradas en este período.</p>
+              )}
+            </>
           )}
         </div>
       )}

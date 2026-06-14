@@ -47,10 +47,11 @@ export async function GET() {
   if (g.error) return NextResponse.json({ error: g.error }, { status: g.status });
   const { admin } = g;
   try {
-    const [{ data: partners }, { data: codes }, { data: members }] = await Promise.all([
+    const [{ data: partners }, { data: codes }, { data: members }, { data: invites }] = await Promise.all([
       admin.from('partners').select('*').order('created_at', { ascending: false }),
       admin.from('partner_codes').select('id, partner_id, code, active'),
       admin.from('partner_members').select('id, partner_id, role, profile_id, profiles:profile_id(email, full_name)'),
+      admin.from('partner_invitations').select('id, partner_id, email, role, status, created_at, expires_at').order('created_at', { ascending: false }),
     ]);
     const codesByPartner = {};
     (codes || []).forEach(c => { (codesByPartner[c.partner_id] ||= []).push(c); });
@@ -61,12 +62,15 @@ export async function GET() {
         email: m.profiles?.email || null, name: m.profiles?.full_name || null,
       });
     });
+    const invitesByPartner = {};
+    (invites || []).forEach(i => { (invitesByPartner[i.partner_id] ||= []).push(i); });
 
     const result = (partners || []).map(p => ({
       ...p,
       codes: codesByPartner[p.id] || [],
       members: membersByPartner[p.id] || [],
       member_count: (membersByPartner[p.id] || []).length,
+      invitations: invitesByPartner[p.id] || [],
     }));
     return NextResponse.json(result);
   } catch (err) {

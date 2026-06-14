@@ -60,6 +60,7 @@ export default function RegisterPage() {
   const [payStatus,  setPayStatus]    = useState('pending');
   const [grantToken, setGrantToken]   = useState(null); // regalo de perfil gratis (socio)
   const [partnerCode, setPartnerCode] = useState('');   // código de escuela/asesor (opcional)
+  const [socioInvite, setSocioInvite] = useState(null); // { token, partner_name, partner_type, role }
   const pollRef = useRef(null);
 
   // ── Flujo UNIRSE ───────────────────────────────────────────────────────────
@@ -111,6 +112,20 @@ export default function RegisterPage() {
       // Código de socio/asesor en el enlace (opcional)
       const code = qs.get('code') || qs.get('ref');
       if (code) setPartnerCode(code.trim().toUpperCase());
+
+      // Invitación de socio → mostrar banner y pre-configurar modo crear
+      const socioToken = qs.get('socio_invite');
+      if (socioToken) {
+        fetch(`/api/socio/invite-info?token=${encodeURIComponent(socioToken)}`)
+          .then(r => r.ok ? r.json() : null)
+          .then(info => {
+            if (info) {
+              setSocioInvite({ token: socioToken, ...info });
+              setMode('crear');
+            }
+          })
+          .catch(() => {});
+      }
     } catch { /* no-op */ }
   }, []);
 
@@ -186,7 +201,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      const res    = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, grant: grantToken, attribution: getAttribution() }) });
+      const res    = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, grant: grantToken, socio_invite: socioInvite?.token || null, attribution: getAttribution() }) });
       const result = await res.json();
       if (!result.success) throw new Error(result.error || 'Error al registrar');
       // Auto-login: ingresar directamente al dashboard sin pasar por login
@@ -280,6 +295,21 @@ export default function RegisterPage() {
             <Link href="/" className="inline-flex items-center gap-2 lg:hidden">
               <span className="text-2xl font-black text-navy uppercase tracking-tighter">Bitafly</span>
             </Link>
+
+            {/* Banner invitación de socio */}
+            {socioInvite && (
+              <div className="flex items-start gap-3 p-4 rounded-2xl bg-orange-50 border border-orange-200">
+                <span className="material-symbols-outlined text-orange-500 text-xl mt-0.5">handshake</span>
+                <div>
+                  <p className="text-sm font-black text-orange-800">
+                    Invitación de {socioInvite.partner_type === 'escuela' ? 'escuela' : 'socio'}: <span className="text-orange-600">{socioInvite.partner_name}</span>
+                  </p>
+                  <p className="text-xs text-orange-600 mt-0.5">
+                    Te han invitado como {socioInvite.role === 'owner' ? 'representante/dueño' : 'asesor de ventas'}. Al crear tu cuenta quedarás vinculado automáticamente.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div>
               <h1 className="font-lexend text-3xl font-black text-navy uppercase tracking-tighter">Crear cuenta</h1>

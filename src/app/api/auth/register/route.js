@@ -22,7 +22,7 @@ export async function POST(request) {
         }
 
         const body = await request.json();
-        const { email, password, firstName, lastName, phone, city, type, role, orgCode, companyName, nit, joinMode, attribution, grant: grantToken } = body;
+        const { email, password, firstName, lastName, phone, city, type, role, orgCode, companyName, nit, joinMode, attribution, grant: grantToken, socio_invite: socioInviteToken } = body;
         const signupAttribution = (attribution && typeof attribution === 'object') ? (attribution.first || null) : null;
         const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -276,6 +276,33 @@ export async function POST(request) {
                     .update({ status: 'activado', redeemed_org_id: targetOrgId })
                     .eq('id', g.id);
             }
+        }
+
+        // ── Invitación de socio: vincular como partner_member ─────────────────
+        if (socioInviteToken) {
+            try {
+                const now = new Date().toISOString();
+                const { data: invite } = await supabaseAdmin
+                    .from('partner_invitations')
+                    .select('id, partner_id, role, email, status, expires_at')
+                    .eq('token', socioInviteToken)
+                    .eq('status', 'pendiente')
+                    .maybeSingle();
+
+                if (
+                    invite &&
+                    invite.expires_at > now &&
+                    invite.email.toLowerCase() === email.toLowerCase()
+                ) {
+                    await supabaseAdmin.from('partner_members').upsert(
+                        { partner_id: invite.partner_id, profile_id: authData.user.id, role: invite.role },
+                        { onConflict: 'partner_id,profile_id' }
+                    );
+                    await supabaseAdmin.from('partner_invitations')
+                        .update({ status: 'aceptada' })
+                        .eq('id', invite.id);
+                }
+            } catch { /* no crítico — el registro no debe fallar por esto */ }
         }
 
         // Auto-crear registro de piloto cuando el usuario crea su propia org

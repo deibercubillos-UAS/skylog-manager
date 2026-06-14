@@ -144,7 +144,7 @@ Pestaña `/admin/master` → **Socios**:
 | P4  | Regalar perfil gratis: form de correo + `free_grant` (unicidad) + envío de invitación | ✅ | Medio |
 | P5  | Activación del perfil gratis al registrarse (plan piloto + expiry) | ✅ | Medio |
 | P6  | Captura del código en la compra (campo opcional) + guardar en el intent | ✅ | Medio |
-| P7  | Webhook: crear `referral` + `referral_commissions` del ciclo (idempotente) | ⬜ | Alto* |
+| P7  | Webhook: crear `referral` + `referral_commissions` del ciclo (idempotente) | ✅ | Alto* |
 | P8  | Comisión recurrente: nueva fila por cada ciclo de pago confirmado | ⬜ | Alto* |
 | P9  | Cron de expiración: degradar a lectura + retención 3 meses + aviso | ⬜ | Medio |
 | P10 | Asesores dentro de la escuela (owner invita asesores, código por asesor) | ⬜ | Medio |
@@ -254,3 +254,16 @@ Pestaña `/admin/master` → **Socios**:
 - Archivos: `epayco/checkout/route.js`, `auth/register-pending/route.js`, `registro/page.js`,
   `dashboard/subscription/page.js`.
 - Verificación: `npm run build` OK.
+
+### P7 — Atribución de comisión en el webhook ✅ (2026-06-14)
+
+- `lib/partnerReferral.js` `attributeCommission()`: resuelve código→partner vendedor, aplica el
+  **% de la escuela** (si el vendedor es asesor con escuela padre), crea/reactiva el `referral`
+  (1 por org) y agrega una fila en `referral_commissions` (idempotente por `ref_payco`).
+- Webhook: captura `partner_code` del `pending_subscriptions` (o respaldo: el pending más reciente
+  del usuario). Tras activar el plan y marcar procesado, llama a `attributeCommission` **dentro de
+  try/catch** → nunca afecta la activación ni la respuesta del webhook.
+- Comisión **recurrente** queda cubierta: cada pago de ePayco trae `x_ref_payco` distinto → nueva
+  comisión por ciclo. (P8 añade el corte al cancelar/expirar.)
+- Archivos: `lib/partnerReferral.js` (nuevo), `epayco/webhook/route.js`.
+- Verificación: `npm run build` OK. Área sensible tocada solo de forma aditiva.

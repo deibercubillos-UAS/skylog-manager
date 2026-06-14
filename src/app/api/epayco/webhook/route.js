@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { activatePlanForUser, resolvePendingForUser, createAccountFromPendingRegistration } from '@/lib/epaycoActivation';
+import { attributeCommission } from '@/lib/partnerReferral';
 
 function makeSupabase() {
   return createClient(
@@ -114,6 +115,7 @@ export async function POST(request) {
     let planKey = VALID_PLAN_KEYS.includes(params.x_extra1) ? params.x_extra1 : null;
     let billing = ['monthly', 'annual'].includes(params.x_extra2) ? params.x_extra2 : null;
     let userId  = UUID_RE.test(params.x_extra3 || '') ? params.x_extra3 : null;
+    let partnerCode = null; // código de socio capturado en el intent (P6/P7)
 
     // ── 2. Intentar por referencia en pending_subscriptions ──────────────────
     if (!userId) {
@@ -128,6 +130,7 @@ export async function POST(request) {
           planKey = pending.plan_key;
           billing = pending.billing;
           userId  = pending.user_id;
+          partnerCode = pending.partner_code || null;
         }
       }
     }
@@ -215,6 +218,39 @@ export async function POST(request) {
       await supabase.from('processed_webhook_refs')
         .insert({ ref_payco: refPayco })
         .then(() => {}, () => {}); // ignora violación de unique en carreras
+    }
+
+    // ── Atribución de comisión a socio (no crítico — nunca rompe el webhook) ──
+    try {
+      // Respaldo: si no vino el código por referencia, buscar el pending más reciente del usuario
+      if (!partnerCode && userId) {
+        const { data: lastPending } = await supabase
+          .from('pending_subscriptions')
+          .select('partner_code')
+          .eq('user_id', userId)
+          .not('partner_code', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (lastPending?.partner_code) partnerCode = lastPending.partner_code;
+      }
+      if (partnerCode) {
+        const { data: prof } = await supabase
+          .from('profiles').select('organization_id').eq('id', userId).single();
+        if (prof?.organization_id) {
+          const result = await attributeCommission(supabase, {
+            code:     partnerCode,
+            orgId:    prof.organization_id,
+            planKey,
+            billing:  billing || 'monthly',
+            amount:   params.x_amount,
+            refPayco,
+          });
+          console.log('[epayco] atribución socio:', JSON.stringify(result));
+        }
+      }
+    } catch (attrErr) {
+      console.error('[epayco] atribución socio falló (no crítico):', attrErr.message);
     }
 
     console.log(`[epayco] ✓ Suscripción activada vía webhook: user=${userId} plan=${planKey} billing=${billing}`);

@@ -122,10 +122,8 @@ export default function RegisterPage() {
             if (info) {
               setSocioInvite({ token: socioToken, ...info });
               setMode('crear');
-              setCreateStep(2); // saltar selección de plan
-              if (info.email) {
-                setForm(p => ({ ...p, email: info.email, selectedPlan: 'piloto', type: 'solo' }));
-              }
+              setCreateStep(2);
+              setForm(p => ({ ...p, email: info.email ?? p.email, selectedPlan: 'piloto', type: 'solo' }));
             }
           })
           .catch(() => {});
@@ -205,7 +203,9 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      const res    = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, grant: grantToken, socio_invite: socioInvite?.token || null, attribution: getAttribution() }) });
+      const payload = { ...form, grant: grantToken, socio_invite: socioInvite?.token || null, attribution: getAttribution() };
+      if (socioInvite?.email) payload.email = socioInvite.email; // garantía: email del token, no del form
+      const res    = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const result = await res.json();
       if (!result.success) throw new Error(result.error || 'Error al registrar');
       // Auto-login: ingresar directamente al dashboard sin pasar por login
@@ -693,7 +693,7 @@ export default function RegisterPage() {
               <Field label="Correo electrónico" required>
                 <div className="relative">
                   <input required type="email" placeholder="correo@empresa.com"
-                    value={form.email} onChange={set('email')}
+                    value={socioInvite?.email ?? form.email} onChange={set('email')}
                     readOnly={!!socioInvite}
                     className={`${INPUT} ${socioInvite ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`} />
                   {socioInvite && (

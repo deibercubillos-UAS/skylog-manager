@@ -151,7 +151,10 @@ export async function POST(request) {
         });
         if (emailErr) console.error('[master/partners] Resend bienvenida:', emailErr);
 
-        return NextResponse.json({ success: true, linked: true });
+        return NextResponse.json({
+          success: true, linked: true,
+          email_error: emailErr ? emailErr.message || String(emailErr) : null,
+        });
       } else {
         // ── No tiene cuenta: crear invitación ────────────────────────────────
         // Revocar invitaciones anteriores pendientes para este email+partner
@@ -184,7 +187,10 @@ export async function POST(request) {
         });
         if (emailErr) console.error('[master/partners] Resend invitación:', emailErr);
 
-        return NextResponse.json({ success: true, linked: false, invited: true });
+        return NextResponse.json({
+          success: true, linked: false, invited: true,
+          email_error: emailErr ? emailErr.message || String(emailErr) : null,
+        });
       }
     }
 

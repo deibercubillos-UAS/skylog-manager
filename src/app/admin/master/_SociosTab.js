@@ -96,7 +96,11 @@ export default function SociosTab() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success('Miembro vinculado');
+      if (data.email_error) {
+        toast.warn(`Vinculado, pero el correo falló: ${data.email_error}`);
+      } else {
+        toast.success(data.invited ? 'Invitación enviada por correo' : 'Miembro vinculado y notificado');
+      }
       setMemberEmail({ ...memberEmail, [partnerId]: '' });
       load();
     } catch (err) { toast.error(err.message); }
@@ -127,7 +131,7 @@ export default function SociosTab() {
           <label className="space-y-1">
             <span className="text-[10px] font-black uppercase text-slate-400">Tipo</span>
             <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value, parent_partner_id: '' })}
-              className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold">
+              className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-900">
               <option value="escuela">Escuela</option>
               <option value="asesor">Asesor</option>
             </select>
@@ -141,7 +145,7 @@ export default function SociosTab() {
             <label className="space-y-1 md:col-span-3">
               <span className="text-[10px] font-black uppercase text-slate-400">Pertenece a (escuela, opcional)</span>
               <select value={form.parent_partner_id} onChange={e => setForm({ ...form, parent_partner_id: e.target.value })}
-                className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold">
+                className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-900">
                 <option value="">— Asesor independiente —</option>
                 {escuelas.map(es => <option key={es.id} value={es.id}>{es.name}</option>)}
               </select>
@@ -151,7 +155,7 @@ export default function SociosTab() {
             <span className="text-[10px] font-black uppercase text-slate-400">Comisión %</span>
             <input type="number" step="0.01" min="0" value={form.commission_pct}
               onChange={e => setForm({ ...form, commission_pct: e.target.value })}
-              className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold" />
+              className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-900" />
           </label>
           <label className="space-y-1">
             <span className="text-[10px] font-black uppercase text-slate-400">Cupos (vacío = ∞)</span>
@@ -163,7 +167,7 @@ export default function SociosTab() {
             <span className="text-[10px] font-black uppercase text-slate-400">Días gratis</span>
             <input type="number" min="1" value={form.free_days}
               onChange={e => setForm({ ...form, free_days: e.target.value })}
-              className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold" />
+              className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-900" />
           </label>
         </div>
         <button disabled={creating} className="px-6 py-3 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-60">
@@ -182,10 +186,10 @@ export default function SociosTab() {
             <div key={p.id} className={`bg-white border rounded-2xl p-5 ${p.status === 'inactivo' ? 'border-slate-200 opacity-60' : 'border-slate-200'}`}>
               {editId === p.id ? (
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-end">
-                  <input value={editData.name} onChange={e => setEditData({ ...editData, name: e.target.value })} className="col-span-2 p-2 bg-slate-50 rounded-lg text-sm font-bold" />
-                  <input type="number" step="0.01" value={editData.commission_pct} onChange={e => setEditData({ ...editData, commission_pct: e.target.value })} className="p-2 bg-slate-50 rounded-lg text-sm font-bold" placeholder="%" />
-                  <input type="number" value={editData.free_seats_limit} onChange={e => setEditData({ ...editData, free_seats_limit: e.target.value })} className="p-2 bg-slate-50 rounded-lg text-sm font-bold" placeholder="cupos" />
-                  <input type="number" value={editData.free_days} onChange={e => setEditData({ ...editData, free_days: e.target.value })} className="p-2 bg-slate-50 rounded-lg text-sm font-bold" placeholder="días" />
+                  <input value={editData.name} onChange={e => setEditData({ ...editData, name: e.target.value })} className="col-span-2 p-2 bg-slate-50 rounded-lg text-sm font-bold text-slate-900" />
+                  <input type="number" step="0.01" value={editData.commission_pct} onChange={e => setEditData({ ...editData, commission_pct: e.target.value })} className="p-2 bg-slate-50 rounded-lg text-sm font-bold text-slate-900" placeholder="%" />
+                  <input type="number" value={editData.free_seats_limit} onChange={e => setEditData({ ...editData, free_seats_limit: e.target.value })} className="p-2 bg-slate-50 rounded-lg text-sm font-bold text-slate-900" placeholder="cupos" />
+                  <input type="number" value={editData.free_days} onChange={e => setEditData({ ...editData, free_days: e.target.value })} className="p-2 bg-slate-50 rounded-lg text-sm font-bold text-slate-900" placeholder="días" />
                   <div className="col-span-2 sm:col-span-5 flex gap-2">
                     <button onClick={() => saveEdit(p.id)} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-black uppercase">Guardar</button>
                     <button onClick={() => { setEditId(null); setEditData({}); }} className="px-4 py-2 bg-slate-100 text-slate-500 rounded-lg text-xs font-black uppercase">Cancelar</button>
@@ -227,10 +231,10 @@ export default function SociosTab() {
                       <div className="flex flex-col sm:flex-row gap-2">
                         <input type="email" placeholder="correo del usuario" value={memberEmail[p.id] || ''}
                           onChange={e => setMemberEmail({ ...memberEmail, [p.id]: e.target.value })}
-                          className="flex-1 min-w-0 p-2 bg-slate-50 rounded-lg text-xs font-bold" />
+                          className="flex-1 min-w-0 p-2 bg-slate-50 rounded-lg text-xs font-bold text-slate-900" />
                         <div className="flex gap-2">
                           <select value={memberRole[p.id] || 'owner'} onChange={e => setMemberRole({ ...memberRole, [p.id]: e.target.value })}
-                            className="flex-1 p-2 bg-slate-50 rounded-lg text-xs font-bold">
+                            className="flex-1 p-2 bg-slate-50 rounded-lg text-xs font-bold text-slate-900">
                             <option value="owner">Admin</option>
                             <option value="asesor">Asesor</option>
                           </select>

@@ -1,7 +1,7 @@
 import { createAdminClient, createClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import { escHtml } from '@/lib/emailHelpers';
+import { escHtml, emailHeader, emailFooter } from '@/lib/emailHelpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,7 +110,7 @@ export async function POST(request) {
 
       // Obtener info del partner para personalizar correos
       const { data: partner } = await admin
-        .from('partners').select('name, type').eq('id', body.partner_id).single();
+        .from('partners').select('name, type, logo_url').eq('id', body.partner_id).single();
       if (!partner) return NextResponse.json({ error: 'Socio no encontrado' }, { status: 404 });
 
       // Obtener código activo del partner para mostrarlo en bienvenida
@@ -146,12 +146,23 @@ export async function POST(request) {
           to:      [email],
           subject: `Bienvenido al programa de socios BitaFly — ${escHtml(partner.name)}`,
           html: `
-            <p>Hola${prof.full_name ? ` ${escHtml(prof.full_name)}` : ''},</p>
-            <p>Ya tienes acceso al panel de socio de <strong>${escHtml(partner.name)}</strong> en BitaFly.</p>
-            ${firstCode ? `<p>Tu código de ventas: <strong style="font-size:1.3em;letter-spacing:.05em">${escHtml(firstCode.code)}</strong></p>` : ''}
-            <p><a href="${escHtml(appUrl)}/socio" style="background:#ea580c;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Ver mi panel</a></p>
-            <p style="color:#94a3b8;font-size:.85em">— Equipo BitaFly</p>
-          `,
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f7f8fa;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:40px 0;"><tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;max-width:600px;">
+      ${emailHeader({ partnerLogoUrl: partner.logo_url, partnerName: partner.name })}
+      <tr><td style="padding:40px;">
+        <p style="margin:0 0 16px;font-size:15px;color:#1a202c;">Hola${prof.full_name ? ` ${escHtml(prof.full_name)}` : ''},</p>
+        <p style="margin:0 0 16px;font-size:15px;color:#4a5568;line-height:1.6;">Ya tienes acceso al panel de socio de <strong>${escHtml(partner.name)}</strong> en BitaFly.</p>
+        ${firstCode ? `<p style="margin:0 0 16px;font-size:15px;color:#4a5568;">Tu código de ventas: <strong style="font-size:1.2em;letter-spacing:.05em">${escHtml(firstCode.code)}</strong></p>` : ''}
+        <table cellpadding="0" cellspacing="0" style="margin:24px 0;"><tr><td style="background:#ec5b13;border-radius:10px;">
+          <a href="${escHtml(appUrl)}/socio" style="display:inline-block;padding:14px 32px;color:#fff;font-size:15px;font-weight:900;text-decoration:none;">Ver mi panel →</a>
+        </td></tr></table>
+      </td></tr>
+      ${emailFooter()}
+    </table>
+  </td></tr></table>
+</body></html>`,
         });
         if (emailErr) console.error('[master/partners] Resend bienvenida:', emailErr);
 
@@ -181,13 +192,24 @@ export async function POST(request) {
           to:      [email],
           subject: `Invitación: únete al programa de socios de ${escHtml(partner.name)} en BitaFly`,
           html: `
-            <p>Hola,</p>
-            <p>Te han invitado como <strong>${escHtml(roleLabel)}</strong> de <strong>${escHtml(partner.name)}</strong> en el programa de socios de BitaFly.</p>
-            <p>Crea tu cuenta gratuita para acceder a tu panel, ver tus comisiones y gestionar tus clientes:</p>
-            <p><a href="${escHtml(registerUrl)}" style="background:#ea580c;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Crear cuenta y unirme</a></p>
-            <p style="color:#94a3b8;font-size:.8em">Este enlace expira en 7 días. Si no lo solicitaste, puedes ignorarlo.</p>
-            <p style="color:#94a3b8;font-size:.85em">— Equipo BitaFly</p>
-          `,
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f7f8fa;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:40px 0;"><tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;max-width:600px;">
+      ${emailHeader({ partnerLogoUrl: partner.logo_url, partnerName: partner.name })}
+      <tr><td style="padding:40px;">
+        <p style="margin:0 0 16px;font-size:15px;color:#1a202c;">Hola,</p>
+        <p style="margin:0 0 16px;font-size:15px;color:#4a5568;line-height:1.6;">Te han invitado como <strong>${escHtml(roleLabel)}</strong> de <strong>${escHtml(partner.name)}</strong> en el programa de socios de BitaFly.</p>
+        <p style="margin:0 0 16px;font-size:15px;color:#4a5568;line-height:1.6;">Crea tu cuenta gratuita para acceder a tu panel, ver tus comisiones y gestionar tus clientes:</p>
+        <table cellpadding="0" cellspacing="0" style="margin:24px 0;"><tr><td style="background:#ec5b13;border-radius:10px;">
+          <a href="${escHtml(registerUrl)}" style="display:inline-block;padding:14px 32px;color:#fff;font-size:15px;font-weight:900;text-decoration:none;">Crear cuenta y unirme →</a>
+        </td></tr></table>
+        <p style="margin:0;font-size:13px;color:#a0aec0;">Este enlace expira en 7 días. Si no lo solicitaste, puedes ignorarlo.</p>
+      </td></tr>
+      ${emailFooter()}
+    </table>
+  </td></tr></table>
+</body></html>`,
         });
         if (emailErr) console.error('[master/partners] Resend invitación:', emailErr);
 

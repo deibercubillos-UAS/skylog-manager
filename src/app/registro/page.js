@@ -79,6 +79,7 @@ export default function RegisterPage() {
   const setVal = (f, v)     => setForm(p => ({ ...p, [f]: v }));
   const setJ   = (f) => (e) => setJoinForm(p => ({ ...p, [f]: e.target.value }));
 
+  const emailLocked  = !!socioInvite || !!grantToken; // correo fijo por invitación/regalo
   const isPaidPlan   = PLANS.find(p => p.key === form.selectedPlan)?.paid ?? false;
   const CREATE_STEPS = isPaidPlan ? ['Plan', 'Datos', 'Cuenta', 'Pago'] : ['Plan', 'Datos', 'Cuenta'];
   const JOIN_STEPS   = ['Organización', 'Tus datos'];
@@ -102,12 +103,14 @@ export default function RegisterPage() {
         setMode('unirse');
         if (nit) setJoinNit(nit.trim());
       }
-      // Regalo de perfil gratis (socio) → modo "crear" plan piloto con el token
+      // Regalo de perfil gratis (socio) → registro de piloto independiente
+      // con correo pre-llenado y bloqueado, saltando la selección de plan.
       const grant = qs.get('grant');
       if (grant) {
         setGrantToken(grant);
         setMode('crear');
-        setForm(p => ({ ...p, selectedPlan: 'piloto' }));
+        setCreateStep(2);
+        setForm(p => ({ ...p, selectedPlan: 'piloto', type: 'solo', email: (email || p.email) }));
       }
       // Código de socio/asesor en el enlace (opcional)
       const code = qs.get('code') || qs.get('ref');
@@ -694,13 +697,13 @@ export default function RegisterPage() {
                 <div className="relative">
                   <input required type="email" placeholder="correo@empresa.com"
                     value={socioInvite?.email ?? form.email} onChange={set('email')}
-                    readOnly={!!socioInvite}
-                    className={`${INPUT} ${socioInvite ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`} />
-                  {socioInvite && (
+                    readOnly={emailLocked}
+                    className={`${INPUT} ${emailLocked ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`} />
+                  {emailLocked && (
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-base">lock</span>
                   )}
                 </div>
-                {socioInvite && <p className="text-[10px] text-slate-400 font-medium mt-1 px-1">Correo fijo por la invitación — no se puede cambiar.</p>}
+                {emailLocked && <p className="text-[10px] text-slate-400 font-medium mt-1 px-1">Correo fijo por la invitación — no se puede cambiar.</p>}
               </Field>
 
               {isPaidPlan && form.email && (

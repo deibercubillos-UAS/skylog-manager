@@ -89,13 +89,17 @@ export async function GET() {
       }
     }
 
+    // Datos del propio perfil (para el tab Perfil)
+    const { data: meProfile } = await admin
+      .from('profiles').select('email, full_name').eq('id', user.id).maybeSingle();
+
     return NextResponse.json({
-      member: { role: primary.role },
+      member: { role: primary.role, email: meProfile?.email || user.email, name: meProfile?.full_name || null },
       partner: {
         id: partner.id, name: partner.name, type: partner.type, status: partner.status,
         commission_pct: partner.commission_pct,
         free_seats_limit: partner.free_seats_limit, free_seats_used: partner.free_seats_used,
-        free_days: partner.free_days,
+        free_days: partner.free_days, logo_url: partner.logo_url || null,
       },
       codes: codes || [],
       advisors,

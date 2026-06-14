@@ -23,6 +23,7 @@ export default function DashboardLayout({ children }) {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [accessExpired, setAccessExpired] = useState(false);
   const [gracePeriod, setGracePeriod]     = useState({ isGracePeriod: false, daysLeft: 0 });
+  const [isSocio, setIsSocio]             = useState(false);
   const router = useRouter();
 
   // Sidebar abierto por defecto solo en desktop
@@ -120,6 +121,11 @@ export default function DashboardLayout({ children }) {
         setData({ profile: prof, org: orgRes.data, orgPlan });
         setAircraftCount(acCountRes.count ?? 0);
         setActiveFlight(flightRes.data);
+
+        // ¿El usuario es miembro de un socio (escuela/asesor)? → mostrar acceso al panel
+        supabase.from('partner_members').select('id').eq('profile_id', user.id).limit(1)
+          .then(({ data: pm }) => setIsSocio(!!pm?.length))
+          .catch(() => {});
 
         // Suscripción Realtime: si el admin actualiza el plan o el rol desde Supabase,
         // el sidebar se actualiza automáticamente sin que el usuario cierre sesión.
@@ -495,6 +501,17 @@ const footerLinks = footerLinksAll.filter(link =>
                   <span className="hidden sm:inline">Nueva Operación</span>
                 </Link>
               </div>
+            )}
+
+            {isSocio && (
+              <Link
+                href="/socio"
+                title="Panel de socio"
+                className="flex items-center gap-2 bg-orange-50 hover:bg-orange-100 text-orange-700 px-3 md:px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider border border-orange-200 transition-all active:scale-95"
+              >
+                <span className="material-symbols-outlined text-base">handshake</span>
+                <span className="hidden md:inline">Panel Socio</span>
+              </Link>
             )}
 
             <NotificationBell canAnnounce={hasPermission(role, 'canSendAnnouncements')} />

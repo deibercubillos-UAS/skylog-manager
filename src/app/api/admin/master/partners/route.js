@@ -125,6 +125,13 @@ export async function POST(request) {
           .upsert({ partner_id: body.partner_id, profile_id: prof.id, role }, { onConflict: 'partner_id,profile_id' });
         if (error) throw error;
 
+        // Beneficio: el dueño de una ESCUELA obtiene plan Enterprise permanente.
+        if (role === 'owner' && partner.type === 'escuela') {
+          await admin.from('profiles')
+            .update({ subscription_plan: 'enterprise', subscription_expires_at: null })
+            .eq('id', prof.id);
+        }
+
         // Campana in-app (inserción directa — el socio puede ser de cualquier org)
         try {
           const { data: profFull } = await admin.from('profiles').select('organization_id').eq('id', prof.id).single();
@@ -276,6 +283,23 @@ export async function PATCH(request) {
 
     const { data, error } = await admin.from('partners').update(safe).eq('id', id).select().single();
     if (error) throw error;
+
+    // Sincronizar plan Enterprise de los dueños cuando cambia el estado de una escuela.
+    if ('status' in safe && data.type === 'escuela') {
+      const { data: owners } = await admin.from('partner_members')
+        .select('profile_id').eq('partner_id', id).eq('role', 'owner');
+      const ids = (owners || []).map(o => o.profile_id);
+      if (ids.length) {
+        if (data.status === 'activo') {
+          await admin.from('profiles')
+            .update({ subscription_plan: 'enterprise', subscription_expires_at: null }).in('id', ids);
+        } else {
+          await admin.from('profiles')
+            .update({ subscription_plan: 'piloto' }).in('id', ids);
+        }
+      }
+    }
+
     return NextResponse.json(data);
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });

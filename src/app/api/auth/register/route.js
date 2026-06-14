@@ -301,6 +301,17 @@ export async function POST(request) {
                     await supabaseAdmin.from('partner_invitations')
                         .update({ status: 'aceptada' })
                         .eq('id', invite.id);
+
+                    // El dueño de una ESCUELA obtiene plan Enterprise permanente.
+                    if (invite.role === 'owner') {
+                        const { data: invPartner } = await supabaseAdmin
+                            .from('partners').select('type').eq('id', invite.partner_id).maybeSingle();
+                        if (invPartner?.type === 'escuela') {
+                            await supabaseAdmin.from('profiles')
+                                .update({ subscription_plan: 'enterprise', subscription_expires_at: null })
+                                .eq('id', authData.user.id);
+                        }
+                    }
                 }
             } catch { /* no crítico — el registro no debe fallar por esto */ }
         }

@@ -206,7 +206,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      const payload = { ...form, grant: grantToken, socio_invite: socioInvite?.token || null, attribution: getAttribution() };
+      const payload = { ...form, grant: grantToken, socio_invite: socioInvite?.token || null, partnerCode: partnerCode || null, attribution: getAttribution() };
       if (socioInvite?.email) payload.email = socioInvite.email; // garantía: email del token, no del form
       const res    = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const result = await res.json();
@@ -729,10 +729,11 @@ export default function RegisterPage() {
                 <Field label="Ciudad"><input placeholder="Bogotá" value={form.city} onChange={set('city')} className={INPUT} /></Field>
               </div>
 
-              {isPaidPlan && (
+              {!emailLocked && (
                 <Field label="Código de escuela / asesor (opcional)">
                   <input placeholder="Ej: EAC-XB12" value={partnerCode}
                     onChange={e => setPartnerCode(e.target.value.toUpperCase())} className={`${INPUT} font-mono`} />
+                  <p className="text-[10px] text-slate-400 font-medium mt-1 px-1">Si una escuela o asesor te recomendó BitaFly, ingresa su código.</p>
                 </Field>
               )}
 

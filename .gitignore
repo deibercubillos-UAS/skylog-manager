@@ -47,3 +47,10 @@ next-env.d.ts
 # docs/ — descomentado para versionar documentación del proyecto
 # docs/
 graphify-out/
+
+# archivos temporales de Office (lock files)
+~$*
+*.tmp
+
+# parches sueltos
+*.patch

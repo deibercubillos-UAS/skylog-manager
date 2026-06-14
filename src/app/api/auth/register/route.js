@@ -22,7 +22,7 @@ export async function POST(request) {
         }
 
         const body = await request.json();
-        const { email, password, firstName, lastName, phone, city, type, role, orgCode, companyName, nit, joinMode, attribution, grant: grantToken, socio_invite: socioInviteToken } = body;
+        const { email, password, firstName, lastName, phone, city, type, role, orgCode, companyName, nit, joinMode, attribution, grant: grantToken, socio_invite: socioInviteToken, partnerCode } = body;
         const signupAttribution = (attribution && typeof attribution === 'object') ? (attribution.first || null) : null;
         const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -301,6 +301,34 @@ export async function POST(request) {
                     await supabaseAdmin.from('partner_invitations')
                         .update({ status: 'aceptada' })
                         .eq('id', invite.id);
+                }
+            } catch { /* no crítico — el registro no debe fallar por esto */ }
+        }
+
+        // ── Código de escuela/asesor en registro libre: vincular referido ──────
+        // Crea la relación org↔socio (referral) para dar visibilidad/crédito al
+        // socio. La comisión real se atribuye al pagar (webhook attributeCommission).
+        if (partnerCode && createdNewOrg && targetOrgId) {
+            try {
+                const norm = String(partnerCode).trim().toUpperCase();
+                const { data: pc } = await supabaseAdmin
+                    .from('partner_codes').select('partner_id, active').eq('code', norm).maybeSingle();
+                if (pc && pc.active) {
+                    const { data: seller } = await supabaseAdmin
+                        .from('partners').select('id, status').eq('id', pc.partner_id).maybeSingle();
+                    if (seller && seller.status === 'activo') {
+                        const { data: existingRef } = await supabaseAdmin
+                            .from('referrals').select('id').eq('org_id', targetOrgId).maybeSingle();
+                        if (!existingRef) {
+                            await supabaseAdmin.from('referrals').insert({
+                                partner_id: seller.id,
+                                code:       norm,
+                                org_id:     targetOrgId,
+                                plan:       'piloto',
+                                status:     'activa',
+                            });
+                        }
+                    }
                 }
             } catch { /* no crítico — el registro no debe fallar por esto */ }
         }

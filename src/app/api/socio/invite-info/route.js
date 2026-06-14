@@ -31,6 +31,7 @@ export async function GET(request) {
       partner_name: invite.partners?.name,
       partner_type: invite.partners?.type,
       role:         invite.role,
+      email:        invite.email,
     });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });

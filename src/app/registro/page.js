@@ -113,7 +113,7 @@ export default function RegisterPage() {
       const code = qs.get('code') || qs.get('ref');
       if (code) setPartnerCode(code.trim().toUpperCase());
 
-      // Invitación de socio → mostrar banner y pre-configurar modo crear
+      // Invitación de socio → pre-llenar email, saltar al paso de datos
       const socioToken = qs.get('socio_invite');
       if (socioToken) {
         fetch(`/api/socio/invite-info?token=${encodeURIComponent(socioToken)}`)
@@ -122,6 +122,10 @@ export default function RegisterPage() {
             if (info) {
               setSocioInvite({ token: socioToken, ...info });
               setMode('crear');
+              setCreateStep(2); // saltar selección de plan
+              if (info.email) {
+                setForm(p => ({ ...p, email: info.email, selectedPlan: 'piloto', type: 'solo' }));
+              }
             }
           })
           .catch(() => {});
@@ -208,7 +212,7 @@ export default function RegisterPage() {
       const { error: signInErr } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
       if (signInErr) { window.location.href = '/login?registered=1'; return; }
       trackEvent('sign_up', { method: 'email', plan: form.selectedPlan || 'piloto', ...attributionParams() });
-      window.location.href = '/dashboard';
+      window.location.href = socioInvite ? '/socio' : '/dashboard';
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };
@@ -579,8 +583,8 @@ export default function RegisterPage() {
             <span className="text-2xl font-black text-navy uppercase tracking-tighter">Bitafly</span>
           </Link>
 
-          {/* Progress — crear */}
-          <div className="flex items-center gap-2 mb-8">
+          {/* Progress — crear (oculto en flujo de invitación socio) */}
+          {!socioInvite && <div className="flex items-center gap-2 mb-8">
             {CREATE_STEPS.map((label, i) => {
               const n = i + 1;
               const done   = createStep > n;
@@ -595,7 +599,7 @@ export default function RegisterPage() {
                 </div>
               );
             })}
-          </div>
+          </div>}
 
           {error && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 rounded-xl px-4 py-3 text-xs font-bold mb-5">
@@ -659,7 +663,23 @@ export default function RegisterPage() {
 
           {/* ── CREAR PASO 2: Datos personales ── */}
           {createStep === 2 && (
-            <form onSubmit={goNext} className="space-y-5 animate-in fade-in duration-300">
+            <form onSubmit={socioInvite ? handleRegisterFree : goNext} className="space-y-5 animate-in fade-in duration-300">
+
+              {/* Banner invitación socio */}
+              {socioInvite && (
+                <div className="flex items-start gap-3 p-4 rounded-2xl bg-orange-50 border border-orange-200">
+                  <span className="material-symbols-outlined text-orange-500 text-xl mt-0.5">handshake</span>
+                  <div>
+                    <p className="text-sm font-black text-orange-800">
+                      Invitación de {socioInvite.partner_type === 'escuela' ? 'escuela' : 'socio'}: <span className="text-orange-600">{socioInvite.partner_name}</span>
+                    </p>
+                    <p className="text-xs text-orange-600 mt-0.5">
+                      Rol: <strong>{socioInvite.role === 'owner' ? 'Representante / Dueño' : 'Asesor de ventas'}</strong>. Al crear tu cuenta quedarás vinculado automáticamente.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <h1 className="font-lexend text-3xl font-black text-navy uppercase tracking-tighter">Tus datos</h1>
                 <p className="text-slate-500 text-sm mt-1">Información de tu cuenta Bitafly.</p>
@@ -671,7 +691,16 @@ export default function RegisterPage() {
               </div>
 
               <Field label="Correo electrónico" required>
-                <input required type="email" placeholder="correo@empresa.com" value={form.email} onChange={set('email')} className={INPUT} />
+                <div className="relative">
+                  <input required type="email" placeholder="correo@empresa.com"
+                    value={form.email} onChange={set('email')}
+                    readOnly={!!socioInvite}
+                    className={`${INPUT} ${socioInvite ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`} />
+                  {socioInvite && (
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-base">lock</span>
+                  )}
+                </div>
+                {socioInvite && <p className="text-[10px] text-slate-400 font-medium mt-1 px-1">Correo fijo por la invitación — no se puede cambiar.</p>}
               </Field>
 
               {isPaidPlan && form.email && (
@@ -705,8 +734,15 @@ export default function RegisterPage() {
               )}
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setCreateStep(1)} className="px-6 py-4 rounded-2xl border border-slate-200 text-sm font-black text-slate-500 hover:border-slate-400 transition-all">Atrás</button>
-                <button type="submit" className="flex-1 bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all">Continuar</button>
+                <button type="button" onClick={() => socioInvite ? setMode(null) : setCreateStep(1)}
+                  className="px-6 py-4 rounded-2xl border border-slate-200 text-sm font-black text-slate-500 hover:border-slate-400 transition-all">Atrás</button>
+                <button type="submit" disabled={loading}
+                  className="flex-1 bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                  {loading
+                    ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Creando cuenta...</>
+                    : socioInvite ? 'Crear cuenta y unirme' : 'Continuar'
+                  }
+                </button>
               </div>
             </form>
           )}

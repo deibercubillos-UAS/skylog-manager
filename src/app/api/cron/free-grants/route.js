@@ -75,7 +75,7 @@ export async function GET(request) {
 
           try {
             await resend.emails.send({
-              from:    'BitaFly <no-reply@bitafly.co>',
+              from:    'BitaFly <no-reply@bitafly.com>',
               to:      [escHtml(grant.email)],
               subject: 'Tu período gratuito en BitaFly ha vencido',
               html: `
@@ -125,7 +125,7 @@ export async function GET(request) {
 
         try {
           await resend.emails.send({
-            from:    'BitaFly <no-reply@bitafly.co>',
+            from:    'BitaFly <no-reply@bitafly.com>',
             to:      [escHtml(grant.email)],
             subject: 'Tus datos de BitaFly han sido eliminados',
             html: `

@@ -158,7 +158,7 @@ export async function POST(request) {
     const panelLink    = `${process.env.NEXT_PUBLIC_APP_URL || 'https://bitafly.co'}/socio`;
 
     const { error: emailErr } = await resend.emails.send({
-      from:    'BitaFly Socios <no-reply@bitafly.co>',
+      from:    'BitaFly Socios <no-reply@bitafly.com>',
       to:      [normalEmail],
       subject: `${escHtml(school.name)} te invita como asesor en BitaFly`,
       html: `

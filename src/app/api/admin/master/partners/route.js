@@ -138,7 +138,7 @@ export async function POST(request) {
 
         // Correo de bienvenida
         const { error: emailErr } = await resend.emails.send({
-          from:    'BitaFly Socios <no-reply@bitafly.co>',
+          from:    'BitaFly Socios <no-reply@bitafly.com>',
           to:      [email],
           subject: `Bienvenido al programa de socios BitaFly — ${escHtml(partner.name)}`,
           html: `
@@ -173,7 +173,7 @@ export async function POST(request) {
         const roleLabel   = role === 'owner' ? 'dueño/representante' : 'asesor de ventas';
 
         const { error: emailErr } = await resend.emails.send({
-          from:    'BitaFly Socios <no-reply@bitafly.co>',
+          from:    'BitaFly Socios <no-reply@bitafly.com>',
           to:      [email],
           subject: `Invitación: únete al programa de socios de ${escHtml(partner.name)} en BitaFly`,
           html: `

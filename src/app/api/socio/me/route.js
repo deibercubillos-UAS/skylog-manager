@@ -56,6 +56,39 @@ export async function GET() {
       });
     }
 
+    // Asesores hijos (solo si es owner de una escuela)
+    let advisors = [];
+    if (primary.role === 'owner' && partner.type === 'escuela') {
+      const { data: childPartners } = await admin
+        .from('partners')
+        .select('id, name, status, commission_pct, free_seats_used')
+        .eq('parent_partner_id', partner.id)
+        .eq('type', 'asesor')
+        .order('created_at', { ascending: false });
+
+      if (childPartners?.length) {
+        const childIds = childPartners.map(c => c.id);
+        const [{ data: childCodes }, { data: childMembers }, { data: childRefs }] = await Promise.all([
+          admin.from('partner_codes').select('partner_id, code, active').in('partner_id', childIds),
+          admin.from('partner_members')
+            .select('partner_id, role, profiles:profile_id(email, full_name)')
+            .in('partner_id', childIds),
+          admin.from('referrals').select('partner_id, status').in('partner_id', childIds),
+        ]);
+        const cByP = {}, mByP = {}, rByP = {};
+        (childCodes   || []).forEach(c => { (cByP[c.partner_id] ||= []).push(c); });
+        (childMembers || []).forEach(m => { (mByP[m.partner_id] ||= []).push(m); });
+        (childRefs    || []).forEach(r => { (rByP[r.partner_id] ||= []).push(r); });
+        advisors = childPartners.map(a => ({
+          id: a.id, name: a.name, status: a.status,
+          codes:   cByP[a.id] || [],
+          members: (mByP[a.id] || []).map(m => ({ role: m.role, email: m.profiles?.email, name: m.profiles?.full_name })),
+          referrals_active: (rByP[a.id] || []).filter(r => r.status === 'activa').length,
+          referrals_total:  (rByP[a.id] || []).length,
+        }));
+      }
+    }
+
     return NextResponse.json({
       member: { role: primary.role },
       partner: {
@@ -65,6 +98,7 @@ export async function GET() {
         free_days: partner.free_days,
       },
       codes: codes || [],
+      advisors,
       stats: {
         grants_total:    (grants || []).length,
         grants_active:   (grants || []).filter(g => g.status === 'activado').length,

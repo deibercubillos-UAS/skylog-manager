@@ -19,7 +19,7 @@ export async function GET(request) {
 
     const { data: invite } = await admin
       .from('partner_invitations')
-      .select('role, status, expires_at, partners:partner_id(name, type)')
+      .select('email, role, status, expires_at, partners:partner_id(name, type)')
       .eq('token', token)
       .maybeSingle();
 

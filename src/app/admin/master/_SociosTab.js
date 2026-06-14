@@ -85,10 +85,13 @@ export default function SociosTab() {
 
   const [memberEmail, setMemberEmail] = useState({}); // {partnerId: email}
   const [memberRole, setMemberRole]   = useState({}); // {partnerId: role}
+  const [addingMember, setAddingMember] = useState({}); // {partnerId: bool} — evita doble envío
 
   const addMember = async (partnerId) => {
+    if (addingMember[partnerId]) return; // ya hay un envío en curso
     const email = (memberEmail[partnerId] || '').trim();
     if (!email) { toast.warn('Ingresa un correo'); return; }
+    setAddingMember(v => ({ ...v, [partnerId]: true }));
     try {
       const res = await fetch('/api/admin/master/partners', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -104,6 +107,7 @@ export default function SociosTab() {
       setMemberEmail({ ...memberEmail, [partnerId]: '' });
       load();
     } catch (err) { toast.error(err.message); }
+    finally { setAddingMember(v => ({ ...v, [partnerId]: false })); }
   };
 
   const removeMember = async (memberId) => {
@@ -304,7 +308,10 @@ export default function SociosTab() {
                           <option value="owner">Admin</option>
                           <option value="asesor">Asesor</option>
                         </select>
-                        <button onClick={() => addMember(p.id)} className="px-3 py-2 bg-slate-900 text-white rounded-lg text-xs font-black uppercase whitespace-nowrap">Vincular</button>
+                        <button onClick={() => addMember(p.id)} disabled={addingMember[p.id]}
+                          className="px-3 py-2 bg-slate-900 text-white rounded-lg text-xs font-black uppercase whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed">
+                          {addingMember[p.id] ? 'Enviando...' : 'Vincular'}
+                        </button>
                       </div>
                     </div>
                   </div>

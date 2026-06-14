@@ -1,8 +1,8 @@
 // GET /api/cron/free-grants — Vercel Cron (daily 13:30 UTC)
-// 1. Degrades expired free grants (expires_at <= now, status='activado')
-// 2. Purges org data 3 months after expiry (purge_after <= now, status='degradado')
+// 1. Degrada grants expirados (expires_at <= now, status 'activado' O 'enviado')
+// 2. Purga datos operacionales 3 meses después (purge_after <= now, status='degradado')
 //
-// Secured with Authorization: Bearer CRON_SECRET (set in Vercel env vars)
+// Secured con Authorization: Bearer CRON_SECRET
 
 import { NextResponse } from 'next/server';
 import { createClient }  from '@supabase/supabase-js';
@@ -21,7 +21,7 @@ function makeAdmin() {
 
 function verifyAuth(request) {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return false; // env not set → refuse
+  if (!secret) return false;
   const auth = request.headers.get('authorization') || '';
   return auth === `Bearer ${secret}`;
 }
@@ -37,18 +37,17 @@ export async function GET(request) {
 
   const results = { degraded: 0, purged: 0, errors: [] };
 
-  // ── 1. Degradar grants expirados ─────────────────────────────────────────
+  // ── 1. Degradar grants expirados (activado O enviado sin redimir) ─────────
   const { data: expired } = await admin
     .from('free_grants')
-    .select('id, email, partner_id, redeemed_org_id')
-    .eq('status', 'activado')
+    .select('id, email, redeemed_org_id')
+    .in('status', ['activado', 'enviado'])   // incluye huérfanos sin redimir
     .lte('expires_at', now);
 
   for (const grant of expired || []) {
     try {
-      // Degradar perfil: plan piloto (read-only), limpiar subscription_expires_at
+      // Solo notificar/degradar perfil si el grant fue redimido
       if (grant.redeemed_org_id) {
-        // Buscar el admin de esa org
         const { data: orgAdmin } = await admin
           .from('profiles')
           .select('id, email, organization_id')
@@ -63,23 +62,21 @@ export async function GET(request) {
             updated_at:              now,
           }).eq('id', orgAdmin.id);
 
-          // Notificación campana
           try {
             await createNotifications({
-              orgId:     grant.redeemed_org_id,
-              roles:     ['admin'],
-              type:      'system',
-              title:     'Tu período gratuito ha vencido',
-              body:      'Tu acceso piloto gratuito expiró. Suscríbete para seguir usando BitaFly.',
-              link:      '/dashboard/subscription',
+              orgId: grant.redeemed_org_id,
+              roles: ['admin'],
+              type:  'system',
+              title: 'Tu período gratuito ha vencido',
+              body:  'Tu acceso piloto gratuito expiró. Suscríbete para seguir usando BitaFly.',
+              link:  '/dashboard/subscription',
             });
           } catch { /* no crítico */ }
 
-          // Correo
           try {
             await resend.emails.send({
               from:    'BitaFly <no-reply@bitafly.co>',
-              to:      [grant.email],
+              to:      [escHtml(grant.email)],
               subject: 'Tu período gratuito en BitaFly ha vencido',
               html: `
                 <p>Hola,</p>
@@ -93,7 +90,6 @@ export async function GET(request) {
         }
       }
 
-      // Marcar grant como degradado
       await admin.from('free_grants')
         .update({ status: 'degradado', updated_at: now })
         .eq('id', grant.id);
@@ -118,7 +114,7 @@ export async function GET(request) {
       if (grant.redeemed_org_id) {
         const orgId = grant.redeemed_org_id;
 
-        // Eliminar datos operacionales de la org (en orden por FK)
+        // Eliminar datos operacionales en orden por FK
         await admin.from('flights').delete().eq('organization_id', orgId);
         await admin.from('maintenance_logs').delete().eq('organization_id', orgId);
         await admin.from('batteries').delete().eq('organization_id', orgId);
@@ -127,7 +123,6 @@ export async function GET(request) {
         await admin.from('flight_authorizations').delete().eq('organization_id', orgId);
         await admin.from('flight_plans').delete().eq('organization_id', orgId);
 
-        // Correo de aviso de eliminación
         try {
           await resend.emails.send({
             from:    'BitaFly <no-reply@bitafly.co>',

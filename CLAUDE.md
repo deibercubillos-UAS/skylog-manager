@@ -24,8 +24,10 @@ app/
 │   ├── maintenance/   ← attachment_path incluido
 │   ├── epayco/        ← webhook, verify, checkout
 │   ├── subscription/  ← cancel
+│   ├── socio/         ← me, grants, advisors, reports (panel de escuelas/asesores)
+│   ├── cron/          ← free-grants (expiración y purga de perfiles gratis)
 │   ├── sora/ · sms/ · reports/ · dashboard/
-│   └── admin/master/  ← superadmin (middleware protege /api/admin/*) + epayco-subscriptions (listar/cancelar)
+│   └── admin/master/  ← superadmin + epayco-subscriptions + partners + commissions
 └── dashboard/         ← páginas client-side
 
 components/
@@ -46,7 +48,8 @@ lib/
 ├── djiParser.js        ← parseDjiTxtBuffer() — requiere DJI_API_KEY
 ├── epaycoActivation.js ← activatePlanForUser() — idempotente
 ├── emailHelpers.js     ← escHtml()
-└── rateLimiter.js      ← checkRateLimit() + getClientIp()
+├── rateLimiter.js      ← checkRateLimit() + getClientIp()
+└── partnerReferral.js  ← attributeCommission() — atribución recurrente de comisiones a socios
 ```
 
 ---
@@ -433,11 +436,68 @@ Vista completa de desarrollo con: ScoreGauge SVG · WindCompass SVG · barras de
 
 ---
 
+## Programa de Socios (Escuelas / Asesores)
+
+Sistema de referidos B2B: escuelas de formación UAS y asesores independientes pueden regalar perfiles gratis y recibir comisiones recurrentes por ventas de planes pagados.
+
+### Tablas (migraciones `20260613_partners_program.sql` + `20260613_partners_pending_code.sql` + `20260614_partner_program_fixes.sql`)
+
+| Tabla | Descripción |
+|---|---|
+| `partners` | Escuela o asesor. `type` (escuela/asesor), `parent_partner_id` (asesor → escuela), `commission_pct`, `free_seats_limit`/`free_seats_used`, `free_days`, `status` |
+| `partner_codes` | Códigos de venta únicos (`code` UNIQUE). Generados como INICIALES-XXXX (ej. EAC-XB12). Cada partner puede tener varios. |
+| `partner_members` | Quién accede al panel `/socio`. `role`: `owner` (crea asesores, ve todo) o `asesor` (solo sus datos). Solo service role puede escribir. |
+| `free_grants` | 1 por email, no renovable. `status`: `enviado→activado→degradado→purgado`. `expires_at` + `purge_after` (expiry + 90 días). `redeemed_org_id` al canjearse. Tiene `updated_at`. |
+| `referrals` | 1 por org. Relación org-cliente ↔ partner. `status`: `activa/cancelada`. Se cancela al cancelar la suscripción. |
+| `referral_commissions` | Una fila por ciclo de pago (recurrente). Idempotente por `ref_payco` (UNIQUE index). `status`: `pendiente/liquidada/anulada`. Tiene `updated_at`. |
+
+**RLS**: SELECT para miembros del socio (`private.user_partner_ids()`); INSERT/UPDATE/DELETE solo service role.
+
+### Flujo de comisión
+1. Usuario paga con código → `pending_subscriptions.partner_code` → webhook → `attributeCommission()` (`lib/partnerReferral.js`)
+2. Si el vendedor es asesor hijo de una escuela, el `%` que aplica es el de la **escuela** (BitaFly paga a la escuela, no al asesor directamente)
+3. Cada pago genera 1 fila en `referral_commissions` (idempotente por `ref_payco`)
+4. Al cancelar suscripción (self o Master): `referrals.status = 'cancelada'`
+5. Master liquida desde el tab **Comisiones** → PATCH `status='liquidada'`
+
+### Perfiles gratis
+- Escuelas/asesores regalan perfiles piloto con período de gracia (`free_days`, default 90)
+- `POST /api/socio/grants { email }`: valida cupo, unicidad global, envía correo con link `?grant=<token>`
+- Al registrarse con `?grant=<token>`: `subscription_expires_at = grants.expires_at`
+- **Cron diario** (`vercel.json`, 13:30 UTC → `GET /api/cron/free-grants`, secured con `CRON_SECRET`):
+  - Degrada grants `IN ('activado','enviado')` con `expires_at <= now` → `status='degradado'`, baja perfil a piloto, notifica
+  - Purga grants `status='degradado'` con `purge_after <= now` → elimina datos operacionales de la org, notifica
+- ⚠️ `CRON_SECRET` debe estar configurado en Vercel env vars
+
+### Rutas del panel de socio (`/socio`)
+- **Guard**: `src/app/socio/layout.js` → llama `/api/socio/me`, redirige si 401/403
+- `/api/socio/me` — contexto completo (partner, codes, stats, advisors para escuelas)
+- `/api/socio/grants` — GET lista regalos, POST regalar
+- `/api/socio/advisors` — GET/POST/DELETE gestión de asesores (solo owner de escuela)
+- `/api/socio/reports?months=N` — historial por período, desglose por asesor, detalle de comisiones
+
+### Rutas Master (`/admin/master`)
+- `/api/admin/master/partners` — CRUD de socios: crear, editar, agregar código, vincular miembro, desactivar
+- `/api/admin/master/commissions` — GET comisiones agrupadas por partner/período, POST liquida por IDs
+- Tab **Socios** (`_SociosTab.js`) — crea escuelas/asesores, jerarquía, miembros, copiar códigos
+- Tab **Comisiones** (`_ComisionesTab.js`) — filtros pendiente/liquidada, acordeón por socio, "Liquidar todo" o por período
+
+### Reglas críticas
+- **Código en checkout**: campo opcional en `/dashboard/subscription` → `POST /api/epayco/checkout` → `pending_subscriptions.partner_code`
+- **Atribución en webhook** (`/api/epayco/webhook`): captura `partner_code` del pending, llama `attributeCommission()` en try/catch (nunca rompe la activación)
+- **Ser socio ≠ nuevo rol**: se detecta por filas en `partner_members`, no por `profiles.role` → no afecta RLS operacional
+- **1 grant por email globalmente**: `free_grants.email UNIQUE` → no se puede renovar aunque expire
+- **Asesor independiente vs hijo de escuela**: el `%` de comisión siempre viene del partner de más alto nivel (escuela). Si el vendedor es asesor sin padre, usa su propio `%`
+
+---
+
 ## Pendientes de infraestructura
 
 - [ ] Agregar `DJI_API_KEY` a Vercel env vars
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a Vercel env vars
 - [ ] Agregar `AEROCIVIL_SALT` a Vercel env vars (el fallback inseguro ya fue removido — el endpoint lanza error si falta la variable)
+- [ ] Agregar `CRON_SECRET` a Vercel env vars (cualquier string aleatorio seguro — protege `GET /api/cron/free-grants`)
+- [ ] **Aplicar migración** `supabase/migrations/20260614_partner_program_fixes.sql` en Supabase (añade `updated_at` a `free_grants`/`referral_commissions` + `'purgado'` al CHECK de `free_grants.status`)
 - [ ] Habilitar `auth_leaked_password_protection` → Supabase > Authentication > Settings > Password Strength
 - [x] **Bucket `documents` privado** (Fase G, 2026-06-12): era PÚBLICO con cédulas/certificados médicos/diplomas accesibles sin auth. Ahora privado; acceso vía `GET /api/documents/open?path=` (valida org → 302 a signed URL 1h). `FileUpload.js` guarda *path*; `lib/docUrl.js` (`docPath`/`docOpenUrl`) resuelve paths y URLs legacy. Consumidores (avatares, links de docs, PDF de expediente) usan el endpoint. URLs públicas en BD migradas a paths (`supabase/migrations/20260612_documents_private.sql`). Nota: el CDN puede servir copias cacheadas de URLs ya accedidas hasta ~1h.
 - [x] `EPAYCO_P_KEY` agregada a Vercel (firma del webhook)

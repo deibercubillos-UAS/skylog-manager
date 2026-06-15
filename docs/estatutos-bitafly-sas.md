@@ -305,20 +305,163 @@ mediante el siguiente orden:
 
 ## CAPÍTULO VII — DISPOSICIONES FINALES
 
-### Artículo 20. ACUERDO DE ACCIONISTAS
+### Artículo 20. DERECHO DE ARRASTRE — DRAG-ALONG
 
-Los accionistas podrán celebrar acuerdos parasociales sobre:
-- Restricciones adicionales a la transferencia de acciones.
-- Derechos de arrastre (drag-along) y acompañamiento (tag-along).
-- Mecanismos antidilución para inversionistas.
-- Derechos de información y veto sobre decisiones específicas.
+**20.1. Activación:** Si accionistas que representen el **70% o más del capital
+suscrito** reciben una oferta de compra en firme de un tercero de buena fe por
+la totalidad o control de la sociedad, podrán exigir a los demás accionistas
+(**"accionistas arrastrados"**) que vendan sus acciones al mismo adquirente,
+en las mismas condiciones económicas (precio por acción, forma y plazo de pago).
 
-Dichos acuerdos deberán depositarse en la sociedad y ser oponibles a esta
-cuando sean notificados formalmente al Representante Legal.
+**20.2. Procedimiento:**
+- Los accionistas mayoritarios notificarán por escrito a los demás con mínimo
+  **20 días hábiles** de anticipación, adjuntando los términos de la oferta.
+- Los accionistas arrastrados podrán **objetar** únicamente si demuestran que
+  el precio ofrecido es inferior al valor patrimonial determinado por perito
+  independiente, en cuyo caso se abrirá un período de **10 días hábiles**
+  para renegociar.
+- Si no hay objeción válida o no se llega a acuerdo, la venta procede en los
+  términos originales.
+
+**20.3. Protecciones del accionista arrastrado:**
+- El precio no podrá ser inferior al valor nominal de las acciones.
+- Las condiciones económicas deben ser idénticas para todos los accionistas
+  (mismo precio por acción, misma moneda, mismo plazo).
+- No se podrá imponer al accionista arrastrado responsabilidades, garantías
+  o indemnizaciones más allá de la representación de título limpio sobre
+  sus propias acciones.
+- Los accionistas arrastrados recibirán el mismo tipo de contraprestación
+  (efectivo, acciones del adquirente u otro instrumento).
+
+**Nota de balance:** El umbral del 70% evita que minorías bloqueen una venta
+beneficiosa para la compañía, pero impide que accionistas con mayoría simple
+(51%) fuercen una salida sin consenso amplio.
 
 ---
 
-### Artículo 21. DISPOSICIONES NO PREVISTAS
+### Artículo 21. DERECHO DE ACOMPAÑAMIENTO — TAG-ALONG
+
+**21.1. Alcance:** Si uno o más accionistas (**"accionistas vendedores"**) desean
+transferir acciones a un tercero en una operación que represente el **20% o más
+del capital suscrito**, los demás accionistas tendrán derecho a vender
+proporcionalmente sus acciones al mismo adquirente, en las mismas condiciones.
+
+**21.2. Procedimiento:**
+- El accionista vendedor notificará por escrito a los demás con **15 días
+  hábiles** de anticipación, indicando identidad del comprador, precio,
+  condiciones y número de acciones a vender.
+- Cada accionista tendrá **10 días hábiles** para manifestar su intención
+  de acompañar la venta, indicando el número de acciones que desea vender.
+- Si el comprador no desea adquirir el total de acciones ofrecidas (propias +
+  acompañamiento), el número se reducirá proporcionalmente entre todos los
+  participantes, incluido el vendedor original.
+- Si el vendedor no acepta la reducción, la operación no podrá realizarse
+  sin el consentimiento de los accionistas que ejercieron el tag-along.
+
+**21.3. Excepciones:** No aplica tag-along en:
+- Transferencias entre accionistas existentes de la sociedad.
+- Transferencias a vehículos de propiedad del mismo accionista (holding,
+  fiducia irrevocable o similar), siempre que se mantenga el control efectivo.
+- Donaciones a familiares en primer grado de consanguinidad.
+
+**Nota de balance:** Protege a los accionistas minoritarios (incluidos
+inversionistas con pequeñas participaciones) de quedar atrapados con un nuevo
+socio mayoritario que no eligieron, sin obligar al comprador a adquirir
+más de lo que desea.
+
+---
+
+### Artículo 22. PROTECCIÓN ANTIDILUCIÓN
+
+**22.1. Derechos pro-rata en nuevas emisiones:** Antes de emitir nuevas
+acciones a terceros, la sociedad ofrecerá a los accionistas existentes el
+derecho a suscribir nuevas acciones en proporción a su participación actual,
+al mismo precio y en las mismas condiciones de la nueva emisión, con un plazo
+mínimo de **15 días hábiles** para ejercerlo.
+
+**22.2. Antidilución por precio — Promedio ponderado (Broad-based Weighted
+Average):** Si la sociedad emite nuevas acciones a un precio inferior al precio
+pagado por un inversionista en una ronda previa, dicho inversionista recibirá
+acciones adicionales o un ajuste en el precio de conversión (si aplica)
+calculado mediante la fórmula de promedio ponderado amplio:
+
+```
+Precio ajustado = Precio original × (Acciones previas + Acciones al precio nuevo)
+                                    ──────────────────────────────────────────────
+                                    (Acciones previas + Acciones nuevas emitidas)
+```
+
+Este mecanismo es **más equilibrado que el ratchet completo** (full ratchet),
+pues toma en cuenta el volumen de la nueva emisión y no castiga a la compañía
+por rondas menores o instrumentos de deuda convertible.
+
+**22.3. Excepciones a la antidilución:** No se activa antidilución por:
+- Emisión de acciones por planes de compensación a empleados aprobados
+  por la Asamblea (máximo 10% del capital autorizado).
+- Conversión de instrumentos de deuda ya pactados.
+- Acciones emitidas como contraprestación en fusiones o adquisiciones
+  aprobadas por la Asamblea.
+- Acciones emitidas a proveedores estratégicos con aprobación del 70%
+  de la Asamblea.
+
+---
+
+### Artículo 23. DERECHOS DE INFORMACIÓN
+
+**23.1. Información periódica:** Los accionistas que posean individualmente
+el **5% o más** del capital suscrito tendrán derecho a recibir:
+- **Mensualmente:** Reporte de métricas operativas clave (usuarios activos,
+  MRR, churn) en los primeros 10 días del mes siguiente.
+- **Trimestralmente:** Estados financieros (P&G, balance, flujo de caja)
+  sin auditar, dentro de los 30 días siguientes al cierre del trimestre.
+- **Anualmente:** Estados financieros auditados o certificados, junto con
+  informe de gestión del Representante Legal.
+
+**23.2. Información extraordinaria:** Ante eventos materiales (pérdida >20%
+del capital, demandas superiores a $100M COP, cambios regulatorios críticos
+o cambios en el equipo directivo), el Representante Legal notificará a todos
+los accionistas dentro de las **48 horas** siguientes al conocimiento del evento.
+
+**23.3. Derecho de inspección:** Accionistas con 5% o más podrán inspeccionar
+los libros contables y registros societarios con previo aviso de 5 días hábiles,
+en días y horas hábiles de la sociedad, sin interrumpir la operación.
+
+---
+
+### Artículo 24. DERECHOS DE VETO
+
+Los siguientes actos requerirán, adicionalmente a las mayorías del Artículo 12,
+la aprobación expresa de accionistas que representen el **80% del capital**:
+
+1. Cambio sustancial del objeto social que abandone el negocio de software
+   aeronáutico o plataformas SaaS.
+2. Fusión, absorción o escisión que implique pérdida del control por parte
+   de los accionistas actuales.
+3. Venta de la propiedad intelectual principal de la compañía (plataforma
+   Bitafly, marca, código fuente).
+4. Emisión de instrumentos de deuda que superen el **200% del capital suscrito**.
+5. Creación de acciones con derechos superiores a las acciones ordinarias
+   existentes, salvo acuerdo previo en acuerdo de accionistas.
+
+**Nota de balance:** El umbral del 80% (no unanimidad) permite que decisiones
+estructurales avancen con consenso amplio sin que un accionista individual con
+participación pequeña tenga poder de bloqueo absoluto.
+
+---
+
+### Artículo 25. ACUERDO DE ACCIONISTAS
+
+Los accionistas podrán celebrar acuerdos parasociales complementarios a estos
+estatutos sobre materias no previstas o para profundizar los mecanismos aquí
+establecidos. Dichos acuerdos deberán depositarse en la sociedad y ser
+oponibles a esta cuando sean notificados formalmente al Representante Legal.
+
+El Acuerdo de Accionistas prevalecerá sobre los estatutos en las materias
+que regule, salvo en lo que contravenga la Ley 1258 de 2008.
+
+---
+
+### Artículo 26. DISPOSICIONES NO PREVISTAS
 
 Para todo lo no previsto en los presentes estatutos, se aplicará la
 **Ley 1258 de 2008** (SAS), el Código de Comercio y las demás normas

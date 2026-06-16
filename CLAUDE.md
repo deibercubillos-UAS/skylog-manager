@@ -27,7 +27,8 @@ app/
 │   ├── socio/         ← me, grants (GET/POST/DELETE), advisors, reports, logo, account, invite-info (panel escuelas/asesores)
 │   ├── cron/          ← free-grants (expiración y purga de perfiles gratis)
 │   ├── sora/ · sms/ · reports/ · dashboard/
-│   └── admin/master/  ← superadmin + epayco-subscriptions + partners + commissions
+│   ├── app/version/   ← GET público — versión actual del APK (OTA updates)
+│   └── admin/master/  ← superadmin + epayco-subscriptions + partners + commissions + releases
 └── dashboard/         ← páginas client-side
 
 components/
@@ -36,6 +37,7 @@ components/
 ├── AddMaintenancePanel.js ← drag-drop upload adjuntos
 ├── AircraftCard.js     ← overflow-hidden en imagen, NO en root (evita cortar dropdowns)
 ├── WeatherWidget.js    ← widget de clima reutilizable (ver sección Módulo de Clima)
+├── AppUpdateBanner.js  ← OTA update banner/modal (solo Capacitor Android)
 ├── authorizations/     ← BasicForm, AerocivilForm, MapPickerModal (acepta initialCenter/initialZoom)
 └── landing/ · settings/
 
@@ -46,6 +48,7 @@ lib/
 ├── planLimits.js       ← PLAN_CONFIG, canAddResource()
 ├── checklistDefaults.js ← CHECKLIST_DEFAULTS + buildChecklistRows()
 ├── djiParser.js        ← parseDjiTxtBuffer() — requiere DJI_API_KEY
+├── appUpdate.js        ← checkForUpdate() + downloadAndInstall() — bridge JS para OTA
 ├── epaycoActivation.js ← activatePlanForUser() — idempotente
 ├── emailHelpers.js     ← escHtml() + emailHeader()/emailFooter()/bitaflyLogoUrl() (branding correos con logo BitaFly + logo del socio)
 ├── rateLimiter.js      ← checkRateLimit() + getClientIp()
@@ -523,6 +526,49 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 - [x] `EPAYCO_P_KEY` agregada a Vercel (firma del webhook)
 - [x] Auditoría 2026-06-12: mass-assignment corregido en `POST /api/pilots`/`POST /api/fleet`, columnas `pilots.avatar_url`/`aerocivil_additions`/`notes` aseguradas, políticas legacy del bucket `documents` (borrado/subida cross-tenant) eliminadas, índices FK + RLS initplan optimizados (`supabase/migrations/20260612_audit_fixes.sql`)
 - [x] Auditoría 2026-06-14 (programa de socios): correos de socios usaban dominio `bitafly.co` no verificado → corregido a `.com` en partners/advisors/grants/cron; `add_member` retorna `email_error` para diagnóstico; botón "Vincular" con guard anti-doble-envío; `invite-info` faltaba `email` en el `.select()` (campo de registro vacío); correo de asesores ahora branded con logo + fallback de dominio corregido. `.gitignore` ignora `~$*`/`*.tmp`/`*.patch`.
+- [ ] **Aplicar migración OTA en Supabase**: `supabase/migrations/20260616_app_releases.sql` — tabla `app_releases` + bucket público `app-releases`. Luego actualizar la fila inicial con la URL real del APK v1.1.0.
+
+---
+
+## App Android — OTA Updates (sin Google Play)
+
+La app Capacitor corre en **remote URL mode** (`server.url: https://bitafly.com`), por lo que:
+- **Cambios web (UI/Next.js)** → instantáneos tras cada deploy a Vercel. **No requieren nuevo APK.**
+- **Cambios nativos** (plugins Java, permisos, Capacitor) → requieren nuevo APK + OTA update.
+
+### Arquitectura
+
+| Capa | Archivo | Descripción |
+|---|---|---|
+| Plugin nativo | `AppUpdatePlugin.java` | Lee versión instalada via `PackageManager`, descarga APK, lanza instalador |
+| Bridge JS | `lib/appUpdate.js` | `checkForUpdate()` + `downloadAndInstall(url, onProgress)` |
+| Componente | `components/AppUpdateBanner.js` | Banner (no bloqueante) o modal (forzado) en el dashboard |
+| API pública | `GET /api/app/version` | Retorna `{ version_name, version_code, apk_url, release_notes, force_update }` |
+| API admin | `/api/admin/master/releases` | GET historial · POST publicar · DELETE retirar (solo superadmin) |
+| Panel Master | `_ReleasesTab.js` | Tab "App Releases" en `/admin/master` |
+| DB | `app_releases` | `version_name`, `version_code`, `apk_url`, `release_notes`, `force_update`, `is_current` |
+| Storage | bucket `app-releases` | APKs firmados, público, 100 MB máx |
+
+### Flujo de release nativo (paso a paso)
+
+```
+1. Editar android/app/build.gradle → incrementar versionCode y versionName
+2. npm run build  →  npx cap sync android
+3. ./gradlew assembleRelease        # APK firmado en android/app/build/outputs/apk/release/
+4. Subir app-release.apk al bucket "app-releases" en Supabase Storage
+5. Copiar la URL pública del archivo subido
+6. Ir a /admin/master → tab "App Releases" → publicar nueva versión con la URL
+7. Los controles DJI detectan la actualización al abrir la app y ofrecen instalar
+```
+
+### Reglas críticas
+
+- **`force_update = true`**: el modal no tiene botón de cerrar — usar solo para versiones que corrigen bugs críticos o breaking changes de API.
+- **`versionCode`** debe ser siempre **creciente** (entero). La comparación `serverCode > installedCode` decide si hay update.
+- **`PackageManager`** en lugar de `BuildConfig`: `BuildConfig` no es accesible desde plugins en el build setup actual. Usar `pInfo.getLongVersionCode()` (API 28+) / `pInfo.versionCode` (legacy).
+- **`REQUEST_INSTALL_PACKAGES`**: declarado en `AndroidManifest.xml`. En Android 8+ el sistema muestra un dialog de confirmación de instalación.
+- El APK descargado se guarda en `getExternalFilesDir(null)/bitafly-update.apk` — accesible via `FileProvider` con path `external-files-path`.
+- **Progreso**: el plugin emite eventos `downloadProgress { progress: 0-100 }` via `notifyListeners`; el banner muestra una barra de progreso.
 
 ---
 

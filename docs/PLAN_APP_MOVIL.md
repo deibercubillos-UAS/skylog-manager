@@ -64,8 +64,8 @@ Objetivo: APK instalable y app en Play con datos de vuelo automáticos.
 | F3.1 | Instalar Capacitor + `npx cap add android` (genera `android/`) | ✅ |
 | F3.2 | Verificar paridad: el WebView carga el sitio idéntico a la web | ✅ |
 | F3.3 | Build primer **APK debug** e instalar en RC/teléfono (hito instalable) | ✅ |
-| F3.4 | Digital Asset Links (deep links abren la app) | ⬜ |
-| F3.5 | Íconos / splash nativos | ⬜ |
+| F3.4 | Digital Asset Links (deep links abren la app) | ✅ |
+| F3.5 | Íconos / splash nativos | ✅ |
 | F3.6 | Plugin de archivos: leer carpeta `FlightRecord` (SAF/scoped storage) | ⬜ |
 | F3.7 | Auto-import nativo: `.txt` nuevos → `POST /api/logbook/import-dji` | ⬜ |
 | F3.8 | Auto-sync en segundo plano (WorkManager) — diferenciador | ⬜ |
@@ -227,6 +227,31 @@ Solo diagnóstico, sin cambios en el código.
   (la redirección `>` de PowerShell corrompe el binario con BOM).
 - **Etapa 3 base instalable COMPLETA.** Próximo: F3.4 (deep links) / F3.5 (íconos-splash) o saltar
   a F3.6/F3.7 (plugin de archivos + auto-import DJI nativo, el diferenciador real).
+
+### F3.4 — Deep links / App Links ✅ (2026-06-16)
+
+- `AndroidManifest.xml`: intent-filter `VIEW` con `android:autoVerify="true"` para
+  `https://bitafly.com` y `https://www.bitafly.com` → los enlaces abren la app.
+- `public/.well-known/assetlinks.json` (NUEVO): `package_name com.bitafly.app` + huella
+  SHA-256 del keystore **debug** (`61:5E:6D:...:CC:50`). El middleware NO intercepta
+  `/.well-known/` (no está en su `matcher`), así que Next lo sirve como estático.
+- Verificación en emulador: `pm get-app-links` muestra el intent-filter registrado y la
+  firma coincide. Dominios en estado `none` porque assetlinks.json **aún no está vivo en
+  producción** (vive en la rama; la verificación automática pasa al desplegar/mergear).
+- ⏳ **F3.9/merge**: añadir la huella SHA-256 del keystore **release** a assetlinks.json y
+  desplegar a bitafly.com para que `autoVerify` quede en `verified`.
+
+### F3.5 — Íconos y splash nativos ✅ (2026-06-16)
+
+- Assets fuente generados con sharp en `assets/` (icon-only/foreground/background 1024²,
+  splash + splash-dark 2732²) a partir de `public/logo.png` (marca azul "bz+dron").
+- `@capacitor/assets generate --android` → **74 recursos** (íconos adaptativos mipmap +
+  splash claro/oscuro en todas las densidades) en `android/app/src/main/res/`.
+- Verificación: APK recompilado e instalado; **splash de BitaFly visible al arranque en frío**
+  (captura `mobile/emulator-f35-splash.png`, no versionada). `npm run build` web OK.
+
+**Etapa 3 (pulido nativo) COMPLETA hasta F3.5.** Próximo: F3.6/F3.7 (plugin de archivos +
+auto-import DJI nativo) — requiere la ruta real de logs de DJI Pilot 2 Enterprise (pendiente).
 
 <!-- Plantilla para próximas fases:
 ### Fx.y — Título ✅/🔄 (fecha)

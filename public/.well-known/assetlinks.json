@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.bitafly.app",
+      "sha256_cert_fingerprints": [
+        "61:5E:6D:F5:26:4C:9B:DF:15:60:EF:B6:AC:48:57:24:B7:6D:D2:00:9D:D4:35:4D:6B:40:13:D8:EE:34:CC:50"
+      ]
+    }
+  }
+]

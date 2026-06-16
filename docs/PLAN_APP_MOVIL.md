@@ -60,8 +60,8 @@ Objetivo: APK instalable y app en Play con datos de vuelo automáticos.
 
 | Fase | Descripción | Estado |
 |------|-------------|--------|
-| F3.0 | Prerrequisito: instalar Android Studio + JDK 17 en el PC | ⬜ |
-| F3.1 | Instalar Capacitor + `npx cap add android` (genera `android/`) | ⬜ |
+| F3.0 | Prerrequisito: instalar Android Studio + JDK 17 en el PC | ✅ |
+| F3.1 | Instalar Capacitor + `npx cap add android` (genera `android/`) | ✅ |
 | F3.2 | Verificar paridad: el WebView carga el sitio idéntico a la web | ⬜ |
 | F3.3 | Build primer **APK debug** e instalar en RC/teléfono (hito instalable) | ⬜ |
 | F3.4 | Digital Asset Links (deep links abren la app) | ⬜ |
@@ -190,6 +190,28 @@ Solo diagnóstico, sin cambios en el código.
 - Verificación: `npm run build` OK. Sin cambios de comportamiento web.
 
 **Etapa 2 (capa de plataforma) COMPLETA.**
+
+### F3.0 — Prerrequisitos del PC ✅ (2026-06-16)
+
+- Verificado: **JDK 17** (`C:\Program Files\Java\jdk-17`, 17.0.12) y **Android Studio**
+  (`C:\Program Files\Android\Android Studio`, trae JBR **JDK 21**). SDK en
+  `C:\Users\PC\AppData\Local\Android\Sdk` (platform android-36.1, build-tools 36.1.0/37.0.0,
+  platform-tools/adb, licencias aceptadas). Node v24 / npm 11.
+- Variables de usuario establecidas: `JAVA_HOME` → **JBR (JDK 21)** (lo exige Capacitor 8),
+  `ANDROID_HOME`/`ANDROID_SDK_ROOT` → SDK, PATH con platform-tools/emulator/cmdline-tools.
+- Falta `cmdline-tools` (opcional, no requerido para compilar el APK debug).
+
+### F3.1 — Capacitor + proyecto Android ✅ (2026-06-16)
+
+- Rama dedicada **`mobile-app`** creada desde `main` (todo lo nativo vive aquí).
+- Instalado **Capacitor 8.4.0** (`@capacitor/core`, `@capacitor/android`, `-D @capacitor/cli`).
+- `capacitor.config.ts` (NUEVO) en modo **remote URL** → `appId: com.bitafly.app`,
+  `appName: BitaFly`, `server.url: https://bitafly.com`. NO toca `next.config.js` ni `src/`.
+- `mobile/www/index.html` (NUEVO) — fallback offline mínimo (webDir de respaldo).
+- `npx cap add android` generó la carpeta aislada **`android/`** (namespace/applicationId
+  `com.bitafly.app`; su propio `.gitignore` excluye `*.apk`/`*.aab`/build).
+- Verificación: scaffold OK, appId correcto. El primer build Gradle se hace en F3.3.
+- Pendiente F3.2/F3.3: levantar el WebView y compilar el primer APK debug.
 
 <!-- Plantilla para próximas fases:
 ### Fx.y — Título ✅/🔄 (fecha)

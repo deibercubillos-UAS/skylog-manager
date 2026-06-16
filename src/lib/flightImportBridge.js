@@ -95,6 +95,46 @@ export async function readNativeFlightFile(pathOrRef) {
   return base64ToFile(data, name || 'flight.txt');
 }
 
+// ── Sincronización en segundo plano (WorkManager — F3.8) ─────────────────────
+
+const BG_SYNC_KEY = 'bitafly_dji_bgsync';
+
+// ¿Soporta este entorno la sincronización en segundo plano? (solo app Android)
+export function supportsBackgroundSync() {
+  return capabilities.backgroundFlightSync && !!flightFilesPlugin();
+}
+
+// Activa el Worker periódico (cada ~15 min) que vigila la carpeta con la app cerrada.
+export async function enableBackgroundSync() {
+  const p = flightFilesPlugin();
+  if (!p?.enableBackgroundSync) return false;
+  await p.enableBackgroundSync();
+  try { localStorage.setItem(BG_SYNC_KEY, '1'); } catch { /* no-op */ }
+  return true;
+}
+
+// Desactiva el Worker periódico.
+export async function disableBackgroundSync() {
+  const p = flightFilesPlugin();
+  if (!p?.disableBackgroundSync) return false;
+  await p.disableBackgroundSync();
+  try { localStorage.setItem(BG_SYNC_KEY, '0'); } catch { /* no-op */ }
+  return true;
+}
+
+// Preferencia recordada del usuario (para reflejar el estado del toggle).
+export function isBackgroundSyncEnabled() {
+  try { return localStorage.getItem(BG_SYNC_KEY) === '1'; } catch { return false; }
+}
+
+// Lanza un ciclo de sincronización inmediato (diagnóstico).
+export async function runBackgroundSyncNow() {
+  const p = flightFilesPlugin();
+  if (!p?.runBackgroundSyncNow) return false;
+  await p.runBackgroundSyncNow();
+  return true;
+}
+
 // Convierte base64 (del plugin nativo) a un File para reusar el mismo POST que la web.
 function base64ToFile(b64, name) {
   const bin = atob(b64);

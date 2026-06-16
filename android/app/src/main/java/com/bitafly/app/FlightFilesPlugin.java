@@ -14,11 +14,19 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
+import androidx.work.Constraints;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * FlightFiles — plugin nativo Android para leer los logs DJI (.txt) de la carpeta
@@ -31,6 +39,8 @@ import java.util.List;
  */
 @CapacitorPlugin(name = "FlightFiles")
 public class FlightFilesPlugin extends Plugin {
+
+    private static final String WORK_NAME = "bitafly-dji-sync";
 
     // Rutas conocidas de logs DJI, relativas a la raíz de almacenamiento externo.
     private static final String[] KNOWN_PATHS = {
@@ -126,6 +136,40 @@ public class FlightFilesPlugin extends Plugin {
         } catch (Exception e) {
             call.reject("READ_ERROR", e);
         }
+    }
+
+    // ── Sincronización en segundo plano (WorkManager — F3.8) ───────────────
+
+    @PluginMethod
+    public void enableBackgroundSync(PluginCall call) {
+        Constraints constraints = new Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build();
+        PeriodicWorkRequest req = new PeriodicWorkRequest.Builder(
+                FlightSyncWorker.class, 15, TimeUnit.MINUTES)
+            .setConstraints(constraints)
+            .build();
+        WorkManager.getInstance(getContext())
+            .enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, req);
+        JSObject ret = new JSObject();
+        ret.put("enabled", true);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void disableBackgroundSync(PluginCall call) {
+        WorkManager.getInstance(getContext()).cancelUniqueWork(WORK_NAME);
+        JSObject ret = new JSObject();
+        ret.put("enabled", false);
+        call.resolve(ret);
+    }
+
+    // Ejecuta un ciclo de sincronización inmediato (diagnóstico / "sincronizar ahora").
+    @PluginMethod
+    public void runBackgroundSyncNow(PluginCall call) {
+        OneTimeWorkRequest req = new OneTimeWorkRequest.Builder(FlightSyncWorker.class).build();
+        WorkManager.getInstance(getContext()).enqueue(req);
+        call.resolve();
     }
 
     private void collectTxt(File dir, List<File> out) {

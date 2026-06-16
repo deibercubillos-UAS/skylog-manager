@@ -8,6 +8,10 @@ import {
   requestNativeFlightPermission,
   listNativeFlightFiles,
   readNativeFlightFile,
+  supportsBackgroundSync,
+  enableBackgroundSync,
+  disableBackgroundSync,
+  isBackgroundSyncEnabled,
 } from '@/lib/flightImportBridge';
 
 // Clave bajo la que se recuerda la carpeta FlightRecord en IndexedDB.
@@ -249,6 +253,8 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
   const [nativeSource, setNativeSource] = useState(false);  // ¿hay plugin nativo?
   const [nativeGranted, setNativeGranted] = useState(false); // ¿permiso concedido?
   const [nativeStatus, setNativeStatus] = useState('');      // texto del último resultado
+  const [bgSync, setBgSync] = useState(false);               // sync en segundo plano (F3.8)
+  const [bgSupported, setBgSupported] = useState(false);
 
   // Modal crear aeronave
   const [aircraftModal, setAircraftModal] = useState(null); // null | { serial, modelo, nombre, pendingFile }
@@ -290,6 +296,8 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
     if (!isNativeFlightSource()) return;
     setNativeSource(true);
     let cancelled = false;
+    setBgSupported(supportsBackgroundSync());
+    setBgSync(isBackgroundSyncEnabled());
     hasNativeFlightPermission().then(granted => {
       if (cancelled) return;
       setNativeGranted(granted);
@@ -493,6 +501,24 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
     }
   };
   const handleNativeSync = () => nativeSyncRef.current?.();
+
+  // Activar/desactivar la sincronización en segundo plano (WorkManager — F3.8).
+  const toggleBgSync = async () => {
+    const next = !bgSync;
+    if (next) {
+      let granted = await hasNativeFlightPermission();
+      if (!granted) granted = await requestNativeFlightPermission();
+      setNativeGranted(granted);
+      if (!granted) {
+        setNativeStatus('Concede el permiso de archivos para la sincronización en segundo plano.');
+        return;
+      }
+      await enableBackgroundSync();
+    } else {
+      await disableBackgroundSync();
+    }
+    setBgSync(next);
+  };
 
   // ── Selección individual y masiva ──────────────────────────────
   // Solo se pueden seleccionar archivos pendientes (no ya importados)
@@ -1017,6 +1043,30 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
             <div className="flex items-center gap-1.5">
               <span className="material-symbols-outlined text-emerald-500 text-sm">info</span>
               <p className="text-[11px] font-bold text-slate-500">{nativeStatus}</p>
+            </div>
+          )}
+
+          {/* Toggle: sincronización en segundo plano (WorkManager — F3.8) */}
+          {bgSupported && (
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-orange-100">
+              <div className="flex items-start gap-2.5 min-w-0">
+                <span className="material-symbols-outlined text-orange-500 text-xl shrink-0 mt-0.5">autorenew</span>
+                <div className="min-w-0">
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-700">En segundo plano</p>
+                  <p className="text-[11px] text-slate-400 font-medium leading-snug">
+                    Sube los vuelos nuevos solo, incluso con la app cerrada (cada ~15 min).
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={toggleBgSync}
+                role="switch"
+                aria-checked={bgSync}
+                aria-label="Activar sincronización en segundo plano"
+                className={`relative w-12 h-7 rounded-full shrink-0 transition-colors ${bgSync ? 'bg-orange-500' : 'bg-slate-200'}`}
+              >
+                <span className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${bgSync ? 'translate-x-5' : ''}`} />
+              </button>
             </div>
           )}
         </div>

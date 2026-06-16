@@ -68,7 +68,7 @@ Objetivo: APK instalable y app en Play con datos de vuelo automáticos.
 | F3.5 | Íconos / splash nativos | ✅ |
 | F3.6 | Plugin de archivos: leer carpeta `FlightRecord` (SAF/scoped storage) | ✅ |
 | F3.7 | Auto-import nativo: `.txt` nuevos → `POST /api/logbook/import-dji` | ✅ |
-| F3.8 | Auto-sync en segundo plano (WorkManager) — diferenciador | ⬜ |
+| F3.8 | Auto-sync en segundo plano (WorkManager) — diferenciador | ✅ |
 | F3.9 | APK release firmado (.aab) → Play Console (testing → producción) | ⬜ |
 
 ## ETAPA 4 — App iOS → App Store
@@ -279,6 +279,33 @@ auto-import DJI nativo) — requiere la ruta real de logs de DJI Pilot 2 Enterpr
 
 **Etapas 3 (Android) hasta F3.7 COMPLETAS.** Pendiente F3.8 (background WorkManager) y
 F3.9 (APK/.aab firmado + Play). Antes de uso real: merge mobile-app → main + deploy.
+
+### F3.8 — Sincronización en segundo plano (WorkManager) ✅ (2026-06-16)
+
+- **`FlightSyncWorker.java`** (WorkManager `Worker`): corre periódico (mín. 15 min en Android)
+  aunque la app esté cerrada. Reusa la **sesión de la WebView** leyendo sus cookies
+  (`CookieManager.getCookie`) → sube los .txt nuevos al mismo `POST /api/logbook/import-dji`
+  con `Cookie:` header (multipart por `HttpURLConnection`). **Sin cambios en el backend ni
+  tokens aparte.** Deduplica por nombre en `SharedPreferences` (+ el server descarta 409) y
+  notifica los vuelos sincronizados.
+- **Dependencia**: `androidx.work:work-runtime:2.9.1` en `app/build.gradle`. Permiso
+  `POST_NOTIFICATIONS` en el manifest (A13+ lo pide en runtime).
+- **Plugin** `FlightFilesPlugin`: `enableBackgroundSync` (periodic UNIQUE, UPDATE, red requerida),
+  `disableBackgroundSync`, `runBackgroundSyncNow` (one-time, diagnóstico).
+- **Bridge JS** (`flightImportBridge.js`): `supportsBackgroundSync`, `enable/disableBackgroundSync`,
+  `isBackgroundSyncEnabled`, `runBackgroundSyncNow` (pref en localStorage).
+- **`DjiRcSync.js`**: toggle "En segundo plano" en la tarjeta nativa (pide permiso de archivos
+  antes de activar). Solo visible en la app Android (`supportsBackgroundSync`).
+- **Verificado en emulador** (test temporal): el Worker se ejecutó en proceso de fondo, escaneó
+  la carpeta (`Logs DJI encontrados: 1`), intentó la subida al endpoint real (HTTP **401** por no
+  haber sesión en la página de prueba — con login real daría 200/201) y WorkManager registró el
+  trabajo periódico persistente (`schedulePersisted()`). APK final restaurado a remote URL.
+- ⏳ Igual que F3.7: el toggle vive en `src/` (corre desde bitafly.com remoto) → requiere
+  **merge + deploy** para que el usuario lo active desde la app de producción. El Worker nativo
+  ya está en el APK.
+
+**Etapa 3 (Android) COMPLETA hasta F3.8.** Falta solo **F3.9** (APK/.aab firmado de release →
+Google Play). Antes de uso real con vuelos: merge mobile-app → main + deploy.
 
 <!-- Plantilla para próximas fases:
 ### Fx.y — Título ✅/🔄 (fecha)

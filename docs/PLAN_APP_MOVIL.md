@@ -66,8 +66,8 @@ Objetivo: APK instalable y app en Play con datos de vuelo automáticos.
 | F3.3 | Build primer **APK debug** e instalar en RC/teléfono (hito instalable) | ✅ |
 | F3.4 | Digital Asset Links (deep links abren la app) | ✅ |
 | F3.5 | Íconos / splash nativos | ✅ |
-| F3.6 | Plugin de archivos: leer carpeta `FlightRecord` (SAF/scoped storage) | ⬜ |
-| F3.7 | Auto-import nativo: `.txt` nuevos → `POST /api/logbook/import-dji` | ⬜ |
+| F3.6 | Plugin de archivos: leer carpeta `FlightRecord` (SAF/scoped storage) | ✅ |
+| F3.7 | Auto-import nativo: `.txt` nuevos → `POST /api/logbook/import-dji` | ✅ |
 | F3.8 | Auto-sync en segundo plano (WorkManager) — diferenciador | ⬜ |
 | F3.9 | APK release firmado (.aab) → Play Console (testing → producción) | ⬜ |
 
@@ -252,6 +252,33 @@ Solo diagnóstico, sin cambios en el código.
 
 **Etapa 3 (pulido nativo) COMPLETA hasta F3.5.** Próximo: F3.6/F3.7 (plugin de archivos +
 auto-import DJI nativo) — requiere la ruta real de logs de DJI Pilot 2 Enterprise (pendiente).
+
+### F3.6 + F3.7 — Plugin nativo de logs DJI + auto-import ✅ (2026-06-16)
+
+- **Ruta confirmada (Deiber)**: controles DJI Pilot 2 Enterprise →
+  `DJI/com.dji.industry.pilot/FlightRecord` (en la raíz de almacenamiento externo).
+- **Plugin nativo** `FlightFilesPlugin.java` (registrado en `MainActivity`): métodos
+  `checkPermission` / `requestPermission` (MANAGE_EXTERNAL_STORAGE en A11+) /
+  `listFlightFiles` (escanea rutas conocidas + respaldo recursivo FlightRecord bajo DJI/) /
+  `readFlightFile` (devuelve base64). Permisos en AndroidManifest (READ_EXTERNAL_STORAGE
+  maxSdk32 + MANAGE_EXTERNAL_STORAGE).
+- **Bridge JS** (`lib/flightImportBridge.js`): implementadas `isNativeFlightSource`,
+  `hasNativeFlightPermission`, `requestNativeFlightPermission`, `listNativeFlightFiles`,
+  `readNativeFlightFile` (base64→File). Reusa el mismo `postFlightFile` → `/api/logbook/import-dji`.
+- **`DjiRcSync.js`**: en la app nativa muestra tarjeta "Sincronización automática" (oculta
+  las instrucciones de copiar-al-PC), pide permiso, lista, deduplica (`/import-dji/check`) y
+  auto-importa al abrir si ya hay permiso. `uploadFile` lee vía `readNativeFlightFile` cuando
+  el archivo trae `nativePath`. La web pura no cambia (`nativeSource=false`).
+- **Verificado en emulador** (test temporal con webDir local + `appops MANAGE_EXTERNAL_STORAGE
+  allow`): plugin OK, `granted=true`, listó el .txt en
+  `/storage/emulated/0/DJI/com.dji.industry.pilot/FlightRecord/` y leyó su contenido.
+  Captura `mobile/emulator-f36-test.png`. APK final restaurado a modo remote URL. `npm run build` OK.
+- ⏳ Activación real en la app instalada: la JS que llama al plugin vive en `src/` (corre desde
+  bitafly.com remoto) → requiere **merge a main + deploy** para que el flujo nativo opere en el
+  APK de producción. El plugin nativo ya está en el APK; falta que la web servida lo invoque.
+
+**Etapas 3 (Android) hasta F3.7 COMPLETAS.** Pendiente F3.8 (background WorkManager) y
+F3.9 (APK/.aab firmado + Play). Antes de uso real: merge mobile-app → main + deploy.
 
 <!-- Plantilla para próximas fases:
 ### Fx.y — Título ✅/🔄 (fecha)

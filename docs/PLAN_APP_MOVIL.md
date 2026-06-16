@@ -60,16 +60,16 @@ Objetivo: APK instalable y app en Play con datos de vuelo automáticos.
 
 | Fase | Descripción | Estado |
 |------|-------------|--------|
-| F3.0 | Prerrequisito: instalar Android Studio + JDK 17 en el PC | ⬜ |
-| F3.1 | Instalar Capacitor + `npx cap add android` (genera `android/`) | ⬜ |
-| F3.2 | Verificar paridad: el WebView carga el sitio idéntico a la web | ⬜ |
-| F3.3 | Build primer **APK debug** e instalar en RC/teléfono (hito instalable) | ⬜ |
-| F3.4 | Digital Asset Links (deep links abren la app) | ⬜ |
-| F3.5 | Íconos / splash nativos | ⬜ |
-| F3.6 | Plugin de archivos: leer carpeta `FlightRecord` (SAF/scoped storage) | ⬜ |
-| F3.7 | Auto-import nativo: `.txt` nuevos → `POST /api/logbook/import-dji` | ⬜ |
-| F3.8 | Auto-sync en segundo plano (WorkManager) — diferenciador | ⬜ |
-| F3.9 | APK release firmado (.aab) → Play Console (testing → producción) | ⬜ |
+| F3.0 | Prerrequisito: instalar Android Studio + JDK 17 en el PC | ✅ |
+| F3.1 | Instalar Capacitor + `npx cap add android` (genera `android/`) | ✅ |
+| F3.2 | Verificar paridad: el WebView carga el sitio idéntico a la web | ✅ |
+| F3.3 | Build primer **APK debug** e instalar en RC/teléfono (hito instalable) | ✅ |
+| F3.4 | Digital Asset Links (deep links abren la app) | ✅ |
+| F3.5 | Íconos / splash nativos | ✅ |
+| F3.6 | Plugin de archivos: leer carpeta `FlightRecord` (SAF/scoped storage) | ✅ |
+| F3.7 | Auto-import nativo: `.txt` nuevos → `POST /api/logbook/import-dji` | ✅ |
+| F3.8 | Auto-sync en segundo plano (WorkManager) — diferenciador | ✅ |
+| F3.9 | APK release firmado (.aab) → Play Console (testing → producción) | ✅ (build) |
 
 ## ETAPA 4 — App iOS → App Store
 
@@ -190,6 +190,146 @@ Solo diagnóstico, sin cambios en el código.
 - Verificación: `npm run build` OK. Sin cambios de comportamiento web.
 
 **Etapa 2 (capa de plataforma) COMPLETA.**
+
+### F3.0 — Prerrequisitos del PC ✅ (2026-06-16)
+
+- Verificado: **JDK 17** (`C:\Program Files\Java\jdk-17`, 17.0.12) y **Android Studio**
+  (`C:\Program Files\Android\Android Studio`, trae JBR **JDK 21**). SDK en
+  `C:\Users\PC\AppData\Local\Android\Sdk` (platform android-36.1, build-tools 36.1.0/37.0.0,
+  platform-tools/adb, licencias aceptadas). Node v24 / npm 11.
+- Variables de usuario establecidas: `JAVA_HOME` → **JBR (JDK 21)** (lo exige Capacitor 8),
+  `ANDROID_HOME`/`ANDROID_SDK_ROOT` → SDK, PATH con platform-tools/emulator/cmdline-tools.
+- Falta `cmdline-tools` (opcional, no requerido para compilar el APK debug).
+
+### F3.1 — Capacitor + proyecto Android ✅ (2026-06-16)
+
+- Rama dedicada **`mobile-app`** creada desde `main` (todo lo nativo vive aquí).
+- Instalado **Capacitor 8.4.0** (`@capacitor/core`, `@capacitor/android`, `-D @capacitor/cli`).
+- `capacitor.config.ts` (NUEVO) en modo **remote URL** → `appId: com.bitafly.app`,
+  `appName: BitaFly`, `server.url: https://bitafly.com`. NO toca `next.config.js` ni `src/`.
+- `mobile/www/index.html` (NUEVO) — fallback offline mínimo (webDir de respaldo).
+- `npx cap add android` generó la carpeta aislada **`android/`** (namespace/applicationId
+  `com.bitafly.app`; su propio `.gitignore` excluye `*.apk`/`*.aab`/build).
+- Verificación: scaffold OK, appId correcto. El primer build Gradle se hace en F3.3.
+
+### F3.2 + F3.3 — Primer APK debug en emulador ✅ (2026-06-16)
+
+- **Toolchain del emulador** (descargado con autorización): `cmdline-tools` (sdkmanager/avdmanager),
+  imagen `system-images;android-35;google_apis;x86_64`, `emulator`. Licencias SDK aceptadas.
+- **AVD `bitafly_pixel`** creado (Pixel 6, Android 15). Lanzado y booteado (`boot_completed=1`).
+- **Build**: `gradlew assembleDebug --no-daemon` con `JAVA_HOME`=JBR (JDK 21) →
+  **BUILD SUCCESSFUL** en ~1m54s. APK: `android/app/build/outputs/apk/debug/app-debug.apk` (3.93 MB).
+- **Instalación**: `adb install -r` → Success. Lanzado `com.bitafly.app/.MainActivity`.
+- **Paridad (F3.2)**: logcat confirma WebView cargando `https://bitafly.com/`; captura muestra
+  el login de BitaFly idéntico a la web. Evidencia: `mobile/emulator-f32.png` (no versionada).
+- **Gotchas Windows**: invocar `gradlew.bat` por ruta con el operador `&` de PowerShell
+  (no `cmd /c "gradlew.bat"`); capturar screenshots con `adb pull`, NO `adb exec-out > file`
+  (la redirección `>` de PowerShell corrompe el binario con BOM).
+- **Etapa 3 base instalable COMPLETA.** Próximo: F3.4 (deep links) / F3.5 (íconos-splash) o saltar
+  a F3.6/F3.7 (plugin de archivos + auto-import DJI nativo, el diferenciador real).
+
+### F3.4 — Deep links / App Links ✅ (2026-06-16)
+
+- `AndroidManifest.xml`: intent-filter `VIEW` con `android:autoVerify="true"` para
+  `https://bitafly.com` y `https://www.bitafly.com` → los enlaces abren la app.
+- `public/.well-known/assetlinks.json` (NUEVO): `package_name com.bitafly.app` + huella
+  SHA-256 del keystore **debug** (`61:5E:6D:...:CC:50`). El middleware NO intercepta
+  `/.well-known/` (no está en su `matcher`), así que Next lo sirve como estático.
+- Verificación en emulador: `pm get-app-links` muestra el intent-filter registrado y la
+  firma coincide. Dominios en estado `none` porque assetlinks.json **aún no está vivo en
+  producción** (vive en la rama; la verificación automática pasa al desplegar/mergear).
+- ⏳ **F3.9/merge**: añadir la huella SHA-256 del keystore **release** a assetlinks.json y
+  desplegar a bitafly.com para que `autoVerify` quede en `verified`.
+
+### F3.5 — Íconos y splash nativos ✅ (2026-06-16)
+
+- Assets fuente generados con sharp en `assets/` (icon-only/foreground/background 1024²,
+  splash + splash-dark 2732²) a partir de `public/logo.png` (marca azul "bz+dron").
+- `@capacitor/assets generate --android` → **74 recursos** (íconos adaptativos mipmap +
+  splash claro/oscuro en todas las densidades) en `android/app/src/main/res/`.
+- Verificación: APK recompilado e instalado; **splash de BitaFly visible al arranque en frío**
+  (captura `mobile/emulator-f35-splash.png`, no versionada). `npm run build` web OK.
+
+**Etapa 3 (pulido nativo) COMPLETA hasta F3.5.** Próximo: F3.6/F3.7 (plugin de archivos +
+auto-import DJI nativo) — requiere la ruta real de logs de DJI Pilot 2 Enterprise (pendiente).
+
+### F3.6 + F3.7 — Plugin nativo de logs DJI + auto-import ✅ (2026-06-16)
+
+- **Ruta confirmada (Deiber)**: controles DJI Pilot 2 Enterprise →
+  `DJI/com.dji.industry.pilot/FlightRecord` (en la raíz de almacenamiento externo).
+- **Plugin nativo** `FlightFilesPlugin.java` (registrado en `MainActivity`): métodos
+  `checkPermission` / `requestPermission` (MANAGE_EXTERNAL_STORAGE en A11+) /
+  `listFlightFiles` (escanea rutas conocidas + respaldo recursivo FlightRecord bajo DJI/) /
+  `readFlightFile` (devuelve base64). Permisos en AndroidManifest (READ_EXTERNAL_STORAGE
+  maxSdk32 + MANAGE_EXTERNAL_STORAGE).
+- **Bridge JS** (`lib/flightImportBridge.js`): implementadas `isNativeFlightSource`,
+  `hasNativeFlightPermission`, `requestNativeFlightPermission`, `listNativeFlightFiles`,
+  `readNativeFlightFile` (base64→File). Reusa el mismo `postFlightFile` → `/api/logbook/import-dji`.
+- **`DjiRcSync.js`**: en la app nativa muestra tarjeta "Sincronización automática" (oculta
+  las instrucciones de copiar-al-PC), pide permiso, lista, deduplica (`/import-dji/check`) y
+  auto-importa al abrir si ya hay permiso. `uploadFile` lee vía `readNativeFlightFile` cuando
+  el archivo trae `nativePath`. La web pura no cambia (`nativeSource=false`).
+- **Verificado en emulador** (test temporal con webDir local + `appops MANAGE_EXTERNAL_STORAGE
+  allow`): plugin OK, `granted=true`, listó el .txt en
+  `/storage/emulated/0/DJI/com.dji.industry.pilot/FlightRecord/` y leyó su contenido.
+  Captura `mobile/emulator-f36-test.png`. APK final restaurado a modo remote URL. `npm run build` OK.
+- ⏳ Activación real en la app instalada: la JS que llama al plugin vive en `src/` (corre desde
+  bitafly.com remoto) → requiere **merge a main + deploy** para que el flujo nativo opere en el
+  APK de producción. El plugin nativo ya está en el APK; falta que la web servida lo invoque.
+
+**Etapas 3 (Android) hasta F3.7 COMPLETAS.** Pendiente F3.8 (background WorkManager) y
+F3.9 (APK/.aab firmado + Play). Antes de uso real: merge mobile-app → main + deploy.
+
+### F3.8 — Sincronización en segundo plano (WorkManager) ✅ (2026-06-16)
+
+- **`FlightSyncWorker.java`** (WorkManager `Worker`): corre periódico (mín. 15 min en Android)
+  aunque la app esté cerrada. Reusa la **sesión de la WebView** leyendo sus cookies
+  (`CookieManager.getCookie`) → sube los .txt nuevos al mismo `POST /api/logbook/import-dji`
+  con `Cookie:` header (multipart por `HttpURLConnection`). **Sin cambios en el backend ni
+  tokens aparte.** Deduplica por nombre en `SharedPreferences` (+ el server descarta 409) y
+  notifica los vuelos sincronizados.
+- **Dependencia**: `androidx.work:work-runtime:2.9.1` en `app/build.gradle`. Permiso
+  `POST_NOTIFICATIONS` en el manifest (A13+ lo pide en runtime).
+- **Plugin** `FlightFilesPlugin`: `enableBackgroundSync` (periodic UNIQUE, UPDATE, red requerida),
+  `disableBackgroundSync`, `runBackgroundSyncNow` (one-time, diagnóstico).
+- **Bridge JS** (`flightImportBridge.js`): `supportsBackgroundSync`, `enable/disableBackgroundSync`,
+  `isBackgroundSyncEnabled`, `runBackgroundSyncNow` (pref en localStorage).
+- **`DjiRcSync.js`**: toggle "En segundo plano" en la tarjeta nativa (pide permiso de archivos
+  antes de activar). Solo visible en la app Android (`supportsBackgroundSync`).
+- **Verificado en emulador** (test temporal): el Worker se ejecutó en proceso de fondo, escaneó
+  la carpeta (`Logs DJI encontrados: 1`), intentó la subida al endpoint real (HTTP **401** por no
+  haber sesión en la página de prueba — con login real daría 200/201) y WorkManager registró el
+  trabajo periódico persistente (`schedulePersisted()`). APK final restaurado a remote URL.
+- ⏳ Igual que F3.7: el toggle vive en `src/` (corre desde bitafly.com remoto) → requiere
+  **merge + deploy** para que el usuario lo active desde la app de producción. El Worker nativo
+  ya está en el APK.
+
+**Etapa 3 (Android) COMPLETA hasta F3.8.** Falta solo **F3.9** (APK/.aab firmado de release →
+Google Play). Antes de uso real con vuelos: merge mobile-app → main + deploy.
+
+### F3.9 — Release firmado (.aab) ✅ build (2026-06-16)
+
+- **Keystore de subida**: `android/bitafly-upload.keystore` (RSA 2048, validez 10000 días,
+  alias `bitafly`). **NO versionado** (.gitignore: `*.keystore`/`*.jks`/`keystore.properties`).
+  Credenciales en `android/keystore.properties` (tampoco versionado).
+  Huella SHA-256 (upload key): `6E:D2:49:7B:C5:CA:80:21:63:15:92:F4:1C:83:76:11:51:E0:35:B1:07:26:E5:E6:01:E4:21:A6:CB:26:D5:D2`.
+- **`app/build.gradle`**: `signingConfigs.release` lee `keystore.properties`; `buildTypes.release`
+  firma si existe (si no, avisa y deja sin firmar — seguro para CI/otros equipos).
+- **Artefactos**: `app/build/outputs/bundle/release/app-release.aab` (4.47 MB, para Play) y
+  `apk/release/app-release.apk` (4.67 MB, distribución directa). Firma **V2 verificada** con apksigner.
+- **`assetlinks.json`**: añadida la huella de release (2ª del array; la 1ª es debug).
+- **Verificado**: el APK release firmado instala y arranca en el emulador (carga bitafly.com).
+- ⏳ **Pendiente (acción del usuario, no de código)**:
+  1. Crear cuenta **Google Play Console** (USD 25 único) y subir `app-release.aab`.
+  2. Play usa **App Signing**: Google genera la clave de firma final. Tomar la **huella SHA-256
+     de "App signing key"** del Play Console y **añadirla a assetlinks.json** (la del upload key
+     no es la final para App Links en producción). Re-desplegar la web.
+  3. Para distribución directa fuera de tienda, repartir `app-release.apk`.
+- 🔐 **Resguardo del keystore**: `bitafly-upload.keystore` + su password deben respaldarse fuera
+  del equipo. Con Play App Signing el upload key es recuperable vía soporte de Google.
+
+**ETAPA 3 (Android) COMPLETA a nivel de build (F3.1–F3.9).** Lo que resta es operativo del usuario:
+merge `mobile-app`→`main` + deploy (activa el flujo nativo en producción) y la subida a Play Console.
 
 <!-- Plantilla para próximas fases:
 ### Fx.y — Título ✅/🔄 (fecha)

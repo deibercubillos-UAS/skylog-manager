@@ -54,3 +54,11 @@ graphify-out/
 
 # parches sueltos
 *.patch
+
+# Evidencia de pruebas del emulador (no versionar)
+mobile/emulator-*.png
+
+# Android release signing (NUNCA versionar)
+*.keystore
+*.jks
+android/keystore.properties

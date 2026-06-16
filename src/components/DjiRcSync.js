@@ -1,7 +1,18 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { saveHandle, getHandle, clearHandle } from '@/lib/idbHandleStore';
-import { postFlightFile } from '@/lib/flightImportBridge';
+import {
+  postFlightFile,
+  isNativeFlightSource,
+  hasNativeFlightPermission,
+  requestNativeFlightPermission,
+  listNativeFlightFiles,
+  readNativeFlightFile,
+  supportsBackgroundSync,
+  enableBackgroundSync,
+  disableBackgroundSync,
+  isBackgroundSyncEnabled,
+} from '@/lib/flightImportBridge';
 
 // Clave bajo la que se recuerda la carpeta FlightRecord en IndexedDB.
 const FLIGHTRECORD_KEY = 'dji-flightrecord';
@@ -238,6 +249,13 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
   const autoTimerRef = useRef(null);
   const autoBusyRef  = useRef(false);   // evita sondeos solapados
 
+  // ── Fuente nativa Android (plugin FlightFiles — F3.6/F3.7) ──
+  const [nativeSource, setNativeSource] = useState(false);  // ¿hay plugin nativo?
+  const [nativeGranted, setNativeGranted] = useState(false); // ¿permiso concedido?
+  const [nativeStatus, setNativeStatus] = useState('');      // texto del último resultado
+  const [bgSync, setBgSync] = useState(false);               // sync en segundo plano (F3.8)
+  const [bgSupported, setBgSupported] = useState(false);
+
   // Modal crear aeronave
   const [aircraftModal, setAircraftModal] = useState(null); // null | { serial, modelo, nombre, pendingFile }
   const [aircraftForm, setAircraftForm] = useState(EMPTY_AIRCRAFT);
@@ -271,6 +289,23 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
       if (localStorage.getItem(AUTOSYNC_KEY) === '1') setAutoSync(true);
     } catch { /* localStorage no disponible */ }
     return () => { cancelled = true; };
+  }, []);
+
+  // ── Detectar fuente nativa al montar + auto-importar si hay permiso ──
+  useEffect(() => {
+    if (!isNativeFlightSource()) return;
+    setNativeSource(true);
+    let cancelled = false;
+    setBgSupported(supportsBackgroundSync());
+    setBgSync(isBackgroundSyncEnabled());
+    hasNativeFlightPermission().then(granted => {
+      if (cancelled) return;
+      setNativeGranted(granted);
+      // Si ya hay permiso, sincronizar solo al abrir (auto-import "una vez configurado").
+      if (granted) nativeSyncRef.current?.();
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isSupported =
@@ -410,6 +445,81 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
     setError('');
   };
 
+  // ── Sincronización nativa Android (plugin FlightFiles — F3.7) ──
+  // Lee la carpeta FlightRecord directo del control/celular, deduplica contra la
+  // BD y prepara la lista; auto-importa lo nuevo reusando el mismo flujo web.
+  const nativeSyncRef = useRef(null);
+  nativeSyncRef.current = async () => {
+    setError('');
+    // 1) Asegurar permiso de "todos los archivos" (abre Ajustes en A11+).
+    let granted = await hasNativeFlightPermission();
+    if (!granted) {
+      granted = await requestNativeFlightPermission();
+      setNativeGranted(granted);
+      if (!granted) {
+        setNativeStatus('Concede el permiso de archivos para leer los vuelos DJI.');
+        return;
+      }
+    }
+    setNativeGranted(true);
+
+    setState('scanning');
+    try {
+      const list = await listNativeFlightFiles(); // [{ name, path, size, mtime }]
+      const txt = list.filter(f => /\.txt$/i.test(f.name));
+      if (!txt.length) {
+        setNativeStatus('No se encontraron logs DJI en el dispositivo.');
+        setState('idle');
+        return;
+      }
+      const found = txt
+        .map(f => ({ name: f.name, nativePath: f.path, handle: null, fileObj: null, selected: true, status: 'pending', result: null }))
+        .sort((a, b) => b.name.localeCompare(a.name));
+
+      const existingSet = await checkExisting(found);
+      const withStatus = found.map(f => {
+        const date = dateFromName(f.name);
+        const time = timeFromName(f.name);
+        const key  = date && time ? `${date}|${time}` : null;
+        const isDuplicate = key && existingSet.has(key);
+        return { ...f, selected: !isDuplicate, status: isDuplicate ? 'duplicate' : 'pending' };
+      });
+
+      setFiles(withStatus);
+      setState('ready');
+
+      const pendingNew = withStatus.filter(f => f.selected && f.status === 'pending');
+      if (pendingNew.length) {
+        setNativeStatus(`${pendingNew.length} vuelo(s) nuevo(s) — importando…`);
+        await handleImport(withStatus);
+      } else {
+        setNativeStatus('Sin vuelos nuevos. Todo está en la bitácora.');
+      }
+    } catch (err) {
+      setError('No se pudo leer la carpeta DJI: ' + (err?.message || err));
+      setState('idle');
+    }
+  };
+  const handleNativeSync = () => nativeSyncRef.current?.();
+
+  // Activar/desactivar la sincronización en segundo plano (WorkManager — F3.8).
+  const toggleBgSync = async () => {
+    const next = !bgSync;
+    if (next) {
+      let granted = await hasNativeFlightPermission();
+      if (!granted) granted = await requestNativeFlightPermission();
+      setNativeGranted(granted);
+      if (!granted) {
+        setNativeStatus('Concede el permiso de archivos para la sincronización en segundo plano.');
+        return;
+      }
+      await enableBackgroundSync();
+    } else {
+      await disableBackgroundSync();
+    }
+    setBgSync(next);
+  };
+
   // ── Selección individual y masiva ──────────────────────────────
   // Solo se pueden seleccionar archivos pendientes (no ya importados)
   const toggleFile = (name) =>
@@ -451,7 +561,11 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
   // La resolución del File es específica de web (handle/fileObj); el POST se
   // delega al bridge compartido (postFlightFile) que también usará el plugin nativo.
   const uploadFile = async (fileInfo) => {
-    const fileObj = fileInfo.fileObj ?? await fileInfo.handle.getFile();
+    // Fuente nativa (Android): leer el .txt por su path vía el plugin FlightFiles.
+    // Web: handle (File System API) o fileObj (input móvil).
+    const fileObj = fileInfo.nativePath
+      ? await readNativeFlightFile(fileInfo.nativePath)
+      : (fileInfo.fileObj ?? await fileInfo.handle.getFile());
     return postFlightFile(fileObj, fileInfo.name);
   };
 
@@ -906,8 +1020,60 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
         </div>
       )}
 
-      {/* ── Instrucciones con tabs ─────────────────────────────── */}
-      {(state === 'idle' || state === 'scanning') && (
+      {/* ── App nativa Android: sincronización directa del control ── */}
+      {nativeSource && state === 'idle' && (
+        <div className="rounded-2xl border border-orange-200 bg-orange-50/60 p-5 space-y-3">
+          <div className="flex items-start gap-3">
+            <span className="material-symbols-outlined text-orange-500 text-2xl shrink-0">smartphone</span>
+            <div className="min-w-0">
+              <p className="text-sm font-black text-navy uppercase tracking-tight">Sincronización automática</p>
+              <p className="text-xs text-slate-500 font-medium leading-snug mt-0.5">
+                Lee los vuelos DJI directo del control — no necesitas copiar archivos ni navegar carpetas.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleNativeSync}
+            className="w-full py-5 bg-orange-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl shadow-orange-500/20 hover:bg-orange-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined text-sm">sync</span>
+            {nativeGranted ? 'Sincronizar vuelos del control' : 'Conceder acceso y sincronizar'}
+          </button>
+          {nativeStatus && (
+            <div className="flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-emerald-500 text-sm">info</span>
+              <p className="text-[11px] font-bold text-slate-500">{nativeStatus}</p>
+            </div>
+          )}
+
+          {/* Toggle: sincronización en segundo plano (WorkManager — F3.8) */}
+          {bgSupported && (
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-orange-100">
+              <div className="flex items-start gap-2.5 min-w-0">
+                <span className="material-symbols-outlined text-orange-500 text-xl shrink-0 mt-0.5">autorenew</span>
+                <div className="min-w-0">
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-700">En segundo plano</p>
+                  <p className="text-[11px] text-slate-400 font-medium leading-snug">
+                    Sube los vuelos nuevos solo, incluso con la app cerrada (cada ~15 min).
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={toggleBgSync}
+                role="switch"
+                aria-checked={bgSync}
+                aria-label="Activar sincronización en segundo plano"
+                className={`relative w-12 h-7 rounded-full shrink-0 transition-colors ${bgSync ? 'bg-orange-500' : 'bg-slate-200'}`}
+              >
+                <span className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${bgSync ? 'translate-x-5' : ''}`} />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Instrucciones con tabs (oculto en la app nativa) ───── */}
+      {!nativeSource && (state === 'idle' || state === 'scanning') && (
         <div className="rounded-2xl border border-slate-200 overflow-hidden">
 
           {/* Tabs */}
@@ -1068,7 +1234,7 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
       )}
 
       {/* ── Botón mobile (sin File System API: iOS / Chrome Android) ── */}
-      {state === 'idle' && !isSupported && (
+      {state === 'idle' && !isSupported && !nativeSource && (
         <>
           {/* Android: webkitdirectory permite elegir la carpeta FlightRecord completa
               de una vez → se auto-importan los vuelos nuevos. iOS Safari NO soporta

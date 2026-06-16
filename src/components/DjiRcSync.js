@@ -12,6 +12,7 @@ import {
   enableBackgroundSync,
   disableBackgroundSync,
   isBackgroundSyncEnabled,
+  diagnoseNativeFlight,
 } from '@/lib/flightImportBridge';
 
 // Clave bajo la que se recuerda la carpeta FlightRecord en IndexedDB.
@@ -255,6 +256,7 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
   const [nativeStatus, setNativeStatus] = useState('');      // texto del último resultado
   const [bgSync, setBgSync] = useState(false);               // sync en segundo plano (F3.8)
   const [bgSupported, setBgSupported] = useState(false);
+  const [nativeDiag, setNativeDiag] = useState(null);        // resultado de diagnóstico de rutas
 
   // Modal crear aeronave
   const [aircraftModal, setAircraftModal] = useState(null); // null | { serial, modelo, nombre, pendingFile }
@@ -501,6 +503,13 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
     }
   };
   const handleNativeSync = () => nativeSyncRef.current?.();
+
+  // Diagnóstico de rutas DJI (para cuando no encuentra logs).
+  const handleDiagnose = async () => {
+    setNativeDiag({ loading: true });
+    const d = await diagnoseNativeFlight();
+    setNativeDiag(d || { error: true });
+  };
 
   // Activar/desactivar la sincronización en segundo plano (WorkManager — F3.8).
   const toggleBgSync = async () => {
@@ -1043,6 +1052,36 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
             <div className="flex items-center gap-1.5">
               <span className="material-symbols-outlined text-emerald-500 text-sm">info</span>
               <p className="text-[11px] font-bold text-slate-500">{nativeStatus}</p>
+            </div>
+          )}
+
+          {/* Diagnóstico de rutas (útil si no encuentra logs) */}
+          <button
+            onClick={handleDiagnose}
+            className="text-[11px] font-bold text-slate-400 hover:text-slate-600 flex items-center gap-1"
+          >
+            <span className="material-symbols-outlined text-sm">troubleshoot</span>
+            Diagnóstico de rutas
+          </button>
+          {nativeDiag && (
+            <div className="bg-slate-900 text-slate-200 rounded-xl p-3 text-[10px] font-mono leading-relaxed overflow-x-auto">
+              {nativeDiag.loading ? 'Analizando…'
+                : nativeDiag.error ? 'No se pudo obtener el diagnóstico.'
+                : (
+                  <div className="space-y-1">
+                    <div>permiso: <b>{String(nativeDiag.granted)}</b></div>
+                    <div>raíz: {nativeDiag.root}</div>
+                    <div>FlightRecord .txt hallados: <b>{nativeDiag.flightRecordTxt}</b></div>
+                    {Array.isArray(nativeDiag.sample) && nativeDiag.sample.length > 0 && (
+                      <div>ejemplos:<br/>{nativeDiag.sample.map((s, i) => <div key={i}>· {s}</div>)}</div>
+                    )}
+                    <div className="text-slate-400 pt-1">carpetas raíz: {Array.isArray(nativeDiag.topLevel) ? nativeDiag.topLevel.join(', ') : ''}</div>
+                    <div className="text-slate-400">rutas conocidas:</div>
+                    {Array.isArray(nativeDiag.knownPaths) && nativeDiag.knownPaths.map((k, i) => (
+                      <div key={i} className="text-slate-400">· {k.path} → {k.exists ? `${k.txt} txt` : 'no existe'}</div>
+                    ))}
+                  </div>
+                )}
             </div>
           )}
 

@@ -97,14 +97,32 @@ public class FlightSyncWorker extends Worker {
         List<File> out = new ArrayList<>();
         for (String rel : KNOWN_PATHS) {
             File dir = new File(root, rel);
-            if (!dir.isDirectory()) continue;
-            File[] kids = dir.listFiles();
-            if (kids == null) continue;
-            for (File k : kids) {
-                if (k.isFile() && k.getName().toLowerCase().endsWith(".txt")) out.add(k);
-            }
+            if (dir.isDirectory()) collectTxtRecursive(dir, out, 0, 3);
         }
+        if (out.isEmpty()) walkForFlightRecords(root, out, 0, 6);
         return out;
+    }
+
+    private void walkForFlightRecords(File dir, List<File> out, int depth, int maxDepth) {
+        if (depth > maxDepth) return;
+        File[] kids = dir.listFiles();
+        if (kids == null) return;
+        for (File k : kids) {
+            if (!k.isDirectory()) continue;
+            String name = k.getName();
+            if (depth == 0 && name.equalsIgnoreCase("Android")) continue;
+            if (name.equalsIgnoreCase("FlightRecord")) collectTxtRecursive(k, out, 0, 3);
+            else walkForFlightRecords(k, out, depth + 1, maxDepth);
+        }
+    }
+
+    private void collectTxtRecursive(File dir, List<File> out, int depth, int maxDepth) {
+        File[] kids = dir.listFiles();
+        if (kids == null) return;
+        for (File k : kids) {
+            if (k.isFile() && k.getName().toLowerCase().endsWith(".txt")) out.add(k);
+            else if (k.isDirectory() && depth < maxDepth) collectTxtRecursive(k, out, depth + 1, maxDepth);
+        }
     }
 
     private int uploadFile(File f, String cookies) {

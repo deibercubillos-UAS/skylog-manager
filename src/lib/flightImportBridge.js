@@ -135,6 +135,13 @@ export async function runBackgroundSyncNow() {
   return true;
 }
 
+// Diagnóstico de rutas: qué ve el plugin (raíz, carpetas, conteo de .txt).
+export async function diagnoseNativeFlight() {
+  const p = flightFilesPlugin();
+  if (!p?.diagnose) return null;
+  try { return await p.diagnose(); } catch { return null; }
+}
+
 // Convierte base64 (del plugin nativo) a un File para reusar el mismo POST que la web.
 function base64ToFile(b64, name) {
   const bin = atob(b64);

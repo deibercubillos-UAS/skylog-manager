@@ -90,15 +90,15 @@ public class FlightFilesPlugin extends Plugin {
         File root = Environment.getExternalStorageDirectory();
         List<File> found = new ArrayList<>();
 
-        // 1) Rutas conocidas
+        // 1) Rutas conocidas (rápido) — lee también subcarpetas
         for (String rel : KNOWN_PATHS) {
             File dir = new File(root, rel);
-            if (dir.isDirectory()) collectTxt(dir, found);
+            if (dir.isDirectory()) collectTxtRecursive(dir, found, 0, 3);
         }
-        // 2) Respaldo: buscar carpetas "FlightRecord" bajo DJI/ con profundidad limitada
+        // 2) Respaldo: recorrer todo el almacenamiento buscando carpetas "FlightRecord"
+        //    (salta Android/ — bloqueada en A11+ y ruidosa). Cubre subrutas DJI variables.
         if (found.isEmpty()) {
-            File dji = new File(root, "DJI");
-            if (dji.isDirectory()) findFlightRecordDirs(dji, found, 0, 4);
+            walkForFlightRecords(root, found, 0, 6);
         }
 
         JSArray arr = new JSArray();
@@ -172,23 +172,71 @@ public class FlightFilesPlugin extends Plugin {
         call.resolve();
     }
 
-    private void collectTxt(File dir, List<File> out) {
-        File[] kids = dir.listFiles();
-        if (kids == null) return;
-        for (File k : kids) {
-            if (k.isFile() && k.getName().toLowerCase().endsWith(".txt")) out.add(k);
-        }
-    }
-
-    private void findFlightRecordDirs(File dir, List<File> out, int depth, int maxDepth) {
+    // Recorre el árbol buscando carpetas "FlightRecord" (salta Android/ en la raíz).
+    private void walkForFlightRecords(File dir, List<File> out, int depth, int maxDepth) {
         if (depth > maxDepth) return;
         File[] kids = dir.listFiles();
         if (kids == null) return;
         for (File k : kids) {
-            if (k.isDirectory()) {
-                if (k.getName().equalsIgnoreCase("FlightRecord")) collectTxt(k, out);
-                else findFlightRecordDirs(k, out, depth + 1, maxDepth);
+            if (!k.isDirectory()) continue;
+            String name = k.getName();
+            if (depth == 0 && name.equalsIgnoreCase("Android")) continue; // bloqueada/ruido
+            if (name.equalsIgnoreCase("FlightRecord")) {
+                collectTxtRecursive(k, out, 0, 3);
+            } else {
+                walkForFlightRecords(k, out, depth + 1, maxDepth);
             }
         }
+    }
+
+    // Recolecta .txt dentro de una carpeta y sus subcarpetas (profundidad limitada).
+    private void collectTxtRecursive(File dir, List<File> out, int depth, int maxDepth) {
+        File[] kids = dir.listFiles();
+        if (kids == null) return;
+        for (File k : kids) {
+            if (k.isFile() && k.getName().toLowerCase().endsWith(".txt")) {
+                out.add(k);
+            } else if (k.isDirectory() && depth < maxDepth) {
+                collectTxtRecursive(k, out, depth + 1, maxDepth);
+            }
+        }
+    }
+
+    // Diagnóstico: qué ve el plugin (para depurar rutas DJI desconocidas).
+    @PluginMethod
+    public void diagnose(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("granted", hasAllFilesAccess());
+        File root = Environment.getExternalStorageDirectory();
+        ret.put("root", root.getAbsolutePath());
+
+        JSArray known = new JSArray();
+        for (String rel : KNOWN_PATHS) {
+            File d = new File(root, rel);
+            List<File> tmp = new ArrayList<>();
+            if (d.isDirectory()) collectTxtRecursive(d, tmp, 0, 3);
+            JSObject o = new JSObject();
+            o.put("path", rel);
+            o.put("exists", d.isDirectory());
+            o.put("txt", tmp.size());
+            known.put(o);
+        }
+        ret.put("knownPaths", known);
+
+        // Carpetas de primer nivel del almacenamiento
+        JSArray top = new JSArray();
+        File[] kids = root.listFiles();
+        if (kids != null) for (File k : kids) if (k.isDirectory()) top.put(k.getName());
+        ret.put("topLevel", top);
+
+        // Carpetas FlightRecord halladas en el recorrido + conteo
+        List<File> frFiles = new ArrayList<>();
+        walkForFlightRecords(root, frFiles, 0, 6);
+        ret.put("flightRecordTxt", frFiles.size());
+        JSArray sample = new JSArray();
+        for (int i = 0; i < Math.min(5, frFiles.size()); i++) sample.put(frFiles.get(i).getAbsolutePath());
+        ret.put("sample", sample);
+
+        call.resolve(ret);
     }
 }

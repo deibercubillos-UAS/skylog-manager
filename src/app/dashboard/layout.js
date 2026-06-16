@@ -449,14 +449,14 @@ const footerLinks = footerLinksAll.filter(link =>
           role="button"
           aria-label="Cerrar menú"
           tabIndex={0}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140] lg:hidden cursor-pointer"
+          className="fixed inset-0 bg-black/60 z-[140] lg:hidden cursor-pointer"
           onClick={() => setSidebarOpen(false)}
           onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && setSidebarOpen(false)}
         />
       )}
 
       {/* ── CONTENIDO PRINCIPAL ──────────────────────────────────────────── */}
-      <main className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'}`}>
+      <main className={`flex-1 flex flex-col overflow-hidden min-h-0 transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'}`}>
 
         {/* HEADER */}
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shrink-0 sticky top-0 z-[100]">
@@ -543,7 +543,11 @@ const footerLinks = footerLinksAll.filter(link =>
         {/* CONTENIDO DE PÁGINA */}
         {/* pb-28 mobile = 7rem ≥ barra inferior (4rem) + safe-area máximo iPhone (2.125rem) + respiro */}
         {/* id="main-content" — destino del skip link de accesibilidad */}
-        <div id="main-content" className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10 pb-28 lg:pb-10">
+        <div
+          id="main-content"
+          className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 lg:p-10 lg:pb-10"
+          style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'max(7rem, calc(4rem + env(safe-area-inset-bottom, 8px) + 1rem))' }}
+        >
           {/* Banner período de gracia */}
           {gracePeriod.isGracePeriod && (
             <div className="mb-6 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">

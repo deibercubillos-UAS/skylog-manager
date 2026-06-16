@@ -62,8 +62,8 @@ Objetivo: APK instalable y app en Play con datos de vuelo automáticos.
 |------|-------------|--------|
 | F3.0 | Prerrequisito: instalar Android Studio + JDK 17 en el PC | ✅ |
 | F3.1 | Instalar Capacitor + `npx cap add android` (genera `android/`) | ✅ |
-| F3.2 | Verificar paridad: el WebView carga el sitio idéntico a la web | ⬜ |
-| F3.3 | Build primer **APK debug** e instalar en RC/teléfono (hito instalable) | ⬜ |
+| F3.2 | Verificar paridad: el WebView carga el sitio idéntico a la web | ✅ |
+| F3.3 | Build primer **APK debug** e instalar en RC/teléfono (hito instalable) | ✅ |
 | F3.4 | Digital Asset Links (deep links abren la app) | ⬜ |
 | F3.5 | Íconos / splash nativos | ⬜ |
 | F3.6 | Plugin de archivos: leer carpeta `FlightRecord` (SAF/scoped storage) | ⬜ |
@@ -211,7 +211,22 @@ Solo diagnóstico, sin cambios en el código.
 - `npx cap add android` generó la carpeta aislada **`android/`** (namespace/applicationId
   `com.bitafly.app`; su propio `.gitignore` excluye `*.apk`/`*.aab`/build).
 - Verificación: scaffold OK, appId correcto. El primer build Gradle se hace en F3.3.
-- Pendiente F3.2/F3.3: levantar el WebView y compilar el primer APK debug.
+
+### F3.2 + F3.3 — Primer APK debug en emulador ✅ (2026-06-16)
+
+- **Toolchain del emulador** (descargado con autorización): `cmdline-tools` (sdkmanager/avdmanager),
+  imagen `system-images;android-35;google_apis;x86_64`, `emulator`. Licencias SDK aceptadas.
+- **AVD `bitafly_pixel`** creado (Pixel 6, Android 15). Lanzado y booteado (`boot_completed=1`).
+- **Build**: `gradlew assembleDebug --no-daemon` con `JAVA_HOME`=JBR (JDK 21) →
+  **BUILD SUCCESSFUL** en ~1m54s. APK: `android/app/build/outputs/apk/debug/app-debug.apk` (3.93 MB).
+- **Instalación**: `adb install -r` → Success. Lanzado `com.bitafly.app/.MainActivity`.
+- **Paridad (F3.2)**: logcat confirma WebView cargando `https://bitafly.com/`; captura muestra
+  el login de BitaFly idéntico a la web. Evidencia: `mobile/emulator-f32.png` (no versionada).
+- **Gotchas Windows**: invocar `gradlew.bat` por ruta con el operador `&` de PowerShell
+  (no `cmd /c "gradlew.bat"`); capturar screenshots con `adb pull`, NO `adb exec-out > file`
+  (la redirección `>` de PowerShell corrompe el binario con BOM).
+- **Etapa 3 base instalable COMPLETA.** Próximo: F3.4 (deep links) / F3.5 (íconos-splash) o saltar
+  a F3.6/F3.7 (plugin de archivos + auto-import DJI nativo, el diferenciador real).
 
 <!-- Plantilla para próximas fases:
 ### Fx.y — Título ✅/🔄 (fecha)

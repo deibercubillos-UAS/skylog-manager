@@ -54,3 +54,6 @@ graphify-out/
 
 # parches sueltos
 *.patch
+
+# Evidencia de pruebas del emulador (no versionar)
+mobile/emulator-*.png

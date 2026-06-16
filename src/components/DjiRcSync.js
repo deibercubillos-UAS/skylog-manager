@@ -1563,30 +1563,25 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
 
       {/* ── Modal: crear aeronave ────────────────────────────────── */}
       {aircraftModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60">
-          <div className="w-full max-w-md bg-white rounded-[2rem] shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl flex flex-col max-h-[92vh]">
 
-            {/* Header */}
-            <div className="bg-amber-50 border-b border-amber-100 px-6 py-5">
+            {/* Header — fijo */}
+            <div className="bg-amber-50 border-b border-amber-100 px-5 py-4 shrink-0">
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-amber-500 text-2xl">flight</span>
-                <div>
-                  <p className="text-sm font-black text-slate-900 uppercase tracking-tight">
-                    Aeronave no registrada
-                  </p>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">
-                    SN detectado: <code className="bg-amber-100 px-1.5 rounded font-mono">{aircraftModal.serial}</code>
-                    {aircraftModal.modelo && <span className="ml-2 text-slate-400">· {aircraftModal.modelo}</span>}
+                <span className="material-symbols-outlined text-amber-500 text-xl shrink-0">flight</span>
+                <div className="min-w-0">
+                  <p className="text-sm font-black text-slate-900 uppercase tracking-tight">Aeronave no registrada</p>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5 truncate">
+                    SN: <code className="bg-amber-100 px-1 rounded font-mono">{aircraftModal.serial}</code>
+                    {aircraftModal.modelo && <span className="ml-1.5 text-slate-400">· {aircraftModal.modelo}</span>}
                   </p>
                 </div>
               </div>
-              <p className="text-xs text-amber-700 font-medium mt-3 leading-relaxed">
-                Esta aeronave no está en tu flota. Completa los datos para registrarla y continuar la importación.
-              </p>
             </div>
 
-            {/* Form */}
-            <div className="px-6 py-5 space-y-4">
+            {/* Form — scrollable */}
+            <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1">
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <label className="text-xs font-black uppercase text-slate-500 tracking-widest block mb-1">Modelo *</label>
@@ -1622,23 +1617,6 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
                     className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-400"
                   />
                 </div>
-                <div className="col-span-2">
-                  <a
-                    href="/dashboard/fleet"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-start gap-2.5 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2.5 hover:bg-orange-100 transition-all group"
-                  >
-                    <span className="material-symbols-outlined text-orange-500 text-base shrink-0 mt-0.5">build</span>
-                    <div>
-                      <p className="text-xs font-black text-orange-700 uppercase tracking-wide">Mantenimiento técnico</p>
-                      <p className="text-xs text-orange-600 font-medium leading-snug mt-0.5">
-                        Actualiza la fecha del último mantenimiento en <span className="font-black underline underline-offset-2 group-hover:text-orange-800">Flota → editar aeronave</span> después de crearla.
-                      </p>
-                    </div>
-                    <span className="material-symbols-outlined text-orange-400 text-sm shrink-0 mt-0.5 group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
-                  </a>
-                </div>
               </div>
 
               {aircraftError && (
@@ -1647,25 +1625,26 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
                   <p className="text-xs text-red-600 font-bold">{aircraftError}</p>
                 </div>
               )}
+            </div>
 
-              <div className="flex gap-3 pt-1">
-                <button
-                  onClick={() => { setAircraftModal(null); setState('done'); setResults({ imported: 0, skipped: 0, errors: 1 }); }}
-                  className="flex-1 py-3 text-xs font-black text-slate-400 uppercase border border-slate-200 rounded-2xl hover:border-slate-400 transition-all"
-                >
-                  Omitir
-                </button>
-                <button
-                  onClick={handleCreateAircraft}
-                  disabled={creatingAircraft || !String(aircraftForm.model ?? '').trim()}
-                  className="flex-1 py-3 bg-orange-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-500/20 disabled:opacity-40 transition-all flex items-center justify-center gap-2"
-                >
-                  {creatingAircraft
-                    ? <><span className="material-symbols-outlined text-sm animate-spin">sync</span>Creando...</>
-                    : <><span className="material-symbols-outlined text-sm">add</span>Crear y continuar</>
-                  }
-                </button>
-              </div>
+            {/* Botones — siempre visibles al pie */}
+            <div className="px-5 pb-5 pt-3 flex gap-3 border-t border-slate-100 shrink-0">
+              <button
+                onClick={() => { setAircraftModal(null); setState('done'); setResults({ imported: 0, skipped: 0, errors: 1 }); }}
+                className="flex-1 py-3 text-xs font-black text-slate-400 uppercase border border-slate-200 rounded-2xl hover:border-slate-400 transition-all"
+              >
+                Omitir
+              </button>
+              <button
+                onClick={handleCreateAircraft}
+                disabled={creatingAircraft || !String(aircraftForm.model ?? '').trim()}
+                className="flex-1 py-3 bg-orange-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-500/20 disabled:opacity-40 transition-all flex items-center justify-center gap-2"
+              >
+                {creatingAircraft
+                  ? <><span className="material-symbols-outlined text-sm animate-spin">sync</span>Creando...</>
+                  : <><span className="material-symbols-outlined text-sm">add</span>Crear y continuar</>
+                }
+              </button>
             </div>
           </div>
         </div>
@@ -1673,30 +1652,25 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
 
       {/* ── Modal: crear batería ─────────────────────────────────── */}
       {batteryModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60">
-          <div className="w-full max-w-md bg-white rounded-[2rem] shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl flex flex-col max-h-[92vh]">
 
-            {/* Header */}
-            <div className="bg-sky-50 border-b border-sky-100 px-6 py-5">
+            {/* Header — fijo */}
+            <div className="bg-sky-50 border-b border-sky-100 px-5 py-4 shrink-0">
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-sky-500 text-2xl">battery_charging_full</span>
-                <div>
-                  <p className="text-sm font-black text-slate-900 uppercase tracking-tight">
-                    Batería no registrada
-                  </p>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">
-                    SN detectado: <code className="bg-sky-100 px-1.5 rounded font-mono">{batteryModal.serial_bateria}</code>
-                    {batteryModal.modelo_bateria && <span className="ml-2 text-slate-400">· {batteryModal.modelo_bateria}</span>}
+                <span className="material-symbols-outlined text-sky-500 text-xl shrink-0">battery_charging_full</span>
+                <div className="min-w-0">
+                  <p className="text-sm font-black text-slate-900 uppercase tracking-tight">Batería no registrada</p>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5 truncate">
+                    SN: <code className="bg-sky-100 px-1 rounded font-mono">{batteryModal.serial_bateria}</code>
+                    {batteryModal.modelo_bateria && <span className="ml-1.5 text-slate-400">· {batteryModal.modelo_bateria}</span>}
                   </p>
                 </div>
               </div>
-              <p className="text-xs text-sky-700 font-medium mt-3 leading-relaxed">
-                El vuelo fue importado correctamente. Esta batería no está registrada en tu flota. Regístrala ahora o omite para hacerlo después.
-              </p>
             </div>
 
-            {/* Form */}
-            <div className="px-6 py-5 space-y-4">
+            {/* Form — scrollable */}
+            <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-black uppercase text-slate-500 tracking-widest block mb-1">Fabricante</label>
@@ -1752,25 +1726,26 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
                   <p className="text-xs text-red-600 font-bold">{batteryError}</p>
                 </div>
               )}
+            </div>
 
-              <div className="flex gap-3 pt-1">
-                <button
-                  onClick={() => { setBatteryModal(null); setBatteryError(''); }}
-                  className="flex-1 py-3 text-xs font-black text-slate-400 uppercase border border-slate-200 rounded-2xl hover:border-slate-400 transition-all"
-                >
-                  Omitir
-                </button>
-                <button
-                  onClick={handleCreateBattery}
-                  disabled={creatingBattery || !batteryForm.serial_number.trim()}
-                  className="flex-1 py-3 bg-sky-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-sky-500/20 disabled:opacity-40 transition-all flex items-center justify-center gap-2"
-                >
-                  {creatingBattery
-                    ? <><span className="material-symbols-outlined text-sm animate-spin">sync</span>Creando...</>
-                    : <><span className="material-symbols-outlined text-sm">add</span>Registrar batería</>
-                  }
-                </button>
-              </div>
+            {/* Botones — siempre visibles al pie */}
+            <div className="px-5 pb-5 pt-3 flex gap-3 border-t border-slate-100 shrink-0">
+              <button
+                onClick={() => { setBatteryModal(null); setBatteryError(''); }}
+                className="flex-1 py-3 text-xs font-black text-slate-400 uppercase border border-slate-200 rounded-2xl hover:border-slate-400 transition-all"
+              >
+                Omitir
+              </button>
+              <button
+                onClick={handleCreateBattery}
+                disabled={creatingBattery || !batteryForm.serial_number.trim()}
+                className="flex-1 py-3 bg-sky-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-sky-500/20 disabled:opacity-40 transition-all flex items-center justify-center gap-2"
+              >
+                {creatingBattery
+                  ? <><span className="material-symbols-outlined text-sm animate-spin">sync</span>Creando...</>
+                  : <><span className="material-symbols-outlined text-sm">add</span>Registrar batería</>
+                }
+              </button>
             </div>
           </div>
         </div>

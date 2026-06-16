@@ -85,14 +85,30 @@ export async function listNativeFlightFiles() {
   return Array.isArray(files) ? files : [];
 }
 
-// Lee un archivo de vuelo nativo por su path y lo devuelve como File para postFlightFile.
+// Lee un archivo de vuelo nativo por su path/URI y lo devuelve como File para postFlightFile.
 export async function readNativeFlightFile(pathOrRef) {
   const p = flightFilesPlugin();
   if (!p) throw new Error('readNativeFlightFile: plugin nativo no disponible.');
   const path = typeof pathOrRef === 'string' ? pathOrRef : pathOrRef?.path;
+  const fname = typeof pathOrRef === 'string' ? undefined : pathOrRef?.name;
   if (!path) throw new Error('readNativeFlightFile: path requerido.');
-  const { name, data } = await p.readFlightFile({ path });
-  return base64ToFile(data, name || 'flight.txt');
+  const { name, data } = await p.readFlightFile({ path, name: fname });
+  return base64ToFile(data, name || fname || 'flight.txt');
+}
+
+// ¿El usuario ya eligió la carpeta FlightRecord vía selector del sistema (SAF)?
+export async function hasNativeFlightFolder() {
+  const p = flightFilesPlugin();
+  if (!p?.hasFlightFolder) return false;
+  try { const { has } = await p.hasFlightFolder(); return !!has; } catch { return false; }
+}
+
+// Abre el selector del sistema para elegir la carpeta FlightRecord (permiso persistente).
+// Devuelve { picked, txt } — txt = nº de .txt detectados en la carpeta elegida.
+export async function pickNativeFlightFolder() {
+  const p = flightFilesPlugin();
+  if (!p?.pickFlightFolder) return { picked: false };
+  try { return await p.pickFlightFolder(); } catch { return { picked: false }; }
 }
 
 // ── Sincronización en segundo plano (WorkManager — F3.8) ─────────────────────

@@ -13,6 +13,8 @@ import {
   disableBackgroundSync,
   isBackgroundSyncEnabled,
   diagnoseNativeFlight,
+  hasNativeFlightFolder,
+  pickNativeFlightFolder,
 } from '@/lib/flightImportBridge';
 
 // Clave bajo la que se recuerda la carpeta FlightRecord en IndexedDB.
@@ -257,6 +259,7 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
   const [bgSync, setBgSync] = useState(false);               // sync en segundo plano (F3.8)
   const [bgSupported, setBgSupported] = useState(false);
   const [nativeDiag, setNativeDiag] = useState(null);        // resultado de diagnóstico de rutas
+  const [nativeFolder, setNativeFolder] = useState(false);   // carpeta FlightRecord elegida vía SAF
 
   // Modal crear aeronave
   const [aircraftModal, setAircraftModal] = useState(null); // null | { serial, modelo, nombre, pendingFile }
@@ -300,11 +303,16 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
     let cancelled = false;
     setBgSupported(supportsBackgroundSync());
     setBgSync(isBackgroundSyncEnabled());
-    hasNativeFlightPermission().then(granted => {
+    hasNativeFlightFolder().then(hasFolder => {
       if (cancelled) return;
-      setNativeGranted(granted);
-      // Si ya hay permiso, sincronizar solo al abrir (auto-import "una vez configurado").
-      if (granted) nativeSyncRef.current?.();
+      setNativeFolder(hasFolder);
+      // Auto-sincronizar al abrir solo si ya hay carpeta elegida (config "una vez").
+      if (hasFolder) { nativeSyncRef.current?.(); return; }
+      // Si no hay carpeta SAF, ver si el acceso directo tiene permiso.
+      hasNativeFlightPermission().then(granted => {
+        if (cancelled) return;
+        setNativeGranted(granted);
+      });
     });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -453,24 +461,12 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
   const nativeSyncRef = useRef(null);
   nativeSyncRef.current = async () => {
     setError('');
-    // 1) Asegurar permiso de "todos los archivos" (abre Ajustes en A11+).
-    let granted = await hasNativeFlightPermission();
-    if (!granted) {
-      granted = await requestNativeFlightPermission();
-      setNativeGranted(granted);
-      if (!granted) {
-        setNativeStatus('Concede el permiso de archivos para leer los vuelos DJI.');
-        return;
-      }
-    }
-    setNativeGranted(true);
-
     setState('scanning');
     try {
       const list = await listNativeFlightFiles(); // [{ name, path, size, mtime }]
       const txt = list.filter(f => /\.txt$/i.test(f.name));
       if (!txt.length) {
-        setNativeStatus('No se encontraron logs DJI en el dispositivo.');
+        setNativeStatus('No se encontraron logs. Pulsa "Elegir carpeta de vuelos" y selecciona la carpeta FlightRecord de tu control.');
         setState('idle');
         return;
       }
@@ -503,6 +499,22 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
     }
   };
   const handleNativeSync = () => nativeSyncRef.current?.();
+
+  // Elegir la carpeta FlightRecord con el selector del sistema (SAF), luego sincronizar.
+  const handlePickFolder = async () => {
+    setError('');
+    setNativeStatus('Selecciona la carpeta FlightRecord de tu control…');
+    const res = await pickNativeFlightFolder();
+    if (!res?.picked) {
+      setNativeStatus('No se eligió ninguna carpeta.');
+      return;
+    }
+    setNativeFolder(true);
+    setNativeStatus(res.txt > 0
+      ? `Carpeta vinculada · ${res.txt} archivo(s) detectado(s). Sincronizando…`
+      : 'Carpeta vinculada, pero no tiene .txt. Elige la carpeta FlightRecord (la que contiene los vuelos).');
+    if (res.txt > 0) await nativeSyncRef.current?.();
+  };
 
   // Diagnóstico de rutas DJI (para cuando no encuentra logs).
   const handleDiagnose = async () => {
@@ -573,7 +585,7 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
     // Fuente nativa (Android): leer el .txt por su path vía el plugin FlightFiles.
     // Web: handle (File System API) o fileObj (input móvil).
     const fileObj = fileInfo.nativePath
-      ? await readNativeFlightFile(fileInfo.nativePath)
+      ? await readNativeFlightFile({ path: fileInfo.nativePath, name: fileInfo.name })
       : (fileInfo.fileObj ?? await fileInfo.handle.getFile());
     return postFlightFile(fileObj, fileInfo.name);
   };
@@ -1041,13 +1053,32 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
               </p>
             </div>
           </div>
-          <button
-            onClick={handleNativeSync}
-            className="w-full py-5 bg-orange-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl shadow-orange-500/20 hover:bg-orange-700 transition-all active:scale-95 flex items-center justify-center gap-2"
-          >
-            <span className="material-symbols-outlined text-sm">sync</span>
-            {nativeGranted ? 'Sincronizar vuelos del control' : 'Conceder acceso y sincronizar'}
-          </button>
+          {nativeFolder ? (
+            <>
+              <button
+                onClick={handleNativeSync}
+                className="w-full py-5 bg-orange-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl shadow-orange-500/20 hover:bg-orange-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-sm">sync</span>
+                Sincronizar vuelos del control
+              </button>
+              <button
+                onClick={handlePickFolder}
+                className="w-full text-[11px] font-bold text-slate-400 hover:text-slate-600 flex items-center justify-center gap-1"
+              >
+                <span className="material-symbols-outlined text-sm">folder_open</span>
+                Cambiar carpeta de vuelos
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={handlePickFolder}
+              className="w-full py-5 bg-orange-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl shadow-orange-500/20 hover:bg-orange-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined text-sm">folder_open</span>
+              Elegir carpeta de vuelos
+            </button>
+          )}
           {nativeStatus && (
             <div className="flex items-center gap-1.5">
               <span className="material-symbols-outlined text-emerald-500 text-sm">info</span>
@@ -1069,12 +1100,10 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
                 : nativeDiag.error ? 'No se pudo obtener el diagnóstico.'
                 : (
                   <div className="space-y-1">
-                    <div>permiso: <b>{String(nativeDiag.granted)}</b></div>
+                    <div>permiso archivos: <b>{String(nativeDiag.granted)}</b></div>
+                    <div>carpeta elegida: <b>{String(nativeDiag.folder)}</b> · .txt en carpeta: <b>{nativeDiag.folderTxt ?? 0}</b></div>
                     <div>raíz: {nativeDiag.root}</div>
-                    <div>FlightRecord .txt hallados: <b>{nativeDiag.flightRecordTxt}</b></div>
-                    {Array.isArray(nativeDiag.sample) && nativeDiag.sample.length > 0 && (
-                      <div>ejemplos:<br/>{nativeDiag.sample.map((s, i) => <div key={i}>· {s}</div>)}</div>
-                    )}
+                    <div>FlightRecord .txt (acceso directo): <b>{nativeDiag.flightRecordTxt}</b></div>
                     <div className="text-slate-400 pt-1">carpetas raíz: {Array.isArray(nativeDiag.topLevel) ? nativeDiag.topLevel.join(', ') : ''}</div>
                     <div className="text-slate-400">rutas conocidas:</div>
                     {Array.isArray(nativeDiag.knownPaths) && nativeDiag.knownPaths.map((k, i) => (

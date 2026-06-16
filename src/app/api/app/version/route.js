@@ -1,8 +1,11 @@
-import { createAdminClient } from '@/lib/supabaseServer';
+import { createClient } from '@supabase/supabase-js';
 
 export async function GET() {
     try {
-        const supabase = createAdminClient();
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        );
         const { data, error } = await supabase
             .from('app_releases')
             .select('version_name, version_code, apk_url, release_notes, force_update')

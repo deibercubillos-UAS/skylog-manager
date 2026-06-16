@@ -8,7 +8,7 @@
 import { createClient, createAdminClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import { escHtml } from '@/lib/emailHelpers';
+import { escHtml, emailHeader, emailFooter } from '@/lib/emailHelpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,7 +40,7 @@ async function getSchoolOwnerContext(admin, userId) {
 
   const { data: partner } = await admin
     .from('partners')
-    .select('id, name, type, status, commission_pct, free_days, free_seats_limit')
+    .select('id, name, type, status, commission_pct, free_days, free_seats_limit, logo_url')
     .eq('id', membership.partner_id)
     .eq('type', 'escuela')
     .maybeSingle();
@@ -152,27 +152,38 @@ export async function POST(request) {
       linked = true;
     }
 
-    // Correo de invitación al asesor
+    // Correo de invitación al asesor (con logo de la escuela + BitaFly)
     const resend = new Resend(process.env.RESEND_API_KEY);
-    const registerLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://bitafly.co'}/registro`;
-    const panelLink    = `${process.env.NEXT_PUBLIC_APP_URL || 'https://bitafly.co'}/socio`;
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
+    const registerLink = `${appUrl}/registro?email=${encodeURIComponent(normalEmail)}`;
+    const panelLink    = `${appUrl}/socio`;
+    const ctaUrl   = linked ? panelLink : registerLink;
+    const ctaLabel = linked ? 'Ver mi panel de socio →' : 'Crear cuenta →';
 
     const { error: emailErr } = await resend.emails.send({
       from:    'BitaFly Socios <no-reply@bitafly.com>',
       to:      [normalEmail],
       subject: `${escHtml(school.name)} te invita como asesor en BitaFly`,
       html: `
-        <p>Hola${profile?.full_name ? ` ${escHtml(profile.full_name)}` : ''},</p>
-        <p><strong>${escHtml(school.name)}</strong> te ha registrado como asesor de ventas en <strong>BitaFly</strong>.</p>
-        <p>Tu código de ventas es: <strong style="font-size:1.3em;letter-spacing:.05em">${escHtml(code)}</strong></p>
-        <p>Comparte este código con pilotos que se suscriban a BitaFly y generarás comisiones del ${school.commission_pct}% por cada venta.</p>
-        ${linked
-          ? `<p><a href="${escHtml(panelLink)}" style="background:#ea580c;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Ver mi panel de socio</a></p>`
-          : `<p>Para activar tu panel, crea tu cuenta en BitaFly con este correo y luego accede a tu panel de asesor:</p>
-             <p><a href="${escHtml(registerLink)}" style="background:#ea580c;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Crear cuenta</a></p>`
-        }
-        <p style="color:#94a3b8;font-size:.85em">— Equipo BitaFly</p>
-      `,
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f7f8fa;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:40px 0;"><tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;max-width:600px;">
+      ${emailHeader({ partnerLogoUrl: school.logo_url, partnerName: school.name })}
+      <tr><td style="padding:40px;">
+        <p style="margin:0 0 16px;font-size:15px;color:#1a202c;">Hola${profile?.full_name ? ` ${escHtml(profile.full_name)}` : ''},</p>
+        <p style="margin:0 0 16px;font-size:15px;color:#4a5568;line-height:1.6;"><strong>${escHtml(school.name)}</strong> te ha registrado como asesor de ventas en <strong>BitaFly</strong>.</p>
+        <p style="margin:0 0 16px;font-size:15px;color:#4a5568;">Tu código de ventas es: <strong style="font-size:1.2em;letter-spacing:.05em">${escHtml(code)}</strong></p>
+        <p style="margin:0 0 16px;font-size:15px;color:#4a5568;line-height:1.6;">Comparte este código con pilotos que se suscriban a BitaFly y generarás comisiones del ${school.commission_pct}% por cada venta.</p>
+        ${!linked ? '<p style="margin:0 0 8px;font-size:14px;color:#718096;">Para activar tu panel, crea tu cuenta en BitaFly con este correo.</p>' : ''}
+        <table cellpadding="0" cellspacing="0" style="margin:20px 0;"><tr><td style="background:#ec5b13;border-radius:10px;">
+          <a href="${escHtml(ctaUrl)}" style="display:inline-block;padding:14px 32px;color:#fff;font-size:15px;font-weight:900;text-decoration:none;">${ctaLabel}</a>
+        </td></tr></table>
+      </td></tr>
+      ${emailFooter()}
+    </table>
+  </td></tr></table>
+</body></html>`,
     });
     if (emailErr) console.error('[socio/advisors] Resend error:', emailErr);
 

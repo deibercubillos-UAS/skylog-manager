@@ -24,7 +24,7 @@ app/
 │   ├── maintenance/   ← attachment_path incluido
 │   ├── epayco/        ← webhook, verify, checkout
 │   ├── subscription/  ← cancel
-│   ├── socio/         ← me, grants, advisors, reports (panel de escuelas/asesores)
+│   ├── socio/         ← me, grants (GET/POST/DELETE), advisors, reports, logo, account, invite-info (panel escuelas/asesores)
 │   ├── cron/          ← free-grants (expiración y purga de perfiles gratis)
 │   ├── sora/ · sms/ · reports/ · dashboard/
 │   └── admin/master/  ← superadmin + epayco-subscriptions + partners + commissions
@@ -47,7 +47,7 @@ lib/
 ├── checklistDefaults.js ← CHECKLIST_DEFAULTS + buildChecklistRows()
 ├── djiParser.js        ← parseDjiTxtBuffer() — requiere DJI_API_KEY
 ├── epaycoActivation.js ← activatePlanForUser() — idempotente
-├── emailHelpers.js     ← escHtml()
+├── emailHelpers.js     ← escHtml() + emailHeader()/emailFooter()/bitaflyLogoUrl() (branding correos con logo BitaFly + logo del socio)
 ├── rateLimiter.js      ← checkRateLimit() + getClientIp()
 └── partnerReferral.js  ← attributeCommission() — atribución recurrente de comisiones a socios
 ```
@@ -440,18 +440,21 @@ Vista completa de desarrollo con: ScoreGauge SVG · WindCompass SVG · barras de
 
 Sistema de referidos B2B: escuelas de formación UAS y asesores independientes pueden regalar perfiles gratis y recibir comisiones recurrentes por ventas de planes pagados.
 
-### Tablas (migraciones `20260613_partners_program.sql` + `20260613_partners_pending_code.sql` + `20260614_partner_program_fixes.sql`)
+### Tablas (migraciones `20260613_partners_program.sql` + `20260613_partners_pending_code.sql` + `20260614_partner_program_fixes.sql` + `20260614_partner_invitations.sql` + `20260614_partner_logo_and_bucket.sql`)
 
 | Tabla | Descripción |
 |---|---|
-| `partners` | Escuela o asesor. `type` (escuela/asesor), `parent_partner_id` (asesor → escuela), `commission_pct`, `free_seats_limit`/`free_seats_used`, `free_days`, `status` |
+| `partners` | Escuela o asesor. `type` (escuela/asesor), `parent_partner_id` (asesor → escuela), `commission_pct`, `free_seats_limit`/`free_seats_used`, `free_days`, `status`, **`logo_url`** (logo del socio para branding de correos/panel) |
 | `partner_codes` | Códigos de venta únicos (`code` UNIQUE). Generados como INICIALES-XXXX (ej. EAC-XB12). Cada partner puede tener varios. |
 | `partner_members` | Quién accede al panel `/socio`. `role`: `owner` (crea asesores, ve todo) o `asesor` (solo sus datos). Solo service role puede escribir. |
+| `partner_invitations` | Invitación a personas **sin cuenta** BitaFly para acceder al panel `/socio`. `email`, `role` (owner/asesor), `token` (UNIQUE), `status` (pendiente/aceptada/expirada), `expires_at` (+7 días). |
 | `free_grants` | 1 por email, no renovable. `status`: `enviado→activado→degradado→purgado`. `expires_at` + `purge_after` (expiry + 90 días). `redeemed_org_id` al canjearse. Tiene `updated_at`. |
-| `referrals` | 1 por org. Relación org-cliente ↔ partner. `status`: `activa/cancelada`. Se cancela al cancelar la suscripción. |
+| `referrals` | 1 por org (`org_id`). Relación org-cliente ↔ partner. `code`, `plan`, `billing`, `status`: `activa/cancelada`. Se cancela al cancelar la suscripción. |
 | `referral_commissions` | Una fila por ciclo de pago (recurrente). Idempotente por `ref_payco` (UNIQUE index). `status`: `pendiente/liquidada/anulada`. Tiene `updated_at`. |
 
 **RLS**: SELECT para miembros del socio (`private.user_partner_ids()`); INSERT/UPDATE/DELETE solo service role.
+
+**Bucket** público `partner-logos` (logos de socios). Política: lectura pública; escritura solo service role (gate a nivel de API). `partners.logo_url` guarda la URL pública directa.
 
 ### Flujo de comisión
 1. Usuario paga con código → `pending_subscriptions.partner_code` → webhook → `attributeCommission()` (`lib/partnerReferral.js`)
@@ -460,34 +463,51 @@ Sistema de referidos B2B: escuelas de formación UAS y asesores independientes p
 4. Al cancelar suscripción (self o Master): `referrals.status = 'cancelada'`
 5. Master liquida desde el tab **Comisiones** → PATCH `status='liquidada'`
 
-### Perfiles gratis
+### Perfiles gratis (regalos)
 - Escuelas/asesores regalan perfiles piloto con período de gracia (`free_days`, default 90)
-- `POST /api/socio/grants { email }`: valida cupo, unicidad global, envía correo con link `?grant=<token>`
-- Al registrarse con `?grant=<token>`: `subscription_expires_at = grants.expires_at`
+- `POST /api/socio/grants { email }`: valida cupo, unicidad global, envía correo branded con link `?email=&grant=<token>`
+- `DELETE /api/socio/grants { grant_id }` (solo `owner`): anula el regalo. Si ya fue canjeado (`redeemed_org_id`), **degrada a los perfiles de la org beneficiaria a piloto** (revoca el plan obsequiado); libera el cupo (`free_seats_used--`). Botón 🗑 en la lista de regalos del panel.
+- **Registro con `?grant=<token>`** (`registro/page.js`): entra directo al registro de **piloto independiente** (`createStep=2`, `type=solo`, plan piloto), con el **correo pre-llenado y bloqueado**. Al activar: `subscription_expires_at = grants.expires_at`.
 - **Cron diario** (`vercel.json`, 13:30 UTC → `GET /api/cron/free-grants`, secured con `CRON_SECRET`):
   - Degrada grants `IN ('activado','enviado')` con `expires_at <= now` → `status='degradado'`, baja perfil a piloto, notifica
   - Purga grants `status='degradado'` con `purge_after <= now` → elimina datos operacionales de la org, notifica
 - ⚠️ `CRON_SECRET` debe estar configurado en Vercel env vars
 
+### Onboarding de miembros del panel (con / sin cuenta)
+`POST /api/admin/master/partners {action:'add_member'}` y `POST /api/socio/advisors` bifurcan:
+- **Tiene cuenta** (`profiles` por email): upsert `partner_members` + notificación in-app (inserción directa — el socio puede ser de cualquier org, **NO** usar `createNotifications` que exige orgId) + correo de bienvenida branded.
+- **Sin cuenta**: revoca invitaciones previas pendientes, inserta `partner_invitations`, envía correo branded con link `/registro?socio_invite=<token>`.
+- **Registro con `?socio_invite=<token>`**: `GET /api/socio/invite-info?token=` (público, devuelve `email`, `partner_name`, `partner_type`, `role`) → el form salta a datos con **correo pre-llenado y bloqueado**, banner del socio, botón "Crear cuenta y unirme", redirect a `/socio`. En `register` se vincula `partner_members` y se marca la invitación `aceptada`.
+
+### Plan Enterprise para dueños de escuela
+El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscription_plan='enterprise'` permanente (`subscription_expires_at=null`). Se aplica en: `add_member` (Master), registro vía `socio_invite`, y se **sincroniza al cambiar el estado** de la escuela en `PATCH partners` (activo → enterprise · inactivo → piloto a sus owners). Solo el dueño (no los asesores). El plan operativo de la org se deriva del perfil del admin (`getOrgPlan`), por eso basta tocar el perfil del dueño.
+
 ### Rutas del panel de socio (`/socio`)
-- **Guard**: `src/app/socio/layout.js` → llama `/api/socio/me`, redirige si 401/403
-- `/api/socio/me` — contexto completo (partner, codes, stats, advisors para escuelas)
-- `/api/socio/grants` — GET lista regalos, POST regalar
+- **Guard**: `src/app/socio/layout.js` → llama `/api/socio/me`, redirige si 401/403. El header muestra el `logo_url` del socio si existe.
+- **Acceso desde el dashboard**: botón **"Panel Socio"** (ícono handshake) en el header de `dashboard/layout.js`, visible solo si hay fila en `partner_members` para el usuario (query `isSocio`).
+- `/api/socio/me` — contexto completo (partner con `logo_url`, member con email/name/role, codes, stats, advisors para escuelas)
+- `/api/socio/grants` — GET lista regalos, POST regalar, **DELETE anular** (owner)
 - `/api/socio/advisors` — GET/POST/DELETE gestión de asesores (solo owner de escuela)
 - `/api/socio/reports?months=N` — historial por período, desglose por asesor, detalle de comisiones
+- `/api/socio/logo` — POST sube/actualiza logo (owner, bucket `partner-logos`, máx 2MB), DELETE quita logo
+- `/api/socio/account` — DELETE el propio usuario borra su cuenta (confirma escribiendo su correo; bloquea si es único owner de escuela con asesores activos)
+- `/api/socio/invite-info` — GET público, valida token de `partner_invitations`
+- **UI** (`socio/page.js`): tabs **Panel** / **Reportes** / **Perfil**. Perfil: datos de cuenta, subida/cambio de logo (owner) y borrado de cuenta autoconfirmado.
 
 ### Rutas Master (`/admin/master`)
-- `/api/admin/master/partners` — CRUD de socios: crear, editar, agregar código, vincular miembro, desactivar
+- `/api/admin/master/partners` — CRUD de socios: crear, editar (comisión/cupos/días inline), agregar código, vincular miembro/invitar, desactivar. GET incluye `invitations[]` por partner.
 - `/api/admin/master/commissions` — GET comisiones agrupadas por partner/período, POST liquida por IDs
-- Tab **Socios** (`_SociosTab.js`) — crea escuelas/asesores, jerarquía, miembros, copiar códigos
+- Tab **Socios** (`_SociosTab.js`) — crea escuelas/asesores, jerarquía, miembros, copiar códigos, **invitaciones enviadas** (chips pendiente/aceptada/expirada), **edición inline de condiciones**. Botón "Vincular" con guard anti-doble-envío.
 - Tab **Comisiones** (`_ComisionesTab.js`) — filtros pendiente/liquidada, acordeón por socio, "Liquidar todo" o por período
 
 ### Reglas críticas
-- **Código en checkout**: campo opcional en `/dashboard/subscription` → `POST /api/epayco/checkout` → `pending_subscriptions.partner_code`
+- **Código en checkout**: campo opcional en `/dashboard/subscription` → `POST /api/epayco/checkout` → `pending_subscriptions.partner_code`. También en registro libre (`registro/page.js`, campo visible salvo cuando viene por invitación/regalo) → `POST /api/auth/register` crea `referrals` org↔socio (crédito; la comisión real se atribuye al pagar).
 - **Atribución en webhook** (`/api/epayco/webhook`): captura `partner_code` del pending, llama `attributeCommission()` en try/catch (nunca rompe la activación)
 - **Ser socio ≠ nuevo rol**: se detecta por filas en `partner_members`, no por `profiles.role` → no afecta RLS operacional
 - **1 grant por email globalmente**: `free_grants.email UNIQUE` → no se puede renovar aunque expire
 - **Asesor independiente vs hijo de escuela**: el `%` de comisión siempre viene del partner de más alto nivel (escuela). Si el vendedor es asesor sin padre, usa su propio `%`
+- **Dominio de correos**: el dominio verificado en Resend es **`bitafly.com`** (NO `.co`). Todo `from:`/fallback de URL usa `.com`. El SDK retorna `{ error }` sin lanzar — siempre revisar.
+- **Correos branded**: usar `emailHeader({partnerLogoUrl, partnerName})` + `emailFooter()` de `emailHelpers.js` (logo BitaFly desde `/public/logo.png` vía `bitaflyLogoUrl()` + logo del socio). Aplicado en grant, bienvenida, invitación de socio y de asesor.
 
 ---
 
@@ -497,11 +517,12 @@ Sistema de referidos B2B: escuelas de formación UAS y asesores independientes p
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a Vercel env vars
 - [ ] Agregar `AEROCIVIL_SALT` a Vercel env vars (el fallback inseguro ya fue removido — el endpoint lanza error si falta la variable)
 - [ ] Agregar `CRON_SECRET` a Vercel env vars (cualquier string aleatorio seguro — protege `GET /api/cron/free-grants`)
-- [ ] **Aplicar migración** `supabase/migrations/20260614_partner_program_fixes.sql` en Supabase (añade `updated_at` a `free_grants`/`referral_commissions` + `'purgado'` al CHECK de `free_grants.status`)
 - [ ] Habilitar `auth_leaked_password_protection` → Supabase > Authentication > Settings > Password Strength
+- [x] **Migraciones del programa de socios aplicadas en Supabase** (2026-06-14): `20260614_partner_program_fixes.sql` (`updated_at` + `'purgado'`), `20260614_partner_invitations.sql` (tabla de invitaciones), `20260614_partner_logo_and_bucket.sql` (`partners.logo_url` + bucket público `partner-logos`)
 - [x] **Bucket `documents` privado** (Fase G, 2026-06-12): era PÚBLICO con cédulas/certificados médicos/diplomas accesibles sin auth. Ahora privado; acceso vía `GET /api/documents/open?path=` (valida org → 302 a signed URL 1h). `FileUpload.js` guarda *path*; `lib/docUrl.js` (`docPath`/`docOpenUrl`) resuelve paths y URLs legacy. Consumidores (avatares, links de docs, PDF de expediente) usan el endpoint. URLs públicas en BD migradas a paths (`supabase/migrations/20260612_documents_private.sql`). Nota: el CDN puede servir copias cacheadas de URLs ya accedidas hasta ~1h.
 - [x] `EPAYCO_P_KEY` agregada a Vercel (firma del webhook)
 - [x] Auditoría 2026-06-12: mass-assignment corregido en `POST /api/pilots`/`POST /api/fleet`, columnas `pilots.avatar_url`/`aerocivil_additions`/`notes` aseguradas, políticas legacy del bucket `documents` (borrado/subida cross-tenant) eliminadas, índices FK + RLS initplan optimizados (`supabase/migrations/20260612_audit_fixes.sql`)
+- [x] Auditoría 2026-06-14 (programa de socios): correos de socios usaban dominio `bitafly.co` no verificado → corregido a `.com` en partners/advisors/grants/cron; `add_member` retorna `email_error` para diagnóstico; botón "Vincular" con guard anti-doble-envío; `invite-info` faltaba `email` en el `.select()` (campo de registro vacío); correo de asesores ahora branded con logo + fallback de dominio corregido. `.gitignore` ignora `~$*`/`*.tmp`/`*.patch`.
 
 ---
 

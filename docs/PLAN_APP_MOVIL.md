@@ -69,7 +69,7 @@ Objetivo: APK instalable y app en Play con datos de vuelo automáticos.
 | F3.6 | Plugin de archivos: leer carpeta `FlightRecord` (SAF/scoped storage) | ✅ |
 | F3.7 | Auto-import nativo: `.txt` nuevos → `POST /api/logbook/import-dji` | ✅ |
 | F3.8 | Auto-sync en segundo plano (WorkManager) — diferenciador | ✅ |
-| F3.9 | APK release firmado (.aab) → Play Console (testing → producción) | ⬜ |
+| F3.9 | APK release firmado (.aab) → Play Console (testing → producción) | ✅ (build) |
 
 ## ETAPA 4 — App iOS → App Store
 
@@ -306,6 +306,30 @@ F3.9 (APK/.aab firmado + Play). Antes de uso real: merge mobile-app → main + d
 
 **Etapa 3 (Android) COMPLETA hasta F3.8.** Falta solo **F3.9** (APK/.aab firmado de release →
 Google Play). Antes de uso real con vuelos: merge mobile-app → main + deploy.
+
+### F3.9 — Release firmado (.aab) ✅ build (2026-06-16)
+
+- **Keystore de subida**: `android/bitafly-upload.keystore` (RSA 2048, validez 10000 días,
+  alias `bitafly`). **NO versionado** (.gitignore: `*.keystore`/`*.jks`/`keystore.properties`).
+  Credenciales en `android/keystore.properties` (tampoco versionado).
+  Huella SHA-256 (upload key): `6E:D2:49:7B:C5:CA:80:21:63:15:92:F4:1C:83:76:11:51:E0:35:B1:07:26:E5:E6:01:E4:21:A6:CB:26:D5:D2`.
+- **`app/build.gradle`**: `signingConfigs.release` lee `keystore.properties`; `buildTypes.release`
+  firma si existe (si no, avisa y deja sin firmar — seguro para CI/otros equipos).
+- **Artefactos**: `app/build/outputs/bundle/release/app-release.aab` (4.47 MB, para Play) y
+  `apk/release/app-release.apk` (4.67 MB, distribución directa). Firma **V2 verificada** con apksigner.
+- **`assetlinks.json`**: añadida la huella de release (2ª del array; la 1ª es debug).
+- **Verificado**: el APK release firmado instala y arranca en el emulador (carga bitafly.com).
+- ⏳ **Pendiente (acción del usuario, no de código)**:
+  1. Crear cuenta **Google Play Console** (USD 25 único) y subir `app-release.aab`.
+  2. Play usa **App Signing**: Google genera la clave de firma final. Tomar la **huella SHA-256
+     de "App signing key"** del Play Console y **añadirla a assetlinks.json** (la del upload key
+     no es la final para App Links en producción). Re-desplegar la web.
+  3. Para distribución directa fuera de tienda, repartir `app-release.apk`.
+- 🔐 **Resguardo del keystore**: `bitafly-upload.keystore` + su password deben respaldarse fuera
+  del equipo. Con Play App Signing el upload key es recuperable vía soporte de Google.
+
+**ETAPA 3 (Android) COMPLETA a nivel de build (F3.1–F3.9).** Lo que resta es operativo del usuario:
+merge `mobile-app`→`main` + deploy (activa el flujo nativo en producción) y la subida a Play Console.
 
 <!-- Plantilla para próximas fases:
 ### Fx.y — Título ✅/🔄 (fecha)

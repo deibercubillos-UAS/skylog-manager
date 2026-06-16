@@ -1,8 +1,27 @@
 apply plugin: 'com.android.application'
 
+// Firma de release: lee credenciales de android/keystore.properties (NO versionado).
+// Si el archivo no existe (CI/otro equipo), el release queda sin firmar y se avisa.
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+def hasKeystore = keystorePropsFile.exists()
+if (hasKeystore) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+
 android {
     namespace = "com.bitafly.app"
     compileSdk = rootProject.ext.compileSdkVersion
+    signingConfigs {
+        release {
+            if (hasKeystore) {
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
     defaultConfig {
         applicationId "com.bitafly.app"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -20,6 +39,11 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (hasKeystore) {
+                signingConfig signingConfigs.release
+            } else {
+                logger.warn("keystore.properties no encontrado — el release quedará SIN firmar.")
+            }
         }
     }
 }

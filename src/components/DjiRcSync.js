@@ -253,7 +253,8 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
   const autoBusyRef  = useRef(false);   // evita sondeos solapados
 
   // ── Fuente nativa Android (plugin FlightFiles — F3.6/F3.7) ──
-  const [nativeSource, setNativeSource] = useState(false);  // ¿hay plugin nativo?
+  // Inicializado síncronamente: evita el flash "web UI → native UI" en el primer render.
+  const [nativeSource] = useState(() => isNativeFlightSource());
   const [nativeGranted, setNativeGranted] = useState(false); // ¿permiso concedido?
   const [nativeStatus, setNativeStatus] = useState('');      // texto del último resultado
   const [bgSync, setBgSync] = useState(false);               // sync en segundo plano (F3.8)
@@ -284,8 +285,9 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
 
   // ── Cargar la carpeta recordada + preferencia de auto-sync al montar ──
   // (File System Access API: Chrome/Edge escritorio; el RC funciona vía PC)
+  // Skip cuando hay plugin nativo: el RC Plus no usa File System API.
   useEffect(() => {
-    if (typeof window === 'undefined' || !('showDirectoryPicker' in window)) return;
+    if (nativeSource || typeof window === 'undefined' || !('showDirectoryPicker' in window)) return;
     let cancelled = false;
     getHandle(FLIGHTRECORD_KEY).then(h => {
       if (!cancelled && h) setSavedHandle(h);
@@ -296,10 +298,10 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
     return () => { cancelled = true; };
   }, []);
 
-  // ── Detectar fuente nativa al montar + auto-importar si hay permiso ──
+  // ── Cargar estado nativo al montar + auto-importar si hay permiso ──
+  // nativeSource ya está inicializado síncronamente arriba; aquí solo cargamos el estado async.
   useEffect(() => {
-    if (!isNativeFlightSource()) return;
-    setNativeSource(true);
+    if (!nativeSource) return;
     let cancelled = false;
     setBgSupported(supportsBackgroundSync());
     setBgSync(isBackgroundSyncEnabled());
@@ -1043,28 +1045,23 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
 
       {/* ── App nativa Android: sincronización directa del control ── */}
       {nativeSource && state === 'idle' && (
-        <div className="rounded-2xl border border-orange-200 bg-orange-50/60 p-5 space-y-3">
-          <div className="flex items-start gap-3">
-            <span className="material-symbols-outlined text-orange-500 text-2xl shrink-0">smartphone</span>
-            <div className="min-w-0">
-              <p className="text-sm font-black text-navy uppercase tracking-tight">Sincronización automática</p>
-              <p className="text-xs text-slate-500 font-medium leading-snug mt-0.5">
-                Lee los vuelos DJI directo del control — no necesitas copiar archivos ni navegar carpetas.
-              </p>
-            </div>
+        <div className="rounded-2xl border border-orange-200 bg-orange-50/60 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-orange-500 text-xl shrink-0">smartphone</span>
+            <p className="text-xs font-black text-navy uppercase tracking-tight">Sincronización directa del control</p>
           </div>
           {nativeFolder ? (
             <>
               <button
                 onClick={handleNativeSync}
-                className="w-full py-5 bg-orange-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl shadow-orange-500/20 hover:bg-orange-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+                className="w-full py-4 bg-orange-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-700 transition-all active:scale-95 flex items-center justify-center gap-2"
               >
                 <span className="material-symbols-outlined text-sm">sync</span>
                 Sincronizar vuelos del control
               </button>
               <button
                 onClick={handlePickFolder}
-                className="w-full text-[11px] font-bold text-slate-400 hover:text-slate-600 flex items-center justify-center gap-1"
+                className="w-full text-[11px] font-bold text-slate-400 hover:text-slate-600 flex items-center justify-center gap-1 py-1"
               >
                 <span className="material-symbols-outlined text-sm">folder_open</span>
                 Cambiar carpeta de vuelos
@@ -1073,7 +1070,7 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
           ) : (
             <button
               onClick={handlePickFolder}
-              className="w-full py-5 bg-orange-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl shadow-orange-500/20 hover:bg-orange-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+              className="w-full py-4 bg-orange-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-700 transition-all active:scale-95 flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-sm">folder_open</span>
               Elegir carpeta de vuelos
@@ -1095,7 +1092,7 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
             Diagnóstico de rutas
           </button>
           {nativeDiag && (
-            <div className="bg-slate-900 text-slate-200 rounded-xl p-3 text-[10px] font-mono leading-relaxed overflow-x-auto">
+            <div className="bg-slate-900 text-slate-200 rounded-xl p-3 text-[10px] font-mono leading-relaxed break-all overflow-hidden">
               {nativeDiag.loading ? 'Analizando…'
                 : nativeDiag.error ? 'No se pudo obtener el diagnóstico.'
                 : (
@@ -1398,7 +1395,7 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
           })()}
 
           {/* Archivos — los duplicados (ya importados) se ocultan */}
-          <div className="bg-slate-50 rounded-2xl overflow-hidden divide-y divide-slate-100 max-h-64 overflow-y-auto">
+          <div className={`bg-slate-50 rounded-2xl overflow-hidden divide-y divide-slate-100 overflow-y-auto ${nativeSource ? 'max-h-[45vh]' : 'max-h-64'}`}>
             {files.filter(f => f.status !== 'duplicate').map(f => {
               const date = dateFromName(f.name);
               const time = timeFromName(f.name);
@@ -1566,7 +1563,7 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
 
       {/* ── Modal: crear aeronave ────────────────────────────────── */}
       {aircraftModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60">
           <div className="w-full max-w-md bg-white rounded-[2rem] shadow-2xl overflow-hidden">
 
             {/* Header */}
@@ -1676,7 +1673,7 @@ export default function DjiRcSync({ onImported, onFlightImported, isMobile: isMo
 
       {/* ── Modal: crear batería ─────────────────────────────────── */}
       {batteryModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60">
           <div className="w-full max-w-md bg-white rounded-[2rem] shadow-2xl overflow-hidden">
 
             {/* Header */}

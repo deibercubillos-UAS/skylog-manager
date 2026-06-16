@@ -123,7 +123,8 @@ public class FlightFilesPlugin extends Plugin {
         prefs().setTreeUri(treeUri.toString());
 
         JSArray arr = new JSArray();
-        collectTxtDoc(DocumentFile.fromTreeUri(getContext(), treeUri), arr, 0, 4);
+        // maxDepth=0: solo los .txt directos de la carpeta elegida, sin entrar en subcarpetas.
+        collectTxtDoc(DocumentFile.fromTreeUri(getContext(), treeUri), arr, 0, 0);
         JSObject ret = new JSObject();
         ret.put("picked", true);
         ret.put("uri", treeUri.toString());
@@ -151,8 +152,9 @@ public class FlightFilesPlugin extends Plugin {
         JSArray arr = new JSArray();
 
         // 1) Vía SAF (carpeta elegida) — funciona donde listFiles() crudo falla
+        // maxDepth=0: solo archivos .txt directos, sin entrar en subcarpetas de FlightRecord.
         DocumentFile tree = getTree();
-        if (tree != null) collectTxtDoc(tree, arr, 0, 4);
+        if (tree != null) collectTxtDoc(tree, arr, 0, 0);
 
         // 2) Respaldo: acceso directo a File si hay all-files-access
         if (arr.length() == 0 && hasAllFilesAccess()) {

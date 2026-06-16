@@ -108,7 +108,8 @@ public class FlightSyncWorker extends Worker {
         if (treeStr != null) {
             try {
                 DocumentFile tree = DocumentFile.fromTreeUri(ctx, Uri.parse(treeStr));
-                collectTxtDoc(tree, out, 0, 4);
+                // maxDepth=0: solo .txt directos de la carpeta elegida (FlightRecord), sin subcarpetas.
+                collectTxtDoc(tree, out, 0, 0);
             } catch (Exception ignored) {}
         }
 

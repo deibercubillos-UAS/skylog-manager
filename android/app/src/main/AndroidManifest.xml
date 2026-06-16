@@ -51,4 +51,7 @@
 
     <!-- Notificar la sincronización en segundo plano (F3.8). A13+ pide el permiso en runtime. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- OTA updates: instalar APKs descargados sin Google Play -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 </manifest>

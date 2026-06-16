@@ -12,6 +12,7 @@ import { docOpenUrl } from '@/lib/docUrl';
 import dynamic from 'next/dynamic';
 
 const InstallAppPrompt = dynamic(() => import('@/components/InstallAppPrompt'), { ssr: false });
+const AppUpdateBanner  = dynamic(() => import('@/components/AppUpdateBanner'),  { ssr: false });
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
@@ -575,6 +576,9 @@ const footerLinks = footerLinksAll.filter(link =>
 
       {/* Banner de instalación PWA (Android/escritorio: botón; iOS: instrucciones) */}
       <InstallAppPrompt />
+
+      {/* OTA updates: banner/modal de nueva versión del APK (solo Capacitor Android) */}
+      <AppUpdateBanner />
 
       {/* ── BARRA DE NAVEGACIÓN INFERIOR — solo mobile ───────────────────── */}
       {/* safe-area-inset-bottom: padding dinámico para iPhone con home indicator */}

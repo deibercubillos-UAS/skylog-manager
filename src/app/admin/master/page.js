@@ -4,6 +4,7 @@ import SuscripcionesTab from './_SuscripcionesTab';
 import PlanesTab from './_PlanesTab';
 import SociosTab from './_SociosTab';
 import ComisionesTab from './_ComisionesTab';
+import ReleasesTab from './_ReleasesTab';
 
 const TABS = [
   { id: 'users',      label: 'Usuarios',      icon: 'group' },
@@ -11,6 +12,7 @@ const TABS = [
   { id: 'planes',     label: 'Planes ePayco', icon: 'credit_card' },
   { id: 'socios',     label: 'Socios',        icon: 'handshake' },
   { id: 'comisiones', label: 'Comisiones',    icon: 'paid' },
+  { id: 'releases',   label: 'App Releases',  icon: 'system_update' },
 ];
 
 const PLANS = ['piloto', 'escuadrilla', 'flota', 'enterprise'];
@@ -190,6 +192,9 @@ export default function MasterPanel() {
 
         {/* Tab: Comisiones */}
         {activeTab === 'comisiones' && <ComisionesTab />}
+
+        {/* Tab: App Releases (OTA updates) */}
+        {activeTab === 'releases' && <ReleasesTab />}
 
         {/* Tab: Usuarios */}
         {activeTab === 'users' && <>

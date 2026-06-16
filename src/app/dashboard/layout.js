@@ -386,7 +386,7 @@ const footerLinks = footerLinksAll.filter(link =>
 
         {/* PIE DE SIDEBAR */}
         {/* pb-20 lg:pb-3 → en mobile la barra inferior (h-16) tapa este bloque; el padding extra lo empuja arriba */}
-        <div className="p-3 pb-20 lg:pb-3 border-t border-white/5 bg-black/10 space-y-1 shrink-0">
+        <div className="p-3 pb-16 lg:pb-3 border-t border-white/5 bg-black/10 space-y-1 shrink-0">
           {/* ADMINISTRACIÓN COLAPSABLE */}
           <button
             onClick={() => setIsAdminOpen(!isAdminOpen)}
@@ -458,46 +458,46 @@ const footerLinks = footerLinksAll.filter(link =>
       {/* ── CONTENIDO PRINCIPAL ──────────────────────────────────────────── */}
       <main className={`flex-1 flex flex-col overflow-hidden min-h-0 transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'}`}>
 
-        {/* HEADER */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shrink-0 sticky top-0 z-[100]">
+        {/* HEADER — h-12 en RC Plus (md), h-16 en desktop (lg) */}
+        <header className="h-12 md:h-14 lg:h-16 bg-white border-b border-slate-200 flex items-center justify-between px-3 md:px-6 lg:px-8 shrink-0 sticky top-0 z-[100]">
 
           {/* IZQUIERDA: hamburguesa + empresa */}
-          <div className="flex items-center gap-3 overflow-hidden">
+          <div className="flex items-center gap-2 md:gap-3 overflow-hidden">
             <button
               onClick={() => setSidebarOpen(!isSidebarOpen)}
-              className="size-11 flex items-center justify-center rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 active:scale-95 transition-all shrink-0"
+              className="size-9 md:size-10 lg:size-11 flex items-center justify-center rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 active:scale-95 transition-all shrink-0"
               aria-label="Abrir menú"
             >
-              <span className="material-symbols-outlined text-xl leading-none">
+              <span className="material-symbols-outlined text-lg md:text-xl leading-none">
                 {isSidebarOpen ? 'menu_open' : 'menu'}
               </span>
             </button>
             <div className="text-left truncate">
-              <p className="hidden md:block text-xs font-black text-slate-400 uppercase leading-none tracking-widest">Organización</p>
-              <h2 className="text-sm font-black text-slate-900 uppercase truncate max-w-[140px] sm:max-w-xs md:max-w-none">
+              <p className="hidden lg:block text-xs font-black text-slate-400 uppercase leading-none tracking-widest">Organización</p>
+              <h2 className="text-xs md:text-sm font-black text-slate-900 uppercase truncate max-w-[120px] sm:max-w-xs md:max-w-none">
                 {data.org?.company_name || 'Individual'}
               </h2>
             </div>
           </div>
 
           {/* DERECHA: acciones + perfil */}
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-1.5 md:gap-3 lg:gap-4">
             {hasPermission(role, 'canFly') && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 md:gap-2">
                 {activeFlight && (
                   <Link
                     href={`/dashboard/logbook/finalize?id=${activeFlight.id}`}
-                    className="flex items-center gap-2 bg-slate-900 hover:bg-black text-white px-3 md:px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg border border-white/10 transition-all active:scale-95"
+                    className="flex items-center gap-1.5 bg-slate-900 hover:bg-black text-white px-2.5 md:px-4 lg:px-5 py-2 md:py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg border border-white/10 transition-all active:scale-95"
                   >
-                    <span className="material-symbols-outlined text-base text-orange-500">flight_land</span>
+                    <span className="material-symbols-outlined text-sm md:text-base text-orange-500">flight_land</span>
                     <span className="hidden sm:inline">Término de Vuelo</span>
                   </Link>
                 )}
                 <Link
                   href="/dashboard/logbook/new"
-                  className="hidden sm:flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-3 md:px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-500/20 transition-all active:scale-95"
+                  className="hidden sm:flex items-center gap-1.5 bg-orange-600 hover:bg-orange-700 text-white px-2.5 md:px-4 lg:px-5 py-2 md:py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-500/20 transition-all active:scale-95"
                 >
-                  <span className="material-symbols-outlined text-base">add_circle</span>
+                  <span className="material-symbols-outlined text-sm md:text-base">add_circle</span>
                   <span className="hidden sm:inline">Nueva Operación</span>
                 </Link>
               </div>
@@ -507,10 +507,10 @@ const footerLinks = footerLinksAll.filter(link =>
               <Link
                 href="/socio"
                 title="Panel de socio"
-                className="flex items-center gap-2 bg-orange-50 hover:bg-orange-100 text-orange-700 px-3 md:px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider border border-orange-200 transition-all active:scale-95"
+                className="flex items-center gap-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 px-2.5 md:px-3 lg:px-4 py-2 md:py-2.5 rounded-xl font-black text-xs uppercase tracking-wider border border-orange-200 transition-all active:scale-95"
               >
-                <span className="material-symbols-outlined text-base">handshake</span>
-                <span className="hidden md:inline">Panel Socio</span>
+                <span className="material-symbols-outlined text-sm md:text-base">handshake</span>
+                <span className="hidden lg:inline">Panel Socio</span>
               </Link>
             )}
 
@@ -518,9 +518,9 @@ const footerLinks = footerLinksAll.filter(link =>
 
             <Link
               href="/dashboard/settings/profile"
-              className="flex items-center gap-3 border-l border-slate-100 pl-3 md:pl-5 group hover:opacity-80 transition-all"
+              className="flex items-center gap-2 md:gap-3 border-l border-slate-100 pl-2 md:pl-3 lg:pl-5 group hover:opacity-80 transition-all"
             >
-              <div className="hidden md:block text-right">
+              <div className="hidden lg:block text-right">
                 <p className="text-xs font-black text-slate-900 leading-none group-hover:text-orange-600 transition-colors">
                   {data.profile?.full_name}
                 </p>
@@ -528,12 +528,12 @@ const footerLinks = footerLinksAll.filter(link =>
                   {displayRole}
                 </p>
               </div>
-              <div className="size-10 rounded-full bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+              <div className="size-8 md:size-9 lg:size-10 rounded-full bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
                 {data.profile?.avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={docOpenUrl(data.profile.avatar_url)} alt="Avatar" width={40} height={40} className="object-cover w-full h-full" />
                 ) : (
-                  <span className="material-symbols-outlined text-slate-400 text-xl">person</span>
+                  <span className="material-symbols-outlined text-slate-400 text-lg md:text-xl">person</span>
                 )}
               </div>
             </Link>
@@ -545,8 +545,8 @@ const footerLinks = footerLinksAll.filter(link =>
         {/* id="main-content" — destino del skip link de accesibilidad */}
         <div
           id="main-content"
-          className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 lg:p-10 lg:pb-10"
-          style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'max(7rem, calc(4rem + env(safe-area-inset-bottom, 8px) + 1rem))' }}
+          className="flex-1 overflow-y-auto min-h-0 p-3 md:p-4 lg:p-10 lg:pb-10"
+          style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'max(6rem, calc(3rem + env(safe-area-inset-bottom, 8px) + 1rem))' }}
         >
           {/* Banner período de gracia */}
           {gracePeriod.isGracePeriod && (
@@ -583,7 +583,7 @@ const footerLinks = footerLinksAll.filter(link =>
         className="lg:hidden fixed bottom-0 left-0 right-0 z-[200] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}
       >
-        <div className="flex items-stretch h-16">
+        <div className="flex items-stretch h-12 md:h-14 lg:h-16">
 
           {/* Inicio */}
           <BottomNavItem href="/dashboard" icon="dashboard" label="Inicio" active={pathname === '/dashboard'} />
@@ -598,7 +598,7 @@ const footerLinks = footerLinksAll.filter(link =>
             <div className="flex-1 flex items-center justify-center">
               <Link
                 href="/dashboard/logbook/new"
-                className="size-14 bg-orange-600 hover:bg-orange-700 text-white rounded-2xl flex flex-col items-center justify-center shadow-lg shadow-orange-500/30 active:scale-95 transition-all -mt-5 border-4 border-white"
+                className="size-11 md:size-12 lg:size-14 bg-orange-600 hover:bg-orange-700 text-white rounded-2xl flex flex-col items-center justify-center shadow-lg shadow-orange-500/30 active:scale-95 transition-all -mt-3 md:-mt-4 lg:-mt-5 border-4 border-white"
                 aria-label="Nueva operación"
               >
                 <span className="material-symbols-outlined text-2xl">add</span>
@@ -637,10 +637,10 @@ function BottomNavItem({ href, icon, label, active }) {
         active ? 'text-orange-600' : 'text-slate-400'
       }`}
     >
-      <span className={`material-symbols-outlined text-2xl leading-none ${active ? 'text-orange-600' : ''}`}>
+      <span className={`material-symbols-outlined text-xl md:text-2xl leading-none ${active ? 'text-orange-600' : ''}`}>
         {icon}
       </span>
-      <span className={`text-xs font-black uppercase tracking-tight leading-none ${active ? 'text-orange-600' : 'text-slate-400'}`}>
+      <span className={`text-[10px] md:text-xs font-black uppercase tracking-tight leading-none ${active ? 'text-orange-600' : 'text-slate-400'}`}>
         {label}
       </span>
       {/* Indicador activo — requiere `relative` en el padre para posicionarse bien */}

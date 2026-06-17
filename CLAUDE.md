@@ -526,7 +526,7 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 - [x] `EPAYCO_P_KEY` agregada a Vercel (firma del webhook)
 - [x] Auditoría 2026-06-12: mass-assignment corregido en `POST /api/pilots`/`POST /api/fleet`, columnas `pilots.avatar_url`/`aerocivil_additions`/`notes` aseguradas, políticas legacy del bucket `documents` (borrado/subida cross-tenant) eliminadas, índices FK + RLS initplan optimizados (`supabase/migrations/20260612_audit_fixes.sql`)
 - [x] Auditoría 2026-06-14 (programa de socios): correos de socios usaban dominio `bitafly.co` no verificado → corregido a `.com` en partners/advisors/grants/cron; `add_member` retorna `email_error` para diagnóstico; botón "Vincular" con guard anti-doble-envío; `invite-info` faltaba `email` en el `.select()` (campo de registro vacío); correo de asesores ahora branded con logo + fallback de dominio corregido. `.gitignore` ignora `~$*`/`*.tmp`/`*.patch`.
-- [ ] **Aplicar migración OTA en Supabase**: `supabase/migrations/20260616_app_releases.sql` — tabla `app_releases` + bucket público `app-releases`. Luego actualizar la fila inicial con la URL real del APK v1.1.0.
+- [x] **Migración OTA aplicada en Supabase** (2026-06-16): `supabase/migrations/20260616_app_releases.sql` — tabla `app_releases` + bucket público `app-releases`. Fila inicial insertada con APK v1.1.0 (`version_code=2`). Política RLS pública `public_read_current_version` (SELECT WHERE is_current=true) agregada directamente en Supabase. `GET /api/app/version` usa cliente anon (no service role) — funcional en prod.
 
 ---
 
@@ -569,6 +569,8 @@ La app Capacitor corre en **remote URL mode** (`server.url: https://bitafly.com`
 - **`REQUEST_INSTALL_PACKAGES`**: declarado en `AndroidManifest.xml`. En Android 8+ el sistema muestra un dialog de confirmación de instalación.
 - El APK descargado se guarda en `getExternalFilesDir(null)/bitafly-update.apk` — accesible via `FileProvider` con path `external-files-path`.
 - **Progreso**: el plugin emite eventos `downloadProgress { progress: 0-100 }` via `notifyListeners`; el banner muestra una barra de progreso.
+- **`GET /api/app/version` usa cliente anon**: es un endpoint público — usa `createClient(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY)`, NO `createAdminClient()`. La tabla `app_releases` tiene una política RLS `public_read_current_version` que permite SELECT WHERE is_current=true sin autenticación.
+- **Versión actual en prod**: v1.1.0 / versionCode 2. APK en `app-releases/bitafly-v1.1.0.apk`.
 
 ---
 

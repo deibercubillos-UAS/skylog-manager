@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { DEMO } from '@/demo.config';
+import DemoStatus from '@/components/DemoStatus';
 
 export default function Home() {
   return (
@@ -75,6 +76,8 @@ export default function Home() {
             </span>
           </Link>
         </div>
+
+        <DemoStatus />
 
         <p className="text-center text-xs text-slate-400 mt-8">
           {DEMO.clientName} · Demo white-label · {DEMO.disclaimer}

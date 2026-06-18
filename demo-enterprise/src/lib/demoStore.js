@@ -64,6 +64,34 @@ export function DemoProvider({ children }) {
     }));
   }, []);
 
+  // La organización agrega un piloto por correo (onboarding) → queda 'pendiente'
+  // hasta que el piloto acepte. Retorna { ok, reason }.
+  const addPilot = useCallback(({ name, email }) => {
+    let result = { ok: false, reason: 'unknown' };
+    setState((s) => {
+      const mail = String(email || '').trim().toLowerCase();
+      if (!mail || !mail.includes('@')) { result = { ok: false, reason: 'email_invalido' }; return s; }
+      if (s.pilots.some((p) => p.email.toLowerCase() === mail)) {
+        result = { ok: false, reason: 'ya_existe' };
+        return s;
+      }
+      const n = s.pilots.length + 1;
+      const pilot = {
+        id: `plt-${String(n).padStart(2, '0')}-${Date.now().toString().slice(-4)}`,
+        name: (name || '').trim() || mail.split('@')[0],
+        email: mail,
+        status: 'pendiente',
+        paid: false,
+        aircraft: null,
+        serial: null,
+        joinedAt: null,
+      };
+      result = { ok: true, reason: 'invitado' };
+      return { ...s, pilots: [...s.pilots, pilot] };
+    });
+    return result;
+  }, []);
+
   // La organización reasigna una misión a otro piloto.
   const reassignMission = useCallback((missionId, newPilotId) => {
     setState((s) => ({
@@ -146,7 +174,7 @@ export function DemoProvider({ children }) {
     blocked,
     pricePerFlight: DEMO.pricePerFlight,
     // acciones
-    acceptInvite, reassignMission, loadFlight, recharge, revokePilot, setBalance, resetDemo,
+    acceptInvite, addPilot, reassignMission, loadFlight, recharge, revokePilot, setBalance, resetDemo,
     // helpers
     pilotById: (id) => state.pilots.find((p) => p.id === id) || null,
     missionById: (id) => state.missions.find((m) => m.id === id) || null,

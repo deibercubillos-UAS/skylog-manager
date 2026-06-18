@@ -1,0 +1,10 @@
+# Demo aislado — dependencias y artefactos no se versionan
+/node_modules
+/.next
+/out
+/build
+*.tsbuildinfo
+.vercel
+.env*
+.DS_Store
+npm-debug.log*

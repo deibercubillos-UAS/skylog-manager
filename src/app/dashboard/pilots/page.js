@@ -16,7 +16,6 @@ export default function PilotsPage() {
   const [pilots,        setPilots]        = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [userRole,      setUserRole]      = useState(null);
-  const [orgName,       setOrgName]       = useState('');
   const [orgId,         setOrgId]         = useState(null);
   const [showAddPanel,  setShowAddPanel]  = useState(false);
   const [editingPilot,  setEditingPilot]  = useState(null);
@@ -51,23 +50,15 @@ export default function PilotsPage() {
       setUserRole(prof.role);
       setOrgId(prof.organization_id);
 
-      const [pilotsRes, orgRes] = await Promise.all([
-        supabase
-          .from('pilots')
-          .select('*')
-          .eq('organization_id', prof.organization_id)
-          .order('name', { ascending: true }),
-        supabase
-          .from('organizations')
-          .select('company_name')
-          .eq('id', prof.organization_id)
-          .single(),
-      ]);
+      const { data: pilotsData } = await supabase
+        .from('pilots')
+        .select('*')
+        .eq('organization_id', prof.organization_id)
+        .order('name', { ascending: true });
 
       // El Gerente General (dueño/representante legal) no se muestra en el roster
       // de tripulación — no es tripulación operativa.
-      setPilots((pilotsRes.data || []).filter(p => !isGerenteGeneral(p.pilot_role)));
-      setOrgName(orgRes.data?.company_name || 'Mi Organización');
+      setPilots((pilotsData || []).filter(p => !isGerenteGeneral(p.pilot_role)));
     } catch (err) {
       console.error('Error cargando tripulación:', err.message);
     } finally {
@@ -137,7 +128,7 @@ export default function PilotsPage() {
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-slate-200 pb-5">
         <div>
           <h2 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter">Tripulación</h2>
-          <p className="text-slate-400 text-xs font-black uppercase mt-1">{orgName} · {pilots.length} miembros</p>
+          <p className="text-slate-400 text-xs font-black uppercase mt-1">{pilots.length} miembro{pilots.length !== 1 ? 's' : ''}</p>
         </div>
         {canManage && (
           <button

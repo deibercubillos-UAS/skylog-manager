@@ -133,7 +133,7 @@ export default function ManualesPage() {
         <div>
           <h2 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter">Manuales de la Empresa</h2>
           <p className="text-slate-400 text-xs font-black uppercase mt-1">
-            {orgName} · {manuals.length} manual{manuals.length !== 1 ? 'es' : ''}
+            {manuals.length} manual{manuals.length !== 1 ? 'es' : ''}
           </p>
         </div>
         {canManage && (

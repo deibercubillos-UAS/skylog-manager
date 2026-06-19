@@ -41,7 +41,13 @@ export default function EmpresaPage() {
               {DEMO.clientName}
             </h1>
           </div>
-          <span className="ml-auto text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-700 px-2 py-1 rounded-full shrink-0">
+          <Link
+            href="/empresa/api"
+            className="ml-auto flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 px-3 py-2 rounded-xl font-black text-xs uppercase tracking-wider shrink-0"
+          >
+            <Icon name="api" className="text-base" /> <span className="hidden sm:inline">API</span>
+          </Link>
+          <span className="text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-700 px-2 py-1 rounded-full shrink-0">
             Demo
           </span>
         </div>

@@ -78,11 +78,13 @@ Cada bucket se migra con esta secuencia (todos pasos pequeños y reversibles):
 - Agregar env vars (ver §8). Instalar `@aws-sdk/client-s3` + `s3-request-presigner`.
 - **Resultado**: nada cambia en producción (flags en `supabase`).
 
-### Fase 1 — Capa de abstracción detrás de flags (sin cambio visible)
-- Crear `lib/storage/` con la interfaz única; **internamente sigue usando Supabase**.
-- Refactorizar los 14 puntos de storage para pasar por la capa (mismo comportamiento).
-- Crear la ruta `POST /api/storage/sign-upload` (aún sin usar por el frontend).
-- **Resultado**: app idéntica; solo se desacopló el storage. Deploy seguro.
+### Fase 1 — Capa de abstracción detrás de flags (sin cambio visible) ✅ HECHA
+- ✅ `lib/storage/index.js`: fachada única (`storagePut`, `storageSignedUrl`, `storageUploadUrl`, `storagePublicUrl`, `storageRemove`, `storageDownload`) con modo por bucket (`supabase`/`dual`/`r2`) + lógica de fallback. SDK `@aws-sdk/client-s3` + `s3-request-presigner` instalado.
+- ✅ Ruta `POST /api/storage/sign-upload` (dormida; valida sesión + prefijo `orgId/`; responde 409 si el bucket está en modo `supabase`).
+- ✅ Cableados a la fachada **solo los puntos del bucket piloto `flight-replays`** (replay route, import-dji, logbook/[id]). **Los demás buckets se cablean en su propia fase** (decisión de seguridad: cada cambio pequeño y verificable, nunca un megacambio).
+- **Resultado**: app idéntica (todos los flags en `supabase`); build OK. Deploy seguro.
+
+> Nota: el refactor de los puntos de cada bucket NO se hace todo de golpe. Se realiza **dentro de la fase de ese bucket**, justo antes de voltear su flag — para minimizar el radio de impacto.
 
 ### Fase 2 — Piloto: `flight-replays` (bucket 1)
 - Flag `flight-replays = dual`. Backfill de replays. Verificar GET/POST.

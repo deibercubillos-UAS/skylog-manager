@@ -4,6 +4,7 @@ import { parseDjiTxtBuffer } from '@/lib/djiParser';
 import { detectAlerts, buildTelemetry, buildPath, buildMeta } from '@/lib/djiTelemetry';
 import { canAddResource } from '@/lib/planLimits';
 import { createNotifications } from '@/lib/notify';
+import { storagePut, storageRemove } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -437,7 +438,7 @@ export async function POST(request) {
                 .single();
 
               if (oldest?.replay_path) {
-                await supabaseAdmin.storage.from(BUCKET).remove([oldest.replay_path]);
+                await storageRemove({ bucket: BUCKET, keys: oldest.replay_path });
                 await supabaseAdmin.from('flights')
                   .update({ replay_path: null })
                   .eq('id', oldest.id);
@@ -446,13 +447,14 @@ export async function POST(request) {
           }
 
           replayPath = `orgs/${prof.organization_id}/replays/${inserted.id}.json.gz`;
-          const { error: uploadErr } = await supabaseAdmin.storage
-            .from(BUCKET)
-            .upload(replayPath, gzipped, {
-              contentType:  'application/gzip',
-              upsert:       true,
-              cacheControl: '3600',
-            });
+          const { error: uploadErr } = await storagePut({
+            bucket:       BUCKET,
+            key:          replayPath,
+            body:         gzipped,
+            contentType:  'application/gzip',
+            upsert:       true,
+            cacheControl: '3600',
+          });
 
           if (uploadErr) {
             console.error('[import-dji] replay upload:', uploadErr.message);

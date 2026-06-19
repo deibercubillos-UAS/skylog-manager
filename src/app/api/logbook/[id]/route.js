@@ -2,6 +2,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { NextResponse } from 'next/server';
 import { PERMISSIONS } from '@/lib/roles';
+import { storageRemove } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,7 @@ export async function DELETE(request, { params }) {
 
     // Eliminar replay de Storage si existe
     if (flight.replay_path) {
-      await supabase.storage.from('flight-replays').remove([flight.replay_path]);
+      await storageRemove({ bucket: 'flight-replays', keys: flight.replay_path });
     }
 
     const { error } = await supabase

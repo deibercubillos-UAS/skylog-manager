@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { getOrgContext }   from '@/lib/apiAuth';
 import { PERMISSIONS }     from '@/lib/roles';
+import { storagePut, storageSignedUrl, storageRemove } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,7 +73,7 @@ export async function GET(_req, { params }) {
       cutoff.setDate(cutoff.getDate() - quota.retentionDays);
       if (new Date(replayAgeRef) < cutoff) {
         // Limpiar replay expirado
-        await admin.storage.from(BUCKET).remove([flight.replay_path]);
+        await storageRemove({ bucket: BUCKET, keys: flight.replay_path });
         await admin.from('flights')
           .update({ replay_path: null })
           .eq('id', params.id)
@@ -84,9 +85,9 @@ export async function GET(_req, { params }) {
       }
     }
 
-    const { data, error } = await admin.storage
-      .from(BUCKET)
-      .createSignedUrl(flight.replay_path, 3600); // 1 hora
+    const { data, error } = await storageSignedUrl({
+      bucket: BUCKET, key: flight.replay_path, expiresIn: 3600, // 1 hora
+    });
 
     if (error) throw error;
 
@@ -137,7 +138,7 @@ export async function POST(req, { params }) {
           .single();
 
         if (oldest?.replay_path) {
-          await admin.storage.from(BUCKET).remove([oldest.replay_path]);
+          await storageRemove({ bucket: BUCKET, keys: oldest.replay_path });
           await admin.from('flights')
             .update({ replay_path: null })
             .eq('id', oldest.id)
@@ -158,13 +159,14 @@ export async function POST(req, { params }) {
     const storagePath = `orgs/${ctx.orgId}/replays/${params.id}.json.gz`;
 
     // Subir a Storage (upsert si ya existe)
-    const { error: uploadErr } = await admin.storage
-      .from(BUCKET)
-      .upload(storagePath, arrayBuffer, {
-        contentType:  'application/gzip',
-        upsert:       true,
-        cacheControl: '3600',
-      });
+    const { error: uploadErr } = await storagePut({
+      bucket:       BUCKET,
+      key:          storagePath,
+      body:         arrayBuffer,
+      contentType:  'application/gzip',
+      upsert:       true,
+      cacheControl: '3600',
+    });
 
     if (uploadErr) throw uploadErr;
 
@@ -198,7 +200,7 @@ export async function DELETE(_req, { params }) {
     if (!flight?.replay_path) return NextResponse.json({ ok: true }); // ya no existe
 
     const admin = createAdminClient();
-    await admin.storage.from(BUCKET).remove([flight.replay_path]);
+    await storageRemove({ bucket: BUCKET, keys: flight.replay_path });
     await admin.from('flights')
       .update({ replay_path: null })
       .eq('id', params.id)

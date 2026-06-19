@@ -23,54 +23,93 @@ export default function FlightsTable() {
       {flights.length === 0 ? (
         <p className="text-sm text-slate-400 py-6 text-center">Aún no hay vuelos cargados.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
-                <th className="py-2 pr-3">Fecha</th>
-                <th className="py-2 pr-3">Misión</th>
-                <th className="py-2 pr-3">Piloto</th>
-                <th className="py-2 pr-3">Aeronave</th>
-                <th className="py-2 pr-3 text-right">Duración</th>
-                <th className="py-2 pr-3 text-right">Alt. máx</th>
-                <th className="py-2 pr-3 text-right">Distancia</th>
-                <th className="py-2 pr-3 text-right">Crédito</th>
-                <th className="py-2 text-right">Replay</th>
-              </tr>
-            </thead>
-            <tbody>
-              {flights.map((f) => {
-                const pilot = pilotById(f.pilotId);
-                const mission = missionById(f.missionId);
-                return (
-                  <tr key={f.id} className="border-b border-slate-50 hover:bg-slate-50">
-                    <td className="py-2.5 pr-3 text-slate-600 whitespace-nowrap">{fmtDate(f.date)}<span className="text-slate-300"> {f.takeoff}</span></td>
-                    <td className="py-2.5 pr-3 text-slate-700 max-w-[160px] truncate">{mission?.name || '—'}</td>
-                    <td className="py-2.5 pr-3 text-slate-600 whitespace-nowrap">{pilot?.name || '—'}</td>
-                    <td className="py-2.5 pr-3 text-slate-500 whitespace-nowrap">{f.aircraft}</td>
-                    <td className="py-2.5 pr-3 text-right text-slate-700 font-medium whitespace-nowrap">{fmtDuration(f.durationMin)}</td>
-                    <td className="py-2.5 pr-3 text-right text-slate-500 whitespace-nowrap">{f.maxAlt} m</td>
-                    <td className="py-2.5 pr-3 text-right text-slate-500 whitespace-nowrap">{f.distanceKm} km</td>
-                    <td className="py-2.5 pr-3 text-right">
-                      <span className="inline-flex items-center gap-0.5 text-[10px] font-black text-orange-600">
-                        <Icon name="toll" className="text-xs" /> -1
-                      </span>
-                    </td>
-                    <td className="py-2.5 text-right">
-                      <button
-                        onClick={() => setReplay({ flight: f, mission, missionName: mission?.name })}
-                        title="Ver replay GPS"
-                        className="inline-flex items-center justify-center size-8 rounded-lg text-slate-400 hover:text-white hover:bg-[var(--brand-accent)] transition-colors"
-                      >
-                        <Icon name="my_location" className="text-base" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {/* Tabla — escritorio */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                  <th className="py-2 pr-3">Fecha</th>
+                  <th className="py-2 pr-3">Misión</th>
+                  <th className="py-2 pr-3">Piloto</th>
+                  <th className="py-2 pr-3">Aeronave</th>
+                  <th className="py-2 pr-3 text-right">Duración</th>
+                  <th className="py-2 pr-3 text-right">Alt. máx</th>
+                  <th className="py-2 pr-3 text-right">Distancia</th>
+                  <th className="py-2 pr-3 text-right">Crédito</th>
+                  <th className="py-2 text-right">Replay</th>
+                </tr>
+              </thead>
+              <tbody>
+                {flights.map((f) => {
+                  const pilot = pilotById(f.pilotId);
+                  const mission = missionById(f.missionId);
+                  return (
+                    <tr key={f.id} className="border-b border-slate-50 hover:bg-slate-50">
+                      <td className="py-2.5 pr-3 text-slate-600 whitespace-nowrap">{fmtDate(f.date)}<span className="text-slate-300"> {f.takeoff}</span></td>
+                      <td className="py-2.5 pr-3 text-slate-700 max-w-[160px] truncate">{mission?.name || '—'}</td>
+                      <td className="py-2.5 pr-3 text-slate-600 whitespace-nowrap">{pilot?.name || '—'}</td>
+                      <td className="py-2.5 pr-3 text-slate-500 whitespace-nowrap">{f.aircraft}</td>
+                      <td className="py-2.5 pr-3 text-right text-slate-700 font-medium whitespace-nowrap">{fmtDuration(f.durationMin)}</td>
+                      <td className="py-2.5 pr-3 text-right text-slate-500 whitespace-nowrap">{f.maxAlt} m</td>
+                      <td className="py-2.5 pr-3 text-right text-slate-500 whitespace-nowrap">{f.distanceKm} km</td>
+                      <td className="py-2.5 pr-3 text-right">
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-black text-orange-600">
+                          <Icon name="toll" className="text-xs" /> -1
+                        </span>
+                      </td>
+                      <td className="py-2.5 text-right">
+                        <button
+                          onClick={() => setReplay({ flight: f, mission, missionName: mission?.name })}
+                          title="Ver replay GPS"
+                          className="inline-flex items-center justify-center size-9 rounded-lg text-slate-400 hover:text-white hover:bg-[var(--brand-accent)] transition-colors"
+                        >
+                          <Icon name="my_location" className="text-base" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Tarjetas — móvil */}
+          <div className="md:hidden space-y-3">
+            {flights.map((f) => {
+              const pilot = pilotById(f.pilotId);
+              const mission = missionById(f.missionId);
+              return (
+                <div key={f.id} className="border border-slate-200 rounded-xl p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-800 truncate">{mission?.name || '—'}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{pilot?.name || '—'} · {f.aircraft}</p>
+                    </div>
+                    <span className="inline-flex items-center gap-0.5 text-[10px] font-black text-orange-600 shrink-0">
+                      <Icon name="toll" className="text-xs" /> -1
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
+                    <span className="flex items-center gap-1"><Icon name="calendar_today" className="text-sm text-slate-300" />{fmtDate(f.date)} {f.takeoff}</span>
+                    <span className="flex items-center gap-1"><Icon name="schedule" className="text-sm text-slate-300" />{fmtDuration(f.durationMin)}</span>
+                  </div>
+                  <div className="flex items-center gap-4 mt-1.5 text-xs text-slate-500">
+                    <span>Alt {f.maxAlt} m</span>
+                    <span>Dist {f.distanceKm} km</span>
+                    <button
+                      onClick={() => setReplay({ flight: f, mission, missionName: mission?.name })}
+                      className="ml-auto flex items-center gap-1.5 text-white rounded-lg px-3 py-2 text-xs font-bold"
+                      style={{ backgroundColor: 'var(--brand-accent)' }}
+                    >
+                      <Icon name="my_location" className="text-sm" /> Replay
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
       <p className="text-[11px] text-slate-400 mt-3">
         En producción cada fila trae además GPS/replay completo, consumible por API.

@@ -9,6 +9,12 @@ export const metadata = {
   robots: { index: false, follow: false }, // demo: no indexar
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5, // no bloquear el zoom (accesibilidad)
+};
+
 export default function RootLayout({ children }) {
   // Inyecta los colores white-label como variables CSS en <html>
   const brandVars = `:root{--brand-accent:${DEMO.accent};--brand-navy:${DEMO.navy};}`;

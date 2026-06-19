@@ -56,7 +56,7 @@ export default function ScheduleMissionModal({ open, onClose, onDone }) {
         <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-100 sticky top-0 bg-white">
           <Icon name="event_available" className="text-lg" style={{ color: 'var(--brand-accent)' }} />
           <h2 className="text-base font-black" style={{ color: 'var(--brand-navy)' }}>Programar misión</h2>
-          <button onClick={onClose} className="ml-auto size-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+          <button onClick={onClose} className="ml-auto size-9 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
             <Icon name="close" className="text-lg" />
           </button>
         </div>

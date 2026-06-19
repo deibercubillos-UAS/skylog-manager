@@ -85,7 +85,7 @@ export default function PilotsPanel() {
                 <button
                   onClick={() => revokePilot(p.id)}
                   title="Revocar vínculo"
-                  className="size-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 shrink-0"
+                  className="size-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 shrink-0"
                 >
                   <Icon name="link_off" className="text-base" />
                 </button>

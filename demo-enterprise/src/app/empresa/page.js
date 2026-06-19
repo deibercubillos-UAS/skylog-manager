@@ -123,7 +123,7 @@ function Kpi({ icon, label, value }) {
 
 function PresenterBtn({ onClick, label }) {
   return (
-    <button onClick={onClick} className="text-xs font-bold text-slate-200 bg-white/10 hover:bg-white/20 rounded-lg px-3 py-2 transition-colors">
+    <button onClick={onClick} className="text-xs font-bold text-slate-200 bg-white/10 hover:bg-white/20 rounded-lg px-3 py-2.5 min-h-[40px] transition-colors">
       {label}
     </button>
   );

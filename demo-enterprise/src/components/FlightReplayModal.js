@@ -52,7 +52,7 @@ export default function FlightReplayModal({ flight, mission, missionName, onClos
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none">Replay GPS</p>
             <h2 className="text-sm font-black truncate" style={{ color: 'var(--brand-navy)' }}>{missionName || 'Vuelo'}</h2>
           </div>
-          <button onClick={onClose} className="ml-auto size-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+          <button onClick={onClose} className="ml-auto size-9 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
             <Icon name="close" className="text-lg" />
           </button>
         </div>

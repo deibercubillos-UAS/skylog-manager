@@ -93,17 +93,20 @@ export default function ApiPage() {
 
         {/* Ejemplo de respuesta en vivo */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
-          <div className="flex items-center gap-2 mb-4 flex-wrap">
-            <h2 className="text-sm font-black uppercase tracking-widest" style={{ color: 'var(--brand-navy)' }}>
-              Respuesta de ejemplo
-            </h2>
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">en vivo desde el demo</span>
-            <div className="ml-auto flex gap-1">
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <h2 className="text-sm font-black uppercase tracking-widest" style={{ color: 'var(--brand-navy)' }}>
+                Respuesta de ejemplo
+              </h2>
+              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">en vivo</span>
+            </div>
+            {/* Pestañas: scroll horizontal en móvil */}
+            <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1">
               {TABS.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => setTab(t.id)}
-                  className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${tab === t.id ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}
+                  className={`shrink-0 text-xs font-bold px-3 py-2 rounded-lg font-mono transition-colors ${tab === t.id ? 'text-white' : 'text-slate-500 bg-slate-100 hover:bg-slate-200'}`}
                   style={tab === t.id ? { backgroundColor: 'var(--brand-accent)' } : {}}
                 >
                   {t.label}
@@ -138,7 +141,7 @@ function CodeRow({ label, value, onCopy, copied, mono }) {
     <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-2.5">
       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 w-16 shrink-0">{label}</span>
       <code className={`flex-1 min-w-0 truncate text-xs text-slate-700 ${mono ? 'font-mono' : ''}`}>{value}</code>
-      <button onClick={onCopy} className="text-slate-400 hover:text-slate-700 shrink-0">
+      <button onClick={onCopy} className="size-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 shrink-0">
         <Icon name={copied ? 'check' : 'content_copy'} className="text-base" />
       </button>
     </div>

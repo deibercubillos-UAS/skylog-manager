@@ -1,11 +1,14 @@
 'use client';
 
+import { useState } from 'react';
 import { useDemo } from '@/lib/demoStore';
 import { fmtDate, fmtDuration } from '@/lib/format';
 import Icon from '@/components/Icon';
+import FlightReplayModal from '@/components/FlightReplayModal';
 
 export default function FlightsTable() {
   const { flights, pilotById, missionById } = useDemo();
+  const [replay, setReplay] = useState(null);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6">
@@ -31,7 +34,8 @@ export default function FlightsTable() {
                 <th className="py-2 pr-3 text-right">Duración</th>
                 <th className="py-2 pr-3 text-right">Alt. máx</th>
                 <th className="py-2 pr-3 text-right">Distancia</th>
-                <th className="py-2 text-right">Crédito</th>
+                <th className="py-2 pr-3 text-right">Crédito</th>
+                <th className="py-2 text-right">Replay</th>
               </tr>
             </thead>
             <tbody>
@@ -47,10 +51,19 @@ export default function FlightsTable() {
                     <td className="py-2.5 pr-3 text-right text-slate-700 font-medium whitespace-nowrap">{fmtDuration(f.durationMin)}</td>
                     <td className="py-2.5 pr-3 text-right text-slate-500 whitespace-nowrap">{f.maxAlt} m</td>
                     <td className="py-2.5 pr-3 text-right text-slate-500 whitespace-nowrap">{f.distanceKm} km</td>
-                    <td className="py-2.5 text-right">
+                    <td className="py-2.5 pr-3 text-right">
                       <span className="inline-flex items-center gap-0.5 text-[10px] font-black text-orange-600">
                         <Icon name="toll" className="text-xs" /> -1
                       </span>
+                    </td>
+                    <td className="py-2.5 text-right">
+                      <button
+                        onClick={() => setReplay({ flight: f, missionName: mission?.name })}
+                        title="Ver replay GPS"
+                        className="inline-flex items-center justify-center size-8 rounded-lg text-slate-400 hover:text-white hover:bg-[var(--brand-accent)] transition-colors"
+                      >
+                        <Icon name="my_location" className="text-base" />
+                      </button>
                     </td>
                   </tr>
                 );
@@ -62,6 +75,14 @@ export default function FlightsTable() {
       <p className="text-[11px] text-slate-400 mt-3">
         En producción cada fila trae además GPS/replay completo, consumible por API.
       </p>
+
+      {replay && (
+        <FlightReplayModal
+          flight={replay.flight}
+          missionName={replay.missionName}
+          onClose={() => setReplay(null)}
+        />
+      )}
     </div>
   );
 }

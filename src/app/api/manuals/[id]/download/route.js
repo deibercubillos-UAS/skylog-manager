@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
+import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { hasPermission } from '@/lib/roles';
 import { MANUALS_BUCKET } from '@/lib/manualStorage';
+import { storageSignedUrl } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,10 +44,7 @@ export async function GET(request, { params }) {
 
     if (!filePath) return NextResponse.json({ error: 'Documento no encontrado' }, { status: 404 });
 
-    const admin = createAdminClient();
-    const { data, error } = await admin.storage
-      .from(MANUALS_BUCKET)
-      .createSignedUrl(filePath, 3600); // 1 hora
+    const { data, error } = await storageSignedUrl({ bucket: MANUALS_BUCKET, key: filePath, expiresIn: 3600 });
     if (error) throw error;
 
     return NextResponse.json({ signedUrl: data.signedUrl });

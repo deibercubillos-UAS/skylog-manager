@@ -1,5 +1,7 @@
 // Constantes y helpers de storage para Manuales de la Empresa.
-// Bucket privado company-manuals (creado en Fase A): path orgs/{orgId}/manuals/{manualId}/...
+// Bucket privado company-manuals: path orgs/{orgId}/manuals/{manualId}/...
+
+import { storagePut } from '@/lib/storage';
 
 export const MANUALS_BUCKET = 'company-manuals';
 export const MANUAL_MAX_SIZE = 25 * 1024 * 1024; // 25 MB (= límite del bucket)
@@ -40,13 +42,13 @@ export async function uploadManualFile({ admin, orgId, manualId, file }) {
 
   const path = `orgs/${orgId}/manuals/${manualId}/${Date.now()}-${safeFileName(file.name)}`;
 
-  const { error } = await admin.storage
-    .from(MANUALS_BUCKET)
-    .upload(path, buffer, {
-      contentType:  file.type || 'application/octet-stream',
-      upsert:       false,
-      cacheControl: '3600',
-    });
+  const { error } = await storagePut({
+    bucket:      MANUALS_BUCKET,
+    key:         path,
+    body:        buffer,
+    contentType: file.type || 'application/octet-stream',
+    upsert:      false,
+  });
 
   if (error) return { error: error.message, status: 500 };
   return { path };

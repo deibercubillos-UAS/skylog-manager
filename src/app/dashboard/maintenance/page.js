@@ -32,11 +32,10 @@ export default function MaintenancePage() {
         if (!log.attachment_path) return;
         setLoadingDoc(log.id);
         try {
-            const { data, error } = await supabase.storage
-                .from('maintenance-docs')
-                .createSignedUrl(log.attachment_path, 3600);
-            if (error || !data?.signedUrl) throw new Error('No se pudo generar el enlace.');
-            window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+            const res = await fetch(`/api/maintenance/attachment?path=${encodeURIComponent(log.attachment_path)}`);
+            if (!res.ok) throw new Error('No se pudo generar el enlace.');
+            const { signedUrl } = await res.json();
+            window.open(signedUrl, '_blank', 'noopener,noreferrer');
         } catch {
             toast.error('No se pudo cargar el documento adjunto.');
         } finally {

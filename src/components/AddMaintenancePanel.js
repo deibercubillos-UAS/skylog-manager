@@ -92,11 +92,32 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
         const slug = Math.random().toString(36).slice(2, 10);
         const path = `orgs/${orgId}/${Date.now()}_${slug}.${ext}`;
 
-        const { error: uploadErr } = await supabase.storage
-          .from('maintenance-docs')
-          .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+        // Intentar subida prefirmada a R2; si el bucket aún está en modo supabase
+        // (responde 409), caer de vuelta al cliente Supabase.
+        const signRes = await fetch('/api/storage/sign-upload', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bucket: 'maintenance-docs', key: path, contentType: file.type }),
+        });
 
-        if (uploadErr) throw new Error('Error al subir el archivo: ' + uploadErr.message);
+        if (signRes.ok) {
+          const { uploadUrl } = await signRes.json();
+          const putRes = await fetch(uploadUrl, {
+            method:  'PUT',
+            headers: { 'Content-Type': file.type },
+            body: file,
+          });
+          if (!putRes.ok) throw new Error('Error al subir el archivo a R2.');
+        } else if (signRes.status === 409) {
+          // Bucket todavía en Supabase
+          const { error: uploadErr } = await supabase.storage
+            .from('maintenance-docs')
+            .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+          if (uploadErr) throw new Error('Error al subir el archivo: ' + uploadErr.message);
+        } else {
+          throw new Error('Error al preparar la subida del archivo.');
+        }
+
         attachment_path = path;
       }
 
@@ -121,7 +142,12 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
       if (!res.ok) {
         // Si el POST falla pero ya subimos el archivo, intentar limpiarlo
         if (attachment_path) {
-          await supabase.storage.from('maintenance-docs').remove([attachment_path]);
+          // Usar el endpoint de borrado (soporta tanto Supabase como R2 según el flag)
+          fetch('/api/maintenance/attachment', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: attachment_path }),
+          }).catch(() => {});
         }
         throw new Error(data?.error || 'Error al guardar el registro.');
       }

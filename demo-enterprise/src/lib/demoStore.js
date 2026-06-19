@@ -92,6 +92,38 @@ export function DemoProvider({ children }) {
     return result;
   }, []);
 
+  // La organización programa (crea) una misión y se la asigna a un piloto.
+  // Aparece de inmediato en el panel de empresa y en la vista del piloto.
+  const addMission = useCallback((data) => {
+    let result = { ok: false, reason: 'unknown' };
+    setState((s) => {
+      if (!data.name || !data.pilotId || !data.municipio || !data.departamento || !data.date || !data.takeoff) {
+        result = { ok: false, reason: 'faltan_campos' };
+        return s;
+      }
+      const n = s.missions.length + 1;
+      const mission = {
+        id: `mis-${String(n).padStart(2, '0')}-${Date.now().toString().slice(-4)}`,
+        name: data.name.trim(),
+        pilotId: data.pilotId,
+        date: data.date,
+        location: `${data.municipio}, ${data.departamento}`,
+        center: data.center || [4.65, -74.08],
+        status: 'programada',
+        // Datos RAC 100 de la programación
+        opType: data.opType,
+        racCategory: data.racCategory,
+        geoType: data.geoType,
+        altitude: data.altitude,
+        takeoff: data.takeoff,
+        notes: (data.notes || '').trim() || null,
+      };
+      result = { ok: true, reason: 'programada' };
+      return { ...s, missions: [mission, ...s.missions] };
+    });
+    return result;
+  }, []);
+
   // La organización reasigna una misión a otro piloto.
   const reassignMission = useCallback((missionId, newPilotId) => {
     setState((s) => ({
@@ -174,7 +206,7 @@ export function DemoProvider({ children }) {
     blocked,
     pricePerFlight: DEMO.pricePerFlight,
     // acciones
-    acceptInvite, addPilot, reassignMission, loadFlight, recharge, revokePilot, setBalance, resetDemo,
+    acceptInvite, addPilot, addMission, reassignMission, loadFlight, recharge, revokePilot, setBalance, resetDemo,
     // helpers
     pilotById: (id) => state.pilots.find((p) => p.id === id) || null,
     missionById: (id) => state.missions.find((m) => m.id === id) || null,

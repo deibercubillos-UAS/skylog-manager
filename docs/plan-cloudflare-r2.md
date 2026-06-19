@@ -86,10 +86,20 @@ Cada bucket se migra con esta secuencia (todos pasos pequeños y reversibles):
 
 > Nota: el refactor de los puntos de cada bucket NO se hace todo de golpe. Se realiza **dentro de la fase de ese bucket**, justo antes de voltear su flag — para minimizar el radio de impacto.
 
-### Fase 2 — Piloto: `flight-replays` (bucket 1)
-- Flag `flight-replays = dual`. Backfill de replays. Verificar GET/POST.
-- Flag `flight-replays = r2`. (Replays son regenerables → riesgo mínimo.)
-- **Resultado**: validamos toda la mecánica R2 con el bucket más seguro.
+### Fase 2 — Piloto: `flight-replays` (bucket 1) ⟵ EN CURSO
+
+**Script de backfill**: `scripts/backfill-r2.mjs` — copia idempotente Supabase→R2 (omite objetos ya existentes, lotes de 20, 3 reintentos). Requiere `.env.local` con las vars de R2.
+
+**Secuencia**:
+1. ✅ Código cableado a la capa storage (F1).
+2. ✅ Script de backfill listo (`scripts/backfill-r2.mjs`).
+3. **[TÚ]** En Vercel: `STORAGE_MODE_FLIGHT_REPLAYS=dual` → redeploy.
+4. **[AMBOS]** Correr el backfill: `node scripts/backfill-r2.mjs flight-replays`
+5. **[AMBOS]** Verificar: abrir un replay viejo + uno nuevo en la app.
+6. **[TÚ]** En Vercel: `STORAGE_MODE_FLIGHT_REPLAYS=r2`.
+7. Monitorear errores en Vercel logs 24h.
+
+**Resultado**: validamos toda la mecánica R2 con el bucket más seguro (replays son regenerables).
 
 ### Fase 3 — `maintenance-docs` (bucket 2) + estreno de subida prefirmada
 - Activar `sign-upload` para este bucket; actualizar el **interior** de `AddMaintenancePanel.js` (mismos props).

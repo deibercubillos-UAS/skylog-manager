@@ -21,7 +21,6 @@ const OP_TYPES = [
   'Fotografía / Video',
   'Vigilancia / Seguridad',
 ];
-const RAC_CATEGORIES = ['Abierta · A1', 'Abierta · A2', 'Abierta · A3', 'Específica (SORA/PDRA)'];
 const GEO_TYPES = ['Polígono', 'Círculo', 'Punto'];
 
 export default function ScheduleMissionModal({ open, onClose, onDone }) {
@@ -29,7 +28,7 @@ export default function ScheduleMissionModal({ open, onClose, onDone }) {
   const activos = pilots.filter((p) => p.status === 'activo');
 
   const [f, setF] = useState({
-    name: '', pilotId: activos[0]?.id || '', opType: OP_TYPES[0], racCategory: RAC_CATEGORIES[0],
+    name: '', pilotId: activos[0]?.id || '', opType: OP_TYPES[0],
     departamento: 'Cundinamarca', municipio: 'Bogotá D.C.', date: '', takeoff: '08:00',
     geoType: 'Polígono', altitude: 120, notes: '',
   });
@@ -86,19 +85,11 @@ export default function ScheduleMissionModal({ open, onClose, onDone }) {
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className={lbl}>Categoría RAC 100 *</label>
-              <select className={field} value={f.racCategory} onChange={(e) => set('racCategory', e.target.value)}>
-                {RAC_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={lbl}>Tipo de zona</label>
-              <select className={field} value={f.geoType} onChange={(e) => set('geoType', e.target.value)}>
-                {GEO_TYPES.map((g) => <option key={g} value={g}>{g}</option>)}
-              </select>
-            </div>
+          <div>
+            <label className={lbl}>Tipo de zona</label>
+            <select className={field} value={f.geoType} onChange={(e) => set('geoType', e.target.value)}>
+              {GEO_TYPES.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
           </div>
 
           {/* Ubicación */}
@@ -139,10 +130,10 @@ export default function ScheduleMissionModal({ open, onClose, onDone }) {
           </p>
 
           <div>
-            <label className={lbl}>Notas / restricciones</label>
+            <label className={lbl}>Observaciones de misión</label>
             <textarea rows={2} className={`${field} resize-none`} value={f.notes}
                       onChange={(e) => set('notes', e.target.value)}
-                      placeholder="NOTAM, zonas restringidas, coordinación con torre, etc." />
+                      placeholder="Zonas restringidas, coordinación, condiciones especiales, etc." />
           </div>
 
           {err && <p className="text-xs font-bold text-red-500">{err}</p>}

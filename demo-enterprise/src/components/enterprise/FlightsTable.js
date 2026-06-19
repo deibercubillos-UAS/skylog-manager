@@ -58,7 +58,7 @@ export default function FlightsTable() {
                     </td>
                     <td className="py-2.5 text-right">
                       <button
-                        onClick={() => setReplay({ flight: f, missionName: mission?.name })}
+                        onClick={() => setReplay({ flight: f, mission, missionName: mission?.name })}
                         title="Ver replay GPS"
                         className="inline-flex items-center justify-center size-8 rounded-lg text-slate-400 hover:text-white hover:bg-[var(--brand-accent)] transition-colors"
                       >
@@ -79,6 +79,7 @@ export default function FlightsTable() {
       {replay && (
         <FlightReplayModal
           flight={replay.flight}
+          mission={replay.mission}
           missionName={replay.missionName}
           onClose={() => setReplay(null)}
         />

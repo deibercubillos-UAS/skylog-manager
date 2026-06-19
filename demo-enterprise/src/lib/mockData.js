@@ -47,29 +47,38 @@ export const SEED_PILOTS = [
 export const SEED_MISSIONS = [
   {
     id: 'mis-01',
+    code: 'OP-26-001',
     name: 'Inspección línea 230kV — Tramo A',
     pilotId: 'plt-01',
     date: '2026-06-16',
     location: 'Sogamoso, Boyacá',
     center: [5.7145, -72.9339],
+    areaRadiusM: 500,
+    geoType: 'Polígono',
     status: 'completada',      // programada | en_curso | completada
   },
   {
     id: 'mis-02',
+    code: 'OP-26-002',
     name: 'Levantamiento topográfico cantera',
     pilotId: 'plt-02',
     date: '2026-06-17',
     location: 'Yumbo, Valle del Cauca',
     center: [3.5847, -76.4951],
+    areaRadiusM: 350,
+    geoType: 'Polígono',
     status: 'en_curso',
   },
   {
     id: 'mis-03',
+    code: 'OP-26-003',
     name: 'Monitoreo cultivo — Lote 7',
     pilotId: 'plt-01',
     date: '2026-06-19',
     location: 'Espinal, Tolima',
     center: [4.1497, -74.8859],
+    areaRadiusM: 400,
+    geoType: 'Círculo',
     status: 'programada',
   },
 ];

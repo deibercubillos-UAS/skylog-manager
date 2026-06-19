@@ -5,14 +5,15 @@ import Link from 'next/link';
 import { useDemo } from '@/lib/demoStore';
 import Icon from '@/components/Icon';
 import {
-  sampleFlights, sampleUsage, sampleMissions, ENDPOINTS, SAMPLE_KEY, API_BASE,
+  sampleFlights, sampleFlightDetail, sampleUsage, sampleMissions, ENDPOINTS, SAMPLE_KEY, API_BASE,
 } from '@/lib/apiSamples';
 import { downloadApiDocsPdf } from '@/lib/apiDocsPdf';
 
 const TABS = [
-  { id: 'flights',  label: 'GET /flights',  fn: sampleFlights },
-  { id: 'missions', label: 'GET /missions', fn: sampleMissions },
-  { id: 'usage',    label: 'GET /usage',    fn: sampleUsage },
+  { id: 'flights',  label: 'GET /flights',     fn: sampleFlights },
+  { id: 'detail',   label: 'GET /flights/{id}', fn: (s) => sampleFlightDetail(s) },
+  { id: 'missions', label: 'GET /missions',    fn: sampleMissions },
+  { id: 'usage',    label: 'GET /usage',       fn: sampleUsage },
 ];
 
 export default function ApiPage() {

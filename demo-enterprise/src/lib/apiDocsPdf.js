@@ -40,6 +40,18 @@ export function downloadApiDocsPdf() {
   });
 
   y += 6;
+  // Seguimiento y cumplimiento de ruta
+  line('Seguimiento y cumplimiento de ruta', 14, accent, true); y += 18;
+  const tracking = [
+    '· Cada misión programada genera un ID de seguimiento (tracking_id) compartido por organización, piloto y API.',
+    '· La API entrega las coordenadas GPS por donde voló la aeronave (gps_track).',
+    '· El servicio cruza la ruta volada contra el área programada y reporta route_compliance.',
+    '· Tolerancia de 100 m: confirma si el vuelo se mantuvo en el área asignada (within_tolerance, max_deviation_m).',
+  ];
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor('#334155');
+  tracking.forEach((b) => { const w = doc.splitTextToSize(b, 480); doc.text(w, M, y); y += w.length * 13 + 4; });
+  y += 6;
+
   // Modelo de cobro
   line('Modelo de cobro', 14, accent, true); y += 18;
   const billing = [

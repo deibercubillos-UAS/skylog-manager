@@ -1,15 +1,20 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { genPath } from '@/lib/genPath';
+import { genPath, toGeoPath, routeCompliance } from '@/lib/genPath';
 import { fmtDuration } from '@/lib/format';
 import Icon from '@/components/Icon';
 
 // Visor de replay GPS (SVG animado). Reutilizable desde la cuenta de la organización.
 const VB_W = 440, VB_H = 300, PAD = 24;
 
-export default function FlightReplayModal({ flight, missionName, onClose }) {
+export default function FlightReplayModal({ flight, mission, missionName, onClose }) {
   const path = useMemo(() => genPath(flight), [flight]);
+  const compliance = useMemo(() => {
+    if (!mission?.center) return null;
+    const geo = toGeoPath(path, mission.center, mission.areaRadiusM);
+    return routeCompliance(geo, mission.center, mission.areaRadiusM, 100);
+  }, [path, mission]);
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(true);
   const timer = useRef(null);
@@ -77,6 +82,16 @@ export default function FlightReplayModal({ flight, missionName, onClose }) {
             )}
           </svg>
         </div>
+
+        {/* Cumplimiento de ruta */}
+        {compliance && (
+          <div className={`flex items-center gap-2 px-5 py-2.5 text-xs font-bold ${compliance.within_tolerance ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+            <Icon name={compliance.within_tolerance ? 'check_circle' : 'error'} className="text-base" />
+            {compliance.within_tolerance
+              ? `Cumple el área asignada (±${compliance.tolerance_m} m) · desviación máx ${compliance.max_deviation_m} m`
+              : `Desvío detectado · ${compliance.max_deviation_m} m fuera del área (tolerancia ${compliance.tolerance_m} m)`}
+          </div>
+        )}
 
         {/* Lecturas */}
         <div className="grid grid-cols-4 gap-px bg-slate-100">

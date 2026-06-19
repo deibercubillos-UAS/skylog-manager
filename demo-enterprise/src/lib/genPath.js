@@ -43,3 +43,50 @@ export function genPath(flight) {
   }
   return pts;
 }
+
+// Convierte la trayectoria normalizada (0..1) a coordenadas geográficas reales
+// alrededor del centro de la misión, escaladas al área programada.
+export function toGeoPath(path, center, areaRadiusM) {
+  const [lat0, lng0] = center || [4.65, -74.08];
+  const R = areaRadiusM || 300;
+  const mPerDegLat = 111320;
+  const mPerDegLng = 111320 * Math.cos((lat0 * Math.PI) / 180);
+  return path.map((p) => ({
+    lat: +(lat0 + ((p.y - 0.5) * 2 * R) / mPerDegLat).toFixed(6),
+    lng: +(lng0 + ((p.x - 0.5) * 2 * R) / mPerDegLng).toFixed(6),
+    alt: p.alt,
+  }));
+}
+
+// Distancia aproximada en metros (equirectangular, válida para distancias cortas).
+function distM(aLat, aLng, bLat, bLng) {
+  const R = 6371000;
+  const x = ((bLng - aLng) * Math.cos(((aLat + bLat) / 2) * Math.PI / 180)) * Math.PI / 180;
+  const y = (bLat - aLat) * Math.PI / 180;
+  return Math.sqrt(x * x + y * y) * R;
+}
+
+// Cruza la trayectoria volada contra el área programada (círculo de radio
+// areaRadiusM centrado en center). Permite una desviación de toleranceM metros.
+export function routeCompliance(geoPath, center, areaRadiusM, toleranceM = 100) {
+  const [lat0, lng0] = center || [4.65, -74.08];
+  const R = areaRadiusM || 300;
+  let maxDev = 0;
+  let inside = 0;
+  for (const p of geoPath) {
+    const d = distM(lat0, lng0, p.lat, p.lng);
+    const dev = Math.max(0, d - R);          // qué tanto se salió del área
+    if (dev <= toleranceM) inside += 1;
+    if (dev > maxDev) maxDev = dev;
+  }
+  const total = geoPath.length || 1;
+  return {
+    tolerance_m: toleranceM,
+    area_radius_m: R,
+    max_deviation_m: Math.round(maxDev),
+    within_tolerance: maxDev <= toleranceM,
+    points_inside: inside,
+    points_total: total,
+    compliance_pct: Math.round((inside / total) * 100),
+  };
+}

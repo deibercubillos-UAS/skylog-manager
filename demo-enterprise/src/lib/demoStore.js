@@ -102,17 +102,20 @@ export function DemoProvider({ children }) {
         return s;
       }
       const n = s.missions.length + 1;
+      // Radio del área programada según el tipo de zona (para el cruce de ruta).
+      const areaByGeo = { 'Punto': 120, 'Círculo': 300, 'Polígono': 500 };
       const mission = {
         id: `mis-${String(n).padStart(2, '0')}-${Date.now().toString().slice(-4)}`,
+        code: `OP-26-${String(n).padStart(3, '0')}`,   // ID de seguimiento
         name: data.name.trim(),
         pilotId: data.pilotId,
         date: data.date,
         location: `${data.municipio}, ${data.departamento}`,
         center: data.center || [4.65, -74.08],
+        areaRadiusM: areaByGeo[data.geoType] || 300,
         status: 'programada',
-        // Datos RAC 100 de la programación
+        // Datos de la programación
         opType: data.opType,
-        racCategory: data.racCategory,
         geoType: data.geoType,
         altitude: data.altitude,
         takeoff: data.takeoff,

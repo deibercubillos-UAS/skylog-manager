@@ -93,7 +93,15 @@ export default function SponsoredDashboard({ pilot }) {
                 <div key={m.id} className="border border-slate-200 rounded-xl p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-slate-800">{m.name}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {m.code && (
+                          <span className="text-[10px] font-black px-1.5 py-0.5 rounded font-mono"
+                                style={{ backgroundColor: 'color-mix(in srgb, var(--brand-accent) 12%, white)', color: 'var(--brand-accent)' }}>
+                            {m.code}
+                          </span>
+                        )}
+                        <p className="text-sm font-bold text-slate-800">{m.name}</p>
+                      </div>
                       <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
                         <Icon name="location_on" className="text-sm" /> {m.location} · {fmtDate(m.date)}
                       </p>

@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 720" font-family="'Public Sans', system-ui, sans-serif">
+  <rect width="1000" height="720" fill="#0f172a" opacity="0.45"/>
+  <rect width="1000" height="720" fill="#1e293b" opacity="0.3"/>
+
+  <!-- Modal -->
+  <rect x="180" y="40" width="640" height="640" rx="16" fill="#ffffff"/>
+  <!-- header -->
+  <rect x="180" y="40" width="640" height="56" rx="16" fill="#ffffff"/>
+  <rect x="180" y="80" width="640" height="16" fill="#ffffff"/>
+  <circle cx="212" cy="68" r="9" fill="none" stroke="#ec5b13" stroke-width="2"/>
+  <text x="232" y="74" font-size="16" font-weight="900" fill="#0F1419">Programar misión</text>
+  <text x="792" y="74" text-anchor="end" font-size="18" fill="#94a3b8">✕</text>
+  <rect x="180" y="96" width="640" height="1" fill="#f1f5f9"/>
+
+  <!-- Campos -->
+  <g font-family="'Public Sans', system-ui, sans-serif">
+    <!-- Nombre operación -->
+    <text x="212" y="128" font-size="10" font-weight="900" fill="#94a3b8" letter-spacing="1.2">NOMBRE DE LA OPERACIÓN *</text>
+    <rect x="212" y="136" width="576" height="40" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+    <text x="228" y="161" font-size="13" fill="#334155">Inspección línea 230kV — Tramo B</text>
+
+    <!-- Piloto / Tipo operación -->
+    <text x="212" y="200" font-size="10" font-weight="900" fill="#94a3b8" letter-spacing="1.2">PILOTO (PIC) *</text>
+    <rect x="212" y="208" width="278" height="40" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+    <text x="228" y="233" font-size="13" fill="#334155">Carlos Méndez</text>
+    <text x="478" y="233" font-size="12" fill="#94a3b8">▾</text>
+    <text x="510" y="200" font-size="10" font-weight="900" fill="#94a3b8" letter-spacing="1.2">TIPO DE OPERACIÓN *</text>
+    <rect x="510" y="208" width="278" height="40" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+    <text x="526" y="233" font-size="13" fill="#334155">Inspección de infraestructura</text>
+    <text x="776" y="233" font-size="12" fill="#94a3b8">▾</text>
+
+    <!-- Tipo de zona -->
+    <text x="212" y="272" font-size="10" font-weight="900" fill="#94a3b8" letter-spacing="1.2">TIPO DE ZONA</text>
+    <rect x="212" y="280" width="576" height="40" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+    <text x="228" y="305" font-size="13" fill="#334155">Polígono</text>
+    <text x="776" y="305" font-size="12" fill="#94a3b8">▾</text>
+
+    <!-- Depto / Municipio -->
+    <text x="212" y="344" font-size="10" font-weight="900" fill="#94a3b8" letter-spacing="1.2">DEPARTAMENTO *</text>
+    <rect x="212" y="352" width="278" height="40" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+    <text x="228" y="377" font-size="13" fill="#334155">Boyacá</text>
+    <text x="478" y="377" font-size="12" fill="#94a3b8">▾</text>
+    <text x="510" y="344" font-size="10" font-weight="900" fill="#94a3b8" letter-spacing="1.2">MUNICIPIO *</text>
+    <rect x="510" y="352" width="278" height="40" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+    <text x="526" y="377" font-size="13" fill="#334155">Sogamoso</text>
+    <text x="776" y="377" font-size="12" fill="#94a3b8">▾</text>
+
+    <!-- Fecha / Hora / Altitud -->
+    <text x="212" y="416" font-size="10" font-weight="900" fill="#94a3b8" letter-spacing="1.2">FECHA *</text>
+    <rect x="212" y="424" width="180" height="40" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+    <text x="228" y="449" font-size="13" fill="#334155">25/06/2026</text>
+    <text x="408" y="416" font-size="10" font-weight="900" fill="#94a3b8" letter-spacing="1.2">HORA DESPEGUE *</text>
+    <rect x="408" y="424" width="180" height="40" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+    <text x="424" y="449" font-size="13" fill="#334155">08:00</text>
+    <text x="604" y="416" font-size="10" font-weight="900" fill="#94a3b8" letter-spacing="1.2">ALTITUD MÁX (M AGL)</text>
+    <rect x="604" y="424" width="184" height="40" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+    <text x="620" y="449" font-size="13" fill="#334155">120</text>
+    <text x="212" y="484" font-size="11" fill="#94a3b8">ⓘ  Límite RAC 100: 120 m sobre el nivel del terreno (AGL).</text>
+
+    <!-- Observaciones -->
+    <text x="212" y="516" font-size="10" font-weight="900" fill="#94a3b8" letter-spacing="1.2">OBSERVACIONES DE MISIÓN</text>
+    <rect x="212" y="524" width="576" height="56" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+    <text x="228" y="548" font-size="12" fill="#94a3b8">Zonas restringidas, coordinación, condiciones especiales, etc.</text>
+
+    <!-- Botones -->
+    <rect x="212" y="600" width="278" height="44" rx="10" fill="#ffffff" stroke="#e2e8f0"/>
+    <text x="351" y="627" text-anchor="middle" font-size="13" font-weight="700" fill="#64748b">Cancelar</text>
+    <rect x="510" y="600" width="278" height="44" rx="10" fill="#ec5b13"/>
+    <text x="649" y="627" text-anchor="middle" font-size="13" font-weight="900" fill="#ffffff">Programar y asignar</text>
+    <text x="500" y="666" text-anchor="middle" font-size="11" fill="#b45309">Simulación — la misión se asigna al piloto en el demo, sin envío real.</text>
+  </g>
+</svg>

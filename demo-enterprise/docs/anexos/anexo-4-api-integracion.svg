@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 720" font-family="'Public Sans', system-ui, sans-serif">
+  <rect width="1000" height="720" fill="#f1f5f9"/>
+
+  <!-- Header -->
+  <rect x="0" y="0" width="1000" height="56" fill="#ffffff"/>
+  <rect x="0" y="55" width="1000" height="1" fill="#e2e8f0"/>
+  <rect x="24" y="14" width="28" height="28" rx="8" fill="#fde7d8"/>
+  <text x="38" y="33" text-anchor="middle" font-size="11" font-weight="900" fill="#ec5b13">{ }</text>
+  <text x="62" y="22" font-size="9" font-weight="900" fill="#94a3b8" letter-spacing="1.2">INTEGRACIÓN</text>
+  <text x="62" y="37" font-size="13" font-weight="900" fill="#0F1419">API ENTERPRISE</text>
+  <rect x="838" y="16" width="138" height="26" rx="8" fill="#ec5b13"/>
+  <text x="907" y="33" text-anchor="middle" font-size="11" font-weight="900" fill="#ffffff">DESCARGAR PDF</text>
+
+  <!-- Autenticación -->
+  <rect x="24" y="76" width="952" height="96" rx="16" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="48" y="104" font-size="12" font-weight="900" fill="#0F1419" letter-spacing="1.2">AUTENTICACIÓN</text>
+  <rect x="48" y="116" width="904" height="40" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="64" y="141" font-size="10" font-weight="900" fill="#94a3b8" letter-spacing="1">HEADER</text>
+  <text x="150" y="141" font-size="12" font-family="monospace" fill="#334155">Authorization: Bearer bf_live_3a9f1c7e8b24d6f0a1e5c9b7</text>
+
+  <!-- Pestañas + JSON -->
+  <rect x="24" y="184" width="952" height="512" rx="16" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="48" y="212" font-size="12" font-weight="900" fill="#0F1419" letter-spacing="1.2">RESPUESTA DE EJEMPLO</text>
+  <rect x="232" y="200" width="48" height="18" rx="9" fill="#d1fae5"/>
+  <text x="256" y="213" text-anchor="middle" font-size="9" font-weight="700" fill="#047857">en vivo</text>
+  <!-- tabs -->
+  <rect x="48" y="228" width="92" height="30" rx="8" fill="#f1f5f9"/>
+  <text x="94" y="248" text-anchor="middle" font-size="11" font-family="monospace" fill="#64748b">GET /flights</text>
+  <rect x="148" y="228" width="132" height="30" rx="8" fill="#ec5b13"/>
+  <text x="214" y="248" text-anchor="middle" font-size="11" font-family="monospace" fill="#ffffff">GET /flights/{id}</text>
+  <rect x="288" y="228" width="104" height="30" rx="8" fill="#f1f5f9"/>
+  <text x="340" y="248" text-anchor="middle" font-size="11" font-family="monospace" fill="#64748b">GET /missions</text>
+  <rect x="400" y="228" width="88" height="30" rx="8" fill="#f1f5f9"/>
+  <text x="444" y="248" text-anchor="middle" font-size="11" font-family="monospace" fill="#64748b">GET /usage</text>
+
+  <!-- code block -->
+  <rect x="48" y="270" width="904" height="408" rx="12" fill="#0f172a"/>
+  <g font-family="monospace" font-size="12.5" fill="#e2e8f0">
+    <text x="68" y="296">{</text>
+    <text x="88" y="316"><tspan fill="#7dd3fc">"id"</tspan>: <tspan fill="#fdba74">"flt-01"</tspan>,</text>
+    <text x="88" y="336"><tspan fill="#7dd3fc">"tracking_id"</tspan>: <tspan fill="#fdba74">"OP-26-001"</tspan>,</text>
+    <text x="88" y="356"><tspan fill="#7dd3fc">"mission_name"</tspan>: <tspan fill="#fdba74">"Inspección línea 230kV — Tramo A"</tspan>,</text>
+    <text x="88" y="376"><tspan fill="#7dd3fc">"pilot"</tspan>: { <tspan fill="#7dd3fc">"name"</tspan>: <tspan fill="#fdba74">"Carlos Méndez"</tspan> },</text>
+    <text x="88" y="396"><tspan fill="#7dd3fc">"programmed_zone"</tspan>: {</text>
+    <text x="108" y="416"><tspan fill="#7dd3fc">"geo_type"</tspan>: <tspan fill="#fdba74">"Polígono"</tspan>, <tspan fill="#7dd3fc">"center"</tspan>: { <tspan fill="#7dd3fc">"lat"</tspan>: <tspan fill="#a5b4fc">5.7145</tspan>, <tspan fill="#7dd3fc">"lng"</tspan>: <tspan fill="#a5b4fc">-72.9339</tspan> },</text>
+    <text x="108" y="436"><tspan fill="#7dd3fc">"area_radius_m"</tspan>: <tspan fill="#a5b4fc">500</tspan></text>
+    <text x="88" y="456">},</text>
+    <text x="88" y="476"><tspan fill="#7dd3fc">"route_compliance"</tspan>: {</text>
+    <text x="108" y="496"><tspan fill="#7dd3fc">"within_tolerance"</tspan>: <tspan fill="#86efac">true</tspan>, <tspan fill="#7dd3fc">"max_deviation_m"</tspan>: <tspan fill="#a5b4fc">26</tspan>,</text>
+    <text x="108" y="516"><tspan fill="#7dd3fc">"compliance_pct"</tspan>: <tspan fill="#a5b4fc">100</tspan>, <tspan fill="#7dd3fc">"tolerance_m"</tspan>: <tspan fill="#a5b4fc">100</tspan></text>
+    <text x="88" y="536">},</text>
+    <text x="88" y="556"><tspan fill="#7dd3fc">"gps_track_sample"</tspan>: [</text>
+    <text x="108" y="576">{ <tspan fill="#7dd3fc">"lat"</tspan>: <tspan fill="#a5b4fc">5.711289</tspan>, <tspan fill="#7dd3fc">"lng"</tspan>: <tspan fill="#a5b4fc">-72.937391</tspan>, <tspan fill="#7dd3fc">"alt"</tspan>: <tspan fill="#a5b4fc">0</tspan> },</text>
+    <text x="108" y="596">{ <tspan fill="#7dd3fc">"lat"</tspan>: <tspan fill="#a5b4fc">5.713010</tspan>, <tspan fill="#7dd3fc">"lng"</tspan>: <tspan fill="#a5b4fc">-72.931200</tspan>, <tspan fill="#7dd3fc">"alt"</tspan>: <tspan fill="#a5b4fc">109</tspan> }</text>
+    <text x="88" y="616">],</text>
+    <text x="88" y="636"><tspan fill="#7dd3fc">"gps_track_total_points"</tspan>: <tspan fill="#a5b4fc">56</tspan>,</text>
+    <text x="88" y="656"><tspan fill="#7dd3fc">"gps_track_url"</tspan>: <tspan fill="#fdba74">"https://…/replays/flt-01.json.gz"</tspan></text>
+    <text x="68" y="676">}</text>
+  </g>
+</svg>

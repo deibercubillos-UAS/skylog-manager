@@ -1,0 +1,178 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 880" font-family="'Public Sans', system-ui, sans-serif">
+  <rect width="1200" height="880" fill="#f1f5f9"/>
+
+  <!-- Cinta de simulación -->
+  <rect width="1200" height="26" fill="#fbbf24"/>
+  <text x="600" y="17" text-anchor="middle" font-size="11" font-weight="700" fill="#78350f">Demostración con datos simulados — sin pagos reales, sin base de datos.</text>
+
+  <!-- Header -->
+  <rect x="0" y="26" width="1200" height="62" fill="#ffffff"/>
+  <rect x="0" y="87" width="1200" height="1" fill="#e2e8f0"/>
+  <rect x="24" y="44" width="28" height="28" rx="8" fill="#f1f5f9"/>
+  <path d="M42 52 l-6 6 l6 6" stroke="#64748b" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="60" y="44" width="28" height="28" rx="8" fill="#fde7d8"/>
+  <circle cx="74" cy="58" r="6" fill="none" stroke="#ec5b13" stroke-width="2"/>
+  <text x="98" y="52" font-size="9" font-weight="900" fill="#94a3b8" letter-spacing="1.5">PANEL ENTERPRISE</text>
+  <text x="98" y="67" font-size="13" font-weight="900" fill="#0F1419" letter-spacing="-0.3">ORGANIZACIÓN DEMO</text>
+  <rect x="1010" y="46" width="78" height="24" rx="8" fill="#f1f5f9"/>
+  <text x="1049" y="62" text-anchor="middle" font-size="11" font-weight="900" fill="#64748b">API</text>
+  <rect x="1098" y="46" width="78" height="24" rx="12" fill="#fef3c7"/>
+  <text x="1137" y="62" text-anchor="middle" font-size="10" font-weight="900" fill="#b45309">DEMO</text>
+
+  <!-- ===== Fila 1: Medidor de créditos + KPIs ===== -->
+  <!-- Medidor -->
+  <rect x="24" y="112" width="740" height="158" rx="16" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="48" y="142" font-size="10" font-weight="900" fill="#94a3b8" letter-spacing="1.5">CRÉDITOS DISPONIBLES</text>
+  <text x="48" y="182" font-size="40" font-weight="900" fill="#0F1419">500</text>
+  <text x="142" y="182" font-size="15" font-weight="700" fill="#94a3b8">/ 500</text>
+  <text x="48" y="202" font-size="12" fill="#94a3b8">≈ $ 500.000 en saldo</text>
+  <rect x="620" y="130" width="120" height="40" rx="10" fill="#ec5b13"/>
+  <text x="680" y="155" text-anchor="middle" font-size="12" font-weight="900" fill="#ffffff">RECARGAR</text>
+  <!-- barra -->
+  <rect x="48" y="222" width="692" height="12" rx="6" fill="#f1f5f9"/>
+  <rect x="48" y="222" width="692" height="12" rx="6" fill="#ec5b13"/>
+  <text x="48" y="256" font-size="12" fill="#64748b"><tspan font-weight="700" fill="#334155">0</tspan> vuelos cargados este ciclo</text>
+  <text x="740" y="256" text-anchor="end" font-size="12" fill="#94a3b8">Renueva: 18 jul 2026</text>
+
+  <!-- KPI 1 -->
+  <rect x="784" y="112" width="392" height="74" rx="16" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="804" y="132" width="34" height="34" rx="10" fill="#fde7d8"/>
+  <circle cx="821" cy="149" r="7" fill="none" stroke="#ec5b13" stroke-width="2"/>
+  <text x="852" y="142" font-size="10" font-weight="900" fill="#94a3b8" letter-spacing="1.5">PILOTOS ACTIVOS</text>
+  <text x="852" y="166" font-size="18" font-weight="900" fill="#0F1419">2/3</text>
+  <!-- KPI 2 -->
+  <rect x="784" y="196" width="392" height="74" rx="16" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="804" y="216" width="34" height="34" rx="10" fill="#fde7d8"/>
+  <rect x="814" y="228" width="14" height="10" rx="2" fill="none" stroke="#ec5b13" stroke-width="2"/>
+  <text x="852" y="226" font-size="10" font-weight="900" fill="#94a3b8" letter-spacing="1.5">COSTO DEL CICLO</text>
+  <text x="852" y="250" font-size="18" font-weight="900" fill="#0F1419">$ 0</text>
+
+  <!-- ===== Fila 2: Pilotos + Misiones ===== -->
+  <!-- Pilotos -->
+  <rect x="24" y="288" width="572" height="304" rx="16" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="48" y="318" font-size="12" font-weight="900" fill="#0F1419" letter-spacing="1.2">PILOTOS PATROCINADOS</text>
+  <text x="572" y="318" text-anchor="end" font-size="11" fill="#94a3b8">3 vinculados</text>
+  <!-- form alta -->
+  <rect x="48" y="332" width="240" height="36" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="62" y="354" font-size="11" fill="#94a3b8">Nombre (opcional)</text>
+  <rect x="296" y="332" width="160" height="36" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="310" y="354" font-size="11" fill="#94a3b8">correo@piloto.com</text>
+  <rect x="464" y="332" width="108" height="36" rx="10" fill="#ec5b13"/>
+  <text x="518" y="354" text-anchor="middle" font-size="11" font-weight="900" fill="#ffffff">INVITAR</text>
+  <!-- pilot rows -->
+  <g>
+    <rect x="48" y="382" width="524" height="58" rx="12" fill="#f8fafc"/>
+    <circle cx="78" cy="411" r="16" fill="#ffffff" stroke="#e2e8f0"/>
+    <text x="78" y="415" text-anchor="middle" font-size="10" font-weight="900" fill="#64748b">CM</text>
+    <text x="106" y="406" font-size="13" font-weight="700" fill="#334155">Carlos Méndez</text>
+    <text x="106" y="424" font-size="11" fill="#94a3b8">carlos.mendez@correo.com · DJI Mavic 3E</text>
+    <rect x="470" y="400" width="58" height="22" rx="11" fill="#d1fae5"/>
+    <text x="499" y="415" text-anchor="middle" font-size="9" font-weight="900" fill="#047857">ACTIVO</text>
+  </g>
+  <g>
+    <rect x="48" y="448" width="524" height="58" rx="12" fill="#f8fafc"/>
+    <circle cx="78" cy="477" r="16" fill="#ffffff" stroke="#e2e8f0"/>
+    <text x="78" y="481" text-anchor="middle" font-size="10" font-weight="900" fill="#64748b">LG</text>
+    <text x="106" y="472" font-size="13" font-weight="700" fill="#334155">Laura Gómez</text>
+    <text x="106" y="490" font-size="11" fill="#94a3b8">laura.gomez@correo.com · DJI Matrice 350</text>
+    <rect x="470" y="466" width="58" height="22" rx="11" fill="#d1fae5"/>
+    <text x="499" y="481" text-anchor="middle" font-size="9" font-weight="900" fill="#047857">ACTIVO</text>
+  </g>
+  <g>
+    <rect x="48" y="514" width="524" height="58" rx="12" fill="#f8fafc"/>
+    <circle cx="78" cy="543" r="16" fill="#ffffff" stroke="#e2e8f0"/>
+    <text x="78" y="547" text-anchor="middle" font-size="10" font-weight="900" fill="#64748b">AR</text>
+    <text x="106" y="538" font-size="13" font-weight="700" fill="#334155">Andrés Ruiz</text>
+    <text x="106" y="556" font-size="11" fill="#94a3b8">andres.ruiz@correo.com</text>
+    <rect x="454" y="532" width="74" height="22" rx="11" fill="#fef3c7"/>
+    <text x="491" y="547" text-anchor="middle" font-size="9" font-weight="900" fill="#b45309">PENDIENTE</text>
+  </g>
+
+  <!-- Misiones -->
+  <rect x="620" y="288" width="556" height="304" rx="16" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="644" y="318" font-size="12" font-weight="900" fill="#0F1419" letter-spacing="1.2">MISIONES PROGRAMADAS</text>
+  <rect x="1058" y="304" width="98" height="28" rx="8" fill="#ec5b13"/>
+  <text x="1107" y="322" text-anchor="middle" font-size="11" font-weight="900" fill="#ffffff">+ PROGRAMAR</text>
+  <!-- mission cards -->
+  <g>
+    <rect x="644" y="348" width="508" height="68" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+    <rect x="660" y="360" width="74" height="18" rx="4" fill="#fde7d8"/>
+    <text x="697" y="373" text-anchor="middle" font-size="10" font-weight="900" fill="#ec5b13">OP-26-001</text>
+    <text x="744" y="373" font-size="12" font-weight="700" fill="#334155">Inspección línea 230kV — Tramo A</text>
+    <text x="660" y="394" font-size="10" fill="#94a3b8">Sogamoso, Boyacá · 16 jun 2026</text>
+    <rect x="660" y="400" width="120" height="14" rx="3" fill="#f1f5f9"/>
+    <text x="666" y="411" font-size="8" font-weight="700" fill="#64748b">Inspección · 120 m AGL</text>
+    <rect x="1060" y="358" width="78" height="20" rx="10" fill="#d1fae5"/>
+    <text x="1099" y="372" text-anchor="middle" font-size="9" font-weight="900" fill="#047857">COMPLETADA</text>
+  </g>
+  <g>
+    <rect x="644" y="426" width="508" height="68" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+    <rect x="660" y="438" width="74" height="18" rx="4" fill="#fde7d8"/>
+    <text x="697" y="451" text-anchor="middle" font-size="10" font-weight="900" fill="#ec5b13">OP-26-002</text>
+    <text x="744" y="451" font-size="12" font-weight="700" fill="#334155">Levantamiento topográfico cantera</text>
+    <text x="660" y="472" font-size="10" fill="#94a3b8">Yumbo, Valle del Cauca · 17 jun 2026</text>
+    <rect x="660" y="478" width="130" height="14" rx="3" fill="#f1f5f9"/>
+    <text x="666" y="489" font-size="8" font-weight="700" fill="#64748b">Topografía · 120 m AGL</text>
+    <rect x="1068" y="436" width="70" height="20" rx="10" fill="#fef3c7"/>
+    <text x="1103" y="450" text-anchor="middle" font-size="9" font-weight="900" fill="#b45309">EN CURSO</text>
+  </g>
+  <g>
+    <rect x="644" y="504" width="508" height="68" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+    <rect x="660" y="516" width="74" height="18" rx="4" fill="#fde7d8"/>
+    <text x="697" y="529" text-anchor="middle" font-size="10" font-weight="900" fill="#ec5b13">OP-26-003</text>
+    <text x="744" y="529" font-size="12" font-weight="700" fill="#334155">Monitoreo cultivo — Lote 7</text>
+    <text x="660" y="550" font-size="10" fill="#94a3b8">Espinal, Tolima · 19 jun 2026</text>
+    <rect x="660" y="556" width="120" height="14" rx="3" fill="#f1f5f9"/>
+    <text x="666" y="567" font-size="8" font-weight="700" fill="#64748b">Agricultura · 120 m AGL</text>
+    <rect x="1066" y="514" width="72" height="20" rx="10" fill="#e0f2fe"/>
+    <text x="1102" y="528" text-anchor="middle" font-size="9" font-weight="900" fill="#0369a1">PROGRAMADA</text>
+  </g>
+
+  <!-- ===== Fila 3: Vuelos recibidos ===== -->
+  <rect x="24" y="610" width="1152" height="246" rx="16" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="48" y="640" font-size="12" font-weight="900" fill="#0F1419" letter-spacing="1.2">VUELOS RECIBIDOS</text>
+  <text x="1152" y="640" text-anchor="end" font-size="11" fill="#94a3b8">3 registros</text>
+  <!-- header -->
+  <text x="48" y="668" font-size="9" font-weight="900" fill="#94a3b8" letter-spacing="1">FECHA</text>
+  <text x="200" y="668" font-size="9" font-weight="900" fill="#94a3b8" letter-spacing="1">MISIÓN</text>
+  <text x="560" y="668" font-size="9" font-weight="900" fill="#94a3b8" letter-spacing="1">PILOTO</text>
+  <text x="730" y="668" font-size="9" font-weight="900" fill="#94a3b8" letter-spacing="1">AERONAVE</text>
+  <text x="930" y="668" font-size="9" font-weight="900" fill="#94a3b8" letter-spacing="1">DURACIÓN</text>
+  <text x="1040" y="668" font-size="9" font-weight="900" fill="#94a3b8" letter-spacing="1">CRÉD.</text>
+  <text x="1152" y="668" text-anchor="end" font-size="9" font-weight="900" fill="#94a3b8" letter-spacing="1">REPLAY</text>
+  <rect x="48" y="676" width="1104" height="1" fill="#f1f5f9"/>
+  <!-- rows -->
+  <g font-size="12">
+    <text x="48" y="702" fill="#64748b">16 jun 2026 08:12</text>
+    <text x="200" y="702" fill="#334155">Inspección línea 230kV — Tramo A</text>
+    <text x="560" y="702" fill="#64748b">Carlos Méndez</text>
+    <text x="730" y="702" fill="#94a3b8">DJI Mavic 3E</text>
+    <text x="930" y="702" fill="#334155" font-weight="600">23m</text>
+    <text x="1040" y="702" fill="#ec5b13" font-weight="900">-1</text>
+    <rect x="1126" y="690" width="26" height="26" rx="8" fill="#fde7d8"/>
+    <circle cx="1139" cy="703" r="5" fill="none" stroke="#ec5b13" stroke-width="2"/>
+    <rect x="48" y="716" width="1104" height="1" fill="#f1f5f9"/>
+  </g>
+  <g font-size="12">
+    <text x="48" y="744" fill="#64748b">16 jun 2026 09:05</text>
+    <text x="200" y="744" fill="#334155">Inspección línea 230kV — Tramo A</text>
+    <text x="560" y="744" fill="#64748b">Carlos Méndez</text>
+    <text x="730" y="744" fill="#94a3b8">DJI Mavic 3E</text>
+    <text x="930" y="744" fill="#334155" font-weight="600">19m</text>
+    <text x="1040" y="744" fill="#ec5b13" font-weight="900">-1</text>
+    <rect x="1126" y="732" width="26" height="26" rx="8" fill="#fde7d8"/>
+    <circle cx="1139" cy="745" r="5" fill="none" stroke="#ec5b13" stroke-width="2"/>
+    <rect x="48" y="758" width="1104" height="1" fill="#f1f5f9"/>
+  </g>
+  <g font-size="12">
+    <text x="48" y="786" fill="#64748b">17 jun 2026 07:40</text>
+    <text x="200" y="786" fill="#334155">Levantamiento topográfico cantera</text>
+    <text x="560" y="786" fill="#64748b">Laura Gómez</text>
+    <text x="730" y="786" fill="#94a3b8">DJI Matrice 350</text>
+    <text x="930" y="786" fill="#334155" font-weight="600">31m</text>
+    <text x="1040" y="786" fill="#ec5b13" font-weight="900">-1</text>
+    <rect x="1126" y="774" width="26" height="26" rx="8" fill="#fde7d8"/>
+    <circle cx="1139" cy="787" r="5" fill="none" stroke="#ec5b13" stroke-width="2"/>
+  </g>
+  <text x="48" y="834" font-size="11" fill="#94a3b8">En producción cada fila trae además GPS/replay completo, consumible por API.</text>
+</svg>

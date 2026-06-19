@@ -1,6 +1,7 @@
 import './globals.css';
 import { DEMO } from '@/demo.config';
 import { DemoProvider } from '@/lib/demoStore';
+import PasswordGate from '@/components/PasswordGate';
 
 export const metadata = {
   title: `Demo Enterprise · ${DEMO.poweredBy}`,
@@ -31,7 +32,9 @@ export default function RootLayout({ children }) {
         <div className="w-full bg-amber-400 text-amber-950 text-center text-xs font-bold py-1.5 px-4">
           ⚠️ {DEMO.disclaimer}
         </div>
-        <DemoProvider>{children}</DemoProvider>
+        <PasswordGate>
+          <DemoProvider>{children}</DemoProvider>
+        </PasswordGate>
       </body>
     </html>
   );

@@ -185,20 +185,24 @@ export const BLOG_POSTS = [
 </div>
 
 <h2>Documentos necesarios para el registro</h2>
+
+<div class="callout tip">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>El registro del UV (aeronave) es sencillo</strong> Para matricular tu RPAS ante la UAEAC solo necesitas la <strong>foto del número de serie</strong> del dron y la <strong>foto de la factura de compra</strong>. No se exige seguro de responsabilidad civil para este trámite — eso aplica al momento de operar comercialmente como explotador (CDO).</div>
+</div>
+
 <ul>
-  <li><strong>Cédula de ciudadanía o RUT</strong> (persona natural o jurídica)</li>
-  <li><strong>Factura de compra o prueba de propiedad</strong> del RPAS</li>
-  <li><strong>Número de serie</strong> del fabricante (airframe S/N)</li>
-  <li><strong>Ficha técnica del fabricante</strong> con peso de despegue máximo y características técnicas</li>
-  <li><strong>Seguro de responsabilidad civil</strong> vigente</li>
-  <li><strong>Pago de la tasa aeronáutica</strong> correspondiente</li>
+  <li><strong>Foto del número de serie</strong> del fabricante (airframe S/N) — legible y sin ediciones</li>
+  <li><strong>Foto de la factura de compra</strong> o prueba de propiedad del RPAS</li>
+  <li><strong>Datos del propietario</strong>: cédula de ciudadanía o RUT (persona natural o jurídica)</li>
+  <li><strong>Pago de la tasa aeronáutica</strong> correspondiente (varía según el peso del RPAS)</li>
 </ul>
 
 <h2>Paso a paso: cómo registrar tu dron en SIRAC</h2>
 <ol>
   <li><strong>Crea una cuenta en el portal SIRAC</strong>: ingresa a <em>sirac.aerocivil.gov.co</em> y regístrate como operador UAS.</li>
   <li><strong>Completa el formulario de matrícula</strong>: ingresa los datos técnicos del RPAS, datos del propietario y los documentos requeridos.</li>
-  <li><strong>Carga los documentos digitalizados</strong>: la factura, ficha técnica y seguro deben subirse en PDF.</li>
+  <li><strong>Carga los documentos</strong>: foto del número de serie y de la factura de compra.</li>
   <li><strong>Paga la tasa aeronáutica</strong>: el valor varía según el peso de la aeronave. El pago se realiza en línea.</li>
   <li><strong>Espera la aprobación</strong>: el proceso puede tomar entre 5 y 15 días hábiles.</li>
   <li><strong>Recibe el certificado de matrícula</strong>: una vez aprobado, recibirás el número de matrícula que debe exhibirse en la aeronave.</li>
@@ -212,9 +216,9 @@ export const BLOG_POSTS = [
 
 <h2>Errores comunes que retrasan el trámite</h2>
 <ul>
-  <li>Subir documentos en baja resolución o con información ilegible</li>
-  <li>No coincidir el número de serie entre la factura y la ficha técnica</li>
-  <li>Seguro de RC vencido al momento de radicar</li>
+  <li>Foto del número de serie en baja resolución o con el serial tapado parcialmente</li>
+  <li>El número de serie en la foto no coincide con el declarado en el formulario</li>
+  <li>Factura en otro idioma sin traducción (aplica a drones importados directamente)</li>
   <li>Peso de despegue mal declarado (siempre usar el MTOW, no el peso sin batería)</li>
 </ul>
 
@@ -1717,7 +1721,9 @@ export const BLOG_POSTS = [
     coverAlt:
       'Seguro de responsabilidad civil para drones en Colombia — RAC 100 UAEAC',
     body: `
-<p>El <strong>seguro de responsabilidad civil extracontractual</strong> es uno de los cinco documentos que todo operador UAS debe tener vigente antes de cada vuelo en Colombia. No es optativo: la <strong>RAC 100</strong> lo exige explícitamente, y volar sin él puede significar suspensión de la certificación, multas o —lo más grave— quedar sin respaldo económico ante un accidente.</p>
+<p>El <strong>seguro de responsabilidad civil extracontractual</strong> es un requisito obligatorio para los <strong>explotadores UAS (quienes tienen CDO)</strong> al momento de realizar operaciones comerciales en Colombia. No es optativo: la <strong>RAC 100</strong> lo exige explícitamente, y operar sin él puede significar suspensión de la certificación, multas o —lo más grave— quedar sin respaldo económico ante un accidente.</p>
+
+<p>Importante aclaración: <strong>para registrar (matricular) la aeronave ante la UAEAC no necesitas la póliza</strong>. El registro del RPAS (UV) solo requiere la foto del número de serie del dron y la factura de compra. El seguro se vuelve obligatorio en el momento en que el explotador va a realizar vuelos comerciales.</p>
 
 <p>En esta guía te explicamos exactamente qué cubre, qué valores mínimos exige la norma, cuánto cuesta en el mercado colombiano y cómo gestionar la vigencia de tu póliza de manera que nunca expire sin que lo sepas.</p>
 
@@ -1738,9 +1744,9 @@ export const BLOG_POSTS = [
   <li><strong>Aplicación al área de operación</strong>: la póliza debe cubrir el territorio colombiano.</li>
 </ul>
 
-<div class="callout important">
-  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-  <div class="callout-body"><strong>El seguro es requisito para matricular el RPAS</strong> La AeroCivil exige el certificado de la póliza RC vigente para aprobar la matrícula de la aeronave. Sin póliza, no hay matrícula. Sin matrícula, no puedes operar. Es el primer documento que debes conseguir, no el último.</div>
+<div class="callout info">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>¿El seguro se necesita para registrar el RPAS?</strong> No. Para matricular tu aeronave (UV) ante la UAEAC solo necesitas la <strong>foto del número de serie</strong> del dron y la <strong>factura de compra</strong>. El seguro de responsabilidad civil es obligatorio para los <strong>explotadores (CDO)</strong> al momento de realizar operaciones comerciales, no para el registro del equipo.</div>
 </div>
 
 <h2>¿Qué cubre el seguro de responsabilidad civil para drones?</h2>
@@ -1815,7 +1821,7 @@ export const BLOG_POSTS = [
 
   <text x="350" y="228" text-anchor="middle" font-size="9" fill="#94a3b8">Valores referenciales 2026. Costos reales varían según aseguradora, cobertura, zona de operación y perfil del operador.</text>
 </svg>
-<figcaption style="font-size:12px;color:#94a3b8;margin-top:8px;">Rangos estimados de costo para pólizas RC de RPAS en Colombia. Solicita cotización a tu aseguradora antes de matricular tu aeronave.</figcaption>
+<figcaption style="font-size:12px;color:#94a3b8;margin-top:8px;">Rangos estimados de costo para pólizas RC de RPAS en Colombia. Solicita cotización a tu aseguradora antes de iniciar operaciones comerciales.</figcaption>
 </figure>
 
 <blockquote class="pullquote">El seguro RC para un DJI Mavic 3 cuesta entre $350.000 y $700.000 COP al año — menos de $60.000 COP al mes. Un daño sin cobertura puede costar decenas de millones.</blockquote>

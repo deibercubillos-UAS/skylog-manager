@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
+import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
+import { storageSignedUrl } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,8 +29,7 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 });
     }
 
-    const admin = createAdminClient();
-    const { data, error } = await admin.storage.from(BUCKET).createSignedUrl(path, 3600);
+    const { data, error } = await storageSignedUrl({ bucket: BUCKET, key: path, expiresIn: 3600 });
     if (error || !data?.signedUrl) {
       return NextResponse.json({ error: 'Documento no encontrado' }, { status: 404 });
     }

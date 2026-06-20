@@ -54,12 +54,27 @@ export default function FileUpload({ path, onUploadSuccess, label }) {
       // Esto cumple con la política 'Folder_Isolation' que activamos en Supabase
       const filePath = `${orgId}/${path}/${fileName}`;
 
-      // 3. Ejecutar subida
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET)
-        .upload(filePath, file);
+      // 3. Ejecutar subida — prefirmada a R2 si disponible, fallback a Supabase
+      const signRes = await fetch('/api/storage/sign-upload', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bucket: BUCKET, key: filePath, contentType: file.type }),
+      });
 
-      if (uploadError) throw uploadError;
+      if (signRes.ok) {
+        const { uploadUrl } = await signRes.json();
+        const putRes = await fetch(uploadUrl, {
+          method:  'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
+        if (!putRes.ok) throw new Error('Error al subir el archivo a R2.');
+      } else if (signRes.status === 409) {
+        const { error: uploadError } = await supabase.storage.from(BUCKET).upload(filePath, file);
+        if (uploadError) throw uploadError;
+      } else {
+        throw new Error('Error al preparar la subida del archivo.');
+      }
 
       // 4. Devolver el PATH del objeto (no URL pública). El bucket `documents`
       //    es privado: el acceso se hace vía /api/documents/open (signed URL).

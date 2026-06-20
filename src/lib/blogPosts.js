@@ -1694,6 +1694,197 @@ export const BLOG_POSTS = [
 <p><a href="/registro">Comienza gratis — verifica el clima antes de tu próximo vuelo →</a></p>
 `,
   },
+
+  // ─── 16. Seguro de responsabilidad civil para drones ─────────────────────
+  {
+    slug:            'seguro-responsabilidad-civil-drones-colombia',
+    title:           'Seguro de responsabilidad civil para drones en Colombia: qué cubrir, cuánto cuesta y cómo gestionarlo',
+    metaTitle:       'Seguro Drones Colombia 2026: RC, Cobertura y Gestión RAC 100 | Bitafly',
+    metaDescription: 'El seguro de responsabilidad civil es obligatorio para operar drones comercialmente en Colombia. Guía completa: qué cubre, cuánto cuesta, cómo elegirlo y cómo no perder la vigencia bajo la RAC 100.',
+    publishedAt:     '2026-06-20',
+    readingTime:     7,
+    category:        'Normativa',
+    keywords:        [
+      'seguro drones colombia',
+      'póliza responsabilidad civil RPAS',
+      'seguro aeronáutico drones',
+      'seguro RC drones colombia',
+      'seguro operadores UAS colombia',
+      'seguro RPAS RAC 100',
+    ],
+    excerpt:
+      'Volar sin seguro de responsabilidad civil no es solo un riesgo financiero: es una infracción directa a la RAC 100 que puede suspenderte la operación. Te explicamos qué cubre, cuánto cuesta y cómo asegurarte de que nunca vence sin que te des cuenta.',
+    coverAlt:
+      'Seguro de responsabilidad civil para drones en Colombia — RAC 100 UAEAC',
+    body: `
+<p>El <strong>seguro de responsabilidad civil extracontractual</strong> es uno de los cinco documentos que todo operador UAS debe tener vigente antes de cada vuelo en Colombia. No es optativo: la <strong>RAC 100</strong> lo exige explícitamente, y volar sin él puede significar suspensión de la certificación, multas o —lo más grave— quedar sin respaldo económico ante un accidente.</p>
+
+<p>En esta guía te explicamos exactamente qué cubre, qué valores mínimos exige la norma, cuánto cuesta en el mercado colombiano y cómo gestionar la vigencia de tu póliza de manera que nunca expire sin que lo sepas.</p>
+
+<div class="stats-row">
+  <div class="stat-item"><div class="num">RC</div><div class="lbl">Responsabilidad Civil — el tipo de seguro obligatorio</div></div>
+  <div class="stat-item"><div class="num">1 año</div><div class="lbl">Vigencia estándar de las pólizas</div></div>
+  <div class="stat-item"><div class="num">2 kg</div><div class="lbl">El peso del RPAS determina la cobertura mínima</div></div>
+</div>
+
+<h2>¿Qué dice exactamente la RAC 100 sobre el seguro?</h2>
+
+<p>La RAC 100 establece que todo operador de RPAS que realice operaciones comerciales debe contar con un <strong>seguro de responsabilidad civil extracontractual</strong> que cubra daños a terceros durante las operaciones. Los requisitos específicos incluyen:</p>
+
+<ul>
+  <li><strong>Cobertura mínima</strong>: proporcional al peso máximo de despegue (MTOW) del RPAS. La AeroCivil define los valores mínimos en sus circulares técnicas.</li>
+  <li><strong>Vigencia continua</strong>: la póliza debe estar activa durante cualquier vuelo comercial. No se permiten lapsos de cobertura.</li>
+  <li><strong>Disponibilidad durante la operación</strong>: el operador debe poder presentar el certificado de la póliza en cualquier inspección en campo.</li>
+  <li><strong>Aplicación al área de operación</strong>: la póliza debe cubrir el territorio colombiano.</li>
+</ul>
+
+<div class="callout important">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>El seguro es requisito para matricular el RPAS</strong> La AeroCivil exige el certificado de la póliza RC vigente para aprobar la matrícula de la aeronave. Sin póliza, no hay matrícula. Sin matrícula, no puedes operar. Es el primer documento que debes conseguir, no el último.</div>
+</div>
+
+<h2>¿Qué cubre el seguro de responsabilidad civil para drones?</h2>
+
+<p>El seguro RC para RPAS cubre los daños que tu operación pueda causar a <strong>terceros</strong> — personas, bienes o propiedades ajenas. No cubre el propio dron (eso sería un seguro de daños propios, opcional).</p>
+
+<h3>Coberturas típicas incluidas</h3>
+<ul>
+  <li><strong>Lesiones a personas en tierra</strong>: daños físicos a peatones, trabajadores u observadores que no sean parte de tu operación</li>
+  <li><strong>Daños a bienes de terceros</strong>: propiedad privada, vehículos, infraestructura pública dañada por el dron o su carga</li>
+  <li><strong>Daños a aeronaves tripuladas</strong>: responsabilidad en caso de colisión con una aeronave tripulada (cobertura crítica para operaciones cerca de CTR o aeropuertos)</li>
+  <li><strong>Gastos de defensa jurídica</strong>: honorarios legales en demandas derivadas de la operación (incluida en la mayoría de pólizas RC)</li>
+</ul>
+
+<h3>Lo que generalmente NO cubre</h3>
+<ul>
+  <li>Daños al propio RPAS (para eso existe el seguro de casco/hull)</li>
+  <li>Pérdida de la carga útil (payload, cámara, sensor)</li>
+  <li>Operaciones realizadas fuera del territorio definido en la póliza</li>
+  <li>Daños causados en operaciones que violan la RAC 100 (vuelos no autorizados, piloto sin CPR, etc.)</li>
+  <li>Daños intencionales</li>
+</ul>
+
+<div class="callout warning">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+  <div class="callout-body"><strong>Incumplir la RAC 100 puede anular la póliza</strong> Muchos contratos de seguro para RPAS incluyen cláusulas que excluyen la cobertura si la operación se realizó violando la normativa aeronáutica colombiana. Si vuelas sin CPR, en zona restringida o sin autorización, tu seguro podría no responder ante un accidente.</div>
+</div>
+
+<h2>¿Cuánto cuesta el seguro para drones en Colombia?</h2>
+
+<p>El costo depende principalmente del <strong>peso máximo de despegue (MTOW)</strong> del RPAS, el valor asegurado (suma máxima que paga la póliza) y la aseguradora. En el mercado colombiano los rangos aproximados para 2026 son:</p>
+
+<!-- TABLA DE COSTOS -->
+<figure style="margin:2rem 0;overflow-x:auto;">
+<svg viewBox="0 0 700 240" xmlns="http://www.w3.org/2000/svg" style="min-width:500px;max-width:100%;border-radius:16px;background:#fff;border:1.5px solid #f1f5f9;">
+  <text x="350" y="26" text-anchor="middle" font-size="12" font-weight="800" fill="#1A202C">Rangos de costo aproximado — seguro RC para RPAS (Colombia 2026)</text>
+
+  <!-- Header -->
+  <rect x="10" y="36" width="680" height="28" rx="6" fill="#1A202C"/>
+  <text x="90"  y="55" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">MTOW del RPAS</text>
+  <text x="290" y="55" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">Suma asegurada típica</text>
+  <text x="490" y="55" text-anchor="middle" font-size="10" font-weight="700" fill="#ec5b13">Costo anual estimado</text>
+  <text x="630" y="55" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">Ejemplo modelo</text>
+
+  <!-- Row 1 -->
+  <rect x="10" y="64" width="680" height="36" rx="0" fill="#f8fafc"/>
+  <text x="90"  y="87" text-anchor="middle" font-size="11" fill="#1A202C">250 g – 2 kg</text>
+  <text x="290" y="87" text-anchor="middle" font-size="11" fill="#475569">$500 M – $1.000 M COP</text>
+  <text x="490" y="87" text-anchor="middle" font-size="11" fill="#1A202C" font-weight="700">$180.000 – $350.000 COP</text>
+  <text x="630" y="87" text-anchor="middle" font-size="10" fill="#64748b">DJI Mini 4 Pro</text>
+
+  <!-- Row 2 -->
+  <rect x="10" y="100" width="680" height="36" rx="0" fill="#fff"/>
+  <text x="90"  y="123" text-anchor="middle" font-size="11" fill="#1A202C">2 kg – 7 kg</text>
+  <text x="290" y="123" text-anchor="middle" font-size="11" fill="#475569">$1.000 M – $2.000 M COP</text>
+  <text x="490" y="123" text-anchor="middle" font-size="11" fill="#1A202C" font-weight="700">$350.000 – $700.000 COP</text>
+  <text x="630" y="123" text-anchor="middle" font-size="10" fill="#64748b">DJI Mavic 3 Enterprise</text>
+
+  <!-- Row 3 -->
+  <rect x="10" y="136" width="680" height="36" rx="0" fill="#f8fafc"/>
+  <text x="90"  y="159" text-anchor="middle" font-size="11" fill="#1A202C">7 kg – 25 kg</text>
+  <text x="290" y="159" text-anchor="middle" font-size="11" fill="#475569">$2.000 M – $5.000 M COP</text>
+  <text x="490" y="159" text-anchor="middle" font-size="11" fill="#1A202C" font-weight="700">$700.000 – $2.000.000 COP</text>
+  <text x="630" y="159" text-anchor="middle" font-size="10" fill="#64748b">DJI Matrice 350</text>
+
+  <!-- Row 4 -->
+  <rect x="10" y="172" width="680" height="36" rx="0" fill="#fff"/>
+  <text x="90"  y="195" text-anchor="middle" font-size="11" fill="#1A202C">&gt; 25 kg</text>
+  <text x="290" y="195" text-anchor="middle" font-size="11" fill="#475569">$5.000 M COP o más</text>
+  <text x="490" y="195" text-anchor="middle" font-size="11" fill="#1A202C" font-weight="700">$2.000.000 COP+</text>
+  <text x="630" y="195" text-anchor="middle" font-size="10" fill="#64748b">Agras T40 / industriales</text>
+
+  <text x="350" y="228" text-anchor="middle" font-size="9" fill="#94a3b8">Valores referenciales 2026. Costos reales varían según aseguradora, cobertura, zona de operación y perfil del operador.</text>
+</svg>
+<figcaption style="font-size:12px;color:#94a3b8;margin-top:8px;">Rangos estimados de costo para pólizas RC de RPAS en Colombia. Solicita cotización a tu aseguradora antes de matricular tu aeronave.</figcaption>
+</figure>
+
+<blockquote class="pullquote">El seguro RC para un DJI Mavic 3 cuesta entre $350.000 y $700.000 COP al año — menos de $60.000 COP al mes. Un daño sin cobertura puede costar decenas de millones.</blockquote>
+
+<h2>¿Qué aseguradoras ofrecen seguro para drones en Colombia?</h2>
+
+<p>El mercado de seguros para RPAS en Colombia ha crecido significativamente desde 2022. Las principales opciones son:</p>
+
+<ul>
+  <li><strong>Riesgos especiales aeronáuticos</strong>: varias aseguradoras grandes tienen un área de aviación general que incluye RPAS. Consulta con corredores especializados como Arce & Asoc., AIFA o SBI.</li>
+  <li><strong>Seguros especializados en drones</strong>: corredores como <em>Drone Guard</em> o <em>SkyPro Insurance</em> (Colombia) ofrecen pólizas específicas para operadores UAS con cobertura personalizable.</li>
+  <li><strong>Gremios y asociaciones</strong>: algunas asociaciones de operadores UAS colombianos ofrecen pólizas colectivas con condiciones ventajosas para sus miembros.</li>
+</ul>
+
+<div class="callout tip">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>Pide siempre el Certificado Individual de Seguro (CIS)</strong> La póliza puede tener 30 o 40 páginas de condiciones. El CIS es el documento de 1–2 páginas que resume: asegurado, vigencia, tipo de cobertura, suma asegurada y número de póliza. Es este documento el que pide la AeroCivil en campo, no la póliza completa.</div>
+</div>
+
+<h2>Factores que afectan el costo de tu prima</h2>
+
+<p>Cuando pidas cotización, estos factores elevan o reducen el costo:</p>
+
+<ul>
+  <li><strong>Tipo de operación</strong>: inspección de infraestructura eléctrica o de petróleo tiene mayor prima que fotografía de bodas. El riesgo intrínseco de la actividad importa.</li>
+  <li><strong>Zona geográfica</strong>: operaciones en zonas urbanas densas, sobre vías de alto tráfico o cerca de aeropuertos tienen mayor exposición al riesgo.</li>
+  <li><strong>Experiencia del operador</strong>: si tienes el CDO vigente, pilotos con CPR activo y bitácora al día, algunas aseguradoras aplican descuento por perfil de riesgo bajo.</li>
+  <li><strong>Flota cubierta</strong>: póliza de flota (varios RPAS) suele ser más económica por unidad que asegurar aeronaves individualmente.</li>
+  <li><strong>Historial de siniestros</strong>: si tienes reclamaciones previas, la prima sube.</li>
+</ul>
+
+<h2>Checklist: qué revisar antes de firmar la póliza</h2>
+
+<ul>
+  <li>✅ <strong>Suma asegurada mínima</strong>: verifica que cumple el mínimo que exige la AeroCivil para el peso de tu aeronave</li>
+  <li>✅ <strong>Cobertura territorial</strong>: debe incluir todo el territorio colombiano (algunos contratos limitan regiones)</li>
+  <li>✅ <strong>Exclusiones por incumplimiento normativo</strong>: lee la cláusula que define qué pasa si el vuelo viola la RAC 100</li>
+  <li>✅ <strong>Cobertura de carga útil de terceros</strong>: si operas con equipo prestado (cámara de cliente), verifica si está cubierto</li>
+  <li>✅ <strong>Plazo de notificación de siniestro</strong>: generalmente 3–5 días hábiles desde el evento — superar este plazo puede anular la reclamación</li>
+  <li>✅ <strong>Deducible</strong>: el valor que pagas tú antes de que entre la aseguradora. Un deducible alto baja la prima pero sube tu exposición</li>
+  <li>✅ <strong>Vigencia exacta</strong>: confirma la fecha de inicio y fin, y si hay período de gracia para renovación</li>
+</ul>
+
+<h2>El error que cometen el 40% de los operadores: perder la vigencia sin saberlo</h2>
+
+<p>El escenario más común es este: renuevas la póliza en enero, pero en octubre —en plena temporada de operaciones— no recuerdas exactamente cuándo vence. Vuelas sin verificarlo. Ese día ocurre un incidente. La póliza venció hace 12 días.</p>
+
+<p>No es un caso hipotético. Las aseguradoras colombianas reportan que un porcentaje significativo de reclamaciones de RPAS son rechazadas por póliza vencida al momento del siniestro.</p>
+
+<p>La solución no es poner un recordatorio en el calendario (se olvida). La solución es tener el sistema que gestiona tus operaciones enviándote la alerta con tiempo suficiente para renovar antes de que venza.</p>
+
+<h2>Cómo gestiona Bitafly tus pólizas de seguro</h2>
+
+<p>Bitafly tiene un módulo de gestión de pólizas de seguro integrado directamente con la operación:</p>
+
+<ol>
+  <li><strong>Registro de la póliza</strong>: número de póliza, aseguradora, suma asegurada, fecha de inicio y fecha de vencimiento</li>
+  <li><strong>Asociación a aeronaves</strong>: cada RPAS de la flota lleva la referencia de su póliza activa</li>
+  <li><strong>Alertas automáticas</strong>: notificación al Gerente General y al Jefe de Pilotos cuando la póliza está a 30, 15 y 5 días de vencer</li>
+  <li><strong>Bloqueo de despacho</strong>: si una aeronave tiene la póliza vencida, el sistema la bloquea del selector de despacho — no puedes registrar un vuelo con ese RPAS sin renovarla</li>
+  <li><strong>Descarga del CIS</strong>: sube el certificado en PDF y está disponible para cualquier inspección en campo desde el celular</li>
+</ol>
+
+<p>No más recordatorios en el calendario. No más riesgo de volar sin cobertura.</p>
+
+<p><a href="/gestion-flota-drones">Ver gestión de flota y seguros en Bitafly →</a></p>
+<p><a href="/registro">Comienza gratis — registra tu primera póliza en minutos →</a></p>
+`,
+  },
 ];
 
 /** Retorna un post por slug, o undefined si no existe */

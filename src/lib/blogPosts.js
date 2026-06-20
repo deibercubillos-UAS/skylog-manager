@@ -1885,6 +1885,232 @@ export const BLOG_POSTS = [
 <p><a href="/registro">Comienza gratis — registra tu primera póliza en minutos →</a></p>
 `,
   },
+
+  // ─── 17. Operaciones BVLOS con drones en Colombia ────────────────────────
+  {
+    slug:            'operaciones-bvlos-drones-colombia',
+    title:           'Operaciones BVLOS con drones en Colombia: requisitos, autorizaciones y cómo solicitarlas ante la AeroCivil',
+    metaTitle:       'BVLOS Drones Colombia 2026: Requisitos y Autorizaciones AeroCivil | Bitafly',
+    metaDescription: 'Guía completa para operaciones BVLOS con drones en Colombia bajo la RAC 100: qué documentos exige la AeroCivil, cómo hacer el análisis SORA, seguro requerido y paso a paso para la autorización especial.',
+    publishedAt:     '2026-06-20',
+    readingTime:     9,
+    category:        'Operaciones',
+    keywords:        [
+      'BVLOS drones colombia',
+      'vuelo más allá línea visual drones',
+      'autorización BVLOS aerocivil',
+      'operaciones especiales RPAS colombia',
+      'BVLOS RAC 100',
+      'vuelos nocturnos drones colombia',
+    ],
+    excerpt:
+      'Las operaciones BVLOS —más allá de la línea de visión visual— son el siguiente nivel para operadores UAS profesionales en Colombia. También son las más exigentes: requieren SORA, SMS, seguro mayor y autorización expresa de la AeroCivil. Aquí está todo lo que necesitas saber.',
+    coverAlt:
+      'Operaciones BVLOS con drones en Colombia — autorización AeroCivil RAC 100',
+    body: `
+<p>Las operaciones <strong>BVLOS</strong> (Beyond Visual Line of Sight — más allá de la línea de visión visual) representan la frontera de lo que puede hacer un operador de drones profesional en Colombia. Son también las más reguladas, las que mayor preparación exigen y las que abren los proyectos de mayor valor: inspección de líneas de transmisión eléctrica de decenas de kilómetros, monitoreo de cuencas hidrográficas, levantamientos fotogramétricos de áreas extensas o vigilancia perimetral de infraestructura crítica.</p>
+
+<p>Bajo la <strong>RAC 100</strong>, volar BVLOS no es ilegal — pero requiere autorización expresa de la <strong>AeroCivil (UAEAC)</strong> y un paquete documental mucho más exigente que el de las operaciones VLOS estándar. Esta guía te explica exactamente qué necesitas y cómo obtenerlo.</p>
+
+<div class="stats-row">
+  <div class="stat-item"><div class="num">BVLOS</div><div class="lbl">Beyond Visual Line of Sight</div></div>
+  <div class="stat-item"><div class="num">SAIL III+</div><div class="lbl">Nivel de riesgo SORA mínimo típico</div></div>
+  <div class="stat-item"><div class="num">30–90</div><div class="lbl">Días hábiles de tramitación estimada</div></div>
+</div>
+
+<h2>¿Qué es exactamente una operación BVLOS?</h2>
+
+<p>La RAC 100 define el BVLOS como cualquier vuelo en el que el piloto remoto <strong>no puede mantener contacto visual directo y sin ayuda con el RPAS</strong> durante toda la operación. Esto incluye:</p>
+
+<ul>
+  <li>Vuelos a distancias superiores a las que permite la visión humana (típicamente más de 500–700 m en condiciones ideales)</li>
+  <li>Vuelos en los que el dron queda detrás de obstáculos, vegetación o relieve</li>
+  <li>Vuelos que dependen de FPV (First Person View) sin observador visual en la línea de visión directa</li>
+  <li>Operaciones automatizadas donde el piloto no monitorea activamente cada punto del trayecto</li>
+</ul>
+
+<p>La operación con <strong>observador visual</strong> (VO, Visual Observer) no convierte automáticamente un BVLOS en VLOS. Si el VO pierde de vista el dron en algún momento, el vuelo es técnicamente BVLOS.</p>
+
+<h2>¿Qué operaciones BVLOS son más comunes en Colombia?</h2>
+
+<ul>
+  <li><strong>Inspección de líneas de transmisión eléctrica</strong>: ISA, EPM, EMGESA tienen miles de kilómetros de torres que requieren inspección periódica. Los drones BVLOS cortan el tiempo y costo vs. helicóptero o inspección en tierra.</li>
+  <li><strong>Levantamientos fotogramétricos de grandes áreas</strong>: predios rurales, cuencas, proyectos mineros o de infraestructura donde el área supera lo que permite un vuelo VLOS estándar.</li>
+  <li><strong>Vigilancia de oleoductos e infraestructura crítica</strong>: Ecopetrol y operadores de hidrocarburos usan BVLOS para patrullaje de trayectos largos.</li>
+  <li><strong>Monitoreo ambiental y forestal</strong>: Parques Nacionales y corporaciones autónomas regionales (CAR) usan RPAS para monitoreo de cuencas y reservas.</li>
+  <li><strong>Entrega de suministros médicos</strong>: zonas rurales de difícil acceso — aunque este segmento aún está en piloto regulatorio en Colombia.</li>
+</ul>
+
+<h2>Requisitos de la AeroCivil para operaciones BVLOS</h2>
+
+<p>La RAC 100 exige cumplir un conjunto ampliado de requisitos para obtener la autorización de vuelo BVLOS. Estos son los documentos y condiciones que debes demostrar:</p>
+
+<h3>1. Certificado de Explotador UAS (CDO vigente)</h3>
+<p>Sin CDO no hay ninguna operación comercial posible en Colombia, menos BVLOS. Si aún no tienes el tuyo, ese es el primer paso. <a href="/blog/cdo-certificado-explotador-uas-colombia">Ver guía completa del CDO →</a></p>
+
+<h3>2. Análisis de riesgo SORA</h3>
+<p>El <strong>SORA</strong> (Specific Operations Risk Assessment) es el requisito técnico central de una solicitud BVLOS. Para operaciones fuera de la línea de visión, el SORA generalmente arroja <strong>SAIL III o superior</strong>, lo que implica medidas de mitigación adicionales:</p>
+
+<ul>
+  <li>Demostrar capacidad de detección y evitación (DAA — Detect and Avoid)</li>
+  <li>Protocolo de comunicación con el ATC del área</li>
+  <li>Procedimientos de contingencia ante pérdida de enlace de control</li>
+  <li>Plan de aterrizaje de emergencia a lo largo de toda la ruta</li>
+</ul>
+
+<p><a href="/blog/analisis-sora-operaciones-drones-colombia">Ver guía completa del análisis SORA →</a></p>
+
+<h3>3. SMS aeronáutico activo y documentado</h3>
+<p>Para operaciones de mayor complejidad como BVLOS, la AeroCivil exige que el SMS del operador esté implementado, activo y con evidencia documental de uso (reportes de peligro, auditorías internas, evaluaciones de riesgo previas). Un manual en un cajón no pasa.</p>
+
+<h3>4. Seguro RC con cobertura ampliada</h3>
+<p>Las operaciones BVLOS requieren mayor suma asegurada que las VLOS estándar, dado el mayor riesgo de colisión con aeronaves tripuladas y la menor capacidad de respuesta inmediata del piloto. Consulta con tu aseguradora los valores específicos para BVLOS — la prima es considerablemente mayor.</p>
+
+<h3>5. Especificaciones técnicas del RPAS</h3>
+<p>El RPAS debe demostrar capacidades que justifiquen la operación BVLOS segura:</p>
+<ul>
+  <li><strong>Enlace de datos confiable</strong> (C2 Link) con alcance suficiente y protocolo de failsafe documentado</li>
+  <li><strong>Sistema de geofencing</strong> que mantenga la aeronave dentro del área autorizada</li>
+  <li><strong>Return-to-Home autónomo</strong> configurado y verificado ante pérdida de enlace</li>
+  <li><strong>Redundancia de sistemas críticos</strong> (GPS, IMU, batería de reserva o fuel cell)</li>
+  <li><strong>Autonomía suficiente</strong> para completar la misión con margen de seguridad ≥ 20%</li>
+</ul>
+
+<h3>6. Coordinación con el ATC</h3>
+<p>Para vuelos en zonas de control (CTR, TMA) o a altitudes que interfieran con el tráfico aéreo, debes coordinar con los controladores de tránsito aéreo de la unidad correspondiente (Bogotá Control, Medellín Approach, etc.) con antelación suficiente.</p>
+
+<div class="callout important">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>No existe un formato BVLOS estándar de la AeroCivil</strong> A diferencia de operaciones rutinarias, las autorizaciones BVLOS son evaluadas caso a caso. La documentación que presentes debe ser específica para el proyecto: ruta exacta, altitud, tipo de RPAS, plan de contingencia y análisis SORA para ese escenario particular. No copies un SORA genérico.</div>
+</div>
+
+<h2>Paso a paso: cómo solicitar autorización BVLOS ante la AeroCivil</h2>
+
+<!-- DIAGRAMA PROCESO -->
+<figure style="margin:2rem 0;">
+<svg viewBox="0 0 700 310" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;border-radius:16px;background:#fff;border:1.5px solid #f1f5f9;">
+  <text x="350" y="26" text-anchor="middle" font-size="12" font-weight="800" fill="#1A202C">Proceso de autorización BVLOS — AeroCivil Colombia</text>
+
+  <!-- Step 1 -->
+  <rect x="20" y="40" width="130" height="56" rx="10" fill="#f0f4ff" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="85" y="63" text-anchor="middle" font-size="10" font-weight="800" fill="#4338ca">PASO 1</text>
+  <text x="85" y="78" text-anchor="middle" font-size="9" fill="#4338ca">Diseña el CONOPS</text>
+  <text x="85" y="91" text-anchor="middle" font-size="9" fill="#6366f1">(concepto de operación)</text>
+
+  <line x1="150" y1="68" x2="178" y2="68" stroke="#cbd5e1" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Step 2 -->
+  <rect x="180" y="40" width="130" height="56" rx="10" fill="#f0f4ff" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="245" y="63" text-anchor="middle" font-size="10" font-weight="800" fill="#4338ca">PASO 2</text>
+  <text x="245" y="78" text-anchor="middle" font-size="9" fill="#4338ca">Realiza el análisis</text>
+  <text x="245" y="91" text-anchor="middle" font-size="9" fill="#6366f1">SORA completo</text>
+
+  <line x1="310" y1="68" x2="338" y2="68" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Step 3 -->
+  <rect x="340" y="40" width="130" height="56" rx="10" fill="#f0f4ff" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="405" y="63" text-anchor="middle" font-size="10" font-weight="800" fill="#4338ca">PASO 3</text>
+  <text x="405" y="78" text-anchor="middle" font-size="9" fill="#4338ca">Prepara el paquete</text>
+  <text x="405" y="91" text-anchor="middle" font-size="9" fill="#6366f1">documental</text>
+
+  <line x1="470" y1="68" x2="498" y2="68" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Step 4 -->
+  <rect x="500" y="40" width="180" height="56" rx="10" fill="#f0f4ff" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="590" y="63" text-anchor="middle" font-size="10" font-weight="800" fill="#4338ca">PASO 4</text>
+  <text x="590" y="78" text-anchor="middle" font-size="9" fill="#4338ca">Radica en SGDEA</text>
+  <text x="590" y="91" text-anchor="middle" font-size="9" fill="#6366f1">AeroCivil</text>
+
+  <!-- Step 5 -->
+  <rect x="20" y="130" width="200" height="56" rx="10" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="120" y="153" text-anchor="middle" font-size="10" font-weight="800" fill="#15803d">PASO 5</text>
+  <text x="120" y="168" text-anchor="middle" font-size="9" fill="#15803d">Evaluación AeroCivil</text>
+  <text x="120" y="181" text-anchor="middle" font-size="9" fill="#16a34a">(30–90 días hábiles)</text>
+
+  <!-- Step 6 -->
+  <rect x="260" y="130" width="200" height="56" rx="10" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="360" y="153" text-anchor="middle" font-size="10" font-weight="800" fill="#15803d">PASO 6</text>
+  <text x="360" y="168" text-anchor="middle" font-size="9" fill="#15803d">Posibles subsanaciones</text>
+  <text x="360" y="181" text-anchor="middle" font-size="9" fill="#16a34a">(observaciones UAEAC)</text>
+
+  <!-- Step 7 -->
+  <rect x="500" y="130" width="180" height="56" rx="10" fill="#ecfdf5" stroke="#16a34a" stroke-width="2"/>
+  <text x="590" y="153" text-anchor="middle" font-size="10" font-weight="800" fill="#15803d">PASO 7</text>
+  <text x="590" y="168" text-anchor="middle" font-size="9" fill="#15803d">Resolución de autorización</text>
+  <text x="590" y="181" text-anchor="middle" font-size="9" fill="#16a34a">+ condiciones de vuelo</text>
+
+  <text x="350" y="230" text-anchor="middle" font-size="10" fill="#94a3b8">Documentos clave: SORA · CONOPS · CDO · Póliza RC ampliada · Especificaciones RPAS · KML de la ruta</text>
+  <text x="350" y="248" text-anchor="middle" font-size="10" fill="#f59e0b" font-weight="700">⚠️ La AeroCivil puede requerir una demostración en campo antes de emitir la autorización</text>
+  <text x="350" y="266" text-anchor="middle" font-size="9" fill="#94a3b8">Proceso no estandarizado — los tiempos varían significativamente según la complejidad del proyecto</text>
+</svg>
+<figcaption style="font-size:12px;color:#94a3b8;margin-top:8px;">Flujo general del proceso de autorización BVLOS ante la UAEAC. Los pasos 5 y 6 pueden iterarse varias veces según las observaciones.</figcaption>
+</figure>
+
+<h3>¿Qué va en el paquete documental?</h3>
+
+<p>La solicitud de autorización BVLOS ante la AeroCivil debe incluir, como mínimo:</p>
+
+<ol>
+  <li><strong>Solicitud formal</strong> dirigida a la Subdirección de Estándares de Aviación (o la dependencia que la AeroCivil designe)</li>
+  <li><strong>CONOPS</strong> (Concepto de Operaciones): descripción detallada del proyecto, área de operación, altitud, tipo de RPAS, número de aeronaves, pilotos asignados y horarios previstos</li>
+  <li><strong>Análisis SORA completo</strong>: GRC, ARC, mitigaciones y determinación del SAIL, con los OSO (Operational Safety Objectives) correspondientes</li>
+  <li><strong>Archivo KML o KMZ</strong> de la ruta o área de operación (para Google Earth — AeroCivil lo analiza sobre cartografía aeronáutica)</li>
+  <li><strong>Ficha técnica del RPAS</strong> con especificaciones de C2 Link, alcance, failsafe, RTH y autonomía</li>
+  <li><strong>Certificado de matrícula UAEAC</strong> de cada aeronave</li>
+  <li><strong>CDO vigente</strong> del operador</li>
+  <li><strong>CPR vigente</strong> de cada piloto asignado</li>
+  <li><strong>Póliza de RC vigente</strong> con suma asegurada adecuada para BVLOS</li>
+  <li><strong>Manual de Operaciones</strong> actualizado con el procedimiento BVLOS específico</li>
+  <li><strong>Plan de contingencia</strong> ante falla del enlace C2, pérdida de GNSS y situaciones de emergencia</li>
+</ol>
+
+<h2>Tipos de operaciones especiales que también requieren autorización</h2>
+
+<p>El BVLOS no es la única operación que exige autorización expresa de la AeroCivil. La RAC 100 también requiere solicitar permiso para:</p>
+
+<h3>Vuelos nocturnos</h3>
+<p>Cualquier vuelo realizado entre el ocaso y el amanecer. Requisito adicional: el RPAS debe contar con iluminación anticolisión visible a distancia. La mayoría de solicitudes de vuelo nocturno son más simples de tramitar que BVLOS, pero requieren el mismo F-OPS-001 con la información específica del horario nocturno.</p>
+
+<h3>Vuelos sobre aglomeraciones</h3>
+<p>Operaciones sobre eventos públicos, conciertos, estadios, marchas o cualquier concentración de personas. Son de las autorizaciones más sensibles: la AeroCivil es muy restrictiva porque el riesgo en tierra (Ground Risk Class) es máximo. Generalmente exigen SAIL IV o superior.</p>
+
+<h3>Vuelos en zonas de control (CTR/TMA)</h3>
+<p>Cualquier operación dentro de las zonas de control alrededor de aeropuertos. Requiere coordinación directa con el ATC y, en muchos casos, transponder o sistema de identificación equivalente en el RPAS.</p>
+
+<h3>Vuelos a altitudes superiores a 400 pies AGL</h3>
+<p>El límite estándar sin autorización es 120 metros (400 pies) sobre el nivel del terreno. Proyectos de cartografía en zonas montañosas o inspección de estructuras altas pueden requerir sobrepasar este límite.</p>
+
+<div class="callout tip">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>Contrata un asesor con experiencia en trámites AeroCivil</strong> El proceso BVLOS es técnicamente exigente y la AeroCivil puede devolver la solicitud con observaciones que alarguen el trámite meses. Operadores con experiencia en el sistema regulatorio colombiano pueden preparar el paquete documental correcto desde el primer envío y reducir el tiempo total a la mitad.</div>
+</div>
+
+<h2>Errores frecuentes que demoran o rechazan la solicitud BVLOS</h2>
+
+<ul>
+  <li><strong>SORA genérico</strong>: copiar un análisis de otro proyecto o usar plantillas sin adaptarlas al escenario específico. La AeroCivil evalúa el SORA en detalle.</li>
+  <li><strong>KML impreciso</strong>: el área de operación en el KML no coincide con la descripción en el CONOPS, o está dibujado en sistema de coordenadas distinto a WGS-84.</li>
+  <li><strong>Falta de plan de contingencia</strong>: muchos operadores describen la operación normal pero no los procedimientos de emergencia. La AeroCivil lo devuelve.</li>
+  <li><strong>CDO o póliza próximos a vencer</strong>: si el CDO o la póliza vence dentro del período de vuelo planeado, la AeroCivil puede no aprobar o condicionar la autorización.</li>
+  <li><strong>Sin coordinación previa con ATC</strong>: para zonas CTR, presentar la solicitud sin haber contactado previamente la unidad ATC correspondiente suele resultar en rechazo.</li>
+</ul>
+
+<h2>Cómo ayuda Bitafly en proyectos BVLOS</h2>
+
+<p>Bitafly no tramita autorizaciones ante la AeroCivil (eso lo hace el operador o su asesor), pero sí centraliza todo el soporte documental que necesitas:</p>
+
+<ul>
+  <li><strong>Módulo SORA</strong>: guía paso a paso para determinar GRC, ARC y SAIL, y genera el documento de evaluación para adjuntar a la solicitud. <a href="/sora">Ver módulo SORA →</a></li>
+  <li><strong>Generador de KMZ</strong>: dibuja el área de operación o la ruta en el mapa interactivo y exporta el archivo KMZ directamente para la solicitud. <a href="/plan-vuelo-drones">Ver planificador de vuelo →</a></li>
+  <li><strong>Gestión de CPR</strong>: alertas de vencimiento de certificados de todos los pilotos asignados al proyecto.</li>
+  <li><strong>Pólizas y CDO</strong>: registro y alertas de vigencia de documentos clave que la AeroCivil va a verificar.</li>
+  <li><strong>Bitácora BVLOS</strong>: el F-OPS-002 generado por Bitafly incluye todos los campos de la RAC 100, también para vuelos especiales.</li>
+</ul>
+
+<p><a href="/autorizaciones-aerocivil">Ver módulo de autorizaciones de Bitafly →</a></p>
+<p><a href="/registro">Crea tu cuenta gratis y comienza a gestionar tus operaciones especiales →</a></p>
+`,
+  },
 ];
 
 /** Retorna un post por slug, o undefined si no existe */

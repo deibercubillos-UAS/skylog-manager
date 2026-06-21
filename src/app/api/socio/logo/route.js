@@ -1,5 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
+import { storagePut, storagePublicUrl } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,11 +40,12 @@ export async function POST(request) {
     const path = `${membership.partner_id}/logo_${Date.now()}.${ext}`;
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const { error: upErr } = await admin.storage.from(BUCKET)
-      .upload(path, buffer, { contentType: file.type, upsert: true });
+    const { error: upErr } = await storagePut({
+      bucket: BUCKET, key: path, body: buffer, contentType: file.type, upsert: true,
+    });
     if (upErr) throw upErr;
 
-    const { data: pub } = admin.storage.from(BUCKET).getPublicUrl(path);
+    const { data: pub } = storagePublicUrl({ bucket: BUCKET, key: path });
     const logoUrl = pub.publicUrl;
 
     const { error: updErr } = await admin.from('partners')

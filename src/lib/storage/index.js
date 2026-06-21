@@ -130,16 +130,22 @@ export async function storageUploadUrl({ bucket, key, contentType, expiresIn = 3
   }
 }
 
+// Mapa de dominios CDN por bucket (cada bucket público tiene su propio subdominio).
+const PUBLIC_CDN = {
+  'fleet-images':  process.env.R2_PUBLIC_BASE_URL  || '',          // cdn.bitafly.com
+  'partner-logos': process.env.R2_LOGOS_BASE_URL   || '',          // logos.bitafly.com
+  'app-releases':  process.env.R2_RELEASES_BASE_URL || '',         // releases.bitafly.com
+};
+
 // URL pública directa (buckets públicos). Devuelve { data: { publicUrl } }.
 export function storagePublicUrl({ bucket, key }) {
   const mode = bucketMode(bucket);
   if (mode === 'supabase') {
     return sb().storage.from(bucket).getPublicUrl(key);
   }
-  // dual | r2 → dominio CDN (cdn.bitafly.com). El mapeo dominio↔bucket se
-  // define en la fase de buckets públicos.
-  const base = (process.env.R2_PUBLIC_BASE_URL || '').replace(/\/$/, '');
-  return { data: { publicUrl: `${base}/${bucket}/${key}` } };
+  // dual | r2 → dominio CDN del bucket
+  const base = (PUBLIC_CDN[bucket] || process.env.R2_PUBLIC_BASE_URL || '').replace(/\/$/, '');
+  return { data: { publicUrl: `${base}/${key}` } };
 }
 
 // Elimina objeto(s). Acepta string o array. Devuelve { error }.

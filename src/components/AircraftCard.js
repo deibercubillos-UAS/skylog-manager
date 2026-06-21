@@ -6,10 +6,12 @@ const DEFAULT_AIRCRAFT_IMG = 'https://images.unsplash.com/photo-1508614589041-89
 
 function resolveImg(raw) {
   if (!raw) return DEFAULT_AIRCRAFT_IMG;
-  // URL externa (no Supabase): usar directo
-  if (raw.startsWith('http') && !raw.includes('supabase.co')) return raw;
-  // Bucket público fleet-images: URL directa, sin roundtrip servidor
+  // URL externa (no Supabase ni R2): usar directo
+  if (raw.startsWith('http') && !raw.includes('supabase.co') && !raw.includes('r2.dev') && !raw.includes('cdn.bitafly.com')) return raw;
+  // Bucket público fleet-images vía Supabase (legacy)
   if (raw.includes('/object/public/fleet-images/')) return raw;
+  // Bucket público fleet-images vía R2 (cdn.bitafly.com o r2.dev temporal)
+  if (raw.includes('r2.dev') || raw.includes('cdn.bitafly.com')) return raw;
   // Path del bucket privado `documents` o URL legacy → signed URL vía endpoint
   return docOpenUrl(raw) || DEFAULT_AIRCRAFT_IMG;
 }

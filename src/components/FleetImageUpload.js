@@ -41,13 +41,34 @@ export default function FleetImageUpload({ onUploadSuccess }) {
       const slug = Math.random().toString(36).slice(2, 10);
       const path = `${profile.organization_id}/drones/${Date.now()}_${slug}.${ext}`;
 
-      const { error: uploadErr } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, file, { cacheControl: '31536000', upsert: false, contentType: file.type });
-      if (uploadErr) throw uploadErr;
+      // Intentar subida prefirmada a R2; si 409 → bucket aún en Supabase
+      const signRes = await fetch('/api/storage/sign-upload', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bucket: BUCKET, key: path, contentType: file.type }),
+      });
 
-      // URL pública directa — sin signed URL, sin roundtrip servidor
-      const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
+      let publicUrl;
+      if (signRes.ok) {
+        const { uploadUrl, publicUrl: r2Url } = await signRes.json();
+        const putRes = await fetch(uploadUrl, {
+          method:  'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
+        if (!putRes.ok) throw new Error('Error al subir la imagen a R2.');
+        publicUrl = r2Url;
+      } else if (signRes.status === 409) {
+        const { error: uploadErr } = await supabase.storage
+          .from(BUCKET)
+          .upload(path, file, { cacheControl: '31536000', upsert: false, contentType: file.type });
+        if (uploadErr) throw uploadErr;
+        const { data: { publicUrl: sbUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
+        publicUrl = sbUrl;
+      } else {
+        throw new Error('Error al preparar la subida de la imagen.');
+      }
+
       onUploadSuccess(publicUrl);
       toast.success('Imagen actualizada.');
     } catch (err) {

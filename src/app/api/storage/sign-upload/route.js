@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
-import { storageUploadUrl, storagePublicUrl, bucketMode, PUBLIC_BUCKETS } from '@/lib/storage';
+import { storageUploadUrl, storagePublicUrl, PUBLIC_BUCKETS } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,8 +14,6 @@ const ALLOWED = new Set([...ORG_SCOPED, 'company-manuals']);
 // POST /api/storage/sign-upload
 // Body: { bucket, key, contentType }
 // Devuelve { uploadUrl, key, publicUrl? } para que el navegador haga PUT directo a R2.
-// Solo opera cuando el bucket está en modo dual|r2; en modo supabase responde 409
-// (el componente sigue usando la subida directa a Supabase).
 export async function POST(request) {
   try {
     const supabase = await createClientSSR();
@@ -30,11 +28,6 @@ export async function POST(request) {
     const cleanKey = String(key).replace(/^\/+/, '');
     if (ORG_SCOPED.has(bucket) && !cleanKey.startsWith(`${orgId}/`)) {
       return NextResponse.json({ error: 'Ruta fuera de la organización' }, { status: 403 });
-    }
-
-    // Si el bucket aún no está migrado, el componente debe usar la vía Supabase.
-    if (bucketMode(bucket) === 'supabase') {
-      return NextResponse.json({ error: 'Bucket en modo supabase', mode: 'supabase' }, { status: 409 });
     }
 
     const { data, error } = await storageUploadUrl({ bucket, key: cleanKey, contentType });

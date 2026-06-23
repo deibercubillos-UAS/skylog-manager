@@ -373,7 +373,9 @@ Campana in-app en el header del dashboard. Una notificación por destinatario, d
 - **Mass-assignment**: nunca `insert([{ ...body }])` — siempre campos explícitos
 - **Rate limiting**: todo endpoint público sin auth usa `checkRateLimit()`
 - **Emails**: todo campo de usuario en HTML de Resend pasa por `escHtml()`. **Siempre revisar `{ error }` del `resend.emails.send()`** — el SDK no lanza en fallos de API.
-- **Imágenes de flota**: bucket **público** `fleet-images` (NO `documents`). `FleetImageUpload.js` sube y retorna URL pública directa (sin signed URL → carga instantánea). Path `{orgId}/drones/{ts}_{slug}.{ext}`. `AircraftCard.resolveImg()` sirve directo las URLs `/object/public/fleet-images/`; las legacy de `documents` siguen pasando por `docOpenUrl`. Migración `20260613_fleet_images_bucket.sql`. El bucket privado `documents` queda solo para documentos sensibles (cédulas, certificados, etc.).
+- **Storage (todos los buckets en R2)**: la capa `src/lib/storage/index.js` exporta `storagePut`, `storageSignedUrl`, `storageUploadUrl`, `storagePublicUrl`, `storageRemove`, `storageDownload`. NO hay cliente Supabase Storage ni flags `STORAGE_MODE_*` — migración F8 completa (2026-06-20). Los componentes del navegador suben via `POST /api/storage/sign-upload` → presigned PUT directo a R2 (sin fallback Supabase). Signed URLs privadas tienen TTL 1h.
+- **CDN por bucket público**: `fleet-images` → `cdn.bitafly.com`, `partner-logos` → `logos.bitafly.com`, `app-releases` → `releases.bitafly.com`. Env vars: `R2_PUBLIC_BASE_URL`, `R2_LOGOS_BASE_URL`, `R2_RELEASES_BASE_URL`.
+- **Imágenes de flota**: bucket **público** `fleet-images` (NO `documents`). `FleetImageUpload.js` sube via sign-upload y retorna URL pública CDN. Path `{orgId}/drones/{ts}_{slug}.{ext}`. `AircraftCard.resolveImg()` reconoce URLs de `cdn.bitafly.com` y `r2.dev`. El bucket privado `documents` queda solo para documentos sensibles.
 - **Componentes**: `.js` (no TypeScript), Tailwind CSS
 - **ESLint**: `.eslintrc.json` (v8) — NO `eslint.config.mjs` (v9 flat config, incompatible)
 - **Fuentes**: `font-lexend` para headings landing, `font-sans` (Public Sans) para el resto
@@ -500,8 +502,10 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 ### Rutas Master (`/admin/master`)
 - `/api/admin/master/partners` — CRUD de socios: crear, editar (comisión/cupos/días inline), agregar código, vincular miembro/invitar, desactivar. GET incluye `invitations[]` por partner.
 - `/api/admin/master/commissions` — GET comisiones agrupadas por partner/período, POST liquida por IDs
+- `/api/admin/master/invite` — GET lista de organizaciones (para dropdown) · POST `{ email, role, plan?, name?, orgId?, message? }` envía correo de invitación a cliente; si `orgId` crea/actualiza fila en `invitations` (upsert por org+email). CTA adaptada: existente → dashboard, nuevo+org → registro con NIT, nuevo → registro independiente. Card de plan con precio pero **sin fecha de primer pago**.
 - Tab **Socios** (`_SociosTab.js`) — crea escuelas/asesores, jerarquía, miembros, copiar códigos, **invitaciones enviadas** (chips pendiente/aceptada/expirada), **edición inline de condiciones**. Botón "Vincular" con guard anti-doble-envío.
 - Tab **Comisiones** (`_ComisionesTab.js`) — filtros pendiente/liquidada, acordeón por socio, "Liquidar todo" o por período
+- Tab **Invitaciones** (`_InvitacionesTab.js`) — formulario: email + nombre, selector visual de rol (4 botones), selector de plan sugerido (5 cards), dropdown buscable de org (nombre/NIT), mensaje personalizado, preview resumen, feedback. Siempre verifica `{ error }` de Resend.
 
 ### Reglas críticas
 - **Código en checkout**: campo opcional en `/dashboard/subscription` → `POST /api/epayco/checkout` → `pending_subscriptions.partner_code`. También en registro libre (`registro/page.js`, campo visible salvo cuando viene por invitación/regalo) → `POST /api/auth/register` crea `referrals` org↔socio (crédito; la comisión real se atribuye al pagar).
@@ -527,6 +531,8 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 - [x] Auditoría 2026-06-12: mass-assignment corregido en `POST /api/pilots`/`POST /api/fleet`, columnas `pilots.avatar_url`/`aerocivil_additions`/`notes` aseguradas, políticas legacy del bucket `documents` (borrado/subida cross-tenant) eliminadas, índices FK + RLS initplan optimizados (`supabase/migrations/20260612_audit_fixes.sql`)
 - [x] Auditoría 2026-06-14 (programa de socios): correos de socios usaban dominio `bitafly.co` no verificado → corregido a `.com` en partners/advisors/grants/cron; `add_member` retorna `email_error` para diagnóstico; botón "Vincular" con guard anti-doble-envío; `invite-info` faltaba `email` en el `.select()` (campo de registro vacío); correo de asesores ahora branded con logo + fallback de dominio corregido. `.gitignore` ignora `~$*`/`*.tmp`/`*.patch`.
 - [x] **Migración OTA aplicada en Supabase** (2026-06-16): `supabase/migrations/20260616_app_releases.sql` — tabla `app_releases` + bucket público `app-releases`. Fila inicial insertada con APK v1.1.0 (`version_code=2`). Política RLS pública `public_read_current_version` (SELECT WHERE is_current=true) agregada directamente en Supabase. `GET /api/app/version` usa cliente anon (no service role) — funcional en prod.
+- [x] **Migración Storage a Cloudflare R2 completa (F8, 2026-06-23)**: todos los buckets migrados a R2. `src/lib/storage/index.js` es R2-only — sin SDK Supabase Storage, sin `bucketMode()`, sin fallback. Componentes usan `POST /api/storage/sign-upload` → presigned PUT directo. `AddMaintenancePanel.js`, `FileUpload.js`, `FleetImageUpload.js` simplificados (sin 409 Supabase). Env vars requeridas: `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PUBLIC_BASE_URL`, `R2_LOGOS_BASE_URL`, `R2_RELEASES_BASE_URL`, `R2_BUCKET_*` por bucket.
+- [x] **Panel Master — Tab Invitaciones (2026-06-23)**: `src/app/admin/master/_InvitacionesTab.js` + `src/app/api/admin/master/invite/route.js`. Envía correo de captación/invitación a clientes con plan sugerido (sin fecha de pago). Guard `assertSuperadmin()`.
 
 ---
 

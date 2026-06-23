@@ -1,7 +1,8 @@
 # Plan: BitaFly Web → App móvil (PWA → Google Play → App Store)
 
 > Documento de control. Se actualiza al cerrar cada fase. Mantener < 500 líneas.
-> Última actualización: 2026-06-13
+> Última actualización: 2026-06-23
+> **Etapa 4 (iOS): ver `docs/PLAN_IOS.md` para el plan detallado y paso a paso.**
 
 ## Objetivo
 

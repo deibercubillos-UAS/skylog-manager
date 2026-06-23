@@ -8,6 +8,14 @@ const ROLES = [
   { value: 'piloto',       label: 'Piloto' },
 ];
 
+const PLANS = [
+  { value: '',             label: 'Sin plan sugerido',             price: null,            desc: null },
+  { value: 'piloto',       label: 'Piloto',                        price: 'Gratis',        desc: '1 drone · 1 piloto · bitácora digital' },
+  { value: 'escuadrilla',  label: 'Escuadrilla',                   price: '$59.000/mes',   desc: '3 drones · 4 pilotos · reportes SMS' },
+  { value: 'flota',        label: 'Flota',                         price: '$159.000/mes',  desc: '15 drones · 15 pilotos · todas las funciones' },
+  { value: 'enterprise',   label: 'Enterprise',                    price: 'A convenir',    desc: 'Ilimitado · soporte dedicado · API' },
+];
+
 export default function InvitacionesTab() {
   const [orgs, setOrgs]       = useState([]);
   const [loadingOrgs, setLoadingOrgs] = useState(true);
@@ -15,7 +23,7 @@ export default function InvitacionesTab() {
   const [showOrgList, setShowOrgList] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState(null); // { id, company_name, tax_id }
 
-  const [form, setForm] = useState({ email: '', name: '', role: 'piloto', message: '' });
+  const [form, setForm] = useState({ email: '', name: '', role: 'piloto', plan: '', message: '' });
   const [sending, setSending] = useState(false);
   const [result, setResult]   = useState(null); // { ok, msg }
 
@@ -38,7 +46,7 @@ export default function InvitacionesTab() {
     setSending(true);
     setResult(null);
     try {
-      const body = { email: form.email, role: form.role, name: form.name || undefined, message: form.message || undefined };
+      const body = { email: form.email, role: form.role, plan: form.plan || undefined, name: form.name || undefined, message: form.message || undefined };
       if (selectedOrg) body.orgId = selectedOrg.id;
       const res  = await fetch('/api/admin/master/invite', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
@@ -46,7 +54,7 @@ export default function InvitacionesTab() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al enviar');
       setResult({ ok: true, msg: `Invitación enviada a ${form.email}${data.orgName ? ` → ${data.orgName}` : ''}${data.isExistingUser ? ' (usuario ya registrado — verá banner en su dashboard)' : ''}` });
-      setForm({ email: '', name: '', role: 'piloto', message: '' });
+      setForm({ email: '', name: '', role: 'piloto', plan: '', message: '' });
       setSelectedOrg(null);
       setOrgSearch('');
     } catch (err) {
@@ -110,6 +118,37 @@ export default function InvitacionesTab() {
                 }`}
               >
                 {r.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Plan sugerido */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-black uppercase text-slate-500 tracking-widest">
+            Plan ofrecido <span className="text-slate-600 font-normal normal-case">(opcional)</span>
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {PLANS.map(p => (
+              <button
+                key={p.value} type="button"
+                onClick={() => setForm(f => ({ ...f, plan: p.value }))}
+                className={`flex items-start gap-3 px-4 py-3 rounded-xl text-left transition-all border ${
+                  form.plan === p.value
+                    ? 'bg-orange-600/20 border-orange-500/60 text-white'
+                    : 'bg-slate-800 border-white/5 text-slate-400 hover:border-white/20 hover:text-white'
+                }`}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className={`text-xs font-black uppercase ${form.plan === p.value ? 'text-orange-400' : 'text-slate-300'}`}>
+                    {p.label}
+                  </p>
+                  {p.price && <p className="text-xs font-bold text-slate-400 mt-0.5">{p.price}</p>}
+                  {p.desc  && <p className="text-[10px] text-slate-600 mt-0.5 leading-tight">{p.desc}</p>}
+                </div>
+                {form.plan === p.value && (
+                  <span className="material-symbols-outlined text-orange-400 text-base shrink-0 mt-0.5">check_circle</span>
+                )}
               </button>
             ))}
           </div>
@@ -206,6 +245,10 @@ export default function InvitacionesTab() {
           <div className="flex items-center gap-2 text-xs text-slate-400">
             <span className="material-symbols-outlined text-base text-slate-600">badge</span>
             <span>{ROLES.find(r => r.value === form.role)?.label}</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <span className="material-symbols-outlined text-base text-slate-600">sell</span>
+            <span>{PLANS.find(p => p.value === form.plan)?.label || 'Sin plan sugerido'}{form.plan && PLANS.find(p => p.value === form.plan)?.price ? ` · ${PLANS.find(p => p.value === form.plan).price}` : ''}</span>
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-400">
             <span className="material-symbols-outlined text-base text-slate-600">business</span>

@@ -16,6 +16,13 @@ const ROLE_LABEL = {
 
 const VALID_ROLES = Object.keys(ROLE_LABEL);
 
+const PLAN_INFO = {
+  piloto:      { label: 'Piloto',      price: 'Gratis',       features: '1 drone · 1 piloto · bitácora digital RAC 100' },
+  escuadrilla: { label: 'Escuadrilla', price: '$59.000/mes',  features: '3 drones · 4 pilotos · reportes SMS · programación de vuelos' },
+  flota:       { label: 'Flota',       price: '$159.000/mes', features: '15 drones · 15 pilotos · todas las funciones · soporte prioritario' },
+  enterprise:  { label: 'Enterprise',  price: 'A convenir',   features: 'Ilimitado · API · soporte dedicado · onboarding personalizado' },
+};
+
 function isValidEmail(e) {
   return typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 }
@@ -50,7 +57,7 @@ export async function POST(request) {
   const ctx = await assertSuperadmin();
   if (ctx.error) return NextResponse.json({ error: ctx.error }, { status: ctx.status });
 
-  const { email, role, name, orgId, message } = await request.json();
+  const { email, role, plan, name, orgId, message } = await request.json();
 
   if (!isValidEmail(email)) return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
   if (!VALID_ROLES.includes(role)) return NextResponse.json({ error: 'Rol inválido' }, { status: 400 });
@@ -130,6 +137,7 @@ export async function POST(request) {
   const safeOrg     = escHtml(orgName || 'BitaFly');
   const safeSender  = escHtml(senderName);
   const safeMessage = message ? escHtml(message) : null;
+  const planData    = plan && PLAN_INFO[plan] ? PLAN_INFO[plan] : null;
 
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ error: 'Servicio de correo no configurado' }, { status: 500 });
@@ -156,17 +164,32 @@ export async function POST(request) {
         <tr><td style="padding:40px;">
           <p style="margin:0 0 16px;font-size:16px;color:#1a202c;font-weight:700;">${safeName},</p>
           ${orgId
-            ? `<p style="margin:0 0 16px;font-size:15px;color:#4a5568;line-height:1.7;">
+            ? `<p style="margin:0 0 20px;font-size:15px;color:#4a5568;line-height:1.7;">
                 <strong>${safeSender}</strong> te invitó a unirte a <strong>${safeOrg}</strong>
                 en BitaFly con el rol de <strong>${safeRole}</strong>.
                </p>`
-            : `<p style="margin:0 0 16px;font-size:15px;color:#4a5568;line-height:1.7;">
+            : `<p style="margin:0 0 20px;font-size:15px;color:#4a5568;line-height:1.7;">
                 El equipo de <strong>BitaFly</strong> te invita a conocer la plataforma de gestión de
                 operaciones con drones más completa de Colombia. Cumple con la normativa RAC 100,
                 lleva tu bitácora digital y programa tus vuelos con seguridad.
                </p>`
           }
-          ${safeMessage ? `<p style="margin:0 0 24px;font-size:15px;color:#4a5568;line-height:1.7;padding:16px;background:#f7f8fa;border-left:4px solid #ec5b13;border-radius:0 8px 8px 0;">${safeMessage}</p>` : ''}
+          ${safeMessage ? `<p style="margin:0 0 24px;font-size:15px;color:#4a5568;line-height:1.7;padding:16px;background:#fff8f5;border-left:4px solid #ec5b13;border-radius:0 8px 8px 0;">${safeMessage}</p>` : ''}
+          ${planData ? `
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;background:#fff8f5;border:2px solid #fde0cc;border-radius:12px;overflow:hidden;">
+            <tr><td style="padding:20px 24px;">
+              <p style="margin:0 0 4px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#ec5b13;">Plan sugerido</p>
+              <table width="100%" cellpadding="0" cellspacing="0"><tr>
+                <td>
+                  <p style="margin:0;font-size:20px;font-weight:900;color:#1a202c;">${escHtml(planData.label)}</p>
+                  <p style="margin:4px 0 0;font-size:13px;color:#718096;">${escHtml(planData.features)}</p>
+                </td>
+                <td align="right" style="vertical-align:top;white-space:nowrap;padding-left:16px;">
+                  <p style="margin:0;font-size:18px;font-weight:900;color:#ec5b13;">${escHtml(planData.price)}</p>
+                </td>
+              </tr></table>
+            </td></tr>
+          </table>` : ''}
           <table cellpadding="0" cellspacing="0" style="margin-bottom:32px;"><tr>
             <td style="background:#ec5b13;border-radius:10px;">
               <a href="${ctaUrl}" style="display:inline-block;padding:14px 32px;color:#fff;font-size:15px;font-weight:900;text-decoration:none;letter-spacing:-0.2px;">

@@ -5,14 +5,16 @@ import PlanesTab from './_PlanesTab';
 import SociosTab from './_SociosTab';
 import ComisionesTab from './_ComisionesTab';
 import ReleasesTab from './_ReleasesTab';
+import InvitacionesTab from './_InvitacionesTab';
 
 const TABS = [
-  { id: 'users',      label: 'Usuarios',      icon: 'group' },
-  { id: 'subs',       label: 'Suscripciones', icon: 'subscriptions' },
-  { id: 'planes',     label: 'Planes ePayco', icon: 'credit_card' },
-  { id: 'socios',     label: 'Socios',        icon: 'handshake' },
-  { id: 'comisiones', label: 'Comisiones',    icon: 'paid' },
-  { id: 'releases',   label: 'App Releases',  icon: 'system_update' },
+  { id: 'users',         label: 'Usuarios',      icon: 'group' },
+  { id: 'invitaciones',  label: 'Invitaciones',  icon: 'forward_to_inbox' },
+  { id: 'subs',          label: 'Suscripciones', icon: 'subscriptions' },
+  { id: 'planes',        label: 'Planes ePayco', icon: 'credit_card' },
+  { id: 'socios',        label: 'Socios',        icon: 'handshake' },
+  { id: 'comisiones',    label: 'Comisiones',    icon: 'paid' },
+  { id: 'releases',      label: 'App Releases',  icon: 'system_update' },
 ];
 
 const PLANS = ['piloto', 'escuadrilla', 'flota', 'enterprise'];
@@ -180,6 +182,9 @@ export default function MasterPanel() {
             ))}
           </div>
         </div>
+
+        {/* Tab: Invitaciones */}
+        {activeTab === 'invitaciones' && <InvitacionesTab />}
 
         {/* Tab: Suscripciones ePayco */}
         {activeTab === 'subs' && <SuscripcionesTab />}

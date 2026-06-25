@@ -20,6 +20,11 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
+  // Trazabilidad de componentes (modal autocontenido)
+  const [showTrace, setShowTrace] = useState(false);
+  const [trace, setTrace] = useState(null);          // null = sin cargar, [] = cargado vacío
+  const [traceLoading, setTraceLoading] = useState(false);
+
   useEffect(() => {
     const handler = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
@@ -27,6 +32,22 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  const openTrace = async () => {
+    setMenuOpen(false);
+    setShowTrace(true);
+    if (trace !== null) return;     // ya cargado
+    setTraceLoading(true);
+    try {
+      const res = await fetch(`/api/maintenance/components?aircraft_id=${aircraft.id}`);
+      const data = await res.json();
+      setTrace(Array.isArray(data) ? data : []);
+    } catch {
+      setTrace([]);
+    } finally {
+      setTraceLoading(false);
+    }
+  };
 
   if (!aircraft) return null;
 
@@ -58,6 +79,7 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
   const inMaintenance = !inactive && aircraft.operational_status === 'en_mantenimiento';
 
   return (
+    <>
     <div className={`bg-white rounded-[2rem] border shadow-sm flex flex-col sm:flex-row group hover:shadow-md transition-all text-left ${inactive ? 'border-slate-200 opacity-60' : 'border-slate-200'}`}>
       <div className="w-full sm:w-40 h-40 sm:h-auto bg-slate-100 shrink-0 relative overflow-hidden rounded-t-[2rem] sm:rounded-l-[2rem] sm:rounded-tr-none">
         <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${resolveImg(aircraft.image_url)})` }}></div>
@@ -113,6 +135,14 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
                       Editar aeronave
                     </button>
 
+                    <button
+                      onClick={openTrace}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-base text-slate-400">memory</span>
+                      Trazabilidad de componentes
+                    </button>
+
                     {canManageStatus && (
                       <>
                         <div className="h-px bg-slate-100 mx-3 my-1" />
@@ -161,5 +191,57 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
         </div>
       </div>
     </div>
+
+    {/* Modal de trazabilidad de componentes */}
+    {showTrace && (
+      <div className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        onClick={() => setShowTrace(false)}>
+        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col"
+          onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0">
+            <div>
+              <h3 className="text-base font-black uppercase tracking-tight text-slate-900">Trazabilidad de Componentes</h3>
+              <p className="text-xs font-bold text-slate-400 mt-0.5">{aircraft.model} · {aircraft.serial_number}</p>
+            </div>
+            <button onClick={() => setShowTrace(false)}
+              className="size-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all active:scale-95">
+              <span className="material-symbols-outlined text-lg">close</span>
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+            {traceLoading ? (
+              <p className="py-10 text-center text-xs font-black text-slate-300 uppercase tracking-widest animate-pulse">Cargando histórico...</p>
+            ) : !trace || trace.length === 0 ? (
+              <p className="py-10 text-center text-xs font-black text-slate-300 uppercase tracking-widest">Sin cambios de componentes registrados</p>
+            ) : (
+              <div className="space-y-3">
+                {trace.map(c => (
+                  <div key={c.id} className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-black text-slate-800 uppercase">{c.component_type}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase shrink-0 ${
+                        c.action === 'reemplazado' ? 'bg-amber-100 text-amber-700'
+                        : c.action === 'instalado' ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-slate-200 text-slate-600'
+                      }`}>{c.action}</span>
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-400 mt-1">{new Date(c.created_at).toLocaleDateString()}</p>
+                    {(c.part_old || c.part_new) && (
+                      <p className="text-[11px] font-mono text-slate-500 mt-1.5">
+                        {c.part_old && <>Sale: <span className="text-slate-700">{c.part_old}</span></>}
+                        {c.part_old && c.part_new && ' → '}
+                        {c.part_new && <>Entra: <span className="text-slate-700">{c.part_new}</span></>}
+                      </p>
+                    )}
+                    {c.notes && <p className="text-xs text-slate-400 italic mt-1">{c.notes}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

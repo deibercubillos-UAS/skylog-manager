@@ -50,6 +50,24 @@ export const CHECKLIST_DEFAULTS = {
     'Zona de aterrizaje alterno identificada',
     'Extintor / kit de primeros auxilios disponible',
   ],
+
+  // ── RECIBO MTTO (recibo de drone posterior al mantenimiento) ───────────
+  maintenance_return: [
+    'Hélices instaladas, sin grietas ni desgaste',
+    'Motores giran libremente y sin ruidos anómalos',
+    'Tren de aterrizaje firme y completo',
+    'Fuselaje sin daños, tornillería completa y ajustada',
+    'Gimbal y cámara limpios, sin holguras ni obstrucción',
+    'Baterías cargadas, sin deformación y aseguradas',
+    'Firmware de aeronave y control actualizado',
+    'Calibración de brújula (IMU) verificada',
+    'Conexión control-aeronave estable',
+    'Señal GPS adecuada (satélites suficientes)',
+    'Return-to-Home (RTH) configurado y probado',
+    'Prueba de motores en tierra satisfactoria',
+    'Vuelo de prueba (hover) sin alertas',
+    'Documentación de la intervención registrada',
+  ],
 };
 
 // Helper: convierte un array de etiquetas en filas listas para upsert en form_definitions

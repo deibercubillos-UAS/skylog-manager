@@ -22,6 +22,17 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
   const [dragOver, setDragOver]   = useState(false);
   const fileInputRef              = useRef(null);
 
+  // Checklist de recibo (definiciones por org + respuestas del técnico)
+  const [checklistDefs, setChecklistDefs] = useState([]);   // [{ field_number, label_text }]
+  const [checklist, setChecklist]         = useState({});    // { field_number: true/false }
+
+  // Trazabilidad de componentes (Fase B)
+  const [components, setComponents] = useState([]);  // [{ component_type, action, part_old, part_new, notes }]
+
+  // PDF de recibo / puesta en servicio (Fase C)
+  const [returnDoc, setReturnDoc]           = useState(null);
+  const [returnDocError, setReturnDocError] = useState('');
+
   const [form, setForm] = useState({
     aircraft_id:      '',
     technician_name:  '',
@@ -40,16 +51,40 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
         .single();
       if (prof?.organization_id) {
         setOrgId(prof.organization_id);
-        const { data } = await supabase
-          .from('aircraft')
-          .select('*')
-          .eq('organization_id', prof.organization_id)
-          .neq('status', 'Baja');        // excluir aeronaves dadas de baja (en mantenimiento SÍ aparece)
-        setDrones(data || []);
+        const [dronesRes, defsRes] = await Promise.all([
+          supabase
+            .from('aircraft')
+            .select('*')
+            .eq('organization_id', prof.organization_id)
+            .neq('status', 'Baja'),        // excluir aeronaves dadas de baja (en mantenimiento SÍ aparece)
+          supabase
+            .from('form_definitions')
+            .select('field_number,label_text')
+            .eq('organization_id', prof.organization_id)
+            .eq('form_type', 'maintenance_return')
+            .eq('aircraft_model', 'General')
+            .order('field_number', { ascending: true }),
+        ]);
+        setDrones(dronesRes.data || []);
+        setChecklistDefs(defsRes.data || []);
       }
     }
     loadDrones();
   }, []);
+
+  const setCheck = (num, value) => setChecklist(prev => ({ ...prev, [num]: value }));
+
+  // ── Helpers de componentes ────────────────────────────────────────────────
+  const COMPONENT_TYPES = [
+    'Hélice', 'Motor', 'Gimbal', 'Cámara', 'Batería', 'ESC',
+    'Brazo', 'Tren de aterrizaje', 'Antena', 'Tarjeta de memoria', 'Otro',
+  ];
+  const addComponent = () =>
+    setComponents(prev => [...prev, { component_type: '', action: 'reemplazado', part_old: '', part_new: '', notes: '' }]);
+  const updateComponent = (idx, field, value) =>
+    setComponents(prev => prev.map((c, i) => (i === idx ? { ...c, [field]: value } : c)));
+  const removeComponent = (idx) =>
+    setComponents(prev => prev.filter((_, i) => i !== idx));
 
   // ── Validación de archivo ────────────────────────────────────────────────
   const validateAndSetFile = (f) => {
@@ -71,6 +106,24 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
   };
 
   const handleFileChange = (e) => validateAndSetFile(e.target.files?.[0]);
+
+  // ── Validación del PDF de recibo (solo PDF) ────────────────────────────────
+  const handleReturnDocChange = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) { setReturnDoc(null); return; }
+    if (f.type !== 'application/pdf') {
+      setReturnDocError('El recibo debe ser un PDF.');
+      setReturnDoc(null);
+      return;
+    }
+    if (f.size > MAX_FILE_SIZE) {
+      setReturnDocError('El archivo supera el límite de 10 MB.');
+      setReturnDoc(null);
+      return;
+    }
+    setReturnDocError('');
+    setReturnDoc(f);
+  };
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -110,6 +163,30 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
         attachment_path = path;
       }
 
+      // 1b. Subir el PDF de recibo / puesta en servicio (si existe)
+      let return_doc_path = null;
+      if (returnDoc && orgId) {
+        const slug = Math.random().toString(36).slice(2, 10);
+        const path = `orgs/${orgId}/recibo/${Date.now()}_${slug}.pdf`;
+
+        const signRes = await fetch('/api/storage/sign-upload', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bucket: 'maintenance-docs', key: path, contentType: 'application/pdf' }),
+        });
+        if (!signRes.ok) throw new Error('Error al preparar la subida del recibo.');
+
+        const { uploadUrl } = await signRes.json();
+        const putRes = await fetch(uploadUrl, {
+          method:  'PUT',
+          headers: { 'Content-Type': 'application/pdf' },
+          body: returnDoc,
+        });
+        if (!putRes.ok) throw new Error('Error al subir el recibo a R2.');
+
+        return_doc_path = path;
+      }
+
       // 2. Registrar el mantenimiento
       const res = await fetch('/api/maintenance', {
         method:  'POST',
@@ -121,6 +198,9 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
           description:      form.description,
           hours_at_service: parseFloat(form.hours_at_service || 0),
           attachment_path,
+          return_doc_path,
+          return_checklist: checklistDefs.length > 0 ? checklist : null,
+          components: components.filter(c => c.component_type && c.action),
         }),
       });
 
@@ -129,15 +209,14 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
       try { data = text ? JSON.parse(text) : {}; } catch { /* not JSON */ }
 
       if (!res.ok) {
-        // Si el POST falla pero ya subimos el archivo, intentar limpiarlo
-        if (attachment_path) {
-          // Usar el endpoint de borrado (soporta tanto Supabase como R2 según el flag)
+        // Si el POST falla pero ya subimos archivos, intentar limpiarlos (huérfanos)
+        [attachment_path, return_doc_path].filter(Boolean).forEach(p => {
           fetch('/api/maintenance/attachment', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: attachment_path }),
+            body: JSON.stringify({ path: p }),
           }).catch(() => {});
-        }
+        });
         throw new Error(data?.error || 'Error al guardar el registro.');
       }
 
@@ -154,6 +233,11 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
     setFile(null);
     setFileError('');
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeReturnDoc = () => {
+    setReturnDoc(null);
+    setReturnDocError('');
   };
 
   // ── UI ───────────────────────────────────────────────────────────────────
@@ -227,6 +311,109 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
             placeholder="Descripción de la tarea..."
             onChange={e => setForm({ ...form, description: e.target.value })} />
 
+          {/* ── Checklist de recibo (si la org lo configuró) ──────────── */}
+          {checklistDefs.length > 0 && (
+            <div className="pt-2">
+              <label className="text-xs font-black text-slate-400 uppercase ml-1">
+                Recibo posterior al mantenimiento
+                <span className="normal-case font-medium text-slate-300 ml-1">(opcional)</span>
+              </label>
+              <div className="mt-2 space-y-2">
+                {checklistDefs.map(item => (
+                  <div key={item.field_number}
+                    className={`flex items-center justify-between gap-3 p-3 rounded-xl border-2 transition-all ${
+                      checklist[item.field_number] === true
+                        ? 'bg-emerald-50 border-emerald-400'
+                        : checklist[item.field_number] === false
+                          ? 'bg-red-50 border-red-300'
+                          : 'bg-slate-50 border-transparent'
+                    }`}>
+                    <span className="text-xs font-bold text-slate-600 flex-1">{item.label_text}</span>
+                    <div className="flex gap-1.5 shrink-0">
+                      <button type="button" onClick={() => setCheck(item.field_number, true)}
+                        className={`size-8 rounded-full flex items-center justify-center transition-all ${
+                          checklist[item.field_number] === true ? 'bg-emerald-500 text-white shadow' : 'bg-white text-slate-300'
+                        }`}>
+                        <span className="material-symbols-outlined text-base">check</span>
+                      </button>
+                      <button type="button" onClick={() => setCheck(item.field_number, false)}
+                        className={`size-8 rounded-full flex items-center justify-center transition-all ${
+                          checklist[item.field_number] === false ? 'bg-red-500 text-white shadow' : 'bg-white text-slate-300'
+                        }`}>
+                        <span className="material-symbols-outlined text-base">close</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Trazabilidad de componentes (opcional) ────────────────── */}
+          <div className="pt-2">
+            <div className="flex items-center justify-between ml-1">
+              <label className="text-xs font-black text-slate-400 uppercase">
+                Componentes cambiados
+                <span className="normal-case font-medium text-slate-300 ml-1">(opcional)</span>
+              </label>
+              <button type="button" onClick={addComponent}
+                className="flex items-center gap-1 text-xs font-black text-orange-600 hover:text-orange-800 transition-colors">
+                <span className="material-symbols-outlined text-sm">add_circle</span>
+                Añadir
+              </button>
+            </div>
+
+            <div className="mt-2 space-y-3">
+              {components.length === 0 && (
+                <p className="text-xs text-slate-300 font-bold italic ml-1">
+                  Registra aquí cualquier componente instalado, removido o reemplazado.
+                </p>
+              )}
+              {components.map((c, idx) => (
+                <div key={idx} className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-2">
+                  <div className="flex gap-2">
+                    <select
+                      className="flex-1 p-2.5 bg-white rounded-lg border border-slate-200 font-bold text-xs"
+                      value={c.component_type}
+                      onChange={e => updateComponent(idx, 'component_type', e.target.value)}>
+                      <option value="">Componente...</option>
+                      {COMPONENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <select
+                      className="p-2.5 bg-white rounded-lg border border-slate-200 font-bold text-xs"
+                      value={c.action}
+                      onChange={e => updateComponent(idx, 'action', e.target.value)}>
+                      <option value="reemplazado">Reemplazado</option>
+                      <option value="instalado">Instalado</option>
+                      <option value="removido">Removido</option>
+                    </select>
+                    <button type="button" onClick={() => removeComponent(idx)}
+                      className="shrink-0 size-9 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-red-500 transition-colors">
+                      <span className="material-symbols-outlined text-base">delete</span>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      className="p-2.5 bg-white rounded-lg border border-slate-200 text-xs font-medium"
+                      placeholder="Serial saliente"
+                      value={c.part_old}
+                      onChange={e => updateComponent(idx, 'part_old', e.target.value)} />
+                    <input
+                      className="p-2.5 bg-white rounded-lg border border-slate-200 text-xs font-medium"
+                      placeholder="Serial entrante"
+                      value={c.part_new}
+                      onChange={e => updateComponent(idx, 'part_new', e.target.value)} />
+                  </div>
+                  <input
+                    className="w-full p-2.5 bg-white rounded-lg border border-slate-200 text-xs font-medium"
+                    placeholder="Notas (opcional)"
+                    value={c.notes}
+                    onChange={e => updateComponent(idx, 'notes', e.target.value)} />
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* ── Adjunto opcional ──────────────────────────────────────── */}
           <div>
             <label className="text-xs font-black text-slate-400 uppercase ml-1">
@@ -288,6 +475,60 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
                 className="mt-1.5 ml-1 text-xs text-slate-400 hover:text-red-500 font-bold transition-colors flex items-center gap-1">
                 <span className="material-symbols-outlined text-xs">close</span>
                 Quitar archivo
+              </button>
+            )}
+          </div>
+
+          {/* ── PDF de recibo / puesta en servicio (opcional) ──────────── */}
+          <div>
+            <label className="text-xs font-black text-slate-400 uppercase ml-1">
+              Recibo / puesta en servicio (PDF)
+              <span className="normal-case font-medium text-slate-300 ml-1">(opcional)</span>
+            </label>
+
+            <label
+              className={`mt-1 flex flex-col items-center justify-center gap-2 w-full p-5 rounded-xl border-2 border-dashed cursor-pointer transition-all
+                ${returnDoc
+                  ? 'border-emerald-300 bg-emerald-50'
+                  : 'border-slate-200 bg-slate-50 hover:border-emerald-300 hover:bg-emerald-50'
+                }`}>
+              <input
+                type="file"
+                className="hidden"
+                accept="application/pdf,.pdf"
+                onChange={handleReturnDocChange} />
+
+              {returnDoc ? (
+                <>
+                  <span className="material-symbols-outlined text-3xl text-emerald-500">picture_as_pdf</span>
+                  <span className="text-xs font-bold text-emerald-700 text-center break-all leading-relaxed">
+                    {returnDoc.name}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {(returnDoc.size / 1024).toFixed(0)} KB
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-3xl text-slate-300">description</span>
+                  <span className="text-xs font-bold text-slate-400 text-center leading-relaxed">
+                    Adjuntar acta de recibo (PDF)
+                    <br />
+                    <span className="font-medium text-slate-300">Solo PDF · hasta 10 MB · se guarda en Cloudflare</span>
+                  </span>
+                </>
+              )}
+            </label>
+
+            {returnDocError && (
+              <p className="text-xs text-red-500 font-bold mt-1 ml-1">{returnDocError}</p>
+            )}
+
+            {returnDoc && (
+              <button type="button" onClick={removeReturnDoc}
+                className="mt-1.5 ml-1 text-xs text-slate-400 hover:text-red-500 font-bold transition-colors flex items-center gap-1">
+                <span className="material-symbols-outlined text-xs">close</span>
+                Quitar recibo
               </button>
             )}
           </div>

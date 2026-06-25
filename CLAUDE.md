@@ -209,6 +209,15 @@ Configuración de mantenimiento mayor por aeronave, con cambio de estado automá
 - **Guard de despacho** (`logbook/new`): el selector de aeronaves filtra `.neq('operational_status', 'en_mantenimiento')`. `AddMaintenancePanel` SÍ las incluye (es para registrarles mantenimiento).
 - **Cron** (`check_aircraft_maintenance_due()`, `30 13 * * *` = 8:30 AM Colombia): evalúa todas las aeronaves disponibles, marca `en_mantenimiento` las que superan umbral y notifica a GG+JP (`notifications` tipo `maintenance_due`). `SECURITY DEFINER`, EXECUTE revocado a PUBLIC. Migraciones: `20260613_aircraft_maintenance_config.sql` + `20260613_aircraft_maintenance_cron.sql`.
 
+### Recibo post-mantenimiento + trazabilidad de componentes + PDF de recibo (2026-06-25)
+
+Registrado todo desde `AddMaintenancePanel` (web y APK; el APK toma los cambios por remote URL). Migraciones: `20260625_maintenance_return_checklist.sql`, `20260625_maintenance_components.sql`, `20260625_maintenance_return_doc.sql` (las 3 aplicadas en Supabase).
+
+- **Checklist de recibo** (personalizable por org, espacio mínimo): nuevo `form_type='maintenance_return'` en `form_definitions` (modelo `'General'`) — se personaliza en el Editor de Protocolos (`FormSettingsClient`, pestaña "RECIBO MTTO", **sin** columna de activación en `organizations`, siempre disponible). Plantilla en `lib/checklistDefaults.js` (`maintenance_return`). El resultado se guarda **compacto** como `maintenance_logs.return_checklist jsonb` = `{ "field_number": true/false }` — el texto NO se duplica, se dereferencia contra `form_definitions` al mostrar. Mismo patrón que los `results_*` de despacho.
+- **Trazabilidad de componentes**: tabla dedicada `maintenance_components` (`organization_id`, `maintenance_log_id` FK CASCADE, `aircraft_id`, `component_type`, `action` CHECK `instalado|removido|reemplazado`, `part_old`, `part_new`, `notes`, `created_at`). RLS espejo de `maintenance_logs` (SELECT org/superadmin, escritura `can_manage_ops()`). Filas solo cuando hay cambio real (consultable, eficiente). Histórico por aeronave: `GET /api/maintenance/components?aircraft_id=` → modal "Trazabilidad de componentes" en `AircraftCard`.
+- **PDF de recibo / puesta en servicio** (opcional, R2): campo dedicado `maintenance_logs.return_doc_path` (separado de `attachment_path`). Sube al bucket privado `maintenance-docs` (path `orgs/{orgId}/recibo/...`) vía `sign-upload` → PUT prefirmado. Se abre/limpia con `GET|DELETE /api/maintenance/attachment?path=` (valida prefijo `orgs/{orgId}/`).
+- **API** (`/api/maintenance`): `POST` acepta `return_checklist` (normalizado a `{n:bool}`), `components[]` (insertados en `maintenance_components`) y `return_doc_path`; `GET` los trae (componentes vía join anidado `components:maintenance_components(...)`). Visualización en `dashboard/maintenance/page.js` (indicadores + modal de detalle).
+
 ---
 
 ## Onboarding Express (Excel) + Invitación de tripulantes

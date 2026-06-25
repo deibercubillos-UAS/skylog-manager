@@ -15,12 +15,14 @@ const TYPE_LABELS = {
   health:    'SALUD',
   preflight: 'PRE-VUELO',
   briefing:  'BRIEFING',
+  maintenance_return: 'RECIBO MTTO',
 };
 
 const TYPE_HINTS = {
   health:    'Solicitar chequeo médico del piloto antes de cada vuelo',
   preflight: 'Exigir la inspección física de la aeronave antes de despegar',
   briefing:  'Exigir el briefing de la misión antes de autorizar el vuelo',
+  maintenance_return: 'Lista de verificación al recibir el dron tras un mantenimiento',
 };
 
 export default function FormSettingsClient({ initialData }) {
@@ -38,7 +40,7 @@ export default function FormSettingsClient({ initialData }) {
         briefing:  initialData.briefingEnabled ?? true,
     });
 
-    const LIMITS = { health: 30, briefing: 50, preflight: 70 };
+    const LIMITS = { health: 30, briefing: 50, preflight: 70, maintenance_return: 30 };
 
     // Solo se dispara cuando el usuario CAMBIA de pestaña, no al cargar la página
     useEffect(() => {
@@ -142,7 +144,7 @@ export default function FormSettingsClient({ initialData }) {
 
             <div className="flex flex-col gap-4">
                 <div className="flex bg-slate-200/50 p-1.5 rounded-2xl w-full md:w-fit overflow-x-auto custom-scrollbar">
-                    {[{ id: 'health', label: 'SALUD' }, { id: 'preflight', label: 'PRE-VUELO' }, { id: 'briefing', label: 'BRIEFING' }].map(t => (
+                    {[{ id: 'health', label: 'SALUD' }, { id: 'preflight', label: 'PRE-VUELO' }, { id: 'briefing', label: 'BRIEFING' }, { id: 'maintenance_return', label: 'RECIBO MTTO' }].map(t => (
                         <button
                             key={t.id}
                             onClick={() => setType(t.id)}
@@ -172,21 +174,28 @@ export default function FormSettingsClient({ initialData }) {
                 <div className="p-20 text-center font-black animate-pulse text-slate-400 uppercase tracking-widest">Cambiando Protocolo...</div>
             ) : (
                 <>
-                    {/* Toggle de activación — disponible para los 3 protocolos */}
-                    <div className="flex items-center justify-between bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-                        <div className="pr-4">
-                            <p className="text-xs font-black text-slate-900 uppercase">Activar Protocolo {TYPE_LABELS[type]}</p>
-                            <p className="text-xs text-slate-500 mt-1 uppercase font-bold">{TYPE_HINTS[type]}</p>
+                    {/* Toggle de activación — solo para protocolos con columna de activación en organizations */}
+                    {ENABLE_COLUMN[type] ? (
+                        <div className="flex items-center justify-between bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+                            <div className="pr-4">
+                                <p className="text-xs font-black text-slate-900 uppercase">Activar Protocolo {TYPE_LABELS[type]}</p>
+                                <p className="text-xs text-slate-500 mt-1 uppercase font-bold">{TYPE_HINTS[type]}</p>
+                            </div>
+                            <button
+                                onClick={() => toggleEnabled(type)}
+                                className={`px-6 py-3 rounded-xl text-xs font-black uppercase transition-all ${enabled[type] ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}
+                            >
+                                {enabled[type] ? 'ON' : 'OFF'}
+                            </button>
                         </div>
-                        <button
-                            onClick={() => toggleEnabled(type)}
-                            className={`px-6 py-3 rounded-xl text-xs font-black uppercase transition-all ${enabled[type] ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}
-                        >
-                            {enabled[type] ? 'ON' : 'OFF'}
-                        </button>
-                    </div>
+                    ) : (
+                        <div className="flex items-center gap-3 bg-orange-50 p-6 rounded-[2rem] border border-orange-100">
+                            <span className="material-symbols-outlined text-orange-500">build</span>
+                            <p className="text-xs text-slate-600 uppercase font-bold">{TYPE_HINTS[type]}</p>
+                        </div>
+                    )}
 
-                    <div className={`bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden transition-opacity ${enabled[type] ? '' : 'opacity-50'}`}>
+                    <div className={`bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden transition-opacity ${(ENABLE_COLUMN[type] ? enabled[type] : true) ? '' : 'opacity-50'}`}>
                         <div className="hidden md:flex p-4 bg-slate-50 border-b justify-between px-10 text-xs font-black text-slate-400 uppercase">
                             <span>Posición (Slot)</span>
                             <span>Descripción del Requerimiento Técnico</span>

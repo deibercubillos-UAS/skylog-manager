@@ -11,33 +11,56 @@ export default function MaintenancePage() {
     const [showAdd, setShowAdd]   = useState(false);
     const [userRole, setUserRole] = useState(null);
     const [loadingDoc, setLoadingDoc] = useState(null); // id del log abriendo
+    const [returnLabels, setReturnLabels] = useState({}); // { field_number: label_text }
+    const [detailLog, setDetailLog] = useState(null);     // log mostrado en el modal de recibo
 
     const loadData = async () => {
         const { data: { user } } = await supabase.auth.getUser();
-        const [profRes, logsRes] = await Promise.all([
-            supabase.from('profiles').select('role').eq('id', user.id).single(),
+        const { data: prof } = await supabase
+            .from('profiles').select('role,organization_id').eq('id', user.id).single();
+        setUserRole(prof?.role || null);
+
+        const [logsRes, defsRes] = await Promise.all([
             fetch('/api/maintenance').then(r => r.json()),
+            prof?.organization_id
+                ? supabase.from('form_definitions')
+                    .select('field_number,label_text')
+                    .eq('organization_id', prof.organization_id)
+                    .eq('form_type', 'maintenance_return')
+                    .eq('aircraft_model', 'General')
+                : Promise.resolve({ data: [] }),
         ]);
-        setUserRole(profRes.data?.role || null);
+
         setLogs(Array.isArray(logsRes) ? logsRes : []);
+        const map = {};
+        (defsRes.data || []).forEach(d => { map[d.field_number] = d.label_text; });
+        setReturnLabels(map);
         setLoading(false);
+    };
+
+    // Cuenta de ítems marcados OK sobre el total respondido del recibo
+    const checklistStats = (cl) => {
+        if (!cl || typeof cl !== 'object') return null;
+        const entries = Object.values(cl);
+        if (entries.length === 0) return null;
+        return { ok: entries.filter(v => v === true).length, total: entries.length };
     };
 
     useEffect(() => { loadData(); }, []);
 
     const canManage = hasPermission(userRole, 'canManageOps');
 
-    // ── Abrir adjunto con signed URL (1 hora de validez) ──────────────────
-    const openAttachment = useCallback(async (log) => {
-        if (!log.attachment_path) return;
-        setLoadingDoc(log.id);
+    // ── Abrir documento (adjunto o recibo) con signed URL (1 hora) ────────
+    const openDoc = useCallback(async (path, key) => {
+        if (!path) return;
+        setLoadingDoc(key);
         try {
-            const res = await fetch(`/api/maintenance/attachment?path=${encodeURIComponent(log.attachment_path)}`);
+            const res = await fetch(`/api/maintenance/attachment?path=${encodeURIComponent(path)}`);
             if (!res.ok) throw new Error('No se pudo generar el enlace.');
             const { signedUrl } = await res.json();
             window.open(signedUrl, '_blank', 'noopener,noreferrer');
         } catch {
-            toast.error('No se pudo cargar el documento adjunto.');
+            toast.error('No se pudo cargar el documento.');
         } finally {
             setLoadingDoc(null);
         }
@@ -105,18 +128,53 @@ export default function MaintenancePage() {
                                 )}
                             </div>
 
-                            {/* Adjunto */}
-                            {log.attachment_path && (
-                                <button
-                                    onClick={() => openAttachment(log)}
-                                    disabled={loadingDoc === log.id}
-                                    className="flex items-center gap-1 text-xs font-black text-orange-600 hover:text-orange-800 transition-colors disabled:opacity-50">
-                                    <span className="material-symbols-outlined text-sm">
-                                        {loadingDoc === log.id ? 'hourglass_empty' : 'attach_file'}
-                                    </span>
-                                    {loadingDoc === log.id ? 'Cargando...' : 'Ver documento'}
-                                </button>
-                            )}
+                            <div className="flex items-center gap-4">
+                                {/* Adjunto */}
+                                {log.attachment_path && (
+                                    <button
+                                        onClick={() => openDoc(log.attachment_path, log.id)}
+                                        disabled={loadingDoc === log.id}
+                                        className="flex items-center gap-1 text-xs font-black text-orange-600 hover:text-orange-800 transition-colors disabled:opacity-50">
+                                        <span className="material-symbols-outlined text-sm">
+                                            {loadingDoc === log.id ? 'hourglass_empty' : 'attach_file'}
+                                        </span>
+                                        {loadingDoc === log.id ? 'Cargando...' : 'Ver documento'}
+                                    </button>
+                                )}
+
+                                {/* Recibo PDF */}
+                                {log.return_doc_path && (
+                                    <button
+                                        onClick={() => openDoc(log.return_doc_path, log.id + ':recibo')}
+                                        disabled={loadingDoc === log.id + ':recibo'}
+                                        className="flex items-center gap-1 text-xs font-black text-emerald-600 hover:text-emerald-800 transition-colors disabled:opacity-50">
+                                        <span className="material-symbols-outlined text-sm">
+                                            {loadingDoc === log.id + ':recibo' ? 'hourglass_empty' : 'picture_as_pdf'}
+                                        </span>
+                                        {loadingDoc === log.id + ':recibo' ? 'Cargando...' : 'Ver recibo'}
+                                    </button>
+                                )}
+
+                                {/* Recibo de mantenimiento */}
+                                {checklistStats(log.return_checklist) && (
+                                    <button
+                                        onClick={() => setDetailLog(log)}
+                                        className="flex items-center gap-1 text-xs font-black text-emerald-600 hover:text-emerald-800 transition-colors">
+                                        <span className="material-symbols-outlined text-sm">fact_check</span>
+                                        Recibo {checklistStats(log.return_checklist).ok}/{checklistStats(log.return_checklist).total}
+                                    </button>
+                                )}
+
+                                {/* Componentes cambiados */}
+                                {log.components?.length > 0 && (
+                                    <button
+                                        onClick={() => setDetailLog(log)}
+                                        className="flex items-center gap-1 text-xs font-black text-amber-600 hover:text-amber-800 transition-colors">
+                                        <span className="material-symbols-outlined text-sm">memory</span>
+                                        Componentes ({log.components.length})
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -133,12 +191,13 @@ export default function MaintenancePage() {
                                 <th className="px-6 py-5">Técnico</th>
                                 <th className="px-6 py-5">Descripción</th>
                                 <th className="px-6 py-5">Adjunto</th>
+                                <th className="px-6 py-5">Recibo</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-sm">
                             {logs.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-16 text-center text-xs font-black text-slate-300 uppercase tracking-widest">
+                                    <td colSpan={8} className="px-6 py-16 text-center text-xs font-black text-slate-300 uppercase tracking-widest">
                                         Sin registros técnicos
                                     </td>
                                 </tr>
@@ -167,17 +226,59 @@ export default function MaintenancePage() {
                                         {log.description}
                                     </td>
                                     <td className="px-6 py-5">
-                                        {log.attachment_path ? (
-                                            <button
-                                                onClick={() => openAttachment(log)}
-                                                disabled={loadingDoc === log.id}
-                                                className="flex items-center gap-1 text-xs font-black text-orange-600 hover:text-orange-800 transition-colors disabled:opacity-50"
-                                                title="Ver documento adjunto">
-                                                <span className="material-symbols-outlined text-base">
-                                                    {loadingDoc === log.id ? 'hourglass_empty' : 'attach_file'}
-                                                </span>
-                                                {loadingDoc === log.id ? '...' : 'Ver'}
-                                            </button>
+                                        {(log.attachment_path || log.return_doc_path) ? (
+                                            <div className="flex flex-col gap-1.5 items-start">
+                                                {log.attachment_path && (
+                                                    <button
+                                                        onClick={() => openDoc(log.attachment_path, log.id)}
+                                                        disabled={loadingDoc === log.id}
+                                                        className="flex items-center gap-1 text-xs font-black text-orange-600 hover:text-orange-800 transition-colors disabled:opacity-50"
+                                                        title="Ver documento adjunto">
+                                                        <span className="material-symbols-outlined text-base">
+                                                            {loadingDoc === log.id ? 'hourglass_empty' : 'attach_file'}
+                                                        </span>
+                                                        {loadingDoc === log.id ? '...' : 'Adjunto'}
+                                                    </button>
+                                                )}
+                                                {log.return_doc_path && (
+                                                    <button
+                                                        onClick={() => openDoc(log.return_doc_path, log.id + ':recibo')}
+                                                        disabled={loadingDoc === log.id + ':recibo'}
+                                                        className="flex items-center gap-1 text-xs font-black text-emerald-600 hover:text-emerald-800 transition-colors disabled:opacity-50"
+                                                        title="Ver recibo (PDF)">
+                                                        <span className="material-symbols-outlined text-base">
+                                                            {loadingDoc === log.id + ':recibo' ? 'hourglass_empty' : 'picture_as_pdf'}
+                                                        </span>
+                                                        {loadingDoc === log.id + ':recibo' ? '...' : 'Recibo'}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-slate-200 select-none">—</span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-5">
+                                        {(checklistStats(log.return_checklist) || log.components?.length > 0) ? (
+                                            <div className="flex flex-col gap-1.5 items-start">
+                                                {checklistStats(log.return_checklist) && (
+                                                    <button
+                                                        onClick={() => setDetailLog(log)}
+                                                        className="flex items-center gap-1 text-xs font-black text-emerald-600 hover:text-emerald-800 transition-colors"
+                                                        title="Ver recibo de mantenimiento">
+                                                        <span className="material-symbols-outlined text-base">fact_check</span>
+                                                        {checklistStats(log.return_checklist).ok}/{checklistStats(log.return_checklist).total}
+                                                    </button>
+                                                )}
+                                                {log.components?.length > 0 && (
+                                                    <button
+                                                        onClick={() => setDetailLog(log)}
+                                                        className="flex items-center gap-1 text-xs font-black text-amber-600 hover:text-amber-800 transition-colors"
+                                                        title="Ver componentes cambiados">
+                                                        <span className="material-symbols-outlined text-base">memory</span>
+                                                        {log.components.length} comp.
+                                                    </button>
+                                                )}
+                                            </div>
                                         ) : (
                                             <span className="text-slate-200 select-none">—</span>
                                         )}
@@ -193,6 +294,75 @@ export default function MaintenancePage() {
                 <AddMaintenancePanel
                     onClose={() => setShowAdd(false)}
                     onSuccess={() => { setShowAdd(false); loadData(); }} />
+            )}
+
+            {/* Modal de detalle del recibo de mantenimiento */}
+            {detailLog && (
+                <div className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                    onClick={() => setDetailLog(null)}>
+                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col"
+                        onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0">
+                            <div>
+                                <h3 className="text-base font-black uppercase tracking-tight text-slate-900">Recibo de Mantenimiento</h3>
+                                <p className="text-xs font-bold text-slate-400 mt-0.5">
+                                    {detailLog.aircraft?.model} · {new Date(detailLog.created_at).toLocaleDateString()}
+                                </p>
+                            </div>
+                            <button onClick={() => setDetailLog(null)}
+                                className="size-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all active:scale-95">
+                                <span className="material-symbols-outlined text-lg">close</span>
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
+                            {/* Checklist de recibo */}
+                            {checklistStats(detailLog.return_checklist) && (
+                                <div className="space-y-2">
+                                    <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Checklist de recibo</p>
+                                    {Object.entries(detailLog.return_checklist || {})
+                                        .sort((a, b) => Number(a[0]) - Number(b[0]))
+                                        .map(([num, val]) => (
+                                        <div key={num} className="flex items-center gap-3">
+                                            <span className={`material-symbols-outlined text-lg ${val === true ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                {val === true ? 'check_circle' : 'cancel'}
+                                            </span>
+                                            <span className="text-xs font-bold text-slate-600 flex-1">
+                                                {returnLabels[num] || `Ítem ${num}`}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Componentes cambiados */}
+                            {detailLog.components?.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Componentes cambiados</p>
+                                    {detailLog.components.map((c, i) => (
+                                        <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-black text-slate-800 uppercase">{c.component_type}</span>
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                                                    c.action === 'reemplazado' ? 'bg-amber-100 text-amber-700'
+                                                    : c.action === 'instalado' ? 'bg-emerald-100 text-emerald-700'
+                                                    : 'bg-slate-200 text-slate-600'
+                                                }`}>{c.action}</span>
+                                            </div>
+                                            {(c.part_old || c.part_new) && (
+                                                <p className="text-[11px] font-mono text-slate-500 mt-1">
+                                                    {c.part_old && <>Sale: <span className="text-slate-700">{c.part_old}</span></>}
+                                                    {c.part_old && c.part_new && ' → '}
+                                                    {c.part_new && <>Entra: <span className="text-slate-700">{c.part_new}</span></>}
+                                                </p>
+                                            )}
+                                            {c.notes && <p className="text-xs text-slate-400 italic mt-1">{c.notes}</p>}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

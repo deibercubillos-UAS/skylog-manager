@@ -26,8 +26,11 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
   const [checklistDefs, setChecklistDefs] = useState([]);   // [{ field_number, label_text }]
   const [checklist, setChecklist]         = useState({});    // { field_number: true/false }
 
-  // Trazabilidad de componentes (Fase B)
-  const [components, setComponents] = useState([]);  // [{ component_type, action, part_old, part_new, notes }]
+  // Componentes: roster activo de la aeronave + cambios del técnico
+  const [roster, setRoster]               = useState([]);   // [{ id, component_type, name, serial, used_hours, installed_at }]
+  const [rosterLoading, setRosterLoading] = useState(false);
+  const [rosterChanges, setRosterChanges] = useState({});   // { [id]: { action, part_new } }
+  const [newComps, setNewComps]           = useState([]);   // [{ component_type, name, serial }]
 
   // PDF de recibo / puesta en servicio (Fase C)
   const [returnDoc, setReturnDoc]           = useState(null);
@@ -76,15 +79,40 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
 
   // ── Helpers de componentes ────────────────────────────────────────────────
   const COMPONENT_TYPES = [
-    'Hélice', 'Motor', 'Gimbal', 'Cámara', 'Batería', 'ESC',
+    'Hélices', 'Motores', 'ESC', 'Gimbal', 'Cámara', 'Batería',
     'Brazo', 'Tren de aterrizaje', 'Antena', 'Tarjeta de memoria', 'Otro',
   ];
-  const addComponent = () =>
-    setComponents(prev => [...prev, { component_type: '', action: 'reemplazado', part_old: '', part_new: '', notes: '' }]);
-  const updateComponent = (idx, field, value) =>
-    setComponents(prev => prev.map((c, i) => (i === idx ? { ...c, [field]: value } : c)));
-  const removeComponent = (idx) =>
-    setComponents(prev => prev.filter((_, i) => i !== idx));
+
+  // Cargar el roster activo al elegir/cambiar la aeronave
+  useEffect(() => {
+    if (!form.aircraft_id) { setRoster([]); setRosterChanges({}); return; }
+    let cancelled = false;
+    (async () => {
+      setRosterLoading(true);
+      try {
+        const res = await fetch(`/api/maintenance/components?aircraft_id=${form.aircraft_id}`);
+        const data = await res.json();
+        if (!cancelled) { setRoster(Array.isArray(data?.active) ? data.active : []); setRosterChanges({}); }
+      } catch {
+        if (!cancelled) setRoster([]);
+      } finally {
+        if (!cancelled) setRosterLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [form.aircraft_id]);
+
+  const setRosterAction = (id, action) =>
+    setRosterChanges(prev => ({ ...prev, [id]: { ...prev[id], action } }));
+  const setRosterPartNew = (id, part_new) =>
+    setRosterChanges(prev => ({ ...prev, [id]: { ...prev[id], part_new } }));
+
+  const addNewComp = () =>
+    setNewComps(prev => [...prev, { component_type: '', name: '', serial: '' }]);
+  const updateNewComp = (idx, field, value) =>
+    setNewComps(prev => prev.map((c, i) => (i === idx ? { ...c, [field]: value } : c)));
+  const removeNewComp = (idx) =>
+    setNewComps(prev => prev.filter((_, i) => i !== idx));
 
   // ── Validación de archivo ────────────────────────────────────────────────
   const validateAndSetFile = (f) => {
@@ -200,7 +228,16 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
           attachment_path,
           return_doc_path,
           return_checklist: checklistDefs.length > 0 ? checklist : null,
-          components: components.filter(c => c.component_type && c.action),
+          components: [
+            // Cambios sobre componentes existentes (reemplazado / removido)
+            ...Object.entries(rosterChanges)
+              .filter(([, ch]) => ch?.action === 'reemplazado' || ch?.action === 'removido')
+              .map(([roster_id, ch]) => ({ roster_id, action: ch.action, part_new: ch.part_new || null })),
+            // Componentes nuevos instalados
+            ...newComps
+              .filter(c => c.component_type)
+              .map(c => ({ action: 'instalado', component_type: c.component_type, name: c.name || null, serial: c.serial || null })),
+          ],
         }),
       });
 
@@ -349,45 +386,86 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
             </div>
           )}
 
-          {/* ── Trazabilidad de componentes (opcional) ────────────────── */}
-          <div className="pt-2">
-            <div className="flex items-center justify-between ml-1">
-              <label className="text-xs font-black text-slate-400 uppercase">
-                Componentes cambiados
-                <span className="normal-case font-medium text-slate-300 ml-1">(opcional)</span>
+          {/* ── Componentes: roster vivo + cambios ─────────────────────── */}
+          {form.aircraft_id && (
+            <div className="pt-2 space-y-3">
+              <label className="text-xs font-black text-slate-400 uppercase ml-1">
+                Componentes de la aeronave
               </label>
-              <button type="button" onClick={addComponent}
-                className="flex items-center gap-1 text-xs font-black text-orange-600 hover:text-orange-800 transition-colors">
-                <span className="material-symbols-outlined text-sm">add_circle</span>
-                Añadir
-              </button>
-            </div>
 
-            <div className="mt-2 space-y-3">
-              {components.length === 0 && (
-                <p className="text-xs text-slate-300 font-bold italic ml-1">
-                  Registra aquí cualquier componente instalado, removido o reemplazado.
-                </p>
+              {rosterLoading ? (
+                <p className="text-xs text-slate-300 font-bold italic ml-1 animate-pulse">Cargando componentes...</p>
+              ) : roster.length === 0 ? (
+                <p className="text-xs text-slate-300 font-bold italic ml-1">Sin componentes registrados.</p>
+              ) : (
+                <div className="space-y-2">
+                  {roster.map(rc => {
+                    const ch = rosterChanges[rc.id] || {};
+                    const action = ch.action || 'sin_cambio';
+                    return (
+                      <div key={rc.id} className={`p-3 rounded-xl border space-y-2 transition-all ${
+                        action === 'reemplazado' ? 'bg-amber-50 border-amber-200'
+                        : action === 'removido' ? 'bg-red-50 border-red-200'
+                        : 'bg-slate-50 border-slate-100'
+                      }`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-xs font-black text-slate-800 uppercase truncate">
+                              {rc.name || rc.component_type}
+                              {rc.serial && <span className="font-mono font-normal text-slate-400 ml-1">· {rc.serial}</span>}
+                            </p>
+                            <p className="text-[11px] font-bold text-orange-600">
+                              {Number(rc.used_hours).toFixed(1)}h
+                              <span className="text-slate-400 font-medium ml-1">
+                                · {Math.max(0, Math.floor((Date.now() - new Date(rc.installed_at).getTime()) / 86400000))}d de uso
+                              </span>
+                            </p>
+                          </div>
+                          <select
+                            className="p-2 bg-white rounded-lg border border-slate-200 font-bold text-xs shrink-0"
+                            value={action}
+                            onChange={e => setRosterAction(rc.id, e.target.value)}>
+                            <option value="sin_cambio">Sin cambio</option>
+                            <option value="reemplazado">Reemplazado</option>
+                            <option value="removido">Removido</option>
+                          </select>
+                        </div>
+                        {action === 'reemplazado' && (
+                          <input
+                            className="w-full p-2.5 bg-white rounded-lg border border-slate-200 text-xs font-medium"
+                            placeholder="Serial del componente entrante (opcional)"
+                            value={ch.part_new || ''}
+                            onChange={e => setRosterPartNew(rc.id, e.target.value)} />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
-              {components.map((c, idx) => (
+
+              {/* Componentes nuevos a instalar */}
+              <div className="flex items-center justify-between ml-1 pt-1">
+                <span className="text-xs font-black text-slate-400 uppercase">
+                  Agregar componente
+                  <span className="normal-case font-medium text-slate-300 ml-1">(opcional)</span>
+                </span>
+                <button type="button" onClick={addNewComp}
+                  className="flex items-center gap-1 text-xs font-black text-orange-600 hover:text-orange-800 transition-colors">
+                  <span className="material-symbols-outlined text-sm">add_circle</span>
+                  Añadir
+                </button>
+              </div>
+              {newComps.map((c, idx) => (
                 <div key={idx} className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-2">
                   <div className="flex gap-2">
                     <select
                       className="flex-1 p-2.5 bg-white rounded-lg border border-slate-200 font-bold text-xs"
                       value={c.component_type}
-                      onChange={e => updateComponent(idx, 'component_type', e.target.value)}>
-                      <option value="">Componente...</option>
+                      onChange={e => updateNewComp(idx, 'component_type', e.target.value)}>
+                      <option value="">Tipo de componente...</option>
                       {COMPONENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
-                    <select
-                      className="p-2.5 bg-white rounded-lg border border-slate-200 font-bold text-xs"
-                      value={c.action}
-                      onChange={e => updateComponent(idx, 'action', e.target.value)}>
-                      <option value="reemplazado">Reemplazado</option>
-                      <option value="instalado">Instalado</option>
-                      <option value="removido">Removido</option>
-                    </select>
-                    <button type="button" onClick={() => removeComponent(idx)}
+                    <button type="button" onClick={() => removeNewComp(idx)}
                       className="shrink-0 size-9 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-red-500 transition-colors">
                       <span className="material-symbols-outlined text-base">delete</span>
                     </button>
@@ -395,24 +473,19 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       className="p-2.5 bg-white rounded-lg border border-slate-200 text-xs font-medium"
-                      placeholder="Serial saliente"
-                      value={c.part_old}
-                      onChange={e => updateComponent(idx, 'part_old', e.target.value)} />
+                      placeholder="Nombre / etiqueta"
+                      value={c.name}
+                      onChange={e => updateNewComp(idx, 'name', e.target.value)} />
                     <input
                       className="p-2.5 bg-white rounded-lg border border-slate-200 text-xs font-medium"
-                      placeholder="Serial entrante"
-                      value={c.part_new}
-                      onChange={e => updateComponent(idx, 'part_new', e.target.value)} />
+                      placeholder="Serial (opcional)"
+                      value={c.serial}
+                      onChange={e => updateNewComp(idx, 'serial', e.target.value)} />
                   </div>
-                  <input
-                    className="w-full p-2.5 bg-white rounded-lg border border-slate-200 text-xs font-medium"
-                    placeholder="Notas (opcional)"
-                    value={c.notes}
-                    onChange={e => updateComponent(idx, 'notes', e.target.value)} />
                 </div>
               ))}
             </div>
-          </div>
+          )}
 
           {/* ── Adjunto opcional ──────────────────────────────────────── */}
           <div>

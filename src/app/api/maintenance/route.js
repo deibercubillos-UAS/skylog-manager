@@ -66,24 +66,93 @@ export async function POST(request) {
             last_maintenance_hours: body.hours_at_service
         }).eq('id', body.aircraft_id).eq('organization_id', orgId);
 
-        // 3. Trazabilidad de componentes (Fase B) — solo si llegan filas válidas
-        const ACTIONS = ['instalado', 'removido', 'reemplazado'];
+        // 3. Trazabilidad + vida útil de componentes
+        //    Cada cambio: registra el evento (maintenance_components) y actualiza el
+        //    roster vivo (aircraft_components) para que el contador de horas/días
+        //    se reinicie SOLO en el componente afectado.
         if (Array.isArray(body.components) && body.components.length > 0) {
-            const rows = body.components
-                .filter(c => c && c.component_type && ACTIONS.includes(c.action))
-                .map(c => ({
-                    organization_id:    orgId,
-                    maintenance_log_id: log.id,
-                    aircraft_id:        body.aircraft_id,
-                    component_type:     String(c.component_type).slice(0, 120),
-                    action:             c.action,
-                    part_old:           c.part_old ? String(c.part_old).slice(0, 200) : null,
-                    part_new:           c.part_new ? String(c.part_new).slice(0, 200) : null,
-                    notes:              c.notes ? String(c.notes).slice(0, 500) : null,
-                }));
-            if (rows.length > 0) {
-                const { error: cErr } = await supabase.from('maintenance_components').insert(rows);
-                if (cErr) console.error('[maintenance] components insert error:', cErr.message);
+            // Odómetro actual de la aeronave (base del conteo por componente)
+            const { data: air } = await supabase
+                .from('aircraft')
+                .select('total_hours')
+                .eq('id', body.aircraft_id)
+                .eq('organization_id', orgId)
+                .single();
+            const odo = parseFloat(air?.total_hours || 0);
+            const nowIso = new Date().toISOString();
+
+            const clip = (v, n) => (v ? String(v).slice(0, n) : null);
+
+            for (const c of body.components) {
+                if (!c) continue;
+
+                // ── Cambio sobre un componente existente del roster ──────────
+                if (c.roster_id && (c.action === 'reemplazado' || c.action === 'removido')) {
+                    const { data: existing } = await supabase
+                        .from('aircraft_components')
+                        .select('id,component_type,name,serial')
+                        .eq('id', c.roster_id)
+                        .eq('organization_id', orgId)
+                        .eq('aircraft_id', body.aircraft_id)
+                        .eq('status', 'activo')
+                        .single();
+                    if (!existing) continue;
+
+                    // Retirar el componente saliente (congela sus horas)
+                    await supabase.from('aircraft_components')
+                        .update({ status: 'retirado', retired_at: nowIso, retired_at_aircraft_hours: odo })
+                        .eq('id', existing.id).eq('organization_id', orgId);
+
+                    // Evento de trazabilidad
+                    await supabase.from('maintenance_components').insert([{
+                        organization_id:    orgId,
+                        maintenance_log_id: log.id,
+                        aircraft_id:        body.aircraft_id,
+                        component_type:     existing.component_type,
+                        action:             c.action,
+                        part_old:           existing.serial || null,
+                        part_new:           c.action === 'reemplazado' ? clip(c.part_new, 200) : null,
+                        notes:              clip(c.notes, 500),
+                    }]);
+
+                    // Reemplazo → nueva instancia activa, contador en cero (desde el odómetro actual)
+                    if (c.action === 'reemplazado') {
+                        await supabase.from('aircraft_components').insert([{
+                            organization_id:             orgId,
+                            aircraft_id:                 body.aircraft_id,
+                            component_type:              existing.component_type,
+                            name:                        existing.name || null,
+                            serial:                      clip(c.part_new, 200),
+                            installed_at:                nowIso,
+                            installed_at_aircraft_hours: odo,
+                            maintenance_log_id:          log.id,
+                        }]);
+                    }
+                    continue;
+                }
+
+                // ── Instalación de un componente nuevo ───────────────────────
+                if (c.action === 'instalado' && c.component_type) {
+                    await supabase.from('aircraft_components').insert([{
+                        organization_id:             orgId,
+                        aircraft_id:                 body.aircraft_id,
+                        component_type:              clip(c.component_type, 120),
+                        name:                        clip(c.name, 120),
+                        serial:                      clip(c.serial, 200),
+                        installed_at:                nowIso,
+                        installed_at_aircraft_hours: odo,
+                        maintenance_log_id:          log.id,
+                    }]);
+                    await supabase.from('maintenance_components').insert([{
+                        organization_id:    orgId,
+                        maintenance_log_id: log.id,
+                        aircraft_id:        body.aircraft_id,
+                        component_type:     clip(c.component_type, 120),
+                        action:             'instalado',
+                        part_new:           clip(c.serial, 200),
+                        notes:              clip(c.notes, 500),
+                    }]);
+                }
             }
         }
 

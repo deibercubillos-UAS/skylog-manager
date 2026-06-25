@@ -22,7 +22,7 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
 
   // Trazabilidad de componentes (modal autocontenido)
   const [showTrace, setShowTrace] = useState(false);
-  const [trace, setTrace] = useState(null);          // null = sin cargar, [] = cargado vacío
+  const [trace, setTrace] = useState(null);          // null = sin cargar; { active, history }
   const [traceLoading, setTraceLoading] = useState(false);
 
   useEffect(() => {
@@ -41,9 +41,9 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
     try {
       const res = await fetch(`/api/maintenance/components?aircraft_id=${aircraft.id}`);
       const data = await res.json();
-      setTrace(Array.isArray(data) ? data : []);
+      setTrace({ active: data?.active || [], history: data?.history || [] });
     } catch {
-      setTrace([]);
+      setTrace({ active: [], history: [] });
     } finally {
       setTraceLoading(false);
     }
@@ -208,35 +208,64 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
               <span className="material-symbols-outlined text-lg">close</span>
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
             {traceLoading ? (
-              <p className="py-10 text-center text-xs font-black text-slate-300 uppercase tracking-widest animate-pulse">Cargando histórico...</p>
-            ) : !trace || trace.length === 0 ? (
-              <p className="py-10 text-center text-xs font-black text-slate-300 uppercase tracking-widest">Sin cambios de componentes registrados</p>
+              <p className="py-10 text-center text-xs font-black text-slate-300 uppercase tracking-widest animate-pulse">Cargando...</p>
             ) : (
-              <div className="space-y-3">
-                {trace.map(c => (
-                  <div key={c.id} className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-black text-slate-800 uppercase">{c.component_type}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase shrink-0 ${
-                        c.action === 'reemplazado' ? 'bg-amber-100 text-amber-700'
-                        : c.action === 'instalado' ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-slate-200 text-slate-600'
-                      }`}>{c.action}</span>
-                    </div>
-                    <p className="text-[11px] font-bold text-slate-400 mt-1">{new Date(c.created_at).toLocaleDateString()}</p>
-                    {(c.part_old || c.part_new) && (
-                      <p className="text-[11px] font-mono text-slate-500 mt-1.5">
-                        {c.part_old && <>Sale: <span className="text-slate-700">{c.part_old}</span></>}
-                        {c.part_old && c.part_new && ' → '}
-                        {c.part_new && <>Entra: <span className="text-slate-700">{c.part_new}</span></>}
-                      </p>
-                    )}
-                    {c.notes && <p className="text-xs text-slate-400 italic mt-1">{c.notes}</p>}
+              <>
+                {/* Componentes activos con vida útil */}
+                <div className="space-y-2">
+                  <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Componentes activos</p>
+                  {(!trace?.active || trace.active.length === 0) ? (
+                    <p className="text-xs font-bold text-slate-300 italic">Sin componentes activos</p>
+                  ) : trace.active.map(c => {
+                    const days = Math.max(0, Math.floor((Date.now() - new Date(c.installed_at).getTime()) / 86400000));
+                    return (
+                      <div key={c.id} className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-black text-slate-800 uppercase truncate">
+                            {c.name || c.component_type}
+                            {c.serial && <span className="font-mono font-normal text-slate-400 ml-1 text-xs">· {c.serial}</span>}
+                          </p>
+                          <p className="text-[11px] font-bold text-slate-400">Desde {new Date(c.installed_at).toLocaleDateString()}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-black text-orange-600">{Number(c.used_hours).toFixed(1)}h</p>
+                          <p className="text-[11px] font-bold text-slate-400">{days}d de uso</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Historial de cambios */}
+                {trace?.history?.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Historial de cambios</p>
+                    {trace.history.map(c => (
+                      <div key={c.id} className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-black text-slate-800 uppercase">{c.component_type}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase shrink-0 ${
+                            c.action === 'reemplazado' ? 'bg-amber-100 text-amber-700'
+                            : c.action === 'instalado' ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-slate-200 text-slate-600'
+                          }`}>{c.action}</span>
+                        </div>
+                        <p className="text-[11px] font-bold text-slate-400 mt-1">{new Date(c.created_at).toLocaleDateString()}</p>
+                        {(c.part_old || c.part_new) && (
+                          <p className="text-[11px] font-mono text-slate-500 mt-1.5">
+                            {c.part_old && <>Sale: <span className="text-slate-700">{c.part_old}</span></>}
+                            {c.part_old && c.part_new && ' → '}
+                            {c.part_new && <>Entra: <span className="text-slate-700">{c.part_new}</span></>}
+                          </p>
+                        )}
+                        {c.notes && <p className="text-xs text-slate-400 italic mt-1">{c.notes}</p>}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )}
           </div>
         </div>

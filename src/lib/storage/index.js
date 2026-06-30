@@ -25,6 +25,14 @@ function s3() {
         accessKeyId: process.env.R2_ACCESS_KEY_ID,
         secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
       },
+      // ⚠️ @aws-sdk/client-s3 ≥3.729 añade por defecto un checksum CRC32 a las
+      // PETICIONES PREFIRMADAS (x-amz-checksum-crc32 = checksum del cuerpo VACÍO).
+      // El navegador sube el archivo real → el checksum no coincide → R2 responde
+      // 400 (sin cabeceras CORS → el navegador lo reporta como error CORS) y la
+      // subida directa falla. R2 no soporta este flujo. Forzar WHEN_REQUIRED hace
+      // que la URL prefirmada NO incluya el checksum y el PUT del navegador funcione.
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
     });
   }
   return _s3;

@@ -1,16 +1,26 @@
 import { NextResponse } from 'next/server';
 import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
-import { storageSignedUrl } from '@/lib/storage';
+import { storageDownload } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
 const BUCKET = 'documents';
 
+const MIME = {
+  pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+  webp: 'image/webp', gif: 'image/gif', heic: 'image/heic', heif: 'image/heif',
+  svg: 'image/svg+xml',
+};
+function mimeFor(key) {
+  const ext = key.split('.').pop()?.toLowerCase();
+  return MIME[ext] || 'application/octet-stream';
+}
+
 // GET /api/documents/open?path=<orgId>/crew/docs/x.pdf
-// Valida que el path pertenezca a la org del usuario y redirige (302) a una
-// signed URL fresca (1h). Sirve para <a href>, <img src> y links en PDF —
-// el enlace nunca expira porque resuelve al vuelo. Bucket `documents` privado.
+// Valida que el path pertenezca a la org del usuario y SIRVE el archivo por
+// streaming desde el servidor (mismo origen). No redirige a R2 → inmune a
+// extensiones/CORS que bloqueen cloudflarestorage.com. Bucket `documents` privado.
 export async function GET(request) {
   try {
     const supabase = await createClientSSR();
@@ -29,16 +39,20 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 });
     }
 
-    const { data, error } = await storageSignedUrl({ bucket: BUCKET, key: path, expiresIn: 3600 });
-    if (error || !data?.signedUrl) {
+    const { data, error } = await storageDownload({ bucket: BUCKET, key: path });
+    if (error || !data) {
       return NextResponse.json({ error: 'Documento no encontrado' }, { status: 404 });
     }
 
-    const res = NextResponse.redirect(data.signedUrl, 302);
-    // Cache en el navegador 55 min (< 1h de validez de la signed URL).
-    // 'private' evita que proxies intermedios cacheen documentos de un usuario.
-    res.headers.set('Cache-Control', 'private, max-age=3300, immutable');
-    return res;
+    return new NextResponse(data, {
+      status: 200,
+      headers: {
+        'Content-Type': mimeFor(path),
+        'Content-Length': String(data.length),
+        // Cache privado en el navegador (no en proxies intermedios)
+        'Cache-Control': 'private, max-age=3300',
+      },
+    });
   } catch (err) {
     console.error('[documents/open]', err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });

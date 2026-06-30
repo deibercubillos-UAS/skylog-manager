@@ -50,7 +50,9 @@ export async function POST(request) {
       contentType: file.type || 'application/octet-stream',
     });
     if (error) {
-      return NextResponse.json({ error: 'No se pudo subir el archivo.' }, { status: 500 });
+      console.error('[storage/upload] storagePut error:', error?.name, '-', error?.message,
+        '| endpoint?', !!process.env.R2_ENDPOINT, '| key?', !!process.env.R2_ACCESS_KEY_ID, '| secret?', !!process.env.R2_SECRET_ACCESS_KEY);
+      return NextResponse.json({ error: 'No se pudo subir el archivo.', detail: error?.name || error?.message || 'unknown' }, { status: 500 });
     }
 
     const out = { key };

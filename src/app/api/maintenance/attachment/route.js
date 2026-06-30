@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
-import { storageRemove, storageSignedUrl } from '@/lib/storage';
+import { storageRemove, storageDownload } from '@/lib/storage';
+
+const MIME = {
+  pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+  webp: 'image/webp', heic: 'image/heic', heif: 'image/heif',
+};
+const mimeFor = (k) => MIME[k.split('.').pop()?.toLowerCase()] || 'application/octet-stream';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,10 +23,20 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Ruta inválida' }, { status: 400 });
     }
 
-    const { data, error } = await storageSignedUrl({ bucket: 'maintenance-docs', key: path, expiresIn: 3600 });
-    if (error || !data?.signedUrl) return NextResponse.json({ error: 'No se pudo generar el enlace.' }, { status: 500 });
+    // Servir por streaming desde el servidor (mismo origen) → inmune a
+    // extensiones/CORS que bloqueen cloudflarestorage.com.
+    const { data, error } = await storageDownload({ bucket: 'maintenance-docs', key: path });
+    if (error || !data) return NextResponse.json({ error: 'Documento no encontrado.' }, { status: 404 });
 
-    return NextResponse.json({ signedUrl: data.signedUrl });
+    return new NextResponse(data, {
+      status: 200,
+      headers: {
+        'Content-Type': mimeFor(path),
+        'Content-Length': String(data.length),
+        'Content-Disposition': 'inline',
+        'Cache-Control': 'private, max-age=3300',
+      },
+    });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

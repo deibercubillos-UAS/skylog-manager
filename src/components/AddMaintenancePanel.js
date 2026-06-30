@@ -11,7 +11,7 @@ const ALLOWED_TYPES = [
   'image/heic',
   'image/heif',
 ];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB (límite de subida proxy por Vercel)
 
 export default function AddMaintenancePanel({ onClose, onSuccess }) {
   const [drones, setDrones]       = useState([]);
@@ -125,7 +125,7 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
       return;
     }
     if (f.size > MAX_FILE_SIZE) {
-      setFileError('El archivo supera el límite de 10 MB.');
+      setFileError('El archivo supera el límite de 4 MB.');
       setFile(null);
       return;
     }
@@ -145,7 +145,7 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
       return;
     }
     if (f.size > MAX_FILE_SIZE) {
-      setReturnDocError('El archivo supera el límite de 10 MB.');
+      setReturnDocError('El archivo supera el límite de 4 MB.');
       setReturnDoc(null);
       return;
     }
@@ -173,20 +173,15 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
         const slug = Math.random().toString(36).slice(2, 10);
         const path = `orgs/${orgId}/${Date.now()}_${slug}.${ext}`;
 
-        const signRes = await fetch('/api/storage/sign-upload', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bucket: 'maintenance-docs', key: path, contentType: file.type }),
-        });
-        if (!signRes.ok) throw new Error('Error al preparar la subida del archivo.');
-
-        const { uploadUrl } = await signRes.json();
-        const putRes = await fetch(uploadUrl, {
-          method:  'PUT',
-          headers: { 'Content-Type': file.type },
-          body: file,
-        });
-        if (!putRes.ok) throw new Error('Error al subir el archivo a R2.');
+        const fd = new FormData();
+        fd.append('bucket', 'maintenance-docs');
+        fd.append('key', path);
+        fd.append('file', file);
+        const upRes = await fetch('/api/storage/upload', { method: 'POST', body: fd });
+        if (!upRes.ok) {
+          const er = await upRes.json().catch(() => ({}));
+          throw new Error(er.error || 'Error al subir el archivo.');
+        }
 
         attachment_path = path;
       }
@@ -197,20 +192,15 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
         const slug = Math.random().toString(36).slice(2, 10);
         const path = `orgs/${orgId}/recibo/${Date.now()}_${slug}.pdf`;
 
-        const signRes = await fetch('/api/storage/sign-upload', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bucket: 'maintenance-docs', key: path, contentType: 'application/pdf' }),
-        });
-        if (!signRes.ok) throw new Error('Error al preparar la subida del recibo.');
-
-        const { uploadUrl } = await signRes.json();
-        const putRes = await fetch(uploadUrl, {
-          method:  'PUT',
-          headers: { 'Content-Type': 'application/pdf' },
-          body: returnDoc,
-        });
-        if (!putRes.ok) throw new Error('Error al subir el recibo a R2.');
+        const fd = new FormData();
+        fd.append('bucket', 'maintenance-docs');
+        fd.append('key', path);
+        fd.append('file', returnDoc);
+        const upRes = await fetch('/api/storage/upload', { method: 'POST', body: fd });
+        if (!upRes.ok) {
+          const er = await upRes.json().catch(() => ({}));
+          throw new Error(er.error || 'Error al subir el recibo.');
+        }
 
         return_doc_path = path;
       }
@@ -531,7 +521,7 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
                   <span className="text-xs font-bold text-slate-400 text-center leading-relaxed">
                     Arrastra o toca para adjuntar
                     <br />
-                    <span className="font-medium text-slate-300">PDF · JPG · PNG · WebP · hasta 10 MB</span>
+                    <span className="font-medium text-slate-300">PDF · JPG · PNG · WebP · hasta 4 MB</span>
                   </span>
                 </>
               )}
@@ -587,7 +577,7 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
                   <span className="text-xs font-bold text-slate-400 text-center leading-relaxed">
                     Adjuntar acta de recibo (PDF)
                     <br />
-                    <span className="font-medium text-slate-300">Solo PDF · hasta 10 MB · se guarda en Cloudflare</span>
+                    <span className="font-medium text-slate-300">Solo PDF · hasta 4 MB · se guarda en Cloudflare</span>
                   </span>
                 </>
               )}

@@ -34,8 +34,9 @@ export async function POST(request) {
     if (!ALLOWED.has(bucket)) {
       return NextResponse.json({ error: 'Bucket no permitido' }, { status: 400 });
     }
-    // Aislamiento por organización (reemplaza la RLS de carpeta)
-    if (ORG_SCOPED.has(bucket) && !key.startsWith(`${orgId}/`)) {
+    // Aislamiento por organización (reemplaza la RLS de carpeta).
+    // Acepta `{orgId}/...` (documents, fleet-images) y `orgs/{orgId}/...` (maintenance-docs).
+    if (ORG_SCOPED.has(bucket) && !key.startsWith(`${orgId}/`) && !key.startsWith(`orgs/${orgId}/`)) {
       return NextResponse.json({ error: 'Ruta fuera de la organización' }, { status: 403 });
     }
     if (file.size > MAX_BYTES) {

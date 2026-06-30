@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { getOrgContext }   from '@/lib/apiAuth';
 import { PERMISSIONS }     from '@/lib/roles';
-import { storagePut, storageSignedUrl, storageRemove } from '@/lib/storage';
+import { storagePut, storageDownload, storageRemove } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,13 +85,19 @@ export async function GET(_req, { params }) {
       }
     }
 
-    const { data, error } = await storageSignedUrl({
-      bucket: BUCKET, key: flight.replay_path, expiresIn: 3600, // 1 hora
+    // Servir el replay por streaming desde el servidor (mismo origen) en vez de
+    // devolver una signed URL a R2 → inmune a extensiones/CORS que bloqueen R2.
+    const { data, error } = await storageDownload({ bucket: BUCKET, key: flight.replay_path });
+    if (error || !data) throw (error || new Error('Replay no encontrado'));
+
+    return new NextResponse(data, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/gzip',
+        'Content-Length': String(data.length),
+        'Cache-Control': 'private, max-age=3300',
+      },
     });
-
-    if (error) throw error;
-
-    return NextResponse.json({ signedUrl: data.signedUrl });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

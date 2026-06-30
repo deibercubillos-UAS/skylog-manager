@@ -50,20 +50,11 @@ export default function MaintenancePage() {
 
     const canManage = hasPermission(userRole, 'canManageOps');
 
-    // ── Abrir documento (adjunto o recibo) con signed URL (1 hora) ────────
-    const openDoc = useCallback(async (path, key) => {
+    // ── Abrir documento (adjunto o recibo) — streaming server-side, mismo origen ──
+    // El endpoint sirve el archivo directamente (inmune a extensiones/CORS de R2).
+    const openDoc = useCallback((path) => {
         if (!path) return;
-        setLoadingDoc(key);
-        try {
-            const res = await fetch(`/api/maintenance/attachment?path=${encodeURIComponent(path)}`);
-            if (!res.ok) throw new Error('No se pudo generar el enlace.');
-            const { signedUrl } = await res.json();
-            window.open(signedUrl, '_blank', 'noopener,noreferrer');
-        } catch {
-            toast.error('No se pudo cargar el documento.');
-        } finally {
-            setLoadingDoc(null);
-        }
+        window.open(`/api/maintenance/attachment?path=${encodeURIComponent(path)}`, '_blank', 'noopener,noreferrer');
     }, []);
 
     if (loading) return (

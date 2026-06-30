@@ -123,17 +123,14 @@ export default function FlightReplayModal({ open, onClose, flightId, hasReplay, 
     setState('loading');
     setProgress('Cargando replay guardado...');
     try {
+      // El endpoint sirve el .gz por streaming desde el servidor (mismo origen)
       const res = await fetch(`/api/flights/${flightId}/replay`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || 'No se pudo cargar el replay');
       }
-      const { signedUrl } = await res.json();
-      setProgress('Descargando datos...');
-      const blob = await fetch(signedUrl);
-      if (!blob.ok) throw new Error('Error al descargar el replay');
-      const buf  = await blob.arrayBuffer();
       setProgress('Descomprimiendo...');
+      const buf  = await res.arrayBuffer();
       const data = await gunzipJson(buf);
       setFlight(data);
       setFileName(flightLabel ?? 'replay guardado');

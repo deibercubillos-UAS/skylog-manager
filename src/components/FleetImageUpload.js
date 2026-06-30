@@ -5,7 +5,7 @@ import { toast } from '@/lib/toast';
 
 
 const ALLOWED_MIME = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
-const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_SIZE = 4 * 1024 * 1024; // 4 MB (límite de subida proxy por Vercel)
 const BUCKET = 'fleet-images';
 
 export default function FleetImageUpload({ onUploadSuccess }) {
@@ -21,7 +21,7 @@ export default function FleetImageUpload({ onUploadSuccess }) {
       return;
     }
     if (file.size > MAX_SIZE) {
-      toast.error('La imagen supera el límite de 5 MB.');
+      toast.error('La imagen supera el límite de 4 MB.');
       e.target.value = '';
       return;
     }
@@ -42,21 +42,18 @@ export default function FleetImageUpload({ onUploadSuccess }) {
       const slug = Math.random().toString(36).slice(2, 10);
       const path = `${profile.organization_id}/drones/${Date.now()}_${slug}.${ext}`;
 
-      const signRes = await fetch('/api/storage/sign-upload', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bucket: BUCKET, key: path, contentType: file.type }),
-      });
-      if (!signRes.ok) throw new Error('Error al preparar la subida de la imagen.');
+      // Subida PROXY por el servidor (mismo origen → sin CORS ni URL prefirmada)
+      const fd = new FormData();
+      fd.append('bucket', BUCKET);
+      fd.append('key', path);
+      fd.append('file', file);
+      const upRes = await fetch('/api/storage/upload', { method: 'POST', body: fd });
+      if (!upRes.ok) {
+        const e = await upRes.json().catch(() => ({}));
+        throw new Error(e.error || 'Error al subir la imagen.');
+      }
 
-      const { uploadUrl, publicUrl } = await signRes.json();
-      const putRes = await fetch(uploadUrl, {
-        method:  'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-      if (!putRes.ok) throw new Error('Error al subir la imagen a R2.');
-
+      const { publicUrl } = await upRes.json();
       onUploadSuccess(publicUrl);
       toast.success('Imagen actualizada.');
     } catch (err) {

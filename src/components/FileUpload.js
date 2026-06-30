@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 
 const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB (límite de subida proxy por Vercel)
 
 export default function FileUpload({ path, onUploadSuccess, label }) {
   const [uploading, setUploading] = useState(false);
@@ -22,9 +22,9 @@ export default function FileUpload({ path, onUploadSuccess, label }) {
         return;
       }
 
-      // Validación de tamaño (máx 10 MB)
+      // Validación de tamaño (máx 4 MB)
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        toast.error('El archivo supera el límite de 10 MB.');
+        toast.error('El archivo supera el límite de 4 MB.');
         event.target.value = '';
         return;
       }
@@ -54,21 +54,16 @@ export default function FileUpload({ path, onUploadSuccess, label }) {
       // Esto cumple con la política 'Folder_Isolation' que activamos en Supabase
       const filePath = `${orgId}/${path}/${fileName}`;
 
-      // 3. Subida prefirmada a R2
-      const signRes = await fetch('/api/storage/sign-upload', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bucket: BUCKET, key: filePath, contentType: file.type }),
-      });
-      if (!signRes.ok) throw new Error('Error al preparar la subida del archivo.');
-
-      const { uploadUrl } = await signRes.json();
-      const putRes = await fetch(uploadUrl, {
-        method:  'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-      if (!putRes.ok) throw new Error('Error al subir el archivo a R2.');
+      // 3. Subida PROXY por el servidor (mismo origen → sin CORS ni URL prefirmada)
+      const fd = new FormData();
+      fd.append('bucket', BUCKET);
+      fd.append('key', filePath);
+      fd.append('file', file);
+      const upRes = await fetch('/api/storage/upload', { method: 'POST', body: fd });
+      if (!upRes.ok) {
+        const e = await upRes.json().catch(() => ({}));
+        throw new Error(e.error || 'Error al subir el archivo.');
+      }
 
       // 4. Devolver el PATH del objeto (no URL pública). El bucket `documents`
       //    es privado: el acceso se hace vía /api/documents/open (signed URL).

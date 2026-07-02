@@ -283,6 +283,44 @@ Por vencer — las 4 son datos reales) y barra de filtros (búsqueda + rol + est
   momento de inscripción" y "Certificado de formación (institución)" (no son columnas de
   `pilots`), y "Parentesco" del contacto de emergencia (no existe esa columna).
 
+### Mantenimiento rediseñada (2026-07-02h)
+
+`dashboard/maintenance/page.js`: `PageHero` (slot derecho "Vencidos" + CTA "Registrar
+mantenimiento"), `KPIStrip variant="strip"` (Mantenim. este año / Al día / Próximos /
+Vencidos — **por aeronave**, no por intervención: se calculan sobre un fetch adicional de
+`aircraft` de la org, no solo sobre las intervenciones ya cargadas) y barra de filtros
+(búsqueda + estado + aeronave + tipo + "Ver flota"). Tabla: Aeronave / Tipo / Última
+realizada / Próxima prevista / Técnico / Estado, más una columna "Evidencia" (Adjunto /
+Recibo / Detalle) que no está en el mockup pero preserva funcionalidad real existente
+(streaming de adjuntos, recibo PDF, checklist de recibo, componentes cambiados — nada de
+eso se quitó).
+
+- **`dueStatus(aircraft)`** (helper local, misma fórmula que `AircraftCard.js`): calcula
+  `isDue`/`finalProgress` desde `total_hours`/`last_maintenance_hours`/`last_maintenance_date`
+  vs. `maintenance_interval_hours`/`_days` — un solo criterio de vencimiento en toda la app.
+  El bucket (`ok`/`soon`/`overdue`) es una propiedad de la **aeronave actual**, no de cada
+  registro histórico — todas las filas de una misma aeronave muestran el mismo Estado
+  (evita el absurdo de marcar "Vencido" un mantenimiento de hace un año que ya fue resuelto
+  por uno posterior).
+- **"Próxima prevista"**: usa `aircraft.next_maintenance_date` si el técnico la registró
+  explícitamente; si no, se **estima** como `last_maintenance_date + maintenance_interval_days`
+  (marcado "(estimado)" en la tabla) — no se inventa una proyección desde el intervalo en
+  horas de vuelo porque no hay una tasa de uso real para convertirlo a fecha calendario.
+  `aircraft.next_maintenance_date` es una columna real que existía sin usar; ahora
+  `POST /api/maintenance` la actualiza si el formulario la trae.
+- **`AddMaintenancePanel.js`** restyleado al layout de 2 columnas (hero navy + card blanca,
+  mismo patrón que `AddAircraftPanel`/`AddPilotPanel`), agregando 3 campos reales que antes
+  no se pedían: **Fecha realizada** (`maintenance_date`, iba a NULL, ahora se guarda), **Próxima
+  fecha prevista** (opcional, ver arriba) y **Estado tras servicio** (toggle
+  Operativo/Sigue en mantenimiento → `aircraft.operational_status`, antes solo editable desde
+  Flota). Se conservan intactos el checklist de recibo, el roster de componentes y los dos
+  drop-zones de archivo (adjunto + recibo PDF) — son funcionalidad real más completa que el
+  mockup, que solo tenía "Piezas o repuestos utilizados" (texto libre, sin columna real:
+  reemplazado por el sistema de componentes ya existente, no se agregó el campo del mockup).
+- `POST /api/maintenance`: acepta `maintenance_date` (default hoy), `next_maintenance_date`
+  (opcional) y `operational_status` (validado contra el mismo CHECK que `/api/fleet`) sin
+  tocar el comportamiento existente de reinicio de `last_maintenance_date`/`_hours`.
+
 ### Recibo post-mantenimiento + trazabilidad de componentes + PDF de recibo (2026-06-25)
 
 Registrado todo desde `AddMaintenancePanel` (web y APK; el APK toma los cambios por remote URL). Migraciones: `20260625_maintenance_return_checklist.sql`, `20260625_maintenance_components.sql`, `20260625_maintenance_return_doc.sql` (las 3 aplicadas en Supabase).

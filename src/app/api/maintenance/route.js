@@ -12,7 +12,7 @@ export async function GET() {
 
         const { data, error } = await supabase
             .from('maintenance_logs')
-            .select('id,aircraft_id,maintenance_type,description,hours_at_service,technician_name,created_at,attachment_path,return_checklist,return_doc_path,aircraft:aircraft_id(model,serial_number),components:maintenance_components(component_type,action,part_old,part_new,notes)')
+            .select('id,aircraft_id,maintenance_type,description,hours_at_service,technician_name,maintenance_date,created_at,attachment_path,return_checklist,return_doc_path,aircraft:aircraft_id(model,serial_number,maintenance_interval_hours,maintenance_interval_days,last_maintenance_date,next_maintenance_date,total_hours,operational_status,created_at),components:maintenance_components(component_type,action,part_old,part_new,notes)')
             .eq('organization_id', orgId)
             .order('created_at', { ascending: false })
             .limit(200);
@@ -52,6 +52,7 @@ export async function POST(request) {
             description:      body.description,
             hours_at_service: body.hours_at_service,
             technician_name:  body.technician_name,
+            maintenance_date: body.maintenance_date || today,
             organization_id:  orgId,
             attachment_path:  body.attachment_path || null,
             return_checklist: returnChecklist,
@@ -61,10 +62,19 @@ export async function POST(request) {
         if (mErr) throw mErr;
 
         // 2. REINICIAR CONTADORES EN EL DRONE (con filtro de org para evitar cross-tenant)
-        await supabase.from('aircraft').update({
+        const aircraftUpdate = {
             last_maintenance_date: today,
             last_maintenance_hours: body.hours_at_service
-        }).eq('id', body.aircraft_id).eq('organization_id', orgId);
+        };
+        if (['disponible', 'en_mantenimiento'].includes(body.operational_status)) {
+            aircraftUpdate.operational_status = body.operational_status;
+            aircraftUpdate.last_status_change = new Date().toISOString();
+        }
+        if (body.next_maintenance_date) {
+            aircraftUpdate.next_maintenance_date = body.next_maintenance_date;
+        }
+        await supabase.from('aircraft').update(aircraftUpdate)
+            .eq('id', body.aircraft_id).eq('organization_id', orgId);
 
         // 3. Trazabilidad + vida útil de componentes
         //    Cada cambio: registra el evento (maintenance_components) y actualiza el

@@ -24,13 +24,20 @@ create index if not exists idx_audit_log_org_created
 alter table public.audit_log enable row level security;
 
 -- SELECT: managers (admin/superadmin/gerente_sms/jefe_pilotos) de la misma org.
--- Reutiliza los helpers privados ya usados por otras tablas del proyecto.
+-- Mismos roles que PERMISSIONS.canViewAudit en src/lib/roles.js.
+-- El chequeo de rol va inline contra profiles (el usuario siempre puede leer su
+-- propia fila) en vez de depender de private.user_is_manager(), que no está
+-- versionada en este repo y no se puede garantizar su existencia/firma.
 drop policy if exists audit_log_select_managers on public.audit_log;
 create policy audit_log_select_managers on public.audit_log
   for select
   using (
     organization_id = private.user_org_id()
-    and private.user_is_manager()
+    and exists (
+      select 1 from public.profiles p
+      where p.id = (select auth.uid())
+        and p.role in ('admin', 'superadmin', 'gerente_sms', 'jefe_pilotos')
+    )
   );
 
 -- Sin política de INSERT/UPDATE/DELETE → solo el service role escribe.

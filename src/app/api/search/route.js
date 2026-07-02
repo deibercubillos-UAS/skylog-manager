@@ -21,7 +21,9 @@ export async function GET(request) {
     const { orgId } = await getOrgContext(supabase);
     if (!orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const q = (new URL(request.url).searchParams.get('q') || '').trim();
+    // Sanitizar: comas y paréntesis son separadores de la sintaxis .or() de
+    // PostgREST — un término con ellos rompería el filtro. Se eliminan del patrón.
+    const q = (new URL(request.url).searchParams.get('q') || '').trim().replace(/[,()]/g, ' ').trim();
     if (q.length < 2) return NextResponse.json({ results: [] });
 
     const like = `%${q}%`;

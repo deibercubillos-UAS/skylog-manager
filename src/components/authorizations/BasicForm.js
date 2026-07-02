@@ -226,8 +226,8 @@ export default function BasicForm({ pilots, drones, org, loadData }) {
                     <div className="mb-6 flex items-start gap-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl px-4 py-3">
                         <span className="material-symbols-outlined text-amber-400 text-xl shrink-0">warning</span>
                         <p className="text-xs font-bold text-amber-200 leading-relaxed">
-                            Este piloto ya tiene una misión asignada en un horario cercano
-                            ({scheduleConflict.missions.map(m => m.mission_id).join(', ')}) — revisa el horario antes de programar.
+                            Este piloto ya tiene una misión programada ese día
+                            ({scheduleConflict.missions.map(m => m.mission_id).join(', ')}) — revisa la agenda antes de programar.
                         </p>
                     </div>
                 )}

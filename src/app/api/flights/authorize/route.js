@@ -88,15 +88,15 @@ export async function POST(request) {
         const salt = Math.random().toString(36).substring(2, 5).toUpperCase();
         const missionId = `${prefix}-${nextNumber.toString().padStart(3, '0')}-${salt}`;
 
-        // Conflicto de horario (no bloqueante): ¿el PIC ya tiene misión ±2h?
-        // Se informa en la respuesta pero NO impide crear la misión (igual que el mockup).
+        // Conflicto de agenda (no bloqueante): ¿el PIC ya tiene misión el mismo día?
+        // Granularidad por día calendario — scheduled_at guarda solo la fecha (la hora
+        // de despegue vive en plan_data.takeoff_time). Se informa en la respuesta pero
+        // NO impide crear la misión.
         let conflictWarning = null;
         try {
             if (safeBody.pilot_id && safeBody.scheduled_at) {
-                const t = new Date(safeBody.scheduled_at).getTime();
-                if (!isNaN(t)) {
-                    const from = new Date(t - 2 * 3600 * 1000).toISOString();
-                    const to   = new Date(t + 2 * 3600 * 1000).toISOString();
+                const day = String(safeBody.scheduled_at).slice(0, 10);
+                if (/^\d{4}-\d{2}-\d{2}$/.test(day)) {
                     const { data: clash } = await supabase
                         .from('flight_authorizations')
                         .select('mission_id, scheduled_at')
@@ -104,11 +104,11 @@ export async function POST(request) {
                         .eq('pilot_id', safeBody.pilot_id)
                         .neq('status', 'cancelado')
                         .neq('status', 'realizado')
-                        .gte('scheduled_at', from)
-                        .lte('scheduled_at', to)
+                        .gte('scheduled_at', `${day}T00:00:00`)
+                        .lte('scheduled_at', `${day}T23:59:59.999`)
                         .limit(1);
                     if (clash?.length) {
-                        conflictWarning = `El piloto ya tiene una misión (${clash[0].mission_id}) en un horario cercano.`;
+                        conflictWarning = `El piloto ya tiene una misión (${clash[0].mission_id}) programada ese día.`;
                     }
                 }
             }

@@ -100,6 +100,9 @@ export default function PilotsPage() {
     setEditingPilot(pilot);
   };
 
+  // Iniciales para el avatar (mismo patrón que la tarjeta de usuario del sidebar).
+  const initials = (name) => (name || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+
   // ── Badge de estado de invitación ──────────────────────────────────────
   const invitationBadge = (status) => {
     if (status === 'pending')  return { color: 'bg-amber-100 text-amber-700 border-amber-200',     label: 'Invitación pendiente' };
@@ -181,8 +184,8 @@ export default function PilotsPage() {
           return (
             <div key={p.id} className="p-4 flex items-start justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="size-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-slate-400 text-xl">person</span>
+                <div className="size-10 rounded-full bg-orange-50 flex items-center justify-center shrink-0">
+                  <span className="text-xs font-black text-orange-600">{initials(p.name)}</span>
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-black text-slate-900 truncate">{p.name}</p>
@@ -260,8 +263,8 @@ export default function PilotsPage() {
                   <tr key={p.id} className="hover:bg-orange-50/30 transition-colors text-sm">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="size-9 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                          <span className="material-symbols-outlined text-slate-400 text-lg">person</span>
+                        <div className="size-9 rounded-full bg-orange-50 flex items-center justify-center shrink-0">
+                          <span className="text-xs font-black text-orange-600">{initials(p.name)}</span>
                         </div>
                         <div>
                           <p className="font-black text-slate-900 text-sm">{p.name}</p>

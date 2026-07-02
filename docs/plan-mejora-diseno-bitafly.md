@@ -100,18 +100,19 @@ Mismo archivo (`src/app/dashboard/layout.js`), partido en commits atómicos e in
 
 ---
 
-## Fase 2 — Componentes compartidos nuevos ⬜
+## Fase 2 — Componentes compartidos nuevos ✅
 
 Cada componente nace en su propio commit, sin consumidores todavía (los consumos son
 tareas de Fase 3/4, uno por uno):
 
-- [ ] 2.1 `[commit]` Crear `components/PageHero.js` (banner navy: overline, título,
+- [x] 2.1 `[commit]` Crear `components/PageHero.js` (banner navy: overline, título,
       descripción, slot de métrica + CTA). Sin usarlo en ninguna página aún.
-- [ ] 2.2 `[commit]` Crear `components/KPIStrip.js` extrayendo el patrón `KPICard` que hoy
+- [x] 2.2 `[commit]` Crear `components/KPIStrip.js` extrayendo el patrón `KPICard` que hoy
       vive inline en `DashboardClient.js` (icon, label, value, trend opcional), como
       componente reutilizable independiente. `DashboardClient.js` no cambia todavía.
-- [ ] 2.3 `[commit]` Definir la variante `icon-tile` (64px, radio 18px, fondo `orange-50`)
-      como clase/utilidad reutilizable, sin tocar `AircraftCard`/`BatteryCard` aún.
+- [x] 2.3 `[commit]` Definir `components/IconTile.js` (64px, radio 18px, fondo `orange-50`,
+      variantes navy/solid) como componente reutilizable, sin tocar `AircraftCard`/
+      `BatteryCard` aún.
 
 ---
 

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { hasPermission } from '@/lib/roles';
 import FileUpload from '@/components/FileUpload';
 import { toast } from '@/lib/toast';
+import PageHero from '@/components/PageHero';
 
 // PERFORMANCE: Solo carga jsPDF + ExcelJS (~400 kB) cuando el usuario realmente descarga
 const loadReportGenerators = () => import('@/lib/reportGenerators');
@@ -87,17 +88,18 @@ export default function ReportsPage() {
 
     return (
         <div className="max-w-5xl mx-auto space-y-10 text-left pb-20 animate-in fade-in duration-700">
-            <header className="flex justify-between items-end border-b pb-6">
-                <div>
-                    <h2 className="text-3xl font-black uppercase tracking-tighter">Centro de Reportes</h2>
-                    <p className="text-slate-500 text-sm italic">Sistemas de exportación aeronáutica oficial.</p>
-                </div>
-                {canEditLogo && (
+            <PageHero
+                eyebrow="Cumplimiento"
+                title="Centro de Reportes"
+                description="Formatos oficiales RAC 100 listos para presentar ante AeroCivil."
+            />
+            {canEditLogo && (
+                <div className="flex justify-end">
                     <div className="w-48">
                         <FileUpload path="org/logos" label="Actualizar Logo" onUploadSuccess={updateLogo} />
                     </div>
-                )}
-            </header>
+                </div>
+            )}
 
             {/* FILTROS GLOBALES */}
             <div className="bg-[#1A202C] p-8 rounded-[2.5rem] text-white grid grid-cols-1 md:grid-cols-2 gap-8 shadow-xl">

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import { CHECKLIST_DEFAULTS } from '@/lib/checklistDefaults';
+import PageHero from '@/components/PageHero';
 
 // Mapeo tipo de protocolo → columna de activación en organizations
 const ENABLE_COLUMN = {
@@ -118,11 +119,12 @@ export default function FormSettingsClient({ initialData }) {
 
     return (
         <div className="max-w-5xl mx-auto space-y-6 md:space-y-10 text-left animate-in fade-in duration-500 pb-32 px-4 md:px-0">
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b pb-6">
-                <div>
-                    <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-navy">Editor de Protocolos</h2>
-                    <p className="text-slate-500 text-xs md:text-sm italic mt-1">Configuración técnica de {initialData.companyName}</p>
-                </div>
+            <PageHero
+                eyebrow="Cumplimiento"
+                title="Editor de Protocolos"
+                description={`Checklists y procedimientos de ${initialData.companyName || 'tu organización'}`}
+            />
+            <div className="flex flex-col md:flex-row justify-end items-stretch md:items-center gap-2 border-b pb-6">
                 <div className="flex gap-2 w-full md:w-auto">
                     <button
                         onClick={handleLoadDefaults}
@@ -140,7 +142,7 @@ export default function FormSettingsClient({ initialData }) {
                         {saving ? 'SINCRO...' : 'Guardar Cambios'}
                     </button>
                 </div>
-            </header>
+            </div>
 
             <div className="flex flex-col gap-4">
                 <div className="flex bg-slate-200/50 p-1.5 rounded-2xl w-full md:w-fit overflow-x-auto custom-scrollbar">

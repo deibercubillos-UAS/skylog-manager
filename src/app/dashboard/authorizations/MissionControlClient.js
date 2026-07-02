@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import BasicForm from '@/components/authorizations/BasicForm';
 import AerocivilForm from '@/components/authorizations/AerocivilForm';
+import PageHero from '@/components/PageHero';
 
 export default function MissionControlClient({ initialData }) {
     const [activeTab, setActiveTab] = useState('basica');
@@ -14,18 +15,17 @@ export default function MissionControlClient({ initialData }) {
     return (
         <div className="space-y-10 pb-20 animate-in fade-in duration-700 text-left">
             {/* HEADER */}
-            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 border-b pb-6">
-                <div>
-                    <h2 className="text-2xl md:text-3xl font-black text-navy uppercase tracking-tighter">Autorización de Vuelo</h2>
-                    <p className="text-slate-500 text-xs font-black uppercase italic">
-                        Centro de Control: {org?.company_name}
-                    </p>
-                </div>
+            <PageHero
+                eyebrow="Operación"
+                title="Autorización de Vuelo"
+                description={`Centro de Control: ${org?.company_name || ''}`}
+            />
+            <div className="flex justify-end -mt-4">
                 <Link href="/dashboard/programacion-activa" className="text-xs font-black text-primary uppercase underline flex items-center gap-1">
                     <span className="material-symbols-outlined text-base">flight_takeoff</span>
                     Ver programación activa
                 </Link>
-            </header>
+            </div>
 
             {/* SELECTOR DE PESTAÑAS */}
             <div className="flex bg-slate-100 p-1.5 rounded-2xl">

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import FileUpload from '@/components/FileUpload';
 import { hasPermission } from '@/lib/roles';
+import PageHero from '@/components/PageHero';
 import AerocivilCredentialsSection from '@/components/settings/AerocivilCredentialsSection';
 import { toast } from '@/lib/toast';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -223,12 +224,11 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
     return (
         <div className="max-w-6xl mx-auto space-y-6 md:space-y-10 text-left animate-in fade-in duration-700 pb-20 px-2 md:px-0">
             <ConfirmModal {...confirmDlg} onCancel={() => setConfirmDlg(null)} />
-            <header className="flex justify-between items-end border-b pb-6 px-2 md:px-0">
-                <div>
-                    <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900 leading-none">Configurar Organización</h2>
-<p className="text-slate-500 text-xs md:text-sm font-bold uppercase mt-2 tracking-widest">Identidad Legal y Pólizas de Seguro</p>
-                </div>
-            </header>
+            <PageHero
+                eyebrow="Cuenta"
+                title="Configurar Organización"
+                description="Identidad legal, registro AeroCivil y pólizas de seguro."
+            />
 
             {/* ── INICIO RÁPIDO — Onboarding Express (oculto para piloto independiente) ── */}
             {profile?.subscription_plan !== 'piloto' && (

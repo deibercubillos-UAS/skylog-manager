@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import PageHero from '@/components/PageHero';
 
 // ── Datos de planes ─────────────────────────────────────────────────────────
 
@@ -412,10 +413,11 @@ export default function ManageSubscriptionPage() {
     <div className="max-w-3xl mx-auto space-y-8 pb-28 animate-in fade-in duration-500">
 
       {/* ── Header ───────────────────────────────────────────────────────── */}
-      <header>
-        <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Mi Suscripción</h2>
-        <p className="text-slate-500 text-sm mt-1 font-medium">Gestión de membresía · BitaFly</p>
-      </header>
+      <PageHero
+        eyebrow="Cuenta"
+        title="Mi Suscripción"
+        description="Gestión de membresía · BitaFly"
+      />
 
       {/* ── Cancel done banner ───────────────────────────────────────────── */}
       {cancelDone && (

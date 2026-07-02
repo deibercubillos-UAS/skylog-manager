@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import FileUpload from '@/components/FileUpload';
+import PageHero from '@/components/PageHero';
 import { toast } from '@/lib/toast';
 import { useRouter } from 'next/navigation';
 import { docOpenUrl } from '@/lib/docUrl';
@@ -162,15 +163,12 @@ useEffect(() => {
                     </div>
                 </div>
             )}
-            <header className="flex justify-between items-end border-b pb-6">
-                <div>
-                    <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Mi Perfil</h2>
-                    <p className="text-slate-500 text-sm">Gestión de identidad y credenciales aeronáuticas.</p>
-                </div>
-                <div className="text-right">
-                    <span className="px-4 py-1 bg-orange-600 text-white rounded-full text-xs font-black uppercase tracking-widest">{profile.role?.replace('_', ' ')}</span>
-                </div>
-            </header>
+            <PageHero
+                eyebrow="Cuenta"
+                title="Mi Perfil"
+                description="Gestión de identidad y credenciales aeronáuticas."
+                metric={{ label: 'Rol', value: profile.role?.replace('_', ' ') }}
+            />
 
             <form onSubmit={handleUpdate} className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                 {/* COLUMNA IZQUIERDA: FOTO Y CREDENCIALES */}

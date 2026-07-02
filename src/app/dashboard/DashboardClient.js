@@ -309,9 +309,11 @@ export default function DashboardClient() {
             <caption className="sr-only">Últimos vuelos registrados en la bitácora</caption>
             <thead>
               <tr className="bg-slate-50/50 text-xs font-black text-slate-400 uppercase tracking-widest">
-                <th scope="col" className="px-8 py-5">Referencia</th>
-                <th scope="col" className="px-8 py-5">Tripulación (PIC)</th>
-                <th scope="col" className="px-8 py-5">Aeronave (UAV)</th>
+                <th scope="col" className="px-8 py-5">Misión</th>
+                <th scope="col" className="px-8 py-5">Fecha</th>
+                <th scope="col" className="px-8 py-5">Aeronave</th>
+                <th scope="col" className="px-8 py-5">PIC</th>
+                <th scope="col" className="px-8 py-5">Duración</th>
                 <th scope="col" className="px-8 py-5 text-right">Estatus</th>
               </tr>
             </thead>
@@ -319,8 +321,19 @@ export default function DashboardClient() {
               {data?.recentActivity?.length > 0 ? data.recentActivity.map(f => (
                 <tr key={f.id} className="hover:bg-slate-50 transition-all">
                   <td className="px-8 py-6 text-xs font-black font-mono text-orange-600">{f.mission_id || 'N/A'}</td>
+                  <td className="px-8 py-6 text-xs font-bold text-slate-500">{f.flight_date || '—'}</td>
+                  <td className="px-8 py-6">
+                    <div className="flex items-center gap-2.5">
+                      <div className="size-7 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-sm text-slate-400" aria-hidden="true">flight</span>
+                      </div>
+                      <span className="text-xs font-bold text-slate-800">{f.aircraft?.model || 'N/R'}</span>
+                    </div>
+                  </td>
                   <td className="px-8 py-6 text-xs font-bold text-slate-700">{f.pilots?.name || 'No registrado'}</td>
-                  <td className="px-8 py-6 text-xs font-black uppercase text-slate-400">{f.aircraft?.model || 'N/R'}</td>
+                  <td className="px-8 py-6 text-xs font-black text-slate-700 tabular-nums">
+                    {f.total_time ? `${parseFloat(f.total_time).toFixed(1)}h` : '—'}
+                  </td>
                   <td className="px-8 py-6 text-right">
                     <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-xs font-black uppercase border border-emerald-100 shadow-sm">
                       Registrado
@@ -329,7 +342,7 @@ export default function DashboardClient() {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan="4">
+                  <td colSpan="6">
                     <EmptyState icon="flight_takeoff" message="Sin actividad operativa" sub="Los vuelos registrados aparecerán aquí" />
                   </td>
                 </tr>

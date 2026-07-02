@@ -150,7 +150,7 @@ Miembro de una org ajena (se unió por NIT o invitación). `profile.subscription
 - **Registro/unión**: el flujo "unirse" (`/registro` o `POST /api/auth/register` con `joinMode`) hace **auto-login** y entra directo al dashboard. Reconcilia la invitación: reutiliza la fila `pilots` existente (vincula `profile_id`/`owner_id`, marca `invitation_status='accepted'`) y pone la `invitation` en `accepted` (sin duplicados, sin "Invitación pendiente" perpetuo).
 - **Flota**: solo-lectura. Los botones editar/baja/transferir/eliminar se ocultan vía `canManage` en `AircraftCard`/`BatteryCard`/`TechCard` (`canManageFleet` no lo incluye).
 - **Sin Suscripción**: el nav de Suscripción solo aparece para `superadmin`/`admin`.
-- **Despacho** (`/logbook/new`): usa el flujo CON orden de vuelo; solo ve las misiones donde es el PIC asignado (`visibleAuths` filtra `resources.auths` por su `pilots.id`).
+- **Despacho** (`/logbook/new`): usa el flujo CON orden de vuelo; solo ve las misiones donde es el PIC asignado Y programadas para **hoy** (`visibleAuths` filtra `resources.auths` por su `pilots.id` + `scheduled_at` == fecha actual, 2026-07-02d — antes veía todas sus misiones asignadas sin importar la fecha). No puede adelantar ni atrasar el despacho respecto a la fecha programada. Managers no tienen esta restricción.
 - **Mis Vuelos** (`/dashboard/mis-vuelos`): vista solo-lectura de sus misiones programadas (reutiliza `ProgramacionActivaClient` con props `pilotEmail`/`pilotId`/`readOnly`), con descarga KMZ/PDF.
 - **Planear Vuelo**: puede planear; al guardar (`POST /api/flight-plans`) si `role==='piloto'` se **notifica por correo al Jefe de Pilotos y GG** (`notifyFlightPlan`).
 - **Expediente self-service** (`/dashboard/settings/profile`): sube cédula, diploma UAS, examen teórico, certificado médico (+ vencimiento), CIPU y contacto de emergencia → `PATCH /api/pilots/my-documents` (campos en `pilots`; crea la fila si falta). Al guardar **notifica a GG/JP/GSMS**. Visibles para ellos en Tripulación / `EditPilotPanel`.
@@ -528,6 +528,32 @@ página muestra el calendario como pantalla principal (igual que Programación A
 pestañas viven dentro de este panel deslizable, invocado por el botón "Nueva misión" del
 `PageHero`. `BasicForm`/`AerocivilForm` no cambiaron — mismo `loadData` callback tras crear,
 que aquí cierra el panel y fuerza un refresco del calendario.
+
+### Bitácora rediseñada (2026-07-02d)
+
+`dashboard/logbook/page.js` (`LogbookPage`) fiel al mockup: `PageHero` con slot derecho
+("Sin piloto asignado: N" + botón **"Nuevo registro"** → `/dashboard/logbook/new`, el mismo
+flujo de despacho/carga manual que ya existía — se conservó explícitamente, no se tocó) +
+`KPIStrip variant="strip"` (Vuelos registrados / Horas totales / Este mes / Sin piloto — se
+mantuvo "Sin piloto", **no** se fabricó un "Pendientes de firma" del mockup porque no existe
+flujo de firma digital en el esquema) + barra de filtros unificada + tabla recortada.
+
+- **Búsqueda unificada** (`search`, reemplaza los filtros sueltos `mission_id`/`serial`):
+  un solo input filtra por N° misión, modelo/serie de aeronave y nombre de piloto a la vez
+  (`filteredFlights`, client-side sobre los datos ya cargados).
+  Se eliminó la fila de filtros por columna dentro del `<thead>` (duplicaba la barra superior).
+- **Filtros restantes** (fecha, modelo, tipo de misión, condición visual, piloto) viven en la
+  misma barra, junto con "Limpiar" — antes estaban repartidos entre un bloque solo-mobile y
+  la fila de filtros de la tabla desktop; ahora es una única barra para ambos.
+- **Exportar F-OPS-002** (`exportCSV`): descarga un CSV (BOM UTF-8, abre en Excel) de los
+  registros **ya filtrados** — sin backend nuevo, arma el archivo en memoria desde
+  `filteredFlights`. No es un reporte oficial nuevo, es un export de conveniencia del listado.
+- **Tabla desktop recortada**: de 8 columnas a 6 (N° Misión, Fecha, Aeronave, Piloto,
+  Condición, Duración) + Alerta/Replay/Eliminar — "Tipo Op" y "Serie" salen de la tabla visible
+  (siguen filtrables/exportables) siguiendo el layout del mockup. La celda Aeronave usa el
+  mismo patrón que Programación Activa (chip de ícono + modelo + serie como subtexto).
+- **"Importar vuelos" (DjiRcSync) intacto** — sigue siendo el toggle que muestra el panel de
+  importación DJI/Excel, sin cambios de lógica, solo reposicionado junto a "Exportar F-OPS-002".
 
 ### Auditoría de acciones ⚠️ inerte hasta aplicar migración
 

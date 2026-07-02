@@ -12,8 +12,10 @@ import Link from 'next/link';
  * - description: string — subtítulo corto
  * - metric: { label, value, unit } — métrica rápida a la derecha (opcional)
  * - cta: { label, href, icon } — botón de acción primaria a la derecha (opcional)
+ * - right: ReactNode — slot libre a la derecha para contenido custom (ej. anillo de
+ *   progreso, varios bloques de métrica). Se ignora metric/cta si se pasa este slot.
  */
-export default function PageHero({ eyebrow, title, description, metric, cta }) {
+export default function PageHero({ eyebrow, title, description, metric, cta, right }) {
   return (
     <div className="rounded-[2rem] bg-[#1A202C] text-white px-6 py-6 md:px-10 md:py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
       <div className="min-w-0">
@@ -26,7 +28,9 @@ export default function PageHero({ eyebrow, title, description, metric, cta }) {
         )}
       </div>
 
-      {(metric || cta) && (
+      {right ? (
+        <div className="flex items-center gap-4 md:gap-6 shrink-0">{right}</div>
+      ) : (metric || cta) && (
         <div className="flex items-center gap-4 md:gap-6 shrink-0">
           {metric && (
             <div className="text-right">

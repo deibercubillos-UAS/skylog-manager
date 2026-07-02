@@ -99,6 +99,9 @@ export default function DashboardClient() {
   const ringCircumference = 2 * Math.PI * 19;
   const ringOffset = ringCircumference * (1 - fleetPct / 100);
 
+  const flightsThisMonth = data?.chart?.length ? data.chart[data.chart.length - 1].count : 0;
+  const fleetInMaintenance = Math.max(0, fleetTotal - fleetReady);
+
   const nextMission = data?.nextMission;
   let nextMissionLabel = null;
   if (nextMission?.date) {
@@ -167,19 +170,33 @@ export default function DashboardClient() {
         }
       />
 
-      {/* 1. KPIs */}
-      <section aria-label="Indicadores clave de operación">
-        <KPIStrip items={[
+      {/* 1. KPIs — franja sin cajas (variant="strip"), fiel al mockup Dashboard Layout 1a.
+          El resto de páginas (Flota, Bitácora, etc.) sigue usando la variante "card". */}
+      <section aria-label="Indicadores clave de operación" className="bg-white rounded-[1.5rem] border border-slate-100 px-2 py-5 md:px-4">
+        <KPIStrip variant="strip" items={[
           {
-            key: 'hours', title: 'Horas de Vuelo', value: `${data?.stats?.hours || '0.0'}h`,
-            icon: 'timer', color: 'text-slate-900', trend: flightTrend,
-            hero: true, className: 'col-span-2 md:col-span-1',
+            key: 'hours', label: 'Horas de Vuelo', value: data?.stats?.hours || '0.0', unit: 'h',
+            icon: 'schedule', iconColor: '#ec5b13',
+            delta: flightTrend !== null ? `${flightTrend >= 0 ? '+' : ''}${flightTrend}% vs. mes ant.` : null,
+            deltaTone: flightTrend !== null && flightTrend >= 0 ? 'positive' : 'neutral',
           },
-          { key: 'fleet', title: 'Flota Lista', value: data?.stats?.fleetCount || 0, icon: 'precision_manufacturing', color: 'text-orange-500' },
-          { key: 'crew', title: 'Tripulación', value: data?.stats?.pilotCount || 0, icon: 'group', color: 'text-slate-900' },
           {
-            key: 'alerts', title: 'Alertas', value: alertsCount, icon: 'warning', warning: alertsCount > 0,
-            sub: alertsCount > 0 ? `${alertsCount} elemento${alertsCount !== 1 ? 's' : ''} require${alertsCount === 1 ? '' : 'n'} atención` : 'Operación sin alertas',
+            key: 'flights', label: 'Vuelos del Mes', value: flightsThisMonth, unit: '',
+            icon: 'flight_takeoff', iconColor: '#ec5b13',
+            delta: flightTrend !== null ? `${flightTrend >= 0 ? '+' : ''}${flightTrend}% vs. mes ant.` : null,
+            deltaTone: flightTrend !== null && flightTrend >= 0 ? 'positive' : 'neutral',
+          },
+          {
+            key: 'fleet', label: 'Aeronaves Activas', value: fleetReady, unit: `/ ${fleetTotal}`,
+            icon: 'precision_manufacturing', iconColor: '#94a3b8',
+            delta: fleetInMaintenance > 0 ? `${fleetInMaintenance} en mantenimiento` : 'Todas operativas',
+            deltaTone: fleetInMaintenance > 0 ? 'neutral' : 'positive',
+          },
+          {
+            key: 'alerts', label: 'Alertas Activas', value: alertsCount, unit: '',
+            icon: 'warning', iconColor: alertsCount > 0 ? '#dc2626' : '#16a34a',
+            delta: alertsCount > 0 ? `${alertsCount} requiere${alertsCount === 1 ? '' : 'n'} atención` : 'Operación sin alertas',
+            deltaTone: alertsCount > 0 ? 'neutral' : 'positive',
           },
         ]} />
       </section>

@@ -10,6 +10,7 @@ import TechCard from '@/components/TechCard';
 import { PLAN_CONFIG } from '@/lib/planLimits';
 import { PERMISSIONS } from '@/lib/roles';
 import PageHero from '@/components/PageHero';
+import KPIStrip from '@/components/KPIStrip';
 
 // Paneles: carga diferida → no bloquean el bundle inicial
 const AddAircraftPanel  = dynamic(() => import('@/components/AddAircraftPanel'),  { ssr: false });
@@ -296,6 +297,17 @@ export default function FleetPage() {
         title="Mi Flota"
         description="Registro de aeronaves, baterías y tecnología de la organización."
       />
+
+      <KPIStrip items={[
+        { key: 'total', title: 'Total Aeronaves', value: activeDrones.length, icon: 'precision_manufacturing', color: 'text-slate-900' },
+        { key: 'ready', title: 'Operativas', value: activeDrones.filter(d => d.operational_status !== 'en_mantenimiento').length, icon: 'check_circle', color: 'text-emerald-600' },
+        { key: 'hours', title: 'Horas Totales', value: `${activeDrones.reduce((sum, d) => sum + parseFloat(d.total_hours || 0), 0).toFixed(1)}h`, icon: 'timer', color: 'text-slate-900' },
+        {
+          key: 'maint', title: 'En Mantenimiento',
+          value: activeDrones.filter(d => d.operational_status === 'en_mantenimiento').length,
+          icon: 'build', warning: activeDrones.some(d => d.operational_status === 'en_mantenimiento'),
+        },
+      ]} />
 
       {/* SECCIÓN AERONAVES ACTIVAS */}
       <section className="animate-in fade-in duration-700">

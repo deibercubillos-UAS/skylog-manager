@@ -27,17 +27,27 @@ app/
 │   ├── socio/         ← me, grants (GET/POST/DELETE), advisors, reports, logo, account, invite-info (panel escuelas/asesores)
 │   ├── cron/          ← free-grants (expiración y purga de perfiles gratis)
 │   ├── sora/ · sms/ · reports/ · dashboard/
+│   ├── search/         ← GET /api/search?q= — búsqueda global (flights/aircraft/pilots, acotada a la org)
+│   ├── audit-log/      ← GET — log de acciones de usuario (ver Auditoría de acciones)
+│   ├── billing-history/ ← GET — historial de pagos informativo (ver Historial de facturación)
 │   ├── app/version/   ← GET público — versión actual del APK (OTA updates)
 │   └── admin/master/  ← superadmin + epayco-subscriptions + partners + commissions + releases
 └── dashboard/         ← páginas client-side
+    ├── batteries/      ← ruta propia (extraída de fleet, Fase 4 del rediseño — ver Sistema de Diseño)
+    └── weather/        ← ruta propia (Meteorología como página, reutiliza WeatherWidget)
 
 components/
 ├── DjiRcSync.js        ← importación DJI
 ├── FlightReplayModal.js ← replay GPS animado
 ├── AddMaintenancePanel.js ← drag-drop upload adjuntos
-├── AircraftCard.js     ← overflow-hidden en imagen, NO en root (evita cortar dropdowns)
+├── AircraftCard.js     ← overflow-hidden en imagen, NO en root (evita cortar dropdowns). IconTile (64px) es el
+│                          elemento principal desde el rediseño; la foto real (image_url) es miniatura secundaria
 ├── WeatherWidget.js    ← widget de clima reutilizable (ver sección Módulo de Clima)
 ├── AppUpdateBanner.js  ← OTA update banner/modal (solo Capacitor Android)
+├── PageHero.js         ← banner navy compartido (eyebrow/title/description/metric/cta) — encabezado de página
+├── KPIStrip.js         ← grilla de KPICard reutilizable (icon/label/value/trend)
+├── IconTile.js         ← tile de icono 64px/radio 18px, variantes default/navy/solid
+├── GlobalSearch.js     ← input de búsqueda del header, consume /api/search con debounce
 ├── authorizations/     ← BasicForm, AerocivilForm, MapPickerModal (acepta initialCenter/initialZoom)
 └── landing/ · settings/
 
@@ -52,7 +62,8 @@ lib/
 ├── epaycoActivation.js ← activatePlanForUser() — idempotente
 ├── emailHelpers.js     ← escHtml() + emailHeader()/emailFooter()/bitaflyLogoUrl() (branding correos con logo BitaFly + logo del socio)
 ├── rateLimiter.js      ← checkRateLimit() + getClientIp()
-└── partnerReferral.js  ← attributeCommission() — atribución recurrente de comisiones a socios
+├── partnerReferral.js  ← attributeCommission() — atribución recurrente de comisiones a socios
+└── auditLog.js         ← logAudit() — fire-and-forget, ver Auditoría de acciones
 ```
 
 ---
@@ -95,6 +106,8 @@ Tablas principales:
 - `pending_registrations` — registro pre-pago (expira 3h, service_role only)
 - `processed_webhook_refs` — idempotencia webhook (`ref_payco PK`)
 - `epayco_plan_config` — configuración planes: `replay_retention_days`, `replay_max_flights`. Editable desde `/admin/master`.
+- `audit_log` ⚠️ **migración creada, NO aplicada aún** (`supabase/migrations/20260702_audit_log.sql`) — log append-only de acciones (`organization_id`, `actor_id`, `action`, `module`, `metadata jsonb`, `created_at`). RLS: managers de la org leen, solo service role escribe. Ver **Auditoría de acciones**.
+- `billing_history` ⚠️ **migración creada, NO aplicada aún** (`supabase/migrations/20260702_billing_history.sql`) — historial de pagos informativo (no factura fiscal). RLS: cada usuario ve el suyo, solo service role escribe. Ver **Historial de facturación**.
 
 **Regla `total_hours`**: actualizar siempre vía RPC `increment_aircraft_hours(p_id, p_hours)` — nunca read-calculate-write.
 
@@ -380,6 +393,108 @@ Campana in-app en el header del dashboard. Una notificación por destinatario, d
 
 ---
 
+## Sistema de Diseño (rediseño 2026-07-02)
+
+Refinamiento visual del dashboard sobre la misma identidad de marca (naranja `#ec5b13` /
+navy `#1A202C` ya existían en `tailwind.config.mjs` — no fue un rebrand). Origen: proyecto
+de Claude Design importado y ejecutado en fases (ver `docs/plan-mejora-diseno-bitafly.md`,
+documento de control con el detalle fase por fase). Rama `claude/project-scope-review-xity40`.
+
+### Componentes compartidos
+
+- **`PageHero.js`** — banner navy redondeado, encabezado estándar de página. Props
+  `{ eyebrow, title, description, metric, cta }`. Adoptado en las 12 páginas principales
+  del dashboard (Dashboard, Flota, Bitácora, Tripulación, Mantenimiento, Seguridad/SORA,
+  Reportes, Protocolos, Perfil, Organización, Suscripción, Programación).
+- **`KPIStrip.js`** — grilla `grid-cols-2 md:grid-cols-4` de `KPICard` (exportado también
+  suelto). Reemplazó el `KPICard` que antes vivía inline en `DashboardClient.js`. Cada
+  módulo pasa su propio array de `items` calculado **desde los datos ya cargados** — sin
+  queries nuevas.
+- **`IconTile.js`** — tile de icono 64px/radio 18px, variantes `default` (orange-50) /
+  `navy` / `solid`. Usado en `AircraftCard` como elemento principal, con la foto real
+  (`image_url`) como miniatura circular secundaria superpuesta (decisión de producto: no
+  se oculta la foto subida por el usuario).
+
+### Sidebar reagrupado
+
+`dashboard/layout.js`: cada `navLink` tiene un campo `group` (`'Operación'` /
+`'Flota & Equipo'` / `'Cumplimiento'`) **puramente de presentación** — el array
+`NAV_GROUPS` define el orden de render. El filtrado real por rol/plan/período de gracia
+(`filteredLinks`) no cambió. Pie del sidebar: tarjeta de usuario (avatar iniciales +
+nombre + rol) + widget "Plan {plan} / Mejorar" (oculto en Enterprise, visible solo para
+quien también ve el link Suscripción).
+
+### Baterías y Meteorología como rutas propias
+
+- `/dashboard/batteries` — extraída de la sección embebida en `/dashboard/fleet` (que
+  **se conserva** por ahora — la extracción completa, punto 4.3 del plan, quedó
+  pendiente de QA visual). Reutiliza `BatteryCard` + `AddBatteryPanel`/`EditBatteryPanel`.
+  La columna "aeronave asignada" se resuelve **client-side**: consulta directa a
+  `battery_logs` (más reciente por `battery_sn`) — no hay columna `aircraft_id` en
+  `batteries` (son intercambiables por diseño, ver **Base de datos**) ni endpoint nuevo.
+- `/dashboard/weather` — reutiliza `WeatherWidget` + `/api/weather/current` existentes,
+  con geolocalización del navegador (fallback Bogotá).
+
+### Búsqueda global
+
+`GET /api/search?q=` — busca en `flights`/`aircraft`/`pilots` acotado a `organization_id`
+vía `getOrgContext()`, máx. 5 resultados por categoría. `components/GlobalSearch.js`
+conecta el input del header con debounce de 300ms + dropdown navegable. ⚠️ El término se
+sanitiza (se quitan `,` y `()`) antes de interpolarlo en `.or()` de PostgREST — esos
+caracteres son separadores de su sintaxis y rompían el filtro.
+
+### Conflicto de agenda del PIC
+
+`GET /api/flights/conflicts?pilot_id=&scheduled_at=` — avisa (no bloquea) si el piloto ya
+tiene una misión no cancelada **el mismo día calendario**. ⚠️ Granularidad por día, no por
+hora: `flight_authorizations.scheduled_at` guarda solo la fecha (el form usa
+`<input type="date">`; la hora de despegue vive en `plan_data.takeoff_time`), así que una
+ventana horaria fina nunca coincidiría con datos reales. `POST /api/flights/authorize`
+repite el mismo chequeo server-side (best-effort, nunca bloquea la creación) y devuelve
+`conflictWarning` en la respuesta. `BasicForm.js` muestra el aviso en vivo con debounce.
+
+### Vista calendario semanal en Programación
+
+`ProgramacionActivaClient.js`: toggle Lista/Semana. La vista Semana es una grilla de 7
+días (lunes-domingo) con navegación (anterior/siguiente/hoy), agrupando las misiones ya
+cargadas por `scheduled_at`. Solo frontend — la vista Lista (y la vista de solo-lectura
+del piloto en "Mis Vuelos", que reutiliza este mismo componente) quedan intactas.
+
+### Auditoría de acciones ⚠️ inerte hasta aplicar migración
+
+Log de acciones de usuario (`audit_log`, append-only) — **distinto** del panel de
+cumplimiento que ya existía en `/dashboard/audit` (aeronavegabilidad de flota + vigencia
+de documentos de tripulación, `AuditCard`/`score`), con el que **convive** como pestaña
+separada, no lo reemplaza.
+- `lib/auditLog.js` → `logAudit({ orgId, actorId, action, module, metadata })`:
+  fire-and-forget, nunca lanza ni bloquea la operación instrumentada; falla en silencio
+  si la tabla no existe todavía.
+- Instrumentado en creación de: flota (`POST /api/fleet`), pilotos (`POST /api/pilots`),
+  autorización de vuelo (`POST /api/flights/authorize`).
+- `GET /api/audit-log` (+ export CSV) — degrada a lista vacía (`pending: true`) si la
+  tabla falta.
+- RLS: managers (`admin`/`superadmin`/`gerente_sms`/`jefe_pilotos`, mismos roles que
+  `PERMISSIONS.canViewAudit`) leen su org; solo service role escribe.
+- **Migración `20260702_audit_log.sql` creada pero NO aplicada** — ver **Pendientes de
+  infraestructura**.
+
+### Historial de facturación ⚠️ inerte hasta aplicar migración
+
+Comprobante **informativo**, sin validez fiscal DIAN (decisión explícita para no acoplar
+facturación electrónica real a este alcance).
+- Migración `20260702_billing_history.sql` — tabla + RLS (cada usuario ve su propio
+  historial; solo service role escribe).
+- `POST /api/epayco/webhook`: tras `activatePlanForUser()`, insert fire-and-forget de
+  `billing_history` (idempotente por `ref_payco`), mismo patrón de guardas que
+  `attributeCommission()` — **nunca** rompe la activación del plan ni si la tabla no
+  existe.
+- `GET /api/billing-history` — degrada a vacío si la tabla falta.
+- Sección "Historial de facturación" en `/dashboard/subscription`, oculta si no hay pagos
+  o la tabla no existe.
+- **Migración creada pero NO aplicada** — ver **Pendientes de infraestructura**.
+
+---
+
 ## Convenciones de código
 
 - **API routes**: siempre `createClientSSR()` + `getOrgContext()`. Auth guard: `if (!user) return 401` antes de usar `user.id`.
@@ -538,6 +653,7 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 
 ## Pendientes de infraestructura
 
+- [ ] **Aplicar migraciones del rediseño de UI** (2026-07-02, rama `claude/project-scope-review-xity40`, ver **Sistema de Diseño**): `20260702_audit_log.sql` y `20260702_billing_history.sql`. El código que las consume (`/api/audit-log`, `/api/billing-history`, `lib/auditLog.js`, webhook ePayco) ya está desplegado pero **inerte** — degrada a listas vacías / omite el insert si las tablas no existen. Aplicar cuando se quiera activar Auditoría de acciones e Historial de facturación.
 - [ ] Agregar `DJI_API_KEY` a Vercel env vars
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a Vercel env vars
 - [ ] Agregar `AEROCIVIL_SALT` a Vercel env vars (el fallback inseguro ya fue removido — el endpoint lanza error si falta la variable)

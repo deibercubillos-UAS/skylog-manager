@@ -193,16 +193,16 @@ vigencia de documentos), no un log de acciones — no hay tabla `audit_log` hoy.
       de este commit).
 - ⚠️ Decisión pendiente antes de 5.a5: ¿reemplaza la vista actual o convive como pestaña?
 
-### b) Conflictos de horario en "Nueva Misión" — ~0.5-1 día
-- [ ] 5.b1 `[API]` Query de solape por `pic_id`/fecha/hora en `POST /api/flights/authorize`.
-- [ ] 5.b2 `[frontend]` Aviso en vivo en el formulario de Nueva Misión al seleccionar
-      piloto/horario en conflicto.
+### b) Conflictos de horario en "Nueva Misión" ✅
+- [x] 5.b1 `[API]` `GET /api/flights/conflicts` + aviso no bloqueante en `POST authorize`.
+- [x] 5.b2 `[frontend]` Aviso en vivo en `BasicForm` (debounce) al elegir PIC/horario.
 
-### c) Vista calendario (semana/mes) en Programación — ~1-2 días, solo frontend
-- [ ] 5.c1 `[frontend]` Componente de grilla semanal (pestaña "Semana") leyendo
-      `flight_authorizations` ya existente.
-- [ ] 5.c2 `[frontend]` Pestaña "Mes" (agrupación mensual del mismo dato).
-- [ ] 5.c3 `[frontend]` Pestaña "Lista" = vista actual restyleada (ya cubierta en 3.12).
+### c) Vista calendario (semana) en Programación ✅
+- [x] 5.c1 `[frontend]` Toggle Lista/Semana + grilla semanal (7 días, navegación de semana)
+      en `ProgramacionActivaClient`, leyendo `flight_authorizations`. Vista Lista y vista
+      del piloto intactas.
+- [ ] 5.c2 Pestaña "Mes" — omitida por ahora (la vista Semana + Lista cubren el caso
+      principal; se puede agregar después si se pide).
 
 ### d) Historial de facturación en Suscripción — ⚠️ decisión legal/fiscal pendiente
 - [ ] 5.d0 ⚠️ Definir con el usuario: ¿comprobante informativo o factura con validez

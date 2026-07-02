@@ -254,6 +254,35 @@ Baterías) — tal como muestran los mockups.
   distinto de "disponible/sin uso" en `batteries.status`).
 - Se eliminó `components/BatteryCard.js` (quedó sin usar tras el rediseño de Baterías a tabla).
 
+### Tripulación rediseñada (2026-07-02g)
+
+`dashboard/pilots/page.js`: pasa de tabla/tarjetas-mobile a grid de tarjetas (2/3/4 columnas
+según viewport) fiel al mockup, con `PageHero` (slot derecho "Certificaciones por vencer" +
+CTA "Nuevo piloto"), `KPIStrip variant="strip"` (Total pilotos / Activos / Horas PIC totales /
+Por vencer — las 4 son datos reales) y barra de filtros (búsqueda + rol + estado).
+
+- **Horas PIC totales** (nuevo, real): se suman desde `flights` filtrando por `pilot_id`
+  (mismo criterio que `PilotDashboard.js` — prefiere `total_time`, si no calcula desde
+  `takeoff_time`/`landing_time`). No existía antes como agregado en esta página.
+- **Tarjeta de piloto**: avatar (`avatar_url` si existe, si no iniciales) + punto de estado
+  (`is_active`) + rol + badge de invitación pendiente/aceptada/rechazada (si aplica) +
+  licencia + Horas PIC + estado de certificación médica (`medical_expiry`, mismo cálculo
+  Vigente/Vence/Vencida que ya existía). Se quitó el contador de documentos (4/4) del mockup
+  original de esta tarjeta por espacio — sigue visible al editar el piloto.
+- **`AddPilotPanel.js`**: restyleado al layout de 2 columnas (mismo patrón que
+  `AddAircraftPanel`/`MissionFormPanel` — hero navy + card blanca), **conservando intactos**
+  los dos modos ya existentes ("Registro completo" que crea el piloto y envía invitación vía
+  `POST /api/invite`, y "Solo invitación" que únicamente invita) — el mockup solo mostraba un
+  formulario único, pero quitar el modo "Solo invitación" habría sido una regresión funcional
+  no pedida. Las "Adiciones vigentes" (Aerocivil) pasan de checkboxes en lista a chips
+  seleccionables (mismo dato real `aerocivil_additions`). Se agregó `is_active` (real, ya
+  existía en el esquema pero no se exponía al crear) como toggle "Estado inicial".
+  Se omitieron del mockup los campos sin respaldo real: foto de perfil en la creación (el
+  avatar se completa vía el expediente self-service del piloto, no en este flujo admin),
+  "Vigencia de licencia" (no existe columna separada de `medical_expiry`), "Horas de vuelo al
+  momento de inscripción" y "Certificado de formación (institución)" (no son columnas de
+  `pilots`), y "Parentesco" del contacto de emergencia (no existe esa columna).
+
 ### Recibo post-mantenimiento + trazabilidad de componentes + PDF de recibo (2026-06-25)
 
 Registrado todo desde `AddMaintenancePanel` (web y APK; el APK toma los cambios por remote URL). Migraciones: `20260625_maintenance_return_checklist.sql`, `20260625_maintenance_components.sql`, `20260625_maintenance_return_doc.sql` (las 3 aplicadas en Supabase).

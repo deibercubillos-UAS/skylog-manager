@@ -31,7 +31,7 @@ export async function GET() {
                 .gte('flight_date', cutoffStr),
             // Solo 5 registros completos para "Actividad Reciente"
             supabase.from('flights')
-                .select('id,mission_id,flight_date,created_at,pilots:pilot_id(name),aircraft:aircraft_id(model)')
+                .select('id,mission_id,flight_date,total_time,created_at,pilots:pilot_id(name),aircraft:aircraft_id(model)')
                 .eq('organization_id', orgId)
                 .order('created_at', { ascending: false })
                 .limit(5),

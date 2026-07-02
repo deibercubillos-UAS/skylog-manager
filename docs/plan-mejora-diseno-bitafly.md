@@ -4,11 +4,13 @@
 > Origen: proyecto Claude Design `0e64e44f-c239-441d-9559-9a7a0ebf68f7`, exportado como
 > ZIP (`Mejora_de_diseño_Bitafly_1.zip`) el 2026-07-01. Contiene 22 pantallas de dashboard
 > (`.dc.html`), sistema de diseño (`_ds/`), 40 screenshots y 10 landing pages + assets de marca.
-> Última actualización: 2026-07-01 · Estado: DISEÑO (sin ejecutar — en revisión del usuario)
+> Última actualización: 2026-07-01 · Estado: EN EJECUCIÓN (granularidad fina, rama aislada)
 >
 > **Decisión de alcance confirmada**: Fase 5 entra completa **excepto (f) Mapas de
-> restricción**, que queda fuera de este proyecto por alcance indefinido. Falta confirmar
-> el orden/arranque de ejecución de las Fases 0-4 — no se ha tocado código todavía.
+> restricción**, que queda fuera de este proyecto por alcance indefinido.
+> **Decisión de granularidad confirmada**: cada tarea de este documento = **un commit
+> atómico**, acotado a 1 archivo/componente cuando sea posible, para minimizar el código
+> tocado por push y facilitar revertir sin afectar el resto.
 
 ## Convención de estado
 
@@ -25,26 +27,39 @@ un patrón de "hero banner" navy por página, tiras de KPI reutilizadas en todos
 y tablas/tarjetas más limpias. La mayoría del trabajo es **frontend puro** (JSX/Tailwind),
 reutilizando datos y endpoints que ya existen.
 
-Sin embargo, **6 pantallas del mockup insinúan funcionalidad que hoy no existe** (no es
-restyle, es feature nueva con backend/Supabase real). Están aisladas en la Fase 5 y
-**no se deben ejecutar sin confirmación explícita de alcance**, porque cada una es su
-propio mini-proyecto.
+Sin embargo, **5 funcionalidades de la Fase 5 no existen hoy** (no es restyle, es feature
+nueva con backend/Supabase real) y quedan aisladas de las fases de restyle.
 
 ---
 
-## Principios de ejecución (no afectar producción)
+## Estrategia de rama y despliegue
 
-1. **Fases 0–4 = solo estructura/estilo.** Ningún cambio de lógica de negocio, queries,
-   RLS o permisos — mismos `href`, mismos `roles`, mismos datos. Riesgo bajo.
-2. **Un PR pequeño por módulo/pantalla**, no un PR gigante de 22 pantallas. Cada uno debe
-   poder revisarse y revertirse solo.
-3. **Deploy preview de Vercel por PR** — QA visual + funcional (crear/editar/eliminar sigue
-   funcionando) antes de merge a main. Usar el skill `/verify` o `/run` para probar en
-   navegador antes de dar por cerrada cada tarea.
-4. **No tocar la lógica de roles/planes** (`PERMISSIONS`, `navLinks.roles`, `pilotHidden`,
-   `pilotOnly`) al reagrupar el sidebar — solo el layout visual del `<nav>`.
-5. **Fase 5 = features nuevas**, cada una con su propio PR, su propia migración (si aplica)
-   y su propio QA — no se agrupan con el restyle.
+- **Toda la ejecución vive en `claude/project-scope-review-xity40`** (rama de esta sesión).
+  `main` (producción, desplegada en Vercel) **no se toca** hasta que el PR se apruebe y
+  mergee manualmente. Esto ya aísla el trabajo de la plataforma en uso.
+- El PR contra `main` queda como **borrador** durante toda la ejecución de las Fases 0–4;
+  solo se marca listo para revisión cuando el usuario lo pida.
+- Cada push a esta rama genera su propio preview deploy en Vercel — se puede revisar el
+  avance en vivo sin afectar producción en ningún momento.
+- **No se crea una segunda rama en paralelo**: el harness de esta sesión exige trabajar
+  sobre la rama designada y prohíbe empujar a otra sin permiso explícito. El aislamiento
+  de "no afectar lo que está en uso" ya lo da el hecho de que `main` es una rama distinta
+  y nada se mergea automáticamente.
+
+## Granularidad de commits (nuevo — reemplaza el criterio de "un PR por módulo")
+
+En vez de un PR grande por módulo, cada módulo de la Fase 3 se parte en **sub-tareas de un
+solo commit cada una** (ver desglose abajo). Regla general:
+
+1. Un commit toca **un componente o un archivo de página**, nunca varios módulos a la vez.
+2. Un commit no mezcla "agregar componente compartido" con "consumirlo en una página" —
+   son dos commits distintos (el compartido se crea una vez en la Fase 2; cada consumo en
+   Fase 3/4 es su propio commit).
+3. Ningún commit de las Fases 0–4 toca un archivo de `src/app/api/**` (esas fases son
+   frontend puro). Los commits que sí tocan backend están explícitamente marcados `[API]`
+   o `[DB]` y viven solo en la Fase 5.
+4. Cada commit debe dejar la app funcionando (build verde) — no se acumulan commits rotos
+   para "arreglar después".
 
 ---
 
@@ -53,160 +68,174 @@ propio mini-proyecto.
 - [ ] 0.1 Confirmar que no hace falta migrar `tailwind.config.mjs` (colores ya coinciden).
       Extender solo si se usan variantes nuevas de radio (28px en `.card` del sistema vs.
       `rounded-3xl`/`rounded-[2rem]` actuales — son casi iguales, verificar caso a caso).
-- [ ] 0.2 Confirmar el set de iconos: el diseño usa Material Symbols Outlined (mismo que
-      ya usa la app vía `<span class="material-symbols-outlined">`). Revisar si aparecen
-      iconos nuevos no cargados en el `<link>`/CDN actual (ej. `partly_cloudy_day` para
-      Meteorología) y añadirlos al subset cargado.
-- [ ] 0.3 Crear rama de trabajo (ej. `design/bitafly-refresh`), commits pequeños por tarea.
-- [ ] 0.4 Capturar screenshots "antes" de cada página actual con Playwright (ya preinstalado
-      en este entorno) para comparación QA por módulo.
+      *(commit propio solo si se toca el config; si no, queda como nota de verificación)*
+- [ ] 0.2 Revisar el subset de iconos Material Symbols cargado y agregar los que falten
+      (ej. `partly_cloudy_day` para Meteorología). 1 commit.
+- [ ] 0.3 Capturar screenshots "antes" de cada página actual (Playwright) para comparación
+      QA por módulo — no se commitea al repo, queda en el scratchpad de la sesión.
 
 ---
 
 ## Fase 1 — Shell compartido: Sidebar + Header ⬜
 
-Mayor impacto visual, menor riesgo funcional — un solo archivo (`src/app/dashboard/layout.js`).
+Mismo archivo (`src/app/dashboard/layout.js`), partido en commits atómicos e independientes:
 
-- [ ] 1.1 Reagrupar `navLinks` visualmente en 4 secciones con encabezado uppercase:
-      **Operación** (Dashboard, Bitácora, Programación, Meteorología) ·
-      **Flota & Equipo** (Flota, Baterías, Mantenimiento, Tripulación) ·
-      **Cumplimiento** (Seguridad SMS, Auditoría, Reportes, Protocolos) ·
-      **Cuenta** (Mi Perfil, Organización, Suscripción).
-      ⚠️ Solo agrupación visual — el array `navLinks` y su filtrado por `role`/`plan`
-      (`filteredLinks`) no cambian de comportamiento, solo se renderiza por grupos.
-- [ ] 1.2 Reemplazar el "BLOQUE DE ESTATUS" (Plan/NIT) por: tarjeta de usuario al pie
-      (avatar + nombre + rol, ya existe la data en `data.profile`) + widget
-      "Plan {plan} / Mejorar" que enlaza a `/dashboard/subscription` (ocultar si ya es
-      Enterprise).
-- [ ] 1.3 Header: agregar input de búsqueda visual (`Buscar misión, aeronave, piloto...`)
-      **sin funcionalidad todavía** — placeholder estático. La funcionalidad real es 5.e.
-- [ ] 1.4 QA con los 5 roles (admin, jefe_pilotos, gerente_sms, piloto, piloto
-      independiente) + período de gracia: el menú filtrado debe verse igual en contenido,
-      solo cambia la agrupación visual.
+- [ ] 1.1 `[commit]` Agregar encabezados de sección uppercase al `<nav>` del sidebar
+      (Operación / Flota & Equipo / Cumplimiento / Cuenta), **sin mover ni renombrar**
+      ningún `href` del array `navLinks` — solo el `render` agrupa visualmente lo que ya
+      filtra `filteredLinks`. Cero cambios de lógica de roles/planes.
+- [ ] 1.2 `[commit]` Reemplazar el bloque "Plan/NIT" por la tarjeta de usuario al pie
+      (avatar + nombre + rol) usando `data.profile` ya cargado — sin nueva query.
+- [ ] 1.3 `[commit]` Agregar el widget "Plan {plan} / Mejorar" (enlace a
+      `/dashboard/subscription`, oculto si el plan ya es Enterprise) — commit separado del
+      1.2 porque son dos piezas visuales independientes.
+- [ ] 1.4 `[commit]` Agregar input de búsqueda visual en el header (placeholder estático,
+      sin `onChange` ni fetch — la función real es la tarea 5.e5).
+- [ ] 1.5 QA manual con los 5 roles + período de gracia (no es commit, es verificación
+      antes de dar la fase por cerrada).
 
 ---
 
 ## Fase 2 — Componentes compartidos nuevos ⬜
 
-- [ ] 2.1 Crear `components/PageHero.js`: banner navy redondeado con overline (módulo),
-      título, descripción, y slot derecho para métrica rápida + botón CTA primario.
-      Props: `{ eyebrow, title, description, metric, cta }`. Reemplaza los `<header>`
-      simples que hoy tiene cada página.
-- [ ] 2.2 Promover el patrón `KPICard` de `DashboardClient.js` a `components/KPIStrip.js`
-      reutilizable (icon, label, value, trend opcional) — hoy solo vive en el dashboard
-      home, el diseño lo repite en Flota, Bitácora, Programación, Baterías, Mantenimiento,
-      Tripulación, Seguridad SMS, Auditoría.
-- [ ] 2.3 Ajustar radios/paddings de `AircraftCard`, `BatteryCard`, tarjetas de piloto al
-      patrón `icon-tile` (64px, radio 18px, fondo `orange-50`) del sistema de diseño.
+Cada componente nace en su propio commit, sin consumidores todavía (los consumos son
+tareas de Fase 3/4, uno por uno):
+
+- [ ] 2.1 `[commit]` Crear `components/PageHero.js` (banner navy: overline, título,
+      descripción, slot de métrica + CTA). Sin usarlo en ninguna página aún.
+- [ ] 2.2 `[commit]` Crear `components/KPIStrip.js` extrayendo el patrón `KPICard` que hoy
+      vive inline en `DashboardClient.js` (icon, label, value, trend opcional), como
+      componente reutilizable independiente. `DashboardClient.js` no cambia todavía.
+- [ ] 2.3 `[commit]` Definir la variante `icon-tile` (64px, radio 18px, fondo `orange-50`)
+      como clase/utilidad reutilizable, sin tocar `AircraftCard`/`BatteryCard` aún.
 
 ---
 
 ## Fase 3 — Restyle módulo por módulo (bajo riesgo) ⬜
 
-Para cada ítem: envolver con `PageHero` + `KPIStrip` (Fase 2) y ajustar tablas/tarjetas al
-nuevo look. **Sin tocar queries, endpoints ni validaciones.** Un PR por ítem.
+Cada módulo se parte en **hasta 3 commits independientes**: (a) envolver con `PageHero`,
+(b) envolver con `KPIStrip`, (c) restyle de tarjetas/tabla del cuerpo. Si un módulo no
+tiene KPIs o tarjetas propias, esa sub-tarea se omite (⏭️). Ningún commit de esta fase
+toca queries, endpoints ni validaciones — solo JSX/Tailwind.
 
 - [ ] 3.1 Dashboard (home) — `DashboardClient.js`
+  - [ ] 3.1a Migrar el header actual a `PageHero`
+  - [ ] 3.1b Reemplazar el bloque de `KPICard` inline por `KPIStrip`
 - [ ] 3.2 Mi Flota — `dashboard/fleet/page.js`
+  - [ ] 3.2a `PageHero`
+  - [ ] 3.2b `KPIStrip`
+  - [ ] 3.2c Restyle de `AircraftCard` (icon-tile, radios, badges)
 - [ ] 3.3 Bitácora — `dashboard/logbook/`
+  - [ ] 3.3a `PageHero`
+  - [ ] 3.3b `KPIStrip`
+  - [ ] 3.3c Restyle de la tabla de vuelos
 - [ ] 3.4 Tripulación — `dashboard/pilots/`
+  - [ ] 3.4a `PageHero` + `KPIStrip`
+  - [ ] 3.4b Restyle de tarjetas de piloto
 - [ ] 3.5 Mantenimiento — `dashboard/maintenance/`
+  - [ ] 3.5a `PageHero` + `KPIStrip`
+  - [ ] 3.5b Restyle de la tabla de mantenimiento
 - [ ] 3.6 Seguridad SMS / SORA / VOR-MOR — `dashboard/safety/`, `dashboard/sora/`
+  - [ ] 3.6a `PageHero` + `KPIStrip` (Seguridad SMS)
+  - [ ] 3.6b Restyle de tabla SORA
 - [ ] 3.7 Reportes — `dashboard/reports/`
+  - [ ] 3.7a `PageHero`
+  - [ ] 3.7b Restyle de tarjetas de formato (F-OPS-002, F-MNT-003, F-HUM-005)
 - [ ] 3.8 Protocolos (Listas de Chequeo) — `dashboard/settings/forms/`
+  - [ ] 3.8a `PageHero`
+  - [ ] 3.8b Restyle de tarjetas de protocolo
 - [ ] 3.9 Mi Perfil — `dashboard/settings/profile/`
+  - [ ] 3.9a `PageHero` (tarjeta "Mi cuenta" navy)
 - [ ] 3.10 Organización — `dashboard/settings/`
+  - [ ] 3.10a `PageHero`
 - [ ] 3.11 Suscripción (solo visual — sin historial de facturación, eso es 5.d) —
       `dashboard/subscription/page.js`
+  - [ ] 3.11a `PageHero`
 - [ ] 3.12 Programación (vista lista actual, restyle únicamente — el calendario semanal
       es 5.c) — `dashboard/authorizations/`
+  - [ ] 3.12a `PageHero` + `KPIStrip`
 
-Checklist QA por tarea: la página carga, filtros/búsqueda existentes siguen funcionando,
-crear/editar/eliminar sigue funcionando, responsive mobile no se rompe (bottom nav).
+Checklist QA por módulo (antes de marcar el módulo completo, no por cada sub-commit):
+la página carga, filtros/búsqueda existentes siguen funcionando, crear/editar/eliminar
+sigue funcionando, responsive mobile no se rompe (bottom nav).
 
 ---
 
 ## Fase 4 — Nuevas rutas de primer nivel (extracción, sin lógica nueva) ⬜
 
-- [ ] 4.1 **Baterías como ruta propia** `/dashboard/batteries` (hoy vive embebida en
-      `/dashboard/fleet`). Nuevo ítem de sidebar bajo "Flota & Equipo".
-      - Backend: la columna "Aeronave asignada" del mockup **no es un campo nuevo** —
-        el propio diseño lo aclara ("se infiere automáticamente del último vuelo cargado
-        en la Bitácora"). Extender `GET` de baterías para incluir, por batería, la
-        aeronave del `battery_logs` más reciente (subquery/`DISTINCT ON` por
-        `battery_sn`, no requiere migración de esquema).
-- [ ] 4.2 **Meteorología como página propia** `/dashboard/weather` (hoy es solo un widget
-      contextual embebido). Reutiliza `/api/weather/current` y `WeatherWidget` ya
-      existentes — sin backend nuevo. Nuevo ítem de sidebar bajo "Operación".
+- [ ] 4.1 `[commit]` Crear la página `/dashboard/batteries` con el layout de tabla del
+      mockup, reutilizando el mismo `GET` de baterías que hoy consume `/dashboard/fleet`
+      (sin cambios de API todavía).
+- [ ] 4.2 `[commit]` `[API]` Extender el `GET` de baterías para incluir, por batería, la
+      aeronave del `battery_logs` más reciente (subquery/`DISTINCT ON`) — columna
+      "Aeronave asignada". Commit separado del 4.1 porque toca `src/app/api/**`.
+- [ ] 4.3 `[commit]` Quitar la sección de Baterías embebida de `/dashboard/fleet` y agregar
+      el ítem "Baterías" al sidebar (Fase 1) apuntando a la nueva ruta.
+- [ ] 4.4 `[commit]` Crear la página `/dashboard/weather` reutilizando `WeatherWidget` y
+      `/api/weather/current` existentes (sin backend nuevo).
+- [ ] 4.5 `[commit]` Agregar el ítem "Meteorología" al sidebar apuntando a la nueva ruta.
 
 ---
 
-## Fase 5 — Funcionalidades nuevas ⚠️ (requieren decisión de alcance antes de empezar)
+## Fase 5 — Funcionalidades nuevas (alcance confirmado: a–e, f fuera) ⚠️
 
-Estas 6 pantallas del mockup describen comportamiento que **no existe hoy en el código**.
-No son "mejorar el aspecto" — son productos nuevos. Decide cuáles entran y cuáles se
-descartan/posponen antes de que las implemente.
+Cada ítem es su propio mini-proyecto, con sus propios commits `[API]`/`[DB]` separados del
+commit de frontend que lo consume. No se mezclan entre sí.
 
-### a) Auditoría real (registro de acciones) ⚠️ mayor esfuerzo
-La página actual `/dashboard/audit` es un **dashboard de cumplimiento** (aeronavegabilidad
-de flota + vigencia de documentos de tripulación) — ver `src/app/dashboard/audit/page.js`.
-El mockup nuevo pide una tabla **"Usuario / Acción / Módulo / Fecha y hora / Tipo"** con
-export CSV — un log de auditoría de acciones de usuario, que **no existe en ninguna tabla
-actual** (no hay `audit_log` en las migraciones).
-- Backend: nueva tabla `audit_log` (Supabase) + helper `logAudit()` centralizado +
-  instrumentación en las API routes relevantes (fleet, pilots, flights, maintenance,
-  protocolos...). RLS: solo managers leen.
-- Decisión pendiente: ¿reemplaza la página actual de cumplimiento, o convive como pestaña
-  aparte? ¿Qué acciones se registran y con qué retención?
-- Estimado: 3–5 días.
+### a) Auditoría real (registro de acciones) — mayor esfuerzo, ~3-5 días
+La página actual `/dashboard/audit` es un dashboard de cumplimiento (aeronavegabilidad +
+vigencia de documentos), no un log de acciones — no hay tabla `audit_log` hoy.
+- [ ] 5.a1 `[DB]` Migración: tabla `audit_log` (`organization_id`, `actor_id`, `action`,
+      `module`, `metadata jsonb`, `created_at`) + RLS (solo managers leen).
+- [ ] 5.a2 `[API]` Helper centralizado `lib/auditLog.js` (`logAudit()`).
+- [ ] 5.a3 `[API]` Instrumentar `logAudit()` en un módulo a la vez (fleet → pilots →
+      flights → maintenance → protocolos), **un commit por módulo instrumentado**.
+- [ ] 5.a4 `[API]` Endpoint `GET /api/audit-log` + export CSV.
+- [ ] 5.a5 `[frontend]` Nueva pestaña/tabla en `/dashboard/audit` (convive con el
+      dashboard de cumplimiento actual, no lo reemplaza — a confirmar con el usuario antes
+      de este commit).
+- ⚠️ Decisión pendiente antes de 5.a5: ¿reemplaza la vista actual o convive como pestaña?
 
-### b) Conflictos de horario en "Nueva Misión" ⬜ esfuerzo bajo-medio
-El mockup valida en vivo si un piloto ya tiene misión asignada en el mismo horario.
-- Backend: query adicional contra `flight_authorizations` por `pic_id` + solape de fecha/hora,
-  en `POST /api/flights/authorize` (y/o validación en vivo al seleccionar piloto en el form).
-  No requiere migración.
-- Estimado: 0.5–1 día.
+### b) Conflictos de horario en "Nueva Misión" — ~0.5-1 día
+- [ ] 5.b1 `[API]` Query de solape por `pic_id`/fecha/hora en `POST /api/flights/authorize`.
+- [ ] 5.b2 `[frontend]` Aviso en vivo en el formulario de Nueva Misión al seleccionar
+      piloto/horario en conflicto.
 
-### c) Vista calendario (semana/mes) en Programación ⬜ esfuerzo medio, solo frontend
-Hoy `MissionControlClient.js` es una vista simple; el mockup usa una grilla semanal tipo
-calendario (pestañas Semana/Mes/Lista). Los datos ya existen en `flight_authorizations` —
-es un componente de calendario nuevo, no trivial, pero sin backend nuevo.
-- Estimado: 1–2 días.
+### c) Vista calendario (semana/mes) en Programación — ~1-2 días, solo frontend
+- [ ] 5.c1 `[frontend]` Componente de grilla semanal (pestaña "Semana") leyendo
+      `flight_authorizations` ya existente.
+- [ ] 5.c2 `[frontend]` Pestaña "Mes" (agrupación mensual del mismo dato).
+- [ ] 5.c3 `[frontend]` Pestaña "Lista" = vista actual restyleada (ya cubierta en 3.12).
 
-### d) Historial de facturación en Suscripción ⚠️ implica decisión legal/fiscal
-No existe hoy tabla ni endpoint de historial de pagos/facturas.
-- Backend: registrar cada pago exitoso del webhook de ePayco en una tabla local
-  `billing_history` (`ref_payco`, monto, fecha, estado) y generar el comprobante en PDF
-  (el proyecto ya genera PDFs para otros módulos).
-- ⚠️ Definir si es una "factura" con validez fiscal (implicación DIAN/facturación
-  electrónica) o un comprobante informativo — esto cambia el esfuerzo significativamente.
-- Estimado: 1–2 días (comprobante informativo) · mucho mayor si debe ser factura electrónica real.
+### d) Historial de facturación en Suscripción — ⚠️ decisión legal/fiscal pendiente
+- [ ] 5.d0 ⚠️ Definir con el usuario: ¿comprobante informativo o factura con validez
+      fiscal (DIAN)? Bloquea el resto de esta sub-fase.
+- [ ] 5.d1 `[DB]` Migración: tabla `billing_history` (`ref_payco`, `user_id`, `amount`,
+      `status`, `created_at`).
+- [ ] 5.d2 `[API]` Registrar cada pago exitoso desde el webhook de ePayco.
+- [ ] 5.d3 `[API]` Endpoint de listado + generación de comprobante PDF (reutiliza el
+      patrón de generación de PDFs ya existente en el proyecto).
+- [ ] 5.d4 `[frontend]` Tabla de historial en `/dashboard/subscription`.
 
-### e) Búsqueda global en el header ⬜ esfuerzo bajo-medio
-"Buscar misión, aeronave, piloto..." visible en el header de todas las pantallas del mockup.
-- Backend: nuevo endpoint `GET /api/search?q=` con `getOrgContext()`, `ilike` sobre
-  `flights`/`aircraft`/`pilots` acotado a `organization_id`. Sin migración.
-- Estimado: ~1 día.
+### e) Búsqueda global en el header — ~1 día
+- [ ] 5.e1 `[API]` Endpoint `GET /api/search?q=` (`ilike` sobre `flights`/`aircraft`/
+      `pilots`, acotado a `organization_id` vía `getOrgContext()`).
+- [ ] 5.e2 `[frontend]` Conectar el input de búsqueda de la tarea 1.4 a este endpoint
+      (dropdown de resultados).
 
-### f) "Mapas de restricción" en Seguridad SMS ⏭️ FUERA DE ALCANCE (confirmado)
-No existe ninguna funcionalidad de zonas restringidas/geofencing en el proyecto hoy.
-- Antes de estimar hace falta definir el alcance: ¿zonas propias del operador dibujadas en
-  mapa, restricciones oficiales de AeroCivil, o ambas? ¿Se cruza con el módulo de
-  Planeación de Vuelo existente (`FlightPlanner.js`)?
-- Recomendación: tratar como iniciativa aparte, fuera de este proyecto de mejora visual,
-  hasta tener claridad de producto.
+### f) "Mapas de restricción" en Seguridad SMS — ⏭️ FUERA DE ALCANCE (confirmado)
+No existe ninguna funcionalidad de geofencing hoy; alcance indefinido (¿zonas propias del
+operador, restricciones oficiales AeroCivil, o ambas? ¿cruce con `FlightPlanner.js`?).
+Se deja fuera de este proyecto hasta tener definición de producto.
 
 ---
 
 ## Fase 6 — Landing pages y assets de marca (opcional, fuera del dashboard) ⬜
 
-El bundle también trae 10 landing pages nuevas (`landing-pages/*.html`: home, RAC 100,
-bitácora digital, mantenimiento, SMS, autorizaciones AeroCivil, gestión de flota,
-operadores UAS, reportes de auditoría, precios), más "Certificado DJI", "Cotización
-Oficial", "Hoja Membretada" y "Plantilla de Cursos". Esto vive en `src/app/page.js` y
-material de marketing/ventas, **no en el dashboard operativo**. No lo incluyo en el plan
-de ejecución salvo que se pida explícitamente — es un proyecto independiente con su propio
-alcance (SEO, copy, potencialmente nuevas rutas públicas).
+El bundle también trae 10 landing pages nuevas y piezas de marca (Certificado DJI,
+Cotización Oficial, Hoja Membretada, Plantilla de Cursos). Vive en `src/app/page.js` y
+material de marketing, no en el dashboard operativo. No entra en la ejecución salvo que se
+pida explícitamente — es un proyecto independiente con su propio alcance.
 
 ---
 
@@ -217,26 +246,26 @@ alcance (SEO, copy, potencialmente nuevas rutas públicas).
 | Sidebar agrupado + widgets (F1) | ✅ | – | – | – |
 | PageHero + KPIStrip (F2) | ✅ | – | – | – |
 | Restyle cards/tablas por módulo (F3) | ✅ | – | – | – |
-| Baterías como ruta propia (F4.1) | ✅ | ✅ query derivada | – | – |
-| Meteorología standalone (F4.2) | ✅ | reutiliza existente | – | – |
+| Baterías como ruta propia (F4) | ✅ | ✅ query derivada | – | – |
+| Meteorología standalone (F4) | ✅ | reutiliza existente | – | – |
 | Auditoría real (F5.a) | ✅ | ✅ | ✅ tabla nueva + RLS | – |
 | Conflictos de horario (F5.b) | ✅ | ✅ | – | – |
 | Calendario Programación (F5.c) | ✅ | – | – | – |
 | Historial de facturación (F5.d) | ✅ | ✅ | ✅ tabla nueva | posible (PDFs) |
 | Búsqueda global (F5.e) | ✅ | ✅ endpoint nuevo | – | – |
-| Mapas de restricción (F5.f) | ❓ | ❓ | ❓ | ❓ |
+| Mapas de restricción (F5.f) | ⏭️ fuera de alcance | – | – | – |
 | Landing pages (F6) | ✅ | – | – | – |
 
-**Nada de esto requiere cambios en Cloudflare** (buckets R2 actuales) salvo si se decide
-generar/almacenar PDFs de factura (5.d), que reutilizarían el patrón existente de
-`maintenance-docs`/`company-manuals`.
+**Nada de esto requiere cambios en Cloudflare** salvo si se decide generar/almacenar PDFs
+de comprobante (5.d), reutilizando el patrón existente de `maintenance-docs`/`company-manuals`.
 
 ---
 
 ## Próximos pasos
 
-1. Confirmar si Fases 0–4 (restyle, ~4 semanas de trabajo incremental en PRs pequeños)
-   se ejecutan tal cual, en ese orden.
-2. Decidir, ítem por ítem, cuáles de la Fase 5 (a–f) entran en alcance ahora, cuáles se
-   posponen y cuáles se descartan.
-3. Decidir si Fase 6 (landing pages) es un proyecto aparte o se agenda después.
+1. Arrancar Fase 0 → Fase 1, commit por commit, cada uno con su propio deploy preview.
+2. Antes de 5.a5: confirmar si Auditoría real reemplaza o convive con la vista de
+   cumplimiento actual.
+3. Antes de 5.d1: confirmar si el historial de facturación es comprobante informativo o
+   factura fiscal real.
+4. Fase 6 (landing pages) queda pendiente de decisión aparte.

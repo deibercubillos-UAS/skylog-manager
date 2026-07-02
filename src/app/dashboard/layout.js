@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -23,7 +23,8 @@ export default function DashboardLayout({ children }) {
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeFlight, setActiveFlight] = useState(null);
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef(null);
   const [accessExpired, setAccessExpired] = useState(false);
   const [gracePeriod, setGracePeriod]     = useState({ isGracePeriod: false, daysLeft: 0 });
   const [isSocio, setIsSocio]             = useState(false);
@@ -193,7 +194,17 @@ export default function DashboardLayout({ children }) {
   // Cierra el menú automáticamente al navegar en móviles
   useEffect(() => {
     setSidebarOpen(false);
+    setAccountMenuOpen(false);
   }, [pathname]);
+
+  // Cierra el menú de cuenta al hacer click fuera de él
+  useEffect(() => {
+    const handler = (e) => {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target)) setAccountMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   if (loading) return <div className="h-screen flex items-center justify-center bg-[#1A202C] text-white font-black animate-pulse">CARGANDO BITAFLY...</div>;
 
@@ -393,37 +404,6 @@ const footerLinks = footerLinksAll.filter(link =>
         {/* PIE DE SIDEBAR */}
         {/* pb-20 lg:pb-3 → en mobile la barra inferior (h-16) tapa este bloque; el padding extra lo empuja arriba */}
         <div className="p-3 pb-16 lg:pb-3 border-t border-white/5 bg-black/10 space-y-1 shrink-0">
-          {/* ADMINISTRACIÓN COLAPSABLE */}
-          <button
-            onClick={() => setIsAdminOpen(!isAdminOpen)}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-black uppercase text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-base">settings_suggest</span>
-              <span>Administración</span>
-            </div>
-            <span className={`material-symbols-outlined text-sm transition-transform duration-300 ${isAdminOpen ? 'rotate-180' : ''}`}>
-              expand_less
-            </span>
-          </button>
-
-          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isAdminOpen ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'}`}>
-            <div className="space-y-0.5 pb-1 pt-0.5">
-              {footerLinks.map(link => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
-                    pathname === link.href ? 'text-orange-400 bg-white/5' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-base shrink-0">{link.icon}</span>
-                  {link.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-
           {/* MASTER CONTROL (superadmin) */}
           {data.profile?.role === 'superadmin' && (
             <Link
@@ -438,21 +418,12 @@ const footerLinks = footerLinksAll.filter(link =>
             </Link>
           )}
 
-          {/* CERRAR SESIÓN */}
-          <button
-            onClick={() => supabase.auth.signOut().then(() => (window.location.href = '/login'))}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black text-red-500/70 hover:text-red-400 hover:bg-red-500/10 transition-all uppercase tracking-widest"
-          >
-            <span className="material-symbols-outlined text-base">logout</span>
-            <span>Cerrar Sesión</span>
-          </button>
-
           {/* WIDGET DE PLAN — mismo dueño de la suscripción que ya ve el link "Suscripción"
-              en Administración (footerLinks); oculto para Enterprise (no hay a qué mejorar). */}
+              en el menú de cuenta; oculto para Enterprise (no hay a qué mejorar). */}
           {footerLinks.some(l => l.href === '/dashboard/subscription') && plan !== 'enterprise' && (
             <Link
               href="/dashboard/subscription"
-              className="flex items-center justify-between gap-2 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/30 transition-all group"
+              className="flex items-center justify-between gap-2 px-4 py-3 rounded-xl border-b border-white/10 hover:bg-white/5 transition-all group"
             >
               <div className="min-w-0">
                 <p className="text-xs font-black text-slate-500 uppercase tracking-tight leading-none">
@@ -465,30 +436,61 @@ const footerLinks = footerLinksAll.filter(link =>
             </Link>
           )}
 
-          {/* TARJETA DE USUARIO — mismos datos que ya carga el header (data.profile), sin query nueva */}
-          <Link
-            href="/dashboard/settings/profile"
-            className="flex items-center gap-3 px-3 py-2.5 mt-1 rounded-xl hover:bg-white/5 transition-colors group border-t border-white/5 pt-3"
-          >
-            <div className="size-9 rounded-full bg-white/10 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
-              {data.profile?.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={docOpenUrl(data.profile.avatar_url)} alt="Avatar" className="object-cover w-full h-full" />
-              ) : (
-                <span className="text-xs font-black text-white">
-                  {(data.profile?.full_name || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase()}
-                </span>
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-black text-white truncate leading-none group-hover:text-orange-400 transition-colors">
-                {data.profile?.full_name || 'Mi cuenta'}
-              </p>
-              <p className="text-xs font-bold text-slate-500 uppercase mt-0.5 truncate">
-                {displayRole}
-              </p>
-            </div>
-          </Link>
+          {/* MENÚ DE CUENTA — avatar + nombre + rol, click abre popup con
+              Perfil/Organización/Suscripción (footerLinks) + Cerrar sesión.
+              Un solo punto de entrada, en vez de 3 elementos sueltos. */}
+          <div ref={accountMenuRef} className="relative pt-2">
+            {accountMenuOpen && (
+              <div className="absolute left-0 right-0 bottom-full mb-2 bg-[#242c3a] border border-white/10 rounded-2xl p-2 shadow-2xl z-30 space-y-0.5">
+                {footerLinks.map(link => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      pathname === link.href ? 'text-orange-400 bg-white/5' : 'text-slate-300 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-base shrink-0">{link.icon}</span>
+                    {link.name}
+                  </Link>
+                ))}
+                <div className="h-px bg-white/10 my-1 mx-1" />
+                <button
+                  onClick={() => supabase.auth.signOut().then(() => (window.location.href = '/login'))}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-red-400 hover:bg-red-500/10 transition-all"
+                >
+                  <span className="material-symbols-outlined text-base">logout</span>
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+            <button
+              onClick={() => setAccountMenuOpen(v => !v)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors"
+            >
+              <div className="size-9 rounded-full bg-white/10 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+                {data.profile?.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={docOpenUrl(data.profile.avatar_url)} alt="Avatar" className="object-cover w-full h-full" />
+                ) : (
+                  <span className="text-xs font-black text-white">
+                    {(data.profile?.full_name || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1 text-left">
+                <p className="text-xs font-black text-white truncate leading-none">
+                  {data.profile?.full_name || 'Mi cuenta'}
+                </p>
+                <p className="text-xs font-bold text-slate-500 truncate mt-0.5">
+                  {displayRole}
+                </p>
+              </div>
+              <span className="material-symbols-outlined text-lg text-slate-500 shrink-0">
+                {accountMenuOpen ? 'expand_more' : 'expand_less'}
+              </span>
+            </button>
+          </div>
         </div>
       </aside>
 

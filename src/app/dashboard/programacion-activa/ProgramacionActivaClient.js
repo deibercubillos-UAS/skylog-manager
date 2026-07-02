@@ -13,6 +13,25 @@ export default function ProgramacionActivaClient({
   const [missions, setMissions] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [busy, setBusy]         = useState(null); // `${id}:kmz` | `${id}:pdf`
+  const [view, setView]         = useState('lista'); // 'lista' | 'semana'
+  const [weekOffset, setWeekOffset] = useState(0);   // 0 = semana actual
+
+  // Lunes de la semana visible (según weekOffset).
+  const weekStart = (() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    const day = (d.getDay() + 6) % 7; // 0 = lunes
+    d.setDate(d.getDate() - day + weekOffset * 7);
+    return d;
+  })();
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    return d;
+  });
+  const DAY_LABELS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const missionsOn = (d) => missions.filter(m => (m.scheduled_at ? String(m.scheduled_at).slice(0, 10) : '') === iso(d));
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -95,7 +114,16 @@ export default function ProgramacionActivaClient({
             {missions.length} {pilotEmail ? 'misiones asignadas a ti' : 'misiones registradas'}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {/* Toggle Lista / Semana */}
+          <div className="flex bg-slate-100 rounded-xl p-1">
+            {['lista', 'semana'].map(v => (
+              <button key={v} onClick={() => setView(v)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${view === v ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'}`}>
+                {v === 'lista' ? 'Lista' : 'Semana'}
+              </button>
+            ))}
+          </div>
           <button onClick={loadData} className="px-4 py-2.5 text-xs font-black uppercase text-slate-500 hover:text-orange-600 transition-colors flex items-center gap-1.5">
             <span className="material-symbols-outlined text-base">sync</span> Refrescar
           </button>
@@ -122,6 +150,50 @@ export default function ProgramacionActivaClient({
               Programar una misión
             </Link>
           )}
+        </div>
+      ) : view === 'semana' ? (
+        <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+          {/* Navegación de semana */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+            <button onClick={() => setWeekOffset(o => o - 1)} className="size-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all">
+              <span className="material-symbols-outlined text-base">chevron_left</span>
+            </button>
+            <div className="text-center">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-700">
+                {weekStart.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })} — {weekDays[6].toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
+              </p>
+              {weekOffset !== 0 && (
+                <button onClick={() => setWeekOffset(0)} className="text-[10px] font-black text-orange-500 uppercase">Hoy</button>
+              )}
+            </div>
+            <button onClick={() => setWeekOffset(o => o + 1)} className="size-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all">
+              <span className="material-symbols-outlined text-base">chevron_right</span>
+            </button>
+          </div>
+          {/* Grilla 7 días */}
+          <div className="grid grid-cols-1 sm:grid-cols-7 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+            {weekDays.map((d, i) => {
+              const dayMissions = missionsOn(d);
+              const isToday = iso(d) === iso(new Date());
+              return (
+                <div key={i} className={`min-h-[140px] p-2 ${isToday ? 'bg-orange-50/40' : ''}`}>
+                  <div className="text-center mb-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{DAY_LABELS[i]}</p>
+                    <p className={`text-sm font-black ${isToday ? 'text-orange-600' : 'text-slate-700'}`}>{d.getDate()}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    {dayMissions.map(m => (
+                      <div key={m.id} className="rounded-lg bg-white border border-slate-200 px-2 py-1.5 shadow-sm">
+                        <p className="text-[10px] font-black font-mono text-orange-600 truncate">{m.mission_id}</p>
+                        <p className="text-[11px] font-bold text-slate-700 truncate">{m.pilots?.name || '---'}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{m.aircraft?.model || ''}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       ) : (
         <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">

@@ -92,6 +92,24 @@ export default function DashboardClient() {
   const alertsCount = data?.stats?.alertsCount || 0;
   const chartLabel  = `Actividad de vuelo — últimos 6 meses. ${(data?.chart || []).map(m => `${m.label}: ${m.count} vuelo${m.count !== 1 ? 's' : ''}`).join(', ')}.`;
 
+  // Bloque derecho del hero: próxima misión + anillo "Flota lista" (ver /api/dashboard)
+  const fleetTotal = data?.stats?.fleetCount || 0;
+  const fleetReady = data?.stats?.fleetReadyCount ?? fleetTotal;
+  const fleetPct = fleetTotal > 0 ? Math.round((fleetReady / fleetTotal) * 100) : 100;
+  const ringCircumference = 2 * Math.PI * 19;
+  const ringOffset = ringCircumference * (1 - fleetPct / 100);
+
+  const nextMission = data?.nextMission;
+  let nextMissionLabel = null;
+  if (nextMission?.date) {
+    const d = new Date(`${nextMission.date}T00:00:00`);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const dateLabel = d.getTime() === today.getTime()
+      ? 'Hoy'
+      : d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+    nextMissionLabel = nextMission.time ? `${dateLabel} · ${nextMission.time}` : dateLabel;
+  }
+
   return (
     <div className="space-y-5 md:space-y-8 animate-in fade-in duration-700 text-left pb-4">
 
@@ -123,6 +141,30 @@ export default function DashboardClient() {
         eyebrow="Panel de Control"
         title={`Bienvenido, ${firstName}`}
         description={new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        right={
+          <>
+            {nextMissionLabel && (
+              <div className="hidden sm:flex flex-col justify-center pr-4 md:pr-6 border-r border-white/10">
+                <p className="text-xs font-black uppercase tracking-wide text-white/40">Próxima misión</p>
+                <p className="text-sm font-black text-white mt-1 whitespace-nowrap">{nextMissionLabel}</p>
+              </div>
+            )}
+            <div className="flex items-center gap-2.5">
+              <div className="relative size-11 shrink-0">
+                <svg width="46" height="46" viewBox="0 0 46 46" className="-rotate-90" aria-hidden="true">
+                  <circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,.15)" strokeWidth="5" />
+                  <circle cx="23" cy="23" r="19" fill="none" stroke="#ec5b13" strokeWidth="5" strokeLinecap="round"
+                    strokeDasharray={ringCircumference} strokeDashoffset={ringOffset} />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center text-[11px] font-black text-white">{fleetPct}%</div>
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-wide text-white/40">Flota lista</p>
+                <p className="text-xs font-bold text-white/80 mt-0.5 whitespace-nowrap">{fleetReady} de {fleetTotal} aeronaves</p>
+              </div>
+            </div>
+          </>
+        }
       />
 
       {/* 1. KPIs */}

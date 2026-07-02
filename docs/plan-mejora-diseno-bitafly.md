@@ -126,10 +126,11 @@ toca queries, endpoints ni validaciones — solo JSX/Tailwind.
 - [x] 3.1 Dashboard (home) — `DashboardClient.js` ✅
   - [x] 3.1a Migrar el header actual a `PageHero`
   - [x] 3.1b Reemplazar el bloque de `KPICard` inline por `KPIStrip`
-- [ ] 3.2 Mi Flota — `dashboard/fleet/page.js`
-  - [ ] 3.2a `PageHero`
-  - [ ] 3.2b `KPIStrip`
-  - [ ] 3.2c Restyle de `AircraftCard` (icon-tile, radios, badges)
+- [x] 3.2 Mi Flota — `dashboard/fleet/page.js` ✅
+  - [x] 3.2a `PageHero`
+  - [x] 3.2b `KPIStrip`
+  - [x] 3.2c Restyle de `AircraftCard` — icon-tile como elemento principal + foto real como
+        miniatura secundaria (decisión confirmada con el usuario: opción híbrida)
 - [ ] 3.3 Bitácora — `dashboard/logbook/`
   - [ ] 3.3a `PageHero`
   - [ ] 3.3b `KPIStrip`

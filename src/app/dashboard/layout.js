@@ -529,6 +529,15 @@ const footerLinks = footerLinksAll.filter(link =>
                 {data.org?.company_name || 'Individual'}
               </h2>
             </div>
+            {/* Estado operativo — decorativo por ahora (sin fuente de datos de estado
+                de operación); confirma visualmente que el sistema está activo. */}
+            <div className="hidden md:flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full pl-2 pr-3 py-1 shrink-0">
+              <span className="relative flex size-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full size-1.5 bg-emerald-500" />
+              </span>
+              <span className="text-[10px] font-black text-emerald-700 uppercase tracking-wide whitespace-nowrap">Operación normal</span>
+            </div>
           </div>
 
           {/* CENTRO: búsqueda global (Fase 5.e) — endpoint /api/search acotado a la org */}

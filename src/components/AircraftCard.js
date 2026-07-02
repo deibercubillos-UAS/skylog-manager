@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import { docOpenUrl } from '@/lib/docUrl';
+import IconTile from '@/components/IconTile';
 
 const DEFAULT_AIRCRAFT_IMG = 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=400';
 
@@ -81,8 +82,17 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
   return (
     <>
     <div className={`bg-white rounded-[2rem] border shadow-sm flex flex-col sm:flex-row group hover:shadow-md transition-all text-left ${inactive ? 'border-slate-200 opacity-60' : 'border-slate-200'}`}>
-      <div className="w-full sm:w-40 h-40 sm:h-auto bg-slate-100 shrink-0 relative overflow-hidden rounded-t-[2rem] sm:rounded-l-[2rem] sm:rounded-tr-none">
-        <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${resolveImg(aircraft.image_url)})` }}></div>
+      <div className="w-full sm:w-28 shrink-0 relative flex items-center justify-center p-6 sm:p-4 bg-orange-50/50 overflow-hidden rounded-t-[2rem] sm:rounded-l-[2rem] sm:rounded-tr-none">
+        <IconTile icon="flight" size={64} />
+        {/* Foto real subida por el usuario — miniatura secundaria sobre el icon-tile */}
+        {aircraft.image_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={resolveImg(aircraft.image_url)}
+            alt=""
+            className="absolute bottom-3 right-3 sm:bottom-2 sm:right-2 size-8 rounded-full border-2 border-white object-cover shadow-sm"
+          />
+        )}
         {inactive && (
           <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center">
             <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${isBaja ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'}`}>

@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import PageHero from '@/components/PageHero';
 
 const SAFETY_MODULES = [
   {
@@ -49,14 +50,11 @@ export default function SafetyPage() {
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 text-left pb-20">
 
       {/* Header */}
-      <header className="border-b border-slate-200 pb-5">
-        <h2 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter">
-          Seguridad Operacional
-        </h2>
-        <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">
-          SMS Aeronáutico · RAC 100 · JARUS v2.0
-        </p>
-      </header>
+      <PageHero
+        eyebrow="Cumplimiento"
+        title="Seguridad Operacional"
+        description="SMS Aeronáutico · RAC 100 · JARUS v2.0"
+      />
 
       {/* Módulos */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -424,6 +424,23 @@ documento de control con el detalle fase por fase). Rama `claude/project-scope-r
 nombre + rol) + widget "Plan {plan} / Mejorar" (oculto en Enterprise, visible solo para
 quien también ve el link Suscripción).
 
+**Consolidación de entradas duplicadas (2026-07-02)**: "Programación Activa", "SORA" y
+"Manuales" se accedían tanto desde el sidebar como desde un enlace/tarjeta dentro de otra
+página (Programación → "Ver programación activa", Seguridad Operacional → tarjeta SORA).
+Se quitó la entrada de sidebar para los roles que ya llegan por la página padre, y se
+conservó (o agregó) para los que no la tienen en su nav:
+- **Programación Activa**: sin entrada propia — mismos roles que Programación
+  (`superadmin/admin/jefe_pilotos`), se llega por el link ya existente.
+- **SORA**: sin entrada para `superadmin/admin(org)/gerente_sms` (llegan por la tarjeta en
+  Seguridad Operacional). Dos entradas nuevas cubren a quien NO tiene esa página: una para
+  `jefe_pilotos`/`piloto` (org) y otra `pilotOnly` para el piloto independiente (su
+  Seguridad Operacional está `pilotHidden`).
+- **Manuales**: sin entrada para `superadmin/admin(org)/gerente_sms` — se agregó un link
+  "Ver manuales" dentro de Protocolos (`FormSettingsClient.js`, oculto si
+  `showManualsLink` es falso). Se conserva entrada directa solo para `jefe_pilotos`/`piloto`
+  (org), que no tienen Protocolos en su nav. El piloto independiente sigue sin acceso a
+  Manuales (aplica solo a organizaciones, sin cambio de comportamiento).
+
 ### Baterías y Meteorología como rutas propias
 
 - `/dashboard/batteries` — extraída de la sección embebida en `/dashboard/fleet` (que

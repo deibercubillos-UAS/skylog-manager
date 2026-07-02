@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import { CHECKLIST_DEFAULTS } from '@/lib/checklistDefaults';
@@ -124,6 +125,14 @@ export default function FormSettingsClient({ initialData }) {
                 title="Editor de Protocolos"
                 description={`Checklists y procedimientos de ${initialData.companyName || 'tu organización'}`}
             />
+            {initialData.showManualsLink && (
+                <div className="flex justify-end -mt-4">
+                    <Link href="/dashboard/manuales" className="text-xs font-black text-primary uppercase underline flex items-center gap-1">
+                        <span className="material-symbols-outlined text-base">library_books</span>
+                        Ver manuales
+                    </Link>
+                </div>
+            )}
             <div className="flex flex-col md:flex-row justify-end items-stretch md:items-center gap-2 border-b pb-6">
                 <div className="flex gap-2 w-full md:w-auto">
                     <button

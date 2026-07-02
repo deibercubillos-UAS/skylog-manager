@@ -279,20 +279,26 @@ const navLinks = [
   { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      group: 'Operación', roles: ['superadmin', 'admin', 'jefe_pilotos', 'piloto'], pilotOnly: true },
   // Piloto dentro de una org: también puede planear vuelos (notifica al Jefe de Pilotos al guardar)
   { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      group: 'Operación', roles: ['piloto'],                                         pilotHidden: true },
+  // Programación Activa vive dentro de Programación ("Ver programación activa") — mismos roles, sin entrada propia en el sidebar.
   { name: 'Programación',   icon: 'event_available',         href: '/dashboard/authorizations',  group: 'Operación', roles: ['superadmin', 'admin', 'jefe_pilotos'],            pilotHidden: true },
-  { name: 'Programación Activa', icon: 'flight_takeoff',     href: '/dashboard/programacion-activa', group: 'Operación', roles: ['superadmin', 'admin', 'jefe_pilotos'],      pilotHidden: true },
   // Vista del piloto: solo sus misiones asignadas (solo-lectura, con KMZ/PDF)
   { name: 'Mis Vuelos',     icon: 'flight_takeoff',          href: '/dashboard/mis-vuelos',      group: 'Operación', roles: ['piloto'],                                         pilotHidden: true },
   { name: 'Bitácora',       icon: 'menu_book',               href: '/dashboard/logbook',         group: 'Operación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Meteorología',   icon: 'partly_cloudy_day',       href: '/dashboard/weather',         group: 'Operación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Reportes',       icon: 'assessment',              href: '/dashboard/reports',         group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
   { name: 'Seguridad Operacional', icon: 'health_and_safety', href: '/dashboard/safety',          group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms'],                    pilotHidden: true },
-  { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  // SORA ya está como tarjeta dentro de Seguridad Operacional para quien ve esa página
+  // (superadmin/admin org/gerente_sms). jefe_pilotos y piloto (org) no tienen esa página en
+  // su nav, y el piloto independiente la tiene oculta (pilotHidden) — ambos necesitan entrada directa.
+  { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            group: 'Cumplimiento', roles: ['jefe_pilotos', 'piloto'] },
+  { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            group: 'Cumplimiento', roles: ['admin'],                                          pilotOnly: true },
   { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
   { name: 'Listas de Chequeo', icon: 'rule',                 href: '/dashboard/settings/forms',  group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms'] },
-  // Manuales de la empresa: lectura para todos; gestión solo GG/GSMS/JP (gated en la página).
-  // pilotHidden: aplica a organizaciones, no al piloto independiente.
-  { name: 'Manuales',       icon: 'library_books',           href: '/dashboard/manuales',        group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
+  // Manuales de la empresa: ahora se accede desde dentro de Protocolos (Listas de Chequeo,
+  // "Ver manuales") para superadmin/admin/gerente_sms — misma página que ya veían.
+  // jefe_pilotos y piloto (org) no tienen Protocolos en su nav, así que conservan entrada directa.
+  // El piloto independiente sigue sin acceso (Manuales aplica solo a organizaciones).
+  { name: 'Manuales',       icon: 'library_books',           href: '/dashboard/manuales',        group: 'Cumplimiento', roles: ['jefe_pilotos', 'piloto'] },
 ];
 
 // Orden de renderizado de los grupos del sidebar (solo presentación).

@@ -9,10 +9,10 @@ export default async function FormSettingsPage() {
     // PASO 2: PARALELISMO TOTAL EN EL SERVIDOR (TTFB < 200ms)
     // Obtenemos todo lo necesario para el renderizado inicial antes de que el cliente cargue
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     // Obtenemos perfil y datos iniciales en una sola ráfaga
-    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user?.id).single();
-    
+    const { data: profile } = await supabase.from('profiles').select('organization_id, role, subscription_plan').eq('id', user?.id).single();
+
     const [dronesRes, orgRes, defsRes] = await Promise.all([
         supabase.from('aircraft').select('model').eq('organization_id', profile?.organization_id),
         supabase.from('organizations').select('enable_health_check, enable_preflight, enable_briefing, company_name').eq('id', profile?.organization_id).single(),
@@ -27,6 +27,9 @@ export default async function FormSettingsPage() {
     const initialLabels = {};
     defsRes.data?.forEach(d => { initialLabels[d.field_number] = d.label_text; });
 
+    // Manuales aplica solo a organizaciones — el piloto independiente (admin + plan piloto) no lo ve.
+    const showManualsLink = !(profile?.role === 'admin' && profile?.subscription_plan === 'piloto');
+
     const initialData = {
         organizationId: profile?.organization_id,
         models: [...new Set(dronesRes.data?.map(d => d.model))],
@@ -34,7 +37,8 @@ export default async function FormSettingsPage() {
         preflightEnabled: orgRes.data?.enable_preflight ?? true,
         briefingEnabled: orgRes.data?.enable_briefing ?? true,
         companyName: orgRes.data?.company_name,
-        initialLabels: initialLabels
+        initialLabels: initialLabels,
+        showManualsLink
     };
 
     return <FormSettingsClient initialData={initialData} />;

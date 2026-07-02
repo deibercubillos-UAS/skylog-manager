@@ -813,6 +813,9 @@ export default function ManageSubscriptionPage() {
         </section>
       )}
 
+      {/* ── Historial de facturación (Fase 5.d) ──────────────────────────── */}
+      <BillingHistory />
+
       {/* ── Modal confirmación de unirse ─────────────────────────────────── */}
       {joinConfirming && joinOrg && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
@@ -951,5 +954,67 @@ export default function ManageSubscriptionPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// ── Historial de facturación (comprobante informativo, Fase 5.d) ─────────────
+function BillingHistory() {
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/billing-history')
+      .then(r => r.json())
+      .then(d => { setEntries(d.entries || []); setPending(!!d.pending); })
+      .catch(() => setEntries([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Oculto mientras carga, si la tabla no existe aún, o si no hay pagos —
+  // no añade ruido a la página de suscripción.
+  if (loading || pending || entries.length === 0) return null;
+
+  const fmt = (n, cur) => {
+    const v = Number(n || 0);
+    try { return v.toLocaleString('es-CO', { style: 'currency', currency: cur || 'COP', maximumFractionDigits: 0 }); }
+    catch { return `$${v.toLocaleString('es-CO')}`; }
+  };
+
+  return (
+    <section className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+      <div className="px-6 py-5 border-b border-slate-100">
+        <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">Historial de facturación</h3>
+        <p className="text-xs text-slate-400 font-medium mt-0.5">Comprobantes informativos de tus pagos</p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead className="bg-slate-50 border-b border-slate-100">
+            <tr className="text-xs font-black uppercase text-slate-400 tracking-widest">
+              <th className="px-6 py-3">Fecha</th>
+              <th className="px-6 py-3">Plan</th>
+              <th className="px-6 py-3">Ciclo</th>
+              <th className="px-6 py-3">Monto</th>
+              <th className="px-6 py-3">Estado</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 text-sm">
+            {entries.map(e => (
+              <tr key={e.id}>
+                <td className="px-6 py-3 text-slate-600 whitespace-nowrap">{new Date(e.created_at).toLocaleDateString('es-CO')}</td>
+                <td className="px-6 py-3 font-bold text-slate-900 capitalize">{e.plan_key || '—'}</td>
+                <td className="px-6 py-3 text-slate-500 text-xs uppercase">{e.billing === 'annual' ? 'Anual' : 'Mensual'}</td>
+                <td className="px-6 py-3 font-black text-slate-900 tabular-nums">{fmt(e.amount, e.currency)}</td>
+                <td className="px-6 py-3">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black uppercase bg-emerald-50 text-emerald-600">
+                    <span className="material-symbols-outlined text-sm">check_circle</span>{e.status || 'pagada'}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }

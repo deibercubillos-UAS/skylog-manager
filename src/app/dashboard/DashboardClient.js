@@ -201,14 +201,16 @@ export default function DashboardClient() {
         ]} />
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
+      {/* 2+3. GRÁFICO MENSUAL + ALERTAS — una sola tarjeta blanca, lado a lado
+          (antes eran 2 tarjetas separadas con el panel de alertas en navy oscuro).
+          Mismos aria-labels/roles que antes, solo cambia el contenedor visual. */}
+      <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col lg:flex-row">
 
-        {/* 2. GRÁFICO MENSUAL */}
-        <figure className="lg:col-span-2 bg-white p-5 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col h-[260px] md:h-[420px]"
-          aria-label={chartLabel}>
+        {/* GRÁFICO MENSUAL */}
+        <figure className="lg:flex-[1.5] p-5 md:p-10 flex flex-col h-[260px] md:h-[420px]" aria-label={chartLabel}>
           <figcaption className="flex justify-between items-start mb-4 md:mb-10">
             <div>
-              <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em] md:tracking-[0.3em]">Actividad Mensual</h3>
+              <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em] md:tracking-[0.3em]">Vuelos por Mes</h3>
               <span className="text-xs font-bold text-slate-400 mt-0.5 inline-block">Últimos 6 meses</span>
             </div>
             {flightTrend !== null && (
@@ -260,30 +262,35 @@ export default function DashboardClient() {
           </table>
         </figure>
 
-        {/* 3. ALERTAS COMPLIANCE */}
-        <section aria-label="Alertas de compliance operacional"
-          className="bg-[#1A202C] p-5 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl text-white flex flex-col h-[260px] md:h-[420px] border border-white/5">
-          <h3 className="text-xs font-black uppercase text-orange-500 mb-4 md:mb-8 tracking-widest flex items-center gap-2">
-            <span className="material-symbols-outlined text-lg" aria-hidden="true">gavel</span> Compliance
+        <div className="hidden lg:block w-px bg-slate-100 my-10" />
+        <div className="lg:hidden h-px bg-slate-100 mx-5 md:mx-10" />
+
+        {/* ALERTAS ACTIVAS */}
+        <section aria-label="Alertas activas de la operación"
+          className="lg:flex-1 p-5 md:p-10 flex flex-col h-[260px] md:h-[420px]">
+          <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em] md:tracking-[0.3em] mb-4 md:mb-10 flex items-center gap-2">
+            Alertas Activas
+            {alertsCount > 0 && (
+              <span className="text-[10px] font-black text-white bg-orange-600 rounded-full px-2 py-0.5">{alertsCount}</span>
+            )}
           </h3>
-          <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1" role="list"
+          <div className="space-y-3 overflow-y-auto pr-1 custom-scrollbar flex-1" role="list"
             aria-label={alertsCount > 0 ? `${alertsCount} alerta${alertsCount !== 1 ? 's' : ''} activa${alertsCount !== 1 ? 's' : ''}` : 'Sin alertas activas'}>
             {data?.alerts?.length > 0 ? data.alerts.map((a, i) => (
-              <div key={i} role="listitem"
-                className="p-4 rounded-2xl border border-white/10 bg-white/5 flex items-start gap-4">
-                <span className={`material-symbols-outlined text-sm ${a.type === 'CRÍTICO' ? 'text-red-500' : 'text-orange-500'}`}
-                  aria-label={a.type === 'CRÍTICO' ? 'Alerta crítica' : 'Advertencia'}>
-                  {a.type === 'CRÍTICO' ? 'report' : 'notification_important'}
-                </span>
-                <div>
-                  <p className="text-xs font-black leading-tight uppercase">{a.msg}</p>
-                  <p className="text-xs text-slate-400 font-bold mt-1 uppercase">{a.val}</p>
+              <div key={i} role="listitem" className="flex items-start gap-2.5 py-2.5 border-b border-slate-100 last:border-b-0">
+                <span
+                  className={`size-1.5 rounded-full mt-1.5 shrink-0 ${a.type === 'CRÍTICO' ? 'bg-red-600' : 'bg-amber-500'}`}
+                  aria-label={a.type === 'CRÍTICO' ? 'Alerta crítica' : 'Advertencia'}
+                />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-slate-800 leading-tight">{a.msg}</p>
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">{a.val}</p>
                 </div>
               </div>
             )) : (
-              <div className="h-full flex flex-col items-center justify-center opacity-30 text-center" aria-live="polite">
-                <span className="material-symbols-outlined text-5xl text-white mb-3" aria-hidden="true">verified</span>
-                <p className="text-xs font-black uppercase tracking-widest text-white">Operación Segura</p>
+              <div className="h-full flex flex-col items-center justify-center opacity-40 text-center" aria-live="polite">
+                <span className="material-symbols-outlined text-5xl text-emerald-500 mb-3" aria-hidden="true">verified</span>
+                <p className="text-xs font-black uppercase tracking-widest text-slate-700">Operación Segura</p>
                 <p className="text-xs text-slate-400 font-medium mt-1">Sin alertas activas</p>
               </div>
             )}

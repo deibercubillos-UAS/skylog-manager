@@ -255,28 +255,33 @@ const displayRole = (isPilotoPlan && role === 'admin')
 
 // pilotHidden: true  → se oculta cuando el plan es 'piloto' (sin importar el rol)
 // pilotOnly: true    → se muestra SOLO cuando el plan es 'piloto'
+// group: solo se usa para agrupar visualmente el <nav> del sidebar (ver NAV_GROUPS).
+// No participa en el filtrado por rol/plan — eso lo sigue haciendo filteredLinks abajo.
 const navLinks = [
-  { name: 'Dashboard',      icon: 'dashboard',               href: '/dashboard',                 roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Mi Flota',       icon: 'precision_manufacturing', href: '/dashboard/fleet',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Tripulación',    icon: 'group',                   href: '/dashboard/pilots',          roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
-  { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      roles: ['superadmin', 'admin', 'jefe_pilotos', 'piloto'], pilotOnly: true },
+  { name: 'Dashboard',      icon: 'dashboard',               href: '/dashboard',                 group: 'Operación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Mi Flota',       icon: 'precision_manufacturing', href: '/dashboard/fleet',           group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Tripulación',    icon: 'group',                   href: '/dashboard/pilots',          group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
+  { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      group: 'Operación', roles: ['superadmin', 'admin', 'jefe_pilotos', 'piloto'], pilotOnly: true },
   // Piloto dentro de una org: también puede planear vuelos (notifica al Jefe de Pilotos al guardar)
-  { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      roles: ['piloto'],                                         pilotHidden: true },
-  { name: 'Programación',   icon: 'event_available',         href: '/dashboard/authorizations',  roles: ['superadmin', 'admin', 'jefe_pilotos'],            pilotHidden: true },
-  { name: 'Programación Activa', icon: 'flight_takeoff',     href: '/dashboard/programacion-activa', roles: ['superadmin', 'admin', 'jefe_pilotos'],      pilotHidden: true },
+  { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      group: 'Operación', roles: ['piloto'],                                         pilotHidden: true },
+  { name: 'Programación',   icon: 'event_available',         href: '/dashboard/authorizations',  group: 'Operación', roles: ['superadmin', 'admin', 'jefe_pilotos'],            pilotHidden: true },
+  { name: 'Programación Activa', icon: 'flight_takeoff',     href: '/dashboard/programacion-activa', group: 'Operación', roles: ['superadmin', 'admin', 'jefe_pilotos'],      pilotHidden: true },
   // Vista del piloto: solo sus misiones asignadas (solo-lectura, con KMZ/PDF)
-  { name: 'Mis Vuelos',     icon: 'flight_takeoff',          href: '/dashboard/mis-vuelos',      roles: ['piloto'],                                         pilotHidden: true },
-  { name: 'Bitácora',       icon: 'menu_book',               href: '/dashboard/logbook',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Reportes',       icon: 'assessment',              href: '/dashboard/reports',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
-  { name: 'Seguridad Operacional', icon: 'health_and_safety', href: '/dashboard/safety',          roles: ['superadmin', 'admin', 'gerente_sms'],                    pilotHidden: true },
-  { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
-  { name: 'Listas de Chequeo', icon: 'rule',                 href: '/dashboard/settings/forms',  roles: ['superadmin', 'admin', 'gerente_sms'] },
+  { name: 'Mis Vuelos',     icon: 'flight_takeoff',          href: '/dashboard/mis-vuelos',      group: 'Operación', roles: ['piloto'],                                         pilotHidden: true },
+  { name: 'Bitácora',       icon: 'menu_book',               href: '/dashboard/logbook',         group: 'Operación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Reportes',       icon: 'assessment',              href: '/dashboard/reports',         group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
+  { name: 'Seguridad Operacional', icon: 'health_and_safety', href: '/dashboard/safety',          group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms'],                    pilotHidden: true },
+  { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
+  { name: 'Listas de Chequeo', icon: 'rule',                 href: '/dashboard/settings/forms',  group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms'] },
   // Manuales de la empresa: lectura para todos; gestión solo GG/GSMS/JP (gated en la página).
   // pilotHidden: aplica a organizaciones, no al piloto independiente.
-  { name: 'Manuales',       icon: 'library_books',           href: '/dashboard/manuales',        roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
+  { name: 'Manuales',       icon: 'library_books',           href: '/dashboard/manuales',        group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
 ];
+
+// Orden de renderizado de los grupos del sidebar (solo presentación).
+const NAV_GROUPS = ['Operación', 'Flota & Equipo', 'Cumplimiento'];
 
 // FILTRAR por rol, plan y flags pilotOnly / pilotHidden
 // En período de gracia: solo Dashboard y Bitácora
@@ -364,25 +369,38 @@ const footerLinks = footerLinksAll.filter(link =>
           </div>
         </div>
 
-        {/* NAV PRINCIPAL */}
-        <nav aria-label="Menú lateral" className="flex-1 p-3 space-y-0.5 mt-2 overflow-y-auto custom-scrollbar">
-          {filteredLinks.map(link => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${
-                pathname === link.href
-                  ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20'
-                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              <span className="material-symbols-outlined text-lg shrink-0">{link.icon}</span>
-              <span className="flex-1 truncate">{link.name}</span>
-              {link.devBadge && (
-                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 uppercase tracking-wide shrink-0">DEV</span>
-              )}
-            </Link>
-          ))}
+        {/* NAV PRINCIPAL — agrupado en secciones (Operación / Flota & Equipo / Cumplimiento).
+            El agrupamiento es solo visual: filteredLinks ya trae la lista final por
+            rol/plan/período de gracia, aquí solo se reparte por link.group. */}
+        <nav aria-label="Menú lateral" className="flex-1 p-3 space-y-3 mt-2 overflow-y-auto custom-scrollbar">
+          {NAV_GROUPS.map(group => {
+            const groupLinks = filteredLinks.filter(link => link.group === group);
+            if (!groupLinks.length) return null;
+            return (
+              <div key={group} className="space-y-0.5">
+                <p className="px-4 pb-1 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  {group}
+                </p>
+                {groupLinks.map(link => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                      pathname === link.href
+                        ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20'
+                        : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-lg shrink-0">{link.icon}</span>
+                    <span className="flex-1 truncate">{link.name}</span>
+                    {link.devBadge && (
+                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 uppercase tracking-wide shrink-0">DEV</span>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            );
+          })}
         </nav>
 
         {/* PIE DE SIDEBAR */}

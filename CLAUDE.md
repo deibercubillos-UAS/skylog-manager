@@ -267,13 +267,25 @@ Registrado todo desde `AddMaintenancePanel` (web y APK; el APK toma los cambios 
 
 **Planear Vuelo** (`/dashboard/plan-vuelo`): visible para el **piloto independiente** (`pilotOnly`) y para el **piloto de org** (entrada extra `roles:['piloto']`+`pilotHidden`). Usa `components/FlightPlanner.js` (mapa + zona + KMZ + PDF + guardar planeación). Si quien guarda es `role==='piloto'`, `POST /api/flight-plans` notifica al Jefe de Pilotos y GG.
 
-**Programación** (`/dashboard/authorizations`, roles admin/jefe_pilotos): crear misión. Pestañas **Misión Básica** y **Apéndice 13**.
+**Programación** (`/dashboard/authorizations`, roles admin/jefe_pilotos, `MissionControlClient.js`): el calendario
+(mismo componente que Programación Activa, ver abajo) es la vista principal — `PageHero` +
+botón **"Nueva misión"** que abre `MissionFormPanel.js` en un panel deslizable (desde la
+derecha en desktop, desde abajo en mobile; `dynamic(..., { ssr:false })`), sin navegar a otra
+página. El panel contiene las pestañas **Misión Básica** y **Apéndice 13** (sin cambios
+internos) y al crear con éxito se cierra y fuerza al calendario a re-consultar (`key`
+incremental sobre `ProgramacionActivaClient`).
 - **Misión Básica** = `BasicForm` unificado: datos de misión (PIC, UAS, tipo RAC 100, depto/municipio, fecha, hora) + zona en mapa (geo_type, altitud) + descargas KMZ/PDF, todo en un solo form.
 - Al elegir municipio se geocodifica `"Municipio, Depto, Colombia"` vía **Nominatim** (sin API key) para centrar el `MapPickerModal` (`initialCenter`/`initialZoom`). Falla → Bogotá.
 - KMZ/PDF se generan con `lib/flightPlanDocs.js` (`GEO_TYPES`, `getZoneSummary`, `downloadFlightKMZ`, `generateFlightPlanPdf`) — fuente única compartida con FlightPlanner.
 - Al autorizar, envía `plan_data` (zona/altitud/notas) para guardarlo en `flight_authorizations`.
 
-**Programación Activa** (`/dashboard/programacion-activa`, sección propia en nav): lista misiones autorizadas con descarga **KMZ/PDF por misión** (regeneradas desde `plan_data`). Misiones viejas sin `plan_data` descargan sin geometría.
+**Programación Activa** (`/dashboard/programacion-activa`, sin entrada propia en el sidebar —
+ver **Consolidación de entradas duplicadas**): mismo componente `ProgramacionActivaClient.js`
+que Programación incrusta (`embedded`), pero como página completa con su propio encabezado.
+Sigue existiendo como ruta independiente porque las notificaciones de "vuelo programado"
+(`flights/authorize` POST, `flight-plans` POST) enlazan aquí para JP+GG. Lista misiones
+autorizadas con descarga **KMZ/PDF por misión** (regeneradas desde `plan_data`). Misiones
+viejas sin `plan_data` descargan sin geometría.
 
 **Despacho** (`/dashboard/logbook/new`):
 - Sin selector de batería (se actualiza al subir DJI). 
@@ -430,7 +442,9 @@ página (Programación → "Ver programación activa", Seguridad Operacional →
 Se quitó la entrada de sidebar para los roles que ya llegan por la página padre, y se
 conservó (o agregó) para los que no la tienen en su nav:
 - **Programación Activa**: sin entrada propia — mismos roles que Programación
-  (`superadmin/admin/jefe_pilotos`), se llega por el link ya existente.
+  (`superadmin/admin/jefe_pilotos`). Inicialmente se pensó como link dentro de Programación;
+  con el rediseño de calendario (ver **Vista calendario semanal en Programación**) quedó
+  incrustada directamente — Programación ES el calendario ahora, no solo un link hacia él.
 - **SORA**: sin entrada para `superadmin/admin(org)/gerente_sms` (llegan por la tarjeta en
   Seguridad Operacional). Dos entradas nuevas cubren a quien NO tiene esa página: una para
   `jefe_pilotos`/`piloto` (org) y otra `pilotOnly` para el piloto independiente (su
@@ -470,12 +484,38 @@ ventana horaria fina nunca coincidiría con datos reales. `POST /api/flights/aut
 repite el mismo chequeo server-side (best-effort, nunca bloquea la creación) y devuelve
 `conflictWarning` en la respuesta. `BasicForm.js` muestra el aviso en vivo con debounce.
 
-### Vista calendario semanal en Programación
+### Vista calendario semanal en Programación (rediseño 2026-07-02b)
 
-`ProgramacionActivaClient.js`: toggle Lista/Semana. La vista Semana es una grilla de 7
-días (lunes-domingo) con navegación (anterior/siguiente/hoy), agrupando las misiones ya
-cargadas por `scheduled_at`. Solo frontend — la vista Lista (y la vista de solo-lectura
-del piloto en "Mis Vuelos", que reutiliza este mismo componente) quedan intactas.
+`ProgramacionActivaClient.js` es el único componente de calendario — lo usan 3 pantallas:
+`/dashboard/authorizations` (`embedded`, Programación), `/dashboard/programacion-activa`
+(página completa) y "Mis Vuelos" (`readOnly`, solo lectura). Props nuevas:
+- `embedded` — oculta el `<header>` propio (título/contador/Nueva misión) porque el padre
+  ya trae su `PageHero`; el resto del calendario es idéntico.
+- `onCreateMission` — si se pasa, "Nueva misión" dispara este callback (abre
+  `MissionFormPanel`) en vez de navegar con un `<Link>` a `/dashboard/authorizations`.
+
+Contenido:
+- **Franja de KPIs** (`KPIStrip variant="strip"`, datos reales de la semana calendario
+  actual, fija — no cambia al navegar el calendario): Misiones esta semana, Aeronaves
+  asignadas, Pilotos asignados, Conflictos de horario. No incluye "horas programadas" del
+  mockup original porque `flight_authorizations` no guarda una duración estimada por
+  misión — no se fabricó ese dato.
+- **Toggle Semana/Lista** (se quitó "Mes" del mockup — no hay vista mensual implementada,
+  por honestidad no se agregó una pestaña sin funcionalidad real detrás).
+- **Vista Semana**: grilla de 7 días (lunes-domingo) con navegación (anterior/siguiente/hoy),
+  encabezados de día con la columna de "hoy" resaltada, tarjetas de misión con borde
+  izquierdo naranja. Las que caen en **conflicto de agenda** (mismo `pilot_id` + mismo día
+  calendario, misma convención que `/api/flights/conflicts`) se resaltan en rojo con ícono
+  de advertencia — calculado client-side desde las misiones ya cargadas, sin queries nuevas.
+- **Vista Lista**: tabla (desktop) / tarjetas (mobile) sin cambios de fondo, ya existente.
+
+**Panel "Nueva misión"** (`components/authorizations/MissionFormPanel.js`, Fase 2026-07-02b):
+antes, `/dashboard/authorizations` era una página de formulario independiente
+(`MissionControlClient.js`) con las pestañas Misión Básica/Apéndice 13 a la vista. Ahora esa
+página muestra el calendario como pantalla principal (igual que Programación Activa) y las
+pestañas viven dentro de este panel deslizable, invocado por el botón "Nueva misión" del
+`PageHero`. `BasicForm`/`AerocivilForm` no cambiaron — mismo `loadData` callback tras crear,
+que aquí cierra el panel y fuerza un refresco del calendario.
 
 ### Auditoría de acciones ⚠️ inerte hasta aplicar migración
 

@@ -9,6 +9,7 @@ import BatteryCard from '@/components/BatteryCard';
 import TechCard from '@/components/TechCard';
 import { PLAN_CONFIG } from '@/lib/planLimits';
 import { PERMISSIONS } from '@/lib/roles';
+import PageHero from '@/components/PageHero';
 
 // Paneles: carga diferida → no bloquean el bundle inicial
 const AddAircraftPanel  = dynamic(() => import('@/components/AddAircraftPanel'),  { ssr: false });
@@ -289,6 +290,12 @@ export default function FleetPage() {
 
   return (
     <div className="space-y-16 text-left animate-in fade-in duration-500 pb-20">
+
+      <PageHero
+        eyebrow="Flota & Equipo"
+        title="Mi Flota"
+        description="Registro de aeronaves, baterías y tecnología de la organización."
+      />
 
       {/* SECCIÓN AERONAVES ACTIVAS */}
       <section className="animate-in fade-in duration-700">

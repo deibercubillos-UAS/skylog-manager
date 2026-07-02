@@ -280,6 +280,16 @@ export default function LogbookPage() {
         return fmtMinutes((h2 * 60 + m2) - (h1 * 60 + m1));
     };
 
+    // Color semántico del badge de condición visual (patrón de status del sistema de diseño).
+    const conditionBadge = (cond) => {
+        switch (cond) {
+            case 'VMC':   return 'bg-emerald-50 text-emerald-600';
+            case 'IMC':   return 'bg-amber-50 text-amber-600';
+            case 'NIGHT': return 'bg-slate-800 text-white';
+            default:      return 'bg-slate-100 text-slate-500';
+        }
+    };
+
     const PilotCell = ({ flight }) => {
         const isEditing = editingPilot === flight.id;
         const isSaving  = savingPilot  === flight.id;
@@ -595,8 +605,8 @@ export default function LogbookPage() {
                                     <td className="px-4 py-4 font-bold text-slate-900">{f.aircraft?.model}</td>
                                     <td className="px-4 py-4 font-mono text-xs">{f.aircraft?.serial_number}</td>
                                     <td className="px-4 py-4 text-xs uppercase">{f.mission_type}</td>
-                                    <td className="px-4 py-4"><span className="bg-slate-100 px-2 py-0.5 rounded text-xs font-black">{f.visual_condition}</span></td>
-                                    <td className="px-4 py-4 font-black text-orange-600">{flightDuration(f) || <span className="text-slate-300 font-normal">—</span>}</td>
+                                    <td className="px-4 py-4">{f.visual_condition ? <span className={`px-2 py-0.5 rounded-full text-xs font-black uppercase ${conditionBadge(f.visual_condition)}`}>{f.visual_condition}</span> : <span className="text-slate-300">—</span>}</td>
+                                    <td className="px-4 py-4 font-black text-orange-600 tabular-nums">{flightDuration(f) || <span className="text-slate-300 font-normal">—</span>}</td>
                                     <td className="px-4 py-4"><PilotCell flight={f} /></td>
                                     <AlertsCell flight={f} />
                                     {canViewReplay && (() => {

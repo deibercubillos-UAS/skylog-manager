@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { hasPermission } from '@/lib/roles';
 import { toast } from '@/lib/toast';
 import AddMaintenancePanel from '@/components/AddMaintenancePanel';
+import PageHero from '@/components/PageHero';
+import KPIStrip from '@/components/KPIStrip';
 
 export default function MaintenancePage() {
     const [logs, setLogs]         = useState([]);
@@ -63,24 +65,38 @@ export default function MaintenancePage() {
 
     return (
         <div className="space-y-10 text-left animate-in fade-in duration-700 pb-20">
-            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 border-b pb-6">
-                <div>
-                    <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter">
-                        Libro de Mantenimiento
-                    </h2>
-                    <p className="text-slate-500 text-xs font-bold uppercase mt-1">
-                        Registro de intervenciones y salud de flota.
-                    </p>
-                </div>
+            <PageHero
+                eyebrow="Flota & Equipo"
+                title="Libro de Mantenimiento"
+                description="Registro de intervenciones y salud de flota."
+            />
+
+            {(() => {
+                const ym = new Date().toISOString().slice(0, 7);
+                const preventivas = logs.filter(l => l.maintenance_type !== 'CORRECTIVO').length;
+                const correctivas = logs.filter(l => l.maintenance_type === 'CORRECTIVO').length;
+                const thisMonth = logs.filter(l => l.created_at?.startsWith(ym)).length;
+                return (
+                    <KPIStrip items={[
+                        { key: 'total', title: 'Intervenciones', value: logs.length, icon: 'build', color: 'text-slate-900' },
+                        { key: 'prev', title: 'Preventivas', value: preventivas, icon: 'event_available', color: 'text-blue-600' },
+                        { key: 'corr', title: 'Correctivas', value: correctivas, icon: 'report_problem', color: 'text-red-600', warning: correctivas > 0 },
+                        { key: 'month', title: 'Este Mes', value: thisMonth, icon: 'calendar_month', color: 'text-orange-500' },
+                    ]} />
+                );
+            })()}
+
+            <div className="flex justify-between items-center border-b pb-4">
+                <p className="text-slate-400 text-xs font-black uppercase">Historial de intervenciones</p>
                 {canManage && (
                     <button
                         onClick={() => setShowAdd(true)}
-                        className="w-full sm:w-auto flex items-center justify-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase shadow-lg hover:bg-slate-900 transition-all active:scale-95">
+                        className="flex items-center justify-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase shadow-lg hover:bg-slate-900 transition-all active:scale-95">
                         <span className="material-symbols-outlined text-sm">build</span>
                         Nueva Intervención
                     </button>
                 )}
-            </header>
+            </div>
 
             <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
 

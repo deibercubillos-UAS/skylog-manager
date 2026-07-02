@@ -17,7 +17,15 @@ function resolveImg(raw) {
   return docOpenUrl(raw) || DEFAULT_AIRCRAFT_IMG;
 }
 
-export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, canManage = true, canManageStatus }) {
+// Chip de batería coloreado por salud real (health_status) — no hay dato de "carga %"
+// en el esquema, así que se usa el mismo umbral que el resto de la app (BatteryCard).
+function battChipStyle(health) {
+  if (health >= 85) return { color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' };
+  if (health >= 65) return { color: '#b45309', bg: '#fffbeb', border: '#fde68a' };
+  return { color: '#8992a3', bg: '#f2efeb', border: '#e2ddd5' };
+}
+
+export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, canManage = true, canManageStatus, batteryChips = [] }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -81,122 +89,145 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
 
   return (
     <>
-    <div className={`bg-white rounded-[2rem] border shadow-sm flex flex-col sm:flex-row group hover:shadow-md transition-all text-left ${inactive ? 'border-slate-200 opacity-60' : 'border-slate-200'}`}>
-      <div className="w-full sm:w-28 shrink-0 relative flex items-center justify-center p-6 sm:p-4 bg-orange-50/50 overflow-hidden rounded-t-[2rem] sm:rounded-l-[2rem] sm:rounded-tr-none">
-        <IconTile icon="flight" size={64} />
-        {/* Foto real subida por el usuario — miniatura secundaria sobre el icon-tile */}
+    <div className={`bg-white rounded-2xl border overflow-hidden flex flex-col group hover:shadow-md hover:border-orange-200 transition-all text-left ${inactive ? 'border-slate-200 opacity-60' : 'border-slate-200'}`}>
+      {/* Foto/ícono + badges superpuestos */}
+      <div className="relative h-24 shrink-0 bg-orange-50/60 flex items-center justify-center">
+        <IconTile icon="flight" size={52} />
         {aircraft.image_url && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={resolveImg(aircraft.image_url)}
             alt=""
-            className="absolute bottom-3 right-3 sm:bottom-2 sm:right-2 size-8 rounded-full border-2 border-white object-cover shadow-sm"
+            className="absolute bottom-2 right-2 size-7 rounded-full border-2 border-white object-cover shadow-sm"
           />
         )}
-        {inactive && (
-          <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center">
-            <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${isBaja ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'}`}>
-              {isBaja ? 'BAJA' : 'TRANSFERIDO'}
-            </span>
-          </div>
-        )}
-      </div>
-      <div className="flex-1 p-5 md:p-6 flex flex-col justify-between min-w-0">
-        <div className="flex justify-between items-start">
-          <div className="truncate pr-2">
-            <h3 className="font-black text-slate-900 text-base md:text-lg uppercase leading-tight truncate">{aircraft.model || 'UAS'}</h3>
-            <p className="text-orange-600 text-xs font-black font-mono tracking-widest mt-1">RUAS: {aircraft.ruas || '---'}</p>
-            {isBaja && aircraft.baja_reason && (
-              <p className="text-red-500 text-[10px] font-bold mt-1 truncate">Baja: {aircraft.baja_reason}</p>
-            )}
-            {inMaintenance && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-0.5 mt-1">
-                <span className="material-symbols-outlined text-xs">build</span>
-                EN MANTENIMIENTO
-              </span>
-            )}
-          </div>
-          <div className="flex gap-2 shrink-0 relative" ref={menuRef}>
-            {/* Botón Editar — solo si puede gestionar la flota y no está en baja/transferido */}
-            {canManage && !inactive && (
-              <button onClick={() => onEdit(aircraft)}
-                className="size-11 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-orange-600 transition-colors active:scale-95">
-                <span className="material-symbols-outlined text-lg">edit_square</span>
-              </button>
-            )}
 
-            {/* Menú de opciones adicionales */}
-            {canManage && !inactive && (
-              <div className="relative">
+        {/* Estado — arriba a la derecha */}
+        <div className="absolute top-2 right-2">
+          {inactive ? (
+            <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[8.5px] font-black uppercase tracking-wide text-white ${isBaja ? 'bg-red-600' : 'bg-blue-600'}`}>
+              {isBaja ? 'Baja' : 'Transferido'}
+            </span>
+          ) : inMaintenance ? (
+            <span className="flex items-center gap-1 bg-amber-50/95 border border-amber-200 rounded-full px-2 py-0.5">
+              <span className="size-1.5 rounded-full bg-amber-600" />
+              <span className="text-[8.5px] font-black uppercase tracking-wide text-amber-700">Mantenim.</span>
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 bg-emerald-50/95 border border-emerald-200 rounded-full px-2 py-0.5">
+              <span className="size-1.5 rounded-full bg-emerald-600" />
+              <span className="text-[8.5px] font-black uppercase tracking-wide text-emerald-700">Operativo</span>
+            </span>
+          )}
+        </div>
+
+        {/* Menú de acciones — arriba a la izquierda */}
+        {canManage && !inactive && (
+          <div className="absolute top-2 left-2 z-10" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen(v => !v)}
+              className="size-7 rounded-lg bg-white/90 shadow-sm flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors active:scale-95"
+            >
+              <span className="material-symbols-outlined text-base">more_vert</span>
+            </button>
+
+            {menuOpen && (
+              <div className="absolute left-0 top-full mt-1 z-50 bg-white rounded-2xl shadow-2xl border border-slate-100 py-1 min-w-[200px]">
                 <button
-                  onClick={() => setMenuOpen(v => !v)}
-                  className="size-11 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors active:scale-95"
+                  onClick={() => { setMenuOpen(false); onEdit(aircraft); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
                 >
-                  <span className="material-symbols-outlined text-lg">more_vert</span>
+                  <span className="material-symbols-outlined text-base text-slate-400">edit_square</span>
+                  Editar aeronave
                 </button>
 
-                {menuOpen && (
-                  <div className="absolute right-0 top-full mt-1 z-50 bg-white rounded-2xl shadow-2xl border border-slate-100 py-1 min-w-[200px]">
-                    <button
-                      onClick={() => { setMenuOpen(false); onEdit(aircraft); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-base text-slate-400">edit_square</span>
-                      Editar aeronave
-                    </button>
+                <button
+                  onClick={openTrace}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-base text-slate-400">memory</span>
+                  Trazabilidad de componentes
+                </button>
 
+                {canManageStatus && (
+                  <>
+                    <div className="h-px bg-slate-100 mx-3 my-1" />
                     <button
-                      onClick={openTrace}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+                      onClick={() => { setMenuOpen(false); onBaja(aircraft); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
                     >
-                      <span className="material-symbols-outlined text-base text-slate-400">memory</span>
-                      Trazabilidad de componentes
+                      <span className="material-symbols-outlined text-base">archive</span>
+                      Dar de baja
                     </button>
-
-                    {canManageStatus && (
-                      <>
-                        <div className="h-px bg-slate-100 mx-3 my-1" />
-                        <button
-                          onClick={() => { setMenuOpen(false); onBaja(aircraft); }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
-                        >
-                          <span className="material-symbols-outlined text-base">archive</span>
-                          Dar de baja
-                        </button>
-                        <button
-                          onClick={() => { setMenuOpen(false); onTransfer(aircraft); }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-blue-600 hover:bg-blue-50 transition-colors"
-                        >
-                          <span className="material-symbols-outlined text-base">swap_horiz</span>
-                          Transferir a otra organización
-                        </button>
-                      </>
-                    )}
-                  </div>
+                    <button
+                      onClick={() => { setMenuOpen(false); onTransfer(aircraft); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-blue-600 hover:bg-blue-50 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-base">swap_horiz</span>
+                      Transferir a otra organización
+                    </button>
+                  </>
                 )}
               </div>
             )}
           </div>
-        </div>
-        <div className="space-y-3 mt-4">
-          <div className="flex justify-between items-end">
-            <p className="text-xs font-bold text-slate-700">{hours.toFixed(2)}h <span className="text-xs text-slate-400 uppercase">T.T</span></p>
-            <p className="text-xs font-black text-slate-400 uppercase">Salud Técnica</p>
+        )}
+      </div>
+
+      {/* Cuerpo */}
+      <div className="p-3.5 flex flex-col gap-2.5 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h3 className="font-black text-slate-900 text-xs uppercase leading-tight truncate">{aircraft.model || 'UAS'}</h3>
+            <p className="text-slate-400 text-[10px] font-mono mt-0.5 truncate">{aircraft.serial_number || aircraft.ruas || '---'}</p>
           </div>
-          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          {canManage && !inactive && (
+            <button onClick={() => onEdit(aircraft)}
+              className="size-7 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:text-orange-600 transition-colors active:scale-95 shrink-0">
+              <span className="material-symbols-outlined text-sm">edit_square</span>
+            </button>
+          )}
+        </div>
+
+        {isBaja && aircraft.baja_reason && (
+          <p className="text-red-500 text-[10px] font-bold truncate">Baja: {aircraft.baja_reason}</p>
+        )}
+
+        {/* Baterías asociadas — derivadas del último battery_log por aeronave (reales) */}
+        {batteryChips.length > 0 && (
+          <div className="flex items-start gap-1.5">
+            <span className="material-symbols-outlined text-sm text-slate-400 mt-0.5 shrink-0">battery_charging_full</span>
+            <div className="flex flex-wrap gap-1">
+              {batteryChips.map(b => {
+                const st = battChipStyle(Number(b.health_status ?? 100));
+                return (
+                  <span key={b.id} title={`${b.serial_number} · ${b.cycles ?? 0} ciclos · salud ${b.health_status ?? 100}%`}
+                    className="inline-flex items-center text-[9.5px] font-black font-mono rounded px-1.5 py-0.5"
+                    style={{ color: st.color, background: st.bg, border: `1px solid ${st.border}` }}>
+                    {b.serial_number}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-auto pt-2 border-t border-slate-100 space-y-2">
+          <div className="flex justify-between items-end">
+            <div>
+              <p className="text-[8px] font-black uppercase tracking-wide text-slate-400">Horas</p>
+              <p className="text-sm font-black text-orange-600">{hours.toFixed(1)}h</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[8px] font-black uppercase tracking-wide text-slate-400">Últ. mant.</p>
+              <p className="text-[10px] font-bold text-slate-600">{aircraft.last_maintenance_date ? new Date(aircraft.last_maintenance_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</p>
+            </div>
+          </div>
+          <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
             <div className={`h-full ${inactive ? 'bg-slate-300' : barColor} transition-all duration-1000`} style={{ width: `${finalProgress}%` }}></div>
           </div>
-          {!inactive && (
-            <p className="text-[10px] font-bold text-slate-400">
-              {isDue ? (
-                <span className="text-red-600">Mantenimiento vencido</span>
-              ) : intervalHours > 0 ? (
-                <>Próximo mant.: <span className="text-slate-600">{Math.max(0, intervalHours - diffHours).toFixed(0)}h restantes</span>
-                {intervalDays > 0 && <span className="text-slate-400"> · {Math.max(0, intervalDays - daysSince)}d</span>}</>
-              ) : intervalDays > 0 ? (
-                <>Próximo mant.: <span className="text-slate-600">{Math.max(0, intervalDays - daysSince)}d restantes</span></>
-              ) : null}
-            </p>
+          {!inactive && isDue && (
+            <p className="text-[9.5px] font-bold text-red-600">Mantenimiento vencido</p>
           )}
         </div>
       </div>

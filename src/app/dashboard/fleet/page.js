@@ -1,11 +1,11 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import AircraftCard from '@/components/AircraftCard';
-import BatteryCard from '@/components/BatteryCard';
 import TechCard from '@/components/TechCard';
 import { PLAN_CONFIG } from '@/lib/planLimits';
 import { PERMISSIONS } from '@/lib/roles';
@@ -14,10 +14,8 @@ import KPIStrip from '@/components/KPIStrip';
 
 // Paneles: carga diferida → no bloquean el bundle inicial
 const AddAircraftPanel  = dynamic(() => import('@/components/AddAircraftPanel'),  { ssr: false });
-const AddBatteryPanel   = dynamic(() => import('@/components/AddBatteryPanel'),   { ssr: false });
 const AddTechPanel      = dynamic(() => import('@/components/AddTechPanel'),      { ssr: false });
 const EditAircraftPanel = dynamic(() => import('@/components/EditAircraftPanel'), { ssr: false });
-const EditBatteryPanel  = dynamic(() => import('@/components/EditBatteryPanel'),  { ssr: false });
 const EditTechPanel     = dynamic(() => import('@/components/EditTechPanel'),     { ssr: false });
 
 // ─── Modal: Dar de baja ─────────────────────────────────────────────────────
@@ -178,7 +176,7 @@ function TransferModal({ aircraft, onClose, onSuccess }) {
 // ─── Página principal ────────────────────────────────────────────────────────
 export default function FleetPage() {
   const [drones, setDrones] = useState([]);
-  const [batteries, setBatteries] = useState([]);
+  const [batteryChipsByAircraft, setBatteryChipsByAircraft] = useState({});
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
   const [planKey, setPlanKey] = useState('piloto');
@@ -187,10 +185,13 @@ export default function FleetPage() {
   const [activePanel, setActivePanel] = useState(null);
   const [confirmDlg, setConfirmDlg] = useState(null);
   const [editingDrone, setEditingDrone] = useState(null);
-  const [editingBattery, setEditingBattery] = useState(null);
   const [bajaTarget, setBajaTarget] = useState(null);
   const [transferTarget, setTransferTarget] = useState(null);
   const [showInactive, setShowInactive] = useState(false);
+
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [modelFilter, setModelFilter] = useState('');
 
   const fetchData = async () => {
     try {
@@ -206,15 +207,37 @@ export default function FleetPage() {
       }
 
       if (prof?.organization_id) {
-        const [resDrones, resBatteries, resTech] = await Promise.all([
+        const [resDrones, resTech, resLogs, resBatteries] = await Promise.all([
           supabase.from('aircraft').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
-          supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
           supabase.from('inventory_items').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
+          // Batería asociada a cada aeronave — se infiere del último vuelo cargado en la
+          // Bitácora (battery_logs), mismo patrón que usa /dashboard/batteries a la inversa.
+          supabase.from('battery_logs')
+            .select('battery_sn, aircraft_id, created_at')
+            .eq('organization_id', prof.organization_id)
+            .order('created_at', { ascending: false }),
+          supabase.from('batteries').select('id, serial_number, cycles, health_status').eq('organization_id', prof.organization_id),
         ]);
 
         setDrones(resDrones.data || []);
-        setBatteries(resBatteries.data || []);
         setTech(resTech.data || []);
+
+        // Log más reciente por serial de batería → aeronave asignada
+        const latestAircraftForBattery = {};
+        (resLogs.data || []).forEach(l => {
+          if (l.battery_sn && l.aircraft_id && !(l.battery_sn in latestAircraftForBattery)) {
+            latestAircraftForBattery[l.battery_sn] = l.aircraft_id;
+          }
+        });
+        const battBySerial = {};
+        (resBatteries.data || []).forEach(b => { battBySerial[b.serial_number] = b; });
+        const chipsByAircraft = {};
+        Object.entries(latestAircraftForBattery).forEach(([sn, aircraftId]) => {
+          const b = battBySerial[sn];
+          if (!b) return;
+          (chipsByAircraft[aircraftId] ||= []).push(b);
+        });
+        setBatteryChipsByAircraft(chipsByAircraft);
       }
     } catch (err) {
       console.error(err);
@@ -234,35 +257,26 @@ export default function FleetPage() {
 
   // Límites del plan (solo cuenta aeronaves activas)
   const planCfg      = PLAN_CONFIG[planKey] ?? PLAN_CONFIG.piloto;
-  const maxDrones    = planCfg.maxDrones    === Infinity ? Infinity : planCfg.maxDrones;
-  const maxBatteries = planCfg.maxBatteries === null     ? Infinity : planCfg.maxBatteries;
+  const maxDrones    = planCfg.maxDrones === Infinity ? Infinity : planCfg.maxDrones;
   const maxTech      = (planCfg.maxTech === null || planCfg.maxTech === Infinity) ? Infinity : planCfg.maxTech;
-  const droneAtLimit   = activeDrones.length  >= maxDrones;
-  const batteryAtLimit = batteries.length     >= maxBatteries;
-  const techAtLimit    = tech.length          >= maxTech;
+  const droneAtLimit = activeDrones.length >= maxDrones;
+  const techAtLimit  = tech.length >= maxTech;
 
-  const handleDeleteBattery = (id) => {
-    setConfirmDlg({
-      isOpen: true,
-      title: '¿Eliminar esta batería?',
-      message: 'Esta acción es irreversible y no puede deshacerse.',
-      confirmText: 'Eliminar',
-      danger: true,
-      onConfirm: async () => {
-        setConfirmDlg(null);
-        const prev = batteries;
-        setBatteries(b => b.filter(x => x.id !== id));
-        try {
-          const { error } = await supabase.from('batteries').delete().eq('id', id);
-          if (error) throw error;
-          toast.success('Batería eliminada.');
-        } catch (err) {
-          setBatteries(prev);
-          toast.error('Error al eliminar: ' + err.message);
-        }
-      },
-    });
-  };
+  const uniqueModels = useMemo(() => [...new Set(drones.map(d => d.model).filter(Boolean))], [drones]);
+
+  const filteredActiveDrones = useMemo(() => {
+    let result = activeDrones;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      result = result.filter(d => d.model?.toLowerCase().includes(q) || d.serial_number?.toLowerCase().includes(q) || d.ruas?.toLowerCase().includes(q));
+    }
+    if (statusFilter === 'operativo')      result = result.filter(d => d.operational_status !== 'en_mantenimiento');
+    if (statusFilter === 'en_mantenimiento') result = result.filter(d => d.operational_status === 'en_mantenimiento');
+    if (modelFilter) result = result.filter(d => d.model === modelFilter);
+    return result;
+  }, [activeDrones, search, statusFilter, modelFilter]);
+
+  const maintenanceCount = activeDrones.filter(d => d.operational_status === 'en_mantenimiento').length;
 
   const handleDeleteTech = (id) => {
     setConfirmDlg({
@@ -290,53 +304,89 @@ export default function FleetPage() {
   if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">CARGANDO INVENTARIO TÉCNICO...</div>;
 
   return (
-    <div className="space-y-16 text-left animate-in fade-in duration-500 pb-20">
+    <div className="space-y-5 md:space-y-8 text-left animate-in fade-in duration-500 pb-20">
 
       <PageHero
         eyebrow="Flota & Equipo"
         title="Mi Flota"
-        description="Registro de aeronaves, baterías y tecnología de la organización."
-      />
-
-      <KPIStrip items={[
-        { key: 'total', title: 'Total Aeronaves', value: activeDrones.length, icon: 'precision_manufacturing', color: 'text-slate-900' },
-        { key: 'ready', title: 'Operativas', value: activeDrones.filter(d => d.operational_status !== 'en_mantenimiento').length, icon: 'check_circle', color: 'text-emerald-600' },
-        { key: 'hours', title: 'Horas Totales', value: `${activeDrones.reduce((sum, d) => sum + parseFloat(d.total_hours || 0), 0).toFixed(1)}h`, icon: 'timer', color: 'text-slate-900' },
-        {
-          key: 'maint', title: 'En Mantenimiento',
-          value: activeDrones.filter(d => d.operational_status === 'en_mantenimiento').length,
-          icon: 'build', warning: activeDrones.some(d => d.operational_status === 'en_mantenimiento'),
-        },
-      ]} />
-
-      {/* SECCIÓN AERONAVES ACTIVAS */}
-      <section className="animate-in fade-in duration-700">
-        <header className="flex justify-between items-end border-b pb-4 mb-8">
-          <div className="text-left">
-            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Aeronaves</h2>
-            <p className="text-slate-400 text-xs font-black uppercase">{activeDrones.length} UNIDADES ACTIVAS</p>
-          </div>
-
-          {canManage && (
-            droneAtLimit ? (
-              <span className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-black text-slate-400 uppercase">
-                <span className="material-symbols-outlined text-sm">lock</span>
-                Límite del plan ({activeDrones.length}/{maxDrones === Infinity ? '∞' : maxDrones})
-              </span>
-            ) : (
+        description="Registro de aeronaves, horas de vuelo y estado operativo."
+        right={
+          <div className="flex items-center gap-4 md:gap-6">
+            {maintenanceCount > 0 && (
+              <div className="hidden sm:flex flex-col justify-center pr-4 md:pr-6 border-r border-white/10">
+                <p className="text-xs font-black uppercase tracking-wide text-white/40">En mantenimiento</p>
+                <p className="text-sm font-black text-orange-400 mt-1 whitespace-nowrap">{maintenanceCount} aeronave{maintenanceCount !== 1 ? 's' : ''}</p>
+              </div>
+            )}
+            {canManage && !droneAtLimit && (
               <button
                 onClick={() => setActivePanel('drone')}
-                className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
+                className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-600/20 transition-all active:scale-95 shrink-0"
               >
-                <span className="material-symbols-outlined text-sm">add_circle</span>
-                Nuevo UAS
+                <span className="material-symbols-outlined text-base">add_circle</span>
+                Nueva aeronave
               </button>
-            )
-          )}
-        </header>
+            )}
+          </div>
+        }
+      />
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {activeDrones.map(d => (
+      <section aria-label="Indicadores de flota" className="bg-white rounded-[1.5rem] border border-slate-100 px-2 py-3 md:px-4">
+        <KPIStrip variant="strip" items={[
+          { key: 'total', label: 'Total aeronaves', value: activeDrones.length, icon: 'precision_manufacturing', iconColor: '#ec5b13' },
+          { key: 'ready', label: 'Operativas', value: activeDrones.filter(d => d.operational_status !== 'en_mantenimiento').length, icon: 'check_circle', iconColor: '#16a34a' },
+          { key: 'hours', label: 'Horas totales flota', value: activeDrones.reduce((sum, d) => sum + parseFloat(d.total_hours || 0), 0).toFixed(1), unit: 'h', icon: 'schedule', iconColor: '#94a3b8' },
+          {
+            key: 'maint', label: 'En mantenimiento', value: maintenanceCount, icon: 'build',
+            iconColor: maintenanceCount > 0 ? '#d97706' : '#94a3b8',
+          },
+        ]} />
+      </section>
+
+      {/* SECCIÓN AERONAVES */}
+      <section className="animate-in fade-in duration-700 space-y-4">
+        {/* Barra de filtros */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col md:flex-row md:items-center gap-3">
+          <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2.5 min-w-0 md:max-w-xs">
+            <span className="material-symbols-outlined text-base text-slate-400 shrink-0">search</span>
+            <input
+              placeholder="Buscar por modelo, serial…"
+              aria-label="Buscar aeronaves"
+              className="flex-1 min-w-0 bg-transparent text-xs font-bold outline-none placeholder:text-slate-400"
+              value={search} onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <select aria-label="Filtrar por estado" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              <option value="">Todos los estados</option>
+              <option value="operativo">Operativo</option>
+              <option value="en_mantenimiento">En mantenimiento</option>
+            </select>
+            <select aria-label="Filtrar por modelo" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={modelFilter} onChange={e => setModelFilter(e.target.value)}>
+              <option value="">Todos los modelos</option>
+              {uniqueModels.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+          <div className="md:ml-auto">
+            <Link href="/dashboard/batteries" className="flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-black uppercase text-slate-600 border border-slate-200 rounded-xl hover:border-orange-300 hover:text-orange-600 transition-all">
+              <span className="material-symbols-outlined text-sm">battery_charging_full</span>
+              Ver baterías
+            </Link>
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center">
+          <p className="text-slate-400 text-xs font-black uppercase tracking-widest">{filteredActiveDrones.length} de {activeDrones.length} unidades activas</p>
+          {canManage && droneAtLimit && (
+            <span className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-black text-slate-400 uppercase">
+              <span className="material-symbols-outlined text-sm">lock</span>
+              Límite del plan ({activeDrones.length}/{maxDrones === Infinity ? '∞' : maxDrones})
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {filteredActiveDrones.map(d => (
             <AircraftCard
               key={d.id}
               aircraft={d}
@@ -345,12 +395,19 @@ export default function FleetPage() {
               onTransfer={setTransferTarget}
               canManage={canManage}
               canManageStatus={canManageStatus}
+              batteryChips={batteryChipsByAircraft[d.id] || []}
             />
           ))}
           {activeDrones.length === 0 && (
-            <div className="col-span-2 text-center py-16 text-slate-300">
+            <div className="col-span-full text-center py-16 text-slate-300">
               <span className="material-symbols-outlined text-5xl mb-3 block">flight</span>
               <p className="font-black text-slate-400 uppercase text-sm">Sin aeronaves registradas</p>
+            </div>
+          )}
+          {activeDrones.length > 0 && filteredActiveDrones.length === 0 && (
+            <div className="col-span-full text-center py-16 text-slate-300">
+              <span className="material-symbols-outlined text-5xl mb-3 block">search_off</span>
+              <p className="font-black text-slate-400 uppercase text-sm">Sin resultados con los filtros seleccionados</p>
             </div>
           )}
         </div>
@@ -366,7 +423,7 @@ export default function FleetPage() {
               {showInactive ? 'Ocultar' : 'Ver'} aeronaves inactivas ({inactiveDrones.length})
             </button>
             {showInactive && (
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {inactiveDrones.map(d => (
                   <AircraftCard
                     key={d.id}
@@ -376,6 +433,7 @@ export default function FleetPage() {
                     onTransfer={setTransferTarget}
                     canManage={canManage}
                     canManageStatus={canManageStatus}
+                    batteryChips={batteryChipsByAircraft[d.id] || []}
                   />
                 ))}
               </div>
@@ -415,37 +473,6 @@ export default function FleetPage() {
         </div>
       </section>
 
-      {/* SECCIÓN BATERÍAS */}
-      <section className="mb-12">
-        <header className="flex justify-between items-end border-b pb-4 mb-8">
-          <div className="text-left">
-            <h2 className="text-3xl font-black uppercase text-slate-900 tracking-tighter">Baterías</h2>
-            <p className="text-slate-400 text-xs font-black uppercase">{batteries.length} UNIDADES</p>
-          </div>
-          {canManage && (
-            batteryAtLimit ? (
-              <span className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-black text-slate-400 uppercase">
-                <span className="material-symbols-outlined text-sm">lock</span>
-                Límite del plan ({batteries.length}/{maxBatteries === Infinity ? '∞' : maxBatteries})
-              </span>
-            ) : (
-              <button
-                onClick={() => setActivePanel('battery')}
-                className="bg-orange-600 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 active:scale-95"
-              >
-                <span className="material-symbols-outlined text-sm">add_circle</span>
-                Nueva Batería
-              </button>
-            )
-          )}
-        </header>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {batteries.map(b => (
-            <BatteryCard key={b.id} battery={b} onEdit={setEditingBattery} onDelete={(id) => handleDeleteBattery(id)} canManage={canManage} />
-          ))}
-        </div>
-      </section>
-
       <ConfirmModal {...confirmDlg} onCancel={() => setConfirmDlg(null)} />
 
       {/* Modales de baja y transferencia */}
@@ -465,12 +492,10 @@ export default function FleetPage() {
       )}
 
       {/* PANELES DE CREACIÓN / EDICIÓN */}
-      {activePanel === 'drone'   && <AddAircraftPanel  onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}
-      {activePanel === 'battery' && <AddBatteryPanel   onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}
-      {activePanel === 'tech'    && <AddTechPanel      onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}
-      {editingDrone   && <EditAircraftPanel aircraft={editingDrone}   onClose={() => setEditingDrone(null)}   onSuccess={() => { setEditingDrone(null);   fetchData(); }} />}
-      {editingBattery && <EditBatteryPanel  battery={editingBattery}  onClose={() => setEditingBattery(null)} onSuccess={() => { setEditingBattery(null); fetchData(); }} />}
-      {editingTech    && <EditTechPanel     item={editingTech}         onClose={() => setEditingTech(null)}    onSuccess={() => { setEditingTech(null);    fetchData(); }} />}
+      {activePanel === 'drone' && <AddAircraftPanel onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}
+      {activePanel === 'tech'  && <AddTechPanel     onClose={() => setActivePanel(null)} onSuccess={() => { setActivePanel(null); fetchData(); }} />}
+      {editingDrone && <EditAircraftPanel aircraft={editingDrone} onClose={() => setEditingDrone(null)} onSuccess={() => { setEditingDrone(null); fetchData(); }} />}
+      {editingTech  && <EditTechPanel     item={editingTech}      onClose={() => setEditingTech(null)}  onSuccess={() => { setEditingTech(null);  fetchData(); }} />}
     </div>
   );
 }

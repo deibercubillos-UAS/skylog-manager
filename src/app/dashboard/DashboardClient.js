@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { getOrgPlan } from '@/lib/orgPlan';
+import PageHero from '@/components/PageHero';
 
 // Banner de instalación PWA — solo en dashboard, flotante en esquina
 const PwaInstallBanner  = dynamic(() => import('@/components/PwaInstallBanner'), { ssr: false });
@@ -117,14 +118,11 @@ export default function DashboardClient() {
       )}
 
       {/* SALUDO */}
-      <div>
-        <h2 className="text-lg md:text-2xl font-black text-slate-800">
-          Bienvenido, <span className="text-orange-500">{firstName}</span>
-        </h2>
-        <p className="text-xs font-medium text-slate-400 mt-1 uppercase tracking-wider" aria-label="Fecha actual">
-          {new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-        </p>
-      </div>
+      <PageHero
+        eyebrow="Panel de Control"
+        title={`Bienvenido, ${firstName}`}
+        description={new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+      />
 
       {/* 1. KPIs */}
       <section aria-label="Indicadores clave de operación">

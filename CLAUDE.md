@@ -222,6 +222,38 @@ Configuración de mantenimiento mayor por aeronave, con cambio de estado automá
 - **Guard de despacho** (`logbook/new`): el selector de aeronaves filtra `.neq('operational_status', 'en_mantenimiento')`. `AddMaintenancePanel` SÍ las incluye (es para registrarles mantenimiento).
 - **Cron** (`check_aircraft_maintenance_due()`, `30 13 * * *` = 8:30 AM Colombia): evalúa todas las aeronaves disponibles, marca `en_mantenimiento` las que superan umbral y notifica a GG+JP (`notifications` tipo `maintenance_due`). `SECURITY DEFINER`, EXECUTE revocado a PUBLIC. Migraciones: `20260613_aircraft_maintenance_config.sql` + `20260613_aircraft_maintenance_cron.sql`.
 
+### Flota + Baterías rediseñadas (2026-07-02f) — dos páginas separadas con enlaces cruzados
+
+Termina la extracción pendiente de la Fase 4.3 del plan de rediseño: Baterías ya no vive
+embebida en `/dashboard/fleet`, son dos páginas independientes con `PageHero`/`KPIStrip`
+franja/barra de filtros, y enlaces cruzados reales ("Ver baterías" en Flota, "Ver flota" en
+Baterías) — tal como muestran los mockups.
+
+- **`AircraftCard.js`**: grid-card (antes fila horizontal) — foto/ícono + badge de estado
+  arriba, modelo/serie/chips de batería/horas + últ. mantenimiento abajo. Misma lógica de
+  editar/dar de baja/transferir/trazabilidad de componentes, solo cambió el layout visual.
+- **Chips de batería por aeronave** (dato real, no fabricado): se derivan de `battery_logs`
+  — mismo patrón que ya usa `/dashboard/batteries` en sentido inverso para calcular "última
+  aeronave" de cada batería, aquí agrupado por `aircraft_id` en vez de por `battery_sn`.
+  Coloreados por `health_status` real (el mockup mostraba "% de carga", que no existe en el
+  esquema de `batteries` — no se fabricó ese dato).
+- **Baterías**: pasa de grid de tarjetas a tabla (ID/serie, modelo, ciclos, barra de salud,
+  última aeronave, estado). Umbral de retiro = **200 ciclos** (mismo que `BatteryCard.js` y
+  el escáner de alertas del dashboard) — no los 400 del mockup, para no introducir una regla
+  de negocio nueva inconsistente con el resto de la app.
+- **`AddAircraftPanel.js`/`AddBatteryPanel.js`**: restyleados al layout de 2 columnas de los
+  mockups "Nueva Aeronave"/"Nueva Batería" (mismo patrón que `MissionFormPanel`: hero navy +
+  card blanca). Solo campos reales del esquema — se omitieron del mockup: Categoría, MTOW*,
+  Fecha de adquisición, Payload/sensor instalado y Póliza de seguro por aeronave, "ID
+  interno" y "Estado inicial: En servicio/Disponible" por batería (no existen como campos
+  distintos en `aircraft`/`batteries`; el `mtow` si es real y sí se incluyó).
+  `POST /api/fleet` ahora también acepta `maintenance_interval_days` y `operational_status`
+  en la creación (antes solo editables desde `EditAircraftPanel`); `POST /api/fleet/batteries`
+  acepta `last_maintenance`. El "Estado inicial" del batería se omitió (siempre nace
+  `Operativo`, ya era el comportamiento hardcodeado del servidor — no hay un valor real
+  distinto de "disponible/sin uso" en `batteries.status`).
+- Se eliminó `components/BatteryCard.js` (quedó sin usar tras el rediseño de Baterías a tabla).
+
 ### Recibo post-mantenimiento + trazabilidad de componentes + PDF de recibo (2026-06-25)
 
 Registrado todo desde `AddMaintenancePanel` (web y APK; el APK toma los cambios por remote URL). Migraciones: `20260625_maintenance_return_checklist.sql`, `20260625_maintenance_components.sql`, `20260625_maintenance_return_doc.sql` (las 3 aplicadas en Supabase).

@@ -59,11 +59,16 @@ export async function POST(request) {
     const ALLOWED_FIELDS = [
       'brand', 'model', 'serial_number', 'ruas', 'mtow', 'image_url',
       'total_hours', 'last_maintenance_date', 'last_maintenance_hours',
-      'maintenance_interval_hours', 'next_maintenance_date', 'rce_url', 'dan_url',
+      'maintenance_interval_hours', 'maintenance_interval_days',
+      'next_maintenance_date', 'rce_url', 'dan_url', 'operational_status',
     ];
     const cleanData = {};
     for (const f of ALLOWED_FIELDS) {
       if (aircraftData[f] !== undefined) cleanData[f] = aircraftData[f];
+    }
+    // operational_status solo acepta los dos valores reales del CHECK de la tabla
+    if (cleanData.operational_status && !['disponible', 'en_mantenimiento'].includes(cleanData.operational_status)) {
+      delete cleanData.operational_status;
     }
 
     const { data, error } = await supabase

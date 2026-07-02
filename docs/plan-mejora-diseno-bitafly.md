@@ -131,10 +131,9 @@ toca queries, endpoints ni validaciones — solo JSX/Tailwind.
   - [x] 3.2b `KPIStrip`
   - [x] 3.2c Restyle de `AircraftCard` — icon-tile como elemento principal + foto real como
         miniatura secundaria (decisión confirmada con el usuario: opción híbrida)
-- [ ] 3.3 Bitácora — `dashboard/logbook/`
-  - [ ] 3.3a `PageHero`
-  - [ ] 3.3b `KPIStrip`
-  - [ ] 3.3c Restyle de la tabla de vuelos
+- [x] 3.3 Bitácora — `dashboard/logbook/` ✅
+  - [x] 3.3a `PageHero` + `KPIStrip` (vuelos, horas, este mes, sin piloto asignado)
+  - [x] 3.3b Restyle de la tabla de vuelos (badges de condición semánticos + tabular-nums)
 - [ ] 3.4 Tripulación — `dashboard/pilots/`
   - [ ] 3.4a `PageHero` + `KPIStrip`
   - [ ] 3.4b Restyle de tarjetas de piloto

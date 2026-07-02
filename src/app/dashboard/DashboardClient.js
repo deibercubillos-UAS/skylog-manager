@@ -114,7 +114,7 @@ export default function DashboardClient() {
   }
 
   return (
-    <div className="space-y-5 md:space-y-8 animate-in fade-in duration-700 text-left pb-4">
+    <div className="space-y-3 md:space-y-5 animate-in fade-in duration-700 text-left pb-4">
 
       {/* BANNER INVITACIONES PENDIENTES — para quien fue invitado a una org */}
       <InvitationsBanner />
@@ -172,7 +172,7 @@ export default function DashboardClient() {
 
       {/* 1. KPIs — franja sin cajas (variant="strip"), fiel al mockup Dashboard Layout 1a.
           El resto de páginas (Flota, Bitácora, etc.) sigue usando la variante "card". */}
-      <section aria-label="Indicadores clave de operación" className="bg-white rounded-[1.5rem] border border-slate-100 px-2 py-5 md:px-4">
+      <section aria-label="Indicadores clave de operación" className="bg-white rounded-[1.5rem] border border-slate-100 px-2 py-3 md:px-4">
         <KPIStrip variant="strip" items={[
           {
             key: 'hours', label: 'Horas de Vuelo', value: data?.stats?.hours || '0.0', unit: 'h',
@@ -207,10 +207,10 @@ export default function DashboardClient() {
       <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col lg:flex-row">
 
         {/* GRÁFICO MENSUAL */}
-        <figure className="lg:flex-[1.5] p-5 md:p-10 flex flex-col h-[260px] md:h-[420px]" aria-label={chartLabel}>
-          <figcaption className="flex justify-between items-start mb-4 md:mb-10">
+        <figure className="lg:flex-[1.5] p-4 md:p-6 flex flex-col h-[200px] md:h-[240px]" aria-label={chartLabel}>
+          <figcaption className="flex justify-between items-start mb-3 md:mb-5">
             <div>
-              <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em] md:tracking-[0.3em]">Vuelos por Mes</h3>
+              <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em] md:tracking-[0.2em]">Vuelos por Mes</h3>
               <span className="text-xs font-bold text-slate-400 mt-0.5 inline-block">Últimos 6 meses</span>
             </div>
             {flightTrend !== null && (
@@ -262,22 +262,22 @@ export default function DashboardClient() {
           </table>
         </figure>
 
-        <div className="hidden lg:block w-px bg-slate-100 my-10" />
-        <div className="lg:hidden h-px bg-slate-100 mx-5 md:mx-10" />
+        <div className="hidden lg:block w-px bg-slate-100 my-6" />
+        <div className="lg:hidden h-px bg-slate-100 mx-4 md:mx-6" />
 
         {/* ALERTAS ACTIVAS */}
         <section aria-label="Alertas activas de la operación"
-          className="lg:flex-1 p-5 md:p-10 flex flex-col h-[260px] md:h-[420px]">
-          <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em] md:tracking-[0.3em] mb-4 md:mb-10 flex items-center gap-2">
+          className="lg:flex-1 p-4 md:p-6 flex flex-col h-[200px] md:h-[240px]">
+          <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em] md:tracking-[0.2em] mb-3 md:mb-5 flex items-center gap-2">
             Alertas Activas
             {alertsCount > 0 && (
               <span className="text-[10px] font-black text-white bg-orange-600 rounded-full px-2 py-0.5">{alertsCount}</span>
             )}
           </h3>
-          <div className="space-y-3 overflow-y-auto pr-1 custom-scrollbar flex-1" role="list"
+          <div className="space-y-1.5 overflow-y-auto pr-1 custom-scrollbar flex-1" role="list"
             aria-label={alertsCount > 0 ? `${alertsCount} alerta${alertsCount !== 1 ? 's' : ''} activa${alertsCount !== 1 ? 's' : ''}` : 'Sin alertas activas'}>
             {data?.alerts?.length > 0 ? data.alerts.map((a, i) => (
-              <div key={i} role="listitem" className="flex items-start gap-2.5 py-2.5 border-b border-slate-100 last:border-b-0">
+              <div key={i} role="listitem" className="flex items-start gap-2.5 py-1.5 border-b border-slate-100 last:border-b-0">
                 <span
                   className={`size-1.5 rounded-full mt-1.5 shrink-0 ${a.type === 'CRÍTICO' ? 'bg-red-600' : 'bg-amber-500'}`}
                   aria-label={a.type === 'CRÍTICO' ? 'Alerta crítica' : 'Advertencia'}
@@ -289,7 +289,7 @@ export default function DashboardClient() {
               </div>
             )) : (
               <div className="h-full flex flex-col items-center justify-center opacity-40 text-center" aria-live="polite">
-                <span className="material-symbols-outlined text-5xl text-emerald-500 mb-3" aria-hidden="true">verified</span>
+                <span className="material-symbols-outlined text-3xl text-emerald-500 mb-2" aria-hidden="true">verified</span>
                 <p className="text-xs font-black uppercase tracking-widest text-slate-700">Operación Segura</p>
                 <p className="text-xs text-slate-400 font-medium mt-1">Sin alertas activas</p>
               </div>
@@ -300,7 +300,7 @@ export default function DashboardClient() {
 
       {/* 4. BITÁCORA RECIENTE — desktop */}
       <section aria-label="Actividad reciente de vuelo" className="hidden md:block bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden text-left">
-        <div className="p-8 border-b flex justify-between items-center bg-slate-50/30">
+        <div className="px-6 py-3 border-b flex justify-between items-center bg-slate-50/30">
           <h3 className="font-black text-xs uppercase text-slate-400 tracking-widest">Actividad Reciente</h3>
           <Link href="/dashboard/logbook" className="text-xs font-black text-orange-600 uppercase underline">Ver Historial</Link>
         </div>
@@ -309,33 +309,33 @@ export default function DashboardClient() {
             <caption className="sr-only">Últimos vuelos registrados en la bitácora</caption>
             <thead>
               <tr className="bg-slate-50/50 text-xs font-black text-slate-400 uppercase tracking-widest">
-                <th scope="col" className="px-8 py-5">Misión</th>
-                <th scope="col" className="px-8 py-5">Fecha</th>
-                <th scope="col" className="px-8 py-5">Aeronave</th>
-                <th scope="col" className="px-8 py-5">PIC</th>
-                <th scope="col" className="px-8 py-5">Duración</th>
-                <th scope="col" className="px-8 py-5 text-right">Estatus</th>
+                <th scope="col" className="px-6 py-2.5">Misión</th>
+                <th scope="col" className="px-6 py-2.5">Fecha</th>
+                <th scope="col" className="px-6 py-2.5">Aeronave</th>
+                <th scope="col" className="px-6 py-2.5">PIC</th>
+                <th scope="col" className="px-6 py-2.5">Duración</th>
+                <th scope="col" className="px-6 py-2.5 text-right">Estatus</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {data?.recentActivity?.length > 0 ? data.recentActivity.map(f => (
                 <tr key={f.id} className="hover:bg-slate-50 transition-all">
-                  <td className="px-8 py-6 text-xs font-black font-mono text-orange-600">{f.mission_id || 'N/A'}</td>
-                  <td className="px-8 py-6 text-xs font-bold text-slate-500">{f.flight_date || '—'}</td>
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-2.5">
-                      <div className="size-7 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                  <td className="px-6 py-2.5 text-xs font-black font-mono text-orange-600">{f.mission_id || 'N/A'}</td>
+                  <td className="px-6 py-2.5 text-xs font-bold text-slate-500">{f.flight_date || '—'}</td>
+                  <td className="px-6 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="size-6 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
                         <span className="material-symbols-outlined text-sm text-slate-400" aria-hidden="true">flight</span>
                       </div>
                       <span className="text-xs font-bold text-slate-800">{f.aircraft?.model || 'N/R'}</span>
                     </div>
                   </td>
-                  <td className="px-8 py-6 text-xs font-bold text-slate-700">{f.pilots?.name || 'No registrado'}</td>
-                  <td className="px-8 py-6 text-xs font-black text-slate-700 tabular-nums">
+                  <td className="px-6 py-2.5 text-xs font-bold text-slate-700">{f.pilots?.name || 'No registrado'}</td>
+                  <td className="px-6 py-2.5 text-xs font-black text-slate-700 tabular-nums">
                     {f.total_time ? `${parseFloat(f.total_time).toFixed(1)}h` : '—'}
                   </td>
-                  <td className="px-8 py-6 text-right">
-                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-xs font-black uppercase border border-emerald-100 shadow-sm">
+                  <td className="px-6 py-2.5 text-right">
+                    <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-xs font-black uppercase border border-emerald-100">
                       Registrado
                     </span>
                   </td>

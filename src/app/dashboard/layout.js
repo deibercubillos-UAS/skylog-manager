@@ -604,12 +604,15 @@ const footerLinks = footerLinksAll.filter(link =>
         </header>
 
         {/* CONTENIDO DE PÁGINA */}
-        {/* pb-28 mobile = 7rem ≥ barra inferior (4rem) + safe-area máximo iPhone (2.125rem) + respiro */}
+        {/* Padding inferior extra SOLO hasta el breakpoint lg (barra de navegación inferior
+            es lg:hidden) — 7rem ≥ barra inferior (4rem) + safe-area máximo iPhone (2.125rem) +
+            respiro. En desktop (lg+) no hay barra inferior, así que no debe reservarse ese
+            espacio: antes se aplicaba siempre vía inline style, sumando scroll innecesario. */}
         {/* id="main-content" — destino del skip link de accesibilidad */}
         <div
           id="main-content"
-          className="flex-1 overflow-y-auto min-h-0 p-3 md:p-4 lg:p-10 lg:pb-10"
-          style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'max(6rem, calc(3rem + env(safe-area-inset-bottom, 8px) + 1rem))' }}
+          className="flex-1 overflow-y-auto min-h-0 p-3 md:p-4 lg:p-6 pb-[max(6rem,calc(3rem+env(safe-area-inset-bottom,8px)+1rem))] lg:pb-6"
+          style={{ WebkitOverflowScrolling: 'touch' }}
         >
           {/* Banner período de gracia */}
           {gracePeriod.isGracePeriod && (

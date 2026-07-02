@@ -17,14 +17,14 @@ import Link from 'next/link';
  */
 export default function PageHero({ eyebrow, title, description, metric, cta, right }) {
   return (
-    <div className="rounded-[2rem] bg-[#1A202C] text-white px-6 py-6 md:px-10 md:py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+    <div className="rounded-[1.75rem] bg-[#1A202C] text-white px-5 py-4 md:px-8 md:py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-6">
       <div className="min-w-0">
         {eyebrow && (
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-orange-400 mb-2">{eyebrow}</p>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-orange-400 mb-1">{eyebrow}</p>
         )}
-        <h1 className="text-xl md:text-3xl font-black uppercase tracking-tight leading-none">{title}</h1>
+        <h1 className="text-lg md:text-2xl font-black uppercase tracking-tight leading-none">{title}</h1>
         {description && (
-          <p className="text-sm text-white/60 font-medium mt-2 max-w-xl">{description}</p>
+          <p className="text-xs md:text-sm text-white/60 font-medium mt-1.5 max-w-xl">{description}</p>
         )}
       </div>
 

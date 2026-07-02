@@ -137,28 +137,18 @@ toca queries, endpoints ni validaciones — solo JSX/Tailwind.
 - [x] 3.4 Tripulación — `dashboard/pilots/` ✅
   - [x] 3.4a `PageHero` + `KPIStrip` (tripulantes, con licencia, cert. por vencer, expediente completo)
   - [x] 3.4b Restyle del roster: avatar de iniciales en naranja (mobile + desktop)
-- [ ] 3.5 Mantenimiento — `dashboard/maintenance/`
-  - [ ] 3.5a `PageHero` + `KPIStrip`
-  - [ ] 3.5b Restyle de la tabla de mantenimiento
-- [ ] 3.6 Seguridad SMS / SORA / VOR-MOR — `dashboard/safety/`, `dashboard/sora/`
-  - [ ] 3.6a `PageHero` + `KPIStrip` (Seguridad SMS)
-  - [ ] 3.6b Restyle de tabla SORA
-- [ ] 3.7 Reportes — `dashboard/reports/`
-  - [ ] 3.7a `PageHero`
-  - [ ] 3.7b Restyle de tarjetas de formato (F-OPS-002, F-MNT-003, F-HUM-005)
-- [ ] 3.8 Protocolos (Listas de Chequeo) — `dashboard/settings/forms/`
-  - [ ] 3.8a `PageHero`
-  - [ ] 3.8b Restyle de tarjetas de protocolo
-- [ ] 3.9 Mi Perfil — `dashboard/settings/profile/`
-  - [ ] 3.9a `PageHero` (tarjeta "Mi cuenta" navy)
-- [ ] 3.10 Organización — `dashboard/settings/`
-  - [ ] 3.10a `PageHero`
-- [ ] 3.11 Suscripción (solo visual — sin historial de facturación, eso es 5.d) —
-      `dashboard/subscription/page.js`
-  - [ ] 3.11a `PageHero`
-- [ ] 3.12 Programación (vista lista actual, restyle únicamente — el calendario semanal
-      es 5.c) — `dashboard/authorizations/`
-  - [ ] 3.12a `PageHero` + `KPIStrip`
+- [x] 3.5 Mantenimiento — `dashboard/maintenance/` ✅
+  - [x] 3.5a `PageHero` + `KPIStrip` (intervenciones, preventivas, correctivas, este mes)
+  - [x] 3.5b Restyle: badge de tipo unificado a pill redondeado
+- [x] 3.6 Seguridad SMS / SORA — `dashboard/safety/`, `dashboard/sora/` ✅
+  - [x] 3.6a `PageHero` en el hub de Seguridad Operacional
+  - [x] 3.6b `PageHero` en SORA (KPIs propios con color semántico conservados)
+- [x] 3.7 Reportes — `dashboard/reports/` ✅ `PageHero`
+- [x] 3.8 Protocolos (Editor de Protocolos) — `dashboard/settings/forms/` ✅ `PageHero`
+- [x] 3.9 Mi Perfil — `dashboard/settings/profile/` ✅ `PageHero` (rol como métrica)
+- [x] 3.10 Organización — `dashboard/settings/` ✅ `PageHero`
+- [x] 3.11 Suscripción — `dashboard/subscription/page.js` ✅ `PageHero`
+- [x] 3.12 Programación (Autorización de Vuelo) — `dashboard/authorizations/` ✅ `PageHero`
 
 Checklist QA por módulo (antes de marcar el módulo completo, no por cada sub-commit):
 la página carga, filtros/búsqueda existentes siguen funcionando, crear/editar/eliminar
@@ -166,7 +156,7 @@ sigue funcionando, responsive mobile no se rompe (bottom nav).
 
 ---
 
-## Fase 4 — Nuevas rutas de primer nivel (extracción, sin lógica nueva) ⬜
+## Fase 4 — Nuevas rutas de primer nivel (extracción, sin lógica nueva) 🔄
 
 - [ ] 4.1 `[commit]` Crear la página `/dashboard/batteries` con el layout de tabla del
       mockup, reutilizando el mismo `GET` de baterías que hoy consume `/dashboard/fleet`

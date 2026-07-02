@@ -172,34 +172,6 @@ export default function LogbookPage() {
         setFilters({ date: '', model: '', type: '', condition: '', pilot: '' });
     };
 
-    // Exporta los registros visibles (ya filtrados) como CSV — abre en Excel.
-    // No requiere backend: usa los datos ya cargados en memoria.
-    const exportCSV = () => {
-        const headers = ['N° Misión', 'Fecha', 'Aeronave', 'Serie (S/N)', 'Tipo Op', 'Condición', 'Duración (h)', 'Piloto (PIC)'];
-        const rows = filteredFlights.map(f => [
-            f.mission_id || '',
-            f.flight_date || '',
-            f.aircraft?.model || '',
-            f.aircraft?.serial_number || '',
-            f.mission_type || '',
-            f.visual_condition || '',
-            (parseFloat(f.total_time) || 0).toFixed(2),
-            f.pilots?.name || '',
-        ]);
-        const csv = [headers, ...rows]
-            .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
-            .join('\n');
-        const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `F-OPS-002_bitacora_${new Date().toISOString().slice(0, 10)}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
-    };
-
     const deleteFlight = async (flightId) => {
         if (!window.confirm('¿Eliminar este registro de bitácora? Esta acción es irreversible.')) return;
         try {
@@ -508,8 +480,8 @@ export default function LogbookPage() {
                         Limpiar
                     </button>
                 </div>
-                <div className="flex gap-2 md:ml-auto">
-                    {!isGracePeriod && (
+                {!isGracePeriod && (
+                    <div className="flex gap-2 md:ml-auto">
                         <button
                             onClick={() => setShowImport(v => !v)}
                             className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-black uppercase rounded-xl border transition-all ${
@@ -521,16 +493,8 @@ export default function LogbookPage() {
                             <span className="material-symbols-outlined text-sm">upload_file</span>
                             {showImport ? 'Cerrar' : 'Importar vuelos'}
                         </button>
-                    )}
-                    <button
-                        onClick={exportCSV}
-                        disabled={filteredFlights.length === 0}
-                        className="flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-black uppercase text-slate-600 border border-slate-200 rounded-xl hover:border-orange-300 hover:text-orange-600 transition-all disabled:opacity-40"
-                    >
-                        <span className="material-symbols-outlined text-sm">file_download</span>
-                        Exportar F-OPS-002
-                    </button>
-                </div>
+                    </div>
+                )}
             </div>
 
             {/* Panel importación DJI / Excel — oculto en período de gracia. Carga manual de vuelos (fuera de DJI): "Nuevo registro" en el hero → /dashboard/logbook/new */}

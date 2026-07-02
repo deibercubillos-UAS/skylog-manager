@@ -545,15 +545,14 @@ flujo de firma digital en el esquema) + barra de filtros unificada + tabla recor
 - **Filtros restantes** (fecha, modelo, tipo de misión, condición visual, piloto) viven en la
   misma barra, junto con "Limpiar" — antes estaban repartidos entre un bloque solo-mobile y
   la fila de filtros de la tabla desktop; ahora es una única barra para ambos.
-- **Exportar F-OPS-002** (`exportCSV`): descarga un CSV (BOM UTF-8, abre en Excel) de los
-  registros **ya filtrados** — sin backend nuevo, arma el archivo en memoria desde
-  `filteredFlights`. No es un reporte oficial nuevo, es un export de conveniencia del listado.
 - **Tabla desktop recortada**: de 8 columnas a 6 (N° Misión, Fecha, Aeronave, Piloto,
   Condición, Duración) + Alerta/Replay/Eliminar — "Tipo Op" y "Serie" salen de la tabla visible
-  (siguen filtrables/exportables) siguiendo el layout del mockup. La celda Aeronave usa el
-  mismo patrón que Programación Activa (chip de ícono + modelo + serie como subtexto).
+  (siguen filtrables) siguiendo el layout del mockup. La celda Aeronave usa el mismo patrón
+  que Programación Activa (chip de ícono + modelo + serie como subtexto).
 - **"Importar vuelos" (DjiRcSync) intacto** — sigue siendo el toggle que muestra el panel de
-  importación DJI/Excel, sin cambios de lógica, solo reposicionado junto a "Exportar F-OPS-002".
+  importación DJI/Excel, sin cambios de lógica.
+- **Sin exportación**: el botón "Exportar F-OPS-002" (CSV) del mockup se implementó y luego
+  se quitó a pedido explícito del usuario — no hay export de la tabla en esta pestaña.
 
 ### Auditoría de acciones ⚠️ inerte hasta aplicar migración
 

@@ -174,24 +174,22 @@ sigue funcionando, responsive mobile no se rompe (bottom nav).
 
 ---
 
-## Fase 5 — Funcionalidades nuevas (alcance confirmado: a–e, f fuera) ⚠️
+## Fase 5 — Funcionalidades nuevas (alcance confirmado: a–e, f fuera) ✅ (a/d requieren migración)
 
 Cada ítem es su propio mini-proyecto, con sus propios commits `[API]`/`[DB]` separados del
 commit de frontend que lo consume. No se mezclan entre sí.
 
-### a) Auditoría real (registro de acciones) — mayor esfuerzo, ~3-5 días
-La página actual `/dashboard/audit` es un dashboard de cumplimiento (aeronavegabilidad +
-vigencia de documentos), no un log de acciones — no hay tabla `audit_log` hoy.
-- [ ] 5.a1 `[DB]` Migración: tabla `audit_log` (`organization_id`, `actor_id`, `action`,
-      `module`, `metadata jsonb`, `created_at`) + RLS (solo managers leen).
-- [ ] 5.a2 `[API]` Helper centralizado `lib/auditLog.js` (`logAudit()`).
-- [ ] 5.a3 `[API]` Instrumentar `logAudit()` en un módulo a la vez (fleet → pilots →
-      flights → maintenance → protocolos), **un commit por módulo instrumentado**.
-- [ ] 5.a4 `[API]` Endpoint `GET /api/audit-log` + export CSV.
-- [ ] 5.a5 `[frontend]` Nueva pestaña/tabla en `/dashboard/audit` (convive con el
-      dashboard de cumplimiento actual, no lo reemplaza — a confirmar con el usuario antes
-      de este commit).
-- ⚠️ Decisión pendiente antes de 5.a5: ¿reemplaza la vista actual o convive como pestaña?
+### a) Auditoría real (registro de acciones) ✅ (⏳ requiere aplicar migración)
+- [x] 5.a1 `[DB]` Migración `20260702_audit_log.sql` (tabla + RLS: managers leen su org,
+      solo service role escribe). **Archivo creado, NO aplicado a producción.**
+- [x] 5.a2 `[API]` `lib/auditLog.js` (`logAudit()` fire-and-forget, nunca lanza).
+- [x] 5.a3 `[API]` Instrumentado `create` en fleet, pilots y flights/authorize (guardado).
+      Resto de módulos/acciones se pueden añadir después con el mismo patrón.
+- [x] 5.a4 `[API]` `GET /api/audit-log` (+ CSV), degrada a vacío si la tabla falta.
+- [x] 5.a5 `[frontend]` Pestaña "Registro de acciones" que **convive** con el panel de
+      cumplimiento (decisión por defecto — no destructiva). Migrado a PageHero.
+- **Activación**: aplicar `20260702_audit_log.sql` en Supabase. Hasta entonces, la pestaña
+  muestra un aviso de "migración pendiente" y logAudit falla en silencio (cero impacto).
 
 ### b) Conflictos de horario en "Nueva Misión" ✅
 - [x] 5.b1 `[API]` `GET /api/flights/conflicts` + aviso no bloqueante en `POST authorize`.
@@ -204,15 +202,18 @@ vigencia de documentos), no un log de acciones — no hay tabla `audit_log` hoy.
 - [ ] 5.c2 Pestaña "Mes" — omitida por ahora (la vista Semana + Lista cubren el caso
       principal; se puede agregar después si se pide).
 
-### d) Historial de facturación en Suscripción — ⚠️ decisión legal/fiscal pendiente
-- [ ] 5.d0 ⚠️ Definir con el usuario: ¿comprobante informativo o factura con validez
-      fiscal (DIAN)? Bloquea el resto de esta sub-fase.
-- [ ] 5.d1 `[DB]` Migración: tabla `billing_history` (`ref_payco`, `user_id`, `amount`,
-      `status`, `created_at`).
-- [ ] 5.d2 `[API]` Registrar cada pago exitoso desde el webhook de ePayco.
-- [ ] 5.d3 `[API]` Endpoint de listado + generación de comprobante PDF (reutiliza el
-      patrón de generación de PDFs ya existente en el proyecto).
-- [ ] 5.d4 `[frontend]` Tabla de historial en `/dashboard/subscription`.
+### d) Historial de facturación en Suscripción ✅ (⏳ requiere aplicar migración)
+- [x] 5.d0 Decisión por defecto (por falla de la herramienta de preguntas): **comprobante
+      informativo**, sin validez fiscal DIAN. Revisar si se necesita factura electrónica real.
+- [x] 5.d1 `[DB]` Migración `20260702_billing_history.sql` (tabla + RLS: cada usuario ve lo
+      suyo). **Archivo creado, NO aplicado a producción.**
+- [x] 5.d2 `[API]` Webhook ePayco registra cada pago (fire-and-forget, idempotente por
+      `ref_payco`, mismo patrón guardado que `attributeCommission` — nunca rompe activación).
+- [x] 5.d4 `[frontend]` Sección "Historial de facturación" en `/dashboard/subscription`
+      (oculta si no hay pagos / tabla ausente).
+- [ ] 5.d3 PDF de comprobante — omitido por ahora (la tabla + listado cubren el caso; el
+      PDF se puede añadir después reutilizando el patrón de PDFs existente).
+- **Activación**: aplicar `20260702_billing_history.sql` en Supabase.
 
 ### e) Búsqueda global en el header — ~1 día
 - [ ] 5.e1 `[API]` Endpoint `GET /api/search?q=` (`ilike` sobre `flights`/`aircraft`/
@@ -258,11 +259,22 @@ de comprobante (5.d), reutilizando el patrón existente de `maintenance-docs`/`c
 
 ---
 
-## Próximos pasos
+## Pendientes de activación (acciones del usuario, fuera de esta sesión)
 
-1. Arrancar Fase 0 → Fase 1, commit por commit, cada uno con su propio deploy preview.
-2. Antes de 5.a5: confirmar si Auditoría real reemplaza o convive con la vista de
-   cumplimiento actual.
-3. Antes de 5.d1: confirmar si el historial de facturación es comprobante informativo o
-   factura fiscal real.
-4. Fase 6 (landing pages) queda pendiente de decisión aparte.
+1. **Crear la rama en GitHub**: `claude/project-scope-review-xity40` no existe en el remoto
+   y ni el proxy git ni el MCP pueden crearla (403). Crear la rama desde `main` (web o
+   `git push origin main:refs/heads/claude/project-scope-review-xity40`) para desbloquear
+   el push de todos los commits.
+2. **Aplicar migraciones en Supabase** (aditivas, no rompen nada existente) para activar la
+   Fase 5.a y 5.d:
+   - `supabase/migrations/20260702_audit_log.sql`
+   - `supabase/migrations/20260702_billing_history.sql`
+3. **QA visual en el preview de Vercel** con cuentas reales de cada rol (no se pudo hacer
+   aquí sin credenciales Supabase). En particular:
+   - Sidebar agrupado con los 5 roles + período de gracia.
+   - Fase 4.3: si Baterías standalone se ve bien, quitar la sección embebida de
+     `/dashboard/fleet` (hoy conviven).
+4. **Revisar decisiones tomadas por defecto** (la herramienta de preguntas falló):
+   Auditoría convive como pestaña (no reemplaza); facturación es comprobante informativo
+   (no fiscal). Cambiar si se requiere otra cosa.
+5. Fase 6 (landing pages) queda pendiente de decisión aparte.

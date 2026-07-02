@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { ROLE_LABELS, PERMISSIONS, hasPermission } from '@/lib/roles';
 import { GracePeriodContext } from '@/lib/gracePeriodContext';
 import { getOrgPlan } from '@/lib/orgPlan';
+import { PLAN_CONFIG } from '@/lib/planLimits';
 import { useRouter } from 'next/navigation';
 import NotificationBell from '@/components/NotificationBell';
 import { docOpenUrl } from '@/lib/docUrl';
@@ -442,6 +443,24 @@ const footerLinks = footerLinksAll.filter(link =>
             <span className="material-symbols-outlined text-base">logout</span>
             <span>Cerrar Sesión</span>
           </button>
+
+          {/* WIDGET DE PLAN — mismo dueño de la suscripción que ya ve el link "Suscripción"
+              en Administración (footerLinks); oculto para Enterprise (no hay a qué mejorar). */}
+          {footerLinks.some(l => l.href === '/dashboard/subscription') && plan !== 'enterprise' && (
+            <Link
+              href="/dashboard/subscription"
+              className="flex items-center justify-between gap-2 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/30 transition-all group"
+            >
+              <div className="min-w-0">
+                <p className="text-xs font-black text-slate-500 uppercase tracking-tight leading-none">
+                  {PLAN_CONFIG[plan]?.name || 'Plan Piloto'}
+                </p>
+              </div>
+              <span className="text-xs font-black text-orange-400 uppercase tracking-wide shrink-0 group-hover:text-orange-300">
+                Mejorar
+              </span>
+            </Link>
+          )}
 
           {/* TARJETA DE USUARIO — mismos datos que ya carga el header (data.profile), sin query nueva */}
           <Link

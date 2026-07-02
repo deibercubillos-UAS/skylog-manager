@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { PERMISSIONS } from '@/lib/roles';
 import { useGracePeriod } from '@/lib/gracePeriodContext';
 import dynamic from 'next/dynamic';
+import PageHero from '@/components/PageHero';
+import KPIStrip from '@/components/KPIStrip';
 
 const FlightReplayModal = dynamic(() => import('@/components/FlightReplayModal'), { ssr: false });
 const DjiRcSync         = dynamic(() => import('@/components/DjiRcSync'),         { ssr: false });
@@ -141,6 +143,21 @@ export default function LogbookPage() {
         if (filters.pilot)      result = result.filter(f => f.pilots?.name === filters.pilot);
         return result;
     }, [filters, flights]);
+
+    // KPIs derivados de los vuelos ya cargados (sin queries nuevas).
+    const stats = useMemo(() => {
+        const ym = new Date().toISOString().slice(0, 7); // YYYY-MM actual
+        const totalHours = flights.reduce((sum, f) => {
+            const tt = parseFloat(f.total_time);
+            return sum + (!isNaN(tt) && tt > 0 ? tt : 0);
+        }, 0);
+        return {
+            count: flights.length,
+            hours: totalHours,
+            thisMonth: flights.filter(f => f.flight_date?.startsWith(ym)).length,
+            unassigned: flights.filter(f => !f.pilots?.name).length,
+        };
+    }, [flights]);
 
     const clearFilters = () => {
         setFilters({ date: '', mission_id: '', model: '', serial: '', type: '', condition: '', pilot: '' });
@@ -374,13 +391,27 @@ export default function LogbookPage() {
     return (
         <>
         <div className="space-y-8 text-left animate-in fade-in duration-700 pb-20">
-            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 border-b border-slate-200 pb-4">
-                <div>
-                    <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">Bitácora de Vuelo</h2>
-                    <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">
-                        {filteredFlights.length} Registros encontrados
-                    </p>
-                </div>
+            <PageHero
+                eyebrow="Operación"
+                title="Bitácora de Vuelo"
+                description="Registro RAC 100 de todas las misiones de la flota."
+            />
+
+            <KPIStrip items={[
+                { key: 'count', title: 'Vuelos Registrados', value: stats.count, icon: 'menu_book', color: 'text-slate-900' },
+                { key: 'hours', title: 'Horas Totales', value: `${stats.hours.toFixed(1)}h`, icon: 'timer', color: 'text-slate-900' },
+                { key: 'month', title: 'Este Mes', value: stats.thisMonth, icon: 'calendar_month', color: 'text-orange-500' },
+                {
+                    key: 'unassigned', title: 'Sin Piloto', value: stats.unassigned, icon: 'person_off',
+                    warning: stats.unassigned > 0,
+                    sub: stats.unassigned > 0 ? 'Requieren asignar PIC' : 'Todos con PIC asignado',
+                },
+            ]} />
+
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 border-b border-slate-200 pb-4">
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">
+                    {filteredFlights.length} Registros encontrados
+                </p>
                 <div className="flex gap-2 w-full sm:w-auto">
                     {!isGracePeriod && (
                         <button
@@ -400,7 +431,7 @@ export default function LogbookPage() {
                         className="flex-1 sm:flex-none px-4 py-3 text-xs font-black uppercase text-slate-400 hover:text-orange-600 transition-colors border border-slate-200 rounded-xl"
                     >Limpiar filtros</button>
                 </div>
-            </header>
+            </div>
 
             {/* Panel importación DJI / Excel — oculto en período de gracia */}
             {showImport && !isGracePeriod && (

@@ -76,7 +76,7 @@ solo commit cada una** (ver desglose abajo). Regla general:
 
 ---
 
-## Fase 1 — Shell compartido: Sidebar + Header ⬜
+## Fase 1 — Shell compartido: Sidebar + Header ✅ (código) ⚠️ (QA visual con roles reales pendiente)
 
 Mismo archivo (`src/app/dashboard/layout.js`), partido en commits atómicos e independientes:
 
@@ -91,8 +91,12 @@ Mismo archivo (`src/app/dashboard/layout.js`), partido en commits atómicos e in
       1.2 porque son dos piezas visuales independientes.
 - [ ] 1.4 `[commit]` Agregar input de búsqueda visual en el header (placeholder estático,
       sin `onChange` ni fetch — la función real es la tarea 5.e5).
-- [ ] 1.5 QA manual con los 5 roles + período de gracia (no es commit, es verificación
-      antes de dar la fase por cerrada).
+- [x] 1.5 QA manual con los 5 roles + período de gracia (no es commit, es verificación
+      antes de dar la fase por cerrada). **Verificado**: `navLinks` (href/roles/
+      pilotHidden/pilotOnly) idéntico byte a byte antes/después, build+lint limpios,
+      dev server arranca sin errores. **No verificado** en este entorno (sin credenciales
+      Supabase): render real logueado con cada rol — pendiente de revisión visual en el
+      preview deploy de Vercel de esta rama.
 
 ---
 

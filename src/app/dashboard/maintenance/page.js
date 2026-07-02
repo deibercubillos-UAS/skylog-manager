@@ -217,7 +217,7 @@ export default function MaintenancePage() {
                                         {log.aircraft?.model}
                                     </td>
                                     <td className="px-6 py-5">
-                                        <span className={`px-2 py-1 rounded text-xs font-black uppercase ${
+                                        <span className={`px-2.5 py-1 rounded-full text-xs font-black uppercase ${
                                             log.maintenance_type === 'CORRECTIVO'
                                                 ? 'bg-red-50 text-red-600'
                                                 : 'bg-blue-50 text-blue-600'

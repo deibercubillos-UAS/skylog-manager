@@ -259,6 +259,26 @@ de comprobante (5.d), reutilizando el patrón existente de `maintenance-docs`/`c
 
 ---
 
+## Auditoría de implementación (2026-07-02) ✅
+
+Auditoría completa post-implementación. Verificado:
+- **Cableado**: PageHero (16 consumidores), KPIStrip (6), IconTile (1), GlobalSearch (1),
+  logAudit (3 rutas API); los 4 endpoints nuevos tienen consumidor. Cero piezas huérfanas.
+- **Build + lint**: verdes en los 39 commits.
+- **Permisos**: `/api/audit-log` usa `canViewAudit`, igual que el guard server-side ya
+  existente de `/dashboard/audit` (`requirePermission`). Consistente.
+- **3 defectos encontrados y corregidos** (commit `fix(audit)`):
+  1. Conflictos 5.b comparaban ±2h pero `scheduled_at` guarda solo fecha → cambiado a
+     comparación por día calendario (la única granularidad real).
+  2. Búsqueda 5.e: término con comas/paréntesis rompía la sintaxis `.or()` de PostgREST →
+     sanitizado.
+  3. Migración `audit_log` dependía de `private.user_is_manager()` (no versionada en el
+     repo, existencia no garantizable) → chequeo de rol inline contra `profiles`.
+- **No verificable desde este entorno** (sin credenciales Supabase): render logueado por
+  rol, RLS efectiva de `battery_logs` para el join de "aeronave asignada" (si RLS lo
+  bloquea, la página de Baterías degrada con gracia: muestra las baterías sin la
+  aeronave), y el disparo real del webhook. Cubrir en el QA del preview de Vercel.
+
 ## Pendientes de activación (acciones del usuario, fuera de esta sesión)
 
 1. **Crear la rama en GitHub**: `claude/project-scope-review-xity40` no existe en el remoto

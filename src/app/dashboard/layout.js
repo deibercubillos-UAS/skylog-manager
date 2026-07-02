@@ -352,23 +352,6 @@ const footerLinks = footerLinksAll.filter(link =>
           </div>
         </Link>
 
-        {/* BLOQUE DE ESTATUS */}
-        <div className="mx-3 mt-3 p-3 bg-white/5 rounded-xl border border-white/10 flex items-center justify-between gap-2 shrink-0">
-          <div className="flex flex-col min-w-0">
-            <span className="text-xs font-black text-slate-500 uppercase tracking-tight leading-none">Plan</span>
-            <span className="text-xs font-black text-orange-400 uppercase truncate mt-0.5">
-              {plan || 'piloto'}
-            </span>
-          </div>
-          <div className="w-px h-6 bg-white/10 shrink-0" />
-          <div className="flex flex-col text-right min-w-0">
-            <span className="text-xs font-black text-slate-500 uppercase tracking-tight leading-none">NIT</span>
-            <span className="text-xs font-mono font-bold text-white leading-none mt-0.5">
-              {data.org?.tax_id || '---'}
-            </span>
-          </div>
-        </div>
-
         {/* NAV PRINCIPAL — agrupado en secciones (Operación / Flota & Equipo / Cumplimiento).
             El agrupamiento es solo visual: filteredLinks ya trae la lista final por
             rol/plan/período de gracia, aquí solo se reparte por link.group. */}
@@ -459,6 +442,31 @@ const footerLinks = footerLinksAll.filter(link =>
             <span className="material-symbols-outlined text-base">logout</span>
             <span>Cerrar Sesión</span>
           </button>
+
+          {/* TARJETA DE USUARIO — mismos datos que ya carga el header (data.profile), sin query nueva */}
+          <Link
+            href="/dashboard/settings/profile"
+            className="flex items-center gap-3 px-3 py-2.5 mt-1 rounded-xl hover:bg-white/5 transition-colors group border-t border-white/5 pt-3"
+          >
+            <div className="size-9 rounded-full bg-white/10 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+              {data.profile?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={docOpenUrl(data.profile.avatar_url)} alt="Avatar" className="object-cover w-full h-full" />
+              ) : (
+                <span className="text-xs font-black text-white">
+                  {(data.profile?.full_name || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase()}
+                </span>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-black text-white truncate leading-none group-hover:text-orange-400 transition-colors">
+                {data.profile?.full_name || 'Mi cuenta'}
+              </p>
+              <p className="text-xs font-bold text-slate-500 uppercase mt-0.5 truncate">
+                {displayRole}
+              </p>
+            </div>
+          </Link>
         </div>
       </aside>
 

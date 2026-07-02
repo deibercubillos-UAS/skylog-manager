@@ -87,6 +87,32 @@ export async function POST(request) {
         const salt = Math.random().toString(36).substring(2, 5).toUpperCase();
         const missionId = `${prefix}-${nextNumber.toString().padStart(3, '0')}-${salt}`;
 
+        // Conflicto de horario (no bloqueante): ¿el PIC ya tiene misión ±2h?
+        // Se informa en la respuesta pero NO impide crear la misión (igual que el mockup).
+        let conflictWarning = null;
+        try {
+            if (safeBody.pilot_id && safeBody.scheduled_at) {
+                const t = new Date(safeBody.scheduled_at).getTime();
+                if (!isNaN(t)) {
+                    const from = new Date(t - 2 * 3600 * 1000).toISOString();
+                    const to   = new Date(t + 2 * 3600 * 1000).toISOString();
+                    const { data: clash } = await supabase
+                        .from('flight_authorizations')
+                        .select('mission_id, scheduled_at')
+                        .eq('organization_id', orgId)
+                        .eq('pilot_id', safeBody.pilot_id)
+                        .neq('status', 'cancelado')
+                        .neq('status', 'realizado')
+                        .gte('scheduled_at', from)
+                        .lte('scheduled_at', to)
+                        .limit(1);
+                    if (clash?.length) {
+                        conflictWarning = `El piloto ya tiene una misión (${clash[0].mission_id}) en un horario cercano.`;
+                    }
+                }
+            }
+        } catch { /* el aviso es best-effort, nunca bloquea la creación */ }
+
         const { data, error } = await supabase.from('flight_authorizations').insert([{
             ...safeBody,
             mission_id:      missionId,
@@ -125,7 +151,7 @@ export async function POST(request) {
             }
         } catch (e) { console.warn('[authorize] notif:', e.message); }
 
-        return NextResponse.json(data[0]);
+        return NextResponse.json({ ...data[0], conflictWarning });
     } catch (err) { return NextResponse.json({ error: err.message }, { status: 500 }); }
 }
 

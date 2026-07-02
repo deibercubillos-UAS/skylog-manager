@@ -57,6 +57,22 @@ export default function BasicForm({ pilots, drones, org, loadData }) {
     const [mapCenter, setMapCenter] = useState([4.7110, -74.0721]); // Bogotá por defecto
     const [mapZoom, setMapZoom] = useState(12);
     const [weatherCoords, setWeatherCoords] = useState(null); // [lat, lon] del municipio seleccionado
+    const [scheduleConflict, setScheduleConflict] = useState(null); // { missions } si el PIC ya tiene misión cercana
+
+    // Aviso en vivo de conflicto de horario del PIC (Fase 5.b). No bloquea el envío.
+    useEffect(() => {
+        if (!form.pilot_id || !form.scheduled_at) { setScheduleConflict(null); return; }
+        const dt = `${form.scheduled_at}T${form.takeoff_time || '08:00'}:00`;
+        let active = true;
+        const t = setTimeout(async () => {
+            try {
+                const res = await fetch(`/api/flights/conflicts?pilot_id=${form.pilot_id}&scheduled_at=${encodeURIComponent(dt)}`);
+                const data = await res.json();
+                if (active) setScheduleConflict(data.conflict ? data : null);
+            } catch { if (active) setScheduleConflict(null); }
+        }, 400);
+        return () => { active = false; clearTimeout(t); };
+    }, [form.pilot_id, form.scheduled_at, form.takeoff_time]);
 
     // Geocodifica "Municipio, Departamento, Colombia" para centrar el mapa.
     // Usa Nominatim (OpenStreetMap), sin API key. Falla en silencio → Bogotá.
@@ -204,6 +220,17 @@ export default function BasicForm({ pilots, drones, org, loadData }) {
                     <StatusBox status={pStat} title="Estatus PIC"  defaultMsg="Seleccione Piloto" />
                     <StatusBox status={dStat} title="Estatus UAS"  defaultMsg="Seleccione Drone" />
                 </div>
+
+                {/* Aviso de conflicto de horario del PIC (no bloqueante) */}
+                {scheduleConflict?.missions?.length > 0 && (
+                    <div className="mb-6 flex items-start gap-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl px-4 py-3">
+                        <span className="material-symbols-outlined text-amber-400 text-xl shrink-0">warning</span>
+                        <p className="text-xs font-bold text-amber-200 leading-relaxed">
+                            Este piloto ya tiene una misión asignada en un horario cercano
+                            ({scheduleConflict.missions.map(m => m.mission_id).join(', ')}) — revisa el horario antes de programar.
+                        </p>
+                    </div>
+                )}
 
                 <form onSubmit={handleAuthorize} className="space-y-6">
                     {/* ── Datos de la misión ── */}

@@ -1,16 +1,16 @@
 'use client';
-import { useState } from 'react';
 import BasicForm from '@/components/authorizations/BasicForm';
-import AerocivilForm from '@/components/authorizations/AerocivilForm';
+import { ROLE_LABELS } from '@/lib/roles';
+// La pestaña "Apéndice 13" (AerocivilForm) queda oculta por ahora a pedido del usuario —
+// el componente y su import siguen disponibles en components/authorizations/AerocivilForm.js
+// para reactivarla más adelante sin reescribir nada.
 
 /**
- * Panel deslizable de "Nueva misión" — envuelve las pestañas Misión Básica /
- * Apéndice 13 (BasicForm/AerocivilForm, sin cambios) para incrustarlas sobre
- * el calendario de Programación en vez de navegar a una página aparte.
+ * Panel deslizable de "Nueva misión" — envuelve el formulario (BasicForm, sin
+ * cambios de lógica) para incrustarlo sobre el calendario de Programación en
+ * vez de navegar a una página aparte.
  */
 export default function MissionFormPanel({ pilots, drones, org, userRole, onClose, onSuccess }) {
-  const [activeTab, setActiveTab] = useState('basica');
-
   const handleCreated = () => {
     onSuccess?.();
   };
@@ -22,39 +22,30 @@ export default function MissionFormPanel({ pilots, drones, org, userRole, onClos
       shadow-[0_-4px_30px_rgba(0,0,0,0.14)] md:shadow-2xl
       animate-in slide-in-from-bottom md:slide-in-from-right duration-300">
 
-      {/* Header */}
+      {/* Header — breadcrumb + rol + cerrar */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
-        <div>
-          <h3 className="text-lg font-black uppercase tracking-tighter text-slate-900">Nueva misión</h3>
-          <p className="text-xs font-bold text-slate-400 mt-0.5">Autorización de vuelo — {org?.company_name || ''}</p>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs font-bold text-slate-400 truncate">Programación</span>
+          <span className="material-symbols-outlined text-sm text-slate-300 shrink-0">chevron_right</span>
+          <span className="text-xs font-black text-slate-900 shrink-0">Nueva misión</span>
         </div>
-        <button type="button" onClick={onClose}
-          className="size-10 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all active:scale-95 shrink-0">
-          <span className="material-symbols-outlined text-xl">close</span>
-        </button>
-      </div>
-
-      {/* Selector de pestañas */}
-      <div className="px-6 pt-4 shrink-0">
-        <div className="flex bg-slate-100 p-1.5 rounded-2xl">
-          <button onClick={() => setActiveTab('basica')}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${activeTab === 'basica' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'}`}>
-            Misión Básica
-          </button>
-          <button onClick={() => setActiveTab('aerocivil')}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${activeTab === 'aerocivil' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'}`}>
-            Apéndice 13
+        <div className="flex items-center gap-3 shrink-0">
+          {userRole && (
+            <span className="hidden sm:flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1">
+              <span className="material-symbols-outlined text-xs text-indigo-600">verified_user</span>
+              <span className="text-[9.5px] font-black uppercase tracking-wide text-indigo-600">Rol: {ROLE_LABELS[userRole] || userRole}</span>
+            </span>
+          )}
+          <button type="button" onClick={onClose}
+            className="size-10 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all active:scale-95">
+            <span className="material-symbols-outlined text-xl">close</span>
           </button>
         </div>
       </div>
 
       {/* Contenido scrolleable */}
       <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-        {activeTab === 'basica' ? (
-          <BasicForm pilots={pilots} drones={drones} org={org} userRole={userRole} loadData={handleCreated} />
-        ) : (
-          <AerocivilForm pilots={pilots} drones={drones} org={org} userRole={userRole} loadData={handleCreated} />
-        )}
+        <BasicForm pilots={pilots} drones={drones} org={org} userRole={userRole} loadData={handleCreated} onClose={onClose} />
       </div>
     </aside>
   );

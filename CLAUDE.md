@@ -271,9 +271,21 @@ Registrado todo desde `AddMaintenancePanel` (web y APK; el APK toma los cambios 
 (mismo componente que Programación Activa, ver abajo) es la vista principal — `PageHero` +
 botón **"Nueva misión"** que abre `MissionFormPanel.js` en un panel deslizable (desde la
 derecha en desktop, desde abajo en mobile; `dynamic(..., { ssr:false })`), sin navegar a otra
-página. El panel contiene las pestañas **Misión Básica** y **Apéndice 13** (sin cambios
-internos) y al crear con éxito se cierra y fuerza al calendario a re-consultar (`key`
-incremental sobre `ProgramacionActivaClient`).
+página. Al crear con éxito se cierra y fuerza al calendario a re-consultar (`key` incremental
+sobre `ProgramacionActivaClient`).
+- **Pestaña Apéndice 13 oculta (2026-07-02c, a pedido del usuario)**: `MissionFormPanel.js`
+  solo renderiza `BasicForm` — el selector de pestañas Misión Básica/Apéndice 13 se quitó del
+  panel. `AerocivilForm.js` (Formato 100 UAEAC) sigue intacto y sin importar desde ningún
+  lado; reactivarlo es solo volver a importarlo y restaurar el selector en `MissionFormPanel`.
+- **`BasicForm` restyleado** (fiel al mockup "Nueva misión"): hero navy compacto + banner de
+  conflicto de horario (real, `scheduleConflict`) + 2 columnas en fondo blanco/inputs claros
+  ("Datos de la misión" / "Asignación de recursos") + sección "Zona de operación" (3
+  `GEO_TYPES` reales: polígono/lineal/circunferencia — el mockup mostraba 4 modos incluyendo
+  "Punto", que no existe en el sistema de zonas; no se fabricó) + barra de exportación KMZ/PDF.
+  El indicador "Checklist pre-vuelo" es de solo lectura y refleja `organizations.enable_preflight`
+  real (no un toggle nuevo — cambiarlo se hace desde Protocolos). No se agregaron los campos
+  del mockup sin respaldo real: "Duración estimada", "Piloto de respaldo" y "Autorización
+  AeroCivil (F-OPS-001)" no existen en el esquema de `flight_authorizations`.
 - **Misión Básica** = `BasicForm` unificado: datos de misión (PIC, UAS, tipo RAC 100, depto/municipio, fecha, hora) + zona en mapa (geo_type, altitud) + descargas KMZ/PDF, todo en un solo form.
 - Al elegir municipio se geocodifica `"Municipio, Depto, Colombia"` vía **Nominatim** (sin API key) para centrar el `MapPickerModal` (`initialCenter`/`initialZoom`). Falla → Bogotá.
 - KMZ/PDF se generan con `lib/flightPlanDocs.js` (`GEO_TYPES`, `getZoneSummary`, `downloadFlightKMZ`, `generateFlightPlanPdf`) — fuente única compartida con FlightPlanner.

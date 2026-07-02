@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import { isGerenteGeneral } from '@/lib/planLimits';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import PageHero from '@/components/PageHero';
+import KPIStrip from '@/components/KPIStrip';
 
 const AddPilotPanel  = dynamic(() => import('@/components/AddPilotPanel'),  { ssr: false });
 const EditPilotPanel = dynamic(() => import('@/components/EditPilotPanel'), { ssr: false });
@@ -125,11 +127,37 @@ export default function PilotsPage() {
     <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500 text-left pb-20">
 
       {/* Header */}
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-slate-200 pb-5">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter">Tripulación</h2>
-          <p className="text-slate-400 text-xs font-black uppercase mt-1">{pilots.length} miembro{pilots.length !== 1 ? 's' : ''}</p>
-        </div>
+      <PageHero
+        eyebrow="Flota & Equipo"
+        title="Tripulación"
+        description="Pilotos, licencias RPAS y vigencia de certificaciones."
+      />
+
+      {(() => {
+        const withLicense = pilots.filter(p => p.license_number).length;
+        const expiring = pilots.filter(p => {
+          const ms = medicalStatus(p.medical_expiry);
+          return ms && ms.label !== 'Vigente';
+        }).length;
+        const complete = pilots.filter(p =>
+          [p.id_doc_url, p.pilot_course_url, p.theoretical_exam_url, p.medical_cert_url].filter(Boolean).length === 4
+        ).length;
+        return (
+          <KPIStrip items={[
+            { key: 'total', title: 'Tripulantes', value: pilots.length, icon: 'group', color: 'text-slate-900' },
+            { key: 'license', title: 'Con Licencia RPAS', value: withLicense, icon: 'badge', color: 'text-slate-900' },
+            {
+              key: 'expiring', title: 'Cert. por Vencer', value: expiring, icon: 'event_busy',
+              warning: expiring > 0,
+              sub: expiring > 0 ? 'Revisar vigencia médica' : 'Todas vigentes',
+            },
+            { key: 'complete', title: 'Expediente Completo', value: complete, icon: 'folder_shared', color: 'text-emerald-600' },
+          ]} />
+        );
+      })()}
+
+      <div className="flex justify-between items-center border-b border-slate-200 pb-4">
+        <p className="text-slate-400 text-xs font-black uppercase">{pilots.length} miembro{pilots.length !== 1 ? 's' : ''}</p>
         {canManage && (
           <button
             onClick={() => setShowAddPanel(true)}
@@ -139,7 +167,7 @@ export default function PilotsPage() {
             Registrar Miembro
           </button>
         )}
-      </header>
+      </div>
 
       {/* Lista — Mobile cards */}
       <div className="md:hidden divide-y divide-slate-100 bg-white rounded-2xl border border-slate-200 overflow-hidden">

@@ -134,9 +134,9 @@ toca queries, endpoints ni validaciones — solo JSX/Tailwind.
 - [x] 3.3 Bitácora — `dashboard/logbook/` ✅
   - [x] 3.3a `PageHero` + `KPIStrip` (vuelos, horas, este mes, sin piloto asignado)
   - [x] 3.3b Restyle de la tabla de vuelos (badges de condición semánticos + tabular-nums)
-- [ ] 3.4 Tripulación — `dashboard/pilots/`
-  - [ ] 3.4a `PageHero` + `KPIStrip`
-  - [ ] 3.4b Restyle de tarjetas de piloto
+- [x] 3.4 Tripulación — `dashboard/pilots/` ✅
+  - [x] 3.4a `PageHero` + `KPIStrip` (tripulantes, con licencia, cert. por vencer, expediente completo)
+  - [x] 3.4b Restyle del roster: avatar de iniciales en naranja (mobile + desktop)
 - [ ] 3.5 Mantenimiento — `dashboard/maintenance/`
   - [ ] 3.5a `PageHero` + `KPIStrip`
   - [ ] 3.5b Restyle de la tabla de mantenimiento

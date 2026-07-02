@@ -57,7 +57,7 @@ export async function GET(request) {
     url.searchParams.set('latitude', lat);
     url.searchParams.set('longitude', lon);
     url.searchParams.set('hourly', [
-      'windspeed_10m', 'windgusts_10m', 'visibility',
+      'temperature_2m', 'windspeed_10m', 'windgusts_10m', 'visibility',
       'precipitation', 'precipitation_probability',
       'relativehumidity_2m', 'weathercode',
     ].join(','));
@@ -117,6 +117,29 @@ export async function GET(request) {
 
     const wmo = WMO[wcode] ?? { label: `Código ${wcode}`, icon: 'question_mark' };
 
+    // Pronóstico horario del resto del día (mismos datos ya obtenidos de Open-Meteo,
+    // sin llamadas adicionales). Kp se asume constante para las próximas horas —
+    // no hay pronóstico horario de Kp sin una llamada NOAA extra.
+    const HOURS_AHEAD = 8;
+    const todayHourly = hours.slice(idx, idx + HOURS_AHEAD).map((d, i) => {
+      const j = idx + i;
+      const hWs      = h.windspeed_10m?.[j] ?? 0;
+      const hGusts   = h.windgusts_10m?.[j] ?? 0;
+      const hVis     = h.visibility?.[j] ?? 10000;
+      const hPrecip  = h.precipitation?.[j] ?? 0;
+      const hCode    = h.weathercode?.[j] ?? 0;
+      const hIssue   = hWs > THR.windSpeed || hGusts > THR.windGusts || hVis < THR.visibility || hPrecip > THR.precipitation;
+      const hScore   = calcScore(hWs, hGusts, hVis, hPrecip, h.precipitation_probability?.[j] ?? 0, kpVal);
+      const hWmo     = WMO[hCode] ?? { label: `Código ${hCode}`, icon: 'question_mark' };
+      return {
+        time: d.toISOString().slice(11, 16),
+        temperature: h.temperature_2m?.[j] ?? null,
+        windspeed: hWs,
+        icon: hWmo.icon,
+        go: !hIssue ? 'GO' : (hScore >= 50 ? 'Precaución' : 'NO-GO'),
+      };
+    });
+
     return NextResponse.json({
       score,
       canFly: issues.length === 0,
@@ -130,6 +153,7 @@ export async function GET(request) {
         icon:  wmo.icon,
       },
       hourly: { gusts, visibility, precipitation: precip, precipitationProbability: precipProb, humidity },
+      todayHourly,
       kp: kpVal,
       coords: { lat, lon },
       dataTime: wd.hourly?.time?.[idx] ?? null,

@@ -651,6 +651,30 @@ Maneja estados loading / error / sin coordenadas (retorna null).
 - **Despacho** (`app/dashboard/logbook/new/page.js`): al seleccionar orden de vuelo, extrae `selectedAuth.plan_data?.points?.[0]` → renderiza `<WeatherWidget compact>` como badge de aptitud
 - **Replay GPS** (`components/FlightReplayModal.js`): panel colapsable en esquina superior derecha del modal. Extrae `lat/lon` del primer punto del `flightData.path`, `date` del prop `flightDate` y `hour` del prop `takeoffTime`. Solo aparece si ambos coords y fecha están disponibles. `logbook/page.js` pasa `flightDate` y `takeoffTime` al modal al abrir el replay.
 
+### Meteorología rediseñada (`/dashboard/weather`, 2026-07-02e)
+
+`dashboard/weather/page.js` NO reutiliza `<WeatherWidget>` (ese componente es un card oscuro
+compacto, pensado para incrustarse en Programación/Despacho/Replay) — se restyleó fiel al
+mockup con su propia UI clara, consultando `/api/weather/current` directamente:
+- **Hero con badge GO/NO-GO**: slot derecho de `PageHero`, refleja `weather.canFly` real del
+  punto seleccionado (geolocalización del navegador, fallback Bogotá — mismo flujo que antes).
+- **6 tarjetas de condiciones actuales** (viento, ráfagas, visibilidad, precipitación,
+  temperatura, índice Kp) — mismos campos que ya devolvía el endpoint, coloreadas contra los
+  mismos umbrales (`THR`) que usa el score.
+- **Pronóstico horario — hoy**: nuevo campo `todayHourly` en `GET /api/weather/current`
+  (8 horas siguientes, mismos datos de Open-Meteo ya solicitados — sin llamadas extra), cada
+  hora con temperatura/viento/ícono y un estado GO/Precaución/NO-GO calculado con los mismos
+  umbrales. El Kp se asume constante durante esas horas (no hay pronóstico horario de Kp sin
+  una llamada NOAA adicional — simplificación documentada, no fabricada).
+- **Zonas de operación programadas hoy**: sin backend nuevo — el cliente pide
+  `GET /api/flights/authorize` (ya existente), filtra las misiones de **hoy** con zona
+  definida (`plan_data.points`), y por cada una llama `/api/weather/current?lat=&lon=` en
+  paralelo (mismo endpoint del resto de la página). Muestra zona/misión, hora de despegue real
+  (`plan_data.takeoff_time`), viento/visibilidad/precipitación del punto y estado GO/Precaución/
+  NO-GO. **No se fabricó una "ventana" de horario** (el mockup mostraba un rango tipo
+  "08:00–11:00") porque no existe una duración estimada por misión en el esquema — se muestra
+  solo la hora de despegue real.
+
 ### Sandbox superadmin (`app/admin/master/dev`)
 
 Vista completa de desarrollo con: ScoreGauge SVG · WindCompass SVG · barras de métricas horarias · pronóstico 7 días (cards diarias) · historial Kp 24h + forecast 24h · GPS automático + reverse geocoding Nominatim · debug de hora/modelo.

@@ -365,6 +365,39 @@ aplica, un selector de **alcance** — esto es lo nuevo pedido explícitamente p
   `billing_history`) que no fue pedida; se documenta aquí como pendiente si se quiere en el
   futuro en vez de fabricar la tabla en la UI.
 
+### Seguridad SMS — hub con panorama real (2026-07-02j)
+
+`dashboard/safety/page.js`: el mockup "Seguridad SMS" muestra SORA/Barreras/Reportes SMS/
+VOR-MOR/Mapas como 5 tabs con contenido en vivo dentro de una sola pantalla. En la app real
+esas 5 áreas ya son páginas completas y maduras (`/dashboard/sora` con wizard + tabla +
+KPIs, `/dashboard/safety-config` con CRUD de barreras/OSOs, `/dashboard/vor-mor` con
+gestión de estado + QR público + config de formulario, `/dashboard/safety/mapas` con visor
+ArcGIS) — fusionarlas en un solo archivo hubiera significado reescribir/duplicar ~1800
+líneas de lógica ya funcional (wizard SORA, CRUD, patch de estado VOR/MOR) con alto riesgo
+de regresión. **Decisión confirmada con el usuario**: en vez de fusionar, se restyleó el
+hub (`/dashboard/safety`, antes solo una lista de tarjetas sin datos) al lenguaje visual del
+mockup — `PageHero` navy + franja de KPIs reales — y cada tarjeta sigue navegando a su
+página dedicada intacta.
+
+- **Franja de KPIs real** (`KPIStrip variant="strip"`): Evaluaciones SORA (`sora_assessments`
+  count), Barreras definidas (`form_definitions` con `form_type='sora'` — la tabla real
+  detrás de "Barreras de Seguridad" son los OSOs/checklist, no items con un campo de estado
+  Activa/En revisión por ítem como mostraba el mockup; no se fabricó ese estado), Reportes
+  SMS (`sms_reports` count — el mockup mostraba una clasificación Abierto/En análisis/Cerrado
+  por reporte, pero `sms_reports.status` nunca se actualiza tras crearse — no hay endpoint
+  PATCH — así que no se fabricó ese desglose, solo el total real) y VOR/MOR pendientes
+  (`vor_mor_submissions.status`, real: `recibido`/`en_investigacion` cuentan como
+  pendientes — mismos estados que ya usa `/dashboard/vor-mor`, sobre el total).
+- **Tarjetas de módulo**: mismo grid de antes, con un badge de conteo real (ej. "6
+  definidas", "3 de 5 pendientes") junto al título — dato real desde el fetch de arriba, sin
+  query nueva por tarjeta. Mapas no lleva badge numérico (es un visor ArcGIS, sin conteo
+  real que mostrar).
+- **Se omitió la franja de sub-tabs separada** del mockup (la fila con "Análisis SORA /
+  Barreras de Seguridad / Reportes SMS / VOR/MOR / Mapas" como pills clicables): como el hub
+  no intercambia contenido en el lugar, esa franja hubiera sido una segunda lista de los
+  mismos 5 enlaces duplicando las tarjetas de abajo — se dejó una sola navegación (las
+  tarjetas) en vez de fabricar una interacción de tabs sin función real detrás.
+
 ### Recibo post-mantenimiento + trazabilidad de componentes + PDF de recibo (2026-06-25)
 
 Registrado todo desde `AddMaintenancePanel` (web y APK; el APK toma los cambios por remote URL). Migraciones: `20260625_maintenance_return_checklist.sql`, `20260625_maintenance_components.sql`, `20260625_maintenance_return_doc.sql` (las 3 aplicadas en Supabase).

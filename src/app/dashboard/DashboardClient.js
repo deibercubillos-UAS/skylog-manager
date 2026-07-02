@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { getOrgPlan } from '@/lib/orgPlan';
 import PageHero from '@/components/PageHero';
+import KPIStrip from '@/components/KPIStrip';
 
 // Banner de instalación PWA — solo en dashboard, flotante en esquina
 const PwaInstallBanner  = dynamic(() => import('@/components/PwaInstallBanner'), { ssr: false });
@@ -126,18 +127,19 @@ export default function DashboardClient() {
 
       {/* 1. KPIs */}
       <section aria-label="Indicadores clave de operación">
-        {/* Hero KPI — Horas de Vuelo span completo en desktop */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
-          <KPICard
-            title="Horas de Vuelo" value={`${data?.stats?.hours || '0.0'}h`}
-            icon="timer" color="text-slate-900" trend={flightTrend}
-            hero className="col-span-2 md:col-span-1"
-          />
-          <KPICard title="Flota Lista"  value={data?.stats?.fleetCount  || 0} icon="precision_manufacturing" color="text-orange-500" />
-          <KPICard title="Tripulación"  value={data?.stats?.pilotCount  || 0} icon="group"                  color="text-slate-900" />
-          <KPICard title="Alertas"      value={alertsCount}                   icon="warning"                warning={alertsCount > 0}
-            sub={alertsCount > 0 ? `${alertsCount} elemento${alertsCount !== 1 ? 's' : ''} require${alertsCount === 1 ? '' : 'n'} atención` : 'Operación sin alertas'} />
-        </div>
+        <KPIStrip items={[
+          {
+            key: 'hours', title: 'Horas de Vuelo', value: `${data?.stats?.hours || '0.0'}h`,
+            icon: 'timer', color: 'text-slate-900', trend: flightTrend,
+            hero: true, className: 'col-span-2 md:col-span-1',
+          },
+          { key: 'fleet', title: 'Flota Lista', value: data?.stats?.fleetCount || 0, icon: 'precision_manufacturing', color: 'text-orange-500' },
+          { key: 'crew', title: 'Tripulación', value: data?.stats?.pilotCount || 0, icon: 'group', color: 'text-slate-900' },
+          {
+            key: 'alerts', title: 'Alertas', value: alertsCount, icon: 'warning', warning: alertsCount > 0,
+            sub: alertsCount > 0 ? `${alertsCount} elemento${alertsCount !== 1 ? 's' : ''} require${alertsCount === 1 ? '' : 'n'} atención` : 'Operación sin alertas',
+          },
+        ]} />
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
@@ -315,38 +317,3 @@ function EmptyState({ icon, message, sub }) {
   );
 }
 
-function KPICard({ title, value, icon, warning, color, trend, hero, sub, className }) {
-  const trendLabel = trend !== null && trend !== undefined
-    ? `${trend >= 0 ? 'Subió' : 'Bajó'} ${Math.abs(trend)}% vs mes anterior`
-    : null;
-
-  return (
-    <div className={`bg-white p-4 md:p-8 rounded-2xl md:rounded-[2rem] border border-slate-200 shadow-sm flex flex-col justify-between transition-all hover:-translate-y-1 ${warning ? 'ring-2 ring-red-500/30 bg-red-50/5' : ''} ${className || ''}`}
-      role="region"
-      aria-label={`${title}: ${value}${trendLabel ? `. ${trendLabel}` : ''}${sub ? `. ${sub}` : ''}`}>
-      <div className="flex justify-between items-start mb-3 md:mb-4">
-        <span className="text-xs font-black uppercase text-slate-400 tracking-wide leading-tight max-w-[80%]">{title}</span>
-        <span className={`material-symbols-outlined text-xl ${warning ? 'text-red-500 animate-pulse' : 'text-orange-500'}`}
-          aria-hidden="true">{icon}</span>
-      </div>
-      <span className={`${hero ? 'text-3xl md:text-5xl' : 'text-2xl md:text-4xl'} font-black tracking-tighter ${warning ? 'text-red-600' : color}`}
-        aria-hidden="true">
-        {value ?? 0}
-      </span>
-      {trend !== null && trend !== undefined && (
-        <span className={`mt-1.5 text-xs font-black flex items-center gap-1 ${trend >= 0 ? 'text-emerald-500' : 'text-red-400'}`}
-          aria-hidden="true">
-          <span className="material-symbols-outlined text-sm" aria-hidden="true">
-            {trend >= 0 ? 'trending_up' : 'trending_down'}
-          </span>
-          {trend >= 0 ? '+' : ''}{trend}% vs mes ant.
-        </span>
-      )}
-      {sub && !trend && (
-        <span className={`mt-1.5 text-xs font-bold ${warning ? 'text-red-400' : 'text-slate-400'}`} aria-hidden="true">
-          {sub}
-        </span>
-      )}
-    </div>
-  );
-}

@@ -185,6 +185,106 @@ export const generatePilotReport = (data, config) => {
     doc.save(`${formCode}_PILOTO_${(pilotName || 'PILOTO').replace(/\s+/g, '_')}.pdf`);
 };
 
+// --- GENERADOR: REPORTE DE MANTENIMIENTO (todas las aeronaves o una sola) ---
+export const generateMaintenanceReport = (data, config) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const { orgName, logoUrl, version, reportDate, formCode, aircraftLabel } = config;
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.4);
+    doc.rect(10, 10, 277, 25);
+    doc.line(65, 10, 65, 35);
+    doc.line(225, 10, 225, 35);
+    doc.line(65, 22.5, 225, 22.5);
+
+    if (logoUrl) { try { doc.addImage(logoUrl, 'PNG', 15, 12, 45, 20); } catch (e) {} }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(orgName ? orgName.toUpperCase() : "BITAFLY UAS", 145, 18, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text("REPORTE DE MANTENIMIENTO", 145, 27, { align: 'center' });
+    doc.setFontSize(8);
+    doc.text(aircraftLabel ? `AERONAVE: ${aircraftLabel.toUpperCase()}` : "TODAS LAS AERONAVES", 145, 33, { align: 'center' });
+
+    doc.setFontSize(7);
+    doc.line(225, 18, 287, 18);
+    doc.line(225, 26, 287, 26);
+    doc.text(`VERSIÓN: ${version || '1.0'}`, 227, 15);
+    doc.text(`FECHA: ${reportDate || '---'}`, 227, 23);
+    doc.text(`FORMATO: ${formCode || 'N/A'}`, 227, 31);
+
+    autoTable(doc, {
+        startY: 40,
+        head: [['FECHA', 'AERONAVE', 'SERIE', 'TIPO', 'TÉCNICO', 'HORAS SERVICIO', 'DESCRIPCIÓN']],
+        body: (data || []).map(m => [
+            m.maintenance_date || m.created_at?.slice(0, 10), m.aircraft?.model || 'N/A', m.aircraft?.serial_number || 'N/A',
+            m.maintenance_type, m.technician_name, m.hours_at_service != null ? Number(m.hours_at_service).toFixed(2) : '0.00', m.description || ''
+        ]),
+        styles: { fontSize: 7, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', lineWidth: 0.2 },
+        margin: { left: 10, right: 10 }
+    });
+
+    const finalY = safeAutoTableY(doc, 80) + 25;
+    doc.line(30, finalY, 110, finalY);
+    doc.text("FIRMA TÉCNICO / MANTENIMIENTO", 70, finalY + 5, { align: 'center' });
+    doc.line(187, finalY, 267, finalY);
+    doc.text("FIRMA GERENTE GENERAL", 227, finalY + 5, { align: 'center' });
+
+    doc.save(`${formCode || 'F-MNT'}_MANTENIMIENTO_${orgName}.pdf`);
+};
+
+// --- GENERADOR: REPORTE DE FLOTA (inventario, sin rango de fechas) ---
+export const generateFleetReport = (data, config) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const { orgName, logoUrl, version, reportDate, formCode } = config;
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.4);
+    doc.rect(10, 10, 277, 25);
+    doc.line(65, 10, 65, 35);
+    doc.line(225, 10, 225, 35);
+    doc.line(65, 22.5, 225, 22.5);
+
+    if (logoUrl) { try { doc.addImage(logoUrl, 'PNG', 15, 12, 45, 20); } catch (e) {} }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(orgName ? orgName.toUpperCase() : "BITAFLY UAS", 145, 18, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text("REPORTE DE FLOTA", 145, 30, { align: 'center' });
+
+    doc.setFontSize(7);
+    doc.line(225, 18, 287, 18);
+    doc.line(225, 26, 287, 26);
+    doc.text(`VERSIÓN: ${version || '1.0'}`, 227, 15);
+    doc.text(`FECHA: ${reportDate || '---'}`, 227, 23);
+    doc.text(`FORMATO: ${formCode || 'N/A'}`, 227, 31);
+
+    autoTable(doc, {
+        startY: 40,
+        head: [['MARCA', 'MODELO', 'SERIE', 'RUAS', 'MTOW', 'HORAS TOTALES', 'ÚLT. MANTENIMIENTO', 'ESTADO']],
+        body: (data || []).map(a => [
+            a.brand || 'N/A', a.model, a.serial_number, a.ruas || 'N/A', a.mtow ? `${a.mtow} kg` : 'N/A',
+            a.total_hours != null ? Number(a.total_hours).toFixed(2) : '0.00',
+            a.last_maintenance_date || 'SIN REGISTRO',
+            a.status === 'Baja' ? 'BAJA' : a.operational_status === 'en_mantenimiento' ? 'EN MANTENIMIENTO' : 'DISPONIBLE'
+        ]),
+        styles: { fontSize: 7.5, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', lineWidth: 0.2 },
+        margin: { left: 10, right: 10 }
+    });
+
+    const finalY = safeAutoTableY(doc, 80) + 25;
+    doc.line(30, finalY, 110, finalY);
+    doc.text("FIRMA JEFE DE PILOTOS", 70, finalY + 5, { align: 'center' });
+    doc.line(187, finalY, 267, finalY);
+    doc.text("FIRMA GERENTE GENERAL", 227, finalY + 5, { align: 'center' });
+
+    doc.save(`${formCode || 'F-FLT'}_FLOTA_${orgName}.pdf`);
+};
+
 // --- 4. NUEVO GENERADOR: EXPEDIENTE TÉCNICO DE TRIPULANTE (PORTRAIT) ---
 export const generatePilotDossier = (pilot, config) => {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });

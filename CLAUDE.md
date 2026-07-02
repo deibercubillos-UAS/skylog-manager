@@ -321,6 +321,50 @@ eso se quitó).
   (opcional) y `operational_status` (validado contra el mismo CHECK que `/api/fleet`) sin
   tocar el comportamiento existente de reinicio de `last_maintenance_date`/`_hours`.
 
+### Reportes rediseñado + reportes personalizados por alcance (2026-07-02i)
+
+`dashboard/reports/page.js`: `PageHero` + grilla de tarjetas de formato (click para
+expandir un panel de generación debajo, fiel al mockup) en vez de la lista vertical de
+tarjetas fijas que había antes. Cada tarjeta abre un panel con: código de formato editable,
+selector de periodo (Este mes/trimestre/año/Personalizado con rango de fechas) y, cuando
+aplica, un selector de **alcance** — esto es lo nuevo pedido explícitamente por el usuario
+("solo aeronaves, solo mantenimiento, solo mantenimiento de una aeronave").
+
+- **6 formatos** (`REPORT_DEFS` en `page.js`): Operaciones (`F-OPS-002`, ya existía),
+  **Mantenimiento** (`F-MNT-006`, nuevo — toda la flota o una sola aeronave via selector),
+  Baterías (`F-MNT-003`, ya existía), **Flota** (`F-FLT-007`, nuevo — inventario de
+  aeronaves, snapshot sin rango de fechas, con el mismo selector "todas / una sola aeronave"
+  para poder sacar la ficha de un solo dron), Bitácora de Piloto (`F-HUM-005`, ya existía,
+  tripulante obligatorio) y Expediente de Tripulante (ya existía, sin código de formato).
+  Se omitió del mockup el bloque "Personalizar formato — secciones a incluir" (checkboxes
+  tipo "Mapa de zonas operadas", "Alertas registradas en vuelo") porque los generadores de
+  PDF actuales producen una sola tabla fija por formato — no hay secciones modulares reales
+  que activar/desactivar; en su lugar se implementó el alcance real que sí pidió el usuario
+  (selector de aeronave/tripulante), que es la forma honesta de "personalizar" con los datos
+  que existen.
+- **Nuevos endpoints**: `GET /api/reports/maintenance?from&to&aircraftId` (historial de
+  `maintenance_logs`, `aircraftId` opcional) y `GET /api/reports/fleet?aircraftId` (roster de
+  `aircraft`, sin rango de fechas — es un inventario, no un histórico — `aircraftId`
+  opcional). Mismo patrón `getOrgContext()` + validación de fecha que el resto de
+  `/api/reports/*`.
+- **Nuevos generadores** en `lib/reportGenerators.js`: `generateMaintenanceReport()` y
+  `generateFleetReport()`, mismo layout jsPDF (encabezado con logo/versión/fecha/código +
+  tabla + firmas) que los formatos existentes — ninguna plantilla nueva, solo columnas reales
+  de cada tabla.
+- **Códigos de formato — solo 3 persisten**: `form_code_master`/`_batteries`/`_pilots` ya
+  existían como columnas de `organizations` (editables en esta pantalla desde antes, aunque
+  nunca se guardaban — el input solo afectaba la sesión actual, comportamiento que se
+  conserva). `F-MNT-006` (mantenimiento) y `F-FLT-007` (flota) son formatos nuevos sin
+  columna propia — su código por defecto es local a la página, editable en pantalla pero no
+  persistente entre sesiones; no se agregaron columnas nuevas a `organizations` para esto
+  sin que el usuario lo pidiera.
+- **Se omitió "Reportes generados recientemente"** (tabla del mockup con historial de PDFs
+  generados): no existe una tabla que registre cada generación — los reportes se generan
+  100% client-side (jsPDF) y se descargan directo al navegador, sin persistir en Supabase.
+  Agregar esa tabla implicaría una migración nueva (mismo patrón inerte que `audit_log`/
+  `billing_history`) que no fue pedida; se documenta aquí como pendiente si se quiere en el
+  futuro en vez de fabricar la tabla en la UI.
+
 ### Recibo post-mantenimiento + trazabilidad de componentes + PDF de recibo (2026-06-25)
 
 Registrado todo desde `AddMaintenancePanel` (web y APK; el APK toma los cambios por remote URL). Migraciones: `20260625_maintenance_return_checklist.sql`, `20260625_maintenance_components.sql`, `20260625_maintenance_return_doc.sql` (las 3 aplicadas en Supabase).

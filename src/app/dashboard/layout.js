@@ -9,6 +9,7 @@ import { getOrgPlan } from '@/lib/orgPlan';
 import { PLAN_CONFIG } from '@/lib/planLimits';
 import { useRouter } from 'next/navigation';
 import NotificationBell from '@/components/NotificationBell';
+import GlobalSearch from '@/components/GlobalSearch';
 import { docOpenUrl } from '@/lib/docUrl';
 import dynamic from 'next/dynamic';
 
@@ -528,20 +529,8 @@ const footerLinks = footerLinksAll.filter(link =>
             </div>
           </div>
 
-          {/* CENTRO: búsqueda — solo visual por ahora, sin conectar a datos.
-              La funcionalidad real (endpoint + resultados) es la Fase 5.e del plan. */}
-          <div className="hidden md:flex flex-1 max-w-md mx-4 lg:mx-8">
-            <div className="w-full flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-400">
-              <span className="material-symbols-outlined text-lg shrink-0">search</span>
-              <input
-                type="text"
-                disabled
-                placeholder="Buscar misión, aeronave, piloto..."
-                aria-label="Buscar (próximamente)"
-                className="w-full bg-transparent text-sm font-medium text-slate-500 placeholder:text-slate-400 outline-none cursor-not-allowed"
-              />
-            </div>
-          </div>
+          {/* CENTRO: búsqueda global (Fase 5.e) — endpoint /api/search acotado a la org */}
+          <GlobalSearch />
 
           {/* DERECHA: acciones + perfil */}
           <div className="flex items-center gap-1.5 md:gap-3 lg:gap-4">

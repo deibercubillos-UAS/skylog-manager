@@ -156,19 +156,21 @@ sigue funcionando, responsive mobile no se rompe (bottom nav).
 
 ---
 
-## Fase 4 — Nuevas rutas de primer nivel (extracción, sin lógica nueva) 🔄
+## Fase 4 — Nuevas rutas de primer nivel (extracción, sin lógica nueva) ✅ (con 1 pendiente)
 
-- [ ] 4.1 `[commit]` Crear la página `/dashboard/batteries` con el layout de tabla del
-      mockup, reutilizando el mismo `GET` de baterías que hoy consume `/dashboard/fleet`
-      (sin cambios de API todavía).
-- [ ] 4.2 `[commit]` `[API]` Extender el `GET` de baterías para incluir, por batería, la
-      aeronave del `battery_logs` más reciente (subquery/`DISTINCT ON`) — columna
-      "Aeronave asignada". Commit separado del 4.1 porque toca `src/app/api/**`.
-- [ ] 4.3 `[commit]` Quitar la sección de Baterías embebida de `/dashboard/fleet` y agregar
-      el ítem "Baterías" al sidebar (Fase 1) apuntando a la nueva ruta.
-- [ ] 4.4 `[commit]` Crear la página `/dashboard/weather` reutilizando `WeatherWidget` y
-      `/api/weather/current` existentes (sin backend nuevo).
-- [ ] 4.5 `[commit]` Agregar el ítem "Meteorología" al sidebar apuntando a la nueva ruta.
+- [x] 4.1 Crear la página `/dashboard/batteries` (PageHero + KPIStrip + BatteryCard +
+      paneles Add/Edit), reutilizando la misma consulta directa a `batteries` que usa Flota.
+- [x] 4.2 "Aeronave asignada" derivada del `battery_logs` más reciente por serial —
+      resuelto **client-side** (consulta directa a `battery_logs`), sin endpoint nuevo ni
+      cambio de esquema. Más simple y menos invasivo que el plan original de tocar la API.
+- [x] 4.4 Crear la página `/dashboard/weather` reutilizando `WeatherWidget` y
+      `/api/weather/current`, con geolocalización del navegador (fallback Bogotá).
+- [x] 4.5 Ítems "Baterías" y "Meteorología" agregados al sidebar.
+- [ ] 4.3 ⏸️ **Pendiente de QA visual**: quitar la sección de Baterías embebida de
+      `/dashboard/fleet`. No ejecutado aún porque no se puede validar visualmente en este
+      entorno (sin credenciales Supabase) y romper Flota sin verla sería riesgoso. La
+      duplicación temporal (Flota + ruta propia) no rompe nada. Ejecutar tras revisar el
+      preview de Vercel.
 
 ---
 

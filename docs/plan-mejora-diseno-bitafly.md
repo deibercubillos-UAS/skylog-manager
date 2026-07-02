@@ -123,9 +123,9 @@ Cada módulo se parte en **hasta 3 commits independientes**: (a) envolver con `P
 tiene KPIs o tarjetas propias, esa sub-tarea se omite (⏭️). Ningún commit de esta fase
 toca queries, endpoints ni validaciones — solo JSX/Tailwind.
 
-- [ ] 3.1 Dashboard (home) — `DashboardClient.js`
-  - [ ] 3.1a Migrar el header actual a `PageHero`
-  - [ ] 3.1b Reemplazar el bloque de `KPICard` inline por `KPIStrip`
+- [x] 3.1 Dashboard (home) — `DashboardClient.js` ✅
+  - [x] 3.1a Migrar el header actual a `PageHero`
+  - [x] 3.1b Reemplazar el bloque de `KPICard` inline por `KPIStrip`
 - [ ] 3.2 Mi Flota — `dashboard/fleet/page.js`
   - [ ] 3.2a `PageHero`
   - [ ] 3.2b `KPIStrip`

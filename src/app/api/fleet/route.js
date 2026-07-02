@@ -1,6 +1,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { canAddResource } from '@/lib/planLimits';
+import { logAudit } from '@/lib/auditLog';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -71,6 +72,13 @@ export async function POST(request) {
       .select();
 
     if (error) throw error;
+
+    logAudit({
+      orgId, actorId: user.id, action: 'create', module: 'fleet',
+      entityLabel: `${data[0].model || 'Aeronave'} · ${data[0].serial_number || ''}`.trim(),
+      metadata: { aircraft_id: data[0].id },
+    });
+
     return NextResponse.json(data[0], { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });

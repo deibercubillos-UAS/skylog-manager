@@ -1,6 +1,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { createNotifications } from '@/lib/notify';
+import { logAudit } from '@/lib/auditLog';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -150,6 +151,11 @@ export async function POST(request) {
                 }
             }
         } catch (e) { console.warn('[authorize] notif:', e.message); }
+
+        logAudit({
+            orgId, actorId: user.id, action: 'create', module: 'flights',
+            entityLabel: `Misión ${missionId}`, metadata: { authorization_id: data[0].id },
+        });
 
         return NextResponse.json({ ...data[0], conflictWarning });
     } catch (err) { return NextResponse.json({ error: err.message }, { status: 500 }); }

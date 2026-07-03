@@ -46,6 +46,7 @@ export default function NewOperationPage() {
     const [showCancelModal, setShowCancelModal] = useState(false);
 
     const stepNames = { data: 'OPERATIVA', health: 'SALUD', preflight: 'PRE-VUELO', briefing: 'BRIEFING' };
+    const stepIcons = { data: 'assignment', health: 'health_and_safety', preflight: 'checklist', briefing: 'groups' };
 
     useEffect(() => {
         async function init() {
@@ -101,12 +102,20 @@ export default function NewOperationPage() {
             if (step === 'data') return;
             const { data: { user } } = await supabase.auth.getUser();
             const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
-            const modelToFilter = (step === 'preflight' && selectedAuth) ? selectedAuth.aircraft.model : 'General';
+            // El checklist de pre-vuelo es por modelo de aeronave. El flujo con orden de
+            // vuelo lo resuelve desde la misión (selectedAuth.aircraft.model); el piloto
+            // independiente no tiene orden de vuelo, así que se resuelve desde la
+            // aeronave elegida en el paso "Datos" (form.aircraft_id) — antes siempre caía
+            // a 'General' y el piloto nunca veía el checklist configurado para su dron.
+            const selectedAircraftModel = resources.aircraft.find(a => a.id === form.aircraft_id)?.model;
+            const modelToFilter = step === 'preflight'
+                ? (selectedAuth?.aircraft?.model || selectedAircraftModel || 'General')
+                : 'General';
             const { data } = await supabase.from('form_definitions').select('*').eq('organization_id', prof.organization_id).eq('form_type', step).eq('aircraft_model', modelToFilter).order('field_number', { ascending: true });
             setDynamicLabels(data || []);
         }
         loadLabels();
-    }, [step, selectedAuth]);
+    }, [step, selectedAuth, form.aircraft_id, resources.aircraft]);
 
     // El piloto (rol 'piloto') solo ve las órdenes donde es el PIC asignado, y
     // únicamente las programadas para el día de hoy (scheduled_at) — no puede
@@ -121,7 +130,14 @@ export default function NewOperationPage() {
         const auth = resources.auths.find(a => a.id === id);
         setSelectedAuth(auth || null);
         setShowAuthDetails(false);
-        setForm(prev => ({ ...prev, auth_id: id }));
+        // Prellenar con la hora de despegue planeada de la misión (plan_data.takeoff_time)
+        // si el piloto aún no escribió una — mismo criterio que el flujo de piloto
+        // independiente al elegir una planeación guardada.
+        setForm(prev => ({
+            ...prev,
+            auth_id: id,
+            takeoff_time: prev.takeoff_time || auth?.plan_data?.takeoff_time || '',
+        }));
     };
 
     // Seleccionar un plan de vuelo guardado → prellena datos vacíos del despacho
@@ -148,6 +164,16 @@ export default function NewOperationPage() {
     // Último paso activo: en él se muestra el botón "Aprobar Vuelo"
     const lastStep = safetySteps[safetySteps.length - 1] || null;
     const isLastStep = step === lastStep;
+
+    // Todos los ítems del checklist del paso actual deben quedar marcados (Sí/No) antes
+    // de avanzar — antes solo se exigía en el ÚLTIMO paso (Aprobar Vuelo), así que Salud
+    // o Pre-vuelo podían quedar sin responder ni un solo ítem y el vuelo se aprobaba igual.
+    const stepChecks = checks[step] || {};
+    const stepComplete = dynamicLabels.length === 0 || dynamicLabels.every(l => stepChecks[l.field_number] === true);
+    const stepDoneCount = dynamicLabels.filter(l => stepChecks[l.field_number] === true).length;
+
+    // Todos los pasos del wizard en orden, incluido 'data' — para el indicador de progreso
+    const allSteps = ['data', ...safetySteps];
 
     const handleNextStep = () => {
         if (step === 'data') {
@@ -252,16 +278,18 @@ export default function NewOperationPage() {
     return (
         <>
         <div className="fixed inset-0 bg-[#f8f6f6] z-[200] flex flex-col font-display text-left">
-            <header className="h-16 md:h-20 bg-white border-b flex items-center justify-between px-4 md:px-10 shrink-0">
+            <header className="h-16 md:h-20 bg-[#1A202C] flex items-center justify-between px-4 md:px-10 shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="size-8 md:size-10 bg-orange-600 rounded-xl flex items-center justify-center text-white font-black">B</div>
                     <div className="text-left">
-                        <h2 className="text-xs md:text-sm font-black uppercase leading-none">Despacho</h2>
-                        <p className="text-xs font-bold text-orange-600 uppercase mt-1">Fase: {stepNames[step]}</p>
+                        <h2 className="text-xs md:text-sm font-black uppercase leading-none text-white">Despacho</h2>
+                        <p className="text-xs font-bold text-orange-400 uppercase mt-1">{stepNames[step]}</p>
                     </div>
                 </div>
-                <button onClick={() => router.back()} className="material-symbols-outlined text-slate-300 hover:text-red-500">close</button>
+                <button onClick={() => router.back()} className="material-symbols-outlined text-slate-400 hover:text-red-400 transition-colors">close</button>
             </header>
+
+            <StepProgress allSteps={allSteps} currentStep={step} stepNames={stepNames} stepIcons={stepIcons} />
 
             <main className="flex-1 overflow-y-auto p-4 md:p-12">
                 <div className="max-w-3xl mx-auto space-y-6 md:space-y-8 pb-20">
@@ -322,6 +350,19 @@ export default function NewOperationPage() {
                                             Crear nueva planeación
                                         </a>
                                     </div>
+
+                                    {/* Clima de la zona — solo si la planeación elegida tiene zona geolocalizada */}
+                                    {(() => {
+                                        const selPlan = flightPlans.find(p => p.id === form.plan_id);
+                                        const coord = Array.isArray(selPlan?.points) && selPlan.points[0];
+                                        if (!coord) return null;
+                                        const lat = Array.isArray(coord) ? coord[0] : coord.lat;
+                                        const lon = Array.isArray(coord) ? coord[1] : coord.lng ?? coord.lon;
+                                        if (!lat || !lon) return null;
+                                        return (
+                                            <WeatherWidget lat={lat} lon={lon} label={selPlan.location} compact />
+                                        );
+                                    })()}
 
                                     {/* Hora de despegue + condición */}
                                     <div className="grid grid-cols-2 gap-4">
@@ -395,7 +436,7 @@ export default function NewOperationPage() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
                                             <label htmlFor="new-flight-takeoff" className="text-xs font-black uppercase text-slate-600 ml-1">Hora Despegue</label>
-                                            <input id="new-flight-takeoff" type="time" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold outline-none focus:ring-2 focus:ring-orange-500" onChange={e => setForm({...form, takeoff_time: e.target.value})} />
+                                            <input id="new-flight-takeoff" type="time" value={form.takeoff_time} className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold outline-none focus:ring-2 focus:ring-orange-500" onChange={e => setForm({...form, takeoff_time: e.target.value})} />
                                         </div>
                                         <div className="space-y-1">
                                             <label htmlFor="new-flight-condition" className="text-xs font-black uppercase text-slate-600 ml-1">Condición</label>
@@ -424,7 +465,19 @@ export default function NewOperationPage() {
                                 <h3 className="text-xl md:text-2xl font-black uppercase text-slate-800">{stepNames[step]}</h3>
                                 <button onClick={() => setStep('data')} className="text-xs font-black text-slate-400 uppercase border-b border-slate-200">Corregir Datos</button>
                             </div>
-                            
+
+                            {dynamicLabels.length > 0 && (
+                                <div className="flex items-center gap-3 px-2">
+                                    <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-full transition-all ${stepComplete ? 'bg-emerald-500' : 'bg-orange-500'}`}
+                                            style={{ width: `${Math.round((stepDoneCount / dynamicLabels.length) * 100)}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-xs font-black text-slate-400 shrink-0">{stepDoneCount}/{dynamicLabels.length}</span>
+                                </div>
+                            )}
+
                             <div className="grid gap-3 md:gap-4">
                                 {dynamicLabels.map(item => (
                                     <CheckItem key={item.id} label={item.label_text} value={checks[step][item.field_number]} onChange={(val) => handleCheck(item.field_number, val)} />
@@ -433,9 +486,9 @@ export default function NewOperationPage() {
 
                             <div className="flex flex-col gap-4 mt-10">
                                 {!isLastStep ? (
-                                    <button onClick={handleNextStep} className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs shadow-xl active:scale-95">Siguiente Protocolo</button>
+                                    <button disabled={!stepComplete} onClick={handleNextStep} className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs shadow-xl disabled:bg-slate-200 transition-all active:scale-95">Siguiente Protocolo</button>
                                 ) : (
-                                    <button disabled={!dynamicLabels.every(l => checks[step][l.field_number] === true) || saving} onClick={handleFinalize} className="w-full py-5 bg-emerald-600 text-white rounded-[2rem] font-black uppercase text-xs shadow-xl disabled:bg-slate-200 active:scale-95">Aprobar Vuelo</button>
+                                    <button disabled={!stepComplete || saving} onClick={handleFinalize} className="w-full py-5 bg-emerald-600 text-white rounded-[2rem] font-black uppercase text-xs shadow-xl disabled:bg-slate-200 active:scale-95">Aprobar Vuelo</button>
                                 )}
                                 <button onClick={() => isPilotoPlan ? router.back() : setShowCancelModal(true)} className="w-full py-3 bg-red-50 text-red-600 rounded-[2rem] font-black uppercase text-xs border border-red-100">Abortar Operación</button>
                             </div>
@@ -486,6 +539,44 @@ export default function NewOperationPage() {
             </div>
         )}
     </>
+    );
+}
+
+// Indicador de progreso del wizard — muestra todos los pasos activos (varían según
+// la configuración de la org: enable_health_check/preflight/briefing) con su estado
+// hecho/actual/pendiente, en vez del texto suelto "Fase: X" que había antes.
+function StepProgress({ allSteps, currentStep, stepNames, stepIcons }) {
+    const currentIdx = allSteps.indexOf(currentStep);
+    return (
+        <div className="bg-[#1A202C] px-4 md:px-10 pb-3 md:pb-4 shrink-0">
+            <div className="max-w-3xl mx-auto flex items-center">
+                {allSteps.map((s, i) => {
+                    const done = i < currentIdx;
+                    const active = i === currentIdx;
+                    return (
+                        <div key={s} className="flex items-center flex-1 last:flex-none">
+                            <div className="flex flex-col items-center gap-1">
+                                <div className={`size-7 md:size-8 rounded-full flex items-center justify-center transition-all shrink-0
+                                    ${done ? 'bg-emerald-500 text-white' : ''}
+                                    ${active ? 'bg-orange-600 text-white ring-4 ring-orange-500/20' : ''}
+                                    ${!done && !active ? 'bg-white/10 text-white/40' : ''}`}>
+                                    <span className="material-symbols-outlined text-sm md:text-base">
+                                        {done ? 'check' : stepIcons[s]}
+                                    </span>
+                                </div>
+                                <span className={`hidden sm:block text-[9px] font-black uppercase tracking-widest whitespace-nowrap
+                                    ${active ? 'text-orange-400' : done ? 'text-emerald-400' : 'text-white/30'}`}>
+                                    {stepNames[s]}
+                                </span>
+                            </div>
+                            {i < allSteps.length - 1 && (
+                                <div className={`flex-1 h-0.5 mx-1.5 md:mx-2 mb-4 sm:mb-4 rounded-full transition-all ${done ? 'bg-emerald-500/60' : 'bg-white/10'}`} />
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
     );
 }
 

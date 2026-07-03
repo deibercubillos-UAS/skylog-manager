@@ -616,6 +616,46 @@ viejas sin `plan_data` descargan sin geometría.
 
 **Edición de PIC en bitácora**: en `/dashboard/logbook` la columna Piloto (PIC) es editable inline para admin/jefe_pilotos (`PilotCell` → desplegable con la tripulación de `/api/pilots` → `PATCH /api/logbook/[id]`). También el N° de misión es editable inline.
 
+### Despacho — indicador de progreso + correcciones (2026-07-03)
+
+`app/dashboard/logbook/new/page.js` es un wizard de pantalla completa (`fixed inset-0`),
+deliberadamente fuera del layout del dashboard — no se le aplicó `PageHero`/`KPIStrip` del
+resto del rediseño porque no encaja el patrón de "página", sino un flujo kiosko de pasos.
+
+- **Indicador de progreso real** (`StepProgress`, header pasa de blanco a navy `#1A202C`):
+  muestra todos los pasos activos del wizard (Operativa + los de seguridad habilitados por
+  la org) con su estado hecho/actual/pendiente — reemplaza el texto suelto "Fase: X" que
+  no daba ninguna noción de cuánto faltaba. Los pasos varían según
+  `enable_health_check`/`enable_preflight`/`enable_briefing` de la org, igual que antes.
+- **Barra de progreso del checklist por paso** (`stepDoneCount`/`dynamicLabels.length`):
+  cuántos ítems del paso actual ya se marcaron Sí/No.
+- **Bug real corregido — hueco de cumplimiento**: el botón "Siguiente Protocolo" de los
+  pasos intermedios (Salud, Pre-vuelo) no tenía `disabled` — solo el ÚLTIMO paso
+  (Aprobar Vuelo) exigía tener todos los ítems marcados. Un piloto podía saltarse Salud o
+  Pre-vuelo sin responder un solo ítem y el vuelo se aprobaba igual (los resultados quedaban
+  guardados como `{}` vacío en `results_health`/`results_preflight`). Ahora `stepComplete`
+  se exige en **todos** los pasos, no solo el último.
+- **Bug real corregido — checklist de pre-vuelo del piloto independiente**: el filtro de
+  `form_definitions` por modelo de aeronave (`aircraft_model`) solo se resolvía desde
+  `selectedAuth.aircraft.model` (flujo con orden de vuelo). El piloto independiente no tiene
+  `selectedAuth` — su checklist de Pre-vuelo caía siempre a `'General'` sin importar qué
+  aeronave eligiera, así que nunca veía el checklist configurado específicamente para su
+  dron. Ahora también resuelve el modelo desde `form.aircraft_id` (la aeronave elegida en
+  el paso Datos) cuando no hay orden de vuelo.
+- **Bug real corregido — input de hora sin controlar**: el campo "Hora Despegue" del flujo
+  con orden de vuelo no tenía `value={form.takeoff_time}` (a diferencia del mismo campo en
+  el flujo de piloto independiente, que sí lo tenía) — quedaba desincronizado del estado de
+  React tras la primera escritura.
+- **Prellenado de hora de despegue**: al elegir una orden de vuelo, se prellena
+  `takeoff_time` desde `plan_data.takeoff_time` de la misión programada (mismo criterio que
+  ya usaba el flujo de piloto independiente al elegir una planeación guardada) — antes había
+  que volver a escribirla a mano aunque ya estuviera definida en la programación.
+- **Widget de clima para el piloto independiente**: antes `<WeatherWidget compact>` solo se
+  mostraba en el flujo con orden de vuelo (`selectedAuth.plan_data.points[0]`). El piloto
+  independiente no tiene orden de vuelo pero sí puede elegir una planeación guardada
+  (`flight_plans.points`, misma estructura) — ahora también muestra el clima de la zona si
+  la planeación elegida tiene geometría.
+
 ---
 
 ## Replay de Vuelo

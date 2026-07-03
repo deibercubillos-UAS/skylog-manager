@@ -45,7 +45,7 @@ const REQUIRED_AUTHORIZATION_FIELDS = ['pilot_id', 'aircraft_id', 'location', 's
 export async function POST(request) {
     try {
         const supabase = await createClientSSR();
-        const { user, orgId } = await getOrgContext(supabase);
+        const { user, orgId, fullName } = await getOrgContext(supabase);
         if (!orgId) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
         const body = await request.json();
@@ -153,7 +153,7 @@ export async function POST(request) {
         } catch (e) { console.warn('[authorize] notif:', e.message); }
 
         logAudit({
-            orgId, actorId: user.id, action: 'create', module: 'flights',
+            orgId, actorId: user.id, actorName: fullName || user.email, action: 'create', module: 'flights',
             entityLabel: `Misión ${missionId}`, metadata: { authorization_id: data[0].id },
         });
 

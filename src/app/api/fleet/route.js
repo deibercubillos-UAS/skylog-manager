@@ -32,7 +32,7 @@ export async function POST(request) {
   try {
     const supabase = await createClientSSR();
     // subscription_plan viene del servidor (getOrgContext lo lee de la BD)
-    const { orgId, subscription_plan } = await getOrgContext(supabase);
+    const { orgId, subscription_plan, fullName } = await getOrgContext(supabase);
     if (!orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     // owner_id es NOT NULL en la tabla aircraft — obtener el user actual
@@ -79,7 +79,7 @@ export async function POST(request) {
     if (error) throw error;
 
     logAudit({
-      orgId, actorId: user.id, action: 'create', module: 'fleet',
+      orgId, actorId: user.id, actorName: fullName || user.email, action: 'create', module: 'fleet',
       entityLabel: `${data[0].model || 'Aeronave'} · ${data[0].serial_number || ''}`.trim(),
       metadata: { aircraft_id: data[0].id },
     });

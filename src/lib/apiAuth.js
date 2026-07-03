@@ -14,7 +14,7 @@ export async function getOrgContext(supabase) {
 
     const { data: prof } = await supabase
         .from('profiles')
-        .select('organization_id, role, subscription_plan')
+        .select('organization_id, role, subscription_plan, full_name')
         .eq('id', user.id)
         .single();
 
@@ -23,5 +23,6 @@ export async function getOrgContext(supabase) {
         orgId:             prof?.organization_id  ?? null,
         role:              prof?.role              ?? null,
         subscription_plan: prof?.subscription_plan ?? 'piloto',
+        fullName:          prof?.full_name          ?? null,
     };
 }

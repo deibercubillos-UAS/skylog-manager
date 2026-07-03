@@ -736,23 +736,53 @@ flujo de firma digital en el esquema) + barra de filtros unificada + tabla recor
 - **Sin exportación**: el botón "Exportar F-OPS-002" (CSV) del mockup se implementó y luego
   se quitó a pedido explícito del usuario — no hay export de la tabla en esta pestaña.
 
-### Auditoría de acciones ⚠️ inerte hasta aplicar migración
+### Auditoría de acciones (activa desde 2026-07-03)
 
 Log de acciones de usuario (`audit_log`, append-only) — **distinto** del panel de
 cumplimiento que ya existía en `/dashboard/audit` (aeronavegabilidad de flota + vigencia
 de documentos de tripulación, `AuditCard`/`score`), con el que **convive** como pestaña
-separada, no lo reemplaza.
-- `lib/auditLog.js` → `logAudit({ orgId, actorId, action, module, metadata })`:
+separada ("Registro de acciones"), no lo reemplaza.
+- `lib/auditLog.js` → `logAudit({ orgId, actorId, actorName, action, module, entityLabel, metadata })`:
   fire-and-forget, nunca lanza ni bloquea la operación instrumentada; falla en silencio
   si la tabla no existe todavía.
 - Instrumentado en creación de: flota (`POST /api/fleet`), pilotos (`POST /api/pilots`),
-  autorización de vuelo (`POST /api/flights/authorize`).
+  autorización de vuelo (`POST /api/flights/authorize`). Todas con `action: 'create'` —
+  todavía no hay instrumentación de `update`/`delete`/accesos fallidos/exportaciones.
+- **`actorName` corregido (2026-07-03)**: los 3 call sites llamaban a `logAudit()` sin pasar
+  `actorName` → toda fila quedaba con `actor_name = null` y la columna "Usuario" siempre
+  mostraba "—". `getOrgContext()` (`lib/apiAuth.js`) ahora también trae `profiles.full_name`
+  (campo `fullName`), y los 3 call sites lo pasan como `actorName: fullName || user.email`.
 - `GET /api/audit-log` (+ export CSV) — degrada a lista vacía (`pending: true`) si la
   tabla falta.
 - RLS: managers (`admin`/`superadmin`/`gerente_sms`/`jefe_pilotos`, mismos roles que
   `PERMISSIONS.canViewAudit`) leen su org; solo service role escribe.
-- **Migración `20260702_audit_log.sql` creada pero NO aplicada** — ver **Pendientes de
-  infraestructura**.
+- **Migración `20260702_audit_log.sql` aplicada en Supabase (2026-07-03)** vía Supabase MCP,
+  confirmado con el usuario antes de ejecutarla contra la base de datos en producción.
+
+### Auditoría — pestaña "Registro de acciones" rediseñada (2026-07-03)
+
+`dashboard/audit/page.js` (`ActivityLog`): la pestaña existente ya estaba conectada a
+`GET /api/audit-log`, solo le faltaba el lenguaje visual del mockup "Auditoría" — franja de
+KPIs + barra de filtros + tabla con avatar/iniciales y badge de tipo por color.
+
+- **Franja de KPIs real** (`KPIStrip variant="strip"`, solo visible si hay eventos):
+  Eventos registrados / Este mes / Usuarios activos / Módulos con actividad — las 4 se
+  calculan sobre los mismos `entries` ya cargados (sin queries nuevas). Se sustituyeron los
+  dos stats fabricados del mockup ("Cambios de configuración", "Accesos fallidos") por
+  "Usuarios activos" y "Módulos con actividad": no existe instrumentación de cambios de
+  configuración ni de intentos de acceso fallidos todavía, así que se reemplazaron por
+  categorías que sí se pueden calcular con datos 100% reales.
+- **Barra de filtros**: búsqueda (usuario/módulo/acción/detalle) + selects de módulo/usuario/
+  tipo de evento, poblados dinámicamente desde los valores distintos presentes en `entries`
+  (no listas hardcodeadas) + "Exportar CSV" (ya existía, sin cambios).
+- **Tabla**: Usuario (avatar con iniciales + nombre) / Acción (frase construida con
+  `ACTION_META[action].verb` + `MODULE_PHRASE[module]` + `entity_label`, ej. "Creó una
+  aeronave: Matrice 350 · SN-0142") / Módulo (ícono + nombre) / Fecha y hora / Tipo (badge
+  de color: verde=Creación, índigo=Edición, rojo=Eliminación — los únicos 3 tipos reales
+  instrumentados hoy; el mapa queda listo para "Acceso"/"Exportación" cuando se instrumenten).
+- El aviso "tabla pendiente de migración" se conserva como fallback defensivo (por si la
+  tabla llegara a faltar en otro entorno), aunque ya no debería activarse en producción tras
+  aplicar la migración.
 
 ### Historial de facturación ⚠️ inerte hasta aplicar migración
 
@@ -953,7 +983,8 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 
 ## Pendientes de infraestructura
 
-- [ ] **Aplicar migraciones del rediseño de UI** (2026-07-02, rama `claude/project-scope-review-xity40`, ver **Sistema de Diseño**): `20260702_audit_log.sql` y `20260702_billing_history.sql`. El código que las consume (`/api/audit-log`, `/api/billing-history`, `lib/auditLog.js`, webhook ePayco) ya está desplegado pero **inerte** — degrada a listas vacías / omite el insert si las tablas no existen. Aplicar cuando se quiera activar Auditoría de acciones e Historial de facturación.
+- [x] **`20260702_audit_log.sql` aplicada en Supabase (2026-07-03)** — tabla `audit_log` + política RLS creadas y verificadas. Auditoría de acciones ya no es inerte; ver **Auditoría rediseñada**.
+- [ ] **Aplicar `20260702_billing_history.sql`** (rama `claude/project-scope-review-xity40`, ver **Sistema de Diseño**). El código que la consume (`/api/billing-history`, webhook ePayco) ya está desplegado pero **inerte** — omite el insert si la tabla no existe. Aplicar cuando se quiera activar Historial de facturación.
 - [ ] Agregar `DJI_API_KEY` a Vercel env vars
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a Vercel env vars
 - [ ] Agregar `AEROCIVIL_SALT` a Vercel env vars (el fallback inseguro ya fue removido — el endpoint lanza error si falta la variable)

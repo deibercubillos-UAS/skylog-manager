@@ -104,17 +104,23 @@ export default function AddProtocolPanel({ protocol, onClose, onSuccess }) {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className={labelCls}>Categoría <span className="text-orange-600">*</span></label>
-                <select required className={inputCls} value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <div className={inputCls + " flex items-center gap-2"}>
+                  <select required className="flex-1 min-w-0 bg-transparent outline-none appearance-none cursor-pointer"
+                    value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
+                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <span className="material-symbols-outlined text-base text-slate-400 shrink-0">expand_more</span>
+                </div>
               </div>
               <div className="space-y-1">
                 <label className={labelCls}>Ícono</label>
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-lg text-slate-500 shrink-0">{form.icon}</span>
-                  <select className={inputCls} value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })}>
+                <div className={inputCls + " flex items-center gap-2"}>
+                  <span className="material-symbols-outlined text-base text-slate-500 shrink-0">{form.icon}</span>
+                  <select className="flex-1 min-w-0 bg-transparent outline-none appearance-none cursor-pointer"
+                    value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })}>
                     {ICONS.map(i => <option key={i} value={i}>{i}</option>)}
                   </select>
+                  <span className="material-symbols-outlined text-base text-slate-400 shrink-0">expand_more</span>
                 </div>
               </div>
             </div>

@@ -829,6 +829,13 @@ existente detrás de cada tarjeta, intacto.
 - El editor de slots fijos (`view: 'fixed'`) se conserva **sin cambios de comportamiento**
   — mismo tab-switcher SALUD/PRE-VUELO/BRIEFING/RECIBO MTTO, mismo toggle ON/OFF, mismo
   botón "Plantilla básica" — solo se le agregó un botón "← Protocolos" para volver al grid.
+- **Ajuste de fidelidad (2026-07-03, mismo día)**: el usuario pidió más fidelidad al mockup
+  para el modo edición. Los campos Categoría e Ícono en `AddProtocolPanel.js` usaban un
+  `<select>` nativo suelto (con su propio chevron de navegador) — se envolvieron en un solo
+  contenedor estilo "pill" (`inputCls`) con el ícono como prefijo y un `expand_more` como
+  sufijo, igual al control falso de dropdown del mockup, en vez de dos elementos con gap
+  visualmente distintos del original. Mismo componente sirve para crear y editar, así que
+  el ajuste aplica a ambos modos por igual.
 
 ### Historial de facturación ⚠️ inerte hasta aplicar migración
 

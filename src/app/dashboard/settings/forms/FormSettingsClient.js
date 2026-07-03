@@ -236,9 +236,6 @@ export default function FormSettingsClient({ initialData }) {
         return protocols.filter(p => p.category === categoryFilter);
     }, [protocols, categoryFilter]);
 
-    const inputCls = "w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-sm font-bold text-slate-900";
-    const labelCls = "text-[9.5px] font-black text-slate-400 uppercase tracking-wide ml-0.5";
-
     // ── Vista principal: grid de Protocolos ─────────────────────────────────
     return (
         <div className="max-w-6xl mx-auto space-y-6 md:space-y-8 text-left animate-in fade-in duration-500 pb-24">
@@ -436,32 +433,6 @@ export default function FormSettingsClient({ initialData }) {
                         </div>
 
                         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 md:p-7 space-y-5">
-                            {/* Tab switcher + selector de modelo */}
-                            <div className="flex flex-col gap-3">
-                                <div className="flex bg-slate-100 p-1.5 rounded-2xl w-full overflow-x-auto custom-scrollbar">
-                                    {[{ id: 'health', label: 'SALUD' }, { id: 'preflight', label: 'PRE-VUELO' }, { id: 'briefing', label: 'BRIEFING' }, { id: 'maintenance_return', label: 'RECIBO MTTO' }].map(t => (
-                                        <button key={t.id} type="button" onClick={() => setType(t.id)}
-                                            className={`flex-1 px-4 py-2.5 rounded-xl text-[10.5px] font-black uppercase transition-all whitespace-nowrap ${type === t.id ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'}`}>
-                                            {t.label}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {type === 'preflight' && (
-                                    <div className="flex items-center gap-3 animate-in slide-in-from-left">
-                                        <span className={labelCls}>Modelo:</span>
-                                        <div className={inputCls + " flex items-center gap-2 w-fit"}>
-                                            <select className="bg-transparent outline-none appearance-none cursor-pointer text-orange-600"
-                                                value={selectedModel} onChange={e => setSelectedModel(e.target.value)}>
-                                                <option value="General">Modelo General</option>
-                                                {models.map(m => <option key={m} value={m}>{m}</option>)}
-                                            </select>
-                                            <span className="material-symbols-outlined text-base text-slate-400 shrink-0">expand_more</span>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
                             {loading ? (
                                 <div className="p-16 text-center font-black animate-pulse text-slate-400 uppercase tracking-widest text-xs">Cambiando protocolo...</div>
                             ) : (

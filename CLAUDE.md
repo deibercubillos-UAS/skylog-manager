@@ -840,10 +840,16 @@ existente detrás de cada tarjeta, intacto.
      checklists operativos** (Salud/Pre-vuelo/Briefing/Recibo Mtto): seguía siendo la
      página completa antigua (sin relación visual con "Nuevo protocolo"). Se convirtió en
      un panel deslizable con el mismo shell que `AddProtocolPanel` (header con breadcrumb +
-     cerrar, hero navy, card blanca, footer fijo) — **sin tocar la lógica**: mismo
-     tab-switcher, selector de modelo, toggle ON/OFF, "Plantilla básica" y los slots
-     numerados 01-LIMIT, ahora dentro de una lista con scroll interno del panel en vez de
-     scroll de página completa.
+     cerrar, hero navy, card blanca, footer fijo) — **sin tocar la lógica de guardado**:
+     mismo toggle ON/OFF, mismo botón "Plantilla básica" y los mismos slots numerados
+     01-LIMIT, ahora con scroll interno del panel.
+  3. Ajuste final: el usuario no quería el tab-switcher SALUD/PRE-VUELO/BRIEFING/RECIBO
+     MTTO ni el selector de modelo **dentro** del panel — "que en el despliegue solo
+     modifique la que seleccione para editar, no necesito que se desplieguen todas". Como
+     el grid ya tiene una tarjeta por tipo (y una por cada modelo de aeronave para
+     Pre-vuelo), esa navegación ya vive ahí; se quitaron el tab-switcher y el selector de
+     modelo internos — el panel abre directo sobre el `type`/`selectedModel` de la tarjeta
+     en la que se hizo click, sin forma de saltar a otro checklist sin volver al grid.
 
 ### Historial de facturación ⚠️ inerte hasta aplicar migración
 

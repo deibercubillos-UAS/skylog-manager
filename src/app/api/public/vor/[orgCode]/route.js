@@ -8,6 +8,7 @@ import { resolveOrg, supabaseAdmin } from '../../_resolveOrg';
 import { escHtml } from '@/lib/emailHelpers';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 import { PERMISSIONS } from '@/lib/roles';
+import { logCaseEvent } from '@/lib/smsCase';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  GET: definición del formulario VOR para la org
@@ -108,6 +109,13 @@ export async function POST(request, { params }) {
 
         if (insertErr) throw insertErr;
 
+        await logCaseEvent({
+            orgId: org.id,
+            vorMorId: submission.id,
+            label: 'Reporte VOR recibido',
+            actorName: submission.is_anonymous ? null : (reporter_name?.trim() || null),
+        });
+
         // Notificar por email al equipo SMS de la org
         await notifySms({ org, submission, type: 'VOR', reporter_name, reporter_email, description });
 
@@ -145,7 +153,7 @@ async function notifySms({ org, submission, type, reporter_name, reporter_email,
         const isAnonymous = !reporter_name;
         const reporterLabel = isAnonymous ? 'Anónimo' : escHtml(reporter_name);
         const safeDescription = escHtml(description?.substring(0, 200)) + (description?.length > 200 ? '…' : '');
-        const dashUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://bitafly.com'}/dashboard/seguridad-operacional?tab=reportes`;
+        const dashUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://bitafly.com'}/dashboard/safety`;
 
         for (const recipient of recipients) {
             await resend.emails.send({

@@ -1,0 +1,69 @@
+import { createClientSSR } from '@/lib/supabaseServer';
+import { getOrgContext } from '@/lib/apiAuth';
+import { PERMISSIONS } from '@/lib/roles';
+import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+
+const CATEGORIES = ['Técnica', 'Procedimental', 'Humana', 'Organizacional'];
+const STATUSES = ['Activa', 'En revisión', 'Retirada'];
+
+// GET /api/safety/barriers — lista las barreras de seguridad de la org
+export async function GET() {
+    try {
+        const supabase = await createClientSSR();
+        const { user, orgId } = await getOrgContext(supabase);
+        if (!user)  return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+        if (!orgId) return NextResponse.json({ error: 'Sin organización asignada' }, { status: 403 });
+
+        const { data, error } = await supabase
+            .from('safety_barriers')
+            .select('id,name,category,description,hazard,sora_assessment_id,responsible,status,updated_at,sora:sora_assessment_id(operation_name)')
+            .eq('organization_id', orgId)
+            .order('updated_at', { ascending: false });
+
+        if (error) throw error;
+        return NextResponse.json(data || []);
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}
+
+// POST /api/safety/barriers — crea una barrera nueva
+export async function POST(request) {
+    try {
+        const supabase = await createClientSSR();
+        const { user, orgId, role } = await getOrgContext(supabase);
+        if (!user)  return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+        if (!orgId) return NextResponse.json({ error: 'Sin organización asignada' }, { status: 403 });
+        if (!PERMISSIONS.canManageSMS.includes(role)) {
+            return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
+        }
+
+        const body = await request.json();
+        if (!body.name?.trim()) return NextResponse.json({ error: 'El nombre de la barrera es obligatorio' }, { status: 400 });
+        if (!CATEGORIES.includes(body.category)) return NextResponse.json({ error: 'Categoría inválida' }, { status: 400 });
+        const status = STATUSES.includes(body.status) ? body.status : 'Activa';
+
+        const { data, error } = await supabase
+            .from('safety_barriers')
+            .insert([{
+                organization_id:    orgId,
+                name:                body.name.trim(),
+                category:            body.category,
+                description:         body.description?.trim() || null,
+                hazard:              body.hazard?.trim() || null,
+                sora_assessment_id:  body.sora_assessment_id || null,
+                responsible:         body.responsible?.trim() || null,
+                status,
+                created_by:          user.id,
+            }])
+            .select()
+            .single();
+
+        if (error) throw error;
+        return NextResponse.json(data, { status: 201 });
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}

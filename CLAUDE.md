@@ -63,7 +63,8 @@ lib/
 ├── emailHelpers.js     ← escHtml() + emailHeader()/emailFooter()/bitaflyLogoUrl() (branding correos con logo BitaFly + logo del socio)
 ├── rateLimiter.js      ← checkRateLimit() + getClientIp()
 ├── partnerReferral.js  ← attributeCommission() — atribución recurrente de comisiones a socios
-└── auditLog.js         ← logAudit() — fire-and-forget, ver Auditoría de acciones
+├── auditLog.js         ← logAudit() — fire-and-forget, ver Auditoría de acciones
+└── smsCase.js          ← logCaseEvent() — fire-and-forget, ver Seguimiento de casos SMS/VOR/MOR
 ```
 
 ---
@@ -99,9 +100,11 @@ Tablas principales:
 - `maintenance_logs` — tiene `attachment_path TEXT` (bucket `maintenance-docs`, signed URL 1h)
 - `flight_plans` — planeaciones guardadas. `status` 'active'/'archived' (soft-delete). RLS por org.
 - `flight_authorizations` — misiones programadas. `plan_data jsonb` guarda la planeación (op_name, geo_type, points, radius, altitude, takeoff_time, notes) para regenerar KMZ/PDF en Programación Activa.
-- `sms_reports` · `sora_assessments` · `daily_health_checks` · `pilot_endorsements`
+- `sms_reports` — `severity` (incidente/incidente_grave/accidente), `status` ('abierto' default desde 2026-07-03, antes 'borrador'), `updated_at` (agregada 2026-07-03, con trigger `set_updated_at()` — necesaria para medir tiempo de cierre de casos) · `sora_assessments` · `daily_health_checks` · `pilot_endorsements`
 - `form_definitions` (campos de formulario por aeronave — los checklists se generan combinando esto con `lib/checklistDefaults.js`) · `inventory_items` · `mission_inventory_logs` · `mission_types` · `colombia_geo` (sin coordenadas — solo Código/Nombre Departamento/Municipio)
-- `vor_mor_definitions` · `vor_mor_submissions` (reportes VOR/MOR) · `emergency_contacts` · `insurance_policies` · `leads`
+- `vor_mor_definitions` · `vor_mor_submissions` (reportes VOR/MOR) — `severity` y `aerocivil_notified_at` agregadas 2026-07-03 (ver **Seguimiento de casos SMS/VOR/MOR**) · `emergency_contacts` · `insurance_policies` · `leads`
+- `safety_barriers` — barreras de seguridad (mitigaciones/controles) reales, reemplaza la vista de solo lectura sobre `form_definitions`. `category` CHECK 4 valores, `hazard` (riesgo que mitiga, texto libre), `sora_assessment_id` FK opcional a `sora_assessments`, `responsible` (texto libre), `status` CHECK 3 valores. RLS: solo `admin`/`superadmin`/`gerente_sms` (mismo `canManageSMS`) leen/escriben.
+- `sms_case_actions` / `sms_case_events` — seguimiento de casos SMS/VOR/MOR (acciones correctivas + línea de tiempo). Cada fila referencia exactamente uno de `sms_report_id`/`vor_mor_id` (CHECK `num_nonnulls(...) = 1`). Ver **Seguimiento de casos SMS/VOR/MOR**.
 - `pending_subscriptions` — intents ePayco (filas huérfanas = webhook no corrió)
 - `pending_registrations` — registro pre-pago (expira 3h, service_role only)
 - `processed_webhook_refs` — idempotencia webhook (`ref_payco PK`)
@@ -404,6 +407,77 @@ wizard/CRUD/mapa de las páginas dedicadas:
 - Cada pestaña tiene un enlace "Ver módulo completo / Gestionar X" al pie que lleva a la
   página dedicada para todo lo que el hub no reimplementa (edición, detalle, filtros,
   paginación) — el hub es un panorama de lectura + creación rápida, no un reemplazo.
+
+### Seguimiento de casos SMS/VOR/MOR + Barreras reales + consolidación (2026-07-03)
+
+El usuario trajo 3 mockups (`Seguridad_SMS`, `Seguimiento_SMS`, `Nueva_Barrera`) pidiendo
+"pequeños cambios" a la pestaña de seguridad, pero los 3 mockups en realidad describían
+funcionalidad nueva sustancial (gestión de casos con acciones correctivas + línea de tiempo,
+una entidad real de barreras con categoría/estado/riesgo, y fusión de Reportes SMS + VOR/MOR
+en una sola tabla) — nada de esto existía. Se confirmó el alcance completo con el usuario
+(`AskUserQuestion`, 3 preguntas) antes de construir, en vez de asumir que "pequeños cambios"
+significaba solo ajustes visuales.
+
+- **Barreras — entidad real** (reemplaza la vista de solo lectura sobre `form_definitions`):
+  tabla `safety_barriers` (migración `20260703_sms_case_tracking.sql`, aplicada). CRUD vía
+  `GET/POST /api/safety/barriers` + `PATCH/DELETE /api/safety/barriers/[id]`, mismo patrón
+  `ALLOWED_FIELDS`/permisos (`canManageSMS`) que el resto de la app. `components/safety/
+  AddBarrierPanel.js` (mismo shell hero+card que `AddProtocolPanel`) — categoría y estado
+  como chips seleccionables (4 y 3 opciones fijas respectivamente, igual al mockup),
+  "Riesgo/peligro que mitiga" y "Responsable" como texto libre (no hay catálogo de riesgos
+  ni tabla de personal para forzar un select real — el mockup los mostraba con apariencia de
+  dropdown pero sin datos reales detrás), "Evaluación SORA relacionada" **sí** es un select
+  real poblado desde `GET /api/sora/assessments` (dato real existente). El grid de Barreras
+  en el hub (`dashboard/safety/page.js`) ahora es clicable → abre el panel en modo edición.
+- **Seguimiento de casos** (`dashboard/safety/case/[id]/page.js`, nueva ruta, `?source=sms|
+  vormor` en la URL porque el mismo caso puede venir de `sms_reports` o de
+  `vor_mor_submissions`): checklist de acciones correctivas (agregar/marcar hecho, con
+  responsable y vencimiento — tabla `sms_case_actions`, referencia exactamente una de
+  `sms_report_id`/`vor_mor_id`) + línea de tiempo (`sms_case_events`) + "Marcar como cerrado"
+  + notificación a AeroCivil para casos MOR (`vor_mor_submissions.aerocivil_notified_at`,
+  nuevo). **La línea de tiempo es 100% derivada de eventos reales, nunca narrativa
+  fabricada**: se inserta con `lib/smsCase.js` → `logCaseEvent()` (mismo patrón
+  fire-and-forget que `lib/auditLog.js`, usa `createAdminClient()` porque `sms_case_events`
+  no tiene política de INSERT para usuarios) desde cada punto real de cambio de estado —
+  creación del reporte (incluye los formularios públicos `/vor/{org}` y `/mor/{org}`),
+  cambio de estado, acción correctiva agregada, notificación AeroCivil. API: `GET/PATCH
+  /api/safety/case` (detalle + cambio de estado), `POST/PATCH /api/safety/case/actions`
+  (crear acción / marcar hecha), `POST /api/safety/case/notify` (marcar notificado a
+  AeroCivil, valida `type='MOR'`).
+- **Severidad real para VOR/MOR**: `vor_mor_submissions.severity` (nueva columna) usa el
+  **mismo vocabulario RAC 100** que ya usaba `sms_reports` (`incidente`/`incidente_grave`/
+  `accidente`) — el mockup mostraba una escala Baja/Media/Alta/Crítica de 4 niveles, pero se
+  descartó a propósito para no tener dos vocabularios de "severidad" distintos conviviendo en
+  la misma tabla consolidada (la clasificación RAC 100 de 3 niveles ya es la fuente de verdad
+  usada en las franjas de KPI del hub desde antes). Sin retroclasificación: los reportes
+  VOR/MOR existentes quedan "Sin clasificar" hasta que un gerente SMS les asigne severidad
+  desde el modal de gestión en `/dashboard/vor-mor` (nuevo selector "Severidad", junto a
+  Estado/Asignado a — usa el mismo `PATCH /api/vor-mor/[id]`, extendido para aceptar el
+  campo).
+- **Reportes SMS + VOR/MOR consolidados** (decisión confirmada con el usuario, revierte la
+  separación documentada en la sección anterior): la pestaña "Reportes SMS" del hub ahora
+  fusiona `sms_reports` y `vor_mor_submissions` en una sola tabla ordenada por fecha, con
+  chip de clasificación por fila (SMS gris / VOR naranja / MOR rojo), severidad, estado y
+  enlace "Ver" → Seguimiento de caso. Las 2 tarjetas explicativas VOR/MOR (contenido
+  regulatorio estático) se conservan arriba de la tabla. La pestaña VOR/MOR independiente del
+  hub **se eliminó** (4 tabs en vez de 5, igual al mockup) — pero `/dashboard/vor-mor` sigue
+  existiendo como página dedicada completa (configuración de formularios, QR, gestión
+  detallada), enlazada desde el pie de la tabla ("Gestionar VOR/MOR").
+- **Franja de KPI de Reportes SMS actualizada** al set del mockup (Reportes este año /
+  Cerrados / Tiempo prom. de cierre / Abiertos-en análisis), reemplazando el set anterior
+  (Incidentes/Incidentes graves/Accidentes). "Tiempo prom. de cierre" promedia
+  `(updated_at - fecha_reporte)` de los casos cerrados/archivados — requirió agregar
+  `sms_reports.updated_at` (no existía; `vor_mor_submissions` ya lo tenía con trigger
+  `set_updated_at()`, se replicó el mismo trigger para `sms_reports`).
+- `sms_reports.status` default cambia de `'borrador'` a `'abierto'` (POST `/api/sms`) — un
+  reporte SMS recién creado no es un "borrador" sin terminar, es un caso abierto que entra al
+  flujo de seguimiento. Vocabulario completo: `abierto`/`en_analisis`/`cerrado`.
+- **Bug real corregido de paso**: el email de notificación a gerentes SMS (`POST /api/public/
+  vor/[orgCode]` y `.../mor/[orgCode]`) enlazaba a `/dashboard/seguridad-operacional?
+  tab=reportes`, una ruta que nunca existió (la página real siempre fue `/dashboard/safety`,
+  y el query param `tab` tampoco se leía) — corregido a `/dashboard/safety` en ambos. De paso
+  `dashboard/safety/page.js` ahora sí lee `?tab=` de la URL para preseleccionar pestaña al
+  llegar desde un enlace externo.
 
 ### Recibo post-mantenimiento + trazabilidad de componentes + PDF de recibo (2026-06-25)
 
@@ -1249,6 +1323,8 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 - [x] **`20260702_audit_log.sql` aplicada en Supabase (2026-07-03)** — tabla `audit_log` + política RLS creadas y verificadas. Auditoría de acciones ya no es inerte; ver **Auditoría rediseñada**.
 - [x] **`20260703_protocols.sql` aplicada en Supabase (2026-07-03)** — tabla `protocols` + política RLS creadas y verificadas. Ver **Protocolos**.
 - [x] **`20260703_org_aerocivil_registration.sql` aplicada en Supabase (2026-07-03)** — columnas `operator_number`/`registration_expiry`/`authorized_operations` en `organizations`, confirmado con el usuario. Ver **Organización rediseñada**.
+- [x] **`20260703_sms_case_tracking.sql` aplicada en Supabase (2026-07-03)** — tablas `safety_barriers`/`sms_case_actions`/`sms_case_events` + columnas `severity`/`aerocivil_notified_at` en `vor_mor_submissions`, confirmado con el usuario. Ver **Seguimiento de casos SMS/VOR/MOR**.
+- [x] **`20260703_sms_reports_updated_at.sql` aplicada en Supabase (2026-07-03)** — columna `updated_at` + trigger en `sms_reports`. Ver **Seguimiento de casos SMS/VOR/MOR**.
 - [x] **`20260702_billing_history.sql` aplicada en Supabase (2026-07-03)**, confirmado con el usuario al rediseñar Suscripción. Ver **Historial de facturación**.
 - [ ] Agregar `DJI_API_KEY` a Vercel env vars
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a Vercel env vars

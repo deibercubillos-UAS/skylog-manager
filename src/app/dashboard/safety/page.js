@@ -1,6 +1,7 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { fmtDateMed } from '@/lib/formatters';
@@ -9,6 +10,7 @@ import PageHero from '@/components/PageHero';
 import KPIStrip from '@/components/KPIStrip';
 
 const SoraWizard = dynamic(() => import('@/components/sora/SoraWizard'), { ssr: false });
+const AddBarrierPanel = dynamic(() => import('@/components/safety/AddBarrierPanel'), { ssr: false });
 
 // Mismo visor real que usa /dashboard/safety/mapas (const duplicada a propósito —
 // es una URL de referencia, no lógica de negocio).
@@ -19,7 +21,6 @@ const TABS = [
   { id: 'sora',     label: 'Análisis SORA',           icon: 'analytics' },
   { id: 'barreras', label: 'Barreras de Seguridad',   icon: 'shield' },
   { id: 'reportes', label: 'Reportes SMS',            icon: 'health_and_safety' },
-  { id: 'vormor',   label: 'VOR/MOR',                 icon: 'report' },
   { id: 'mapas',    label: 'Mapas de restricción',    icon: 'map' },
 ];
 
@@ -33,11 +34,22 @@ const SMS_SEVERITY = {
   incidente_grave: { label: 'Incidente grave', cls: 'bg-amber-50 text-amber-600 border-amber-200' },
   accidente:       { label: 'Accidente',       cls: 'bg-red-50 text-red-600 border-red-200' },
 };
-const VORMOR_STATUS = {
+const CASE_STATUS = {
+  abierto:          { label: 'Abierto',          cls: 'bg-sky-50 text-sky-600 border-sky-200' },
+  en_analisis:      { label: 'En análisis',      cls: 'bg-amber-50 text-amber-600 border-amber-200' },
   recibido:         { label: 'Recibido',         cls: 'bg-sky-50 text-sky-600 border-sky-200' },
   en_investigacion: { label: 'En investigación', cls: 'bg-amber-50 text-amber-600 border-amber-200' },
   cerrado:          { label: 'Cerrado',          cls: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
   archivado:        { label: 'Archivado',        cls: 'bg-slate-50 text-slate-500 border-slate-200' },
+};
+
+const BARRIER_CATEGORY_COLOR = {
+  'Técnica': '#4f46e5', 'Procedimental': '#0d9488', 'Humana': '#d97706', 'Organizacional': '#7c3aed',
+};
+const BARRIER_STATUS_STYLE = {
+  'Activa':      { color: '#16a34a', icon: 'check_circle' },
+  'En revisión': { color: '#d97706', icon: 'schedule' },
+  'Retirada':    { color: '#dc2626', icon: 'cancel' },
 };
 
 const MAP_REFERENCE = [
@@ -48,7 +60,7 @@ const MAP_REFERENCE = [
 ];
 
 function Pill({ map, value }) {
-  const s = map[value] || { label: value || '—', cls: 'bg-slate-50 text-slate-500 border-slate-200' };
+  const s = map[value] || { label: value || 'Sin clasificar', cls: 'bg-slate-50 text-slate-500 border-slate-200' };
   return <span className={`px-2.5 py-1 rounded-full text-[10.5px] font-black uppercase border whitespace-nowrap ${s.cls}`}>{s.label}</span>;
 }
 
@@ -68,10 +80,14 @@ function TableShell({ title, empty, children }) {
 }
 
 export default function SafetyPage() {
-  const [tab, setTab]         = useState('sora');
+  const searchParams = useSearchParams();
+  const initialTab = TABS.some(t => t.id === searchParams.get('tab')) ? searchParams.get('tab') : 'sora';
+
+  const [tab, setTab]         = useState(initialTab);
   const [loading, setLoading] = useState(true);
   const [orgId, setOrgId]     = useState(null);
   const [showWizard, setShowWizard] = useState(false);
+  const [barrierPanel, setBarrierPanel] = useState(null); // null | 'new' | barrier object
 
   const [sora, setSora]             = useState([]);
   const [barreras, setBarreras]     = useState([]);
@@ -79,16 +95,16 @@ export default function SafetyPage() {
   const [vorMor, setVorMor]         = useState([]);
 
   const loadAll = useCallback(async (organizationId) => {
-    const [soraRes, defsRes, smsRes, vorMorRes] = await Promise.all([
+    const [soraRes, barriersRes, smsRes, vorMorRes] = await Promise.all([
       fetch('/api/sora/assessments').then(r => r.json()).catch(() => []),
-      supabase.from('form_definitions').select('id,aircraft_model,label_text,field_number')
-        .eq('organization_id', organizationId).eq('form_type', 'sora').order('field_number', { ascending: true }),
-      supabase.from('sms_reports').select('id,severity,narrative,occurrence_date,created_at,status')
+      fetch('/api/safety/barriers').then(r => r.json()).catch(() => []),
+      supabase.from('sms_reports')
+        .select('id,severity,narrative,occurrence_date,created_at,updated_at,status,owner:owner_id(full_name)')
         .eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(100),
       fetch('/api/vor-mor?limit=50').then(r => r.json()).catch(() => ({ data: [] })),
     ]);
     setSora(Array.isArray(soraRes) ? soraRes : []);
-    setBarreras((defsRes.data || []).map(d => ({ id: d.id, category: d.aircraft_model || 'General', label: d.label_text })));
+    setBarreras(Array.isArray(barriersRes) ? barriersRes : []);
     setSmsReports(smsRes.data || []);
     setVorMor(Array.isArray(vorMorRes?.data) ? vorMorRes.data : []);
   }, []);
@@ -105,6 +121,30 @@ export default function SafetyPage() {
     })();
   }, [loadAll]);
 
+  // ── Reportes SMS + VOR/MOR consolidados en una sola lista de casos ──
+  const allCases = useMemo(() => {
+    const smsRows = smsReports.map(r => ({
+      id: r.id, source: 'sms',
+      title: r.narrative || 'Reporte SMS sin narrativa',
+      classLabel: 'SMS', classCls: 'bg-slate-100 text-slate-600',
+      date: r.occurrence_date || r.created_at,
+      updatedAt: r.updated_at,
+      severity: r.severity, status: r.status,
+      reporter: r.owner?.full_name || 'Equipo SMS',
+    }));
+    const vorMorRows = vorMor.map(r => ({
+      id: r.id, source: 'vormor',
+      title: r.description || 'Sin descripción',
+      classLabel: r.type,
+      classCls: r.type === 'MOR' ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600',
+      date: r.occurrence_date || r.created_at,
+      updatedAt: r.updated_at,
+      severity: r.severity, status: r.status,
+      reporter: r.is_anonymous ? 'Anónimo' : (r.reporter_name || 'Anónimo'),
+    }));
+    return [...smsRows, ...vorMorRows].sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [smsReports, vorMor]);
+
   // ── CTA del hero, cambia según la pestaña activa ──
   const heroRight = (() => {
     if (tab === 'sora') {
@@ -116,10 +156,17 @@ export default function SafetyPage() {
         </button>
       );
     }
+    if (tab === 'barreras') {
+      return (
+        <button onClick={() => setBarrierPanel('new')}
+          className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-600/20 transition-all active:scale-95">
+          <span className="material-symbols-outlined text-base">add_circle</span>
+          Nueva barrera
+        </button>
+      );
+    }
     const cfgByTab = {
-      barreras: { href: '/dashboard/safety-config', label: 'Nueva barrera', icon: 'add_circle' },
       reportes: { href: '/dashboard/sms', label: 'Nuevo reporte', icon: 'report' },
-      vormor:   { href: '/dashboard/vor-mor', label: 'Nuevo reporte VOR/MOR', icon: 'report' },
       mapas:    { href: '/dashboard/safety/mapas', label: 'Abrir visor completo', icon: 'open_in_new' },
     };
     const cfg = cfgByTab[tab];
@@ -147,16 +194,18 @@ export default function SafetyPage() {
   })() : null;
 
   const thisYear = new Date().getFullYear().toString();
-  const smsStats = smsReports.length > 0 ? (() => {
-    const yearCount = smsReports.filter(r => (r.created_at || '').startsWith(thisYear)).length;
-    const inc   = smsReports.filter(r => r.severity === 'incidente').length;
-    const grave = smsReports.filter(r => r.severity === 'incidente_grave').length;
-    const acc   = smsReports.filter(r => r.severity === 'accidente').length;
+  const repStats = allCases.length > 0 ? (() => {
+    const yearCount = allCases.filter(c => (c.date || '').startsWith(thisYear)).length;
+    const closed = allCases.filter(c => ['cerrado', 'archivado'].includes(c.status));
+    const openCount = allCases.filter(c => !['cerrado', 'archivado'].includes(c.status)).length;
+    const avgDays = closed.length > 0
+      ? Math.round(closed.reduce((s, c) => s + Math.max(0, (new Date(c.updatedAt) - new Date(c.date)) / 86400000), 0) / closed.length)
+      : null;
     return [
-      { key: 'year',  label: 'Reportes este año',  value: yearCount, icon: 'health_and_safety', iconColor: '#d97706' },
-      { key: 'inc',   label: 'Incidentes',         value: inc,       icon: 'info', iconColor: '#2563eb' },
-      { key: 'grave', label: 'Incidentes graves',  value: grave,     icon: 'warning', iconColor: grave > 0 ? '#d97706' : '#94a3b8' },
-      { key: 'acc',   label: 'Accidentes',         value: acc,       icon: 'error', iconColor: acc > 0 ? '#dc2626' : '#94a3b8' },
+      { key: 'year',   label: 'Reportes este año',        value: yearCount,     icon: 'health_and_safety', iconColor: '#d97706' },
+      { key: 'closed', label: 'Cerrados',                 value: closed.length, icon: 'check_circle', iconColor: '#16a34a' },
+      { key: 'avg',    label: 'Tiempo prom. de cierre',   value: avgDays !== null ? `${avgDays}d` : '—', icon: 'schedule', iconColor: '#4f46e5' },
+      { key: 'open',   label: 'Abiertos / en análisis',   value: openCount,     icon: 'pending_actions', iconColor: openCount > 0 ? '#d97706' : '#94a3b8' },
     ];
   })() : null;
 
@@ -167,6 +216,14 @@ export default function SafetyPage() {
         <SoraWizard
           onClose={() => setShowWizard(false)}
           onSaved={() => { setShowWizard(false); if (orgId) loadAll(orgId); }}
+        />
+      )}
+
+      {barrierPanel && (
+        <AddBarrierPanel
+          barrier={barrierPanel === 'new' ? null : barrierPanel}
+          onClose={() => setBarrierPanel(null)}
+          onSuccess={() => { setBarrierPanel(null); if (orgId) loadAll(orgId); }}
         />
       )}
 
@@ -241,60 +298,36 @@ export default function SafetyPage() {
           {/* ── Barreras ── */}
           {tab === 'barreras' && (
             <div className="space-y-4 animate-in fade-in duration-200">
-              <TableShell title="Mitigaciones y OSOs configurados por tu organización"
-                empty={barreras.length === 0 ? 'Sin barreras definidas — impórtalas desde Barreras de Seguridad' : null}>
+              <TableShell title="Mitigaciones y controles de seguridad activos por categoría de riesgo"
+                empty={barreras.length === 0 ? 'Sin barreras registradas — crea la primera con "Nueva barrera"' : null}>
                 <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {barreras.map(b => (
-                    <div key={b.id} className="border border-slate-200 rounded-2xl p-4 space-y-2">
-                      <span className="text-[9.5px] font-black uppercase tracking-wide text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">{b.category}</span>
-                      <p className="text-sm font-bold text-slate-800 leading-snug">{b.label}</p>
-                    </div>
-                  ))}
+                  {barreras.map(b => {
+                    const st = BARRIER_STATUS_STYLE[b.status] || BARRIER_STATUS_STYLE['Activa'];
+                    return (
+                      <button key={b.id} type="button" onClick={() => setBarrierPanel(b)}
+                        className="text-left border border-slate-200 rounded-2xl p-4 space-y-2 hover:border-orange-300 hover:shadow-sm transition-all">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9.5px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full"
+                            style={{ color: BARRIER_CATEGORY_COLOR[b.category], background: `${BARRIER_CATEGORY_COLOR[b.category]}18` }}>
+                            {b.category}
+                          </span>
+                          <span className="material-symbols-outlined text-base" style={{ color: st.color }}>{st.icon}</span>
+                        </div>
+                        <p className="text-sm font-bold text-slate-800 leading-snug">{b.name}</p>
+                        {b.description && <p className="text-xs text-slate-500 leading-snug line-clamp-2">{b.description}</p>}
+                        <p className="text-[9.5px] font-black uppercase" style={{ color: st.color }}>{b.status}</p>
+                      </button>
+                    );
+                  })}
                 </div>
               </TableShell>
-              <div className="text-right">
-                <Link href="/dashboard/safety-config" className="text-xs font-black text-orange-600 hover:text-orange-800 uppercase tracking-wide inline-flex items-center gap-1">
-                  Gestionar barreras <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                </Link>
-              </div>
             </div>
           )}
 
-          {/* ── Reportes SMS ── */}
+          {/* ── Reportes SMS (consolidado: SMS + VOR/MOR) ── */}
           {tab === 'reportes' && (
             <div className="space-y-4 animate-in fade-in duration-200">
-              {smsStats && <KPIStrip variant="strip" items={smsStats} />}
-              <TableShell title="Reportes SMS registrados por tu organización"
-                empty={smsReports.length === 0 ? 'Sin reportes SMS registrados' : null}>
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                      <th className="px-5 py-3">Suceso</th><th className="px-4 py-3">Severidad</th><th className="px-4 py-3">Fecha</th><th className="px-4 py-3">Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-sm">
-                    {smsReports.map(r => (
-                      <tr key={r.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-5 py-3.5 max-w-xs"><p className="text-slate-700 font-medium truncate">{r.narrative || 'Sin narrativa'}</p></td>
-                        <td className="px-4 py-3.5"><Pill map={SMS_SEVERITY} value={r.severity} /></td>
-                        <td className="px-4 py-3.5 text-slate-500 font-medium whitespace-nowrap">{fmtDateMed(r.occurrence_date || r.created_at)}</td>
-                        <td className="px-4 py-3.5"><Pill map={{}} value={r.status} /></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </TableShell>
-              <div className="text-right">
-                <Link href="/dashboard/sms" className="text-xs font-black text-orange-600 hover:text-orange-800 uppercase tracking-wide inline-flex items-center gap-1">
-                  Emitir nuevo reporte <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {/* ── VOR/MOR ── */}
-          {tab === 'vormor' && (
-            <div className="space-y-4 animate-in fade-in duration-200">
+              {repStats && <KPIStrip variant="strip" items={repStats} />}
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1 bg-orange-50 border border-orange-200 rounded-2xl p-4">
                   <div className="flex items-center gap-2">
@@ -311,33 +344,45 @@ export default function SafetyPage() {
                   <p className="text-xs text-red-700 mt-1.5 leading-snug">Reporte obligatorio ante AeroCivil por incidentes/accidentes definidos en el reglamento RAC 100.</p>
                 </div>
               </div>
-              <TableShell title="Reportes VOR/MOR recibidos"
-                empty={vorMor.length === 0 ? 'Sin reportes VOR/MOR registrados' : null}>
+              <TableShell title="Todos los reportes SMS registrados — resumen consolidado (incluye VOR y MOR)"
+                empty={allCases.length === 0 ? 'Sin reportes registrados' : null}>
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                      <th className="px-5 py-3">Reporte</th><th className="px-4 py-3">Tipo</th><th className="px-4 py-3">Fecha</th><th className="px-4 py-3">Estado</th>
+                      <th className="px-5 py-3">Reporte</th><th className="px-4 py-3">Clasificación</th><th className="px-4 py-3">Fecha</th>
+                      <th className="px-4 py-3">Severidad</th><th className="px-4 py-3">Estado</th><th className="px-4 py-3">Seguimiento</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-sm">
-                    {vorMor.map(r => (
-                      <tr key={r.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-5 py-3.5 max-w-xs"><p className="text-slate-700 font-medium truncate">{r.description || 'Sin descripción'}</p></td>
-                        <td className="px-4 py-3.5">
-                          <span className={`px-2.5 py-1 rounded-full text-[10.5px] font-black uppercase border ${
-                            r.type === 'MOR' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-orange-50 text-orange-600 border-orange-200'
-                          }`}>{r.type}</span>
+                    {allCases.map(c => (
+                      <tr key={`${c.source}-${c.id}`} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-5 py-3.5 max-w-xs">
+                          <p className="text-slate-700 font-medium truncate">{c.title}</p>
+                          <p className="text-xs text-slate-400">Por {c.reporter}</p>
                         </td>
-                        <td className="px-4 py-3.5 text-slate-500 font-medium whitespace-nowrap">{fmtDateMed(r.occurrence_date || r.created_at)}</td>
-                        <td className="px-4 py-3.5"><Pill map={VORMOR_STATUS} value={r.status} /></td>
+                        <td className="px-4 py-3.5">
+                          <span className={`px-2.5 py-1 rounded-full text-[10.5px] font-black uppercase ${c.classCls}`}>{c.classLabel}</span>
+                        </td>
+                        <td className="px-4 py-3.5 text-slate-500 font-medium whitespace-nowrap">{fmtDateMed(c.date)}</td>
+                        <td className="px-4 py-3.5"><Pill map={SMS_SEVERITY} value={c.severity} /></td>
+                        <td className="px-4 py-3.5"><Pill map={CASE_STATUS} value={c.status} /></td>
+                        <td className="px-4 py-3.5">
+                          <Link href={`/dashboard/safety/case/${c.id}?source=${c.source}`}
+                            className="flex items-center gap-1.5 text-orange-600 hover:text-orange-800 font-black text-[10.5px] uppercase">
+                            <span className="material-symbols-outlined text-sm">checklist</span>Ver
+                          </Link>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </TableShell>
-              <div className="text-right">
-                <Link href="/dashboard/vor-mor" className="text-xs font-black text-orange-600 hover:text-orange-800 uppercase tracking-wide inline-flex items-center gap-1">
+              <div className="flex justify-end gap-5">
+                <Link href="/dashboard/vor-mor" className="text-xs font-black text-slate-500 hover:text-orange-600 uppercase tracking-wide inline-flex items-center gap-1">
                   Gestionar VOR/MOR <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                </Link>
+                <Link href="/dashboard/sms" className="text-xs font-black text-orange-600 hover:text-orange-800 uppercase tracking-wide inline-flex items-center gap-1">
+                  Emitir nuevo reporte <span className="material-symbols-outlined text-sm">arrow_forward</span>
                 </Link>
               </div>
             </div>

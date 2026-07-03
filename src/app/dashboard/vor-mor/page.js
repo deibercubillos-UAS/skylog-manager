@@ -15,6 +15,12 @@ const STATUS_LABELS = {
   archivado:         { label: 'Archivado',          color: 'bg-slate-100 text-slate-500 border-slate-200' },
 };
 const VALID_STATUSES = Object.keys(STATUS_LABELS);
+const SEVERITY_LABELS = {
+  incidente:        { label: 'Incidente',        color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  incidente_grave:  { label: 'Incidente grave',  color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  accidente:        { label: 'Accidente',        color: 'bg-red-100 text-red-700 border-red-200' },
+};
+const VALID_SEVERITIES = Object.keys(SEVERITY_LABELS);
 
 // ── Utilidades ────────────────────────────────────────────────────────────────
 function StatusBadge({ status }) {
@@ -156,6 +162,7 @@ export default function VorMorPage() {
     setSelected(data);
     setPatchForm({
       status: data.status || 'recibido',
+      severity: data.severity || '',
       assigned_to: data.assigned_to || '',
       internal_notes: data.internal_notes || '',
       investigation_summary: data.investigation_summary || '',
@@ -478,12 +485,21 @@ export default function VorMorPage() {
                   <div className="p-6 space-y-5 bg-slate-50 rounded-b-3xl">
                     <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Gestión del reporte</h4>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       {/* Estado */}
                       <div>
                         <label className={LABEL}>Estado</label>
                         <select value={patchForm.status} onChange={e => setPatchForm(p => ({...p, status: e.target.value}))} className={INPUT}>
                           {VALID_STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s].label}</option>)}
+                        </select>
+                      </div>
+
+                      {/* Severidad — mismo vocabulario RAC 100 que Reportes SMS (sms_reports) */}
+                      <div>
+                        <label className={LABEL}>Severidad</label>
+                        <select value={patchForm.severity} onChange={e => setPatchForm(p => ({...p, severity: e.target.value}))} className={INPUT}>
+                          <option value="">Sin clasificar</option>
+                          {VALID_SEVERITIES.map(s => <option key={s} value={s}>{SEVERITY_LABELS[s].label}</option>)}
                         </select>
                       </div>
 

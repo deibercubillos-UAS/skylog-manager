@@ -9,6 +9,7 @@ import { getOrgContext } from '@/lib/apiAuth';
 import { Resend } from 'resend';
 import { escHtml } from '@/lib/emailHelpers';
 import { PERMISSIONS } from '@/lib/roles';
+import { logCaseEvent } from '@/lib/smsCase';
 
 const getAdminClient = () => createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -73,6 +74,7 @@ export async function PATCH(request, { params }) {
         const body = await request.json();
         const {
             status,
+            severity,
             assigned_to,
             internal_notes,
             investigation_summary,
@@ -83,7 +85,15 @@ export async function PATCH(request, { params }) {
         // Campos actualizables
         const updates = {};
         const VALID_STATUSES = ['recibido', 'en_investigacion', 'cerrado', 'archivado'];
+        const VALID_SEVERITIES = ['incidente', 'incidente_grave', 'accidente'];
         if (status && VALID_STATUSES.includes(status)) updates.status = status;
+        if (severity !== undefined) {
+            const normalizedSeverity = severity || null;
+            if (normalizedSeverity !== null && !VALID_SEVERITIES.includes(normalizedSeverity)) {
+                return NextResponse.json({ error: 'Severidad inválida' }, { status: 400 });
+            }
+            updates.severity = normalizedSeverity;
+        }
         if (assigned_to !== undefined) updates.assigned_to = assigned_to || null;
         if (internal_notes !== undefined) updates.internal_notes = internal_notes;
         if (investigation_summary !== undefined) updates.investigation_summary = investigation_summary;
@@ -95,6 +105,16 @@ export async function PATCH(request, { params }) {
                 .eq('id', id)
                 .eq('organization_id', ctx.orgId);  // guard org en el update (RLS consistency)
             if (updateErr) throw updateErr;
+
+            if (updates.status && updates.status !== existing.status) {
+                await logCaseEvent({
+                    orgId: ctx.orgId,
+                    vorMorId: id,
+                    label: `Estado actualizado a "${updates.status}"`,
+                    actorId: ctx.user?.id,
+                    actorName: ctx.fullName || ctx.user?.email,
+                });
+            }
         }
 
         // Notificar al reportante si tiene email y se solicitó

@@ -365,38 +365,44 @@ aplica, un selector de **alcance** — esto es lo nuevo pedido explícitamente p
   `billing_history`) que no fue pedida; se documenta aquí como pendiente si se quiere en el
   futuro en vez de fabricar la tabla en la UI.
 
-### Seguridad SMS — hub con panorama real (2026-07-02j)
+### Seguridad SMS — hub con tabs en vivo (2026-07-02j, revisado 2026-07-02k)
 
-`dashboard/safety/page.js`: el mockup "Seguridad SMS" muestra SORA/Barreras/Reportes SMS/
-VOR-MOR/Mapas como 5 tabs con contenido en vivo dentro de una sola pantalla. En la app real
-esas 5 áreas ya son páginas completas y maduras (`/dashboard/sora` con wizard + tabla +
-KPIs, `/dashboard/safety-config` con CRUD de barreras/OSOs, `/dashboard/vor-mor` con
-gestión de estado + QR público + config de formulario, `/dashboard/safety/mapas` con visor
-ArcGIS) — fusionarlas en un solo archivo hubiera significado reescribir/duplicar ~1800
-líneas de lógica ya funcional (wizard SORA, CRUD, patch de estado VOR/MOR) con alto riesgo
-de regresión. **Decisión confirmada con el usuario**: en vez de fusionar, se restyleó el
-hub (`/dashboard/safety`, antes solo una lista de tarjetas sin datos) al lenguaje visual del
-mockup — `PageHero` navy + franja de KPIs reales — y cada tarjeta sigue navegando a su
-página dedicada intacta.
+`dashboard/safety/page.js`: primera versión restyleó el hub como lista de tarjetas con
+badges de conteo (ver commit `a2977bd`), pero el usuario pidió mayor fidelidad al mockup
+("no me gustó como quedó, quiero que seas más fiel al diseño, que es más limpio"). Segunda
+vuelta: el hub ahora es una **página con tabs en vivo reales** (estado `tab` en cliente,
+igual que el mockup), no una lista de enlaces — pero sin duplicar los ~1800 líneas de
+wizard/CRUD/mapa de las páginas dedicadas:
 
-- **Franja de KPIs real** (`KPIStrip variant="strip"`): Evaluaciones SORA (`sora_assessments`
-  count), Barreras definidas (`form_definitions` con `form_type='sora'` — la tabla real
-  detrás de "Barreras de Seguridad" son los OSOs/checklist, no items con un campo de estado
-  Activa/En revisión por ítem como mostraba el mockup; no se fabricó ese estado), Reportes
-  SMS (`sms_reports` count — el mockup mostraba una clasificación Abierto/En análisis/Cerrado
-  por reporte, pero `sms_reports.status` nunca se actualiza tras crearse — no hay endpoint
-  PATCH — así que no se fabricó ese desglose, solo el total real) y VOR/MOR pendientes
-  (`vor_mor_submissions.status`, real: `recibido`/`en_investigacion` cuentan como
-  pendientes — mismos estados que ya usa `/dashboard/vor-mor`, sobre el total).
-- **Tarjetas de módulo**: mismo grid de antes, con un badge de conteo real (ej. "6
-  definidas", "3 de 5 pendientes") junto al título — dato real desde el fetch de arriba, sin
-  query nueva por tarjeta. Mapas no lleva badge numérico (es un visor ArcGIS, sin conteo
-  real que mostrar).
-- **Se omitió la franja de sub-tabs separada** del mockup (la fila con "Análisis SORA /
-  Barreras de Seguridad / Reportes SMS / VOR/MOR / Mapas" como pills clicables): como el hub
-  no intercambia contenido en el lugar, esa franja hubiera sido una segunda lista de los
-  mismos 5 enlaces duplicando las tarjetas de abajo — se dejó una sola navegación (las
-  tarjetas) en vez de fabricar una interacción de tabs sin función real detrás.
+- **SORA**: reutiliza directamente `components/sora/SoraWizard` (`dynamic import`, el mismo
+  componente que usa `/dashboard/sora`) — el botón "Nueva evaluación" del hero lo abre en un
+  modal, sin reescribir el wizard. La tabla (Operación/Fecha/Aeronave/GRC/ARC/SAIL/Estado) y
+  la franja de KPIs (Evaluaciones/SAIL promedio/Completadas/En borrador) se alimentan de
+  `GET /api/sora/assessments`, mismos datos que la página dedicada.
+- **Barreras**: grid de tarjetas (categoría + descripción) desde `form_definitions`
+  (`form_type='sora'`) — sin el campo de estado Activa/En revisión del mockup (no existe esa
+  columna; ver sección anterior). "Nueva barrera" enlaza a `/dashboard/safety-config` (CRUD
+  completo, no se duplicó el formulario).
+- **Reportes SMS**: tabla real desde `sms_reports` (antes esta tabla solo se usaba para
+  crear o exportar, nunca se listaba en una UI) — Suceso/Severidad/Fecha/Estado, con franja
+  de KPIs real (Reportes este año, Incidentes, Incidentes graves, Accidentes, contados por
+  `severity`). El mockup mostraba un consolidado VOR+MOR+SMS en una sola tabla con
+  severidad — se separó de VOR/MOR porque `vor_mor_submissions` no tiene columna de
+  severidad (fusionar habría obligado a inventar una). "Nuevo reporte" enlaza a
+  `/dashboard/sms` (formulario completo existente).
+- **VOR/MOR**: tabla real desde `GET /api/vor-mor` (Reporte/Tipo/Estado con los mismos 4
+  estados reales que ya usa `/dashboard/vor-mor`: recibido/en_investigación/cerrado/
+  archivado) + las 2 tarjetas explicativas VOR/MOR del mockup (contenido regulatorio
+  estático, real). Se omitió la columna "Enviado a AeroCivil" del mockup — no existe esa
+  columna en `vor_mor_submissions`. "Nuevo reporte VOR/MOR" enlaza a `/dashboard/vor-mor`.
+- **Mapas**: mismo iframe ArcGIS que `/dashboard/safety/mapas` (URL duplicada a propósito,
+  es una constante de referencia no lógica) embebido a menor altura + una lista corta de
+  tipos de restricción real (mismo contenido regulatorio estático de la página dedicada) en
+  vez de la "distancia a zona" fabricada del mockup (no hay cálculo geoespacial real de
+  proximidad implementado). "Abrir visor completo" enlaza a la página dedicada.
+- Cada pestaña tiene un enlace "Ver módulo completo / Gestionar X" al pie que lleva a la
+  página dedicada para todo lo que el hub no reimplementa (edición, detalle, filtros,
+  paginación) — el hub es un panorama de lectura + creación rápida, no un reemplazo.
 
 ### Recibo post-mantenimiento + trazabilidad de componentes + PDF de recibo (2026-06-25)
 

@@ -15,9 +15,11 @@ export async function GET() {
         cutoffDate.setMonth(cutoffDate.getMonth() - 6);
         const cutoffStr = cutoffDate.toISOString().split('T')[0];
 
-        const [aircraftRes, pilotsRes, chartFlightsRes, recentFlightsRes, batteriesRes] = await Promise.all([
+        const todayISO = new Date().toISOString().split('T')[0];
+
+        const [aircraftRes, pilotsRes, chartFlightsRes, recentFlightsRes, batteriesRes, nextMissionRes] = await Promise.all([
             supabase.from('aircraft')
-                .select('id,model,serial_number,total_hours,last_maintenance_hours,last_maintenance_date,created_at')
+                .select('id,model,serial_number,total_hours,last_maintenance_hours,last_maintenance_date,created_at,operational_status')
                 .eq('organization_id', orgId),
             supabase.from('pilots')
                 .select('id,name,medical_expiry')
@@ -29,13 +31,22 @@ export async function GET() {
                 .gte('flight_date', cutoffStr),
             // Solo 5 registros completos para "Actividad Reciente"
             supabase.from('flights')
-                .select('id,mission_id,flight_date,created_at,pilots:pilot_id(name),aircraft:aircraft_id(model)')
+                .select('id,mission_id,flight_date,total_time,created_at,pilots:pilot_id(name),aircraft:aircraft_id(model)')
                 .eq('organization_id', orgId)
                 .order('created_at', { ascending: false })
                 .limit(5),
             supabase.from('batteries')
                 .select('id,brand,serial_number,cycles')
+                .eq('organization_id', orgId),
+            // Próxima misión programada (hoy en adelante, no cancelada) — para el banner del hero
+            supabase.from('flight_authorizations')
+                .select('scheduled_at,location,mission_id,plan_data')
                 .eq('organization_id', orgId)
+                .gte('scheduled_at', todayISO)
+                .neq('status', 'cancelado')
+                .order('scheduled_at', { ascending: true })
+                .limit(1)
+                .maybeSingle(),
         ]);
 
         // --- 1. LÓGICA DE GRÁFICO MENSUAL (RECUPERADA Y MEJORADA) ---
@@ -105,17 +116,29 @@ export async function GET() {
             }
         });
 
+        // Próxima misión: la hora de despegue vive en plan_data.takeoff_time
+        // (scheduled_at solo guarda la fecha — ver convención del resto del proyecto).
+        const nm = nextMissionRes.data;
+        const nextMission = nm ? {
+            date: nm.scheduled_at,
+            time: nm.plan_data?.takeoff_time || null,
+            location: nm.location,
+            missionId: nm.mission_id,
+        } : null;
+
         const response = NextResponse.json({
             stats: {
                 hours: aircraftRes.data?.reduce((acc, a) => acc + (parseFloat(a.total_hours) || 0), 0).toFixed(1) || "0.0",
                 fleetCount: aircraftRes.data?.length || 0,
+                fleetReadyCount: aircraftRes.data?.filter(a => a.operational_status !== 'en_mantenimiento').length || 0,
                 pilotCount: pilotsRes.data?.length || 0,
                 alertsCount: alerts.length,
                 totalFlights: chartFlightsRes.data?.length || 0
             },
             chart: chartData,
             alerts: alerts.sort((a, b) => a.type === 'CRÍTICO' ? -1 : 1),
-            recentActivity: recentFlightsRes.data || []
+            recentActivity: recentFlightsRes.data || [],
+            nextMission,
         });
         response.headers.set('Cache-Control', 'private, max-age=120, stale-while-revalidate=300');
         return response;

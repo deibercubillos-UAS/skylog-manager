@@ -1,6 +1,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { createNotifications } from '@/lib/notify';
+import { logAudit } from '@/lib/auditLog';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -44,7 +45,7 @@ const REQUIRED_AUTHORIZATION_FIELDS = ['pilot_id', 'aircraft_id', 'location', 's
 export async function POST(request) {
     try {
         const supabase = await createClientSSR();
-        const { user, orgId } = await getOrgContext(supabase);
+        const { user, orgId, fullName } = await getOrgContext(supabase);
         if (!orgId) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
         const body = await request.json();
@@ -87,6 +88,32 @@ export async function POST(request) {
         const salt = Math.random().toString(36).substring(2, 5).toUpperCase();
         const missionId = `${prefix}-${nextNumber.toString().padStart(3, '0')}-${salt}`;
 
+        // Conflicto de agenda (no bloqueante): ¿el PIC ya tiene misión el mismo día?
+        // Granularidad por día calendario — scheduled_at guarda solo la fecha (la hora
+        // de despegue vive en plan_data.takeoff_time). Se informa en la respuesta pero
+        // NO impide crear la misión.
+        let conflictWarning = null;
+        try {
+            if (safeBody.pilot_id && safeBody.scheduled_at) {
+                const day = String(safeBody.scheduled_at).slice(0, 10);
+                if (/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+                    const { data: clash } = await supabase
+                        .from('flight_authorizations')
+                        .select('mission_id, scheduled_at')
+                        .eq('organization_id', orgId)
+                        .eq('pilot_id', safeBody.pilot_id)
+                        .neq('status', 'cancelado')
+                        .neq('status', 'realizado')
+                        .gte('scheduled_at', `${day}T00:00:00`)
+                        .lte('scheduled_at', `${day}T23:59:59.999`)
+                        .limit(1);
+                    if (clash?.length) {
+                        conflictWarning = `El piloto ya tiene una misión (${clash[0].mission_id}) programada ese día.`;
+                    }
+                }
+            }
+        } catch { /* el aviso es best-effort, nunca bloquea la creación */ }
+
         const { data, error } = await supabase.from('flight_authorizations').insert([{
             ...safeBody,
             mission_id:      missionId,
@@ -125,7 +152,12 @@ export async function POST(request) {
             }
         } catch (e) { console.warn('[authorize] notif:', e.message); }
 
-        return NextResponse.json(data[0]);
+        logAudit({
+            orgId, actorId: user.id, actorName: fullName || user.email, action: 'create', module: 'flights',
+            entityLabel: `Misión ${missionId}`, metadata: { authorization_id: data[0].id },
+        });
+
+        return NextResponse.json({ ...data[0], conflictWarning });
     } catch (err) { return NextResponse.json({ error: err.message }, { status: 500 }); }
 }
 

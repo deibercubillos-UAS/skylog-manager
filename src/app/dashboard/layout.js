@@ -1,13 +1,15 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { ROLE_LABELS, PERMISSIONS, hasPermission } from '@/lib/roles';
 import { GracePeriodContext } from '@/lib/gracePeriodContext';
 import { getOrgPlan } from '@/lib/orgPlan';
+import { PLAN_CONFIG } from '@/lib/planLimits';
 import { useRouter } from 'next/navigation';
 import NotificationBell from '@/components/NotificationBell';
+import GlobalSearch from '@/components/GlobalSearch';
 import { docOpenUrl } from '@/lib/docUrl';
 import dynamic from 'next/dynamic';
 
@@ -21,7 +23,8 @@ export default function DashboardLayout({ children }) {
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeFlight, setActiveFlight] = useState(null);
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef(null);
   const [accessExpired, setAccessExpired] = useState(false);
   const [gracePeriod, setGracePeriod]     = useState({ isGracePeriod: false, daysLeft: 0 });
   const [isSocio, setIsSocio]             = useState(false);
@@ -191,7 +194,17 @@ export default function DashboardLayout({ children }) {
   // Cierra el menú automáticamente al navegar en móviles
   useEffect(() => {
     setSidebarOpen(false);
+    setAccountMenuOpen(false);
   }, [pathname]);
+
+  // Cierra el menú de cuenta al hacer click fuera de él
+  useEffect(() => {
+    const handler = (e) => {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target)) setAccountMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   if (loading) return <div className="h-screen flex items-center justify-center bg-[#1A202C] text-white font-black animate-pulse">CARGANDO BITAFLY...</div>;
 
@@ -255,28 +268,42 @@ const displayRole = (isPilotoPlan && role === 'admin')
 
 // pilotHidden: true  → se oculta cuando el plan es 'piloto' (sin importar el rol)
 // pilotOnly: true    → se muestra SOLO cuando el plan es 'piloto'
+// group: solo se usa para agrupar visualmente el <nav> del sidebar (ver NAV_GROUPS).
+// No participa en el filtrado por rol/plan — eso lo sigue haciendo filteredLinks abajo.
 const navLinks = [
-  { name: 'Dashboard',      icon: 'dashboard',               href: '/dashboard',                 roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Mi Flota',       icon: 'precision_manufacturing', href: '/dashboard/fleet',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Tripulación',    icon: 'group',                   href: '/dashboard/pilots',          roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
-  { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      roles: ['superadmin', 'admin', 'jefe_pilotos', 'piloto'], pilotOnly: true },
+  { name: 'Dashboard',      icon: 'dashboard',               href: '/dashboard',                 group: 'Operación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Bitácora',       icon: 'menu_book',               href: '/dashboard/logbook',         group: 'Operación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      group: 'Operación', roles: ['superadmin', 'admin', 'jefe_pilotos', 'piloto'], pilotOnly: true },
   // Piloto dentro de una org: también puede planear vuelos (notifica al Jefe de Pilotos al guardar)
-  { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      roles: ['piloto'],                                         pilotHidden: true },
-  { name: 'Programación',   icon: 'event_available',         href: '/dashboard/authorizations',  roles: ['superadmin', 'admin', 'jefe_pilotos'],            pilotHidden: true },
-  { name: 'Programación Activa', icon: 'flight_takeoff',     href: '/dashboard/programacion-activa', roles: ['superadmin', 'admin', 'jefe_pilotos'],      pilotHidden: true },
+  { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      group: 'Operación', roles: ['piloto'],                                         pilotHidden: true },
+  // Programación Activa vive dentro de Programación ("Ver programación activa") — mismos roles, sin entrada propia en el sidebar.
+  { name: 'Programación',   icon: 'event_available',         href: '/dashboard/authorizations',  group: 'Operación', roles: ['superadmin', 'admin', 'jefe_pilotos'],            pilotHidden: true },
   // Vista del piloto: solo sus misiones asignadas (solo-lectura, con KMZ/PDF)
-  { name: 'Mis Vuelos',     icon: 'flight_takeoff',          href: '/dashboard/mis-vuelos',      roles: ['piloto'],                                         pilotHidden: true },
-  { name: 'Bitácora',       icon: 'menu_book',               href: '/dashboard/logbook',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Reportes',       icon: 'assessment',              href: '/dashboard/reports',         roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
-  { name: 'Seguridad Operacional', icon: 'health_and_safety', href: '/dashboard/safety',          roles: ['superadmin', 'admin', 'gerente_sms'],                    pilotHidden: true },
-  { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
-  { name: 'Listas de Chequeo', icon: 'rule',                 href: '/dashboard/settings/forms',  roles: ['superadmin', 'admin', 'gerente_sms'] },
-  // Manuales de la empresa: lectura para todos; gestión solo GG/GSMS/JP (gated en la página).
-  // pilotHidden: aplica a organizaciones, no al piloto independiente.
-  { name: 'Manuales',       icon: 'library_books',           href: '/dashboard/manuales',        roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
+  { name: 'Mis Vuelos',     icon: 'flight_takeoff',          href: '/dashboard/mis-vuelos',      group: 'Operación', roles: ['piloto'],                                         pilotHidden: true },
+  { name: 'Meteorología',   icon: 'partly_cloudy_day',       href: '/dashboard/weather',         group: 'Operación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Flota',          icon: 'precision_manufacturing', href: '/dashboard/fleet',           group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Baterías',       icon: 'battery_charging_full',   href: '/dashboard/batteries',       group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Tripulación',    icon: 'group',                   href: '/dashboard/pilots',          group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
+  // Nombre alineado con el título real de la página (PageHero "Seguridad SMS" desde el rediseño de hub con tabs).
+  { name: 'Seguridad SMS',  icon: 'health_and_safety',       href: '/dashboard/safety',          group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms'],                    pilotHidden: true },
+  // SORA ya está como tarjeta dentro de Seguridad SMS para quien ve esa página
+  // (superadmin/admin org/gerente_sms). jefe_pilotos y piloto (org) no tienen esa página en
+  // su nav, y el piloto independiente la tiene oculta (pilotHidden) — ambos necesitan entrada directa.
+  { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            group: 'Cumplimiento', roles: ['jefe_pilotos', 'piloto'] },
+  { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            group: 'Cumplimiento', roles: ['admin'],                                          pilotOnly: true },
+  { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
+  { name: 'Reportes',       icon: 'assessment',              href: '/dashboard/reports',         group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
+  { name: 'Protocolos',     icon: 'rule',                    href: '/dashboard/settings/forms',  group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms'] },
+  // Manuales de la empresa: ahora se accede desde dentro de Protocolos (Listas de Chequeo,
+  // "Ver manuales") para superadmin/admin/gerente_sms — misma página que ya veían.
+  // jefe_pilotos y piloto (org) no tienen Protocolos en su nav, así que conservan entrada directa.
+  // El piloto independiente sigue sin acceso (Manuales aplica solo a organizaciones).
+  { name: 'Manuales',       icon: 'library_books',           href: '/dashboard/manuales',        group: 'Cumplimiento', roles: ['jefe_pilotos', 'piloto'] },
 ];
+
+// Orden de renderizado de los grupos del sidebar (solo presentación).
+const NAV_GROUPS = ['Operación', 'Flota & Equipo', 'Cumplimiento'];
 
 // FILTRAR por rol, plan y flags pilotOnly / pilotHidden
 // En período de gracia: solo Dashboard y Bitácora
@@ -347,78 +374,43 @@ const footerLinks = footerLinksAll.filter(link =>
           </div>
         </Link>
 
-        {/* BLOQUE DE ESTATUS */}
-        <div className="mx-3 mt-3 p-3 bg-white/5 rounded-xl border border-white/10 flex items-center justify-between gap-2 shrink-0">
-          <div className="flex flex-col min-w-0">
-            <span className="text-xs font-black text-slate-500 uppercase tracking-tight leading-none">Plan</span>
-            <span className="text-xs font-black text-orange-400 uppercase truncate mt-0.5">
-              {plan || 'piloto'}
-            </span>
-          </div>
-          <div className="w-px h-6 bg-white/10 shrink-0" />
-          <div className="flex flex-col text-right min-w-0">
-            <span className="text-xs font-black text-slate-500 uppercase tracking-tight leading-none">NIT</span>
-            <span className="text-xs font-mono font-bold text-white leading-none mt-0.5">
-              {data.org?.tax_id || '---'}
-            </span>
-          </div>
-        </div>
-
-        {/* NAV PRINCIPAL */}
-        <nav aria-label="Menú lateral" className="flex-1 p-3 space-y-0.5 mt-2 overflow-y-auto custom-scrollbar">
-          {filteredLinks.map(link => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${
-                pathname === link.href
-                  ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20'
-                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              <span className="material-symbols-outlined text-lg shrink-0">{link.icon}</span>
-              <span className="flex-1 truncate">{link.name}</span>
-              {link.devBadge && (
-                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 uppercase tracking-wide shrink-0">DEV</span>
-              )}
-            </Link>
-          ))}
+        {/* NAV PRINCIPAL — agrupado en secciones (Operación / Flota & Equipo / Cumplimiento).
+            El agrupamiento es solo visual: filteredLinks ya trae la lista final por
+            rol/plan/período de gracia, aquí solo se reparte por link.group. */}
+        <nav aria-label="Menú lateral" className="flex-1 p-3 space-y-3 mt-2 overflow-y-auto custom-scrollbar">
+          {NAV_GROUPS.map(group => {
+            const groupLinks = filteredLinks.filter(link => link.group === group);
+            if (!groupLinks.length) return null;
+            return (
+              <div key={group} className="space-y-0.5">
+                <p className="px-4 pb-1 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  {group}
+                </p>
+                {groupLinks.map(link => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                      pathname === link.href
+                        ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20'
+                        : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-lg shrink-0">{link.icon}</span>
+                    <span className="flex-1 truncate">{link.name}</span>
+                    {link.devBadge && (
+                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 uppercase tracking-wide shrink-0">DEV</span>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            );
+          })}
         </nav>
 
         {/* PIE DE SIDEBAR */}
         {/* pb-20 lg:pb-3 → en mobile la barra inferior (h-16) tapa este bloque; el padding extra lo empuja arriba */}
         <div className="p-3 pb-16 lg:pb-3 border-t border-white/5 bg-black/10 space-y-1 shrink-0">
-          {/* ADMINISTRACIÓN COLAPSABLE */}
-          <button
-            onClick={() => setIsAdminOpen(!isAdminOpen)}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-black uppercase text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-base">settings_suggest</span>
-              <span>Administración</span>
-            </div>
-            <span className={`material-symbols-outlined text-sm transition-transform duration-300 ${isAdminOpen ? 'rotate-180' : ''}`}>
-              expand_less
-            </span>
-          </button>
-
-          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isAdminOpen ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'}`}>
-            <div className="space-y-0.5 pb-1 pt-0.5">
-              {footerLinks.map(link => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
-                    pathname === link.href ? 'text-orange-400 bg-white/5' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-base shrink-0">{link.icon}</span>
-                  {link.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-
           {/* MASTER CONTROL (superadmin) */}
           {data.profile?.role === 'superadmin' && (
             <Link
@@ -433,14 +425,79 @@ const footerLinks = footerLinksAll.filter(link =>
             </Link>
           )}
 
-          {/* CERRAR SESIÓN */}
-          <button
-            onClick={() => supabase.auth.signOut().then(() => (window.location.href = '/login'))}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black text-red-500/70 hover:text-red-400 hover:bg-red-500/10 transition-all uppercase tracking-widest"
-          >
-            <span className="material-symbols-outlined text-base">logout</span>
-            <span>Cerrar Sesión</span>
-          </button>
+          {/* WIDGET DE PLAN — mismo dueño de la suscripción que ya ve el link "Suscripción"
+              en el menú de cuenta; oculto para Enterprise (no hay a qué mejorar). */}
+          {footerLinks.some(l => l.href === '/dashboard/subscription') && plan !== 'enterprise' && (
+            <Link
+              href="/dashboard/subscription"
+              className="flex items-center justify-between gap-2 px-4 py-3 rounded-xl border-b border-white/10 hover:bg-white/5 transition-all group"
+            >
+              <div className="min-w-0">
+                <p className="text-xs font-black text-slate-500 uppercase tracking-tight leading-none">
+                  {PLAN_CONFIG[plan]?.name || 'Plan Piloto'}
+                </p>
+              </div>
+              <span className="text-xs font-black text-orange-400 uppercase tracking-wide shrink-0 group-hover:text-orange-300">
+                Mejorar
+              </span>
+            </Link>
+          )}
+
+          {/* MENÚ DE CUENTA — avatar + nombre + rol, click abre popup con
+              Perfil/Organización/Suscripción (footerLinks) + Cerrar sesión.
+              Un solo punto de entrada, en vez de 3 elementos sueltos. */}
+          <div ref={accountMenuRef} className="relative pt-2">
+            {accountMenuOpen && (
+              <div className="absolute left-0 right-0 bottom-full mb-2 bg-[#242c3a] border border-white/10 rounded-2xl p-2 shadow-2xl z-30 space-y-0.5">
+                {footerLinks.map(link => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      pathname === link.href ? 'text-orange-400 bg-white/5' : 'text-slate-300 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-base shrink-0">{link.icon}</span>
+                    {link.name}
+                  </Link>
+                ))}
+                <div className="h-px bg-white/10 my-1 mx-1" />
+                <button
+                  onClick={() => supabase.auth.signOut().then(() => (window.location.href = '/login'))}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-red-400 hover:bg-red-500/10 transition-all"
+                >
+                  <span className="material-symbols-outlined text-base">logout</span>
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+            <button
+              onClick={() => setAccountMenuOpen(v => !v)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors"
+            >
+              <div className="size-9 rounded-full bg-white/10 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+                {data.profile?.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={docOpenUrl(data.profile.avatar_url)} alt="Avatar" className="object-cover w-full h-full" />
+                ) : (
+                  <span className="text-xs font-black text-white">
+                    {(data.profile?.full_name || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1 text-left">
+                <p className="text-xs font-black text-white truncate leading-none">
+                  {data.profile?.full_name || 'Mi cuenta'}
+                </p>
+                <p className="text-xs font-bold text-slate-500 truncate mt-0.5">
+                  {displayRole}
+                </p>
+              </div>
+              <span className="material-symbols-outlined text-lg text-slate-500 shrink-0">
+                {accountMenuOpen ? 'expand_more' : 'expand_less'}
+              </span>
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -479,7 +536,19 @@ const footerLinks = footerLinksAll.filter(link =>
                 {data.org?.company_name || 'Individual'}
               </h2>
             </div>
+            {/* Estado operativo — decorativo por ahora (sin fuente de datos de estado
+                de operación); confirma visualmente que el sistema está activo. */}
+            <div className="hidden md:flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full pl-2 pr-3 py-1 shrink-0">
+              <span className="relative flex size-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full size-1.5 bg-emerald-500" />
+              </span>
+              <span className="text-[10px] font-black text-emerald-700 uppercase tracking-wide whitespace-nowrap">Operación normal</span>
+            </div>
           </div>
+
+          {/* CENTRO: búsqueda global (Fase 5.e) — endpoint /api/search acotado a la org */}
+          <GlobalSearch />
 
           {/* DERECHA: acciones + perfil */}
           <div className="flex items-center gap-1.5 md:gap-3 lg:gap-4">
@@ -542,12 +611,15 @@ const footerLinks = footerLinksAll.filter(link =>
         </header>
 
         {/* CONTENIDO DE PÁGINA */}
-        {/* pb-28 mobile = 7rem ≥ barra inferior (4rem) + safe-area máximo iPhone (2.125rem) + respiro */}
+        {/* Padding inferior extra SOLO hasta el breakpoint lg (barra de navegación inferior
+            es lg:hidden) — 7rem ≥ barra inferior (4rem) + safe-area máximo iPhone (2.125rem) +
+            respiro. En desktop (lg+) no hay barra inferior, así que no debe reservarse ese
+            espacio: antes se aplicaba siempre vía inline style, sumando scroll innecesario. */}
         {/* id="main-content" — destino del skip link de accesibilidad */}
         <div
           id="main-content"
-          className="flex-1 overflow-y-auto min-h-0 p-3 md:p-4 lg:p-10 lg:pb-10"
-          style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'max(6rem, calc(3rem + env(safe-area-inset-bottom, 8px) + 1rem))' }}
+          className="flex-1 overflow-y-auto min-h-0 p-3 md:p-4 lg:p-6 pb-[max(6rem,calc(3rem+env(safe-area-inset-bottom,8px)+1rem))] lg:pb-6"
+          style={{ WebkitOverflowScrolling: 'touch' }}
         >
           {/* Banner período de gracia */}
           {gracePeriod.isGracePeriod && (

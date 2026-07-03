@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { PERMISSIONS } from '@/lib/roles';
+import { logCaseEvent } from '@/lib/smsCase';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +34,7 @@ export async function GET() {
 export async function POST(request) {
   try {
     const supabase = await createClient();
-    const { user, orgId, role } = await getOrgContext(supabase);
+    const { user, orgId, role, fullName } = await getOrgContext(supabase);
     if (!user)  return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     if (!orgId) return NextResponse.json({ error: "Sin organización asignada" }, { status: 403 });
 
@@ -58,7 +59,7 @@ export async function POST(request) {
       aircraft_status_post:  reportData?.aircraft_status_post  ?? null,
       narrative:             reportData?.narrative             ?? null,
       immediate_actions:     reportData?.immediate_actions     ?? null,
-      status:                reportData?.status                ?? 'borrador',
+      status:                reportData?.status                ?? 'abierto',
     };
 
     const { data, error } = await supabase
@@ -71,6 +72,15 @@ export async function POST(request) {
       .select();
 
     if (error) throw error;
+
+    await logCaseEvent({
+      orgId,
+      smsReportId: data[0].id,
+      label: 'Reporte creado',
+      actorId: user.id,
+      actorName: fullName || user.email,
+    });
+
     return NextResponse.json(data[0], { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });

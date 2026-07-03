@@ -99,12 +99,43 @@ export const BASE_FIELDS = [
     section:     'event',
     hideable:    true,
   },
+  // ── Seguridad (autoevaluación del reportante) ──
+  {
+    id:          'reported_severity',
+    label:       'Severidad percibida',
+    placeholder: '',
+    type:        'select',
+    required:    true,
+    section:     'safety',
+    hideable:    true,
+    // Mismo vocabulario RAC 100 que la clasificación oficial que asigna el equipo SMS
+    // (vor_mor_submissions.severity) — se guarda en una columna separada
+    // (reported_severity) porque es la percepción del reportante, no la clasificación
+    // regulatoria final.
+    options: [
+      { value: 'incidente',       label: 'Incidente' },
+      { value: 'incidente_grave', label: 'Incidente grave' },
+      { value: 'accidente',       label: 'Accidente' },
+    ],
+  },
+  {
+    id:          'related_barrier_id',
+    label:       'Barrera de seguridad relacionada',
+    placeholder: '',
+    // Tipo especial: el listado de opciones no es estático, se resuelve en tiempo real
+    // contra las barreras activas de la organización (safety_barriers) — ver VorMorForm.js
+    type:        'barrier_select',
+    required:    false,
+    section:     'safety',
+    hideable:    true,
+  },
 ];
 
 export const SECTION_LABELS = {
   reporter:   'Datos del reportante (opcionales)',
   occurrence: 'Datos de la ocurrencia',
   event:      'Descripción del evento',
+  safety:     'Seguridad',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

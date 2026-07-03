@@ -1,18 +1,73 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { toast } from '@/lib/toast';
 import { getZoneSummary, downloadFlightKMZ, generateFlightPlanPdf } from '@/lib/flightPlanDocs';
+import KPIStrip from '@/components/KPIStrip';
 
 export default function ProgramacionActivaClient({
   pilotEmail = null,   // si se pasa, solo muestra misiones de ese piloto (vista del piloto)
   pilotId = null,      // filtro preferido por pilot_id (más fiable que el email)
   readOnly = false,    // oculta el botón "Nueva misión"
   title = 'Programación Activa',
+  embedded = false,       // true cuando se incrusta bajo el PageHero de Programación (oculta encabezado propio)
+  onCreateMission = null, // si se pasa, "Nueva misión" abre este callback en vez de navegar a /dashboard/authorizations
 } = {}) {
   const [missions, setMissions] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [busy, setBusy]         = useState(null); // `${id}:kmz` | `${id}:pdf`
+  const [view, setView]         = useState('semana'); // 'lista' | 'semana'
+  const [weekOffset, setWeekOffset] = useState(0);   // 0 = semana actual
+
+  const DAY_LABELS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  const iso = (d) => d.toISOString().slice(0, 10);
+
+  // Lunes de una semana dada (offset en semanas respecto a la actual).
+  const mondayOf = (offset) => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    const day = (d.getDay() + 6) % 7; // 0 = lunes
+    d.setDate(d.getDate() - day + offset * 7);
+    return d;
+  };
+  const daysFrom = (start) => Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    return d;
+  });
+
+  // Semana visible en el calendario (según navegación weekOffset)
+  const weekStart = mondayOf(weekOffset);
+  const weekDays = daysFrom(weekStart);
+  const missionsOn = (d) => missions.filter(m => (m.scheduled_at ? String(m.scheduled_at).slice(0, 10) : '') === iso(d));
+
+  // Semana real "de hoy" — fija, independiente de la navegación, para la franja de KPIs
+  const thisWeekDays = useMemo(() => daysFrom(mondayOf(0)), [missions]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Conflictos de agenda del PIC: mismo piloto + mismo día calendario (misma convención
+  // que /api/flights/conflicts — scheduled_at solo guarda la fecha, no la hora).
+  const conflictKeys = useMemo(() => {
+    const counts = {};
+    missions.forEach(m => {
+      if (!m.pilot_id || !m.scheduled_at) return;
+      const key = `${m.pilot_id}_${String(m.scheduled_at).slice(0, 10)}`;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return new Set(Object.keys(counts).filter(k => counts[k] > 1));
+  }, [missions]);
+  const isConflict = (m) => m.pilot_id && m.scheduled_at && conflictKeys.has(`${m.pilot_id}_${String(m.scheduled_at).slice(0, 10)}`);
+
+  // Franja de KPIs — datos reales de la semana actual (no fabricados)
+  const weekMissions = thisWeekDays.flatMap(missionsOn);
+  const distinctPilots = new Set(weekMissions.filter(m => m.pilot_id).map(m => m.pilot_id)).size;
+  const distinctAircraft = new Set(weekMissions.filter(m => m.aircraft_id).map(m => m.aircraft_id)).size;
+  const conflictCount = weekMissions.filter(isConflict).length;
+  const stats = [
+    { key: 'missions', icon: 'event_available', iconColor: '#ec5b13', label: 'Misiones esta semana', value: weekMissions.length },
+    { key: 'aircraft', icon: 'precision_manufacturing', iconColor: '#94a3b8', label: 'Aeronaves asignadas', value: distinctAircraft },
+    { key: 'pilots', icon: 'group', iconColor: '#94a3b8', label: 'Pilotos asignados', value: distinctPilots },
+    { key: 'conflicts', icon: 'warning', iconColor: conflictCount > 0 ? '#dc2626' : '#94a3b8', label: 'Conflictos de horario', value: conflictCount },
+  ];
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -85,27 +140,46 @@ export default function ProgramacionActivaClient({
     finally { setBusy(null); }
   };
 
+  // Botón/link "Nueva misión" — navega a /dashboard/authorizations salvo que el padre
+  // (Programación embebida) prefiera abrir su propio panel de creación.
+  const NewMissionCTA = ({ className }) => onCreateMission ? (
+    <button onClick={onCreateMission} className={className}>
+      <span className="material-symbols-outlined text-base">add</span> Nueva misión
+    </button>
+  ) : (
+    <Link href="/dashboard/authorizations" className={className}>
+      <span className="material-symbols-outlined text-base">add</span> Nueva misión
+    </Link>
+  );
+
   return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500 text-left pb-20">
-      {/* HEADER */}
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 border-b border-slate-200 pb-5">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-black text-navy uppercase tracking-tighter">{title}</h2>
-          <p className="text-slate-400 text-xs font-black uppercase mt-1">
-            {missions.length} {pilotEmail ? 'misiones asignadas a ti' : 'misiones registradas'}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={loadData} className="px-4 py-2.5 text-xs font-black uppercase text-slate-500 hover:text-orange-600 transition-colors flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-base">sync</span> Refrescar
-          </button>
-          {!readOnly && (
-            <Link href="/dashboard/authorizations" className="px-5 py-2.5 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-orange-700 transition-all flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-base">add</span> Nueva misión
-            </Link>
-          )}
-        </div>
-      </header>
+    <div className={embedded ? 'space-y-5' : 'max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500 text-left pb-20'}>
+      {/* HEADER — oculto cuando se incrusta bajo el PageHero de Programación */}
+      {!embedded && (
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 border-b border-slate-200 pb-5">
+          <div>
+            <h2 className="text-2xl md:text-3xl font-black text-navy uppercase tracking-tighter">{title}</h2>
+            <p className="text-slate-400 text-xs font-black uppercase mt-1">
+              {missions.length} {pilotEmail ? 'misiones asignadas a ti' : 'misiones registradas'}
+            </p>
+          </div>
+          <div className="flex gap-2 items-center">
+            <button onClick={loadData} className="px-4 py-2.5 text-xs font-black uppercase text-slate-500 hover:text-orange-600 transition-colors flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-base">sync</span> Refrescar
+            </button>
+            {!readOnly && (
+              <NewMissionCTA className="px-5 py-2.5 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-orange-700 transition-all flex items-center gap-1.5" />
+            )}
+          </div>
+        </header>
+      )}
+
+      {/* Franja de KPIs — datos reales de la semana en curso */}
+      {!loading && (
+        <section aria-label="Indicadores de programación" className="bg-white rounded-[1.5rem] border border-slate-100 px-2 py-3 md:px-4">
+          <KPIStrip variant="strip" items={stats} />
+        </section>
+      )}
 
       {loading ? (
         <div className="p-16 text-center text-slate-400 font-black text-xs uppercase tracking-widest animate-pulse">
@@ -118,13 +192,94 @@ export default function ProgramacionActivaClient({
             {pilotEmail ? 'No tienes vuelos programados' : 'Sin misiones programadas'}
           </p>
           {!readOnly && (
-            <Link href="/dashboard/authorizations" className="inline-block mt-5 px-6 py-3 bg-navy text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all">
-              Programar una misión
-            </Link>
+            <NewMissionCTA className="inline-flex items-center gap-1.5 mt-5 px-6 py-3 bg-navy text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all" />
           )}
         </div>
       ) : (
         <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+          {/* Toolbar: navegación de semana (si aplica) + selector Semana/Lista */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-wrap gap-3">
+            <div className="flex items-center gap-2.5 min-h-[28px]">
+              {view === 'semana' ? (
+                <>
+                  <button onClick={() => setWeekOffset(o => o - 1)} className="size-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-all">
+                    <span className="material-symbols-outlined text-base">chevron_left</span>
+                  </button>
+                  <span className="text-xs font-black text-slate-800 whitespace-nowrap">
+                    Semana del {weekStart.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })} — {weekDays[6].toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
+                  </span>
+                  <button onClick={() => setWeekOffset(o => o + 1)} className="size-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-all">
+                    <span className="material-symbols-outlined text-base">chevron_right</span>
+                  </button>
+                  {weekOffset !== 0 && (
+                    <button onClick={() => setWeekOffset(0)} className="text-[10.5px] font-black text-orange-500 uppercase ml-1">Hoy</button>
+                  )}
+                </>
+              ) : (
+                <span className="text-xs font-black uppercase tracking-widest text-slate-700">
+                  {missions.length} {pilotEmail ? 'misiones asignadas a ti' : 'misiones registradas'}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
+                {['semana', 'lista'].map(v => (
+                  <button key={v} onClick={() => setView(v)}
+                    className={`px-3.5 py-1.5 rounded-lg text-[10.5px] font-black uppercase transition-all ${view === v ? 'bg-navy text-white shadow-sm' : 'text-slate-500'}`}>
+                    {v === 'lista' ? 'Lista' : 'Semana'}
+                  </button>
+                ))}
+              </div>
+              <button onClick={loadData} title="Refrescar" className="size-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-orange-600 transition-colors">
+                <span className="material-symbols-outlined text-base">sync</span>
+              </button>
+            </div>
+          </div>
+
+          {view === 'semana' ? (
+            <>
+              {/* Encabezados de día */}
+              <div className="hidden sm:grid grid-cols-7 border-b border-slate-100">
+                {weekDays.map((d, i) => {
+                  const isToday = iso(d) === iso(new Date());
+                  return (
+                    <div key={i} className={`text-center py-3 ${isToday ? 'bg-orange-50' : ''}`}>
+                      <p className={`text-[9px] font-black uppercase tracking-widest ${isToday ? 'text-orange-600' : 'text-slate-400'}`}>{DAY_LABELS[i]}</p>
+                      <p className={`text-base font-black mt-0.5 ${isToday ? 'text-orange-600' : 'text-navy'}`}>{d.getDate()}</p>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Grilla 7 días */}
+              <div className="grid grid-cols-1 sm:grid-cols-7 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+                {weekDays.map((d, i) => {
+                  const dayMissions = missionsOn(d);
+                  const isToday = iso(d) === iso(new Date());
+                  return (
+                    <div key={i} className={`min-h-[140px] p-2 space-y-1.5 ${isToday ? 'bg-orange-50/30' : ''}`}>
+                      <p className="sm:hidden text-[10px] font-black uppercase tracking-widest text-slate-400">{DAY_LABELS[i]} {d.getDate()}</p>
+                      {dayMissions.map(m => {
+                        const conflict = isConflict(m);
+                        return (
+                          <div key={m.id} className={`rounded-lg px-2.5 py-1.5 ${conflict ? 'bg-red-50 border-l-2 border-red-600' : 'bg-orange-50/60 border-l-2 border-orange-500'}`}>
+                            {conflict && (
+                              <div className="flex items-center gap-1 text-[9px] font-black text-red-600 uppercase">
+                                <span className="material-symbols-outlined text-xs">warning</span> Conflicto
+                              </div>
+                            )}
+                            <p className={`text-[10px] font-black ${conflict ? 'text-red-600' : 'text-orange-600'}`}>{m.plan_data?.takeoff_time || m.mission_id}</p>
+                            <p className="text-[11px] font-bold text-slate-700 truncate mt-0.5">{m.mission_type || m.mission_id}</p>
+                            <p className="text-[10px] text-slate-400 truncate">{m.pilots?.name || '---'}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <>
           {/* Mobile cards */}
           <div className="md:hidden divide-y divide-slate-100">
             {missions.map(m => {
@@ -199,6 +354,8 @@ export default function ProgramacionActivaClient({
               </tbody>
             </table>
           </div>
+            </>
+          )}
         </div>
       )}
     </div>

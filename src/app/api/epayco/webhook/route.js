@@ -253,6 +253,26 @@ export async function POST(request) {
       console.error('[epayco] atribución socio falló (no crítico):', attrErr.message);
     }
 
+    // ── Historial de facturación (Fase 5.d, no crítico — nunca rompe el webhook) ──
+    // Comprobante informativo. Idempotente por ref_payco (unique). Si la tabla no
+    // existe aún (migración sin aplicar), el error se ignora.
+    try {
+      const { data: prof } = await supabase
+        .from('profiles').select('organization_id').eq('id', userId).maybeSingle();
+      await supabase.from('billing_history').insert({
+        organization_id: prof?.organization_id || null,
+        user_id:         userId,
+        ref_payco:       refPayco || null,
+        plan_key:        planKey,
+        billing:         billing || 'monthly',
+        amount:          params.x_amount ? Number(params.x_amount) : null,
+        currency:        params.x_currency_code || 'COP',
+        status:          'pagada',
+      }).then(() => {}, () => {}); // ignora unique/tabla-inexistente en silencio
+    } catch (billErr) {
+      console.error('[epayco] billing_history falló (no crítico):', billErr.message);
+    }
+
     console.log(`[epayco] ✓ Suscripción activada vía webhook: user=${userId} plan=${planKey} billing=${billing}`);
     return NextResponse.json({ success: true });
 

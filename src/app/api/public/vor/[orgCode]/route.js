@@ -8,6 +8,7 @@ import { resolveOrg, supabaseAdmin } from '../../_resolveOrg';
 import { escHtml } from '@/lib/emailHelpers';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 import { PERMISSIONS } from '@/lib/roles';
+import { logCaseEvent } from '@/lib/smsCase';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  GET: definición del formulario VOR para la org
@@ -28,9 +29,17 @@ export async function GET(request, { params }) {
 
         if (error) throw error;
 
+        const { data: barriers } = await supabaseAdmin
+            .from('safety_barriers')
+            .select('id, name')
+            .eq('organization_id', org.id)
+            .eq('status', 'Activa')
+            .order('name');
+
         return NextResponse.json({
             org_name: org.company_name,
             form: def || null,   // null → org no ha configurado VOR aún
+            barriers: barriers || [],
         });
     } catch (err) {
         return NextResponse.json({ error: err.message }, { status: 500 });
@@ -74,12 +83,28 @@ export async function POST(request, { params }) {
             description,
             immediate_actions,
             contributing_factors,
+            reported_severity,
+            related_barrier_id,
             attachments,
             custom_responses,
         } = body;
 
         if (!description?.trim()) {
             return NextResponse.json({ error: 'La descripción del evento es obligatoria' }, { status: 400 });
+        }
+
+        const VALID_REPORTED_SEVERITIES = ['incidente', 'incidente_grave', 'accidente'];
+        const safeReportedSeverity = VALID_REPORTED_SEVERITIES.includes(reported_severity) ? reported_severity : null;
+
+        let safeBarrierId = null;
+        if (related_barrier_id) {
+            const { data: barrier } = await supabaseAdmin
+                .from('safety_barriers')
+                .select('id')
+                .eq('id', related_barrier_id)
+                .eq('organization_id', org.id)
+                .maybeSingle();
+            if (barrier) safeBarrierId = barrier.id;
         }
 
         // IP para auditoría básica (reutilizar la ya extraída para rate limiting)
@@ -99,6 +124,8 @@ export async function POST(request, { params }) {
                 description: description.trim(),
                 immediate_actions: immediate_actions?.trim() || null,
                 contributing_factors: contributing_factors?.trim() || null,
+                reported_severity: safeReportedSeverity,
+                related_barrier_id: safeBarrierId,
                 attachments: attachments || [],
                 custom_responses: custom_responses || {},
                 ip_address: submitterIp,
@@ -107,6 +134,13 @@ export async function POST(request, { params }) {
             .single();
 
         if (insertErr) throw insertErr;
+
+        await logCaseEvent({
+            orgId: org.id,
+            vorMorId: submission.id,
+            label: 'Reporte VOR recibido',
+            actorName: submission.is_anonymous ? null : (reporter_name?.trim() || null),
+        });
 
         // Notificar por email al equipo SMS de la org
         await notifySms({ org, submission, type: 'VOR', reporter_name, reporter_email, description });
@@ -145,7 +179,7 @@ async function notifySms({ org, submission, type, reporter_name, reporter_email,
         const isAnonymous = !reporter_name;
         const reporterLabel = isAnonymous ? 'Anónimo' : escHtml(reporter_name);
         const safeDescription = escHtml(description?.substring(0, 200)) + (description?.length > 200 ? '…' : '');
-        const dashUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://bitafly.com'}/dashboard/seguridad-operacional?tab=reportes`;
+        const dashUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://bitafly.com'}/dashboard/safety`;
 
         for (const recipient of recipients) {
             await resend.emails.send({

@@ -108,10 +108,13 @@ export default function NewOperationPage() {
         loadLabels();
     }, [step, selectedAuth]);
 
-    // El piloto (rol 'piloto') solo ve las órdenes donde es el PIC asignado.
+    // El piloto (rol 'piloto') solo ve las órdenes donde es el PIC asignado, y
+    // únicamente las programadas para el día de hoy (scheduled_at) — no puede
+    // adelantar ni atrasar el despacho respecto a la fecha programada.
     // Managers (admin, jefe_pilotos, gerente_sms) ven todas para despachar.
+    const todayISO = new Date().toISOString().split('T')[0];
     const visibleAuths = (userRole === 'piloto' && myPilotId)
-        ? resources.auths.filter(a => a.pilot_id === myPilotId)
+        ? resources.auths.filter(a => a.pilot_id === myPilotId && String(a.scheduled_at || '').slice(0, 10) === todayISO)
         : resources.auths;
 
     const handleAuthChange = (id) => {
@@ -358,7 +361,7 @@ export default function NewOperationPage() {
                                         </select>
                                         {userRole === 'piloto' && visibleAuths.length === 0 && (
                                             <p className="text-xs font-bold text-slate-400 bg-slate-50 rounded-2xl p-4 mt-2">
-                                                No tienes vuelos asignados por el momento.
+                                                No tienes vuelos programados para hoy. Solo puedes despachar misiones asignadas a ti en la fecha programada.
                                             </p>
                                         )}
                                     </div>

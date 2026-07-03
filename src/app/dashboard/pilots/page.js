@@ -1,35 +1,39 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import { isGerenteGeneral } from '@/lib/planLimits';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import PageHero from '@/components/PageHero';
+import KPIStrip from '@/components/KPIStrip';
 
 const AddPilotPanel  = dynamic(() => import('@/components/AddPilotPanel'),  { ssr: false });
 const EditPilotPanel = dynamic(() => import('@/components/EditPilotPanel'), { ssr: false });
 
+// Duración real de un vuelo en horas — mismo criterio que PilotDashboard.js
+// (prefiere total_time, si no calcula desde takeoff/landing).
+function flightHours(f) {
+  if (f.total_time) return Number(f.total_time) || 0;
+  if (!f.takeoff_time || !f.landing_time) return 0;
+  const [h1, m1] = f.takeoff_time.split(':').map(Number);
+  const [h2, m2] = f.landing_time.split(':').map(Number);
+  const mins = (h2 * 60 + m2) - (h1 * 60 + m1);
+  return mins > 0 ? mins / 60 : 0;
+}
+
 export default function PilotsPage() {
-  const router      = useRouter();
-  const menuRef     = useRef(null);
   const [pilots,        setPilots]        = useState([]);
+  const [hoursByPilot,  setHoursByPilot]  = useState({});
   const [loading,       setLoading]       = useState(true);
   const [userRole,      setUserRole]      = useState(null);
-  const [orgId,         setOrgId]         = useState(null);
   const [showAddPanel,  setShowAddPanel]  = useState(false);
   const [editingPilot,  setEditingPilot]  = useState(null);
-  const [openMenuId,    setOpenMenuId]    = useState(null);
   const [confirmDlg,    setConfirmDlg]    = useState(null);
 
-  // ── Cerrar menú al click fuera ──────────────────────────────────────────
-  useEffect(() => {
-    const handle = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setOpenMenuId(null);
-    };
-    document.addEventListener('mousedown', handle);
-    return () => document.removeEventListener('mousedown', handle);
-  }, []);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   // ── Carga de datos ─────────────────────────────────────────────────────
   const loadData = async () => {
@@ -48,17 +52,23 @@ export default function PilotsPage() {
       if (!prof?.organization_id) { window.location.href = '/login'; return; }
 
       setUserRole(prof.role);
-      setOrgId(prof.organization_id);
 
-      const { data: pilotsData } = await supabase
-        .from('pilots')
-        .select('*')
-        .eq('organization_id', prof.organization_id)
-        .order('name', { ascending: true });
+      const [resPilots, resFlights] = await Promise.all([
+        supabase.from('pilots').select('*').eq('organization_id', prof.organization_id).order('name', { ascending: true }),
+        supabase.from('flights').select('pilot_id, total_time, takeoff_time, landing_time').eq('organization_id', prof.organization_id),
+      ]);
 
       // El Gerente General (dueño/representante legal) no se muestra en el roster
       // de tripulación — no es tripulación operativa.
-      setPilots((pilotsData || []).filter(p => !isGerenteGeneral(p.pilot_role)));
+      setPilots((resPilots.data || []).filter(p => !isGerenteGeneral(p.pilot_role)));
+
+      // Horas PIC totales por piloto — dato real, sumado desde la bitácora.
+      const hoursMap = {};
+      (resFlights.data || []).forEach(f => {
+        if (!f.pilot_id) return;
+        hoursMap[f.pilot_id] = (hoursMap[f.pilot_id] || 0) + flightHours(f);
+      });
+      setHoursByPilot(hoursMap);
     } catch (err) {
       console.error('Error cargando tripulación:', err.message);
     } finally {
@@ -72,7 +82,6 @@ export default function PilotsPage() {
   const canEditMedical = ['superadmin', 'admin', 'jefe_pilotos'].includes(userRole);
 
   const handleDelete = (pilot) => {
-    setOpenMenuId(null);
     setConfirmDlg({
       isOpen: true,
       title: `¿Eliminar a ${pilot.name}?`,
@@ -93,10 +102,8 @@ export default function PilotsPage() {
     });
   };
 
-  const handleEdit = (pilot) => {
-    setOpenMenuId(null);
-    setEditingPilot(pilot);
-  };
+  // Iniciales para el avatar (mismo patrón que la tarjeta de usuario del sidebar).
+  const initials = (name) => (name || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
   // ── Badge de estado de invitación ──────────────────────────────────────
   const invitationBadge = (status) => {
@@ -110,10 +117,24 @@ export default function PilotsPage() {
   const medicalStatus = (expiry) => {
     if (!expiry) return null;
     const diff = (new Date(expiry) - new Date()) / (1000 * 60 * 60 * 24);
-    if (diff < 0)  return { color: 'bg-red-100 text-red-600 border-red-200',       label: 'VENCIDO' };
-    if (diff < 30) return { color: 'bg-orange-100 text-orange-600 border-orange-200', label: `Vence en ${Math.round(diff)}d` };
-    return           { color: 'bg-emerald-100 text-emerald-600 border-emerald-200',  label: 'Vigente' };
+    if (diff < 0)  return { tone: 'text-red-600',    label: `Vencida ${new Date(expiry).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}` };
+    if (diff < 30) return { tone: 'text-amber-600',  label: `Vence ${new Date(expiry).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}` };
+    return           { tone: 'text-emerald-600', label: `Vigente · ${new Date(expiry).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}` };
   };
+
+  const uniqueRoles = useMemo(() => [...new Set(pilots.map(p => p.pilot_role || p.position).filter(Boolean))], [pilots]);
+
+  const filteredPilots = useMemo(() => {
+    let result = pilots;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      result = result.filter(p => p.name?.toLowerCase().includes(q) || p.license_number?.toLowerCase().includes(q) || p.email?.toLowerCase().includes(q));
+    }
+    if (roleFilter) result = result.filter(p => (p.pilot_role || p.position) === roleFilter);
+    if (statusFilter === 'activo')   result = result.filter(p => p.is_active !== false);
+    if (statusFilter === 'inactivo') result = result.filter(p => p.is_active === false);
+    return result;
+  }, [pilots, search, roleFilter, statusFilter]);
 
   if (loading) return (
     <div className="p-20 text-center font-black animate-pulse text-slate-300 uppercase tracking-widest text-xs">
@@ -121,179 +142,157 @@ export default function PilotsPage() {
     </div>
   );
 
+  const activeCount = pilots.filter(p => p.is_active !== false).length;
+  const totalHours = Object.values(hoursByPilot).reduce((s, h) => s + h, 0);
+  const expiringCount = pilots.filter(p => {
+    const ms = medicalStatus(p.medical_expiry);
+    return ms && !ms.label.startsWith('Vigente');
+  }).length;
+
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500 text-left pb-20">
+    <div className="space-y-5 md:space-y-8 animate-in fade-in duration-500 text-left pb-20">
 
-      {/* Header */}
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-slate-200 pb-5">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter">Tripulación</h2>
-          <p className="text-slate-400 text-xs font-black uppercase mt-1">{pilots.length} miembro{pilots.length !== 1 ? 's' : ''}</p>
-        </div>
-        {canManage && (
-          <button
-            onClick={() => setShowAddPanel(true)}
-            className="flex items-center gap-2 bg-orange-600 hover:bg-slate-900 text-white px-5 py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-orange-500/20 transition-all active:scale-95"
-          >
-            <span className="material-symbols-outlined text-sm">person_add</span>
-            Registrar Miembro
-          </button>
-        )}
-      </header>
-
-      {/* Lista — Mobile cards */}
-      <div className="md:hidden divide-y divide-slate-100 bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        {pilots.length === 0 ? (
-          <div className="py-16 text-center">
-            <span className="material-symbols-outlined text-5xl text-slate-200 block mb-3">group</span>
-            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Sin pilotos registrados</p>
+      <PageHero
+        eyebrow="Flota & Equipo"
+        title="Tripulación"
+        description="Pilotos, licencias RPAS y vigencia de certificaciones."
+        right={
+          <div className="flex items-center gap-4 md:gap-6">
+            {expiringCount > 0 && (
+              <div className="hidden sm:flex flex-col justify-center pr-4 md:pr-6 border-r border-white/10">
+                <p className="text-xs font-black uppercase tracking-wide text-white/40">Certificaciones por vencer</p>
+                <p className="text-sm font-black text-orange-400 mt-1 whitespace-nowrap">{expiringCount} piloto{expiringCount !== 1 ? 's' : ''}</p>
+              </div>
+            )}
+            {canManage && (
+              <button
+                onClick={() => setShowAddPanel(true)}
+                className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-600/20 transition-all active:scale-95 shrink-0"
+              >
+                <span className="material-symbols-outlined text-base">person_add</span>
+                Nuevo piloto
+              </button>
+            )}
           </div>
-        ) : pilots.map(p => {
+        }
+      />
+
+      <section aria-label="Indicadores de tripulación" className="bg-white rounded-[1.5rem] border border-slate-100 px-2 py-3 md:px-4">
+        <KPIStrip variant="strip" items={[
+          { key: 'total', label: 'Total pilotos', value: pilots.length, icon: 'group', iconColor: '#ec5b13' },
+          { key: 'active', label: 'Activos', value: activeCount, icon: 'check_circle', iconColor: '#16a34a' },
+          { key: 'hours', label: 'Horas PIC totales', value: totalHours.toFixed(1), unit: 'h', icon: 'schedule', iconColor: '#94a3b8' },
+          { key: 'expiring', label: 'Por vencer', value: expiringCount, icon: 'warning', iconColor: expiringCount > 0 ? '#d97706' : '#94a3b8' },
+        ]} />
+      </section>
+
+      {/* Barra de filtros */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col md:flex-row md:items-center gap-3">
+        <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2.5 min-w-0 md:max-w-xs">
+          <span className="material-symbols-outlined text-base text-slate-400 shrink-0">search</span>
+          <input
+            placeholder="Buscar por nombre, licencia…"
+            aria-label="Buscar tripulación"
+            className="flex-1 min-w-0 bg-transparent text-xs font-bold outline-none placeholder:text-slate-400"
+            value={search} onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <select aria-label="Filtrar por rol" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
+            <option value="">Todos los roles</option>
+            {uniqueRoles.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+          <select aria-label="Filtrar por estado" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value="">Todos los estados</option>
+            <option value="activo">Activo</option>
+            <option value="inactivo">Inactivo</option>
+          </select>
+        </div>
+      </div>
+
+      <p className="text-slate-400 text-xs font-black uppercase tracking-widest">{filteredPilots.length} de {pilots.length} miembro{pilots.length !== 1 ? 's' : ''}</p>
+
+      {/* Grid de tarjetas */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {filteredPilots.map(p => {
           const ms = medicalStatus(p.medical_expiry);
+          const ib = invitationBadge(p.invitation_status);
+          const active = p.is_active !== false;
+          const hours = hoursByPilot[p.id] || 0;
           return (
-            <div key={p.id} className="p-4 flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="size-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-slate-400 text-xl">person</span>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-black text-slate-900 truncate">{p.name}</p>
-                  <p className="text-xs text-slate-400 font-bold uppercase truncate">{p.pilot_role || p.position || 'Piloto'}</p>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    {(() => {
-                      const ib = invitationBadge(p.invitation_status);
-                      return ib ? (
-                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black border ${ib.color}`}>
-                          {ib.label}
-                        </span>
-                      ) : null;
-                    })()}
-                    {ms && (
-                      <span className={`px-2 py-0.5 rounded-lg text-xs font-black border ${ms.color}`}>
-                        {ms.label}
-                      </span>
-                    )}
-                    {(() => {
-                      const docs = [p.id_doc_url, p.pilot_course_url, p.theoretical_exam_url, p.medical_cert_url].filter(Boolean);
-                      return docs.length > 0 ? (
-                        <span className="flex items-center gap-0.5 text-[10px] font-black text-emerald-600">
-                          <span className="material-symbols-outlined text-sm">folder</span>
-                          {docs.length}/4
-                        </span>
-                      ) : null;
-                    })()}
+            <div key={p.id} className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col gap-3 hover:shadow-md hover:border-orange-200 transition-all">
+              <div className="flex items-center gap-2.5">
+                {p.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.avatar_url} alt="" className="size-10 rounded-full object-cover shrink-0" />
+                ) : (
+                  <div className="size-10 rounded-full bg-[#1A202C] text-white flex items-center justify-center font-black text-xs shrink-0">
+                    {initials(p.name)}
                   </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-black text-slate-900 text-xs truncate">{p.name}</p>
+                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wide truncate">{p.pilot_role || p.position || 'Piloto'}</p>
+                </div>
+                <span className={`size-2 rounded-full shrink-0 ${active ? 'bg-emerald-500' : 'bg-slate-300'}`} title={active ? 'Activo' : 'Inactivo'} />
+              </div>
+
+              {ib && (
+                <span className={`self-start px-2 py-0.5 rounded-lg text-[9.5px] font-black border ${ib.color}`}>{ib.label}</span>
+              )}
+
+              <div className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm text-slate-400">badge</span>
+                <span className="text-[10.5px] font-bold text-slate-600 font-mono truncate">{p.license_number || 'Sin licencia registrada'}</span>
+              </div>
+
+              <div className="flex items-end justify-between pt-2.5 border-t border-slate-100">
+                <div>
+                  <p className="text-[8px] font-black uppercase tracking-wide text-slate-400">Horas PIC</p>
+                  <p className="text-sm font-black text-orange-600">{hours.toFixed(1)}h</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[8px] font-black uppercase tracking-wide text-slate-400">Certificación</p>
+                  {ms ? (
+                    <p className={`text-[10px] font-bold mt-0.5 ${ms.tone}`}>{ms.label}</p>
+                  ) : (
+                    <p className="text-[10px] font-bold text-slate-300 mt-0.5">Sin registrar</p>
+                  )}
                 </div>
               </div>
+
               {canManage && (
-                <div className="flex gap-1.5 shrink-0">
+                <div className="flex gap-2 pt-1">
                   <button
-                    onClick={() => handleEdit(p)}
-                    className="size-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 active:scale-95 transition-all"
+                    onClick={() => setEditingPilot(p)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-slate-50 text-slate-500 hover:text-orange-600 hover:bg-orange-50 transition-colors text-[10px] font-black uppercase"
                   >
-                    <span className="material-symbols-outlined text-base">edit</span>
+                    <span className="material-symbols-outlined text-sm">edit</span>
+                    Editar
                   </button>
                   <button
                     onClick={() => handleDelete(p)}
-                    className="size-9 flex items-center justify-center rounded-xl bg-red-50 text-red-400 active:scale-95 transition-all"
+                    className="size-8 flex items-center justify-center rounded-lg bg-red-50 text-red-400 hover:bg-red-600 hover:text-white transition-colors active:scale-95 shrink-0"
+                    aria-label="Eliminar piloto"
                   >
-                    <span className="material-symbols-outlined text-base">delete</span>
+                    <span className="material-symbols-outlined text-sm">delete</span>
                   </button>
                 </div>
               )}
             </div>
           );
         })}
-      </div>
-
-      {/* Lista — Desktop table */}
-      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        {pilots.length === 0 ? (
-          <div className="py-20 text-center">
+        {pilots.length === 0 && (
+          <div className="col-span-full text-center py-16">
             <span className="material-symbols-outlined text-5xl text-slate-200 block mb-3">group</span>
             <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Sin pilotos registrados</p>
           </div>
-        ) : (
-          <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr className="text-xs font-black uppercase text-slate-400 tracking-widest">
-                <th className="px-6 py-4">Nombre</th>
-                <th className="px-6 py-4">Rol / Habilitaciones</th>
-                <th className="px-6 py-4">Licencia</th>
-                <th className="px-6 py-4">Estado Médico</th>
-                <th className="px-6 py-4">Docs</th>
-                {canManage && <th className="px-6 py-4 text-right">Acciones</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {pilots.map(p => {
-                const ms = medicalStatus(p.medical_expiry);
-                return (
-                  <tr key={p.id} className="hover:bg-orange-50/30 transition-colors text-sm">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="size-9 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                          <span className="material-symbols-outlined text-slate-400 text-lg">person</span>
-                        </div>
-                        <div>
-                          <p className="font-black text-slate-900 text-sm">{p.name}</p>
-                          {p.email && <p className="text-xs text-slate-400">{p.email}</p>}
-                          {(() => {
-                            const ib = invitationBadge(p.invitation_status);
-                            return ib ? (
-                              <span className={`inline-block mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black border ${ib.color}`}>
-                                {ib.label}
-                              </span>
-                            ) : null;
-                          })()}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-xs font-bold text-slate-600 uppercase">{p.pilot_role || p.position || '—'}</td>
-                    <td className="px-6 py-4 font-mono text-xs text-slate-500">{p.license_number || '—'}</td>
-                    <td className="px-6 py-4">
-                      {ms ? (
-                        <span className={`px-2.5 py-1 rounded-xl text-xs font-black border ${ms.color}`}>{ms.label}</span>
-                      ) : (
-                        <span className="text-slate-300 text-xs">—</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {(() => {
-                        const docs = [p.id_doc_url, p.pilot_course_url, p.theoretical_exam_url, p.medical_cert_url].filter(Boolean);
-                        return docs.length > 0 ? (
-                          <span className="flex items-center gap-1 text-xs font-black text-emerald-600">
-                            <span className="material-symbols-outlined text-sm">folder</span>
-                            {docs.length}/4
-                          </span>
-                        ) : (
-                          <span className="text-slate-300 text-xs">—</span>
-                        );
-                      })()}
-                    </td>
-                    {canManage && (
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleEdit(p)}
-                            className="size-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-orange-50 hover:text-orange-600 active:scale-95 transition-all"
-                          >
-                            <span className="material-symbols-outlined text-base">edit</span>
-                          </button>
-                          <button
-                            onClick={() => handleDelete(p)}
-                            className="size-9 flex items-center justify-center rounded-xl bg-slate-100 text-red-400 hover:bg-red-50 active:scale-95 transition-all"
-                          >
-                            <span className="material-symbols-outlined text-base">delete</span>
-                          </button>
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        )}
+        {pilots.length > 0 && filteredPilots.length === 0 && (
+          <div className="col-span-full text-center py-16">
+            <span className="material-symbols-outlined text-5xl text-slate-200 block mb-3">search_off</span>
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Sin resultados con los filtros seleccionados</p>
+          </div>
         )}
       </div>
 

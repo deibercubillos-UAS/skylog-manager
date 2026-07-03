@@ -5,6 +5,7 @@ import { fmtDateMed } from '@/lib/formatters';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { sailRoman, sailColor } from '@/lib/soraEngine';
+import PageHero from '@/components/PageHero';
 
 const SoraWizard = dynamic(() => import('@/components/sora/SoraWizard'), { ssr: false });
 
@@ -299,15 +300,13 @@ export default function SoraPage() {
         </Link>
 
         {/* ── Header ──────────────────────────────────────────────────────── */}
-        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-slate-200 pb-4">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">
-              Análisis SORA
-            </h2>
-            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">
-              Metodología JARUS v2.0 · Cumplimiento RAC 100
-            </p>
-          </div>
+        <PageHero
+          eyebrow="Cumplimiento"
+          title="Análisis SORA"
+          description="Metodología JARUS v2.0 · Cumplimiento RAC 100"
+        />
+
+        <div className="flex justify-end">
           <button
             onClick={() => setShowWizard(true)}
             className="flex items-center justify-center gap-2 bg-orange-600 hover:bg-slate-900 text-white px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-orange-500/20 active:scale-95 w-full sm:w-auto"
@@ -315,7 +314,7 @@ export default function SoraPage() {
             <span className="material-symbols-outlined text-sm">add_circle</span>
             Nueva Evaluación
           </button>
-        </header>
+        </div>
 
         {/* ── KPIs (solo si hay evaluaciones) ─────────────────────────────── */}
         {kpis && (

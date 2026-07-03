@@ -67,6 +67,7 @@ export async function POST(request) {
         cycles:          Number(body.cycles)        || 0,
         health_status:   Number(body.health_status) || 100,
         status:          'Operativo',
+        last_maintenance: body.last_maintenance || null,
       }])
       .select()
       .single();

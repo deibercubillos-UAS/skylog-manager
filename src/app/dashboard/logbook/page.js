@@ -1,9 +1,12 @@
 ﻿'use client';
 import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { PERMISSIONS } from '@/lib/roles';
 import { useGracePeriod } from '@/lib/gracePeriodContext';
 import dynamic from 'next/dynamic';
+import PageHero from '@/components/PageHero';
+import KPIStrip from '@/components/KPIStrip';
 
 const FlightReplayModal = dynamic(() => import('@/components/FlightReplayModal'), { ssr: false });
 const DjiRcSync         = dynamic(() => import('@/components/DjiRcSync'),         { ssr: false });
@@ -39,11 +42,11 @@ export default function LogbookPage() {
     // Optimistic: track which flights tuvieron replay guardado en esta sesión
     const [savedReplays, setSavedReplays] = useState(() => new Set());
 
+    // Búsqueda unificada: misión, aeronave (modelo/serie) o piloto en un solo campo
+    const [search, setSearch] = useState('');
     const [filters, setFilters] = useState({
         date: '',
-        mission_id: '',
         model: '',
-        serial: '',
         type: '',
         condition: '',
         pilot: ''
@@ -132,18 +135,41 @@ export default function LogbookPage() {
     // Filtrado en memoria — solo recalcula cuando cambian filtros o datos
     const filteredFlights = useMemo(() => {
         let result = flights;
+        if (search.trim()) {
+            const q = search.trim().toLowerCase();
+            result = result.filter(f =>
+                f.mission_id?.toLowerCase().includes(q) ||
+                f.aircraft?.model?.toLowerCase().includes(q) ||
+                f.aircraft?.serial_number?.toLowerCase().includes(q) ||
+                f.pilots?.name?.toLowerCase().includes(q)
+            );
+        }
         if (filters.date)       result = result.filter(f => f.flight_date?.includes(filters.date));
-        if (filters.mission_id) result = result.filter(f => f.mission_id?.toLowerCase().includes(filters.mission_id.toLowerCase()));
         if (filters.model)      result = result.filter(f => f.aircraft?.model === filters.model);
-        if (filters.serial)     result = result.filter(f => f.aircraft?.serial_number?.toLowerCase().includes(filters.serial.toLowerCase()));
         if (filters.type)       result = result.filter(f => f.mission_type === filters.type);
         if (filters.condition)  result = result.filter(f => f.visual_condition === filters.condition);
         if (filters.pilot)      result = result.filter(f => f.pilots?.name === filters.pilot);
         return result;
-    }, [filters, flights]);
+    }, [search, filters, flights]);
+
+    // KPIs derivados de los vuelos ya cargados (sin queries nuevas).
+    const stats = useMemo(() => {
+        const ym = new Date().toISOString().slice(0, 7); // YYYY-MM actual
+        const totalHours = flights.reduce((sum, f) => {
+            const tt = parseFloat(f.total_time);
+            return sum + (!isNaN(tt) && tt > 0 ? tt : 0);
+        }, 0);
+        return {
+            count: flights.length,
+            hours: totalHours,
+            thisMonth: flights.filter(f => f.flight_date?.startsWith(ym)).length,
+            unassigned: flights.filter(f => !f.pilots?.name).length,
+        };
+    }, [flights]);
 
     const clearFilters = () => {
-        setFilters({ date: '', mission_id: '', model: '', serial: '', type: '', condition: '', pilot: '' });
+        setSearch('');
+        setFilters({ date: '', model: '', type: '', condition: '', pilot: '' });
     };
 
     const deleteFlight = async (flightId) => {
@@ -263,6 +289,16 @@ export default function LogbookPage() {
         return fmtMinutes((h2 * 60 + m2) - (h1 * 60 + m1));
     };
 
+    // Color semántico del badge de condición visual (patrón de status del sistema de diseño).
+    const conditionBadge = (cond) => {
+        switch (cond) {
+            case 'VMC':   return 'bg-emerald-50 text-emerald-600';
+            case 'IMC':   return 'bg-amber-50 text-amber-600';
+            case 'NIGHT': return 'bg-slate-800 text-white';
+            default:      return 'bg-slate-100 text-slate-500';
+        }
+    };
+
     const PilotCell = ({ flight }) => {
         const isEditing = editingPilot === flight.id;
         const isSaving  = savingPilot  === flight.id;
@@ -374,56 +410,103 @@ export default function LogbookPage() {
     return (
         <>
         <div className="space-y-8 text-left animate-in fade-in duration-700 pb-20">
-            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 border-b border-slate-200 pb-4">
-                <div>
-                    <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900">Bitácora de Vuelo</h2>
-                    <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">
-                        {filteredFlights.length} Registros encontrados
-                    </p>
+            <PageHero
+                eyebrow="Operación"
+                title="Bitácora de Vuelo"
+                description="Registro RAC 100 de todas las misiones de la flota."
+                right={
+                    <div className="flex items-center gap-4 md:gap-6">
+                        {stats.unassigned > 0 && (
+                            <div className="hidden sm:flex flex-col justify-center pr-4 md:pr-6 border-r border-white/10">
+                                <p className="text-xs font-black uppercase tracking-wide text-white/40">Sin piloto asignado</p>
+                                <p className="text-sm font-black text-orange-400 mt-1 whitespace-nowrap">{stats.unassigned} bitácora{stats.unassigned !== 1 ? 's' : ''}</p>
+                            </div>
+                        )}
+                        <Link
+                            href="/dashboard/logbook/new"
+                            className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-600/20 transition-all active:scale-95 shrink-0"
+                        >
+                            <span className="material-symbols-outlined text-base">add_circle</span>
+                            Nuevo registro
+                        </Link>
+                    </div>
+                }
+            />
+
+            <section aria-label="Indicadores de bitácora" className="bg-white rounded-[1.5rem] border border-slate-100 px-2 py-3 md:px-4">
+                <KPIStrip variant="strip" items={[
+                    { key: 'count', label: 'Vuelos registrados', value: stats.count, icon: 'menu_book', iconColor: '#ec5b13' },
+                    { key: 'hours', label: 'Horas totales', value: stats.hours.toFixed(1), unit: 'h', icon: 'schedule', iconColor: '#ec5b13' },
+                    { key: 'month', label: 'Este mes', value: stats.thisMonth, unit: 'vuelos', icon: 'flight_takeoff', iconColor: '#94a3b8' },
+                    {
+                        key: 'unassigned', label: 'Sin piloto', value: stats.unassigned, icon: 'person_off',
+                        iconColor: stats.unassigned > 0 ? '#d97706' : '#94a3b8',
+                        delta: stats.unassigned > 0 ? 'Requieren asignar PIC' : 'Todos con PIC asignado',
+                        deltaTone: stats.unassigned > 0 ? 'neutral' : 'positive',
+                    },
+                ]} />
+            </section>
+
+            {/* Barra de filtros unificada */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col md:flex-row md:items-center gap-3">
+                <div className="flex-1 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2.5 min-w-0 md:max-w-xs">
+                    <span className="material-symbols-outlined text-base text-slate-400 shrink-0">search</span>
+                    <input
+                        placeholder="Buscar por misión, aeronave, piloto…"
+                        aria-label="Buscar en la bitácora"
+                        className="flex-1 min-w-0 bg-transparent text-xs font-bold outline-none placeholder:text-slate-400"
+                        value={search} onChange={e => setSearch(e.target.value)}
+                    />
                 </div>
-                <div className="flex gap-2 w-full sm:w-auto">
-                    {!isGracePeriod && (
+                <div className="flex flex-wrap gap-2">
+                    <input type="date" aria-label="Filtrar por fecha" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.date} onChange={e => setFilters(f => ({...f, date: e.target.value}))} />
+                    <select aria-label="Filtrar por modelo de UAS" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.model} onChange={e => setFilters(f => ({...f, model: e.target.value}))}>
+                        <option value="">Todas las aeronaves</option>
+                        {uniqueModels.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                    <select aria-label="Filtrar por tipo de misión" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.type} onChange={e => setFilters(f => ({...f, type: e.target.value}))}>
+                        <option value="">Todos los tipos</option>
+                        {uniqueTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <select aria-label="Filtrar por condición visual" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.condition} onChange={e => setFilters(f => ({...f, condition: e.target.value}))}>
+                        <option value="">Todas las condiciones</option>
+                        <option value="VMC">VMC</option><option value="IMC">IMC</option><option value="NIGHT">NOCTURNO</option>
+                    </select>
+                    <select aria-label="Filtrar por piloto" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.pilot} onChange={e => setFilters(f => ({...f, pilot: e.target.value}))}>
+                        <option value="">Todos los pilotos</option>
+                        {uniquePilots.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                    <button onClick={clearFilters} className="px-3 py-2.5 text-xs font-black uppercase text-slate-400 hover:text-orange-600 transition-colors border border-slate-200 rounded-xl">
+                        Limpiar
+                    </button>
+                </div>
+                {!isGracePeriod && (
+                    <div className="flex gap-2 md:ml-auto">
                         <button
                             onClick={() => setShowImport(v => !v)}
-                            className={`flex items-center gap-2 px-4 py-3 text-xs font-black uppercase rounded-xl border transition-all ${
+                            className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-black uppercase rounded-xl border transition-all ${
                                 showImport
                                     ? 'bg-orange-600 text-white border-orange-600 shadow-md shadow-orange-500/20'
                                     : 'text-orange-600 border-orange-300 hover:bg-orange-50'
                             }`}
                         >
                             <span className="material-symbols-outlined text-sm">upload_file</span>
-                            {showImport ? 'Cerrar importación' : 'Importar vuelos'}
+                            {showImport ? 'Cerrar' : 'Importar vuelos'}
                         </button>
-                    )}
-                    <button
-                        onClick={clearFilters}
-                        className="flex-1 sm:flex-none px-4 py-3 text-xs font-black uppercase text-slate-400 hover:text-orange-600 transition-colors border border-slate-200 rounded-xl"
-                    >Limpiar filtros</button>
-                </div>
-            </header>
+                    </div>
+                )}
+            </div>
 
-            {/* Panel importación DJI / Excel — oculto en período de gracia */}
+            {/* Panel importación DJI / Excel — oculto en período de gracia. Carga manual de vuelos (fuera de DJI): "Nuevo registro" en el hero → /dashboard/logbook/new */}
             {showImport && !isGracePeriod && (
                 <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden p-6">
                     <DjiRcSync onImported={() => loadData(true)} onFlightImported={handleFlightImported} />
                 </div>
             )}
 
-            {/* Mobile: filtros simples */}
-            <div className="md:hidden bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-sm">
-                <input type="date" className="w-full p-3 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.date} onChange={e => setFilters(f => ({...f, date: e.target.value}))} />
-                <input placeholder="Buscar N° misión..." className="w-full p-3 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.mission_id} onChange={e => setFilters(f => ({...f, mission_id: e.target.value}))} />
-                <div className="grid grid-cols-2 gap-3">
-                    <select aria-label="Filtrar por modelo de UAS" className="p-3 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.model} onChange={e => setFilters(f => ({...f, model: e.target.value}))}>
-                        <option value="">Todos los UAS</option>
-                        {uniqueModels.map(m => <option key={m} value={m}>{m}</option>)}
-                    </select>
-                    <select aria-label="Filtrar por piloto" className="p-3 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.pilot} onChange={e => setFilters(f => ({...f, pilot: e.target.value}))}>
-                        <option value="">Todos los pilotos</option>
-                        {uniquePilots.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                </div>
-            </div>
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">
+                {filteredFlights.length} registro{filteredFlights.length !== 1 ? 's' : ''} encontrado{filteredFlights.length !== 1 ? 's' : ''}
+            </p>
 
             <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
 
@@ -528,45 +611,38 @@ export default function LogbookPage() {
                     <table className="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
                             <tr className="bg-slate-50 text-xs font-black uppercase text-slate-400 tracking-widest border-b">
-                                <th className="px-4 py-4">Fecha</th>
                                 <th className="px-4 py-4">N° Misión</th>
-                                <th className="px-4 py-4">Modelo UAS</th>
-                                <th className="px-4 py-4">Serie (S/N)</th>
-                                <th className="px-4 py-4">Tipo Op</th>
+                                <th className="px-4 py-4">Fecha</th>
+                                <th className="px-4 py-4">Aeronave</th>
+                                <th className="px-4 py-4">Piloto (PIC)</th>
                                 <th className="px-4 py-4">Condición</th>
                                 <th className="px-4 py-4">Duración</th>
-                                <th className="px-4 py-4">Piloto (PIC)</th>
                                 <th className="px-3 py-4 w-10" title="Alertas detectadas durante el vuelo">
                                     <span className="material-symbols-outlined text-base text-slate-400">warning</span>
                                 </th>
                                 {canViewReplay && <th className="px-4 py-4 w-16"></th>}
                                 {canDeleteEntry && <th className="px-2 py-4 w-10"></th>}
                             </tr>
-                            <tr className="bg-white border-b-2 border-slate-100">
-                                <th className="px-2 py-2"><input type="date" aria-label="Filtrar por fecha" className="w-full p-2 bg-slate-50 rounded-lg text-xs font-bold outline-none focus:ring-1 focus:ring-orange-500" value={filters.date} onChange={e => setFilters(f => ({...f, date: e.target.value}))} /></th>
-                                <th className="px-2 py-2"><input placeholder="Buscar..." aria-label="Buscar por número de misión" className="w-full p-2 bg-slate-50 rounded-lg text-xs font-bold outline-none focus:ring-1 focus:ring-orange-500" value={filters.mission_id} onChange={e => setFilters(f => ({...f, mission_id: e.target.value}))} /></th>
-                                <th className="px-2 py-2"><select aria-label="Filtrar por modelo de UAS" className="w-full p-2 bg-slate-50 rounded-lg text-xs font-bold outline-none focus:ring-1 focus:ring-orange-500" value={filters.model} onChange={e => setFilters(f => ({...f, model: e.target.value}))}><option value="">TODOS</option>{uniqueModels.map(m => <option key={m} value={m}>{m}</option>)}</select></th>
-                                <th className="px-2 py-2"><input placeholder="S/N..." aria-label="Filtrar por número de serie" className="w-full p-2 bg-slate-50 rounded-lg text-xs font-bold outline-none focus:ring-1 focus:ring-orange-500" value={filters.serial} onChange={e => setFilters(f => ({...f, serial: e.target.value}))} /></th>
-                                <th className="px-2 py-2"><select aria-label="Filtrar por tipo de misión" className="w-full p-2 bg-slate-50 rounded-lg text-xs font-bold outline-none focus:ring-1 focus:ring-orange-500" value={filters.type} onChange={e => setFilters(f => ({...f, type: e.target.value}))}><option value="">TODOS</option>{uniqueTypes.map(t => <option key={t} value={t}>{t}</option>)}</select></th>
-                                <th className="px-2 py-2"><select aria-label="Filtrar por condición visual" className="w-full p-2 bg-slate-50 rounded-lg text-xs font-bold outline-none focus:ring-1 focus:ring-orange-500" value={filters.condition} onChange={e => setFilters(f => ({...f, condition: e.target.value}))}><option value="">TODAS</option><option value="VMC">VMC</option><option value="IMC">IMC</option><option value="NIGHT">NOCTURNO</option></select></th>
-                                <th className="px-2 py-2"></th>
-                                <th className="px-2 py-2"><select aria-label="Filtrar por piloto" className="w-full p-2 bg-slate-50 rounded-lg text-xs font-bold outline-none focus:ring-1 focus:ring-orange-500" value={filters.pilot} onChange={e => setFilters(f => ({...f, pilot: e.target.value}))}><option value="">TODOS</option>{uniquePilots.map(p => <option key={p} value={p}>{p}</option>)}</select></th>
-                                <th className="px-2 py-2"></th>
-                                {canViewReplay && <th className="px-2 py-2"></th>}
-                                {canDeleteEntry && <th className="px-2 py-2"></th>}
-                            </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {filteredFlights.map((f) => (
                                 <tr key={f.id} className="hover:bg-orange-50/30 transition-all text-xs font-medium text-slate-700 cursor-pointer">
-                                    <td className="px-4 py-4 whitespace-nowrap">{f.flight_date}</td>
                                     <td className="px-4 py-4"><MissionCell flight={f} /></td>
-                                    <td className="px-4 py-4 font-bold text-slate-900">{f.aircraft?.model}</td>
-                                    <td className="px-4 py-4 font-mono text-xs">{f.aircraft?.serial_number}</td>
-                                    <td className="px-4 py-4 text-xs uppercase">{f.mission_type}</td>
-                                    <td className="px-4 py-4"><span className="bg-slate-100 px-2 py-0.5 rounded text-xs font-black">{f.visual_condition}</span></td>
-                                    <td className="px-4 py-4 font-black text-orange-600">{flightDuration(f) || <span className="text-slate-300 font-normal">—</span>}</td>
+                                    <td className="px-4 py-4 whitespace-nowrap text-slate-700">{f.flight_date}</td>
+                                    <td className="px-4 py-4">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="size-6 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                                                <span className="material-symbols-outlined text-sm text-slate-400">flight</span>
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="font-bold text-slate-900 truncate">{f.aircraft?.model || '---'}</p>
+                                                {f.aircraft?.serial_number && <p className="font-mono text-[10px] text-slate-400 truncate">S/N {f.aircraft.serial_number}</p>}
+                                            </div>
+                                        </div>
+                                    </td>
                                     <td className="px-4 py-4"><PilotCell flight={f} /></td>
+                                    <td className="px-4 py-4">{f.visual_condition ? <span className={`px-2 py-0.5 rounded-full text-xs font-black uppercase ${conditionBadge(f.visual_condition)}`}>{f.visual_condition}</span> : <span className="text-slate-300">—</span>}</td>
+                                    <td className="px-4 py-4 font-black text-orange-600 tabular-nums">{flightDuration(f) || <span className="text-slate-300 font-normal">—</span>}</td>
                                     <AlertsCell flight={f} />
                                     {canViewReplay && (() => {
                                         const hasReplay = !!(f.replay_path || savedReplays.has(f.id));

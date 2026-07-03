@@ -1,6 +1,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { canAddResource } from '@/lib/planLimits';
+import { logAudit } from '@/lib/auditLog';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -31,7 +32,7 @@ export async function POST(request) {
   try {
     const supabase = await createClientSSR();
     // subscription_plan viene del servidor (getOrgContext lo lee de la BD)
-    const { orgId, subscription_plan } = await getOrgContext(supabase);
+    const { orgId, subscription_plan, fullName } = await getOrgContext(supabase);
     if (!orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     // owner_id es NOT NULL en la tabla aircraft — obtener el user actual
@@ -58,11 +59,16 @@ export async function POST(request) {
     const ALLOWED_FIELDS = [
       'brand', 'model', 'serial_number', 'ruas', 'mtow', 'image_url',
       'total_hours', 'last_maintenance_date', 'last_maintenance_hours',
-      'maintenance_interval_hours', 'next_maintenance_date', 'rce_url', 'dan_url',
+      'maintenance_interval_hours', 'maintenance_interval_days',
+      'next_maintenance_date', 'rce_url', 'dan_url', 'operational_status',
     ];
     const cleanData = {};
     for (const f of ALLOWED_FIELDS) {
       if (aircraftData[f] !== undefined) cleanData[f] = aircraftData[f];
+    }
+    // operational_status solo acepta los dos valores reales del CHECK de la tabla
+    if (cleanData.operational_status && !['disponible', 'en_mantenimiento'].includes(cleanData.operational_status)) {
+      delete cleanData.operational_status;
     }
 
     const { data, error } = await supabase
@@ -71,6 +77,13 @@ export async function POST(request) {
       .select();
 
     if (error) throw error;
+
+    logAudit({
+      orgId, actorId: user.id, actorName: fullName || user.email, action: 'create', module: 'fleet',
+      entityLabel: `${data[0].model || 'Aeronave'} · ${data[0].serial_number || ''}`.trim(),
+      metadata: { aircraft_id: data[0].id },
+    });
+
     return NextResponse.json(data[0], { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });

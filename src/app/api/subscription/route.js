@@ -1,6 +1,6 @@
 // FILE: src/app/api/subscription/route.js
 import { NextResponse } from 'next/server';
-import { createClientSSR } from '@/lib/supabaseServer';
+import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { PLAN_CONFIG, crewCountsForLimit } from '@/lib/planLimits';
 
@@ -15,13 +15,21 @@ export async function GET(request) {
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     const currentPlan = PLAN_CONFIG[planKey] || PLAN_CONFIG['piloto'];
+    const admin = createAdminClient();
 
-    // Contar recursos de la org (con filtro de organization_id)
-    // Pilotos: traer pilot_role para excluir gerentes del conteo del límite.
-    const [profileRes, dronesRes, pilotsRes] = await Promise.all([
+    // Primer día del mes actual (hora Colombia no importa aquí, comparación por fecha)
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    const monthStartStr = monthStart.toISOString().slice(0, 10);
+
+    // Contar recursos de la org (con filtro de organization_id).
+    // Regla de conteo: admin client + .select('id') + .length — NO count:'exact'/head:true
+    // (PostgREST puede ignorar filtros RLS con head:true).
+    const [profileRes, dronesRes, pilotsRes, flightsRes] = await Promise.all([
       supabase.from('profiles').select('subscription_expires_at').eq('id', user.id).single(),
-      supabase.from('aircraft').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
-      supabase.from('pilots').select('pilot_role').eq('organization_id', orgId).eq('is_active', true),
+      admin.from('aircraft').select('id').eq('organization_id', orgId),
+      admin.from('pilots').select('pilot_role').eq('organization_id', orgId).eq('is_active', true),
+      admin.from('flights').select('id').eq('organization_id', orgId).gte('flight_date', monthStartStr),
     ]);
 
     // Gerente General y Gerente SMS no cuentan contra el límite de tripulantes
@@ -32,8 +40,9 @@ export async function GET(request) {
       planSlug:  planKey,
       expiresAt: profileRes.data?.subscription_expires_at || null,
       usage: {
-        drones: { current: dronesRes.count || 0, limit: currentPlan.maxDrones },
-        pilots: { current: pilotsCount, limit: currentPlan.maxPilots },
+        drones:      { current: (dronesRes.data || []).length, limit: currentPlan.maxDrones },
+        pilots:      { current: pilotsCount, limit: currentPlan.maxPilots },
+        flightsMonth:{ current: (flightsRes.data || []).length, limit: null },
       },
       features: currentPlan.features,
     });

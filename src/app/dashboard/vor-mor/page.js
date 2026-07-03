@@ -15,6 +15,12 @@ const STATUS_LABELS = {
   archivado:         { label: 'Archivado',          color: 'bg-slate-100 text-slate-500 border-slate-200' },
 };
 const VALID_STATUSES = Object.keys(STATUS_LABELS);
+const SEVERITY_LABELS = {
+  incidente:        { label: 'Incidente',        color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  incidente_grave:  { label: 'Incidente grave',  color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  accidente:        { label: 'Accidente',        color: 'bg-red-100 text-red-700 border-red-200' },
+};
+const VALID_SEVERITIES = Object.keys(SEVERITY_LABELS);
 
 // ── Utilidades ────────────────────────────────────────────────────────────────
 function StatusBadge({ status }) {
@@ -22,30 +28,28 @@ function StatusBadge({ status }) {
   return <span className={`px-2.5 py-1 rounded-full text-xs font-black uppercase border ${s.color}`}>{s.label}</span>;
 }
 
-function QRCard({ url, label, color }) {
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
-  return (
-    <div className={`bg-white rounded-3xl border ${color === 'sky' ? 'border-sky-200' : 'border-rose-200'} p-5 flex flex-col items-center gap-3`}>
-      <div className={`${color === 'sky' ? 'bg-sky-600' : 'bg-rose-600'} text-white px-3 py-1 rounded-full text-xs font-black uppercase`}>{label}</div>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={qrUrl} alt={`QR ${label}`} className="size-40 rounded-2xl border border-slate-100" />
-      <p className="text-xs text-slate-400 break-all text-center max-w-[180px]">{url}</p>
-      <div className="flex gap-2">
-        <a href={qrUrl} download={`qr-${label.toLowerCase()}.png`}
-          className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors">
-          <span className="material-symbols-outlined text-sm">download</span> QR
-        </a>
-        <button onClick={() => { navigator.clipboard.writeText(url); toast.success('URL copiada'); }}
-          className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors">
-          <span className="material-symbols-outlined text-sm">content_copy</span> URL
-        </button>
-        <a href={url} target="_blank" rel="noreferrer"
-          className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors">
-          <span className="material-symbols-outlined text-sm">open_in_new</span>
-        </a>
-      </div>
-    </div>
-  );
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// Abre una ventana con el QR en tamaño póster e invoca la impresión del navegador —
+// pensado para colgar en el hangar junto al equipo, no un mockup de botón sin función real.
+function printQR({ qrUrl, type, title, link }) {
+  const w = window.open('', '_blank', 'width=480,height=640');
+  if (!w) return;
+  w.document.write(`<!DOCTYPE html><html><head><title>QR ${escapeHtml(type)}</title><style>
+    body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;text-align:center;padding:48px 24px;color:#1A202C;}
+    img{width:280px;height:280px;border-radius:20px;border:1px solid #e2e8f0;}
+    h1{font-size:20px;margin:24px 0 6px;text-transform:uppercase;letter-spacing:0.02em;}
+    p{font-size:12px;color:#64748b;word-break:break-all;margin-top:8px;}
+  </style></head><body>
+    <h1>${escapeHtml(title)} · ${escapeHtml(type)}</h1>
+    <img src="${qrUrl}" alt="QR" />
+    <p>${escapeHtml(link)}</p>
+  </body></html>`);
+  w.document.close();
+  w.focus();
+  w.print();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -146,6 +150,17 @@ export default function VorMorPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, profile]);
 
+  // ── Cambiar de formato dentro de la config tab (VOR ↔ MOR) ──────────────────
+  const switchConfigType = (t) => {
+    const def = t === 'VOR' ? vorDef : morDef;
+    setConfigForm({
+      type:          t,
+      title:         def?.title       || '',
+      description:   def?.description || '',
+      custom_fields: def?.custom_fields ?? [],
+    });
+  };
+
   // ── Abrir detalle ────────────────────────────────────────────────────────────
   const openDetail = async (id) => {
     setDetailLoading(true);
@@ -156,6 +171,7 @@ export default function VorMorPage() {
     setSelected(data);
     setPatchForm({
       status: data.status || 'recibido',
+      severity: data.severity || '',
       assigned_to: data.assigned_to || '',
       internal_notes: data.internal_notes || '',
       investigation_summary: data.investigation_summary || '',
@@ -246,7 +262,7 @@ export default function VorMorPage() {
       {/* Botón regreso */}
       <Link href="/dashboard/safety" className="inline-flex items-center gap-1.5 text-xs font-black text-slate-400 hover:text-slate-700 uppercase tracking-widest transition-colors">
         <span className="material-symbols-outlined text-base">arrow_back</span>
-        Seguridad Operacional
+        Seguridad SMS
       </Link>
 
       {/* Header */}
@@ -280,27 +296,116 @@ export default function VorMorPage() {
 
       {/* ── CONFIG TAB ──────────────────────────────────────────────────────── */}
       {tab === 'config' && (
-        <div className="space-y-8">
+        <div className="space-y-5">
 
-          {/* QR Codes */}
-          {orgCode && (
-            <section>
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Códigos QR de acceso</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <QRCard url={`${appUrl}/vor/${orgCode}`} label="VOR" color="sky" />
-                <QRCard url={`${appUrl}/mor/${orgCode}`} label="MOR" color="rose" />
+          {/* Selector de formato */}
+          <div className="flex gap-2">
+            {['VOR', 'MOR'].map(t => (
+              <button key={t} type="button" onClick={() => switchConfigType(t)}
+                className={`px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
+                  configForm.type === t
+                    ? (t === 'VOR' ? 'bg-orange-600 text-white shadow-md shadow-orange-200' : 'bg-rose-600 text-white shadow-md shadow-rose-200')
+                    : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300'
+                }`}>
+                Formato {t}
+              </button>
+            ))}
+          </div>
+
+          {canEdit ? (
+            <form onSubmit={handleSaveConfig} className="space-y-5">
+
+              {/* Hero */}
+              <div className="bg-slate-900 rounded-3xl px-6 sm:px-8 py-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-400">Cumplimiento · Protocolos</span>
+                    <span className={`text-[10px] font-black text-white px-2.5 py-0.5 rounded-full font-mono ${configForm.type === 'VOR' ? 'bg-orange-600' : 'bg-rose-600'}`}>{configForm.type}</span>
+                  </div>
+                  <input required value={configForm.title}
+                    onChange={e => setConfigForm(p => ({...p, title: e.target.value}))}
+                    placeholder={`Ej: Reporte ${configForm.type === 'VOR' ? 'Voluntario' : 'Obligatorio'} de Ocurrencia`}
+                    className="w-full bg-transparent text-xl sm:text-2xl font-black text-white placeholder-white/30 outline-none tracking-tight" />
+                  <input value={configForm.description}
+                    onChange={e => setConfigForm(p => ({...p, description: e.target.value}))}
+                    placeholder="Instrucciones visibles para el reportante..."
+                    className="w-full bg-transparent text-xs font-semibold text-slate-300 placeholder-white/30 outline-none mt-1" />
+                </div>
+                <button type="submit" disabled={savingConfig}
+                  className="flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white font-black px-5 py-3 rounded-2xl text-xs uppercase tracking-widest transition-colors shrink-0">
+                  {savingConfig ? (
+                    <><span className="material-symbols-outlined animate-spin text-base">progress_activity</span>Guardando...</>
+                  ) : (
+                    <><span className="material-symbols-outlined text-base">save</span>Guardar cambios</>
+                  )}
+                </button>
               </div>
-            </section>
-          )}
 
-          {/* Editor de formulario + campos personalizados */}
-          {canEdit && (
-            <FormBuilder
-              configForm={configForm} setConfigForm={setConfigForm}
-              vorDef={vorDef} morDef={morDef}
-              savingConfig={savingConfig} handleSaveConfig={handleSaveConfig}
-              INPUT={INPUT} LABEL={LABEL}
-            />
+              {/* Campos + QR */}
+              <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-5 items-start">
+                <FormBuilder configForm={configForm} setConfigForm={setConfigForm} accent={configForm.type} />
+
+                {orgCode && (() => {
+                  const link  = `${appUrl}/${configForm.type.toLowerCase()}/${orgCode}`;
+                  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(link)}`;
+                  const accentText = configForm.type === 'VOR' ? 'text-orange-600' : 'text-rose-600';
+                  return (
+                    <div className="bg-white border border-slate-200 rounded-3xl p-5 space-y-4">
+                      <span className={`text-xs font-black uppercase tracking-widest ${accentText}`}>Enlace y código QR</span>
+                      <p className="text-xs text-slate-500 leading-relaxed">
+                        Cualquier miembro de la tripulación puede escanear este código o abrir el enlace desde su
+                        celular para diligenciar un reporte {configForm.type} en campo, sin acceso al panel completo.
+                      </p>
+
+                      <div className="flex justify-center py-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={qrUrl} alt={`QR ${configForm.type}`} className="size-40 rounded-2xl border border-slate-100" />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Enlace público del formato</label>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-600 truncate">{link}</div>
+                          <button type="button" onClick={() => { navigator.clipboard.writeText(link); toast.success('Enlace copiado'); }}
+                            className="flex items-center gap-1 border border-slate-200 hover:bg-slate-50 text-slate-600 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors shrink-0">
+                            <span className="material-symbols-outlined text-sm">content_copy</span>Copiar
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <a href={qrUrl} download={`qr-${configForm.type.toLowerCase()}.png`}
+                          className="flex items-center justify-center gap-1.5 border border-slate-200 hover:bg-slate-50 text-slate-600 px-3 py-2.5 rounded-xl text-xs font-black transition-colors">
+                          <span className="material-symbols-outlined text-sm">download</span>Descargar QR
+                        </a>
+                        <button type="button"
+                          onClick={() => printQR({ qrUrl, type: configForm.type, title: configForm.title || configForm.type, link })}
+                          className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-black transition-colors ${configForm.type === 'VOR' ? 'bg-orange-50 border border-orange-200 text-orange-600 hover:bg-orange-100' : 'bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100'}`}>
+                          <span className="material-symbols-outlined text-sm">print</span>Imprimir para hangar
+                        </button>
+                      </div>
+
+                      <a href={link} target="_blank" rel="noreferrer"
+                        className="flex items-center justify-center gap-1.5 text-xs font-bold text-slate-400 hover:text-slate-700 transition-colors pt-1">
+                        <span className="material-symbols-outlined text-sm">open_in_new</span>Ver formulario público
+                      </a>
+                    </div>
+                  );
+                })()}
+              </div>
+            </form>
+          ) : (
+            orgCode && (() => {
+              const link  = `${appUrl}/${configForm.type.toLowerCase()}/${orgCode}`;
+              const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}`;
+              return (
+                <div className="bg-white rounded-3xl border border-slate-200 p-5 flex flex-col items-center gap-3 max-w-xs">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={qrUrl} alt={`QR ${configForm.type}`} className="size-40 rounded-2xl border border-slate-100" />
+                  <p className="text-xs text-slate-400 break-all text-center">{link}</p>
+                </div>
+              );
+            })()
           )}
         </div>
       )}
@@ -442,6 +547,23 @@ export default function VorMorPage() {
                     </div>
                   )}
 
+                  {/* Autoevaluación del reportante — distinta de la clasificación oficial que asigna el equipo SMS abajo */}
+                  {(selected.reported_severity || selected.related_barrier) && (
+                    <div className="flex flex-wrap gap-2">
+                      {selected.reported_severity && (
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-black uppercase border ${SEVERITY_LABELS[selected.reported_severity]?.color || 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                          Reportado como: {SEVERITY_LABELS[selected.reported_severity]?.label || selected.reported_severity}
+                        </span>
+                      )}
+                      {selected.related_barrier && (
+                        <span className="px-2.5 py-1 rounded-full text-xs font-black uppercase border bg-slate-100 text-slate-600 border-slate-200 inline-flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm">shield</span>
+                          {selected.related_barrier.name}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {/* Respuestas a campos personalizados */}
                   {selected.custom_responses && Object.keys(selected.custom_responses).length > 0 && (
                     <div>
@@ -478,12 +600,21 @@ export default function VorMorPage() {
                   <div className="p-6 space-y-5 bg-slate-50 rounded-b-3xl">
                     <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Gestión del reporte</h4>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       {/* Estado */}
                       <div>
                         <label className={LABEL}>Estado</label>
                         <select value={patchForm.status} onChange={e => setPatchForm(p => ({...p, status: e.target.value}))} className={INPUT}>
                           {VALID_STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s].label}</option>)}
+                        </select>
+                      </div>
+
+                      {/* Severidad — mismo vocabulario RAC 100 que Reportes SMS (sms_reports) */}
+                      <div>
+                        <label className={LABEL}>Severidad</label>
+                        <select value={patchForm.severity} onChange={e => setPatchForm(p => ({...p, severity: e.target.value}))} className={INPUT}>
+                          <option value="">Sin clasificar</option>
+                          {VALID_SEVERITIES.map(s => <option key={s} value={s}>{SEVERITY_LABELS[s].label}</option>)}
                         </select>
                       </div>
 

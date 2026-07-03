@@ -1,32 +1,92 @@
-﻿'use client';
-import { useState, useEffect } from 'react';
+'use client';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { hasPermission } from '@/lib/roles';
 import FileUpload from '@/components/FileUpload';
 import { toast } from '@/lib/toast';
+import PageHero from '@/components/PageHero';
 
 // PERFORMANCE: Solo carga jsPDF + ExcelJS (~400 kB) cuando el usuario realmente descarga
 const loadReportGenerators = () => import('@/lib/reportGenerators');
 
+// Definición de los formatos disponibles. `code` es el código de formato
+// personalizable en pantalla (no todos tienen columna en `organizations` —
+// solo master/batteries/pilots existían antes; maintenance/fleet usan un
+// default local, editable en la sesión pero no persistido).
+const REPORT_DEFS = [
+    {
+        key: 'master', code: 'F-OPS-002', name: 'Reporte de Operaciones', icon: 'flight_takeoff',
+        desc: 'Consolidado de vuelos, horas y misiones ejecutadas en el periodo seleccionado.',
+        needsPeriod: true,
+    },
+    {
+        key: 'maintenance', code: 'F-MNT-006', name: 'Reporte de Mantenimiento', icon: 'build',
+        desc: 'Historial de intervenciones preventivas y correctivas — de toda la flota o de una sola aeronave.',
+        needsPeriod: true, needsAircraft: true,
+    },
+    {
+        key: 'batteries', code: 'F-MNT-003', name: 'Registro de Baterías', icon: 'battery_charging_full',
+        desc: 'Trazabilidad de ciclos y energía por misión.',
+        needsPeriod: true,
+    },
+    {
+        key: 'fleet', code: 'F-FLT-007', name: 'Reporte de Flota', icon: 'precision_manufacturing',
+        desc: 'Inventario de aeronaves, horas totales y estado operativo — toda la flota o una sola aeronave.',
+        needsAircraft: true,
+    },
+    {
+        key: 'pilots', code: 'F-HUM-005', name: 'Bitácora de Piloto', icon: 'menu_book',
+        desc: 'Horas y misiones ejecutadas por un tripulante en el periodo.',
+        needsPeriod: true, needsPilot: true,
+    },
+    {
+        key: 'dossier', code: null, name: 'Expediente de Tripulante', icon: 'badge',
+        desc: 'Hoja de vida completa con anexos digitales y certificados.',
+        needsPilot: true,
+    },
+];
+
+const PERIODS = ['Este mes', 'Este trimestre', 'Este año', 'Personalizado'];
+
+function periodRange(period, customFrom, customTo) {
+    const fmt = (d) => d.toISOString().split('T')[0];
+    const today = new Date();
+    if (period === 'Personalizado') return { from: customFrom, to: customTo };
+    if (period === 'Este trimestre') {
+        const q = Math.floor(today.getMonth() / 3);
+        return { from: fmt(new Date(today.getFullYear(), q * 3, 1)), to: fmt(today) };
+    }
+    if (period === 'Este año') return { from: fmt(new Date(today.getFullYear(), 0, 1)), to: fmt(today) };
+    return { from: fmt(new Date(today.getFullYear(), today.getMonth(), 1)), to: fmt(today) };
+}
+
 export default function ReportsPage() {
     const [loading, setLoading] = useState(false);
+    const [downloadingKey, setDownloadingKey] = useState(null);
     const [orgData, setOrgData] = useState(null);
     const [pilots, setPilots] = useState([]);
+    const [aircraftList, setAircraftList] = useState([]);
     const [selectedPilot, setSelectedPilot] = useState('');
+    const [selectedAircraft, setSelectedAircraft] = useState('');
     const [userRole, setUserRole] = useState(null);
-    
+    const [openKey, setOpenKey] = useState(null);
+
+    const [period, setPeriod] = useState('Este mes');
+    const [customFrom, setCustomFrom] = useState('');
+    const [customTo, setCustomTo] = useState('');
+
     const [config, setConfig] = useState({
-        from: '', to: '', version: '1.0',
+        version: '1.0',
         reportDate: new Date().toISOString().split('T')[0],
-        formCodeMaster: 'F-OPS-002',
-        formCodeBattery: 'F-MNT-003',
-        formCodePilot: 'F-HUM-005'
     });
+    const [formCodes, setFormCodes] = useState(
+        Object.fromEntries(REPORT_DEFS.map(d => [d.key, d.code]))
+    );
 
     const canViewReports = hasPermission(userRole, 'canViewAudit');
     const canEditLogo = hasPermission(userRole, 'canEditOrg');
 
-   const init = async () => {
+    const init = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
@@ -34,20 +94,21 @@ export default function ReportsPage() {
             .from('profiles').select('organization_id, role').eq('id', user.id).single();
         if (!prof?.organization_id) return;
 
-        // Org y tripulación en paralelo (mismo org_id, no dependen entre sí)
-        const [{ data: org }, { data: crew }] = await Promise.all([
+        const [{ data: org }, { data: crew }, { data: fleet }] = await Promise.all([
             supabase.from('organizations').select('*').eq('id', prof.organization_id).single(),
             supabase.from('pilots').select('id, name').eq('organization_id', prof.organization_id),
+            supabase.from('aircraft').select('id, model, serial_number').eq('organization_id', prof.organization_id).order('model'),
         ]);
 
         setUserRole(prof.role || null);
         setOrgData(org);
         setPilots(crew || []);
-        setConfig(prev => ({
+        setAircraftList(fleet || []);
+        setFormCodes(prev => ({
             ...prev,
-            formCodeMaster:  org?.form_code_master    || 'F-OPS-002',
-            formCodeBattery: org?.form_code_batteries || 'F-MNT-003',
-            formCodePilot:   org?.form_code_pilots    || 'F-HUM-005',
+            master:    org?.form_code_master    || prev.master,
+            batteries: org?.form_code_batteries || prev.batteries,
+            pilots:    org?.form_code_pilots    || prev.pilots,
         }));
     };
 
@@ -59,63 +120,84 @@ export default function ReportsPage() {
         toast.success("Logo actualizado");
     };
 
-    const downloadReport = async (type) => {
-        if (!config.from || !config.to) return toast.warn("Seleccione fechas");
-        setLoading(true);
-        try {
-            // Carga el generador de PDFs/Excel y la data del backend en paralelo
-            const [{ generateMasterReport, generateBatteryReport, generatePilotReport }, res] = await Promise.all([
-                loadReportGenerators(),
-                fetch(`/api/reports/${type}?from=${config.from}&to=${config.to}${type === 'pilots' ? `&pilotId=${selectedPilot}` : ''}`)
-            ]);
-            const data = await res.json();
+    const activeDef = useMemo(() => REPORT_DEFS.find(d => d.key === openKey) || null, [openKey]);
+    const selectedAircraftLabel = useMemo(() => {
+        const a = aircraftList.find(x => x.id === selectedAircraft);
+        return a ? `${a.model} · ${a.serial_number}` : null;
+    }, [aircraftList, selectedAircraft]);
 
-            const commonConfig = {
+    const toggleDef = (key) => {
+        setOpenKey(prev => prev === key ? null : key);
+        setSelectedAircraft('');
+    };
+
+    const handleDownload = async (def) => {
+        const { from, to } = periodRange(period, customFrom, customTo);
+        if (def.needsPeriod && (!from || !to)) return toast.warn('Selecciona un periodo válido.');
+        if (def.needsPilot && !selectedPilot) return toast.warn('Selecciona un tripulante.');
+
+        setDownloadingKey(def.key);
+        try {
+            const generators = await loadReportGenerators();
+            const common = {
                 orgName: orgData?.company_name,
                 logoUrl: orgData?.logo_url,
                 version: config.version,
                 reportDate: config.reportDate,
+                formCode: formCodes[def.key],
             };
 
-            if (type === 'master') generateMasterReport(data, { ...commonConfig, formCode: config.formCodeMaster });
-            if (type === 'batteries') generateBatteryReport(data, { ...commonConfig, formCode: config.formCodeBattery });
-            if (type === 'pilots') generatePilotReport(data, { ...commonConfig, formCode: config.formCodePilot });
-
-        } catch (e) { toast.error("Error al generar reporte"); }
-        finally { setLoading(false); }
+            if (def.key === 'master') {
+                const res = await fetch(`/api/reports/master?from=${from}&to=${to}`);
+                generators.generateMasterReport(await res.json(), common);
+            }
+            if (def.key === 'maintenance') {
+                const q = selectedAircraft ? `&aircraftId=${selectedAircraft}` : '';
+                const res = await fetch(`/api/reports/maintenance?from=${from}&to=${to}${q}`);
+                generators.generateMaintenanceReport(await res.json(), { ...common, aircraftLabel: selectedAircraftLabel });
+            }
+            if (def.key === 'batteries') {
+                const res = await fetch(`/api/reports/batteries?from=${from}&to=${to}`);
+                generators.generateBatteryReport(await res.json(), common);
+            }
+            if (def.key === 'fleet') {
+                const q = selectedAircraft ? `?aircraftId=${selectedAircraft}` : '';
+                const res = await fetch(`/api/reports/fleet${q}`);
+                generators.generateFleetReport(await res.json(), common);
+            }
+            if (def.key === 'pilots') {
+                const res = await fetch(`/api/reports/pilots?from=${from}&to=${to}&pilotId=${selectedPilot}`);
+                generators.generatePilotReport(await res.json(), common);
+            }
+            if (def.key === 'dossier') {
+                const res = await fetch(`/api/reports/crew/expediente?pilotId=${selectedPilot}`);
+                generators.generatePilotDossier(await res.json(), {
+                    orgName: orgData?.company_name,
+                    logoUrl: orgData?.logo_url,
+                    reportDate: config.reportDate,
+                });
+            }
+        } catch (e) {
+            toast.error("Error al generar reporte");
+        } finally {
+            setDownloadingKey(null);
+        }
     };
 
+    const selectCls = "p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500 border border-slate-200";
+
     return (
-        <div className="max-w-5xl mx-auto space-y-10 text-left pb-20 animate-in fade-in duration-700">
-            <header className="flex justify-between items-end border-b pb-6">
-                <div>
-                    <h2 className="text-3xl font-black uppercase tracking-tighter">Centro de Reportes</h2>
-                    <p className="text-slate-500 text-sm italic">Sistemas de exportación aeronáutica oficial.</p>
-                </div>
-                {canEditLogo && (
-                    <div className="w-48">
-                        <FileUpload path="org/logos" label="Actualizar Logo" onUploadSuccess={updateLogo} />
+        <div className="space-y-6 md:space-y-8 text-left animate-in fade-in duration-700 pb-20">
+            <PageHero
+                eyebrow="Cumplimiento"
+                title="Reportes"
+                description="Formatos oficiales RAC 100 y reportes personalizados de tu operación."
+                right={canEditLogo && (
+                    <div className="w-40">
+                        <FileUpload path="org/logos" label="Actualizar logo" onUploadSuccess={updateLogo} />
                     </div>
                 )}
-            </header>
-
-            {/* FILTROS GLOBALES */}
-            <div className="bg-[#1A202C] p-8 rounded-[2.5rem] text-white grid grid-cols-1 md:grid-cols-2 gap-8 shadow-xl">
-                <div className="space-y-1">
-                    <label className="text-xs font-black uppercase text-orange-500 ml-1">Periodo de Auditoría (Desde / Hasta)</label>
-                    <div className="grid grid-cols-2 gap-3">
-                        <input type="date" className="p-3 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white" onChange={e => setConfig({...config, from: e.target.value})} />
-                        <input type="date" className="p-3 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white" onChange={e => setConfig({...config, to: e.target.value})} />
-                    </div>
-                </div>
-                <div className="space-y-1">
-                    <label className="text-xs font-black uppercase text-orange-500 ml-1">Control de Cabecera (Versión / Fecha Reporte)</label>
-                    <div className="grid grid-cols-2 gap-3">
-                        <input className="p-3 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white" value={config.version} onChange={e => setConfig({...config, version: e.target.value})} />
-                        <input type="date" className="p-3 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white" value={config.reportDate} onChange={e => setConfig({...config, reportDate: e.target.value})} />
-                    </div>
-                </div>
-            </div>
+            />
 
             {!canViewReports ? (
                 <div className="bg-slate-100 p-10 rounded-[2.5rem] border border-slate-200 text-center space-y-4">
@@ -123,99 +205,131 @@ export default function ReportsPage() {
                     <p className="text-xs font-black uppercase tracking-widest text-slate-500">Acceso restringido — solo personal gerencial.</p>
                 </div>
             ) : (
-            <div className="grid grid-cols-1 gap-6">
-                {/* REPORTE 1: MASTER */}
-                <ReportCard 
-                    icon="analytics" title="Máster de Vuelo" desc="Historial completo de la flota y operaciones."
-                    formCode={config.formCodeMaster} 
-                    onCodeChange={(val) => setConfig({...config, formCodeMaster: val})}
-                    onDownload={() => downloadReport('master')}
-                    loading={loading}
-                />
-
-                {/* REPORTE 2: BATERÍAS */}
-                <ReportCard 
-                    icon="battery_charging_full" title="Registro de Baterías" desc="Trazabilidad de ciclos y energía por misión."
-                    formCode={config.formCodeBattery} 
-                    onCodeChange={(val) => setConfig({...config, formCodeBattery: val})}
-                    onDownload={() => downloadReport('batteries')}
-                    loading={loading}
-                />
-
-                {/* REPORTE 3: PILOTOS */}
-                <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-8">
-                    <div className="size-16 bg-orange-600 rounded-2xl flex items-center justify-center text-white shrink-0"><span className="material-symbols-outlined text-3xl">badge</span></div>
-                    <div className="flex-1 space-y-4">
-                        <h3 className="text-xl font-black uppercase tracking-tight">Bitácora de Piloto</h3>
-                        <select 
-                            className="w-full md:w-64 p-3 bg-slate-50 rounded-xl text-xs font-black uppercase border-2 border-slate-100"
-                            value={selectedPilot} onChange={(e) => setSelectedPilot(e.target.value)}
-                        >
-                            <option value="">-- Seleccionar Piloto --</option>
-                            {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
+            <>
+                {/* Control de cabecera (aplica a todos los formatos) */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <label className="text-[9.5px] font-black uppercase text-slate-400 tracking-wide">Versión</label>
+                        <input className="w-16 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-center"
+                            value={config.version} onChange={e => setConfig({ ...config, version: e.target.value })} />
                     </div>
-                
-                    <div className="w-full md:w-auto flex flex-col gap-2">
-                        <input className="p-3 bg-slate-100 rounded-xl text-xs font-black uppercase text-center w-32" value={config.formCodePilot} onChange={e => setConfig({...config, formCodePilot: e.target.value})} />
-                        <button onClick={() => downloadReport('pilots')} disabled={loading} className="px-8 py-4 bg-orange-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg hover:bg-slate-900 transition-all">Descargar PDF</button>
+                    <div className="flex items-center gap-2">
+                        <label className="text-[9.5px] font-black uppercase text-slate-400 tracking-wide">Fecha del reporte</label>
+                        <input type="date" className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold"
+                            value={config.reportDate} onChange={e => setConfig({ ...config, reportDate: e.target.value })} />
                     </div>
                 </div>
 
-                <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-8 mt-6 transition-all hover:border-orange-500/30">
-    <div className="size-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white shrink-0">
-        <span className="material-symbols-outlined text-3xl">folder_shared</span>
-    </div>
-    <div className="flex-1 space-y-3">
-        <h3 className="text-xl font-black uppercase tracking-tight">Expediente de Tripulante</h3>
-        <p className="text-xs text-slate-500">Hoja de vida completa con anexos digitales y certificados.</p>
-        <select 
-            className="w-full md:w-64 p-3 bg-slate-50 rounded-xl text-xs font-black uppercase border-2 border-slate-100"
-            value={selectedPilot} onChange={(e) => setSelectedPilot(e.target.value)}
-        >
-            <option value="">-- Seleccionar Tripulante --</option>
-            {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
-    </div>
-    <button
-        onClick={async () => {
-            if(!selectedPilot) return toast.warn("Seleccione un tripulante");
-            setLoading(true);
-            try {
-                const [{ generatePilotDossier }, res] = await Promise.all([
-                    loadReportGenerators(),
-                    fetch(`/api/reports/crew/expediente?pilotId=${selectedPilot}`)
-                ]);
-                const pilotData = await res.json();
-                generatePilotDossier(pilotData, {
-                    orgName: orgData?.company_name,
-                    logoUrl: orgData?.logo_url,
-                    reportDate: config.reportDate
-                });
-            } finally { setLoading(false); }
-        }}
-        disabled={loading}
-        className="px-8 py-4 bg-orange-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg hover:bg-slate-900 transition-all"
-    > Descargar Expediente </button>
-</div>
-            </div>
-            )}
-        </div>
-    );
-}
+                {/* Grid de formatos */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {REPORT_DEFS.map(def => (
+                        <button key={def.key} type="button" onClick={() => toggleDef(def.key)}
+                            className={`text-left bg-white border rounded-2xl p-5 flex flex-col gap-2.5 transition-all hover:shadow-md hover:border-orange-200 ${
+                                openKey === def.key ? 'border-orange-300 ring-2 ring-orange-100' : 'border-slate-200'
+                            }`}>
+                            <div className="flex items-center justify-between">
+                                <div className="size-9 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
+                                    <span className="material-symbols-outlined text-lg text-orange-600">{def.icon}</span>
+                                </div>
+                                {def.code && <span className="text-[9.5px] font-black text-slate-300 font-mono">{formCodes[def.key]}</span>}
+                            </div>
+                            <p className="text-sm font-black text-slate-900 uppercase tracking-tight">{def.name}</p>
+                            <p className="text-xs text-slate-500 leading-snug">{def.desc}</p>
+                            <div className="flex items-center gap-1.5 mt-auto pt-2.5 border-t border-slate-100 text-orange-600">
+                                <span className="material-symbols-outlined text-sm">{openKey === def.key ? 'expand_less' : 'picture_as_pdf'}</span>
+                                <span className="text-[10.5px] font-black uppercase tracking-wide">{openKey === def.key ? 'Ocultar opciones' : 'Generar PDF'}</span>
+                            </div>
+                        </button>
+                    ))}
+                </div>
 
-function ReportCard({ icon, title, desc, formCode, onCodeChange, onDownload, loading }) {
-    return (
-        <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-8">
-            <div className="size-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white shrink-0"><span className="material-symbols-outlined text-3xl">{icon}</span></div>
-            <div className="flex-1">
-                <h3 className="text-xl font-black uppercase tracking-tight">{title}</h3>
-                <p className="text-xs text-slate-500 mt-1">{desc}</p>
-            </div>
-            <div className="w-full md:w-auto flex flex-col gap-2">
-                <input className="p-3 bg-slate-100 rounded-xl text-xs font-black uppercase text-center w-32" value={formCode} onChange={e => onCodeChange(e.target.value)} />
-                <button onClick={onDownload} disabled={loading} className="px-8 py-4 bg-[#1A202C] text-white rounded-2xl font-black text-xs uppercase shadow-lg hover:bg-orange-600 transition-all">Descargar PDF</button>
-            </div>
+                {/* Panel de generación del formato activo */}
+                {activeDef && (
+                    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 md:p-6 space-y-5 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-black text-slate-900">Generar — {activeDef.name}</p>
+                            <button type="button" onClick={() => setOpenKey(null)}
+                                className="size-8 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all">
+                                <span className="material-symbols-outlined text-base">close</span>
+                            </button>
+                        </div>
+
+                        {activeDef.code && (
+                            <div className="space-y-1 max-w-xs">
+                                <label className="text-[9.5px] font-black text-slate-400 uppercase tracking-wide ml-0.5">Código de formato</label>
+                                <input className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold font-mono text-slate-900"
+                                    value={formCodes[activeDef.key]}
+                                    onChange={e => setFormCodes({ ...formCodes, [activeDef.key]: e.target.value })} />
+                                <p className="text-[10px] font-semibold text-slate-400">Personaliza el código con el que se identifica este reporte en tu organización.</p>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Periodo */}
+                            {activeDef.needsPeriod && (
+                                <div className="space-y-2">
+                                    <span className="text-[9.5px] font-black uppercase tracking-wide text-slate-400">Periodo a descargar</span>
+                                    <div className="flex flex-wrap gap-2">
+                                        {PERIODS.map(p => (
+                                            <button key={p} type="button" onClick={() => setPeriod(p)}
+                                                className={`text-xs font-bold px-3.5 py-2 rounded-full transition-all ${
+                                                    period === p ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                }`}>
+                                                {p}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {period === 'Personalizado' && (
+                                        <div className="flex items-center gap-2 pt-1">
+                                            <input type="date" className="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" value={customFrom} onChange={e => setCustomFrom(e.target.value)} />
+                                            <span className="text-xs font-bold text-slate-400">a</span>
+                                            <input type="date" className="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" value={customTo} onChange={e => setCustomTo(e.target.value)} />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Alcance: aeronave o piloto */}
+                            {(activeDef.needsAircraft || activeDef.needsPilot) && (
+                                <div className="space-y-2">
+                                    <span className="text-[9.5px] font-black uppercase tracking-wide text-slate-400">
+                                        {activeDef.needsAircraft ? 'Alcance — aeronave' : 'Tripulante'}
+                                        {activeDef.needsPilot && <span className="text-orange-600"> *</span>}
+                                    </span>
+                                    {activeDef.needsAircraft && (
+                                        <select className={selectCls + ' w-full'} value={selectedAircraft} onChange={e => setSelectedAircraft(e.target.value)}>
+                                            <option value="">Todas las aeronaves</option>
+                                            {aircraftList.map(a => <option key={a.id} value={a.id}>{a.model} · {a.serial_number}</option>)}
+                                        </select>
+                                    )}
+                                    {activeDef.needsPilot && (
+                                        <select className={selectCls + ' w-full'} value={selectedPilot} onChange={e => setSelectedPilot(e.target.value)}>
+                                            <option value="">-- Seleccionar tripulante --</option>
+                                            {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                        </select>
+                                    )}
+                                    {activeDef.needsAircraft && (
+                                        <p className="text-[10px] font-semibold text-slate-400">Deja "Todas las aeronaves" para el reporte completo, o elige una para un reporte de solo esa unidad.</p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+                            <button type="button" onClick={() => setOpenKey(null)}
+                                className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-black text-xs uppercase tracking-wide hover:bg-slate-50 transition-all">
+                                Cancelar
+                            </button>
+                            <button type="button" onClick={() => handleDownload(activeDef)} disabled={downloadingKey === activeDef.key}
+                                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-wide shadow-lg shadow-orange-600/25 active:scale-95 transition-all disabled:opacity-50">
+                                <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+                                {downloadingKey === activeDef.key ? 'Generando...' : 'Descargar PDF'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </>
+            )}
         </div>
     );
 }

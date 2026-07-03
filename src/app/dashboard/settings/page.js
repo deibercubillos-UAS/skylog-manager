@@ -1,12 +1,39 @@
 ﻿'use client';
 export const dynamic = 'force-dynamic';
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import FileUpload from '@/components/FileUpload';
-import { hasPermission } from '@/lib/roles';
+import { hasPermission, labelForRole } from '@/lib/roles';
 import AerocivilCredentialsSection from '@/components/settings/AerocivilCredentialsSection';
 import { toast } from '@/lib/toast';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { docOpenUrl } from '@/lib/docUrl';
+
+const inputCls = "w-full p-3.5 bg-slate-50 rounded-xl border border-slate-200 font-bold text-sm text-slate-900";
+const labelCls = "text-[10px] font-black text-slate-400 uppercase tracking-wide ml-0.5";
+
+const ROLE_CHIP = {
+    superadmin:   'bg-purple-50 text-purple-600',
+    admin:        'bg-orange-50 text-orange-600',
+    gerente_sms:  'bg-blue-50 text-blue-600',
+    jefe_pilotos: 'bg-emerald-50 text-emerald-600',
+    piloto:       'bg-slate-100 text-slate-600',
+};
+
+// Mismo umbral Vigente/Vence/Vencida que Tripulación y Mi Perfil
+function expiryStatus(date) {
+    if (!date) return null;
+    const diff = Math.ceil((new Date(date) - new Date()) / (1000 * 60 * 60 * 24));
+    const fmt = new Date(date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+    if (diff < 0)  return { tone: 'red',    label: `Vencido ${fmt}` };
+    if (diff < 60) return { tone: 'amber',  label: `Vence ${fmt} · ${diff}d` };
+    return           { tone: 'emerald', label: `Vigente · ${fmt} · ${diff}d` };
+}
+const EXP_BADGE_CLS = {
+    red: 'bg-red-500/15 text-red-400', amber: 'bg-amber-500/15 text-amber-400', emerald: 'bg-emerald-500/15 text-emerald-400',
+};
+const EXP_TEXT_CLS = { red: 'text-red-600', amber: 'text-amber-600', emerald: 'text-emerald-600' };
 
 export default function SettingsPage() {
     const [loading, setLoading] = useState(true);
@@ -14,6 +41,9 @@ export default function SettingsPage() {
     const [org, setOrg] = useState(null);
     const [profile, setProfile] = useState(null);
     const [aircraft, setAircraft] = useState([]);
+    const [members, setMembers] = useState([]);
+    const [membersLoading, setMembersLoading] = useState(true);
+    const [newAuth, setNewAuth] = useState('');
 
     // ── Onboarding Express ──────────────────────────────────────────────
     const [obDownloading, setObDownloading] = useState(false);
@@ -100,13 +130,37 @@ useEffect(() => {
                 .order('end_date', { ascending: true })
         ]);
 
-        if (orgRes.data) setOrg(orgRes.data);
+        if (orgRes.data) setOrg({ ...orgRes.data, authorized_operations: orgRes.data.authorized_operations || [] });
         setAircraft(airRes.data || []);
         setPolicies(polRes.data || []);
         setLoading(false);
     }
     loadOrgData();
 }, []);
+
+useEffect(() => {
+    async function loadMembers() {
+        try {
+            const res = await fetch('/api/admin/users', { cache: 'no-store' });
+            const data = await res.json();
+            setMembers(res.ok && Array.isArray(data) ? data : []);
+        } catch {
+            setMembers([]);
+        } finally {
+            setMembersLoading(false);
+        }
+    }
+    loadMembers();
+}, []);
+
+const addAuth = () => {
+    const v = newAuth.trim();
+    if (!v) return;
+    if (org.authorized_operations.some(a => a.toLowerCase() === v.toLowerCase())) { setNewAuth(''); return; }
+    setOrg({ ...org, authorized_operations: [...org.authorized_operations, v] });
+    setNewAuth('');
+};
+const removeAuth = (idx) => setOrg({ ...org, authorized_operations: org.authorized_operations.filter((_, i) => i !== idx) });
 
     const handleUpdate = async (e) => {
         e.preventDefault();
@@ -122,7 +176,10 @@ useEffect(() => {
                     legal_rep: org.legal_rep,
                     operator_email: org.operator_email,
                     phone: org.phone,
-                    address: org.address
+                    address: org.address,
+                    operator_number: org.operator_number || null,
+                    registration_expiry: org.registration_expiry || null,
+                    authorized_operations: org.authorized_operations || [],
                 })
                 .eq('id', profile.organization_id)
                 .select();
@@ -220,15 +277,50 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
         );
     }
 
+    const regStatus = expiryStatus(org.registration_expiry);
+
     return (
         <div className="max-w-6xl mx-auto space-y-6 md:space-y-10 text-left animate-in fade-in duration-700 pb-20 px-2 md:px-0">
             <ConfirmModal {...confirmDlg} onCancel={() => setConfirmDlg(null)} />
-            <header className="flex justify-between items-end border-b pb-6 px-2 md:px-0">
-                <div>
-                    <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-slate-900 leading-none">Configurar Organización</h2>
-<p className="text-slate-500 text-xs md:text-sm font-bold uppercase mt-2 tracking-widest">Identidad Legal y Pólizas de Seguro</p>
+
+            {/* HERO — logo, identidad, guardar */}
+            <div className="bg-[#1A202C] rounded-[2rem] px-6 py-6 md:px-9 md:py-7 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex items-center gap-5 min-w-0">
+                    <div className="relative size-16 shrink-0">
+                        <div className="size-full rounded-2xl bg-slate-700 border-2 border-white/10 overflow-hidden flex items-center justify-center">
+                            {org.logo_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={docOpenUrl(org.logo_url)} className="size-full object-contain p-1.5" alt="Logo" loading="lazy" decoding="async" />
+                            ) : (
+                                <span className="material-symbols-outlined text-3xl text-slate-400">business</span>
+                            )}
+                        </div>
+                        <FileUpload variant="avatar" path="org/logos" label="Actualizar logo corporativo" onUploadSuccess={updateLogo} />
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-500">Organización</p>
+                        <h2 className="text-xl md:text-2xl font-black text-white tracking-tight mt-1 truncate">{org.company_name || 'Sin nombre'}</h2>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-2">
+                            {org.tax_id && <span className="text-[11px] font-bold text-slate-400">{org.tax_id_type || 'NIT'} {org.tax_id}</span>}
+                            {regStatus && (
+                                <span className={`inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full ${EXP_BADGE_CLS[regStatus.tone]}`}>
+                                    <span className="material-symbols-outlined text-[13px]">verified</span>
+                                    Registro AeroCivil {regStatus.label}
+                                </span>
+                            )}
+                        </div>
+                    </div>
                 </div>
-            </header>
+                <button
+                    type="submit"
+                    form="org-form"
+                    disabled={updating}
+                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-wide shadow-lg shadow-orange-600/25 active:scale-95 transition-all disabled:opacity-50 shrink-0"
+                >
+                    <span className="material-symbols-outlined text-base">save</span>
+                    {updating ? 'Sincronizando...' : 'Guardar cambios'}
+                </button>
+            </div>
 
             {/* ── INICIO RÁPIDO — Onboarding Express (oculto para piloto independiente) ── */}
             {profile?.subscription_plan !== 'piloto' && (
@@ -353,23 +445,98 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
             </section>
             )}
 
-            <form onSubmit={handleUpdate} className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-10">
-                
-                {/* COLUMNA IZQUIERDA: LOGO Y CÓDIGO (Apilado en mobile) */}
+            <form id="org-form" onSubmit={handleUpdate} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* COLUMNA IZQUIERDA */}
                 <div className="space-y-6">
-                    <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col items-center text-center">
-                        <div className="size-28 md:size-32 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden mb-6">
-                            {org.logo_url ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={org.logo_url} className="size-full object-contain p-2" alt="Logo" loading="lazy" decoding="async" />
-                            ) : (
-                                <span className="material-symbols-outlined text-4xl text-slate-300">business</span>
-                            )}
+                    <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-7 space-y-4">
+                        <p className="text-[11px] font-black uppercase tracking-wide text-orange-600 border-b border-slate-100 pb-3">Datos de la empresa</p>
+                        <div className="space-y-1">
+                            <label className={labelCls}>Razón social</label>
+                            <input required className={inputCls} value={org.company_name || ''} onChange={e => setOrg({...org, company_name: e.target.value})} />
                         </div>
-                        <FileUpload path="org/logos" label="Actualizar Logo Corporativo" onUploadSuccess={updateLogo} />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <label className={labelCls}>Tipo de identificación</label>
+                                <select className={inputCls} value={org.tax_id_type || 'NIT'} onChange={e => setOrg({...org, tax_id_type: e.target.value})}>
+                                    <option value="NIT">NIT (Empresa)</option>
+                                    <option value="CC">Cédula (Persona Natural)</option>
+                                    <option value="PP">Pasaporte</option>
+                                </select>
+                            </div>
+                            <div className="space-y-1">
+                                <label className={labelCls}>N.º Documento</label>
+                                <input required className={inputCls} value={org.tax_id || ''} onChange={e => setOrg({...org, tax_id: e.target.value})} />
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <label className={labelCls}>Correo corporativo</label>
+                            <input type="email" className={inputCls} value={org.operator_email || ''} onChange={e => setOrg({...org, operator_email: e.target.value})} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <label className={labelCls}>Teléfono</label>
+                                <input className={inputCls} value={org.phone || ''} onChange={e => setOrg({...org, phone: e.target.value})} />
+                            </div>
+                            <div className="space-y-1">
+                                <label className={labelCls}>Representante legal</label>
+                                <input className={inputCls} value={org.legal_rep || ''} onChange={e => setOrg({...org, legal_rep: e.target.value})} />
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <label className={labelCls}>Dirección</label>
+                            <input className={inputCls} value={org.address || ''} onChange={e => setOrg({...org, address: e.target.value})} />
+                        </div>
                     </div>
 
-                    <div className="bg-[#1A202C] p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] text-white space-y-4">
+                    <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-7 space-y-4">
+                        <p className="text-[11px] font-black uppercase tracking-wide text-orange-600 border-b border-slate-100 pb-3">Registro AeroCivil</p>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <label className={labelCls}>N.º Explotador (DAN)</label>
+                                <input className={inputCls} value={org.dan_number || ''} onChange={e => setOrg({...org, dan_number: e.target.value})} />
+                            </div>
+                            <div className="space-y-1">
+                                <label className={labelCls}>N.º de operador UAS</label>
+                                <input className={inputCls} value={org.operator_number || ''} onChange={e => setOrg({...org, operator_number: e.target.value})} />
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <label className={labelCls}>Vigencia del registro</label>
+                            <input type="date" className={inputCls} value={org.registration_expiry || ''} onChange={e => setOrg({...org, registration_expiry: e.target.value})} />
+                            {regStatus && <p className={`text-[10px] font-black ${EXP_TEXT_CLS[regStatus.tone]}`}>{regStatus.label}</p>}
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className={labelCls}>Autorizaciones activas</label>
+                            {org.authorized_operations.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mb-1.5">
+                                    {org.authorized_operations.map((a, i) => (
+                                        <span key={a} className="inline-flex items-center gap-1.5 text-[10.5px] font-bold text-slate-600 bg-slate-100 pl-2.5 pr-1.5 py-1 rounded-full">
+                                            <span className="material-symbols-outlined text-[13px] text-emerald-600">check_circle</span>
+                                            {a}
+                                            <button type="button" onClick={() => removeAuth(i)} className="size-4 flex items-center justify-center rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50">
+                                                <span className="material-symbols-outlined text-[12px]">close</span>
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                            <div className="flex gap-2">
+                                <input
+                                    className={inputCls}
+                                    placeholder="Ej. Operación nocturna, BVLOS, VLOS..."
+                                    value={newAuth}
+                                    onChange={e => setNewAuth(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addAuth(); } }}
+                                />
+                                <button type="button" onClick={addAuth}
+                                    className="shrink-0 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-xs uppercase transition-colors">
+                                    Agregar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-[#1A202C] p-6 md:p-7 rounded-2xl text-white space-y-4">
                         <div>
                             <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em]">NIT · Código de acceso</p>
                             <p className="text-xl md:text-2xl font-mono font-black text-orange-500 mt-1">{org.unique_code}</p>
@@ -390,75 +557,47 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                     </div>
                 </div>
 
-                {/* COLUMNA DERECHA: FORMULARIO TÉCNICO-LEGAL */}
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-slate-200 shadow-sm space-y-8">
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                            <h4 className="col-span-full text-xs font-black text-orange-600 uppercase tracking-[0.2em] border-b pb-2">01. Datos de Registro</h4>
-                            
-                            <div className="col-span-full space-y-1">
-                                <label htmlFor="org-company-name" className="text-xs font-black uppercase text-slate-600 ml-1">Razón Social</label>
-                                <input id="org-company-name" required className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={org.company_name || ''} onChange={e => setOrg({...org, company_name: e.target.value})} />
-                            </div>
-
-                            <div className="space-y-1">
-                                <label htmlFor="org-tax-id-type" className="text-xs font-black uppercase text-slate-600 ml-1">Tipo Identificación</label>
-                                <select
-                                    id="org-tax-id-type"
-                                    className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500"
-                                    value={org.tax_id_type || 'NIT'}
-                                    onChange={e => setOrg({...org, tax_id_type: e.target.value})}
-                                >
-                                    <option value="NIT">NIT (Empresa)</option>
-                                    <option value="CC">Cédula (Persona Natural)</option>
-                                    <option value="PP">Pasaporte</option>
-                                </select>
-                            </div>
-
-                            <div className="space-y-1">
-                                <label htmlFor="org-tax-id" className="text-xs font-black uppercase text-slate-600 ml-1">N° Documento</label>
-                                <input id="org-tax-id" required className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={org.tax_id || ''} onChange={e => setOrg({...org, tax_id: e.target.value})} />
-                            </div>
-
-                            <div className="space-y-1">
-                                <label htmlFor="org-dan" className="text-xs font-black uppercase text-slate-600 ml-1">N° Explotador (DAN)</label>
-                                <input id="org-dan" className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={org.dan_number || ''} onChange={e => setOrg({...org, dan_number: e.target.value})} />
-                            </div>
-
-                            <div className="space-y-1">
-                                <label htmlFor="org-legal-rep" className="text-xs font-black uppercase text-slate-600 ml-1">Representante Legal</label>
-                                <input id="org-legal-rep" className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={org.legal_rep || ''} onChange={e => setOrg({...org, legal_rep: e.target.value})} />
-                            </div>
+                {/* COLUMNA DERECHA: MIEMBROS DEL EQUIPO */}
+                <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col">
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+                        <div>
+                            <p className="text-[11px] font-black uppercase tracking-wide text-orange-600">Miembros del equipo</p>
+                            <p className="text-[10px] font-semibold text-slate-400 mt-0.5">{members.length} miembro{members.length !== 1 ? 's' : ''}</p>
                         </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pt-4">
-                            <h4 className="col-span-full text-xs font-black text-orange-600 uppercase tracking-[0.2em] border-b pb-2">02. Contacto Administrativo</h4>
-
-                            <div className="space-y-1">
-                                <label htmlFor="org-email" className="text-xs font-black uppercase text-slate-600 ml-1">Email Corporativo</label>
-                                <input id="org-email" type="email" className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={org.operator_email || ''} onChange={e => setOrg({...org, operator_email: e.target.value})} />
-                            </div>
-
-                            <div className="space-y-1">
-                                <label htmlFor="org-phone" className="text-xs font-black uppercase text-slate-600 ml-1">Teléfono</label>
-                                <input id="org-phone" className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={org.phone || ''} onChange={e => setOrg({...org, phone: e.target.value})} />
-                            </div>
-
-                            <div className="col-span-full space-y-1">
-                                <label htmlFor="org-address" className="text-xs font-black uppercase text-slate-600 ml-1">Dirección Oficial</label>
-                                <input id="org-address" className="w-full p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={org.address || ''} onChange={e => setOrg({...org, address: e.target.value})} />
-                            </div>
-                        </div>
-
-                        <button 
-                            disabled={updating}
-                            type="submit" 
-                            className="w-full py-4 md:py-5 bg-slate-900 text-white font-black rounded-2xl md:rounded-[2rem] shadow-xl uppercase text-xs tracking-widest transition-all hover:bg-orange-600 active:scale-95"
-                        >
-                            {updating ? 'SINCRONIZANDO...' : 'ACTUALIZAR IDENTIDAD CORPORATIVA'}
-                        </button>
+                        <Link href="/dashboard/pilots"
+                            className="flex items-center gap-1.5 bg-orange-50 hover:bg-orange-100 rounded-lg px-3 py-2 text-[10.5px] font-black text-orange-600 uppercase transition-colors shrink-0">
+                            <span className="material-symbols-outlined text-base">person_add</span>
+                            Invitar
+                        </Link>
                     </div>
+                    <div className="flex-1 overflow-y-auto max-h-[520px] divide-y divide-slate-50 px-2">
+                        {membersLoading ? (
+                            <p className="py-10 text-center text-xs font-black text-slate-300 uppercase">Cargando...</p>
+                        ) : members.length === 0 ? (
+                            <p className="py-10 text-center text-xs font-black text-slate-300 uppercase">Sin miembros</p>
+                        ) : members.map(m => (
+                            <div key={m.id} className="flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-slate-50 transition-colors">
+                                <div className="size-9 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+                                    {m.avatar_url
+                                        ? (// eslint-disable-next-line @next/next/no-img-element
+                                          <img src={docOpenUrl(m.avatar_url)} alt="" className="size-full object-cover" />)
+                                        : <span className="material-symbols-outlined text-slate-400 text-lg">person</span>}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-black text-slate-900 truncate">{m.full_name || `${m.first_name || ''} ${m.last_name || ''}`.trim() || '---'}</p>
+                                    <p className="text-[10px] font-semibold text-slate-400 truncate">{m.email}</p>
+                                </div>
+                                <span className={`shrink-0 text-[10px] font-black px-2.5 py-1 rounded-full ${ROLE_CHIP[m.role] || 'bg-slate-100 text-slate-600'}`}>
+                                    {labelForRole(m.role)}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                    <Link href="/dashboard/users"
+                        className="flex items-center justify-center gap-1.5 px-6 py-3.5 border-t border-slate-100 text-[10.5px] font-black text-slate-500 hover:text-orange-600 uppercase tracking-wide transition-colors shrink-0">
+                        Gestionar roles del equipo
+                        <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                    </Link>
                 </div>
             </form>
             {/* SECCIÓN PÓLIZAS DE SEGURO */}

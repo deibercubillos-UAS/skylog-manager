@@ -19,6 +19,10 @@ const DOC_FIELDS = [
   'emergency_contact_phone',
 ];
 
+// Campos de solo lectura: informativos en el perfil, pero gestionados por managers
+// desde Tripulación (EditPilotPanel) — no editables vía este endpoint self-service.
+const READONLY_DISPLAY_FIELDS = ['aerocivil_additions'];
+
 // Localiza la fila pilots vinculada al usuario actual dentro de su org.
 async function findMyPilot(admin, { userId, orgId, email }) {
   const orQuery = [`profile_id.eq.${userId}`, `owner_id.eq.${userId}`];
@@ -45,6 +49,7 @@ export async function GET() {
 
     const out = { id: pilot.id };
     for (const f of DOC_FIELDS) out[f] = pilot[f] ?? null;
+    for (const f of READONLY_DISPLAY_FIELDS) out[f] = pilot[f] ?? null;
     return NextResponse.json({ pilot: out });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });

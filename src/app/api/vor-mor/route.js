@@ -26,12 +26,12 @@ export async function GET(request) {
         let query = supabase
             .from('vor_mor_submissions')
             .select(`
-                id, type, status, is_anonymous,
+                id, type, status, severity, is_anonymous,
                 reporter_name, occurrence_date, occurrence_time,
                 location, description, immediate_actions,
                 contributing_factors, attachments, custom_responses,
                 assigned_to, internal_notes, investigation_summary,
-                created_at, updated_at,
+                aerocivil_notified_at, created_at, updated_at,
                 assigned_profile:profiles!vor_mor_submissions_assigned_to_fkey(first_name, last_name)
             `, { count: 'exact' })
             .eq('organization_id', ctx.orgId)

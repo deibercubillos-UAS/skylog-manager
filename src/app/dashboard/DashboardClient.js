@@ -4,6 +4,8 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { getOrgPlan } from '@/lib/orgPlan';
+import PageHero from '@/components/PageHero';
+import KPIStrip from '@/components/KPIStrip';
 
 // Banner de instalación PWA — solo en dashboard, flotante en esquina
 const PwaInstallBanner  = dynamic(() => import('@/components/PwaInstallBanner'), { ssr: false });
@@ -90,8 +92,29 @@ export default function DashboardClient() {
   const alertsCount = data?.stats?.alertsCount || 0;
   const chartLabel  = `Actividad de vuelo — últimos 6 meses. ${(data?.chart || []).map(m => `${m.label}: ${m.count} vuelo${m.count !== 1 ? 's' : ''}`).join(', ')}.`;
 
+  // Bloque derecho del hero: próxima misión + anillo "Flota lista" (ver /api/dashboard)
+  const fleetTotal = data?.stats?.fleetCount || 0;
+  const fleetReady = data?.stats?.fleetReadyCount ?? fleetTotal;
+  const fleetPct = fleetTotal > 0 ? Math.round((fleetReady / fleetTotal) * 100) : 100;
+  const ringCircumference = 2 * Math.PI * 19;
+  const ringOffset = ringCircumference * (1 - fleetPct / 100);
+
+  const flightsThisMonth = data?.chart?.length ? data.chart[data.chart.length - 1].count : 0;
+  const fleetInMaintenance = Math.max(0, fleetTotal - fleetReady);
+
+  const nextMission = data?.nextMission;
+  let nextMissionLabel = null;
+  if (nextMission?.date) {
+    const d = new Date(`${nextMission.date}T00:00:00`);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const dateLabel = d.getTime() === today.getTime()
+      ? 'Hoy'
+      : d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+    nextMissionLabel = nextMission.time ? `${dateLabel} · ${nextMission.time}` : dateLabel;
+  }
+
   return (
-    <div className="space-y-5 md:space-y-8 animate-in fade-in duration-700 text-left pb-4">
+    <div className="space-y-3 md:space-y-5 animate-in fade-in duration-700 text-left pb-4">
 
       {/* BANNER INVITACIONES PENDIENTES — para quien fue invitado a una org */}
       <InvitationsBanner />
@@ -117,39 +140,77 @@ export default function DashboardClient() {
       )}
 
       {/* SALUDO */}
-      <div>
-        <h2 className="text-lg md:text-2xl font-black text-slate-800">
-          Bienvenido, <span className="text-orange-500">{firstName}</span>
-        </h2>
-        <p className="text-xs font-medium text-slate-400 mt-1 uppercase tracking-wider" aria-label="Fecha actual">
-          {new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-        </p>
-      </div>
+      <PageHero
+        eyebrow="Panel de Control"
+        title={`Bienvenido, ${firstName}`}
+        description={new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        right={
+          <>
+            {nextMissionLabel && (
+              <div className="hidden sm:flex flex-col justify-center pr-4 md:pr-6 border-r border-white/10">
+                <p className="text-xs font-black uppercase tracking-wide text-white/40">Próxima misión</p>
+                <p className="text-sm font-black text-white mt-1 whitespace-nowrap">{nextMissionLabel}</p>
+              </div>
+            )}
+            <div className="flex items-center gap-2.5">
+              <div className="relative size-11 shrink-0">
+                <svg width="46" height="46" viewBox="0 0 46 46" className="-rotate-90" aria-hidden="true">
+                  <circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,.15)" strokeWidth="5" />
+                  <circle cx="23" cy="23" r="19" fill="none" stroke="#ec5b13" strokeWidth="5" strokeLinecap="round"
+                    strokeDasharray={ringCircumference} strokeDashoffset={ringOffset} />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center text-[11px] font-black text-white">{fleetPct}%</div>
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-wide text-white/40">Flota lista</p>
+                <p className="text-xs font-bold text-white/80 mt-0.5 whitespace-nowrap">{fleetReady} de {fleetTotal} aeronaves</p>
+              </div>
+            </div>
+          </>
+        }
+      />
 
-      {/* 1. KPIs */}
-      <section aria-label="Indicadores clave de operación">
-        {/* Hero KPI — Horas de Vuelo span completo en desktop */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
-          <KPICard
-            title="Horas de Vuelo" value={`${data?.stats?.hours || '0.0'}h`}
-            icon="timer" color="text-slate-900" trend={flightTrend}
-            hero className="col-span-2 md:col-span-1"
-          />
-          <KPICard title="Flota Lista"  value={data?.stats?.fleetCount  || 0} icon="precision_manufacturing" color="text-orange-500" />
-          <KPICard title="Tripulación"  value={data?.stats?.pilotCount  || 0} icon="group"                  color="text-slate-900" />
-          <KPICard title="Alertas"      value={alertsCount}                   icon="warning"                warning={alertsCount > 0}
-            sub={alertsCount > 0 ? `${alertsCount} elemento${alertsCount !== 1 ? 's' : ''} require${alertsCount === 1 ? '' : 'n'} atención` : 'Operación sin alertas'} />
-        </div>
+      {/* 1. KPIs — franja sin cajas (variant="strip"), fiel al mockup Dashboard Layout 1a.
+          El resto de páginas (Flota, Bitácora, etc.) sigue usando la variante "card". */}
+      <section aria-label="Indicadores clave de operación" className="bg-white rounded-[1.5rem] border border-slate-100 px-2 py-3 md:px-4">
+        <KPIStrip variant="strip" items={[
+          {
+            key: 'hours', label: 'Horas de Vuelo', value: data?.stats?.hours || '0.0', unit: 'h',
+            icon: 'schedule', iconColor: '#ec5b13',
+            delta: flightTrend !== null ? `${flightTrend >= 0 ? '+' : ''}${flightTrend}% vs. mes ant.` : null,
+            deltaTone: flightTrend !== null && flightTrend >= 0 ? 'positive' : 'neutral',
+          },
+          {
+            key: 'flights', label: 'Vuelos del Mes', value: flightsThisMonth, unit: '',
+            icon: 'flight_takeoff', iconColor: '#ec5b13',
+            delta: flightTrend !== null ? `${flightTrend >= 0 ? '+' : ''}${flightTrend}% vs. mes ant.` : null,
+            deltaTone: flightTrend !== null && flightTrend >= 0 ? 'positive' : 'neutral',
+          },
+          {
+            key: 'fleet', label: 'Aeronaves Activas', value: fleetReady, unit: `/ ${fleetTotal}`,
+            icon: 'precision_manufacturing', iconColor: '#94a3b8',
+            delta: fleetInMaintenance > 0 ? `${fleetInMaintenance} en mantenimiento` : 'Todas operativas',
+            deltaTone: fleetInMaintenance > 0 ? 'neutral' : 'positive',
+          },
+          {
+            key: 'alerts', label: 'Alertas Activas', value: alertsCount, unit: '',
+            icon: 'warning', iconColor: alertsCount > 0 ? '#dc2626' : '#16a34a',
+            delta: alertsCount > 0 ? `${alertsCount} requiere${alertsCount === 1 ? '' : 'n'} atención` : 'Operación sin alertas',
+            deltaTone: alertsCount > 0 ? 'neutral' : 'positive',
+          },
+        ]} />
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
+      {/* 2+3. GRÁFICO MENSUAL + ALERTAS — una sola tarjeta blanca, lado a lado
+          (antes eran 2 tarjetas separadas con el panel de alertas en navy oscuro).
+          Mismos aria-labels/roles que antes, solo cambia el contenedor visual. */}
+      <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col lg:flex-row">
 
-        {/* 2. GRÁFICO MENSUAL */}
-        <figure className="lg:col-span-2 bg-white p-5 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col h-[260px] md:h-[420px]"
-          aria-label={chartLabel}>
-          <figcaption className="flex justify-between items-start mb-4 md:mb-10">
+        {/* GRÁFICO MENSUAL */}
+        <figure className="lg:flex-[1.5] p-4 md:p-6 flex flex-col h-[200px] md:h-[240px]" aria-label={chartLabel}>
+          <figcaption className="flex justify-between items-start mb-3 md:mb-5">
             <div>
-              <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em] md:tracking-[0.3em]">Actividad Mensual</h3>
+              <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em] md:tracking-[0.2em]">Vuelos por Mes</h3>
               <span className="text-xs font-bold text-slate-400 mt-0.5 inline-block">Últimos 6 meses</span>
             </div>
             {flightTrend !== null && (
@@ -201,30 +262,35 @@ export default function DashboardClient() {
           </table>
         </figure>
 
-        {/* 3. ALERTAS COMPLIANCE */}
-        <section aria-label="Alertas de compliance operacional"
-          className="bg-[#1A202C] p-5 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl text-white flex flex-col h-[260px] md:h-[420px] border border-white/5">
-          <h3 className="text-xs font-black uppercase text-orange-500 mb-4 md:mb-8 tracking-widest flex items-center gap-2">
-            <span className="material-symbols-outlined text-lg" aria-hidden="true">gavel</span> Compliance
+        <div className="hidden lg:block w-px bg-slate-100 my-6" />
+        <div className="lg:hidden h-px bg-slate-100 mx-4 md:mx-6" />
+
+        {/* ALERTAS ACTIVAS */}
+        <section aria-label="Alertas activas de la operación"
+          className="lg:flex-1 p-4 md:p-6 flex flex-col h-[200px] md:h-[240px]">
+          <h3 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em] md:tracking-[0.2em] mb-3 md:mb-5 flex items-center gap-2">
+            Alertas Activas
+            {alertsCount > 0 && (
+              <span className="text-[10px] font-black text-white bg-orange-600 rounded-full px-2 py-0.5">{alertsCount}</span>
+            )}
           </h3>
-          <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1" role="list"
+          <div className="space-y-1.5 overflow-y-auto pr-1 custom-scrollbar flex-1" role="list"
             aria-label={alertsCount > 0 ? `${alertsCount} alerta${alertsCount !== 1 ? 's' : ''} activa${alertsCount !== 1 ? 's' : ''}` : 'Sin alertas activas'}>
             {data?.alerts?.length > 0 ? data.alerts.map((a, i) => (
-              <div key={i} role="listitem"
-                className="p-4 rounded-2xl border border-white/10 bg-white/5 flex items-start gap-4">
-                <span className={`material-symbols-outlined text-sm ${a.type === 'CRÍTICO' ? 'text-red-500' : 'text-orange-500'}`}
-                  aria-label={a.type === 'CRÍTICO' ? 'Alerta crítica' : 'Advertencia'}>
-                  {a.type === 'CRÍTICO' ? 'report' : 'notification_important'}
-                </span>
-                <div>
-                  <p className="text-xs font-black leading-tight uppercase">{a.msg}</p>
-                  <p className="text-xs text-slate-400 font-bold mt-1 uppercase">{a.val}</p>
+              <div key={i} role="listitem" className="flex items-start gap-2.5 py-1.5 border-b border-slate-100 last:border-b-0">
+                <span
+                  className={`size-1.5 rounded-full mt-1.5 shrink-0 ${a.type === 'CRÍTICO' ? 'bg-red-600' : 'bg-amber-500'}`}
+                  aria-label={a.type === 'CRÍTICO' ? 'Alerta crítica' : 'Advertencia'}
+                />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-slate-800 leading-tight">{a.msg}</p>
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">{a.val}</p>
                 </div>
               </div>
             )) : (
-              <div className="h-full flex flex-col items-center justify-center opacity-30 text-center" aria-live="polite">
-                <span className="material-symbols-outlined text-5xl text-white mb-3" aria-hidden="true">verified</span>
-                <p className="text-xs font-black uppercase tracking-widest text-white">Operación Segura</p>
+              <div className="h-full flex flex-col items-center justify-center opacity-40 text-center" aria-live="polite">
+                <span className="material-symbols-outlined text-3xl text-emerald-500 mb-2" aria-hidden="true">verified</span>
+                <p className="text-xs font-black uppercase tracking-widest text-slate-700">Operación Segura</p>
                 <p className="text-xs text-slate-400 font-medium mt-1">Sin alertas activas</p>
               </div>
             )}
@@ -234,7 +300,7 @@ export default function DashboardClient() {
 
       {/* 4. BITÁCORA RECIENTE — desktop */}
       <section aria-label="Actividad reciente de vuelo" className="hidden md:block bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden text-left">
-        <div className="p-8 border-b flex justify-between items-center bg-slate-50/30">
+        <div className="px-6 py-3 border-b flex justify-between items-center bg-slate-50/30">
           <h3 className="font-black text-xs uppercase text-slate-400 tracking-widest">Actividad Reciente</h3>
           <Link href="/dashboard/logbook" className="text-xs font-black text-orange-600 uppercase underline">Ver Historial</Link>
         </div>
@@ -243,27 +309,40 @@ export default function DashboardClient() {
             <caption className="sr-only">Últimos vuelos registrados en la bitácora</caption>
             <thead>
               <tr className="bg-slate-50/50 text-xs font-black text-slate-400 uppercase tracking-widest">
-                <th scope="col" className="px-8 py-5">Referencia</th>
-                <th scope="col" className="px-8 py-5">Tripulación (PIC)</th>
-                <th scope="col" className="px-8 py-5">Aeronave (UAV)</th>
-                <th scope="col" className="px-8 py-5 text-right">Estatus</th>
+                <th scope="col" className="px-6 py-2.5">Misión</th>
+                <th scope="col" className="px-6 py-2.5">Fecha</th>
+                <th scope="col" className="px-6 py-2.5">Aeronave</th>
+                <th scope="col" className="px-6 py-2.5">PIC</th>
+                <th scope="col" className="px-6 py-2.5">Duración</th>
+                <th scope="col" className="px-6 py-2.5 text-right">Estatus</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {data?.recentActivity?.length > 0 ? data.recentActivity.map(f => (
                 <tr key={f.id} className="hover:bg-slate-50 transition-all">
-                  <td className="px-8 py-6 text-xs font-black font-mono text-orange-600">{f.mission_id || 'N/A'}</td>
-                  <td className="px-8 py-6 text-xs font-bold text-slate-700">{f.pilots?.name || 'No registrado'}</td>
-                  <td className="px-8 py-6 text-xs font-black uppercase text-slate-400">{f.aircraft?.model || 'N/R'}</td>
-                  <td className="px-8 py-6 text-right">
-                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-xs font-black uppercase border border-emerald-100 shadow-sm">
+                  <td className="px-6 py-2.5 text-xs font-black font-mono text-orange-600">{f.mission_id || 'N/A'}</td>
+                  <td className="px-6 py-2.5 text-xs font-bold text-slate-500">{f.flight_date || '—'}</td>
+                  <td className="px-6 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="size-6 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-sm text-slate-400" aria-hidden="true">flight</span>
+                      </div>
+                      <span className="text-xs font-bold text-slate-800">{f.aircraft?.model || 'N/R'}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-2.5 text-xs font-bold text-slate-700">{f.pilots?.name || 'No registrado'}</td>
+                  <td className="px-6 py-2.5 text-xs font-black text-slate-700 tabular-nums">
+                    {f.total_time ? `${parseFloat(f.total_time).toFixed(1)}h` : '—'}
+                  </td>
+                  <td className="px-6 py-2.5 text-right">
+                    <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-xs font-black uppercase border border-emerald-100">
                       Registrado
                     </span>
                   </td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan="4">
+                  <td colSpan="6">
                     <EmptyState icon="flight_takeoff" message="Sin actividad operativa" sub="Los vuelos registrados aparecerán aquí" />
                   </td>
                 </tr>
@@ -317,38 +396,3 @@ function EmptyState({ icon, message, sub }) {
   );
 }
 
-function KPICard({ title, value, icon, warning, color, trend, hero, sub, className }) {
-  const trendLabel = trend !== null && trend !== undefined
-    ? `${trend >= 0 ? 'Subió' : 'Bajó'} ${Math.abs(trend)}% vs mes anterior`
-    : null;
-
-  return (
-    <div className={`bg-white p-4 md:p-8 rounded-2xl md:rounded-[2rem] border border-slate-200 shadow-sm flex flex-col justify-between transition-all hover:-translate-y-1 ${warning ? 'ring-2 ring-red-500/30 bg-red-50/5' : ''} ${className || ''}`}
-      role="region"
-      aria-label={`${title}: ${value}${trendLabel ? `. ${trendLabel}` : ''}${sub ? `. ${sub}` : ''}`}>
-      <div className="flex justify-between items-start mb-3 md:mb-4">
-        <span className="text-xs font-black uppercase text-slate-400 tracking-wide leading-tight max-w-[80%]">{title}</span>
-        <span className={`material-symbols-outlined text-xl ${warning ? 'text-red-500 animate-pulse' : 'text-orange-500'}`}
-          aria-hidden="true">{icon}</span>
-      </div>
-      <span className={`${hero ? 'text-3xl md:text-5xl' : 'text-2xl md:text-4xl'} font-black tracking-tighter ${warning ? 'text-red-600' : color}`}
-        aria-hidden="true">
-        {value ?? 0}
-      </span>
-      {trend !== null && trend !== undefined && (
-        <span className={`mt-1.5 text-xs font-black flex items-center gap-1 ${trend >= 0 ? 'text-emerald-500' : 'text-red-400'}`}
-          aria-hidden="true">
-          <span className="material-symbols-outlined text-sm" aria-hidden="true">
-            {trend >= 0 ? 'trending_up' : 'trending_down'}
-          </span>
-          {trend >= 0 ? '+' : ''}{trend}% vs mes ant.
-        </span>
-      )}
-      {sub && !trend && (
-        <span className={`mt-1.5 text-xs font-bold ${warning ? 'text-red-400' : 'text-slate-400'}`} aria-hidden="true">
-          {sub}
-        </span>
-      )}
-    </div>
-  );
-}

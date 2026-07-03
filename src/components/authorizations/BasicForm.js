@@ -37,7 +37,7 @@ const MISSION_TYPES = [
   'OTRA OPERACIÓN ESPECIAL',
 ];
 
-export default function BasicForm({ pilots, drones, org, loadData }) {
+export default function BasicForm({ pilots, drones, org, loadData, onClose }) {
     const [saving, setSaving] = useState(false);
     const [geo, setGeo] = useState({ depts: [], munis: [], all: [] });
     const [, setLoadingGeo] = useState(true);
@@ -57,6 +57,22 @@ export default function BasicForm({ pilots, drones, org, loadData }) {
     const [mapCenter, setMapCenter] = useState([4.7110, -74.0721]); // Bogotá por defecto
     const [mapZoom, setMapZoom] = useState(12);
     const [weatherCoords, setWeatherCoords] = useState(null); // [lat, lon] del municipio seleccionado
+    const [scheduleConflict, setScheduleConflict] = useState(null); // { missions } si el PIC ya tiene misión cercana
+
+    // Aviso en vivo de conflicto de horario del PIC (Fase 5.b). No bloquea el envío.
+    useEffect(() => {
+        if (!form.pilot_id || !form.scheduled_at) { setScheduleConflict(null); return; }
+        const dt = `${form.scheduled_at}T${form.takeoff_time || '08:00'}:00`;
+        let active = true;
+        const t = setTimeout(async () => {
+            try {
+                const res = await fetch(`/api/flights/conflicts?pilot_id=${form.pilot_id}&scheduled_at=${encodeURIComponent(dt)}`);
+                const data = await res.json();
+                if (active) setScheduleConflict(data.conflict ? data : null);
+            } catch { if (active) setScheduleConflict(null); }
+        }, 400);
+        return () => { active = false; clearTimeout(t); };
+    }, [form.pilot_id, form.scheduled_at, form.takeoff_time]);
 
     // Geocodifica "Municipio, Departamento, Colombia" para centrar el mapa.
     // Usa Nominatim (OpenStreetMap), sin API key. Falla en silencio → Bogotá.
@@ -194,59 +210,119 @@ export default function BasicForm({ pilots, drones, org, loadData }) {
     const pStat = getPilotStatus();
     const dStat = getDroneStatus();
     const canDownload = !!(form.op_name?.trim() || form.mission_type);
+    const selectedAircraft = drones.find(d => d.id === form.aircraft_id);
+    const preflightOn = org?.enable_preflight ?? true;
 
-    const inputCls = "w-full bg-slate-800 p-3.5 rounded-2xl border-none text-white text-sm font-bold";
+    const inputCls = "w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-sm font-bold text-slate-900";
+    const labelCls = "text-[9.5px] font-black text-slate-400 uppercase tracking-wide ml-0.5";
 
     return (
-        <div className="space-y-8 animate-in slide-in-from-left duration-500">
-            <div className="bg-[#1A202C] p-5 md:p-8 rounded-[2.5rem] text-white shadow-2xl border border-white/5">
-                <div className="flex flex-wrap gap-3 mb-6">
-                    <StatusBox status={pStat} title="Estatus PIC"  defaultMsg="Seleccione Piloto" />
-                    <StatusBox status={dStat} title="Estatus UAS"  defaultMsg="Seleccione Drone" />
+        <div className="space-y-5 animate-in slide-in-from-left duration-500">
+            {/* Hero — mismo tono navy que PageHero, contexto de la acción */}
+            <div className="bg-[#1A202C] rounded-2xl px-5 py-4 md:px-6 md:py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-500">Programación</p>
+                    <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-tight mt-1">Programar nuevo vuelo</h3>
+                    <p className="text-xs font-semibold text-slate-400 mt-1">Asigna aeronave, tripulación y horario</p>
                 </div>
+                <div className="flex items-center gap-1.5 text-slate-400 shrink-0">
+                    <span className="material-symbols-outlined text-base">lock</span>
+                    <span className="text-[10px] font-bold">Solo Admin / Jefe de Pilotos</span>
+                </div>
+            </div>
 
-                <form onSubmit={handleAuthorize} className="space-y-6">
-                    {/* ── Datos de la misión ── */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1 md:col-span-2">
-                            <label className="text-xs font-black text-slate-500 uppercase ml-1">Nombre de la operación</label>
-                            <input type="text" placeholder="Ej: Inspección eléctrica – Vereda El Roble" className={inputCls + ' placeholder-slate-600'} value={form.op_name} onChange={e => setForm({...form, op_name: e.target.value})} />
-                        </div>
+            {/* Aviso de conflicto de horario del PIC (no bloqueante) */}
+            {scheduleConflict?.missions?.length > 0 && (
+                <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
+                    <span className="material-symbols-outlined text-red-600 text-xl shrink-0">warning</span>
+                    <p className="text-xs font-bold text-red-700 leading-relaxed">
+                        Este piloto ya tiene una misión programada ese día
+                        ({scheduleConflict.missions.map(m => m.mission_id).join(', ')}) — revisa la agenda antes de programar.
+                    </p>
+                </div>
+            )}
+
+            <div className="flex flex-wrap gap-3">
+                <StatusBox status={pStat} title="Estatus PIC"  defaultMsg="Seleccione Piloto" />
+                <StatusBox status={dStat} title="Estatus UAS"  defaultMsg="Seleccione Drone" />
+            </div>
+
+            <form onSubmit={handleAuthorize} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 md:p-7 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                    {/* ── Columna izquierda: datos de la misión ── */}
+                    <div className="space-y-4">
+                        <p className="text-[11px] font-black uppercase tracking-wide text-orange-600 pb-2 border-b border-slate-100">Datos de la misión</p>
 
                         <div className="space-y-1">
-                            <label className="text-xs font-black text-slate-500 uppercase ml-1">Piloto al Mando (PIC)</label>
-                            <select required className={inputCls} value={form.pilot_id} onChange={e => setForm({...form, pilot_id: e.target.value})}>
-                                <option value="">— Seleccionar —</option>
-                                {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-xs font-black text-slate-500 uppercase ml-1">Aeronave (UAS)</label>
-                            <select required className={inputCls} value={form.aircraft_id} onChange={e => setForm({...form, aircraft_id: e.target.value})}>
-                                <option value="">— Seleccionar —</option>
-                                {drones.map(d => <option key={d.id} value={d.id}>{d.model} — {d.serial_number}</option>)}
-                            </select>
-                        </div>
-
-                        <div className="space-y-1 md:col-span-2">
-                            <label className="text-xs font-black text-slate-500 uppercase ml-1">Tipo de Operación (RAC 100)</label>
+                            <label className={labelCls}>Tipo de misión</label>
                             <select required className={inputCls} value={form.mission_type} onChange={e => setForm({...form, mission_type: e.target.value})}>
                                 {MISSION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                             </select>
                         </div>
 
-                        <div className="space-y-1">
-                            <label className="text-xs font-black text-slate-500 uppercase ml-1">Departamento</label>
-                            <select required className={inputCls} value={form.department} onChange={e => handleDeptChange(e.target.value)}>
-                                <option value="">— Seleccionar —</option>
-                                {geo.depts.map(d => <option key={d} value={d}>{d}</option>)}
-                            </select>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <label className={labelCls}>Fecha</label>
+                                <input required type="date" className={inputCls} value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})} />
+                            </div>
+                            <div className="space-y-1">
+                                <label className={labelCls}>Hora inicio</label>
+                                <input type="time" className={inputCls} value={form.takeoff_time} onChange={e => setForm({...form, takeoff_time: e.target.value})} />
+                            </div>
                         </div>
+
                         <div className="space-y-1">
-                            <label className="text-xs font-black text-slate-500 uppercase ml-1">Municipio</label>
-                            <select required disabled={!form.department} className={inputCls + ' disabled:opacity-30'} value={form.municipality} onChange={e => { setForm({...form, municipality: e.target.value}); geocodeMunicipality(e.target.value, form.department); }}>
+                            <label className={labelCls}>Nombre de la operación (opcional)</label>
+                            <input type="text" placeholder="Ej: Inspección eléctrica – Vereda El Roble" className={inputCls + ' placeholder-slate-400'} value={form.op_name} onChange={e => setForm({...form, op_name: e.target.value})} />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <label className={labelCls}>Departamento</label>
+                                <select required className={inputCls} value={form.department} onChange={e => handleDeptChange(e.target.value)}>
+                                    <option value="">— Seleccionar —</option>
+                                    {geo.depts.map(d => <option key={d} value={d}>{d}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-1">
+                                <label className={labelCls}>Municipio</label>
+                                <select required disabled={!form.department} className={inputCls + ' disabled:opacity-40'} value={form.municipality} onChange={e => { setForm({...form, municipality: e.target.value}); geocodeMunicipality(e.target.value, form.department); }}>
+                                    <option value="">— Seleccionar —</option>
+                                    {geo.munis.map(m => <option key={m} value={m}>{m}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-1 flex-1 flex flex-col">
+                            <label className={labelCls}>Observaciones de la zona de operación</label>
+                            <textarea rows={3} placeholder="Condiciones de viento, punto de despegue, etc." className={inputCls + ' placeholder-slate-400 resize-none'} value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
+                        </div>
+                    </div>
+
+                    {/* ── Columna derecha: asignación de recursos ── */}
+                    <div className="space-y-4">
+                        <p className="text-[11px] font-black uppercase tracking-wide text-orange-600 pb-2 border-b border-slate-100">Asignación de recursos</p>
+
+                        <div className="space-y-1">
+                            <label className={labelCls}>Aeronave (UAS)</label>
+                            <select required className={inputCls} value={form.aircraft_id} onChange={e => setForm({...form, aircraft_id: e.target.value})}>
                                 <option value="">— Seleccionar —</option>
-                                {geo.munis.map(m => <option key={m} value={m}>{m}</option>)}
+                                {drones.map(d => <option key={d.id} value={d.id}>{d.model} — {d.serial_number}</option>)}
+                            </select>
+                            {selectedAircraft && (
+                                <p className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 ml-0.5">
+                                    <span className="material-symbols-outlined text-xs">flight</span> Disponible
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className={labelCls}>Piloto al mando (PIC)</label>
+                            <select required
+                                className={inputCls + (scheduleConflict?.missions?.length > 0 ? ' !border-red-300 !bg-red-50' : '')}
+                                value={form.pilot_id} onChange={e => setForm({...form, pilot_id: e.target.value})}>
+                                <option value="">— Seleccionar —</option>
+                                {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
                         </div>
 
@@ -255,95 +331,102 @@ export default function BasicForm({ pilots, drones, org, loadData }) {
                                 lat={weatherCoords[0]}
                                 lon={weatherCoords[1]}
                                 label={form.municipality ? `${form.municipality}, ${form.department}` : undefined}
-                                className="col-span-full"
                             />
                         )}
 
-                        <div className="space-y-1">
-                            <label className="text-xs font-black text-slate-500 uppercase ml-1">Fecha Programada</label>
-                            <input required type="date" className={inputCls} value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})} />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-xs font-black text-slate-500 uppercase ml-1">Hora de despegue</label>
-                            <input type="time" className={inputCls} value={form.takeoff_time} onChange={e => setForm({...form, takeoff_time: e.target.value})} />
-                        </div>
-                    </div>
-
-                    {/* ── Zona de vuelo (mapa) ── */}
-                    <div className="border-t border-white/10 pt-6 space-y-4">
-                        <p className="text-xs font-black uppercase tracking-widest text-slate-500">Zona de vuelo</p>
-
-                        <div className="grid grid-cols-3 gap-2">
-                            {GEO_TYPES.map(t => (
-                                <button type="button" key={t.key}
-                                    onClick={() => { setGeoType(t.key); setZone(null); }}
-                                    className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border text-center transition-all active:scale-95 ${
-                                        geoType === t.key ? 'border-orange-400 bg-orange-500/10 text-orange-400' : 'border-white/10 bg-white/5 text-slate-400 hover:border-white/20'
-                                    }`}>
-                                    <span className="material-symbols-outlined text-2xl">{t.icon}</span>
-                                    <span className="text-xs font-black uppercase leading-tight">{t.label}</span>
-                                </button>
-                            ))}
-                        </div>
-
                         <div className="space-y-1.5">
-                            <label className="text-xs font-black text-slate-500 uppercase ml-1">Altitud máxima AGL</label>
-                            <div className="flex items-center gap-4 bg-slate-800 rounded-2xl px-4 py-3">
+                            <label className={labelCls}>Altura de vuelo (AGL)</label>
+                            <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
                                 <input type="range" min="10" max="400" step="10" value={form.altitude} onChange={e => setForm({...form, altitude: Number(e.target.value)})} className="flex-1 accent-orange-500" />
-                                <span className="text-sm font-black w-16 text-right shrink-0">{form.altitude} m</span>
+                                <span className="text-sm font-black w-16 text-right shrink-0 text-slate-900">{form.altitude} m</span>
                             </div>
                             {form.altitude > 120 && (
-                                <p className="text-xs text-orange-400 font-bold flex items-center gap-1">
+                                <p className="text-xs text-orange-600 font-bold flex items-center gap-1">
                                     <span className="material-symbols-outlined text-sm">warning</span>
                                     Sobre 120 m AGL requiere autorización especial (RAC 100.32)
                                 </p>
                             )}
                         </div>
 
-                        <button type="button" onClick={() => setMapOpen(true)}
-                            className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest border-2 border-dashed border-orange-400/50 text-orange-400 hover:bg-orange-500/10 transition-all active:scale-95 flex items-center justify-center gap-2">
-                            <span className="material-symbols-outlined">add_location_alt</span>
-                            {zone ? 'Editar zona en el mapa' : 'Definir zona en el mapa'}
-                        </button>
-
-                        {summary && (
-                            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                {summary.map(s => (
-                                    <div key={s.label}>
-                                        <p className="text-xs font-black text-slate-400 uppercase">{s.label}</p>
-                                        <p className="text-sm font-black mt-0.5">{s.value}</p>
-                                    </div>
-                                ))}
+                        <div className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${preflightOn ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-200'}`}>
+                            <div className="flex items-center gap-2">
+                                <span className={`material-symbols-outlined text-lg ${preflightOn ? 'text-emerald-600' : 'text-slate-400'}`}>checklist</span>
+                                <span className="text-xs font-bold text-slate-700">Checklist pre-vuelo</span>
                             </div>
-                        )}
-
-                        <div className="space-y-1">
-                            <label className="text-xs font-black text-slate-500 uppercase ml-1">Observaciones</label>
-                            <textarea rows={2} placeholder="Condiciones de viento, punto de despegue, etc." className={inputCls + ' placeholder-slate-600 resize-none'} value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
+                            <span className={`text-[10px] font-black uppercase ${preflightOn ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                {preflightOn ? 'Activo' : 'Desactivado'}
+                            </span>
                         </div>
                     </div>
+                </div>
 
-                    {/* ── Acciones ── */}
-                    <div className="space-y-3 pt-2">
-                        <button type="submit" disabled={saving}
-                            className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-[2rem] font-black uppercase text-xs shadow-xl active:scale-95 transition-all disabled:opacity-50">
-                            {saving ? 'SINCRONIZANDO...' : 'AUTORIZAR MISIÓN OPERATIVA'}
+                {/* ── Zona de vuelo (mapa) ── */}
+                <div className="border-t border-slate-100 pt-5 space-y-4">
+                    <p className="text-[11px] font-black uppercase tracking-wide text-orange-600">Zona de operación</p>
+
+                    <div className="grid grid-cols-3 gap-2">
+                        {GEO_TYPES.map(t => (
+                            <button type="button" key={t.key}
+                                onClick={() => { setGeoType(t.key); setZone(null); }}
+                                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all active:scale-95 ${
+                                    geoType === t.key ? 'border-orange-400 bg-orange-50 text-orange-600' : 'border-slate-200 bg-slate-50 text-slate-400 hover:border-slate-300'
+                                }`}>
+                                <span className="material-symbols-outlined text-2xl">{t.icon}</span>
+                                <span className="text-xs font-black uppercase leading-tight">{t.label}</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    <button type="button" onClick={() => setMapOpen(true)}
+                        className="w-full py-3.5 rounded-xl font-black text-xs uppercase tracking-widest border-2 border-dashed border-orange-300 text-orange-600 hover:bg-orange-50 transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <span className="material-symbols-outlined text-base">add_location_alt</span>
+                        {zone ? 'Editar zona en el mapa' : 'Definir zona en el mapa'}
+                    </button>
+
+                    {summary && (
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {summary.map(s => (
+                                <div key={s.label}>
+                                    <p className="text-[10px] font-black text-emerald-700/70 uppercase">{s.label}</p>
+                                    <p className="text-sm font-black mt-0.5 text-emerald-800">{s.value}</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* ── Exportar ── */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5">
+                    <span className="text-[10px] font-black uppercase tracking-wide text-slate-500">Exportar planeación</span>
+                    <div className="flex items-center gap-4">
+                        <button type="button" onClick={handleDownloadKMZ} disabled={!canDownload || downloading}
+                            className="flex items-center gap-1.5 text-xs font-black text-slate-600 hover:text-orange-600 transition-colors disabled:opacity-40">
+                            <span className="material-symbols-outlined text-base">{downloading ? 'progress_activity' : 'map'}</span>
+                            {downloading ? 'Generando…' : 'Descargar KMZ'}
                         </button>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <button type="button" onClick={handleDownloadKMZ} disabled={!canDownload || downloading}
-                                className="py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest bg-white/10 hover:bg-white/20 text-white transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-40">
-                                <span className="material-symbols-outlined text-base">{downloading ? 'progress_activity' : 'download'}</span>
-                                {downloading ? 'Generando…' : 'Descargar KMZ'}
-                            </button>
-                            <button type="button" onClick={handleDownloadPDF} disabled={!canDownload || generatingPdf}
-                                className="py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest bg-white/10 hover:bg-white/20 text-white transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-40">
-                                <span className="material-symbols-outlined text-base">{generatingPdf ? 'progress_activity' : 'picture_as_pdf'}</span>
-                                {generatingPdf ? 'Generando…' : 'Descargar PDF'}
-                            </button>
-                        </div>
+                        <button type="button" onClick={handleDownloadPDF} disabled={!canDownload || generatingPdf}
+                            className="flex items-center gap-1.5 text-xs font-black text-slate-600 hover:text-orange-600 transition-colors disabled:opacity-40">
+                            <span className="material-symbols-outlined text-base">{generatingPdf ? 'progress_activity' : 'picture_as_pdf'}</span>
+                            {generatingPdf ? 'Generando…' : 'Descargar PDF'}
+                        </button>
                     </div>
-                </form>
-            </div>
+                </div>
+
+                {/* ── Acciones ── */}
+                <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+                    {onClose && (
+                        <button type="button" onClick={onClose}
+                            className="px-5 py-3 rounded-xl border border-slate-200 text-slate-600 font-black text-xs uppercase tracking-wide hover:bg-slate-50 transition-all">
+                            Cancelar
+                        </button>
+                    )}
+                    <button type="submit" disabled={saving}
+                        className="flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-wide shadow-lg shadow-orange-600/25 active:scale-95 transition-all disabled:opacity-50">
+                        <span className="material-symbols-outlined text-base">add_circle</span>
+                        {saving ? 'SINCRONIZANDO...' : 'Programar misión'}
+                    </button>
+                </div>
+            </form>
 
             {mapOpen && (
                 <MapPickerModal
@@ -361,15 +444,15 @@ export default function BasicForm({ pilots, drones, org, loadData }) {
 
 function StatusBox({ status, title, defaultMsg }) {
     if (!status) return (
-        <div className="px-4 py-2 rounded-xl border border-white/10 bg-white/5">
-            <p className="text-xs font-black text-slate-500 uppercase">{title}</p>
+        <div className="px-4 py-2 rounded-xl border border-slate-200 bg-slate-50">
+            <p className="text-xs font-black text-slate-400 uppercase">{title}</p>
             <p className="text-xs font-bold text-slate-400">{defaultMsg}</p>
         </div>
     );
     const colors = {
-        ERROR: 'bg-red-500/20 border-red-500',
-        WARN:  'bg-orange-500/20 border-orange-500',
-        OK:    'bg-emerald-500/20 border-emerald-500',
+        ERROR: 'bg-red-50 border-red-300 text-red-700',
+        WARN:  'bg-orange-50 border-orange-300 text-orange-700',
+        OK:    'bg-emerald-50 border-emerald-300 text-emerald-700',
     };
     return (
         <div className={`px-4 py-2 rounded-xl border ${colors[status.type]}`}>

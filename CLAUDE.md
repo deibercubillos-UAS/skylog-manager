@@ -90,7 +90,7 @@ lib/
 
 Tablas principales:
 - `profiles` — users, tiene `organization_id`, `role`, `subscription_plan`, `epayco_subscription_id`, `subscription_expires_at` (NO existe `org_id` ni `plan`; `organizations` no tiene columna de plan)
-- `organizations` — tenant. Tiene `enable_health_check`, `enable_preflight`, `enable_briefing` (toggles protocolos)
+- `organizations` — tenant. Tiene `enable_health_check`, `enable_preflight`, `enable_briefing` (toggles protocolos). Registro AeroCivil: `dan_number` (N° Explotador), `operator_number` (N.º de operador UAS), `registration_expiry` (vigencia del registro), `authorized_operations jsonb` (chips de autorizaciones activas, texto libre) — ver **Organización rediseñada**.
 - `pilots` · `aircraft` · `batteries` · `battery_logs`. `pilots.invitation_status` 'pending'/'accepted'/'rejected'/null · `pilots.profile_id` se vincula al aceptar invitación · `pilots.avatar_url`/`aerocivil_additions` (jsonb)/`notes`
   - `aircraft` mantenimiento: `maintenance_interval_hours` (default 200), `maintenance_interval_days` (default 180), `operational_status` ('disponible'/'en_mantenimiento', CHECK, NOT NULL), `last_status_change`. Ver sección **Mantenimiento de Aeronaves**. La foto va en `image_url` (bucket público `fleet-images`, ver Convenciones).
 - `flights` — además de los campos de PATCH: `total_time` (double precision, **horas**) es la duración real del vuelo. La bitácora muestra duración desde `total_time` (fallback takeoff/landing); el import DJI lo calcula de `duracion_s/3600`.
@@ -913,6 +913,60 @@ específico de identidad (foto + nombre + guardar) que `PageHero` no modela.
 - Sin cambios en "Documentos del Piloto" (expediente self-service en `pilots`) ni en "Zona de
   peligro" (borrado de cuenta) — se conservan intactos debajo del nuevo layout.
 
+### Organización rediseñada (2026-07-03)
+
+`dashboard/settings/page.js`: mismo patrón hero navy + 2 columnas que Mi Perfil, aplicado
+sobre la página de configuración de organización — que además de la parte que muestra el
+mockup ("Pestaña completa — Organización": logo, datos de la empresa, registro AeroCivil,
+miembros del equipo) ya traía secciones reales sustanciales que el mockup no mostraba
+(Onboarding Express, Pólizas de Seguro, Cuenta AeroCivil de automatización) — todas se
+conservan intactas debajo del área rediseñada, no se recortó nada.
+
+- **Hero**: logo corporativo (cuadrado redondeado, no circular como el de Mi Perfil — mismo
+  `variant="avatar"` de `FileUpload.js`, el badge de cámara es agnóstico a la forma del
+  contenedor) + razón social + NIT + badge de vigencia del registro AeroCivil. **Corrige un
+  bug preexistente documentado en Pendientes de infraestructura** ("Logo legacy roto"): el
+  logo se renderizaba con `<img src={org.logo_url}>` directo aunque `FileUpload` sube al
+  bucket privado `documents` y devuelve un *path*, no una URL pública — ahora usa
+  `docOpenUrl(org.logo_url)` (mismo helper que ya usan avatares/documentos en el resto de la
+  app), consistente con la migración a bucket privado de 2026-06-12.
+- **"Datos de la empresa"**: razón social/tipo de identificación+NIT/correo/teléfono/
+  representante legal/dirección — mismos campos ya editables, sin cambios de datos. Se omitió
+  "Ciudad / sede" del mockup: `organizations` no tiene columna `city` separada de `address`
+  (no se fabricó extrayendo una ciudad del texto libre de la dirección).
+- **"Registro AeroCivil"** — **decisión de alcance confirmada con el usuario** (`AskUserQuestion`):
+  el mockup pedía N.º de operador UAS + vigencia del registro + chips de autorizaciones
+  activas, ninguno con respaldo real (`organizations` solo tenía `dan_number`). El usuario
+  eligió construir tracking real mínimo en vez de omitir/sustituir. Migración
+  `20260703_org_aerocivil_registration.sql` (aplicada en Supabase) agrega `operator_number`,
+  `registration_expiry` y `authorized_operations jsonb default '[]'`. `dan_number` (N°
+  Explotador, ya existía) se **movió** aquí desde "Datos de la empresa" — es conceptualmente
+  un identificador AeroCivil, no un dato societario, y el mockup no lo mostraba por separado.
+  **Autorizaciones activas** es un editor de chips de texto libre (agregar/quitar), no una
+  lista curada de categorías RAC 100 — no hay una fuente regulatoria autoritativa en el
+  esquema para validar contra un catálogo fijo, así que se dejó como texto libre que cada
+  organización llena con sus propias autorizaciones vigentes, en vez de inventar una taxonomía
+  oficial. El badge de vigencia reutiliza el mismo umbral Vigente/Vence/Vencida que Mi Perfil
+  y Tripulación (aquí con corte en 60 días en vez de 30, acorde a un ciclo de registro anual).
+  El guardado va en el mismo `handleUpdate`/RLS `organizations_update` (admin/superadmin de la
+  org) que ya usaba el resto del formulario — sin API route nueva.
+- **"NIT · Código de acceso"** y **"URL pública VOR/MOR"**: cajas oscuras ya existentes,
+  reubicadas debajo de Registro AeroCivil en la misma columna — sin cambios de datos ni lógica,
+  es funcionalidad real (el código con el que la tripulación se une a la org) que el mockup no
+  mostraba pero que no se podía quitar.
+- **"Miembros del equipo"** (columna derecha): roster de solo lectura (avatar/nombre/correo/
+  badge de rol) desde `GET /api/admin/users` (mismo endpoint que ya usa `/dashboard/users`,
+  gate admin/superadmin — coincide con el guard `canEditOrg` que ya protegía esta página). Se
+  optó por **no duplicar** la edición de roles aquí (ya existe completa en `/dashboard/users`,
+  con validaciones como "no degradar al último Admin") — mismo patrón de hub-que-enlaza-a-
+  página-dedicada usado en Seguridad SMS/Protocolos: "Gestionar roles del equipo" al pie enlaza
+  a `/dashboard/users`. **"Invitar"** enlaza a `/dashboard/pilots` (el mecanismo real de
+  invitación por correo — `AddPilotPanel` modo "Solo invitación" — vive ahí); no se fabricó un
+  flujo nuevo de "invitar directamente a `profiles`" que no existe en el sistema.
+- El botón "Guardar cambios" del hero envía `<form id="org-form">` vía atributo `form` (mismo
+  patrón que Mi Perfil/`AddProtocolPanel`); el botón "ACTUALIZAR IDENTIDAD CORPORATIVA" al pie
+  del formulario se retiró por quedar duplicado.
+
 ### Historial de facturación ⚠️ inerte hasta aplicar migración
 
 Comprobante **informativo**, sin validez fiscal DIAN (decisión explícita para no acoplar
@@ -1114,6 +1168,7 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 
 - [x] **`20260702_audit_log.sql` aplicada en Supabase (2026-07-03)** — tabla `audit_log` + política RLS creadas y verificadas. Auditoría de acciones ya no es inerte; ver **Auditoría rediseñada**.
 - [x] **`20260703_protocols.sql` aplicada en Supabase (2026-07-03)** — tabla `protocols` + política RLS creadas y verificadas. Ver **Protocolos**.
+- [x] **`20260703_org_aerocivil_registration.sql` aplicada en Supabase (2026-07-03)** — columnas `operator_number`/`registration_expiry`/`authorized_operations` en `organizations`, confirmado con el usuario. Ver **Organización rediseñada**.
 - [ ] **Aplicar `20260702_billing_history.sql`** (rama `claude/project-scope-review-xity40`, ver **Sistema de Diseño**). El código que la consume (`/api/billing-history`, webhook ePayco) ya está desplegado pero **inerte** — omite el insert si la tabla no existe. Aplicar cuando se quiera activar Historial de facturación.
 - [ ] Agregar `DJI_API_KEY` a Vercel env vars
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a Vercel env vars
@@ -1130,7 +1185,7 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 - [x] **Panel Master — Tab Invitaciones (2026-06-23)**: `src/app/admin/master/_InvitacionesTab.js` + `src/app/api/admin/master/invite/route.js`. Envía correo de captación/invitación a clientes con plan sugerido (sin fecha de pago). Guard `assertSuperadmin()`.
 - [x] **Migración `pilots.deactivated_at` aplicada (2026-07-01)**: `supabase/migrations/20260606_pilot_deactivated_at.sql` existía pero nunca se había ejecutado contra el proyecto — causaba 400 en `pilots?select=deactivated_at...` (usado por `dashboard/layout.js` para el período de gracia de 30 días). Aplicada y verificada vía Supabase MCP.
 - [ ] **Descarga de manuales sin streaming**: `GET /api/manuals/[id]/download` (`dashboard/manuales/page.js`) sigue devolviendo signed URL directa a R2 en vez de streaming server-side — mismo riesgo de bloqueo por extensiones/CORS que ya se corrigió en documentos, replays y adjuntos de mantenimiento. No migrado aún por el límite de tamaño (hasta 25 MB) vs. el límite de respuesta de funciones serverless.
-- [ ] **Logo legacy roto**: al menos 1 organización tiene `organizations.logo_url` apuntando a una URL pública del antiguo bucket Supabase Storage (ya privado post-F8) → 400 al cargar. Pendiente re-subir el logo o enrutar su lectura por `docOpenUrl`/proxy.
+- [x] **Logo legacy roto — resuelto (2026-07-03)**: `dashboard/settings/page.js` renderizaba `org.logo_url` directo (`<img src=...>`), pero `FileUpload` sube al bucket privado `documents` y devuelve un *path*, no una URL pública — roto para logos nuevos y para al menos 1 organización con URL legacy del antiguo bucket Supabase Storage. Se corrigió al rediseñar el hero de Organización: ahora usa `docOpenUrl(org.logo_url)` (mismo helper que ya resuelve paths nuevos y URLs legacy para avatares/documentos). Ver **Organización rediseñada**.
 
 ---
 

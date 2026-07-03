@@ -106,7 +106,8 @@ Tablas principales:
 - `pending_registrations` — registro pre-pago (expira 3h, service_role only)
 - `processed_webhook_refs` — idempotencia webhook (`ref_payco PK`)
 - `epayco_plan_config` — configuración planes: `replay_retention_days`, `replay_max_flights`. Editable desde `/admin/master`.
-- `audit_log` ⚠️ **migración creada, NO aplicada aún** (`supabase/migrations/20260702_audit_log.sql`) — log append-only de acciones (`organization_id`, `actor_id`, `action`, `module`, `metadata jsonb`, `created_at`). RLS: managers de la org leen, solo service role escribe. Ver **Auditoría de acciones**.
+- `audit_log` — log append-only de acciones (`organization_id`, `actor_id`, `actor_name`, `action`, `module`, `entity_label`, `metadata jsonb`, `created_at`). RLS: managers de la org leen, solo service role escribe. Ver **Auditoría de acciones**.
+- `protocols` — biblioteca libre de procedimientos (`organization_id`, `name`, `category` CHECK 5 valores, `description`, `icon`, `steps jsonb`, `created_by`). RLS: solo `admin`/`superadmin`/`gerente_sms` de la org leen/escriben. Ver **Protocolos**.
 - `billing_history` ⚠️ **migración creada, NO aplicada aún** (`supabase/migrations/20260702_billing_history.sql`) — historial de pagos informativo (no factura fiscal). RLS: cada usuario ve el suyo, solo service role escribe. Ver **Historial de facturación**.
 
 **Regla `total_hours`**: actualizar siempre vía RPC `increment_aircraft_hours(p_id, p_hours)` — nunca read-calculate-write.
@@ -784,6 +785,51 @@ KPIs + barra de filtros + tabla con avatar/iniciales y badge de tipo por color.
   tabla llegara a faltar en otro entorno), aunque ya no debería activarse en producción tras
   aplicar la migración.
 
+### Protocolos — biblioteca libre de procedimientos (2026-07-03)
+
+`dashboard/settings/forms` (nav "Protocolos", antes "Listas de Chequeo") pasó de ser
+siempre el editor de slots fijos a una **pantalla de dos capas**: un grid tipo mockup como
+landing (`FormSettingsClient.js`, estado `view: 'grid' | 'fixed'`) y el editor de slots
+existente detrás de cada tarjeta, intacto.
+
+- **Decisión de alcance confirmada con el usuario**: el mockup permite protocolos con
+  nombre/categoría/pasos completamente libres — el sistema real solo tenía 4 tipos fijos
+  de checklist (`form_definitions`: salud/pre-vuelo por modelo/briefing/recibo mtto, ya
+  wireados al despacho real). Se preguntó explícitamente y el usuario pidió construir el
+  catálogo libre del mockup en vez de forzarlo sobre los 4 tipos existentes.
+- **Tabla nueva `protocols`** (migración `20260703_protocols.sql`, aplicada en Supabase):
+  `organization_id`, `name`, `category` (CHECK: Pre-vuelo/En vuelo/Post-vuelo/Emergencia/
+  Mantenimiento — las 5 del mockup), `description`, `icon` (nombre de Material Symbol),
+  `steps` (jsonb, array de strings, el orden del array = el orden de los pasos),
+  `created_by`, timestamps. RLS: solo `admin`/`superadmin`/`gerente_sms` (mismos roles que
+  ya guardaban esta página vía `requirePermission('canViewFinance')`) leen/escriben, acotado
+  a su org — es una biblioteca de referencia para managers, no un checklist ejecutable
+  paso a paso durante el despacho (eso seguiría siendo trabajo futuro si se pide).
+- **API**: `GET/POST /api/protocols`, `PATCH/DELETE /api/protocols/[id]` — mismo patrón
+  `getOrgContext()` + `ALLOWED_FIELDS` explícito que el resto de la app.
+- **`AddProtocolPanel.js`** (nuevo, mismo patrón 2 columnas hero+card que
+  `AddAircraftPanel`/`AddPilotPanel`): Nombre*, Categoría* (select con las 5 reales),
+  Ícono (select de Material Symbols curados, con preview), Descripción breve, y un editor
+  de pasos dinámico (agregar/quitar, numerados) fiel al panel "Nuevo Protocolo" del mockup.
+  Mismo componente sirve para crear y editar (prop `protocol`), con botón Eliminar +
+  confirmación inline solo en modo edición.
+- **Grid principal** (`FormSettingsClient.js`, vista `'grid'`): 3 secciones —
+  1) **"Checklists operativos"**: tarjetas de los 4 tipos reales del sistema (Pre-vuelo
+     genera una tarjeta por cada modelo de aeronave de la org, igual que ya hacía el
+     selector de modelo) con badge real "N/LIMIT campos configurados" — click abre el
+     editor de slots existente (`view: 'fixed'`), sin tocar su lógica interna.
+  2) **"Formatos de reporte SMS — editables"**: tarjetas VOR/MOR leídas de
+     `vor_mor_definitions` (real, `title`/`description`/`custom_fields.length`) — "Editar
+     formato" enlaza a `/dashboard/vor-mor` (pestaña Configuración & QR) en vez de duplicar
+     ese editor aquí.
+  3) **"Protocolos y procedimientos"**: chips de categoría (Todos + las 5 reales) + grid de
+     tarjetas de `protocols` (categoría con color, ícono, nombre, descripción, N pasos,
+     fecha de actualización) — click abre `AddProtocolPanel` en modo edición; ícono de
+     eliminar aparece al hover.
+- El editor de slots fijos (`view: 'fixed'`) se conserva **sin cambios de comportamiento**
+  — mismo tab-switcher SALUD/PRE-VUELO/BRIEFING/RECIBO MTTO, mismo toggle ON/OFF, mismo
+  botón "Plantilla básica" — solo se le agregó un botón "← Protocolos" para volver al grid.
+
 ### Historial de facturación ⚠️ inerte hasta aplicar migración
 
 Comprobante **informativo**, sin validez fiscal DIAN (decisión explícita para no acoplar
@@ -984,6 +1030,7 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 ## Pendientes de infraestructura
 
 - [x] **`20260702_audit_log.sql` aplicada en Supabase (2026-07-03)** — tabla `audit_log` + política RLS creadas y verificadas. Auditoría de acciones ya no es inerte; ver **Auditoría rediseñada**.
+- [x] **`20260703_protocols.sql` aplicada en Supabase (2026-07-03)** — tabla `protocols` + política RLS creadas y verificadas. Ver **Protocolos**.
 - [ ] **Aplicar `20260702_billing_history.sql`** (rama `claude/project-scope-review-xity40`, ver **Sistema de Diseño**). El código que la consume (`/api/billing-history`, webhook ePayco) ya está desplegado pero **inerte** — omite el insert si la tabla no existe. Aplicar cuando se quiera activar Historial de facturación.
 - [ ] Agregar `DJI_API_KEY` a Vercel env vars
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a Vercel env vars

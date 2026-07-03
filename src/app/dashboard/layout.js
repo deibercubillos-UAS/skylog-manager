@@ -293,7 +293,7 @@ const navLinks = [
   { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            group: 'Cumplimiento', roles: ['jefe_pilotos', 'piloto'] },
   { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            group: 'Cumplimiento', roles: ['admin'],                                          pilotOnly: true },
   { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
-  { name: 'Listas de Chequeo', icon: 'rule',                 href: '/dashboard/settings/forms',  group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms'] },
+  { name: 'Protocolos',     icon: 'rule',                    href: '/dashboard/settings/forms',  group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms'] },
   // Manuales de la empresa: ahora se accede desde dentro de Protocolos (Listas de Chequeo,
   // "Ver manuales") para superadmin/admin/gerente_sms — misma página que ya veían.
   // jefe_pilotos y piloto (org) no tienen Protocolos en su nav, así que conservan entrada directa.

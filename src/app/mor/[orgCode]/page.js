@@ -47,6 +47,7 @@ export default async function MorPublicPage({ params }) {
       type="MOR"
       orgName={data.org_name}
       formDef={data.form}
+      barriers={data.barriers}
     />
   );
 }

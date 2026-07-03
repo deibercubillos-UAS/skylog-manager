@@ -102,7 +102,7 @@ Tablas principales:
 - `flight_authorizations` — misiones programadas. `plan_data jsonb` guarda la planeación (op_name, geo_type, points, radius, altitude, takeoff_time, notes) para regenerar KMZ/PDF en Programación Activa.
 - `sms_reports` — `severity` (incidente/incidente_grave/accidente), `status` ('abierto' default desde 2026-07-03, antes 'borrador'), `updated_at` (agregada 2026-07-03, con trigger `set_updated_at()` — necesaria para medir tiempo de cierre de casos) · `sora_assessments` · `daily_health_checks` · `pilot_endorsements`
 - `form_definitions` (campos de formulario por aeronave — los checklists se generan combinando esto con `lib/checklistDefaults.js`) · `inventory_items` · `mission_inventory_logs` · `mission_types` · `colombia_geo` (sin coordenadas — solo Código/Nombre Departamento/Municipio)
-- `vor_mor_definitions` · `vor_mor_submissions` (reportes VOR/MOR) — `severity` y `aerocivil_notified_at` agregadas 2026-07-03 (ver **Seguimiento de casos SMS/VOR/MOR**) · `emergency_contacts` · `insurance_policies` · `leads`
+- `vor_mor_definitions` · `vor_mor_submissions` (reportes VOR/MOR) — `severity` y `aerocivil_notified_at` agregadas 2026-07-03 (ver **Seguimiento de casos SMS/VOR/MOR**); `reported_severity` (autoevaluación del reportante, distinta de `severity`) y `related_barrier_id` FK → `safety_barriers` agregadas 2026-07-03 (ver **Editor de formato VOR/MOR rediseñado**) · `emergency_contacts` · `insurance_policies` · `leads`
 - `safety_barriers` — barreras de seguridad (mitigaciones/controles) reales, reemplaza la vista de solo lectura sobre `form_definitions`. `category` CHECK 4 valores, `hazard` (riesgo que mitiga, texto libre), `sora_assessment_id` FK opcional a `sora_assessments`, `responsible` (texto libre), `status` CHECK 3 valores. RLS: solo `admin`/`superadmin`/`gerente_sms` (mismo `canManageSMS`) leen/escriben.
 - `sms_case_actions` / `sms_case_events` — seguimiento de casos SMS/VOR/MOR (acciones correctivas + línea de tiempo). Cada fila referencia exactamente uno de `sms_report_id`/`vor_mor_id` (CHECK `num_nonnulls(...) = 1`). Ver **Seguimiento de casos SMS/VOR/MOR**.
 - `pending_subscriptions` — intents ePayco (filas huérfanas = webhook no corrió)
@@ -478,6 +478,56 @@ significaba solo ajustes visuales.
   y el query param `tab` tampoco se leía) — corregido a `/dashboard/safety` en ambos. De paso
   `dashboard/safety/page.js` ahora sí lee `?tab=` de la URL para preseleccionar pestaña al
   llegar desde un enlace externo.
+
+### Editor de formato VOR/MOR rediseñado + campos reales nuevos (2026-07-03)
+
+El usuario trajo 2 mockups (`Editar_Formato_VOR`, `Editar_Formato_MOR`) pidiendo mejorar la
+pestaña de edición de cada formato. El mockup mostraba una lista plana de campos que el
+reportante llenaría, incluyendo varios sin respaldo real hoy (`Severidad`, `Riesgo/peligro
+identificado`, `Barrera de seguridad relacionada`, `N.º de radicado AeroCivil`, `Cierre/lección
+aprendida` — la severidad y el radicado ya existen pero como gestión **interna** del equipo SMS
+después de recibir el reporte, no como algo que indica el reportante). Se confirmó el alcance
+con el usuario (`AskUserQuestion`): rediseño visual **+** construir 2 de esos campos como reales
+(severidad percibida y barrera relacionada); radicado AeroCivil y "lección aprendida" se
+omitieron por tener ya equivalentes reales internos (`aerocivil_notified_at`,
+`investigation_summary`) — agregar un segundo campo para lo mismo habría sido redundante, no
+"completar el mockup".
+
+- **Campos nuevos en el formulario público** (`lib/vorMorFields.js`, sección `safety` nueva):
+  - `reported_severity` (select, mismo vocabulario RAC 100 que la clasificación oficial:
+    incidente/incidente_grave/accidente) — la **autoevaluación del reportante**, guardada en
+    `vor_mor_submissions.reported_severity` (columna nueva, separada de `severity` a propósito:
+    `severity` es la clasificación regulatoria que asigna el equipo SMS después de investigar,
+    `reported_severity` es solo la percepción de quien reporta — no se conflan para no dejar que
+    un reportante anónimo fije la clasificación oficial).
+  - `related_barrier_id` (tipo especial `barrier_select` — único campo base cuyas opciones NO
+    son estáticas: se resuelven en vivo contra `safety_barriers` activas de la organización,
+    pasadas como prop `barriers` desde el fetch server-side de `/vor/[orgCode]` y
+    `/mor/[orgCode]`). Columna `vor_mor_submissions.related_barrier_id uuid → safety_barriers`.
+  - Ambos son `hideable` (la org puede ocultarlos desde el editor si no los quiere) y viven en
+    el mismo modelo de campos base + overrides que ya existía — no se creó un modelo paralelo.
+  - Migración `20260703_vor_mor_reported_fields.sql` (aplicada en Supabase).
+  - API pública (`/api/public/vor|mor/[orgCode]`): el `GET` ahora también devuelve
+    `barriers: [{id,name}]` (solo `status='Activa'` de la org); el `POST` valida
+    `reported_severity` contra el vocabulario RAC 100 y verifica que `related_barrier_id`
+    pertenezca a la misma org antes de guardarlo (nunca confía en el id que manda el cliente).
+  - Panel de gestión en `/dashboard/vor-mor`: el modal de detalle muestra ambos como chips de
+    solo lectura ("Reportado como: ...", nombre de la barrera) — distintos visualmente del
+    selector "Severidad" de gestión interna que ya existía, para no confundir las dos escalas.
+- **Rediseño visual del editor** (`dashboard/vor-mor/page.js`, pestaña "Configuración & QR" +
+  `_FormBuilder.js`): fiel al mockup — selector de formato VOR/MOR, hero navy con
+  título/descripción editables inline + botón "Guardar cambios", y layout de 2 columnas
+  (editor de campos a la izquierda, panel de enlace + QR a la derecha) en vez del formulario
+  vertical de una sola columna que había antes. **Se conservó intacto el modelo de datos real**
+  (campos base con mostrar/ocultar/renombrar/obligatorio + campos personalizados tipados
+  texto/fecha/select/checkbox) — el mockup mostraba una lista plana más simple sin tipos, pero
+  reemplazarla habría sido una regresión funcional (perder select/fecha/checkbox y edición de
+  placeholder), así que solo cambió la presentación, no el modelo. `_FormBuilder.js` quedó
+  reducido a la columna de campos (sin su propio `<form>`, type-toggle ni botón guardar — todo
+  eso vive ahora en el shell del padre).
+- **"Imprimir para hangar"** (real, no decorativo): abre una ventana nueva con el QR en tamaño
+  póster y dispara `window.print()` del navegador — pensado literalmente para colgar en la pared
+  del hangar. "Descargar QR" (ya existía) se conservó.
 
 ### Recibo post-mantenimiento + trazabilidad de componentes + PDF de recibo (2026-06-25)
 
@@ -1325,6 +1375,7 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 - [x] **`20260703_org_aerocivil_registration.sql` aplicada en Supabase (2026-07-03)** — columnas `operator_number`/`registration_expiry`/`authorized_operations` en `organizations`, confirmado con el usuario. Ver **Organización rediseñada**.
 - [x] **`20260703_sms_case_tracking.sql` aplicada en Supabase (2026-07-03)** — tablas `safety_barriers`/`sms_case_actions`/`sms_case_events` + columnas `severity`/`aerocivil_notified_at` en `vor_mor_submissions`, confirmado con el usuario. Ver **Seguimiento de casos SMS/VOR/MOR**.
 - [x] **`20260703_sms_reports_updated_at.sql` aplicada en Supabase (2026-07-03)** — columna `updated_at` + trigger en `sms_reports`. Ver **Seguimiento de casos SMS/VOR/MOR**.
+- [x] **`20260703_vor_mor_reported_fields.sql` aplicada en Supabase (2026-07-03)** — columnas `reported_severity`/`related_barrier_id` en `vor_mor_submissions`. Ver **Editor de formato VOR/MOR rediseñado**.
 - [x] **`20260702_billing_history.sql` aplicada en Supabase (2026-07-03)**, confirmado con el usuario al rediseñar Suscripción. Ver **Historial de facturación**.
 - [ ] Agregar `DJI_API_KEY` a Vercel env vars
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a Vercel env vars

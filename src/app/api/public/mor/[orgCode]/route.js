@@ -29,9 +29,17 @@ export async function GET(request, { params }) {
 
         if (error) throw error;
 
+        const { data: barriers } = await supabaseAdmin
+            .from('safety_barriers')
+            .select('id, name')
+            .eq('organization_id', org.id)
+            .eq('status', 'Activa')
+            .order('name');
+
         return NextResponse.json({
             org_name: org.company_name,
             form: def || null,
+            barriers: barriers || [],
         });
     } catch (err) {
         return NextResponse.json({ error: err.message }, { status: 500 });
@@ -71,12 +79,28 @@ export async function POST(request, { params }) {
             description,
             immediate_actions,
             contributing_factors,
+            reported_severity,
+            related_barrier_id,
             attachments,
             custom_responses,
         } = body;
 
         if (!description?.trim()) {
             return NextResponse.json({ error: 'La descripción del evento es obligatoria' }, { status: 400 });
+        }
+
+        const VALID_REPORTED_SEVERITIES = ['incidente', 'incidente_grave', 'accidente'];
+        const safeReportedSeverity = VALID_REPORTED_SEVERITIES.includes(reported_severity) ? reported_severity : null;
+
+        let safeBarrierId = null;
+        if (related_barrier_id) {
+            const { data: barrier } = await supabaseAdmin
+                .from('safety_barriers')
+                .select('id')
+                .eq('id', related_barrier_id)
+                .eq('organization_id', org.id)
+                .maybeSingle();
+            if (barrier) safeBarrierId = barrier.id;
         }
 
         // IP para auditoría básica (reutilizar la ya extraída para rate limiting)
@@ -96,6 +120,8 @@ export async function POST(request, { params }) {
                 description: description.trim(),
                 immediate_actions: immediate_actions?.trim() || null,
                 contributing_factors: contributing_factors?.trim() || null,
+                reported_severity: safeReportedSeverity,
+                related_barrier_id: safeBarrierId,
                 attachments: attachments || [],
                 custom_responses: custom_responses || {},
                 ip_address: submitterIp,

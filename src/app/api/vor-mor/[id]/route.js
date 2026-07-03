@@ -29,7 +29,7 @@ export async function GET(request, { params }) {
         const supabaseAdmin = getAdminClient();
         const { data, error } = await supabaseAdmin
             .from('vor_mor_submissions')
-            .select('*')
+            .select('*, related_barrier:related_barrier_id(id, name)')
             .eq('id', id)
             .eq('organization_id', ctx.orgId)
             .single();

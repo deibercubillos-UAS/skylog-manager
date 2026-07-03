@@ -66,7 +66,7 @@ function StepIndicator({ step, color }) {
 }
 
 // ── Renderizador de un campo individual ──────────────────────────────────────
-function FieldRenderer({ field, value, onChange }) {
+function FieldRenderer({ field, value, onChange, barriers }) {
   const { label, type, required, placeholder, options, id: fieldId } = field;
   const inputId = `field-${fieldId}`;
 
@@ -82,7 +82,21 @@ function FieldRenderer({ field, value, onChange }) {
       onChange={e => onChange(e.target.value)} className={INPUT}
       aria-required={required}>
       <option value="">Seleccionar...</option>
-      {(options || []).map((opt, i) => <option key={i} value={opt}>{opt}</option>)}
+      {(options || []).map((opt, i) => {
+        const val = typeof opt === 'string' ? opt : opt.value;
+        const lbl = typeof opt === 'string' ? opt : opt.label;
+        return <option key={i} value={val}>{lbl}</option>;
+      })}
+    </select>
+  );
+
+  // Barrera de seguridad relacionada — opciones dinámicas (activas de la org, no código estático)
+  if (type === 'barrier_select') return (
+    <select id={inputId} required={required} value={value || ''}
+      onChange={e => onChange(e.target.value)} className={INPUT}
+      aria-required={required} disabled={!barriers?.length}>
+      <option value="">{barriers?.length ? 'Seleccionar...' : 'Sin barreras activas registradas'}</option>
+      {(barriers || []).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
     </select>
   );
 
@@ -118,7 +132,7 @@ function FieldRenderer({ field, value, onChange }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-export default function VorMorForm({ orgCode, type, orgName, formDef }) {
+export default function VorMorForm({ orgCode, type, orgName, formDef, barriers }) {
   const c = THEME[type];
 
   // Resolver campos (base + overrides + custom) una sola vez
@@ -203,6 +217,8 @@ export default function VorMorForm({ orgCode, type, orgName, formDef }) {
           description:          baseValues.description?.trim(),
           immediate_actions:    baseValues.immediate_actions?.trim()    || null,
           contributing_factors: baseValues.contributing_factors?.trim() || null,
+          reported_severity:    baseValues.reported_severity  || null,
+          related_barrier_id:   baseValues.related_barrier_id || null,
           attachments,
           custom_responses: customResponses,
         }),
@@ -311,7 +327,7 @@ export default function VorMorForm({ orgCode, type, orgName, formDef }) {
   }
 
   // ── Formulario ─────────────────────────────────────────────────────────────
-  const SECTION_ORDER = ['reporter', 'occurrence', 'event', 'custom'];
+  const SECTION_ORDER = ['reporter', 'occurrence', 'event', 'safety', 'custom'];
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
@@ -361,6 +377,7 @@ export default function VorMorForm({ orgCode, type, orgName, formDef }) {
                       field={field}
                       value={values[field.id]}
                       onChange={(val) => setValue(field.id, val)}
+                      barriers={barriers}
                     />
                   </div>
                 ))}

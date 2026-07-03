@@ -47,6 +47,7 @@ export default async function VorPublicPage({ params }) {
       type="VOR"
       orgName={data.org_name}
       formDef={data.form}
+      barriers={data.barriers}
     />
   );
 }

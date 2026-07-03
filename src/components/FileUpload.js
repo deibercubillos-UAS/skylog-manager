@@ -6,7 +6,7 @@ import { toast } from '@/lib/toast';
 const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
 const MAX_FILE_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB (límite de subida proxy por Vercel)
 
-export default function FileUpload({ path, onUploadSuccess, label }) {
+export default function FileUpload({ path, onUploadSuccess, label, variant = 'default' }) {
   const [uploading, setUploading] = useState(false);
   const BUCKET = 'documents';
 
@@ -78,6 +78,20 @@ export default function FileUpload({ path, onUploadSuccess, label }) {
       event.target.value = '';
     }
   };
+
+  if (variant === 'avatar') {
+    return (
+      <label
+        title={label || 'Cambiar foto'}
+        className={`absolute -bottom-1 -right-1 size-7 rounded-full bg-white border-2 border-[#1A202C] flex items-center justify-center transition-colors ${uploading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-orange-50'}`}
+      >
+        <input type="file" accept=".pdf, .jpg, .jpeg, .png" onChange={handleUpload} disabled={uploading} className="hidden" />
+        <span className={`material-symbols-outlined text-[13px] text-orange-600 ${uploading ? 'animate-spin' : ''}`}>
+          {uploading ? 'sync' : 'photo_camera'}
+        </span>
+      </label>
+    );
+  }
 
   return (
     <div className="space-y-2">

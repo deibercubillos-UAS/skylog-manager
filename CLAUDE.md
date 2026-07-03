@@ -826,10 +826,10 @@ existente detrás de cada tarjeta, intacto.
      tarjetas de `protocols` (categoría con color, ícono, nombre, descripción, N pasos,
      fecha de actualización) — click abre `AddProtocolPanel` en modo edición; ícono de
      eliminar aparece al hover.
-- El editor de slots fijos (`view: 'fixed'`) conserva **la misma lógica** — mismo
-  tab-switcher SALUD/PRE-VUELO/BRIEFING/RECIBO MTTO, mismo toggle ON/OFF, mismo botón
-  "Plantilla básica", mismos slots numerados. Su **presentación** cambió el mismo día (ver
-  siguiente punto): pasó de página completa a panel deslizable.
+- El editor de slots fijos (`view: 'fixed'`) conserva **la misma lógica de guardado** —
+  mismo toggle ON/OFF, mismo botón "Plantilla básica", mismos slots numerados. Su
+  **presentación** cambió el mismo día (ver siguiente punto): pasó de página completa a
+  panel deslizable, y el tab-switcher interno se quitó después (ver ronda 3 abajo).
 - **Ajuste de fidelidad (2026-07-03, mismo día)** — 2 rondas:
   1. Los campos Categoría e Ícono en `AddProtocolPanel.js` usaban un `<select>` nativo
      suelto (con su propio chevron de navegador) — se envolvieron en un solo contenedor
@@ -850,6 +850,68 @@ existente detrás de cada tarjeta, intacto.
      Pre-vuelo), esa navegación ya vive ahí; se quitaron el tab-switcher y el selector de
      modelo internos — el panel abre directo sobre el `type`/`selectedModel` de la tarjeta
      en la que se hizo click, sin forma de saltar a otro checklist sin volver al grid.
+
+### Mi Perfil rediseñado (2026-07-03)
+
+`dashboard/settings/profile/page.js`: pasó de un formulario de 2 columnas genérico (con
+`PageHero` estándar) a un hero navy con avatar propio + 2 columnas de tarjetas fiel al
+mockup — excepción intencional al uso de `PageHero` en esta página puntual (mismo tipo de
+desviación ya aceptada en `AircraftCard`/`IconTile`), porque el mockup pide un hero
+específico de identidad (foto + nombre + guardar) que `PageHero` no modela.
+
+- **Hero**: avatar circular (`profiles.avatar_url`, mismo pipeline de subida ya existente
+  vía `FileUpload`) con badge de cámara superpuesto — nuevo `variant="avatar"` en
+  `FileUpload.js` (misma lógica de validación/subida, solo cambia el render a un botón
+  circular pequeño en vez del dropzone grande; los 5 consumidores existentes no pasan la
+  prop y no cambian). Nombre, rol (`ROLE_LABELS`, con el mismo caso especial "Piloto
+  Independiente" que ya usa `dashboard/layout.js` para admin+plan piloto) y una badge de
+  vigencia de **certificado médico** (mismo umbral Vigente/Vence/Vencida — `<30` días — que
+  ya usa `dashboard/pilots/page.js`) — el mockup la rotula "Licencia vigente", pero el único
+  dato de vigencia real en el esquema es `medical_expiry`, no una fecha de vencimiento de la
+  licencia en sí (`license_number` no tiene expiry propio); se rotuló honestamente como
+  certificado médico en vez de fingir que la licencia expira. El botón "Guardar cambios" del
+  hero envía el `<form id="profile-form">` de abajo vía atributo `form` (mismo patrón que el
+  footer de `AddProtocolPanel`).
+- **"Datos personales"**: Nombres/Apellidos/Teléfono/Ciudad (ya editables) + Correo
+  (deshabilitado, de solo lectura — cambiar el email de auth no está implementado). Se omitió
+  "Documento de identidad" del mockup: `profiles` no tiene columna de cédula (solo
+  `pilots.id_number`, y no todo perfil tiene una fila `pilots` vinculada — GG/GSMS
+  normalmente no la tienen, ver **Gerente General fuera del roster**).
+- **"Licencia RPAS"**: N.º de licencia/CIPU + vencimiento de certificado médico (ambos ya
+  editables, sin cambios de datos) + **Certificaciones** — nuevo, chips de solo lectura desde
+  `pilots.aerocivil_additions` (mismo dato real que ya usa `AddPilotPanel`/`EditPilotPanel`,
+  gestionado por managers desde Tripulación). `GET /api/pilots/my-documents` ahora también
+  devuelve `aerocivil_additions` (nuevo `READONLY_DISPLAY_FIELDS`, separado de `DOC_FIELDS`
+  para que siga sin ser editable por este endpoint self-service). Solo se muestra si el
+  usuario tiene una fila `pilots` vinculada con adiciones — si no, la sección no aparece (no
+  se fabrica un estado vacío falso).
+- **"Contacto de emergencia"**: se preservaron los campos ya existentes en `profiles`
+  (distintos de los de la tabla `pilots` en "Documentos del Piloto" más abajo — duplicación
+  preexistente entre ambas tablas, no introducida por este rediseño) como tarjeta propia, ya
+  que el mockup no los incluye pero eliminarlos habría sido una regresión funcional.
+- **"Seguridad de la cuenta"** (reemplaza "Verificación en dos pasos"/"Sesiones activas" del
+  mockup, ninguna de las dos existe hoy — no hay MFA de Supabase Auth configurado ni listado
+  de sesiones): **Contraseña** → botón "Cambiar" dispara `POST /api/auth/reset-request` (el
+  mismo endpoint público y rate-limited que ya usa "Olvidé mi contraseña") con el correo del
+  propio usuario — envía el enlace de restablecimiento real, sin inventar un flujo de
+  contraseña-actual/nueva que no existe. **Último acceso** → `session.user.last_sign_in_at`
+  (dato real de Supabase Auth, disponible client-side sin necesidad de service role) en vez
+  del "2 dispositivos conectados" fabricado del mockup.
+- **"Resumen de cuenta"** (reemplaza la tarjeta "Preferencias" del mockup — 4 toggles: alertas
+  por correo, notificaciones de mantenimiento, resumen semanal, alertas de licencia por
+  vencer. Ninguno tiene backing real: no existe un sistema de preferencias por usuario, las
+  notificaciones se envían por rol a todos los miembros sin opt-out individual, y "resumen
+  semanal" ni "alertas de licencia por vencer" existen como funcionalidad en absoluto — ver
+  **Notificaciones**. Construir esa infraestructura — nueva columna + wiring en
+  `lib/notify.js` + un cron de resumen semanal — es un alcance nuevo no pedido para un
+  rediseño visual de perfil, así que se sustituyó por una tarjeta 100% real: Organización
+  (`company_name`/`unique_code`, movida aquí desde donde vivía antes dentro de "Datos
+  personales"), Plan (`PLAN_CONFIG[subscription_plan].name`), vencimiento de suscripción si
+  aplica (`subscription_expires_at`) y fecha de alta (`created_at`). El botón **Cerrar
+  sesión** del mockup (al pie de esta tarjeta) sí es real y se conservó en la misma posición
+  — mismo patrón `supabase.auth.signOut()` que ya usa `dashboard/layout.js`.
+- Sin cambios en "Documentos del Piloto" (expediente self-service en `pilots`) ni en "Zona de
+  peligro" (borrado de cuenta) — se conservan intactos debajo del nuevo layout.
 
 ### Historial de facturación ⚠️ inerte hasta aplicar migración
 

@@ -67,13 +67,20 @@ export async function GET(request) {
     url.searchParams.set('windspeed_unit', 'kmh');
 
     // ── NOAA Kp (solo el valor más reciente) ──────────────────────────────────
-    const [weatherRes, kpRes] = await Promise.all([
+    // allSettled (no all): NOAA es intermitente y el Kp es opcional (ver más abajo) —
+    // si su fetch falla a nivel de red, no debe tumbar el endpoint completo. Solo
+    // Open-Meteo es crítico.
+    const [weatherResult, kpResult] = await Promise.allSettled([
       fetch(url.toString(), { next: { revalidate: 1800 } }),
       fetch('https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json', {
         next: { revalidate: 900 },
       }),
     ]);
 
+    if (weatherResult.status !== 'fulfilled') {
+      throw new Error(`Open-Meteo no disponible: ${weatherResult.reason?.message || weatherResult.reason}`);
+    }
+    const weatherRes = weatherResult.value;
     if (!weatherRes.ok) throw new Error(`Open-Meteo ${weatherRes.status}`);
     const wd = await weatherRes.json();
 
@@ -92,11 +99,11 @@ export async function GET(request) {
     const humidity   = h.relativehumidity_2m?.[idx] ?? null;
     const wcode      = h.weathercode?.[idx] ?? wd.current_weather?.weathercode ?? 0;
 
-    // Kp actual
+    // Kp actual — opcional; kpResult puede haber quedado 'rejected' arriba sin afectar el resto
     let kpVal = null;
-    if (kpRes.ok) {
+    if (kpResult.status === 'fulfilled' && kpResult.value.ok) {
       try {
-        const raw = await kpRes.json();
+        const raw = await kpResult.value.json();
         const rows = (Array.isArray(raw[0]) && isNaN(parseFloat(raw[0][1]))) ? raw.slice(1) : raw;
         const parsed = rows.map(r => {
           const kp = parseFloat(Array.isArray(r) ? r[1] : (r.kp ?? r.Kp));
@@ -159,7 +166,9 @@ export async function GET(request) {
       dataTime: wd.hourly?.time?.[idx] ?? null,
     });
   } catch (err) {
-    console.error('[weather/current]', err.message);
+    // err.cause trae el detalle real de undici (ECONNRESET/ENOTFOUND/etc.) —
+    // err.message solo dice "fetch failed", inútil para diagnosticar en logs.
+    console.error('[weather/current]', err.message, err.cause ? String(err.cause) : '');
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

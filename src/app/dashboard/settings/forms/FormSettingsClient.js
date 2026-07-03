@@ -236,128 +236,8 @@ export default function FormSettingsClient({ initialData }) {
         return protocols.filter(p => p.category === categoryFilter);
     }, [protocols, categoryFilter]);
 
-    if (view === 'fixed') {
-        return (
-            <div className="max-w-5xl mx-auto space-y-6 md:space-y-10 text-left animate-in fade-in duration-500 pb-32 px-4 md:px-0">
-                <button onClick={() => setView('grid')}
-                    className="inline-flex items-center gap-1.5 text-xs font-black text-slate-400 hover:text-slate-700 uppercase tracking-widest transition-colors">
-                    <span className="material-symbols-outlined text-base">arrow_back</span>
-                    Protocolos
-                </button>
-
-                <PageHero
-                    eyebrow="Cumplimiento"
-                    title="Editor de Protocolos"
-                    description={`Checklists y procedimientos de ${initialData.companyName || 'tu organización'}`}
-                />
-                {initialData.showManualsLink && (
-                    <div className="flex justify-end -mt-4">
-                        <Link href="/dashboard/manuales" className="text-xs font-black text-primary uppercase underline flex items-center gap-1">
-                            <span className="material-symbols-outlined text-base">library_books</span>
-                            Ver manuales
-                        </Link>
-                    </div>
-                )}
-                <div className="flex flex-col md:flex-row justify-end items-stretch md:items-center gap-2 border-b pb-6">
-                    <div className="flex gap-2 w-full md:w-auto">
-                        <button
-                            onClick={handleLoadDefaults}
-                            className="flex-1 md:flex-none bg-slate-100 text-slate-700 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all hover:bg-slate-200 flex items-center justify-center gap-2"
-                            title="Rellenar con una lista básica que puedes editar"
-                        >
-                            <span className="material-symbols-outlined text-base">playlist_add</span>
-                            Plantilla básica
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            disabled={saving}
-                            className="flex-1 md:flex-none bg-orange-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all disabled:opacity-50"
-                        >
-                            {saving ? 'SINCRO...' : 'Guardar Cambios'}
-                        </button>
-                    </div>
-                </div>
-
-                <div className="flex flex-col gap-4">
-                    <div className="flex bg-slate-200/50 p-1.5 rounded-2xl w-full md:w-fit overflow-x-auto custom-scrollbar">
-                        {[{ id: 'health', label: 'SALUD' }, { id: 'preflight', label: 'PRE-VUELO' }, { id: 'briefing', label: 'BRIEFING' }, { id: 'maintenance_return', label: 'RECIBO MTTO' }].map(t => (
-                            <button
-                                key={t.id}
-                                onClick={() => setType(t.id)}
-                                className={`flex-1 md:flex-none px-6 md:px-8 py-2.5 rounded-xl text-xs font-black uppercase transition-all whitespace-nowrap ${type === t.id ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'}`}
-                            >
-                                {t.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    {type === 'preflight' && (
-                        <div className="flex items-center gap-3 animate-in slide-in-from-left">
-                            <span className="text-xs font-black text-slate-400 uppercase ml-2">Modelo:</span>
-                            <select
-                                className="bg-white border-2 border-orange-100 p-3 rounded-2xl font-black text-xs uppercase text-orange-600 outline-none flex-1 md:flex-none"
-                                value={selectedModel}
-                                onChange={e => setSelectedModel(e.target.value)}
-                            >
-                                <option value="General">Modelo General</option>
-                                {models.map(m => <option key={m} value={m}>{m}</option>)}
-                            </select>
-                        </div>
-                    )}
-                </div>
-
-                {loading ? (
-                    <div className="p-20 text-center font-black animate-pulse text-slate-400 uppercase tracking-widest">Cambiando Protocolo...</div>
-                ) : (
-                    <>
-                        {/* Toggle de activación — solo para protocolos con columna de activación en organizations */}
-                        {ENABLE_COLUMN[type] ? (
-                            <div className="flex items-center justify-between bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-                                <div className="pr-4">
-                                    <p className="text-xs font-black text-slate-900 uppercase">Activar Protocolo {TYPE_LABELS[type]}</p>
-                                    <p className="text-xs text-slate-500 mt-1 uppercase font-bold">{TYPE_HINTS[type]}</p>
-                                </div>
-                                <button
-                                    onClick={() => toggleEnabled(type)}
-                                    className={`px-6 py-3 rounded-xl text-xs font-black uppercase transition-all ${enabled[type] ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}
-                                >
-                                    {enabled[type] ? 'ON' : 'OFF'}
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-3 bg-orange-50 p-6 rounded-[2rem] border border-orange-100">
-                                <span className="material-symbols-outlined text-orange-500">build</span>
-                                <p className="text-xs text-slate-600 uppercase font-bold">{TYPE_HINTS[type]}</p>
-                            </div>
-                        )}
-
-                        <div className={`bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden transition-opacity ${(ENABLE_COLUMN[type] ? enabled[type] : true) ? '' : 'opacity-50'}`}>
-                            <div className="hidden md:flex p-4 bg-slate-50 border-b justify-between px-10 text-xs font-black text-slate-400 uppercase">
-                                <span>Posición (Slot)</span>
-                                <span>Descripción del Requerimiento Técnico</span>
-                            </div>
-                            <div className="p-4 md:p-10 grid grid-cols-1 gap-3 md:gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar bg-white">
-                                {Array.from({ length: LIMITS[type] }).map((_, i) => (
-                                    <div key={i} className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 group border-b border-slate-50 pb-3 md:pb-0 md:border-none last:border-none">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-xs font-black text-slate-300 w-8 group-hover:text-orange-600 transition-colors">{(i + 1).toString().padStart(2, '0')}</span>
-                                            <span className="md:hidden text-xs font-black text-slate-400 uppercase tracking-widest">Requerimiento</span>
-                                        </div>
-                                        <input
-                                            value={labels[i + 1] || ''}
-                                            placeholder="Describa el punto de chequeo..."
-                                            className="flex-1 p-3 md:p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm focus:bg-orange-50 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
-                                            onChange={(e) => setLabels({...labels, [i + 1]: e.target.value})}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </>
-                )}
-            </div>
-        );
-    }
+    const inputCls = "w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-sm font-bold text-slate-900";
+    const labelCls = "text-[9.5px] font-black text-slate-400 uppercase tracking-wide ml-0.5";
 
     // ── Vista principal: grid de Protocolos ─────────────────────────────────
     return (
@@ -519,6 +399,131 @@ export default function FormSettingsClient({ initialData }) {
                     onClose={() => setActivePanel(null)}
                     onSuccess={() => { setActivePanel(null); loadProtocols(); }}
                 />
+            )}
+
+            {/* ── Editor de checklist operativo — mismo shell que AddProtocolPanel ── */}
+            {view === 'fixed' && (
+                <aside className="fixed z-[300] bg-white flex flex-col text-left
+                    inset-x-0 bottom-0 top-14 rounded-t-3xl
+                    md:inset-y-0 md:left-auto md:right-0 md:top-0 md:rounded-none md:w-[92vw] md:max-w-[640px] lg:max-w-[820px]
+                    shadow-[0_-4px_30px_rgba(0,0,0,0.14)] md:shadow-2xl
+                    animate-in slide-in-from-bottom md:slide-in-from-right duration-300">
+
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-xs font-bold text-slate-400 truncate">Protocolos</span>
+                            <span className="material-symbols-outlined text-sm text-slate-300 shrink-0">chevron_right</span>
+                            <span className="text-xs font-black text-slate-900 shrink-0">
+                                {type === 'preflight' ? `Pre-vuelo · ${selectedModel}` : TYPE_TITLE[type]}
+                            </span>
+                        </div>
+                        <button type="button" onClick={() => setView('grid')}
+                            className="size-10 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all active:scale-95 shrink-0">
+                            <span className="material-symbols-outlined text-xl">close</span>
+                        </button>
+                    </div>
+
+                    {/* Scrollable content */}
+                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-5">
+                        {/* Hero */}
+                        <div className="bg-[#1A202C] rounded-2xl px-5 py-4 md:px-6 md:py-5">
+                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-500">Cumplimiento</p>
+                            <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-tight mt-1">
+                                {type === 'preflight' ? `Pre-vuelo · ${selectedModel}` : TYPE_TITLE[type]}
+                            </h3>
+                            <p className="text-xs font-semibold text-slate-400 mt-1">{TYPE_HINTS[type]}</p>
+                        </div>
+
+                        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 md:p-7 space-y-5">
+                            {/* Tab switcher + selector de modelo */}
+                            <div className="flex flex-col gap-3">
+                                <div className="flex bg-slate-100 p-1.5 rounded-2xl w-full overflow-x-auto custom-scrollbar">
+                                    {[{ id: 'health', label: 'SALUD' }, { id: 'preflight', label: 'PRE-VUELO' }, { id: 'briefing', label: 'BRIEFING' }, { id: 'maintenance_return', label: 'RECIBO MTTO' }].map(t => (
+                                        <button key={t.id} type="button" onClick={() => setType(t.id)}
+                                            className={`flex-1 px-4 py-2.5 rounded-xl text-[10.5px] font-black uppercase transition-all whitespace-nowrap ${type === t.id ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500'}`}>
+                                            {t.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {type === 'preflight' && (
+                                    <div className="flex items-center gap-3 animate-in slide-in-from-left">
+                                        <span className={labelCls}>Modelo:</span>
+                                        <div className={inputCls + " flex items-center gap-2 w-fit"}>
+                                            <select className="bg-transparent outline-none appearance-none cursor-pointer text-orange-600"
+                                                value={selectedModel} onChange={e => setSelectedModel(e.target.value)}>
+                                                <option value="General">Modelo General</option>
+                                                {models.map(m => <option key={m} value={m}>{m}</option>)}
+                                            </select>
+                                            <span className="material-symbols-outlined text-base text-slate-400 shrink-0">expand_more</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {loading ? (
+                                <div className="p-16 text-center font-black animate-pulse text-slate-400 uppercase tracking-widest text-xs">Cambiando protocolo...</div>
+                            ) : (
+                                <>
+                                    {/* Toggle de activación — solo para protocolos con columna de activación en organizations */}
+                                    {ENABLE_COLUMN[type] ? (
+                                        <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5">
+                                            <div className="pr-4">
+                                                <p className="text-[10px] font-black text-slate-700 uppercase tracking-wide">Activar Protocolo {TYPE_LABELS[type]}</p>
+                                                <p className="text-[10px] text-slate-400 mt-0.5 font-semibold">{TYPE_HINTS[type]}</p>
+                                            </div>
+                                            <button type="button" onClick={() => toggleEnabled(type)}
+                                                className={`px-4 py-2 rounded-lg text-[10.5px] font-black uppercase transition-all shrink-0 ${enabled[type] ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                                                {enabled[type] ? 'ON' : 'OFF'}
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2.5 bg-orange-50 border border-orange-100 rounded-xl px-3.5 py-2.5">
+                                            <span className="material-symbols-outlined text-sm text-orange-500 shrink-0">info</span>
+                                            <span className="text-[10px] font-semibold text-orange-800 leading-snug">{TYPE_HINTS[type]}</span>
+                                        </div>
+                                    )}
+
+                                    {/* Lista de slots */}
+                                    <div className={`bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden transition-opacity ${(ENABLE_COLUMN[type] ? enabled[type] : true) ? '' : 'opacity-50'}`}>
+                                        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+                                            <span className="text-[11px] font-black uppercase tracking-wide text-orange-600">Puntos de verificación</span>
+                                            <span className="text-[10.5px] font-semibold text-slate-400">{LIMITS[type]} slots</span>
+                                        </div>
+                                        <div className="p-3 space-y-2 max-h-[50vh] overflow-y-auto custom-scrollbar">
+                                            {Array.from({ length: LIMITS[type] }).map((_, i) => (
+                                                <div key={i} className="flex items-center gap-3">
+                                                    <span className="size-6 rounded-full bg-white border border-slate-200 text-slate-500 text-[10px] font-black flex items-center justify-center shrink-0">{i + 1}</span>
+                                                    <input
+                                                        value={labels[i + 1] || ''}
+                                                        placeholder="Describa el punto de chequeo..."
+                                                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
+                                                        onChange={(e) => setLabels({ ...labels, [i + 1]: e.target.value })}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Footer fijo */}
+                    <div className="shrink-0 px-6 py-4 border-t border-slate-100 bg-white flex items-center justify-between gap-3">
+                        <button type="button" onClick={handleLoadDefaults}
+                            className="flex items-center gap-1.5 px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-black text-xs uppercase tracking-wide hover:bg-slate-50 transition-all">
+                            <span className="material-symbols-outlined text-base">playlist_add</span>
+                            Plantilla básica
+                        </button>
+                        <button type="button" onClick={handleSave} disabled={saving}
+                            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-wide shadow-lg shadow-orange-600/25 active:scale-95 transition-all disabled:opacity-50">
+                            <span className="material-symbols-outlined text-base">save</span>
+                            {saving ? 'Sincronizando...' : 'Guardar cambios'}
+                        </button>
+                    </div>
+                </aside>
             )}
         </div>
     );

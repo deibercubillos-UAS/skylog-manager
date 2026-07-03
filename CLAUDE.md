@@ -826,16 +826,24 @@ existente detrás de cada tarjeta, intacto.
      tarjetas de `protocols` (categoría con color, ícono, nombre, descripción, N pasos,
      fecha de actualización) — click abre `AddProtocolPanel` en modo edición; ícono de
      eliminar aparece al hover.
-- El editor de slots fijos (`view: 'fixed'`) se conserva **sin cambios de comportamiento**
-  — mismo tab-switcher SALUD/PRE-VUELO/BRIEFING/RECIBO MTTO, mismo toggle ON/OFF, mismo
-  botón "Plantilla básica" — solo se le agregó un botón "← Protocolos" para volver al grid.
-- **Ajuste de fidelidad (2026-07-03, mismo día)**: el usuario pidió más fidelidad al mockup
-  para el modo edición. Los campos Categoría e Ícono en `AddProtocolPanel.js` usaban un
-  `<select>` nativo suelto (con su propio chevron de navegador) — se envolvieron en un solo
-  contenedor estilo "pill" (`inputCls`) con el ícono como prefijo y un `expand_more` como
-  sufijo, igual al control falso de dropdown del mockup, en vez de dos elementos con gap
-  visualmente distintos del original. Mismo componente sirve para crear y editar, así que
-  el ajuste aplica a ambos modos por igual.
+- El editor de slots fijos (`view: 'fixed'`) conserva **la misma lógica** — mismo
+  tab-switcher SALUD/PRE-VUELO/BRIEFING/RECIBO MTTO, mismo toggle ON/OFF, mismo botón
+  "Plantilla básica", mismos slots numerados. Su **presentación** cambió el mismo día (ver
+  siguiente punto): pasó de página completa a panel deslizable.
+- **Ajuste de fidelidad (2026-07-03, mismo día)** — 2 rondas:
+  1. Los campos Categoría e Ícono en `AddProtocolPanel.js` usaban un `<select>` nativo
+     suelto (con su propio chevron de navegador) — se envolvieron en un solo contenedor
+     estilo "pill" (`inputCls`) con el ícono como prefijo y un `expand_more` como sufijo,
+     igual al control falso de dropdown del mockup. Mismo componente sirve para crear y
+     editar, así que el ajuste aplica a ambos modos por igual.
+  2. El usuario aclaró que la inconsistencia visual real estaba en el **editor de
+     checklists operativos** (Salud/Pre-vuelo/Briefing/Recibo Mtto): seguía siendo la
+     página completa antigua (sin relación visual con "Nuevo protocolo"). Se convirtió en
+     un panel deslizable con el mismo shell que `AddProtocolPanel` (header con breadcrumb +
+     cerrar, hero navy, card blanca, footer fijo) — **sin tocar la lógica**: mismo
+     tab-switcher, selector de modelo, toggle ON/OFF, "Plantilla básica" y los slots
+     numerados 01-LIMIT, ahora dentro de una lista con scroll interno del panel en vez de
+     scroll de página completa.
 
 ### Historial de facturación ⚠️ inerte hasta aplicar migración
 

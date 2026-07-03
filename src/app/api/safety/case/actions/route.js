@@ -23,6 +23,17 @@ export async function POST(request) {
             return NextResponse.json({ error: 'source, id y label son requeridos' }, { status: 400 });
         }
 
+        // Verificar que el caso referenciado pertenece a la org — nunca confiar
+        // en el id que manda el cliente (mismo patrón que /api/safety/case/notify)
+        const caseTable = source === 'sms' ? 'sms_reports' : 'vor_mor_submissions';
+        const { data: existing } = await supabase
+            .from(caseTable)
+            .select('id')
+            .eq('id', id)
+            .eq('organization_id', orgId)
+            .maybeSingle();
+        if (!existing) return NextResponse.json({ error: 'Caso no encontrado' }, { status: 404 });
+
         const { data, error } = await supabase
             .from('sms_case_actions')
             .insert([{

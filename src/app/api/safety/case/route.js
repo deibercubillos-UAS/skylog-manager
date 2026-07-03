@@ -77,6 +77,14 @@ export async function PATCH(request) {
         }
 
         const table = source === 'sms' ? 'sms_reports' : 'vor_mor_submissions';
+        const { data: existing } = await supabase
+            .from(table)
+            .select('id, status')
+            .eq('id', id)
+            .eq('organization_id', orgId)
+            .maybeSingle();
+        if (!existing) return NextResponse.json({ error: 'Caso no encontrado' }, { status: 404 });
+
         const { error: updErr } = await supabase
             .from(table)
             .update({ status })
@@ -84,14 +92,18 @@ export async function PATCH(request) {
             .eq('organization_id', orgId);
         if (updErr) throw updErr;
 
-        await logCaseEvent({
-            orgId,
-            smsReportId: source === 'sms' ? id : undefined,
-            vorMorId:    source === 'vormor' ? id : undefined,
-            label: `Estado actualizado a "${status}"`,
-            actorId: user.id,
-            actorName: fullName || user.email,
-        });
+        // La línea de tiempo solo registra cambios reales — re-guardar el mismo
+        // estado no genera evento (mismo criterio que PATCH /api/vor-mor/[id])
+        if (status !== existing.status) {
+            await logCaseEvent({
+                orgId,
+                smsReportId: source === 'sms' ? id : undefined,
+                vorMorId:    source === 'vormor' ? id : undefined,
+                label: `Estado actualizado a "${status}"`,
+                actorId: user.id,
+                actorName: fullName || user.email,
+            });
+        }
 
         return NextResponse.json({ success: true });
     } catch (err) {

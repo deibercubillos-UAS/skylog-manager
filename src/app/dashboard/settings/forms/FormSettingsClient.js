@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import { CHECKLIST_DEFAULTS } from '@/lib/checklistDefaults';
+import { parseFormConfig } from '@/lib/vorMorFields';
 import PageHero from '@/components/PageHero';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
@@ -302,7 +303,9 @@ export default function FormSettingsClient({ initialData }) {
                         const fallback = t === 'VOR'
                             ? { title: 'Reporte Voluntario (VOR)', description: 'Formato para reportar condiciones o eventos que pudieron afectar la seguridad, sin carácter obligatorio.' }
                             : { title: 'Reporte Obligatorio (MOR)', description: 'Formato para reportar incidentes o accidentes de reporte obligatorio ante AeroCivil.' };
-                        const fieldCount = def?.custom_fields?.length || 0;
+                        // custom_fields puede ser array plano (formato antiguo) u objeto
+                        // { base_overrides, custom } (formato actual) — parseFormConfig maneja ambos
+                        const fieldCount = parseFormConfig(def?.custom_fields).custom.length;
                         return (
                             <Link key={t} href="/dashboard/vor-mor"
                                 className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-2.5 transition-all hover:shadow-md hover:border-orange-200">

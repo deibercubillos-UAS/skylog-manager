@@ -272,10 +272,7 @@ const displayRole = (isPilotoPlan && role === 'admin')
 // No participa en el filtrado por rol/plan — eso lo sigue haciendo filteredLinks abajo.
 const navLinks = [
   { name: 'Dashboard',      icon: 'dashboard',               href: '/dashboard',                 group: 'Operación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Mi Flota',       icon: 'precision_manufacturing', href: '/dashboard/fleet',           group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Baterías',       icon: 'battery_charging_full',   href: '/dashboard/batteries',       group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Tripulación',    icon: 'group',                   href: '/dashboard/pilots',          group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
-  { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Bitácora',       icon: 'menu_book',               href: '/dashboard/logbook',         group: 'Operación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      group: 'Operación', roles: ['superadmin', 'admin', 'jefe_pilotos', 'piloto'], pilotOnly: true },
   // Piloto dentro de una org: también puede planear vuelos (notifica al Jefe de Pilotos al guardar)
   { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      group: 'Operación', roles: ['piloto'],                                         pilotHidden: true },
@@ -283,16 +280,20 @@ const navLinks = [
   { name: 'Programación',   icon: 'event_available',         href: '/dashboard/authorizations',  group: 'Operación', roles: ['superadmin', 'admin', 'jefe_pilotos'],            pilotHidden: true },
   // Vista del piloto: solo sus misiones asignadas (solo-lectura, con KMZ/PDF)
   { name: 'Mis Vuelos',     icon: 'flight_takeoff',          href: '/dashboard/mis-vuelos',      group: 'Operación', roles: ['piloto'],                                         pilotHidden: true },
-  { name: 'Bitácora',       icon: 'menu_book',               href: '/dashboard/logbook',         group: 'Operación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Meteorología',   icon: 'partly_cloudy_day',       href: '/dashboard/weather',         group: 'Operación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Reportes',       icon: 'assessment',              href: '/dashboard/reports',         group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
-  { name: 'Seguridad Operacional', icon: 'health_and_safety', href: '/dashboard/safety',          group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms'],                    pilotHidden: true },
-  // SORA ya está como tarjeta dentro de Seguridad Operacional para quien ve esa página
+  { name: 'Flota',          icon: 'precision_manufacturing', href: '/dashboard/fleet',           group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Baterías',       icon: 'battery_charging_full',   href: '/dashboard/batteries',       group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Tripulación',    icon: 'group',                   href: '/dashboard/pilots',          group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
+  // Nombre alineado con el título real de la página (PageHero "Seguridad SMS" desde el rediseño de hub con tabs).
+  { name: 'Seguridad SMS',  icon: 'health_and_safety',       href: '/dashboard/safety',          group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms'],                    pilotHidden: true },
+  // SORA ya está como tarjeta dentro de Seguridad SMS para quien ve esa página
   // (superadmin/admin org/gerente_sms). jefe_pilotos y piloto (org) no tienen esa página en
   // su nav, y el piloto independiente la tiene oculta (pilotHidden) — ambos necesitan entrada directa.
   { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            group: 'Cumplimiento', roles: ['jefe_pilotos', 'piloto'] },
   { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            group: 'Cumplimiento', roles: ['admin'],                                          pilotOnly: true },
   { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
+  { name: 'Reportes',       icon: 'assessment',              href: '/dashboard/reports',         group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
   { name: 'Protocolos',     icon: 'rule',                    href: '/dashboard/settings/forms',  group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms'] },
   // Manuales de la empresa: ahora se accede desde dentro de Protocolos (Listas de Chequeo,
   // "Ver manuales") para superadmin/admin/gerente_sms — misma página que ya veían.

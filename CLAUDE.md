@@ -656,6 +656,28 @@ resto del rediseño porque no encaja el patrón de "página", sino un flujo kios
   (`flight_plans.points`, misma estructura) — ahora también muestra el clima de la zona si
   la planeación elegida tiene geometría.
 
+### Cierre de Vuelo — corrección de bugs reales (2026-07-03)
+
+`app/dashboard/logbook/finalize/page.js` — 3 bugs reales corregidos, sin tocar el layout:
+
+- **Inputs sin controlar**: "Hora de Aterrizaje" y "Observaciones Finales" no tenían
+  `value={form.landing_time}` / `value={form.notes}` — quedaban desincronizados del estado
+  de React tras la primera escritura (mismo patrón de bug ya corregido en Despacho).
+- **Estado residual al cambiar de vuelo**: el selector "Cambiar Vuelo" no reseteaba
+  `landing_time`/`safety_report`/`notes` — si el usuario escribía datos para un vuelo y
+  luego cambiaba de vuelo en el desplegable, esos datos quedaban aplicados por error al
+  vuelo recién seleccionado en vez de partir en blanco.
+- **Vuelos nocturnos que cruzan medianoche**: la validación "aterrizaje posterior a
+  despegue" comparaba solo horas del día (`HH:MM`, sin fecha) — un vuelo NIGHT real
+  despegado a las 23:xx y aterrizado pasada la medianoche daba una diferencia negativa y
+  el cierre quedaba bloqueado como "hora inválida" pese a ser una operación legítima (la
+  condición NIGHT ya existe como opción real en Despacho). Ahora, si el resultado directo
+  es negativo pero asumir que el aterrizaje fue al día siguiente da una duración ≤ 6h (muy
+  por encima de la autonomía real de cualquier batería de dron), se interpreta como cruce
+  de medianoche en vez de rechazarse — sin enmascarar errores de captura genuinos (una
+  hora de aterrizaje anterior por error grande sigue devolviendo una duración implausible
+  y se sigue bloqueando).
+
 ---
 
 ## Replay de Vuelo

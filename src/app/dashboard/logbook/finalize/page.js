@@ -63,7 +63,10 @@ export default function FinalizeFlightPage() {
     }, [flightIdParam]);
 
     const handleSelectChange = (id) => {
-        setForm(prev => ({ ...prev, flight_id: id }));
+        // Resetear los campos capturados — si no, al cambiar de "Cambiar Vuelo" la hora de
+        // aterrizaje / reporte SMS / notas ya escritas para el vuelo anterior quedaban
+        // aplicadas por error al vuelo recién seleccionado.
+        setForm(prev => ({ ...prev, flight_id: id, landing_time: '', safety_report: false, notes: '' }));
         setSelectedFlight(openFlights.find(f => f.id === id));
     };
 
@@ -74,7 +77,13 @@ export default function FinalizeFlightPage() {
     // VALIDACIÓN: La hora de aterrizaje debe ser POSTERIOR a la de despegue
     const [h1, m1] = selectedFlight.takeoff_time.split(':').map(Number);
     const [h2, m2] = form.landing_time.split(':').map(Number);
-    const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+    let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+    // Vuelos nocturnos (condición NIGHT) pueden cruzar medianoche — este formulario solo
+    // captura hora, no fecha de aterrizaje. Si el resultado directo es negativo pero
+    // asumir que el aterrizaje fue al día siguiente da una duración corta y plausible
+    // (≤ 6h, muy por encima de la autonomía real de cualquier batería de dron), se
+    // interpreta como cruce de medianoche en vez de bloquearlo como hora inválida.
+    if (diff <= 0 && diff + 1440 <= 360) diff += 1440;
     if (diff <= 0) {
         return toast.warn(`Hora inválida: el aterrizaje (${form.landing_time}) debe ser posterior al despegue (${selectedFlight.takeoff_time}). Verifique los valores.`);
     }
@@ -184,7 +193,7 @@ export default function FinalizeFlightPage() {
 
                     <div className="space-y-2">
                         <label className="text-xs font-black uppercase text-slate-400 ml-1">Hora de Aterrizaje (24H)</label>
-                        <input required type="time" className="w-full p-5 bg-slate-100 rounded-3xl border-none font-black text-2xl text-slate-900" onChange={e => setForm({...form, landing_time: e.target.value})} />
+                        <input required type="time" value={form.landing_time} className="w-full p-5 bg-slate-100 rounded-3xl border-none font-black text-2xl text-slate-900" onChange={e => setForm({...form, landing_time: e.target.value})} />
                     </div>
 
                     <div className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -200,7 +209,7 @@ export default function FinalizeFlightPage() {
 
                     <div className="space-y-2">
                         <label className="text-xs font-black uppercase text-slate-400 ml-1">Observaciones Finales</label>
-                        <textarea rows="4" className="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm font-medium focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Estado final del equipo..." onChange={e => setForm({...form, notes: e.target.value})} />
+                        <textarea rows="4" value={form.notes} className="w-full p-4 bg-slate-50 rounded-2xl border-none text-sm font-medium focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Estado final del equipo..." onChange={e => setForm({...form, notes: e.target.value})} />
                     </div>
                 </div>
 

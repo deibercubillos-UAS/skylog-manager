@@ -4,7 +4,15 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import PageHero from '@/components/PageHero';
+
+const FEATURE_LABELS = {
+  maintenance:    { icon: 'build',        label: 'Mantenimiento' },
+  sms:            { icon: 'crisis_alert', label: 'SMS — Seguridad operacional' },
+  authorizations: { icon: 'gavel',        label: 'Autorizaciones Aerocivil' },
+  audit:          { icon: 'fact_check',   label: 'Auditoría de compliance' },
+  checklist:      { icon: 'checklist',    label: 'Checklists personalizados' },
+  whiteLabel:     { icon: 'domain',       label: 'White-label / marca propia' },
+};
 
 // ── Datos de planes ─────────────────────────────────────────────────────────
 
@@ -76,27 +84,6 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function FeatureRow({ icon, label, value }) {
-  const ok = value === true || value === 'basic' || value === 'advanced' || value === 'full';
-  return (
-    <div className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
-      <div className="flex items-center gap-2 text-sm text-slate-600">
-        <span className="material-symbols-outlined text-base text-slate-400">{icon}</span>
-        {label}
-      </div>
-      <span className={`text-xs font-black uppercase tracking-wide px-2 py-0.5 rounded-lg ${
-        ok ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
-      }`}>
-        {value === true || value === 'full'     ? 'Incluido'
-         : value === 'basic'                   ? 'Básico'
-         : value === 'advanced'                ? 'Avanzado'
-         : value === false                     ? 'No incluido'
-         : value}
-      </span>
-    </div>
-  );
-}
-
 // ── Roles disponibles para unirse ────────────────────────────────────────────
 const JOIN_ROLES = [
   { value: 'piloto',       label: 'Piloto',        hint: 'Registra vuelos y opera aeronaves' },
@@ -110,6 +97,7 @@ export default function ManageSubscriptionPage() {
 
   const [loading, setLoading]           = useState(true);
   const [profile, setProfile]           = useState(null);
+  const [usage, setUsage]               = useState(null);
   const [billing, setBilling]           = useState('monthly');
   const [partnerCode, setPartnerCode]   = useState('');   // código de escuela/asesor (opcional)
   const [upgrading, setUpgrading]       = useState(null);   // planKey being checked out
@@ -157,6 +145,9 @@ export default function ManageSubscriptionPage() {
       }
       setLoading(false);
 
+      // Medidores de uso (aeronaves/pilotos/vuelos del mes) — no bloquea el render principal
+      fetch('/api/subscription').then(r => r.json()).then(d => { if (d.usage) setUsage(d.usage); }).catch(() => {});
+
       // Detectar referencia guardada desde la página de retorno de ePayco
       try {
         const storedRef = sessionStorage.getItem('epayco_pending_ref');
@@ -181,6 +172,11 @@ export default function ManageSubscriptionPage() {
   const expiresAt = formatDate(profile?.subscription_expires_at);
   const nextPlans = PLAN_ORDER.slice(PLAN_ORDER.indexOf(planKey) + 1);
 
+  // Refresca los medidores de uso (límites cambian al subir/bajar de plan)
+  function refreshUsage() {
+    fetch('/api/subscription').then(r => r.json()).then(d => { if (d.usage) setUsage(d.usage); }).catch(() => {});
+  }
+
   // Marca un upgrade como exitoso y limpia el estado de polling
   function markActivated({ newPlan, newPlanName, expiresAt }) {
     setProfile(p => ({
@@ -190,6 +186,7 @@ export default function ManageSubscriptionPage() {
     }));
     setVerifyResult({ activated: true, planName: newPlanName || PLANS[newPlan]?.label || newPlan });
     setUpgrading(null);
+    refreshUsage();
     stopPolling();
     try { sessionStorage.removeItem('epayco_pending_ref'); } catch {}
   }
@@ -345,6 +342,7 @@ export default function ManageSubscriptionPage() {
       if (!res.ok) throw new Error(json.error || 'Error al cancelar');
       setCancelDone(true);
       setProfile(p => ({ ...p, subscription_plan: 'piloto', subscription_expires_at: null, epayco_subscription_id: null }));
+      refreshUsage();
     } catch (e) {
       setCancelError(e.message);
     } finally {
@@ -409,15 +407,13 @@ export default function ManageSubscriptionPage() {
     );
   }
 
-  return (
-    <div className="max-w-3xl mx-auto space-y-8 pb-28 animate-in fade-in duration-500">
+  const nextPlan = nextPlans[0] ? PLANS[nextPlans[0]] : null;
+  const includedFeatures = Object.entries(plan.features)
+    .filter(([, v]) => v === true || v === 'basic' || v === 'advanced' || v === 'full')
+    .map(([k]) => FEATURE_LABELS[k]);
 
-      {/* ── Header ───────────────────────────────────────────────────────── */}
-      <PageHero
-        eyebrow="Cuenta"
-        title="Mi Suscripción"
-        description="Gestión de membresía · BitaFly"
-      />
+  return (
+    <div className="max-w-5xl mx-auto space-y-6 md:space-y-8 pb-28 animate-in fade-in duration-500">
 
       {/* ── Cancel done banner ───────────────────────────────────────────── */}
       {cancelDone && (
@@ -431,61 +427,117 @@ export default function ManageSubscriptionPage() {
         </div>
       )}
 
-      {/* ── Plan card ────────────────────────────────────────────────────── */}
-      <section aria-label="Plan actual" className={`bg-[#1A202C] text-white rounded-[2rem] shadow-2xl overflow-hidden ring-4 ${colors.ring}`}>
-        <div className="p-8 md:p-10 relative">
-          {/* background glyph */}
-          <span className="absolute top-6 right-6 material-symbols-outlined text-[8rem] opacity-[0.07] select-none pointer-events-none"
-                aria-hidden="true">verified</span>
-
-          <div className="relative z-10 flex flex-col md:flex-row md:items-start md:justify-between gap-6">
-            <div>
-              <span className={`text-[10px] font-black uppercase tracking-[0.3em] ${colors.text}`}>Plan Actual</span>
-              <h3 className="text-5xl font-black uppercase tracking-tighter mt-1">{plan.label}</h3>
-              {expiresAt && (
-                <p className="text-slate-400 text-xs mt-2 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-sm">calendar_today</span>
-                  Válido hasta {expiresAt}
-                </p>
+      {/* HERO — plan actual, vigencia, cancelar/mejorar */}
+      <div className="bg-[#1A202C] rounded-[2rem] px-6 py-6 md:px-9 md:py-7 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-500">Plan actual</p>
+          <div className="flex items-baseline gap-3 mt-1 flex-wrap">
+            <h2 className="text-xl md:text-2xl font-black text-white tracking-tight">{plan.label}</h2>
+            {isPaid && <span className="text-[13px] font-bold text-slate-400">{plan.price}</span>}
+          </div>
+          <div className="flex items-center gap-3 mt-2 flex-wrap">
+            {expiresAt && (
+              <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
+                <span className="material-symbols-outlined text-sm text-emerald-400">event_available</span>
+                {profile?.epayco_subscription_id ? `Renueva el ${expiresAt}` : `Vence el ${expiresAt}`}
+              </span>
+            )}
+            {!isPaid && (
+              <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
+                <span className="material-symbols-outlined text-sm">info</span>
+                Plan gratuito — actualiza para desbloquear funciones
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-4 shrink-0">
+          {isPaid && !cancelDone && (
+            <button type="button" onClick={() => setShowRetention(true)}
+              className="text-[11px] font-black text-slate-400 hover:text-red-400 uppercase tracking-wide transition-colors">
+              Cancelar plan
+            </button>
+          )}
+          {nextPlan && (
+            <button
+              type="button"
+              onClick={() => handleUpgrade(nextPlans[0])}
+              disabled={!!upgrading}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-wide shadow-lg shadow-orange-600/25 active:scale-95 transition-all disabled:opacity-50">
+              {upgrading === nextPlans[0] ? (
+                <><span className="material-symbols-outlined text-base animate-spin">progress_activity</span>Esperando pago...</>
+              ) : (
+                <><span className="material-symbols-outlined text-base">rocket_launch</span>Mejorar a {nextPlan.label}</>
               )}
-              {!isPaid && (
-                <p className="text-slate-400 text-xs mt-2 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-sm">info</span>
-                  Plan gratuito — actualiza para desbloquear funciones
-                </p>
-              )}
-            </div>
+            </button>
+          )}
+        </div>
+      </div>
 
-            {/* Limits chips */}
-            <div className="flex flex-wrap gap-2 md:justify-end">
-              {[
-                { icon: 'flight', label: `${plan.drones} aeronave${plan.drones === 1 ? '' : 's'}` },
-                { icon: 'person', label: `${plan.pilots} piloto${plan.pilots === 1 ? '' : 's'}` },
-                { icon: 'battery_full', label: plan.batteries },
-                { icon: 'replay', label: plan.replay },
-              ].map(chip => (
-                <div key={chip.icon}
-                     className="flex items-center gap-1.5 bg-white/10 rounded-xl px-3 py-1.5 text-xs font-bold">
-                  <span className="material-symbols-outlined text-sm" aria-hidden="true">{chip.icon}</span>
-                  {chip.label}
+      {/* USAGE METERS */}
+      {usage && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            { key: 'drones', label: 'Aeronaves', icon: 'precision_manufacturing', ...usage.drones },
+            { key: 'pilots', label: 'Pilotos',   icon: 'group',                  ...usage.pilots },
+            { key: 'flightsMonth', label: 'Vuelos este mes', icon: 'flight_takeoff', ...usage.flightsMonth },
+          ].map(u => {
+            const unlimited = u.limit === null || u.limit === Infinity;
+            const pct = unlimited ? null : Math.min(100, u.limit > 0 ? Math.round((u.current / u.limit) * 100) : 100);
+            return (
+              <div key={u.key} className="bg-white border border-slate-200 rounded-2xl px-5 py-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">{u.label}</span>
+                  <span className="material-symbols-outlined text-base text-slate-400">{u.icon}</span>
                 </div>
-              ))}
-            </div>
+                <div className="flex items-baseline gap-1 mt-2">
+                  <span className="text-2xl font-black text-slate-900 tabular-nums">{u.current}</span>
+                  <span className="text-xs font-bold text-slate-400">/ {unlimited ? 'Ilimitado' : u.limit}</span>
+                </div>
+                {!unlimited && (
+                  <div className="h-1.5 rounded-full bg-slate-100 mt-2.5 overflow-hidden">
+                    <div className="h-full rounded-full bg-orange-600" style={{ width: `${pct}%` }} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* INCLUIDO EN TU PLAN + GESTIÓN DE PAGO / HISTORIAL DE FACTURACIÓN */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-7 space-y-3">
+            <p className="text-[11px] font-black uppercase tracking-wide text-orange-600 border-b border-slate-100 pb-3">Incluido en {plan.label}</p>
+            {includedFeatures.length === 0 ? (
+              <p className="text-xs text-slate-400 font-medium">Este plan no incluye módulos adicionales — actualiza para desbloquearlos.</p>
+            ) : includedFeatures.map(f => (
+              <div key={f.label} className="flex items-center gap-2.5">
+                <span className="material-symbols-outlined text-base text-emerald-500">check_circle</span>
+                <span className="text-[13px] font-semibold text-slate-600">{f.label}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-7 space-y-3">
+            <p className="text-[11px] font-black uppercase tracking-wide text-orange-600 border-b border-slate-100 pb-3">Gestión de pago</p>
+            <p className="text-xs text-slate-500 font-medium leading-relaxed">
+              {isPaid
+                ? 'ePayco procesa el cobro recurrente de tu suscripción de forma segura. Para actualizar tu tarjeta o resolver un problema con un cobro, contáctanos.'
+                : 'Aún no tienes un método de pago activo — se configura al actualizar a un plan pago.'}
+            </p>
+            <a href="mailto:hola@bitafly.com?subject=Método%20de%20pago%20BitaFly"
+              className="inline-flex items-center gap-1.5 text-[11px] font-black text-orange-600 hover:text-orange-800">
+              <span className="material-symbols-outlined text-sm">mail</span>
+              Contactar soporte
+            </a>
           </div>
         </div>
 
-        {/* Feature grid */}
-        <div className="bg-white px-8 md:px-10 py-4 rounded-b-[2rem]">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Incluido en tu plan</p>
-          <FeatureRow icon="build"           label="Mantenimiento"              value={plan.features.maintenance} />
-          <FeatureRow icon="crisis_alert"    label="SMS — Seguridad operacional" value={plan.features.sms} />
-          <FeatureRow icon="gavel"           label="Autorizaciones Aerocivil"   value={plan.features.authorizations} />
-          <FeatureRow icon="fact_check"      label="Auditoría de compliance"    value={plan.features.audit} />
-          <FeatureRow icon="checklist"       label="Checklists personalizados"  value={plan.features.checklist} />
-          <FeatureRow icon="domain"          label="White-label / marca propia" value={plan.features.whiteLabel} />
-        </div>
-      </section>
+        <BillingHistory />
+      </div>
 
+      <div className="max-w-3xl mx-auto w-full space-y-8">
       {/* ── Upgrade section ──────────────────────────────────────────────── */}
       {nextPlans.length > 0 && (
         <section aria-label="Opciones de actualización">
@@ -792,29 +844,7 @@ export default function ManageSubscriptionPage() {
         </div>
       )}
 
-      {/* ── Danger zone (cancel) ─────────────────────────────────────────── */}
-      {isPaid && !cancelDone && (
-        <section aria-label="Zona de cancelación"
-                 className="border border-red-200 rounded-2xl p-6 bg-red-50/50">
-          <div className="flex items-start gap-4">
-            <span className="material-symbols-outlined text-red-400 text-3xl mt-0.5" aria-hidden="true">warning</span>
-            <div className="flex-1">
-              <h4 className="font-black text-slate-800 text-sm uppercase tracking-wide">Cancelar suscripción</h4>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Al cancelar perderás acceso a todas las funciones de tu plan actual. Tu cuenta pasará al Plan Piloto (1 aeronave, 1 piloto).
-              </p>
-              <button
-                onClick={() => setShowRetention(true)}
-                className="mt-4 px-5 py-2 rounded-xl border border-red-300 text-red-600 text-xs font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all">
-                Cancelar suscripción
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── Historial de facturación (Fase 5.d) ──────────────────────────── */}
-      <BillingHistory />
+      </div>
 
       {/* ── Modal confirmación de unirse ─────────────────────────────────── */}
       {joinConfirming && joinOrg && (
@@ -971,9 +1001,8 @@ function BillingHistory() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Oculto mientras carga, si la tabla no existe aún, o si no hay pagos —
-  // no añade ruido a la página de suscripción.
-  if (loading || pending || entries.length === 0) return null;
+  // Defensivo: si la tabla llegara a faltar en otro entorno, no mostrar nada.
+  if (pending) return null;
 
   const fmt = (n, cur) => {
     const v = Number(n || 0);
@@ -982,11 +1011,20 @@ function BillingHistory() {
   };
 
   return (
-    <section className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
-      <div className="px-6 py-5 border-b border-slate-100">
-        <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">Historial de facturación</h3>
-        <p className="text-xs text-slate-400 font-medium mt-0.5">Comprobantes informativos de tus pagos</p>
+    <section className="bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-wide text-orange-600">Historial de facturación</p>
+          <p className="text-[10px] font-semibold text-slate-400 mt-0.5">Comprobantes informativos de tus pagos</p>
+        </div>
       </div>
+      {loading ? (
+        <p className="py-10 text-center text-xs font-black text-slate-300 uppercase">Cargando...</p>
+      ) : entries.length === 0 ? (
+        <p className="py-10 px-6 text-center text-xs font-semibold text-slate-400">
+          Aún no hay pagos registrados — aparecerán aquí después de tu primer cobro.
+        </p>
+      ) : (
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-slate-50 border-b border-slate-100">
@@ -1015,6 +1053,7 @@ function BillingHistory() {
           </tbody>
         </table>
       </div>
+      )}
     </section>
   );
 }

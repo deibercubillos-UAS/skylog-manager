@@ -967,20 +967,78 @@ conservan intactas debajo del área rediseñada, no se recortó nada.
   patrón que Mi Perfil/`AddProtocolPanel`); el botón "ACTUALIZAR IDENTIDAD CORPORATIVA" al pie
   del formulario se retiró por quedar duplicado.
 
-### Historial de facturación ⚠️ inerte hasta aplicar migración
+### Suscripción rediseñada (2026-07-03)
+
+`dashboard/subscription/page.js`: reemplaza el `PageHero` genérico + tarjeta de plan por un
+hero navy fiel al mockup + franja de medidores de uso + tarjetas de plan/pago +
+Historial de facturación, todo en un contenedor `max-w-5xl` (antes `max-w-3xl`). El resto de
+la página (grid de planes para actualizar, verificar pago pendiente, unirse a organización,
+modales de confirmación/retención) **no estaba en este mockup** y se conserva intacto — solo
+se envolvió en un `<div className="max-w-3xl mx-auto">` interno para no perder su ancho de
+lectura original dentro del contenedor ahora más ancho.
+
+- **Hero**: plan actual + precio (`PLANS[key].price`, el precio base de referencia — no
+  existe una columna que registre el ciclo mensual/anual de la suscripción ya activa, así
+  que no se fabricó un precio "exacto del ciclo actual") + vigencia real. Distingue
+  honestamente **"Renueva el..."** (si `profile.epayco_subscription_id` existe → suscripción
+  recurrente real) de **"Vence el..."** (si no hay `epayco_subscription_id` pero sí
+  `subscription_expires_at` → ej. un regalo de socio con expiración, no una renovación
+  automática) — el mockup solo mostraba "Renueva", que habría sido falso para ese segundo
+  caso real del sistema. Se omitió el chip "Facturación mensual" del mockup: no hay dato
+  real que confirme el ciclo (mensual/anual) de una suscripción ya activa. **"Cancelar
+  plan"** y **"Mejorar a {siguiente plan}"** son las mismas acciones reales que ya existían
+  (`setShowRetention`/`handleUpgrade`) reubicadas en el hero — el botón de mejora apunta al
+  siguiente tier inmediato (`nextPlans[0]`), no directo a Enterprise como en el mockup (ahí
+  el mockup asumía un caso puntual con Flota como plan actual; para el resto de planes
+  saltar tiers habría sido incorrecto). La sección completa de planes para actualizar
+  (grid con los 2+ tiers disponibles) se conserva debajo sin cambios para quien quiera un
+  tier distinto al inmediato.
+- **Medidores de uso**: nuevo bloque `usage` en `GET /api/subscription` — Aeronaves y Pilotos
+  ya se calculaban ahí (sin usarse en esta página hasta ahora); se agregó **Vuelos este
+  mes** (conteo real de `flights` del mes calendario actual, sin límite — igual que el
+  mockup, que marca este medidor como "Ilimitado"). De paso se corrigió el conteo de
+  aeronaves/pilotos para seguir la **Regla de conteo** del proyecto (`createAdminClient()` +
+  `.select('id')` + `.length`, no `count:'exact',head:true`, que PostgREST puede evaluar sin
+  aplicar RLS) — inconsistencia preexistente en ese endpoint, corregida de paso al darle más
+  protagonismo visual. El medidor "Pilotos" se etiquetó honestamente así (no "Miembros del
+  equipo" como el mockup) porque es literalmente lo que mide el límite del plan
+  (`crewCountsForLimit`, excluye GG/GSMS) — llamarlo "miembros del equipo" habría implicado
+  medir el roster completo de `profiles`, que es un número distinto.
+- **"Incluido en tu plan"**: mismo dato real que ya mostraba la antigua "Feature grid"
+  (`plan.features`), filtrado a solo los items incluidos (sin el badge Básico/Avanzado, para
+  fidelidad al checklist simple del mockup) — se eliminó el componente `FeatureRow` que
+  quedó sin otros usos.
+- **"Método de pago" — decisión de alcance confirmada con el usuario** (`AskUserQuestion`):
+  el mockup mostraba una tarjeta enmascarada (marca/últimos 4 dígitos/vencimiento) con botón
+  "Cambiar". No existe ese dato en el esquema (ePayco gestiona el cobro recurrente de su
+  lado, no se guarda ni un fragmento del número de tarjeta) ni un flujo de "cambiar tarjeta"
+  (el checkout actual es un re-pago completo, no una actualización de método). El usuario
+  eligió **omitir y sustituir** en vez de fabricar datos de tarjeta o investigar la API de
+  ePayco para ese fin — la tarjeta "Gestión de pago" ahora explica en texto real cómo
+  funciona el cobro (ePayco recurrente) y da un enlace `mailto:` a soporte para cualquier
+  cambio, sin inventar ningún dato de tarjeta.
+- **Historial de facturación**: ver sección dedicada abajo — activada aplicando la
+  migración pendiente, con decisión confirmada por separado vía `AskUserQuestion`.
+- Se eliminó la sección "Danger zone" separada (duplicaba el mismo `setShowRetention`
+  que ahora dispara "Cancelar plan" en el hero) — el modal de retención sigue intacto y
+  explica las consecuencias en detalle, así que no se perdió información.
+
+### Historial de facturación — activo desde 2026-07-03
 
 Comprobante **informativo**, sin validez fiscal DIAN (decisión explícita para no acoplar
 facturación electrónica real a este alcance).
 - Migración `20260702_billing_history.sql` — tabla + RLS (cada usuario ve su propio
-  historial; solo service role escribe).
+  historial; solo service role escribe). **Aplicada en Supabase (2026-07-03)**, confirmado
+  con el usuario al redisañar Suscripción — ver **Suscripción rediseñada**.
 - `POST /api/epayco/webhook`: tras `activatePlanForUser()`, insert fire-and-forget de
   `billing_history` (idempotente por `ref_payco`), mismo patrón de guardas que
   `attributeCommission()` — **nunca** rompe la activación del plan ni si la tabla no
   existe.
-- `GET /api/billing-history` — degrada a vacío si la tabla falta.
-- Sección "Historial de facturación" en `/dashboard/subscription`, oculta si no hay pagos
-  o la tabla no existe.
-- **Migración creada pero NO aplicada** — ver **Pendientes de infraestructura**.
+- `GET /api/billing-history` — degrada a vacío si la tabla falta (defensivo, ya no debería
+  activarse en producción tras aplicar la migración).
+- Sección "Historial de facturación" en `/dashboard/subscription`: ya no se oculta cuando
+  no hay pagos — muestra un estado vacío explicativo ("aparecerán aquí después de tu
+  primer cobro") para no dejar un hueco en el layout de 2 columnas.
 
 ---
 
@@ -1169,7 +1227,7 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 - [x] **`20260702_audit_log.sql` aplicada en Supabase (2026-07-03)** — tabla `audit_log` + política RLS creadas y verificadas. Auditoría de acciones ya no es inerte; ver **Auditoría rediseñada**.
 - [x] **`20260703_protocols.sql` aplicada en Supabase (2026-07-03)** — tabla `protocols` + política RLS creadas y verificadas. Ver **Protocolos**.
 - [x] **`20260703_org_aerocivil_registration.sql` aplicada en Supabase (2026-07-03)** — columnas `operator_number`/`registration_expiry`/`authorized_operations` en `organizations`, confirmado con el usuario. Ver **Organización rediseñada**.
-- [ ] **Aplicar `20260702_billing_history.sql`** (rama `claude/project-scope-review-xity40`, ver **Sistema de Diseño**). El código que la consume (`/api/billing-history`, webhook ePayco) ya está desplegado pero **inerte** — omite el insert si la tabla no existe. Aplicar cuando se quiera activar Historial de facturación.
+- [x] **`20260702_billing_history.sql` aplicada en Supabase (2026-07-03)**, confirmado con el usuario al rediseñar Suscripción. Ver **Historial de facturación**.
 - [ ] Agregar `DJI_API_KEY` a Vercel env vars
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a Vercel env vars
 - [ ] Agregar `AEROCIVIL_SALT` a Vercel env vars (el fallback inseguro ya fue removido — el endpoint lanza error si falta la variable)

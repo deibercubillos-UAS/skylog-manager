@@ -35,7 +35,7 @@ Todas explícitamente dirigidas a **explotadores UAS** (no aviación tripulada):
 
 Confirmadas vía `AskUserQuestion` antes de tocar código:
 
-1. **Mejora Continua**: se construye primero el **checklist simple Sí/No** (Apéndice 1, 9 componentes) — la herramienta ponderada PEL-OPS-AIR-ANS-AGA (229 filas, puntaje P/S/O/E) queda como fase futura opcional, no se construye ahora.
+1. **Mejora Continua**: se construye primero el **checklist simple Sí/No** (Apéndice 1, 4 componentes/12 elementos/100 preguntas — corregido de "9 componentes" tras releer el documento completo) — la herramienta ponderada PEL-OPS-AIR-ANS-AGA (229 filas, puntaje P/S/O/E) queda como fase futura opcional, no se construye ahora.
 2. **Acciones Correctivas**: **tablero consolidado de solo-agregación** sobre 3 fuentes (casos VOR/MOR/SMS ya existentes, planes de acción de indicadores SPI, hallazgos GAP) — la edición de cada acción se hace desde su pantalla de origen, no se duplica lógica de edición ni se crea una tabla unificada nueva.
 3. **Plan de Capacitación del SMS**: **solo asistencia/roster** (quién asistió a cada sesión, con fecha) — sin examen calificado, porque el documento no lo exige (a diferencia del módulo "Capacitación" ya construido para Operaciones/Mantenimiento, que sí es examen).
 4. **Plazos de reportes**: el control de 5 días hábiles aplica formalmente solo a **MOR** (requisito regulatorio de la Directiva 02-24); para **VOR** se usa el mismo mecanismo pero como plazo **interno sugerido**, dejando documentado que no es una obligación legal — para no dar a entender que VOR tiene un plazo regulatorio que no tiene.
@@ -190,17 +190,35 @@ todavía no hay un botón "Descargar Excel de Indicadores SPI {año}". Queda
 como fast-follow explícito, no se marca como completo para no dar a entender
 que ya existe.
 
-### Fase 4 — Mejora Continua (GAP simple)
-Del Apéndice 1 (checklist Sí/No, 9 componentes):
+### Fase 4 — Mejora Continua (GAP simple) ✅ Completada
+Del Apéndice 1 (checklist Sí/No — **4 componentes / 12 elementos / 100
+preguntas**, no 9 componentes como se estimó antes de releer el documento
+completo). Migración `20260711_sms_gap_assessment.sql` aplicada y verificada
+(100 filas confirmadas por conteo: 43+21+26+10), `get_advisors` sin nuevos
+hallazgos.
 
-- Catálogo fijo `sms_gap_questions` — transcrito literal del documento
-  oficial (no inventado), por componente/elemento.
-- `sms_gap_assessments` (evaluación fechada) + `sms_gap_responses` (Sí/No +
-  evidencia/fecha).
-- Comparativo entre evaluaciones (este año vs. anterior).
-- Cada "No" genera automáticamente una fila en Acciones Correctivas (Fase 5,
-  `source_type='gap'`) y opcionalmente un peligro en `safety_hazards`
-  (Fase 2) si el usuario decide calificarlo con la matriz de riesgo.
+- **`sms_gap_questions`** — catálogo **global** (sin `organization_id`,
+  intencional: es el mismo checklist oficial para todo explotador UAS, no se
+  personaliza por organización), transcrito **literal** del documento
+  oficial (no inventado): `component_number` (1-4), `component_name`,
+  `element_number` ('1.1'…'4.2'), `element_name`, `question_text`,
+  `order_index`. RLS de solo lectura para cualquier usuario autenticado (no
+  expone datos de ninguna org); sin políticas de escritura — es dato de
+  referencia fijo, administrado solo vía migración.
+- **`sms_gap_assessments`** (evaluación fechada, por org) + **`sms_gap_responses`**
+  (Sí/No + `evidence_date` + `comments`, más `responsible`/`status` — estos
+  dos últimos alimentarán el tablero de Acciones Correctivas (Fase 5) por
+  agregación directa sobre las respuestas `'no'`, sin duplicar una tabla de
+  acciones aparte para los hallazgos GAP).
+- **API**: `GET /api/safety/gap/questions` (catálogo) + `GET/POST /api/safety/gap/assessments`
+  (lista con respuestas anidadas / crear) + `PATCH/DELETE /api/safety/gap/assessments/[id]`
+  (guarda título+fecha+todas las respuestas cambiadas en una sola llamada,
+  mismo mecanismo de guardado que `/api/safety/risk-config`).
+- **UI**: nuevo tab "Mejora Continua" — `GapAssessmentPanel.js` (acordeón por
+  componente/elemento, barra de progreso, Sí/No por pregunta con
+  responsable/plazo/estado cuando es "No") + tabla de evaluaciones con
+  % de cumplimiento (Sí) y comparativo automático (tendencia en puntos
+  porcentuales vs. la evaluación anterior).
 
 ### Fase 5 — Acciones Correctivas (tablero consolidado)
 Vista de solo-agregación sobre 3 fuentes — **sin tabla unificada nueva, sin
@@ -253,7 +271,7 @@ build.
 | 1 — Reordenar IA del hub | ✅ Completada |
 | 2 — Evaluación y Gestión de Riesgos | ✅ Completada |
 | 3 — Indicadores (SPI) | ✅ Núcleo completado (falta 3b: reporte Excel) |
-| 4 — Mejora Continua (GAP simple) | Pendiente |
+| 4 — Mejora Continua (GAP simple) | ✅ Completada |
 | 5 — Acciones Correctivas (consolidado) | Pendiente |
 | 6 — Reportes de Seg. Operacional (plazos) | Pendiente |
 | 7 — Plan de Capacitación del SMS | Pendiente |

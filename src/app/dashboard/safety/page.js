@@ -18,6 +18,7 @@ const RiskMatrixEditor = dynamic(() => import('@/components/safety/RiskMatrixEdi
 const AddHazardPanel = dynamic(() => import('@/components/safety/AddHazardPanel'), { ssr: false });
 const AddIndicatorPanel = dynamic(() => import('@/components/safety/AddIndicatorPanel'), { ssr: false });
 const IndicatorDetailPanel = dynamic(() => import('@/components/safety/IndicatorDetailPanel'), { ssr: false });
+const GapAssessmentPanel = dynamic(() => import('@/components/safety/GapAssessmentPanel'), { ssr: false });
 
 // Mismo visor real que usa /dashboard/safety/mapas (const duplicada a propósito —
 // es una URL de referencia, no lógica de negocio).
@@ -32,7 +33,8 @@ const TABS = [
   { id: 'sora',     label: 'Análisis SORA',           icon: 'analytics' },
   { id: 'riesgos',  label: 'Evaluación de Riesgos',   icon: 'grid_view' },
   { id: 'indicadores', label: 'Indicadores (SPI)',    icon: 'monitoring' },
-  // ← Fases 4-5: Mejora Continua · Acciones Correctivas
+  { id: 'mejora',   label: 'Mejora Continua',         icon: 'trending_up' },
+  // ← Fase 5: Acciones Correctivas
   { id: 'reportes', label: 'Reportes SMS',            icon: 'health_and_safety' },
   // ← Fase 6: Reportes de Seguridad Operacional (plazos MOR/VOR)
   { id: 'barreras', label: 'Barreras de Seguridad',   icon: 'shield' },
@@ -127,11 +129,15 @@ export default function SafetyPage() {
   const [indicators, setIndicators] = useState([]);
   const [spiSubmission, setSpiSubmission] = useState(null);
   const [markingSpiSent, setMarkingSpiSent] = useState(false);
+  const [gapQuestions, setGapQuestions] = useState([]);
+  const [gapAssessments, setGapAssessments] = useState([]);
+  const [gapPanel, setGapPanel] = useState(null); // null | assessment object
+  const [creatingGap, setCreatingGap] = useState(false);
 
   const spiReportYear = new Date().getFullYear() - 1; // año que corresponde reportar (vencido)
 
   const loadAll = useCallback(async (organizationId) => {
-    const [soraRes, barriersRes, smsRes, vorMorRes, riskConfigRes, hazardsRes, indicatorsRes, spiSubmissionRes] = await Promise.all([
+    const [soraRes, barriersRes, smsRes, vorMorRes, riskConfigRes, hazardsRes, indicatorsRes, spiSubmissionRes, gapQuestionsRes, gapAssessmentsRes] = await Promise.all([
       fetch('/api/sora/assessments').then(r => r.json()).catch(() => []),
       fetch('/api/safety/barriers').then(r => r.json()).catch(() => []),
       supabase.from('sms_reports')
@@ -142,6 +148,8 @@ export default function SafetyPage() {
       fetch('/api/safety/hazards').then(r => r.json()).catch(() => []),
       fetch('/api/safety/indicators').then(r => r.json()).catch(() => []),
       fetch(`/api/safety/indicators/submission?year=${new Date().getFullYear() - 1}`).then(r => r.json()).catch(() => null),
+      fetch('/api/safety/gap/questions').then(r => r.json()).catch(() => []),
+      fetch('/api/safety/gap/assessments').then(r => r.json()).catch(() => []),
     ]);
     setSora(Array.isArray(soraRes) ? soraRes : []);
     setBarreras(Array.isArray(barriersRes) ? barriersRes : []);
@@ -151,6 +159,8 @@ export default function SafetyPage() {
     setHazards(Array.isArray(hazardsRes) ? hazardsRes : []);
     setIndicators(Array.isArray(indicatorsRes) ? indicatorsRes : []);
     setSpiSubmission(spiSubmissionRes?.year ? spiSubmissionRes : null);
+    setGapQuestions(Array.isArray(gapQuestionsRes) ? gapQuestionsRes : []);
+    setGapAssessments(Array.isArray(gapAssessmentsRes) ? gapAssessmentsRes : []);
   }, []);
 
   useEffect(() => {
@@ -178,6 +188,23 @@ export default function SafetyPage() {
       toast.error(e.message);
     } finally {
       setMarkingSpiSent(false);
+    }
+  };
+
+  const handleCreateGapAssessment = async () => {
+    setCreatingGap(true);
+    try {
+      const res = await fetch('/api/safety/gap/assessments', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al crear la evaluación.');
+      setGapAssessments(prev => [{ ...data, responses: [] }, ...prev]);
+      setGapPanel({ ...data, responses: [] });
+    } catch (err) {
+      toast.error('Error: ' + err.message);
+    } finally {
+      setCreatingGap(false);
     }
   };
 
@@ -240,6 +267,15 @@ export default function SafetyPage() {
           className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-600/20 transition-all active:scale-95">
           <span className="material-symbols-outlined text-base">add_circle</span>
           Nuevo indicador
+        </button>
+      );
+    }
+    if (tab === 'mejora') {
+      return (
+        <button onClick={handleCreateGapAssessment} disabled={creatingGap}
+          className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-600/20 transition-all active:scale-95 disabled:opacity-50">
+          <span className="material-symbols-outlined text-base">add_circle</span>
+          {creatingGap ? 'Creando...' : 'Nueva evaluación'}
         </button>
       );
     }
@@ -318,6 +354,29 @@ export default function SafetyPage() {
     ];
   })() : null;
 
+  const gapPct = (assessment) => {
+    const responses = assessment?.responses || [];
+    const answered = responses.filter(r => r.response).length;
+    if (!answered) return null;
+    const si = responses.filter(r => r.response === 'si').length;
+    return Math.round((si / answered) * 100);
+  };
+
+  const gapStats = gapAssessments.length > 0 ? (() => {
+    const latest = gapAssessments[0];
+    const previous = gapAssessments[1];
+    const latestPct = gapPct(latest);
+    const previousPct = gapPct(previous);
+    const delta = latestPct !== null && previousPct !== null ? latestPct - previousPct : null;
+    const openFindings = (latest?.responses || []).filter(r => r.response === 'no' && r.status !== 'completado').length;
+    return [
+      { key: 'total',   label: 'Evaluaciones',      value: gapAssessments.length, icon: 'fact_check', iconColor: '#ec5b13' },
+      { key: 'latest',  label: 'Cumplimiento último', value: latestPct !== null ? `${latestPct}%` : '—', icon: 'insights', iconColor: '#4f46e5' },
+      { key: 'delta',   label: 'Tendencia vs. anterior', value: delta !== null ? `${delta >= 0 ? '+' : ''}${delta} pts` : '—', icon: delta > 0 ? 'trending_up' : 'trending_down', iconColor: delta === null ? '#94a3b8' : delta >= 0 ? '#16a34a' : '#dc2626' },
+      { key: 'open',    label: 'Hallazgos abiertos', value: openFindings, icon: 'flag', iconColor: openFindings > 0 ? '#d97706' : '#94a3b8' },
+    ];
+  })() : null;
+
   return (
     <div className="max-w-6xl mx-auto space-y-5 text-left animate-in fade-in duration-500 pb-24">
 
@@ -358,6 +417,15 @@ export default function SafetyPage() {
           indicator={indicators.find(i => i.id === indicatorPanel.id) || indicatorPanel}
           onClose={() => setIndicatorPanel(null)}
           onSuccess={() => orgId && loadAll(orgId)}
+        />
+      )}
+
+      {gapPanel && gapQuestions.length > 0 && (
+        <GapAssessmentPanel
+          assessment={gapAssessments.find(a => a.id === gapPanel.id) || gapPanel}
+          questions={gapQuestions}
+          onClose={() => setGapPanel(null)}
+          onSuccess={() => { setGapPanel(null); if (orgId) loadAll(orgId); }}
         />
       )}
 
@@ -536,6 +604,47 @@ export default function SafetyPage() {
                     );
                   })}
                 </div>
+              </TableShell>
+            </div>
+          )}
+
+          {/* ── Mejora Continua (GAP) ── */}
+          {tab === 'mejora' && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              {gapStats && <KPIStrip variant="strip" items={gapStats} />}
+              <TableShell title="Autoevaluaciones GAP del SMS (Apéndice 1, MAUT-5.0-22-017 — 100 preguntas / 4 componentes)"
+                empty={gapAssessments.length === 0 ? 'Sin evaluaciones registradas — crea la primera con "Nueva evaluación"' : null}>
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                      <th className="px-5 py-3">Evaluación</th><th className="px-4 py-3">Fecha</th>
+                      <th className="px-4 py-3">Progreso</th><th className="px-4 py-3">Cumplimiento (Sí)</th><th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm">
+                    {gapAssessments.map(a => {
+                      const answered = (a.responses || []).filter(r => r.response).length;
+                      const pct = gapPct(a);
+                      return (
+                        <tr key={a.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setGapPanel(a)}>
+                          <td className="px-5 py-3.5 font-bold text-slate-800">{a.title || 'Autoevaluación GAP'}</td>
+                          <td className="px-4 py-3.5 text-slate-500 font-medium whitespace-nowrap">{fmtDateMed(a.assessment_date)}</td>
+                          <td className="px-4 py-3.5 text-slate-500 font-medium">{answered}/{gapQuestions.length}</td>
+                          <td className="px-4 py-3.5">
+                            {pct !== null ? (
+                              <span className={`px-2.5 py-1 rounded-lg text-xs font-black ${pct >= 80 ? 'bg-emerald-50 text-emerald-700' : pct >= 50 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>
+                                {pct}%
+                              </span>
+                            ) : <span className="text-slate-300 text-xs">—</span>}
+                          </td>
+                          <td className="px-4 py-3.5 text-right">
+                            <span className="material-symbols-outlined text-base text-slate-300">chevron_right</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </TableShell>
             </div>
           )}

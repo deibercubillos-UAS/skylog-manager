@@ -105,6 +105,10 @@ Tablas principales:
 - `vor_mor_definitions` · `vor_mor_submissions` (reportes VOR/MOR) — `severity` y `aerocivil_notified_at` agregadas 2026-07-03 (ver **Seguimiento de casos SMS/VOR/MOR**); `reported_severity` (autoevaluación del reportante, distinta de `severity`) y `related_barrier_id` FK → `safety_barriers` agregadas 2026-07-03 (ver **Editor de formato VOR/MOR rediseñado**) · `emergency_contacts` · `insurance_policies` · `leads`
 - `safety_barriers` — barreras de seguridad (mitigaciones/controles) reales, reemplaza la vista de solo lectura sobre `form_definitions`. `category` CHECK 4 valores, `hazard` (riesgo que mitiga, texto libre), `sora_assessment_id` FK opcional a `sora_assessments`, `responsible` (texto libre), `status` CHECK 3 valores. RLS: solo `admin`/`superadmin`/`gerente_sms` (mismo `canManageSMS`) leen/escriben.
 - `sms_case_actions` / `sms_case_events` — seguimiento de casos SMS/VOR/MOR (acciones correctivas + línea de tiempo). Cada fila referencia exactamente uno de `sms_report_id`/`vor_mor_id` (CHECK `num_nonnulls(...) = 1`). Ver **Seguimiento de casos SMS/VOR/MOR**.
+- `safety_risk_scales` / `safety_risk_tolerability` / `safety_hazards` — matriz de Evaluación y Gestión de Riesgos (5 niveles de probabilidad/gravedad, personalizables por org, semilla OACI Doc 9859) + registro de peligros con mitigación en texto libre. Ver **Plan de mejora SMS** más abajo y `docs/plan-mejora-sms-bitafly.md`.
+- `safety_indicators` / `safety_indicator_monthly` / `safety_indicator_actions` / `safety_indicator_submissions` — Indicadores de Desempeño en Seguridad Operacional (SPI): catálogo, datos mensuales, planes de acción, rastro de envío anual. Tasas y líneas de alerta se calculan en el cliente (`lib/safetyIndicatorStats.js`), nunca se guardan como columna derivada.
+- `sms_gap_questions` (catálogo **global**, 100 preguntas del Apéndice 1 — sin `organization_id`) / `sms_gap_assessments` / `sms_gap_responses` — autoevaluación GAP del SMS (Mejora Continua).
+- `sms_training_sessions` / `sms_training_attendance` — cronograma y asistencia de Capacitación SMS (todo el personal, roster sobre `profiles` no `pilots`) — distinto del módulo "Capacitación" (`training_sessions`/`training_exams`, solo pilotos, con examen calificado).
 - `pending_subscriptions` — intents ePayco (filas huérfanas = webhook no corrió)
 - `pending_registrations` — registro pre-pago (expira 3h, service_role only)
 - `processed_webhook_refs` — idempotencia webhook (`ref_payco PK`)
@@ -658,6 +662,52 @@ omitieron por tener ya equivalentes reales internos (`aerocivil_notified_at`,
 - **"Imprimir para hangar"** (real, no decorativo): abre una ventana nueva con el QR en tamaño
   póster y dispara `window.print()` del navegador — pensado literalmente para colgar en la pared
   del hangar. "Descargar QR" (ya existía) se conservó.
+
+### Plan de mejora SMS (2026-07-09) — Evaluación de Riesgos, SPI, GAP, Acciones Correctivas, Plazos, Capacitación SMS
+
+Proyecto grande ejecutado en 8 fases sobre el hub `dashboard/safety/page.js`, alineando la
+plataforma con las circulares/directivas que Aerocivil emite para explotadores UAS (MAUT-5.0-22-017,
+MAUT-1.0-22-004/005/006/007). **Documento de control completo, fase por fase, con todas las
+decisiones de alcance confirmadas con el usuario**: `docs/plan-mejora-sms-bitafly.md` — no se
+repite aquí el detalle, solo el resumen de lo que cambió en la plataforma. VOR/MOR (formularios
+públicos, editor de formato, gestión) se dejó fuera de alcance a propósito — ya estaba implementado.
+
+El hub pasa de 4 tabs (`SORA · Barreras · Reportes SMS · Mapas`) a 10:
+`SORA · Evaluación de Riesgos · Indicadores (SPI) · Mejora Continua · Acciones Correctivas ·
+Reportes SMS · Reportes de Seg. Operacional · Barreras · Mapas · Capacitación SMS`. Todo el hub
+sigue gateado con `canViewFinance` (lectura) / `canManageSMS` (escritura) — **no se creó ningún
+permiso nuevo** en ninguna de las 8 fases.
+
+- **Evaluación de Riesgos**: matriz 5×5 de probabilidad/gravedad personalizable por org (semilla
+  OACI Doc 9859) + tabla de tolerabilidad (inaceptable/tolerable/aceptable, editable celda por
+  celda) + registro de peligros (`safety_hazards`) con mitigación en texto libre. Índice de riesgo
+  y zona se calculan en el cliente, nunca se guardan como columna derivada.
+- **Indicadores (SPI)**: catálogo de indicadores con denominador de lista fija (4 unidades de la
+  circular), datos mensuales, línea base y líneas de alerta calculadas con la fórmula oficial
+  (promedio + N·desviación estándar **poblacional** del año anterior, verificada contra el Excel
+  MAUT-1.0-12-002), planes de acción (defensa/causa raíz/desencadenante), y rastro + recordatorio
+  cron de envío anual (vence 30 de marzo).
+- **Mejora Continua**: autoevaluación GAP del Apéndice 1 (**4 componentes / 12 elementos / 100
+  preguntas** — catálogo global `sms_gap_questions`, no personalizable por org) con checklist Sí/No,
+  responsable/plazo/estado por hallazgo, y comparativo automático entre evaluaciones.
+- **Acciones Correctivas**: tablero de solo-agregación (sin tabla unificada nueva) sobre 3 fuentes
+  ya existentes — casos SMS/VOR/MOR, planes de acción SPI, hallazgos GAP. La edición de cada acción
+  ocurre en su pantalla de origen.
+- **Reportes de Seg. Operacional**: cumplimiento del plazo de radicación en IRIS por caso VOR/MOR —
+  5 días hábiles **regulatorio** para MOR (Directiva 02-24), mismo mecanismo como plazo **interno
+  sugerido** (no regulatorio) para VOR. Reutiliza `vor_mor_submissions.aerocivil_notified_at`
+  (antes solo MOR). Cron de recordatorio (solo campana) + tipo de notificación `vormor_deadline_due`.
+- **Capacitación SMS**: cronograma con recurrencia (`sms_training_sessions`) + asistencia
+  (`sms_training_attendance`, roster = todo `profiles` de la org, no solo `pilots`) — sin examen,
+  a diferencia del módulo "Capacitación" ya existente (solo pilotos, con examen calificado y
+  bloqueo de despacho).
+- **Reportes transversales** (Fase 8, en `/dashboard/reports`): 4 tarjetas nuevas —
+  "Indicadores SPI (anual)" (Excel, `lib/reportGenerators.js#generateSpiReport`, una hoja por
+  indicador + resumen, resuelve el pendiente "Fase 3b"), "Autoevaluación GAP del SMS" (PDF, última
+  evaluación con las 100 preguntas y sus hallazgos), "Cronograma Capacitación SMS" (PDF, proyecta
+  las sesiones recurrentes a fechas reales con `occurrencesInRange()` de `lib/trainingCompliance.js`,
+  reutilizado tal cual del módulo de Capacitación de pilotos) y "Acciones Correctivas del SMS" (PDF,
+  mismo consolidado de 3 fuentes reconstruido server-side en `GET /api/reports/corrective-actions`).
 
 ### Recibo post-mantenimiento + trazabilidad de componentes + PDF de recibo (2026-06-25)
 

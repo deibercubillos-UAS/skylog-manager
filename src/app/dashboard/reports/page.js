@@ -60,6 +60,24 @@ const REPORT_DEFS = [
         desc: 'Sesiones programadas (tema + recurrencia) — Operaciones o Mantenimiento, con sus fechas dentro del periodo.',
         needsPeriod: true, needsTrainingType: true,
     },
+    {
+        key: 'spi', code: 'F-SMS-010', name: 'Indicadores SPI (anual)', icon: 'monitoring',
+        desc: 'Datos mensuales, líneas de alerta y planes de acción de cada indicador — para el envío anual a Aerocivil.',
+        needsYear: true, format: 'xlsx',
+    },
+    {
+        key: 'gap', code: 'F-SMS-011', name: 'Autoevaluación GAP del SMS', icon: 'fact_check',
+        desc: 'Última autoevaluación registrada (Apéndice 1, 100 preguntas) con hallazgos y seguimiento.',
+    },
+    {
+        key: 'smsTrainingSchedule', code: 'F-SMS-012', name: 'Cronograma Capacitación SMS', icon: 'school',
+        desc: 'Sesiones de capacitación SMS (todo el personal) con sus fechas dentro del periodo.',
+        needsPeriod: true,
+    },
+    {
+        key: 'correctiveActions', code: 'F-SMS-013', name: 'Acciones Correctivas del SMS', icon: 'checklist',
+        desc: 'Consolidado de casos SMS/VOR/MOR, planes de acción SPI y hallazgos GAP — estado actual.',
+    },
 ];
 
 // Mes anterior en formato YYYY-MM — el reporte AeroCivil siempre es del "mes vencido"
@@ -103,6 +121,7 @@ export default function ReportsPage() {
     const [markingSent, setMarkingSent] = useState(false);
     const [cutoffDate, setCutoffDate] = useState(new Date().toISOString().split('T')[0]);
     const [trainingType, setTrainingType] = useState('operaciones');
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear() - 1);
 
     // Versión y fecha del reporte se editan de forma individual por formato
     // (antes eran un único control compartido en la cabecera de la página).
@@ -211,6 +230,7 @@ export default function ReportsPage() {
         if (def.needsMonth && !/^\d{4}-\d{2}$/.test(selectedMonth)) return toast.warn('Selecciona un mes válido.');
         if (def.needsCutoffDate && !cutoffDate) return toast.warn('Selecciona una fecha de corte.');
         if (def.needsTrainingType && !trainingType) return toast.warn('Selecciona Operaciones o Mantenimiento.');
+        if (def.needsYear && (!selectedYear || selectedYear < 2000)) return toast.warn('Selecciona un año válido.');
 
         setDownloadingKey(def.key);
         try {
@@ -222,9 +242,11 @@ export default function ReportsPage() {
                 ? `Mes ${selectedMonth}`
                 : def.needsCutoffDate
                     ? `Corte al ${cutoffDate}`
-                    : def.needsPeriod
-                        ? `${from} a ${to}`
-                        : 'Instantánea (sin rango de fechas)';
+                    : def.needsYear
+                        ? `Año ${selectedYear}`
+                        : def.needsPeriod
+                            ? `${from} a ${to}`
+                            : 'Instantánea (sin rango de fechas)';
 
             const common = {
                 orgName: orgData?.company_name,
@@ -288,6 +310,24 @@ export default function ReportsPage() {
             if (def.key === 'trainingSchedule') {
                 const res = await fetch(`/api/reports/training-schedule?type=${trainingType}&from=${from}&to=${to}`);
                 generators.generateTrainingScheduleReport(await res.json(), { ...common, trainingType });
+            }
+            if (def.key === 'spi') {
+                const res = await fetch(`/api/reports/spi?year=${selectedYear}`);
+                const json = await res.json();
+                if (!res.ok) throw new Error(json?.error || 'Error al obtener los datos');
+                await generators.generateSpiReport(json, { ...common, year: selectedYear });
+            }
+            if (def.key === 'gap') {
+                const res = await fetch('/api/reports/gap');
+                generators.generateGapReport(await res.json(), common);
+            }
+            if (def.key === 'smsTrainingSchedule') {
+                const res = await fetch(`/api/reports/sms-training-schedule?from=${from}&to=${to}`);
+                generators.generateSmsTrainingScheduleReport(await res.json(), common);
+            }
+            if (def.key === 'correctiveActions') {
+                const res = await fetch('/api/reports/corrective-actions');
+                generators.generateCorrectiveActionsReport(await res.json(), common);
             }
         } catch (e) {
             toast.error("Error al generar reporte");
@@ -363,7 +403,7 @@ export default function ReportsPage() {
                                         <p className="text-[10px] font-semibold text-slate-400">Personaliza el código con el que se identifica este reporte en tu organización.</p>
                                     </div>
                                 )}
-                                {activeDef.key !== 'aerocivil' && (
+                                {!['aerocivil', 'spi'].includes(activeDef.key) && (
                                     <>
                                         <div className="space-y-1">
                                             <label className="text-[9.5px] font-black text-slate-400 uppercase tracking-wide ml-0.5">Versión</label>
@@ -388,6 +428,16 @@ export default function ReportsPage() {
                                 <input type="date" className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
                                     value={cutoffDate} onChange={e => setCutoffDate(e.target.value)} max={todayISO} />
                                 <p className="text-[10px] font-semibold text-slate-400">Los ciclos totales se calculan acumulados hasta esta fecha.</p>
+                            </div>
+                        )}
+
+                        {activeDef.needsYear && (
+                            <div className="space-y-1 max-w-xs">
+                                <label className="text-[9.5px] font-black uppercase tracking-wide text-slate-400 ml-0.5">Año a reportar</label>
+                                <input type="number" className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold w-28"
+                                    value={selectedYear} min="2000" max={new Date().getFullYear()}
+                                    onChange={e => setSelectedYear(parseInt(e.target.value, 10) || '')} />
+                                <p className="text-[10px] font-semibold text-slate-400">La línea base (líneas de alerta) se calcula con el año anterior a este.</p>
                             </div>
                         )}
 

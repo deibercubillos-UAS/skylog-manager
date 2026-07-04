@@ -139,7 +139,7 @@ sin hallazgos nuevos), RLS mismo patrón que `safety_barriers` (solo
   shell que `AddBarrierPanel` — selectores de probabilidad/gravedad inicial y
   residual con badge de índice+zona calculado en vivo).
 
-### Fase 3 — Indicadores (SPI) ✅ Núcleo completado (falta 3b, ver abajo)
+### Fase 3 — Indicadores (SPI) ✅ Completada (3b resuelta en Fase 8)
 De MAUT-1.0-22-005 + Excel MAUT-1.0-12-002. Migración `20260710_safety_indicators.sql`
 (4 tablas, RLS mismo patrón `canManageSMS`) + `20260710_spi_notification_type.sql`
 (nuevo tipo `spi_report_due`), ambas aplicadas y verificadas sin nuevos hallazgos
@@ -182,13 +182,9 @@ de seguridad.
   `IndicatorDetailPanel.js` (grilla mensual editable + gráfica + planes de
   acción, por año navegable).
 
-**Fase 3b — pendiente**: el **reporte Excel descargable** para el envío
-anual (mismo patrón que el Reporte Operacional Mensual, en
-`dashboard/reports/page.js` + `lib/reportGenerators.js`) no se construyó en
-esta pasada — el rastro de envío y el recordatorio ya funcionan, pero
-todavía no hay un botón "Descargar Excel de Indicadores SPI {año}". Queda
-como fast-follow explícito, no se marca como completo para no dar a entender
-que ya existe.
+**Fase 3b — resuelta en la Fase 8**: el reporte Excel descargable para el
+envío anual ("Indicadores SPI (anual)", `F-SMS-010`) se construyó junto con
+los demás reportes transversales — ver Fase 8 más abajo.
 
 ### Fase 4 — Mejora Continua (GAP simple) ✅ Completada
 Del Apéndice 1 (checklist Sí/No — **4 componentes / 12 elementos / 100
@@ -330,10 +326,63 @@ del SMS — no se fusionaron ambos sistemas porque tienen público objetivo y
 mecanismo de cumplimiento distintos (examen con intentos/aprobación vs.
 asistencia registrada).
 
-### Fase 8 — Reportes transversales + documentación + QA
-Tarjetas nuevas en Reportes (SPI anual, GAP/Mejora Continua, Cronograma
-Capacitación SMS, Acciones Correctivas), actualización de CLAUDE.md, lint +
-build.
+### Fase 8 — Reportes transversales + documentación + QA ✅ Completada
+Cuatro tarjetas nuevas en `/dashboard/reports`, todas con el mismo patrón
+`getOrgContext()` + `logo`/versión/fecha/nota de trazabilidad que el resto de
+formatos (salvo donde se indica). **Resuelve el pendiente de la Fase 3b**
+(el reporte Excel de Indicadores SPI que había quedado explícitamente sin
+construir).
+
+- **"Indicadores SPI (anual)"** (`F-SMS-010`, Excel — `GET /api/reports/spi?year=`
+  + `generateSpiReport()`): selector de **año a reportar** (nuevo campo
+  `needsYear` en `REPORT_DEFS`, distinto de los selectores de periodo ya
+  existentes — un indicador SPI se reporta por año calendario completo, no
+  por rango arbitrario). Una hoja "Resumen" (indicador/denominador/tasa
+  promedio del año base/alerta 1/meta sugerida/meses en alerta) + una hoja
+  por indicador con su tabla mensual (12 meses), estadísticas completas
+  (promedio, D.E., alertas 1-2-3, meta) y sus planes de acción vigentes —
+  mismas fórmulas de `lib/safetyIndicatorStats.js` que ya usa el tab en
+  vivo, sin duplicar el cálculo. Si el año base (año-1) no tiene los 12
+  meses completos, se indica explícitamente "Sin línea base" en vez de
+  fabricar una cifra. Nombres de hoja saneados/deduplicados (límite de 31
+  caracteres de Excel).
+- **"Autoevaluación GAP del SMS"** (`F-SMS-011`, PDF — `GET /api/reports/gap`
+  + `generateGapReport()`): snapshot de la **última** evaluación registrada
+  (sin selector — es la vigente). Trae las 100 preguntas del catálogo
+  global `sms_gap_questions` mezcladas en JS con las respuestas de esa
+  evaluación (si una pregunta no fue respondida aún, aparece "Sin
+  responder" — no se omite del PDF), con responsable/estado solo para las
+  respondidas "No". Es el artefacto de evidencia documental del checklist
+  oficial completado.
+- **"Cronograma Capacitación SMS"** (`F-SMS-012`, PDF, con selector de
+  periodo — `GET /api/reports/sms-training-schedule?from=&to=` +
+  `generateSmsTrainingScheduleReport()`): mismo cálculo de proyección de
+  ocurrencias (`occurrencesInRange()`, `lib/trainingCompliance.js`) que ya
+  usa el reporte de Cronograma de Capacitación de pilotos — reutilizado tal
+  cual porque `sms_training_sessions` comparte la misma forma de
+  recurrencia. Sin selector de tipo (a diferencia del de pilotos
+  Operaciones/Mantenimiento): Capacitación SMS es un solo programa.
+- **"Acciones Correctivas del SMS"** (`F-SMS-013`, PDF, snapshot —
+  `GET /api/reports/corrective-actions` + `generateCorrectiveActionsReport()`):
+  reconstruye **server-side** la misma agregación de 3 fuentes que el
+  `useMemo` del tab en vivo (casos SMS/VOR/MOR, planes de acción SPI,
+  hallazgos GAP) — sin tabla unificada nueva, mismo criterio de "fuente de
+  verdad en el origen" de la Fase 5.
+
+**QA**: `npx next lint` limpio (solo las 3 advertencias preexistentes no
+relacionadas: `<img>` en `socio/layout.js`/`socio/page.js`,
+`exhaustive-deps` en `DjiRcSync.js`) y `npm run build` exitoso, con las 9
+rutas API nuevas del proyecto (`/api/safety/risk-config`,
+`/api/safety/hazards[/[id]]`, `/api/safety/indicators[/...]`,
+`/api/safety/gap/*`, `/api/safety/case/actions` GET, `/api/safety/case/notify`
+extendido, `/api/safety/training/*`, `/api/cron/spi-annual-reminder`,
+`/api/cron/vormor-deadline-reminder`) más las 4 de reportes transversales
+confirmadas en el manifiesto de rutas de Next. **CLAUDE.md actualizado**:
+nueva sección "Plan de mejora SMS" con el resumen de las 8 fases y enlace a
+este documento, más las 5 tablas nuevas agregadas al listado de "Base de
+datos" (`safety_risk_scales`/`safety_risk_tolerability`/`safety_hazards`,
+`safety_indicators` y sus 3 tablas relacionadas, `sms_gap_*`,
+`sms_training_*`).
 
 ---
 
@@ -344,12 +393,12 @@ build.
 | 0 — Preparación | ✅ Completada |
 | 1 — Reordenar IA del hub | ✅ Completada |
 | 2 — Evaluación y Gestión de Riesgos | ✅ Completada |
-| 3 — Indicadores (SPI) | ✅ Núcleo completado (falta 3b: reporte Excel) |
+| 3 — Indicadores (SPI) | ✅ Completada |
 | 4 — Mejora Continua (GAP simple) | ✅ Completada |
 | 5 — Acciones Correctivas (consolidado) | ✅ Completada |
 | 6 — Reportes de Seg. Operacional (plazos) | ✅ Completada |
 | 7 — Plan de Capacitación del SMS | ✅ Completada |
-| 8 — Reportes transversales + QA | Pendiente |
+| 8 — Reportes transversales + QA | ✅ Completada |
 
 Todas las decisiones de alcance quedaron confirmadas (ver sección anterior) —
 no hay preguntas pendientes para arrancar la Fase 0.

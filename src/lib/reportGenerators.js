@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { docPath } from '@/lib/docUrl';
+import { computeRate, computeYearStats, suggestedTarget, DEFENSE_TYPE_LABELS, ACTION_STATUS_LABELS, MONTH_LABELS } from '@/lib/safetyIndicatorStats';
 
 const cleanText = (val) => val ? String(val).toUpperCase() : '';
 
@@ -577,6 +578,176 @@ export const generateTrainingReport = (data, config) => {
     doc.save(`${formCode || 'F-CAP'}_CAPACITACION_${trainingType?.toUpperCase() || ''}_${orgName}.pdf`);
 };
 
+// --- GENERADOR: CRONOGRAMA DE CAPACITACIÓN SMS (todo el personal) ---
+
+export const generateSmsTrainingScheduleReport = (data, config) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const { orgName, logo, version, reportDate, formCode, rangeLabel, downloadedAt } = config;
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.4);
+    doc.rect(10, 10, 277, 25);
+    doc.line(65, 10, 65, 35);
+    doc.line(225, 10, 225, 35);
+    doc.line(65, 22.5, 225, 22.5);
+
+    addLogo(doc, logo, 15, 12, 45, 20);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(orgName ? orgName.toUpperCase() : "BITAFLY UAS", 145, 18, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text("CRONOGRAMA DE CAPACITACIÓN SMS", 145, 27, { align: 'center' });
+    doc.setFontSize(8);
+    doc.text("Instrucción y educación SMS — dirigido a todo el personal", 145, 33, { align: 'center' });
+
+    doc.setFontSize(7);
+    doc.line(225, 18, 287, 18);
+    doc.line(225, 26, 287, 26);
+    doc.text(`VERSIÓN: ${version || '1.0'}`, 227, 15);
+    doc.text(`FECHA: ${reportDate || '---'}`, 227, 23);
+    doc.text(`FORMATO: ${formCode || 'N/A'}`, 227, 31);
+
+    autoTable(doc, {
+        startY: 40,
+        head: [['FECHA PROGRAMADA', 'TEMA', 'RECURRENCIA', 'OBSERVACIONES']],
+        body: (data || []).map(s => [s.date, s.topic, s.recurrence, s.notes || '']),
+        styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', lineWidth: 0.2 },
+        margin: { left: 10, right: 10 }
+    });
+
+    const noteY = safeAutoTableY(doc, 80) + 10;
+    addFooterNote(doc, noteY, { rangeLabel, downloadedAt });
+    const finalY = noteY + 12;
+    doc.line(30, finalY, 110, finalY);
+    doc.text("FIRMA GERENTE SMS", 70, finalY + 5, { align: 'center' });
+    doc.line(187, finalY, 267, finalY);
+    doc.text("FIRMA GERENTE GENERAL", 227, finalY + 5, { align: 'center' });
+
+    doc.save(`${formCode || 'F-SMS'}_CRONOGRAMA_CAPACITACION_SMS_${orgName}.pdf`);
+};
+
+// --- GENERADOR: AUTOEVALUACIÓN GAP DEL SMS (Apéndice 1 — 100 preguntas) ---
+
+export const generateGapReport = (data, config) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const { orgName, logo, version, reportDate, formCode, rangeLabel, downloadedAt } = config;
+    const { assessment, rows } = data || {};
+
+    const answered = (rows || []).filter(r => r.response?.response);
+    const siCount = answered.filter(r => r.response?.response === 'si').length;
+    const pct = answered.length ? Math.round((siCount / answered.length) * 100) : null;
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.4);
+    doc.rect(10, 10, 277, 25);
+    doc.line(65, 10, 65, 35);
+    doc.line(225, 10, 225, 35);
+    doc.line(65, 22.5, 225, 22.5);
+
+    addLogo(doc, logo, 15, 12, 45, 20);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(orgName ? orgName.toUpperCase() : "BITAFLY UAS", 145, 18, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text("AUTOEVALUACIÓN GAP DEL SMS", 145, 27, { align: 'center' });
+    doc.setFontSize(8);
+    const subtitle = assessment
+        ? `${assessment.title || 'Autoevaluación'} · ${assessment.assessment_date || ''}${pct !== null ? ` · Cumplimiento: ${pct}%` : ''}`
+        : 'Sin autoevaluaciones registradas';
+    doc.text(subtitle, 145, 33, { align: 'center' });
+
+    doc.setFontSize(7);
+    doc.line(225, 18, 287, 18);
+    doc.line(225, 26, 287, 26);
+    doc.text(`VERSIÓN: ${version || '1.0'}`, 227, 15);
+    doc.text(`FECHA: ${reportDate || '---'}`, 227, 23);
+    doc.text(`FORMATO: ${formCode || 'N/A'}`, 227, 31);
+
+    autoTable(doc, {
+        startY: 40,
+        head: [['#', 'COMPONENTE', 'ELEMENTO', 'PREGUNTA', 'RESP.', 'RESPONSABLE', 'ESTADO']],
+        body: (rows || []).map(q => [
+            q.order_index,
+            `${q.component_number}. ${q.component_name}`,
+            `${q.element_number} ${q.element_name}`,
+            q.question_text,
+            q.response?.response === 'si' ? 'SÍ' : q.response?.response === 'no' ? 'NO' : 'Sin responder',
+            q.response?.response === 'no' ? (q.response?.responsible || '—') : '—',
+            q.response?.response === 'no' ? (ACTION_STATUS_LABELS[q.response?.status] || '—') : '—',
+        ]),
+        styles: { fontSize: 6, cellPadding: 1.2, lineColor: [0, 0, 0], lineWidth: 0.1, overflow: 'linebreak' },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', lineWidth: 0.2 },
+        columnStyles: { 0: { cellWidth: 7 }, 3: { cellWidth: 110 } },
+        margin: { left: 10, right: 10 }
+    });
+
+    const noteY = safeAutoTableY(doc, 80) + 10;
+    addFooterNote(doc, noteY, { rangeLabel, downloadedAt });
+    const finalY = noteY + 12;
+    doc.line(30, finalY, 110, finalY);
+    doc.text("FIRMA GERENTE SMS", 70, finalY + 5, { align: 'center' });
+    doc.line(187, finalY, 267, finalY);
+    doc.text("FIRMA GERENTE GENERAL", 227, finalY + 5, { align: 'center' });
+
+    doc.save(`${formCode || 'F-SMS'}_GAP_SMS_${orgName}.pdf`);
+};
+
+// --- GENERADOR: TABLERO CONSOLIDADO DE ACCIONES CORRECTIVAS ---
+
+export const generateCorrectiveActionsReport = (data, config) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const { orgName, logo, version, reportDate, formCode, rangeLabel, downloadedAt } = config;
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.4);
+    doc.rect(10, 10, 277, 25);
+    doc.line(65, 10, 65, 35);
+    doc.line(225, 10, 225, 35);
+    doc.line(65, 22.5, 225, 22.5);
+
+    addLogo(doc, logo, 15, 12, 45, 20);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(orgName ? orgName.toUpperCase() : "BITAFLY UAS", 145, 18, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text("ACCIONES CORRECTIVAS DEL SMS", 145, 27, { align: 'center' });
+    doc.setFontSize(8);
+    doc.text("Consolidado: casos SMS/VOR/MOR, planes de acción SPI y hallazgos GAP", 145, 33, { align: 'center' });
+
+    doc.setFontSize(7);
+    doc.line(225, 18, 287, 18);
+    doc.line(225, 26, 287, 26);
+    doc.text(`VERSIÓN: ${version || '1.0'}`, 227, 15);
+    doc.text(`FECHA: ${reportDate || '---'}`, 227, 23);
+    doc.text(`FORMATO: ${formCode || 'N/A'}`, 227, 31);
+
+    autoTable(doc, {
+        startY: 40,
+        head: [['FUENTE', 'ACCIÓN / HALLAZGO', 'CONTEXTO', 'RESPONSABLE', 'VENCIMIENTO', 'ESTADO']],
+        body: (data || []).map(a => [
+            a.source, a.title, a.context, a.responsible || '—', a.due_date || '—', a.status,
+        ]),
+        styles: { fontSize: 7.5, cellPadding: 1.5, lineColor: [0, 0, 0], lineWidth: 0.1, overflow: 'linebreak' },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', lineWidth: 0.2 },
+        columnStyles: { 1: { cellWidth: 90 }, 2: { cellWidth: 70 } },
+        margin: { left: 10, right: 10 }
+    });
+
+    const noteY = safeAutoTableY(doc, 80) + 10;
+    addFooterNote(doc, noteY, { rangeLabel, downloadedAt });
+    const finalY = noteY + 12;
+    doc.line(30, finalY, 110, finalY);
+    doc.text("FIRMA GERENTE SMS", 70, finalY + 5, { align: 'center' });
+    doc.line(187, finalY, 267, finalY);
+    doc.text("FIRMA GERENTE GENERAL", 227, finalY + 5, { align: 'center' });
+
+    doc.save(`${formCode || 'F-SMS'}_ACCIONES_CORRECTIVAS_${orgName}.pdf`);
+};
+
 // --- GENERADOR: FORMATO 100 UAEAC (SOLICITUD DE AUTORIZACIÓN) ---
 
 export const generateExcelF100 = async (data, profile, org, pilots) => {
@@ -849,4 +1020,128 @@ export const generateAerocivilMonthlyExcel = async (rows, month) => {
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     saveAs(blob, `Reporte_UAS_AeroCivil_${month}.xlsx`);
+};
+
+// --- GENERADOR: INDICADORES DE DESEMPEÑO EN SEGURIDAD OPERACIONAL (SPI) ---
+// Reporte anual descargable (mismo espíritu que el Excel oficial
+// MAUT-1.0-12-002) — Fase 8 del plan de mejora SMS, resuelve el pendiente
+// documentado como "Fase 3b". Una hoja "Resumen" + una hoja por indicador
+// con sus datos mensuales, estadísticas (línea base = año anterior al
+// reportado) y planes de acción vigentes.
+
+// Nombres de hoja de Excel: máx. 31 caracteres, sin [ ] : * ? / \, únicos.
+function safeSheetName(name, used) {
+    let base = String(name || 'Indicador').replace(/[[\]:*?/\\]/g, '').slice(0, 28).trim() || 'Indicador';
+    let candidate = base;
+    let i = 2;
+    while (used.has(candidate)) {
+        candidate = `${base.slice(0, 25)} (${i})`;
+        i += 1;
+    }
+    used.add(candidate);
+    return candidate;
+}
+
+const DENOMINATOR_LABELS = {
+    ciclos_vuelo: 'Ciclos de vuelo', horas_vuelo: 'Horas de vuelo',
+    horas_hombre: 'Horas-hombre', operaciones: 'Número de operaciones',
+};
+
+export const generateSpiReport = async (data, config) => {
+    const { indicators } = data || {};
+    const { year, orgName, formCode, version, reportDate, downloadedAt } = config || {};
+    const workbook = new ExcelJS.Workbook();
+    const usedNames = new Set();
+
+    const summary = workbook.addWorksheet('Resumen');
+    summary.addRow([orgName || 'BitaFly UAS']);
+    summary.getRow(1).font = { bold: true, size: 13 };
+    summary.addRow([`Formato: ${formCode || 'N/A'} · Versión: ${version || '1.0'} · Fecha: ${reportDate || '---'}`]);
+    summary.addRow([`Año reportado: ${year} · Descargado el: ${downloadedAt || '---'}`]);
+    summary.addRow([]);
+
+    const summaryHeaders = ['INDICADOR', 'DENOMINADOR', `TASA PROMEDIO ${year - 1} (línea base)`, `ALERTA 1 (${year - 1})`, 'META SUGERIDA', 'MESES EN ALERTA'];
+    summary.addRow(summaryHeaders);
+    summary.getRow(summary.rowCount).font = { bold: true };
+    summary.columns = summaryHeaders.map(h => ({ width: Math.max(20, h.length + 2) }));
+
+    (indicators || []).forEach(ind => {
+        const baseline = computeYearStats(ind.monthly || [], year - 1);
+        const target = baseline ? suggestedTarget(baseline.avg, ind.expected_improvement_pct) : null;
+        const yearRows = (ind.monthly || []).filter(m => m.period.startsWith(String(year)));
+        const monthsInAlert = baseline
+            ? yearRows.filter(m => computeRate(m.event_count, m.denominator_value) > baseline.alert1).length
+            : 0;
+
+        summary.addRow([
+            ind.name,
+            DENOMINATOR_LABELS[ind.denominator_unit] || ind.denominator_unit,
+            baseline ? baseline.avg.toFixed(4) : 'Sin línea base',
+            baseline ? baseline.alert1.toFixed(4) : '—',
+            target !== null ? target.toFixed(4) : '—',
+            baseline ? monthsInAlert : '—',
+        ]);
+
+        const sheet = workbook.addWorksheet(safeSheetName(ind.name, usedNames));
+        sheet.addRow([ind.name]);
+        sheet.getRow(1).font = { bold: true, size: 13 };
+        sheet.addRow([`Denominador: ${DENOMINATOR_LABELS[ind.denominator_unit] || ind.denominator_unit}`, `Mejora esperada: ${Math.round((ind.expected_improvement_pct || 0) * 100)}%`]);
+        sheet.addRow([]);
+
+        const monthlyHeaders = ['MES', 'VALOR DENOMINADOR', 'N° EVENTOS', 'TASA (por 1000)'];
+        sheet.addRow(monthlyHeaders);
+        sheet.getRow(sheet.rowCount).font = { bold: true };
+        MONTH_LABELS.forEach((label, i) => {
+            const period = `${year}-${String(i + 1).padStart(2, '0')}`;
+            const row = yearRows.find(m => m.period === period);
+            sheet.addRow([
+                `${label} ${year}`,
+                row ? row.denominator_value : '—',
+                row ? row.event_count : '—',
+                row ? computeRate(row.event_count, row.denominator_value).toFixed(4) : '—',
+            ]);
+        });
+        sheet.addRow([]);
+
+        sheet.addRow([`Estadísticas (línea base ${year - 1})`]);
+        sheet.getRow(sheet.rowCount).font = { bold: true };
+        if (baseline) {
+            sheet.addRow(['Promedio', baseline.avg.toFixed(4)]);
+            sheet.addRow(['Desviación estándar', baseline.stdDev.toFixed(4)]);
+            sheet.addRow(['Alerta 1 (prom. + 1 D.E.)', baseline.alert1.toFixed(4)]);
+            sheet.addRow(['Alerta 2 (prom. + 2 D.E.)', baseline.alert2.toFixed(4)]);
+            sheet.addRow(['Alerta 3 (prom. + 3 D.E.)', baseline.alert3.toFixed(4)]);
+            sheet.addRow(['Meta sugerida', target !== null ? target.toFixed(4) : '—']);
+        } else {
+            sheet.addRow([`Sin línea base — el año ${year - 1} no tiene los 12 meses completos.`]);
+        }
+        sheet.addRow([]);
+
+        const actions = ind.actions || [];
+        sheet.addRow(['Planes de acción vigentes']);
+        sheet.getRow(sheet.rowCount).font = { bold: true };
+        const actionHeaders = ['DEFENSA', 'CAUSA RAÍZ', 'DESENCADENANTE', 'PLAN DE ACCIÓN', 'DOCUMENTO', 'DÍAS EJECUCIÓN', 'ESTADO'];
+        sheet.addRow(actionHeaders);
+        sheet.getRow(sheet.rowCount).font = { bold: true };
+        if (actions.length === 0) {
+            sheet.addRow(['Sin planes de acción registrados.']);
+        } else {
+            actions.forEach(a => {
+                sheet.addRow([
+                    DEFENSE_TYPE_LABELS[a.defense_type] || a.defense_type || '—',
+                    a.root_cause || '—',
+                    a.trigger_factor || '—',
+                    a.action_plan,
+                    a.document_ref || '—',
+                    a.execution_days ?? '—',
+                    ACTION_STATUS_LABELS[a.status] || a.status,
+                ]);
+            });
+        }
+        sheet.columns = actionHeaders.map(h => ({ width: Math.max(16, h.length + 2) }));
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `Indicadores_SPI_${year}.xlsx`);
 };

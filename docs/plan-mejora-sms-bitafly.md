@@ -244,12 +244,36 @@ en una fila lleva a su pantalla de origen: navega a `/dashboard/safety/case/[id]
 para casos, o cambia de tab y abre el panel de detalle (`IndicatorDetailPanel`/
 `GapAssessmentPanel`) para SPI/GAP — sin abrir un editor propio en este tab.
 
-### Fase 6 — Reportes de Seguridad Operacional (cumplimiento de plazos)
+### Fase 6 — Reportes de Seguridad Operacional (cumplimiento de plazos) ✅ Completada
 Para MOR (plazo regulatorio, 5 días hábiles) y VOR (plazo interno sugerido,
-documentado como no regulatorio) por igual: marcar "Enviado a IRIS" + quién +
-cuándo, mismo patrón que `aerocivil_monthly_reports`. Recordatorio campana +
-correo si se acerca/vence sin marcar enviado (cron diario, mismo patrón que
-`training-exam-reminder`/`aerocivil-report-reminder`).
+documentado como no regulatorio) por igual — **se reutilizó el campo
+existente `vor_mor_submissions.aerocivil_notified_at`** (ya construido en el
+Seguimiento de casos SMS/VOR/MOR, antes limitado a `type='MOR'`) en vez de
+crear una tabla nueva: `POST /api/safety/case/notify` ahora acepta también
+VOR, con mensaje/evento adaptado según el tipo. `lib/vorMorCompliance.js`
+calcula el plazo (`occurrence_date` + 5 días hábiles, excluyendo solo
+sábado/domingo — aproximación documentada, sin calendario de festivos
+colombianos) y el estado (`enviado`/`pendiente`/`vencido`).
+
+- **UI**: nuevo tab "Reportes de Seg. Operacional" — tabla de todos los
+  casos VOR/MOR con plazo calculado, estado coloreado, filtro por tipo, y
+  botón "Marcar radicado" inline. El panel de detalle del caso
+  (`dashboard/safety/case/[id]/page.js`) también se actualizó: la sección
+  antes solo visible para MOR ("Notificado a AeroCivil") ahora aparece para
+  MOR y VOR con etiqueta distinta según el tipo, y de paso se corrigió un
+  bug real de color (el recuadro se pintaba rojo cuando el caso **ya**
+  estaba notificado y ámbar cuando no — invertido; ahora verde=radicado,
+  ámbar=pendiente, rojo=vencido, calculado con la misma función de
+  cumplimiento).
+- **Cron** (`GET /api/cron/vormor-deadline-reminder`, diario,
+  `vercel.json`): recuerda a GSMS+GG (solo campana — mismo patrón que
+  `aerocivil-report-reminder`, no el de `training-exam-reminder` que además
+  envía correo; se documentó esta elección para no prometer un correo que
+  no se construyó) dentro de los 3 días previos al plazo y mientras siga
+  vencido sin marcarse radicado, con dedupe de 3 días. Nuevo tipo de
+  notificación `vormor_deadline_due` (migración
+  `20260712_vormor_deadline_notification_type.sql`, aplicada — mismo gotcha
+  de sincronizar el CHECK de `notifications` y `NOTIFICATION_TYPES`).
 
 Distinto del tab "Reportes SMS" (Fase 1, ya existente) que solo **lista** los
 reportes — esta fase trackea **cumplimiento de plazo**, no el listado en sí.
@@ -286,7 +310,7 @@ build.
 | 3 — Indicadores (SPI) | ✅ Núcleo completado (falta 3b: reporte Excel) |
 | 4 — Mejora Continua (GAP simple) | ✅ Completada |
 | 5 — Acciones Correctivas (consolidado) | ✅ Completada |
-| 6 — Reportes de Seg. Operacional (plazos) | Pendiente |
+| 6 — Reportes de Seg. Operacional (plazos) | ✅ Completada |
 | 7 — Plan de Capacitación del SMS | Pendiente |
 | 8 — Reportes transversales + QA | Pendiente |
 

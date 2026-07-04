@@ -4,6 +4,7 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { fmtDateMed } from '@/lib/formatters';
 import { toast } from '@/lib/toast';
+import { computeCaseCompliance } from '@/lib/vorMorCompliance';
 
 const SMS_STATUS_LABEL = { abierto: 'Abierto', en_analisis: 'En análisis', cerrado: 'Cerrado' };
 const VORMOR_STATUS_LABEL = { recibido: 'Recibido', en_investigacion: 'En investigación', cerrado: 'Cerrado', archivado: 'Archivado' };
@@ -125,7 +126,10 @@ export default function CaseTrackingPage() {
     </div>
   );
 
-  const isMor = source === 'vormor' && report.type === 'MOR';
+  // El plazo de radicación en IRIS aplica a MOR (regulatorio, 5 días hábiles)
+  // y a VOR (mismo mecanismo, plazo interno sugerido — ver Fase 6 de
+  // docs/plan-mejora-sms-bitafly.md). Ambos usan aerocivil_notified_at.
+  const isVorMor = source === 'vormor' && ['MOR', 'VOR'].includes(report.type);
   const statusMap = source === 'sms' ? SMS_STATUS_LABEL : VORMOR_STATUS_LABEL;
   const isClosed = ['cerrado', 'archivado'].includes(report.status);
   const title = source === 'sms' ? (report.narrative || 'Reporte SMS sin narrativa') : report.description;
@@ -261,22 +265,39 @@ export default function CaseTrackingPage() {
             )}
           </div>
 
-          {isMor && (
-            <div className={`flex items-center justify-between rounded-xl px-4 py-3.5 border ${report.aerocivil_notified_at ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
-              <div className="flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-base" style={{ color: report.aerocivil_notified_at ? '#dc2626' : '#d97706' }}>gavel</span>
-                <span className="text-xs font-bold" style={{ color: report.aerocivil_notified_at ? '#7f1d1d' : '#78350f' }}>Notificado a AeroCivil</span>
+          {isVorMor && (() => {
+            const compliance = computeCaseCompliance(report);
+            const isMorType = report.type === 'MOR';
+            const boxCls = compliance?.status === 'vencido' ? 'bg-red-50 border-red-200'
+              : compliance?.status === 'enviado' ? 'bg-emerald-50 border-emerald-200'
+              : 'bg-amber-50 border-amber-200';
+            const iconColor = compliance?.status === 'vencido' ? '#dc2626' : compliance?.status === 'enviado' ? '#16a34a' : '#d97706';
+            return (
+              <div className={`flex items-center justify-between rounded-xl px-4 py-3.5 border ${boxCls}`}>
+                <div className="flex items-center gap-2.5">
+                  <span className="material-symbols-outlined text-base" style={{ color: iconColor }}>gavel</span>
+                  <div>
+                    <span className="text-xs font-bold" style={{ color: iconColor }}>
+                      {isMorType ? 'Radicación en IRIS (plazo regulatorio)' : 'Radicación en IRIS (plazo interno sugerido)'}
+                    </span>
+                    {compliance && !report.aerocivil_notified_at && (
+                      <p className="text-[10px] font-semibold text-slate-500">
+                        Plazo: {fmtDateMed(compliance.deadline)} ({compliance.status === 'vencido' ? `vencido hace ${Math.abs(compliance.daysLeft)}d` : `${compliance.daysLeft}d restantes`})
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {report.aerocivil_notified_at ? (
+                  <span className="text-[10.5px] font-black text-emerald-600">Sí — {fmtDateMed(report.aerocivil_notified_at)}</span>
+                ) : (
+                  <button type="button" onClick={notifyAerocivil} disabled={notifying}
+                    className="text-[10.5px] font-black text-orange-600 hover:text-orange-800 disabled:opacity-50">
+                    {notifying ? 'Registrando...' : 'Marcar radicado'}
+                  </button>
+                )}
               </div>
-              {report.aerocivil_notified_at ? (
-                <span className="text-[10.5px] font-black text-emerald-600">Sí — {fmtDateMed(report.aerocivil_notified_at)}</span>
-              ) : (
-                <button type="button" onClick={notifyAerocivil} disabled={notifying}
-                  className="text-[10.5px] font-black text-orange-600 hover:text-orange-800 disabled:opacity-50">
-                  {notifying ? 'Registrando...' : 'Marcar notificado'}
-                </button>
-              )}
-            </div>
-          )}
+            );
+          })()}
         </div>
       </div>
     </div>

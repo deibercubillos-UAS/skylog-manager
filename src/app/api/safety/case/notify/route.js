@@ -6,7 +6,10 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/safety/case/notify — marca un caso MOR como notificado a AeroCivil
+// POST /api/safety/case/notify — marca un caso VOR/MOR como radicado ante
+// Aerocivil (IRIS). Aplica a MOR (plazo regulatorio, 5 días hábiles) y a VOR
+// (mismo mecanismo, como plazo interno sugerido — decisión confirmada con
+// el usuario, ver Fase 6 de docs/plan-mejora-sms-bitafly.md).
 export async function POST(request) {
     try {
         const supabase = await createClientSSR();
@@ -27,9 +30,6 @@ export async function POST(request) {
             .eq('organization_id', orgId)
             .single();
         if (!existing) return NextResponse.json({ error: 'Reporte no encontrado' }, { status: 404 });
-        if (existing.type !== 'MOR') {
-            return NextResponse.json({ error: 'Solo los reportes MOR requieren notificación a AeroCivil' }, { status: 400 });
-        }
 
         const notifiedAt = new Date().toISOString();
         const { error } = await supabase
@@ -42,7 +42,7 @@ export async function POST(request) {
         await logCaseEvent({
             orgId,
             vorMorId: id,
-            label: 'Notificado a AeroCivil',
+            label: existing.type === 'MOR' ? 'Notificado a AeroCivil (radicado en IRIS)' : 'Marcado como radicado en IRIS',
             actorId: user.id,
             actorName: fullName || user.email,
         });

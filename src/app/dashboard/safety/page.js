@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { fmtDateMed } from '@/lib/formatters';
 import { sailRoman, sailColor } from '@/lib/soraEngine';
 import { resolveZone, riskIndex, ZONE_META } from '@/lib/safetyRiskDefaults';
+import { computeCaseCompliance } from '@/lib/vorMorCompliance';
 import { computeRate, computeYearStats } from '@/lib/safetyIndicatorStats';
 import PageHero from '@/components/PageHero';
 import KPIStrip from '@/components/KPIStrip';
@@ -36,7 +37,7 @@ const TABS = [
   { id: 'mejora',   label: 'Mejora Continua',         icon: 'trending_up' },
   { id: 'acciones', label: 'Acciones Correctivas',    icon: 'checklist' },
   { id: 'reportes', label: 'Reportes SMS',            icon: 'health_and_safety' },
-  // ← Fase 6: Reportes de Seguridad Operacional (plazos MOR/VOR)
+  { id: 'plazos',   label: 'Reportes de Seg. Operacional', icon: 'gavel' },
   { id: 'barreras', label: 'Barreras de Seguridad',   icon: 'shield' },
   { id: 'mapas',    label: 'Mapas de restricción',    icon: 'map' },
   // ← Fase 7: Capacitación SMS
@@ -144,6 +145,8 @@ export default function SafetyPage() {
   const [gapAssessments, setGapAssessments] = useState([]);
   const [gapPanel, setGapPanel] = useState(null); // null | assessment object
   const [creatingGap, setCreatingGap] = useState(false);
+  const [notifyingCaseId, setNotifyingCaseId] = useState(null);
+  const [plazosTypeFilter, setPlazosTypeFilter] = useState('todos');
   const [caseActions, setCaseActions] = useState([]);
   const [actionSourceFilter, setActionSourceFilter] = useState('todas');
   const [actionStatusFilter, setActionStatusFilter] = useState('abiertas');
@@ -221,6 +224,23 @@ export default function SafetyPage() {
       toast.error('Error: ' + err.message);
     } finally {
       setCreatingGap(false);
+    }
+  };
+
+  const handleNotifyCase = async (caseId) => {
+    setNotifyingCaseId(caseId);
+    try {
+      const res = await fetch('/api/safety/case/notify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: caseId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al marcar la radicación.');
+      toast.success('Marcado como radicado en IRIS.');
+      setVorMor(prev => prev.map(v => v.id === caseId ? { ...v, aerocivil_notified_at: data.aerocivil_notified_at } : v));
+    } catch (err) {
+      toast.error('Error: ' + err.message);
+    } finally {
+      setNotifyingCaseId(null);
     }
   };
 
@@ -479,6 +499,27 @@ export default function SafetyPage() {
       { key: 'open',     label: 'Abiertas',         value: open.length, icon: 'pending_actions', iconColor: open.length > 0 ? '#d97706' : '#94a3b8' },
       { key: 'overdue',  label: 'Vencidas',         value: overdue.length, icon: 'schedule', iconColor: overdue.length > 0 ? '#dc2626' : '#94a3b8' },
       { key: 'sources',  label: 'Fuentes',          value: `${[...new Set(correctiveActions.map(a => a.source))].length}/3`, icon: 'hub', iconColor: '#4f46e5' },
+    ];
+  })() : null;
+
+  // ── Reportes de Seguridad Operacional: cumplimiento de plazo de
+  // radicación en IRIS para cada caso VOR/MOR (Fase 6) ──
+  const vorMorCompliance = useMemo(() => {
+    return vorMor.map(v => ({ ...v, compliance: computeCaseCompliance(v) })).filter(v => v.compliance);
+  }, [vorMor]);
+
+  const filteredPlazos = vorMorCompliance.filter(v => plazosTypeFilter === 'todos' || v.type === plazosTypeFilter);
+
+  const plazosStats = vorMorCompliance.length > 0 ? (() => {
+    const morCases = vorMorCompliance.filter(v => v.type === 'MOR');
+    const pending = vorMorCompliance.filter(v => v.compliance.status === 'pendiente');
+    const overdue = vorMorCompliance.filter(v => v.compliance.status === 'vencido');
+    const morOverdue = morCases.filter(v => v.compliance.status === 'vencido');
+    return [
+      { key: 'total',      label: 'Casos VOR/MOR',   value: vorMorCompliance.length, icon: 'gavel', iconColor: '#ec5b13' },
+      { key: 'pending',    label: 'Pendientes',      value: pending.length, icon: 'pending_actions', iconColor: pending.length > 0 ? '#d97706' : '#94a3b8' },
+      { key: 'overdue',    label: 'Vencidos',        value: overdue.length, icon: 'schedule', iconColor: overdue.length > 0 ? '#dc2626' : '#94a3b8' },
+      { key: 'morOverdue', label: 'MOR vencidos (regulatorio)', value: morOverdue.length, icon: 'warning', iconColor: morOverdue.length > 0 ? '#dc2626' : '#94a3b8' },
     ];
   })() : null;
 
@@ -902,6 +943,74 @@ export default function SafetyPage() {
                   Emitir nuevo reporte <span className="material-symbols-outlined text-sm">arrow_forward</span>
                 </Link>
               </div>
+            </div>
+          )}
+
+          {/* ── Reportes de Seguridad Operacional (cumplimiento de plazo IRIS) ── */}
+          {tab === 'plazos' && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              {plazosStats && <KPIStrip variant="strip" items={plazosStats} />}
+              <div className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
+                <p className="text-xs font-semibold text-amber-800 leading-relaxed">
+                  <span className="font-black">MOR</span>: plazo regulatorio de 5 días hábiles (Directiva 02-24) para
+                  radicar en IRIS desde la ocurrencia. <span className="font-black">VOR</span>: mismo mecanismo, como
+                  plazo <span className="font-black">interno sugerido</span> — no es una obligación regulatoria.
+                  &quot;Días hábiles&quot; excluye solo sábados/domingos (aproximación, sin calendario de festivos).
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[['todos', 'Todos'], ['MOR', 'MOR'], ['VOR', 'VOR']].map(([val, label]) => (
+                  <button key={val} type="button" onClick={() => setPlazosTypeFilter(val)}
+                    className={`text-xs font-bold px-3.5 py-2 rounded-full transition-all ${
+                      plazosTypeFilter === val ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <TableShell title="Cumplimiento de plazo de radicación en IRIS por caso VOR/MOR"
+                empty={filteredPlazos.length === 0 ? 'Sin reportes VOR/MOR registrados' : null}>
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                      <th className="px-5 py-3">Reporte</th><th className="px-4 py-3">Tipo</th>
+                      <th className="px-4 py-3">Ocurrencia</th><th className="px-4 py-3">Plazo</th>
+                      <th className="px-4 py-3">Estado</th><th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm">
+                    {filteredPlazos.map(v => (
+                      <tr key={v.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-5 py-3.5 max-w-xs">
+                          <Link href={`/dashboard/safety/case/${v.id}?source=vormor`} className="font-bold text-slate-800 hover:text-orange-600 truncate block">
+                            {v.description || 'Sin descripción'}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className={`px-2.5 py-1 rounded-full text-[10.5px] font-black uppercase ${v.type === 'MOR' ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600'}`}>{v.type}</span>
+                        </td>
+                        <td className="px-4 py-3.5 text-slate-500 font-medium whitespace-nowrap">{v.occurrence_date ? fmtDateMed(v.occurrence_date) : '—'}</td>
+                        <td className="px-4 py-3.5 text-slate-500 font-medium whitespace-nowrap">{fmtDateMed(v.compliance.deadline)}</td>
+                        <td className="px-4 py-3.5">
+                          <span className={`px-2.5 py-1 rounded-full text-[10.5px] font-black uppercase ${
+                            v.compliance.status === 'enviado' ? 'bg-emerald-50 text-emerald-600' : v.compliance.status === 'vencido' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'
+                          }`}>
+                            {v.compliance.status === 'enviado' ? 'Radicado' : v.compliance.status === 'vencido' ? 'Vencido' : 'Pendiente'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          {v.compliance.status !== 'enviado' && (
+                            <button type="button" onClick={() => handleNotifyCase(v.id)} disabled={notifyingCaseId === v.id}
+                              className="text-[10.5px] font-black text-orange-600 hover:text-orange-800 uppercase disabled:opacity-50">
+                              {notifyingCaseId === v.id ? 'Guardando...' : 'Marcar radicado'}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableShell>
             </div>
           )}
 

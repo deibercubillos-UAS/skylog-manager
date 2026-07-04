@@ -24,6 +24,7 @@ const TYPE_META = {
   aerocivil_report_due: { icon: 'assignment_turned_in', color: 'text-amber-600', bg: 'bg-amber-50' },
   training_exam_due: { icon: 'quiz', color: 'text-orange-600', bg: 'bg-orange-50' },
   spi_report_due: { icon: 'monitoring', color: 'text-purple-600', bg: 'bg-purple-50' },
+  vormor_deadline_due: { icon: 'gavel', color: 'text-red-600', bg: 'bg-red-50' },
 };
 const metaFor = (t) => TYPE_META[t] || TYPE_META.system;
 

@@ -7,13 +7,17 @@ import { supabase } from '@/lib/supabase';
 import { fmtDateMed } from '@/lib/formatters';
 import { sailRoman, sailColor } from '@/lib/soraEngine';
 import { resolveZone, riskIndex, ZONE_META } from '@/lib/safetyRiskDefaults';
+import { computeRate, computeYearStats } from '@/lib/safetyIndicatorStats';
 import PageHero from '@/components/PageHero';
 import KPIStrip from '@/components/KPIStrip';
+import { toast } from '@/lib/toast';
 
 const SoraWizard = dynamic(() => import('@/components/sora/SoraWizard'), { ssr: false });
 const AddBarrierPanel = dynamic(() => import('@/components/safety/AddBarrierPanel'), { ssr: false });
 const RiskMatrixEditor = dynamic(() => import('@/components/safety/RiskMatrixEditor'), { ssr: false });
 const AddHazardPanel = dynamic(() => import('@/components/safety/AddHazardPanel'), { ssr: false });
+const AddIndicatorPanel = dynamic(() => import('@/components/safety/AddIndicatorPanel'), { ssr: false });
+const IndicatorDetailPanel = dynamic(() => import('@/components/safety/IndicatorDetailPanel'), { ssr: false });
 
 // Mismo visor real que usa /dashboard/safety/mapas (const duplicada a propósito —
 // es una URL de referencia, no lógica de negocio).
@@ -27,7 +31,8 @@ const ARCGIS_UAS_URL =
 const TABS = [
   { id: 'sora',     label: 'Análisis SORA',           icon: 'analytics' },
   { id: 'riesgos',  label: 'Evaluación de Riesgos',   icon: 'grid_view' },
-  // ← Fases 3-5: Indicadores (SPI) · Mejora Continua · Acciones Correctivas
+  { id: 'indicadores', label: 'Indicadores (SPI)',    icon: 'monitoring' },
+  // ← Fases 4-5: Mejora Continua · Acciones Correctivas
   { id: 'reportes', label: 'Reportes SMS',            icon: 'health_and_safety' },
   // ← Fase 6: Reportes de Seguridad Operacional (plazos MOR/VOR)
   { id: 'barreras', label: 'Barreras de Seguridad',   icon: 'shield' },
@@ -111,6 +116,7 @@ export default function SafetyPage() {
   const [showWizard, setShowWizard] = useState(false);
   const [barrierPanel, setBarrierPanel] = useState(null); // null | 'new' | barrier object
   const [hazardPanel, setHazardPanel] = useState(null);   // null | 'new' | hazard object
+  const [indicatorPanel, setIndicatorPanel] = useState(null); // null | 'new' | indicator object
 
   const [sora, setSora]             = useState([]);
   const [barreras, setBarreras]     = useState([]);
@@ -118,9 +124,14 @@ export default function SafetyPage() {
   const [vorMor, setVorMor]         = useState([]);
   const [riskConfig, setRiskConfig] = useState({ probability: [], severity: [], tolerability: [] });
   const [hazards, setHazards]       = useState([]);
+  const [indicators, setIndicators] = useState([]);
+  const [spiSubmission, setSpiSubmission] = useState(null);
+  const [markingSpiSent, setMarkingSpiSent] = useState(false);
+
+  const spiReportYear = new Date().getFullYear() - 1; // año que corresponde reportar (vencido)
 
   const loadAll = useCallback(async (organizationId) => {
-    const [soraRes, barriersRes, smsRes, vorMorRes, riskConfigRes, hazardsRes] = await Promise.all([
+    const [soraRes, barriersRes, smsRes, vorMorRes, riskConfigRes, hazardsRes, indicatorsRes, spiSubmissionRes] = await Promise.all([
       fetch('/api/sora/assessments').then(r => r.json()).catch(() => []),
       fetch('/api/safety/barriers').then(r => r.json()).catch(() => []),
       supabase.from('sms_reports')
@@ -129,6 +140,8 @@ export default function SafetyPage() {
       fetch('/api/vor-mor?limit=50').then(r => r.json()).catch(() => ({ data: [] })),
       fetch('/api/safety/risk-config').then(r => r.json()).catch(() => ({ probability: [], severity: [], tolerability: [] })),
       fetch('/api/safety/hazards').then(r => r.json()).catch(() => []),
+      fetch('/api/safety/indicators').then(r => r.json()).catch(() => []),
+      fetch(`/api/safety/indicators/submission?year=${new Date().getFullYear() - 1}`).then(r => r.json()).catch(() => null),
     ]);
     setSora(Array.isArray(soraRes) ? soraRes : []);
     setBarreras(Array.isArray(barriersRes) ? barriersRes : []);
@@ -136,6 +149,8 @@ export default function SafetyPage() {
     setVorMor(Array.isArray(vorMorRes?.data) ? vorMorRes.data : []);
     setRiskConfig(riskConfigRes?.probability ? riskConfigRes : { probability: [], severity: [], tolerability: [] });
     setHazards(Array.isArray(hazardsRes) ? hazardsRes : []);
+    setIndicators(Array.isArray(indicatorsRes) ? indicatorsRes : []);
+    setSpiSubmission(spiSubmissionRes?.year ? spiSubmissionRes : null);
   }, []);
 
   useEffect(() => {
@@ -149,6 +164,22 @@ export default function SafetyPage() {
       setLoading(false);
     })();
   }, [loadAll]);
+
+  const handleMarkSpiSent = async () => {
+    setMarkingSpiSent(true);
+    try {
+      const res = await fetch('/api/safety/indicators/submission', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ year: spiReportYear }),
+      });
+      if (!res.ok) throw new Error((await res.json())?.error || 'Error al guardar');
+      toast.success('Marcado como enviado a Aerocivil');
+      setSpiSubmission(prev => ({ ...prev, year: spiReportYear, sent: true }));
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setMarkingSpiSent(false);
+    }
+  };
 
   // ── Reportes SMS + VOR/MOR consolidados en una sola lista de casos ──
   const allCases = useMemo(() => {
@@ -200,6 +231,15 @@ export default function SafetyPage() {
           className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-600/20 transition-all active:scale-95">
           <span className="material-symbols-outlined text-base">add_circle</span>
           Nuevo peligro
+        </button>
+      );
+    }
+    if (tab === 'indicadores') {
+      return (
+        <button onClick={() => setIndicatorPanel('new')}
+          className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-600/20 transition-all active:scale-95">
+          <span className="material-symbols-outlined text-base">add_circle</span>
+          Nuevo indicador
         </button>
       );
     }
@@ -260,6 +300,24 @@ export default function SafetyPage() {
     ];
   })() : null;
 
+  const currentYear = new Date().getFullYear();
+  const indicatorStats = indicators.length > 0 ? (() => {
+    let inAlert = 0, withBaseline = 0;
+    indicators.forEach(ind => {
+      const prevStats = computeYearStats(ind.monthly || [], currentYear - 1);
+      if (!prevStats) return;
+      withBaseline++;
+      const thisYearRows = (ind.monthly || []).filter(m => m.period.startsWith(String(currentYear)));
+      if (thisYearRows.some(m => computeRate(m.event_count, m.denominator_value) > prevStats.alert1)) inAlert++;
+    });
+    return [
+      { key: 'total',    label: 'Indicadores',    value: indicators.length, icon: 'monitoring', iconColor: '#ec5b13' },
+      { key: 'alert',    label: 'En alerta este año', value: inAlert, icon: 'trending_up', iconColor: inAlert > 0 ? '#dc2626' : '#94a3b8' },
+      { key: 'baseline', label: 'Con línea base',  value: withBaseline, icon: 'query_stats', iconColor: '#4f46e5' },
+      { key: 'sent',     label: `Envío ${spiReportYear}`, value: spiSubmission?.sent ? 'Enviado' : 'Pendiente', icon: spiSubmission?.sent ? 'check_circle' : 'pending_actions', iconColor: spiSubmission?.sent ? '#16a34a' : '#d97706' },
+    ];
+  })() : null;
+
   return (
     <div className="max-w-6xl mx-auto space-y-5 text-left animate-in fade-in duration-500 pb-24">
 
@@ -286,6 +344,20 @@ export default function SafetyPage() {
           tolerability={riskConfig.tolerability}
           onClose={() => setHazardPanel(null)}
           onSuccess={() => { setHazardPanel(null); if (orgId) loadAll(orgId); }}
+        />
+      )}
+
+      {indicatorPanel === 'new' && (
+        <AddIndicatorPanel
+          onClose={() => setIndicatorPanel(null)}
+          onSuccess={() => { setIndicatorPanel(null); if (orgId) loadAll(orgId); }}
+        />
+      )}
+      {indicatorPanel && indicatorPanel !== 'new' && (
+        <IndicatorDetailPanel
+          indicator={indicators.find(i => i.id === indicatorPanel.id) || indicatorPanel}
+          onClose={() => setIndicatorPanel(null)}
+          onSuccess={() => orgId && loadAll(orgId)}
         />
       )}
 
@@ -413,6 +485,58 @@ export default function SafetyPage() {
                   </table>
                 </TableShell>
               )}
+            </div>
+          )}
+
+          {/* ── Indicadores (SPI) ── */}
+          {tab === 'indicadores' && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              {indicatorStats && <KPIStrip variant="strip" items={indicatorStats} />}
+
+              <div className="flex items-center justify-between bg-indigo-50 border border-indigo-100 rounded-2xl px-4 py-3">
+                <div>
+                  <p className="text-xs font-black text-indigo-800">Envío anual a Aerocivil — Indicadores {spiReportYear}</p>
+                  <p className="text-[11px] text-indigo-700">Plazo: 30 de marzo de {spiReportYear + 1}.</p>
+                </div>
+                {spiSubmission?.sent ? (
+                  <span className="flex items-center gap-1.5 text-xs font-black text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1.5">
+                    <span className="material-symbols-outlined text-sm">check_circle</span>Enviado
+                  </span>
+                ) : (
+                  <button type="button" onClick={handleMarkSpiSent} disabled={markingSpiSent}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-emerald-200 bg-white text-emerald-700 font-black text-xs uppercase hover:bg-emerald-50 transition-all disabled:opacity-50">
+                    <span className="material-symbols-outlined text-sm">{markingSpiSent ? 'progress_activity' : 'check_circle'}</span>
+                    {markingSpiSent ? 'Guardando...' : 'Marcar como enviado'}
+                  </button>
+                )}
+              </div>
+
+              <TableShell title="Catálogo de indicadores de desempeño en Seguridad Operacional (SPI)"
+                empty={indicators.length === 0 ? 'Sin indicadores registrados — crea el primero con "Nuevo indicador"' : null}>
+                <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {indicators.map(ind => {
+                    const prevStats = computeYearStats(ind.monthly || [], currentYear - 1);
+                    const thisYearRows = (ind.monthly || []).filter(m => m.period.startsWith(String(currentYear)));
+                    const inAlert = prevStats && thisYearRows.some(m => computeRate(m.event_count, m.denominator_value) > prevStats.alert1);
+                    return (
+                      <button key={ind.id} type="button" onClick={() => setIndicatorPanel(ind)}
+                        className="text-left border border-slate-200 rounded-2xl p-4 space-y-2 hover:border-orange-300 hover:shadow-sm transition-all">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9.5px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                            {ind.denominator_unit.replace('_', ' ')}
+                          </span>
+                          {inAlert && <span className="material-symbols-outlined text-base text-red-500">trending_up</span>}
+                        </div>
+                        <p className="text-sm font-bold text-slate-800 leading-snug">{ind.name}</p>
+                        <p className="text-[10.5px] text-slate-400">
+                          {(ind.actions || []).length} plan(es) de acción · Mejora esperada {Math.round((ind.expected_improvement_pct || 0) * 100)}%
+                        </p>
+                        {!prevStats && <p className="text-[10px] font-bold text-amber-600">Sin línea base ({currentYear - 1} incompleto)</p>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </TableShell>
             </div>
           )}
 

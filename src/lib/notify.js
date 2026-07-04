@@ -5,7 +5,7 @@ export const NOTIFICATION_TYPES = [
   'flight_scheduled', 'flight_dispatched', 'manual_published',
   'drone_alert', 'maintenance_due', 'invitation',
   'document_updated', 'vor_mor', 'announcement', 'system',
-  'aerocivil_report_due', 'training_exam_due',
+  'aerocivil_report_due', 'training_exam_due', 'spi_report_due',
 ];
 
 /**

@@ -139,26 +139,56 @@ sin hallazgos nuevos), RLS mismo patrón que `safety_barriers` (solo
   shell que `AddBarrierPanel` — selectores de probabilidad/gravedad inicial y
   residual con badge de índice+zona calculado en vivo).
 
-### Fase 3 — Indicadores (SPI)
-De MAUT-1.0-22-005 + Excel MAUT-1.0-12-002:
+### Fase 3 — Indicadores (SPI) ✅ Núcleo completado (falta 3b, ver abajo)
+De MAUT-1.0-22-005 + Excel MAUT-1.0-12-002. Migración `20260710_safety_indicators.sql`
+(4 tablas, RLS mismo patrón `canManageSMS`) + `20260710_spi_notification_type.sql`
+(nuevo tipo `spi_report_due`), ambas aplicadas y verificadas sin nuevos hallazgos
+de seguridad.
 
-- `safety_indicators` (catálogo por org): nombre, denominador — **selector
-  de lista fija** con las 6 categorías de la circular (ciclos de vuelo /
-  horas de vuelo / horas-hombre / número de operaciones, según tipo de
-  proveedor; para un explotador UAS lo habitual es "Horas de vuelo"), no
-  texto libre — preserva la consistencia que exige la circular. Además,
-  mejora esperada % (la meta).
-- `safety_indicator_monthly`: mes, valor del denominador, N° de eventos →
-  tasa por 1000 **calculada**, no capturada a mano.
-- Líneas de alerta calculadas automáticamente (promedio ± 1/2/3 desviaciones
-  estándar del año anterior) — misma fórmula del Excel oficial.
-- Gráfica por indicador (línea del año + 3 líneas de alerta).
-- Defensa (T/R/E) + causa raíz + desencadenante + plan de acción + documento
-  + tiempo de ejecución → alimentan el tablero de Acciones Correctivas
-  (Fase 5), no se duplican como tabla propia.
-- Reporte descargable (Excel, mismo patrón que el Reporte Operacional
-  Mensual) para el envío anual a Aerocivil (vence 30 de marzo) + recordatorio
-  cron, mismo patrón que `aerocivil-report-reminder`.
+- **`safety_indicators`** (catálogo por org): nombre, `denominator_unit` —
+  **selector de lista fija** con las 4 unidades reales de la circular
+  (ciclos de vuelo / horas de vuelo / horas-hombre / número de operaciones,
+  según tipo de proveedor; para un explotador UAS lo habitual es "Horas de
+  vuelo"), no texto libre — preserva la consistencia que exige la circular.
+  Además, `expected_improvement_pct` (mejora esperada %, la meta).
+- **`safety_indicator_monthly`**: `period` ('YYYY-MM'), valor del
+  denominador, N° de eventos → tasa por 1000 **calculada en el cliente**
+  (`lib/safetyIndicatorStats.js`), no capturada a mano ni guardada como
+  columna derivada.
+- **Líneas de alerta y meta** (`computeYearStats()`/`suggestedTarget()`):
+  fórmulas verificadas contra el Excel oficial — promedio y desviación
+  estándar **poblacional** (N=12, no N-1) de las tasas del año anterior;
+  alerta N = promedio + N·D.E.; meta sugerida = promedio × (1 − mejora
+  esperada). Solo se calculan si los 12 meses del año anterior están
+  completos — si no, se muestra "sin línea base" en vez de fabricar una
+  cifra sobre datos incompletos.
+- **Gráfica por indicador** (`RateChart` en `IndicatorDetailPanel.js`): SVG
+  simple con la línea de tasas del año seleccionado + las 3 líneas de
+  alerta + la meta, todas calculadas desde el año anterior.
+- **`safety_indicator_actions`**: defensa (T/R/E) + causa raíz +
+  desencadenante + plan de acción + documento + tiempo de ejecución +
+  estado — alimentarán el tablero de Acciones Correctivas (Fase 5) por
+  agregación directa sobre esta tabla, sin duplicarla.
+- **`safety_indicator_submissions`**: rastro de envío anual a Aerocivil
+  (vence 30 de marzo), mismo patrón que `aerocivil_monthly_reports` —
+  botón "Marcar como enviado" en el tab.
+- **Recordatorio cron** (`GET /api/cron/spi-annual-reminder`, diario,
+  `vercel.json`): recuerda a GSMS+GG dentro de los 30 días previos al plazo
+  y sigue recordando (dedupe 3 días) si ya venció y sigue sin marcarse
+  enviado — mismo espíritu que `training-exam-reminder`.
+- **UI**: nuevo tab "Indicadores (SPI)" — catálogo de tarjetas (con
+  indicador visual "en alerta" si algún mes del año actual supera la 1ª
+  línea de alerta), `AddIndicatorPanel.js` (creación) e
+  `IndicatorDetailPanel.js` (grilla mensual editable + gráfica + planes de
+  acción, por año navegable).
+
+**Fase 3b — pendiente**: el **reporte Excel descargable** para el envío
+anual (mismo patrón que el Reporte Operacional Mensual, en
+`dashboard/reports/page.js` + `lib/reportGenerators.js`) no se construyó en
+esta pasada — el rastro de envío y el recordatorio ya funcionan, pero
+todavía no hay un botón "Descargar Excel de Indicadores SPI {año}". Queda
+como fast-follow explícito, no se marca como completo para no dar a entender
+que ya existe.
 
 ### Fase 4 — Mejora Continua (GAP simple)
 Del Apéndice 1 (checklist Sí/No, 9 componentes):
@@ -222,7 +252,7 @@ build.
 | 0 — Preparación | ✅ Completada |
 | 1 — Reordenar IA del hub | ✅ Completada |
 | 2 — Evaluación y Gestión de Riesgos | ✅ Completada |
-| 3 — Indicadores (SPI) | Pendiente |
+| 3 — Indicadores (SPI) | ✅ Núcleo completado (falta 3b: reporte Excel) |
 | 4 — Mejora Continua (GAP simple) | Pendiente |
 | 5 — Acciones Correctivas (consolidado) | Pendiente |
 | 6 — Reportes de Seg. Operacional (plazos) | Pendiente |

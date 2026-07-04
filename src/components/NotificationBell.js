@@ -22,6 +22,7 @@ const TYPE_META = {
   announcement:      { icon: 'campaign',        color: 'text-orange-600',  bg: 'bg-orange-50' },
   system:            { icon: 'info',            color: 'text-slate-500',   bg: 'bg-slate-100' },
   aerocivil_report_due: { icon: 'assignment_turned_in', color: 'text-amber-600', bg: 'bg-amber-50' },
+  training_exam_due: { icon: 'quiz', color: 'text-orange-600', bg: 'bg-orange-50' },
 };
 const metaFor = (t) => TYPE_META[t] || TYPE_META.system;
 

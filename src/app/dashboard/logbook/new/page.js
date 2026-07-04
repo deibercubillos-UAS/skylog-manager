@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { toast } from '@/lib/toast';
 import WeatherWidget from '@/components/WeatherWidget';
 import { MISSION_TYPES, LINE_OF_SIGHT_TYPES } from '@/lib/missionTypes';
+import { computeCompliance } from '@/lib/trainingCompliance';
 
 export default function NewOperationPage() {
     const router = useRouter();
@@ -23,6 +24,10 @@ export default function NewOperationPage() {
     const [isPilotoPlan, setIsPilotoPlan] = useState(false);
     const [myPilotId, setMyPilotId] = useState(null);
     const [flightPlans, setFlightPlans] = useState([]);
+    // Cumplimiento del examen interno de Capacitación (Operaciones) — si el piloto
+    // reprobó o venció el ciclo vigente, se bloquea el despacho. null = sin examen
+    // configurado (nada que exigir) o aún no evaluado.
+    const [examCompliance, setExamCompliance] = useState(null);
 
     // FLUJO: data -> health -> preflight -> briefing (los pasos se saltan si están desactivados)
     const [step, setStep] = useState('data');
@@ -79,6 +84,25 @@ export default function NewOperationPage() {
                     .limit(1)
                     .maybeSingle();
                 setMyPilotId(pilotRow?.id ?? null);
+
+                // Bloqueo de despacho por el examen interno de Capacitación (Operaciones):
+                // si no hay examen configurado, no se exige nada (compliant por defecto).
+                if (pilotRow?.id) {
+                    const { data: exam } = await supabase
+                        .from('training_exams')
+                        .select('*')
+                        .eq('organization_id', prof.organization_id)
+                        .eq('type', 'operaciones')
+                        .maybeSingle();
+                    if (exam) {
+                        const { data: attempts } = await supabase
+                            .from('training_exam_attempts')
+                            .select('cycle_start, passed')
+                            .eq('exam_id', exam.id)
+                            .eq('pilot_id', pilotRow.id);
+                        setExamCompliance(computeCompliance(exam, attempts));
+                    }
+                }
 
                 if (pilotPlan && aircraftList.length === 1) {
                     setForm(prev => ({ ...prev, aircraft_id: aircraftList[0].id }));
@@ -272,6 +296,29 @@ export default function NewOperationPage() {
     };
 
     if (loading) return <div className="h-screen flex items-center justify-center bg-[#f8f6f6] font-black animate-pulse text-slate-400">CARGANDO...</div>;
+
+    // Bloqueo real de despacho: examen de Operaciones reprobado o vencido.
+    if (examCompliance && !examCompliance.compliant) {
+        return (
+            <div className="h-screen flex items-center justify-center bg-[#f8f6f6] p-6">
+                <div className="max-w-md w-full bg-white rounded-[2rem] shadow-xl border border-red-200 p-8 text-center space-y-4">
+                    <span className="material-symbols-outlined text-5xl text-red-500">block</span>
+                    <h2 className="text-lg font-black uppercase text-red-600">Despacho bloqueado</h2>
+                    <p className="text-sm font-semibold text-slate-500">
+                        No puedes despachar vuelos porque tu examen interno de Operaciones está
+                        {examCompliance.status === 'failed' ? ' reprobado' : ' vencido'} para el ciclo actual
+                        (hasta {examCompliance.cycleEnd}).
+                    </p>
+                    <Link href={`/dashboard/training/exam?type=operaciones`}
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-wide shadow-lg shadow-orange-600/25 transition-all active:scale-95">
+                        <span className="material-symbols-outlined text-base">quiz</span>
+                        Presentar examen
+                    </Link>
+                    <button onClick={() => router.back()} className="block w-full py-2 text-slate-400 font-black uppercase text-xs">Volver</button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <>

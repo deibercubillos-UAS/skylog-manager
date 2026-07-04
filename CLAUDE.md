@@ -1080,6 +1080,74 @@ y forma del reporte descargable — las 3 con la opción recomendada.
   trazabilidad/firmas que los demás formatos) — columnas Tripulante/CIPU/Fecha/
   Resultado/Evaluador/Observaciones.
 
+### Capacitación v2 — cronograma con recurrencia + examen real con bloqueo (2026-07-08)
+
+El mismo día siguiente, el usuario pidió reemplazar el editor de "programa" (título +
+descripción + lista de temas) por dos piezas más concretas: un **cronograma** de
+sesiones con su propia recurrencia, y una **evaluación real** (examen calificado, no un
+registro manual) que bloquea el despacho si el piloto no cumple. Se confirmaron 3
+decisiones con el usuario (`AskUserQuestion`) — las 3 con la opción de mayor alcance:
+examen real dentro de la app (banco de preguntas, no solo registrar una nota externa),
+bloqueo tanto por reprobar como por vencer el plazo, y alerta por campana **y** correo.
+
+- **`training_programs` queda sin usarse en la UI** (no se eliminó la tabla/migración
+  para no ser destructivo, pero `TrainingClient.js` ya no la lee ni la escribe) —
+  reemplazada por el cronograma.
+- **`training_sessions`** (migración `20260708_training_schedule_exam.sql`): cronograma
+  real — `topic`, `recurrence` (`semanal`/`quincenal`/`mensual`/`personalizado` +
+  `recurrence_days` si es personalizado), `start_date`. CRUD directo desde el cliente,
+  mismo patrón que `equipment_stock`. "Próxima sesión" en la tabla se calcula con
+  `lib/trainingCompliance.js` (ver abajo) — informativo, no dispara nada por sí solo.
+- **`training_exams`** (una fila por `(organization_id, type)`, `UNIQUE`): recurrencia
+  propia (mismo vocabulario que las sesiones), `passing_score` (nota mínima %) y
+  `max_attempts` (intentos por ciclo) — los 2 controles que pidió el usuario
+  explícitamente ("la calificación necesaria para pasar y los intentos para realizar").
+- **`training_exam_questions`**: banco de opción múltiple (`options jsonb` + `correct_index`).
+  RLS deliberadamente restringida a managers incluso para `SELECT` — un piloto nunca debe
+  poder leer `correct_index` vía Supabase directo; la ruta de examen (`/api/training/exam`)
+  usa `createAdminClient()` server-side y **nunca envía `correct_index` al cliente**
+  mientras el piloto responde (solo se usa para calificar en el `POST`, server-side).
+- **`training_exam_attempts`**: intento calificado — `cycle_start` (inicio del ciclo de
+  recurrencia en que se presentó, ver `trainingCompliance.js`), `attempt_number` (dentro de
+  ese ciclo), `answers`, `score`, `passed`. RLS: managers ven todo; un piloto solo sus
+  propios intentos (resuelto por `profile_id`/`owner_id`/`email` contra `pilots`, mismo
+  criterio de "mi piloto" que ya usa `logbook/new/page.js`).
+- **`lib/trainingCompliance.js`** (nuevo, compartido cliente+servidor): los ciclos son
+  **ventanas de N días desde `start_date`** (semanal=7, quincenal=15, mensual=30,
+  personalizado=`recurrence_days`) — **no meses calendario**, para evitar los casos borde
+  de longitud de mes variable; es una aproximación deliberada y documentada, mismo
+  espíritu que otras fechas "estimadas" ya existentes en el proyecto (ej. próximo
+  mantenimiento). `computeCompliance(exam, attempts)` devuelve un estado:
+  `ok` (aprobó el ciclo vigente) / `pending` (aún dentro de plazo, con intentos
+  disponibles) / `failed` (agotó los intentos sin aprobar) / `overdue` (venció el plazo
+  sin aprobar) / `not_configured` (no hay examen — nunca bloquea). `compliant` es
+  `true` para `ok`/`pending`/`not_configured`, `false` para `failed`/`overdue`.
+- **Examen del piloto** (`/api/training/exam` GET/POST + `/dashboard/training/exam`):
+  el GET resuelve el piloto del usuario (mismo `.or(email/owner_id/profile_id)` de
+  siempre), calcula cumplimiento, y solo entrega las preguntas si le quedan intentos en
+  el ciclo. El POST recalcula elegibilidad **server-side** (no confía en que el cliente
+  no reintente tras agotar intentos), califica comparando contra `correct_index`, inserta
+  el intento y, además, **inserta automáticamente en `training_evaluations`**
+  (`evaluator_name: 'Examen interno (automático)'`) — así el expediente de Tripulante
+  (UI + PDF) y el reporte de Reportes, ya construidos el día anterior, siguen funcionando
+  sin ningún cambio.
+- **Bloqueo real de despacho** (`logbook/new/page.js`): al cargar el wizard se resuelve
+  el examen `operaciones` de la org (si existe) y los intentos del piloto que despacha,
+  y se calcula su cumplimiento. Si no es `compliant`, el wizard completo se reemplaza por
+  una pantalla de bloqueo con enlace directo a presentar el examen — aplica igual al
+  flujo con orden de vuelo y al piloto independiente (es sobre el piloto específico, no
+  sobre el tipo de flujo). El examen `mantenimiento` **no bloquea vuelos** — no tendría
+  sentido operacional, solo aplica su propio cumplimiento informativo en la pestaña.
+- **Alertas por campana + correo** (`GET /api/cron/training-exam-reminder`, cron diario,
+  `vercel.json`): para cada piloto de cada examen configurado, si está vencido, reprobado,
+  o próximo a vencer (≤3 días), notifica por campana (nuevo tipo `training_exam_due`,
+  agregado al CHECK de `notifications.type` y a `NOTIFICATION_TYPES` en `lib/notify.js`
+  — mismo gotcha ya documentado de mantener ambos lados sincronizados) **y** por correo
+  (Resend, `emailHeader()`/`emailFooter()` de `emailHelpers.js`). Deduplicado 3 días
+  consultando `notifications.metadata` (`exam_id`+`pilot_id`) para no reenviar a diario.
+  Sin `profile_id` en `pilots` (tripulante sin cuenta en la plataforma) se omite la
+  campana pero se intenta igual el correo si hay `pilots.email`.
+
 ---
 
 ## Notificaciones (campana)

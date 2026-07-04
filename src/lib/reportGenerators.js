@@ -113,10 +113,10 @@ export const generateMasterReport = (data, config) => {
     doc.save(`${formCode || 'F-OPS-002'}_LIBRO_VUELO_${orgName}.pdf`);
 };
 
-// --- 2. GENERADOR: REGISTRO OPERACIONAL DE BATERÍAS ---
+// --- 2. GENERADOR: REGISTRO OPERACIONAL DE BATERÍAS (snapshot por batería) ---
 export const generateBatteryReport = (data, config) => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const { orgName, logo, version, reportDate, formCode, rangeLabel, downloadedAt } = config;
+    const { orgName, logo, version, reportDate, formCode, cutoffDate, rangeLabel, downloadedAt } = config;
 
     doc.setDrawColor(0);
     doc.setLineWidth(0.4);
@@ -131,7 +131,9 @@ export const generateBatteryReport = (data, config) => {
     doc.setFontSize(11);
     doc.text(orgName ? orgName.toUpperCase() : "BITAFLY UAS", 145, 18, { align: 'center' });
     doc.setFontSize(14);
-    doc.text("REGISTRO OPERACIONAL DE BATERÍAS", 145, 30, { align: 'center' });
+    doc.text("REGISTRO OPERACIONAL DE BATERÍAS", 145, 27, { align: 'center' });
+    doc.setFontSize(8);
+    doc.text(`CORTE AL: ${cutoffDate || reportDate || '---'}`, 145, 33, { align: 'center' });
 
     doc.setFontSize(7);
     doc.line(225, 18, 287, 18);
@@ -142,10 +144,14 @@ export const generateBatteryReport = (data, config) => {
 
     autoTable(doc, {
         startY: 40,
-        head: [['S/N BATERÍA', 'MARCA', 'DRON USADO', 'CICLOS ACUM.', 'VUELO ID', 'UBICACIÓN', 'CONDICIÓN']],
-        body: (data || []).map(f => [
-            f.battery?.serial_number || 'N/A', f.battery?.brand || 'N/A', f.aircraft?.model || 'N/A',
-            f.battery?.cycles || '0', f.mission_id || 'N/A', f.location || 'N/A', f.visual_condition || 'VMC'
+        head: [['S/N BATERÍA', 'MARCA', 'CICLOS TOTALES (CORTE)', 'ÚLTIMA AERONAVE USADA', 'SALUD', 'ESTADO']],
+        body: (data || []).map(b => [
+            b.serial_number || 'N/A',
+            b.brand || 'N/A',
+            b.cycles_as_of ?? 0,
+            b.last_aircraft || 'Sin uso registrado',
+            b.health_status != null ? `${b.health_status}%` : 'N/A',
+            b.status || 'Operativo',
         ]),
         styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1 },
         headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', lineWidth: 0.2 },

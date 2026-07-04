@@ -415,6 +415,55 @@ no "formatos" con letterhead).
   dejar el checklist vacío sigue trayendo toda la flota (comportamiento previo intacto). El
   PDF muestra "AERONAVE(S): ..." o "TODAS LAS AERONAVES" bajo el título, mismo patrón que ya
   usaba Mantenimiento para su selector de una sola aeronave.
+- **Bug real corregido — "Todas" en Libro de Vuelo solo traía una aeronave**: al marcar
+  todos los checks (equivalente a "Todas"), el código igual mandaba el filtro `aircraftIds`
+  con la lista completa — `.in('aircraft_id', ids)` en SQL excluye cualquier vuelo cuyo
+  `aircraft_id` no calce exactamente con esa lista (NULL, aeronave dada de baja/eliminada,
+  etc.), aunque la intención de "Todas" era no filtrar nada. Corregido: una selección
+  "todas" o "ninguna" (`selectedAircraftIds.length === 0 || === aircraftList.length`) ya no
+  envía el filtro — solo se aplica en una selección parcial real de aeronaves específicas.
+- **Bug real corregido — logo estirado/deformado**: se dibujaba forzado al ancho/alto fijo
+  de la caja del encabezado (`doc.addImage(..., w, h)` sin relación de aspecto).
+  `fetchLogoDataUrl()` (`lib/docUrl.js`) ahora también captura `width`/`height` naturales del
+  archivo (vía `Image().naturalWidth/Height`), y `addLogo()` calcula un ajuste tipo
+  "contain" centrado dentro de la misma caja — mismo helper, los 6 generadores se
+  benefician sin cambios adicionales.
+
+### Registro de Baterías rediseñado — snapshot por batería (2026-07-04)
+
+El formato "Registro de Baterías" era una fila por vuelo/misión (S/N batería + dron usado +
+ciclos acumulados en vivo + vuelo/ubicación/condición de ESE vuelo) — el usuario pidió que
+fuera, en cambio, una fila por batería con columnas de inventario: **S/N, Marca, Ciclos
+totales (hasta la fecha seleccionada), Última aeronave usada, Salud, Estado** — el mismo
+resumen que ya muestra `/dashboard/batteries`, ahora también descargable en PDF.
+
+- **`GET /api/reports/batteries`** reescrito: antes consultaba `flights` (una fila por
+  vuelo); ahora consulta `batteries` (una fila por batería) + `battery_logs` para derivar
+  dos columnas reales con fecha de corte:
+  - **Ciclos totales "hasta la fecha"**: si el corte es hoy o futuro, se usa
+    `batteries.cycles` (contador vigente, exacto — igual a lo que muestra la página de
+    Baterías). Si el corte es una fecha **pasada** real, se reconstruye como
+    `MAX(battery_logs.cycle_number)` con `created_at <= corte` — dato real y fechado, no
+    inventado. Sin registros previos a esa fecha se reporta `0` (sin uso conocido hasta ese
+    corte), nunca se rellena con el valor vigente para no fingir precisión histórica que no
+    existe.
+  - **Última aeronave usada (hasta la fecha)**: el log más reciente de `battery_logs` con
+    `created_at <= corte` para ese `battery_sn`, mismo criterio que ya usa
+    `dashboard/batteries/page.js` para su columna "Última aeronave" (en sentido inverso).
+  - **Salud y Estado**: siempre el valor **vigente** de `batteries.health_status`/`status` —
+    no existe una tabla de historial de salud/estado por fecha en el esquema (son campos
+    editables directamente, no eventos), así que fecharlos retroactivamente sería fabricar
+    un dato que no se puede reconstruir con lo real disponible; se documenta esta limitación
+    en vez de aparentar precisión histórica.
+- **UI**: el formato pasa de un selector de periodo (Este mes/trimestre/año/Personalizado,
+  que no aplicaba bien a un inventario snapshot) a un único campo **"Fecha de corte"**
+  (`needsCutoffDate`, default hoy, máximo hoy) — coherente con que "ciclos hasta la fecha
+  seleccionada" es un corte puntual, no un rango. La nota de trazabilidad del pie muestra
+  "Periodo de la información: Corte al {fecha}".
+- **PDF** (`generateBatteryReport`): título gana una segunda línea "CORTE AL: {fecha}" (mismo
+  patrón que el "AERONAVE(S): ..." de Libro de Vuelo/Mantenimiento) y la tabla cambia a las
+  6 columnas pedidas (`S/N BATERÍA / MARCA / CICLOS TOTALES (CORTE) / ÚLTIMA AERONAVE USADA /
+  SALUD / ESTADO`).
 
 ### Seguridad SMS — hub con tabs en vivo (2026-07-02j, revisado 2026-07-02k)
 

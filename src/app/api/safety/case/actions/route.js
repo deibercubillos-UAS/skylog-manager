@@ -6,6 +6,29 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+// GET /api/safety/case/actions — todas las acciones correctivas de casos
+// SMS/VOR/MOR de la org (para el tablero consolidado de Acciones
+// Correctivas, Fase 5 — ver docs/plan-mejora-sms-bitafly.md)
+export async function GET() {
+    try {
+        const supabase = await createClientSSR();
+        const { user, orgId } = await getOrgContext(supabase);
+        if (!user)  return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+        if (!orgId) return NextResponse.json({ error: 'Sin organización asignada' }, { status: 403 });
+
+        const { data, error } = await supabase
+            .from('sms_case_actions')
+            .select('*, sms_report:sms_report_id(narrative), vor_mor:vor_mor_id(description, type)')
+            .eq('organization_id', orgId)
+            .order('due_date', { ascending: true, nullsFirst: false });
+
+        if (error) throw error;
+        return NextResponse.json(data || []);
+    } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}
+
 // POST /api/safety/case/actions — agrega una acción correctiva al caso
 export async function POST(request) {
     try {

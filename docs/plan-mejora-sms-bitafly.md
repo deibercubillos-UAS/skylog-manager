@@ -220,16 +220,29 @@ hallazgos.
   % de cumplimiento (Sí) y comparativo automático (tendencia en puntos
   porcentuales vs. la evaluación anterior).
 
-### Fase 5 — Acciones Correctivas (tablero consolidado)
-Vista de solo-agregación sobre 3 fuentes — **sin tabla unificada nueva, sin
-duplicar lógica de edición**:
+### Fase 5 — Acciones Correctivas (tablero consolidado) ✅ Completada
+Vista de solo-agregación (`useMemo` en `dashboard/safety/page.js`) sobre 3
+fuentes — **sin tabla unificada nueva, sin duplicar lógica de edición**:
 
-- `sms_case_actions` (ya existe — casos VOR/MOR/SMS).
-- Planes de acción de indicadores SPI (Fase 3).
-- Hallazgos de Mejora Continua (Fase 4).
+- `sms_case_actions` (ya existía, escritura solo desde el caso — se agregó
+  `GET /api/safety/case/actions`, primer endpoint de lectura de esta tabla,
+  con `sms_report`/`vor_mor` anidados para mostrar contexto y clasificación).
+- Planes de acción de indicadores SPI (`ind.actions`, ya cargados en el
+  estado de la Fase 3 — sin fetch nuevo). Plazo mostrado: **estimado**
+  (`created_at + execution_days`), no una fecha real capturada — documentado
+  como estimación, igual que "próxima fecha estimada" de mantenimiento.
+  Sin campo "responsable" (no existe en `safety_indicator_actions`, el Excel
+  oficial tampoco lo tiene para planes de acción SPI — se muestra "—", no se
+  fabrica).
+- Hallazgos "No" de Mejora Continua (`assess.responses`, ya cargados en el
+  estado de la Fase 4 — sin fetch nuevo), con `responsible`/`evidence_date`/`status`
+  reales capturados en el panel GAP.
 
-Filtros por fuente/estado/responsable/vencimiento. Clic en una acción lleva a
-su pantalla de origen para editar.
+Filtros por fuente (Todas/Casos/SPI/GAP) y estado (Abiertas/Completadas/Todas),
+KPIs (total, abiertas, vencidas, cuántas de las 3 fuentes tienen datos). Clic
+en una fila lleva a su pantalla de origen: navega a `/dashboard/safety/case/[id]`
+para casos, o cambia de tab y abre el panel de detalle (`IndicatorDetailPanel`/
+`GapAssessmentPanel`) para SPI/GAP — sin abrir un editor propio en este tab.
 
 ### Fase 6 — Reportes de Seguridad Operacional (cumplimiento de plazos)
 Para MOR (plazo regulatorio, 5 días hábiles) y VOR (plazo interno sugerido,
@@ -272,7 +285,7 @@ build.
 | 2 — Evaluación y Gestión de Riesgos | ✅ Completada |
 | 3 — Indicadores (SPI) | ✅ Núcleo completado (falta 3b: reporte Excel) |
 | 4 — Mejora Continua (GAP simple) | ✅ Completada |
-| 5 — Acciones Correctivas (consolidado) | Pendiente |
+| 5 — Acciones Correctivas (consolidado) | ✅ Completada |
 | 6 — Reportes de Seg. Operacional (plazos) | Pendiente |
 | 7 — Plan de Capacitación del SMS | Pendiente |
 | 8 — Reportes transversales + QA | Pendiente |

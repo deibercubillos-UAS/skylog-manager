@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { fmtDateMed } from '@/lib/formatters';
@@ -34,7 +34,7 @@ const TABS = [
   { id: 'riesgos',  label: 'Evaluación de Riesgos',   icon: 'grid_view' },
   { id: 'indicadores', label: 'Indicadores (SPI)',    icon: 'monitoring' },
   { id: 'mejora',   label: 'Mejora Continua',         icon: 'trending_up' },
-  // ← Fase 5: Acciones Correctivas
+  { id: 'acciones', label: 'Acciones Correctivas',    icon: 'checklist' },
   { id: 'reportes', label: 'Reportes SMS',            icon: 'health_and_safety' },
   // ← Fase 6: Reportes de Seguridad Operacional (plazos MOR/VOR)
   { id: 'barreras', label: 'Barreras de Seguridad',   icon: 'shield' },
@@ -65,6 +65,16 @@ const HAZARD_SOURCE = {
   gap:    { label: 'GAP',    cls: 'bg-indigo-50 text-indigo-600 border-indigo-200' },
   spi:    { label: 'SPI',    cls: 'bg-purple-50 text-purple-600 border-purple-200' },
   vormor: { label: 'VOR/MOR', cls: 'bg-orange-50 text-orange-600 border-orange-200' },
+};
+const ACTION_STATUS = {
+  pendiente:    { label: 'Pendiente',    cls: 'bg-amber-50 text-amber-600 border-amber-200' },
+  en_progreso:  { label: 'En progreso',  cls: 'bg-indigo-50 text-indigo-600 border-indigo-200' },
+  completado:   { label: 'Completado',   cls: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+};
+const ACTION_SOURCE_CLS = {
+  case: 'bg-orange-50 text-orange-600',
+  spi:  'bg-purple-50 text-purple-600',
+  gap:  'bg-indigo-50 text-indigo-600',
 };
 const HAZARD_STATUS = {
   abierto:  { label: 'Abierto',  cls: 'bg-amber-50 text-amber-600 border-amber-200' },
@@ -109,6 +119,7 @@ function TableShell({ title, empty, children }) {
 }
 
 export default function SafetyPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = TABS.some(t => t.id === searchParams.get('tab')) ? searchParams.get('tab') : 'sora';
 
@@ -133,11 +144,14 @@ export default function SafetyPage() {
   const [gapAssessments, setGapAssessments] = useState([]);
   const [gapPanel, setGapPanel] = useState(null); // null | assessment object
   const [creatingGap, setCreatingGap] = useState(false);
+  const [caseActions, setCaseActions] = useState([]);
+  const [actionSourceFilter, setActionSourceFilter] = useState('todas');
+  const [actionStatusFilter, setActionStatusFilter] = useState('abiertas');
 
   const spiReportYear = new Date().getFullYear() - 1; // año que corresponde reportar (vencido)
 
   const loadAll = useCallback(async (organizationId) => {
-    const [soraRes, barriersRes, smsRes, vorMorRes, riskConfigRes, hazardsRes, indicatorsRes, spiSubmissionRes, gapQuestionsRes, gapAssessmentsRes] = await Promise.all([
+    const [soraRes, barriersRes, smsRes, vorMorRes, riskConfigRes, hazardsRes, indicatorsRes, spiSubmissionRes, gapQuestionsRes, gapAssessmentsRes, caseActionsRes] = await Promise.all([
       fetch('/api/sora/assessments').then(r => r.json()).catch(() => []),
       fetch('/api/safety/barriers').then(r => r.json()).catch(() => []),
       supabase.from('sms_reports')
@@ -150,6 +164,7 @@ export default function SafetyPage() {
       fetch(`/api/safety/indicators/submission?year=${new Date().getFullYear() - 1}`).then(r => r.json()).catch(() => null),
       fetch('/api/safety/gap/questions').then(r => r.json()).catch(() => []),
       fetch('/api/safety/gap/assessments').then(r => r.json()).catch(() => []),
+      fetch('/api/safety/case/actions').then(r => r.json()).catch(() => []),
     ]);
     setSora(Array.isArray(soraRes) ? soraRes : []);
     setBarreras(Array.isArray(barriersRes) ? barriersRes : []);
@@ -161,6 +176,7 @@ export default function SafetyPage() {
     setSpiSubmission(spiSubmissionRes?.year ? spiSubmissionRes : null);
     setGapQuestions(Array.isArray(gapQuestionsRes) ? gapQuestionsRes : []);
     setGapAssessments(Array.isArray(gapAssessmentsRes) ? gapAssessmentsRes : []);
+    setCaseActions(Array.isArray(caseActionsRes) ? caseActionsRes : []);
   }, []);
 
   useEffect(() => {
@@ -374,6 +390,95 @@ export default function SafetyPage() {
       { key: 'latest',  label: 'Cumplimiento último', value: latestPct !== null ? `${latestPct}%` : '—', icon: 'insights', iconColor: '#4f46e5' },
       { key: 'delta',   label: 'Tendencia vs. anterior', value: delta !== null ? `${delta >= 0 ? '+' : ''}${delta} pts` : '—', icon: delta > 0 ? 'trending_up' : 'trending_down', iconColor: delta === null ? '#94a3b8' : delta >= 0 ? '#16a34a' : '#dc2626' },
       { key: 'open',    label: 'Hallazgos abiertos', value: openFindings, icon: 'flag', iconColor: openFindings > 0 ? '#d97706' : '#94a3b8' },
+    ];
+  })() : null;
+
+  // ── Tablero consolidado de Acciones Correctivas: agregación de solo-lectura
+  // sobre 3 fuentes ya existentes (casos SMS/VOR/MOR, planes de acción SPI,
+  // hallazgos GAP) — sin tabla unificada nueva, la edición ocurre en el
+  // origen (ver docs/plan-mejora-sms-bitafly.md, Fase 5).
+  const questionById = useMemo(() => {
+    const map = {};
+    gapQuestions.forEach(q => { map[q.id] = q; });
+    return map;
+  }, [gapQuestions]);
+
+  const correctiveActions = useMemo(() => {
+    const rows = [];
+
+    caseActions.forEach(a => {
+      const isSms = !!a.sms_report_id;
+      rows.push({
+        id: `case-${a.id}`,
+        source: 'case',
+        sourceLabel: isSms ? 'SMS' : (a.vor_mor?.type || 'VOR/MOR'),
+        title: a.label,
+        context: a.sms_report?.narrative || a.vor_mor?.description || '',
+        responsible: a.owner,
+        due_date: a.due_date,
+        status: a.done ? 'completado' : 'pendiente',
+        onClick: () => router.push(`/dashboard/safety/case/${isSms ? a.sms_report_id : a.vor_mor_id}?source=${isSms ? 'sms' : 'vormor'}`),
+      });
+    });
+
+    indicators.forEach(ind => {
+      (ind.actions || []).forEach(act => {
+        let estDue = null;
+        if (act.execution_days) {
+          const base = new Date(act.created_at);
+          base.setDate(base.getDate() + Number(act.execution_days));
+          estDue = base.toISOString().split('T')[0];
+        }
+        rows.push({
+          id: `spi-${act.id}`,
+          source: 'spi',
+          sourceLabel: 'SPI',
+          title: act.action_plan,
+          context: ind.name,
+          responsible: null,
+          due_date: estDue,
+          status: act.status,
+          onClick: () => { setTab('indicadores'); setIndicatorPanel(ind); },
+        });
+      });
+    });
+
+    gapAssessments.forEach(assess => {
+      (assess.responses || []).filter(r => r.response === 'no').forEach(r => {
+        const q = questionById[r.question_id];
+        rows.push({
+          id: `gap-${r.id}`,
+          source: 'gap',
+          sourceLabel: 'GAP',
+          title: q?.question_text || 'Hallazgo GAP',
+          context: assess.title || `Autoevaluación ${fmtDateMed(assess.assessment_date)}`,
+          responsible: r.responsible,
+          due_date: r.evidence_date,
+          status: r.status,
+          onClick: () => { setTab('mejora'); setGapPanel(assess); },
+        });
+      });
+    });
+
+    return rows;
+  }, [caseActions, indicators, gapAssessments, questionById, router]);
+
+  const filteredActions = correctiveActions.filter(a => {
+    if (actionSourceFilter !== 'todas' && a.source !== actionSourceFilter) return false;
+    if (actionStatusFilter === 'abiertas' && a.status === 'completado') return false;
+    if (actionStatusFilter === 'completadas' && a.status !== 'completado') return false;
+    return true;
+  });
+
+  const todayISO = new Date().toISOString().split('T')[0];
+  const actionsStats = correctiveActions.length > 0 ? (() => {
+    const open = correctiveActions.filter(a => a.status !== 'completado');
+    const overdue = open.filter(a => a.due_date && a.due_date < todayISO);
+    return [
+      { key: 'total',    label: 'Acciones totales', value: correctiveActions.length, icon: 'checklist', iconColor: '#ec5b13' },
+      { key: 'open',     label: 'Abiertas',         value: open.length, icon: 'pending_actions', iconColor: open.length > 0 ? '#d97706' : '#94a3b8' },
+      { key: 'overdue',  label: 'Vencidas',         value: overdue.length, icon: 'schedule', iconColor: overdue.length > 0 ? '#dc2626' : '#94a3b8' },
+      { key: 'sources',  label: 'Fuentes',          value: `${[...new Set(correctiveActions.map(a => a.source))].length}/3`, icon: 'hub', iconColor: '#4f46e5' },
     ];
   })() : null;
 
@@ -640,6 +745,64 @@ export default function SafetyPage() {
                           <td className="px-4 py-3.5 text-right">
                             <span className="material-symbols-outlined text-base text-slate-300">chevron_right</span>
                           </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </TableShell>
+            </div>
+          )}
+
+          {/* ── Acciones Correctivas (consolidado, solo-lectura) ── */}
+          {tab === 'acciones' && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              {actionsStats && <KPIStrip variant="strip" items={actionsStats} />}
+              <div className="flex flex-wrap items-center gap-2">
+                {[['todas', 'Todas'], ['case', 'Casos SMS/VOR/MOR'], ['spi', 'Indicadores SPI'], ['gap', 'Mejora Continua']].map(([val, label]) => (
+                  <button key={val} type="button" onClick={() => setActionSourceFilter(val)}
+                    className={`text-xs font-bold px-3.5 py-2 rounded-full transition-all ${
+                      actionSourceFilter === val ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}>
+                    {label}
+                  </button>
+                ))}
+                <span className="w-px h-5 bg-slate-200 mx-1" />
+                {[['abiertas', 'Abiertas'], ['completadas', 'Completadas'], ['todos', 'Todos los estados']].map(([val, label]) => (
+                  <button key={val} type="button" onClick={() => setActionStatusFilter(val)}
+                    className={`text-xs font-bold px-3.5 py-2 rounded-full transition-all ${
+                      actionStatusFilter === val ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <TableShell title="Acciones correctivas de todas las fuentes — clic en una fila abre su pantalla de origen para editar"
+                empty={filteredActions.length === 0 ? 'Sin acciones correctivas con estos filtros' : null}>
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                      <th className="px-5 py-3">Acción</th><th className="px-4 py-3">Fuente</th>
+                      <th className="px-4 py-3">Responsable</th><th className="px-4 py-3">Plazo</th><th className="px-4 py-3">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm">
+                    {filteredActions.map(a => {
+                      const overdue = a.due_date && a.due_date < todayISO && a.status !== 'completado';
+                      return (
+                        <tr key={a.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={a.onClick}>
+                          <td className="px-5 py-3.5 max-w-sm">
+                            <p className="font-bold text-slate-800 truncate">{a.title}</p>
+                            {a.context && <p className="text-xs text-slate-400 truncate">{a.context}</p>}
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <span className={`px-2.5 py-1 rounded-full text-[10.5px] font-black uppercase ${ACTION_SOURCE_CLS[a.source]}`}>{a.sourceLabel}</span>
+                          </td>
+                          <td className="px-4 py-3.5 text-slate-500 font-medium">{a.responsible || '—'}</td>
+                          <td className={`px-4 py-3.5 font-medium whitespace-nowrap ${overdue ? 'text-red-600 font-black' : 'text-slate-500'}`}>
+                            {a.due_date ? fmtDateMed(a.due_date) : '—'}
+                          </td>
+                          <td className="px-4 py-3.5"><Pill map={ACTION_STATUS} value={a.status} /></td>
                         </tr>
                       );
                     })}

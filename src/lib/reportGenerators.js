@@ -19,12 +19,24 @@ const docLink = (stored) => {
 // Devuelve doc.lastAutoTable.finalY de forma segura (evita crash con datos vacíos o tabla no renderizada)
 const safeAutoTableY = (doc, fallback = 40) => doc.lastAutoTable?.finalY ?? fallback;
 
-// Inserta el logo ya resuelto — `logo` es { dataUrl, format } (ver fetchLogoDataUrl
-// en lib/docUrl.js), NUNCA la URL/path crudo: jsPDF.addImage() no puede
-// descargar una URL remota, necesita los bytes ya cargados como base64.
+// Inserta el logo ya resuelto — `logo` es { dataUrl, format, width, height } (ver
+// fetchLogoDataUrl en lib/docUrl.js), NUNCA la URL/path crudo: jsPDF.addImage() no
+// puede descargar una URL remota, necesita los bytes ya cargados como base64.
+// Ajusta el logo dentro de la caja (x,y,w,h) preservando su relación de aspecto
+// ("contain", centrado) — pasarle w/h directo a addImage lo estira y deforma.
 const addLogo = (doc, logo, x, y, w, h) => {
     if (!logo?.dataUrl) return;
-    try { doc.addImage(logo.dataUrl, logo.format || 'PNG', x, y, w, h); } catch (e) { /* logo inválido — se omite sin romper el PDF */ }
+    try {
+        let drawW = w, drawH = h, drawX = x, drawY = y;
+        if (logo.width && logo.height) {
+            const scale = Math.min(w / logo.width, h / logo.height);
+            drawW = logo.width * scale;
+            drawH = logo.height * scale;
+            drawX = x + (w - drawW) / 2;
+            drawY = y + (h - drawH) / 2;
+        }
+        doc.addImage(logo.dataUrl, logo.format || 'PNG', drawX, drawY, drawW, drawH);
+    } catch (e) { /* logo inválido — se omite sin romper el PDF */ }
 };
 
 // Nota de trazabilidad exigida en todos los formatos: lapso de la información

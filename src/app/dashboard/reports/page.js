@@ -221,7 +221,12 @@ export default function ReportsPage() {
             };
 
             if (def.key === 'master') {
-                const q = selectedAircraftIds.length ? `&aircraftIds=${selectedAircraftIds.join(',')}` : '';
+                // "Todas" (todos los checks marcados) equivale a no filtrar — enviar el
+                // filtro igual excluiría vuelos cuyo aircraft_id no calce exactamente con
+                // la lista actual (aeronave dada de baja/eliminada, vuelo sin aeronave
+                // enlazada, etc.). Solo se filtra en una selección parcial real.
+                const isPartialSelection = selectedAircraftIds.length > 0 && selectedAircraftIds.length < aircraftList.length;
+                const q = isPartialSelection ? `&aircraftIds=${selectedAircraftIds.join(',')}` : '';
                 const res = await fetch(`/api/reports/master?from=${from}&to=${to}${q}`);
                 generators.generateMasterReport(await res.json(), { ...common, aircraftLabel: selectedAircraftMultiLabel });
             }

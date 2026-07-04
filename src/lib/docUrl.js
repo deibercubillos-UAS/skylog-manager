@@ -41,7 +41,15 @@ export async function fetchLogoDataUrl(stored) {
     const format = blob.type.includes('png')
       ? 'PNG'
       : (blob.type.includes('jpeg') || blob.type.includes('jpg')) ? 'JPEG' : 'PNG';
-    return { dataUrl, format };
+    // Dimensiones naturales del archivo — necesarias para dibujarlo en el PDF
+    // sin deformar (jsPDF.addImage estira a los w/h exactos que se le pasen).
+    const { width, height } = await new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = () => resolve({ width: 0, height: 0 });
+      img.src = dataUrl;
+    });
+    return { dataUrl, format, width, height };
   } catch {
     return null;
   }

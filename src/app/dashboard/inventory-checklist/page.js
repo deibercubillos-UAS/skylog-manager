@@ -8,7 +8,7 @@ export default async function InventoryChecklistPage() {
     const { data: { user } } = await supabase.auth.getUser();
     const { data: profile } = await supabase.from('profiles').select('organization_id, role').eq('id', user?.id).single();
 
-    const [{ data: org }, { data: defs }] = await Promise.all([
+    const [{ data: org }, { data: defs }, { data: stock }] = await Promise.all([
         supabase.from('organizations').select('enable_inventory_checklist').eq('id', profile?.organization_id).single(),
         supabase.from('form_definitions')
             .select('*')
@@ -16,6 +16,10 @@ export default async function InventoryChecklistPage() {
             .eq('form_type', 'inventory')
             .eq('aircraft_model', 'General')
             .order('field_number', { ascending: true }),
+        supabase.from('equipment_stock')
+            .select('*')
+            .eq('organization_id', profile?.organization_id)
+            .order('name', { ascending: true }),
     ]);
 
     const initialLabels = {};
@@ -26,6 +30,7 @@ export default async function InventoryChecklistPage() {
         role: profile?.role,
         enabled: org?.enable_inventory_checklist ?? false,
         initialLabels,
+        initialStock: stock || [],
     };
 
     return <InventoryChecklistClient initialData={initialData} />;

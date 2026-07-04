@@ -101,7 +101,7 @@ Tablas principales:
 - `flight_plans` — planeaciones guardadas. `status` 'active'/'archived' (soft-delete). RLS por org.
 - `flight_authorizations` — misiones programadas. `plan_data jsonb` guarda la planeación (op_name, geo_type, points, radius, altitude, takeoff_time, notes) para regenerar KMZ/PDF en Programación Activa.
 - `sms_reports` — `severity` (incidente/incidente_grave/accidente), `status` ('abierto' default desde 2026-07-03, antes 'borrador'), `updated_at` (agregada 2026-07-03, con trigger `set_updated_at()` — necesaria para medir tiempo de cierre de casos) · `sora_assessments` · `daily_health_checks` · `pilot_endorsements`
-- `form_definitions` (campos de formulario por aeronave — los checklists se generan combinando esto con `lib/checklistDefaults.js`) · `inventory_items` · `mission_inventory_logs` · `mission_types` · `colombia_geo` (sin coordenadas — solo Código/Nombre Departamento/Municipio)
+- `form_definitions` (campos de formulario por aeronave — los checklists se generan combinando esto con `lib/checklistDefaults.js`) · `inventory_items` (catálogo Tech/Payloads de Flota, una fila por unidad física con serial) · `equipment_stock` (existencias de equipo por tipo, una fila por nombre con `quantity` agregada — ver **Inventario de Operación**, no confundir con `inventory_items`) · `mission_inventory_logs` · `mission_types` · `colombia_geo` (sin coordenadas — solo Código/Nombre Departamento/Municipio)
 - `vor_mor_definitions` · `vor_mor_submissions` (reportes VOR/MOR) — `severity` y `aerocivil_notified_at` agregadas 2026-07-03 (ver **Seguimiento de casos SMS/VOR/MOR**); `reported_severity` (autoevaluación del reportante, distinta de `severity`) y `related_barrier_id` FK → `safety_barriers` agregadas 2026-07-03 (ver **Editor de formato VOR/MOR rediseñado**) · `emergency_contacts` · `insurance_policies` · `leads`
 - `safety_barriers` — barreras de seguridad (mitigaciones/controles) reales, reemplaza la vista de solo lectura sobre `form_definitions`. `category` CHECK 4 valores, `hazard` (riesgo que mitiga, texto libre), `sora_assessment_id` FK opcional a `sora_assessments`, `responsible` (texto libre), `status` CHECK 3 valores. RLS: solo `admin`/`superadmin`/`gerente_sms` (mismo `canManageSMS`) leen/escriben.
 - `sms_case_actions` / `sms_case_events` — seguimiento de casos SMS/VOR/MOR (acciones correctivas + línea de tiempo). Cada fila referencia exactamente uno de `sms_report_id`/`vor_mor_id` (CHECK `num_nonnulls(...) = 1`). Ver **Seguimiento de casos SMS/VOR/MOR**.
@@ -811,10 +811,11 @@ resto del rediseño porque no encaja el patrón de "página", sino un flujo kios
 ### Inventario de Operación — nuevo checklist antes de Pre-vuelo (2026-07-05)
 
 Nueva pestaña de sidebar **"Inventario"** (`/dashboard/inventory-checklist`, grupo
-Cumplimiento): checklist de equipo/insumos (baterías cargadas, botiquín, extintor,
-chalecos, etc.) que se diligencia en el Despacho **antes del checklist de Pre-vuelo**,
-mismo patrón `form_definitions` + `results_<tipo>` que Salud/Pre-vuelo/Briefing (ver
-`lib/checklistDefaults.js`, nuevo `form_type: 'inventory'`).
+**Flota & Equipo** — movida ahí el mismo día, ver subsección siguiente): checklist de
+equipo/insumos (baterías cargadas, botiquín, extintor, chalecos, etc.) que se diligencia
+en el Despacho **antes del checklist de Pre-vuelo**, mismo patrón `form_definitions` +
+`results_<tipo>` que Salud/Pre-vuelo/Briefing (ver `lib/checklistDefaults.js`, nuevo
+`form_type: 'inventory'`).
 
 - **Por qué pestaña propia y no una tarjeta más en Protocolos**: el usuario pidió que el
   checklist lo puedan **crear/editar Gerente General + Gerente SMS + Jefe de Pilotos**, y lo
@@ -845,6 +846,48 @@ mismo patrón `form_definitions` + `results_<tipo>` que Salud/Pre-vuelo/Briefing
   que tocar esa lógica, solo agregar `inventory` a `stepNames`/`stepIcons` y a la lista de
   tablas `results_*` que se insertan en `handleFinalize`. Al igual que Briefing/Salud, el
   checklist de Inventario es `aircraft_model='General'` (no varía por modelo de aeronave).
+
+### Inventario — existencias de equipo + mudanza a Flota & Equipo + enlace desde Protocolos (2026-07-06)
+
+El mismo día de construida, el usuario pidió 3 ajustes sobre la pestaña de Inventario —
+confirmados con el usuario (`AskUserQuestion`, 2 preguntas) antes de tocar código, porque
+uno de los 3 ajustes ("que el checklist viva en Protocolos") contradecía directamente el
+motivo por el que se había puesto en su propia pestaña un día antes (permitir editar a
+Jefe de Pilotos, que Protocolos como página completa excluye).
+
+- **Control de cantidad de equipos — decisión confirmada**: no es un número por cada ítem
+  del checklist, sino un **catálogo de existencias aparte** (`equipment_stock`, migración
+  `20260706_equipment_stock.sql`, aplicada) — una fila por tipo de equipo
+  (`name`/`category`/`quantity`/`notes`), independiente del checklist de verificación. Es
+  intencionalmente distinto de `inventory_items` (catálogo de Tech/Payloads de Flota, con
+  identidad por serial — una fila por unidad física): aquí una fila representa un TIPO de
+  equipo con una cantidad agregada (ej. "Chalecos de identificación: 5"), no unidades
+  individuales serializadas. RLS mismo patrón que `company_manuals`: lectura para
+  cualquier miembro de la org (`private.user_org_id()`), escritura solo managers
+  (`private.user_is_manager()` = admin/superadmin/gerente_sms/jefe_pilotos — coincide
+  exactamente con `canManageInventoryChecklist`). CRUD directo desde el cliente vía
+  Supabase (sin API route nueva), mismo patrón que ya usa `FormSettingsClient.js` para
+  `form_definitions` y `dashboard/batteries/page.js` para `batteries`.
+- **`InventoryChecklistClient.js` ahora tiene dos secciones**: "Existencias de equipo"
+  (la tabla nueva, con formulario de alta y cantidad editable inline para managers, solo
+  lectura para el resto) arriba, y "Checklist de verificación" (lo que ya existía) debajo
+  — más una franja `KPIStrip` (Tipos de equipo / Unidades totales / Sin existencias / Ítems
+  del checklist) igual al patrón de Baterías/Mantenimiento.
+- **Mudanza de grupo en el sidebar**: de "Cumplimiento" a **"Flota & Equipo"** (después de
+  Mantenimiento, antes de Tripulación) — ahora que la página también es un catálogo de
+  equipo real, encaja mejor junto a Flota/Baterías/Mantenimiento que junto a
+  Auditoría/Reportes/Protocolos. Los permisos de acceso (`canViewInventoryChecklist`) no
+  cambiaron, solo la agrupación visual.
+- **Enlace desde Protocolos — decisión confirmada (resuelve la contradicción)**: el
+  usuario eligió la opción que preserva el permiso de Jefe de Pilotos: `FormSettingsClient.js`
+  gana una 5ª tarjeta en "Checklists operativos" para `type: 'inventory'`, pero a diferencia
+  de las otras 4 (que abren el editor interno de slots), esta es un `<Link>` de solo
+  navegación hacia `/dashboard/inventory-checklist` — la edición real sigue ahí, con su
+  propio permiso (`canManageInventoryChecklist`, incluye JP), sin ampliar el guard de
+  Protocolos (`canViewFinance`, sin JP) ni duplicar el formulario. La tarjeta muestra el
+  conteo real de ítems configurados (mismo `fieldCounts`, se agregó `'inventory'` al `.in()`
+  de tipos consultados) y su descripción es literalmente lo pedido: "Qué equipos se
+  requieren y qué se verifica en el inventario del día de la operación".
 
 ---
 

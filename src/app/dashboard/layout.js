@@ -284,6 +284,12 @@ const navLinks = [
   { name: 'Flota',          icon: 'precision_manufacturing', href: '/dashboard/fleet',           group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Baterías',       icon: 'battery_charging_full',   href: '/dashboard/batteries',       group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  // Inventario de Operación: existencias de equipo + checklist de verificación
+  // pre-misión. Vive aquí (no en Cumplimiento) porque ahora es también un
+  // catálogo de equipo real, igual que Flota/Baterías/Mantenimiento. La edición
+  // del checklist sigue en su propia página (gate propio, incluye jefe_pilotos) —
+  // Protocolos solo tiene una tarjeta/enlace hacia acá (ver FormSettingsClient.js).
+  { name: 'Inventario',     icon: 'inventory_2',             href: '/dashboard/inventory-checklist', group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Tripulación',    icon: 'group',                   href: '/dashboard/pilots',          group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
   // Nombre alineado con el título real de la página (PageHero "Seguridad SMS" desde el rediseño de hub con tabs).
   { name: 'Seguridad SMS',  icon: 'health_and_safety',       href: '/dashboard/safety',          group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms'],                    pilotHidden: true },
@@ -295,11 +301,6 @@ const navLinks = [
   { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
   { name: 'Reportes',       icon: 'assessment',              href: '/dashboard/reports',         group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
   { name: 'Protocolos',     icon: 'rule',                    href: '/dashboard/settings/forms',  group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms'] },
-  // Checklist de Inventario de Operación: se edita en su propia pestaña (no dentro de
-  // Protocolos) porque su permiso de edición incluye a jefe_pilotos, y Protocolos como
-  // página completa está gateada a canViewFinance (sin jefe_pilotos). Visible para todos
-  // los roles porque cualquiera que despache debe poder verlo/diligenciarlo.
-  { name: 'Inventario',     icon: 'inventory_2',             href: '/dashboard/inventory-checklist', group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   // Manuales de la empresa: ahora se accede desde dentro de Protocolos (Listas de Chequeo,
   // "Ver manuales") para superadmin/admin/gerente_sms — misma página que ya veían.
   // jefe_pilotos y piloto (org) no tienen Protocolos en su nav, así que conservan entrada directa.

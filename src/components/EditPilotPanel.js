@@ -14,13 +14,35 @@ const AEROCIVIL_ADDITIONS = [
     "INSTRUCTOR DE VUELO UAS EN NOCTURNAS", "INSTRUCTOR DE VUELO UAS EN BVLOS"
 ];
 
+const fmtDate = (d) => d ? new Date(d + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+const TRAINING_TYPE_LABEL = { operaciones: 'Operaciones', mantenimiento: 'Mantenimiento' };
+
 export default function EditPilotPanel({ pilot, onClose, onSuccess, canEditMedical = false }) {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ ...pilot, additions: pilot?.additions || [] });
 
+  // Evaluaciones de capacitación (solo lectura aquí — se registran en /dashboard/training)
+  const [trainingEvals, setTrainingEvals] = useState([]);
+  const [loadingEvals, setLoadingEvals] = useState(true);
+
   useEffect(() => {
     setForm({ ...pilot, additions: pilot?.additions || [] });
   }, [pilot]);
+
+  useEffect(() => {
+    if (!pilot?.id) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingEvals(true);
+      const { data } = await supabase
+        .from('training_evaluations')
+        .select('id, type, evaluation_date, result')
+        .eq('pilot_id', pilot.id)
+        .order('evaluation_date', { ascending: false });
+      if (!cancelled) { setTrainingEvals(data || []); setLoadingEvals(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [pilot?.id]);
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -197,6 +219,30 @@ export default function EditPilotPanel({ pilot, onClose, onSuccess, canEditMedic
             <p className="text-xs font-black text-red-600 uppercase tracking-widest border-b pb-2">05. Contacto de Emergencia</p>
             <input className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-sm" placeholder="Nombre Contacto" value={form.emergency_contact_name || ''} onChange={e => setForm({...form, emergency_contact_name: e.target.value})} />
             <input className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-sm" placeholder="Teléfono" value={form.emergency_contact_phone || ''} onChange={e => setForm({...form, emergency_contact_phone: e.target.value})} />
+          </div>
+
+          {/* 06. CAPACITACIÓN (solo lectura — se registra en /dashboard/training) */}
+          <div className="space-y-3">
+            <p className="text-xs font-black text-emerald-600 uppercase tracking-widest border-b pb-2">06. Capacitación</p>
+            {loadingEvals ? (
+              <p className="text-xs text-slate-300 font-bold italic">Cargando evaluaciones...</p>
+            ) : trainingEvals.length === 0 ? (
+              <p className="text-xs text-slate-400 font-bold italic">Sin evaluaciones de capacitación registradas.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {trainingEvals.map(ev => (
+                  <div key={ev.id} className="flex items-center justify-between gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-100">
+                    <div className="min-w-0">
+                      <p className="text-xs font-black text-slate-700 uppercase truncate">{TRAINING_TYPE_LABEL[ev.type] || ev.type}</p>
+                      <p className="text-[10px] text-slate-400 font-semibold">{fmtDate(ev.evaluation_date)}</p>
+                    </div>
+                    <span className={`shrink-0 text-[10px] font-black uppercase px-2 py-1 rounded-full ${ev.result === 'aprobado' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                      {ev.result === 'aprobado' ? 'Aprobado' : 'No aprobado'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
         </form>

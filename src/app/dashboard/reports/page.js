@@ -50,6 +50,11 @@ const REPORT_DEFS = [
         desc: 'Circular 2026351070026944 — envío mensual a gouas@aerocivil.gov.co, primeros 5 días del mes.',
         needsMonth: true, format: 'xlsx',
     },
+    {
+        key: 'training', code: 'F-CAP-008', name: 'Evaluación de Capacitación', icon: 'school',
+        desc: 'Evaluaciones internas de capacitación por tripulante — Operaciones o Mantenimiento, en el periodo.',
+        needsPeriod: true, needsTrainingType: true,
+    },
 ];
 
 // Mes anterior en formato YYYY-MM — el reporte AeroCivil siempre es del "mes vencido"
@@ -92,6 +97,7 @@ export default function ReportsPage() {
     const [aerocivilStatus, setAerocivilStatus] = useState(null);
     const [markingSent, setMarkingSent] = useState(false);
     const [cutoffDate, setCutoffDate] = useState(new Date().toISOString().split('T')[0]);
+    const [trainingType, setTrainingType] = useState('operaciones');
 
     // Versión y fecha del reporte se editan de forma individual por formato
     // (antes eran un único control compartido en la cabecera de la página).
@@ -199,6 +205,7 @@ export default function ReportsPage() {
         if (def.needsPilot && !selectedPilot) return toast.warn('Selecciona un tripulante.');
         if (def.needsMonth && !/^\d{4}-\d{2}$/.test(selectedMonth)) return toast.warn('Selecciona un mes válido.');
         if (def.needsCutoffDate && !cutoffDate) return toast.warn('Selecciona una fecha de corte.');
+        if (def.needsTrainingType && !trainingType) return toast.warn('Selecciona Operaciones o Mantenimiento.');
 
         setDownloadingKey(def.key);
         try {
@@ -268,6 +275,10 @@ export default function ReportsPage() {
                 const data = await res.json();
                 if (!res.ok) throw new Error(data?.error || 'Error al obtener los datos');
                 await generators.generateAerocivilMonthlyExcel(data.rows, selectedMonth);
+            }
+            if (def.key === 'training') {
+                const res = await fetch(`/api/reports/training?type=${trainingType}&from=${from}&to=${to}`);
+                generators.generateTrainingReport(await res.json(), { ...common, trainingType });
             }
         } catch (e) {
             toast.error("Error al generar reporte");
@@ -368,6 +379,22 @@ export default function ReportsPage() {
                                 <input type="date" className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
                                     value={cutoffDate} onChange={e => setCutoffDate(e.target.value)} max={todayISO} />
                                 <p className="text-[10px] font-semibold text-slate-400">Los ciclos totales se calculan acumulados hasta esta fecha.</p>
+                            </div>
+                        )}
+
+                        {activeDef.needsTrainingType && (
+                            <div className="space-y-2">
+                                <span className="text-[9.5px] font-black uppercase tracking-wide text-slate-400">Programa</span>
+                                <div className="flex flex-wrap gap-2">
+                                    {[['operaciones', 'Operaciones'], ['mantenimiento', 'Mantenimiento']].map(([val, label]) => (
+                                        <button key={val} type="button" onClick={() => setTrainingType(val)}
+                                            className={`text-xs font-bold px-3.5 py-2 rounded-full transition-all ${
+                                                trainingType === val ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                            }`}>
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         )}
 

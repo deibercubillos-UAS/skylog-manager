@@ -301,6 +301,10 @@ const navLinks = [
   { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
   { name: 'Reportes',       icon: 'assessment',              href: '/dashboard/reports',         group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
   { name: 'Protocolos',     icon: 'rule',                    href: '/dashboard/settings/forms',  group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms'] },
+  // Capacitación: programas (Operaciones/Mantenimiento) + evaluaciones internas por
+  // tripulante. Gestión GG+GSMS+JP (canManageTraining); visible a todos porque cualquiera
+  // puede consultar el programa vigente (canViewTraining, incluye piloto).
+  { name: 'Capacitación',   icon: 'school',                  href: '/dashboard/training',         group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   // Manuales de la empresa: ahora se accede desde dentro de Protocolos (Listas de Chequeo,
   // "Ver manuales") para superadmin/admin/gerente_sms — misma página que ya veían.
   // jefe_pilotos y piloto (org) no tienen Protocolos en su nav, así que conservan entrada directa.

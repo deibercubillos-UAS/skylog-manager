@@ -1032,6 +1032,56 @@ Repositorio de manuales corporativos con versionado y notificación a toda la or
 
 ---
 
+## Capacitación (2026-07-07)
+
+Nueva pestaña **"Capacitación"** (`/dashboard/training`, grupo Cumplimiento): dos
+programas independientes — **Operaciones** y **Mantenimiento** — cada uno con (1) un
+programa de capacitación personalizable por la organización y (2) un registro de
+evaluaciones internas por tripulante. Antes de construir se confirmaron con el usuario
+3 decisiones (`AskUserQuestion`): permiso de gestión, modelo del contenido del programa,
+y forma del reporte descargable — las 3 con la opción recomendada.
+
+- **Permisos** (`lib/roles.js`): `canManageTraining` (superadmin+admin+gerente_sms+
+  jefe_pilotos — mismo split que `canManageManuals`, el análogo más cercano: un
+  documento de cumplimiento que gestiona el equipo directivo/operativo) y
+  `canViewTraining` (+ `piloto` — consulta del programa vigente y sus propias
+  evaluaciones).
+- **`training_programs`** (migración `20260707_training.sql`, aplicada): una fila por
+  `(organization_id, type)` — `type` CHECK `operaciones`/`mantenimiento`, `title`,
+  `description`, `topics jsonb` (array ordenado de temas/módulos, mismo patrón que
+  `protocols.steps` — agregar/quitar, sin necesidad de reordenar por drag). Trigger
+  `set_updated_at()` reutilizado (ya existía para `sms_reports`/`vor_mor_submissions`).
+- **`training_evaluations`**: una fila por evaluación — `pilot_id` FK → `pilots`, `type`,
+  `evaluation_date`, `result` CHECK `aprobado`/`no_aprobado`, `evaluator_name`, `notes`.
+  RLS de ambas tablas: mismo patrón que `company_manuals` — lectura para cualquier
+  miembro de la org (`private.user_org_id()`), escritura solo managers
+  (`private.user_is_manager()` = admin/superadmin/gerente_sms/jefe_pilotos, coincide
+  exactamente con `canManageTraining`).
+- **UI** (`TrainingClient.js`): tabs Operaciones/Mantenimiento + `KPIStrip` (evaluaciones/
+  aprobadas/no aprobadas/temas del programa) + tarjeta del programa (editor de
+  título+descripción+temas para managers, vista de solo lectura para el resto) + tabla
+  de evaluaciones con formulario de alta (tripulante/fecha/resultado/evaluador) y
+  eliminar, gateado con `canManageTraining`.
+- **Expediente de Tripulante — se agrega en dos lugares** (pedido explícito del
+  usuario, "se agrega al expediente de Tripulante, con fecha y Aprobado o No aprobado"):
+  - **UI** (`EditPilotPanel.js`, nueva sección "06. Capacitación", solo lectura): carga
+    `training_evaluations` del piloto (ambos tipos) al abrir el panel — no se edita
+    aquí, se registra desde `/dashboard/training`.
+  - **PDF** (`generatePilotDossier()` en `reportGenerators.js`, nueva sección "06.
+    EVALUACIONES DE CAPACITACIÓN"): `GET /api/reports/crew/expediente` ahora también
+    devuelve `training_evaluations` del piloto, impresas como tabla (tipo/fecha/
+    resultado) antes de la nota de trazabilidad y firmas.
+- **Reportes**: nueva tarjeta "Evaluación de Capacitación" (`F-CAP-008`) en
+  `dashboard/reports/page.js` — un solo reporte con selector Operaciones/Mantenimiento
+  (`needsTrainingType`) + selector de periodo (reutiliza el mismo control de
+  Este mes/trimestre/año/Personalizado que ya usan Libro de Vuelo/Mantenimiento/
+  Bitácora de Piloto). `GET /api/reports/training?type=&from=&to=` +
+  `generateTrainingReport()` (nuevo, mismo layout jsPDF con logo/versión/fecha/nota de
+  trazabilidad/firmas que los demás formatos) — columnas Tripulante/CIPU/Fecha/
+  Resultado/Evaluador/Observaciones.
+
+---
+
 ## Notificaciones (campana)
 
 Campana in-app en el header del dashboard. Una notificación por destinatario, dirigida por rol.

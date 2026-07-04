@@ -55,6 +55,10 @@ export const PERMISSIONS = {
     // (y lo diligencia en Despacho) cualquier rol que despache, incluido piloto.
     canManageInventoryChecklist: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],
     canViewInventoryChecklist:   ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'],
+    // Capacitación (programas + evaluaciones internas) — mismo split que Manuales:
+    // gestión GG+GSMS+JP; lectura/consulta todos.
+    canManageTraining: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],
+    canViewTraining:   ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'],
 };
 
 // Helper: ¿el usuario tiene un permiso?

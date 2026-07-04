@@ -325,6 +325,40 @@ eso se quitó).
   (opcional) y `operational_status` (validado contra el mismo CHECK que `/api/fleet`) sin
   tocar el comportamiento existente de reinicio de `last_maintenance_date`/`_hours`.
 
+### Editar registro + descarga individual (2026-07-05)
+
+`dashboard/maintenance/page.js` gana columna **"Acciones"** por fila (desktop) /
+botones equivalentes en las tarjetas mobile: **Descargar** (ícono `download`, visible a
+cualquiera que vea la tabla) y **Editar** (ícono `edit`, solo `canManageOps` — mismo
+permiso que ya gatea "Registrar mantenimiento").
+
+- **`AddMaintenancePanel.js` gana modo edición** (prop opcional `maintenance`): si se pasa
+  un registro, el panel precarga `form`/`checklist` desde él y hace `PATCH
+  /api/maintenance/[id]` en vez de `POST /api/maintenance` al guardar. **Decisión
+  deliberada de alcance** — en edición NO se reenvían `next_maintenance_date`/
+  `operational_status` (aircraft) ni `components` (trazabilidad de componentes): esos son
+  efectos que solo tienen sentido al **registrar** un mantenimiento nuevo (reiniciar
+  contadores de la aeronave, retirar/instalar un componente). Reaplicarlos al editar un
+  registro histórico —p. ej. corregir el nombre del técnico de hace 2 meses— resetearía
+  el estado *actual* de la aeronave con datos viejos, o duplicaría un evento de
+  componente que ya ocurrió. El panel oculta esas secciones en modo edición con una nota
+  explicando por qué, y muestra en su lugar los archivos ya cargados (adjunto/recibo) con
+  opciones Ver / Reemplazar (subir uno nuevo) / Quitar (poner el path en `null`).
+- **`PATCH /api/maintenance/[id]`** (nuevo, antes solo existía `GET`/`POST` en
+  `/api/maintenance`): acepta un subconjunto explícito de campos editables
+  (`aircraft_id, maintenance_type, description, hours_at_service, technician_name,
+  maintenance_date, attachment_path, return_doc_path, return_checklist`), gatea con
+  `canManageOps`, y **nunca** toca `aircraft`/`aircraft_components` — a propósito, ver
+  arriba. Si el usuario reemplaza o quita un adjunto/recibo ya cargado, el cliente borra
+  el path viejo (huérfano) vía `DELETE /api/maintenance/attachment` tras el `PATCH`
+  exitoso, mismo patrón de limpieza que ya usaba el flujo de creación.
+- **Descarga individual**: reutiliza `generateMaintenanceReport()` de
+  `reportGenerators.js` **sin modificarlo** — ya aceptaba un array de registros (pensado
+  para "toda la flota o una sola aeronave" desde Reportes), así que basta invocarlo con
+  `data = [log]`. El logo/versión/fecha se resuelven igual que en Reportes
+  (`fetchLogoDataUrl()`), con `rangeLabel: "Registro individual — {fecha}"` para dejar
+  claro en la nota de trazabilidad del pie que es un solo registro, no un consolidado.
+
 ### Reportes rediseñado + reportes personalizados por alcance (2026-07-02i)
 
 `dashboard/reports/page.js`: `PageHero` + grilla de tarjetas de formato (click para

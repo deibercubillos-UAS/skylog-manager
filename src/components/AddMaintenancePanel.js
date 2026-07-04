@@ -13,7 +13,9 @@ const ALLOWED_TYPES = [
 ];
 const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB (límite de subida proxy por Vercel)
 
-export default function AddMaintenancePanel({ onClose, onSuccess }) {
+export default function AddMaintenancePanel({ onClose, onSuccess, maintenance }) {
+  const isEdit = !!maintenance;
+
   const [drones, setDrones]       = useState([]);
   const [orgId, setOrgId]         = useState(null);
   const [loading, setLoading]     = useState(false);
@@ -24,9 +26,10 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
 
   // Checklist de recibo (definiciones por org + respuestas del técnico)
   const [checklistDefs, setChecklistDefs] = useState([]);   // [{ field_number, label_text }]
-  const [checklist, setChecklist]         = useState({});    // { field_number: true/false }
+  const [checklist, setChecklist]         = useState(maintenance?.return_checklist || {});   // { field_number: true/false }
 
   // Componentes: roster activo de la aeronave + cambios del técnico
+  // (solo aplica al REGISTRAR — ver nota junto a la sección "Componentes")
   const [roster, setRoster]               = useState([]);   // [{ id, component_type, name, serial, used_hours, installed_at }]
   const [rosterLoading, setRosterLoading] = useState(false);
   const [rosterChanges, setRosterChanges] = useState({});   // { [id]: { action, part_new } }
@@ -36,18 +39,28 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
   const [returnDoc, setReturnDoc]           = useState(null);
   const [returnDocError, setReturnDocError] = useState('');
 
+  // Archivos ya cargados (solo edición) — se reemplazan si el usuario sube uno
+  // nuevo (file/returnDoc), o se quitan explícitamente poniendo el path en null.
+  const [existingAttachmentPath, setExistingAttachmentPath] = useState(maintenance?.attachment_path || null);
+  const [existingReturnDocPath, setExistingReturnDocPath]   = useState(maintenance?.return_doc_path || null);
+
   const today = new Date().toISOString().split('T')[0];
 
   const [form, setForm] = useState({
-    aircraft_id:          '',
-    technician_name:      '',
-    maintenance_type:     'PREVENTIVO',
-    description:          '',
-    hours_at_service:     0,
-    maintenance_date:     today,
+    aircraft_id:          maintenance?.aircraft_id || '',
+    technician_name:      maintenance?.technician_name || '',
+    maintenance_type:     maintenance?.maintenance_type || 'PREVENTIVO',
+    description:          maintenance?.description || '',
+    hours_at_service:     maintenance?.hours_at_service ?? 0,
+    maintenance_date:     maintenance?.maintenance_date || today,
     next_maintenance_date: '',
     operational_status:   'disponible',
   });
+
+  const openDoc = (path) => {
+    if (!path) return;
+    window.open(`/api/maintenance/attachment?path=${encodeURIComponent(path)}`, '_blank', 'noopener,noreferrer');
+  };
 
   useEffect(() => {
     async function loadDrones() {
@@ -88,9 +101,10 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
     'Brazo', 'Tren de aterrizaje', 'Antena', 'Tarjeta de memoria', 'Otro',
   ];
 
-  // Cargar el roster activo al elegir/cambiar la aeronave
+  // Cargar el roster activo al elegir/cambiar la aeronave (solo al registrar —
+  // en edición no se muestra ni se toca la trazabilidad de componentes)
   useEffect(() => {
-    if (!form.aircraft_id) { setRoster([]); setRosterChanges({}); return; }
+    if (!form.aircraft_id || isEdit) { setRoster([]); setRosterChanges({}); return; }
     let cancelled = false;
     (async () => {
       setRosterLoading(true);
@@ -105,7 +119,7 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [form.aircraft_id]);
+  }, [form.aircraft_id, isEdit]);
 
   const setRosterAction = (id, action) =>
     setRosterChanges(prev => ({ ...prev, [id]: { ...prev[id], action } }));
@@ -171,8 +185,9 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
     setLoading(true);
 
     try {
-      // 1. Subir adjunto primero (si existe)
-      let attachment_path = null;
+      // 1. Subir adjunto nuevo (si el usuario seleccionó uno) — si no, en edición
+      //    se conserva el existente salvo que se haya quitado explícitamente.
+      let attachment_path = isEdit ? existingAttachmentPath : null;
       if (file && orgId) {
         const ext  = file.name.split('.').pop().toLowerCase();
         const slug = Math.random().toString(36).slice(2, 10);
@@ -191,8 +206,8 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
         attachment_path = path;
       }
 
-      // 1b. Subir el PDF de recibo / puesta en servicio (si existe)
-      let return_doc_path = null;
+      // 1b. Subir el PDF de recibo / puesta en servicio (si existe) — misma lógica
+      let return_doc_path = isEdit ? existingReturnDocPath : null;
       if (returnDoc && orgId) {
         const slug = Math.random().toString(36).slice(2, 10);
         const path = `orgs/${orgId}/recibo/${Date.now()}_${slug}.pdf`;
@@ -210,42 +225,63 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
         return_doc_path = path;
       }
 
-      // 2. Registrar el mantenimiento
-      const res = await fetch('/api/maintenance', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          aircraft_id:           form.aircraft_id,
-          technician_name:       form.technician_name,
-          maintenance_type:      form.maintenance_type,
-          description:           form.description,
-          hours_at_service:      parseFloat(form.hours_at_service || 0),
-          maintenance_date:      form.maintenance_date || today,
-          next_maintenance_date: form.next_maintenance_date || null,
-          operational_status:    form.operational_status,
-          attachment_path,
-          return_doc_path,
-          return_checklist: checklistDefs.length > 0 ? checklist : null,
-          components: [
-            // Cambios sobre componentes existentes (reemplazado / removido)
-            ...Object.entries(rosterChanges)
-              .filter(([, ch]) => ch?.action === 'reemplazado' || ch?.action === 'removido')
-              .map(([roster_id, ch]) => ({ roster_id, action: ch.action, part_new: ch.part_new || null })),
-            // Componentes nuevos instalados
-            ...newComps
-              .filter(c => c.component_type)
-              .map(c => ({ action: 'instalado', component_type: c.component_type, name: c.name || null, serial: c.serial || null })),
-          ],
-        }),
-      });
+      // 2. Guardar el registro — POST (nuevo) o PATCH (edición de uno existente).
+      //    En edición NO se reenvían next_maintenance_date/operational_status/
+      //    components: esos efectos (reiniciar contadores de la aeronave,
+      //    registrar cambios de componentes) solo aplican al crear un registro
+      //    nuevo — reaplicarlos al corregir uno histórico resetearía el estado
+      //    actual de la aeronave o duplicaría eventos de trazabilidad.
+      const res = isEdit
+        ? await fetch(`/api/maintenance/${maintenance.id}`, {
+            method:  'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              aircraft_id:      form.aircraft_id,
+              technician_name:  form.technician_name,
+              maintenance_type: form.maintenance_type,
+              description:      form.description,
+              hours_at_service: parseFloat(form.hours_at_service || 0),
+              maintenance_date: form.maintenance_date || today,
+              attachment_path,
+              return_doc_path,
+              return_checklist: checklistDefs.length > 0 ? checklist : null,
+            }),
+          })
+        : await fetch('/api/maintenance', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              aircraft_id:           form.aircraft_id,
+              technician_name:       form.technician_name,
+              maintenance_type:      form.maintenance_type,
+              description:           form.description,
+              hours_at_service:      parseFloat(form.hours_at_service || 0),
+              maintenance_date:      form.maintenance_date || today,
+              next_maintenance_date: form.next_maintenance_date || null,
+              operational_status:    form.operational_status,
+              attachment_path,
+              return_doc_path,
+              return_checklist: checklistDefs.length > 0 ? checklist : null,
+              components: [
+                // Cambios sobre componentes existentes (reemplazado / removido)
+                ...Object.entries(rosterChanges)
+                  .filter(([, ch]) => ch?.action === 'reemplazado' || ch?.action === 'removido')
+                  .map(([roster_id, ch]) => ({ roster_id, action: ch.action, part_new: ch.part_new || null })),
+                // Componentes nuevos instalados
+                ...newComps
+                  .filter(c => c.component_type)
+                  .map(c => ({ action: 'instalado', component_type: c.component_type, name: c.name || null, serial: c.serial || null })),
+              ],
+            }),
+          });
 
       const text = await res.text();
       let data = {};
       try { data = text ? JSON.parse(text) : {}; } catch { /* not JSON */ }
 
       if (!res.ok) {
-        // Si el POST falla pero ya subimos archivos, intentar limpiarlos (huérfanos)
-        [attachment_path, return_doc_path].filter(Boolean).forEach(p => {
+        // Si el guardado falla pero ya subimos archivos nuevos, limpiarlos (huérfanos)
+        [file && attachment_path, returnDoc && return_doc_path].filter(Boolean).forEach(p => {
           fetch('/api/maintenance/attachment', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
@@ -255,7 +291,21 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
         throw new Error(data?.error || 'Error al guardar el registro.');
       }
 
-      toast.success('Mantenimiento registrado y contadores actualizados.');
+      // Si se reemplazó o se quitó un archivo previo, borrar el path viejo (huérfano)
+      if (isEdit) {
+        const toCleanup = [];
+        if (maintenance.attachment_path && maintenance.attachment_path !== attachment_path) toCleanup.push(maintenance.attachment_path);
+        if (maintenance.return_doc_path && maintenance.return_doc_path !== return_doc_path) toCleanup.push(maintenance.return_doc_path);
+        toCleanup.forEach(p => {
+          fetch('/api/maintenance/attachment', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: p }),
+          }).catch(() => {});
+        });
+      }
+
+      toast.success(isEdit ? 'Mantenimiento actualizado.' : 'Mantenimiento registrado y contadores actualizados.');
       onSuccess();
     } catch (err) {
       toast.error('Error: ' + err.message);
@@ -291,7 +341,7 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-xs font-bold text-slate-400 truncate">Mantenimiento</span>
           <span className="material-symbols-outlined text-sm text-slate-300 shrink-0">chevron_right</span>
-          <span className="text-xs font-black text-slate-900 shrink-0">Registrar mantenimiento</span>
+          <span className="text-xs font-black text-slate-900 shrink-0">{isEdit ? 'Editar mantenimiento' : 'Registrar mantenimiento'}</span>
         </div>
         <button type="button" onClick={onClose}
           className="size-10 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all active:scale-95 shrink-0">
@@ -304,8 +354,12 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
         {/* Hero */}
         <div className="bg-[#1A202C] rounded-2xl px-5 py-4 md:px-6 md:py-5">
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-500">Flota &amp; Equipo</p>
-          <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-tight mt-1">Registrar mantenimiento</h3>
-          <p className="text-xs font-semibold text-slate-400 mt-1">Actualiza el historial y la próxima fecha prevista de la aeronave</p>
+          <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-tight mt-1">{isEdit ? 'Editar mantenimiento' : 'Registrar mantenimiento'}</h3>
+          <p className="text-xs font-semibold text-slate-400 mt-1">
+            {isEdit
+              ? 'Corrige los datos de este registro ya guardado.'
+              : 'Actualiza el historial y la próxima fecha prevista de la aeronave'}
+          </p>
         </div>
 
         <form id="add-maintenance-form" onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 md:p-7 space-y-6">
@@ -375,15 +429,26 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
             <div className="space-y-4">
               <p className="text-[11px] font-black uppercase tracking-wide text-orange-600 pb-2 border-b border-slate-100">Programación y evidencia</p>
 
-              <div className="space-y-1">
-                <label className={labelCls}>
-                  Próxima fecha prevista
-                  <span className="normal-case font-medium text-slate-300 ml-1">(opcional)</span>
-                </label>
-                <input type="date" className={inputCls}
-                  value={form.next_maintenance_date}
-                  onChange={e => setForm({ ...form, next_maintenance_date: e.target.value })} />
-              </div>
+              {isEdit ? (
+                <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5">
+                  <span className="material-symbols-outlined text-sm text-slate-400 shrink-0">info</span>
+                  <span className="text-[11px] font-semibold text-slate-500 leading-snug">
+                    La próxima fecha prevista y el estado de la aeronave solo se actualizan al
+                    <strong className="text-slate-600"> registrar</strong> un mantenimiento nuevo — para no alterar
+                    el estado actual con la corrección de un registro histórico.
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <label className={labelCls}>
+                    Próxima fecha prevista
+                    <span className="normal-case font-medium text-slate-300 ml-1">(opcional)</span>
+                  </label>
+                  <input type="date" className={inputCls}
+                    value={form.next_maintenance_date}
+                    onChange={e => setForm({ ...form, next_maintenance_date: e.target.value })} />
+                </div>
+              )}
 
               {/* ── Checklist de recibo (si la org lo configuró) ──────────── */}
               {checklistDefs.length > 0 && (
@@ -423,8 +488,8 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
                 </div>
               )}
 
-              {/* ── Componentes: roster vivo + cambios ─────────────────────── */}
-              {form.aircraft_id && (
+              {/* ── Componentes: roster vivo + cambios (solo al registrar) ──── */}
+              {!isEdit && form.aircraft_id && (
                 <div className="space-y-3">
                   <label className={labelCls}>Componentes de la aeronave</label>
 
@@ -536,7 +601,7 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
                   className={`flex flex-col items-center justify-center gap-2 w-full p-5 rounded-xl border-2 border-dashed cursor-pointer transition-all
                     ${dragOver
                       ? 'border-orange-400 bg-orange-50 scale-[1.01]'
-                      : file
+                      : file || existingAttachmentPath
                         ? 'border-orange-300 bg-orange-50'
                         : 'border-slate-200 bg-slate-50 hover:border-orange-300 hover:bg-orange-50'
                     }`}>
@@ -559,6 +624,14 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
                         {(file.size / 1024).toFixed(0)} KB
                       </span>
                     </>
+                  ) : existingAttachmentPath ? (
+                    <>
+                      <span className="material-symbols-outlined text-3xl text-orange-500">attach_file</span>
+                      <span className="text-xs font-bold text-orange-700 text-center break-all leading-relaxed">
+                        {existingAttachmentPath.split('/').pop()}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-medium">Archivo ya cargado — haz clic para reemplazar</span>
+                    </>
                   ) : (
                     <>
                       <span className="material-symbols-outlined text-3xl text-slate-300">cloud_upload</span>
@@ -575,12 +648,25 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
                   <p className="text-xs text-red-500 font-bold mt-1 ml-1">{fileError}</p>
                 )}
 
-                {file && (
+                {file ? (
                   <button type="button" onClick={removeFile}
                     className="mt-1.5 ml-1 text-xs text-slate-400 hover:text-red-500 font-bold transition-colors flex items-center gap-1">
                     <span className="material-symbols-outlined text-xs">close</span>
                     Quitar archivo
                   </button>
+                ) : existingAttachmentPath && (
+                  <div className="flex items-center gap-3 mt-1.5 ml-1">
+                    <button type="button" onClick={() => openDoc(existingAttachmentPath)}
+                      className="text-xs text-orange-600 hover:text-orange-800 font-bold transition-colors flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">visibility</span>
+                      Ver
+                    </button>
+                    <button type="button" onClick={() => setExistingAttachmentPath(null)}
+                      className="text-xs text-slate-400 hover:text-red-500 font-bold transition-colors flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">close</span>
+                      Quitar
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -593,7 +679,7 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
 
                 <label
                   className={`flex flex-col items-center justify-center gap-2 w-full p-5 rounded-xl border-2 border-dashed cursor-pointer transition-all
-                    ${returnDoc
+                    ${returnDoc || existingReturnDocPath
                       ? 'border-emerald-300 bg-emerald-50'
                       : 'border-slate-200 bg-slate-50 hover:border-emerald-300 hover:bg-emerald-50'
                     }`}>
@@ -613,6 +699,14 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
                         {(returnDoc.size / 1024).toFixed(0)} KB
                       </span>
                     </>
+                  ) : existingReturnDocPath ? (
+                    <>
+                      <span className="material-symbols-outlined text-3xl text-emerald-500">picture_as_pdf</span>
+                      <span className="text-xs font-bold text-emerald-700 text-center break-all leading-relaxed">
+                        {existingReturnDocPath.split('/').pop()}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-medium">Recibo ya cargado — haz clic para reemplazar</span>
+                    </>
                   ) : (
                     <>
                       <span className="material-symbols-outlined text-3xl text-slate-300">description</span>
@@ -629,16 +723,30 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
                   <p className="text-xs text-red-500 font-bold mt-1 ml-1">{returnDocError}</p>
                 )}
 
-                {returnDoc && (
+                {returnDoc ? (
                   <button type="button" onClick={removeReturnDoc}
                     className="mt-1.5 ml-1 text-xs text-slate-400 hover:text-red-500 font-bold transition-colors flex items-center gap-1">
                     <span className="material-symbols-outlined text-xs">close</span>
                     Quitar recibo
                   </button>
+                ) : existingReturnDocPath && (
+                  <div className="flex items-center gap-3 mt-1.5 ml-1">
+                    <button type="button" onClick={() => openDoc(existingReturnDocPath)}
+                      className="text-xs text-emerald-600 hover:text-emerald-800 font-bold transition-colors flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">visibility</span>
+                      Ver
+                    </button>
+                    <button type="button" onClick={() => setExistingReturnDocPath(null)}
+                      className="text-xs text-slate-400 hover:text-red-500 font-bold transition-colors flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">close</span>
+                      Quitar
+                    </button>
+                  </div>
                 )}
               </div>
 
-              {/* Estado tras servicio */}
+              {/* Estado tras servicio (solo al registrar — ver nota arriba) */}
+              {!isEdit && (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5">
                 <div className="flex items-center gap-5">
                   <span className="text-[10px] font-black uppercase tracking-wide text-slate-500">Estado tras servicio</span>
@@ -656,6 +764,7 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
                   </button>
                 </div>
               </div>
+              )}
             </div>
           </div>
 
@@ -673,10 +782,10 @@ export default function AddMaintenancePanel({ onClose, onSuccess }) {
         </button>
         <button form="add-maintenance-form" type="submit" disabled={loading}
           className="flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-wide shadow-lg shadow-orange-600/25 active:scale-95 transition-all disabled:opacity-50">
-          <span className="material-symbols-outlined text-base">add_circle</span>
+          <span className="material-symbols-outlined text-base">{isEdit ? 'save' : 'add_circle'}</span>
           {loading
             ? (file ? 'Subiendo archivo...' : 'Sincronizando...')
-            : 'Registrar mantenimiento'}
+            : (isEdit ? 'Guardar cambios' : 'Registrar mantenimiento')}
         </button>
       </div>
     </aside>

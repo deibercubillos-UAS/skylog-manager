@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { hasPermission } from '@/lib/roles';
 import { toast } from '@/lib/toast';
+import { fetchLogoDataUrl } from '@/lib/docUrl';
 import AddMaintenancePanel from '@/components/AddMaintenancePanel';
 import PageHero from '@/components/PageHero';
 import KPIStrip from '@/components/KPIStrip';
@@ -55,8 +56,11 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-CO', { day: '2-dig
 export default function MaintenancePage() {
     const [logs, setLogs]         = useState([]);
     const [aircraftList, setAircraftList] = useState([]);
+    const [orgData, setOrgData]   = useState(null);
     const [loading, setLoading]   = useState(true);
     const [showAdd, setShowAdd]   = useState(false);
+    const [editingLog, setEditingLog] = useState(null);    // log abierto en modo edición
+    const [downloadingId, setDownloadingId] = useState(null); // id del log generando su PDF
     const [userRole, setUserRole] = useState(null);
     const [loadingDoc, setLoadingDoc] = useState(null); // id del log abriendo
     const [returnLabels, setReturnLabels] = useState({}); // { field_number: label_text }
@@ -73,7 +77,7 @@ export default function MaintenancePage() {
             .from('profiles').select('role,organization_id').eq('id', user.id).single();
         setUserRole(prof?.role || null);
 
-        const [logsRes, defsRes, aircraftRes] = await Promise.all([
+        const [logsRes, defsRes, aircraftRes, orgRes] = await Promise.all([
             fetch('/api/maintenance').then(r => r.json()),
             prof?.organization_id
                 ? supabase.from('form_definitions')
@@ -87,6 +91,9 @@ export default function MaintenancePage() {
                     .select('id,model,serial_number,maintenance_interval_hours,maintenance_interval_days,last_maintenance_date,last_maintenance_hours,next_maintenance_date,total_hours,operational_status,created_at,status')
                     .eq('organization_id', prof.organization_id)
                 : Promise.resolve({ data: [] }),
+            prof?.organization_id
+                ? supabase.from('organizations').select('company_name, logo_url').eq('id', prof.organization_id).single()
+                : Promise.resolve({ data: null }),
         ]);
 
         setLogs(Array.isArray(logsRes) ? logsRes : []);
@@ -94,7 +101,34 @@ export default function MaintenancePage() {
         (defsRes.data || []).forEach(d => { map[d.field_number] = d.label_text; });
         setReturnLabels(map);
         setAircraftList((aircraftRes.data || []).filter(a => a.status !== 'Baja' && a.status !== 'Transferido'));
+        setOrgData(orgRes.data || null);
         setLoading(false);
+    };
+
+    // ── Descargar el PDF de un solo registro (reutiliza generateMaintenanceReport
+    // pasándole un array de un elemento — no requirió tocar el generador) ──────
+    const handleDownloadOne = async (log) => {
+        setDownloadingId(log.id);
+        try {
+            const generators = await import('@/lib/reportGenerators');
+            const logo = await fetchLogoDataUrl(orgData?.logo_url);
+            const downloadedAt = new Date().toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+            const aircraftLabel = log.aircraft ? `${log.aircraft.model} · ${log.aircraft.serial_number}` : null;
+            generators.generateMaintenanceReport([log], {
+                orgName: orgData?.company_name,
+                logo,
+                version: '1.0',
+                reportDate: log.maintenance_date || log.created_at?.slice(0, 10),
+                formCode: 'F-MNT-006',
+                aircraftLabel,
+                rangeLabel: `Registro individual — ${fmtDate(log.maintenance_date || log.created_at)}`,
+                downloadedAt,
+            });
+        } catch (e) {
+            toast.error('Error al generar el PDF: ' + e.message);
+        } finally {
+            setDownloadingId(null);
+        }
     };
 
     // Cuenta de ítems marcados OK sobre el total respondido del recibo
@@ -291,6 +325,23 @@ export default function MaintenancePage() {
                                         Componentes ({log.components.length})
                                     </button>
                                 )}
+                                <button
+                                    onClick={() => handleDownloadOne(log)}
+                                    disabled={downloadingId === log.id}
+                                    className="flex items-center gap-1 text-xs font-black text-slate-500 hover:text-slate-800 transition-colors disabled:opacity-50">
+                                    <span className="material-symbols-outlined text-sm">
+                                        {downloadingId === log.id ? 'hourglass_empty' : 'download'}
+                                    </span>
+                                    {downloadingId === log.id ? 'Generando...' : 'Descargar'}
+                                </button>
+                                {canManage && (
+                                    <button
+                                        onClick={() => setEditingLog(log)}
+                                        className="flex items-center gap-1 text-xs font-black text-slate-500 hover:text-slate-800 transition-colors">
+                                        <span className="material-symbols-outlined text-sm">edit</span>
+                                        Editar
+                                    </button>
+                                )}
                             </div>
                         </div>
                         );
@@ -309,12 +360,13 @@ export default function MaintenancePage() {
                                 <th className="px-6 py-4">Técnico</th>
                                 <th className="px-6 py-4">Estado</th>
                                 <th className="px-6 py-4">Evidencia</th>
+                                <th className="px-6 py-4 w-32">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-sm">
                             {filteredLogs.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-16 text-center text-xs font-black text-slate-300 uppercase tracking-widest">
+                                    <td colSpan={8} className="px-6 py-16 text-center text-xs font-black text-slate-300 uppercase tracking-widest">
                                         Sin registros técnicos
                                     </td>
                                 </tr>
@@ -385,6 +437,29 @@ export default function MaintenancePage() {
                                             <span className="text-slate-200 select-none">—</span>
                                         )}
                                     </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-1.5">
+                                            <button
+                                                onClick={() => handleDownloadOne(log)}
+                                                disabled={downloadingId === log.id}
+                                                aria-label="Descargar registro"
+                                                title="Descargar este registro (PDF)"
+                                                className="size-8 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 hover:text-orange-600 transition-colors active:scale-95 disabled:opacity-50">
+                                                <span className="material-symbols-outlined text-base">
+                                                    {downloadingId === log.id ? 'hourglass_empty' : 'download'}
+                                                </span>
+                                            </button>
+                                            {canManage && (
+                                                <button
+                                                    onClick={() => setEditingLog(log)}
+                                                    aria-label="Editar registro"
+                                                    title="Editar este registro"
+                                                    className="size-8 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 hover:text-orange-600 transition-colors active:scale-95">
+                                                    <span className="material-symbols-outlined text-base">edit</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    </td>
                                 </tr>
                                 );
                             })}
@@ -397,6 +472,13 @@ export default function MaintenancePage() {
                 <AddMaintenancePanel
                     onClose={() => setShowAdd(false)}
                     onSuccess={() => { setShowAdd(false); loadData(); }} />
+            )}
+
+            {editingLog && canManage && (
+                <AddMaintenancePanel
+                    maintenance={editingLog}
+                    onClose={() => setEditingLog(null)}
+                    onSuccess={() => { setEditingLog(null); loadData(); }} />
             )}
 
             {/* Modal de detalle del recibo de mantenimiento */}

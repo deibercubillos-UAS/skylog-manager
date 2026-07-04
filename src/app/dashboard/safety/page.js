@@ -6,11 +6,14 @@ import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { fmtDateMed } from '@/lib/formatters';
 import { sailRoman, sailColor } from '@/lib/soraEngine';
+import { resolveZone, riskIndex, ZONE_META } from '@/lib/safetyRiskDefaults';
 import PageHero from '@/components/PageHero';
 import KPIStrip from '@/components/KPIStrip';
 
 const SoraWizard = dynamic(() => import('@/components/sora/SoraWizard'), { ssr: false });
 const AddBarrierPanel = dynamic(() => import('@/components/safety/AddBarrierPanel'), { ssr: false });
+const RiskMatrixEditor = dynamic(() => import('@/components/safety/RiskMatrixEditor'), { ssr: false });
+const AddHazardPanel = dynamic(() => import('@/components/safety/AddHazardPanel'), { ssr: false });
 
 // Mismo visor real que usa /dashboard/safety/mapas (const duplicada a propósito —
 // es una URL de referencia, no lógica de negocio).
@@ -23,7 +26,8 @@ const ARCGIS_UAS_URL =
 // en sus fases respectivas en las posiciones ya reservadas aquí.
 const TABS = [
   { id: 'sora',     label: 'Análisis SORA',           icon: 'analytics' },
-  // ← Fases 2-5: Evaluación de Riesgos · Indicadores (SPI) · Mejora Continua · Acciones Correctivas
+  { id: 'riesgos',  label: 'Evaluación de Riesgos',   icon: 'grid_view' },
+  // ← Fases 3-5: Indicadores (SPI) · Mejora Continua · Acciones Correctivas
   { id: 'reportes', label: 'Reportes SMS',            icon: 'health_and_safety' },
   // ← Fase 6: Reportes de Seguridad Operacional (plazos MOR/VOR)
   { id: 'barreras', label: 'Barreras de Seguridad',   icon: 'shield' },
@@ -48,6 +52,17 @@ const CASE_STATUS = {
   en_investigacion: { label: 'En investigación', cls: 'bg-amber-50 text-amber-600 border-amber-200' },
   cerrado:          { label: 'Cerrado',          cls: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
   archivado:        { label: 'Archivado',        cls: 'bg-slate-50 text-slate-500 border-slate-200' },
+};
+const HAZARD_SOURCE = {
+  manual: { label: 'Manual', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
+  gap:    { label: 'GAP',    cls: 'bg-indigo-50 text-indigo-600 border-indigo-200' },
+  spi:    { label: 'SPI',    cls: 'bg-purple-50 text-purple-600 border-purple-200' },
+  vormor: { label: 'VOR/MOR', cls: 'bg-orange-50 text-orange-600 border-orange-200' },
+};
+const HAZARD_STATUS = {
+  abierto:  { label: 'Abierto',  cls: 'bg-amber-50 text-amber-600 border-amber-200' },
+  mitigado: { label: 'Mitigado', cls: 'bg-indigo-50 text-indigo-600 border-indigo-200' },
+  cerrado:  { label: 'Cerrado',  cls: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
 };
 
 const BARRIER_CATEGORY_COLOR = {
@@ -95,25 +110,32 @@ export default function SafetyPage() {
   const [orgId, setOrgId]     = useState(null);
   const [showWizard, setShowWizard] = useState(false);
   const [barrierPanel, setBarrierPanel] = useState(null); // null | 'new' | barrier object
+  const [hazardPanel, setHazardPanel] = useState(null);   // null | 'new' | hazard object
 
   const [sora, setSora]             = useState([]);
   const [barreras, setBarreras]     = useState([]);
   const [smsReports, setSmsReports] = useState([]);
   const [vorMor, setVorMor]         = useState([]);
+  const [riskConfig, setRiskConfig] = useState({ probability: [], severity: [], tolerability: [] });
+  const [hazards, setHazards]       = useState([]);
 
   const loadAll = useCallback(async (organizationId) => {
-    const [soraRes, barriersRes, smsRes, vorMorRes] = await Promise.all([
+    const [soraRes, barriersRes, smsRes, vorMorRes, riskConfigRes, hazardsRes] = await Promise.all([
       fetch('/api/sora/assessments').then(r => r.json()).catch(() => []),
       fetch('/api/safety/barriers').then(r => r.json()).catch(() => []),
       supabase.from('sms_reports')
         .select('id,severity,narrative,occurrence_date,created_at,updated_at,status,owner:owner_id(full_name)')
         .eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(100),
       fetch('/api/vor-mor?limit=50').then(r => r.json()).catch(() => ({ data: [] })),
+      fetch('/api/safety/risk-config').then(r => r.json()).catch(() => ({ probability: [], severity: [], tolerability: [] })),
+      fetch('/api/safety/hazards').then(r => r.json()).catch(() => []),
     ]);
     setSora(Array.isArray(soraRes) ? soraRes : []);
     setBarreras(Array.isArray(barriersRes) ? barriersRes : []);
     setSmsReports(smsRes.data || []);
     setVorMor(Array.isArray(vorMorRes?.data) ? vorMorRes.data : []);
+    setRiskConfig(riskConfigRes?.probability ? riskConfigRes : { probability: [], severity: [], tolerability: [] });
+    setHazards(Array.isArray(hazardsRes) ? hazardsRes : []);
   }, []);
 
   useEffect(() => {
@@ -172,6 +194,15 @@ export default function SafetyPage() {
         </button>
       );
     }
+    if (tab === 'riesgos' && riskConfig.probability.length > 0) {
+      return (
+        <button onClick={() => setHazardPanel('new')}
+          className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-600/20 transition-all active:scale-95">
+          <span className="material-symbols-outlined text-base">add_circle</span>
+          Nuevo peligro
+        </button>
+      );
+    }
     const cfgByTab = {
       reportes: { href: '/dashboard/sms', label: 'Nuevo reporte', icon: 'report' },
       mapas:    { href: '/dashboard/safety/mapas', label: 'Abrir visor completo', icon: 'open_in_new' },
@@ -216,6 +247,19 @@ export default function SafetyPage() {
     ];
   })() : null;
 
+  const hazardStats = hazards.length > 0 ? (() => {
+    const abiertos  = hazards.filter(h => h.status === 'abierto').length;
+    const mitigados = hazards.filter(h => h.status === 'mitigado').length;
+    const cerrados  = hazards.filter(h => h.status === 'cerrado').length;
+    const inaceptables = hazards.filter(h => resolveZone(riskConfig.tolerability, h.initial_probability_code, h.initial_severity_code) === 'inaceptable').length;
+    return [
+      { key: 'total',   label: 'Peligros registrados', value: hazards.length, icon: 'warning', iconColor: '#ec5b13' },
+      { key: 'inacept', label: 'Riesgo inaceptable',   value: inaceptables,  icon: 'dangerous', iconColor: inaceptables > 0 ? '#dc2626' : '#94a3b8' },
+      { key: 'abierto', label: 'Abiertos',              value: abiertos,      icon: 'pending_actions', iconColor: abiertos > 0 ? '#d97706' : '#94a3b8' },
+      { key: 'cerrado', label: 'Mitigados / cerrados',  value: mitigados + cerrados, icon: 'check_circle', iconColor: '#16a34a' },
+    ];
+  })() : null;
+
   return (
     <div className="max-w-6xl mx-auto space-y-5 text-left animate-in fade-in duration-500 pb-24">
 
@@ -231,6 +275,17 @@ export default function SafetyPage() {
           barrier={barrierPanel === 'new' ? null : barrierPanel}
           onClose={() => setBarrierPanel(null)}
           onSuccess={() => { setBarrierPanel(null); if (orgId) loadAll(orgId); }}
+        />
+      )}
+
+      {hazardPanel && (
+        <AddHazardPanel
+          hazard={hazardPanel === 'new' ? null : hazardPanel}
+          probability={riskConfig.probability}
+          severity={riskConfig.severity}
+          tolerability={riskConfig.tolerability}
+          onClose={() => setHazardPanel(null)}
+          onSuccess={() => { setHazardPanel(null); if (orgId) loadAll(orgId); }}
         />
       )}
 
@@ -299,6 +354,65 @@ export default function SafetyPage() {
                   Ver módulo completo <span className="material-symbols-outlined text-sm">arrow_forward</span>
                 </Link>
               </div>
+            </div>
+          )}
+
+          {/* ── Evaluación de Riesgos ── */}
+          {tab === 'riesgos' && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              {hazardStats && <KPIStrip variant="strip" items={hazardStats} />}
+              <RiskMatrixEditor
+                probability={riskConfig.probability}
+                severity={riskConfig.severity}
+                tolerability={riskConfig.tolerability}
+                onSaved={() => orgId && loadAll(orgId)}
+              />
+              {riskConfig.probability.length > 0 && (
+                <TableShell title="Registro de peligros — probabilidad, gravedad y mitigación aplicada"
+                  empty={hazards.length === 0 ? 'Sin peligros registrados — crea el primero con "Nuevo peligro"' : null}>
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                        <th className="px-5 py-3">Peligro</th><th className="px-4 py-3">Origen</th>
+                        <th className="px-4 py-3">Riesgo inicial</th><th className="px-4 py-3">Riesgo residual</th>
+                        <th className="px-4 py-3">Responsable</th><th className="px-4 py-3">Plazo</th><th className="px-4 py-3">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-sm">
+                      {hazards.map(h => {
+                        const initZone = resolveZone(riskConfig.tolerability, h.initial_probability_code, h.initial_severity_code);
+                        const residZone = resolveZone(riskConfig.tolerability, h.residual_probability_code, h.residual_severity_code);
+                        const initMeta = initZone ? ZONE_META[initZone] : null;
+                        const residMeta = residZone ? ZONE_META[residZone] : null;
+                        return (
+                          <tr key={h.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setHazardPanel(h)}>
+                            <td className="px-5 py-3.5 max-w-xs">
+                              <p className="font-bold text-slate-800 truncate">{h.description}</p>
+                              {h.mitigation && <p className="text-xs text-slate-400 truncate">{h.mitigation}</p>}
+                            </td>
+                            <td className="px-4 py-3.5"><Pill map={HAZARD_SOURCE} value={h.source} /></td>
+                            <td className="px-4 py-3.5">
+                              <span className="px-2.5 py-1 rounded-lg text-xs font-black" style={{ background: initMeta?.bg || '#f1f5f9', color: initMeta?.color || '#64748b' }}>
+                                {riskIndex(h.initial_probability_code, h.initial_severity_code)}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              {residMeta ? (
+                                <span className="px-2.5 py-1 rounded-lg text-xs font-black" style={{ background: residMeta.bg, color: residMeta.color }}>
+                                  {riskIndex(h.residual_probability_code, h.residual_severity_code)}
+                                </span>
+                              ) : <span className="text-slate-300 text-xs">—</span>}
+                            </td>
+                            <td className="px-4 py-3.5 text-slate-500 font-medium">{h.responsible || '—'}</td>
+                            <td className="px-4 py-3.5 text-slate-500 font-medium whitespace-nowrap">{h.due_date ? fmtDateMed(h.due_date) : '—'}</td>
+                            <td className="px-4 py-3.5"><Pill map={HAZARD_STATUS} value={h.status} /></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </TableShell>
+              )}
             </div>
           )}
 

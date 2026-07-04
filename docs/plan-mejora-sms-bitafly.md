@@ -96,35 +96,48 @@ Capacitación SMS al final) para que las Fases 2-7 solo agreguen su entrada
 sin tener que volver a decidir el orden. `npm run lint` y `npm run build`
 verificados limpios.
 
-### Fase 2 — Evaluación y Gestión de Riesgos (matriz base)
+### Fase 2 — Evaluación y Gestión de Riesgos (matriz base) ✅ Completada
 Del apartado *"ii. Evaluación y gestión de riesgos de seguridad operacional"*
 de MAUT-5.0-22-017 (Ilustraciones 4/5, Tablas 2/3 — la matriz 5×5 que
 compartió el usuario). Es el "Componente 2" del SMS y otras fases se apoyan
 en él (Mejora Continua, Indicadores), por eso va antes.
 
-- **`safety_risk_matrix_config`** (por org, personalizable — requisito
-  textual del documento: *"el explotador UAS ha de personalizar estos
-  criterios..."*): 5 niveles de **Probabilidad** (Frecuente / Ocasional /
-  Remoto / Improbable / Extremadamente improbable) con criterio numérico
-  editable (ej. "10 eventos por cada 100 vuelos"), y 5 niveles de
-  **Gravedad** — escala única, no por categoría de impacto (Catastrófico /
-  Peligroso / Mayor / Menor / Insignificante) con descripción editable.
-  Semilla con los valores estándar OACI Doc 9859 (los de la imagen de
-  referencia), editable por organización.
+Migración `20260709_safety_risk_matrix.sql` (aplicada en Supabase, `get_advisors`
+sin hallazgos nuevos), RLS mismo patrón que `safety_barriers` (solo
+`superadmin/admin/gerente_sms`, coincide con `canManageSMS`):
+
+- **`safety_risk_scales`** (por org, personalizable — requisito textual del
+  documento: *"el explotador UAS ha de personalizar estos criterios..."*):
+  una fila por nivel, `dimension` (`probabilidad`/`gravedad`) + `code` + 
+  `order_index` + `label` + `description` editable. 5 niveles de
+  **Probabilidad** (Frecuente…Extremadamente improbable, código '1'-'5') y 5
+  de **Gravedad** — escala única (Catastrófico…Insignificante, código
+  'A'-'E'). Semilla con los valores estándar OACI Doc 9859
+  (`lib/safetyRiskDefaults.js`), cargable con un botón y editable después.
 - **`safety_risk_tolerability`** (por org): mapeo de las 25 celdas (5A…1E) a
-  una zona — Inaceptable / Tolerable / Aceptable — con color, también
-  editable (la Ilustración 5 es un ejemplo, cada explotador la ajusta).
-- **`safety_hazards`** (registro de peligros): descripción, origen (manual /
-  hallazgo GAP / evento SPI / caso VOR-MOR), probabilidad+gravedad
-  **inicial** → índice+tolerabilidad calculados, **mitigación como texto
-  libre** (sin FK obligatoria a `safety_barriers` — quien registra el
-  peligro describe la barrera aplicada directamente, sin depender de que ya
-  exista formalizada en el catálogo), probabilidad+gravedad **residual**
-  (post-mitigación) → índice+tolerabilidad residual, responsable, plazo de
-  gestión.
-- UI: editor visual de la matriz 5×5 (con colores, igual a la referencia)
-  para configurar probabilidad/gravedad/tolerabilidad, y un registro de
-  peligros con selectores que calculan el índice automáticamente.
+  una zona — `inaceptable`/`tolerable`/`aceptable` — editable celda por
+  celda (clic cicla la zona). Semilla con el layout de colores exacto de la
+  Ilustración 5 compartida por el usuario.
+- **`safety_hazards`** (registro de peligros): descripción, `source`
+  (`manual`/`gap`/`spi`/`vormor`, con `source_ref_id` sin FK — se resuelve en
+  Fases 3/4), probabilidad+gravedad **inicial**, **mitigación como texto
+  libre** (`mitigation`, sin FK a `safety_barriers` — decisión confirmada),
+  probabilidad+gravedad **residual** opcional, responsable, `due_date`,
+  `status` (`abierto`/`mitigado`/`cerrado`). El índice de riesgo (ej. "5A") y
+  la zona de tolerabilidad se **calculan en el cliente** contra la
+  configuración vigente (no se guardan como columnas derivadas) — mismo
+  patrón de "computar, no fabricar" que `computeCompliance()`/`dueStatus()`
+  en el resto de la app.
+- **API**: `GET/PATCH /api/safety/risk-config` (guarda escalas + tolerabilidad
+  en una sola llamada, mismo mecanismo para la carga inicial de la semilla y
+  para ediciones posteriores) + `GET/POST /api/safety/hazards` +
+  `PATCH/DELETE /api/safety/hazards/[id]`.
+- **UI**: nuevo tab "Evaluación de Riesgos" en `dashboard/safety/page.js` —
+  `components/safety/RiskMatrixEditor.js` (editor visual 5×5 con colores +
+  edición de etiquetas/criterios, estado vacío con "Cargar matriz estándar
+  OACI") y `components/safety/AddHazardPanel.js` (panel deslizable, mismo
+  shell que `AddBarrierPanel` — selectores de probabilidad/gravedad inicial y
+  residual con badge de índice+zona calculado en vivo).
 
 ### Fase 3 — Indicadores (SPI)
 De MAUT-1.0-22-005 + Excel MAUT-1.0-12-002:
@@ -208,7 +221,7 @@ build.
 |---|---|
 | 0 — Preparación | ✅ Completada |
 | 1 — Reordenar IA del hub | ✅ Completada |
-| 2 — Evaluación y Gestión de Riesgos | Pendiente |
+| 2 — Evaluación y Gestión de Riesgos | ✅ Completada |
 | 3 — Indicadores (SPI) | Pendiente |
 | 4 — Mejora Continua (GAP simple) | Pendiente |
 | 5 — Acciones Correctivas (consolidado) | Pendiente |

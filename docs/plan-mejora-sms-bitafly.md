@@ -39,6 +39,10 @@ Confirmadas vía `AskUserQuestion` antes de tocar código:
 2. **Acciones Correctivas**: **tablero consolidado de solo-agregación** sobre 3 fuentes (casos VOR/MOR/SMS ya existentes, planes de acción de indicadores SPI, hallazgos GAP) — la edición de cada acción se hace desde su pantalla de origen, no se duplica lógica de edición ni se crea una tabla unificada nueva.
 3. **Plan de Capacitación del SMS**: **solo asistencia/roster** (quién asistió a cada sesión, con fecha) — sin examen calificado, porque el documento no lo exige (a diferencia del módulo "Capacitación" ya construido para Operaciones/Mantenimiento, que sí es examen).
 4. **Plazos de reportes**: el control de 5 días hábiles aplica formalmente solo a **MOR** (requisito regulatorio de la Directiva 02-24); para **VOR** se usa el mismo mecanismo pero como plazo **interno sugerido**, dejando documentado que no es una obligación legal — para no dar a entender que VOR tiene un plazo regulatorio que no tiene.
+5. **Barreras en el registro de peligros**: la mitigación se captura como **texto libre** directamente en `safety_hazards`, escrita por quien registra el peligro — no exige seleccionar (ni existir previamente) una fila del catálogo `safety_barriers`. Evita bloquear el registro rápido de un peligro recién identificado por falta de una barrera ya formalizada.
+6. **Gravedad del riesgo**: **escala única de 5 niveles** (Catastrófico/Peligroso/Mayor/Menor/Insignificante), igual a la Tabla 3 e Ilustración 4 de referencia — no se construye la variante de 4 escalas por categoría (Matriz RAM de Personas/Económico/Ambiental/Imagen) mencionada como referencia opcional en el documento.
+7. **Denominador de Indicadores SPI**: **lista fija de las 6 categorías** que define la circular (Ciclos de vuelo / Horas de vuelo / Horas-hombre / Número de operaciones, según tipo de proveedor) — no texto libre, para preservar la consistencia que exige la circular ("el mismo denominador para todos los indicadores del mismo tipo de proveedor").
+8. **Roster de Capacitación del SMS**: basado en **todos los `profiles` de la organización** (GG, GSMS, JP, pilotos, etc.), no solo en `pilots` — coincide con "formación para todo el personal y en todos los niveles" del documento; a diferencia del roster de `pilots` que usa el módulo de Capacitación (Operaciones/Mantenimiento) ya existente.
 
 ---
 
@@ -83,18 +87,21 @@ en él (Mejora Continua, Indicadores), por eso va antes.
   criterios..."*): 5 niveles de **Probabilidad** (Frecuente / Ocasional /
   Remoto / Improbable / Extremadamente improbable) con criterio numérico
   editable (ej. "10 eventos por cada 100 vuelos"), y 5 niveles de
-  **Gravedad** (Catastrófico / Peligroso / Mayor / Menor / Insignificante)
-  con descripción editable. Semilla con los valores estándar OACI Doc 9859
-  (los de la imagen de referencia), editable por organización.
+  **Gravedad** — escala única, no por categoría de impacto (Catastrófico /
+  Peligroso / Mayor / Menor / Insignificante) con descripción editable.
+  Semilla con los valores estándar OACI Doc 9859 (los de la imagen de
+  referencia), editable por organización.
 - **`safety_risk_tolerability`** (por org): mapeo de las 25 celdas (5A…1E) a
   una zona — Inaceptable / Tolerable / Aceptable — con color, también
   editable (la Ilustración 5 es un ejemplo, cada explotador la ajusta).
 - **`safety_hazards`** (registro de peligros): descripción, origen (manual /
   hallazgo GAP / evento SPI / caso VOR-MOR), probabilidad+gravedad
-  **inicial** → índice+tolerabilidad calculados, barreras de mitigación
-  aplicadas (vínculo a `safety_barriers` existente, sin duplicar ese
-  catálogo), probabilidad+gravedad **residual** (post-mitigación) →
-  índice+tolerabilidad residual, responsable, plazo de gestión.
+  **inicial** → índice+tolerabilidad calculados, **mitigación como texto
+  libre** (sin FK obligatoria a `safety_barriers` — quien registra el
+  peligro describe la barrera aplicada directamente, sin depender de que ya
+  exista formalizada en el catálogo), probabilidad+gravedad **residual**
+  (post-mitigación) → índice+tolerabilidad residual, responsable, plazo de
+  gestión.
 - UI: editor visual de la matriz 5×5 (con colores, igual a la referencia)
   para configurar probabilidad/gravedad/tolerabilidad, y un registro de
   peligros con selectores que calculan el índice automáticamente.
@@ -102,9 +109,12 @@ en él (Mejora Continua, Indicadores), por eso va antes.
 ### Fase 3 — Indicadores (SPI)
 De MAUT-1.0-22-005 + Excel MAUT-1.0-12-002:
 
-- `safety_indicators` (catálogo por org): nombre, denominador (ciclos de
-  vuelo / horas de vuelo / horas-hombre / operaciones — según tipo de
-  proveedor), mejora esperada % (la meta).
+- `safety_indicators` (catálogo por org): nombre, denominador — **selector
+  de lista fija** con las 6 categorías de la circular (ciclos de vuelo /
+  horas de vuelo / horas-hombre / número de operaciones, según tipo de
+  proveedor; para un explotador UAS lo habitual es "Horas de vuelo"), no
+  texto libre — preserva la consistencia que exige la circular. Además,
+  mejora esperada % (la meta).
 - `safety_indicator_monthly`: mes, valor del denominador, N° de eventos →
   tasa por 1000 **calculada**, no capturada a mano.
 - Líneas de alerta calculadas automáticamente (promedio ± 1/2/3 desviaciones
@@ -161,6 +171,9 @@ Mantenimiento para pilotos).
   `training_sessions` pero tabla propia — público objetivo = todo el
   personal).
 - `sms_training_attendance` (roster: quién asistió, fecha) — sin examen.
+  El roster se resuelve sobre **`profiles`** de la organización (no
+  `pilots`), para incluir roles administrativos (GG, GSMS) que hoy no
+  necesariamente tienen fila en `pilots`.
 
 ### Fase 8 — Reportes transversales + documentación + QA
 Tarjetas nuevas en Reportes (SPI anual, GAP/Mejora Continua, Cronograma
@@ -183,10 +196,5 @@ build.
 | 7 — Plan de Capacitación del SMS | Pendiente |
 | 8 — Reportes transversales + QA | Pendiente |
 
----
-
-## Pendiente de confirmar
-
-- ¿La matriz de riesgo (Fase 2) debe quedar enlazada **obligatoriamente** a
-  cada barrera de `safety_barriers`, o el vínculo es opcional (un peligro
-  puede existir sin barrera asociada todavía)?
+Todas las decisiones de alcance quedaron confirmadas (ver sección anterior) —
+no hay preguntas pendientes para arrancar la Fase 0.

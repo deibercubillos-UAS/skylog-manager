@@ -16,7 +16,7 @@ export async function GET() {
             .from('flight_authorizations')
             .select(`
                 id,mission_id,scheduled_at,location,mission_type,status,created_at,plan_data,
-                pilot_id,aircraft_id,organization_id,
+                pilot_id,aircraft_id,organization_id,line_of_sight,aerocivil_auth_number,
                 pilots:pilot_id(name, phone, id_number, email),
                 aircraft:aircraft_id(model, serial_number, total_hours),
                 payload:payload_id(brand, model, category, serial_number),
@@ -40,7 +40,8 @@ const BLOCKED_AUTHORIZATION_FIELDS = [
 ];
 
 // Campos RAC 100 mínimos requeridos para una solicitud de autorización
-const REQUIRED_AUTHORIZATION_FIELDS = ['pilot_id', 'aircraft_id', 'location', 'scheduled_at', 'mission_type'];
+// (line_of_sight se agregó para el reporte mensual AeroCivil — ver CLAUDE.md)
+const REQUIRED_AUTHORIZATION_FIELDS = ['pilot_id', 'aircraft_id', 'location', 'scheduled_at', 'mission_type', 'line_of_sight'];
 
 export async function POST(request) {
     try {
@@ -169,7 +170,7 @@ export async function PATCH(request) {
         if (!orgId) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
         const body = await request.json();
-        const { id, pilot_id, aircraft_id, location, scheduled_at, mission_type } = body;
+        const { id, pilot_id, aircraft_id, location, scheduled_at, mission_type, line_of_sight, aerocivil_auth_number } = body;
 
         // Verificamos que la autorización pertenezca a la organización del usuario
         const { data: existing } = await supabase
@@ -182,16 +183,21 @@ export async function PATCH(request) {
             return NextResponse.json({ error: "No autorizado para editar esta misión" }, { status: 403 });
         }
 
+        // Campos parciales — solo se tocan los que vienen en el body (permite editar
+        // únicamente el N° de autorización AeroCivil desde Programación Activa sin
+        // reenviar pilot_id/aircraft_id/etc.)
+        const updates = { updated_at: new Date().toISOString() };
+        if (pilot_id !== undefined) updates.pilot_id = pilot_id;
+        if (aircraft_id !== undefined) updates.aircraft_id = aircraft_id;
+        if (location !== undefined) updates.location = location;
+        if (scheduled_at !== undefined) updates.scheduled_at = scheduled_at;
+        if (mission_type !== undefined) updates.mission_type = mission_type;
+        if (line_of_sight !== undefined) updates.line_of_sight = line_of_sight || null;
+        if (aerocivil_auth_number !== undefined) updates.aerocivil_auth_number = aerocivil_auth_number?.trim() || null;
+
         const { data, error } = await supabase
             .from('flight_authorizations')
-            .update({
-                pilot_id,
-                aircraft_id,
-                location,
-                scheduled_at,
-                mission_type,
-                updated_at: new Date().toISOString()
-            })
+            .update(updates)
             .eq('id', id)
             .select();
 

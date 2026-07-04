@@ -610,3 +610,71 @@ export const generateExcelF100 = async (data, profile, org, pilots) => {
         alert("Falla técnica: " + error.message);
     }
 };
+
+// --- GENERADOR: REPORTE OPERACIONAL MENSUAL UAS (CIRCULAR AEROCIVIL) ---
+// Radicado 2026351070026944 — 8 columnas exactas exigidas por la Dirección de
+// Operaciones de Navegación Aérea / Grupo Gestión Operacional UAS. Ver CLAUDE.md
+// "Reporte Operacional Mensual UAS (AeroCivil)".
+
+// "Condición de vuelo" (DIURNO/NOCTURNO/MIXTO) no existe como dato guardado —
+// AeroCivil la define por hora del día, mientras BitaFly guarda VMC/IMC/NIGHT
+// (reglas de vuelo). Se deriva de las horas reales de despegue/aterrizaje con una
+// convención horaria fija (06:00–18:00 = diurno) — no es orto/ocaso real por
+// ubicación (exigiría una llamada externa por vuelo), así que se documenta como
+// convención, no como precisión astronómica real.
+function deriveFlightCondition(takeoffTime, landingTime) {
+    if (!takeoffTime) return '';
+    const toMinutes = (t) => {
+        const [h, m] = String(t).split(':').map(Number);
+        return h * 60 + (m || 0);
+    };
+    const DAY_START = 6 * 60, DAY_END = 18 * 60;
+    const isDay = (mins) => mins >= DAY_START && mins < DAY_END;
+
+    const takeoffMin = toMinutes(takeoffTime);
+    const takeoffIsDay = isDay(takeoffMin);
+    if (!landingTime) return takeoffIsDay ? 'DIURNO' : 'NOCTURNO';
+
+    const landingMin = toMinutes(landingTime);
+    const landingIsDay = isDay(landingMin);
+    return takeoffIsDay === landingIsDay ? (takeoffIsDay ? 'DIURNO' : 'NOCTURNO') : 'MIXTO';
+}
+
+// total_time viene en horas decimales (ej. 0.75) — AeroCivil lo pide en HH:MM.
+function formatFlightDuration(totalTimeHours) {
+    if (totalTimeHours == null) return '00:00';
+    const totalMinutes = Math.round(Number(totalTimeHours) * 60);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+export const generateAerocivilMonthlyExcel = async (rows, month) => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Reporte UAS');
+
+    const headers = [
+        'ID AUTORIZACIÓN', 'NOMBRE EMPRESA', 'FECHA DE VUELO', 'TIEMPO DE VUELO',
+        'RUAS', 'TIPO DE LINEA DE VISTA', 'TIPO DE OPERACIÓN EJECUTADA', 'CONDICION DE VUELO',
+    ];
+    worksheet.addRow(headers);
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.columns = headers.map(h => ({ width: Math.max(18, h.length + 2) }));
+
+    rows.forEach(r => {
+        worksheet.addRow([
+            r.aerocivil_auth_number || '',
+            r.company_name || '',
+            r.flight_date ? String(r.flight_date).slice(0, 10) : '',
+            formatFlightDuration(r.total_time),
+            r.ruas || '',
+            r.line_of_sight || '',
+            r.mission_type || '',
+            deriveFlightCondition(r.takeoff_time, r.landing_time),
+        ]);
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `Reporte_UAS_AeroCivil_${month}.xlsx`);
+};

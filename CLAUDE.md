@@ -680,6 +680,84 @@ resto del rediseño porque no encaja el patrón de "página", sino un flujo kios
 
 ---
 
+## Reporte Operacional Mensual UAS (AeroCivil, 2026-07-04)
+
+Circular AeroCivil (Radicado 2026351070026944, Dirección de Operaciones de Navegación Aérea
+— Grupo Gestión Operacional UAS): exige a los explotadores UAS remitir mensualmente, dentro
+de los primeros 5 días del mes vencido, un Excel a `gouas@aerocivil.gov.co` con 8 columnas
+por vuelo: ID Autorización, Nombre empresa, Fecha de vuelo, Tiempo volado, RUAS, Tipo de
+línea de vista (VLOS/EVLOS/BVLOS), Tipo de operación ejecutada, Condición de vuelo. Antes de
+construir se confirmaron con el usuario 4 decisiones de mapeo/alcance (`AskUserQuestion`) —
+ninguna se inventó.
+
+- **ID Autorización** (`flight_authorizations.aerocivil_auth_number`, nuevo): AeroCivil lo
+  asigna por misión aprobada — no se puede derivar de nada existente (no es el
+  `dan_number`/`operator_number` de la org, que son a nivel organización, no por misión).
+  Se captura manualmente en **Programación Activa** (columna nueva "N° Autorización
+  AeroCivil", edición inline tipo `PilotCell`, solo visible para managers vía
+  `PATCH /api/flights/authorize` — que pasó de reemplazar siempre los 5 campos a actualizar
+  solo los que vengan en el body, para poder tocar únicamente este campo sin reenviar
+  pilot_id/aircraft_id/etc.). Queda vacío para vuelos del piloto independiente (despacho
+  simplificado, sin `flight_authorizations`) — limitación real documentada, no oculta.
+- **Línea de vista** (VLOS/EVLOS/BVLOS, tampoco existía): nueva columna en
+  `flight_authorizations`, `flight_plans` y `flights` (`src/lib/missionTypes.js` exporta
+  `LINE_OF_SIGHT_TYPES`, fuente única). Se captura al planear — `BasicForm.js`
+  (Programación) y `FlightPlanner.js` (Planeación de Vuelo) tienen el selector nuevo — y se
+  copia al vuelo en Despacho: flujo con orden de vuelo desde `selectedAuth.line_of_sight`;
+  piloto independiente desde la planeación elegida o, si es vuelo libre sin planeación, un
+  selector directo obligatorio en el paso Datos (no había de dónde prellenarlo).
+- **Tipo de operación ejecutada** — decisión confirmada con el usuario: **reemplazar**, no
+  mantener un segundo campo paralelo. Se descubrieron **dos** vocabularios viejos e
+  independientes conviviendo en `mission_type` (nunca sincronizados entre sí): las 9
+  categorías libres de Despacho piloto-independiente (`logbook/new/page.js`) y las 17
+  categorías de estilo RAC 100 propias de `BasicForm.js` (Programación) — el flujo con orden
+  de vuelo ni siquiera copiaba `mission_type` al vuelo al despachar (por eso el reporte
+  también resuelve el tipo de operación desde `flight_authorizations.mission_type` vía join
+  cuando el vuelo no lo trae directo). Ambas listas se reemplazaron por las 10 categorías
+  oficiales de la circular (`MISSION_TYPES` en `src/lib/missionTypes.js`, única fuente para
+  `BasicForm.js` y `logbook/new/page.js`), con migración de datos histórica en 2 archivos:
+  `20260704_aerocivil_monthly_report.sql` (las 9 de Despacho) y
+  `20260704_aerocivil_mission_type_basicform.sql` (las 17 de Programación, corrección
+  encontrada después de aplicar la primera). Mapeos sin equivalente 1-a-1 exacto quedaron
+  documentados en el SQL (ej. "Agricultura de precisión"/"Aspersión y Dispersión Agrícola" →
+  `Aspersión`, por ser el uso dominante real en el mercado colombiano; "Recreativo"/"Otra
+  operación especial" → `Captura imágenes/datos` como categoría genérica de respaldo).
+  El bulk-import de bitácora por Excel (`/api/logbook/import`) escribe texto libre del
+  archivo del usuario — no se intentó remapear retroactivamente valores arbitrarios ahí.
+- **Condición de vuelo** (DIURNO/NOCTURNO/MIXTO) — decisión confirmada: **derivarla**, no
+  pedirla ni mapearla. AeroCivil clasifica por hora del día; BitaFly guarda
+  `visual_condition` (VMC/IMC/NIGHT, reglas de vuelo — otro concepto). Se deriva en el
+  generador del reporte (`deriveFlightCondition()` en `lib/reportGenerators.js`) a partir de
+  `takeoff_time`/`landing_time` reales con una convención horaria fija 06:00–18:00 = diurno
+  (no orto/ocaso real por ubicación, que exigiría una llamada externa por vuelo — se
+  documenta como convención, no como precisión astronómica).
+- **Generación del Excel**: nueva tarjeta "Reporte Operacional UAS (AeroCivil)" en
+  **Reportes**, con selector de mes (`type="month"`, precargado al mes anterior — "mes
+  vencido") en vez de los botones de periodo genéricos (`REPORT_DEFS` gana un flag
+  `needsMonth` + `format: 'xlsx'`, que cambia el ícono/label de "Descargar PDF" a "Descargar
+  Excel"). `GET /api/reports/aerocivil-monthly?month=YYYY-MM` arma las filas (join
+  `aircraft.ruas` + `flight_authorizations` para el fallback de tipo de operación/línea de
+  vista/N° autorización); `generateAerocivilMonthlyExcel()` en `lib/reportGenerators.js`
+  arma el `.xlsx` con `exceljs` (ya usado para el Formato 100) y los 8 encabezados exactos
+  de la circular. El archivo se genera 100% al momento de descargar, igual que el resto de
+  Reportes — no se persiste.
+- **Rastro de envío real** (no fabricado): tabla nueva `aerocivil_monthly_reports`
+  (`organization_id`, `period` 'YYYY-MM', `sent_at`, `sent_by`, RLS mismo patrón que
+  `safety_barriers` — superadmin/admin/gerente_sms). Botón "Marcar como enviado" en el panel
+  del reporte (`POST /api/aerocivil-report/status`) dejando constancia real de quién y
+  cuándo — útil ante una eventual verificación de AeroCivil, y apaga el recordatorio del
+  cron una vez marcado.
+- **Alerta mensual** (`GET /api/cron/aerocivil-report-reminder`, cron diario en
+  `vercel.json`, mismo patrón `CRON_SECRET` que `/api/cron/free-grants`): si el día del mes
+  es ≤ 5 y la org no ha marcado el período anterior como enviado, notifica (campana) a
+  **Gerente SMS** (responsable) + **Gerente General** (copia) vía `roles: ['gerente_sms',
+  'admin']`, con los días restantes. Nuevo tipo de notificación `aerocivil_report_due`
+  (agregado al CHECK de `notifications.type` y a `NOTIFICATION_TYPES` en `lib/notify.js` —
+  este archivo tenía su propia lista desincronizada del CHECK real de la tabla, hay que
+  actualizar ambos lados al agregar un tipo).
+
+---
+
 ## Replay de Vuelo
 
 - **Parser**: `dji-log-parser-js` WASM — browser-side

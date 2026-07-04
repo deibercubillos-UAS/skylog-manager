@@ -8,6 +8,7 @@ import {
   fmtMetres, fmtArea,
   polygonAreaM2, polygonPerimeter, polylineLength,
 } from '@/lib/kmlGenerator';
+import { LINE_OF_SIGHT_TYPES } from '@/lib/missionTypes';
 
 const MapPickerModal = dynamic(() => import('@/components/authorizations/MapPickerModal'), {
   ssr: false,
@@ -128,6 +129,7 @@ export default function FlightPlanner({ showHeader = true }) {
   useEffect(() => { setFlightDate(todayISO()); }, []);
   const [notes,       setNotes]       = useState('');
   const [altitude,    setAltitude]    = useState(120);
+  const [lineOfSight, setLineOfSight] = useState('');
   const [mapOpen,     setMapOpen]     = useState(false);
   const [zone,        setZone]        = useState(null);
   const [downloading, setDownloading] = useState(false);
@@ -172,7 +174,7 @@ export default function FlightPlanner({ showHeader = true }) {
   }, []);
 
   // Si el usuario edita el plan tras guardarlo, permitir volver a guardar
-  useEffect(() => { setPlanSaved(false); }, [opName, geoType, zone, altitude, flightDate, takeoffTime, notes]);
+  useEffect(() => { setPlanSaved(false); }, [opName, geoType, zone, altitude, flightDate, takeoffTime, lineOfSight, notes]);
 
   const handleDownload = useCallback(async () => {
     if (!zone?.points) return;
@@ -210,6 +212,7 @@ export default function FlightPlanner({ showHeader = true }) {
           altitude:     altitude,
           flight_date:  flightDate || null,
           takeoff_time: takeoffTime || null,
+          line_of_sight: lineOfSight || null,
           notes:        notes.trim() || null,
         }),
       });
@@ -224,7 +227,7 @@ export default function FlightPlanner({ showHeader = true }) {
     } finally {
       setSavingPlan(false);
     }
-  }, [opName, geoType, zone, altitude, flightDate, takeoffTime, notes]);
+  }, [opName, geoType, zone, altitude, flightDate, takeoffTime, lineOfSight, notes]);
 
   const summary    = zone ? getSummary(geoType, zone.points, zone.radius) : null;
   // Se puede descargar con solo el nombre de la operación; la zona es opcional pero enriquece el KMZ
@@ -534,6 +537,29 @@ export default function FlightPlanner({ showHeader = true }) {
               Sobre 120 m AGL requiere autorización especial (RAC 100.32)
             </p>
           )}
+        </div>
+
+        {/* Línea de vista */}
+        <div className="space-y-1.5">
+          <label className="block text-xs font-black uppercase tracking-widest text-slate-500">
+            Línea de vista
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {LINE_OF_SIGHT_TYPES.map(t => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setLineOfSight(t)}
+                className={`py-3 rounded-2xl border text-center text-xs font-black uppercase transition-all active:scale-95 ${
+                  lineOfSight === t
+                    ? 'border-orange-400 bg-orange-50 text-orange-600'
+                    : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Botón mapa */}

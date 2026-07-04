@@ -6,18 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from '@/lib/toast';
 import WeatherWidget from '@/components/WeatherWidget';
-
-const MISSION_TYPES = [
-    'Fotografía / Video',
-    'Inspección técnica',
-    'Mapeo / Fotogrametría',
-    'Agricultura de precisión',
-    'Vigilancia / Seguridad',
-    'Búsqueda y rescate',
-    'Entrenamiento / Práctica',
-    'Recreativo',
-    'Otro',
-];
+import { MISSION_TYPES, LINE_OF_SIGHT_TYPES } from '@/lib/missionTypes';
 
 export default function NewOperationPage() {
     const router = useRouter();
@@ -37,7 +26,7 @@ export default function NewOperationPage() {
     // FLUJO: data -> health -> preflight -> briefing (los pasos se saltan si están desactivados)
     const [step, setStep] = useState('data');
     const [dynamicLabels, setDynamicLabels] = useState([]);
-    const [form, setForm] = useState({ auth_id: '', aircraft_id: '', mission_type: '', plan_id: '', has_plan: false, takeoff_time: '', visual_condition: 'VMC', notes: '' });
+    const [form, setForm] = useState({ auth_id: '', aircraft_id: '', mission_type: '', plan_id: '', has_plan: false, takeoff_time: '', visual_condition: 'VMC', line_of_sight: '', notes: '' });
     const [userRole, setUserRole] = useState(null);
     const [showAuthDetails, setShowAuthDetails] = useState(false);
     const [checks, setChecks] = useState({ health: {}, briefing: {}, preflight: {} });
@@ -149,6 +138,7 @@ export default function NewOperationPage() {
             has_plan:     !!planId,
             takeoff_time: prev.takeoff_time || plan?.takeoff_time?.slice(0, 5) || '',
             notes:        prev.notes || plan?.name || '',
+            line_of_sight: prev.line_of_sight || plan?.line_of_sight || '',
         }));
     };
 
@@ -205,6 +195,7 @@ export default function NewOperationPage() {
                 flightRecord = {
                     takeoff_time:    form.takeoff_time || null,
                     visual_condition: form.visual_condition,
+                    line_of_sight:   form.line_of_sight || selPlan?.line_of_sight || null,
                     notes:           combinedNotes,
                     mission_type:    form.mission_type || null,
                     pilot_id:        myPilotId,
@@ -221,6 +212,8 @@ export default function NewOperationPage() {
                 flightRecord = {
                     takeoff_time:    form.takeoff_time,
                     visual_condition: form.visual_condition,
+                    // Línea de vista se define al planear la misión (Programación), no en Despacho
+                    line_of_sight:   selectedAuth.line_of_sight || null,
                     notes:           form.notes,
                     auth_id:         selectedAuth.id,
                     pilot_id:        selectedAuth.pilot_id,
@@ -378,13 +371,22 @@ export default function NewOperationPage() {
                                         </div>
                                     </div>
 
+                                    {/* Línea de vista — no se puede prellenar sin planeación (vuelo libre) */}
+                                    <div className="space-y-1">
+                                        <label htmlFor="pi-los" className="text-xs font-black uppercase text-slate-600 ml-1">Línea de Vista <span className="text-orange-600">*</span></label>
+                                        <select id="pi-los" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={form.line_of_sight} onChange={e => setForm({...form, line_of_sight: e.target.value})}>
+                                            <option value="">-- Seleccionar --</option>
+                                            {LINE_OF_SIGHT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                        </select>
+                                    </div>
+
                                     <p className="text-xs font-bold text-slate-400 bg-slate-50 rounded-2xl p-4 flex items-start gap-2">
                                         <span className="material-symbols-outlined text-base text-slate-300 mt-0.5 shrink-0">info</span>
                                         La batería y las horas de vuelo se actualizan automáticamente al subir los registros DJI.
                                     </p>
                                 </div>
                                 <div className="flex flex-col gap-3 pt-4">
-                                    <button disabled={!form.mission_type || !form.aircraft_id || !form.takeoff_time} onClick={handleNextStep} className="w-full py-5 bg-orange-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl disabled:bg-slate-200 transition-all active:scale-95">{safetySteps.length === 0 ? 'Registrar Vuelo' : 'Continuar a Seguridad'}</button>
+                                    <button disabled={!form.mission_type || !form.aircraft_id || !form.takeoff_time || !form.line_of_sight} onClick={handleNextStep} className="w-full py-5 bg-orange-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl disabled:bg-slate-200 transition-all active:scale-95">{safetySteps.length === 0 ? 'Registrar Vuelo' : 'Continuar a Seguridad'}</button>
                                 </div>
                             </section>
                         </div>

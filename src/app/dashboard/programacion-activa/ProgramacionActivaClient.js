@@ -19,6 +19,12 @@ export default function ProgramacionActivaClient({
   const [view, setView]         = useState('semana'); // 'lista' | 'semana'
   const [weekOffset, setWeekOffset] = useState(0);   // 0 = semana actual
 
+  // N° de autorización AeroCivil (circular 2026351070026944) — edición inline en la
+  // lista, lo captura el Gerente SMS/Jefe de Pilotos una vez llega la aprobación.
+  const [editingAuthNum, setEditingAuthNum] = useState(null); // mission id
+  const [authNumDraft, setAuthNumDraft]     = useState('');
+  const [savingAuthNum, setSavingAuthNum]   = useState(null);
+
   const DAY_LABELS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
   const iso = (d) => d.toISOString().slice(0, 10);
 
@@ -138,6 +144,30 @@ export default function ProgramacionActivaClient({
     try { await generateFlightPlanPdf(planFromMission(m)); }
     catch (e) { toast.error('No se pudo generar el PDF: ' + e.message); }
     finally { setBusy(null); }
+  };
+
+  const startEditAuthNum = (m) => {
+    setEditingAuthNum(m.id);
+    setAuthNumDraft(m.aerocivil_auth_number || '');
+  };
+
+  const saveAuthNum = async (missionId) => {
+    setSavingAuthNum(missionId);
+    try {
+      const res = await fetch('/api/flights/authorize', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: missionId, aerocivil_auth_number: authNumDraft.trim() || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Error al guardar');
+      setMissions(prev => prev.map(m => m.id === missionId ? { ...m, aerocivil_auth_number: data.aerocivil_auth_number } : m));
+      setEditingAuthNum(null);
+    } catch (e) {
+      toast.error('No se pudo guardar: ' + e.message);
+    } finally {
+      setSavingAuthNum(null);
+    }
   };
 
   // Botón/link "Nueva misión" — navega a /dashboard/authorizations salvo que el padre
@@ -322,6 +352,7 @@ export default function ProgramacionActivaClient({
                   <th className="px-5 py-4">Aeronave</th>
                   <th className="px-5 py-4">Ubicación</th>
                   <th className="px-5 py-4">Estado</th>
+                  {!readOnly && <th className="px-5 py-4">N° Autorización AeroCivil</th>}
                   <th className="px-5 py-4 text-right">Descargas</th>
                 </tr>
               </thead>
@@ -337,6 +368,33 @@ export default function ProgramacionActivaClient({
                     </td>
                     <td className="px-5 py-4 text-xs text-slate-500 max-w-[200px] truncate">{m.location}</td>
                     <td className="px-5 py-4">{statusBadge(m.status)}</td>
+                    {!readOnly && (
+                      <td className="px-5 py-4">
+                        {editingAuthNum === m.id ? (
+                          <div className="flex items-center gap-1.5">
+                            <input autoFocus value={authNumDraft} onChange={e => setAuthNumDraft(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') saveAuthNum(m.id); if (e.key === 'Escape') setEditingAuthNum(null); }}
+                              placeholder="Ej: 2507545"
+                              className="w-32 px-2 py-1.5 rounded-lg border border-orange-300 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-orange-400" />
+                            <button onClick={() => saveAuthNum(m.id)} disabled={savingAuthNum === m.id}
+                              className="text-emerald-600 hover:text-emerald-700 disabled:opacity-50">
+                              <span className={`material-symbols-outlined text-base ${savingAuthNum === m.id ? 'animate-spin' : ''}`}>{savingAuthNum === m.id ? 'progress_activity' : 'check'}</span>
+                            </button>
+                            <button onClick={() => setEditingAuthNum(null)} className="text-slate-400 hover:text-red-500">
+                              <span className="material-symbols-outlined text-base">close</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <button onClick={() => startEditAuthNum(m)}
+                            className="flex items-center gap-1.5 group rounded-lg px-2 py-1 -mx-2 -my-1 hover:bg-orange-50 transition-all">
+                            <span className="material-symbols-outlined text-sm text-slate-300 group-hover:text-orange-400 transition-colors">edit</span>
+                            <span className={m.aerocivil_auth_number ? 'text-slate-700 font-mono font-bold' : 'text-slate-300 italic'}>
+                              {m.aerocivil_auth_number || 'Sin registrar'}
+                            </span>
+                          </button>
+                        )}
+                      </td>
+                    )}
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-2">
                         <button onClick={() => handleKMZ(m)} disabled={busy === `${m.id}:kmz`} title="Descargar KMZ"

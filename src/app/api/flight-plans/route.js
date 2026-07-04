@@ -124,6 +124,7 @@ export async function POST(request) {
       altitude:        body.altitude != null ? parseInt(body.altitude) : null,
       flight_date:     body.flight_date || null,
       takeoff_time:    body.takeoff_time || null,
+      line_of_sight:   ['VLOS', 'EVLOS', 'BVLOS'].includes(body.line_of_sight) ? body.line_of_sight : null,
       location:        body.location ? String(body.location).slice(0, 300) : null,
       notes:           body.notes ? String(body.notes).slice(0, 2000) : null,
     };

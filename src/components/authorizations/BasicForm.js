@@ -6,6 +6,7 @@ import { toast } from '@/lib/toast';
 import { getColombiaGeo } from '@/lib/colombiaGeo';
 import { GEO_TYPES, getZoneSummary, downloadFlightKMZ, generateFlightPlanPdf } from '@/lib/flightPlanDocs';
 import WeatherWidget from '@/components/WeatherWidget';
+import { MISSION_TYPES, LINE_OF_SIGHT_TYPES } from '@/lib/missionTypes';
 
 const MapPickerModal = dynamic(() => import('@/components/authorizations/MapPickerModal'), {
   ssr: false,
@@ -16,27 +17,6 @@ const MapPickerModal = dynamic(() => import('@/components/authorizations/MapPick
   ),
 });
 
-// Tipos de operación según RAC 100 — lista completa
-const MISSION_TYPES = [
-  'SIMPLE CAPTURA DE IMÁGENES O DATOS',
-  'FOTOGRAMETRÍA Y MAPEO',
-  'INSPECCIÓN DE INFRAESTRUCTURA',
-  'INSPECCIÓN DE LÍNEAS ELÉCTRICAS',
-  'INSPECCIÓN DE OLEODUCTOS / GASODUCTOS',
-  'VIGILANCIA Y SEGURIDAD PRIVADA',
-  'ASPERSIÓN / DISPERSIÓN AGRÍCOLA',
-  'TRANSPORTE DE CARGA (DRONE DELIVERY)',
-  'BÚSQUEDA Y RESCATE (SAR)',
-  'APOYO A EMERGENCIAS',
-  'INSTRUCCIÓN Y ENTRENAMIENTO',
-  'PRUEBA Y DESARROLLO (I+D)',
-  'FILMACIÓN Y PRODUCCIÓN AUDIOVISUAL',
-  'BVLOS — MÁS ALLÁ DE LA LÍNEA VISUAL',
-  'OPERACIÓN NOCTURNA',
-  'ENJAMBRE / SWARM',
-  'OTRA OPERACIÓN ESPECIAL',
-];
-
 export default function BasicForm({ pilots, drones, org, loadData, onClose }) {
     const [saving, setSaving] = useState(false);
     const [geo, setGeo] = useState({ depts: [], munis: [], all: [] });
@@ -44,7 +24,7 @@ export default function BasicForm({ pilots, drones, org, loadData, onClose }) {
 
     const [form, setForm] = useState({
         op_name: '', pilot_id: '', aircraft_id: '', department: '', municipality: '',
-        scheduled_at: '', takeoff_time: '08:00', mission_type: MISSION_TYPES[0],
+        scheduled_at: '', takeoff_time: '08:00', mission_type: MISSION_TYPES[0], line_of_sight: '',
         altitude: 120, notes: '',
     });
 
@@ -175,6 +155,7 @@ export default function BasicForm({ pilots, drones, org, loadData, onClose }) {
             pilot_id:    form.pilot_id,
             aircraft_id: form.aircraft_id,
             mission_type: form.mission_type,
+            line_of_sight: form.line_of_sight,
             scheduled_at: form.scheduled_at,
             location: `${form.municipality}, ${form.department}`,
             // Guardar la planeación para regenerar KMZ/PDF desde Programación Activa
@@ -197,7 +178,7 @@ export default function BasicForm({ pilots, drones, org, loadData, onClose }) {
             const data = await res.json();
             if (!res.ok) throw new Error(data?.error || 'Error al guardar');
             toast.success(`Misión autorizada: ${data.mission_id}`);
-            setForm({ op_name: '', pilot_id: '', aircraft_id: '', department: '', municipality: '', scheduled_at: '', takeoff_time: '08:00', mission_type: MISSION_TYPES[0], altitude: 120, notes: '' });
+            setForm({ op_name: '', pilot_id: '', aircraft_id: '', department: '', municipality: '', scheduled_at: '', takeoff_time: '08:00', mission_type: MISSION_TYPES[0], line_of_sight: '', altitude: 120, notes: '' });
             setZone(null);
             if (loadData) loadData();
         } catch (err) {
@@ -257,6 +238,14 @@ export default function BasicForm({ pilots, drones, org, loadData, onClose }) {
                             <label className={labelCls}>Tipo de misión</label>
                             <select required className={inputCls} value={form.mission_type} onChange={e => setForm({...form, mission_type: e.target.value})}>
                                 {MISSION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className={labelCls}>Línea de vista</label>
+                            <select required className={inputCls} value={form.line_of_sight} onChange={e => setForm({...form, line_of_sight: e.target.value})}>
+                                <option value="">— Seleccionar —</option>
+                                {LINE_OF_SIGHT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                             </select>
                         </div>
 

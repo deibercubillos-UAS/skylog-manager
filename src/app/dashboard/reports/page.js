@@ -44,7 +44,19 @@ const REPORT_DEFS = [
         desc: 'Hoja de vida completa con anexos digitales y certificados.',
         needsPilot: true,
     },
+    {
+        key: 'aerocivil', code: null, name: 'Reporte Operacional UAS (AeroCivil)', icon: 'assignment_turned_in',
+        desc: 'Circular 2026351070026944 — envío mensual a gouas@aerocivil.gov.co, primeros 5 días del mes.',
+        needsMonth: true, format: 'xlsx',
+    },
 ];
+
+// Mes anterior en formato YYYY-MM — el reporte AeroCivil siempre es del "mes vencido"
+function previousMonthISO() {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
 
 const PERIODS = ['Este mes', 'Este trimestre', 'Este año', 'Personalizado'];
 
@@ -74,6 +86,9 @@ export default function ReportsPage() {
     const [period, setPeriod] = useState('Este mes');
     const [customFrom, setCustomFrom] = useState('');
     const [customTo, setCustomTo] = useState('');
+    const [selectedMonth, setSelectedMonth] = useState(previousMonthISO());
+    const [aerocivilStatus, setAerocivilStatus] = useState(null);
+    const [markingSent, setMarkingSent] = useState(false);
 
     const [config, setConfig] = useState({
         version: '1.0',
@@ -114,6 +129,35 @@ export default function ReportsPage() {
 
     useEffect(() => { init(); }, []);
 
+    // Estado de envío del reporte AeroCivil del mes seleccionado
+    useEffect(() => {
+        if (openKey !== 'aerocivil') return;
+        let active = true;
+        fetch(`/api/aerocivil-report/status?period=${selectedMonth}`)
+            .then(r => r.json())
+            .then(d => { if (active) setAerocivilStatus(d); })
+            .catch(() => { if (active) setAerocivilStatus(null); });
+        return () => { active = false; };
+    }, [openKey, selectedMonth]);
+
+    const handleMarkSent = async () => {
+        setMarkingSent(true);
+        try {
+            const res = await fetch('/api/aerocivil-report/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ period: selectedMonth }),
+            });
+            if (!res.ok) throw new Error((await res.json())?.error || 'Error al guardar');
+            toast.success('Marcado como enviado');
+            setAerocivilStatus(prev => ({ ...prev, sent: true }));
+        } catch (e) {
+            toast.error(e.message);
+        } finally {
+            setMarkingSent(false);
+        }
+    };
+
     const updateLogo = async (url) => {
         await supabase.from('organizations').update({ logo_url: url }).eq('id', orgData.id);
         init();
@@ -135,6 +179,7 @@ export default function ReportsPage() {
         const { from, to } = periodRange(period, customFrom, customTo);
         if (def.needsPeriod && (!from || !to)) return toast.warn('Selecciona un periodo válido.');
         if (def.needsPilot && !selectedPilot) return toast.warn('Selecciona un tripulante.');
+        if (def.needsMonth && !/^\d{4}-\d{2}$/.test(selectedMonth)) return toast.warn('Selecciona un mes válido.');
 
         setDownloadingKey(def.key);
         try {
@@ -176,6 +221,12 @@ export default function ReportsPage() {
                     logoUrl: orgData?.logo_url,
                     reportDate: config.reportDate,
                 });
+            }
+            if (def.key === 'aerocivil') {
+                const res = await fetch(`/api/reports/aerocivil-monthly?month=${selectedMonth}`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data?.error || 'Error al obtener los datos');
+                await generators.generateAerocivilMonthlyExcel(data.rows, selectedMonth);
             }
         } catch (e) {
             toast.error("Error al generar reporte");
@@ -236,8 +287,8 @@ export default function ReportsPage() {
                             <p className="text-sm font-black text-slate-900 uppercase tracking-tight">{def.name}</p>
                             <p className="text-xs text-slate-500 leading-snug">{def.desc}</p>
                             <div className="flex items-center gap-1.5 mt-auto pt-2.5 border-t border-slate-100 text-orange-600">
-                                <span className="material-symbols-outlined text-sm">{openKey === def.key ? 'expand_less' : 'picture_as_pdf'}</span>
-                                <span className="text-[10.5px] font-black uppercase tracking-wide">{openKey === def.key ? 'Ocultar opciones' : 'Generar PDF'}</span>
+                                <span className="material-symbols-outlined text-sm">{openKey === def.key ? 'expand_less' : (def.format === 'xlsx' ? 'table_view' : 'picture_as_pdf')}</span>
+                                <span className="text-[10.5px] font-black uppercase tracking-wide">{openKey === def.key ? 'Ocultar opciones' : (def.format === 'xlsx' ? 'Generar Excel' : 'Generar PDF')}</span>
                             </div>
                         </button>
                     ))}
@@ -261,6 +312,29 @@ export default function ReportsPage() {
                                     value={formCodes[activeDef.key]}
                                     onChange={e => setFormCodes({ ...formCodes, [activeDef.key]: e.target.value })} />
                                 <p className="text-[10px] font-semibold text-slate-400">Personaliza el código con el que se identifica este reporte en tu organización.</p>
+                            </div>
+                        )}
+
+                        {activeDef.needsMonth && (
+                            <div className="flex flex-wrap items-center gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-[9.5px] font-black uppercase tracking-wide text-slate-400 ml-0.5">Mes a reportar (mes vencido)</label>
+                                    <input type="month" className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
+                                        value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} max={previousMonthISO()} />
+                                </div>
+                                {aerocivilStatus && (
+                                    aerocivilStatus.sent ? (
+                                        <span className="flex items-center gap-1.5 text-xs font-black text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1.5">
+                                            <span className="material-symbols-outlined text-sm">check_circle</span>
+                                            Enviado{aerocivilStatus.sentByName ? ` · ${aerocivilStatus.sentByName}` : ''}
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center gap-1.5 text-xs font-black text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-3 py-1.5">
+                                            <span className="material-symbols-outlined text-sm">pending</span>
+                                            Pendiente de envío
+                                        </span>
+                                    )
+                                )}
                             </div>
                         )}
 
@@ -320,10 +394,17 @@ export default function ReportsPage() {
                                 className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-black text-xs uppercase tracking-wide hover:bg-slate-50 transition-all">
                                 Cancelar
                             </button>
+                            {activeDef.key === 'aerocivil' && !aerocivilStatus?.sent && (
+                                <button type="button" onClick={handleMarkSent} disabled={markingSent}
+                                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 font-black text-xs uppercase tracking-wide hover:bg-emerald-100 transition-all disabled:opacity-50">
+                                    <span className="material-symbols-outlined text-base">{markingSent ? 'progress_activity' : 'check_circle'}</span>
+                                    {markingSent ? 'Guardando...' : 'Marcar como enviado'}
+                                </button>
+                            )}
                             <button type="button" onClick={() => handleDownload(activeDef)} disabled={downloadingKey === activeDef.key}
                                 className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-wide shadow-lg shadow-orange-600/25 active:scale-95 transition-all disabled:opacity-50">
-                                <span className="material-symbols-outlined text-base">picture_as_pdf</span>
-                                {downloadingKey === activeDef.key ? 'Generando...' : 'Descargar PDF'}
+                                <span className="material-symbols-outlined text-base">{activeDef.format === 'xlsx' ? 'table_view' : 'picture_as_pdf'}</span>
+                                {downloadingKey === activeDef.key ? 'Generando...' : (activeDef.format === 'xlsx' ? 'Descargar Excel' : 'Descargar PDF')}
                             </button>
                         </div>
                     </div>

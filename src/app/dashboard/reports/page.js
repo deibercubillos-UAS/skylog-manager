@@ -55,6 +55,11 @@ const REPORT_DEFS = [
         desc: 'Evaluaciones internas de capacitación por tripulante — Operaciones o Mantenimiento, en el periodo.',
         needsPeriod: true, needsTrainingType: true,
     },
+    {
+        key: 'trainingSchedule', code: 'F-CAP-009', name: 'Cronograma de Capacitación', icon: 'event_note',
+        desc: 'Sesiones programadas (tema + recurrencia) — Operaciones o Mantenimiento, con sus fechas dentro del periodo.',
+        needsPeriod: true, needsTrainingType: true,
+    },
 ];
 
 // Mes anterior en formato YYYY-MM — el reporte AeroCivil siempre es del "mes vencido"
@@ -279,6 +284,10 @@ export default function ReportsPage() {
             if (def.key === 'training') {
                 const res = await fetch(`/api/reports/training?type=${trainingType}&from=${from}&to=${to}`);
                 generators.generateTrainingReport(await res.json(), { ...common, trainingType });
+            }
+            if (def.key === 'trainingSchedule') {
+                const res = await fetch(`/api/reports/training-schedule?type=${trainingType}&from=${from}&to=${to}`);
+                generators.generateTrainingScheduleReport(await res.json(), { ...common, trainingType });
             }
         } catch (e) {
             toast.error("Error al generar reporte");

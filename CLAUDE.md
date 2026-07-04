@@ -1148,6 +1148,28 @@ bloqueo tanto por reprobar como por vencer el plazo, y alerta por campana **y** 
   Sin `profile_id` en `pilots` (tripulante sin cuenta en la plataforma) se omite la
   campana pero se intenta igual el correo si hay `pilots.email`.
 
+### Reporte de Cronograma de Capacitación (2026-07-08, mismo día)
+
+Segunda tarjeta en Reportes para Capacitación, pedida junto con la v2: además del
+reporte de Evaluaciones (`F-CAP-008`, ya existente) se agrega "Cronograma de
+Capacitación" (`F-CAP-009`) — mismo selector Operaciones/Mantenimiento
+(`needsTrainingType`) + mismo selector de periodo Este mes/trimestre/año/Personalizado
+(`needsPeriod`) que ya usan el resto de reportes periódicos, para no introducir un
+segundo sistema de rango de fechas distinto al ya establecido en la página.
+
+- **No es un log histórico** (`training_sessions` no registra "sesiones ya dictadas",
+  solo la definición recurrente: tema + cadencia + `start_date`) — así que el reporte
+  **proyecta** cada sesión a sus fechas reales de ocurrencia dentro del rango pedido,
+  en vez de solo listar la fila de configuración. Nueva función
+  `occurrencesInRange(session, from, to)` en `lib/trainingCompliance.js`, reutilizando
+  el mismo paso fijo de N días (`cycleLengthDays`) que ya usa el cumplimiento del
+  examen — ninguna ocurrencia se inventa fuera de esa cadencia real.
+- **`GET /api/reports/training-schedule?type=&from=&to=`**: trae las sesiones del tipo
+  pedido y expande cada una a sus ocurrencias en el rango, orden cronológico.
+- **`generateTrainingScheduleReport()`** en `reportGenerators.js`: mismo layout jsPDF
+  (logo/versión/fecha/nota de trazabilidad/firmas) que `generateTrainingReport()` —
+  columnas Fecha Programada/Tema/Recurrencia/Observaciones.
+
 ---
 
 ## Notificaciones (campana)

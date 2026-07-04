@@ -73,3 +73,27 @@ export function computeCompliance(exam, attempts, today = new Date()) {
 export const RECURRENCE_LABELS = {
     semanal: 'Semanal', quincenal: 'Quincenal', mensual: 'Mensual', personalizado: 'Personalizado',
 };
+
+// Fechas reales de ocurrencia de una sesión del cronograma (`training_sessions`)
+// dentro de [from, to] — se proyectan desde `start_date` con el mismo paso fijo
+// de N días que usa el cumplimiento de examen (`cycleLengthDays`), NUNCA se
+// inventa una ocurrencia fuera de esa cadencia. Usado por el reporte de
+// Cronograma de Capacitación en /dashboard/reports.
+export function occurrencesInRange(session, from, to) {
+    const len = cycleLengthDays(session);
+    const start = new Date(`${session.start_date}T00:00:00`);
+    const rangeFrom = new Date(`${from}T00:00:00`);
+    const rangeTo = new Date(`${to}T00:00:00`);
+    if (isNaN(start) || isNaN(rangeFrom) || isNaN(rangeTo) || rangeTo < start) return [];
+
+    const diffToFrom = Math.floor((rangeFrom - start) / 86400000);
+    let k = diffToFrom > 0 ? Math.ceil(diffToFrom / len) : 0;
+    const dates = [];
+    let occ = new Date(start.getTime() + k * len * 86400000);
+    while (occ <= rangeTo && dates.length < 1000) {
+        if (occ >= rangeFrom) dates.push(isoDate(occ));
+        k += 1;
+        occ = new Date(start.getTime() + k * len * 86400000);
+    }
+    return dates;
+}

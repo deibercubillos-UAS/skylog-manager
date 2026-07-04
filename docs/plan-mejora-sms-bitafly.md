@@ -84,9 +84,17 @@ primer hueco en el guard existente del hub. Todos los módulos nuevos (Fases
 
 Sin migraciones en esta fase — cada módulo trae la suya en su propia fase.
 
-### Fase 1 — Reordenar la IA del hub Seguridad SMS
-Nuevo array de tabs en `dashboard/safety/page.js` con el orden de arriba. Sin
-cambios de datos — es puramente de navegación/organización visual.
+### Fase 1 — Reordenar la IA del hub Seguridad SMS ✅ Completada
+Reordenado el array `TABS` en `dashboard/safety/page.js`: de
+`[sora, barreras, reportes, mapas]` a `[sora, reportes, barreras, mapas]`
+(Reportes SMS y Barreras intercambian posición) — coincide con el orden
+relativo del layout objetivo. Sin cambios de datos, puramente de navegación.
+Se dejaron comentarios en el array marcando dónde se insertará cada tab
+nuevo (Evaluación de Riesgos/Indicadores/Mejora Continua/Acciones
+Correctivas antes de "Reportes SMS"; Reportes de Seg. Operacional después;
+Capacitación SMS al final) para que las Fases 2-7 solo agreguen su entrada
+sin tener que volver a decidir el orden. `npm run lint` y `npm run build`
+verificados limpios.
 
 ### Fase 2 — Evaluación y Gestión de Riesgos (matriz base)
 Del apartado *"ii. Evaluación y gestión de riesgos de seguridad operacional"*
@@ -199,7 +207,7 @@ build.
 | Fase | Estado |
 |---|---|
 | 0 — Preparación | ✅ Completada |
-| 1 — Reordenar IA del hub | Pendiente |
+| 1 — Reordenar IA del hub | ✅ Completada |
 | 2 — Evaluación y Gestión de Riesgos | Pendiente |
 | 3 — Indicadores (SPI) | Pendiente |
 | 4 — Mejora Continua (GAP simple) | Pendiente |

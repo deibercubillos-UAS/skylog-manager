@@ -17,11 +17,18 @@ const AddBarrierPanel = dynamic(() => import('@/components/safety/AddBarrierPane
 const ARCGIS_UAS_URL =
   'https://aerocivil.maps.arcgis.com/apps/instant/media/index.html?appid=b4be4d501c8d4bcabd0c35297521c16e&center=-74.1;4.5&level=6';
 
+// Orden fijado por docs/plan-mejora-sms-bitafly.md — Fase 1: los tabs nuevos
+// (Evaluación de Riesgos, Indicadores SPI, Mejora Continua, Acciones
+// Correctivas, Reportes de Seg. Operacional, Capacitación SMS) se insertan
+// en sus fases respectivas en las posiciones ya reservadas aquí.
 const TABS = [
   { id: 'sora',     label: 'Análisis SORA',           icon: 'analytics' },
-  { id: 'barreras', label: 'Barreras de Seguridad',   icon: 'shield' },
+  // ← Fases 2-5: Evaluación de Riesgos · Indicadores (SPI) · Mejora Continua · Acciones Correctivas
   { id: 'reportes', label: 'Reportes SMS',            icon: 'health_and_safety' },
+  // ← Fase 6: Reportes de Seguridad Operacional (plazos MOR/VOR)
+  { id: 'barreras', label: 'Barreras de Seguridad',   icon: 'shield' },
   { id: 'mapas',    label: 'Mapas de restricción',    icon: 'map' },
+  // ← Fase 7: Capacitación SMS
 ];
 
 const SORA_STATUS = {

@@ -91,7 +91,7 @@ lib/
 
 Tablas principales:
 - `profiles` — users, tiene `organization_id`, `role`, `subscription_plan`, `epayco_subscription_id`, `subscription_expires_at` (NO existe `org_id` ni `plan`; `organizations` no tiene columna de plan)
-- `organizations` — tenant. Tiene `enable_health_check`, `enable_preflight`, `enable_briefing` (toggles protocolos). Registro AeroCivil: `dan_number` (N° Explotador), `operator_number` (N.º de operador UAS), `registration_expiry` (vigencia del registro), `authorized_operations jsonb` (chips de autorizaciones activas, texto libre) — ver **Organización rediseñada**.
+- `organizations` — tenant. Tiene `enable_health_check`, `enable_preflight`, `enable_briefing`, `enable_inventory_checklist` (toggles protocolos, ver **Inventario de Operación**). Registro AeroCivil: `dan_number` (N° Explotador), `operator_number` (N.º de operador UAS), `registration_expiry` (vigencia del registro), `authorized_operations jsonb` (chips de autorizaciones activas, texto libre) — ver **Organización rediseñada**.
 - `pilots` · `aircraft` · `batteries` · `battery_logs`. `pilots.invitation_status` 'pending'/'accepted'/'rejected'/null · `pilots.profile_id` se vincula al aceptar invitación · `pilots.avatar_url`/`aerocivil_additions` (jsonb)/`notes`
   - `aircraft` mantenimiento: `maintenance_interval_hours` (default 200), `maintenance_interval_days` (default 180), `operational_status` ('disponible'/'en_mantenimiento', CHECK, NOT NULL), `last_status_change`. Ver sección **Mantenimiento de Aeronaves**. La foto va en `image_url` (bucket público `fleet-images`, ver Convenciones).
 - `flights` — además de los campos de PATCH: `total_time` (double precision, **horas**) es la duración real del vuelo. La bitácora muestra duración desde `total_time` (fallback takeoff/landing); el import DJI lo calcula de `duracion_s/3600`.
@@ -773,6 +773,44 @@ resto del rediseño porque no encaja el patrón de "página", sino un flujo kios
   de medianoche en vez de rechazarse — sin enmascarar errores de captura genuinos (una
   hora de aterrizaje anterior por error grande sigue devolviendo una duración implausible
   y se sigue bloqueando).
+
+### Inventario de Operación — nuevo checklist antes de Pre-vuelo (2026-07-05)
+
+Nueva pestaña de sidebar **"Inventario"** (`/dashboard/inventory-checklist`, grupo
+Cumplimiento): checklist de equipo/insumos (baterías cargadas, botiquín, extintor,
+chalecos, etc.) que se diligencia en el Despacho **antes del checklist de Pre-vuelo**,
+mismo patrón `form_definitions` + `results_<tipo>` que Salud/Pre-vuelo/Briefing (ver
+`lib/checklistDefaults.js`, nuevo `form_type: 'inventory'`).
+
+- **Por qué pestaña propia y no una tarjeta más en Protocolos**: el usuario pidió que el
+  checklist lo puedan **crear/editar Gerente General + Gerente SMS + Jefe de Pilotos**, y lo
+  pueda **ver/diligenciar cualquiera**. La página `Protocolos` (`/dashboard/settings/forms`,
+  donde viven los otros 4 checklists operativos) está gateada completa a
+  `canViewFinance` (`superadmin/admin/gerente_sms` — **sin** `jefe_pilotos`), y ampliar ese
+  guard habría dado a JP acceso a todo lo demás de Protocolos (biblioteca de protocolos
+  libres, enlaces a formatos VOR/MOR) sin que se pidiera. Se creó en cambio una página
+  dedicada con su propio permiso, sin tocar el guard de Protocolos.
+- **Permisos nuevos** (`lib/roles.js`): `canManageInventoryChecklist` (superadmin+admin+
+  gerente_sms+jefe_pilotos — crear/editar ítems y activar/desactivar) y
+  `canViewInventoryChecklist` (+ `piloto` — ver la página, incluye a quien la diligencia en
+  Despacho). El layout de la ruta (`inventory-checklist/layout.js`) gatea con el segundo
+  (view); el componente cliente oculta los controles de edición si el rol no tiene el
+  primero, mostrando en su lugar la lista ya configurada en modo solo-lectura.
+- **Migración `20260705_inventory_checklist.sql`** (aplicada en Supabase): columna
+  `organizations.enable_inventory_checklist boolean DEFAULT false` (a diferencia de
+  `enable_health_check`/`enable_preflight`/`enable_briefing`, que ya nacieron en `true` —
+  este es un tipo nuevo, así que por defecto **no** aparece en el Despacho de ninguna
+  organización existente hasta que un manager lo active desde la nueva pestaña) + tabla
+  `results_inventory` (`flight_id`, `checks jsonb`, `organization_id`), RLS `tenant_isolation`
+  idéntica a `results_health`/`results_briefing`/`results_preflight`.
+- **Despacho** (`app/dashboard/logbook/new/page.js`): el wizard ahora reconoce un 4º paso de
+  seguridad `inventory`, insertado en `safetySteps` entre `health` y `preflight` — orden final
+  **Salud → Inventario → Pre-vuelo → Briefing** (los pasos desactivados siguen
+  saltándose, igual que antes). Usa exactamente la misma infraestructura genérica de
+  `dynamicLabels`/`checks[step]`/`stepComplete` que ya alimentaba los otros 3 pasos — no hubo
+  que tocar esa lógica, solo agregar `inventory` a `stepNames`/`stepIcons` y a la lista de
+  tablas `results_*` que se insertan en `handleFinalize`. Al igual que Briefing/Salud, el
+  checklist de Inventario es `aircraft_model='General'` (no varía por modelo de aeronave).
 
 ---
 

@@ -51,6 +51,10 @@ export const PERMISSIONS = {
     canViewManuals:     ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'],
     // Anuncios en la campana — los publican GG/GSMS/JP (+ superadmin)
     canSendAnnouncements: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],
+    // Checklist de Inventario de Operación — lo crean/editan GG+GSMS+JP; lo ve
+    // (y lo diligencia en Despacho) cualquier rol que despache, incluido piloto.
+    canManageInventoryChecklist: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],
+    canViewInventoryChecklist:   ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'],
 };
 
 // Helper: ¿el usuario tiene un permiso?

@@ -51,6 +51,22 @@ export const CHECKLIST_DEFAULTS = {
     'Extintor / kit de primeros auxilios disponible',
   ],
 
+  // ── INVENTARIO (equipo y elementos requeridos el día de la operación) ──
+  inventory: [
+    'Baterías de la aeronave cargadas y en buen estado',
+    'Cargador y fuente de energía disponibles',
+    'Hélices de repuesto completas',
+    'Control remoto con batería cargada',
+    'Tarjetas de memoria disponibles y con espacio',
+    'Maletín / estuche de transporte en buen estado',
+    'Chalecos e identificación visible de la tripulación',
+    'Botiquín de primeros auxilios disponible',
+    'Conos o cintas de señalización de la zona',
+    'Extintor disponible y vigente',
+    'Documentación de la operación (autorización, pólizas) accesible',
+    'Radios o medios de comunicación entre tripulación',
+  ],
+
   // ── RECIBO MTTO (recibo de drone posterior al mantenimiento) ───────────
   maintenance_return: [
     'Hélices instaladas, sin grietas ni desgaste',

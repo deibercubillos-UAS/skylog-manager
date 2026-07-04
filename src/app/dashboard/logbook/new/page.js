@@ -15,6 +15,7 @@ export default function NewOperationPage() {
     const [resources, setResources] = useState({ auths: [], batteries: [], aircraft: [] });
     const [healthDone, setHealthDone] = useState(false);
     const [healthEnabled, setHealthEnabled] = useState(true);
+    const [inventoryEnabled, setInventoryEnabled] = useState(false);
     const [preflightEnabled, setPreflightEnabled] = useState(true);
     const [briefingEnabled, setBriefingEnabled] = useState(true);
 
@@ -29,13 +30,13 @@ export default function NewOperationPage() {
     const [form, setForm] = useState({ auth_id: '', aircraft_id: '', mission_type: '', plan_id: '', has_plan: false, takeoff_time: '', visual_condition: 'VMC', line_of_sight: '', notes: '' });
     const [userRole, setUserRole] = useState(null);
     const [showAuthDetails, setShowAuthDetails] = useState(false);
-    const [checks, setChecks] = useState({ health: {}, briefing: {}, preflight: {} });
+    const [checks, setChecks] = useState({ health: {}, inventory: {}, briefing: {}, preflight: {} });
     const [selectedAuth, setSelectedAuth] = useState(null);
     const [cancelNotes, setCancelNotes] = useState('');
     const [showCancelModal, setShowCancelModal] = useState(false);
 
-    const stepNames = { data: 'OPERATIVA', health: 'SALUD', preflight: 'PRE-VUELO', briefing: 'BRIEFING' };
-    const stepIcons = { data: 'assignment', health: 'health_and_safety', preflight: 'checklist', briefing: 'groups' };
+    const stepNames = { data: 'OPERATIVA', health: 'SALUD', inventory: 'INVENTARIO', preflight: 'PRE-VUELO', briefing: 'BRIEFING' };
+    const stepIcons = { data: 'assignment', health: 'health_and_safety', inventory: 'inventory_2', preflight: 'checklist', briefing: 'groups' };
 
     useEffect(() => {
         async function init() {
@@ -54,7 +55,7 @@ export default function NewOperationPage() {
                     supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).eq('status', 'Operativo'),
                     supabase.from('aircraft').select('id, model, serial_number, operational_status').eq('organization_id', prof.organization_id).neq('status', 'Baja').neq('operational_status', 'en_mantenimiento'),
                     supabase.from('daily_health_checks').select('*').eq('user_id', user.id).eq('check_date', new Date().toISOString().split('T')[0]),
-                    supabase.from('organizations').select('enable_health_check, enable_preflight, enable_briefing').eq('id', prof.organization_id).single(),
+                    supabase.from('organizations').select('enable_health_check, enable_inventory_checklist, enable_preflight, enable_briefing').eq('id', prof.organization_id).single(),
                     fetch('/api/flight-plans').then(r => { if (!r.ok) { console.warn('[fetch] /api/flight-plans failed:', r.status); return []; } return r.json(); })
                 ]);
 
@@ -63,6 +64,7 @@ export default function NewOperationPage() {
                 setResources({ auths: auths || [], batteries: batteries.data || [], aircraft: aircraftList });
                 setHealthDone(health.data?.length > 0);
                 setHealthEnabled(org.data?.enable_health_check ?? true);
+                setInventoryEnabled(org.data?.enable_inventory_checklist ?? false);
                 setPreflightEnabled(org.data?.enable_preflight ?? true);
                 setBriefingEnabled(org.data?.enable_briefing ?? true);
 
@@ -145,8 +147,10 @@ export default function NewOperationPage() {
     const handleCheck = (num, value) => setChecks(prev => ({ ...prev, [step]: { ...prev[step], [num]: value } }));
 
     // Pasos de seguridad activos, en orden. Health se omite si está desactivado o ya se hizo hoy.
+    // Inventario va antes de Pre-vuelo (verificar equipo/insumos antes de la inspección de la aeronave).
     const safetySteps = [
         (healthEnabled && !healthDone) ? 'health' : null,
+        inventoryEnabled ? 'inventory' : null,
         preflightEnabled ? 'preflight' : null,
         briefingEnabled ? 'briefing' : null,
     ].filter(Boolean);
@@ -235,6 +239,7 @@ export default function NewOperationPage() {
             // 2. Guardar resultados de las listas de chequeo
             const tasks = [
                 supabase.from('results_health').insert([{ flight_id: flight.id, checks: checks.health, organization_id: orgId }]),
+                supabase.from('results_inventory').insert([{ flight_id: flight.id, checks: checks.inventory, organization_id: orgId }]),
                 supabase.from('results_briefing').insert([{ flight_id: flight.id, checks: checks.briefing, organization_id: orgId }]),
                 supabase.from('results_preflight').insert([{ flight_id: flight.id, checks: checks.preflight, organization_id: orgId }]),
             ];

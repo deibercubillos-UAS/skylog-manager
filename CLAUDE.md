@@ -678,6 +678,15 @@ Reportes SMS · Reportes de Seg. Operacional · Barreras · Mapas · Capacitaci�
 sigue gateado con `canViewFinance` (lectura) / `canManageSMS` (escritura) — **no se creó ningún
 permiso nuevo** en ninguna de las 8 fases.
 
+**Tab "Reportes SMS" eliminada del hub (a pedido del usuario, tras cerrar la Fase 8)**: quedan 9
+tabs. El consolidado SMS+VOR/MOR (`allCases`/`repStats` en `dashboard/safety/page.js`) y el fetch
+de `sms_reports` en `loadAll()` se retiraron por completo (no solo se ocultó el tab) — ya no hay
+en el hub una tabla que liste los reportes SMS/VOR/MOR individuales. `/dashboard/sms` (creación
+de un reporte SMS puntual) y `/dashboard/vor-mor` (gestión VOR/MOR, con su propio listado) siguen
+existiendo como páginas independientes sin cambios en su lógica — solo que ya no tienen un enlace
+de entrada desde el hub, quedan accesibles por URL directa únicamente. El tab "Reportes de Seg.
+Operacional" (Fase 6) sigue mostrando el cumplimiento de plazos de VOR/MOR, sin cambios.
+
 - **Evaluación de Riesgos**: matriz 5×5 de probabilidad/gravedad personalizable por org (semilla
   OACI Doc 9859) + tabla de tolerabilidad (inaceptable/tolerable/aceptable, editable celda por
   celda) + registro de peligros (`safety_hazards`) con mitigación en texto libre. Índice de riesgo

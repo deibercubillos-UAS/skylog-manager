@@ -39,7 +39,6 @@ const TABS = [
   { id: 'indicadores', label: 'Indicadores (SPI)',    icon: 'monitoring' },
   { id: 'mejora',   label: 'Mejora Continua',         icon: 'trending_up' },
   { id: 'acciones', label: 'Acciones Correctivas',    icon: 'checklist' },
-  { id: 'reportes', label: 'Reportes SMS',            icon: 'health_and_safety' },
   { id: 'plazos',   label: 'Reportes de Seg. Operacional', icon: 'gavel' },
   { id: 'barreras', label: 'Barreras de Seguridad',   icon: 'shield' },
   { id: 'mapas',    label: 'Mapas de restricción',    icon: 'map' },
@@ -50,19 +49,6 @@ const SORA_STATUS = {
   complete: { label: 'Completada', cls: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
   draft:    { label: 'Borrador',   cls: 'bg-amber-50 text-amber-600 border-amber-200' },
   archived: { label: 'Archivada',  cls: 'bg-slate-50 text-slate-500 border-slate-200' },
-};
-const SMS_SEVERITY = {
-  incidente:       { label: 'Incidente',       cls: 'bg-blue-50 text-blue-600 border-blue-200' },
-  incidente_grave: { label: 'Incidente grave', cls: 'bg-amber-50 text-amber-600 border-amber-200' },
-  accidente:       { label: 'Accidente',       cls: 'bg-red-50 text-red-600 border-red-200' },
-};
-const CASE_STATUS = {
-  abierto:          { label: 'Abierto',          cls: 'bg-sky-50 text-sky-600 border-sky-200' },
-  en_analisis:      { label: 'En análisis',      cls: 'bg-amber-50 text-amber-600 border-amber-200' },
-  recibido:         { label: 'Recibido',         cls: 'bg-sky-50 text-sky-600 border-sky-200' },
-  en_investigacion: { label: 'En investigación', cls: 'bg-amber-50 text-amber-600 border-amber-200' },
-  cerrado:          { label: 'Cerrado',          cls: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
-  archivado:        { label: 'Archivado',        cls: 'bg-slate-50 text-slate-500 border-slate-200' },
 };
 const HAZARD_SOURCE = {
   manual: { label: 'Manual', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
@@ -137,7 +123,6 @@ export default function SafetyPage() {
 
   const [sora, setSora]             = useState([]);
   const [barreras, setBarreras]     = useState([]);
-  const [smsReports, setSmsReports] = useState([]);
   const [vorMor, setVorMor]         = useState([]);
   const [riskConfig, setRiskConfig] = useState({ probability: [], severity: [], tolerability: [] });
   const [hazards, setHazards]       = useState([]);
@@ -160,12 +145,9 @@ export default function SafetyPage() {
   const spiReportYear = new Date().getFullYear() - 1; // año que corresponde reportar (vencido)
 
   const loadAll = useCallback(async (organizationId) => {
-    const [soraRes, barriersRes, smsRes, vorMorRes, riskConfigRes, hazardsRes, indicatorsRes, spiSubmissionRes, gapQuestionsRes, gapAssessmentsRes, caseActionsRes, smsSessionsRes] = await Promise.all([
+    const [soraRes, barriersRes, vorMorRes, riskConfigRes, hazardsRes, indicatorsRes, spiSubmissionRes, gapQuestionsRes, gapAssessmentsRes, caseActionsRes, smsSessionsRes] = await Promise.all([
       fetch('/api/sora/assessments').then(r => r.json()).catch(() => []),
       fetch('/api/safety/barriers').then(r => r.json()).catch(() => []),
-      supabase.from('sms_reports')
-        .select('id,severity,narrative,occurrence_date,created_at,updated_at,status,owner:owner_id(full_name)')
-        .eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(100),
       fetch('/api/vor-mor?limit=50').then(r => r.json()).catch(() => ({ data: [] })),
       fetch('/api/safety/risk-config').then(r => r.json()).catch(() => ({ probability: [], severity: [], tolerability: [] })),
       fetch('/api/safety/hazards').then(r => r.json()).catch(() => []),
@@ -178,7 +160,6 @@ export default function SafetyPage() {
     ]);
     setSora(Array.isArray(soraRes) ? soraRes : []);
     setBarreras(Array.isArray(barriersRes) ? barriersRes : []);
-    setSmsReports(smsRes.data || []);
     setVorMor(Array.isArray(vorMorRes?.data) ? vorMorRes.data : []);
     setRiskConfig(riskConfigRes?.probability ? riskConfigRes : { probability: [], severity: [], tolerability: [] });
     setHazards(Array.isArray(hazardsRes) ? hazardsRes : []);
@@ -252,30 +233,6 @@ export default function SafetyPage() {
     }
   };
 
-  // ── Reportes SMS + VOR/MOR consolidados en una sola lista de casos ──
-  const allCases = useMemo(() => {
-    const smsRows = smsReports.map(r => ({
-      id: r.id, source: 'sms',
-      title: r.narrative || 'Reporte SMS sin narrativa',
-      classLabel: 'SMS', classCls: 'bg-slate-100 text-slate-600',
-      date: r.occurrence_date || r.created_at,
-      updatedAt: r.updated_at,
-      severity: r.severity, status: r.status,
-      reporter: r.owner?.full_name || 'Equipo SMS',
-    }));
-    const vorMorRows = vorMor.map(r => ({
-      id: r.id, source: 'vormor',
-      title: r.description || 'Sin descripción',
-      classLabel: r.type,
-      classCls: r.type === 'MOR' ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600',
-      date: r.occurrence_date || r.created_at,
-      updatedAt: r.updated_at,
-      severity: r.severity, status: r.status,
-      reporter: r.is_anonymous ? 'Anónimo' : (r.reporter_name || 'Anónimo'),
-    }));
-    return [...smsRows, ...vorMorRows].sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [smsReports, vorMor]);
-
   // ── CTA del hero, cambia según la pestaña activa ──
   const heroRight = (() => {
     if (tab === 'sora') {
@@ -333,8 +290,7 @@ export default function SafetyPage() {
       );
     }
     const cfgByTab = {
-      reportes: { href: '/dashboard/sms', label: 'Nuevo reporte', icon: 'report' },
-      mapas:    { href: '/dashboard/safety/mapas', label: 'Abrir visor completo', icon: 'open_in_new' },
+      mapas: { href: '/dashboard/safety/mapas', label: 'Abrir visor completo', icon: 'open_in_new' },
     };
     const cfg = cfgByTab[tab];
     if (!cfg) return null;
@@ -357,22 +313,6 @@ export default function SafetyPage() {
       { key: 'sail',  label: 'SAIL promedio',  value: sailRoman(avgSail), icon: 'analytics',  iconColor: '#4f46e5' },
       { key: 'ok',    label: 'Completadas',    value: completed,         icon: 'check_circle', iconColor: '#16a34a' },
       { key: 'draft', label: 'En borrador',    value: draft,             icon: 'schedule', iconColor: draft > 0 ? '#d97706' : '#94a3b8' },
-    ];
-  })() : null;
-
-  const thisYear = new Date().getFullYear().toString();
-  const repStats = allCases.length > 0 ? (() => {
-    const yearCount = allCases.filter(c => (c.date || '').startsWith(thisYear)).length;
-    const closed = allCases.filter(c => ['cerrado', 'archivado'].includes(c.status));
-    const openCount = allCases.filter(c => !['cerrado', 'archivado'].includes(c.status)).length;
-    const avgDays = closed.length > 0
-      ? Math.round(closed.reduce((s, c) => s + Math.max(0, (new Date(c.updatedAt) - new Date(c.date)) / 86400000), 0) / closed.length)
-      : null;
-    return [
-      { key: 'year',   label: 'Reportes este año',        value: yearCount,     icon: 'health_and_safety', iconColor: '#d97706' },
-      { key: 'closed', label: 'Cerrados',                 value: closed.length, icon: 'check_circle', iconColor: '#16a34a' },
-      { key: 'avg',    label: 'Tiempo prom. de cierre',   value: avgDays !== null ? `${avgDays}d` : '—', icon: 'schedule', iconColor: '#4f46e5' },
-      { key: 'open',   label: 'Abiertos / en análisis',   value: openCount,     icon: 'pending_actions', iconColor: openCount > 0 ? '#d97706' : '#94a3b8' },
     ];
   })() : null;
 
@@ -929,70 +869,6 @@ export default function SafetyPage() {
                   })}
                 </div>
               </TableShell>
-            </div>
-          )}
-
-          {/* ── Reportes SMS (consolidado: SMS + VOR/MOR) ── */}
-          {tab === 'reportes' && (
-            <div className="space-y-4 animate-in fade-in duration-200">
-              {repStats && <KPIStrip variant="strip" items={repStats} />}
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1 bg-orange-50 border border-orange-200 rounded-2xl p-4">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-orange-600 text-base">description</span>
-                    <span className="text-xs font-black text-orange-800">VOR — Voluntary Occurrence Report</span>
-                  </div>
-                  <p className="text-xs text-orange-700 mt-1.5 leading-snug">Reporte voluntario de cualquier situación que pudo afectar la seguridad, sin obligación regulatoria de notificarla.</p>
-                </div>
-                <div className="flex-1 bg-red-50 border border-red-200 rounded-2xl p-4">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-red-600 text-base">gavel</span>
-                    <span className="text-xs font-black text-red-800">MOR — Mandatory Occurrence Report</span>
-                  </div>
-                  <p className="text-xs text-red-700 mt-1.5 leading-snug">Reporte obligatorio ante AeroCivil por incidentes/accidentes definidos en el reglamento RAC 100.</p>
-                </div>
-              </div>
-              <TableShell title="Todos los reportes SMS registrados — resumen consolidado (incluye VOR y MOR)"
-                empty={allCases.length === 0 ? 'Sin reportes registrados' : null}>
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                      <th className="px-5 py-3">Reporte</th><th className="px-4 py-3">Clasificación</th><th className="px-4 py-3">Fecha</th>
-                      <th className="px-4 py-3">Severidad</th><th className="px-4 py-3">Estado</th><th className="px-4 py-3">Seguimiento</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-sm">
-                    {allCases.map(c => (
-                      <tr key={`${c.source}-${c.id}`} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-5 py-3.5 max-w-xs">
-                          <p className="text-slate-700 font-medium truncate">{c.title}</p>
-                          <p className="text-xs text-slate-400">Por {c.reporter}</p>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className={`px-2.5 py-1 rounded-full text-[10.5px] font-black uppercase ${c.classCls}`}>{c.classLabel}</span>
-                        </td>
-                        <td className="px-4 py-3.5 text-slate-500 font-medium whitespace-nowrap">{fmtDateMed(c.date)}</td>
-                        <td className="px-4 py-3.5"><Pill map={SMS_SEVERITY} value={c.severity} /></td>
-                        <td className="px-4 py-3.5"><Pill map={CASE_STATUS} value={c.status} /></td>
-                        <td className="px-4 py-3.5">
-                          <Link href={`/dashboard/safety/case/${c.id}?source=${c.source}`}
-                            className="flex items-center gap-1.5 text-orange-600 hover:text-orange-800 font-black text-[10.5px] uppercase">
-                            <span className="material-symbols-outlined text-sm">checklist</span>Ver
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </TableShell>
-              <div className="flex justify-end gap-5">
-                <Link href="/dashboard/vor-mor" className="text-xs font-black text-slate-500 hover:text-orange-600 uppercase tracking-wide inline-flex items-center gap-1">
-                  Gestionar VOR/MOR <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                </Link>
-                <Link href="/dashboard/sms" className="text-xs font-black text-orange-600 hover:text-orange-800 uppercase tracking-wide inline-flex items-center gap-1">
-                  Emitir nuevo reporte <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                </Link>
-              </div>
             </div>
           )}
 

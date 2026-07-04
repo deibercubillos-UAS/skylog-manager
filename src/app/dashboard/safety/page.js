@@ -9,6 +9,7 @@ import { sailRoman, sailColor } from '@/lib/soraEngine';
 import { resolveZone, riskIndex, ZONE_META } from '@/lib/safetyRiskDefaults';
 import { computeCaseCompliance } from '@/lib/vorMorCompliance';
 import { computeRate, computeYearStats } from '@/lib/safetyIndicatorStats';
+import { nextOccurrence } from '@/lib/trainingCompliance';
 import PageHero from '@/components/PageHero';
 import KPIStrip from '@/components/KPIStrip';
 import { toast } from '@/lib/toast';
@@ -20,6 +21,8 @@ const AddHazardPanel = dynamic(() => import('@/components/safety/AddHazardPanel'
 const AddIndicatorPanel = dynamic(() => import('@/components/safety/AddIndicatorPanel'), { ssr: false });
 const IndicatorDetailPanel = dynamic(() => import('@/components/safety/IndicatorDetailPanel'), { ssr: false });
 const GapAssessmentPanel = dynamic(() => import('@/components/safety/GapAssessmentPanel'), { ssr: false });
+const AddSmsSessionPanel = dynamic(() => import('@/components/safety/AddSmsSessionPanel'), { ssr: false });
+const SmsAttendancePanel = dynamic(() => import('@/components/safety/SmsAttendancePanel'), { ssr: false });
 
 // Mismo visor real que usa /dashboard/safety/mapas (const duplicada a propósito —
 // es una URL de referencia, no lógica de negocio).
@@ -40,7 +43,7 @@ const TABS = [
   { id: 'plazos',   label: 'Reportes de Seg. Operacional', icon: 'gavel' },
   { id: 'barreras', label: 'Barreras de Seguridad',   icon: 'shield' },
   { id: 'mapas',    label: 'Mapas de restricción',    icon: 'map' },
-  // ← Fase 7: Capacitación SMS
+  { id: 'capacitacion-sms', label: 'Capacitación SMS', icon: 'school' },
 ];
 
 const SORA_STATUS = {
@@ -147,6 +150,9 @@ export default function SafetyPage() {
   const [creatingGap, setCreatingGap] = useState(false);
   const [notifyingCaseId, setNotifyingCaseId] = useState(null);
   const [plazosTypeFilter, setPlazosTypeFilter] = useState('todos');
+  const [smsSessions, setSmsSessions] = useState([]);
+  const [sessionPanel, setSessionPanel] = useState(null);     // null | 'new' | session object
+  const [attendancePanel, setAttendancePanel] = useState(null); // null | session object
   const [caseActions, setCaseActions] = useState([]);
   const [actionSourceFilter, setActionSourceFilter] = useState('todas');
   const [actionStatusFilter, setActionStatusFilter] = useState('abiertas');
@@ -154,7 +160,7 @@ export default function SafetyPage() {
   const spiReportYear = new Date().getFullYear() - 1; // año que corresponde reportar (vencido)
 
   const loadAll = useCallback(async (organizationId) => {
-    const [soraRes, barriersRes, smsRes, vorMorRes, riskConfigRes, hazardsRes, indicatorsRes, spiSubmissionRes, gapQuestionsRes, gapAssessmentsRes, caseActionsRes] = await Promise.all([
+    const [soraRes, barriersRes, smsRes, vorMorRes, riskConfigRes, hazardsRes, indicatorsRes, spiSubmissionRes, gapQuestionsRes, gapAssessmentsRes, caseActionsRes, smsSessionsRes] = await Promise.all([
       fetch('/api/sora/assessments').then(r => r.json()).catch(() => []),
       fetch('/api/safety/barriers').then(r => r.json()).catch(() => []),
       supabase.from('sms_reports')
@@ -168,6 +174,7 @@ export default function SafetyPage() {
       fetch('/api/safety/gap/questions').then(r => r.json()).catch(() => []),
       fetch('/api/safety/gap/assessments').then(r => r.json()).catch(() => []),
       fetch('/api/safety/case/actions').then(r => r.json()).catch(() => []),
+      fetch('/api/safety/training/sessions').then(r => r.json()).catch(() => []),
     ]);
     setSora(Array.isArray(soraRes) ? soraRes : []);
     setBarreras(Array.isArray(barriersRes) ? barriersRes : []);
@@ -180,6 +187,7 @@ export default function SafetyPage() {
     setGapQuestions(Array.isArray(gapQuestionsRes) ? gapQuestionsRes : []);
     setGapAssessments(Array.isArray(gapAssessmentsRes) ? gapAssessmentsRes : []);
     setCaseActions(Array.isArray(caseActionsRes) ? caseActionsRes : []);
+    setSmsSessions(Array.isArray(smsSessionsRes) ? smsSessionsRes : []);
   }, []);
 
   useEffect(() => {
@@ -312,6 +320,15 @@ export default function SafetyPage() {
           className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-600/20 transition-all active:scale-95 disabled:opacity-50">
           <span className="material-symbols-outlined text-base">add_circle</span>
           {creatingGap ? 'Creando...' : 'Nueva evaluación'}
+        </button>
+      );
+    }
+    if (tab === 'capacitacion-sms') {
+      return (
+        <button onClick={() => setSessionPanel('new')}
+          className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-600/20 transition-all active:scale-95">
+          <span className="material-symbols-outlined text-base">add_circle</span>
+          Nueva sesión
         </button>
       );
     }
@@ -523,6 +540,23 @@ export default function SafetyPage() {
     ];
   })() : null;
 
+  // ── Capacitación SMS: cronograma de sesiones + asistencia (Fase 7) ──
+  const thisYearISO = new Date().getFullYear().toString();
+  const smsSessionStats = smsSessions.length > 0 ? (() => {
+    const totalAttendance = smsSessions.reduce((s, sess) => s + (sess.attendance || []).length, 0);
+    const attendanceThisYear = smsSessions.reduce(
+      (s, sess) => s + (sess.attendance || []).filter(a => (a.attended_date || '').startsWith(thisYearISO)).length, 0
+    );
+    const uniqueAttendees = new Set();
+    smsSessions.forEach(sess => (sess.attendance || []).forEach(a => uniqueAttendees.add(a.profile_id)));
+    return [
+      { key: 'total',     label: 'Sesiones en cronograma', value: smsSessions.length, icon: 'school', iconColor: '#ec5b13' },
+      { key: 'attYear',   label: `Asistencias ${thisYearISO}`, value: attendanceThisYear, icon: 'event_available', iconColor: '#16a34a' },
+      { key: 'attTotal',  label: 'Asistencias totales',    value: totalAttendance, icon: 'groups', iconColor: '#4f46e5' },
+      { key: 'people',    label: 'Personal con asistencia', value: uniqueAttendees.size, icon: 'badge', iconColor: '#94a3b8' },
+    ];
+  })() : null;
+
   return (
     <div className="max-w-6xl mx-auto space-y-5 text-left animate-in fade-in duration-500 pb-24">
 
@@ -572,6 +606,22 @@ export default function SafetyPage() {
           questions={gapQuestions}
           onClose={() => setGapPanel(null)}
           onSuccess={() => { setGapPanel(null); if (orgId) loadAll(orgId); }}
+        />
+      )}
+
+      {sessionPanel && (
+        <AddSmsSessionPanel
+          session={sessionPanel === 'new' ? null : sessionPanel}
+          onClose={() => setSessionPanel(null)}
+          onSuccess={() => { setSessionPanel(null); if (orgId) loadAll(orgId); }}
+        />
+      )}
+
+      {attendancePanel && (
+        <SmsAttendancePanel
+          session={smsSessions.find(s => s.id === attendancePanel.id) || attendancePanel}
+          onClose={() => setAttendancePanel(null)}
+          onSuccess={() => orgId && loadAll(orgId)}
         />
       )}
 
@@ -1041,6 +1091,48 @@ export default function SafetyPage() {
                   Ver referencia completa <span className="material-symbols-outlined text-sm">arrow_forward</span>
                 </Link>
               </div>
+            </div>
+          )}
+
+          {/* ── Capacitación SMS ── */}
+          {tab === 'capacitacion-sms' && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              {smsSessionStats && <KPIStrip variant="strip" items={smsSessionStats} />}
+              <TableShell title="Cronograma de capacitación SMS (Inducción, SORA, Factores Humanos, Cultura Justa, TEM, etc.)"
+                empty={smsSessions.length === 0 ? 'Sin sesiones de capacitación SMS registradas' : null}>
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                      <th className="px-5 py-3">Tema</th><th className="px-4 py-3">Recurrencia</th>
+                      <th className="px-4 py-3">Próxima ocurrencia</th><th className="px-4 py-3">Asistencias registradas</th>
+                      <th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm">
+                    {smsSessions.map(sess => {
+                      const { date: nextDate } = nextOccurrence(sess);
+                      const recLabel = { semanal: 'Semanal', quincenal: 'Quincenal', mensual: 'Mensual', personalizado: `Cada ${sess.recurrence_days} días` }[sess.recurrence] || sess.recurrence;
+                      return (
+                        <tr key={sess.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setAttendancePanel(sess)}>
+                          <td className="px-5 py-3.5">
+                            <p className="font-black text-slate-900">{sess.topic}</p>
+                            {sess.notes && <p className="text-xs text-slate-400 truncate max-w-xs">{sess.notes}</p>}
+                          </td>
+                          <td className="px-4 py-3.5 font-bold text-slate-600 whitespace-nowrap">{recLabel}</td>
+                          <td className="px-4 py-3.5 text-slate-500 font-medium whitespace-nowrap">{fmtDateMed(nextDate)}</td>
+                          <td className="px-4 py-3.5 font-bold text-slate-700">{(sess.attendance || []).length}</td>
+                          <td className="px-4 py-3.5 text-right">
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setSessionPanel(sess); }}
+                              className="size-8 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all">
+                              <span className="material-symbols-outlined text-base">edit</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </TableShell>
             </div>
           )}
         </>

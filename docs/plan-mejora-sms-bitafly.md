@@ -278,20 +278,57 @@ colombianos) y el estado (`enviado`/`pendiente`/`vencido`).
 Distinto del tab "Reportes SMS" (Fase 1, ya existente) que solo **lista** los
 reportes — esta fase trackea **cumplimiento de plazo**, no el listado en sí.
 
-### Fase 7 — Plan de Capacitación del SMS
+### Fase 7 — Plan de Capacitación del SMS ✅ Completada
 Del apartado de Instrucción y Educación (MAUT-5.0-22-017): inducción/
 reinducción SMS, SORA, Factores Humanos, Cultura Justa, TEM, causa raíz, toma
 de decisiones — dirigido a **todo el personal**, no solo pilotos (a
 diferencia del módulo "Capacitación" ya construido, que es solo Operaciones/
 Mantenimiento para pilotos).
 
-- `sms_training_sessions` (cronograma con recurrencia, mismo patrón que
-  `training_sessions` pero tabla propia — público objetivo = todo el
-  personal).
-- `sms_training_attendance` (roster: quién asistió, fecha) — sin examen.
-  El roster se resuelve sobre **`profiles`** de la organización (no
-  `pilots`), para incluir roles administrativos (GG, GSMS) que hoy no
-  necesariamente tienen fila en `pilots`.
+- **Migración `20260713_sms_training.sql`** (aplicada en Supabase, advisors
+  de seguridad limpios): `sms_training_sessions` (cronograma con
+  recurrencia — `semanal`/`quincenal`/`mensual`/`personalizado` +
+  `recurrence_days`, `start_date`, `topic`, `notes` — mismo patrón de
+  cadencia que `training_sessions` del módulo de Capacitación de pilotos,
+  pero tabla propia porque el público objetivo es **todo el personal**, no
+  solo tripulación) y `sms_training_attendance` (roster de asistencia: quién
+  asistió a qué ocurrencia — `session_id` + `profile_id` + `attended_date`,
+  UNIQUE por los 3 — sin examen ni calificación, es solo registro de
+  asistencia). El roster se resuelve sobre **`profiles`** de la
+  organización (no `pilots`), para incluir roles administrativos (GG,
+  GSMS) que hoy no necesariamente tienen fila en `pilots`. RLS en ambas
+  tablas con el mismo patrón `canManageSMS` (superadmin/admin/gerente_sms)
+  que el resto del módulo SMS — confirma la decisión de Fase 0 de no
+  introducir permisos nuevos por fase.
+- **API** (`/api/safety/training/*`): `sessions` (GET lista con
+  `attendance` anidada + perfil del asistente, POST crea), `sessions/[id]`
+  (PATCH/DELETE), `attendance` (POST marca asistencia — valida que
+  `session_id`/`profile_id` pertenezcan a la org antes de insertar, nunca
+  confía en los ids del cliente), `attendance/[id]` (DELETE quita la
+  marca). `roster` (GET, nuevo) resuelve el personal de la org desde
+  `profiles` — **no se reutilizó** `/api/admin/users` (ya existente) porque
+  ese endpoint restringe a `MANAGER_ROLES = ['superadmin','admin']` y
+  excluye a `gerente_sms`, que sí debe poder gestionar la asistencia SMS
+  según la Fase 0; se construyó un endpoint separado en vez de debilitar
+  el guard del endpoint existente (que también sirve a `/dashboard/users`,
+  fuera de alcance de esta fase).
+- **UI**: nuevo tab "Capacitación SMS" — franja de KPIs (sesiones en
+  cronograma, asistencias del año, asistencias totales, personal con
+  asistencia registrada) + tabla de sesiones (tema, recurrencia, próxima
+  ocurrencia calculada con `nextOccurrence()` de `lib/trainingCompliance.js`
+  — reutilizado tal cual del módulo de Capacitación de pilotos, ya que
+  ambas tablas comparten la misma forma de recurrencia — y conteo de
+  asistencias). Clic en una fila abre `SmsAttendancePanel` (selector de
+  fecha + checklist del roster completo de la org, toggle asistió/no
+  asistió por persona); el ícono de edición abre `AddSmsSessionPanel`
+  (crear/editar tema, recurrencia, fecha de inicio, notas, con eliminar).
+
+Distinto del módulo "Capacitación" (pilotos, con examen calificado y
+bloqueo de despacho): esta fase es un registro de asistencia sin examen,
+para todo el personal, alineado con el apartado de Instrucción y Educación
+del SMS — no se fusionaron ambos sistemas porque tienen público objetivo y
+mecanismo de cumplimiento distintos (examen con intentos/aprobación vs.
+asistencia registrada).
 
 ### Fase 8 — Reportes transversales + documentación + QA
 Tarjetas nuevas en Reportes (SPI anual, GAP/Mejora Continua, Cronograma
@@ -311,7 +348,7 @@ build.
 | 4 — Mejora Continua (GAP simple) | ✅ Completada |
 | 5 — Acciones Correctivas (consolidado) | ✅ Completada |
 | 6 — Reportes de Seg. Operacional (plazos) | ✅ Completada |
-| 7 — Plan de Capacitación del SMS | Pendiente |
+| 7 — Plan de Capacitación del SMS | ✅ Completada |
 | 8 — Reportes transversales + QA | Pendiente |
 
 Todas las decisiones de alcance quedaron confirmadas (ver sección anterior) —

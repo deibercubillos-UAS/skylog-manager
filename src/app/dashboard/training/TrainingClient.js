@@ -1,135 +1,239 @@
 'use client';
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import { hasPermission } from '@/lib/roles';
+import { computeCompliance, RECURRENCE_LABELS, currentCycle } from '@/lib/trainingCompliance';
 import PageHero from '@/components/PageHero';
 import KPIStrip from '@/components/KPIStrip';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const TYPE_LABELS = { operaciones: 'Operaciones', mantenimiento: 'Mantenimiento' };
-const TYPE_TITLES = {
-    operaciones: 'Programa de Capacitación de Operaciones',
-    mantenimiento: 'Programa de Capacitación Interna de Mantenimiento',
-};
+const RECURRENCES = ['semanal', 'quincenal', 'mensual', 'personalizado'];
 const fmtDate = (d) => d ? new Date(d + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
-const emptyProgramForm = (p) => ({
-    title: p?.title || '',
-    description: p?.description || '',
-    topics: p?.topics?.length ? [...p.topics] : [''],
-});
+const STATUS_META = {
+    ok:       { label: 'Cumplido',   cls: 'text-emerald-600', icon: 'check_circle' },
+    pending:  { label: 'Pendiente',  cls: 'text-amber-600',   icon: 'schedule' },
+    failed:   { label: 'Reprobado',  cls: 'text-red-600',     icon: 'cancel' },
+    overdue:  { label: 'Vencido',    cls: 'text-red-600',     icon: 'warning' },
+    not_configured: { label: 'Sin examen', cls: 'text-slate-400', icon: 'remove' },
+};
 
-// Capacitación — dos programas independientes (Operaciones/Mantenimiento), cada uno
-// con: (1) un programa personalizable (título + descripción + temas/módulos, editado
-// por GG/GSMS/JP) y (2) un registro de evaluaciones internas por tripulante (fecha +
-// Aprobado/No aprobado), que también se refleja en el Expediente de Tripulante.
+const emptyQuestion = () => ({ id: null, question_text: '', options: ['', '', '', ''], correct_index: 0 });
+
+// Capacitación v2 — por tipo (Operaciones/Mantenimiento):
+// 1. Cronograma de sesiones: tema + recurrencia (semanal/quincenal/mensual/personalizado).
+// 2. Examen: configuración (recurrencia propia + nota mínima + intentos) + banco de
+//    preguntas (opción múltiple) + tabla de cumplimiento por piloto. El piloto lo
+//    presenta en /dashboard/training/exam — aquí solo se administra y se consulta.
 export default function TrainingClient({ initialData }) {
     const [activeType, setActiveType] = useState('operaciones');
-    const [programs, setPrograms] = useState(initialData.programs);
-    const [evaluations, setEvaluations] = useState(initialData.evaluations);
-    const [programForm, setProgramForm] = useState(() => ({
-        operaciones: emptyProgramForm(initialData.programs.operaciones),
-        mantenimiento: emptyProgramForm(initialData.programs.mantenimiento),
-    }));
-    const [savingProgram, setSavingProgram] = useState(false);
-    const [addingEval, setAddingEval] = useState(false);
     const [confirmDlg, setConfirmDlg] = useState(null);
 
-    const [evalForm, setEvalForm] = useState({ pilot_id: '', evaluation_date: new Date().toISOString().split('T')[0], result: 'aprobado', evaluator_name: '', notes: '' });
+    const [sessions, setSessions] = useState(initialData.sessions);
+    const [sessionForm, setSessionForm] = useState({ topic: '', recurrence: 'mensual', recurrence_days: 30, start_date: new Date().toISOString().split('T')[0] });
+    const [addingSession, setAddingSession] = useState(false);
+
+    const [exams, setExams] = useState(initialData.exams);
+    const [examForm, setExamForm] = useState(() => ({
+        operaciones: toExamForm(initialData.exams.operaciones),
+        mantenimiento: toExamForm(initialData.exams.mantenimiento),
+    }));
+    const [savingExam, setSavingExam] = useState(false);
+
+    const [questionsByExam, setQuestionsByExam] = useState(initialData.questionsByExam);
+    const [questionDrafts, setQuestionDrafts] = useState(() => ({
+        operaciones: toQuestionDrafts(initialData.exams.operaciones, initialData.questionsByExam),
+        mantenimiento: toQuestionDrafts(initialData.exams.mantenimiento, initialData.questionsByExam),
+    }));
+    const [savingQuestions, setSavingQuestions] = useState(false);
+
+    const [attempts, setAttempts] = useState(initialData.attempts);
+
+    function toExamForm(exam) {
+        return {
+            title: exam?.title || '',
+            recurrence: exam?.recurrence || 'mensual',
+            recurrence_days: exam?.recurrence_days || 30,
+            start_date: exam?.start_date || new Date().toISOString().split('T')[0],
+            passing_score: exam?.passing_score ?? 80,
+            max_attempts: exam?.max_attempts ?? 3,
+        };
+    }
+    function toQuestionDrafts(exam, qMap) {
+        const list = exam ? (qMap[exam.id] || []) : [];
+        return list.length
+            ? list.map(q => ({ id: q.id, question_text: q.question_text, options: [...q.options], correct_index: q.correct_index }))
+            : [emptyQuestion()];
+    }
 
     const canManage = hasPermission(initialData.role, 'canManageTraining');
+    const exam = exams[activeType];
+    const activeAttempts = useMemo(() => attempts.filter(a => a.exam_id === exam?.id), [attempts, exam]);
 
-    const activeEvaluations = useMemo(() => evaluations[activeType] || [], [evaluations, activeType]);
-    const kpis = useMemo(() => {
-        const total = activeEvaluations.length;
-        const approved = activeEvaluations.filter(e => e.result === 'aprobado').length;
-        const failed = total - approved;
-        const topicsCount = (programForm[activeType]?.topics || []).filter(t => t.trim()).length;
-        return { total, approved, failed, topicsCount };
-    }, [activeEvaluations, programForm, activeType]);
-
-    // ── Programa de capacitación ─────────────────────────────────────────────
-    const updateTopic = (idx, value) => setProgramForm(prev => ({
-        ...prev, [activeType]: { ...prev[activeType], topics: prev[activeType].topics.map((t, i) => i === idx ? value : t) },
-    }));
-    const addTopic = () => setProgramForm(prev => ({ ...prev, [activeType]: { ...prev[activeType], topics: [...prev[activeType].topics, ''] } }));
-    const removeTopic = (idx) => setProgramForm(prev => ({ ...prev, [activeType]: { ...prev[activeType], topics: prev[activeType].topics.filter((_, i) => i !== idx) } }));
-
-    const handleSaveProgram = async () => {
-        setSavingProgram(true);
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            const form = programForm[activeType];
-            const payload = {
-                organization_id: initialData.organizationId,
-                type: activeType,
-                title: form.title.trim() || TYPE_TITLES[activeType],
-                description: form.description.trim() || null,
-                topics: form.topics.map(t => t.trim()).filter(Boolean),
-                updated_by: user.id,
-            };
-            const { data, error } = await supabase
-                .from('training_programs')
-                .upsert([payload], { onConflict: 'organization_id,type' })
-                .select().single();
-            if (error) throw error;
-            setPrograms(prev => ({ ...prev, [activeType]: data }));
-            toast.success('Programa guardado.');
-        } catch (e) {
-            toast.error('Error al guardar: ' + e.message);
-        } finally {
-            setSavingProgram(false);
-        }
-    };
-
-    // ── Evaluaciones internas ────────────────────────────────────────────────
-    const handleAddEvaluation = async (e) => {
+    // ── Cronograma ───────────────────────────────────────────────────────────
+    const handleAddSession = async (e) => {
         e.preventDefault();
-        if (!evalForm.pilot_id) return toast.warn('Selecciona un tripulante.');
-        setAddingEval(true);
+        if (!sessionForm.topic.trim()) return toast.warn('Escribe el tema de la sesión.');
+        setAddingSession(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            const { data, error } = await supabase.from('training_evaluations').insert([{
+            const { data, error } = await supabase.from('training_sessions').insert([{
                 organization_id: initialData.organizationId,
-                pilot_id: evalForm.pilot_id,
                 type: activeType,
-                evaluation_date: evalForm.evaluation_date,
-                result: evalForm.result,
-                evaluator_name: evalForm.evaluator_name.trim() || null,
-                notes: evalForm.notes.trim() || null,
+                topic: sessionForm.topic.trim(),
+                recurrence: sessionForm.recurrence,
+                recurrence_days: sessionForm.recurrence === 'personalizado' ? parseInt(sessionForm.recurrence_days || 30, 10) : null,
+                start_date: sessionForm.start_date,
                 created_by: user.id,
-            }]).select('*, pilot:pilot_id(name)').single();
+            }]).select().single();
             if (error) throw error;
-            setEvaluations(prev => ({ ...prev, [activeType]: [data, ...prev[activeType]] }));
-            setEvalForm({ pilot_id: '', evaluation_date: new Date().toISOString().split('T')[0], result: 'aprobado', evaluator_name: '', notes: '' });
-            toast.success('Evaluación registrada.');
+            setSessions(prev => ({ ...prev, [activeType]: [...prev[activeType], data] }));
+            setSessionForm({ topic: '', recurrence: 'mensual', recurrence_days: 30, start_date: new Date().toISOString().split('T')[0] });
+            toast.success('Sesión agregada al cronograma.');
         } catch (err) {
-            toast.error('Error al registrar: ' + err.message);
+            toast.error('Error al agregar: ' + err.message);
         } finally {
-            setAddingEval(false);
+            setAddingSession(false);
         }
     };
 
-    const handleDeleteEvaluation = (evalRow) => {
+    const handleDeleteSession = (session) => {
         setConfirmDlg({
             isOpen: true,
-            title: '¿Eliminar esta evaluación?',
-            message: `Se eliminará la evaluación de ${evalRow.pilot?.name || 'este tripulante'} del ${fmtDate(evalRow.evaluation_date)}.`,
+            title: '¿Eliminar esta sesión del cronograma?',
+            message: `"${session.topic}" se eliminará permanentemente.`,
             confirmText: 'Eliminar',
             danger: true,
             onConfirm: async () => {
                 setConfirmDlg(null);
-                const prev = evaluations;
-                setEvaluations(p => ({ ...p, [activeType]: p[activeType].filter(x => x.id !== evalRow.id) }));
-                const { error } = await supabase.from('training_evaluations').delete().eq('id', evalRow.id);
-                if (error) {
-                    setEvaluations(prev);
-                    toast.error('No se pudo eliminar: ' + error.message);
-                }
+                const prev = sessions;
+                setSessions(p => ({ ...p, [activeType]: p[activeType].filter(s => s.id !== session.id) }));
+                const { error } = await supabase.from('training_sessions').delete().eq('id', session.id);
+                if (error) { setSessions(prev); toast.error('No se pudo eliminar: ' + error.message); }
             },
         });
     };
+
+    // ── Examen — configuración ───────────────────────────────────────────────
+    const handleSaveExam = async () => {
+        setSavingExam(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            const form = examForm[activeType];
+            const payload = {
+                organization_id: initialData.organizationId,
+                type: activeType,
+                title: form.title.trim() || `Examen de ${TYPE_LABELS[activeType]}`,
+                recurrence: form.recurrence,
+                recurrence_days: form.recurrence === 'personalizado' ? parseInt(form.recurrence_days || 30, 10) : null,
+                start_date: form.start_date,
+                passing_score: parseFloat(form.passing_score || 80),
+                max_attempts: parseInt(form.max_attempts || 1, 10),
+                updated_by: user.id,
+            };
+            const { data, error } = await supabase
+                .from('training_exams')
+                .upsert([payload], { onConflict: 'organization_id,type' })
+                .select().single();
+            if (error) throw error;
+            setExams(prev => ({ ...prev, [activeType]: data }));
+            toast.success('Configuración del examen guardada.');
+        } catch (e) {
+            toast.error('Error al guardar: ' + e.message);
+        } finally {
+            setSavingExam(false);
+        }
+    };
+
+    // ── Examen — banco de preguntas ──────────────────────────────────────────
+    const updateQuestion = (idx, patch) => setQuestionDrafts(prev => ({
+        ...prev, [activeType]: prev[activeType].map((q, i) => i === idx ? { ...q, ...patch } : q),
+    }));
+    const updateOption = (qIdx, oIdx, value) => setQuestionDrafts(prev => ({
+        ...prev, [activeType]: prev[activeType].map((q, i) => i === qIdx ? { ...q, options: q.options.map((o, j) => j === oIdx ? value : o) } : q),
+    }));
+    const addQuestion = () => setQuestionDrafts(prev => ({ ...prev, [activeType]: [...prev[activeType], emptyQuestion()] }));
+    const removeQuestion = (idx) => setQuestionDrafts(prev => ({ ...prev, [activeType]: prev[activeType].filter((_, i) => i !== idx) }));
+
+    const handleSaveQuestions = async () => {
+        if (!exam) return toast.warn('Guarda primero la configuración del examen.');
+        const drafts = questionDrafts[activeType].filter(q => q.question_text.trim() && q.options.every(o => o.trim()));
+        if (drafts.length === 0) return toast.warn('Agrega al menos una pregunta completa (texto + 4 opciones).');
+        setSavingQuestions(true);
+        try {
+            const toInsert = drafts.filter(q => !q.id).map((q, i) => ({
+                organization_id: initialData.organizationId, exam_id: exam.id,
+                question_text: q.question_text.trim(), options: q.options.map(o => o.trim()),
+                correct_index: q.correct_index, order_index: i,
+            }));
+            const toUpdate = drafts.filter(q => q.id);
+
+            if (toInsert.length) {
+                const { error } = await supabase.from('training_exam_questions').insert(toInsert);
+                if (error) throw error;
+            }
+            for (const q of toUpdate) {
+                const { error } = await supabase.from('training_exam_questions').update({
+                    question_text: q.question_text.trim(), options: q.options.map(o => o.trim()), correct_index: q.correct_index,
+                }).eq('id', q.id);
+                if (error) throw error;
+            }
+            const { data: refreshed } = await supabase.from('training_exam_questions')
+                .select('id, exam_id, question_text, options, order_index').eq('exam_id', exam.id).order('order_index');
+            setQuestionsByExam(prev => ({ ...prev, [exam.id]: refreshed || [] }));
+            setQuestionDrafts(prev => ({ ...prev, [activeType]: toQuestionDrafts(exam, { [exam.id]: refreshed || [] }) }));
+            toast.success('Banco de preguntas guardado.');
+        } catch (e) {
+            toast.error('Error al guardar preguntas: ' + e.message);
+        } finally {
+            setSavingQuestions(false);
+        }
+    };
+
+    const handleDeleteQuestion = (idx) => {
+        const q = questionDrafts[activeType][idx];
+        if (!q.id) { removeQuestion(idx); return; }
+        setConfirmDlg({
+            isOpen: true, title: '¿Eliminar esta pregunta?', message: 'Se eliminará permanentemente del banco.',
+            confirmText: 'Eliminar', danger: true,
+            onConfirm: async () => {
+                setConfirmDlg(null);
+                const { error } = await supabase.from('training_exam_questions').delete().eq('id', q.id);
+                if (error) return toast.error('No se pudo eliminar: ' + error.message);
+                removeQuestion(idx);
+                setQuestionsByExam(prev => ({ ...prev, [exam.id]: (prev[exam.id] || []).filter(x => x.id !== q.id) }));
+            },
+        });
+    };
+
+    // ── Cumplimiento por piloto ───────────────────────────────────────────────
+    const complianceRows = useMemo(() => {
+        return initialData.pilots.map(p => {
+            const pilotAttempts = activeAttempts.filter(a => a.pilot_id === p.id);
+            const c = computeCompliance(exam, pilotAttempts);
+            const lastAttempt = pilotAttempts[0]; // ya vienen ordenados desc por submitted_at
+            return { pilot: p, compliance: c, lastAttempt };
+        });
+    }, [initialData.pilots, activeAttempts, exam]);
+
+    const kpis = useMemo(() => {
+        const compliant = complianceRows.filter(r => r.compliance.status === 'ok').length;
+        const overdue = complianceRows.filter(r => r.compliance.status === 'overdue' || r.compliance.status === 'failed').length;
+        return {
+            sessions: sessions[activeType]?.length || 0,
+            questions: exam ? (questionsByExam[exam.id]?.length || 0) : 0,
+            compliant, overdue,
+        };
+    }, [complianceRows, sessions, activeType, exam, questionsByExam]);
+
+    const myCompliance = useMemo(() => {
+        if (!initialData.myPilotId) return null;
+        const row = complianceRows.find(r => r.pilot.id === initialData.myPilotId);
+        return row?.compliance || null;
+    }, [complianceRows, initialData.myPilotId]);
 
     const inputCls = "w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-orange-200";
     const labelCls = "text-[9.5px] font-black text-slate-400 uppercase tracking-wide ml-0.5";
@@ -141,10 +245,9 @@ export default function TrainingClient({ initialData }) {
             <PageHero
                 eyebrow="Cumplimiento"
                 title="Capacitación"
-                description="Programas de capacitación de Operaciones y Mantenimiento, con evaluaciones internas por tripulante."
+                description="Cronograma de sesiones y examen interno recurrente de Operaciones y Mantenimiento."
             />
 
-            {/* Tabs */}
             <div className="flex gap-2">
                 {Object.keys(TYPE_LABELS).map(t => (
                     <button key={t} onClick={() => setActiveType(t)}
@@ -158,10 +261,10 @@ export default function TrainingClient({ initialData }) {
 
             <section aria-label="Indicadores de capacitación" className="bg-white rounded-[1.5rem] border border-slate-100 px-2 py-3 md:px-4">
                 <KPIStrip variant="strip" items={[
-                    { key: 'total', label: 'Evaluaciones', value: kpis.total, icon: 'fact_check', iconColor: '#ec5b13' },
-                    { key: 'approved', label: 'Aprobadas', value: kpis.approved, icon: 'check_circle', iconColor: '#16a34a' },
-                    { key: 'failed', label: 'No aprobadas', value: kpis.failed, icon: 'cancel', iconColor: kpis.failed > 0 ? '#dc2626' : '#94a3b8' },
-                    { key: 'topics', label: 'Temas del programa', value: kpis.topicsCount, icon: 'menu_book', iconColor: '#94a3b8' },
+                    { key: 'sessions', label: 'Sesiones en cronograma', value: kpis.sessions, icon: 'event_repeat', iconColor: '#ec5b13' },
+                    { key: 'questions', label: 'Preguntas del examen', value: kpis.questions, icon: 'quiz', iconColor: '#94a3b8' },
+                    { key: 'compliant', label: 'Pilotos al día', value: kpis.compliant, icon: 'check_circle', iconColor: '#16a34a' },
+                    { key: 'overdue', label: 'Reprobados/vencidos', value: kpis.overdue, icon: 'warning', iconColor: kpis.overdue > 0 ? '#dc2626' : '#94a3b8' },
                 ]} />
             </section>
 
@@ -169,174 +272,251 @@ export default function TrainingClient({ initialData }) {
                 <div className="flex items-center gap-2.5 bg-orange-50 border border-orange-100 rounded-xl px-4 py-3">
                     <span className="material-symbols-outlined text-sm text-orange-500 shrink-0">info</span>
                     <span className="text-[11px] font-semibold text-orange-800 leading-snug">
-                        Solo lectura — Gerente General, Gerente SMS y Jefe de Pilotos pueden editar el programa y registrar evaluaciones.
+                        Solo lectura — Gerente General, Gerente SMS y Jefe de Pilotos administran el cronograma y el examen.
                     </span>
                 </div>
             )}
 
-            {/* ── Programa de capacitación ─────────────────────────────────────── */}
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 md:p-7 space-y-5">
-                <div>
-                    <p className="text-sm font-black text-slate-900">{TYPE_TITLES[activeType]}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                        Contenido personalizable según lo requiera la organización.
-                        {programs[activeType]?.updated_at && (
-                            <span className="text-slate-400"> · Actualizado {fmtDate(programs[activeType].updated_at.slice(0, 10))}</span>
-                        )}
-                    </p>
-                </div>
-
-                {canManage ? (
-                    <>
-                        <div className="space-y-1">
-                            <label className={labelCls}>Título del programa</label>
-                            <input className={inputCls} placeholder={TYPE_TITLES[activeType]}
-                                value={programForm[activeType].title}
-                                onChange={e => setProgramForm(prev => ({ ...prev, [activeType]: { ...prev[activeType], title: e.target.value } }))} />
+            {myCompliance && activeType === 'operaciones' && (
+                <div className={`flex items-center justify-between gap-3 rounded-2xl border px-5 py-4 ${
+                    myCompliance.compliant ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'
+                }`}>
+                    <div className="flex items-center gap-3">
+                        <span className={`material-symbols-outlined text-2xl ${STATUS_META[myCompliance.status].cls}`}>{STATUS_META[myCompliance.status].icon}</span>
+                        <div>
+                            <p className={`text-xs font-black uppercase ${STATUS_META[myCompliance.status].cls}`}>Tu examen de Operaciones: {STATUS_META[myCompliance.status].label}</p>
+                            <p className="text-[11px] text-slate-500 font-semibold">Intentos usados: {myCompliance.attemptsUsed}/{myCompliance.maxAttempts} · Ciclo hasta {fmtDate(myCompliance.cycleEnd)}</p>
                         </div>
-                        <div className="space-y-1">
-                            <label className={labelCls}>Descripción general</label>
-                            <textarea rows={4} className={inputCls + ' font-medium resize-none'}
-                                placeholder="Objetivo, alcance y periodicidad del programa de capacitación…"
-                                value={programForm[activeType].description}
-                                onChange={e => setProgramForm(prev => ({ ...prev, [activeType]: { ...prev[activeType], description: e.target.value } }))} />
-                        </div>
-
-                        <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
-                            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
-                                <span className="text-[11px] font-black uppercase tracking-wide text-orange-600">Temas / módulos</span>
-                                <span className="text-[10.5px] font-semibold text-slate-400">
-                                    {programForm[activeType].topics.filter(t => t.trim()).length} agregados
-                                </span>
-                            </div>
-                            <div className="p-3 space-y-2">
-                                {programForm[activeType].topics.map((t, idx) => (
-                                    <div key={idx} className="flex items-center gap-3">
-                                        <span className="size-6 rounded-full bg-white border border-slate-200 text-slate-500 text-[10px] font-black flex items-center justify-center shrink-0">{idx + 1}</span>
-                                        <input className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-900"
-                                            placeholder={`Ej. Tema ${idx + 1} del programa…`}
-                                            value={t} onChange={e => updateTopic(idx, e.target.value)} />
-                                        <button type="button" onClick={() => removeTopic(idx)}
-                                            className="size-8 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-500 transition-colors shrink-0">
-                                            <span className="material-symbols-outlined text-base">delete</span>
-                                        </button>
-                                    </div>
-                                ))}
-                                <button type="button" onClick={addTopic}
-                                    className="flex items-center gap-1.5 px-2 py-2 text-xs font-black text-orange-600 hover:text-orange-800 transition-colors">
-                                    <span className="material-symbols-outlined text-base">add_circle</span>
-                                    Agregar tema
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="flex justify-end">
-                            <button type="button" onClick={handleSaveProgram} disabled={savingProgram}
-                                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-wide shadow-lg shadow-orange-600/25 active:scale-95 transition-all disabled:opacity-50">
-                                <span className="material-symbols-outlined text-base">save</span>
-                                {savingProgram ? 'Guardando...' : 'Guardar programa'}
-                            </button>
-                        </div>
-                    </>
-                ) : (
-                    <div className="space-y-3">
-                        {programForm[activeType].description && (
-                            <p className="text-xs text-slate-600 leading-relaxed">{programForm[activeType].description}</p>
-                        )}
-                        {kpis.topicsCount === 0 ? (
-                            <p className="text-xs font-bold text-slate-400 bg-slate-50 rounded-2xl p-6 text-center">
-                                Aún no hay temas configurados en este programa.
-                            </p>
-                        ) : (
-                            <div className="space-y-2">
-                                {programForm[activeType].topics.filter(t => t.trim()).map((t, idx) => (
-                                    <div key={idx} className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-2.5">
-                                        <span className="size-6 rounded-full bg-white border border-slate-200 text-slate-500 text-[10px] font-black flex items-center justify-center shrink-0">{idx + 1}</span>
-                                        <span className="text-xs font-semibold text-slate-700">{t}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
                     </div>
-                )}
-            </div>
+                    {!myCompliance.compliant || myCompliance.status === 'pending' ? (
+                        <Link href={`/dashboard/training/exam?type=${activeType}`}
+                            className="shrink-0 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-wide shadow shadow-orange-600/20 transition-all active:scale-95">
+                            Presentar examen
+                        </Link>
+                    ) : null}
+                </div>
+            )}
 
-            {/* ── Evaluaciones internas ────────────────────────────────────────── */}
+            {/* ── Cronograma de capacitación ───────────────────────────────────── */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                 <div className="px-5 md:px-7 py-4 border-b border-slate-100">
-                    <p className="text-sm font-black text-slate-900">Evaluación Interna de Capacitación — {TYPE_LABELS[activeType]}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">Se refleja en el expediente de cada tripulante.</p>
+                    <p className="text-sm font-black text-slate-900">Cronograma de Capacitación — {TYPE_LABELS[activeType]}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Tema que se dictará en cada sesión y la recurrencia que defina la organización.</p>
                 </div>
 
                 {canManage && (
-                    <form onSubmit={handleAddEvaluation} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 p-4 bg-slate-50 border-b border-slate-100">
-                        <select required className={inputCls} value={evalForm.pilot_id} onChange={e => setEvalForm({ ...evalForm, pilot_id: e.target.value })}>
-                            <option value="">-- Tripulante --</option>
-                            {initialData.pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    <form onSubmit={handleAddSession} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 p-4 bg-slate-50 border-b border-slate-100">
+                        <input required placeholder="Tema de la sesión" className={inputCls + ' lg:col-span-2'}
+                            value={sessionForm.topic} onChange={e => setSessionForm({ ...sessionForm, topic: e.target.value })} />
+                        <select className={inputCls} value={sessionForm.recurrence} onChange={e => setSessionForm({ ...sessionForm, recurrence: e.target.value })}>
+                            {RECURRENCES.map(r => <option key={r} value={r}>{RECURRENCE_LABELS[r]}</option>)}
                         </select>
-                        <input required type="date" className={inputCls} value={evalForm.evaluation_date}
-                            onChange={e => setEvalForm({ ...evalForm, evaluation_date: e.target.value })} />
-                        <select className={inputCls} value={evalForm.result} onChange={e => setEvalForm({ ...evalForm, result: e.target.value })}>
-                            <option value="aprobado">Aprobado</option>
-                            <option value="no_aprobado">No aprobado</option>
-                        </select>
-                        <input placeholder="Evaluador (opcional)" className={inputCls}
-                            value={evalForm.evaluator_name} onChange={e => setEvalForm({ ...evalForm, evaluator_name: e.target.value })} />
-                        <button type="submit" disabled={addingEval}
+                        {sessionForm.recurrence === 'personalizado' ? (
+                            <input type="number" min="1" placeholder="Cada N días" className={inputCls}
+                                value={sessionForm.recurrence_days} onChange={e => setSessionForm({ ...sessionForm, recurrence_days: e.target.value })} />
+                        ) : (
+                            <input type="date" className={inputCls}
+                                value={sessionForm.start_date} onChange={e => setSessionForm({ ...sessionForm, start_date: e.target.value })} />
+                        )}
+                        <button type="submit" disabled={addingSession}
                             className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-wide shadow shadow-orange-600/20 transition-all active:scale-95 disabled:opacity-50">
                             <span className="material-symbols-outlined text-base">add_circle</span>
-                            Registrar
+                            Agregar
                         </button>
                     </form>
                 )}
 
-                {activeEvaluations.length === 0 ? (
-                    <p className="text-xs font-bold text-slate-400 text-center py-10">Sin evaluaciones registradas todavía.</p>
+                {(sessions[activeType] || []).length === 0 ? (
+                    <p className="text-xs font-bold text-slate-400 text-center py-10">Sin sesiones en el cronograma todavía.</p>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="text-[9px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">
-                                    <th className="px-5 py-3">Tripulante</th>
-                                    <th className="px-3 py-3">Fecha</th>
-                                    <th className="px-3 py-3">Resultado</th>
-                                    <th className="px-3 py-3">Evaluador</th>
+                                    <th className="px-5 py-3">Tema</th>
+                                    <th className="px-3 py-3">Recurrencia</th>
+                                    <th className="px-3 py-3">Próxima sesión</th>
                                     {canManage && <th className="px-3 py-3 w-14"></th>}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
-                                {activeEvaluations.map(ev => (
-                                    <tr key={ev.id} className="text-xs hover:bg-slate-50/60 transition-colors">
-                                        <td className="px-5 py-3 font-bold text-slate-800">{ev.pilot?.name || 'N/A'}</td>
-                                        <td className="px-3 py-3 text-slate-600 font-semibold">{fmtDate(ev.evaluation_date)}</td>
-                                        <td className="px-3 py-3">
-                                            {ev.result === 'aprobado' ? (
-                                                <span className="flex items-center gap-1 font-black text-emerald-600">
-                                                    <span className="material-symbols-outlined text-sm">check_circle</span>
-                                                    Aprobado
-                                                </span>
-                                            ) : (
-                                                <span className="flex items-center gap-1 font-black text-red-600">
-                                                    <span className="material-symbols-outlined text-sm">cancel</span>
-                                                    No aprobado
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-3 py-3 text-slate-500 font-semibold">{ev.evaluator_name || '—'}</td>
-                                        {canManage && (
-                                            <td className="px-3 py-3">
-                                                <button onClick={() => handleDeleteEvaluation(ev)} aria-label="Eliminar evaluación"
-                                                    className="size-8 flex items-center justify-center rounded-lg bg-red-50 text-red-400 hover:bg-red-600 hover:text-white transition-colors active:scale-95">
-                                                    <span className="material-symbols-outlined text-base">delete</span>
-                                                </button>
+                                {sessions[activeType].map(s => {
+                                    const { cycleStart } = currentCycle(s);
+                                    return (
+                                        <tr key={s.id} className="text-xs hover:bg-slate-50/60 transition-colors">
+                                            <td className="px-5 py-3 font-bold text-slate-800">{s.topic}</td>
+                                            <td className="px-3 py-3 text-slate-600 font-semibold">
+                                                {RECURRENCE_LABELS[s.recurrence]}{s.recurrence === 'personalizado' ? ` (cada ${s.recurrence_days}d)` : ''}
                                             </td>
-                                        )}
-                                    </tr>
-                                ))}
+                                            <td className="px-3 py-3 text-slate-600 font-semibold">{fmtDate(cycleStart.toISOString().split('T')[0])}</td>
+                                            {canManage && (
+                                                <td className="px-3 py-3">
+                                                    <button onClick={() => handleDeleteSession(s)} aria-label="Eliminar sesión"
+                                                        className="size-8 flex items-center justify-center rounded-lg bg-red-50 text-red-400 hover:bg-red-600 hover:text-white transition-colors active:scale-95">
+                                                        <span className="material-symbols-outlined text-base">delete</span>
+                                                    </button>
+                                                </td>
+                                            )}
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
                 )}
+            </div>
+
+            {/* ── Examen — configuración + banco de preguntas ─────────────────── */}
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 md:p-7 space-y-5">
+                <div>
+                    <p className="text-sm font-black text-slate-900">Evaluación Interna — {TYPE_LABELS[activeType]}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                        Examen recurrente que se alerta a los pilotos; si no aprueban o vencen el plazo, no pueden despachar vuelos.
+                    </p>
+                </div>
+
+                {canManage && (
+                    <>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            <div className="space-y-1 md:col-span-2">
+                                <label className={labelCls}>Título</label>
+                                <input className={inputCls} placeholder={`Examen de ${TYPE_LABELS[activeType]}`}
+                                    value={examForm[activeType].title} onChange={e => setExamForm(prev => ({ ...prev, [activeType]: { ...prev[activeType], title: e.target.value } }))} />
+                            </div>
+                            <div className="space-y-1">
+                                <label className={labelCls}>Recurrencia</label>
+                                <select className={inputCls} value={examForm[activeType].recurrence}
+                                    onChange={e => setExamForm(prev => ({ ...prev, [activeType]: { ...prev[activeType], recurrence: e.target.value } }))}>
+                                    {RECURRENCES.map(r => <option key={r} value={r}>{RECURRENCE_LABELS[r]}</option>)}
+                                </select>
+                            </div>
+                            {examForm[activeType].recurrence === 'personalizado' ? (
+                                <div className="space-y-1">
+                                    <label className={labelCls}>Cada N días</label>
+                                    <input type="number" min="1" className={inputCls} value={examForm[activeType].recurrence_days}
+                                        onChange={e => setExamForm(prev => ({ ...prev, [activeType]: { ...prev[activeType], recurrence_days: e.target.value } }))} />
+                                </div>
+                            ) : (
+                                <div className="space-y-1">
+                                    <label className={labelCls}>Fecha inicio</label>
+                                    <input type="date" className={inputCls} value={examForm[activeType].start_date}
+                                        onChange={e => setExamForm(prev => ({ ...prev, [activeType]: { ...prev[activeType], start_date: e.target.value } }))} />
+                                </div>
+                            )}
+                            <div className="space-y-1">
+                                <label className={labelCls}>Nota mínima (%)</label>
+                                <input type="number" min="0" max="100" className={inputCls} value={examForm[activeType].passing_score}
+                                    onChange={e => setExamForm(prev => ({ ...prev, [activeType]: { ...prev[activeType], passing_score: e.target.value } }))} />
+                            </div>
+                            <div className="space-y-1">
+                                <label className={labelCls}>Intentos máximos</label>
+                                <input type="number" min="1" className={inputCls} value={examForm[activeType].max_attempts}
+                                    onChange={e => setExamForm(prev => ({ ...prev, [activeType]: { ...prev[activeType], max_attempts: e.target.value } }))} />
+                            </div>
+                        </div>
+                        <div className="flex justify-end">
+                            <button type="button" onClick={handleSaveExam} disabled={savingExam}
+                                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-wide shadow-lg shadow-orange-600/25 active:scale-95 transition-all disabled:opacity-50">
+                                <span className="material-symbols-outlined text-base">save</span>
+                                {savingExam ? 'Guardando...' : 'Guardar configuración'}
+                            </button>
+                        </div>
+
+                        {!exam ? (
+                            <p className="text-xs font-bold text-slate-400 bg-slate-50 rounded-2xl p-4 text-center">
+                                Guarda la configuración para poder agregar preguntas al examen.
+                            </p>
+                        ) : (
+                            <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
+                                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+                                    <span className="text-[11px] font-black uppercase tracking-wide text-orange-600">Banco de preguntas</span>
+                                    <span className="text-[10.5px] font-semibold text-slate-400">{questionDrafts[activeType].length} pregunta(s)</span>
+                                </div>
+                                <div className="p-3 space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                                    {questionDrafts[activeType].map((q, qIdx) => (
+                                        <div key={qIdx} className="bg-white border border-slate-200 rounded-xl p-3 space-y-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="size-6 rounded-full bg-slate-100 border border-slate-200 text-slate-500 text-[10px] font-black flex items-center justify-center shrink-0">{qIdx + 1}</span>
+                                                <input className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900"
+                                                    placeholder="Texto de la pregunta"
+                                                    value={q.question_text} onChange={e => updateQuestion(qIdx, { question_text: e.target.value })} />
+                                                <button type="button" onClick={() => handleDeleteQuestion(qIdx)}
+                                                    className="size-8 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-500 transition-colors shrink-0">
+                                                    <span className="material-symbols-outlined text-base">delete</span>
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-8">
+                                                {q.options.map((opt, oIdx) => (
+                                                    <label key={oIdx} className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer ${q.correct_index === oIdx ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
+                                                        <input type="radio" name={`correct-${activeType}-${qIdx}`} checked={q.correct_index === oIdx}
+                                                            onChange={() => updateQuestion(qIdx, { correct_index: oIdx })} className="accent-emerald-600 shrink-0" />
+                                                        <input className="flex-1 min-w-0 bg-transparent text-xs font-semibold text-slate-800 outline-none"
+                                                            placeholder={`Opción ${oIdx + 1}`} value={opt} onChange={e => updateOption(qIdx, oIdx, e.target.value)} />
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <button type="button" onClick={addQuestion}
+                                        className="flex items-center gap-1.5 px-2 py-2 text-xs font-black text-orange-600 hover:text-orange-800 transition-colors">
+                                        <span className="material-symbols-outlined text-base">add_circle</span>
+                                        Agregar pregunta
+                                    </button>
+                                </div>
+                                <div className="flex justify-end px-4 py-3 border-t border-slate-200 bg-white">
+                                    <button type="button" onClick={handleSaveQuestions} disabled={savingQuestions}
+                                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs uppercase tracking-wide shadow transition-all active:scale-95 disabled:opacity-50">
+                                        <span className="material-symbols-outlined text-base">save</span>
+                                        {savingQuestions ? 'Guardando...' : 'Guardar preguntas'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* Tabla de cumplimiento por piloto */}
+                <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                    <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
+                        <span className="text-[11px] font-black uppercase tracking-wide text-orange-600">Cumplimiento por tripulante</span>
+                    </div>
+                    {!exam ? (
+                        <p className="text-xs font-bold text-slate-400 text-center py-8">Sin examen configurado todavía.</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="text-[9px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">
+                                        <th className="px-5 py-3">Tripulante</th>
+                                        <th className="px-3 py-3">Estado</th>
+                                        <th className="px-3 py-3">Intentos</th>
+                                        <th className="px-3 py-3">Último puntaje</th>
+                                        <th className="px-3 py-3">Ciclo hasta</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {complianceRows.map(({ pilot, compliance, lastAttempt }) => {
+                                        const meta = STATUS_META[compliance.status];
+                                        return (
+                                            <tr key={pilot.id} className="text-xs hover:bg-slate-50/60 transition-colors">
+                                                <td className="px-5 py-3 font-bold text-slate-800">{pilot.name}</td>
+                                                <td className="px-3 py-3">
+                                                    <span className={`flex items-center gap-1 font-black ${meta.cls}`}>
+                                                        <span className="material-symbols-outlined text-sm">{meta.icon}</span>
+                                                        {meta.label}
+                                                    </span>
+                                                </td>
+                                                <td className="px-3 py-3 text-slate-600 font-semibold">{compliance.attemptsUsed}/{compliance.maxAttempts}</td>
+                                                <td className="px-3 py-3 text-slate-600 font-semibold">{lastAttempt ? `${Number(lastAttempt.score).toFixed(0)}%` : '—'}</td>
+                                                <td className="px-3 py-3 text-slate-500 font-semibold">{fmtDate(compliance.cycleEnd)}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

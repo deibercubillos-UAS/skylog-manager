@@ -43,6 +43,7 @@ Confirmadas vía `AskUserQuestion` antes de tocar código:
 6. **Gravedad del riesgo**: **escala única de 5 niveles** (Catastrófico/Peligroso/Mayor/Menor/Insignificante), igual a la Tabla 3 e Ilustración 4 de referencia — no se construye la variante de 4 escalas por categoría (Matriz RAM de Personas/Económico/Ambiental/Imagen) mencionada como referencia opcional en el documento.
 7. **Denominador de Indicadores SPI**: **lista fija de las 6 categorías** que define la circular (Ciclos de vuelo / Horas de vuelo / Horas-hombre / Número de operaciones, según tipo de proveedor) — no texto libre, para preservar la consistencia que exige la circular ("el mismo denominador para todos los indicadores del mismo tipo de proveedor").
 8. **Roster de Capacitación del SMS**: basado en **todos los `profiles` de la organización** (GG, GSMS, JP, pilotos, etc.), no solo en `pilots` — coincide con "formación para todo el personal y en todos los niveles" del documento; a diferencia del roster de `pilots` que usa el módulo de Capacitación (Operaciones/Mantenimiento) ya existente.
+9. **Permisos**: no se crea ningún permiso nuevo — todo el hub Seguridad SMS (incluido el nuevo tab Capacitación SMS) sigue gateado con `canViewFinance` (lectura) y `canManageSMS` (escritura), igual que hoy. Confirmado con el usuario que, por ahora, jefe_pilotos/piloto no tienen vista propia de su asistencia — la administra GG/GSMS.
 
 ---
 
@@ -66,11 +67,22 @@ posición en la barra de tabs, sin tocar su lógica ni sus datos.
 
 ## Fases
 
-### Fase 0 — Preparación
-Migraciones nuevas + verificación de permisos (`canManageSMS` ya existe en
-`lib/roles.js` y encaja con los nuevos módulos; se evalúa caso por caso si
-algún tab necesita un permiso más granular, ej. solo-lectura para roles que
-hoy no entran a Seguridad SMS).
+### Fase 0 — Preparación ✅ Completada
+
+**Conclusión de la verificación de permisos**: no se necesita ningún permiso
+nuevo en `lib/roles.js`. Hoy `dashboard/safety/layout.js` gatea **todo** el
+hub con `canViewFinance` (`superadmin/admin/gerente_sms`) y las API routes de
+Seguridad SMS (barreras, casos, VOR/MOR gestión, reporte AeroCivil) usan
+`canManageSMS` (mismo set de roles) para escritura — ni `jefe_pilotos` ni
+`piloto` entran hoy al hub completo. Se confirmó con el usuario
+(`AskUserQuestion`) que el nuevo tab **Capacitación SMS** (roster para "todo
+el personal") sigue este mismo patrón: **solo GG/GSMS administran**, sin
+vista de autoservicio para jefe_pilotos/piloto por ahora — evita abrir el
+primer hueco en el guard existente del hub. Todos los módulos nuevos (Fases
+2-7) reutilizan `canViewFinance` (lectura del hub) y `canManageSMS`
+(escritura en API routes), igual que Barreras/Reportes/SORA ya lo hacen.
+
+Sin migraciones en esta fase — cada módulo trae la suya en su propia fase.
 
 ### Fase 1 — Reordenar la IA del hub Seguridad SMS
 Nuevo array de tabs en `dashboard/safety/page.js` con el orden de arriba. Sin
@@ -186,7 +198,7 @@ build.
 
 | Fase | Estado |
 |---|---|
-| 0 — Preparación | Pendiente |
+| 0 — Preparación | ✅ Completada |
 | 1 — Reordenar IA del hub | Pendiente |
 | 2 — Evaluación y Gestión de Riesgos | Pendiente |
 | 3 — Indicadores (SPI) | Pendiente |

@@ -19,3 +19,30 @@ export function docOpenUrl(stored) {
   const p = docPath(stored);
   return p ? `/api/documents/open?path=${encodeURIComponent(p)}` : null;
 }
+
+// Resuelve un logo guardado (path del bucket privado `documents`) a un data URL
+// base64 embebible en PDFs generados client-side. jsPDF.addImage() no puede
+// tomar una URL remota/ruta de storage directamente — necesita los bytes ya
+// cargados — así que se descarga vía /api/documents/open y se convierte.
+// Devuelve null si no hay logo o si la descarga/lectura falla (nunca lanza).
+export async function fetchLogoDataUrl(stored) {
+  const url = docOpenUrl(stored);
+  if (!url) return null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('No se pudo leer el logo'));
+      reader.readAsDataURL(blob);
+    });
+    const format = blob.type.includes('png')
+      ? 'PNG'
+      : (blob.type.includes('jpeg') || blob.type.includes('jpg')) ? 'JPEG' : 'PNG';
+    return { dataUrl, format };
+  } catch {
+    return null;
+  }
+}

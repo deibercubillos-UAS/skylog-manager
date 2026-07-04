@@ -5,6 +5,7 @@ import { hasPermission } from '@/lib/roles';
 import FileUpload from '@/components/FileUpload';
 import { toast } from '@/lib/toast';
 import PageHero from '@/components/PageHero';
+import { fetchLogoDataUrl } from '@/lib/docUrl';
 
 // PERFORMANCE: Solo carga jsPDF + ExcelJS (~400 kB) cuando el usuario realmente descarga
 const loadReportGenerators = () => import('@/lib/reportGenerators');
@@ -15,9 +16,9 @@ const loadReportGenerators = () => import('@/lib/reportGenerators');
 // default local, editable en la sesión pero no persistido).
 const REPORT_DEFS = [
     {
-        key: 'master', code: 'F-OPS-002', name: 'Reporte de Operaciones', icon: 'flight_takeoff',
-        desc: 'Consolidado de vuelos, horas y misiones ejecutadas en el periodo seleccionado.',
-        needsPeriod: true,
+        key: 'master', code: 'F-OPS-002', name: 'Libro de Vuelo', icon: 'flight_takeoff',
+        desc: 'Consolidado de vuelos, horas y misiones ejecutadas — de toda la flota o de una/varias aeronaves.',
+        needsPeriod: true, needsAircraftMulti: true,
     },
     {
         key: 'maintenance', code: 'F-MNT-006', name: 'Reporte de Mantenimiento', icon: 'build',
@@ -80,6 +81,7 @@ export default function ReportsPage() {
     const [aircraftList, setAircraftList] = useState([]);
     const [selectedPilot, setSelectedPilot] = useState('');
     const [selectedAircraft, setSelectedAircraft] = useState('');
+    const [selectedAircraftIds, setSelectedAircraftIds] = useState([]);
     const [userRole, setUserRole] = useState(null);
     const [openKey, setOpenKey] = useState(null);
 
@@ -90,10 +92,14 @@ export default function ReportsPage() {
     const [aerocivilStatus, setAerocivilStatus] = useState(null);
     const [markingSent, setMarkingSent] = useState(false);
 
-    const [config, setConfig] = useState({
-        version: '1.0',
-        reportDate: new Date().toISOString().split('T')[0],
-    });
+    // Versión y fecha del reporte se editan de forma individual por formato
+    // (antes eran un único control compartido en la cabecera de la página).
+    const todayISO = new Date().toISOString().split('T')[0];
+    const [configs, setConfigs] = useState(
+        Object.fromEntries(REPORT_DEFS.map(d => [d.key, { version: '1.0', reportDate: todayISO }]))
+    );
+    const updateConfig = (key, patch) => setConfigs(prev => ({ ...prev, [key]: { ...prev[key], ...patch } }));
+
     const [formCodes, setFormCodes] = useState(
         Object.fromEntries(REPORT_DEFS.map(d => [d.key, d.code]))
     );
@@ -170,9 +176,20 @@ export default function ReportsPage() {
         return a ? `${a.model} · ${a.serial_number}` : null;
     }, [aircraftList, selectedAircraft]);
 
+    // Libro de Vuelo: etiqueta de alcance cuando se elige una o varias aeronaves (no todas)
+    const selectedAircraftMultiLabel = useMemo(() => {
+        if (!selectedAircraftIds.length || selectedAircraftIds.length === aircraftList.length) return null;
+        if (selectedAircraftIds.length === 1) {
+            const a = aircraftList.find(x => x.id === selectedAircraftIds[0]);
+            return a ? `${a.model} · ${a.serial_number}` : null;
+        }
+        return `${selectedAircraftIds.length} aeronaves seleccionadas`;
+    }, [aircraftList, selectedAircraftIds]);
+
     const toggleDef = (key) => {
         setOpenKey(prev => prev === key ? null : key);
         setSelectedAircraft('');
+        setSelectedAircraftIds([]);
     };
 
     const handleDownload = async (def) => {
@@ -184,17 +201,29 @@ export default function ReportsPage() {
         setDownloadingKey(def.key);
         try {
             const generators = await loadReportGenerators();
+            const cfg = configs[def.key] || { version: '1.0', reportDate: todayISO };
+            const logo = await fetchLogoDataUrl(orgData?.logo_url);
+            const downloadedAt = new Date().toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+            const rangeLabel = def.needsMonth
+                ? `Mes ${selectedMonth}`
+                : def.needsPeriod
+                    ? `${from} a ${to}`
+                    : 'Instantánea (sin rango de fechas)';
+
             const common = {
                 orgName: orgData?.company_name,
-                logoUrl: orgData?.logo_url,
-                version: config.version,
-                reportDate: config.reportDate,
+                logo,
+                version: cfg.version,
+                reportDate: cfg.reportDate,
                 formCode: formCodes[def.key],
+                rangeLabel,
+                downloadedAt,
             };
 
             if (def.key === 'master') {
-                const res = await fetch(`/api/reports/master?from=${from}&to=${to}`);
-                generators.generateMasterReport(await res.json(), common);
+                const q = selectedAircraftIds.length ? `&aircraftIds=${selectedAircraftIds.join(',')}` : '';
+                const res = await fetch(`/api/reports/master?from=${from}&to=${to}${q}`);
+                generators.generateMasterReport(await res.json(), { ...common, aircraftLabel: selectedAircraftMultiLabel });
             }
             if (def.key === 'maintenance') {
                 const q = selectedAircraft ? `&aircraftId=${selectedAircraft}` : '';
@@ -218,8 +247,11 @@ export default function ReportsPage() {
                 const res = await fetch(`/api/reports/crew/expediente?pilotId=${selectedPilot}`);
                 generators.generatePilotDossier(await res.json(), {
                     orgName: orgData?.company_name,
-                    logoUrl: orgData?.logo_url,
-                    reportDate: config.reportDate,
+                    logo,
+                    version: cfg.version,
+                    reportDate: cfg.reportDate,
+                    rangeLabel: 'Instantánea — expediente vigente a la fecha de descarga',
+                    downloadedAt,
                 });
             }
             if (def.key === 'aerocivil') {
@@ -257,20 +289,6 @@ export default function ReportsPage() {
                 </div>
             ) : (
             <>
-                {/* Control de cabecera (aplica a todos los formatos) */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-wrap items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <label className="text-[9.5px] font-black uppercase text-slate-400 tracking-wide">Versión</label>
-                        <input className="w-16 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-center"
-                            value={config.version} onChange={e => setConfig({ ...config, version: e.target.value })} />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <label className="text-[9.5px] font-black uppercase text-slate-400 tracking-wide">Fecha del reporte</label>
-                        <input type="date" className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold"
-                            value={config.reportDate} onChange={e => setConfig({ ...config, reportDate: e.target.value })} />
-                    </div>
-                </div>
-
                 {/* Grid de formatos */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {REPORT_DEFS.map(def => (
@@ -305,13 +323,33 @@ export default function ReportsPage() {
                             </button>
                         </div>
 
-                        {activeDef.code && (
-                            <div className="space-y-1 max-w-xs">
-                                <label className="text-[9.5px] font-black text-slate-400 uppercase tracking-wide ml-0.5">Código de formato</label>
-                                <input className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold font-mono text-slate-900"
-                                    value={formCodes[activeDef.key]}
-                                    onChange={e => setFormCodes({ ...formCodes, [activeDef.key]: e.target.value })} />
-                                <p className="text-[10px] font-semibold text-slate-400">Personaliza el código con el que se identifica este reporte en tu organización.</p>
+                        {(activeDef.code || activeDef.key !== 'aerocivil') && (
+                            <div className="flex flex-wrap items-start gap-4">
+                                {activeDef.code && (
+                                    <div className="space-y-1 max-w-xs">
+                                        <label className="text-[9.5px] font-black text-slate-400 uppercase tracking-wide ml-0.5">Código de formato</label>
+                                        <input className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold font-mono text-slate-900"
+                                            value={formCodes[activeDef.key]}
+                                            onChange={e => setFormCodes({ ...formCodes, [activeDef.key]: e.target.value })} />
+                                        <p className="text-[10px] font-semibold text-slate-400">Personaliza el código con el que se identifica este reporte en tu organización.</p>
+                                    </div>
+                                )}
+                                {activeDef.key !== 'aerocivil' && (
+                                    <>
+                                        <div className="space-y-1">
+                                            <label className="text-[9.5px] font-black text-slate-400 uppercase tracking-wide ml-0.5">Versión</label>
+                                            <input className="w-20 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-center"
+                                                value={configs[activeDef.key]?.version || ''}
+                                                onChange={e => updateConfig(activeDef.key, { version: e.target.value })} />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[9.5px] font-black text-slate-400 uppercase tracking-wide ml-0.5">Fecha del formato</label>
+                                            <input type="date" className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
+                                                value={configs[activeDef.key]?.reportDate || ''}
+                                                onChange={e => updateConfig(activeDef.key, { reportDate: e.target.value })} />
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         )}
 
@@ -360,6 +398,38 @@ export default function ReportsPage() {
                                             <input type="date" className="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" value={customTo} onChange={e => setCustomTo(e.target.value)} />
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {/* Alcance: una o varias aeronaves (Libro de Vuelo) */}
+                            {activeDef.needsAircraftMulti && (
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[9.5px] font-black uppercase tracking-wide text-slate-400">Aeronaves incluidas</span>
+                                        <div className="flex items-center gap-2">
+                                            <button type="button" onClick={() => setSelectedAircraftIds(aircraftList.map(a => a.id))}
+                                                className="text-[10px] font-black text-orange-600 hover:underline">Todas</button>
+                                            <span className="text-slate-300">·</span>
+                                            <button type="button" onClick={() => setSelectedAircraftIds([])}
+                                                className="text-[10px] font-black text-slate-400 hover:underline">Ninguna</button>
+                                        </div>
+                                    </div>
+                                    <div className="max-h-40 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100">
+                                        {aircraftList.length === 0 && (
+                                            <p className="text-xs font-semibold text-slate-400 px-3 py-3">Sin aeronaves registradas.</p>
+                                        )}
+                                        {aircraftList.map(a => {
+                                            const checked = selectedAircraftIds.includes(a.id);
+                                            return (
+                                                <label key={a.id} className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 cursor-pointer hover:bg-slate-50">
+                                                    <input type="checkbox" className="accent-orange-600" checked={checked}
+                                                        onChange={() => setSelectedAircraftIds(prev => checked ? prev.filter(id => id !== a.id) : [...prev, a.id])} />
+                                                    {a.model} · {a.serial_number}
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                    <p className="text-[10px] font-semibold text-slate-400">Deja sin marcar ninguna para incluir toda la flota.</p>
                                 </div>
                             )}
 

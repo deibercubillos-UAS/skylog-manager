@@ -8,13 +8,16 @@ export async function GET(request) {
         const { searchParams } = new URL(request.url);
         const from = searchParams.get('from');
         const to = searchParams.get('to');
+        // Libro de Vuelo: alcance opcional a una o varias aeronaves (ids separados por coma)
+        const aircraftIds = (searchParams.get('aircraftIds') || '')
+            .split(',').map(s => s.trim()).filter(Boolean);
 
         const supabase = await createClientSSR();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
 
-        const { data, error } = await supabase
+        let query = supabase
             .from('flights')
             .select(`
                 flight_date,
@@ -33,6 +36,9 @@ export async function GET(request) {
             .lte('flight_date', to)
             .order('flight_date', { ascending: true });
 
+        if (aircraftIds.length) query = query.in('aircraft_id', aircraftIds);
+
+        const { data, error } = await query;
         if (error) throw error;
         return NextResponse.json(data || []);
     } catch (err) {

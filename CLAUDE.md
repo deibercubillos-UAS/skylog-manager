@@ -369,6 +369,53 @@ aplica, un selector de **alcance** — esto es lo nuevo pedido explícitamente p
   `billing_history`) que no fue pedida; se documenta aquí como pendiente si se quiere en el
   futuro en vez de fabricar la tabla en la UI.
 
+### Reportes — logo, versión/fecha individuales, nota de trazabilidad, Libro de Vuelo (2026-07-04)
+
+Ajustes pedidos por el usuario sobre los 6 formatos PDF de `dashboard/reports/page.js`
+(Libro de Vuelo, Mantenimiento, Baterías, Flota, Bitácora de Piloto, Expediente de
+Tripulante) — el Excel del reporte AeroCivil mensual y el Formato 100 (plantilla UAEAC) se
+dejaron fuera de este alcance porque no tienen la estructura clásica de
+encabezado+logo+firmas que los 6 anteriores comparten (son exports de datos regulatorios,
+no "formatos" con letterhead).
+
+- **Bug real corregido — el logo nunca salía en los PDF**: `orgData.logo_url` guarda un
+  *path* del bucket privado `documents` (ver **Bucket `documents` privado**), no una URL
+  pública — `jsPDF.addImage()` no puede descargar una URL/path remoto, necesita los bytes
+  ya cargados. Se pasaba el path crudo directo a `addImage()`, que fallaba en silencio
+  (atrapado por el `try/catch` de cada generador). Corregido con
+  `fetchLogoDataUrl()` (nuevo, `lib/docUrl.js`): descarga vía `/api/documents/open` (mismo
+  endpoint que ya resuelve el bucket privado en el resto de la app) y convierte a data URL
+  base64 embebible, detectando PNG/JPEG real del `blob.type` (antes hardcodeado a `'PNG'`
+  sin importar el archivo subido). `reports/page.js` lo resuelve una vez por descarga y lo
+  pasa como `config.logo` (objeto `{dataUrl, format}`) a los generadores — reemplaza el
+  campo `logoUrl` crudo en los 6 generadores de `reportGenerators.js` (nuevo helper interno
+  `addLogo()`, `try/catch` conservado para logos corruptos).
+- **Versión y fecha del formato — ahora individuales por formato**: antes eran un único
+  control compartido en la cabecera de la página (`config.version`/`config.reportDate`
+  aplicaba a los 6 formatos a la vez). Se quitó ese control global; cada tarjeta expandida
+  tiene su propio par Versión/Fecha (`configs[def.key]`, estado por `key`), junto al campo
+  "Código de formato" ya existente. El Expediente de Tripulante también gana campo Versión
+  editable (antes tenía `"VERSIÓN: 1.0"` hardcodeado en el PDF, ignorando cualquier config).
+- **Nota de trazabilidad antes de firmas** (nuevo, los 6 formatos): línea itálica gris justo
+  después de la tabla y antes del bloque de firmas — "Periodo de la información: ..." +
+  "Descargado el: ...". `addFooterNote()` (nuevo helper en `reportGenerators.js`). El lapso
+  se arma en `page.js` según el tipo de formato: `${from} a ${to}` para los que tienen
+  selector de periodo, "Instantánea (sin rango de fechas)" para Flota (inventario snapshot)
+  y "Instantánea — expediente vigente a la fecha de descarga" para el Expediente. La fecha
+  de descarga es `new Date().toLocaleString('es-CO', {...})` real al momento del click, no
+  el campo "Fecha del formato" editable (que es la fecha *del documento*, no de la
+  descarga — son dos conceptos distintos y se muestran ambos).
+- **"Reporte de Operaciones" → "Libro de Vuelo" + alcance por aeronave(s)**: renombrado en
+  `REPORT_DEFS` (mismo `code` `F-OPS-002`, mismo endpoint, solo cambia el nombre visible y
+  el título impreso en el PDF). Antes descargaba siempre toda la flota sin poder acotar.
+  Ahora tiene un selector de **una o varias aeronaves** (`needsAircraftMulti`, checklist con
+  atajos "Todas"/"Ninguna" — distinto del `<select>` de una sola aeronave que ya usan
+  Mantenimiento/Flota, porque aquí se pidió explícitamente poder elegir varias a la vez).
+  `GET /api/reports/master` acepta `aircraftIds` (csv) y filtra con `.in('aircraft_id', ...)`;
+  dejar el checklist vacío sigue trayendo toda la flota (comportamiento previo intacto). El
+  PDF muestra "AERONAVE(S): ..." o "TODAS LAS AERONAVES" bajo el título, mismo patrón que ya
+  usaba Mantenimiento para su selector de una sola aeronave.
+
 ### Seguridad SMS — hub con tabs en vivo (2026-07-02j, revisado 2026-07-02k)
 
 `dashboard/safety/page.js`: primera versión restyleó el hub como lista de tarjetas con

@@ -19,6 +19,26 @@ const docLink = (stored) => {
 // Devuelve doc.lastAutoTable.finalY de forma segura (evita crash con datos vacíos o tabla no renderizada)
 const safeAutoTableY = (doc, fallback = 40) => doc.lastAutoTable?.finalY ?? fallback;
 
+// Inserta el logo ya resuelto — `logo` es { dataUrl, format } (ver fetchLogoDataUrl
+// en lib/docUrl.js), NUNCA la URL/path crudo: jsPDF.addImage() no puede
+// descargar una URL remota, necesita los bytes ya cargados como base64.
+const addLogo = (doc, logo, x, y, w, h) => {
+    if (!logo?.dataUrl) return;
+    try { doc.addImage(logo.dataUrl, logo.format || 'PNG', x, y, w, h); } catch (e) { /* logo inválido — se omite sin romper el PDF */ }
+};
+
+// Nota de trazabilidad exigida en todos los formatos: lapso de la información
+// mostrada + fecha/hora real de descarga, justo antes del bloque de firmas.
+const addFooterNote = (doc, startY, { rangeLabel, downloadedAt } = {}) => {
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(7.5);
+    doc.setTextColor(90, 90, 90);
+    doc.text(`Periodo de la información: ${rangeLabel || 'N/A'}`, 12, startY);
+    doc.text(`Descargado el: ${downloadedAt || '---'}`, 12, startY + 4);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "normal");
+};
+
 const toGMS = (dec) => {
     const d = Math.abs(dec);
     const deg = Math.floor(d);
@@ -30,27 +50,25 @@ const toGMS = (dec) => {
 // --- 1. GENERADOR: FORMATO MASTER DE VUELO ---
 export const generateMasterReport = (data, config) => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const { orgName, logoUrl, version, reportDate, formCode } = config;
+    const { orgName, logo, version, reportDate, formCode, aircraftLabel, rangeLabel, downloadedAt } = config;
 
     doc.setDrawColor(0);
     doc.setLineWidth(0.4);
-    doc.rect(10, 10, 277, 25); 
+    doc.rect(10, 10, 277, 25);
 
-    doc.line(65, 10, 65, 35);   
-    doc.line(225, 10, 225, 35); 
-    doc.line(65, 22.5, 225, 22.5); 
-    
-    if (logoUrl) {
-        try { doc.addImage(logoUrl, 'PNG', 15, 12, 45, 20); } catch (e) {
-            doc.setFontSize(7); doc.text("S/L", 40, 23, { align: 'center' });
-        }
-    }
+    doc.line(65, 10, 65, 35);
+    doc.line(225, 10, 225, 35);
+    doc.line(65, 22.5, 225, 22.5);
+
+    addLogo(doc, logo, 15, 12, 45, 20);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.text(orgName ? orgName.toUpperCase() : "BITAFLY UAS", 145, 18, { align: 'center' });
     doc.setFontSize(14);
-    doc.text("FORMATO MASTER DE VUELO", 145, 30, { align: 'center' });
+    doc.text("LIBRO DE VUELO", 145, 27, { align: 'center' });
+    doc.setFontSize(8);
+    doc.text(aircraftLabel ? `AERONAVE(S): ${aircraftLabel.toUpperCase()}` : "TODAS LAS AERONAVES", 145, 33, { align: 'center' });
 
     doc.setFontSize(7);
     doc.line(225, 18, 287, 18);
@@ -63,8 +81,8 @@ export const generateMasterReport = (data, config) => {
         startY: 40,
         head: [['FECHA', 'VUELO', 'MARCA', 'MODELO', 'S/N', 'RUAS', 'LUGAR', 'TIPO OP', 'VISUAL', 'DEP', 'ARR', 'TOTAL', 'PILOTO', 'CIPU']],
         body: (data || []).map(f => [
-            f.flight_date, f.mission_id, f.aircraft?.brand, f.aircraft?.model, f.aircraft?.serial_number, 
-            f.aircraft?.ruas, f.location, f.mission_type, f.visual_condition, f.takeoff_time, 
+            f.flight_date, f.mission_id, f.aircraft?.brand, f.aircraft?.model, f.aircraft?.serial_number,
+            f.aircraft?.ruas, f.location, f.mission_type, f.visual_condition, f.takeoff_time,
             f.landing_time, f.aircraft?.total_hours?.toFixed(2), f.pilots?.name, f.pilots?.license_number
         ]),
         styles: { fontSize: 5.5, cellPadding: 1, lineColor: [0, 0, 0], lineWidth: 0.1 },
@@ -72,28 +90,30 @@ export const generateMasterReport = (data, config) => {
         margin: { left: 10, right: 10 }
     });
 
-    const finalY = safeAutoTableY(doc, 80) + 25;
+    const noteY = safeAutoTableY(doc, 80) + 10;
+    addFooterNote(doc, noteY, { rangeLabel, downloadedAt });
+    const finalY = noteY + 12;
     doc.line(30, finalY, 110, finalY);
     doc.text("FIRMA JEFE DE PILOTOS", 70, finalY + 5, { align: 'center' });
     doc.line(187, finalY, 267, finalY);
     doc.text("FIRMA GERENTE GENERAL", 227, finalY + 5, { align: 'center' });
 
-    doc.save(`${formCode || 'F-OPS-002'}_VUELO_${orgName}.pdf`);
+    doc.save(`${formCode || 'F-OPS-002'}_LIBRO_VUELO_${orgName}.pdf`);
 };
 
 // --- 2. GENERADOR: REGISTRO OPERACIONAL DE BATERÍAS ---
 export const generateBatteryReport = (data, config) => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const { orgName, logoUrl, version, reportDate, formCode } = config;
+    const { orgName, logo, version, reportDate, formCode, rangeLabel, downloadedAt } = config;
 
     doc.setDrawColor(0);
     doc.setLineWidth(0.4);
-    doc.rect(10, 10, 277, 25); 
+    doc.rect(10, 10, 277, 25);
     doc.line(65, 10, 65, 35);
     doc.line(225, 10, 225, 35);
     doc.line(65, 22.5, 225, 22.5);
 
-    if (logoUrl) { try { doc.addImage(logoUrl, 'PNG', 15, 12, 45, 20); } catch (e) {} }
+    addLogo(doc, logo, 15, 12, 45, 20);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
@@ -120,7 +140,9 @@ export const generateBatteryReport = (data, config) => {
         margin: { left: 10, right: 10 }
     });
 
-    const finalY = safeAutoTableY(doc, 80) + 30;
+    const noteY = safeAutoTableY(doc, 80) + 12;
+    addFooterNote(doc, noteY, { rangeLabel, downloadedAt });
+    const finalY = noteY + 15;
     doc.line(30, finalY, 110, finalY);
     doc.text("FIRMA JEFE DE PILOTOS", 70, finalY + 5, { align: 'center' });
     doc.line(187, finalY, 267, finalY);
@@ -132,18 +154,18 @@ export const generateBatteryReport = (data, config) => {
 // --- 3. GENERADOR: BITÁCORA DE EXPERIENCIA DE PILOTO ---
 export const generatePilotReport = (data, config) => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const { orgName, logoUrl, version, reportDate, formCode } = config;
+    const { orgName, logo, version, reportDate, formCode, rangeLabel, downloadedAt } = config;
     const pilotName = data[0]?.pilots?.name || "N/A";
     const pilotCIPU = data[0]?.pilots?.license_number || "---";
 
     doc.setDrawColor(0);
     doc.setLineWidth(0.4);
-    doc.rect(10, 10, 277, 25); 
+    doc.rect(10, 10, 277, 25);
     doc.line(65, 10, 65, 35);
     doc.line(225, 10, 225, 35);
     doc.line(65, 22.5, 225, 22.5);
 
-    if (logoUrl) { try { doc.addImage(logoUrl, 'PNG', 15, 12, 45, 20); } catch (e) {} }
+    addLogo(doc, logo, 15, 12, 45, 20);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
@@ -176,7 +198,9 @@ export const generatePilotReport = (data, config) => {
         margin: { left: 10, right: 10 }
     });
 
-    const finalY = safeAutoTableY(doc, 80) + 25;
+    const noteY = safeAutoTableY(doc, 80) + 10;
+    addFooterNote(doc, noteY, { rangeLabel, downloadedAt });
+    const finalY = noteY + 12;
     doc.line(30, finalY, 110, finalY);
     doc.text("FIRMA DEL PILOTO", 70, finalY + 5, { align: 'center' });
     doc.line(187, finalY, 267, finalY);
@@ -188,7 +212,7 @@ export const generatePilotReport = (data, config) => {
 // --- GENERADOR: REPORTE DE MANTENIMIENTO (todas las aeronaves o una sola) ---
 export const generateMaintenanceReport = (data, config) => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const { orgName, logoUrl, version, reportDate, formCode, aircraftLabel } = config;
+    const { orgName, logo, version, reportDate, formCode, aircraftLabel, rangeLabel, downloadedAt } = config;
 
     doc.setDrawColor(0);
     doc.setLineWidth(0.4);
@@ -197,7 +221,7 @@ export const generateMaintenanceReport = (data, config) => {
     doc.line(225, 10, 225, 35);
     doc.line(65, 22.5, 225, 22.5);
 
-    if (logoUrl) { try { doc.addImage(logoUrl, 'PNG', 15, 12, 45, 20); } catch (e) {} }
+    addLogo(doc, logo, 15, 12, 45, 20);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
@@ -226,7 +250,9 @@ export const generateMaintenanceReport = (data, config) => {
         margin: { left: 10, right: 10 }
     });
 
-    const finalY = safeAutoTableY(doc, 80) + 25;
+    const noteY = safeAutoTableY(doc, 80) + 10;
+    addFooterNote(doc, noteY, { rangeLabel, downloadedAt });
+    const finalY = noteY + 12;
     doc.line(30, finalY, 110, finalY);
     doc.text("FIRMA TÉCNICO / MANTENIMIENTO", 70, finalY + 5, { align: 'center' });
     doc.line(187, finalY, 267, finalY);
@@ -238,7 +264,7 @@ export const generateMaintenanceReport = (data, config) => {
 // --- GENERADOR: REPORTE DE FLOTA (inventario, sin rango de fechas) ---
 export const generateFleetReport = (data, config) => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const { orgName, logoUrl, version, reportDate, formCode } = config;
+    const { orgName, logo, version, reportDate, formCode, rangeLabel, downloadedAt } = config;
 
     doc.setDrawColor(0);
     doc.setLineWidth(0.4);
@@ -247,7 +273,7 @@ export const generateFleetReport = (data, config) => {
     doc.line(225, 10, 225, 35);
     doc.line(65, 22.5, 225, 22.5);
 
-    if (logoUrl) { try { doc.addImage(logoUrl, 'PNG', 15, 12, 45, 20); } catch (e) {} }
+    addLogo(doc, logo, 15, 12, 45, 20);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
@@ -276,7 +302,9 @@ export const generateFleetReport = (data, config) => {
         margin: { left: 10, right: 10 }
     });
 
-    const finalY = safeAutoTableY(doc, 80) + 25;
+    const noteY = safeAutoTableY(doc, 80) + 10;
+    addFooterNote(doc, noteY, { rangeLabel, downloadedAt });
+    const finalY = noteY + 12;
     doc.line(30, finalY, 110, finalY);
     doc.text("FIRMA JEFE DE PILOTOS", 70, finalY + 5, { align: 'center' });
     doc.line(187, finalY, 267, finalY);
@@ -288,19 +316,19 @@ export const generateFleetReport = (data, config) => {
 // --- 4. NUEVO GENERADOR: EXPEDIENTE TÉCNICO DE TRIPULANTE (PORTRAIT) ---
 export const generatePilotDossier = (pilot, config) => {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const { orgName, logoUrl, reportDate } = config;
+    const { orgName, logo, version, reportDate, rangeLabel, downloadedAt } = config;
 
     // --- 1. CABECERA TÉCNICA (PORTRAIT) ---
     doc.setDrawColor(0); doc.setLineWidth(0.5);
-    doc.rect(10, 10, 190, 25); 
+    doc.rect(10, 10, 190, 25);
     doc.line(50, 10, 50, 35); doc.line(160, 10, 160, 35);
 
-    if (logoUrl) { try { doc.addImage(logoUrl, 'PNG', 15, 12, 30, 20); } catch (e) {} }
+    addLogo(doc, logo, 15, 12, 30, 20);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10); doc.text(orgName ? orgName.toUpperCase() : "BITAFLY UAS", 105, 18, { align: 'center' });
     doc.setFontSize(12); doc.text("EXPEDIENTE TÉCNICO DE TRIPULANTE", 105, 28, { align: 'center' });
-    doc.setFontSize(8); doc.text("VERSIÓN: 1.0", 162, 18); doc.text(`EMISIÓN: ${reportDate}`, 162, 28);
+    doc.setFontSize(8); doc.text(`VERSIÓN: ${version || '1.0'}`, 162, 18); doc.text(`EMISIÓN: ${reportDate}`, 162, 28);
 
     // --- 2. BLOQUE DE IDENTIDAD ---
     autoTable(doc, {
@@ -392,8 +420,9 @@ export const generatePilotDossier = (pilot, config) => {
         columnStyles: { 0: { fontStyle: 'bold', cellWidth: 70 } }
     });
 
-    // --- SECCIÓN DE FIRMAS (Ajustada de posición) ---
+    // --- NOTA DE TRAZABILIDAD + SECCIÓN DE FIRMAS (Ajustada de posición) ---
     const signY = 265;
+    addFooterNote(doc, signY - 11, { rangeLabel, downloadedAt });
     doc.setDrawColor(0);
     doc.setFontSize(8);
     doc.line(20, signY, 80, signY);

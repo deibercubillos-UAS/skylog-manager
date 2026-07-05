@@ -90,7 +90,8 @@ lib/
 ## Base de datos
 
 Tablas principales:
-- `profiles` — users, tiene `organization_id`, `role`, `subscription_plan`, `epayco_subscription_id`, `subscription_expires_at` (NO existe `org_id` ni `plan`; `organizations` no tiene columna de plan)
+- `profiles` — users, tiene `organization_id`, `role`, `subscription_plan`, `epayco_subscription_id`, `subscription_expires_at` (NO existe `org_id` ni `plan`; `organizations` no tiene columna de plan). Estas columnas siguen siendo la fuente de verdad leída por ~88 archivos sin migrar (ver **Multi-organización por cuenta**, Fase 7 diferida), pero YA NO son la fuente de verdad para RLS/`getOrgContext`/`getOrgPlan` — eso es `organization_members` (ver abajo). `active_organization_id` (nueva, 2026-07-05): cuál organización está activa para la cuenta ahora mismo.
+- `organization_members` (nueva, 2026-07-05) — membresías de una cuenta a N organizaciones: `user_id`, `organization_id`, `role`, `subscription_plan`, campos de ePayco, `is_active` (membresía vigente, no revocada), `joined_at`, `UNIQUE(user_id, organization_id)`. Fuente de verdad real para rol/plan/organización desde la Fase 1 en adelante. Ver **Multi-organización por cuenta**.
 - `organizations` — tenant. Tiene `enable_health_check`, `enable_preflight`, `enable_briefing`, `enable_inventory_checklist` (toggles protocolos, ver **Inventario de Operación**). Registro AeroCivil: `dan_number` (N° Explotador), `operator_number` (N.º de operador UAS), `registration_expiry` (vigencia del registro), `authorized_operations jsonb` (chips de autorizaciones activas, texto libre) — ver **Organización rediseñada**.
 - `pilots` · `aircraft` · `batteries` · `battery_logs`. `pilots.invitation_status` 'pending'/'accepted'/'rejected'/null · `pilots.profile_id` se vincula al aceptar invitación · `pilots.avatar_url`/`aerocivil_additions` (jsonb)/`notes`
   - `aircraft` mantenimiento: `maintenance_interval_hours` (default 200), `maintenance_interval_days` (default 180), `operational_status` ('disponible'/'en_mantenimiento', CHECK, NOT NULL), `last_status_change`. Ver sección **Mantenimiento de Aeronaves**. La foto va en `image_url` (bucket público `fleet-images`, ver Convenciones). Mantenimiento Menor (piloto, contadores independientes): `minor_maintenance_interval_hours`/`_days` (default 0 = deshabilitado por aeronave), `last_minor_maintenance_date`/`_hours`, `minor_maintenance_due` — ver **Mantenimiento Menor (piloto)**.
@@ -163,7 +164,7 @@ Migración `20260705_organization_members_phase0.sql` (aplicada, verificada):
   ellas habría creado riesgo de recursión sin ningún beneficio real.
 - **`profiles.active_organization_id`** (nueva, nullable): cuál organización está activa para
   esa cuenta en este momento. Se proyecta desde `organization_members` mediante el endpoint de
-  cambio de organización (Fase 5, todavía no construido) — no es un trigger en ese sentido, es
+  cambio de organización (`POST /api/org/switch-active`, ver **Fase 5**) — no es un trigger en ese sentido, es
   una acción explícita del usuario.
 - **Backfill 1:1**: cada `profiles` con `organization_id` no nulo generó exactamente una fila
   en `organization_members` con los mismos valores, y `active_organization_id = organization_id`
@@ -2684,6 +2685,7 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 - [x] **`20260703_sms_reports_updated_at.sql` aplicada en Supabase (2026-07-03)** — columna `updated_at` + trigger en `sms_reports`. Ver **Seguimiento de casos SMS/VOR/MOR**.
 - [x] **`20260703_vor_mor_reported_fields.sql` aplicada en Supabase (2026-07-03)** — columnas `reported_severity`/`related_barrier_id` en `vor_mor_submissions`. Ver **Editor de formato VOR/MOR rediseñado**.
 - [x] **`20260702_billing_history.sql` aplicada en Supabase (2026-07-03)**, confirmado con el usuario al rediseñar Suscripción. Ver **Historial de facturación**.
+- [x] **`20260705_organization_members_phase0.sql` + `_phase1_rls_helpers.sql` + `_phase3_teammate_select.sql` aplicadas en Supabase (2026-07-05)** — tabla `organization_members` + `profiles.active_organization_id` + trigger-puente + funciones RLS centrales + política de lectura entre compañeros de org. Ver **Multi-organización por cuenta**. Fases 6 (migrar los 14 sitios de escritura legacy) y 7 (retirar columnas legacy de `profiles`) quedan pendientes, deliberadamente diferidas.
 - [ ] Agregar `DJI_API_KEY` a Vercel env vars
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a Vercel env vars
 - [ ] Agregar `AEROCIVIL_SALT` a Vercel env vars (el fallback inseguro ya fue removido — el endpoint lanza error si falta la variable)

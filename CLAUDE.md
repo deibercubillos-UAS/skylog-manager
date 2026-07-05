@@ -115,11 +115,99 @@ Tablas principales:
 - `processed_webhook_refs` — idempotencia webhook (`ref_payco PK`)
 - `epayco_plan_config` — configuración planes: `replay_retention_days`, `replay_max_flights`. Editable desde `/admin/master`.
 - `audit_log` — log append-only de acciones (`organization_id`, `actor_id`, `actor_name`, `action`, `module`, `entity_label`, `metadata jsonb`, `created_at`). RLS: managers de la org leen, solo service role escribe. Ver **Auditoría de acciones**.
-- `protocols` — biblioteca libre de procedimientos (`organization_id`, `name`, `category` CHECK 5 valores, `description`, `icon`, `steps jsonb`, `created_by`). RLS: solo `admin`/`superadmin`/`gerente_sms` de la org leen/escriben. Ver **Protocolos**.
+- `protocols` — biblioteca libre de procedimientos (`organization_id`, `name`, `category` CHECK 4 valores — Prevuelo/Reportes/Seguridad Operacional/Mantenimiento, ver **Protocolos — reorganización en 4 grupos**, `description`, `icon`, `steps jsonb`, `created_by`). RLS: solo `admin`/`superadmin`/`gerente_sms` de la org leen/escriben. Ver **Protocolos**.
 - `suppliers` / `supplier_audit_criteria` / `supplier_audits` — listado de proveedores + checklist de auditoría (personalizable por org) + auditorías realizadas (`responses jsonb` keyed por `criterion_id`: `{value: 'cumple'|'no_cumple'|'no_aplica', notes}`). RLS: `admin`/`superadmin`/`gerente_sms`/`jefe_pilotos` de la org leen/escriben (`private.user_is_manager()`), sin nivel de lectura para piloto. Ver **Proveedores**.
 - `billing_history` ⚠️ **migración creada, NO aplicada aún** (`supabase/migrations/20260702_billing_history.sql`) — historial de pagos informativo (no factura fiscal). RLS: cada usuario ve el suyo, solo service role escribe. Ver **Historial de facturación**.
 
 **Regla `total_hours`**: actualizar siempre vía RPC `increment_aircraft_hours(p_id, p_hours)` — nunca read-calculate-write.
+
+---
+
+## Multi-organización por cuenta (en progreso, 2026-07-05)
+
+A pedido del usuario: una misma cuenta (login) debe poder pertenecer a **varias**
+organizaciones simultáneamente, con un botón/pestaña para cambiar cuál está activa, sin
+mezclar la información de una y otra. Hoy `profiles.id = auth.users.id` (1:1) es la fuente
+única de `organization_id`/`role`/`subscription_plan`/campos de ePayco, y **106 políticas RLS
+en 39 tablas** + `getOrgContext()` (usado por 113 de 173 rutas API) resuelven todo desde esa
+única fila — es un refactor arquitectónico real, no un agregado de UI. Confirmado con el
+usuario (`AskUserQuestion`, 2 rondas): aplica a **ambos** casos de uso (tripulantes que
+trabajan para varias operadoras, y dueños/administradores con varias empresas), con el
+**refactor completo** (separar identidad de membresía), no un parche superficial.
+
+Dado el tamaño (~150-160 archivos tocan estos campos de una forma u otra, según inventario
+con agentes de exploración), el usuario pidió explícitamente **fases cortas, verificables una
+por una, sin arriesgar producción** (app en vivo, con pagos reales de ePayco). El plan
+completo, fase por fase, con qué verificar en cada una antes de avanzar, vive documentado en
+este archivo a medida que se ejecuta — ver subsecciones fechadas más abajo bajo este mismo
+encabezado, y también en `/root/.claude/plans/ethereal-moseying-spring.md` de la sesión que lo
+diseñó (fuera del repo, solo como referencia de la sesión).
+
+**Simplificación de v1, documentada a propósito**: la "organización activa" es **una por
+cuenta**, no por pestaña/sesión — cambiar de organización cambia el contexto en todos lados
+para esa cuenta (coincide con lo pedido literalmente: un botón para pasar de una organización
+a otra, no contextos simultáneos en paralelo).
+
+### Fase 0 — `organization_members` + organización activa + trigger-puente (2026-07-05)
+
+Migración `20260705_organization_members_phase0.sql` (aplicada, verificada):
+
+- **Tabla nueva `organization_members`**: `user_id`, `organization_id`, `role`,
+  `subscription_plan`, `epayco_customer_id`, `epayco_subscription_id`, `epayco_ref`,
+  `subscription_expires_at`, `subscription_status`, `last_payment_date`, `is_active` (membresía
+  vigente/no revocada — **no** "organización seleccionada actualmente", eso es
+  `profiles.active_organization_id`), `joined_at`, `UNIQUE(user_id, organization_id)`. RLS
+  mínima (`user_id = auth.uid()` para SELECT propio) — a propósito **sin** pasar por las
+  funciones `private.*` en sus propias políticas: esas funciones son `SECURITY DEFINER` y ya
+  evitan RLS al leer hoy `profiles`; que dependieran de esta tabla y esta tabla dependiera de
+  ellas habría creado riesgo de recursión sin ningún beneficio real.
+- **`profiles.active_organization_id`** (nueva, nullable): cuál organización está activa para
+  esa cuenta en este momento. Se proyecta desde `organization_members` mediante el endpoint de
+  cambio de organización (Fase 5, todavía no construido) — no es un trigger en ese sentido, es
+  una acción explícita del usuario.
+- **Backfill 1:1**: cada `profiles` con `organization_id` no nulo generó exactamente una fila
+  en `organization_members` con los mismos valores, y `active_organization_id = organization_id`
+  para todos — **cero cambio de comportamiento** el día de esta fase (verificado: conteo de
+  filas idéntico, diff campo a campo en la muestra completa de perfiles reales, sin diferencias).
+- **Trigger-puente `private.sync_profile_to_org_member()`** (`AFTER INSERT OR UPDATE OF
+  organization_id, role, subscription_plan, epayco_customer_id, epayco_subscription_id,
+  epayco_ref, subscription_expires_at, subscription_status, last_payment_date ON profiles`):
+  hace upsert automático hacia `organization_members` cada vez que CUALQUIERA de los ~14 sitios
+  que hoy escriben esos campos en `profiles` (registro, `join-org`, aceptar invitación,
+  `epaycoActivation.js`, cancelar suscripción, panel master, etc.) los modifica — es lo que
+  permite que las fases siguientes (RLS, `getOrgContext`, `getOrgPlan`) se desplieguen en
+  cualquier orden sin un "flag day": mientras el código legacy sin migrar siga escribiendo en
+  `profiles`, esta tabla nueva se mantiene sincronizada sola, sin tocar esos ~14 sitios todavía
+  (eso es la Fase 6, deliberadamente al final, empezando por los de menor riesgo y dejando
+  `epaycoActivation.js`/cancelación de suscripción para el final por ser pagos reales).
+- **Verificación realizada**: conteo `profiles` con org vs. `organization_members` idéntico;
+  diff campo a campo (rol/plan/org) en la muestra completa de perfiles reales sin diferencias;
+  update de prueba en un perfil real confirmó que el trigger corre sin error y mantiene los
+  valores sincronizados; `get_advisors` (security) limpio, solo los 2 hallazgos preexistentes
+  conocidos (`partner_invitations` sin política, leaked password protection deshabilitada).
+- **Deliberadamente NO tocado en esta fase**: ninguna función RLS, ninguna ruta de la app,
+  ningún archivo de `src/` — es puramente infraestructura de base de datos, sin ningún efecto
+  visible todavía. Las columnas legacy de `profiles` (`organization_id`, `role`,
+  `subscription_plan`, campos de ePayco) siguen siendo la fuente de verdad real hasta que las
+  Fases 1-3 corten la lectura hacia la tabla nueva.
+
+**Próximas fases** (no ejecutadas todavía, ver plan completo): Fase 1 — las ~10 funciones RLS
+centrales (`user_org_id`/`user_role`/`has_role`/`can_manage_ops`/etc., de las que dependen las
+106 políticas de 39 tablas) pasan a resolver vía `organization_members` +
+`active_organization_id`; Fase 2 — `getOrgContext()` (`lib/apiAuth.js`, usado por 113 rutas
+API); Fase 3 — `getOrgPlan()` (`lib/orgPlan.js`); Fase 4 — extraer un helper compartido
+`isPilotoIndependiente()` (reemplaza 7 implementaciones inline del mismo predicado); Fase 5 —
+la capacidad nueva real: unirse a una segunda organización sin migrar datos
+(`POST /api/auth/join-org-additional`, **no** reutiliza el código destructivo de
+`api/auth/join-org` que sigue existiendo intacto para su caso de uso propio: piloto
+independiente que se fusiona a una empresa), endpoint de cambio de organización activa, UI del
+switcher (reutilizando el popover de cuenta del sidebar, patrón de **Corrección 1**), y un
+cambio de comportamiento confirmado en `api/invitations/accept/route.js` (hoy migra TODA la
+data del invitado si es dueño único de su org actual — con multi-org esto queda superado:
+aceptar una invitación debe siempre solo agregar una membresía nueva, nunca migrar datos ni
+tocar la organización de origen); Fase 6 — migrar los 14 sitios de escritura legacy (de menor a
+mayor riesgo, pagos de ePayco al final); Fase 7 (diferida a propósito, no se ejecuta todavía) —
+migrar las ~88 lecturas directas de `profiles` restantes y retirar las columnas legacy.
 
 ---
 

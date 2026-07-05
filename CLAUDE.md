@@ -2042,6 +2042,58 @@ existente detrás de cada tarjeta, intacto.
      modelo internos — el panel abre directo sobre el `type`/`selectedModel` de la tarjeta
      en la que se hizo click, sin forma de saltar a otro checklist sin volver al grid.
 
+### Protocolos — reorganización en 4 grupos (2026-07-05)
+
+A pedido del usuario ("organiza los protocolos actuales en los grupos establecidos:
+Prevuelo, Reportes, Seguridad Operacional, Mantenimiento"): antes de construir se
+confirmó el alcance completo con el usuario (`AskUserQuestion`, 2 rondas — 6 preguntas
+en total) porque el pedido tocaba tanto la presentación (3 secciones inconexas, cada
+una con su propio criterio) como el modelo de datos (las 5 categorías reales de
+`protocols.category`, que no correspondían 1-a-1 con los 4 grupos nuevos).
+
+- **Alcance confirmado — toda la página, no solo el grid superior**: además de
+  reorganizar "Checklists operativos" + "Formatos de reporte SMS" (que antes eran 2
+  secciones separadas sin relación entre sí) en los 4 grupos, la biblioteca libre de
+  "Protocolos y procedimientos" **también** migra sus categorías a los mismos 4 valores
+  — un solo criterio de agrupación para toda la página, en vez de 3 taxonomías
+  distintas conviviendo (tipos fijos / VOR-MOR / 5 categorías libres).
+- **Migración `20260705_protocols_category_groups.sql`** (aplicada en Supabase):
+  reemplaza el CHECK de `protocols.category` de 5 valores (`Pre-vuelo`/`En vuelo`/
+  `Post-vuelo`/`Emergencia`/`Mantenimiento`) a los 4 nuevos (`Prevuelo`/`Reportes`/
+  `Seguridad Operacional`/`Mantenimiento`), con `UPDATE` de remapeo para protocolos ya
+  guardados (decisión confirmada, sin equivalente 1-a-1 exacto para 3 de las 5
+  categorías viejas): `Pre-vuelo → Prevuelo`; `En vuelo`/`Post-vuelo`/`Emergencia →
+  Seguridad Operacional` (las 3 describen procedimientos durante/después del vuelo o de
+  emergencia, más cercanos a "seguridad operacional" que a los otros 3 grupos);
+  `Mantenimiento` sin cambio.
+- **Asignación de los 6 checklists fijos a los 4 grupos** (`FIXED_TYPE_GROUP` en
+  `FormSettingsClient.js`, decisión confirmada pregunta por pregunta): Salud del
+  piloto, Briefing de misión, Inventario de Operación y Pre-vuelo (por modelo) → grupo
+  **Prevuelo** (son verificaciones previas al despacho); Recibo de Mantenimiento y
+  Mantenimiento Menor → grupo **Mantenimiento**. Ninguno de los 6 cae en "Reportes"
+  (reservado para VOR/MOR) ni en "Seguridad Operacional" (grupo alimentado solo por la
+  biblioteca libre de protocolos — sin checklist fijo que encaje ahí).
+- **`FormSettingsClient.js` reescrito**: las 3 secciones antiguas (grid de checklists +
+  grid VOR/MOR + grid de protocolos libres con chips de filtro) se reemplazan por un
+  solo `GROUPS.map(...)` que renderiza 4 secciones — cada una mezcla, en un mismo grid,
+  las tarjetas de checklist fijo de ese grupo (`fixedCardsByGroup`), los formatos VOR/MOR
+  (solo en el grupo Reportes) y los protocolos libres de esa categoría
+  (`protocolsByGroup`). Se eliminaron los chips "Todos/Pre-vuelo/En vuelo/..." — la
+  sección ya cumple esa función de filtrado, un segundo filtro habría sido redundante.
+  Un grupo sin ningún ítem (posible hoy solo en "Seguridad Operacional", si la org no ha
+  creado protocolos libres de esa categoría) muestra un estado vacío con atajo directo a
+  "Crear protocolo", en vez de ocultarse — a diferencia de Reportes (donde un grupo vacío
+  tras buscar simplemente no se muestra), aquí los 4 grupos son fijos y siempre visibles
+  para que el usuario sepa que existen, tenga o no contenido todavía.
+- **`GROUP_STYLE`** (antes `CATEGORY_STYLE`): Prevuelo índigo, Reportes violeta (nuevo,
+  para no confundirse con el naranja de marca ni con el ámbar de Mantenimiento),
+  Seguridad Operacional rojo (heredado de la antigua "Emergencia", incluye ahora también
+  lo remapeado desde "En vuelo"/"Post-vuelo"), Mantenimiento ámbar (sin cambio).
+- **`AddProtocolPanel.js`** y las validaciones server-side (`POST`/`PATCH
+  /api/protocols`) actualizan su lista `CATEGORIES` a los 4 valores nuevos — el
+  `<select>` de categoría al crear/editar un protocolo libre ahora ofrece exactamente
+  los mismos 4 grupos que organizan la página, por defecto `Prevuelo`.
+
 ### Mi Perfil rediseñado (2026-07-03)
 
 `dashboard/settings/profile/page.js`: pasó de un formulario de 2 columnas genérico (con

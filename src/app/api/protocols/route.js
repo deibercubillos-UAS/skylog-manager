@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-const CATEGORIES = ['Pre-vuelo', 'En vuelo', 'Post-vuelo', 'Emergencia', 'Mantenimiento'];
+const CATEGORIES = ['Prevuelo', 'Reportes', 'Seguridad Operacional', 'Mantenimiento'];
 
 // GET /api/protocols — lista los protocolos de la org
 export async function GET() {

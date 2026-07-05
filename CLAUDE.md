@@ -1110,6 +1110,40 @@ Jefe de Pilotos, que Protocolos como página completa excluye).
   de tipos consultados) y su descripción es literalmente lo pedido: "Qué equipos se
   requieren y qué se verifica en el inventario del día de la operación".
 
+### Inventario — relación opcional ítem del checklist ↔ equipo en existencia (2026-07-23)
+
+A pedido del usuario ("relacionar los equipos que hemos creado... no será obligatorio"):
+cada ítem del checklist de verificación puede opcionalmente enlazarse a una fila de
+"Existencias de equipo" (`equipment_stock`), para ver la cantidad disponible junto al
+ítem al configurarlo y al diligenciarlo en Despacho. Confirmado con el usuario
+(`AskUserQuestion`, 2 preguntas) antes de construir: **solo informativo** (nunca descuenta
+`equipment_stock.quantity`, a diferencia de un consumo real por vuelo) y **texto libre +
+relación aparte** (el ítem conserva su propia redacción independiente de qué equipo tenga
+enlazado, en vez de autocompletar el label con el nombre del equipo al elegirlo).
+
+- **`form_definitions.equipment_stock_id`** (columna nueva, migración
+  `20260723_form_definitions_equipment_stock_link.sql`, aplicada): `uuid references
+  equipment_stock(id) on delete set null` — nullable y genérica en la tabla compartida de
+  campos de formulario (irrelevante para el resto de `form_type`, siempre `null` ahí; solo
+  se usa cuando `form_type='inventory'`). `on delete set null`: si se borra el equipo de
+  Existencias, el ítem del checklist queda intacto, solo pierde la relación.
+- **Configuración** (`InventoryChecklistClient.js`): cada uno de los 30 slots del editor
+  (`canManage`) gana un `<select>` junto al input de texto, con las filas de `stock` como
+  opciones (`Nombre (cantidad)`) + "— Sin relacionar —" por defecto — estado nuevo
+  `relations` (`field_number → equipment_stock_id`), inicializado desde
+  `initialData.initialRelations` (armado en `page.js` a partir de `defs.equipment_stock_id`)
+  y persistido en `handleSave()` junto con `label_text`. La vista de solo lectura
+  (`!canManage`) resuelve `stockById(relations[num])` y muestra un badge
+  "Nombre — N en existencia" junto al ítem, cuando hay relación.
+- **Despacho** (`app/dashboard/logbook/new/page.js`): la consulta de `form_definitions` del
+  paso activo ahora embebe `equipment_stock:equipment_stock_id(name, quantity)` (PostgREST,
+  vía el FK real) — sin round-trip adicional, y sin efecto en los demás pasos (la columna es
+  siempre `null` para `health`/`preflight`/`briefing`, el embed simplemente es `null`).
+  `CheckItem` gana una prop opcional `sub` (línea secundaria bajo el label, mismo patrón que
+  el `sub` de `KPICard`); el render del paso `inventory` la pasa como
+  `"${quantity} en existencia"` solo cuando el ítem trae `equipment_stock` — no cambia nada
+  en el guardado de `results_inventory` (sigue siendo el mismo Sí/No por ítem).
+
 ### Evaluación de Riesgos en el Despacho (2026-07-17)
 
 Nuevo paso de seguridad **"Riesgos"** en el wizard de Despacho (`app/dashboard/logbook/new/page.js`),

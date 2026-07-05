@@ -139,7 +139,7 @@ export default function NewOperationPage() {
             const modelToFilter = step === 'preflight'
                 ? (selectedAuth?.aircraft?.model || selectedAircraftModel || 'General')
                 : 'General';
-            const { data } = await supabase.from('form_definitions').select('*').eq('organization_id', prof.organization_id).eq('form_type', step).eq('aircraft_model', modelToFilter).order('field_number', { ascending: true });
+            const { data } = await supabase.from('form_definitions').select('*, equipment_stock:equipment_stock_id(name, quantity)').eq('organization_id', prof.organization_id).eq('form_type', step).eq('aircraft_model', modelToFilter).order('field_number', { ascending: true });
             setDynamicLabels(data || []);
         }
         loadLabels();
@@ -627,7 +627,13 @@ export default function NewOperationPage() {
 
                                     <div className="grid gap-3 md:gap-4">
                                         {dynamicLabels.map(item => (
-                                            <CheckItem key={item.id} label={item.label_text} value={checks[step][item.field_number]} onChange={(val) => handleCheck(item.field_number, val)} />
+                                            <CheckItem
+                                                key={item.id}
+                                                label={item.label_text}
+                                                value={checks[step][item.field_number]}
+                                                onChange={(val) => handleCheck(item.field_number, val)}
+                                                sub={step === 'inventory' && item.equipment_stock ? `${item.equipment_stock.quantity} en existencia` : undefined}
+                                            />
                                         ))}
                                     </div>
                                 </>
@@ -928,10 +934,13 @@ function InfoBox({ label, val }) {
     );
 }
 
-function CheckItem({ label, value, onChange }) {
+function CheckItem({ label, value, onChange, sub }) {
     return (
         <div className={`flex items-center justify-between p-4 md:p-6 rounded-[2rem] border-2 transition-all ${value === true ? 'bg-emerald-50 border-emerald-500' : value === false ? 'bg-red-50 border-red-500' : 'bg-white border-slate-100'}`}>
-            <span className={`text-xs md:text-sm font-bold flex-1 pr-4 ${value === true ? 'text-emerald-700' : value === false ? 'text-red-700' : 'text-slate-600'}`}>{label}</span>
+            <span className="flex-1 pr-4 min-w-0">
+                <span className={`block text-xs md:text-sm font-bold ${value === true ? 'text-emerald-700' : value === false ? 'text-red-700' : 'text-slate-600'}`}>{label}</span>
+                {sub && <span className="block text-[10px] font-black uppercase text-slate-400 mt-1">{sub}</span>}
+            </span>
             <div className="flex gap-2 shrink-0">
                 <button onClick={() => onChange(true)} className={`size-10 md:size-12 rounded-full flex items-center justify-center transition-all ${value === true ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-50 text-slate-300'}`}><span className="material-symbols-outlined">check</span></button>
                 <button onClick={() => onChange(false)} className={`size-10 md:size-12 rounded-full flex items-center justify-center transition-all ${value === false ? 'bg-red-500 text-white shadow-lg' : 'bg-slate-50 text-slate-300'}`}><span className="material-symbols-outlined">close</span></button>

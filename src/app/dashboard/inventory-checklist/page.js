@@ -23,13 +23,18 @@ export default async function InventoryChecklistPage() {
     ]);
 
     const initialLabels = {};
-    (defs || []).forEach(d => { initialLabels[d.field_number] = d.label_text; });
+    const initialRelations = {};
+    (defs || []).forEach(d => {
+        initialLabels[d.field_number] = d.label_text;
+        if (d.equipment_stock_id) initialRelations[d.field_number] = d.equipment_stock_id;
+    });
 
     const initialData = {
         organizationId: profile?.organization_id,
         role: profile?.role,
         enabled: org?.enable_inventory_checklist ?? false,
         initialLabels,
+        initialRelations,
         initialStock: stock || [],
     };
 

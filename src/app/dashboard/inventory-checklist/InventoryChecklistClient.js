@@ -27,6 +27,11 @@ export default function InventoryChecklistClient({ initialData }) {
     const [newItem, setNewItem] = useState({ name: '', category: '', quantity: 0 });
     const [addingStock, setAddingStock] = useState(false);
 
+    // Relación opcional ítem del checklist → equipo real de Existencias (solo
+    // informativa: muestra la cantidad en existencia junto al ítem, no la descuenta).
+    const [relations, setRelations] = useState(initialData.initialRelations || {});
+    const stockById = (id) => stock.find(s => s.id === id);
+
     const canManage = hasPermission(initialData.role, 'canManageInventoryChecklist');
     const definedItems = Object.entries(labels)
         .filter(([, text]) => text && text.trim() !== '')
@@ -102,6 +107,7 @@ export default function InventoryChecklistClient({ initialData }) {
                     aircraft_model: 'General',
                     field_number: parseInt(num),
                     label_text: text.toUpperCase(),
+                    equipment_stock_id: relations[num] || null,
                 }));
             const { error } = await supabase.from('form_definitions').upsert(updates);
             if (error) throw error;
@@ -256,7 +262,7 @@ export default function InventoryChecklistClient({ initialData }) {
                         </div>
                         <div className="p-3 space-y-2 max-h-[55vh] overflow-y-auto custom-scrollbar">
                             {Array.from({ length: LIMIT }).map((_, i) => (
-                                <div key={i} className="flex items-center gap-3">
+                                <div key={i} className="flex items-center gap-2">
                                     <span className="size-6 rounded-full bg-white border border-slate-200 text-slate-500 text-[10px] font-black flex items-center justify-center shrink-0">{i + 1}</span>
                                     <input
                                         value={labels[i + 1] || ''}
@@ -264,6 +270,17 @@ export default function InventoryChecklistClient({ initialData }) {
                                         className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
                                         onChange={(e) => setLabels({ ...labels, [i + 1]: e.target.value })}
                                     />
+                                    <select
+                                        value={relations[i + 1] || ''}
+                                        onChange={(e) => setRelations(prev => ({ ...prev, [i + 1]: e.target.value || null }))}
+                                        title="Relacionar con un equipo de Existencias (opcional, solo informativo)"
+                                        className="w-40 shrink-0 bg-white border border-slate-200 rounded-xl px-2 py-2.5 text-[10.5px] font-semibold text-slate-600 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
+                                    >
+                                        <option value="">— Sin relacionar —</option>
+                                        {stock.map(s => (
+                                            <option key={s.id} value={s.id}>{s.name} ({s.quantity})</option>
+                                        ))}
+                                    </select>
                                 </div>
                             ))}
                         </div>
@@ -275,12 +292,20 @@ export default function InventoryChecklistClient({ initialData }) {
                                 Aún no hay ítems configurados en este checklist.
                             </p>
                         ) : (
-                            definedItems.map(([num, text]) => (
-                                <div key={num} className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-2.5">
-                                    <span className="size-6 rounded-full bg-white border border-slate-200 text-slate-500 text-[10px] font-black flex items-center justify-center shrink-0">{num}</span>
-                                    <span className="text-xs font-semibold text-slate-700">{text}</span>
-                                </div>
-                            ))
+                            definedItems.map(([num, text]) => {
+                                const related = relations[num] ? stockById(relations[num]) : null;
+                                return (
+                                    <div key={num} className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-2.5">
+                                        <span className="size-6 rounded-full bg-white border border-slate-200 text-slate-500 text-[10px] font-black flex items-center justify-center shrink-0">{num}</span>
+                                        <span className="text-xs font-semibold text-slate-700 flex-1">{text}</span>
+                                        {related && (
+                                            <span className="text-[9.5px] font-black uppercase text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg shrink-0">
+                                                {related.name} — {related.quantity} en existencia
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })
                         )}
                     </div>
                 )}

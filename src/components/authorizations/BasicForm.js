@@ -7,6 +7,7 @@ import { getColombiaGeo } from '@/lib/colombiaGeo';
 import { GEO_TYPES, getZoneSummary, downloadFlightKMZ, generateFlightPlanPdf } from '@/lib/flightPlanDocs';
 import WeatherWidget from '@/components/WeatherWidget';
 import { MISSION_TYPES, LINE_OF_SIGHT_TYPES } from '@/lib/missionTypes';
+import { sailRoman, sailColor } from '@/lib/soraEngine';
 
 const MapPickerModal = dynamic(() => import('@/components/authorizations/MapPickerModal'), {
   ssr: false,
@@ -17,6 +18,8 @@ const MapPickerModal = dynamic(() => import('@/components/authorizations/MapPick
   ),
 });
 
+const SoraWizard = dynamic(() => import('@/components/sora/SoraWizard'), { ssr: false });
+
 export default function BasicForm({ pilots, drones, org, loadData, onClose }) {
     const [saving, setSaving] = useState(false);
     const [geo, setGeo] = useState({ depts: [], munis: [], all: [] });
@@ -25,8 +28,24 @@ export default function BasicForm({ pilots, drones, org, loadData, onClose }) {
     const [form, setForm] = useState({
         op_name: '', pilot_id: '', aircraft_id: '', department: '', municipality: '',
         scheduled_at: '', takeoff_time: '08:00', mission_type: MISSION_TYPES[0], line_of_sight: '',
-        altitude: 120, notes: '',
+        altitude: 120, notes: '', sora_assessment_id: '',
     });
+
+    // Evaluación SORA — obligatoria para programar cualquier misión (ver CLAUDE.md).
+    const [soraAssessments, setSoraAssessments] = useState([]);
+    const [loadingSora, setLoadingSora] = useState(true);
+    const [showSoraWizard, setShowSoraWizard] = useState(false);
+
+    const loadSoraAssessments = () => {
+        setLoadingSora(true);
+        fetch('/api/sora/assessments')
+            .then(res => res.json())
+            .then(data => setSoraAssessments(Array.isArray(data) ? data.filter(a => a.status === 'complete') : []))
+            .catch(() => setSoraAssessments([]))
+            .finally(() => setLoadingSora(false));
+    };
+
+    useEffect(() => { loadSoraAssessments(); }, []);
 
     // Zona de vuelo (mapa)
     const [geoType, setGeoType] = useState('polygon');
@@ -149,6 +168,7 @@ export default function BasicForm({ pilots, drones, org, loadData, onClose }) {
         const pStat = getPilotStatus();
         const dStat = getDroneStatus();
         if (pStat?.type === 'ERROR' || dStat?.type === 'ERROR') return toast.error("Bloqueo de seguridad: resuelva las alertas críticas antes de continuar.");
+        if (!form.sora_assessment_id) return toast.error("Debes seleccionar o crear una evaluación SORA antes de programar la misión.");
 
         setSaving(true);
         const payload = {
@@ -158,6 +178,7 @@ export default function BasicForm({ pilots, drones, org, loadData, onClose }) {
             line_of_sight: form.line_of_sight,
             scheduled_at: form.scheduled_at,
             location: `${form.municipality}, ${form.department}`,
+            sora_assessment_id: form.sora_assessment_id,
             // Guardar la planeación para regenerar KMZ/PDF desde Programación Activa
             plan_data: {
                 op_name:      form.op_name?.trim() || form.mission_type,
@@ -178,7 +199,7 @@ export default function BasicForm({ pilots, drones, org, loadData, onClose }) {
             const data = await res.json();
             if (!res.ok) throw new Error(data?.error || 'Error al guardar');
             toast.success(`Misión autorizada: ${data.mission_id}`);
-            setForm({ op_name: '', pilot_id: '', aircraft_id: '', department: '', municipality: '', scheduled_at: '', takeoff_time: '08:00', mission_type: MISSION_TYPES[0], line_of_sight: '', altitude: 120, notes: '' });
+            setForm({ op_name: '', pilot_id: '', aircraft_id: '', department: '', municipality: '', scheduled_at: '', takeoff_time: '08:00', mission_type: MISSION_TYPES[0], line_of_sight: '', altitude: 120, notes: '', sora_assessment_id: '' });
             setZone(null);
             if (loadData) loadData();
         } catch (err) {
@@ -349,6 +370,50 @@ export default function BasicForm({ pilots, drones, org, loadData, onClose }) {
                     </div>
                 </div>
 
+                {/* ── Evaluación SORA (obligatoria) ── */}
+                <div className="border-t border-slate-100 pt-5 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                        <p className="text-[11px] font-black uppercase tracking-wide text-orange-600">Evaluación SORA <span className="text-red-500">*</span></p>
+                        <button type="button" onClick={() => setShowSoraWizard(true)}
+                            className="flex items-center gap-1.5 text-xs font-black text-orange-600 hover:text-orange-700 transition-colors">
+                            <span className="material-symbols-outlined text-base">add_circle</span>
+                            Nueva evaluación
+                        </button>
+                    </div>
+
+                    <select required disabled={loadingSora} className={inputCls + ' disabled:opacity-40'}
+                        value={form.sora_assessment_id} onChange={e => setForm({...form, sora_assessment_id: e.target.value})}>
+                        <option value="">{loadingSora ? 'Cargando evaluaciones…' : '— Seleccionar evaluación SORA —'}</option>
+                        {soraAssessments.map(a => (
+                            <option key={a.id} value={a.id}>
+                                {a.operation_name} — SAIL {sailRoman(a.sail_level)} ({new Date(a.created_at).toLocaleDateString('es-CO')})
+                            </option>
+                        ))}
+                    </select>
+
+                    {!loadingSora && soraAssessments.length === 0 && (
+                        <p className="text-xs font-bold text-slate-400">
+                            Esta organización aún no tiene evaluaciones SORA registradas — crea una con &quot;Nueva evaluación&quot;
+                            antes de poder programar la misión.
+                        </p>
+                    )}
+
+                    {form.sora_assessment_id && (() => {
+                        const sel = soraAssessments.find(a => a.id === form.sora_assessment_id);
+                        if (!sel) return null;
+                        return (
+                            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                                <span className={`px-2.5 py-1 rounded-lg text-xs font-black uppercase ${sailColor(sel.sail_level)}`}>
+                                    SAIL {sailRoman(sel.sail_level)}
+                                </span>
+                                <div className="text-xs font-bold text-slate-600">
+                                    GRC final {sel.final_grc} · ARC final {sel.final_arc}
+                                </div>
+                            </div>
+                        );
+                    })()}
+                </div>
+
                 {/* ── Zona de vuelo (mapa) ── */}
                 <div className="border-t border-slate-100 pt-5 space-y-4">
                     <p className="text-[11px] font-black uppercase tracking-wide text-orange-600">Zona de operación</p>
@@ -425,6 +490,23 @@ export default function BasicForm({ pilots, drones, org, loadData, onClose }) {
                     initialZoom={mapZoom}
                     onSave={({ points, radius }) => { setZone({ points, radius }); setMapOpen(false); }}
                     onClose={() => setMapOpen(false)}
+                />
+            )}
+
+            {showSoraWizard && (
+                <SoraWizard
+                    initialValues={{
+                        operation_name: form.op_name?.trim() || form.mission_type,
+                        aircraft_id: form.aircraft_id,
+                        pilot_id: form.pilot_id,
+                        location_name: form.municipality ? `${form.municipality}, ${form.department}` : '',
+                    }}
+                    onClose={() => setShowSoraWizard(false)}
+                    onSaved={(data) => {
+                        setShowSoraWizard(false);
+                        loadSoraAssessments();
+                        if (data?.id) setForm(f => ({ ...f, sora_assessment_id: data.id }));
+                    }}
                 />
             )}
         </div>

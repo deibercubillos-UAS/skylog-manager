@@ -99,7 +99,8 @@ Tablas principales:
 - `flights` — `pilot_id` + `mission_id` editables vía PATCH. `replay_path` nullable. `plan_id` FK → flight_plans. Constraint `uq_flights_org_aircraft_date_time` UNIQUE NULLS NOT DISTINCT `(organization_id, aircraft_id, flight_date, takeoff_time)`.
 - `maintenance_logs` — tiene `attachment_path TEXT` (bucket `maintenance-docs`, signed URL 1h)
 - `flight_plans` — planeaciones guardadas. `status` 'active'/'archived' (soft-delete). RLS por org.
-- `flight_authorizations` — misiones programadas. `plan_data jsonb` guarda la planeación (op_name, geo_type, points, radius, altitude, takeoff_time, notes) para regenerar KMZ/PDF en Programación Activa.
+- `flight_authorizations` — misiones programadas. `plan_data jsonb` guarda la planeación (op_name, geo_type, points, radius, altitude, takeoff_time, notes) para regenerar KMZ/PDF en Programación Activa. `sora_assessment_id` FK opcional → `sora_assessments` (obligatorio al crear desde `BasicForm.js`, nullable para misiones históricas — ver **SORA obligatorio al programar una misión**).
+- `sora_assessments` — evaluaciones SORA (GRC/ARC/SAIL), creadas desde `SoraWizard.js`. **⚠️ Sin migración en el repo** (tabla creada directamente en Supabase, fuera de control de versiones) — columnas: `organization_id`, `created_by`, `operation_name` NOT NULL, `operation_date`, `aircraft_id`/`pilot_id` (nullable), `location_name`, `notes`, `ua_dimension`, `op_scenario`, `intrinsic_grc`, `m1_population`/`m2_effect`/`m3_emergency`, `final_grc`, `op_height_m`, `airspace_class`, `initial_arc`, `strategic_m1/m2/m3`, `final_arc`, `sail_level`, `oso_checklist jsonb`, `sail_complete`, `status` (default `'draft'`, aunque `SoraWizard` siempre guarda `'complete'` — el wizard no implementa borradores pese a que su copy lo sugiere). RLS: `org_member_read_sora`/`org_member_insert_sora` (cualquier miembro de la org), `creator_update_sora`/`creator_delete_sora` (solo `created_by = auth.uid()`).
 - `sms_reports` — `severity` (incidente/incidente_grave/accidente), `status` ('abierto' default desde 2026-07-03, antes 'borrador'), `updated_at` (agregada 2026-07-03, con trigger `set_updated_at()` — necesaria para medir tiempo de cierre de casos) · `sora_assessments` · `daily_health_checks` · `pilot_endorsements`
 - `form_definitions` (campos de formulario por aeronave — los checklists se generan combinando esto con `lib/checklistDefaults.js`) · `inventory_items` (catálogo Tech/Payloads de Flota, una fila por unidad física con serial) · `equipment_stock` (existencias de equipo por tipo, una fila por nombre con `quantity` agregada — ver **Inventario de Operación**, no confundir con `inventory_items`) · `mission_inventory_logs` · `mission_types` · `colombia_geo` (sin coordenadas — solo Código/Nombre Departamento/Municipio)
 - `vor_mor_definitions` · `vor_mor_submissions` (reportes VOR/MOR) — `severity` y `aerocivil_notified_at` agregadas 2026-07-03 (ver **Seguimiento de casos SMS/VOR/MOR**); `reported_severity` (autoevaluación del reportante, distinta de `severity`) y `related_barrier_id` FK → `safety_barriers` agregadas 2026-07-03 (ver **Editor de formato VOR/MOR rediseñado**) · `emergency_contacts` · `insurance_policies` · `leads`
@@ -1584,6 +1585,51 @@ página muestra el calendario como pantalla principal (igual que Programación A
 pestañas viven dentro de este panel deslizable, invocado por el botón "Nueva misión" del
 `PageHero`. `BasicForm`/`AerocivilForm` no cambiaron — mismo `loadData` callback tras crear,
 que aquí cierra el panel y fuerza un refresco del calendario.
+
+### SORA obligatorio al programar una misión (2026-07-19)
+
+A pedido del usuario: el análisis SORA debe realizarse **cada vez que se programa un
+vuelo** desde Programación (`BasicForm.js`), no solo como un módulo independiente y
+opcional del hub de Seguridad SMS. Antes no existía ninguna relación entre
+`sora_assessments` y `flight_authorizations` — el único precedente (`AerocivilForm.js`,
+Formato 100 UAEAC) guardaba el enlace como JSONB dentro de `aerocivil_submissions` y ya
+está desconectado de la UI real desde 2026-07-02c (solo `BasicForm` se renderiza en
+`MissionFormPanel`); se evitó deliberadamente repetir ese patrón.
+
+- **`flight_authorizations.sora_assessment_id`** (columna nueva, migración
+  `20260719_flight_authorizations_sora_assessment_id.sql`, aplicada): `uuid references
+  sora_assessments(id) on delete set null`, **nullable** — las misiones históricas
+  creadas antes de este requisito quedan sin enlace, no se retroclasifican.
+- **`BasicForm.js`** gana una sección "Evaluación SORA" (antes de "Zona de operación"):
+  un `<select required>` con las evaluaciones **completas** (`status==='complete'`) de la
+  org (`GET /api/sora/assessments`, ya existente) + botón "Nueva evaluación" que abre
+  `SoraWizard` en un modal — el mismo componente que ya usa el hub de Seguridad SMS, sin
+  duplicar el wizard de 6 pasos. Al seleccionar una evaluación se muestra su SAIL/GRC
+  final/ARC final como referencia rápida (`sailRoman`/`sailColor` de `lib/soraEngine.js`).
+  `handleAuthorize` bloquea el envío si no hay `sora_assessment_id` seleccionado, mismo
+  patrón de bloqueo que ya usa el semáforo de estado ERROR de piloto/aeronave.
+- **`SoraWizard.js` gana prop opcional `initialValues`** (`operation_name`/`aircraft_id`/
+  `pilot_id`/`location_name`): prellena el Paso 1 con los datos ya capturados en
+  `BasicForm` al abrir el wizard desde ahí, para no volver a escribirlos — mezclado en el
+  `useState` inicial del formulario, sin romper al llamador existente del hub de
+  Seguridad SMS (que no pasa la prop). Al guardar, `onSaved(data)` en `BasicForm`
+  recarga la lista y auto-selecciona la evaluación recién creada.
+- **`POST /api/flights/authorize`**: `sora_assessment_id` se agregó a
+  `REQUIRED_AUTHORIZATION_FIELDS` (400 si falta) y se valida server-side que la
+  evaluación referenciada exista y pertenezca a la misma organización antes de
+  insertarla — nunca se confía en el id que manda el cliente, mismo patrón ya usado en
+  `sms_gap_question_visibility`/`safety_barriers`. `GET` ahora también trae
+  `sora_assessment_id` + un join `sora_assessment:sora_assessment_id(operation_name,
+  sail_level)` para quien quiera mostrarlo (ej. Programación Activa, sin cambios de UI
+  todavía). `PATCH` acepta `sora_assessment_id` como campo opcional editable (mismo
+  patrón "solo se tocan los campos presentes en el body" que ya usa
+  `aerocivil_auth_number`), con la misma validación de pertenencia a la org.
+- **Fuera de alcance a propósito**: el despacho simplificado del piloto independiente
+  (`logbook/new/page.js`, sin `flight_authorizations`) y "Planear Vuelo"
+  (`flight_plans`, sin PIC asignado) no exigen SORA — el pedido del usuario fue
+  literalmente "cada vez que se programe un vuelo", que en el vocabulario del proyecto
+  es la acción de **Programación** (asignar PIC + aeronave + horario con anticipación),
+  no cualquier registro de vuelo. Extender el requisito a esos dos flujos no fue pedido.
 
 ### Bitácora rediseñada (2026-07-02d)
 

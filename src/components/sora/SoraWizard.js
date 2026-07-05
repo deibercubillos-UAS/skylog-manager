@@ -40,7 +40,7 @@ function grcColor(v) {
   return 'bg-red-100 text-red-800';
 }
 
-export default function SoraWizard({ onClose, onSaved }) {
+export default function SoraWizard({ onClose, onSaved, initialValues }) {
   const [step,   setStep]   = useState(1);
   const [saving, setSaving] = useState(false);
   const [aircraft, setAircraft] = useState([]);
@@ -48,13 +48,15 @@ export default function SoraWizard({ onClose, onSaved }) {
   const [customOsos, setCustomOsos] = useState(null); // null = not loaded yet
 
   // ── Form state ────────────────────────────────────────────────────────────
+  // initialValues (opcional): prellena Paso 1 al invocar el wizard desde otro flujo
+  // (ej. Programación de misión) — sin romper llamadores existentes que no lo pasan.
   const [form, setForm] = useState({
     // Step 1
-    operation_name: '',
+    operation_name: initialValues?.operation_name || '',
     operation_date: new Date().toISOString().split('T')[0],
-    aircraft_id:    '',
-    pilot_id:       '',
-    location_name:  '',
+    aircraft_id:    initialValues?.aircraft_id || '',
+    pilot_id:       initialValues?.pilot_id || '',
+    location_name:  initialValues?.location_name || '',
     notes:          '',
     // Step 2
     ua_dimension: '<1m',

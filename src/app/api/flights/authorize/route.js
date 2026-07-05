@@ -16,11 +16,12 @@ export async function GET() {
             .from('flight_authorizations')
             .select(`
                 id,mission_id,scheduled_at,location,mission_type,status,created_at,plan_data,
-                pilot_id,aircraft_id,organization_id,line_of_sight,aerocivil_auth_number,
+                pilot_id,aircraft_id,organization_id,line_of_sight,aerocivil_auth_number,sora_assessment_id,
                 pilots:pilot_id(name, phone, id_number, email),
                 aircraft:aircraft_id(model, serial_number, total_hours),
                 payload:payload_id(brand, model, category, serial_number),
-                observer:observer_id(name)
+                observer:observer_id(name),
+                sora_assessment:sora_assessment_id(operation_name, sail_level)
             `)
             .eq('organization_id', orgId)
             .neq('status', 'realizado')
@@ -40,8 +41,9 @@ const BLOCKED_AUTHORIZATION_FIELDS = [
 ];
 
 // Campos RAC 100 mínimos requeridos para una solicitud de autorización
-// (line_of_sight se agregó para el reporte mensual AeroCivil — ver CLAUDE.md)
-const REQUIRED_AUTHORIZATION_FIELDS = ['pilot_id', 'aircraft_id', 'location', 'scheduled_at', 'mission_type', 'line_of_sight'];
+// (line_of_sight se agregó para el reporte mensual AeroCivil; sora_assessment_id porque el
+// análisis SORA es obligatorio al programar cualquier vuelo — ver CLAUDE.md)
+const REQUIRED_AUTHORIZATION_FIELDS = ['pilot_id', 'aircraft_id', 'location', 'scheduled_at', 'mission_type', 'line_of_sight', 'sora_assessment_id'];
 
 export async function POST(request) {
     try {
@@ -64,6 +66,18 @@ export async function POST(request) {
         const safeBody = Object.fromEntries(
             Object.entries(body).filter(([key]) => !BLOCKED_AUTHORIZATION_FIELDS.includes(key))
         );
+
+        // Nunca confiar en el sora_assessment_id que manda el cliente: verificar que exista
+        // y pertenezca a la misma organización antes de enlazarlo a la misión.
+        const { data: soraCheck } = await supabase
+            .from('sora_assessments')
+            .select('id')
+            .eq('id', safeBody.sora_assessment_id)
+            .eq('organization_id', orgId)
+            .maybeSingle();
+        if (!soraCheck) {
+            return NextResponse.json({ error: 'La evaluación SORA seleccionada no es válida.' }, { status: 400 });
+        }
 
         // Prefijo de la organización + próximo número de misión en paralelo
         const [orgRes, lastRes] = await Promise.all([
@@ -170,7 +184,7 @@ export async function PATCH(request) {
         if (!orgId) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
         const body = await request.json();
-        const { id, pilot_id, aircraft_id, location, scheduled_at, mission_type, line_of_sight, aerocivil_auth_number } = body;
+        const { id, pilot_id, aircraft_id, location, scheduled_at, mission_type, line_of_sight, aerocivil_auth_number, sora_assessment_id } = body;
 
         // Verificamos que la autorización pertenezca a la organización del usuario
         const { data: existing } = await supabase
@@ -181,6 +195,19 @@ export async function PATCH(request) {
 
         if (!existing || existing.organization_id !== orgId) {
             return NextResponse.json({ error: "No autorizado para editar esta misión" }, { status: 403 });
+        }
+
+        // Nunca confiar en el sora_assessment_id que manda el cliente al reasignarlo
+        if (sora_assessment_id !== undefined && sora_assessment_id !== null) {
+            const { data: soraCheck } = await supabase
+                .from('sora_assessments')
+                .select('id')
+                .eq('id', sora_assessment_id)
+                .eq('organization_id', orgId)
+                .maybeSingle();
+            if (!soraCheck) {
+                return NextResponse.json({ error: 'La evaluación SORA seleccionada no es válida.' }, { status: 400 });
+            }
         }
 
         // Campos parciales — solo se tocan los que vienen en el body (permite editar
@@ -194,6 +221,7 @@ export async function PATCH(request) {
         if (mission_type !== undefined) updates.mission_type = mission_type;
         if (line_of_sight !== undefined) updates.line_of_sight = line_of_sight || null;
         if (aerocivil_auth_number !== undefined) updates.aerocivil_auth_number = aerocivil_auth_number?.trim() || null;
+        if (sora_assessment_id !== undefined) updates.sora_assessment_id = sora_assessment_id || null;
 
         const { data, error } = await supabase
             .from('flight_authorizations')

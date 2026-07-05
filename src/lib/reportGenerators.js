@@ -916,6 +916,68 @@ export const generateManualsAckReport = (data, config) => {
     doc.save(`${formCode || 'F-DOC'}_LECTURA_MANUALES_${orgName}.pdf`);
 };
 
+// --- GENERADOR: LISTADO DE REPORTES MOR Y VOR ---
+
+const VORMOR_STATUS_LABELS = {
+    recibido: 'Recibido', en_investigacion: 'En investigación', cerrado: 'Cerrado', archivado: 'Archivado',
+};
+const VORMOR_SEVERITY_LABELS = {
+    incidente: 'Incidente', incidente_grave: 'Incidente grave', accidente: 'Accidente',
+};
+
+export const generateVorMorListReport = (data, config) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const { orgName, logo, version, reportDate, formCode, rangeLabel, downloadedAt } = config;
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.4);
+    doc.rect(10, 10, 277, 25);
+    doc.line(65, 10, 65, 35);
+    doc.line(225, 10, 225, 35);
+    doc.line(65, 22.5, 225, 22.5);
+
+    addLogo(doc, logo, 15, 12, 45, 20);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(orgName ? orgName.toUpperCase() : "BITAFLY UAS", 145, 18, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text("LISTADO DE REPORTES MOR Y VOR", 145, 27, { align: 'center' });
+    doc.setFontSize(8);
+    doc.text("Reportes voluntarios y obligatorios en el periodo", 145, 33, { align: 'center' });
+
+    doc.setFontSize(7);
+    doc.line(225, 18, 287, 18);
+    doc.line(225, 26, 287, 26);
+    doc.text(`VERSIÓN: ${version || '1.0'}`, 227, 15);
+    doc.text(`FECHA: ${reportDate || '---'}`, 227, 23);
+    doc.text(`FORMATO: ${formCode || 'N/A'}`, 227, 31);
+
+    autoTable(doc, {
+        startY: 40,
+        head: [['TIPO', 'FECHA', 'REPORTANTE', 'SEVERIDAD (REPORTADA)', 'SEVERIDAD (ASIGNADA)', 'ESTADO', 'ASIGNADO A']],
+        body: (data || []).map(r => [
+            r.type, r.occurrence_date, r.reporter,
+            r.reported_severity ? (VORMOR_SEVERITY_LABELS[r.reported_severity] || r.reported_severity) : '—',
+            r.severity ? (VORMOR_SEVERITY_LABELS[r.severity] || r.severity) : 'Sin clasificar',
+            VORMOR_STATUS_LABELS[r.status] || r.status, r.assigned_to,
+        ]),
+        styles: { fontSize: 7.5, cellPadding: 1.8, lineColor: [0, 0, 0], lineWidth: 0.1 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', lineWidth: 0.2 },
+        margin: { left: 10, right: 10 }
+    });
+
+    const noteY = safeAutoTableY(doc, 80) + 10;
+    addFooterNote(doc, noteY, { rangeLabel, downloadedAt });
+    const finalY = noteY + 12;
+    doc.line(30, finalY, 110, finalY);
+    doc.text("FIRMA GERENTE SMS", 70, finalY + 5, { align: 'center' });
+    doc.line(187, finalY, 267, finalY);
+    doc.text("FIRMA GERENTE GENERAL", 227, finalY + 5, { align: 'center' });
+
+    doc.save(`${formCode || 'F-SMS'}_LISTADO_MOR_VOR_${orgName}.pdf`);
+};
+
 // --- GENERADOR: TRAZABILIDAD DE COMPONENTES (roster activo + historial de cambios) ---
 
 const COMPONENT_ACTION_LABELS = { instalado: 'Instalado', removido: 'Removido', reemplazado: 'Reemplazado' };

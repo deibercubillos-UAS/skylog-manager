@@ -106,6 +106,11 @@ const REPORT_DEFS = [
         desc: 'Consolidado de casos SMS/VOR/MOR, planes de acción SPI y hallazgos GAP — estado actual.',
     },
     {
+        key: 'vorMorList', code: 'F-SMS-018', name: 'Listado de Reportes MOR y VOR', icon: 'report', group: 'Seguridad SMS',
+        desc: 'Reportes voluntarios y obligatorios recibidos en el periodo, con severidad y estado.',
+        needsPeriod: true,
+    },
+    {
         key: 'suppliers', code: 'F-PRV-002', name: 'Auditoría de Proveedores', icon: 'store', group: 'Proveedores',
         desc: 'Auditorías de proveedores en el periodo — de todos los proveedores o de uno específico.',
         needsPeriod: true, needsSupplier: true,
@@ -405,6 +410,10 @@ export default function ReportsPage() {
             if (def.key === 'correctiveActions') {
                 const res = await fetch('/api/reports/corrective-actions');
                 generators.generateCorrectiveActionsReport(await res.json(), common);
+            }
+            if (def.key === 'vorMorList') {
+                const res = await fetch(`/api/reports/vor-mor-list?from=${from}&to=${to}`);
+                generators.generateVorMorListReport(await res.json(), common);
             }
             if (def.key === 'suppliers') {
                 const q = selectedSupplier ? `&supplierId=${selectedSupplier}` : '';

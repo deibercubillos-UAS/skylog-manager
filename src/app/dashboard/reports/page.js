@@ -93,6 +93,10 @@ const REPORT_DEFS = [
         desc: 'Última autoevaluación registrada (Apéndice 1, 100 preguntas) con hallazgos y seguimiento.',
     },
     {
+        key: 'gapHistory', code: 'F-SMS-017', name: 'Mejora Continua (histórico GAP)', icon: 'timeline', group: 'Seguridad SMS',
+        desc: 'Evolución del % de cumplimiento entre todas las autoevaluaciones GAP realizadas, por componente y total.',
+    },
+    {
         key: 'smsTrainingSchedule', code: 'F-SMS-012', name: 'Cronograma Capacitación SMS', icon: 'school', group: 'Seguridad SMS',
         desc: 'Sesiones de capacitación SMS (todo el personal) con sus fechas dentro del periodo.',
         needsPeriod: true,
@@ -385,6 +389,10 @@ export default function ReportsPage() {
                 const json = await res.json();
                 if (!res.ok) throw new Error(json?.error || 'Error al obtener los datos');
                 await generators.generateSpiReport(json, { ...common, year: selectedYear });
+            }
+            if (def.key === 'gapHistory') {
+                const res = await fetch('/api/reports/gap-history');
+                generators.generateGapHistoryReport(await res.json(), common);
             }
             if (def.key === 'gap') {
                 const res = await fetch('/api/reports/gap');

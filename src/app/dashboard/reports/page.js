@@ -97,6 +97,11 @@ const REPORT_DEFS = [
         desc: 'Evolución del % de cumplimiento entre todas las autoevaluaciones GAP realizadas, por componente y total.',
     },
     {
+        key: 'smsTrainingAttendance', code: 'F-SMS-019', name: 'Plan de Capacitación SMS (asistencia)', icon: 'groups', group: 'Seguridad SMS',
+        desc: 'Asistencia real registrada por sesión y fecha, con % de cumplimiento del personal, en el periodo.',
+        needsPeriod: true,
+    },
+    {
         key: 'smsTrainingSchedule', code: 'F-SMS-012', name: 'Cronograma Capacitación SMS', icon: 'school', group: 'Seguridad SMS',
         desc: 'Sesiones de capacitación SMS (todo el personal) con sus fechas dentro del periodo.',
         needsPeriod: true,
@@ -402,6 +407,10 @@ export default function ReportsPage() {
             if (def.key === 'gap') {
                 const res = await fetch('/api/reports/gap');
                 generators.generateGapReport(await res.json(), common);
+            }
+            if (def.key === 'smsTrainingAttendance') {
+                const res = await fetch(`/api/reports/sms-training-attendance?from=${from}&to=${to}`);
+                generators.generateSmsTrainingAttendanceReport(await res.json(), common);
             }
             if (def.key === 'smsTrainingSchedule') {
                 const res = await fetch(`/api/reports/sms-training-schedule?from=${from}&to=${to}`);

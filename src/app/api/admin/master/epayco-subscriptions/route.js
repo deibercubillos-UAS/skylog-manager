@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient, createClient } from '@/lib/supabaseServer';
 import { listSubscriptions, cancelSubscription } from '@/lib/epayco';
+import { syncOrgMembership } from '@/lib/orgMembership';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,6 +67,18 @@ export async function POST(request) {
         subscription_expires_at: null,
         updated_at:              new Date().toISOString(),
       }).eq('id', p.id);
+
+      if (p.organization_id) {
+        await syncOrgMembership(admin, {
+          userId: p.id,
+          organizationId: p.organization_id,
+          subscriptionPlan: 'piloto',
+          epaycoSubscriptionId: null,
+          epaycoRef: null,
+          subscriptionExpiresAt: null,
+        });
+      }
+
       console.log(`[master] epayco-subscriptions perfil degradado a piloto: ${p.email}`);
       // Cortar comisión del socio (el referido deja de pagar)
       if (p.organization_id) {

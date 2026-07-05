@@ -1,6 +1,7 @@
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
 import { cancelSubscription, cancelSubscriptionsByEmail } from '@/lib/epayco';
+import { syncOrgMembership } from '@/lib/orgMembership';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,10 +54,20 @@ export async function POST(request) {
 
     if (error) throw error;
 
-    // ── Cortar comisión del socio: el referido deja de pagar → status cancelada ──
+    const admin = createAdminClient();
+
     if (profile?.organization_id) {
+      await syncOrgMembership(admin, {
+        userId: user.id,
+        organizationId: profile.organization_id,
+        subscriptionPlan: 'piloto',
+        epaycoSubscriptionId: null,
+        epaycoRef: null,
+        subscriptionExpiresAt: null,
+      });
+
+      // ── Cortar comisión del socio: el referido deja de pagar → status cancelada ──
       try {
-        const admin = createAdminClient();
         await admin.from('referrals')
           .update({ status: 'cancelada' })
           .eq('org_id', profile.organization_id)

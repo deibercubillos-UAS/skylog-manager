@@ -9,6 +9,7 @@ import { createClient }  from '@supabase/supabase-js';
 import { Resend }        from 'resend';
 import { createNotifications } from '@/lib/notify';
 import { escHtml } from '@/lib/emailHelpers';
+import { syncOrgMembership } from '@/lib/orgMembership';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,6 +62,13 @@ export async function GET(request) {
             subscription_expires_at: null,
             updated_at:              now,
           }).eq('id', orgAdmin.id);
+
+          await syncOrgMembership(admin, {
+            userId: orgAdmin.id,
+            organizationId: grant.redeemed_org_id,
+            subscriptionPlan: 'piloto',
+            subscriptionExpiresAt: null,
+          });
 
           try {
             await createNotifications({

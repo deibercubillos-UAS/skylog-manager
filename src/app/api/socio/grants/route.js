@@ -2,6 +2,7 @@ import { createClient, createAdminClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { escHtml, emailHeader, emailFooter } from '@/lib/emailHelpers';
+import { syncOrgMembership } from '@/lib/orgMembership';
 
 export const dynamic = 'force-dynamic';
 
@@ -153,9 +154,20 @@ export async function DELETE(request) {
 
     // Si ya fue canjeado: degradar a los perfiles de la org beneficiaria.
     if (grant.redeemed_org_id) {
-      await admin.from('profiles')
-        .update({ subscription_plan: 'piloto', subscription_expires_at: new Date().toISOString() })
-        .eq('organization_id', grant.redeemed_org_id);
+      const revokedAt = new Date().toISOString();
+      const { data: affected } = await admin.from('profiles')
+        .update({ subscription_plan: 'piloto', subscription_expires_at: revokedAt })
+        .eq('organization_id', grant.redeemed_org_id)
+        .select('id');
+
+      for (const p of affected || []) {
+        await syncOrgMembership(admin, {
+          userId: p.id,
+          organizationId: grant.redeemed_org_id,
+          subscriptionPlan: 'piloto',
+          subscriptionExpiresAt: revokedAt,
+        });
+      }
     }
 
     // Borrar el regalo y liberar el cupo.

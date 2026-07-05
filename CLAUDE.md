@@ -327,9 +327,67 @@ cuándo cambiar, usando el switcher.
   invitación ya eligió un rol válido; solo se cambió cómo se registra la membresía, no las
   reglas de negocio de quién puede ser invitado.
 
-**Próximas fases** (no ejecutadas todavía, ver plan completo): Fase 6 — migrar los 14 sitios de escritura legacy (de menor a
-mayor riesgo, pagos de ePayco al final); Fase 7 (diferida a propósito, no se ejecuta todavía) —
-migrar las ~88 lecturas directas de `profiles` restantes y retirar las columnas legacy.
+**Próxima fase** (diferida a propósito, no se ejecuta todavía — ver **Fase 6** más abajo para
+lo ya aplicado): Fase 7 — migrar las ~88 lecturas directas de `profiles` restantes y retirar
+las columnas legacy + el trigger-puente.
+
+### Fase 6 — Sitios de escritura legacy ahora también escriben `organization_members` (2026-07-05)
+
+Hasta acá, `organization_members` solo se mantenía al día vía el trigger-puente de la Fase 0
+(`private.sync_profile_to_org_member()`, dispara en cualquier `UPDATE`/`INSERT` sobre las
+columnas relevantes de `profiles`). Esta fase hace que el código de la app también escriba
+`organization_members` explícitamente en cada sitio server-side identificado — el trigger
+sigue activo de respaldo (no se retira, eso es la Fase 7), pero deja de ser la única vía.
+
+- **`lib/orgMembership.js`** (nuevo) → `syncOrgMembership(client, { userId, organizationId,
+  role, subscriptionPlan, epaycoCustomerId, epaycoSubscriptionId, epaycoRef,
+  subscriptionExpiresAt, subscriptionStatus, lastPaymentDate })`: hace
+  `upsert(..., { onConflict: 'user_id,organization_id' })` incluyendo **solo** las columnas
+  realmente pasadas (`!== undefined`) — así una actualización parcial (ej. solo `role` desde
+  `admin/users`) no pisa con `null` el resto de columnas de la fila existente. `role` y
+  `subscription_plan` tienen default `'piloto'` en la tabla, así que un insert nuevo (caso
+  real: cuenta que se registra por primera vez) nunca falla por columnas NOT NULL faltantes
+  aunque el caller no las pase todas.
+- **9 sitios server-side migrados** (siempre usando `createAdminClient()`/service role, igual
+  que ya escriben `profiles`): `api/admin/master` (PATCH superadmin), `cron/free-grants`
+  (degradar grant vencido), `api/socio/grants` (anular regalo ya canjeado — bulk, una fila de
+  `organization_members` por cada perfil afectado de la org), `api/admin/master/partners`
+  (vincular dueño de escuela a Enterprise + sincronizar Enterprise↔piloto al cambiar estado de
+  la escuela, también bulk sobre varios dueños), `api/admin/master/epayco-subscriptions`
+  (cancelar por panel Master), `api/admin/users` (cambio de rol — escribe sobre
+  `target.organization_id`, la org **actualmente activa** del miembro afectado, no se asume
+  que solo pertenece a una), `api/auth/register` (los 2 upserts de registro — join mode y
+  registro normal — más los 2 sub-casos de grant/socio-invite dentro del mismo archivo),
+  `lib/epaycoActivation.js` (`createAccountFromPendingRegistration` + `activatePlanForUser` —
+  pagos reales, migrado al final con más cuidado; `activatePlanForUser` no recibía
+  `organizationId` como parámetro, así que ahora encadena `.select('organization_id').single()`
+  al mismo `UPDATE` de `profiles` para no pagar un round-trip extra) y
+  `api/subscription/cancel` (cancelación self-service, también pagos reales).
+- **2 sitios deliberadamente NO migrados a escritura directa — `dashboard/layout.js`
+  (auto-provisión de org cuando un perfil legacy no tiene `organization_id`) y
+  `dashboard/select-plan/page.js`**: ambos ejecutan la escritura **client-side**, con el
+  cliente Supabase de la sesión del propio usuario (no `createAdminClient()`). RLS de
+  `organization_members` hoy solo permite `SELECT` de la propia fila y de compañeros de
+  org (Fases 0 y 3) — **no** existe política de `INSERT`/`UPDATE` para el usuario final, y
+  agregarla habría significado que cualquier cuenta pudiera escribir su propia fila de
+  `organization_members` (rol/plan) directo desde el navegador, un retroceso de seguridad
+  real para ganar algo que el trigger-puente ya cubre por completo (ambos sitios solo tocan
+  `organization_id`/`subscription_plan`, columnas que el trigger vigila). Se documenta como
+  excepción de alcance explícita, no como un pendiente olvidado — ninguno de los dos necesita
+  revisitarse a menos que ese flujo se mueva a un endpoint server-side por otra razón.
+- **Fuera de alcance, confirmado al revisar cada sitio candidato**: `api/user/profile` y
+  `dashboard/settings/profile/page.js` solo escriben campos de identidad
+  (nombre/teléfono/avatar/etc.), nunca `organization_id`/`role`/`subscription_plan`/campos de
+  ePayco — no son sitios de la Fase 6 pese a escribir en `profiles`.
+  `api/auth/register-pending` y `api/auth/activate-pending` no escriben `profiles` en
+  absoluto (solo guardan/consultan la intención en `pending_registrations`; la cuenta real la
+  crea `createAccountFromPendingRegistration` cuando el webhook confirma el pago). `POST
+  /api/org/switch-active` (Fase 5) escribe `profiles` a propósito como parte de su función —
+  es el mecanismo de proyección en sí, no un sitio legacy a migrar.
+- **Verificación**: `npx next lint` + `npm run build` limpios (mismos 3 warnings preexistentes
+  de siempre); `get_advisors` (security) limpio, mismos 2 hallazgos preexistentes. Sin
+  migración SQL en esta fase — solo código de aplicación, la tabla y sus políticas ya existían
+  desde las Fases 0/3.
 
 ---
 
@@ -2685,7 +2743,7 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 - [x] **`20260703_sms_reports_updated_at.sql` aplicada en Supabase (2026-07-03)** — columna `updated_at` + trigger en `sms_reports`. Ver **Seguimiento de casos SMS/VOR/MOR**.
 - [x] **`20260703_vor_mor_reported_fields.sql` aplicada en Supabase (2026-07-03)** — columnas `reported_severity`/`related_barrier_id` en `vor_mor_submissions`. Ver **Editor de formato VOR/MOR rediseñado**.
 - [x] **`20260702_billing_history.sql` aplicada en Supabase (2026-07-03)**, confirmado con el usuario al rediseñar Suscripción. Ver **Historial de facturación**.
-- [x] **`20260705_organization_members_phase0.sql` + `_phase1_rls_helpers.sql` + `_phase3_teammate_select.sql` aplicadas en Supabase (2026-07-05)** — tabla `organization_members` + `profiles.active_organization_id` + trigger-puente + funciones RLS centrales + política de lectura entre compañeros de org. Ver **Multi-organización por cuenta**. Fases 6 (migrar los 14 sitios de escritura legacy) y 7 (retirar columnas legacy de `profiles`) quedan pendientes, deliberadamente diferidas.
+- [x] **`20260705_organization_members_phase0.sql` + `_phase1_rls_helpers.sql` + `_phase3_teammate_select.sql` aplicadas en Supabase (2026-07-05)** — tabla `organization_members` + `profiles.active_organization_id` + trigger-puente + funciones RLS centrales + política de lectura entre compañeros de org. Fase 6 (migrar los 14 sitios de escritura legacy a `organization_members` directamente, sin migración SQL) también aplicada. Ver **Multi-organización por cuenta**. Fase 7 (retirar columnas legacy de `profiles` + el trigger-puente) queda pendiente, deliberadamente diferida.
 - [ ] Agregar `DJI_API_KEY` a Vercel env vars
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a Vercel env vars
 - [ ] Agregar `AEROCIVIL_SALT` a Vercel env vars (el fallback inseguro ya fue removido — el endpoint lanza error si falta la variable)

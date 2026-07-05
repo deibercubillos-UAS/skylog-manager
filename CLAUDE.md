@@ -191,10 +191,30 @@ Migración `20260705_organization_members_phase0.sql` (aplicada, verificada):
   `subscription_plan`, campos de ePayco) siguen siendo la fuente de verdad real hasta que las
   Fases 1-3 corten la lectura hacia la tabla nueva.
 
-**Próximas fases** (no ejecutadas todavía, ver plan completo): Fase 1 — las ~10 funciones RLS
-centrales (`user_org_id`/`user_role`/`has_role`/`can_manage_ops`/etc., de las que dependen las
-106 políticas de 39 tablas) pasan a resolver vía `organization_members` +
-`active_organization_id`; Fase 2 — `getOrgContext()` (`lib/apiAuth.js`, usado por 113 rutas
+### Fase 1 — Funciones RLS centrales resuelven vía `organization_members` (2026-07-05)
+
+Migración `20260705_organization_members_phase1_rls_helpers.sql` (aplicada, verificada).
+
+- **Alcance real menor de lo previsto**: de las ~10 funciones `private.*` de las que dependen
+  las 106 políticas RLS (39 tablas), solo **5** necesitaban cambiar —
+  `user_org_id()`/`get_my_org_id()`/`get_my_org()` (3 duplicados, ahora leen
+  `profiles.active_organization_id` en vez de `organization_id`) y `user_role()` (ahora
+  resuelve el rol desde `organization_members` para la organización activa, mismo fallback
+  `'piloto'` y mismo override de superadmin que antes). `has_role()` y todo lo que delega en
+  ella (`can_manage_ops`/`can_view_audit`/`can_view_finance`/`can_close_any_flight`/
+  `can_change_roles`) ya se apoyaban en `user_role()` — heredan el comportamiento correcto sin
+  tocarlas, reduciendo el riesgo real de esta fase.
+- **Bug preexistente corregido de paso**: `user_is_manager()` leía `profiles.role` directo, sin
+  pasar por `user_role()` (inconsistente — no aplicaba el override de superadmin). Ahora delega
+  en `user_role()`, quedando multi-org-aware automáticamente y consistente con el resto.
+- `CREATE OR REPLACE FUNCTION` preserva el OID de cada función — las 106 políticas se
+  actualizan solas, sin editar ninguna individualmente, sin downtime.
+- **Verificación**: comparación rol/org "viejo" (`profiles` directo) vs. "nuevo"
+  (`organization_members` + `active_organization_id`) para los 12 perfiles reales de la base —
+  100% idénticos (`role_matches`/`org_matches` = true en todos); `get_advisors` (security)
+  limpio, mismos 2 hallazgos preexistentes de siempre.
+
+**Próximas fases** (no ejecutadas todavía, ver plan completo): Fase 2 — `getOrgContext()` (`lib/apiAuth.js`, usado por 113 rutas
 API); Fase 3 — `getOrgPlan()` (`lib/orgPlan.js`); Fase 4 — extraer un helper compartido
 `isPilotoIndependiente()` (reemplaza 7 implementaciones inline del mismo predicado); Fase 5 —
 la capacidad nueva real: unirse a una segunda organización sin migrar datos

@@ -922,6 +922,33 @@ resto del rediseño porque no encaja el patrón de "página", sino un flujo kios
   hora de aterrizaje anterior por error grande sigue devolviendo una duración implausible
   y se sigue bloqueando).
 
+### Cierre de Vuelo — mismo shell visual que Despacho + selector VOR/MOR (2026-07-18)
+
+`app/dashboard/logbook/finalize/page.js` era la única pantalla del flujo de vuelo que
+todavía no tenía el "chrome" kiosko de `logbook/new/page.js` (header navy `#1A202C` fijo +
+`fixed inset-0` que cubre el sidebar del dashboard) — quedó con un layout de tarjeta
+centrada más simple desde antes del rediseño. Se llevó al mismo shell: header
+`h-16 md:h-20 bg-[#1A202C]` con logo "B" + título "Cierre de Vuelo" + botón cerrar (vuelve a
+Bitácora), `main` con scroll interno — mismas clases exactas que Despacho, sin tocar la
+lógica de cierre (cálculo de duración, actualización de horas de aeronave/ciclos de
+batería) ni los 3 bugs corregidos el 2026-07-03, que siguen intactos.
+
+- **Selector VOR/MOR al marcar "Reporte SMS: Sí"** (pedido explícito del usuario): antes,
+  marcar "Sí" solo guardaba una bandera (`flights.safety_report`) sin más contexto. Ahora
+  aparece una sub-pregunta obligatoria "¿Es un reporte VOR o MOR?" con 2 tarjetas
+  seleccionables (mismo texto explicativo VOR/MOR que ya usa el hub de Seguridad SMS) —
+  `handleCloseFlight` valida que esté elegido antes de permitir cerrar la misión si
+  `safety_report` es `true`.
+- **Redirección tras cerrar** (nuevo `report_type`, campo solo de UI — **no se agregó
+  columna nueva** a `flights`, ya que no cambia el dato real guardado, solo a dónde se
+  navega después): si hubo reporte, en vez de volver a `/dashboard/logbook` se redirige a
+  `/vor/{orgCode}` o `/mor/{orgCode}` — el mismo formulario público que ya usa cualquier
+  tripulante desde su Dashboard (`PilotDashboard.js`), para radicarlo de inmediato mientras
+  el incidente está fresco. `orgCode` (`organizations.slug || unique_code`) se resuelve en
+  el mismo fetch inicial de la página. **No se crea el reporte automáticamente** — el
+  reportante igual tiene que diligenciar el formulario público completo; esto solo evita
+  que se le olvide y lo lleva directo al formato correcto.
+
 ### Inventario de Operación — nuevo checklist antes de Pre-vuelo (2026-07-05)
 
 Nueva pestaña de sidebar **"Inventario"** (`/dashboard/inventory-checklist`, grupo

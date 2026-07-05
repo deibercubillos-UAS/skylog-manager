@@ -361,7 +361,7 @@ export default function ReportsPage() {
     return (
         <div className="space-y-6 md:space-y-8 text-left animate-in fade-in duration-700 pb-20">
             <PageHero
-                eyebrow="Cumplimiento"
+                eyebrow="Documentación"
                 title="Reportes"
                 description="Formatos oficiales RAC 100 y reportes personalizados de tu operación."
                 right={canEditLogo && (

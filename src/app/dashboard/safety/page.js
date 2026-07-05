@@ -602,7 +602,7 @@ export default function SafetyPage() {
       )}
 
       <PageHero
-        eyebrow="Cumplimiento"
+        eyebrow="Documentación"
         title="Seguridad SMS"
         description="Sistema de Gestión de Seguridad Operacional (SMS)"
         right={heroRight}

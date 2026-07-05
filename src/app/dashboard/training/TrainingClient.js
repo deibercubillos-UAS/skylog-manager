@@ -274,7 +274,7 @@ export default function TrainingClient({ initialData }) {
             <ConfirmModal {...confirmDlg} onCancel={() => setConfirmDlg(null)} />
 
             <PageHero
-                eyebrow="Cumplimiento"
+                eyebrow="Documentación"
                 title="Capacitación"
                 description="Cronograma de sesiones y examen interno recurrente de Operaciones y Mantenimiento."
                 right={activeType === 'sms' && canManageSMSRole && (

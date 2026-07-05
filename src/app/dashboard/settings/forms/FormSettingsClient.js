@@ -350,7 +350,7 @@ export default function FormSettingsClient({ initialData }) {
             <ConfirmModal {...confirmDlg} onCancel={() => setConfirmDlg(null)} />
 
             <PageHero
-                eyebrow="Cumplimiento"
+                eyebrow="Documentación"
                 title="Protocolos"
                 description="Checklists y procedimientos estandarizados que la tripulación usa en cada misión"
                 right={

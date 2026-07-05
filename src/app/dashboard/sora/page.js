@@ -301,7 +301,7 @@ export default function SoraPage() {
 
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <PageHero
-          eyebrow="Cumplimiento"
+          eyebrow="Documentación"
           title="Análisis SORA"
           description="Metodología JARUS v2.0 · Cumplimiento RAC 100"
         />

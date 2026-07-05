@@ -28,10 +28,29 @@ export default function DashboardLayout({ children }) {
   const [accessExpired, setAccessExpired] = useState(false);
   const [gracePeriod, setGracePeriod]     = useState({ isGracePeriod: false, daysLeft: 0 });
   const [isSocio, setIsSocio]             = useState(false);
+  // Grupos del sidebar contraídos por el usuario — persiste entre sesiones
+  // (localStorage), igual que otras preferencias de UI de la app (ej. autosync DJI).
+  const [collapsedGroups, setCollapsedGroups] = useState({});
   const router = useRouter();
 
   // Sidebar abierto por defecto solo en desktop
   useEffect(() => { setSidebarOpen(window.innerWidth >= 1024); }, []);
+
+  // Cargar preferencia de grupos contraídos (una sola vez, cliente)
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('bitafly_sidebar_collapsed') || '{}');
+      setCollapsedGroups(stored);
+    } catch { /* preferencia inválida — se ignora, todos quedan expandidos */ }
+  }, []);
+
+  const toggleGroup = (group) => {
+    setCollapsedGroups(prev => {
+      const next = { ...prev, [group]: !prev[group] };
+      try { localStorage.setItem('bitafly_sidebar_collapsed', JSON.stringify(next)); } catch { /* no-op */ }
+      return next;
+    });
+  };
 
 // EFECTO 1: Cargar Perfil + Organización + suscripción Realtime al plan
   useEffect(() => {
@@ -294,31 +313,31 @@ const navLinks = [
   // Protocolos y se diligencia dentro de /dashboard/maintenance (ver CLAUDE.md).
   { name: 'Tripulación',    icon: 'group',                   href: '/dashboard/pilots',          group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
   // Nombre alineado con el título real de la página (PageHero "Seguridad SMS" desde el rediseño de hub con tabs).
-  { name: 'Seguridad SMS',  icon: 'health_and_safety',       href: '/dashboard/safety',          group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms'],                    pilotHidden: true },
+  { name: 'Seguridad SMS',  icon: 'health_and_safety',       href: '/dashboard/safety',          group: 'Documentación', roles: ['superadmin', 'admin', 'gerente_sms'],                    pilotHidden: true },
   // SORA ya está como tarjeta dentro de Seguridad SMS para quien ve esa página
   // (superadmin/admin org/gerente_sms). jefe_pilotos y piloto (org) no tienen esa página en
   // su nav, y el piloto independiente la tiene oculta (pilotHidden) — ambos necesitan entrada directa.
-  { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            group: 'Cumplimiento', roles: ['jefe_pilotos', 'piloto'] },
-  { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            group: 'Cumplimiento', roles: ['admin'],                                          pilotOnly: true },
-  { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
-  { name: 'Reportes',       icon: 'assessment',              href: '/dashboard/reports',         group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
-  { name: 'Protocolos',     icon: 'rule',                    href: '/dashboard/settings/forms',  group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms'] },
+  { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            group: 'Documentación', roles: ['jefe_pilotos', 'piloto'] },
+  { name: 'SORA',           icon: 'radar',                   href: '/dashboard/sora',            group: 'Documentación', roles: ['admin'],                                          pilotOnly: true },
+  { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           group: 'Documentación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
+  { name: 'Reportes',       icon: 'assessment',              href: '/dashboard/reports',         group: 'Documentación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
+  { name: 'Protocolos',     icon: 'rule',                    href: '/dashboard/settings/forms',  group: 'Documentación', roles: ['superadmin', 'admin', 'gerente_sms'] },
   // Proveedores: listado + checklist de auditoría (mismo split de permisos que
   // Manuales/Capacitación, ver canManageSuppliers en roles.js).
-  { name: 'Proveedores',    icon: 'store',                   href: '/dashboard/suppliers',        group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'] },
+  { name: 'Proveedores',    icon: 'store',                   href: '/dashboard/suppliers',        group: 'Documentación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'] },
   // Capacitación: programas (Operaciones/Mantenimiento) + evaluaciones internas por
   // tripulante. Gestión GG+GSMS+JP (canManageTraining); visible a todos porque cualquiera
   // puede consultar el programa vigente (canViewTraining, incluye piloto).
-  { name: 'Capacitación',   icon: 'school',                  href: '/dashboard/training',         group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Capacitación',   icon: 'school',                  href: '/dashboard/training',         group: 'Documentación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   // Manuales de la empresa: ahora se accede desde dentro de Protocolos (Listas de Chequeo,
   // "Ver manuales") para superadmin/admin/gerente_sms — misma página que ya veían.
   // jefe_pilotos y piloto (org) no tienen Protocolos en su nav, así que conservan entrada directa.
   // El piloto independiente sigue sin acceso (Manuales aplica solo a organizaciones).
-  { name: 'Manuales',       icon: 'library_books',           href: '/dashboard/manuales',        group: 'Cumplimiento', roles: ['jefe_pilotos', 'piloto'] },
+  { name: 'Manuales',       icon: 'library_books',           href: '/dashboard/manuales',        group: 'Documentación', roles: ['jefe_pilotos', 'piloto'] },
 ];
 
 // Orden de renderizado de los grupos del sidebar (solo presentación).
-const NAV_GROUPS = ['Operación', 'Flota & Equipo', 'Cumplimiento'];
+const NAV_GROUPS = ['Operación', 'Flota & Equipo', 'Documentación'];
 
 // FILTRAR por rol, plan y flags pilotOnly / pilotHidden
 // En período de gracia: solo Dashboard y Bitácora
@@ -389,19 +408,29 @@ const footerLinks = footerLinksAll.filter(link =>
           </div>
         </Link>
 
-        {/* NAV PRINCIPAL — agrupado en secciones (Operación / Flota & Equipo / Cumplimiento).
+        {/* NAV PRINCIPAL — agrupado en secciones (Operación / Flota & Equipo / Documentación).
             El agrupamiento es solo visual: filteredLinks ya trae la lista final por
-            rol/plan/período de gracia, aquí solo se reparte por link.group. */}
+            rol/plan/período de gracia, aquí solo se reparte por link.group. Cada grupo
+            se puede contraer/expandir (preferencia en localStorage). */}
         <nav aria-label="Menú lateral" className="flex-1 p-3 space-y-3 mt-2 overflow-y-auto custom-scrollbar">
           {NAV_GROUPS.map(group => {
             const groupLinks = filteredLinks.filter(link => link.group === group);
             if (!groupLinks.length) return null;
+            const isCollapsed = !!collapsedGroups[group];
             return (
               <div key={group} className="space-y-0.5">
-                <p className="px-4 pb-1 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                  {group}
-                </p>
-                {groupLinks.map(link => (
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group)}
+                  aria-expanded={!isCollapsed}
+                  className="w-full flex items-center justify-between px-4 pb-1 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-slate-300 transition-colors"
+                >
+                  <span>{group}</span>
+                  <span className="material-symbols-outlined text-sm shrink-0">
+                    {isCollapsed ? 'expand_more' : 'expand_less'}
+                  </span>
+                </button>
+                {!isCollapsed && groupLinks.map(link => (
                   <Link
                     key={link.href}
                     href={link.href}

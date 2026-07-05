@@ -1629,11 +1629,12 @@ documento de control con el detalle fase por fase). Rama `claude/project-scope-r
 ### Sidebar reagrupado
 
 `dashboard/layout.js`: cada `navLink` tiene un campo `group` (`'Operación'` /
-`'Flota & Equipo'` / `'Cumplimiento'`) **puramente de presentación** — el array
-`NAV_GROUPS` define el orden de render. El filtrado real por rol/plan/período de gracia
-(`filteredLinks`) no cambió. Pie del sidebar: tarjeta de usuario (avatar iniciales +
-nombre + rol) + widget "Plan {plan} / Mejorar" (oculto en Enterprise, visible solo para
-quien también ve el link Suscripción).
+`'Flota & Equipo'` / `'Documentación'`, renombrado desde `'Cumplimiento'` — ver
+**Grupos contraíbles + renombre a Documentación** más abajo) **puramente de
+presentación** — el array `NAV_GROUPS` define el orden de render. El filtrado real
+por rol/plan/período de gracia (`filteredLinks`) no cambió. Pie del sidebar: tarjeta
+de usuario (avatar iniciales + nombre + rol) + widget "Plan {plan} / Mejorar" (oculto
+en Enterprise, visible solo para quien también ve el link Suscripción).
 
 **Consolidación de entradas duplicadas (2026-07-02)**: "Programación Activa", "SORA" y
 "Manuales" se accedían tanto desde el sidebar como desde un enlace/tarjeta dentro de otra
@@ -1656,10 +1657,10 @@ conservó (o agregó) para los que no la tienen en su nav:
 
 **Fidelidad al mockup de arquitectura de navegación (`Bitafly__Layout`, 2026-07-03)**: el
 mockup documenta (no pide construir de cero) la arquitectura ya implementada — 3 grupos
-fijos en el sidebar (Operación/Flota & Equipo/Cumplimiento) + "Cuenta" (Perfil/Organización/
-Suscripción) como popover bajo el avatar, no fija en el nav — que ya existía desde la
-Corrección 1. Al comparar item por item contra el mockup aparecieron 4 desalineaciones
-reales, corregidas en `navLinks`:
+fijos en el sidebar (Operación/Flota & Equipo/Cumplimiento — renombrado después, ver abajo)
++ "Cuenta" (Perfil/Organización/Suscripción) como popover bajo el avatar, no fija en el
+nav — que ya existía desde la Corrección 1. Al comparar item por item contra el mockup
+aparecieron 4 desalineaciones reales, corregidas en `navLinks`:
 - **Nombre desactualizado**: el link decía `'Seguridad Operacional'` pero la página (tras su
   rediseño a hub con tabs) ya se titula "Seguridad SMS" en su propio `PageHero` — el nav
   nunca se actualizó. Renombrado a `'Seguridad SMS'` para que coincida con el título real.
@@ -1675,6 +1676,35 @@ reales, corregidas en `navLinks`:
   Seguridad SMS/Auditoría (mockup: Seguridad SMS, Auditoría, Reportes, Protocolos) —
   reordenados los elementos del array `navLinks` (el orden de render sigue la posición en
   el array dentro de cada `group`, no hay campo de orden explícito).
+
+### Grupos contraíbles + renombre a Documentación (2026-07-22)
+
+A pedido del usuario: el grupo de sidebar `'Cumplimiento'` pasó a llamarse
+**`'Documentación'`** (mismos 9 `navLinks` — Seguridad SMS, SORA×2, Auditoría, Reportes,
+Protocolos, Proveedores, Capacitación, Manuales — solo cambió la etiqueta del grupo, ningún
+rol/orden/href se tocó) y los 3 grupos del sidebar (`Operación`/`Flota & Equipo`/
+`Documentación`) ahora se pueden **contraer/expandir** individualmente.
+
+- El encabezado de cada grupo (antes un `<p>` estático) es ahora un `<button>` con ícono
+  chevron (`expand_less`/`expand_more`) que alterna `collapsedGroups[group]` — mismo patrón
+  visual de acordeón ya usado en `GapQuestionsConfigPanel.js`.
+- **Persistencia real, no solo de sesión**: la preferencia se guarda en
+  `localStorage` (`bitafly_sidebar_collapsed`, `{ [group]: boolean }`) — mismo patrón que
+  otras preferencias de UI de la app (ej. `bitafly_dji_autosync`). Se carga una sola vez al
+  montar el layout; si el JSON guardado es inválido, se ignora y todos los grupos quedan
+  expandidos (comportamiento por defecto, sin romper el render).
+- **Sin auto-expandir el grupo de la página activa**: si el usuario contrae un grupo y
+  navega a una página dentro de él (por un enlace externo, la barra de búsqueda, etc.), el
+  grupo permanece contraído — es una preferencia explícita del usuario, no un estado que la
+  navegación deba pisar. El resaltado de "página activa" simplemente no es visible hasta
+  que se expande de nuevo, sin afectar la navegación en sí.
+- Los `eyebrow="Cumplimiento"` de `PageHero` en las páginas de ese grupo (Seguridad SMS,
+  SORA, Auditoría, Reportes, Protocolos, Proveedores, Capacitación + su examen) se
+  renombraron a `"Documentación"` para que el encabezado de cada página siga coincidiendo
+  con el nombre real del grupo del sidebar al que pertenece. **No se tocó** el tab interno
+  "Cumplimiento" de `/dashboard/audit` (`id: 'cumplimiento'`) — es un concepto distinto
+  (aeronavegabilidad de flota + vigencia de documentos de tripulación, `AuditCard`/`score`),
+  no relacionado con el nombre del grupo de navegación.
 
 ### Baterías y Meteorología como rutas propias
 

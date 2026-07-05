@@ -64,7 +64,7 @@ function ExamPageInner() {
 
     return (
         <div className="max-w-2xl mx-auto space-y-6 text-left animate-in fade-in duration-500 pb-24">
-            <PageHero eyebrow="Cumplimiento" title={`Examen de ${TYPE_LABELS[type]}`} description="Evaluación interna recurrente." />
+            <PageHero eyebrow="Documentación" title={`Examen de ${TYPE_LABELS[type]}`} description="Evaluación interna recurrente." />
 
             {!exam ? (
                 <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center space-y-3">

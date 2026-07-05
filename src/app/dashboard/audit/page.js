@@ -18,7 +18,7 @@ export default function AuditPage() {
         <div className="max-w-6xl mx-auto space-y-6 md:space-y-8 text-left animate-in fade-in duration-700 pb-20">
             {tab === 'acciones' ? (
                 <PageHero
-                    eyebrow="Cumplimiento"
+                    eyebrow="Documentación"
                     title="Auditoría"
                     description="Registro inmutable de toda actividad relevante en la organización"
                     right={
@@ -30,7 +30,7 @@ export default function AuditPage() {
                 />
             ) : (
                 <PageHero
-                    eyebrow="Cumplimiento"
+                    eyebrow="Documentación"
                     title="Auditoría"
                     description="Aeronavegabilidad, estatus de personal y registro de acciones."
                     metric={{ label: 'Salud Organizacional', value: `${data.score}%` }}

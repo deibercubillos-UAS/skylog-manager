@@ -78,7 +78,7 @@ export default function SuppliersClient({ initialData }) {
   return (
     <div className="space-y-5">
       <PageHero
-        eyebrow="Cumplimiento"
+        eyebrow="Documentación"
         title="Proveedores"
         description="Listado de proveedores y checklist de auditoría periódica"
         right={canManage && (

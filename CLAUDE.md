@@ -2117,6 +2117,7 @@ facturación electrónica real a este alcance).
 
 - **API routes**: siempre `createClientSSR()` + `getOrgContext()`. Auth guard: `if (!user) return 401` antes de usar `user.id`.
 - **Permisos**: `PERMISSIONS.canXxx` — nunca hardcodear `['superadmin','admin','jefe_pilotos']`
+- **Gate de rol en la API, no solo en la UI**: acotar por `organization_id` NO es suficiente para una función restringida por rol. Si la página se oculta a un rol (`pilotHidden`, guard de layout, etc.), el endpoint que la alimenta **también** debe verificar el rol (`if (!PERMISSIONS.canXxx.includes(role)) return 403`) — un usuario de la org puede llamar la API directo aunque no vea el enlace. Los reportes (`/api/reports/*`) exigen `canViewAudit`; ver **Auditoría 2026-07-22**.
 - **Mass-assignment**: nunca `insert([{ ...body }])` — siempre campos explícitos
 - **Rate limiting**: todo endpoint público sin auth usa `checkRateLimit()`
 - **Emails**: todo campo de usuario en HTML de Resend pasa por `escHtml()`. **Siempre revisar `{ error }` del `resend.emails.send()`** — el SDK no lanza en fallos de API.

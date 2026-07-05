@@ -59,6 +59,10 @@ export const PERMISSIONS = {
     // gestión GG+GSMS+JP; lectura/consulta todos.
     canManageTraining: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],
     canViewTraining:   ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'],
+    // Proveedores (listado + checklist de auditoría) — módulo de back-office/
+    // cumplimiento, sin nivel de solo-lectura para piloto (a diferencia de
+    // Manuales/Capacitación, que sí lo incluyen).
+    canManageSuppliers: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],
 };
 
 // Helper: ¿el usuario tiene un permiso?

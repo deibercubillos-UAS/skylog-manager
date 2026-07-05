@@ -78,6 +78,11 @@ const REPORT_DEFS = [
         key: 'correctiveActions', code: 'F-SMS-013', name: 'Acciones Correctivas del SMS', icon: 'checklist',
         desc: 'Consolidado de casos SMS/VOR/MOR, planes de acción SPI y hallazgos GAP — estado actual.',
     },
+    {
+        key: 'suppliers', code: 'F-PRV-002', name: 'Auditoría de Proveedores', icon: 'store',
+        desc: 'Auditorías de proveedores en el periodo — de todos los proveedores o de uno específico.',
+        needsPeriod: true, needsSupplier: true,
+    },
 ];
 
 // Mes anterior en formato YYYY-MM — el reporte AeroCivil siempre es del "mes vencido"
@@ -110,6 +115,8 @@ export default function ReportsPage() {
     const [selectedPilot, setSelectedPilot] = useState('');
     const [selectedAircraft, setSelectedAircraft] = useState('');
     const [selectedAircraftIds, setSelectedAircraftIds] = useState([]);
+    const [supplierList, setSupplierList] = useState([]);
+    const [selectedSupplier, setSelectedSupplier] = useState('');
     const [userRole, setUserRole] = useState(null);
     const [openKey, setOpenKey] = useState(null);
 
@@ -146,16 +153,18 @@ export default function ReportsPage() {
             .from('profiles').select('organization_id, role').eq('id', user.id).single();
         if (!prof?.organization_id) return;
 
-        const [{ data: org }, { data: crew }, { data: fleet }] = await Promise.all([
+        const [{ data: org }, { data: crew }, { data: fleet }, { data: vendors }] = await Promise.all([
             supabase.from('organizations').select('*').eq('id', prof.organization_id).single(),
             supabase.from('pilots').select('id, name').eq('organization_id', prof.organization_id),
             supabase.from('aircraft').select('id, model, serial_number').eq('organization_id', prof.organization_id).order('model'),
+            supabase.from('suppliers').select('id, name').eq('organization_id', prof.organization_id).order('name'),
         ]);
 
         setUserRole(prof.role || null);
         setOrgData(org);
         setPilots(crew || []);
         setAircraftList(fleet || []);
+        setSupplierList(vendors || []);
         setFormCodes(prev => ({
             ...prev,
             master:    org?.form_code_master    || prev.master,
@@ -207,6 +216,11 @@ export default function ReportsPage() {
         return a ? `${a.model} · ${a.serial_number}` : null;
     }, [aircraftList, selectedAircraft]);
 
+    const selectedSupplierLabel = useMemo(() => {
+        const s = supplierList.find(x => x.id === selectedSupplier);
+        return s ? s.name : null;
+    }, [supplierList, selectedSupplier]);
+
     // Libro de Vuelo: etiqueta de alcance cuando se elige una o varias aeronaves (no todas)
     const selectedAircraftMultiLabel = useMemo(() => {
         if (!selectedAircraftIds.length || selectedAircraftIds.length === aircraftList.length) return null;
@@ -221,6 +235,7 @@ export default function ReportsPage() {
         setOpenKey(prev => prev === key ? null : key);
         setSelectedAircraft('');
         setSelectedAircraftIds([]);
+        setSelectedSupplier('');
     };
 
     const handleDownload = async (def) => {
@@ -328,6 +343,11 @@ export default function ReportsPage() {
             if (def.key === 'correctiveActions') {
                 const res = await fetch('/api/reports/corrective-actions');
                 generators.generateCorrectiveActionsReport(await res.json(), common);
+            }
+            if (def.key === 'suppliers') {
+                const q = selectedSupplier ? `&supplierId=${selectedSupplier}` : '';
+                const res = await fetch(`/api/reports/suppliers?from=${from}&to=${to}${q}`);
+                generators.generateSupplierAuditSummaryReport(await res.json(), { ...common, supplierLabel: selectedSupplierLabel });
             }
         } catch (e) {
             toast.error("Error al generar reporte");
@@ -537,11 +557,11 @@ export default function ReportsPage() {
                                 </div>
                             )}
 
-                            {/* Alcance: aeronave o piloto */}
-                            {(activeDef.needsAircraft || activeDef.needsPilot) && (
+                            {/* Alcance: aeronave, piloto o proveedor */}
+                            {(activeDef.needsAircraft || activeDef.needsPilot || activeDef.needsSupplier) && (
                                 <div className="space-y-2">
                                     <span className="text-[9.5px] font-black uppercase tracking-wide text-slate-400">
-                                        {activeDef.needsAircraft ? 'Alcance — aeronave' : 'Tripulante'}
+                                        {activeDef.needsAircraft ? 'Alcance — aeronave' : activeDef.needsSupplier ? 'Alcance — proveedor' : 'Tripulante'}
                                         {activeDef.needsPilot && <span className="text-orange-600"> *</span>}
                                     </span>
                                     {activeDef.needsAircraft && (
@@ -556,8 +576,17 @@ export default function ReportsPage() {
                                             {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                         </select>
                                     )}
+                                    {activeDef.needsSupplier && (
+                                        <select className={selectCls + ' w-full'} value={selectedSupplier} onChange={e => setSelectedSupplier(e.target.value)}>
+                                            <option value="">Todos los proveedores</option>
+                                            {supplierList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                        </select>
+                                    )}
                                     {activeDef.needsAircraft && (
                                         <p className="text-[10px] font-semibold text-slate-400">Deja "Todas las aeronaves" para el reporte completo, o elige una para un reporte de solo esa unidad.</p>
+                                    )}
+                                    {activeDef.needsSupplier && (
+                                        <p className="text-[10px] font-semibold text-slate-400">Deja "Todos los proveedores" para el consolidado, o elige uno para su historial de auditorías.</p>
                                     )}
                                 </div>
                             )}

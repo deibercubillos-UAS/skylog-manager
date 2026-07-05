@@ -301,6 +301,9 @@ const navLinks = [
   { name: 'Auditoría',      icon: 'fact_check',              href: '/dashboard/audit',           group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
   { name: 'Reportes',       icon: 'assessment',              href: '/dashboard/reports',         group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],   pilotHidden: true },
   { name: 'Protocolos',     icon: 'rule',                    href: '/dashboard/settings/forms',  group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms'] },
+  // Proveedores: listado + checklist de auditoría (mismo split de permisos que
+  // Manuales/Capacitación, ver canManageSuppliers en roles.js).
+  { name: 'Proveedores',    icon: 'store',                   href: '/dashboard/suppliers',        group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'] },
   // Capacitación: programas (Operaciones/Mantenimiento) + evaluaciones internas por
   // tripulante. Gestión GG+GSMS+JP (canManageTraining); visible a todos porque cualquiera
   // puede consultar el programa vigente (canViewTraining, incluye piloto).

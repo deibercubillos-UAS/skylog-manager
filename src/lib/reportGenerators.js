@@ -992,6 +992,142 @@ function formatFlightDuration(totalTimeHours) {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
+// --- GENERADOR: AUDITORÍA DE PROVEEDOR (detalle de UNA auditoría) ---
+const RESPONSE_LABELS = { cumple: 'CUMPLE', no_cumple: 'NO CUMPLE', no_aplica: 'NO APLICA' };
+
+function supplierAuditScore(responses) {
+    const values = Object.values(responses || {}).filter(r => r?.value);
+    const applicable = values.filter(v => v.value !== 'no_aplica');
+    if (!applicable.length) return null;
+    const compliant = applicable.filter(v => v.value === 'cumple');
+    return Math.round((compliant.length / applicable.length) * 100);
+}
+
+export const generateSupplierAuditDetailReport = (audit, config) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const { orgName, logo, downloadedAt } = config;
+    const supplier = audit?.supplier || {};
+    const criteria = audit?.criteria || [];
+    const responses = audit?.responses || {};
+    const score = supplierAuditScore(responses);
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.4);
+    doc.rect(10, 10, 277, 25);
+    doc.line(65, 10, 65, 35);
+    doc.line(225, 10, 225, 35);
+    doc.line(65, 22.5, 225, 22.5);
+
+    addLogo(doc, logo, 15, 12, 45, 20);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(orgName ? orgName.toUpperCase() : "BITAFLY UAS", 145, 18, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text("AUDITORÍA DE PROVEEDOR", 145, 27, { align: 'center' });
+    doc.setFontSize(8);
+    doc.text(
+        `PROVEEDOR: ${cleanText(supplier.name)} · FECHA: ${audit.audit_date || '---'}${score !== null ? ` · CUMPLIMIENTO: ${score}%` : ''}`,
+        145, 33, { align: 'center' }
+    );
+
+    doc.setFontSize(7);
+    doc.line(225, 18, 287, 18);
+    doc.line(225, 26, 287, 26);
+    doc.text(`CATEGORÍA: ${cleanText(supplier.category) || 'N/A'}`, 227, 15);
+    doc.text(`AUDITOR: ${cleanText(audit.auditor_name) || 'N/A'}`, 227, 23);
+    doc.text('FORMATO: F-PRV-001', 227, 31);
+
+    autoTable(doc, {
+        startY: 40,
+        head: [['CRITERIO', 'CATEGORÍA', 'RESPUESTA', 'OBSERVACIONES']],
+        body: criteria.map(c => {
+            const r = responses[c.id] || {};
+            return [c.criterion, c.category || '—', r.value ? RESPONSE_LABELS[r.value] : 'Sin responder', r.notes || '—'];
+        }),
+        styles: { fontSize: 7, cellPadding: 1.5, lineColor: [0, 0, 0], lineWidth: 0.1, overflow: 'linebreak' },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', lineWidth: 0.2 },
+        columnStyles: { 0: { cellWidth: 110 } },
+        margin: { left: 10, right: 10 }
+    });
+
+    let y = safeAutoTableY(doc, 80) + 8;
+    if (audit.overall_notes) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.text('Observaciones generales:', 12, y);
+        doc.setFont("helvetica", "normal");
+        const lines = doc.splitTextToSize(audit.overall_notes, 265);
+        doc.text(lines, 12, y + 4);
+        y += 4 + lines.length * 3.5;
+    }
+
+    const noteY = y + 6;
+    addFooterNote(doc, noteY, { rangeLabel: `Auditoría del ${audit.audit_date || '---'}`, downloadedAt });
+    const finalY = noteY + 12;
+    doc.line(30, finalY, 110, finalY);
+    doc.text("FIRMA AUDITOR", 70, finalY + 5, { align: 'center' });
+    doc.line(187, finalY, 267, finalY);
+    doc.text("FIRMA GERENTE SMS", 227, finalY + 5, { align: 'center' });
+
+    doc.save(`AUDITORIA_PROVEEDOR_${(supplier.name || 'proveedor').replace(/\s+/g, '_')}_${audit.audit_date || ''}.pdf`);
+};
+
+// --- GENERADOR: CONSOLIDADO DE AUDITORÍAS (un proveedor o todos) ---
+export const generateSupplierAuditSummaryReport = (data, config) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const { orgName, logo, version, reportDate, formCode, supplierLabel, rangeLabel, downloadedAt } = config;
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.4);
+    doc.rect(10, 10, 277, 25);
+    doc.line(65, 10, 65, 35);
+    doc.line(225, 10, 225, 35);
+    doc.line(65, 22.5, 225, 22.5);
+
+    addLogo(doc, logo, 15, 12, 45, 20);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(orgName ? orgName.toUpperCase() : "BITAFLY UAS", 145, 18, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text("AUDITORÍA DE PROVEEDORES", 145, 27, { align: 'center' });
+    doc.setFontSize(8);
+    doc.text(supplierLabel ? `PROVEEDOR: ${supplierLabel.toUpperCase()}` : "TODOS LOS PROVEEDORES", 145, 33, { align: 'center' });
+
+    doc.setFontSize(7);
+    doc.line(225, 18, 287, 18);
+    doc.line(225, 26, 287, 26);
+    doc.text(`VERSIÓN: ${version || '1.0'}`, 227, 15);
+    doc.text(`FECHA: ${reportDate || '---'}`, 227, 23);
+    doc.text(`FORMATO: ${formCode || 'F-PRV-002'}`, 227, 31);
+
+    autoTable(doc, {
+        startY: 40,
+        head: [['PROVEEDOR', 'CATEGORÍA', 'FECHA AUDITORÍA', 'AUDITOR', 'CUMPLIMIENTO']],
+        body: (data || []).map(a => {
+            const score = supplierAuditScore(a.responses);
+            return [
+                a.supplier?.name || 'N/A', a.supplier?.category || '—', a.audit_date,
+                a.auditor_name || '—', score !== null ? `${score}%` : 'N/A',
+            ];
+        }),
+        styles: { fontSize: 7, cellPadding: 1.8, lineColor: [0, 0, 0], lineWidth: 0.1 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', lineWidth: 0.2 },
+        margin: { left: 10, right: 10 }
+    });
+
+    const noteY = safeAutoTableY(doc, 80) + 10;
+    addFooterNote(doc, noteY, { rangeLabel, downloadedAt });
+    const finalY = noteY + 12;
+    doc.line(30, finalY, 110, finalY);
+    doc.text("FIRMA GERENTE SMS", 70, finalY + 5, { align: 'center' });
+    doc.line(187, finalY, 267, finalY);
+    doc.text("FIRMA GERENTE GENERAL", 227, finalY + 5, { align: 'center' });
+
+    doc.save(`${formCode || 'F-PRV-002'}_AUDITORIA_PROVEEDORES_${orgName}.pdf`);
+};
+
 export const generateAerocivilMonthlyExcel = async (rows, month) => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Reporte UAS');

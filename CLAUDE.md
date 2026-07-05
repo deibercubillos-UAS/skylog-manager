@@ -116,6 +116,7 @@ Tablas principales:
 - `epayco_plan_config` — configuración planes: `replay_retention_days`, `replay_max_flights`. Editable desde `/admin/master`.
 - `audit_log` — log append-only de acciones (`organization_id`, `actor_id`, `actor_name`, `action`, `module`, `entity_label`, `metadata jsonb`, `created_at`). RLS: managers de la org leen, solo service role escribe. Ver **Auditoría de acciones**.
 - `protocols` — biblioteca libre de procedimientos (`organization_id`, `name`, `category` CHECK 5 valores, `description`, `icon`, `steps jsonb`, `created_by`). RLS: solo `admin`/`superadmin`/`gerente_sms` de la org leen/escriben. Ver **Protocolos**.
+- `suppliers` / `supplier_audit_criteria` / `supplier_audits` — listado de proveedores + checklist de auditoría (personalizable por org) + auditorías realizadas (`responses jsonb` keyed por `criterion_id`: `{value: 'cumple'|'no_cumple'|'no_aplica', notes}`). RLS: `admin`/`superadmin`/`gerente_sms`/`jefe_pilotos` de la org leen/escriben (`private.user_is_manager()`), sin nivel de lectura para piloto. Ver **Proveedores**.
 - `billing_history` ⚠️ **migración creada, NO aplicada aún** (`supabase/migrations/20260702_billing_history.sql`) — historial de pagos informativo (no factura fiscal). RLS: cada usuario ve el suyo, solo service role escribe. Ver **Historial de facturación**.
 
 **Regla `total_hours`**: actualizar siempre vía RPC `increment_aircraft_hours(p_id, p_hours)` — nunca read-calculate-write.
@@ -1233,6 +1234,57 @@ Repositorio de manuales corporativos con versionado y notificación a toda la or
 **Acuse de lectura**: cada card muestra chip Leído/Pendiente del usuario + botón "He leído esta versión". Managers tienen botón "Seguimiento" → modal `AckRosterModal` con barra de progreso (`read/total`) y lista de miembros con fecha de lectura o "Pendiente".
 
 **Acta de lectura PDF** (`lib/manualActaPdf.js`, `generateAckActaPdf`): botón "Acta PDF" en el panel de Seguimiento genera client-side (jsPDF + jspdf-autotable) un acta de divulgación y constancia de lectura — datos del manual + versión vigente + resumen leído/total + tabla de miembros (rol/estado/fecha) + nota legal. Evidencia documental para auditorías RAC 100 / SMS.
+
+---
+
+## Proveedores (2026-07-20)
+
+Nueva pestaña **"Proveedores"** (`/dashboard/suppliers`, grupo Cumplimiento): listado de
+proveedores + checklist de auditoría de proveedores, con reporte descargable por auditoría
+individual, por proveedor (historial completo) o de todos los proveedores. Antes de construir
+se confirmaron con el usuario 2 decisiones (`AskUserQuestion`): permiso de gestión y modelo del
+checklist — ambas con la opción recomendada.
+
+- **Permisos** (`lib/roles.js`): `canManageSuppliers` (superadmin+admin+gerente_sms+
+  jefe_pilotos — mismo split que Manuales/Capacitación) gatea **toda** la página, lectura y
+  escritura por igual — a diferencia de Manuales/Capacitación, aquí no hay un nivel de
+  solo-lectura para piloto: es un módulo 100% de back-office/cumplimiento, sin diligenciamiento
+  de campo. RLS (`private.user_is_manager()`, mismo set de roles) refleja exactamente el mismo
+  permiso — sin nivel de SELECT más amplio, a diferencia de `training_*`/`equipment_stock`.
+- **`suppliers`** — listado con nombre, categoría (texto libre — no hay taxonomía regulatoria
+  de tipos de proveedor en RAC 100 para forzar un CHECK, así que se dejó libre, igual que
+  `organizations.authorized_operations`), NIT, contacto, estado activo/inactivo, notas.
+- **Checklist de auditoría — un solo catálogo compartido y personalizable** (decisión
+  confirmada con el usuario, no por categoría de proveedor): tabla
+  `supplier_audit_criteria` (`criterion`, `category` como etiqueta libre de agrupación visual,
+  `order_index`) — mismo patrón que la autoevaluación GAP del SMS (catálogo editable +
+  respuestas por sesión), pero sin catálogo global/regulatorio: cada organización arma el suyo
+  desde cero vía `CriteriaConfigPanel.js` (botón "Checklist de auditoría" en el `PageHero`).
+  Se aplica igual a cualquier proveedor que se audite — no varía por categoría.
+- **`supplier_audits`** — una fila por auditoría realizada: `audit_date`, `auditor_name`,
+  `responses jsonb` (keyed por `criterion_id`: `{value: 'cumple'|'no_cumple'|'no_aplica',
+  notes}`), `overall_notes`. El **% de cumplimiento se calcula en el cliente** sobre los
+  criterios aplicables (excluye `no_aplica`) — nunca se guarda como columna derivada, mismo
+  criterio que `safety_indicators`/zonas de riesgo. `AuditPanel.js` (panel deslizable) permite
+  crear/editar una auditoría con botones tri-estado por criterio + observaciones por ítem +
+  observaciones generales; sin exigir responder el 100% para guardar (igual que la
+  autoevaluación GAP, no bloquea el guardado a mitad de progreso).
+- **`SupplierDetailPanel.js`**: al hacer clic en una tarjeta de proveedor se abre su historial
+  de auditorías (fecha/auditor/% de cumplimiento por fila) con "Nueva auditoría", editar,
+  eliminar y **descargar PDF de esa auditoría individual** — reutiliza
+  `GET /api/suppliers/audits/[id]` (trae el detalle + el catálogo de criterios vigente) y
+  `generateSupplierAuditDetailReport()` (nuevo, `lib/reportGenerators.js`), mismo layout jsPDF
+  con logo/tabla/firmas que el resto de formatos.
+- **Reporte consolidado** (nueva tarjeta "Auditoría de Proveedores", `F-PRV-002`, en
+  `/dashboard/reports`): selector de periodo + selector "Alcance — proveedor" (Todos los
+  proveedores / uno específico, mismo patrón `<select>` que ya usan Mantenimiento/Flota para
+  su selector de una sola aeronave). `GET /api/reports/suppliers?from&to&supplierId` +
+  `generateSupplierAuditSummaryReport()` — una fila por auditoría (proveedor/categoría/fecha/
+  auditor/% cumplimiento) dentro del alcance y periodo elegidos. Cubre las 3 formas de
+  descarga pedidas: auditoría individual (botón en el historial del proveedor), de un
+  proveedor (selector acotado a uno) o de todos los proveedores (selector vacío = todos).
+- **Migración `20260720_suppliers.sql`** (aplicada en Supabase): 3 tablas nuevas, RLS
+  idéntica en las 3 (`private.user_org_id()` + `private.user_is_manager()`).
 
 ---
 

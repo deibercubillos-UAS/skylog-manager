@@ -663,6 +663,15 @@ omitieron por tener ya equivalentes reales internos (`aerocivil_notified_at`,
   póster y dispara `window.print()` del navegador — pensado literalmente para colgar en la pared
   del hangar. "Descargar QR" (ya existía) se conservó.
 
+**Bug real corregido — "Editar formato" desde Protocolos no llevaba al editor rediseñado**: la
+tarjeta VOR/MOR en `FormSettingsClient.js` (sección "Formatos de reporte SMS — editables")
+enlazaba a `/dashboard/vor-mor` sin parámetros — la página cae por defecto en la pestaña
+"Reportes VOR" (lista de reportes), no en "Configuración & QR" (el editor rediseñado descrito
+arriba), así que el usuario nunca lo encontraba desde ese punto de entrada. Corregido: el link
+ahora es `/dashboard/vor-mor?tab=config&type=VOR|MOR`, y `dashboard/vor-mor/page.js` lee esos
+query params (`useSearchParams`) para inicializar `tab` y `configForm.type` — abre directo en el
+editor del formato correcto (VOR o MOR según la tarjeta en la que se hizo click).
+
 ### Plan de mejora SMS (2026-07-09) — Evaluación de Riesgos, SPI, GAP, Acciones Correctivas, Plazos, Capacitación SMS
 
 Proyecto grande ejecutado en 8 fases sobre el hub `dashboard/safety/page.js`, alineando la

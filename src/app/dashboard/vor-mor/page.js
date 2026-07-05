@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import FormBuilder from './_FormBuilder';
@@ -54,7 +55,16 @@ function printQR({ qrUrl, type, title, link }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function VorMorPage() {
-  const [tab, setTab]           = useState('VOR');   // 'VOR' | 'MOR' | 'config'
+  // Deep link desde Protocolos ("Editar formato" en cada tarjeta VOR/MOR) —
+  // ?tab=config&type=VOR|MOR abre directo el editor en vez de la lista de
+  // reportes (antes el link solo llevaba a /dashboard/vor-mor sin parámetros
+  // y el usuario caía en la pestaña "Reportes VOR" por defecto, sin ver el
+  // editor rediseñado).
+  const searchParams = useSearchParams();
+  const initialTab  = searchParams.get('tab') === 'config' ? 'config' : 'VOR';
+  const initialType = searchParams.get('type') === 'MOR' ? 'MOR' : 'VOR';
+
+  const [tab, setTab]           = useState(initialTab);   // 'VOR' | 'MOR' | 'config'
   const [profile, setProfile]   = useState(null);
   const [orgCode, setOrgCode]   = useState(null);
   const [loading, setLoading]   = useState(true);
@@ -68,7 +78,7 @@ export default function VorMorPage() {
   // Config / definición de formulario
   const [vorDef, setVorDef] = useState(null);
   const [morDef, setMorDef] = useState(null);
-  const [configForm, setConfigForm] = useState({ type: 'VOR', title: '', description: '', custom_fields: [] });
+  const [configForm, setConfigForm] = useState({ type: initialType, title: '', description: '', custom_fields: [] });
   const [savingConfig, setSavingConfig] = useState(false);
 
   // Modal: campos editables

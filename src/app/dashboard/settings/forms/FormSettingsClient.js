@@ -340,7 +340,7 @@ export default function FormSettingsClient({ initialData }) {
                         // { base_overrides, custom } (formato actual) — parseFormConfig maneja ambos
                         const fieldCount = parseFormConfig(def?.custom_fields).custom.length;
                         return (
-                            <Link key={t} href="/dashboard/vor-mor"
+                            <Link key={t} href={`/dashboard/vor-mor?tab=config&type=${t}`}
                                 className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-2.5 transition-all hover:shadow-md hover:border-orange-200">
                                 <div className="flex items-center justify-between">
                                     <span className="text-[9.5px] font-black uppercase tracking-wide text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full font-mono">{t}</span>

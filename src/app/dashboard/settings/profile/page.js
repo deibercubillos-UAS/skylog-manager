@@ -6,6 +6,7 @@ import { toast } from '@/lib/toast';
 import { docOpenUrl } from '@/lib/docUrl';
 import { ROLE_LABELS } from '@/lib/roles';
 import { PLAN_CONFIG } from '@/lib/planLimits';
+import { isPilotoIndependiente } from '@/lib/pilotoIndependiente';
 
 const inputCls = "w-full p-3.5 bg-slate-50 rounded-xl border border-slate-200 font-bold text-sm text-slate-900";
 const labelCls = "text-[10px] font-black text-slate-400 uppercase tracking-wide ml-0.5";
@@ -197,8 +198,8 @@ useEffect(() => {
     if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">CARGANDO EXPEDIENTE...</div>;
 
     const medStatus = medicalStatus(profile.medical_expiry);
-    const isPilotoIndependiente = profile.subscription_plan === 'piloto' && profile.role === 'admin';
-    const roleLabel = isPilotoIndependiente ? 'Piloto Independiente' : (ROLE_LABELS[profile.role] || profile.role);
+    const pilotoIndependiente = isPilotoIndependiente({ role: profile.role, plan: profile.subscription_plan });
+    const roleLabel = pilotoIndependiente ? 'Piloto Independiente' : (ROLE_LABELS[profile.role] || profile.role);
     const planLabel = PLAN_CONFIG[profile.subscription_plan]?.name || 'Plan Piloto';
     const pilotAdditions = Array.isArray(docs?.aerocivil_additions) ? docs.aerocivil_additions : [];
 

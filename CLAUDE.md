@@ -259,8 +259,29 @@ columna de plan).
   (incluye el caso `null=null` de la org del superadmin, que no tiene un miembro con
   `role='admin'`); `get_advisors` (security) limpio tras agregar la política nueva.
 
-**Próximas fases** (no ejecutadas todavía, ver plan completo): Fase 4 — extraer un helper compartido
-`isPilotoIndependiente()` (reemplaza 7 implementaciones inline del mismo predicado); Fase 5 —
+### Fase 4 — helper compartido `isPilotoIndependiente()` (2026-07-05)
+
+`lib/pilotoIndependiente.js` (nuevo) — `isPilotoIndependiente({ role, plan })`.
+
+- **Alcance real menor de lo previsto**: el inventario inicial (agente de exploración)
+  reportó 7-8 archivos con el predicado, pero al verificar directamente con `grep` solo
+  **4 archivos** tenían el predicado combinado exacto (`plan === 'piloto' && role ===
+  'admin'`) duplicado: `dashboard/layout.js`, `dashboard/settings/profile/page.js`,
+  `dashboard/settings/forms/page.js`, `dashboard/logbook/new/page.js`. Los demás archivos
+  mencionados (`api/auth/join-org/route.js`, `api/logbook/import-dji/route.js`,
+  `dashboard/plan-vuelo/layout.js`, `DashboardClient.js`) usan `subscription_plan`/`role` para
+  otras cosas (límites de plan, auto-creación de piloto, `getOrgPlan()`) pero no reimplementan
+  este predicado específico — se dejaron intactos, sin necesidad de refactor.
+- Refactor puro, sin cambio de comportamiento: cada call site pasa sus propias variables
+  (`role`/`plan` del perfil, o el `plan` ya resuelto por `getOrgPlan()` en el caso de
+  `dashboard/layout.js`) al helper en vez de repetir la comparación inline.
+- **Fuera de alcance a propósito**: `dashboard/settings/forms/page.js` sigue leyendo
+  `profiles.role`/`subscription_plan` directo (una de las ~88 lecturas de la Fase 7, diferida)
+  — este refactor solo tocó el predicado, no la fuente de datos subyacente de ese archivo.
+- **Verificación**: `grep` confirma cero ocurrencias inline restantes del patrón fuera del
+  helper nuevo; `next lint` + `npm run build` limpios.
+
+**Próximas fases** (no ejecutadas todavía, ver plan completo): Fase 5 —
 la capacidad nueva real: unirse a una segunda organización sin migrar datos
 (`POST /api/auth/join-org-additional`, **no** reutiliza el código destructivo de
 `api/auth/join-org` que sigue existiendo intacto para su caso de uso propio: piloto

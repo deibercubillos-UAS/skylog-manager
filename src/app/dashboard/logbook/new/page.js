@@ -9,6 +9,7 @@ import WeatherWidget from '@/components/WeatherWidget';
 import { MISSION_TYPES, LINE_OF_SIGHT_TYPES } from '@/lib/missionTypes';
 import { computeCompliance } from '@/lib/trainingCompliance';
 import { resolveZone, riskIndex, ZONE_META } from '@/lib/safetyRiskDefaults';
+import { isPilotoIndependiente } from '@/lib/pilotoIndependiente';
 
 export default function NewOperationPage() {
     const router = useRouter();
@@ -62,7 +63,7 @@ export default function NewOperationPage() {
                 // Piloto independiente = dueño de su propia org (role 'admin') en plan piloto.
                 // Los miembros de una org (piloto/jefe/gsms) también tienen profile.subscription_plan='piloto',
                 // pero NO son independientes: deben usar el despacho con orden de vuelo.
-                const pilotPlan = prof?.subscription_plan === 'piloto' && prof?.role === 'admin';
+                const pilotPlan = isPilotoIndependiente({ role: prof?.role, plan: prof?.subscription_plan });
                 setIsPilotoPlan(pilotPlan);
                 setUserRole(prof?.role || null);
 

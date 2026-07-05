@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabaseServer';
+import { isPilotoIndependiente } from '@/lib/pilotoIndependiente';
 import FormSettingsClient from './FormSettingsClient';
 
 export const dynamic = 'force-dynamic';
@@ -28,7 +29,7 @@ export default async function FormSettingsPage() {
     defsRes.data?.forEach(d => { initialLabels[d.field_number] = d.label_text; });
 
     // Manuales aplica solo a organizaciones — el piloto independiente (admin + plan piloto) no lo ve.
-    const showManualsLink = !(profile?.role === 'admin' && profile?.subscription_plan === 'piloto');
+    const showManualsLink = !isPilotoIndependiente({ role: profile?.role, plan: profile?.subscription_plan });
 
     const initialData = {
         organizationId: profile?.organization_id,

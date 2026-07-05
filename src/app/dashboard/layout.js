@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { ROLE_LABELS, PERMISSIONS, hasPermission } from '@/lib/roles';
 import { GracePeriodContext } from '@/lib/gracePeriodContext';
 import { getOrgPlan } from '@/lib/orgPlan';
+import { isPilotoIndependiente } from '@/lib/pilotoIndependiente';
 import { PLAN_CONFIG } from '@/lib/planLimits';
 import { useRouter } from 'next/navigation';
 import NotificationBell from '@/components/NotificationBell';
@@ -278,7 +279,7 @@ const isPaidPlan  = !['piloto', null, undefined, ''].includes(plan);
 // Piloto autónomo = dueño de su propia org (role 'admin') en plan piloto.
 // Los miembros de una org (piloto/jefe/gsms) tienen profile.subscription_plan='piloto'
 // pero NO son autónomos — no deben heredar la navegación del piloto independiente.
-const isPilotoPlan = plan === 'piloto' && role === 'admin';
+const isPilotoPlan = isPilotoIndependiente({ role, plan });
 
 // Label visible del rol: piloto independiente (admin + plan piloto) → "Piloto Independiente"
 const displayRole = (isPilotoPlan && role === 'admin')

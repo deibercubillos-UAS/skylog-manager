@@ -63,11 +63,8 @@ export const PERMISSIONS = {
     // cumplimiento, sin nivel de solo-lectura para piloto (a diferencia de
     // Manuales/Capacitación, que sí lo incluyen).
     canManageSuppliers: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],
-    // Mantenimiento Menor — checklist periódico que diligencia el piloto. Mismo
-    // split que Inventario: GG+GSMS+JP configuran el checklist; cualquiera que
-    // despache (incluido piloto) lo ve y lo diligencia.
-    canManageMinorMaintenanceChecklist: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos'],
-    canViewMinorMaintenanceChecklist:   ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'],
+    // Mantenimiento Menor: el checklist se edita en Protocolos (canViewFinance) y se
+    // diligencia dentro de /dashboard/maintenance (canManageOps) — sin permiso propio.
 };
 
 // Helper: ¿el usuario tiene un permiso?

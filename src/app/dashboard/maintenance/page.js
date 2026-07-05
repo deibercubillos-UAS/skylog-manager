@@ -6,8 +6,28 @@ import { hasPermission } from '@/lib/roles';
 import { toast } from '@/lib/toast';
 import { fetchLogoDataUrl } from '@/lib/docUrl';
 import AddMaintenancePanel from '@/components/AddMaintenancePanel';
+import MinorMaintenancePanel from '@/components/MinorMaintenancePanel';
 import PageHero from '@/components/PageHero';
 import KPIStrip from '@/components/KPIStrip';
+
+// Progreso informativo del mantenimiento menor (checklist del piloto) — contadores
+// 100% independientes del mantenimiento mayor de arriba. La fuente de verdad del
+// bloqueo de despacho es aircraft.minor_maintenance_due (mantenida por el cron +
+// el endpoint de registro), esto solo alimenta la barra/badge visual.
+function minorDueStatus(a) {
+    const intH = parseInt(a?.minor_maintenance_interval_hours || 0, 10);
+    const intD = parseInt(a?.minor_maintenance_interval_days || 0, 10);
+    if (intH <= 0 && intD <= 0) return null; // no configurado para esta aeronave
+
+    const diffH = Math.max(0, parseFloat(a?.total_hours || 0) - parseFloat(a?.last_minor_maintenance_hours || 0));
+    const hPct = intH > 0 ? Math.min(100, (diffH / intH) * 100) : 0;
+
+    const lastDate = a?.last_minor_maintenance_date ? new Date(a.last_minor_maintenance_date) : null;
+    const daysSince = lastDate ? Math.floor((Date.now() - lastDate.getTime()) / 86400000) : null;
+    const dPct = (intD > 0 && daysSince !== null) ? Math.min(100, (daysSince / intD) * 100) : 0;
+
+    return { pct: Math.max(hPct, dPct), diffH: diffH.toFixed(1), daysSince };
+}
 
 // Misma fórmula que AircraftCard.js — un solo criterio de vencimiento en toda la app.
 function dueStatus(aircraft) {
@@ -45,7 +65,7 @@ function dueStatus(aircraft) {
     return { isDue, finalProgress, nextDate, nextDateEstimated, bucket };
 }
 
-const TYPE_LABELS = { PREVENTIVO: 'Preventivo', CORRECTIVO: 'Correctivo', 'ACTUALIZACIÓN': 'Actualización' };
+const TYPE_LABELS = { PREVENTIVO: 'Preventivo', CORRECTIVO: 'Correctivo', 'ACTUALIZACIÓN': 'Actualización', MENOR: 'Menor (Piloto)' };
 const STATUS_BADGE = {
     ok:      { label: 'Al día',   icon: 'check_circle', cls: 'text-emerald-600' },
     soon:    { label: 'Próximo',  icon: 'schedule',      cls: 'text-amber-600' },
@@ -65,6 +85,8 @@ export default function MaintenancePage() {
     const [loadingDoc, setLoadingDoc] = useState(null); // id del log abriendo
     const [returnLabels, setReturnLabels] = useState({}); // { field_number: label_text }
     const [detailLog, setDetailLog] = useState(null);     // log mostrado en el modal de recibo
+    const [minorLabels, setMinorLabels] = useState({});   // checklist de Mantenimiento Menor { field_number: label_text }
+    const [minorPanelAircraft, setMinorPanelAircraft] = useState(null); // aeronave abierta para diligenciar
 
     const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
@@ -77,7 +99,7 @@ export default function MaintenancePage() {
             .from('profiles').select('role,organization_id').eq('id', user.id).single();
         setUserRole(prof?.role || null);
 
-        const [logsRes, defsRes, aircraftRes, orgRes] = await Promise.all([
+        const [logsRes, defsRes, minorDefsRes, aircraftRes, orgRes] = await Promise.all([
             fetch('/api/maintenance').then(r => r.json()),
             prof?.organization_id
                 ? supabase.from('form_definitions')
@@ -87,8 +109,15 @@ export default function MaintenancePage() {
                     .eq('aircraft_model', 'General')
                 : Promise.resolve({ data: [] }),
             prof?.organization_id
+                ? supabase.from('form_definitions')
+                    .select('field_number,label_text')
+                    .eq('organization_id', prof.organization_id)
+                    .eq('form_type', 'minor_maintenance')
+                    .eq('aircraft_model', 'General')
+                : Promise.resolve({ data: [] }),
+            prof?.organization_id
                 ? supabase.from('aircraft')
-                    .select('id,model,serial_number,maintenance_interval_hours,maintenance_interval_days,last_maintenance_date,last_maintenance_hours,next_maintenance_date,total_hours,operational_status,created_at,status')
+                    .select('id,model,serial_number,maintenance_interval_hours,maintenance_interval_days,last_maintenance_date,last_maintenance_hours,next_maintenance_date,total_hours,operational_status,created_at,status,minor_maintenance_interval_hours,minor_maintenance_interval_days,last_minor_maintenance_date,last_minor_maintenance_hours,minor_maintenance_due')
                     .eq('organization_id', prof.organization_id)
                 : Promise.resolve({ data: [] }),
             prof?.organization_id
@@ -100,6 +129,9 @@ export default function MaintenancePage() {
         const map = {};
         (defsRes.data || []).forEach(d => { map[d.field_number] = d.label_text; });
         setReturnLabels(map);
+        const minorMap = {};
+        (minorDefsRes.data || []).forEach(d => { minorMap[d.field_number] = d.label_text; });
+        setMinorLabels(minorMap);
         setAircraftList((aircraftRes.data || []).filter(a => a.status !== 'Baja' && a.status !== 'Transferido'));
         setOrgData(orgRes.data || null);
         setLoading(false);
@@ -172,6 +204,13 @@ export default function MaintenancePage() {
     const buckets = { ok: 0, soon: 0, overdue: 0 };
     aircraftList.forEach(a => { buckets[dueStatus(a).bucket]++; });
 
+    // ── Mantenimiento Menor (checklist del piloto) ──────────────────────────
+    const minorItems = Object.entries(minorLabels)
+        .filter(([, text]) => text && text.trim() !== '')
+        .sort((a, b) => Number(a[0]) - Number(b[0]))
+        .map(([num, text]) => ({ field_number: Number(num), label_text: text }));
+    const minorPendingCount = aircraftList.filter(a => a.minor_maintenance_due).length;
+
     if (loading) return (
         <div className="p-20 text-center font-black animate-pulse">SINCRO TÉCNICA...</div>
     );
@@ -208,6 +247,7 @@ export default function MaintenancePage() {
                     { key: 'ok', label: 'Al día', value: buckets.ok, icon: 'check_circle', iconColor: '#16a34a' },
                     { key: 'soon', label: 'Próximos', value: buckets.soon, icon: 'schedule', iconColor: buckets.soon > 0 ? '#d97706' : '#94a3b8' },
                     { key: 'overdue', label: 'Vencidos', value: buckets.overdue, icon: 'warning', iconColor: buckets.overdue > 0 ? '#dc2626' : '#94a3b8' },
+                    { key: 'minor_pending', label: 'Mtto. Menor pendiente', value: minorPendingCount, icon: 'fact_check', iconColor: minorPendingCount > 0 ? '#dc2626' : '#94a3b8' },
                 ]} />
             </section>
 
@@ -246,6 +286,53 @@ export default function MaintenancePage() {
                         Ver flota
                     </Link>
                 </div>
+            </div>
+
+            {/* ── Mantenimiento Menor (checklist del piloto) ──────────────────── */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-5 md:px-7 py-4 border-b border-slate-100">
+                    <p className="text-sm font-black text-slate-900">Mantenimiento Menor</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                        Chequeo periódico ligero que diligencia el piloto — la periodicidad (horas/días) se
+                        configura por aeronave en Flota → Editar aeronave. Si está vencido, el despacho de
+                        esa aeronave queda bloqueado hasta diligenciarlo aquí. El checklist se edita en Protocolos.
+                    </p>
+                </div>
+                {aircraftList.length === 0 ? (
+                    <p className="text-xs font-bold text-slate-400 text-center py-8">Sin aeronaves registradas.</p>
+                ) : (
+                    <div className="divide-y divide-slate-50">
+                        {aircraftList.map(a => {
+                            const prog = minorDueStatus(a);
+                            return (
+                                <div key={a.id} className="flex items-center gap-3 px-5 py-3">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-black text-slate-800 truncate">{a.model} · {a.serial_number}</p>
+                                        <p className="text-[10.5px] font-semibold text-slate-400">
+                                            {prog === null
+                                                ? 'Periodicidad no configurada'
+                                                : a.last_minor_maintenance_date
+                                                    ? `Último: ${fmtDate(a.last_minor_maintenance_date)}`
+                                                    : 'Nunca realizado'}
+                                        </p>
+                                    </div>
+                                    {a.minor_maintenance_due ? (
+                                        <span className="px-2.5 py-1 rounded-lg text-[10.5px] font-black uppercase bg-red-50 text-red-700 shrink-0">Vencido</span>
+                                    ) : prog !== null && prog.pct >= 75 ? (
+                                        <span className="px-2.5 py-1 rounded-lg text-[10.5px] font-black uppercase bg-amber-50 text-amber-700 shrink-0">Próximo</span>
+                                    ) : prog !== null ? (
+                                        <span className="px-2.5 py-1 rounded-lg text-[10.5px] font-black uppercase bg-emerald-50 text-emerald-700 shrink-0">Al día</span>
+                                    ) : null}
+                                    <button type="button" onClick={() => setMinorPanelAircraft(a)}
+                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-[10.5px] uppercase tracking-wide transition-all active:scale-95 shrink-0">
+                                        <span className="material-symbols-outlined text-sm">checklist</span>
+                                        Diligenciar
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
             <div className="bg-white rounded-[1.5rem] border border-slate-200 overflow-hidden shadow-sm">
@@ -479,6 +566,14 @@ export default function MaintenancePage() {
                     maintenance={editingLog}
                     onClose={() => setEditingLog(null)}
                     onSuccess={() => { setEditingLog(null); loadData(); }} />
+            )}
+
+            {minorPanelAircraft && (
+                <MinorMaintenancePanel
+                    aircraft={minorPanelAircraft}
+                    items={minorItems}
+                    onClose={() => setMinorPanelAircraft(null)}
+                    onSuccess={() => { setMinorPanelAircraft(null); loadData(); }} />
             )}
 
             {/* Modal de detalle del recibo de mantenimiento */}

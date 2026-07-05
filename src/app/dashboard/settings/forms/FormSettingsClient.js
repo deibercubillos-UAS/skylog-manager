@@ -76,9 +76,11 @@ const LIMITS = { health: 30, briefing: 50, preflight: 70, maintenance_return: 30
 
 // Tipos que son solo tarjeta de navegación (se editan en su propia página, con
 // permiso propio que incluye jefe_pilotos) en vez de abrir el editor interno de slots.
+// Mantenimiento Menor NO está aquí a propósito (a diferencia de Inventario): su
+// checklist se edita directo en Protocolos, como Salud/Briefing/Recibo Mtto —
+// diligenciarlo vive en /dashboard/maintenance, no en una página propia.
 const NAV_CARD_HREF = {
   inventory: '/dashboard/inventory-checklist',
-  minor_maintenance: '/dashboard/minor-maintenance',
 };
 
 const CATEGORY_STYLE = {
@@ -327,8 +329,8 @@ export default function FormSettingsClient({ initialData }) {
             // página (/dashboard/inventory-checklist), que permite editar a jefe_pilotos
             // además de GG/GSMS (Protocolos como página completa no se lo permite).
             { key: 'inventory', type: 'inventory', model: 'General', title: TYPE_TITLE.inventory },
-            // Mantenimiento Menor — mismo patrón que Inventario: tarjeta de navegación,
-            // no editor interno (permite editar a jefe_pilotos).
+            // Mantenimiento Menor — checklist fijo editable aquí mismo (igual que Salud/
+            // Briefing/Recibo Mtto); diligenciarlo vive en /dashboard/maintenance.
             { key: 'minor_maintenance', type: 'minor_maintenance', model: 'General', title: TYPE_TITLE.minor_maintenance },
         ];
         ['General', ...models].forEach(m => {

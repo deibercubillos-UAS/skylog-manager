@@ -390,10 +390,10 @@ export default function NewOperationPage() {
                         La aeronave {selectedAuth.aircraft?.model} tiene pendiente su chequeo de
                         Mantenimiento Menor — no puede volar hasta diligenciarlo.
                     </p>
-                    <Link href="/dashboard/minor-maintenance"
+                    <Link href="/dashboard/maintenance"
                         className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-wide shadow-lg shadow-orange-600/25 transition-all active:scale-95">
                         <span className="material-symbols-outlined text-base">fact_check</span>
-                        Ir a Mantenimiento Menor
+                        Ir a Mantenimiento
                     </Link>
                     <button onClick={() => setSelectedAuth(null)} className="block w-full py-2 text-slate-400 font-black uppercase text-xs">Elegir otra misión</button>
                 </div>

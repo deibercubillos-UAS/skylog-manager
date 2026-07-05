@@ -6,17 +6,18 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 // POST /api/maintenance/minor — el piloto registra el chequeo de Mantenimiento
-// Menor de una aeronave. A diferencia de POST /api/maintenance (mantenimiento
-// mayor, técnico), esto NUNCA toca last_maintenance_date/_hours (contadores del
-// mantenimiento mayor) — mantiene sus propios contadores independientes y
-// limpia minor_maintenance_due para des-bloquear el despacho.
+// Menor de una aeronave, desde /dashboard/maintenance. A diferencia de
+// POST /api/maintenance (mantenimiento mayor, técnico), esto NUNCA toca
+// last_maintenance_date/_hours (contadores del mantenimiento mayor) — mantiene
+// sus propios contadores independientes y limpia minor_maintenance_due para
+// des-bloquear el despacho. Mismo permiso que gatea esa página (canManageOps).
 export async function POST(request) {
     try {
         const supabase = await createClientSSR();
         const { user, orgId, role, fullName } = await getOrgContext(supabase);
         if (!user)  return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         if (!orgId) return NextResponse.json({ error: 'Sin organización asignada' }, { status: 403 });
-        if (!PERMISSIONS.canViewMinorMaintenanceChecklist.includes(role)) {
+        if (!PERMISSIONS.canManageOps.includes(role)) {
             return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
         }
 

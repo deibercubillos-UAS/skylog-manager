@@ -248,31 +248,21 @@ técnico), con periodicidad que estipula la organización — distinto y con con
   por modelo de aeronave): `form_definitions` con `form_type='minor_maintenance'`,
   `aircraft_model='General'` — mismo patrón que Salud/Briefing/Recibo Mtto. Plantilla
   base en `lib/checklistDefaults.js`.
-- **Permisos** (`lib/roles.js`): `canManageMinorMaintenanceChecklist` (GG+GSMS+JP,
-  configura el checklist e intervalos) / `canViewMinorMaintenanceChecklist` (+ `piloto`,
-  ve y diligencia) — mismo split que Inventario.
-- **UI** (`/dashboard/minor-maintenance`, grupo Flota & Equipo, mismo patrón de página
-  propia que Inventario — tarjeta de navegación desde Protocolos, no editor interno):
-  sección "Estado de la flota" (badge Al día/Próximo/Vencido por aeronave + botón
-  "Diligenciar" → `MinorMaintenancePanel.js`, checklist Sí/No + observaciones) y sección
-  "Checklist de verificación" (editable por managers, solo-lectura para el resto, con
-  botón "Plantilla básica"). Los intervalos por aeronave se configuran en Flota →
-  Editar aeronave (nueva sección "Mantenimiento Menor (piloto)" en
-  `EditAircraftPanel.js`, mismo patrón de indicador de progreso que el mayor).
 - **`POST /api/maintenance/minor`**: inserta en `maintenance_logs` con
   `maintenance_type='MENOR'` (así "queda el registro dentro del mantenimiento", visible
   en `/dashboard/maintenance` junto al resto) + `minor_checklist jsonb` (objeto compacto,
   mismo patrón que `return_checklist`) + `technician_name` = nombre de quien lo
   diligenció. Actualiza `last_minor_maintenance_date`/`_hours` y limpia
   `minor_maintenance_due` — **nunca** toca `last_maintenance_date`/`_hours` (contadores
-  del mantenimiento mayor, endpoint separado a propósito).
+  del mantenimiento mayor, endpoint separado a propósito). Gatea con `canManageOps`
+  (mismo permiso que ya guarda `/dashboard/maintenance` — ver reubicación abajo).
 - **Bloqueo real de despacho** (decisión confirmada con el usuario — sí bloquea, no solo
   alerta): en `logbook/new/page.js`, el piloto independiente ya no ve aeronaves con
   `minor_maintenance_due=true` en su selector (filtradas en la consulta inicial, mismo
   criterio que `en_mantenimiento`). En el flujo con orden de vuelo (aeronave fija desde la
   misión asignada), una pantalla de bloqueo dedicada reemplaza el wizard si
   `selectedAuth.aircraft.minor_maintenance_due` — con enlace directo a
-  `/dashboard/minor-maintenance`. Programación (`BasicForm.js`) NO se restringe (mismo
+  `/dashboard/maintenance`. Programación (`BasicForm.js`) NO se restringe (mismo
   criterio que el mantenimiento mayor: bloquea el despacho, no la programación futura).
 - **Alertas** (`check_aircraft_minor_maintenance_due()`, cron diario `35 13 * * *`,
   mismo patrón que `check_aircraft_maintenance_due()` pero sin tocar
@@ -281,6 +271,44 @@ técnico), con periodicidad que estipula la organización — distinto y con con
   de `notifications.type` y a `NOTIFICATION_TYPES` en `lib/notify.js`) a **pilotos** (
   quienes deben ejecutar el checklist) además de GG+JP, a diferencia del mantenimiento
   mayor que solo notifica a GG+JP.
+
+### Mantenimiento Menor — reubicado a Protocolos + Mantenimiento (2026-07-22)
+
+A pedido explícito del usuario, un día después de construido: el checklist de
+Mantenimiento Menor **dejó de tener página propia** (`/dashboard/minor-maintenance`,
+eliminada por completo — `page.js`/`layout.js`/`MinorMaintenanceClient.js` borrados, sin
+dejar el link de sidebar) y se repartió en los dos lugares "normales" donde ya vive todo
+lo demás de este tipo:
+
+- **Configurar el checklist → Protocolos**: `minor_maintenance` se quitó de
+  `NAV_CARD_HREF` en `FormSettingsClient.js` — ahora abre el **editor interno de slots**
+  (`openFixedEditor`) exactamente igual que Salud/Briefing/Recibo Mtto, en vez de navegar
+  a una página aparte. Efecto secundario aceptado a propósito: al vivir dentro de
+  Protocolos, la edición queda gatada por `canViewFinance` (superadmin/admin/gerente_sms)
+  igual que esos otros tres checklists reales — **ya no la puede editar Jefe de Pilotos**
+  (sí podía en el diseño anterior, que copiaba el patrón de Inventario). Es la
+  consecuencia natural de "que quede en la pestaña normal de Protocolos", no una
+  inconsistencia: iguala a Mantenimiento Menor con Salud/Briefing/Recibo Mtto en vez de
+  con Inventario.
+- **Diligenciarlo + ver estado de la flota → `/dashboard/maintenance`**: nueva sección
+  "Mantenimiento Menor" en `maintenance/page.js` (entre la barra de filtros y la tabla de
+  intervenciones) — una fila por aeronave con badge Al día/Próximo/Vencido y botón
+  "Diligenciar" que abre `MinorMaintenancePanel.js` (sin cambios, mismo componente
+  reutilizado). Nuevo KPI "Mtto. Menor pendiente" en la franja existente. `loadData()`
+  amplía el `select` de `aircraft` con las columnas de mantenimiento menor y agrega un
+  segundo fetch de `form_definitions` (`form_type='minor_maintenance'`) para las
+  etiquetas del checklist. `TYPE_LABELS` gana `MENOR: 'Menor (Piloto)'` para que la tabla
+  principal de intervenciones (que ya incluía estas filas desde el primer día, por
+  guardarse en `maintenance_logs`) muestre una etiqueta legible en vez del código crudo.
+- **Permisos simplificados**: se eliminaron `canManageMinorMaintenanceChecklist`/
+  `canViewMinorMaintenanceChecklist` de `lib/roles.js` — ya no hacían falta permisos
+  propios. Diligenciar usa el mismo `canManageOps` que ya gatea toda la página de
+  Mantenimiento (`superadmin/admin/jefe_pilotos/piloto`); configurar el checklist usa
+  `canViewFinance`, el mismo que gatea toda Protocolos.
+- Migración `20260722_minor_maintenance_link_fix.sql`: `CREATE OR REPLACE` de
+  `check_aircraft_minor_maintenance_due()` solo para corregir el `link` de la
+  notificación (`/dashboard/minor-maintenance` → `/dashboard/maintenance`), sin tocar la
+  lógica de umbral/alerta.
 
 ### Flota + Baterías rediseñadas (2026-07-02f) — dos páginas separadas con enlaces cruzados
 

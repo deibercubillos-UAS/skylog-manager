@@ -29,6 +29,10 @@ export default function DashboardLayout({ children }) {
   const [accessExpired, setAccessExpired] = useState(false);
   const [gracePeriod, setGracePeriod]     = useState({ isGracePeriod: false, daysLeft: 0 });
   const [isSocio, setIsSocio]             = useState(false);
+  // Organizaciones a las que pertenece la cuenta (Fase 5 multi-organización)
+  // — el switcher solo se muestra si hay más de una.
+  const [memberships, setMemberships]     = useState([]);
+  const [switchingOrg, setSwitchingOrg]   = useState(false);
   // Grupos del sidebar contraídos por el usuario — persiste entre sesiones
   // (localStorage), igual que otras preferencias de UI de la app (ej. autosync DJI).
   const [collapsedGroups, setCollapsedGroups] = useState({});
@@ -151,6 +155,15 @@ export default function DashboardLayout({ children }) {
           .then(({ data: pm }) => setIsSocio(!!pm?.length))
           .catch(() => {});
 
+        // Organizaciones a las que pertenece la cuenta — el switcher del popover
+        // de cuenta solo se muestra si hay más de una (Fase 5 multi-organización).
+        supabase.from('organization_members')
+          .select('organization_id, role, organizations:organization_id(company_name)')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .then(({ data: mems }) => setMemberships(mems || []))
+          .catch(() => {});
+
         // Suscripción Realtime: si el admin actualiza el plan o el rol desde Supabase,
         // el sidebar se actualiza automáticamente sin que el usuario cierre sesión.
         realtimeChannel = supabase
@@ -225,6 +238,26 @@ export default function DashboardLayout({ children }) {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  // Cambiar la organización activa de la cuenta (Fase 5 multi-organización) —
+  // una por cuenta, no por pestaña; recarga completa para que TODO el
+  // contexto (RLS, getOrgContext, sidebar) quede consistente con la nueva org.
+  const handleSwitchOrg = async (orgId) => {
+    if (switchingOrg || orgId === data.profile?.organization_id) { setAccountMenuOpen(false); return; }
+    setSwitchingOrg(true);
+    try {
+      const res = await fetch('/api/org/switch-active', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organization_id: orgId }),
+      });
+      if (!res.ok) throw new Error((await res.json())?.error || 'Error al cambiar de organización');
+      window.location.href = '/dashboard';
+    } catch (e) {
+      console.error('[switch-org]', e.message);
+      setSwitchingOrg(false);
+    }
+  };
 
   if (loading) return <div className="h-screen flex items-center justify-center bg-[#1A202C] text-white font-black animate-pulse">CARGANDO BITAFLY...</div>;
 
@@ -506,6 +539,31 @@ const footerLinks = footerLinksAll.filter(link =>
                     {link.name}
                   </Link>
                 ))}
+
+                {/* Switcher de organizaciones (Fase 5 multi-organización) —
+                    solo aparece si la cuenta tiene más de una. */}
+                {memberships.length > 1 && (
+                  <>
+                    <div className="h-px bg-white/10 my-1 mx-1" />
+                    <p className="px-3 pt-1 pb-0.5 text-[9.5px] font-black uppercase tracking-widest text-slate-500">Organizaciones</p>
+                    {memberships.map(m => (
+                      <button
+                        key={m.organization_id}
+                        onClick={() => handleSwitchOrg(m.organization_id)}
+                        disabled={switchingOrg}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50 ${
+                          m.organization_id === data.profile?.organization_id ? 'text-orange-400 bg-white/5' : 'text-slate-300 hover:text-white hover:bg-white/5'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-base shrink-0">
+                          {m.organization_id === data.profile?.organization_id ? 'radio_button_checked' : 'radio_button_unchecked'}
+                        </span>
+                        <span className="truncate flex-1 text-left">{m.organizations?.company_name || 'Organización'}</span>
+                      </button>
+                    ))}
+                  </>
+                )}
+
                 <div className="h-px bg-white/10 my-1 mx-1" />
                 <button
                   onClick={() => supabase.auth.signOut().then(() => (window.location.href = '/login'))}

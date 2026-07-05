@@ -281,16 +281,52 @@ columna de plan).
 - **Verificación**: `grep` confirma cero ocurrencias inline restantes del patrón fuera del
   helper nuevo; `next lint` + `npm run build` limpios.
 
-**Próximas fases** (no ejecutadas todavía, ver plan completo): Fase 5 —
-la capacidad nueva real: unirse a una segunda organización sin migrar datos
-(`POST /api/auth/join-org-additional`, **no** reutiliza el código destructivo de
-`api/auth/join-org` que sigue existiendo intacto para su caso de uso propio: piloto
-independiente que se fusiona a una empresa), endpoint de cambio de organización activa, UI del
-switcher (reutilizando el popover de cuenta del sidebar, patrón de **Corrección 1**), y un
-cambio de comportamiento confirmado en `api/invitations/accept/route.js` (hoy migra TODA la
-data del invitado si es dueño único de su org actual — con multi-org esto queda superado:
-aceptar una invitación debe siempre solo agregar una membresía nueva, nunca migrar datos ni
-tocar la organización de origen); Fase 6 — migrar los 14 sitios de escritura legacy (de menor a
+### Fase 5 — Unirse a una segunda organización + switcher + invitaciones (2026-07-05)
+
+Confirmado con el usuario (`AskUserQuestion`, 2 preguntas) antes de construir: aceptar
+cualquier invitación **nunca** migra datos (siempre solo agrega membresía), y unirse a una
+segunda organización **no** cambia automáticamente la organización activa — el usuario decide
+cuándo cambiar, usando el switcher.
+
+- **`POST /api/auth/join-org-additional`** (nuevo): valida NIT + disponibilidad de rol +
+  límite de pilotos del plan destino (igual que `join-org`, pero consultando
+  `organization_members` en vez de `profiles`) e inserta una fila nueva en
+  `organization_members` — **sin transferir ninguna tabla operativa y sin tocar
+  `profiles.organization_id`**. `api/auth/join-org/route.js` (el flujo destructivo original,
+  para el caso piloto-independiente-se-fusiona-a-una-empresa) queda completamente intacto,
+  sin ninguna modificación — son casos de uso distintos que ahora coexisten.
+- **`POST /api/org/switch-active`** (nuevo): valida que exista una membresía activa
+  (`organization_members` con `is_active=true`) para `(auth.uid(), organization_id)` y
+  proyecta esos valores (`role`/`subscription_plan`/campos de ePayco/`organization_id`/
+  `active_organization_id`) de vuelta a `profiles` — el mecanismo que hace que las ~88
+  lecturas directas de `profiles` sin migrar (Fase 7, diferida) reflejen la organización
+  activa sin tener que tocarlas. Usa `createAdminClient()` (mismo patrón que
+  `epaycoActivation.js`/`invitations/accept`) para el UPDATE de `profiles`.
+- **Switcher UI** (`dashboard/layout.js`): reutiliza el popover de cuenta ya existente
+  (avatar + `footerLinks`, patrón de **Corrección 1** — "un solo punto de entrada, en vez de
+  elementos sueltos"). Nueva sección "Organizaciones" (fetch no-bloqueante de
+  `organization_members` con embed `organizations:organization_id(company_name)`, mismo
+  patrón fire-and-forget que ya usaba la detección de `partner_members`) — **solo se
+  renderiza si `memberships.length > 1`**, cero cambio visual para el resto de cuentas.
+  Click en una organización → `handleSwitchOrg()` → `POST /api/org/switch-active` →
+  recarga completa de `/dashboard` (no un simple re-fetch de estado) para que TODO el
+  contexto de la página (RLS, `getOrgContext`, sidebar, cualquier dato ya cargado) quede
+  consistente con la nueva organización activa.
+- **Cambio de comportamiento confirmado en `api/invitations/accept/route.js`**: se eliminó
+  por completo la rama que migraba `aircraft`/`flights`/`pilots`/etc. cuando el invitado era
+  dueño único de su organización actual y renombraba esa org `[Migrada]`. Ahora, aceptar
+  cualquier invitación (sea o no dueño único, tenga o no ya otra organización) **siempre**
+  hace lo mismo: si no existe ya una fila en `organization_members` para `(usuario, org
+  invitante)`, la inserta; si ya existe, no hace nada además de cerrar la invitación —
+  nunca migra datos, nunca toca la organización de origen, nunca cambia la organización
+  activa. El vínculo del piloto destino y la notificación a GG/JP quedan exactamente igual
+  que antes.
+- **Fuera de alcance a propósito**: no se agregaron verificaciones de límite de plan al
+  aceptar una invitación (tampoco existían antes de esta fase) — el manager que crea la
+  invitación ya eligió un rol válido; solo se cambió cómo se registra la membresía, no las
+  reglas de negocio de quién puede ser invitado.
+
+**Próximas fases** (no ejecutadas todavía, ver plan completo): Fase 6 — migrar los 14 sitios de escritura legacy (de menor a
 mayor riesgo, pagos de ePayco al final); Fase 7 (diferida a propósito, no se ejecuta todavía) —
 migrar las ~88 lecturas directas de `profiles` restantes y retirar las columnas legacy.
 

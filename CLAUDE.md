@@ -235,7 +235,31 @@ Migración `20260705_organization_members_phase1_rls_helpers.sql` (aplicada, ver
   verificación se apoyó en la corrección ya probada a nivel de base de datos + revisión de
   código.
 
-**Próximas fases** (no ejecutadas todavía, ver plan completo): Fase 3 — `getOrgPlan()` (`lib/orgPlan.js`); Fase 4 — extraer un helper compartido
+### Fase 3 — `getOrgPlan()` resuelve vía `organization_members` (2026-07-05)
+
+`lib/orgPlan.js` — el plan efectivo de una organización se deriva de la membresía del
+**admin** (Gerente General/dueño), no de la organización misma (`organizations` no tiene
+columna de plan).
+
+- Cambia `profiles.select('subscription_plan').eq('organization_id', orgId).eq('role',
+  'admin').order('created_at')` por el equivalente sobre `organization_members`
+  (`order('joined_at')` — en el backfill de la Fase 0, `joined_at = created_at` para toda
+  cuenta existente, así que el orden de desempate no cambia para ningún caso real hoy).
+- **Bug real encontrado y corregido durante esta fase**: `organization_members` solo tenía
+  la política de auto-lectura de la Fase 0 (`user_id = auth.uid()`) — a diferencia de
+  `profiles`, que además permite leer perfiles de **compañeros de la misma organización**
+  (`profiles_select`: propio, o `organization_id = private.user_org_id()`, o superadmin). Sin
+  el equivalente, `getOrgPlan()` habría devuelto silenciosamente el `fallback` para cualquier
+  miembro no-admin consultando el plan de su propia org (el admin no es "uno mismo"). Corregido
+  con la migración `20260705_organization_members_phase3_teammate_select.sql`, política nueva
+  `organization_members_select_teammates` que replica exactamente el mismo criterio de
+  `profiles_select`.
+- **Verificación**: comparación plan-por-org "viejo" (`profiles`) vs. "nuevo"
+  (`organization_members`) para las 11 organizaciones reales con miembros — 100% idénticos
+  (incluye el caso `null=null` de la org del superadmin, que no tiene un miembro con
+  `role='admin'`); `get_advisors` (security) limpio tras agregar la política nueva.
+
+**Próximas fases** (no ejecutadas todavía, ver plan completo): Fase 4 — extraer un helper compartido
 `isPilotoIndependiente()` (reemplaza 7 implementaciones inline del mismo predicado); Fase 5 —
 la capacidad nueva real: unirse a una segunda organización sin migrar datos
 (`POST /api/auth/join-org-additional`, **no** reutiliza el código destructivo de

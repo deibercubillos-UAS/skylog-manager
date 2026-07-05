@@ -84,6 +84,11 @@ const REPORT_DEFS = [
         needsYear: true, format: 'xlsx',
     },
     {
+        key: 'indicatorsTracking', code: 'F-SMS-016', name: 'Seguimiento de Indicadores', icon: 'trending_up', group: 'Seguridad SMS',
+        desc: 'Tasa mensual de cada indicador vs. sus líneas de alerta + planes de acción abiertos, en el periodo.',
+        needsPeriod: true,
+    },
+    {
         key: 'gap', code: 'F-SMS-011', name: 'Autoevaluación GAP del SMS', icon: 'fact_check', group: 'Seguridad SMS',
         desc: 'Última autoevaluación registrada (Apéndice 1, 100 preguntas) con hallazgos y seguimiento.',
     },
@@ -368,6 +373,12 @@ export default function ReportsPage() {
             if (def.key === 'manualsAck') {
                 const res = await fetch('/api/reports/manuals-ack');
                 generators.generateManualsAckReport(await res.json(), common);
+            }
+            if (def.key === 'indicatorsTracking') {
+                const res = await fetch(`/api/reports/indicators-tracking?from=${from}&to=${to}`);
+                const json = await res.json();
+                if (!res.ok) throw new Error(json?.error || 'Error al obtener los datos');
+                generators.generateIndicatorsTrackingReport(json, common);
             }
             if (def.key === 'spi') {
                 const res = await fetch(`/api/reports/spi?year=${selectedYear}`);

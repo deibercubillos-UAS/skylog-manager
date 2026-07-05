@@ -1367,6 +1367,86 @@ const DENOMINATOR_LABELS = {
     horas_hombre: 'Horas-hombre', operaciones: 'Número de operaciones',
 };
 
+// --- GENERADOR: SEGUIMIENTO DE INDICADORES SPI (estado actual por periodo) ---
+
+const SPI_ZONE_LABELS = {
+    normal: 'Normal', alerta1: 'Alerta 1', alerta2: 'Alerta 2', alerta3: 'Alerta 3',
+    sin_linea_base: 'Sin línea base (año anterior incompleto)', sin_dato: 'Sin dato registrado',
+};
+
+export const generateIndicatorsTrackingReport = (data, config) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const { orgName, logo, version, reportDate, formCode, rangeLabel, downloadedAt } = config;
+    const { tracking, openActions } = data || {};
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.4);
+    doc.rect(10, 10, 277, 25);
+    doc.line(65, 10, 65, 35);
+    doc.line(225, 10, 225, 35);
+    doc.line(65, 22.5, 225, 22.5);
+
+    addLogo(doc, logo, 15, 12, 45, 20);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(orgName ? orgName.toUpperCase() : "BITAFLY UAS", 145, 18, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text("SEGUIMIENTO DE INDICADORES SPI", 145, 27, { align: 'center' });
+    doc.setFontSize(8);
+    doc.text("Estado actual por periodo — complementa el envío anual (F-SMS-010)", 145, 33, { align: 'center' });
+
+    doc.setFontSize(7);
+    doc.line(225, 18, 287, 18);
+    doc.line(225, 26, 287, 26);
+    doc.text(`VERSIÓN: ${version || '1.0'}`, 227, 15);
+    doc.text(`FECHA: ${reportDate || '---'}`, 227, 23);
+    doc.text(`FORMATO: ${formCode || 'N/A'}`, 227, 31);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("TASA MENSUAL VS. LÍNEAS DE ALERTA", 12, 42);
+
+    autoTable(doc, {
+        startY: 45,
+        head: [['INDICADOR', 'PERIODO', 'TASA (x1000)', 'ESTADO']],
+        body: (tracking || []).map(t => [
+            t.indicator, t.period, t.rate !== null ? t.rate.toFixed(2) : '—', SPI_ZONE_LABELS[t.zone] || t.zone,
+        ]),
+        styles: { fontSize: 7.5, cellPadding: 1.8, lineColor: [0, 0, 0], lineWidth: 0.1 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', lineWidth: 0.2 },
+        margin: { left: 10, right: 10 }
+    });
+
+    const actionsStartY = safeAutoTableY(doc, 60) + 12;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("PLANES DE ACCIÓN ABIERTOS", 12, actionsStartY - 3);
+
+    autoTable(doc, {
+        startY: actionsStartY,
+        head: [['INDICADOR', 'PLAN DE ACCIÓN', 'TIPO DE DEFENSA', 'CAUSA RAÍZ', 'ESTADO']],
+        body: (openActions || []).map(a => [
+            a.indicator, a.action_plan, DEFENSE_TYPE_LABELS[a.defense_type] || a.defense_type || '—',
+            a.root_cause || '—', ACTION_STATUS_LABELS[a.status] || a.status,
+        ]),
+        styles: { fontSize: 7, cellPadding: 1.5, lineColor: [0, 0, 0], lineWidth: 0.1, overflow: 'linebreak' },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', lineWidth: 0.2 },
+        columnStyles: { 1: { cellWidth: 70 }, 3: { cellWidth: 60 } },
+        margin: { left: 10, right: 10 }
+    });
+
+    const noteY = safeAutoTableY(doc, actionsStartY + 20) + 10;
+    addFooterNote(doc, noteY, { rangeLabel, downloadedAt });
+    const finalY = noteY + 12;
+    doc.line(30, finalY, 110, finalY);
+    doc.text("FIRMA GERENTE SMS", 70, finalY + 5, { align: 'center' });
+    doc.line(187, finalY, 267, finalY);
+    doc.text("FIRMA GERENTE GENERAL", 227, finalY + 5, { align: 'center' });
+
+    doc.save(`${formCode || 'F-SMS'}_SEGUIMIENTO_INDICADORES_${orgName}.pdf`);
+};
+
 export const generateSpiReport = async (data, config) => {
     const { indicators } = data || {};
     const { year, orgName, formCode, version, reportDate, downloadedAt } = config || {};

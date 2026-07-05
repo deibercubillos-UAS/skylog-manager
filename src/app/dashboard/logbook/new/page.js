@@ -51,6 +51,7 @@ export default function NewOperationPage() {
     const [riskForm, setRiskForm] = useState({
         probability_code: '', severity_code: '', barriers: '',
         residual_probability_code: '', residual_severity_code: '',
+        voluntaryMitigation: false, // el piloto decide aplicar barreras aunque el riesgo sea Tolerable
     });
 
     useEffect(() => {
@@ -188,15 +189,20 @@ export default function NewOperationPage() {
 
     // Evaluación inicial y (si aplica) residual tras aplicar barreras — solo
     // "inaceptable" exige mitigar y volver a evaluar (doctrina SMS/OACI:
-    // "tolerable" se acepta con monitoreo, no bloquea el despacho).
+    // "tolerable" se acepta con monitoreo, no bloquea el despacho). Si la zona
+    // inicial es "tolerable", el piloto puede DECIDIR aplicar barreras de todas
+    // formas (voluntario, no obligatorio) — a diferencia de "inaceptable" no
+    // exige una evaluación residual para continuar, solo describir qué se aplicó.
     const initialRiskZone = resolveZone(riskConfig.tolerability, riskForm.probability_code, riskForm.severity_code);
     const needsMitigation = initialRiskZone === 'inaceptable';
+    const canVoluntaryMitigate = initialRiskZone === 'tolerable';
     const residualRiskZone = needsMitigation
         ? resolveZone(riskConfig.tolerability, riskForm.residual_probability_code, riskForm.residual_severity_code)
         : null;
     const riskStepComplete = !!(
         riskForm.probability_code && riskForm.severity_code && initialRiskZone &&
-        (!needsMitigation || (riskForm.barriers.trim() && residualRiskZone && residualRiskZone !== 'inaceptable'))
+        (!needsMitigation || (riskForm.barriers.trim() && residualRiskZone && residualRiskZone !== 'inaceptable')) &&
+        (!canVoluntaryMitigate || !riskForm.voluntaryMitigation || riskForm.barriers.trim())
     );
 
     // Pasos de seguridad activos, en orden. Health se omite si está desactivado o ya se hizo hoy.
@@ -306,6 +312,7 @@ export default function NewOperationPage() {
             }
             // Evaluación de Riesgos — solo si el paso estuvo activo (org con matriz configurada)
             if (hasRiskMatrix) {
+                const voluntaryMitigationApplied = canVoluntaryMitigate && riskForm.voluntaryMitigation;
                 tasks.push(supabase.from('results_risk_assessment').insert([{
                     flight_id: flight.id,
                     organization_id: orgId,
@@ -313,7 +320,8 @@ export default function NewOperationPage() {
                     initial_severity_code: riskForm.severity_code,
                     initial_zone: initialRiskZone,
                     mitigation_required: needsMitigation,
-                    barriers: needsMitigation ? riskForm.barriers.trim() : null,
+                    mitigation_voluntary: voluntaryMitigationApplied,
+                    barriers: (needsMitigation || voluntaryMitigationApplied) ? riskForm.barriers.trim() : null,
                     residual_probability_code: needsMitigation ? riskForm.residual_probability_code : null,
                     residual_severity_code: needsMitigation ? riskForm.residual_severity_code : null,
                     residual_zone: needsMitigation ? residualRiskZone : null,
@@ -575,6 +583,7 @@ export default function NewOperationPage() {
                                     setRiskForm={setRiskForm}
                                     initialZone={initialRiskZone}
                                     needsMitigation={needsMitigation}
+                                    canVoluntaryMitigate={canVoluntaryMitigate}
                                     residualZone={residualRiskZone}
                                 />
                             ) : (
@@ -741,7 +750,7 @@ function AuthDetails({ auth, open, onToggle }) {
 // que usa el tab "Evaluación de Riesgos" de Seguridad SMS). Si la zona inicial
 // es "inaceptable", exige barreras + una evaluación residual que ya no sea
 // "inaceptable" antes de dejar avanzar.
-function RiskAssessmentStep({ riskConfig, riskForm, setRiskForm, initialZone, needsMitigation, residualZone }) {
+function RiskAssessmentStep({ riskConfig, riskForm, setRiskForm, initialZone, needsMitigation, canVoluntaryMitigate, residualZone }) {
     const selectCls = "w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500";
     const labelCls = "text-xs font-black uppercase text-slate-600 ml-1";
 
@@ -780,6 +789,31 @@ function RiskAssessmentStep({ riskConfig, riskForm, setRiskForm, initialZone, ne
             </div>
 
             {initialZone && <ZoneResult zone={initialZone} probCode={riskForm.probability_code} sevCode={riskForm.severity_code} />}
+
+            {canVoluntaryMitigate && (
+                <div className="space-y-4 border-t border-slate-100 pt-6">
+                    <div className="flex items-center justify-between gap-4 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+                        <p className="text-xs font-bold text-amber-700 leading-relaxed">
+                            El riesgo es &quot;Tolerable&quot; — no es obligatorio, pero puedes registrar barreras/mitigaciones
+                            adicionales si lo consideras necesario.
+                        </p>
+                        <div className="flex gap-2 shrink-0">
+                            <button type="button" onClick={() => setRiskForm({ ...riskForm, voluntaryMitigation: true })}
+                                className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${riskForm.voluntaryMitigation ? 'bg-orange-500 text-white shadow' : 'bg-white text-slate-400 border border-slate-200'}`}>Sí</button>
+                            <button type="button" onClick={() => setRiskForm({ ...riskForm, voluntaryMitigation: false, barriers: '' })}
+                                className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${!riskForm.voluntaryMitigation ? 'bg-slate-700 text-white shadow' : 'bg-white text-slate-400 border border-slate-200'}`}>No</button>
+                        </div>
+                    </div>
+
+                    {riskForm.voluntaryMitigation && (
+                        <div className="space-y-1">
+                            <label className={labelCls}>Barreras / mitigaciones aplicadas <span className="text-orange-600">*</span></label>
+                            <textarea rows={3} className={selectCls + ' resize-none'} placeholder="Ej. Se agrega observador visual adicional, se reduce altitud de operación..."
+                                value={riskForm.barriers} onChange={e => setRiskForm({ ...riskForm, barriers: e.target.value })} />
+                        </div>
+                    )}
+                </div>
+            )}
 
             {needsMitigation && (
                 <div className="space-y-6 border-t border-slate-100 pt-6">

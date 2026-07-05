@@ -1067,6 +1067,31 @@ duplicar esa lógica.
   Gravedad, resultado de zona coloreado (`ZONE_META`), y la sección de barreras + evaluación
   residual que solo aparece si la inicial fue "Inaceptable".
 
+### Barreras voluntarias cuando el riesgo es "Tolerable" (2026-07-19)
+
+A pedido del usuario: además del flujo obligatorio de barreras cuando la zona inicial es
+"Inaceptable" (ver arriba), ahora el piloto puede **decidir voluntariamente** registrar
+barreras/mitigaciones cuando la zona inicial resulta "Tolerable" — decisión suya, no
+exigida por el sistema (coincide con la doctrina SMS/OACI: "Tolerable" se acepta con
+monitoreo/ALARP; documentar una mitigación adicional es buena práctica, no un requisito).
+
+- **`riskForm.voluntaryMitigation`** (nuevo campo de estado, `logbook/new/page.js`):
+  toggle Sí/No que solo se muestra cuando `canVoluntaryMitigate` (`initialZone ===
+  'tolerable'`) es verdadero. Al elegir "Sí" aparece la misma textarea de barreras que ya
+  usa el flujo obligatorio (reutilizada, no duplicada); al elegir "No" se limpia el texto.
+- **Sin re-evaluación residual**: a diferencia del flujo obligatorio (que exige un segundo
+  par Probabilidad/Gravedad residual), aquí no se pide — es deliberadamente más simple,
+  porque la zona ya es aceptable para operar sin mitigación; el residual solo tiene sentido
+  cuando la inicial bloquea el despacho.
+- **`results_risk_assessment.mitigation_voluntary`** (columna nueva, migración
+  `20260719_risk_assessment_voluntary_mitigation.sql`, aplicada): `true` cuando el piloto
+  optó por registrar barreras en un riesgo Tolerable. `barriers` se guarda si
+  `mitigation_required` (obligatorio) **o** `mitigation_voluntary` (opcional) — nunca
+  ambos a la vez, porque `canVoluntaryMitigate` y `needsMitigation` son mutuamente
+  excluyentes (la zona no puede ser "Tolerable" e "Inaceptable" al mismo tiempo).
+- `riskStepComplete` exige el texto de barreras si `voluntaryMitigation` está en `true`
+  (no se puede continuar con el toggle en "Sí" y la textarea vacía).
+
 ---
 
 ## Reporte Operacional Mensual UAS (AeroCivil, 2026-07-04)

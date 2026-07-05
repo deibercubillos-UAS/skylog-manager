@@ -1348,6 +1348,39 @@ segundo sistema de rango de fechas distinto al ya establecido en la página.
   (logo/versión/fecha/nota de trazabilidad/firmas) que `generateTrainingReport()` —
   columnas Fecha Programada/Tema/Recurrencia/Observaciones.
 
+### Tab "Capacitación SMS" agregado a Capacitación (2026-07-19)
+
+`/dashboard/training` (`TrainingClient.js`) tenía solo 2 pestañas (Operaciones/
+Mantenimiento, con examen calificado). Se agrega una tercera, **"Capacitación SMS"**,
+que reutiliza tal cual el cronograma + asistencia ya construido en el tab homónimo de
+Seguridad SMS (Fase 7 del plan de mejora SMS) — mismos componentes
+(`AddSmsSessionPanel`/`SmsAttendancePanel`), mismos endpoints
+(`/api/safety/training/sessions`/`roster`/`attendance`), sin duplicar lógica ni tablas.
+Es un segundo punto de entrada al mismo dato, mismo patrón ya usado para VOR/MOR
+(editable desde Protocolos y desde `/dashboard/vor-mor`) y para SORA/Manuales
+(accesibles desde más de un lugar según el rol).
+
+- **Gateado a `canManageSMS`** (superadmin/admin/gerente_sms), **no** a `canManageTraining`
+  (que sí incluye jefe_pilotos): el tab y el botón "Nueva sesión" solo aparecen para esos
+  3 roles. Motivo real, no arbitrario — la RLS de `sms_training_sessions`/
+  `sms_training_attendance` (Fase 7) ya restringe **todas** las operaciones, incluido
+  `SELECT`, a esos mismos 3 roles; si el tab fuera visible para jefe_pilotos/piloto, la
+  consulta no fallaría pero devolvería silenciosamente una lista vacía (RLS filtra filas,
+  no lanza error) — una tabla "vacía" engañosa en vez de un módulo simplemente oculto. Se
+  prefirió ocultar el tab por completo a exponer un estado vacío falso.
+- `dashboard/training/page.js` (server) agrega `sms_training_sessions` (con
+  `attendance` anidada) al mismo `Promise.all` — mismo patrón SSR-first que el resto de
+  esta página; para jefe_pilotos/piloto la consulta simplemente llega vacía por RLS, sin
+  necesidad de una rama de código distinta.
+- KPIs propios (sesiones en cronograma, asistencias del año, asistencias totales,
+  personal con asistencia) y tabla (tema/recurrencia/próxima ocurrencia/asistencias) —
+  mismo cálculo que ya usa el tab de Seguridad SMS (`nextOccurrence()` de
+  `lib/trainingCompliance.js`). Clic en una fila abre `SmsAttendancePanel`; el ícono de
+  editar abre `AddSmsSessionPanel`.
+- Al ser una fuente de datos 100% compartida, cualquier cambio hecho desde
+  `/dashboard/training` se refleja igual en Seguridad SMS y viceversa — no hay estado
+  duplicado, solo dos rutas de acceso a las mismas tablas.
+
 ---
 
 ## Notificaciones (campana)

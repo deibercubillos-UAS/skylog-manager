@@ -1,13 +1,17 @@
 'use client';
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
-import { hasPermission } from '@/lib/roles';
-import { computeCompliance, RECURRENCE_LABELS, currentCycle } from '@/lib/trainingCompliance';
+import { hasPermission, PERMISSIONS } from '@/lib/roles';
+import { computeCompliance, RECURRENCE_LABELS, currentCycle, nextOccurrence } from '@/lib/trainingCompliance';
 import PageHero from '@/components/PageHero';
 import KPIStrip from '@/components/KPIStrip';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+
+const AddSmsSessionPanel = dynamic(() => import('@/components/safety/AddSmsSessionPanel'), { ssr: false });
+const SmsAttendancePanel = dynamic(() => import('@/components/safety/SmsAttendancePanel'), { ssr: false });
 
 const TYPE_LABELS = { operaciones: 'Operaciones', mantenimiento: 'Mantenimiento' };
 const RECURRENCES = ['semanal', 'quincenal', 'mensual', 'personalizado'];
@@ -72,6 +76,33 @@ export default function TrainingClient({ initialData }) {
     const canManage = hasPermission(initialData.role, 'canManageTraining');
     const exam = exams[activeType];
     const activeAttempts = useMemo(() => attempts.filter(a => a.exam_id === exam?.id), [attempts, exam]);
+
+    // ── Capacitación SMS (todo el personal, sin examen) ─────────────────────
+    // Mismo cronograma/roster que el tab "Capacitación SMS" de Seguridad SMS —
+    // reutiliza los mismos componentes y endpoints, sin duplicar lógica. Gateado a
+    // canManageSMS (superadmin/admin/gerente_sms): jefe_pilotos/piloto no administran
+    // ni ven este tab aquí, igual que en el hub de Seguridad SMS (Fase 0 del plan SMS).
+    const canManageSMSRole = PERMISSIONS.canManageSMS.includes(initialData.role);
+    const [smsSessions, setSmsSessions] = useState(initialData.smsSessions || []);
+    const [sessionPanel, setSessionPanel] = useState(null);     // null | 'new' | session object
+    const [attendancePanel, setAttendancePanel] = useState(null); // null | session object
+
+    const loadSmsSessions = () => {
+        fetch('/api/safety/training/sessions').then(r => r.json())
+            .then(d => setSmsSessions(Array.isArray(d) ? d : []))
+            .catch(() => {});
+    };
+
+    const thisYearISO = new Date().getFullYear().toString();
+    const smsKpis = useMemo(() => {
+        const totalAttendance = smsSessions.reduce((s, sess) => s + (sess.attendance || []).length, 0);
+        const attendanceThisYear = smsSessions.reduce(
+            (s, sess) => s + (sess.attendance || []).filter(a => (a.attended_date || '').startsWith(thisYearISO)).length, 0
+        );
+        const uniqueAttendees = new Set();
+        smsSessions.forEach(sess => (sess.attendance || []).forEach(a => uniqueAttendees.add(a.profile_id)));
+        return { total: smsSessions.length, attendanceThisYear, totalAttendance, people: uniqueAttendees.size };
+    }, [smsSessions, thisYearISO]);
 
     // ── Cronograma ───────────────────────────────────────────────────────────
     const handleAddSession = async (e) => {
@@ -246,6 +277,13 @@ export default function TrainingClient({ initialData }) {
                 eyebrow="Cumplimiento"
                 title="Capacitación"
                 description="Cronograma de sesiones y examen interno recurrente de Operaciones y Mantenimiento."
+                right={activeType === 'sms' && canManageSMSRole && (
+                    <button onClick={() => setSessionPanel('new')}
+                        className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-600/20 transition-all active:scale-95">
+                        <span className="material-symbols-outlined text-base">add_circle</span>
+                        Nueva sesión
+                    </button>
+                )}
             />
 
             <div className="flex gap-2">
@@ -257,8 +295,75 @@ export default function TrainingClient({ initialData }) {
                         {TYPE_LABELS[t]}
                     </button>
                 ))}
+                {canManageSMSRole && (
+                    <button onClick={() => setActiveType('sms')}
+                        className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wide transition-all ${
+                            activeType === 'sms' ? 'bg-[#1A202C] text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-orange-300'
+                        }`}>
+                        Capacitación SMS
+                    </button>
+                )}
             </div>
 
+            {activeType === 'sms' ? (
+                <div className="space-y-6 animate-in fade-in duration-200">
+                    <section aria-label="Indicadores de capacitación SMS" className="bg-white rounded-[1.5rem] border border-slate-100 px-2 py-3 md:px-4">
+                        <KPIStrip variant="strip" items={[
+                            { key: 'total', label: 'Sesiones en cronograma', value: smsKpis.total, icon: 'school', iconColor: '#ec5b13' },
+                            { key: 'attYear', label: `Asistencias ${thisYearISO}`, value: smsKpis.attendanceThisYear, icon: 'event_available', iconColor: '#16a34a' },
+                            { key: 'attTotal', label: 'Asistencias totales', value: smsKpis.totalAttendance, icon: 'groups', iconColor: '#4f46e5' },
+                            { key: 'people', label: 'Personal con asistencia', value: smsKpis.people, icon: 'badge', iconColor: '#94a3b8' },
+                        ]} />
+                    </section>
+
+                    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                        <div className="px-5 md:px-7 py-4 border-b border-slate-100">
+                            <p className="text-sm font-black text-slate-900">Cronograma de Capacitación SMS</p>
+                            <p className="text-xs text-slate-500 mt-0.5">Inducción, SORA, Factores Humanos, Cultura Justa, TEM, etc. — dirigido a todo el personal, sin examen.</p>
+                        </div>
+
+                        {smsSessions.length === 0 ? (
+                            <p className="text-xs font-bold text-slate-400 text-center py-10">Sin sesiones en el cronograma todavía.</p>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr className="text-[9px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">
+                                            <th className="px-5 py-3">Tema</th>
+                                            <th className="px-3 py-3">Recurrencia</th>
+                                            <th className="px-3 py-3">Próxima ocurrencia</th>
+                                            <th className="px-3 py-3">Asistencias</th>
+                                            <th className="px-3 py-3 w-14"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50">
+                                        {smsSessions.map(s => {
+                                            const { date: nextDate } = nextOccurrence(s);
+                                            return (
+                                                <tr key={s.id} className="text-xs hover:bg-slate-50/60 transition-colors cursor-pointer" onClick={() => setAttendancePanel(s)}>
+                                                    <td className="px-5 py-3 font-bold text-slate-800">{s.topic}</td>
+                                                    <td className="px-3 py-3 text-slate-600 font-semibold">
+                                                        {RECURRENCE_LABELS[s.recurrence]}{s.recurrence === 'personalizado' ? ` (cada ${s.recurrence_days}d)` : ''}
+                                                    </td>
+                                                    <td className="px-3 py-3 text-slate-600 font-semibold">{fmtDate(nextDate.toISOString().split('T')[0])}</td>
+                                                    <td className="px-3 py-3 text-slate-600 font-semibold">{(s.attendance || []).length}</td>
+                                                    <td className="px-3 py-3">
+                                                        <button onClick={(e) => { e.stopPropagation(); setSessionPanel(s); }} aria-label="Editar sesión"
+                                                            className="size-8 flex items-center justify-center rounded-lg bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors active:scale-95">
+                                                            <span className="material-symbols-outlined text-base">edit</span>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            ) : (
+            <>
             <section aria-label="Indicadores de capacitación" className="bg-white rounded-[1.5rem] border border-slate-100 px-2 py-3 md:px-4">
                 <KPIStrip variant="strip" items={[
                     { key: 'sessions', label: 'Sesiones en cronograma', value: kpis.sessions, icon: 'event_repeat', iconColor: '#ec5b13' },
@@ -518,6 +623,24 @@ export default function TrainingClient({ initialData }) {
                     )}
                 </div>
             </div>
+            </>
+            )}
+
+            {sessionPanel && (
+                <AddSmsSessionPanel
+                    session={sessionPanel === 'new' ? null : sessionPanel}
+                    onClose={() => setSessionPanel(null)}
+                    onSuccess={() => { setSessionPanel(null); loadSmsSessions(); }}
+                />
+            )}
+
+            {attendancePanel && (
+                <SmsAttendancePanel
+                    session={smsSessions.find(s => s.id === attendancePanel.id) || attendancePanel}
+                    onClose={() => setAttendancePanel(null)}
+                    onSuccess={loadSmsSessions}
+                />
+            )}
         </div>
     );
 }

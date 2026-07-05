@@ -16,6 +16,7 @@ export default async function TrainingPage() {
         { data: attempts },
         { data: pilots },
         { data: myPilot },
+        { data: smsSessions },
     ] = await Promise.all([
         supabase.from('training_sessions').select('*').eq('organization_id', orgId).order('topic'),
         supabase.from('training_exams').select('*').eq('organization_id', orgId),
@@ -25,6 +26,11 @@ export default async function TrainingPage() {
         supabase.from('pilots').select('id').eq('organization_id', orgId)
             .or(`email.eq.${user?.email},owner_id.eq.${user?.id},profile_id.eq.${user?.id}`)
             .limit(1).maybeSingle(),
+        // Cronograma de Capacitación SMS (todo el personal) — RLS restringe las filas a
+        // superadmin/admin/gerente_sms; para jefe_pilotos/piloto simplemente viene vacío.
+        supabase.from('sms_training_sessions')
+            .select('*, attendance:sms_training_attendance(*, profile:profile_id(full_name, email, role))')
+            .eq('organization_id', orgId).order('topic'),
     ]);
 
     const byType = (rows) => {
@@ -48,6 +54,7 @@ export default async function TrainingPage() {
         questionsByExam,
         attempts: attempts || [],
         pilots: pilots || [],
+        smsSessions: smsSessions || [],
     };
 
     return <TrainingClient initialData={initialData} />;

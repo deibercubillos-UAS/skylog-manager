@@ -14,72 +14,76 @@ const loadReportGenerators = () => import('@/lib/reportGenerators');
 // personalizable en pantalla (no todos tienen columna en `organizations` —
 // solo master/batteries/pilots existían antes; maintenance/fleet usan un
 // default local, editable en la sesión pero no persistido).
+// Orden de las secciones de la grilla — puramente de presentación, agrupa los
+// mismos 14+ reportes por área para facilitar la búsqueda del formato deseado.
+const GROUP_ORDER = ['Operación', 'Tripulación', 'Documentación', 'Seguridad SMS', 'Proveedores'];
+
 const REPORT_DEFS = [
     {
-        key: 'master', code: 'F-OPS-002', name: 'Libro de Vuelo', icon: 'flight_takeoff',
+        key: 'master', code: 'F-OPS-002', name: 'Libro de Vuelo', icon: 'flight_takeoff', group: 'Operación',
         desc: 'Consolidado de vuelos, horas y misiones ejecutadas — de toda la flota o de una/varias aeronaves.',
         needsPeriod: true, needsAircraftMulti: true,
     },
     {
-        key: 'maintenance', code: 'F-MNT-006', name: 'Reporte de Mantenimiento', icon: 'build',
+        key: 'maintenance', code: 'F-MNT-006', name: 'Reporte de Mantenimiento', icon: 'build', group: 'Operación',
         desc: 'Historial de intervenciones preventivas y correctivas — de toda la flota o de una sola aeronave.',
         needsPeriod: true, needsAircraft: true,
     },
     {
-        key: 'batteries', code: 'F-MNT-003', name: 'Registro de Baterías', icon: 'battery_charging_full',
+        key: 'batteries', code: 'F-MNT-003', name: 'Registro de Baterías', icon: 'battery_charging_full', group: 'Operación',
         desc: 'Inventario de baterías: ciclos, salud y estado — con ciclos acumulados hasta una fecha de corte.',
         needsCutoffDate: true,
     },
     {
-        key: 'fleet', code: 'F-FLT-007', name: 'Reporte de Flota', icon: 'precision_manufacturing',
+        key: 'fleet', code: 'F-FLT-007', name: 'Reporte de Flota', icon: 'precision_manufacturing', group: 'Operación',
         desc: 'Inventario de aeronaves, horas totales y estado operativo — toda la flota o una sola aeronave.',
         needsAircraft: true,
     },
     {
-        key: 'pilots', code: 'F-HUM-005', name: 'Bitácora de Piloto', icon: 'menu_book',
-        desc: 'Horas y misiones ejecutadas por un tripulante en el periodo.',
-        needsPeriod: true, needsPilot: true,
-    },
-    {
-        key: 'dossier', code: null, name: 'Expediente de Tripulante', icon: 'badge',
-        desc: 'Hoja de vida completa con anexos digitales y certificados.',
-        needsPilot: true,
-    },
-    {
-        key: 'aerocivil', code: null, name: 'Reporte Operacional UAS (AeroCivil)', icon: 'assignment_turned_in',
+        key: 'aerocivil', code: null, name: 'Reporte Operacional UAS (AeroCivil)', icon: 'assignment_turned_in', group: 'Operación',
         desc: 'Circular 2026351070026944 — envío mensual a gouas@aerocivil.gov.co, primeros 5 días del mes.',
         needsMonth: true, format: 'xlsx',
     },
     {
-        key: 'training', code: 'F-CAP-008', name: 'Evaluación de Capacitación', icon: 'school',
+        key: 'pilots', code: 'F-HUM-005', name: 'Bitácora de Piloto', icon: 'menu_book', group: 'Tripulación',
+        desc: 'Horas y misiones ejecutadas por un tripulante en el periodo.',
+        needsPeriod: true, needsPilot: true,
+    },
+    {
+        key: 'dossier', code: null, name: 'Expediente de Tripulante', icon: 'badge', group: 'Tripulación',
+        desc: 'Hoja de vida completa con anexos digitales y certificados.',
+        needsPilot: true,
+    },
+    {
+        key: 'training', code: 'F-CAP-008', name: 'Evaluación de Capacitación', icon: 'school', group: 'Tripulación',
         desc: 'Evaluaciones internas de capacitación por tripulante — Operaciones o Mantenimiento, en el periodo.',
         needsPeriod: true, needsTrainingType: true,
     },
     {
-        key: 'trainingSchedule', code: 'F-CAP-009', name: 'Cronograma de Capacitación', icon: 'event_note',
+        key: 'trainingSchedule', code: 'F-CAP-009', name: 'Cronograma de Capacitación', icon: 'event_note', group: 'Tripulación',
         desc: 'Sesiones programadas (tema + recurrencia) — Operaciones o Mantenimiento, con sus fechas dentro del periodo.',
         needsPeriod: true, needsTrainingType: true,
     },
     {
-        key: 'spi', code: 'F-SMS-010', name: 'Indicadores SPI (anual)', icon: 'monitoring',
+        key: 'spi', code: 'F-SMS-010', name: 'Indicadores SPI (anual)', icon: 'monitoring', group: 'Seguridad SMS',
         desc: 'Datos mensuales, líneas de alerta y planes de acción de cada indicador — para el envío anual a Aerocivil.',
         needsYear: true, format: 'xlsx',
     },
     {
-        key: 'gap', code: 'F-SMS-011', name: 'Autoevaluación GAP del SMS', icon: 'fact_check',
+        key: 'gap', code: 'F-SMS-011', name: 'Autoevaluación GAP del SMS', icon: 'fact_check', group: 'Seguridad SMS',
         desc: 'Última autoevaluación registrada (Apéndice 1, 100 preguntas) con hallazgos y seguimiento.',
     },
     {
-        key: 'smsTrainingSchedule', code: 'F-SMS-012', name: 'Cronograma Capacitación SMS', icon: 'school',
+        key: 'smsTrainingSchedule', code: 'F-SMS-012', name: 'Cronograma Capacitación SMS', icon: 'school', group: 'Seguridad SMS',
         desc: 'Sesiones de capacitación SMS (todo el personal) con sus fechas dentro del periodo.',
         needsPeriod: true,
     },
     {
-        key: 'correctiveActions', code: 'F-SMS-013', name: 'Acciones Correctivas del SMS', icon: 'checklist',
+        key: 'correctiveActions', code: 'F-SMS-013', name: 'Acciones Correctivas del SMS', icon: 'checklist', group: 'Seguridad SMS',
         desc: 'Consolidado de casos SMS/VOR/MOR, planes de acción SPI y hallazgos GAP — estado actual.',
     },
     {
-        key: 'suppliers', code: 'F-PRV-002', name: 'Auditoría de Proveedores', icon: 'store',
+        key: 'suppliers', code: 'F-PRV-002', name: 'Auditoría de Proveedores', icon: 'store', group: 'Proveedores',
         desc: 'Auditorías de proveedores en el periodo — de todos los proveedores o de uno específico.',
         needsPeriod: true, needsSupplier: true,
     },
@@ -109,6 +113,7 @@ function periodRange(period, customFrom, customTo) {
 export default function ReportsPage() {
     const [loading, setLoading] = useState(false);
     const [downloadingKey, setDownloadingKey] = useState(null);
+    const [search, setSearch] = useState('');
     const [orgData, setOrgData] = useState(null);
     const [pilots, setPilots] = useState([]);
     const [aircraftList, setAircraftList] = useState([]);
@@ -209,6 +214,17 @@ export default function ReportsPage() {
         init();
         toast.success("Logo actualizado");
     };
+
+    // Agrupa los formatos por área (`group`) en el orden fijo de GROUP_ORDER —
+    // grupos sin ningún reporte todavía (ej. Documentación antes de la Fase 2)
+    // simplemente no se renderizan, en vez de mostrar una sección vacía.
+    const groupedDefs = useMemo(() => {
+        const q = search.trim().toLowerCase();
+        const matches = (d) => !q || `${d.name} ${d.desc} ${d.code || ''}`.toLowerCase().includes(q);
+        return GROUP_ORDER
+            .map(group => ({ group, defs: REPORT_DEFS.filter(d => d.group === group && matches(d)) }))
+            .filter(g => g.defs.length > 0);
+    }, [search]);
 
     const activeDef = useMemo(() => REPORT_DEFS.find(d => d.key === openKey) || null, [openKey]);
     const selectedAircraftLabel = useMemo(() => {
@@ -378,26 +394,49 @@ export default function ReportsPage() {
                 </div>
             ) : (
             <>
-                {/* Grid de formatos */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {REPORT_DEFS.map(def => (
-                        <button key={def.key} type="button" onClick={() => toggleDef(def.key)}
-                            className={`text-left bg-white border rounded-2xl p-5 flex flex-col gap-2.5 transition-all hover:shadow-md hover:border-orange-200 ${
-                                openKey === def.key ? 'border-orange-300 ring-2 ring-orange-100' : 'border-slate-200'
-                            }`}>
-                            <div className="flex items-center justify-between">
-                                <div className="size-9 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
-                                    <span className="material-symbols-outlined text-lg text-orange-600">{def.icon}</span>
-                                </div>
-                                {def.code && <span className="text-[9.5px] font-black text-slate-300 font-mono">{formCodes[def.key]}</span>}
+                {/* Búsqueda rápida por nombre/código/descripción */}
+                <div className="relative max-w-md">
+                    <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+                    <input
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        placeholder="Buscar reporte por nombre o código..."
+                        className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-3.5 py-2.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
+                    />
+                </div>
+
+                {/* Grid de formatos, agrupados por área */}
+                <div className="space-y-7">
+                    {groupedDefs.length === 0 && (
+                        <p className="text-xs font-bold text-slate-400 bg-slate-50 rounded-2xl p-8 text-center">
+                            Ningún reporte coincide con &quot;{search}&quot;.
+                        </p>
+                    )}
+                    {groupedDefs.map(({ group, defs }) => (
+                        <div key={group} className="space-y-3">
+                            <p className="text-[10.5px] font-black uppercase tracking-widest text-slate-400 px-0.5">{group}</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {defs.map(def => (
+                                    <button key={def.key} type="button" onClick={() => toggleDef(def.key)}
+                                        className={`text-left bg-white border rounded-2xl p-5 flex flex-col gap-2.5 transition-all hover:shadow-md hover:border-orange-200 ${
+                                            openKey === def.key ? 'border-orange-300 ring-2 ring-orange-100' : 'border-slate-200'
+                                        }`}>
+                                        <div className="flex items-center justify-between">
+                                            <div className="size-9 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
+                                                <span className="material-symbols-outlined text-lg text-orange-600">{def.icon}</span>
+                                            </div>
+                                            {def.code && <span className="text-[9.5px] font-black text-slate-300 font-mono">{formCodes[def.key]}</span>}
+                                        </div>
+                                        <p className="text-sm font-black text-slate-900 uppercase tracking-tight">{def.name}</p>
+                                        <p className="text-xs text-slate-500 leading-snug">{def.desc}</p>
+                                        <div className="flex items-center gap-1.5 mt-auto pt-2.5 border-t border-slate-100 text-orange-600">
+                                            <span className="material-symbols-outlined text-sm">{openKey === def.key ? 'expand_less' : (def.format === 'xlsx' ? 'table_view' : 'picture_as_pdf')}</span>
+                                            <span className="text-[10.5px] font-black uppercase tracking-wide">{openKey === def.key ? 'Ocultar opciones' : (def.format === 'xlsx' ? 'Generar Excel' : 'Generar PDF')}</span>
+                                        </div>
+                                    </button>
+                                ))}
                             </div>
-                            <p className="text-sm font-black text-slate-900 uppercase tracking-tight">{def.name}</p>
-                            <p className="text-xs text-slate-500 leading-snug">{def.desc}</p>
-                            <div className="flex items-center gap-1.5 mt-auto pt-2.5 border-t border-slate-100 text-orange-600">
-                                <span className="material-symbols-outlined text-sm">{openKey === def.key ? 'expand_less' : (def.format === 'xlsx' ? 'table_view' : 'picture_as_pdf')}</span>
-                                <span className="text-[10.5px] font-black uppercase tracking-wide">{openKey === def.key ? 'Ocultar opciones' : (def.format === 'xlsx' ? 'Generar Excel' : 'Generar PDF')}</span>
-                            </div>
-                        </button>
+                        </div>
                     ))}
                 </div>
 

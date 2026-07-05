@@ -17,6 +17,9 @@ export default function EditAircraftPanel({ aircraft, onClose, onSuccess }) {
     maintenance_interval_hours: aircraft?.maintenance_interval_hours ?? 200,
     maintenance_interval_days:  aircraft?.maintenance_interval_days  ?? 180,
     operational_status:         aircraft?.operational_status         || 'disponible',
+    // Mantenimiento menor (checklist periódico del piloto) — 0 = deshabilitado
+    minor_maintenance_interval_hours: aircraft?.minor_maintenance_interval_hours ?? 0,
+    minor_maintenance_interval_days:  aircraft?.minor_maintenance_interval_days  ?? 0,
   });
 
   // Horas y días desde el último mantenimiento (solo lectura, informativo)
@@ -31,6 +34,16 @@ export default function EditAircraftPanel({ aircraft, onClose, onSuccess }) {
   const intD        = parseInt(form.maintenance_interval_days  || 0, 10);
   const hRemain     = intH > 0 ? Math.max(0, intH - parseFloat(diffH)) : null;
   const dRemain     = (intD > 0 && daysSince !== null) ? Math.max(0, intD - daysSince) : null;
+
+  // Mantenimiento menor — mismo cálculo informativo, con sus propios contadores
+  const lastMinorH     = parseFloat(aircraft?.last_minor_maintenance_hours || 0);
+  const diffMinorH     = Math.max(0, hours - lastMinorH).toFixed(1);
+  const lastMinorDate  = aircraft?.last_minor_maintenance_date ? new Date(aircraft.last_minor_maintenance_date) : null;
+  const daysSinceMinor = lastMinorDate ? Math.floor((Date.now() - lastMinorDate.getTime()) / 86400000) : null;
+  const intMinorH      = parseInt(form.minor_maintenance_interval_hours || 0, 10);
+  const intMinorD      = parseInt(form.minor_maintenance_interval_days  || 0, 10);
+  const hMinorRemain   = intMinorH > 0 ? Math.max(0, intMinorH - parseFloat(diffMinorH)) : null;
+  const dMinorRemain   = (intMinorD > 0 && daysSinceMinor !== null) ? Math.max(0, intMinorD - daysSinceMinor) : null;
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -51,6 +64,8 @@ export default function EditAircraftPanel({ aircraft, onClose, onSuccess }) {
             maintenance_interval_hours: parseInt(form.maintenance_interval_hours || 0, 10),
             maintenance_interval_days:  parseInt(form.maintenance_interval_days  || 0, 10),
             operational_status:         form.operational_status,
+            minor_maintenance_interval_hours: parseInt(form.minor_maintenance_interval_hours || 0, 10),
+            minor_maintenance_interval_days:  parseInt(form.minor_maintenance_interval_days  || 0, 10),
           },
         }),
       });
@@ -191,6 +206,69 @@ export default function EditAircraftPanel({ aircraft, onClose, onSuccess }) {
                   En mantenimiento
                 </button>
               </div>
+            </div>
+            {/* ── Mantenimiento menor (checklist del piloto) ────────────── */}
+            <div className="pt-4 mt-4 border-t border-slate-100">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="material-symbols-outlined text-base text-slate-400">fact_check</span>
+                <label className="text-xs font-black uppercase text-slate-500 tracking-wide">Mantenimiento Menor (piloto)</label>
+              </div>
+              <p className="text-[10px] text-slate-400 font-semibold mb-3">
+                Chequeo periódico ligero que diligencia el piloto — 0 = deshabilitado para esta aeronave.
+              </p>
+
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Cada N horas</label>
+                  <input
+                    type="number" min="0" step="1"
+                    className="w-full p-3 bg-slate-50 rounded-xl border-none font-black text-sm mt-1"
+                    value={form.minor_maintenance_interval_hours}
+                    onChange={e => setForm({...form, minor_maintenance_interval_hours: e.target.value})}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Cada N días</label>
+                  <input
+                    type="number" min="0" step="1"
+                    className="w-full p-3 bg-slate-50 rounded-xl border-none font-black text-sm mt-1"
+                    value={form.minor_maintenance_interval_days}
+                    onChange={e => setForm({...form, minor_maintenance_interval_days: e.target.value})}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              {(hMinorRemain !== null || dMinorRemain !== null) && (
+                <div className="bg-slate-50 rounded-xl p-3 space-y-1.5 text-xs font-bold text-slate-500">
+                  {hMinorRemain !== null && (
+                    <p>
+                      <span className="text-slate-400">Horas desde el último:</span>
+                      {' '}<span className={parseFloat(diffMinorH) >= intMinorH ? 'text-red-600' : 'text-slate-700'}>{diffMinorH}h</span>
+                      {' · '}
+                      <span className={hMinorRemain === 0 ? 'text-red-600' : 'text-emerald-600'}>
+                        {hMinorRemain === 0 ? '¡Umbral alcanzado!' : `Faltan ${hMinorRemain}h`}
+                      </span>
+                    </p>
+                  )}
+                  {dMinorRemain !== null && (
+                    <p>
+                      <span className="text-slate-400">Días desde el último:</span>
+                      {' '}<span className={daysSinceMinor >= intMinorD ? 'text-red-600' : 'text-slate-700'}>{daysSinceMinor}d</span>
+                      {' · '}
+                      <span className={dMinorRemain === 0 ? 'text-red-600' : 'text-emerald-600'}>
+                        {dMinorRemain === 0 ? '¡Umbral alcanzado!' : `Faltan ${dMinorRemain}d`}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              )}
+              {aircraft?.minor_maintenance_due && (
+                <p className="text-[10.5px] font-black text-red-600 uppercase mt-2">
+                  ⚠ Pendiente — bloquea el despacho hasta diligenciarlo en Mantenimiento Menor.
+                </p>
+              )}
             </div>
           </div>
         </form>

@@ -18,7 +18,7 @@ export async function GET() {
                 id,mission_id,scheduled_at,location,mission_type,status,created_at,plan_data,
                 pilot_id,aircraft_id,organization_id,line_of_sight,aerocivil_auth_number,sora_assessment_id,
                 pilots:pilot_id(name, phone, id_number, email),
-                aircraft:aircraft_id(model, serial_number, total_hours),
+                aircraft:aircraft_id(model, serial_number, total_hours, minor_maintenance_due),
                 payload:payload_id(brand, model, category, serial_number),
                 observer:observer_id(name),
                 sora_assessment:sora_assessment_id(operation_name, sail_level)

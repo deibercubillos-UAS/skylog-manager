@@ -290,6 +290,10 @@ const navLinks = [
   // del checklist sigue en su propia página (gate propio, incluye jefe_pilotos) —
   // Protocolos solo tiene una tarjeta/enlace hacia acá (ver FormSettingsClient.js).
   { name: 'Inventario',     icon: 'inventory_2',             href: '/dashboard/inventory-checklist', group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  // Mantenimiento Menor: checklist periódico ligero que diligencia el piloto
+  // (mismo patrón de página propia que Inventario — edición del checklist
+  // gatea con canManageMinorMaintenanceChecklist, incluye jefe_pilotos).
+  { name: 'Mtto. Menor',    icon: 'fact_check',              href: '/dashboard/minor-maintenance', group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Tripulación',    icon: 'group',                   href: '/dashboard/pilots',          group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
   // Nombre alineado con el título real de la página (PageHero "Seguridad SMS" desde el rediseño de hub con tabs).
   { name: 'Seguridad SMS',  icon: 'health_and_safety',       href: '/dashboard/safety',          group: 'Cumplimiento', roles: ['superadmin', 'admin', 'gerente_sms'],                    pilotHidden: true },

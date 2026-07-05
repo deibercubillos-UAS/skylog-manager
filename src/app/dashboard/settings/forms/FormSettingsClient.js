@@ -47,6 +47,7 @@ const TYPE_LABELS = {
   briefing:  'BRIEFING',
   maintenance_return: 'RECIBO MTTO',
   inventory: 'INVENTARIO',
+  minor_maintenance: 'MTTO. MENOR',
 };
 
 const TYPE_TITLE = {
@@ -54,11 +55,12 @@ const TYPE_TITLE = {
   briefing:  'Briefing de misión',
   maintenance_return: 'Recibo de mantenimiento',
   inventory: 'Inventario de Operación',
+  minor_maintenance: 'Mantenimiento Menor',
 };
 
 const TYPE_ICON = {
   health: 'medical_services', preflight: 'checklist', briefing: 'groups', maintenance_return: 'build',
-  inventory: 'inventory_2',
+  inventory: 'inventory_2', minor_maintenance: 'fact_check',
 };
 
 const TYPE_HINTS = {
@@ -67,9 +69,17 @@ const TYPE_HINTS = {
   briefing:  'Exigir el briefing de la misión antes de autorizar el vuelo',
   maintenance_return: 'Lista de verificación al recibir el dron tras un mantenimiento',
   inventory: 'Qué equipos se requieren y qué se verifica en el inventario del día de la operación',
+  minor_maintenance: 'Chequeo periódico ligero que diligencia el piloto, con periodicidad configurable por aeronave',
 };
 
-const LIMITS = { health: 30, briefing: 50, preflight: 70, maintenance_return: 30, inventory: 30 };
+const LIMITS = { health: 30, briefing: 50, preflight: 70, maintenance_return: 30, inventory: 30, minor_maintenance: 20 };
+
+// Tipos que son solo tarjeta de navegación (se editan en su propia página, con
+// permiso propio que incluye jefe_pilotos) en vez de abrir el editor interno de slots.
+const NAV_CARD_HREF = {
+  inventory: '/dashboard/inventory-checklist',
+  minor_maintenance: '/dashboard/minor-maintenance',
+};
 
 const CATEGORY_STYLE = {
   'Pre-vuelo':     { color: '#4f46e5', bg: '#eef2ff' },
@@ -133,7 +143,7 @@ export default function FormSettingsClient({ initialData }) {
                 supabase.from('form_definitions')
                     .select('form_type,aircraft_model,field_number')
                     .eq('organization_id', initialData.organizationId)
-                    .in('form_type', ['health', 'preflight', 'briefing', 'maintenance_return', 'inventory']),
+                    .in('form_type', ['health', 'preflight', 'briefing', 'maintenance_return', 'inventory', 'minor_maintenance']),
                 supabase.from('vor_mor_definitions')
                     .select('type,title,description,custom_fields')
                     .eq('organization_id', initialData.organizationId),
@@ -317,6 +327,9 @@ export default function FormSettingsClient({ initialData }) {
             // página (/dashboard/inventory-checklist), que permite editar a jefe_pilotos
             // además de GG/GSMS (Protocolos como página completa no se lo permite).
             { key: 'inventory', type: 'inventory', model: 'General', title: TYPE_TITLE.inventory },
+            // Mantenimiento Menor — mismo patrón que Inventario: tarjeta de navegación,
+            // no editor interno (permite editar a jefe_pilotos).
+            { key: 'minor_maintenance', type: 'minor_maintenance', model: 'General', title: TYPE_TITLE.minor_maintenance },
         ];
         ['General', ...models].forEach(m => {
             cards.push({ key: `preflight:${m}`, type: 'preflight', model: m, title: `Pre-vuelo · ${m}` });
@@ -362,23 +375,23 @@ export default function FormSettingsClient({ initialData }) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {fixedCards.map(c => {
                         const count = fieldCounts[c.key] || 0;
-                        // Inventario se edita en su propia página (permiso propio, incluye
-                        // jefe_pilotos) — aquí es solo una tarjeta de navegación, no abre el
-                        // editor interno de slots.
-                        if (c.type === 'inventory') {
+                        // Inventario y Mantenimiento Menor se editan en su propia página
+                        // (permiso propio, incluye jefe_pilotos) — aquí son solo tarjetas de
+                        // navegación, no abren el editor interno de slots.
+                        if (NAV_CARD_HREF[c.type]) {
                             return (
-                                <Link key={c.key} href="/dashboard/inventory-checklist"
+                                <Link key={c.key} href={NAV_CARD_HREF[c.type]}
                                     className="text-left bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-2.5 transition-all hover:shadow-md hover:border-orange-200">
                                     <div className="flex items-center justify-between">
                                         <div className="size-9 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
-                                            <span className="material-symbols-outlined text-lg text-orange-600">{TYPE_ICON.inventory}</span>
+                                            <span className="material-symbols-outlined text-lg text-orange-600">{TYPE_ICON[c.type]}</span>
                                         </div>
-                                        <span className="text-[9.5px] font-black text-slate-300 uppercase">{TYPE_LABELS.inventory}</span>
+                                        <span className="text-[9.5px] font-black text-slate-300 uppercase">{TYPE_LABELS[c.type]}</span>
                                     </div>
                                     <p className="text-sm font-black text-slate-900">{c.title}</p>
-                                    <p className="text-xs text-slate-500 leading-snug flex-1">{TYPE_HINTS.inventory}</p>
+                                    <p className="text-xs text-slate-500 leading-snug flex-1">{TYPE_HINTS[c.type]}</p>
                                     <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
-                                        <span className="text-[10.5px] font-bold text-slate-500">{count}/{LIMITS.inventory} campos</span>
+                                        <span className="text-[10.5px] font-bold text-slate-500">{count}/{LIMITS[c.type]} campos</span>
                                         <span className="flex items-center gap-1 text-orange-600">
                                             <span className="material-symbols-outlined text-sm">open_in_new</span>
                                             <span className="text-[10px] font-black uppercase">Gestionar</span>

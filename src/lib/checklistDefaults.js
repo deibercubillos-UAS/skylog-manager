@@ -84,6 +84,19 @@ export const CHECKLIST_DEFAULTS = {
     'Vuelo de prueba (hover) sin alertas',
     'Documentación de la intervención registrada',
   ],
+
+  // ── MANTENIMIENTO MENOR (chequeo periódico ligero, lo realiza el piloto) ──
+  minor_maintenance: [
+    'Limpieza general de la aeronave (chasis, hélices, sensores)',
+    'Verificación de tornillería y ajuste de brazos/hélices',
+    'Inspección de motores y rodamientos (sin ruidos ni juego excesivo)',
+    'Estado de cables y conectores sin daños visibles',
+    'Firmware de aeronave y control actualizado',
+    'Calibración de sensores (IMU/brújula) revisada',
+    'Estado físico de las baterías (sin hinchazón, conectores limpios)',
+    'Prueba de motores en tierra sin alertas',
+    'Novedades u observaciones documentadas',
+  ],
 };
 
 // Helper: convierte un array de etiquetas en filas listas para upsert en form_definitions

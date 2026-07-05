@@ -16,6 +16,10 @@ const ALLOWED_AIRCRAFT_FIELDS = [
   // Mantenimiento configurable
   'maintenance_interval_hours', 'maintenance_interval_days',
   'operational_status',
+  // Mantenimiento menor (checklist periódico del piloto) — intervalos únicamente;
+  // last_minor_maintenance_*/minor_maintenance_due los gestiona solo el servidor
+  // (endpoint de registro + cron), nunca editables directo desde este PATCH genérico.
+  'minor_maintenance_interval_hours', 'minor_maintenance_interval_days',
 ];
 
 // Evalúa si la aeronave debería entrar en mantenimiento según sus contadores.

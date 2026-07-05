@@ -93,7 +93,7 @@ Tablas principales:
 - `profiles` — users, tiene `organization_id`, `role`, `subscription_plan`, `epayco_subscription_id`, `subscription_expires_at` (NO existe `org_id` ni `plan`; `organizations` no tiene columna de plan)
 - `organizations` — tenant. Tiene `enable_health_check`, `enable_preflight`, `enable_briefing`, `enable_inventory_checklist` (toggles protocolos, ver **Inventario de Operación**). Registro AeroCivil: `dan_number` (N° Explotador), `operator_number` (N.º de operador UAS), `registration_expiry` (vigencia del registro), `authorized_operations jsonb` (chips de autorizaciones activas, texto libre) — ver **Organización rediseñada**.
 - `pilots` · `aircraft` · `batteries` · `battery_logs`. `pilots.invitation_status` 'pending'/'accepted'/'rejected'/null · `pilots.profile_id` se vincula al aceptar invitación · `pilots.avatar_url`/`aerocivil_additions` (jsonb)/`notes`
-  - `aircraft` mantenimiento: `maintenance_interval_hours` (default 200), `maintenance_interval_days` (default 180), `operational_status` ('disponible'/'en_mantenimiento', CHECK, NOT NULL), `last_status_change`. Ver sección **Mantenimiento de Aeronaves**. La foto va en `image_url` (bucket público `fleet-images`, ver Convenciones).
+  - `aircraft` mantenimiento: `maintenance_interval_hours` (default 200), `maintenance_interval_days` (default 180), `operational_status` ('disponible'/'en_mantenimiento', CHECK, NOT NULL), `last_status_change`. Ver sección **Mantenimiento de Aeronaves**. La foto va en `image_url` (bucket público `fleet-images`, ver Convenciones). Mantenimiento Menor (piloto, contadores independientes): `minor_maintenance_interval_hours`/`_days` (default 0 = deshabilitado por aeronave), `last_minor_maintenance_date`/`_hours`, `minor_maintenance_due` — ver **Mantenimiento Menor (piloto)**.
 - `flights` — además de los campos de PATCH: `total_time` (double precision, **horas**) es la duración real del vuelo. La bitácora muestra duración desde `total_time` (fallback takeoff/landing); el import DJI lo calcula de `duracion_s/3600`.
 - `invitations` — invitación de tripulante: `email`, `role`, `organization_id`, `status`, `token` (UNIQUE, para enlaces), `pilot_id`, `invited_by`, `name`, `accepted_at`
 - `flights` — `pilot_id` + `mission_id` editables vía PATCH. `replay_path` nullable. `plan_id` FK → flight_plans. Constraint `uq_flights_org_aircraft_date_time` UNIQUE NULLS NOT DISTINCT `(organization_id, aircraft_id, flight_date, takeoff_time)`.
@@ -231,6 +231,56 @@ Configuración de mantenimiento mayor por aeronave, con cambio de estado automá
 - **API** (`PATCH /api/fleet/[id]`): acepta los 3 campos nuevos. Si el cliente NO manda `operational_status`, `calcAutoStatus()` evalúa los umbrales contra `total_hours`/`last_maintenance_*` y puede auto-marcar `en_mantenimiento`. Si manda `disponible` manualmente, lo respeta y sella `last_status_change`.
 - **Guard de despacho** (`logbook/new`): el selector de aeronaves filtra `.neq('operational_status', 'en_mantenimiento')`. `AddMaintenancePanel` SÍ las incluye (es para registrarles mantenimiento).
 - **Cron** (`check_aircraft_maintenance_due()`, `30 13 * * *` = 8:30 AM Colombia): evalúa todas las aeronaves disponibles, marca `en_mantenimiento` las que superan umbral y notifica a GG+JP (`notifications` tipo `maintenance_due`). `SECURITY DEFINER`, EXECUTE revocado a PUBLIC. Migraciones: `20260613_aircraft_maintenance_config.sql` + `20260613_aircraft_maintenance_cron.sql`.
+
+### Mantenimiento Menor (piloto) — 2026-07-21
+
+A pedido del usuario: chequeo periódico **ligero** que realiza el **piloto** (no un
+técnico), con periodicidad que estipula la organización — distinto y con contadores
+100% independientes del mantenimiento mayor de arriba (no se tocan entre sí).
+
+- **Columnas** (`aircraft`): `minor_maintenance_interval_hours`/`_days` (**default 0 =
+  deshabilitado por aeronave**, a diferencia del mayor que nace con 200h/180d — es una
+  funcionalidad nueva para toda la plataforma, así que se decidió opt-in por aeronave en
+  vez de activarla de golpe en flotas existentes), `last_minor_maintenance_date`/`_hours`,
+  `minor_maintenance_due` (boolean, mantenido por el cron + el endpoint de registro —
+  nunca por el cliente). Migración `20260721_aircraft_minor_maintenance.sql`.
+- **Checklist — un solo catálogo general** (decisión confirmada con el usuario, no varía
+  por modelo de aeronave): `form_definitions` con `form_type='minor_maintenance'`,
+  `aircraft_model='General'` — mismo patrón que Salud/Briefing/Recibo Mtto. Plantilla
+  base en `lib/checklistDefaults.js`.
+- **Permisos** (`lib/roles.js`): `canManageMinorMaintenanceChecklist` (GG+GSMS+JP,
+  configura el checklist e intervalos) / `canViewMinorMaintenanceChecklist` (+ `piloto`,
+  ve y diligencia) — mismo split que Inventario.
+- **UI** (`/dashboard/minor-maintenance`, grupo Flota & Equipo, mismo patrón de página
+  propia que Inventario — tarjeta de navegación desde Protocolos, no editor interno):
+  sección "Estado de la flota" (badge Al día/Próximo/Vencido por aeronave + botón
+  "Diligenciar" → `MinorMaintenancePanel.js`, checklist Sí/No + observaciones) y sección
+  "Checklist de verificación" (editable por managers, solo-lectura para el resto, con
+  botón "Plantilla básica"). Los intervalos por aeronave se configuran en Flota →
+  Editar aeronave (nueva sección "Mantenimiento Menor (piloto)" en
+  `EditAircraftPanel.js`, mismo patrón de indicador de progreso que el mayor).
+- **`POST /api/maintenance/minor`**: inserta en `maintenance_logs` con
+  `maintenance_type='MENOR'` (así "queda el registro dentro del mantenimiento", visible
+  en `/dashboard/maintenance` junto al resto) + `minor_checklist jsonb` (objeto compacto,
+  mismo patrón que `return_checklist`) + `technician_name` = nombre de quien lo
+  diligenció. Actualiza `last_minor_maintenance_date`/`_hours` y limpia
+  `minor_maintenance_due` — **nunca** toca `last_maintenance_date`/`_hours` (contadores
+  del mantenimiento mayor, endpoint separado a propósito).
+- **Bloqueo real de despacho** (decisión confirmada con el usuario — sí bloquea, no solo
+  alerta): en `logbook/new/page.js`, el piloto independiente ya no ve aeronaves con
+  `minor_maintenance_due=true` en su selector (filtradas en la consulta inicial, mismo
+  criterio que `en_mantenimiento`). En el flujo con orden de vuelo (aeronave fija desde la
+  misión asignada), una pantalla de bloqueo dedicada reemplaza el wizard si
+  `selectedAuth.aircraft.minor_maintenance_due` — con enlace directo a
+  `/dashboard/minor-maintenance`. Programación (`BasicForm.js`) NO se restringe (mismo
+  criterio que el mantenimiento mayor: bloquea el despacho, no la programación futura).
+- **Alertas** (`check_aircraft_minor_maintenance_due()`, cron diario `35 13 * * *`,
+  mismo patrón que `check_aircraft_maintenance_due()` pero sin tocar
+  `operational_status` — es una alerta más liviana que no implica intervención de un
+  técnico): notifica por campana (nuevo tipo `minor_maintenance_due`, agregado al CHECK
+  de `notifications.type` y a `NOTIFICATION_TYPES` en `lib/notify.js`) a **pilotos** (
+  quienes deben ejecutar el checklist) además de GG+JP, a diferencia del mantenimiento
+  mayor que solo notifica a GG+JP.
 
 ### Flota + Baterías rediseñadas (2026-07-02f) — dos páginas separadas con enlaces cruzados
 

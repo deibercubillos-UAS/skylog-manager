@@ -69,7 +69,7 @@ export default function NewOperationPage() {
                 const [auths, batteries, aircraft, health, org, plans, riskConfigRes] = await Promise.all([
                     fetch('/api/flights/authorize').then(r => r.json()),
                     supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).eq('status', 'Operativo'),
-                    supabase.from('aircraft').select('id, model, serial_number, operational_status').eq('organization_id', prof.organization_id).neq('status', 'Baja').neq('operational_status', 'en_mantenimiento'),
+                    supabase.from('aircraft').select('id, model, serial_number, operational_status').eq('organization_id', prof.organization_id).neq('status', 'Baja').neq('operational_status', 'en_mantenimiento').eq('minor_maintenance_due', false),
                     supabase.from('daily_health_checks').select('*').eq('user_id', user.id).eq('check_date', new Date().toISOString().split('T')[0]),
                     supabase.from('organizations').select('enable_health_check, enable_inventory_checklist, enable_preflight, enable_briefing').eq('id', prof.organization_id).single(),
                     fetch('/api/flight-plans').then(r => { if (!r.ok) { console.warn('[fetch] /api/flight-plans failed:', r.status); return []; } return r.json(); }),
@@ -371,6 +371,31 @@ export default function NewOperationPage() {
                         Presentar examen
                     </Link>
                     <button onClick={() => router.back()} className="block w-full py-2 text-slate-400 font-black uppercase text-xs">Volver</button>
+                </div>
+            </div>
+        );
+    }
+
+    // Bloqueo real de despacho: la aeronave de esta misión tiene el mantenimiento
+    // menor vencido. El piloto independiente ya no ve estas aeronaves en su
+    // selector (filtradas en la carga inicial) — este bloqueo cubre el flujo con
+    // orden de vuelo, donde la aeronave viene fija desde la misión asignada.
+    if (!isPilotoPlan && selectedAuth?.aircraft?.minor_maintenance_due) {
+        return (
+            <div className="h-screen flex items-center justify-center bg-[#f8f6f6] p-6">
+                <div className="max-w-md w-full bg-white rounded-[2rem] shadow-xl border border-red-200 p-8 text-center space-y-4">
+                    <span className="material-symbols-outlined text-5xl text-red-500">block</span>
+                    <h2 className="text-lg font-black uppercase text-red-600">Despacho bloqueado</h2>
+                    <p className="text-sm font-semibold text-slate-500">
+                        La aeronave {selectedAuth.aircraft?.model} tiene pendiente su chequeo de
+                        Mantenimiento Menor — no puede volar hasta diligenciarlo.
+                    </p>
+                    <Link href="/dashboard/minor-maintenance"
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-wide shadow-lg shadow-orange-600/25 transition-all active:scale-95">
+                        <span className="material-symbols-outlined text-base">fact_check</span>
+                        Ir a Mantenimiento Menor
+                    </Link>
+                    <button onClick={() => setSelectedAuth(null)} className="block w-full py-2 text-slate-400 font-black uppercase text-xs">Elegir otra misión</button>
                 </div>
             </div>
         );

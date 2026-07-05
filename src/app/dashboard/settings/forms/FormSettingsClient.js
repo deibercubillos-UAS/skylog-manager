@@ -10,6 +10,29 @@ import PageHero from '@/components/PageHero';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const AddProtocolPanel = dynamic(() => import('@/components/AddProtocolPanel'), { ssr: false });
+const FormBuilder = dynamic(() => import('../../vor-mor/_FormBuilder'), { ssr: false });
+
+// Abre una ventana con el QR en tamaño póster e invoca la impresión del navegador —
+// misma utilidad que ya usa /dashboard/vor-mor, duplicada a propósito (helper chico,
+// no vale la pena compartir un módulo solo por esto).
+function printQR({ qrUrl, type, title, link }) {
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const w = window.open('', '_blank', 'width=480,height=640');
+  if (!w) return;
+  w.document.write(`<!DOCTYPE html><html><head><title>QR ${esc(type)}</title><style>
+    body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;text-align:center;padding:48px 24px;color:#1A202C;}
+    img{width:280px;height:280px;border-radius:20px;border:1px solid #e2e8f0;}
+    h1{font-size:20px;margin:24px 0 6px;text-transform:uppercase;letter-spacing:0.02em;}
+    p{font-size:12px;color:#64748b;word-break:break-all;margin-top:8px;}
+  </style></head><body>
+    <h1>${esc(title)} · ${esc(type)}</h1>
+    <img src="${qrUrl}" alt="QR" />
+    <p>${esc(link)}</p>
+  </body></html>`);
+  w.document.close();
+  w.focus();
+  w.print();
+}
 
 // Mapeo tipo de protocolo → columna de activación en organizations
 const ENABLE_COLUMN = {
@@ -85,8 +108,12 @@ export default function FormSettingsClient({ initialData }) {
     const [activePanel, setActivePanel] = useState(null); // 'new' | protocolo (edición) | null
     const [confirmDlg, setConfirmDlg] = useState(null);
 
-    // Formatos de reporte SMS (VOR/MOR) — solo lectura aquí, se editan en /dashboard/vor-mor
+    // Formatos de reporte SMS (VOR/MOR) — editables directo aquí (sin redirigir a
+    // /dashboard/vor-mor), mismo patrón de panel deslizable que los demás checklists.
     const [smsFormats, setSmsFormats] = useState([]);
+    const [vorMorForm, setVorMorForm] = useState({ type: 'VOR', title: '', description: '', custom_fields: [] });
+    const [savingVorMor, setSavingVorMor] = useState(false);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bitafly.com';
 
     const loadProtocols = useCallback(async () => {
         setLoadingProtocols(true);
@@ -201,6 +228,63 @@ export default function FormSettingsClient({ initialData }) {
         setType(t);
         setSelectedModel(model || 'General');
         setView('fixed');
+    };
+
+    // Carga el formulario VOR/MOR (ya cargado en smsFormats al montar) en el
+    // draft editable, y abre el panel — sin redirigir a /dashboard/vor-mor.
+    const openVorMorEditor = (t) => {
+        const def = smsFormats.find(f => f.type === t);
+        setVorMorForm({
+            type: t,
+            title: def?.title || '',
+            description: def?.description || '',
+            custom_fields: def?.custom_fields || [],
+        });
+        setView('vormor');
+    };
+
+    const switchVorMorType = (t) => {
+        const def = smsFormats.find(f => f.type === t);
+        setVorMorForm({
+            type: t,
+            title: def?.title || '',
+            description: def?.description || '',
+            custom_fields: def?.custom_fields || [],
+        });
+    };
+
+    const handleSaveVorMor = async (e) => {
+        e?.preventDefault();
+        if (!vorMorForm.title.trim()) { toast.error('El título es obligatorio'); return; }
+        setSavingVorMor(true);
+        try {
+            const res = await fetch('/api/vor-mor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: vorMorForm.type,
+                    title: vorMorForm.title,
+                    description: vorMorForm.description,
+                    // Guardar el objeto delta completo (base_overrides + custom) — si es
+                    // array antiguo se migra al nuevo formato automáticamente
+                    custom_fields: Array.isArray(vorMorForm.custom_fields)
+                        ? { base_overrides: {}, custom: vorMorForm.custom_fields }
+                        : (vorMorForm.custom_fields || { base_overrides: {}, custom: [] }),
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Error al guardar');
+            toast.success(`Formulario ${vorMorForm.type} guardado`);
+            setSmsFormats(prev => {
+                const others = prev.filter(f => f.type !== vorMorForm.type);
+                return [...others, data.definition];
+            });
+            setVorMorForm(p => ({ ...p, custom_fields: data.definition?.custom_fields || [] }));
+        } catch (err) {
+            toast.error(err.message || 'Error al guardar');
+        } finally {
+            setSavingVorMor(false);
+        }
     };
 
     const handleDeleteProtocol = (p) => {
@@ -327,7 +411,7 @@ export default function FormSettingsClient({ initialData }) {
                 </div>
             </section>
 
-            {/* Formatos de reporte SMS — editables desde VOR/MOR */}
+            {/* Formatos de reporte SMS — editables directo aquí (panel "vormor") */}
             <section className="space-y-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Formatos de reporte SMS — editables</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -340,8 +424,8 @@ export default function FormSettingsClient({ initialData }) {
                         // { base_overrides, custom } (formato actual) — parseFormConfig maneja ambos
                         const fieldCount = parseFormConfig(def?.custom_fields).custom.length;
                         return (
-                            <Link key={t} href={`/dashboard/vor-mor?tab=config&type=${t}`}
-                                className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-2.5 transition-all hover:shadow-md hover:border-orange-200">
+                            <button key={t} type="button" onClick={() => openVorMorEditor(t)}
+                                className="text-left bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-2.5 transition-all hover:shadow-md hover:border-orange-200">
                                 <div className="flex items-center justify-between">
                                     <span className="text-[9.5px] font-black uppercase tracking-wide text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full font-mono">{t}</span>
                                     <span className="material-symbols-outlined text-lg text-slate-400">{t === 'VOR' ? 'description' : 'gavel'}</span>
@@ -355,7 +439,7 @@ export default function FormSettingsClient({ initialData }) {
                                         <span className="text-[10px] font-black uppercase">Editar formato</span>
                                     </span>
                                 </div>
-                            </Link>
+                            </button>
                         );
                     })}
                 </div>
@@ -528,6 +612,117 @@ export default function FormSettingsClient({ initialData }) {
                             className="flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-wide shadow-lg shadow-orange-600/25 active:scale-95 transition-all disabled:opacity-50">
                             <span className="material-symbols-outlined text-base">save</span>
                             {saving ? 'Sincronizando...' : 'Guardar cambios'}
+                        </button>
+                    </div>
+                </aside>
+            )}
+
+            {/* Editor VOR/MOR — directo aquí, sin redirigir a /dashboard/vor-mor */}
+            {view === 'vormor' && (
+                <aside className="fixed z-[300] bg-white flex flex-col text-left
+                    inset-x-0 bottom-0 top-14 rounded-t-3xl
+                    md:inset-y-0 md:left-auto md:right-0 md:top-0 md:rounded-none md:w-[95vw] md:max-w-[900px] lg:max-w-[1080px]
+                    shadow-[0_-4px_30px_rgba(0,0,0,0.14)] md:shadow-2xl
+                    animate-in slide-in-from-bottom md:slide-in-from-right duration-300">
+
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-xs font-bold text-slate-400 truncate">Protocolos</span>
+                            <span className="material-symbols-outlined text-sm text-slate-300 shrink-0">chevron_right</span>
+                            <span className="text-xs font-black text-slate-900 shrink-0">Formato {vorMorForm.type}</span>
+                        </div>
+                        <button type="button" onClick={() => setView('grid')}
+                            className="size-10 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all active:scale-95 shrink-0">
+                            <span className="material-symbols-outlined text-xl">close</span>
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-5">
+                        <div className="flex gap-2">
+                            {['VOR', 'MOR'].map(t => (
+                                <button key={t} type="button" onClick={() => switchVorMorType(t)}
+                                    className={`px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
+                                        vorMorForm.type === t
+                                            ? (t === 'VOR' ? 'bg-orange-600 text-white shadow-md shadow-orange-200' : 'bg-rose-600 text-white shadow-md shadow-rose-200')
+                                            : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300'
+                                    }`}>
+                                    Formato {t}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="bg-[#1A202C] rounded-2xl px-5 py-4 md:px-6 md:py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-500">Cumplimiento · Reportes SMS</p>
+                                <input required value={vorMorForm.title}
+                                    onChange={e => setVorMorForm(p => ({ ...p, title: e.target.value }))}
+                                    placeholder={`Ej: Reporte ${vorMorForm.type === 'VOR' ? 'Voluntario' : 'Obligatorio'} de Ocurrencia`}
+                                    className="w-full bg-transparent text-lg md:text-xl font-black text-white placeholder-white/30 outline-none tracking-tight mt-1" />
+                                <input value={vorMorForm.description}
+                                    onChange={e => setVorMorForm(p => ({ ...p, description: e.target.value }))}
+                                    placeholder="Instrucciones visibles para el reportante..."
+                                    className="w-full bg-transparent text-xs font-semibold text-slate-400 placeholder-white/30 outline-none mt-1" />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-5 items-start">
+                            <FormBuilder configForm={vorMorForm} setConfigForm={setVorMorForm} accent={vorMorForm.type} />
+
+                            {initialData.orgCode && (() => {
+                                const link = `${appUrl}/${vorMorForm.type.toLowerCase()}/${initialData.orgCode}`;
+                                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(link)}`;
+                                const accentText = vorMorForm.type === 'VOR' ? 'text-orange-600' : 'text-rose-600';
+                                return (
+                                    <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
+                                        <span className={`text-xs font-black uppercase tracking-widest ${accentText}`}>Enlace y código QR</span>
+                                        <p className="text-xs text-slate-500 leading-relaxed">
+                                            Cualquier miembro de la tripulación puede escanear este código o abrir el enlace desde su
+                                            celular para diligenciar un reporte {vorMorForm.type} en campo, sin acceso al panel completo.
+                                        </p>
+                                        <div className="flex justify-center py-2">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={qrUrl} alt={`QR ${vorMorForm.type}`} className="size-40 rounded-2xl border border-slate-100" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Enlace público del formato</label>
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-600 truncate">{link}</div>
+                                                <button type="button" onClick={() => { navigator.clipboard.writeText(link); toast.success('Enlace copiado'); }}
+                                                    className="flex items-center gap-1 border border-slate-200 hover:bg-slate-50 text-slate-600 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors shrink-0">
+                                                    <span className="material-symbols-outlined text-sm">content_copy</span>Copiar
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <a href={qrUrl} download={`qr-${vorMorForm.type.toLowerCase()}.png`}
+                                                className="flex items-center justify-center gap-1.5 border border-slate-200 hover:bg-slate-50 text-slate-600 px-3 py-2.5 rounded-xl text-xs font-black transition-colors">
+                                                <span className="material-symbols-outlined text-sm">download</span>Descargar QR
+                                            </a>
+                                            <button type="button"
+                                                onClick={() => printQR({ qrUrl, type: vorMorForm.type, title: vorMorForm.title || vorMorForm.type, link })}
+                                                className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-black transition-colors ${vorMorForm.type === 'VOR' ? 'bg-orange-50 border border-orange-200 text-orange-600 hover:bg-orange-100' : 'bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100'}`}>
+                                                <span className="material-symbols-outlined text-sm">print</span>Imprimir para hangar
+                                            </button>
+                                        </div>
+                                        <a href={link} target="_blank" rel="noreferrer"
+                                            className="flex items-center justify-center gap-1.5 text-xs font-bold text-slate-400 hover:text-slate-700 transition-colors pt-1">
+                                            <span className="material-symbols-outlined text-sm">open_in_new</span>Ver formulario público
+                                        </a>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    </div>
+
+                    <div className="shrink-0 px-6 py-4 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
+                        <button type="button" onClick={() => setView('grid')}
+                            className="px-5 py-3 rounded-xl border border-slate-200 text-slate-600 font-black text-xs uppercase tracking-wide hover:bg-slate-50 transition-all">
+                            Cerrar
+                        </button>
+                        <button type="button" onClick={handleSaveVorMor} disabled={savingVorMor}
+                            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-wide shadow-lg shadow-orange-600/25 active:scale-95 transition-all disabled:opacity-50">
+                            <span className="material-symbols-outlined text-base">save</span>
+                            {savingVorMor ? 'Guardando...' : 'Guardar cambios'}
                         </button>
                     </div>
                 </aside>

@@ -663,14 +663,30 @@ omitieron por tener ya equivalentes reales internos (`aerocivil_notified_at`,
   póster y dispara `window.print()` del navegador — pensado literalmente para colgar en la pared
   del hangar. "Descargar QR" (ya existía) se conservó.
 
-**Bug real corregido — "Editar formato" desde Protocolos no llevaba al editor rediseñado**: la
-tarjeta VOR/MOR en `FormSettingsClient.js` (sección "Formatos de reporte SMS — editables")
-enlazaba a `/dashboard/vor-mor` sin parámetros — la página cae por defecto en la pestaña
-"Reportes VOR" (lista de reportes), no en "Configuración & QR" (el editor rediseñado descrito
-arriba), así que el usuario nunca lo encontraba desde ese punto de entrada. Corregido: el link
-ahora es `/dashboard/vor-mor?tab=config&type=VOR|MOR`, y `dashboard/vor-mor/page.js` lee esos
-query params (`useSearchParams`) para inicializar `tab` y `configForm.type` — abre directo en el
-editor del formato correcto (VOR o MOR según la tarjeta en la que se hizo click).
+**"Editar formato" desde Protocolos — primero se corrigió el enlace, luego se llevó el editor
+directo a Protocolos**: la tarjeta VOR/MOR en `FormSettingsClient.js` enlazaba a
+`/dashboard/vor-mor` sin parámetros — caía en la pestaña "Reportes VOR" por defecto, no en
+"Configuración & QR", así que el usuario nunca encontraba el editor desde ahí. Primer arreglo:
+el link pasó a `/dashboard/vor-mor?tab=config&type=VOR|MOR` y `dashboard/vor-mor/page.js` leía
+esos query params (`useSearchParams`) para abrir directo en el tab correcto. **El usuario pidió
+ir más allá — que la edición sea directa desde Protocolos, sin redirigir a ninguna página**,
+igual que los demás checklists (panel deslizable en el mismo componente). Se reemplazó el link
+por un tercer valor de `view` (`'grid' | 'fixed' | 'vormor'`, junto al ya existente `'fixed'` de
+los checklists operativos):
+- Las tarjetas VOR/MOR ahora son botones (`openVorMorEditor(t)`) que abren el panel `vormor`
+  cargando el draft desde `smsFormats` (ya cargado al montar, sin fetch nuevo).
+- El panel reutiliza **el mismo `_FormBuilder.js`** que ya usaba `/dashboard/vor-mor` (import
+  directo cross-ruta `../../vor-mor/_FormBuilder` — el componente ya era agnóstico de la página,
+  solo necesitaba `configForm`/`setConfigForm`/`accent`), más el mismo panel de enlace + QR
+  (con su propio `printQR()`, duplicado a propósito — helper chico, no vale un módulo compartido
+  solo por esto). `initialData.orgCode` (nuevo, `organizations.slug || unique_code`) se agrega al
+  server component (`page.js`) para poder armar el link público sin queries adicionales.
+- Guarda con el mismo `POST /api/vor-mor` que ya usaba la página dedicada; tras guardar,
+  actualiza `smsFormats` en memoria (sin recargar) para que el badge de "N campos personalizados"
+  del grid quede al día apenas se cierra el panel.
+- `/dashboard/vor-mor` (con su pestaña "Configuración & QR" y el deep link `?tab=config&type=`)
+  **sigue existiendo intacta** para quien llegue por URL directa — no se duplicó lógica de
+  guardado, solo la presentación del mismo formulario en un segundo punto de entrada.
 
 ### Plan de mejora SMS (2026-07-09) — Evaluación de Riesgos, SPI, GAP, Acciones Correctivas, Plazos, Capacitación SMS
 

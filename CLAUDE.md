@@ -214,8 +214,28 @@ Migración `20260705_organization_members_phase1_rls_helpers.sql` (aplicada, ver
   100% idénticos (`role_matches`/`org_matches` = true en todos); `get_advisors` (security)
   limpio, mismos 2 hallazgos preexistentes de siempre.
 
-**Próximas fases** (no ejecutadas todavía, ver plan completo): Fase 2 — `getOrgContext()` (`lib/apiAuth.js`, usado por 113 rutas
-API); Fase 3 — `getOrgPlan()` (`lib/orgPlan.js`); Fase 4 — extraer un helper compartido
+### Fase 2 — `getOrgContext()` resuelve vía `organization_members` (2026-07-05)
+
+`lib/apiAuth.js`, usado por 113 de 173 rutas API — punto de choque único, sin tocar callers.
+
+- `orgId`/`role`/`subscription_plan` ya no se leen de `profiles` directo: se resuelven desde
+  `organization_members` para la organización activa (`profiles.active_organization_id`).
+  `fullName` sigue viniendo de `profiles` (campo de identidad, no cambia con la organización).
+  **Misma forma de retorno exacta que antes** (`{ user, orgId, role, subscription_plan,
+  fullName }`), mismos fallbacks (`subscription_plan ?? 'piloto'`) — los 113 callers no
+  cambian en esta fase.
+- **Sin round-trip adicional**: la consulta a `profiles` (solo `active_organization_id` +
+  `full_name`) y la consulta a `organization_members` (todas las membresías del usuario) corren
+  en paralelo (`Promise.all`), igual costo que la única consulta que había antes.
+- **Verificación**: `next lint` + `npm run build` limpios. La corrección de fondo ya estaba
+  probada en la Fase 1 (la tabla `organization_members` es idéntica a `profiles` para todas las
+  cuentas reales) — esta fase es solo el wrapper JS que lee esos mismos datos ya verificados,
+  sin lógica nueva. **Limitación documentada**: no se hizo una prueba end-to-end contra una
+  sesión real en el navegador en este entorno (sin sesión de usuario disponible); la
+  verificación se apoyó en la corrección ya probada a nivel de base de datos + revisión de
+  código.
+
+**Próximas fases** (no ejecutadas todavía, ver plan completo): Fase 3 — `getOrgPlan()` (`lib/orgPlan.js`); Fase 4 — extraer un helper compartido
 `isPilotoIndependiente()` (reemplaza 7 implementaciones inline del mismo predicado); Fase 5 —
 la capacidad nueva real: unirse a una segunda organización sin migrar datos
 (`POST /api/auth/join-org-additional`, **no** reutiliza el código destructivo de

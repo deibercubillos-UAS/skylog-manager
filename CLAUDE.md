@@ -987,6 +987,43 @@ Jefe de Pilotos, que Protocolos como página completa excluye).
   de tipos consultados) y su descripción es literalmente lo pedido: "Qué equipos se
   requieren y qué se verifica en el inventario del día de la operación".
 
+### Evaluación de Riesgos en el Despacho (2026-07-17)
+
+Nuevo paso de seguridad **"Riesgos"** en el wizard de Despacho (`app/dashboard/logbook/new/page.js`),
+insertado entre Inventario y Pre-vuelo — `stepNames`/`stepIcons`/`safetySteps` ganan la entrada
+`risk`. Reutiliza la misma matriz de riesgo que ya configura el Gerente SMS en el tab
+"Evaluación de Riesgos" de Seguridad SMS (Fase 2 del plan de mejora SMS —
+`lib/safetyRiskDefaults.js#resolveZone/riskIndex`, `GET /api/safety/risk-config`), sin
+duplicar esa lógica.
+
+- **Sin interruptor por organización** (a diferencia de Inventario): el paso se muestra
+  siempre, pero se **omite automáticamente** (como si estuviera desactivado) si la
+  organización aún no configuró su matriz de riesgo (`hasRiskMatrix` — probabilidad,
+  gravedad y tolerabilidad vacías) — nunca bloquea a una org que no ha llegado a esa
+  configuración todavía.
+- **Solo "Inaceptable" exige mitigar** (decisión confirmada con el usuario, coincide con la
+  doctrina SMS/OACI: "Tolerable" se acepta con monitoreo/ALARP, no bloquea el despacho):
+  el piloto elige Probabilidad + Gravedad de la operación; si la zona resultante es
+  "Inaceptable", debe describir las **barreras/mitigaciones** aplicadas (texto libre) y
+  volver a evaluar un **riesgo residual** (nueva Probabilidad + Gravedad) — solo puede
+  continuar cuando el residual ya no es "Inaceptable". Si el residual sigue siendo
+  "Inaceptable", el botón permanece deshabilitado y debe seguir ajustando barreras.
+- **`results_risk_assessment`** (nueva tabla, migración `20260717_results_risk_assessment.sql`,
+  aplicada): snapshot de lo evaluado en el momento del despacho — `initial_probability_code`/
+  `initial_severity_code`/`initial_zone`, `mitigation_required`, `barriers`,
+  `residual_probability_code`/`residual_severity_code`/`residual_zone` (los 4 últimos null si
+  no hizo falta mitigar). No se recalcula después si la matriz de la org cambia — es
+  evidencia histórica, mismo criterio que `results_health`/`results_preflight`. RLS
+  `tenant_isolation` idéntica a `results_inventory`.
+- **Las barreras NO se agregan al catálogo `safety_barriers`** (decisión confirmada con el
+  usuario): quedan como texto libre únicamente en el resultado de ese vuelo — más simple, sin
+  tocar el catálogo formal de Barreras de Seguridad que administra el Gerente SMS.
+- **`RiskAssessmentStep`** (componente nuevo al final de `logbook/new/page.js`, junto a
+  `InfoBox`/`CheckItem`): reemplaza el grid genérico de `CheckItem` para este paso (no es un
+  checklist Sí/No de `form_definitions`, es un formulario propio) — selects de Probabilidad/
+  Gravedad, resultado de zona coloreado (`ZONE_META`), y la sección de barreras + evaluación
+  residual que solo aparece si la inicial fue "Inaceptable".
+
 ---
 
 ## Reporte Operacional Mensual UAS (AeroCivil, 2026-07-04)

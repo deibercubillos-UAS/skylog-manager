@@ -8,6 +8,7 @@ import { toast } from '@/lib/toast';
 import WeatherWidget from '@/components/WeatherWidget';
 import { MISSION_TYPES, LINE_OF_SIGHT_TYPES } from '@/lib/missionTypes';
 import { computeCompliance } from '@/lib/trainingCompliance';
+import { resolveZone, riskIndex, ZONE_META } from '@/lib/safetyRiskDefaults';
 
 export default function NewOperationPage() {
     const router = useRouter();
@@ -40,8 +41,17 @@ export default function NewOperationPage() {
     const [cancelNotes, setCancelNotes] = useState('');
     const [showCancelModal, setShowCancelModal] = useState(false);
 
-    const stepNames = { data: 'OPERATIVA', health: 'SALUD', inventory: 'INVENTARIO', preflight: 'PRE-VUELO', briefing: 'BRIEFING' };
-    const stepIcons = { data: 'assignment', health: 'health_and_safety', inventory: 'inventory_2', preflight: 'checklist', briefing: 'groups' };
+    const stepNames = { data: 'OPERATIVA', health: 'SALUD', inventory: 'INVENTARIO', risk: 'RIESGOS', preflight: 'PRE-VUELO', briefing: 'BRIEFING' };
+    const stepIcons = { data: 'assignment', health: 'health_and_safety', inventory: 'inventory_2', risk: 'grid_view', preflight: 'checklist', briefing: 'groups' };
+
+    // Evaluación de Riesgos (entre Inventario y Pre-vuelo) — matriz de la org
+    // (Fase 2 del plan de mejora SMS). Si la organización aún no configuró su
+    // matriz, el paso se omite solo (ver hasRiskMatrix), nunca bloquea.
+    const [riskConfig, setRiskConfig] = useState({ probability: [], severity: [], tolerability: [] });
+    const [riskForm, setRiskForm] = useState({
+        probability_code: '', severity_code: '', barriers: '',
+        residual_probability_code: '', residual_severity_code: '',
+    });
 
     useEffect(() => {
         async function init() {
@@ -55,18 +65,20 @@ export default function NewOperationPage() {
                 setIsPilotoPlan(pilotPlan);
                 setUserRole(prof?.role || null);
 
-                const [auths, batteries, aircraft, health, org, plans] = await Promise.all([
+                const [auths, batteries, aircraft, health, org, plans, riskConfigRes] = await Promise.all([
                     fetch('/api/flights/authorize').then(r => r.json()),
                     supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).eq('status', 'Operativo'),
                     supabase.from('aircraft').select('id, model, serial_number, operational_status').eq('organization_id', prof.organization_id).neq('status', 'Baja').neq('operational_status', 'en_mantenimiento'),
                     supabase.from('daily_health_checks').select('*').eq('user_id', user.id).eq('check_date', new Date().toISOString().split('T')[0]),
                     supabase.from('organizations').select('enable_health_check, enable_inventory_checklist, enable_preflight, enable_briefing').eq('id', prof.organization_id).single(),
-                    fetch('/api/flight-plans').then(r => { if (!r.ok) { console.warn('[fetch] /api/flight-plans failed:', r.status); return []; } return r.json(); })
+                    fetch('/api/flight-plans').then(r => { if (!r.ok) { console.warn('[fetch] /api/flight-plans failed:', r.status); return []; } return r.json(); }),
+                    fetch('/api/safety/risk-config').then(r => r.json()).catch(() => ({ probability: [], severity: [], tolerability: [] })),
                 ]);
 
                 const aircraftList = aircraft.data || [];
                 setFlightPlans(Array.isArray(plans) ? plans : []);
                 setResources({ auths: auths || [], batteries: batteries.data || [], aircraft: aircraftList });
+                setRiskConfig(riskConfigRes?.probability ? riskConfigRes : { probability: [], severity: [], tolerability: [] });
                 setHealthDone(health.data?.length > 0);
                 setHealthEnabled(org.data?.enable_health_check ?? true);
                 setInventoryEnabled(org.data?.enable_inventory_checklist ?? false);
@@ -114,7 +126,7 @@ export default function NewOperationPage() {
 
     useEffect(() => {
         async function loadLabels() {
-            if (step === 'data') return;
+            if (step === 'data' || step === 'risk') return; // 'risk' no usa form_definitions, tiene su propio formulario
             const { data: { user } } = await supabase.auth.getUser();
             const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
             // El checklist de pre-vuelo es por modelo de aeronave. El flujo con orden de
@@ -170,11 +182,30 @@ export default function NewOperationPage() {
 
     const handleCheck = (num, value) => setChecks(prev => ({ ...prev, [step]: { ...prev[step], [num]: value } }));
 
+    // La org debe tener su matriz de riesgo configurada (Fase 2 — Evaluación
+    // de Riesgos) para poder mostrar este paso; si no, se omite sin bloquear.
+    const hasRiskMatrix = riskConfig.probability.length > 0 && riskConfig.severity.length > 0 && riskConfig.tolerability.length > 0;
+
+    // Evaluación inicial y (si aplica) residual tras aplicar barreras — solo
+    // "inaceptable" exige mitigar y volver a evaluar (doctrina SMS/OACI:
+    // "tolerable" se acepta con monitoreo, no bloquea el despacho).
+    const initialRiskZone = resolveZone(riskConfig.tolerability, riskForm.probability_code, riskForm.severity_code);
+    const needsMitigation = initialRiskZone === 'inaceptable';
+    const residualRiskZone = needsMitigation
+        ? resolveZone(riskConfig.tolerability, riskForm.residual_probability_code, riskForm.residual_severity_code)
+        : null;
+    const riskStepComplete = !!(
+        riskForm.probability_code && riskForm.severity_code && initialRiskZone &&
+        (!needsMitigation || (riskForm.barriers.trim() && residualRiskZone && residualRiskZone !== 'inaceptable'))
+    );
+
     // Pasos de seguridad activos, en orden. Health se omite si está desactivado o ya se hizo hoy.
     // Inventario va antes de Pre-vuelo (verificar equipo/insumos antes de la inspección de la aeronave).
+    // Riesgos va después de Inventario, antes de Pre-vuelo.
     const safetySteps = [
         (healthEnabled && !healthDone) ? 'health' : null,
         inventoryEnabled ? 'inventory' : null,
+        hasRiskMatrix ? 'risk' : null,
         preflightEnabled ? 'preflight' : null,
         briefingEnabled ? 'briefing' : null,
     ].filter(Boolean);
@@ -187,7 +218,9 @@ export default function NewOperationPage() {
     // de avanzar — antes solo se exigía en el ÚLTIMO paso (Aprobar Vuelo), así que Salud
     // o Pre-vuelo podían quedar sin responder ni un solo ítem y el vuelo se aprobaba igual.
     const stepChecks = checks[step] || {};
-    const stepComplete = dynamicLabels.length === 0 || dynamicLabels.every(l => stepChecks[l.field_number] === true);
+    const stepComplete = step === 'risk'
+        ? riskStepComplete
+        : (dynamicLabels.length === 0 || dynamicLabels.every(l => stepChecks[l.field_number] === true));
     const stepDoneCount = dynamicLabels.filter(l => stepChecks[l.field_number] === true).length;
 
     // Todos los pasos del wizard en orden, incluido 'data' — para el indicador de progreso
@@ -270,6 +303,21 @@ export default function NewOperationPage() {
             // Solo marcar la orden como realizada cuando existe (flujo con auth)
             if (!isPilotoPlan && form.auth_id) {
                 tasks.push(supabase.from('flight_authorizations').update({ status: 'realizado' }).eq('id', form.auth_id));
+            }
+            // Evaluación de Riesgos — solo si el paso estuvo activo (org con matriz configurada)
+            if (hasRiskMatrix) {
+                tasks.push(supabase.from('results_risk_assessment').insert([{
+                    flight_id: flight.id,
+                    organization_id: orgId,
+                    initial_probability_code: riskForm.probability_code,
+                    initial_severity_code: riskForm.severity_code,
+                    initial_zone: initialRiskZone,
+                    mitigation_required: needsMitigation,
+                    barriers: needsMitigation ? riskForm.barriers.trim() : null,
+                    residual_probability_code: needsMitigation ? riskForm.residual_probability_code : null,
+                    residual_severity_code: needsMitigation ? riskForm.residual_severity_code : null,
+                    residual_zone: needsMitigation ? residualRiskZone : null,
+                }]));
             }
             await Promise.all(tasks);
 
@@ -520,23 +568,36 @@ export default function NewOperationPage() {
                                 <button onClick={() => setStep('data')} className="text-xs font-black text-slate-400 uppercase border-b border-slate-200">Corregir Datos</button>
                             </div>
 
-                            {dynamicLabels.length > 0 && (
-                                <div className="flex items-center gap-3 px-2">
-                                    <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                                        <div
-                                            className={`h-full rounded-full transition-all ${stepComplete ? 'bg-emerald-500' : 'bg-orange-500'}`}
-                                            style={{ width: `${Math.round((stepDoneCount / dynamicLabels.length) * 100)}%` }}
-                                        />
-                                    </div>
-                                    <span className="text-xs font-black text-slate-400 shrink-0">{stepDoneCount}/{dynamicLabels.length}</span>
-                                </div>
-                            )}
+                            {step === 'risk' ? (
+                                <RiskAssessmentStep
+                                    riskConfig={riskConfig}
+                                    riskForm={riskForm}
+                                    setRiskForm={setRiskForm}
+                                    initialZone={initialRiskZone}
+                                    needsMitigation={needsMitigation}
+                                    residualZone={residualRiskZone}
+                                />
+                            ) : (
+                                <>
+                                    {dynamicLabels.length > 0 && (
+                                        <div className="flex items-center gap-3 px-2">
+                                            <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full rounded-full transition-all ${stepComplete ? 'bg-emerald-500' : 'bg-orange-500'}`}
+                                                    style={{ width: `${Math.round((stepDoneCount / dynamicLabels.length) * 100)}%` }}
+                                                />
+                                            </div>
+                                            <span className="text-xs font-black text-slate-400 shrink-0">{stepDoneCount}/{dynamicLabels.length}</span>
+                                        </div>
+                                    )}
 
-                            <div className="grid gap-3 md:gap-4">
-                                {dynamicLabels.map(item => (
-                                    <CheckItem key={item.id} label={item.label_text} value={checks[step][item.field_number]} onChange={(val) => handleCheck(item.field_number, val)} />
-                                ))}
-                            </div>
+                                    <div className="grid gap-3 md:gap-4">
+                                        {dynamicLabels.map(item => (
+                                            <CheckItem key={item.id} label={item.label_text} value={checks[step][item.field_number]} onChange={(val) => handleCheck(item.field_number, val)} />
+                                        ))}
+                                    </div>
+                                </>
+                            )}
 
                             <div className="flex flex-col gap-4 mt-10">
                                 {!isLastStep ? (
@@ -672,6 +733,97 @@ function AuthDetails({ auth, open, onToggle }) {
                 </div>
             )}
         </div>
+    );
+}
+
+// Paso "Evaluación de Riesgos" del despacho — evalúa Probabilidad x Gravedad
+// contra la matriz de tolerabilidad de la org (misma lib/safetyRiskDefaults.js
+// que usa el tab "Evaluación de Riesgos" de Seguridad SMS). Si la zona inicial
+// es "inaceptable", exige barreras + una evaluación residual que ya no sea
+// "inaceptable" antes de dejar avanzar.
+function RiskAssessmentStep({ riskConfig, riskForm, setRiskForm, initialZone, needsMitigation, residualZone }) {
+    const selectCls = "w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500";
+    const labelCls = "text-xs font-black uppercase text-slate-600 ml-1";
+
+    const ZoneResult = ({ zone, probCode, sevCode }) => {
+        if (!zone) return null;
+        const meta = ZONE_META[zone];
+        return (
+            <div className="rounded-2xl p-4 flex items-center justify-between" style={{ backgroundColor: meta.bg }}>
+                <span className="text-xs font-black uppercase" style={{ color: meta.color }}>{meta.label}</span>
+                <span className="text-xs font-bold" style={{ color: meta.color }}>Índice {riskIndex(probCode, sevCode)}</span>
+            </div>
+        );
+    };
+
+    return (
+        <section className="bg-white p-6 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-200 space-y-6">
+            <div>
+                <p className="text-xs font-black uppercase tracking-wide text-orange-600">Evaluación inicial</p>
+                <p className="text-xs text-slate-400 font-semibold mt-0.5">Evalúa el riesgo de esta operación antes de continuar.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                    <label className={labelCls}>Probabilidad</label>
+                    <select className={selectCls} value={riskForm.probability_code} onChange={e => setRiskForm({ ...riskForm, probability_code: e.target.value })}>
+                        <option value="">-- Seleccionar --</option>
+                        {riskConfig.probability.map(p => <option key={p.code} value={p.code}>{p.code} — {p.label}</option>)}
+                    </select>
+                </div>
+                <div className="space-y-1">
+                    <label className={labelCls}>Gravedad</label>
+                    <select className={selectCls} value={riskForm.severity_code} onChange={e => setRiskForm({ ...riskForm, severity_code: e.target.value })}>
+                        <option value="">-- Seleccionar --</option>
+                        {riskConfig.severity.map(s => <option key={s.code} value={s.code}>{s.code} — {s.label}</option>)}
+                    </select>
+                </div>
+            </div>
+
+            {initialZone && <ZoneResult zone={initialZone} probCode={riskForm.probability_code} sevCode={riskForm.severity_code} />}
+
+            {needsMitigation && (
+                <div className="space-y-6 border-t border-slate-100 pt-6">
+                    <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
+                        <span className="material-symbols-outlined text-red-600 text-xl shrink-0">warning</span>
+                        <p className="text-xs font-bold text-red-700 leading-relaxed">
+                            Riesgo inaceptable — describe las barreras/mitigaciones que aplicarás y vuelve a evaluar el
+                            riesgo residual. Solo puedes continuar si el residual ya no es &quot;Inaceptable&quot;.
+                        </p>
+                    </div>
+
+                    <div className="space-y-1">
+                        <label className={labelCls}>Barreras / mitigaciones aplicadas <span className="text-orange-600">*</span></label>
+                        <textarea rows={3} className={selectCls + ' resize-none'} placeholder="Ej. Se reprograma a horario con menor tráfico, se agrega observador visual adicional..."
+                            value={riskForm.barriers} onChange={e => setRiskForm({ ...riskForm, barriers: e.target.value })} />
+                    </div>
+
+                    <div>
+                        <p className="text-xs font-black uppercase tracking-wide text-orange-600">Evaluación residual (después de las barreras)</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                            <div className="space-y-1">
+                                <label className={labelCls}>Probabilidad residual</label>
+                                <select className={selectCls} value={riskForm.residual_probability_code} onChange={e => setRiskForm({ ...riskForm, residual_probability_code: e.target.value })}>
+                                    <option value="">-- Seleccionar --</option>
+                                    {riskConfig.probability.map(p => <option key={p.code} value={p.code}>{p.code} — {p.label}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-1">
+                                <label className={labelCls}>Gravedad residual</label>
+                                <select className={selectCls} value={riskForm.residual_severity_code} onChange={e => setRiskForm({ ...riskForm, residual_severity_code: e.target.value })}>
+                                    <option value="">-- Seleccionar --</option>
+                                    {riskConfig.severity.map(s => <option key={s.code} value={s.code}>{s.code} — {s.label}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    {residualZone && <ZoneResult zone={residualZone} probCode={riskForm.residual_probability_code} sevCode={riskForm.residual_severity_code} />}
+                    {residualZone === 'inaceptable' && (
+                        <p className="text-xs font-bold text-red-600 text-center">Sigue siendo inaceptable — ajusta las barreras y vuelve a evaluar.</p>
+                    )}
+                </div>
+            )}
+        </section>
     );
 }
 

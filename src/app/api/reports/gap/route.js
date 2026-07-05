@@ -1,5 +1,6 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
+import { PERMISSIONS } from '@/lib/roles';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -13,9 +14,10 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
     try {
         const supabase = await createClientSSR();
-        const { user, orgId } = await getOrgContext(supabase);
+        const { user, orgId, role } = await getOrgContext(supabase);
         if (!user)  return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         if (!orgId) return NextResponse.json({ error: 'Sin organización asignada' }, { status: 403 });
+        if (!PERMISSIONS.canViewAudit.includes(role)) return NextResponse.json({ error: 'Sin permisos para ver reportes' }, { status: 403 });
 
         const { data: assessment, error: aErr } = await supabase
             .from('sms_gap_assessments')

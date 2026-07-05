@@ -7,12 +7,21 @@
  */
 import { NextResponse } from 'next/server';
 import { resolveOrg, supabaseAdmin } from '../../_resolveOrg';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'];
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 
 export async function POST(request, { params }) {
     try {
+        // Endpoint público sin auth (formulario VOR/MOR) — rate limit obligatorio
+        // para evitar abuso de subidas con el service role. Mismo patrón que vor/mor.
+        const ip = getClientIp(request);
+        const { allowed } = checkRateLimit(`upload:${ip}`, { limit: 10, windowMs: 60_000 });
+        if (!allowed) {
+            return NextResponse.json({ error: 'Demasiadas solicitudes. Intenta de nuevo en un minuto.' }, { status: 429 });
+        }
+
         const { orgCode } = await params;
         const org = await resolveOrg(orgCode);
         if (!org) return NextResponse.json({ error: 'Organización no encontrada' }, { status: 404 });

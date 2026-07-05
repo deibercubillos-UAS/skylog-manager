@@ -1,4 +1,5 @@
 import { createClientSSR } from '@/lib/supabaseServer';
+import { PERMISSIONS } from '@/lib/roles';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -11,7 +12,8 @@ export async function GET(request) {
         const supabase = await createClientSSR();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+        const { data: prof } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).single();
+        if (!prof || !PERMISSIONS.canViewAudit.includes(prof.role)) return NextResponse.json({ error: 'Sin permisos para ver reportes' }, { status: 403 });
 
         // Parallelizar: pilot, flights y evaluaciones de capacitación son independientes entre sí
         const [

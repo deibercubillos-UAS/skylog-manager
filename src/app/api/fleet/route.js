@@ -1,4 +1,4 @@
-import { createClientSSR } from '@/lib/supabaseServer';
+import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { canAddResource } from '@/lib/planLimits';
 import { logAudit } from '@/lib/auditLog';
@@ -42,13 +42,17 @@ export async function POST(request) {
     const body = await request.json();
     const { aircraftData } = body;   // currentPlan ignorado: el plan se lee del servidor
 
-    // Contar solo aeronaves de esta organización (no todas las de la DB)
-    const { count } = await supabase
+    // Contar solo aeronaves de esta organización (Regla de conteo del proyecto:
+    // createAdminClient() + .select('id') + .length — NO count:'exact'/head:true,
+    // que PostgREST puede evaluar ignorando filtros RLS y dar un conteo poco fiable).
+    const admin = createAdminClient();
+    const { data: existing } = await admin
       .from('aircraft')
-      .select('*', { count: 'exact', head: true })
+      .select('id')
       .eq('organization_id', orgId);
+    const count = existing?.length || 0;
 
-    if (!canAddResource(subscription_plan, count || 0, 'drone')) {
+    if (!canAddResource(subscription_plan, count, 'drone')) {
       return NextResponse.json(
         { error: `Tu plan ${subscription_plan.toUpperCase()} ha llegado al límite de aeronaves.` },
         { status: 403 }

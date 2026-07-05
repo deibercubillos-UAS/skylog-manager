@@ -854,6 +854,84 @@ export const generateManualsAckReport = (data, config) => {
     doc.save(`${formCode || 'F-DOC'}_LECTURA_MANUALES_${orgName}.pdf`);
 };
 
+// --- GENERADOR: TRAZABILIDAD DE COMPONENTES (roster activo + historial de cambios) ---
+
+const COMPONENT_ACTION_LABELS = { instalado: 'Instalado', removido: 'Removido', reemplazado: 'Reemplazado' };
+
+export const generateComponentsTraceabilityReport = (data, config) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const { orgName, logo, version, reportDate, formCode, aircraftLabel, rangeLabel, downloadedAt } = config;
+    const { active, history } = data || {};
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.4);
+    doc.rect(10, 10, 277, 25);
+    doc.line(65, 10, 65, 35);
+    doc.line(225, 10, 225, 35);
+    doc.line(65, 22.5, 225, 22.5);
+
+    addLogo(doc, logo, 15, 12, 45, 20);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(orgName ? orgName.toUpperCase() : "BITAFLY UAS", 145, 18, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text("TRAZABILIDAD DE COMPONENTES", 145, 27, { align: 'center' });
+    doc.setFontSize(8);
+    doc.text(aircraftLabel ? `AERONAVE: ${aircraftLabel.toUpperCase()}` : "TODA LA FLOTA", 145, 33, { align: 'center' });
+
+    doc.setFontSize(7);
+    doc.line(225, 18, 287, 18);
+    doc.line(225, 26, 287, 26);
+    doc.text(`VERSIÓN: ${version || '1.0'}`, 227, 15);
+    doc.text(`FECHA: ${reportDate || '---'}`, 227, 23);
+    doc.text(`FORMATO: ${formCode || 'N/A'}`, 227, 31);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("COMPONENTES ACTIVOS", 12, 42);
+
+    autoTable(doc, {
+        startY: 45,
+        head: [['AERONAVE', 'TIPO', 'NOMBRE', 'SERIE', 'INSTALADO', 'HORAS DE USO', 'DÍAS DE USO']],
+        body: (active || []).map(c => [
+            c.aircraft_label, c.component_type, c.name, c.serial,
+            c.installed_at?.slice(0, 10) || '—', c.used_hours.toFixed(1), c.used_days,
+        ]),
+        styles: { fontSize: 7.5, cellPadding: 1.8, lineColor: [0, 0, 0], lineWidth: 0.1 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', lineWidth: 0.2 },
+        margin: { left: 10, right: 10 }
+    });
+
+    const historyStartY = safeAutoTableY(doc, 60) + 12;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("HISTORIAL DE CAMBIOS", 12, historyStartY - 3);
+
+    autoTable(doc, {
+        startY: historyStartY,
+        head: [['FECHA', 'AERONAVE', 'TIPO', 'ACCIÓN', 'PIEZA ANTERIOR', 'PIEZA NUEVA', 'NOTAS']],
+        body: (history || []).map(h => [
+            h.created_at?.slice(0, 10) || '—', h.aircraft_label, h.component_type,
+            COMPONENT_ACTION_LABELS[h.action] || h.action, h.part_old, h.part_new, h.notes || '—',
+        ]),
+        styles: { fontSize: 7, cellPadding: 1.5, lineColor: [0, 0, 0], lineWidth: 0.1, overflow: 'linebreak' },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', lineWidth: 0.2 },
+        columnStyles: { 6: { cellWidth: 60 } },
+        margin: { left: 10, right: 10 }
+    });
+
+    const noteY = safeAutoTableY(doc, historyStartY + 20) + 10;
+    addFooterNote(doc, noteY, { rangeLabel, downloadedAt });
+    const finalY = noteY + 12;
+    doc.line(30, finalY, 110, finalY);
+    doc.text("FIRMA JEFE DE PILOTOS", 70, finalY + 5, { align: 'center' });
+    doc.line(187, finalY, 267, finalY);
+    doc.text("FIRMA GERENTE GENERAL", 227, finalY + 5, { align: 'center' });
+
+    doc.save(`${formCode || 'F-FLT'}_TRAZABILIDAD_COMPONENTES_${orgName}.pdf`);
+};
+
 // --- GENERADOR: FORMATO 100 UAEAC (SOLICITUD DE AUTORIZACIÓN) ---
 
 export const generateExcelF100 = async (data, profile, org, pilots) => {

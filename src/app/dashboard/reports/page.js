@@ -45,6 +45,11 @@ const REPORT_DEFS = [
         needsMonth: true, format: 'xlsx',
     },
     {
+        key: 'components', code: 'F-FLT-008', name: 'Trazabilidad de Componentes', icon: 'settings_suggest', group: 'Operación',
+        desc: 'Roster activo (horas/días de uso) e historial de cambios — toda la flota o una sola aeronave.',
+        needsAircraft: true,
+    },
+    {
         key: 'pilots', code: 'F-HUM-005', name: 'Bitácora de Piloto', icon: 'menu_book', group: 'Tripulación',
         desc: 'Horas y misiones ejecutadas por un tripulante en el periodo.',
         needsPeriod: true, needsPilot: true,
@@ -350,6 +355,11 @@ export default function ReportsPage() {
             if (def.key === 'trainingSchedule') {
                 const res = await fetch(`/api/reports/training-schedule?type=${trainingType}&from=${from}&to=${to}`);
                 generators.generateTrainingScheduleReport(await res.json(), { ...common, trainingType });
+            }
+            if (def.key === 'components') {
+                const q = selectedAircraft ? `?aircraftId=${selectedAircraft}` : '';
+                const res = await fetch(`/api/reports/components-traceability${q}`);
+                generators.generateComponentsTraceabilityReport(await res.json(), { ...common, aircraftLabel: selectedAircraftLabel });
             }
             if (def.key === 'manualsPublished') {
                 const res = await fetch(`/api/reports/manuals-published?from=${from}&to=${to}`);

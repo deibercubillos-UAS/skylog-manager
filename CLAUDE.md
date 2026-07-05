@@ -687,6 +687,36 @@ existiendo como páginas independientes sin cambios en su lógica — solo que y
 de entrada desde el hub, quedan accesibles por URL directa únicamente. El tab "Reportes de Seg.
 Operacional" (Fase 6) sigue mostrando el cumplimiento de plazos de VOR/MOR, sin cambios.
 
+**Catálogo GAP personalizable por organización (revierte la decisión original de Fase 4)** — a
+pedido del usuario: migración `20260716_sms_gap_custom_questions.sql` agrega `organization_id`
+(nullable) a `sms_gap_questions` y crea `sms_gap_question_visibility`. El catálogo oficial de 100
+preguntas (componentes 1-4) sigue siendo global e inmutable desde la app (RLS solo permite
+insert/update/delete sobre filas con `organization_id` propio); cada organización puede:
+- **Ocultar** cualquier pregunta (oficial o propia) solo para sí misma, vía
+  `sms_gap_question_visibility` (upsert, nunca borra el catálogo global) —
+  `PATCH /api/safety/gap/questions/[id]/visibility`.
+- **Agregar preguntas propias** en un componente nuevo, "5 — Preguntas personalizadas de la
+  organización" (`component_number` ahora acepta hasta 5) — `POST /api/safety/gap/questions`,
+  editar/borrar con `PATCH`/`DELETE /api/safety/gap/questions/[id]` (protegidos por
+  `organization_id`, un intento sobre una pregunta oficial responde 404).
+- Nuevo botón "Configurar preguntas" en el tab Mejora Continua abre
+  `components/safety/GapQuestionsConfigPanel.js` (acordeón por componente/elemento, con
+  ocultar/mostrar, editar y borrar inline, y un formulario para agregar preguntas nuevas).
+- `GET /api/safety/gap/questions` excluye las ocultas por defecto (lo que usa
+  `GapAssessmentPanel`/`gapStats`); `?includeHidden=1` las incluye (lo que usa el panel de
+  configuración, para poder volver a mostrarlas).
+
+**Set de ejemplo para Indicadores (SPI)**: botón "Cargar ejemplos de indicadores" en el estado
+vacío del tab Indicadores (SPI) — `POST /api/safety/indicators/examples` inserta 6 definiciones
+típicas para un explotador UAS (activaciones RTH por batería crítica, pérdida de enlace C2,
+aterrizajes de emergencia, degradación GNSS, incursión en espacio restringido, reportes VOR/MOR),
+tomadas de `EXAMPLE_INDICATORS` en `lib/safetyIndicatorStats.js`. **Solo son definiciones** (nombre/
+denominador/descripción) — sin datos mensuales inventados, coherente con la filosofía del proyecto
+de nunca fabricar datos operacionales; el usuario los edita/borra y captura sus meses reales.
+Idempotente por nombre (no duplica en clics repetidos). De paso, `safety_indicators` gana columna
+`description` (opcional, editable también en indicadores creados manualmente desde
+`AddIndicatorPanel.js`/`IndicatorDetailPanel.js`) para documentar qué mide cada indicador y por qué.
+
 - **Evaluación de Riesgos**: matriz 5×5 de probabilidad/gravedad personalizable por org (semilla
   OACI Doc 9859) + tabla de tolerabilidad (inaceptable/tolerable/aceptable, editable celda por
   celda) + registro de peligros (`safety_hazards`) con mitigación en texto libre. Índice de riesgo

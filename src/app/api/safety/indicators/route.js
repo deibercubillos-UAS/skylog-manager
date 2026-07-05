@@ -53,6 +53,7 @@ export async function POST(request) {
                 name: body.name.trim(),
                 denominator_unit: body.denominator_unit,
                 expected_improvement_pct: Number(body.expected_improvement_pct) || 0.1,
+                description: body.description?.trim() || null,
                 created_by: user.id,
             }])
             .select()

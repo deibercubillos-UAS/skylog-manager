@@ -5,10 +5,13 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-const DENOMINATOR_UNITS = ['ciclos_vuelo', 'horas_vuelo', 'horas_hombre', 'operaciones'];
-const ALLOWED_FIELDS = ['name', 'denominator_unit', 'expected_improvement_pct', 'description'];
+const ALLOWED_FIELDS = ['element_number', 'element_name', 'question_text'];
 
-// PATCH /api/safety/indicators/[id] — edita un indicador existente
+// PATCH /api/safety/gap/questions/[id] — edita una pregunta personalizada de
+// la organización. Las preguntas oficiales (organization_id null) no se
+// pueden editar desde aquí — el filtro .eq('organization_id', orgId) ya las
+// excluye (una oficial nunca calza con orgId), así que un intento sobre una
+// oficial simplemente no encuentra fila y responde 404.
 export async function PATCH(request, { params }) {
     try {
         const { id } = await params;
@@ -21,28 +24,17 @@ export async function PATCH(request, { params }) {
         }
 
         const body = await request.json();
-        if (body.denominator_unit !== undefined && !DENOMINATOR_UNITS.includes(body.denominator_unit)) {
-            return NextResponse.json({ error: 'Denominador inválido' }, { status: 400 });
-        }
-
         const cleanData = {};
         for (const f of ALLOWED_FIELDS) {
             if (body[f] === undefined) continue;
-            if (f === 'name') {
-                if (!body.name?.trim()) return NextResponse.json({ error: 'El nombre del indicador es obligatorio' }, { status: 400 });
-                cleanData.name = body.name.trim();
-            } else if (f === 'expected_improvement_pct') {
-                cleanData[f] = Number(body[f]) || 0;
-            } else if (f === 'description') {
-                cleanData.description = body.description?.trim() || null;
-            } else {
-                cleanData[f] = body[f];
+            if (f === 'question_text' && !body.question_text?.trim()) {
+                return NextResponse.json({ error: 'El texto de la pregunta es obligatorio' }, { status: 400 });
             }
+            cleanData[f] = typeof body[f] === 'string' ? body[f].trim() : body[f];
         }
-        cleanData.updated_at = new Date().toISOString();
 
         const { data, error } = await supabase
-            .from('safety_indicators')
+            .from('sms_gap_questions')
             .update(cleanData)
             .eq('id', id)
             .eq('organization_id', orgId)
@@ -50,14 +42,17 @@ export async function PATCH(request, { params }) {
             .single();
 
         if (error) throw error;
+        if (!data) return NextResponse.json({ error: 'Pregunta no encontrada (¿es del catálogo oficial?)' }, { status: 404 });
         return NextResponse.json(data);
     } catch (err) {
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }
 
-// DELETE /api/safety/indicators/[id] — elimina el indicador (cascada: datos
-// mensuales y planes de acción propios)
+// DELETE /api/safety/gap/questions/[id] — elimina una pregunta personalizada
+// de la organización (las respuestas ya guardadas para esa pregunta se
+// borran en cascada). Igual que en PATCH, las oficiales quedan protegidas
+// por el filtro de organization_id.
 export async function DELETE(request, { params }) {
     try {
         const { id } = await params;
@@ -70,7 +65,7 @@ export async function DELETE(request, { params }) {
         }
 
         const { error } = await supabase
-            .from('safety_indicators')
+            .from('sms_gap_questions')
             .delete()
             .eq('id', id)
             .eq('organization_id', orgId);

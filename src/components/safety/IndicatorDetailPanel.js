@@ -42,6 +42,9 @@ export default function IndicatorDetailPanel({ indicator, onClose, onSuccess }) 
   const [saving, setSaving] = useState(false);
   const [newAction, setNewAction] = useState(emptyAction());
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editingDesc, setEditingDesc] = useState(false);
+  const [descDraft, setDescDraft] = useState(indicator.description || '');
+  const [savingDesc, setSavingDesc] = useState(false);
 
   const monthly = useMemo(() => indicator.monthly || [], [indicator.monthly]);
   const actions = indicator.actions || [];
@@ -112,6 +115,24 @@ export default function IndicatorDetailPanel({ indicator, onClose, onSuccess }) 
     }
   };
 
+  const saveDescription = async () => {
+    setSavingDesc(true);
+    try {
+      const res = await fetch(`/api/safety/indicators/${indicator.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: descDraft }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Error al guardar la descripción.');
+      toast.success('Descripción guardada.');
+      setEditingDesc(false);
+      onSuccess();
+    } catch (err) {
+      toast.error('Error: ' + err.message);
+    } finally {
+      setSavingDesc(false);
+    }
+  };
+
   const deleteIndicator = async () => {
     try {
       await fetch(`/api/safety/indicators/${indicator.id}`, { method: 'DELETE' });
@@ -145,6 +166,31 @@ export default function IndicatorDetailPanel({ indicator, onClose, onSuccess }) 
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-5">
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
+          {editingDesc ? (
+            <div className="space-y-2">
+              <textarea rows={2} className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                placeholder="¿Qué mide y por qué se hace seguimiento a este indicador?"
+                value={descDraft} onChange={e => setDescDraft(e.target.value)} />
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => { setEditingDesc(false); setDescDraft(indicator.description || ''); }} className="text-[10.5px] font-black text-slate-500 uppercase">Cancelar</button>
+                <button type="button" onClick={saveDescription} disabled={savingDesc} className="text-[10.5px] font-black text-orange-600 uppercase disabled:opacity-50">
+                  {savingDesc ? 'Guardando...' : 'Guardar'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-xs font-semibold text-slate-500 leading-snug">
+                {indicator.description || <span className="italic text-slate-400">Sin descripción — explica qué mide y por qué se hace seguimiento.</span>}
+              </p>
+              <button type="button" onClick={() => setEditingDesc(true)} className="shrink-0 text-slate-400 hover:text-orange-600">
+                <span className="material-symbols-outlined text-base">edit</span>
+              </button>
+            </div>
+          )}
+        </div>
+
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => switchYear(year - 1)} className="size-8 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200">
             <span className="material-symbols-outlined text-base">chevron_left</span>

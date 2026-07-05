@@ -21,6 +21,7 @@ const AddHazardPanel = dynamic(() => import('@/components/safety/AddHazardPanel'
 const AddIndicatorPanel = dynamic(() => import('@/components/safety/AddIndicatorPanel'), { ssr: false });
 const IndicatorDetailPanel = dynamic(() => import('@/components/safety/IndicatorDetailPanel'), { ssr: false });
 const GapAssessmentPanel = dynamic(() => import('@/components/safety/GapAssessmentPanel'), { ssr: false });
+const GapQuestionsConfigPanel = dynamic(() => import('@/components/safety/GapQuestionsConfigPanel'), { ssr: false });
 const AddSmsSessionPanel = dynamic(() => import('@/components/safety/AddSmsSessionPanel'), { ssr: false });
 const SmsAttendancePanel = dynamic(() => import('@/components/safety/SmsAttendancePanel'), { ssr: false });
 
@@ -133,6 +134,8 @@ export default function SafetyPage() {
   const [gapAssessments, setGapAssessments] = useState([]);
   const [gapPanel, setGapPanel] = useState(null); // null | assessment object
   const [creatingGap, setCreatingGap] = useState(false);
+  const [gapConfigOpen, setGapConfigOpen] = useState(false);
+  const [loadingExamples, setLoadingExamples] = useState(false);
   const [notifyingCaseId, setNotifyingCaseId] = useState(null);
   const [plazosTypeFilter, setPlazosTypeFilter] = useState('todos');
   const [smsSessions, setSmsSessions] = useState([]);
@@ -200,6 +203,10 @@ export default function SafetyPage() {
   };
 
   const handleCreateGapAssessment = async () => {
+    if (gapQuestions.length === 0) {
+      toast.warn('No tienes preguntas visibles en el catálogo GAP — revisa "Configurar preguntas".');
+      return;
+    }
     setCreatingGap(true);
     try {
       const res = await fetch('/api/safety/gap/assessments', {
@@ -213,6 +220,21 @@ export default function SafetyPage() {
       toast.error('Error: ' + err.message);
     } finally {
       setCreatingGap(false);
+    }
+  };
+
+  const handleLoadExampleIndicators = async () => {
+    setLoadingExamples(true);
+    try {
+      const res = await fetch('/api/safety/indicators/examples', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al cargar los indicadores de ejemplo.');
+      toast.success(data.inserted > 0 ? `${data.inserted} indicador(es) de ejemplo agregado(s).` : 'Ya tenías todos los indicadores de ejemplo cargados.');
+      if (orgId) loadAll(orgId);
+    } catch (err) {
+      toast.error('Error: ' + err.message);
+    } finally {
+      setLoadingExamples(false);
     }
   };
 
@@ -273,11 +295,18 @@ export default function SafetyPage() {
     }
     if (tab === 'mejora') {
       return (
-        <button onClick={handleCreateGapAssessment} disabled={creatingGap}
-          className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-600/20 transition-all active:scale-95 disabled:opacity-50">
-          <span className="material-symbols-outlined text-base">add_circle</span>
-          {creatingGap ? 'Creando...' : 'Nueva evaluación'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setGapConfigOpen(true)}
+            className="flex items-center gap-2 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all active:scale-95">
+            <span className="material-symbols-outlined text-base">tune</span>
+            Configurar preguntas
+          </button>
+          <button onClick={handleCreateGapAssessment} disabled={creatingGap}
+            className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-orange-600/20 transition-all active:scale-95 disabled:opacity-50">
+            <span className="material-symbols-outlined text-base">add_circle</span>
+            {creatingGap ? 'Creando...' : 'Nueva evaluación'}
+          </button>
+        </div>
       );
     }
     if (tab === 'capacitacion-sms') {
@@ -549,6 +578,13 @@ export default function SafetyPage() {
         />
       )}
 
+      {gapConfigOpen && (
+        <GapQuestionsConfigPanel
+          onClose={() => setGapConfigOpen(false)}
+          onChanged={() => orgId && loadAll(orgId)}
+        />
+      )}
+
       {sessionPanel && (
         <AddSmsSessionPanel
           session={sessionPanel === 'new' ? null : sessionPanel}
@@ -715,32 +751,49 @@ export default function SafetyPage() {
                 )}
               </div>
 
-              <TableShell title="Catálogo de indicadores de desempeño en Seguridad Operacional (SPI)"
-                empty={indicators.length === 0 ? 'Sin indicadores registrados — crea el primero con "Nuevo indicador"' : null}>
-                <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {indicators.map(ind => {
-                    const prevStats = computeYearStats(ind.monthly || [], currentYear - 1);
-                    const thisYearRows = (ind.monthly || []).filter(m => m.period.startsWith(String(currentYear)));
-                    const inAlert = prevStats && thisYearRows.some(m => computeRate(m.event_count, m.denominator_value) > prevStats.alert1);
-                    return (
-                      <button key={ind.id} type="button" onClick={() => setIndicatorPanel(ind)}
-                        className="text-left border border-slate-200 rounded-2xl p-4 space-y-2 hover:border-orange-300 hover:shadow-sm transition-all">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[9.5px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
-                            {ind.denominator_unit.replace('_', ' ')}
-                          </span>
-                          {inAlert && <span className="material-symbols-outlined text-base text-red-500">trending_up</span>}
-                        </div>
-                        <p className="text-sm font-bold text-slate-800 leading-snug">{ind.name}</p>
-                        <p className="text-[10.5px] text-slate-400">
-                          {(ind.actions || []).length} plan(es) de acción · Mejora esperada {Math.round((ind.expected_improvement_pct || 0) * 100)}%
-                        </p>
-                        {!prevStats && <p className="text-[10px] font-bold text-amber-600">Sin línea base ({currentYear - 1} incompleto)</p>}
-                      </button>
-                    );
-                  })}
+              {indicators.length === 0 ? (
+                <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 text-center space-y-4">
+                  <span className="material-symbols-outlined text-4xl text-orange-500">monitoring</span>
+                  <p className="text-sm font-black text-slate-800">Aún no tienes indicadores SPI registrados</p>
+                  <p className="text-xs font-semibold text-slate-500 max-w-md mx-auto">
+                    Si no sabes por dónde empezar, carga un set de ejemplo (aterrizajes de emergencia, pérdida de
+                    enlace, RTH por batería crítica, etc.) — son solo definiciones, sin datos inventados; luego
+                    edítalas, bórralas o agrega las tuyas y empieza a capturar tus meses reales.
+                  </p>
+                  <button type="button" onClick={handleLoadExampleIndicators} disabled={loadingExamples}
+                    className="inline-flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wide shadow-lg shadow-orange-600/20 transition-all active:scale-95 disabled:opacity-50">
+                    <span className="material-symbols-outlined text-base">auto_awesome</span>
+                    {loadingExamples ? 'Cargando...' : 'Cargar ejemplos de indicadores'}
+                  </button>
                 </div>
-              </TableShell>
+              ) : (
+                <TableShell title="Catálogo de indicadores de desempeño en Seguridad Operacional (SPI)">
+                  <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {indicators.map(ind => {
+                      const prevStats = computeYearStats(ind.monthly || [], currentYear - 1);
+                      const thisYearRows = (ind.monthly || []).filter(m => m.period.startsWith(String(currentYear)));
+                      const inAlert = prevStats && thisYearRows.some(m => computeRate(m.event_count, m.denominator_value) > prevStats.alert1);
+                      return (
+                        <button key={ind.id} type="button" onClick={() => setIndicatorPanel(ind)}
+                          className="text-left border border-slate-200 rounded-2xl p-4 space-y-2 hover:border-orange-300 hover:shadow-sm transition-all">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9.5px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                              {ind.denominator_unit.replace('_', ' ')}
+                            </span>
+                            {inAlert && <span className="material-symbols-outlined text-base text-red-500">trending_up</span>}
+                          </div>
+                          <p className="text-sm font-bold text-slate-800 leading-snug">{ind.name}</p>
+                          {ind.description && <p className="text-[10.5px] text-slate-500 leading-snug line-clamp-2">{ind.description}</p>}
+                          <p className="text-[10.5px] text-slate-400">
+                            {(ind.actions || []).length} plan(es) de acción · Mejora esperada {Math.round((ind.expected_improvement_pct || 0) * 100)}%
+                          </p>
+                          {!prevStats && <p className="text-[10px] font-bold text-amber-600">Sin línea base ({currentYear - 1} incompleto)</p>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </TableShell>
+              )}
             </div>
           )}
 

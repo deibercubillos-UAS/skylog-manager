@@ -5,7 +5,7 @@ import { DENOMINATOR_UNITS } from '@/lib/safetyIndicatorStats';
 
 export default function AddIndicatorPanel({ onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ name: '', denominator_unit: 'horas_vuelo', expected_improvement_pct: 10 });
+  const [form, setForm] = useState({ name: '', denominator_unit: 'horas_vuelo', expected_improvement_pct: 10, description: '' });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -84,6 +84,11 @@ export default function AddIndicatorPanel({ onClose, onSuccess }) {
             <input type="number" min="0" max="100" step="1" className={inputCls}
               value={form.expected_improvement_pct} onChange={e => setForm({ ...form, expected_improvement_pct: e.target.value })} />
             <p className="text-[10px] font-semibold text-slate-400">La meta sugerida = tasa promedio del año anterior × (1 − mejora esperada).</p>
+          </div>
+          <div className="space-y-1">
+            <label className={labelCls}>Descripción (opcional)</label>
+            <textarea rows={2} className={inputCls + ' resize-none'} placeholder="¿Qué mide y por qué se hace seguimiento a este indicador?"
+              value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
           </div>
         </form>
       </div>

@@ -547,6 +547,62 @@ no "formatos" con letterhead).
   "contain" centrado dentro de la misma caja — mismo helper, los 6 generadores se
   benefician sin cambios adicionales.
 
+### Reportes — grilla agrupada + 7 formatos nuevos (2026-07-05)
+
+El usuario pidió (1) agrupar la grilla de `dashboard/reports/page.js` para encontrar más
+fácil el reporte deseado, y (2) 7 formatos nuevos. Antes de construir se confirmaron con el
+usuario (`AskUserQuestion`, 4 preguntas) 3 solapamientos reales con reportes ya existentes
+(Indicadores SPI anual, Autoevaluación GAP, Cronograma Capacitación SMS) y el alcance de
+Confirmación de Lectura de Manuales — las 4 con la opción recomendada, confirmando que son
+complementos distintos, no duplicados.
+
+- **Agrupación + búsqueda**: `REPORT_DEFS` gana un campo `group` puramente de presentación
+  (`GROUP_ORDER`: Operación/Tripulación/Documentación/Seguridad SMS/Proveedores) — la grilla
+  ahora renderiza una sección por grupo en vez de una lista plana de 14+ tarjetas. Se agregó
+  además un input de búsqueda (nombre/código/descripción) sobre la grilla ya agrupada, porque
+  el pedido era literalmente "más fácil de **buscar**" — grupos vacíos tras filtrar no
+  se muestran.
+- **Publicación de Manuales** (`F-DOC-014`, grupo Documentación): historial de publicaciones
+  (`manual_versions`, alta inicial + nuevas versiones) en el periodo elegido —
+  `GET /api/reports/manuals-published`.
+- **Confirmación de Lectura de Manuales** (`F-DOC-015`, Documentación): consolidado de
+  TODOS los manuales vigentes con leídos/pendientes sobre su versión actual — snapshot, sin
+  selector de manual (decisión confirmada), a diferencia del "Acta PDF" ya existente en
+  `/dashboard/manuales` que es por manual específico con roster completo —
+  `GET /api/reports/manuals-ack` (cuenta miembros de la org vía `createAdminClient()` +
+  Regla de conteo).
+- **Trazabilidad de Componentes** (`F-FLT-008`, Operación): roster activo de componentes
+  (Hélices/Motores/ESC/personalizados) con horas/días de uso derivados del odómetro de cada
+  aeronave + historial completo de cambios (`maintenance_components`) — toda la flota o una
+  sola aeronave, mismo selector que Mantenimiento/Flota — `GET /api/reports/components-
+  traceability`.
+- **Seguimiento de Indicadores** (`F-SMS-016`, Seguridad SMS): tasa mensual de cada
+  indicador SPI comparada contra sus líneas de alerta (reutiliza `lib/safetyIndicatorStats.js`
+  — promedio + N·desv. estándar poblacional del año anterior completo) dentro del periodo
+  elegido, más los planes de acción todavía abiertos — complementa al Excel anual
+  "Indicadores SPI" (`F-SMS-010`), no lo reemplaza (decisión confirmada) —
+  `GET /api/reports/indicators-tracking`.
+- **Mejora Continua** (`F-SMS-017`, Seguridad SMS): evolución del % de cumplimiento entre
+  TODAS las autoevaluaciones GAP realizadas, por componente y total, con variación vs. la
+  evaluación anterior — distinto de "Autoevaluación GAP del SMS" (`F-SMS-011`), que solo
+  imprime la última (decisión confirmada) — `GET /api/reports/gap-history`.
+- **Listado de Reportes MOR y VOR** (`F-SMS-018`, Seguridad SMS): reportes VOR/MOR recibidos
+  en el periodo (tipo/reportante/severidad reportada vs. asignada/estado/responsable) —
+  complementa al tablero de Acciones Correctivas, que solo lista casos abiertos de 3 fuentes
+  distintas — `GET /api/reports/vor-mor-list`.
+- **Plan de Capacitación SMS (asistencia)** (`F-SMS-019`, Seguridad SMS): asistencia real
+  registrada (`sms_training_attendance`) por sesión y fecha dentro del periodo, con % de
+  cumplimiento del personal — distinto de "Cronograma Capacitación SMS" (`F-SMS-012`), que
+  solo proyecta fechas futuras sin registrar quién asistió (decisión confirmada) —
+  `GET /api/reports/sms-training-attendance`.
+- **Sin migraciones nuevas**: los 7 formatos reutilizan tablas ya existentes
+  (`manual_versions`/`manual_acknowledgments`, `aircraft_components`/`maintenance_components`,
+  `safety_indicators`/`safety_indicator_monthly`/`safety_indicator_actions`,
+  `sms_gap_assessments`/`sms_gap_responses`, `vor_mor_submissions`,
+  `sms_training_sessions`/`sms_training_attendance`) — todos gateados con `canViewAudit`
+  (mismo patrón que el resto de `/api/reports/*`, ver **Auditoría 2026-07-22**), mismo layout
+  jsPDF (logo/versión/fecha/nota de trazabilidad/firmas) que los formatos existentes.
+
 ### Registro de Baterías rediseñado — snapshot por batería (2026-07-04)
 
 El formato "Registro de Baterías" era una fila por vuelo/misión (S/N batería + dron usado +

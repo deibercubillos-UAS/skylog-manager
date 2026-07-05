@@ -595,9 +595,14 @@ export default function VorMorPage() {
                       <p className={LABEL}>Archivos adjuntos ({selected.attachments.length})</p>
                       <ul className="space-y-1">
                         {selected.attachments.map((a, i) => (
-                          <li key={i} className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 rounded-xl px-3 py-2 border border-slate-100">
-                            <span className="material-symbols-outlined text-slate-400 text-sm">attach_file</span>
-                            <span className="truncate flex-1">{a.split('/').pop()}</span>
+                          <li key={i}>
+                            <a href={`/api/vor-mor/attachment?path=${encodeURIComponent(a)}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-xl px-3 py-2 border border-slate-100 transition-colors">
+                              <span className="material-symbols-outlined text-slate-400 text-sm">attach_file</span>
+                              <span className="truncate flex-1">{a.split('/').pop()}</span>
+                              <span className="material-symbols-outlined text-slate-400 text-sm">open_in_new</span>
+                            </a>
                           </li>
                         ))}
                       </ul>

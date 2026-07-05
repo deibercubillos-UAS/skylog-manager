@@ -1094,6 +1094,28 @@ monitoreo/ALARP; documentar una mitigación adicional es buena práctica, no un 
 - `riskStepComplete` exige el texto de barreras si `voluntaryMitigation` está en `true`
   (no se puede continuar con el toggle en "Sí" y la textarea vacía).
 
+### Guía de criterios de Probabilidad/Gravedad en el Despacho (2026-07-20)
+
+A pedido del usuario: el piloto necesitaba una referencia de **qué se evalúa** en cada nivel
+de Probabilidad/Gravedad al hacer la Evaluación de Riesgos — antes solo veía `código —
+etiqueta` en los `<select>` (ej. "3 — Remoto"), sin el criterio detrás.
+
+- **Sin tabla ni migración nueva**: el criterio editable **ya existía** —
+  `safety_risk_scales.description` (columna de la Fase 2 del plan de mejora SMS, ej. "Es
+  probable que ocurra pocas veces") — y ya era editable por el Gerente SMS/Gerente General
+  desde `RiskMatrixEditor.js` (Seguridad SMS → Evaluación de Riesgos). Lo único que faltaba
+  era **mostrárselo al piloto**: un `<option>` de HTML no puede renderizar texto multilínea,
+  así que la descripción nunca llegaba a la vista del piloto pese a estar disponible en
+  `riskConfig` (mismo `GET /api/safety/risk-config` que ya trae `select('*')`).
+- **`RiskAssessmentStep`** (`logbook/new/page.js`) gana un botón "Qué se evalúa" que despliega
+  una guía de dos columnas (Probabilidad / Gravedad) con cada nivel — código, etiqueta y su
+  criterio — ordenados de menor a mayor (`order_index` ascendente). Colapsada por defecto
+  (es una referencia de consulta, no un paso obligatorio de lectura) para no ocupar espacio
+  permanente en el wizard kiosko.
+- **Totalmente personalizable por la organización** (ya lo era): cualquier cambio que el
+  Gerente SMS haga en `RiskMatrixEditor.js` (renombrar un nivel o reescribir su criterio) se
+  refleja de inmediato en esta guía del Despacho — no hay contenido duplicado ni hardcodeado.
+
 ---
 
 ## Reporte Operacional Mensual UAS (AeroCivil, 2026-07-04)

@@ -65,6 +65,15 @@ const REPORT_DEFS = [
         needsPeriod: true, needsTrainingType: true,
     },
     {
+        key: 'manualsPublished', code: 'F-DOC-014', name: 'Publicación de Manuales', icon: 'library_add', group: 'Documentación',
+        desc: 'Historial de publicaciones — alta inicial y nuevas versiones de cada manual, en el periodo.',
+        needsPeriod: true,
+    },
+    {
+        key: 'manualsAck', code: 'F-DOC-015', name: 'Confirmación de Lectura de Manuales', icon: 'fact_check', group: 'Documentación',
+        desc: 'Consolidado de todos los manuales vigentes: leídos/pendientes sobre la versión actual.',
+    },
+    {
         key: 'spi', code: 'F-SMS-010', name: 'Indicadores SPI (anual)', icon: 'monitoring', group: 'Seguridad SMS',
         desc: 'Datos mensuales, líneas de alerta y planes de acción de cada indicador — para el envío anual a Aerocivil.',
         needsYear: true, format: 'xlsx',
@@ -341,6 +350,14 @@ export default function ReportsPage() {
             if (def.key === 'trainingSchedule') {
                 const res = await fetch(`/api/reports/training-schedule?type=${trainingType}&from=${from}&to=${to}`);
                 generators.generateTrainingScheduleReport(await res.json(), { ...common, trainingType });
+            }
+            if (def.key === 'manualsPublished') {
+                const res = await fetch(`/api/reports/manuals-published?from=${from}&to=${to}`);
+                generators.generateManualsPublishedReport(await res.json(), common);
+            }
+            if (def.key === 'manualsAck') {
+                const res = await fetch('/api/reports/manuals-ack');
+                generators.generateManualsAckReport(await res.json(), common);
             }
             if (def.key === 'spi') {
                 const res = await fetch(`/api/reports/spi?year=${selectedYear}`);

@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { getOrgPlan } from '@/lib/orgPlan';
+import { getOrgContext } from '@/lib/apiAuth';
 import PageHero from '@/components/PageHero';
 import KPIStrip from '@/components/KPIStrip';
 
@@ -42,17 +43,14 @@ export default function DashboardClient() {
         const name = meta.first_name || meta.full_name?.split(' ')[0] || 'Operador';
         setFirstName(name);
 
-        // Perfil para plan/rol (OnboardingBanner)
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('role, subscription_plan, organization_id')
-          .eq('id', session.user.id)
-          .single();
-        if (prof) {
-          setProfileRole(prof.role);
-          // El plan efectivo de la org vive en el perfil del admin
+        // Perfil para plan/rol (OnboardingBanner) — vía organization_members
+        // (organización activa), no profiles directo.
+        const ctx = await getOrgContext(supabase);
+        if (ctx.role) {
+          setProfileRole(ctx.role);
+          // El plan efectivo de la org vive en la membresía admin
           // (organizations no tiene columna subscription_plan).
-          const plan = await getOrgPlan(supabase, prof.organization_id, prof.subscription_plan || 'piloto');
+          const plan = await getOrgPlan(supabase, ctx.orgId, ctx.subscription_plan || 'piloto');
           setProfilePlan(plan);
         }
 

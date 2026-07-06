@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,19 +17,26 @@ export async function GET(request) {
   try {
     const supabase = await createClient();
 
-    // getUser() valida el token contra Supabase (anti-spoofing)
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    // getOrgContext valida el token (anti-spoofing) y resuelve role/org/plan
+    // desde organization_members (organización activa) — no desde la fila
+    // cruda de profiles.
+    const ctx = await getOrgContext(supabase);
+    if (!ctx.user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     // Siempre el perfil del usuario autenticado — ignorar cualquier query param
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', user.id)
+      .eq('id', ctx.user.id)
       .single();
 
     if (error) throw error;
-    return NextResponse.json(data);
+    return NextResponse.json({
+      ...data,
+      role: ctx.role,
+      organization_id: ctx.orgId,
+      subscription_plan: ctx.subscription_plan,
+    });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

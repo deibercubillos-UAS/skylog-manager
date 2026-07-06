@@ -10,6 +10,7 @@ import { MISSION_TYPES, LINE_OF_SIGHT_TYPES } from '@/lib/missionTypes';
 import { computeCompliance } from '@/lib/trainingCompliance';
 import { resolveZone, riskIndex, ZONE_META } from '@/lib/safetyRiskDefaults';
 import { isPilotoIndependiente } from '@/lib/pilotoIndependiente';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export default function NewOperationPage() {
     const router = useRouter();
@@ -58,21 +59,21 @@ export default function NewOperationPage() {
     useEffect(() => {
         async function init() {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
-                const { data: prof } = await supabase.from('profiles').select('organization_id, subscription_plan, role').eq('id', user.id).single();
+                const ctx = await getOrgContext(supabase);
+                const user = ctx.user;
                 // Piloto independiente = dueño de su propia org (role 'admin') en plan piloto.
-                // Los miembros de una org (piloto/jefe/gsms) también tienen profile.subscription_plan='piloto',
+                // Los miembros de una org (piloto/jefe/gsms) también tienen subscription_plan='piloto',
                 // pero NO son independientes: deben usar el despacho con orden de vuelo.
-                const pilotPlan = isPilotoIndependiente({ role: prof?.role, plan: prof?.subscription_plan });
+                const pilotPlan = isPilotoIndependiente({ role: ctx.role, plan: ctx.subscription_plan });
                 setIsPilotoPlan(pilotPlan);
-                setUserRole(prof?.role || null);
+                setUserRole(ctx.role || null);
 
                 const [auths, batteries, aircraft, health, org, plans, riskConfigRes] = await Promise.all([
                     fetch('/api/flights/authorize').then(r => r.json()),
-                    supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).eq('status', 'Operativo'),
-                    supabase.from('aircraft').select('id, model, serial_number, operational_status').eq('organization_id', prof.organization_id).neq('status', 'Baja').neq('operational_status', 'en_mantenimiento').eq('minor_maintenance_due', false),
+                    supabase.from('batteries').select('*').eq('organization_id', ctx.orgId).eq('status', 'Operativo'),
+                    supabase.from('aircraft').select('id, model, serial_number, operational_status').eq('organization_id', ctx.orgId).neq('status', 'Baja').neq('operational_status', 'en_mantenimiento').eq('minor_maintenance_due', false),
                     supabase.from('daily_health_checks').select('*').eq('user_id', user.id).eq('check_date', new Date().toISOString().split('T')[0]),
-                    supabase.from('organizations').select('enable_health_check, enable_inventory_checklist, enable_preflight, enable_briefing').eq('id', prof.organization_id).single(),
+                    supabase.from('organizations').select('enable_health_check, enable_inventory_checklist, enable_preflight, enable_briefing').eq('id', ctx.orgId).single(),
                     fetch('/api/flight-plans').then(r => { if (!r.ok) { console.warn('[fetch] /api/flight-plans failed:', r.status); return []; } return r.json(); }),
                     fetch('/api/safety/risk-config').then(r => r.json()).catch(() => ({ probability: [], severity: [], tolerability: [] })),
                 ]);
@@ -93,7 +94,7 @@ export default function NewOperationPage() {
                 const { data: pilotRow } = await supabase
                     .from('pilots')
                     .select('id')
-                    .eq('organization_id', prof.organization_id)
+                    .eq('organization_id', ctx.orgId)
                     .or(`email.eq.${user.email},owner_id.eq.${user.id},profile_id.eq.${user.id}`)
                     .limit(1)
                     .maybeSingle();
@@ -105,7 +106,7 @@ export default function NewOperationPage() {
                     const { data: exam } = await supabase
                         .from('training_exams')
                         .select('*')
-                        .eq('organization_id', prof.organization_id)
+                        .eq('organization_id', ctx.orgId)
                         .eq('type', 'operaciones')
                         .maybeSingle();
                     if (exam) {
@@ -129,8 +130,7 @@ export default function NewOperationPage() {
     useEffect(() => {
         async function loadLabels() {
             if (step === 'data' || step === 'risk') return; // 'risk' no usa form_definitions, tiene su propio formulario
-            const { data: { user } } = await supabase.auth.getUser();
-            const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+            const ctx = await getOrgContext(supabase);
             // El checklist de pre-vuelo es por modelo de aeronave. El flujo con orden de
             // vuelo lo resuelve desde la misión (selectedAuth.aircraft.model); el piloto
             // independiente no tiene orden de vuelo, así que se resuelve desde la
@@ -140,7 +140,7 @@ export default function NewOperationPage() {
             const modelToFilter = step === 'preflight'
                 ? (selectedAuth?.aircraft?.model || selectedAircraftModel || 'General')
                 : 'General';
-            const { data } = await supabase.from('form_definitions').select('*, equipment_stock:equipment_stock_id(name, quantity)').eq('organization_id', prof.organization_id).eq('form_type', step).eq('aircraft_model', modelToFilter).order('field_number', { ascending: true });
+            const { data } = await supabase.from('form_definitions').select('*, equipment_stock:equipment_stock_id(name, quantity)').eq('organization_id', ctx.orgId).eq('form_type', step).eq('aircraft_model', modelToFilter).order('field_number', { ascending: true });
             setDynamicLabels(data || []);
         }
         loadLabels();
@@ -247,8 +247,8 @@ export default function NewOperationPage() {
     const handleFinalize = async () => {
         setSaving(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+            const ctx = await getOrgContext(supabase);
+            const user = ctx.user;
 
             let flightRecord;
 
@@ -271,7 +271,7 @@ export default function NewOperationPage() {
                     plan_id:         form.plan_id || null,
                     location:        selPlan?.location || null,
                     flight_date:     new Date().toISOString().split('T')[0],
-                    organization_id: prof.organization_id,
+                    organization_id: ctx.orgId,
                     owner_id:        user.id,
                 };
             } else {

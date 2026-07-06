@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
+import { getOrgContext } from '@/lib/apiAuth';
 
 
 const ALLOWED_MIME = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
@@ -28,19 +29,13 @@ export default function FleetImageUpload({ onUploadSuccess }) {
 
     setUploading(true);
     try {
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth?.user) throw new Error('Sesión expirada.');
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', auth.user.id)
-        .single();
-      if (!profile?.organization_id) throw new Error('Organización no encontrada.');
+      const ctx = await getOrgContext(supabase);
+      if (!ctx.user) throw new Error('Sesión expirada.');
+      if (!ctx.orgId) throw new Error('Organización no encontrada.');
 
       const ext = file.name.split('.').pop().toLowerCase();
       const slug = Math.random().toString(36).slice(2, 10);
-      const path = `${profile.organization_id}/drones/${Date.now()}_${slug}.${ext}`;
+      const path = `${ctx.orgId}/drones/${Date.now()}_${slug}.${ext}`;
 
       // Subida PROXY por el servidor (mismo origen → sin CORS ni URL prefirmada)
       const fd = new FormData();

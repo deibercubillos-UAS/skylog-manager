@@ -4,6 +4,21 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import { getOrgContext } from '@/lib/apiAuth';
+
+// Plan/vigencia/ePayco de la cuenta para su organización activa — vía
+// organization_members (fuente real), no profiles directo. `orgId` ya
+// resuelto (getOrgContext) para no repetir esa resolución en cada poll.
+async function fetchSubscriptionState(userId, orgId) {
+  if (!orgId) return null;
+  const { data } = await supabase
+    .from('organization_members')
+    .select('subscription_plan, subscription_expires_at, epayco_subscription_id')
+    .eq('user_id', userId)
+    .eq('organization_id', orgId)
+    .single();
+  return data;
+}
 
 const FEATURE_LABELS = {
   maintenance:    { icon: 'build',        label: 'Mantenimiento' },
@@ -129,19 +144,17 @@ export default function ManageSubscriptionPage() {
   const pollRef         = useRef(null);  // interval de polling del perfil
   const winWatchRef     = useRef(null);  // interval que vigila el cierre del popup
   const payWindowRef    = useRef(null);  // referencia a la pestaña de ePayco
+  const orgIdRef        = useRef(null);  // organización activa (resuelta una vez en load())
   const baselinePlanRef = useRef(null);  // plan antes de iniciar el pago
   const pollDeadlineRef = useRef(null);  // timestamp límite del polling
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('subscription_plan, subscription_expires_at, epayco_subscription_id, email')
-          .eq('id', user.id)
-          .single();
-        setProfile(data);
+      const ctx = await getOrgContext(supabase);
+      if (ctx.user) {
+        orgIdRef.current = ctx.orgId;
+        const data = await fetchSubscriptionState(ctx.user.id, ctx.orgId);
+        setProfile(data ? { ...data, email: ctx.user.email } : null);
       }
       setLoading(false);
 
@@ -204,11 +217,7 @@ export default function ManageSubscriptionPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
-      const { data } = await supabase
-        .from('profiles')
-        .select('subscription_plan, subscription_expires_at')
-        .eq('id', user.id)
-        .single();
+      const data = await fetchSubscriptionState(user.id, orgIdRef.current);
       if (!data) return false;
       const base = baselinePlanRef.current;
       const isPaidNow = data.subscription_plan && data.subscription_plan !== 'piloto';
@@ -317,12 +326,8 @@ export default function ManageSubscriptionPage() {
         // Refrescar perfil para mostrar el nuevo plan
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('subscription_plan, subscription_expires_at, epayco_subscription_id, email')
-            .eq('id', user.id)
-            .single();
-          setProfile(data);
+          const data = await fetchSubscriptionState(user.id, orgIdRef.current);
+          setProfile(data ? { ...data, email: user.email } : null);
         }
       }
     } catch (e) {

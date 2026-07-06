@@ -389,6 +389,98 @@ sigue activo de respaldo (no se retira, eso es la Fase 7), pero deja de ser la �
   migración SQL en esta fase — solo código de aplicación, la tabla y sus políticas ya existían
   desde las Fases 0/3.
 
+### Fase 7 — Lecturas restantes migradas a `organization_members` (2026-07-06)
+
+Antes de construir se confirmó con el usuario (`AskUserQuestion`) el alcance real: a
+diferencia de las Fases 0-6, esta fase **no cambia comportamiento observable** en el caso
+normal — `profiles.role`/`organization_id`/`subscription_plan`/campos de ePayco ya reflejan
+correctamente la organización activa (gracias a `switch-active` + el trigger-puente de la
+Fase 0 + las escrituras explícitas de la Fase 6), así que leerlos directamente ya daba el
+valor correcto. El usuario eligió **"Solo migrar las lecturas"** (dejando las columnas
+legacy y el trigger intactos, sin retirarlos todavía — eso sigue siendo la Fase 8, diferida).
+
+- **Inventario real**: un agente Explore encontró 62 archivos con lecturas directas
+  calificadas (24 API routes, 13 helpers/Server Components, 24 Client Components) fuera de
+  `getOrgContext()`. Una revisión manual posterior (grep dirigido) encontró ~15 sitios
+  adicionales que el inventario había pasado por alto — la mayoría porque ya usaban
+  `getOrgContext()` para *algo* en el archivo pero tenían un segundo `.from('profiles')`
+  suelto más abajo para otra cosa (chequeo de rol redundante, roster de miembros de la org,
+  cuota de plan) — se migraron igual, quedando ~77 archivos tocados en total.
+- **Patrón único para casi todos los sitios**: reemplazar el `.from('profiles').select('role,
+  organization_id, ...')` propio por `getOrgContext(supabase)` — la misma función de la Fase 2,
+  que ya resuelve todo esto vía `organization_members`. Como `getOrgContext()` es una función
+  pura (solo toma un cliente Supabase y llama sus métodos, sin nada server-only), es
+  **exactamente igual de válida en Client Components** pasándole el cliente del navegador
+  (`@/lib/supabase`) que en API routes/Server Components pasándole el cliente SSR — no hizo
+  falta una versión "client-safe" aparte.
+- **`src/lib/authGuards.js`** (`requirePermission`, usado por 11 layouts server) ahora resuelve
+  vía `getOrgContext()` en vez de una consulta propia — `manuales/layout.js` y
+  `pilots/layout.js` (que reimplementaban el mismo guard a mano) se simplificaron a una sola
+  línea reutilizando `requirePermission()`.
+- **`src/utils/rbac.js` eliminado**: `validateRole()` no tenía ningún caller en todo el
+  proyecto (confirmado por grep) — código muerto de una versión anterior del guard, se borró
+  en vez de "migrarlo" sin sentido.
+- **`lib/notify.js`, `lib/manualNotify.js`, `lib/flight-plans` (notifyFlightPlan), y los
+  correos de VOR/MOR públicos** (`api/public/vor|mor/[orgCode]`): el patrón "listar
+  miembros de la org por rol para notificarlos" pasó de `profiles.eq('organization_id', orgId)`
+  a `organization_members.eq('organization_id', orgId).in('role', ...)` cruzado con
+  `profiles.active_organization_id` — mismo criterio exacto de antes (solo cuentan los
+  miembros que tienen esta org como **activa** ahora mismo, no cualquier membresía histórica),
+  documentado explícitamente en cada sitio para que quede claro que no es un cambio de
+  comportamiento.
+- **Bug real de latencia multi-org corregido de paso** (mismo patrón, several sitios): los
+  conteos de "¿es el único admin/miembro con este rol en la org?" (`auth/validate-join`,
+  `auth/register` join-mode, `auth/delete-account`, `api/user/delete`) contaban filas de
+  `profiles` filtradas por `organization_id` — eso solo cuenta cuentas que tienen esa org como
+  **activa ahora mismo**. Antes de la Fase 5 esto era intercambiable con "es miembro real",
+  porque una cuenta solo podía pertenecer a una org. Con multi-org ya no lo es: una cuenta que
+  es la única `jefe_pilotos` de una org pero cambió su organización activa a otra dejaría de
+  contar, permitiendo (incorrectamente) que alguien más tomara ese rol único, o haciendo que
+  "eliminar cuenta"/"eliminar mi cuenta" borrara una organización que en realidad todavía tiene
+  otros miembros reales. Migrado a contar `organization_members` (membresía real,
+  independiente de cuál org tenga activa cada cuenta) en los 4 sitios.
+- **`api/fleet/[id]/transfer`**: resolver la org destino por el email de su admin pasó de
+  `profiles.select('organization_id, role').eq('email', ...)` a buscar el `id` en `profiles`
+  por email y luego su membresía admin/superadmin en `organization_members` — misma
+  semántica (transferir a la org que ese administrador gestiona activamente).
+- **`import-dji/route.js`, `flights/[id]/replay/route.js`**: sus propias reimplementaciones
+  de "plan del primer admin de la org" (duplicando lo que ya hace `getOrgPlan()` desde la
+  Fase 3) se reemplazaron por una llamada directa a `getOrgPlan()` — elimina la duplicación
+  además de migrar la lectura.
+- **`api/user/profile` (GET)**: seguía devolviendo `role`/`organization_id`/`subscription_plan`
+  crudos de `profiles` al cliente vía `select('*')`; ahora los sobreescribe con los valores
+  de `getOrgContext()` antes de responder — mismos valores (están sincronizados), pero ya no
+  se confía en la columna legacy para lo que el cliente realmente consume (confirmado que
+  los 2 callers reales de este endpoint solo leen `.role`).
+- **`dashboard/subscription/page.js`**: el polling de activación de pago (cada 4s durante el
+  flujo de checkout) leía `profiles.subscription_plan/subscription_expires_at/
+  epayco_subscription_id` en 3 sitios. Se resolvió con un `orgIdRef` (la org activa no cambia
+  mientras la página está abierta, se resuelve una sola vez con `getOrgContext()`) + un
+  helper local `fetchSubscriptionState()` que consulta `organization_members` — evita repetir
+  la resolución de organización activa en cada tick del polling.
+- **Deliberadamente sin tocar** (confirmado caso por caso): `dashboard/layout.js`
+  (auto-provisión de org) y `dashboard/select-plan/page.js` — ambos escriben `profiles`
+  **client-side** con la sesión del propio usuario; `organization_members` no tiene política
+  de INSERT/UPDATE para el usuario final (solo lectura propia/compañeros), y agregarla para
+  cubrir estos 2 sitios habría sido un retroceso de seguridad real (mismo razonamiento ya
+  documentado en la Fase 6) a cambio de nada, porque el trigger-puente ya los mantiene
+  correctos. `api/auth/join-org` sigue fuera de todo el refactor (caso de uso distinto,
+  comportamiento destructivo intencional). `POST /api/org/switch-active` sigue escribiendo
+  `profiles` a propósito — es el mecanismo de proyección en sí.
+- **Verificación**: `npx next lint` + `npm run build` limpios (mismos 3 warnings
+  preexistentes) tras cada tanda de archivos migrados, no solo al final; `get_advisors`
+  (security) limpio, mismos 2 hallazgos preexistentes — sin migración SQL en esta fase.
+  **Limitación documentada**: no se hizo una prueba end-to-end en navegador real en este
+  entorno (sin sesión de usuario disponible) — la verificación se apoyó en que los valores
+  ya estaban probados idénticos desde las Fases 1-3, más revisión de código exhaustiva de
+  cada sitio migrado.
+
+**Próxima fase** (diferida a propósito, no se ejecuta todavía): Fase 8 — retirar las columnas
+legacy de `profiles` (`organization_id`, `role`, `subscription_plan`, campos de ePayco) y el
+trigger-puente de la Fase 0, una vez que las Fases 0-7 lleven un tiempo estables en
+producción. Es un cambio de esquema difícil de revertir en una base de datos en vivo con
+pagos reales — el plan original ya recomendaba no apurarlo.
+
 ---
 
 ## Roles y planes
@@ -2743,7 +2835,7 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 - [x] **`20260703_sms_reports_updated_at.sql` aplicada en Supabase (2026-07-03)** — columna `updated_at` + trigger en `sms_reports`. Ver **Seguimiento de casos SMS/VOR/MOR**.
 - [x] **`20260703_vor_mor_reported_fields.sql` aplicada en Supabase (2026-07-03)** — columnas `reported_severity`/`related_barrier_id` en `vor_mor_submissions`. Ver **Editor de formato VOR/MOR rediseñado**.
 - [x] **`20260702_billing_history.sql` aplicada en Supabase (2026-07-03)**, confirmado con el usuario al rediseñar Suscripción. Ver **Historial de facturación**.
-- [x] **`20260705_organization_members_phase0.sql` + `_phase1_rls_helpers.sql` + `_phase3_teammate_select.sql` aplicadas en Supabase (2026-07-05)** — tabla `organization_members` + `profiles.active_organization_id` + trigger-puente + funciones RLS centrales + política de lectura entre compañeros de org. Fase 6 (migrar los 14 sitios de escritura legacy a `organization_members` directamente, sin migración SQL) también aplicada. Ver **Multi-organización por cuenta**. Fase 7 (retirar columnas legacy de `profiles` + el trigger-puente) queda pendiente, deliberadamente diferida.
+- [x] **`20260705_organization_members_phase0.sql` + `_phase1_rls_helpers.sql` + `_phase3_teammate_select.sql` aplicadas en Supabase (2026-07-05)** — tabla `organization_members` + `profiles.active_organization_id` + trigger-puente + funciones RLS centrales + política de lectura entre compañeros de org. Fase 6 (migrar los 14 sitios de escritura legacy a `organization_members` directamente) y Fase 7 (migrar ~77 sitios de lectura restantes a `getOrgContext()`/`organization_members`, sin migración SQL en ninguna de las dos) también aplicadas. Ver **Multi-organización por cuenta**. Fase 8 (retirar columnas legacy de `profiles` + el trigger-puente) queda pendiente, deliberadamente diferida.
 - [ ] Agregar `DJI_API_KEY` a Vercel env vars
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a Vercel env vars
 - [ ] Agregar `AEROCIVIL_SALT` a Vercel env vars (el fallback inseguro ya fue removido — el endpoint lanza error si falta la variable)

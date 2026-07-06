@@ -1,18 +1,14 @@
 import { NextResponse }     from 'next/server';
 import { createClientSSR } from '@/lib/supabaseServer';
+import { getOrgContext }   from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 async function getSession(supabase) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return {};
-  const { data: prof } = await supabase
-    .from('profiles')
-    .select('organization_id, role')
-    .eq('id', user.id)
-    .single();
-  return { user, prof };
+  const ctx = await getOrgContext(supabase);
+  if (!ctx.user) return {};
+  return { user: ctx.user, prof: { organization_id: ctx.orgId, role: ctx.role } };
 }
 
 // ─── GET: list assessments for the org ───────────────────────────────────────

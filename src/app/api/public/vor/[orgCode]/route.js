@@ -166,12 +166,25 @@ async function notifySms({ org, submission, type, reporter_name, reporter_email,
         const resendKey = process.env.RESEND_API_KEY;
         if (!resendKey) return;
 
-        // Buscar gerentes SMS y admins de la org
-        const { data: recipients } = await supabaseAdmin
-            .from('profiles')
-            .select('email, first_name')
+        // Buscar gerentes SMS y admins de la org — vía organization_members
+        // (rol) + profiles.active_organization_id (mismo criterio que antes:
+        // solo cuentan los que tienen esta org como activa ahora mismo).
+        const { data: memberRows } = await supabaseAdmin
+            .from('organization_members')
+            .select('user_id')
             .eq('organization_id', org.id)
             .in('role', PERMISSIONS.canManageSMS);
+        const candidateIds = (memberRows || []).map(m => m.user_id);
+
+        let recipients = [];
+        if (candidateIds.length) {
+            const { data: profs } = await supabaseAdmin
+                .from('profiles')
+                .select('email, first_name')
+                .eq('active_organization_id', org.id)
+                .in('id', candidateIds);
+            recipients = profs || [];
+        }
 
         if (!recipients?.length) return;
 

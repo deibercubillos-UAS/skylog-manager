@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { updatePlan } from '@/lib/epayco';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,12 +12,10 @@ export async function GET() {
   // Esta tabla la gestiona el admin client (bypassa RLS), así que el guard
   // de sesión es la única barrera — no dejarla abierta.
   const ssr = await createClientSSR();
-  const { data: { user } } = await ssr.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  const ctx = await getOrgContext(ssr);
+  if (!ctx.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-  const { data: requester } = await ssr
-    .from('profiles').select('role').eq('id', user.id).single();
-  if (requester?.role !== 'superadmin') {
+  if (ctx.role !== 'superadmin') {
     return NextResponse.json({ error: 'Solo superadmin' }, { status: 403 });
   }
 
@@ -34,12 +33,10 @@ export async function GET() {
 export async function PATCH(request) {
   // Solo superadmin
   const supabase = await createClientSSR();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  const ctx = await getOrgContext(supabase);
+  if (!ctx.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-  const { data: profile } = await supabase
-    .from('profiles').select('role').eq('id', user.id).single();
-  if (profile?.role !== 'superadmin') {
+  if (ctx.role !== 'superadmin') {
     return NextResponse.json({ error: 'Solo superadmin' }, { status: 403 });
   }
 

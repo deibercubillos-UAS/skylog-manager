@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { hasPermission } from '@/lib/roles';
+import { getOrgContext } from '@/lib/apiAuth';
 import FileUpload from '@/components/FileUpload';
 import { toast } from '@/lib/toast';
 import PageHero from '@/components/PageHero';
@@ -184,21 +185,18 @@ export default function ReportsPage() {
     const canEditLogo = hasPermission(userRole, 'canEditOrg');
 
     const init = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data: prof } = await supabase
-            .from('profiles').select('organization_id, role').eq('id', user.id).single();
-        if (!prof?.organization_id) return;
+        const ctx = await getOrgContext(supabase);
+        if (!ctx.user) return;
+        if (!ctx.orgId) return;
 
         const [{ data: org }, { data: crew }, { data: fleet }, { data: vendors }] = await Promise.all([
-            supabase.from('organizations').select('*').eq('id', prof.organization_id).single(),
-            supabase.from('pilots').select('id, name').eq('organization_id', prof.organization_id),
-            supabase.from('aircraft').select('id, model, serial_number').eq('organization_id', prof.organization_id).order('model'),
-            supabase.from('suppliers').select('id, name').eq('organization_id', prof.organization_id).order('name'),
+            supabase.from('organizations').select('*').eq('id', ctx.orgId).single(),
+            supabase.from('pilots').select('id, name').eq('organization_id', ctx.orgId),
+            supabase.from('aircraft').select('id, model, serial_number').eq('organization_id', ctx.orgId).order('model'),
+            supabase.from('suppliers').select('id, name').eq('organization_id', ctx.orgId).order('name'),
         ]);
 
-        setUserRole(prof.role || null);
+        setUserRole(ctx.role || null);
         setOrgData(org);
         setPilots(crew || []);
         setAircraftList(fleet || []);

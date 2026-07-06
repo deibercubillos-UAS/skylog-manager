@@ -42,8 +42,9 @@ export async function GET(request) {
         if (aErr) throw aErr;
 
         // Regla de conteo: service role + .select('id') + .length.
+        // organization_members es la fuente real de membresía (no profiles).
         const adminSupabase = createAdminClient();
-        const { data: members } = await adminSupabase.from('profiles').select('id').eq('organization_id', orgId);
+        const { data: members } = await adminSupabase.from('organization_members').select('id').eq('organization_id', orgId);
         const total = (members || []).length;
 
         const bySessionDate = {};

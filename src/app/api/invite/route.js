@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
 import { PERMISSIONS, ASSIGNABLE_ROLES } from '@/lib/roles';
 import { roleFromPilotRole } from '@/lib/invitations';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,14 +24,10 @@ export async function POST(req) {
     if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
     // ── Autorización: solo admin o superadmin pueden invitar ─────────────────
-    const { data: profile, error: profError } = await supabase
-      .from('profiles')
-      .select('role, full_name, organization_id')
-      .eq('id', user.id)
-      .single();
+    const ctx = await getOrgContext(supabase);
+    const profile = { role: ctx.role, full_name: ctx.fullName, organization_id: ctx.orgId };
 
-
-    if (profError || !profile) {
+    if (!ctx.role) {
       return NextResponse.json({ error: "Perfil no encontrado" }, { status: 403 });
     }
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabaseServer';
 import { Resend } from 'resend';
 import { escHtml } from '@/lib/emailHelpers';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,11 +32,10 @@ function isValidEmail(e) {
 async function assertSuperadmin() {
   const supabase  = await createClient();
   const admin     = createAdminClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'No autenticado', status: 401 };
-  const { data: p } = await admin.from('profiles').select('role, full_name').eq('id', user.id).single();
-  if (p?.role !== 'superadmin') return { error: 'Acceso denegado', status: 403 };
-  return { user, admin, senderName: p.full_name || 'BitaFly' };
+  const ctx = await getOrgContext(supabase);
+  if (!ctx.user) return { error: 'No autenticado', status: 401 };
+  if (ctx.role !== 'superadmin') return { error: 'Acceso denegado', status: 403 };
+  return { user: ctx.user, admin, senderName: ctx.fullName || 'BitaFly' };
 }
 
 // GET /api/admin/master/invite — lista de organizaciones para el selector

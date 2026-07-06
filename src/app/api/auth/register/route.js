@@ -55,10 +55,11 @@ export async function POST(request) {
 
             const targetOrgId = org.id;
 
-            // Verificar disponibilidad del rol
+            // Verificar disponibilidad del rol — vía organization_members (fuente
+            // real de membresías por org, no profiles que solo refleja la org activa).
             if (UNIQUE_ROLES.includes(role)) {
                 const { count } = await supabaseAdmin
-                    .from('profiles')
+                    .from('organization_members')
                     .select('id', { count: 'exact', head: true })
                     .eq('organization_id', targetOrgId)
                     .eq('role', role);
@@ -70,7 +71,7 @@ export async function POST(request) {
 
             if (role === 'piloto') {
                 const { data: adminProf } = await supabaseAdmin
-                    .from('profiles')
+                    .from('organization_members')
                     .select('subscription_plan')
                     .eq('organization_id', targetOrgId)
                     .eq('role', 'admin')
@@ -79,7 +80,7 @@ export async function POST(request) {
                 const maxPilots  = PLAN_CONFIG[planKey]?.maxPilots;
                 if (maxPilots !== null && maxPilots !== undefined) {
                     const { count } = await supabaseAdmin
-                        .from('profiles')
+                        .from('organization_members')
                         .select('id', { count: 'exact', head: true })
                         .eq('organization_id', targetOrgId)
                         .eq('role', 'piloto');

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import { hasPermission } from '@/lib/roles';
+import { getOrgContext } from '@/lib/apiAuth';
 import { generateAckActaPdf } from '@/lib/manualActaPdf';
 import { fmtDateShort as fmtDate } from '@/lib/formatters';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -45,14 +46,12 @@ export default function ManualesPage() {
   useEffect(() => {
     (async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) { window.location.href = '/login'; return; }
-        const { data: prof } = await supabase
-          .from('profiles').select('role, organization_id').eq('id', user.id).single();
-        setRole(prof?.role || null);
-        if (prof?.organization_id) {
+        const ctx = await getOrgContext(supabase);
+        if (!ctx.user) { window.location.href = '/login'; return; }
+        setRole(ctx.role || null);
+        if (ctx.orgId) {
           const { data: org } = await supabase
-            .from('organizations').select('company_name').eq('id', prof.organization_id).maybeSingle();
+            .from('organizations').select('company_name').eq('id', ctx.orgId).maybeSingle();
           setOrgName(org?.company_name || 'Mi Organización');
         }
         await loadManuals();

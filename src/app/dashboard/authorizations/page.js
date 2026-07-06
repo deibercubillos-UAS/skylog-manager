@@ -3,29 +3,24 @@ import { createClient } from '@/lib/supabaseServer';
 import { redirect } from 'next/navigation';
 import MissionControlClient from './MissionControlClient';
 import { getOrgPlan } from '@/lib/orgPlan';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AuthorizePage() {
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  const ctx = await getOrgContext(supabase);
+  if (!ctx.user) redirect('/login');
 
-  // IMPORTANTE: incluir subscription_plan en el SELECT — sin esto la verificación
-  // del plan más abajo fallaría y mandaba todos los planes pagos al fallback piloto
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('organization_id, role, subscription_plan')
-    .eq('id', user.id)
-    .single();
+  const profile = { organization_id: ctx.orgId, role: ctx.role, subscription_plan: ctx.subscription_plan };
 
-  if (!['superadmin', 'admin', 'jefe_pilotos'].includes(profile?.role)) redirect('/dashboard');
+  if (!['superadmin', 'admin', 'jefe_pilotos'].includes(profile.role)) redirect('/dashboard');
 
-  // El plan efectivo de la org vive en el perfil del admin (organizations no
+  // El plan efectivo de la org vive en la membresía admin (organizations no
   // tiene columna de plan). Usar el plan del miembro bloquearía al Jefe de
-  // Pilotos (cuyo profile.subscription_plan es 'piloto').
-  const plan = await getOrgPlan(supabase, profile.organization_id, profile?.subscription_plan || 'piloto');
+  // Pilotos (cuyo subscription_plan es 'piloto').
+  const plan = await getOrgPlan(supabase, profile.organization_id, profile.subscription_plan || 'piloto');
   if (plan === 'piloto') {
     return (
       <div className="max-w-xl mx-auto py-16 px-6 text-center animate-in fade-in duration-500">

@@ -26,7 +26,7 @@ export async function GET(request) {
     // Regla de conteo: admin client + .select('id') + .length — NO count:'exact'/head:true
     // (PostgREST puede ignorar filtros RLS con head:true).
     const [profileRes, dronesRes, pilotsRes, flightsRes] = await Promise.all([
-      supabase.from('profiles').select('subscription_expires_at').eq('id', user.id).single(),
+      supabase.from('organization_members').select('subscription_expires_at').eq('user_id', user.id).eq('organization_id', orgId).single(),
       admin.from('aircraft').select('id').eq('organization_id', orgId),
       admin.from('pilots').select('pilot_role').eq('organization_id', orgId).eq('is_active', true),
       admin.from('flights').select('id').eq('organization_id', orgId).gte('flight_date', monthStartStr),

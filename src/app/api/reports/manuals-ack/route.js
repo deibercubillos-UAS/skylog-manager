@@ -28,8 +28,10 @@ export async function GET() {
 
         // Regla de conteo: service role + .select('id') + .length, nunca
         // count:'exact',head:true (PostgREST puede ignorar filtros RLS).
+        // organization_members es la fuente real de membresía (no profiles,
+        // que solo refleja la org ACTIVA de cada cuenta).
         const adminSupabase = createAdminClient();
-        const { data: members } = await adminSupabase.from('profiles').select('id').eq('organization_id', orgId);
+        const { data: members } = await adminSupabase.from('organization_members').select('id').eq('organization_id', orgId);
         const total = (members || []).length;
 
         const versionIds = (manuals || []).map(m => m.current_version_id).filter(Boolean);

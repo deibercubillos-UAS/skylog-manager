@@ -7,6 +7,7 @@ import { toast } from '@/lib/toast';
 import dynamic from 'next/dynamic';
 import { generateKML, downloadKML } from '@/lib/kmlGenerator';
 import { sailRoman, sailColor } from '@/lib/soraEngine';
+import { getOrgContext } from '@/lib/apiAuth';
 
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
     const hours = Math.floor(i / 2).toString().padStart(2, '0');
@@ -356,9 +357,12 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
 
     useEffect(() => {
         async function getProfile() {
-            const { data: { user } } = await supabase.auth.getUser();
-            const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-            setUserProfile(data);
+            const ctx = await getOrgContext(supabase);
+            if (!ctx.user) return;
+            const { data } = await supabase.from('profiles').select('*').eq('id', ctx.user.id).single();
+            // role/organization_id/subscription_plan se resuelven vía organization_members
+            // (organización activa), no desde la fila cruda de profiles.
+            setUserProfile({ ...data, role: ctx.role, organization_id: ctx.orgId, subscription_plan: ctx.subscription_plan });
         }
         getProfile();
     }, []);

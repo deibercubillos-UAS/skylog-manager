@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import FormBuilder from './_FormBuilder';
+import { getOrgContext } from '@/lib/apiAuth';
 
 const SMS_ROLES = ['superadmin', 'admin', 'gerente_sms'];
 const STATUS_LABELS = {
@@ -95,9 +96,8 @@ export default function VorMorPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { window.location.href = '/login'; return; }
 
-      const { data: prof } = await supabase.from('profiles')
-        .select('id, role, organization_id')
-        .eq('id', session.user.id).single();
+      const ctx = await getOrgContext(supabase);
+      const prof = { id: ctx.user.id, role: ctx.role, organization_id: ctx.orgId };
       setProfile(prof);
 
       const { data: org } = await supabase.from('organizations')
@@ -105,12 +105,23 @@ export default function VorMorPage() {
       // Preferir slug (nombre empresa) sobre unique_code (NIT) para las URLs públicas
       setOrgCode(org?.slug || org?.unique_code);
 
-      // Miembros SMS para asignación
-      const { data: members } = await supabase.from('profiles')
-        .select('id, first_name, last_name, role')
+      // Miembros SMS para asignación — vía organization_members (rol) +
+      // profiles.active_organization_id (mismo criterio que notify.js: solo
+      // cuentan los que tienen esta org como activa ahora mismo).
+      const { data: memberRows } = await supabase.from('organization_members')
+        .select('user_id')
         .eq('organization_id', prof.organization_id)
         .in('role', SMS_ROLES);
-      setTeamMembers(members || []);
+      const candidateIds = (memberRows || []).map(m => m.user_id);
+      let members = [];
+      if (candidateIds.length) {
+        const { data: profs } = await supabase.from('profiles')
+          .select('id, first_name, last_name, role')
+          .eq('active_organization_id', prof.organization_id)
+          .in('id', candidateIds);
+        members = profs || [];
+      }
+      setTeamMembers(members);
 
       setLoading(false);
     }

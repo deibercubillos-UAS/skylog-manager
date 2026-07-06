@@ -1,16 +1,16 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
         const supabase = await createClientSSR();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+        const ctx = await getOrgContext(supabase);
+        if (!ctx.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
-        const orgId = prof?.organization_id;
+        const orgId = ctx.orgId;
         if (!orgId) return NextResponse.json({ error: 'Sin organización asignada' }, { status: 403 });
 
         const [drones, crew, flights] = await Promise.all([

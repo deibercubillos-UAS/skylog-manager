@@ -2,6 +2,7 @@
 import { useEffect, useState, use } from 'react';
 import { useForm } from 'react-hook-form';
 import { supabase } from '@/lib/supabase';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export default function DynamicFormPage({ params }) {
     const resolvedParams = use(params);
@@ -15,17 +16,12 @@ export default function DynamicFormPage({ params }) {
     useEffect(() => {
         async function fetchTemplate() {
             try {
-                // Obtener usuario y org del perfil
-                const { data: { user } } = await supabase.auth.getUser();
+                // Obtener usuario y org activa
+                const ctx = await getOrgContext(supabase);
+                const user = ctx.user;
                 if (!user) { setError('No autenticado'); setLoading(false); return; }
 
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('organization_id')
-                    .eq('id', user.id)
-                    .single();
-
-                const currentOrgId = profile?.organization_id;
+                const currentOrgId = ctx.orgId;
                 if (!currentOrgId) { setError('Sin organización asignada'); setLoading(false); return; }
 
                 setOrgId(currentOrgId);

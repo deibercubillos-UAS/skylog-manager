@@ -3,6 +3,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { createClient } from '@supabase/supabase-js';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
 import { PERMISSIONS } from '@/lib/roles';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,14 +42,9 @@ export function decrypt(encryptedText) {
 
 // ─── Helpers ─────────────────────────────────────────────────
 async function getOrgAndRole(supabaseUser) {
-  const { data: { user } } = await supabaseUser.auth.getUser();
-  if (!user) return {};
-  const { data: prof } = await supabaseUser
-    .from('profiles')
-    .select('organization_id, role')
-    .eq('id', user.id)
-    .single();
-  return { user, prof };
+  const ctx = await getOrgContext(supabaseUser);
+  if (!ctx.user) return {};
+  return { user: ctx.user, prof: { organization_id: ctx.orgId, role: ctx.role } };
 }
 
 const ALLOWED_ROLES = PERMISSIONS.canManageAerocivil;

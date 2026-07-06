@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
+import { getOrgContext } from '@/lib/apiAuth';
 
 const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
 const MAX_FILE_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB (límite de subida proxy por Vercel)
@@ -31,22 +32,15 @@ export default function FileUpload({ path, onUploadSuccess, label, variant = 'de
 
       setUploading(true);
 
-      // 1. Obtener la sesión activa
-      const { data: auth, error: authError } = await supabase.auth.getUser();
-      if (authError || !auth.user) throw new Error("Sesión expirada. Por favor reingrese.");
+      // 1. Obtener la sesión activa + organización (vital para el aislamiento RLS del Storage)
+      const ctx = await getOrgContext(supabase);
+      if (!ctx.user) throw new Error("Sesión expirada. Por favor reingrese.");
 
-      // 2. Obtener el ID de organización (Vital para el aislamiento RLS del Storage)
-      const { data: profile, error: profError } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', auth.user.id)
-        .single();
-      
-      if (profError || !profile?.organization_id) {
+      if (!ctx.orgId) {
         throw new Error("No se pudo verificar la identidad de su organización.");
       }
 
-      const orgId = profile.organization_id;
+      const orgId = ctx.orgId;
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
       

@@ -43,20 +43,29 @@ export async function POST(request, { params }) {
     if (!aircraft) return NextResponse.json({ error: 'Aeronave no encontrada.' }, { status: 404 });
     if (aircraft.status === 'Transferido') return NextResponse.json({ error: 'La aeronave ya fue transferida.' }, { status: 409 });
 
-    // Buscar la organización destino por el email de su admin
+    // Buscar la organización destino por el email de su admin — vía
+    // organization_members (fuente real de rol/org), no profiles directo.
     const supabaseAdmin = createAdminClient();
-    const { data: targetProfile } = await supabaseAdmin
+    const { data: targetIdentity } = await supabaseAdmin
       .from('profiles')
-      .select('organization_id, role')
+      .select('id')
       .eq('email', targetEmail)
-      .in('role', ['admin', 'superadmin'])
       .maybeSingle();
 
-    if (!targetProfile?.organization_id) {
-      return NextResponse.json({ error: 'No se encontró una organización con ese administrador.' }, { status: 404 });
+    let targetOrgId = null;
+    if (targetIdentity?.id) {
+      const { data: targetMemberships } = await supabaseAdmin
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', targetIdentity.id)
+        .in('role', ['admin', 'superadmin'])
+        .limit(1);
+      targetOrgId = targetMemberships?.[0]?.organization_id || null;
     }
 
-    const targetOrgId = targetProfile.organization_id;
+    if (!targetOrgId) {
+      return NextResponse.json({ error: 'No se encontró una organización con ese administrador.' }, { status: 404 });
+    }
 
     if (targetOrgId === orgId) {
       return NextResponse.json({ error: 'La organización destino es la misma que la actual.' }, { status: 400 });

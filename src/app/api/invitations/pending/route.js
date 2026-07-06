@@ -25,10 +25,12 @@ export async function GET() {
 
     if (!invs?.length) return NextResponse.json({ invitations: [] });
 
-    // No mostrar invitación a la org en la que el usuario YA está
-    const { data: prof } = await admin
-      .from('profiles').select('organization_id').eq('id', user.id).maybeSingle();
-    const myOrg = prof?.organization_id || null;
+    // No mostrar invitación a ninguna org de la que el usuario YA es miembro
+    // (cualquier membresía, no solo la activa — organization_members es la
+    // fuente real de a qué orgs pertenece la cuenta).
+    const { data: memberships } = await admin
+      .from('organization_members').select('organization_id').eq('user_id', user.id);
+    const myOrgIds = new Set((memberships || []).map(m => m.organization_id));
 
     const orgIds = [...new Set(invs.map(i => i.organization_id))];
     const { data: orgs } = await admin
@@ -37,7 +39,7 @@ export async function GET() {
     (orgs || []).forEach(o => { orgName[o.id] = o.company_name; });
 
     const invitations = invs
-      .filter(i => i.organization_id !== myOrg)
+      .filter(i => !myOrgIds.has(i.organization_id))
       .map(i => ({
         id:        i.id,
         token:     i.token,

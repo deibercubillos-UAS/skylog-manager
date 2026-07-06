@@ -41,13 +41,29 @@ export async function createNotifications({
 
   const admin = createAdminClient();
 
-  // Miembros de la org (una sola consulta) — garantiza que todo destinatario
-  // pertenezca a la org, también los ids explícitos (evita cross-tenant).
-  const { data: members, error: mErr } = await admin
-    .from('profiles')
-    .select('id, role')
+  // Miembros de la org — resuelto vía organization_members (rol) cruzado con
+  // profiles.active_organization_id (mismo criterio que antes, cuando se leía
+  // profiles.organization_id directo: solo cuentan los que tienen esta org
+  // como ACTIVA ahora mismo, no cualquier membresía histórica). Garantiza que
+  // todo destinatario pertenezca a la org, también los ids explícitos (evita cross-tenant).
+  const { data: memberRows, error: mErr } = await admin
+    .from('organization_members')
+    .select('user_id, role')
     .eq('organization_id', orgId);
   if (mErr) { console.warn('[notify] no se pudieron leer miembros:', mErr.message); return 0; }
+
+  const candidateIds = (memberRows || []).map(m => m.user_id);
+  let members = [];
+  if (candidateIds.length) {
+    const { data: activeProfiles, error: pErr } = await admin
+      .from('profiles')
+      .select('id')
+      .eq('active_organization_id', orgId)
+      .in('id', candidateIds);
+    if (pErr) { console.warn('[notify] no se pudo verificar organización activa:', pErr.message); return 0; }
+    const activeIds = new Set((activeProfiles || []).map(p => p.id));
+    members = memberRows.filter(m => activeIds.has(m.user_id)).map(m => ({ id: m.user_id, role: m.role }));
+  }
 
   const orgMemberIds = new Set((members || []).map(m => m.id));
   const recipients = new Set();

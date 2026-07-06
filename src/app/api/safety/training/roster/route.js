@@ -19,14 +19,27 @@ export async function GET() {
             return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
         }
 
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('id, full_name, email, role')
-            .eq('organization_id', orgId)
-            .order('full_name');
-
+        // Roster real de la org — organization_members (rol) + identidad desde
+        // profiles (no profiles.organization_id, que solo refleja la org activa).
+        const { data: memberRows, error } = await supabase
+            .from('organization_members')
+            .select('user_id, role')
+            .eq('organization_id', orgId);
         if (error) throw error;
-        return NextResponse.json(data || []);
+
+        const roleByUser = new Map((memberRows || []).map(m => [m.user_id, m.role]));
+        const memberIds = [...roleByUser.keys()];
+        if (!memberIds.length) return NextResponse.json([]);
+
+        const { data: identities, error: idErr } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .in('id', memberIds)
+            .order('full_name');
+        if (idErr) throw idErr;
+
+        const data = (identities || []).map(p => ({ ...p, role: roleByUser.get(p.id) }));
+        return NextResponse.json(data);
     } catch (err) {
         return NextResponse.json({ error: err.message }, { status: 500 });
     }

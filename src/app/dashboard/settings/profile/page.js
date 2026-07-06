@@ -7,6 +7,7 @@ import { docOpenUrl } from '@/lib/docUrl';
 import { ROLE_LABELS } from '@/lib/roles';
 import { PLAN_CONFIG } from '@/lib/planLimits';
 import { isPilotoIndependiente } from '@/lib/pilotoIndependiente';
+import { getOrgContext } from '@/lib/apiAuth';
 
 const inputCls = "w-full p-3.5 bg-slate-50 rounded-xl border border-slate-200 font-bold text-sm text-slate-900";
 const labelCls = "text-[10px] font-black text-slate-400 uppercase tracking-wide ml-0.5";
@@ -127,17 +128,24 @@ useEffect(() => {
         setLastSignIn(session.user?.last_sign_in_at || null);
 
         // Perfil y organización en paralelo: primero el perfil, luego ambas queries a la vez
-        const { data: prof } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+        const [{ data: prof }, ctx] = await Promise.all([
+            supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+            getOrgContext(supabase),
+        ]);
 
-        if (prof?.organization_id) {
+        // role/organization_id/subscription_plan se resuelven vía organization_members
+        // (organización activa), no desde la fila cruda de profiles.
+        const profWithOrgCtx = { ...prof, role: ctx.role, organization_id: ctx.orgId, subscription_plan: ctx.subscription_plan };
+
+        if (ctx.orgId) {
             const { data: orgData } = await supabase
                 .from('organizations')
                 .select('company_name, unique_code')
-                .eq('id', prof.organization_id)
+                .eq('id', ctx.orgId)
                 .single();
-            setProfile({ ...prof, company_name: orgData?.company_name, unique_code: orgData?.unique_code });
+            setProfile({ ...profWithOrgCtx, company_name: orgData?.company_name, unique_code: orgData?.unique_code });
         } else {
-            setProfile(prof);
+            setProfile(profWithOrgCtx);
         }
         setLoading(false);
     }

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from '@/lib/toast';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export default function FinalizeFlightPage() {
     const router = useRouter();
@@ -21,19 +22,17 @@ export default function FinalizeFlightPage() {
 
     useEffect(() => {
     async function loadOpenFlights() {
-        const { data: { user } } = await supabase.auth.getUser();
-
-        // Obtenemos el perfil para filtrar por organización (Evita error 406)
-        const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
+        // Resuelve la organización activa vía organization_members (evita error 406)
+        const ctx = await getOrgContext(supabase);
 
         const [{ data, error }, { data: org }] = await Promise.all([
             supabase
                 .from('flights')
                 .select('*, aircraft(model, serial_number, total_hours)')
-                .eq('organization_id', prof.organization_id) // Filtro explícito
+                .eq('organization_id', ctx.orgId) // Filtro explícito
                 .is('landing_time', null)
                 .order('created_at', { ascending: false }),
-            supabase.from('organizations').select('slug, unique_code').eq('id', prof.organization_id).maybeSingle(),
+            supabase.from('organizations').select('slug, unique_code').eq('id', ctx.orgId).maybeSingle(),
         ]);
         setOrgCode(org?.slug || org?.unique_code || null);
 

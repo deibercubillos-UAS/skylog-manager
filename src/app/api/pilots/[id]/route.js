@@ -86,17 +86,10 @@ export async function DELETE(request, { params }) {
     const { id } = await params;
 
     const supabase = await createClientSSR();
-    const { user, orgId } = await getOrgContext(supabase);
+    const { orgId, role } = await getOrgContext(supabase);
     if (!orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    // Verificar rol en servidor
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (!PERMISSIONS.canManageFleet.includes(profile?.role)) {
+    if (!PERMISSIONS.canManageFleet.includes(role)) {
       return NextResponse.json({ error: 'Sin permisos para dar de baja tripulantes' }, { status: 403 });
     }
 

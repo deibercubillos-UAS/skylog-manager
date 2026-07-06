@@ -5,16 +5,16 @@
 
 import { createClient, createAdminClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
 async function requireSuperadmin() {
   const supabase = await createClient();
   const admin    = createAdminClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'No autenticado', status: 401 };
-  const { data: prof } = await admin.from('profiles').select('role').eq('id', user.id).single();
-  if (prof?.role !== 'superadmin') return { error: 'Acceso denegado', status: 403 };
+  const ctx = await getOrgContext(supabase);
+  if (!ctx.user) return { error: 'No autenticado', status: 401 };
+  if (ctx.role !== 'superadmin') return { error: 'Acceso denegado', status: 403 };
   return { admin };
 }
 

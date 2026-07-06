@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import ProgramacionActivaClient from '../programacion-activa/ProgramacionActivaClient';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,19 +13,17 @@ export default function MisVuelosPage() {
 
   useEffect(() => {
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
+      const ctx = await getOrgContext(supabase);
+      const user = ctx.user;
       if (!user) { setReady(true); return; }
       setEmail(user.email || null);
 
-      // Perfil → organización, luego localizar la fila pilots vinculada al usuario
-      const { data: prof } = await supabase
-        .from('profiles').select('organization_id').eq('id', user.id).single();
-      if (prof?.organization_id) {
+      // Organización activa, luego localizar la fila pilots vinculada al usuario
+      if (ctx.orgId) {
         const { data: pilot } = await supabase
           .from('pilots')
           .select('id')
-          .eq('organization_id', prof.organization_id)
+          .eq('organization_id', ctx.orgId)
           .or(`profile_id.eq.${user.id},owner_id.eq.${user.id},email.eq.${user.email}`)
           .limit(1)
           .maybeSingle();

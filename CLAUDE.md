@@ -525,6 +525,76 @@ lleven un tiempo estables en producción. Es un cambio de esquema difícil de re
 base de datos en vivo con pagos reales — el plan original ya recomendaba no apurarlo, y esta
 verificación confirma que hay trabajo real pendiente antes de poder hacerlo con seguridad.
 
+### Bugs reales encontrados y corregidos: switcher + invitaciones (2026-07-06)
+
+El usuario reportó en producción: (1) una invitación aceptada no dejaba al invitado como
+tripulante visible en la org que invitó, (2) el switcher de organizaciones aparece pero "no
+cambia", (3) pidió poder cambiar de organización desde el nombre de la organización en la
+parte superior (header), y (4) que el cambio recargue y refleje el perfil/rol de la otra
+organización. Auditoría completa del código + datos reales en Supabase confirmó 3 causas
+raíz distintas, ninguna documentada hasta ahora:
+
+- **Causa raíz de (2), la más grave — trigger preexistente no relacionado con este
+  refactor**: `prevent_unauthorized_role_change()` (detectado sin arreglar en la Fase 8)
+  bloqueaba **cualquier** `UPDATE` de `profiles.role` hecho vía `createAdminClient()`
+  (service role) cuando el rol cambiaba, porque compara contra `private.can_change_roles()`,
+  que depende de `auth.uid()` — `NULL` bajo el cliente admin (no hay JWT de usuario, solo la
+  service role key). Esto rompía `POST /api/org/switch-active` en silencio (excepción SQL,
+  capturada y devuelta como 500) cada vez que el rol de la cuenta difiere entre las 2
+  organizaciones (ej. admin en una, piloto en otra — el caso real de un dueño de escuela con
+  varias empresas, uno de los 2 casos de uso confirmados al diseñar este refactor). El
+  frontend (`handleSwitchOrg`) solo hacía `console.error`, sin avisar al usuario — de ahí
+  "aparece pero no cambia" sin ningún mensaje visible. **Corregido** (migración
+  `fix_role_change_guard_service_role`): el trigger ahora también permite el cambio cuando
+  `auth.role() = 'service_role'` — las rutas que ya llegan a este punto (`switch-active`,
+  `admin/users`, `epaycoActivation.js`, etc.) validan el permiso a nivel de aplicación antes,
+  el trigger solo debía proteger contra un usuario autenticado normal auto-promoviéndose.
+  `handleSwitchOrg` ahora también muestra `toast.error(...)` si la llamada falla, en vez de
+  fallar en silencio.
+- **Causa raíz de (1)**: `AddPilotPanel.js` (ambos modos, "Registro completo" y "Solo
+  invitación") llamaba a `/api/invite` — que **solo enviaba el correo**, nunca escribía
+  `invitations` correctamente — y luego el cliente insertaba una fila a mano en
+  `invitations` con datos incompletos: modo "Registro completo" grababa
+  `status: 'creado_manualmente'` (no `'pending'`, el único status que el banner de aceptar
+  filtra — la invitación quedaba invisible para el invitado) y modo "Solo invitación" nunca
+  creaba una fila `pilots` ni pasaba `pilot_id`, así que al aceptar,
+  `POST /api/invitations/accept` agregaba la membresía a `organization_members` (por eso el
+  switcher SÍ aparecía — confirma que (1) y (2) son la misma cadena de eventos) pero no
+  encontraba ningún `pilots` que vincular. Además, el rol se guardaba como el label crudo
+  ("Piloto") en vez del rol de sistema normalizado ('piloto') — confirmado en datos reales de
+  producción (una cuenta de prueba tenía exactamente esta corrupción, reparada manualmente:
+  `organization_members.role` 'Piloto'→'piloto', fila `pilots` faltante creada,
+  `invitations.role` históricas normalizadas). **Corregido**: `/api/invite` ahora es la única
+  fuente de verdad — usa `createCrewInvitation()` (el mismo helper ya usado por la
+  importación masiva, con `sendEmail:false` porque esta ruta ya tiene su propia plantilla con
+  el NIT para prellenar el flujo de registro) para crear/reutilizar la fila `invitations` real
+  (token/`pilot_id`/`status='pending'`/rol normalizado), y envía el CTA correcto según
+  `isExistingUser` (login vs. registro — antes siempre mandaba al registro, incluso para
+  cuentas existentes). `AddPilotPanel.js` ya no inserta nada a mano en `invitations`; pasa
+  `pilotId` en modo "Registro completo" y agrega `invitation_status: 'pending'` a la fila
+  `pilots` que crea (antes quedaba `null`, sin badge). `POST /api/invitations/accept` ahora
+  crea la fila `pilots` si no encuentra ninguna para vincular (mismo patrón ya usado por
+  `auth/register` en modo "unirse por NIT") — garantiza que aceptar SIEMPRE deja un
+  tripulante visible, sin depender de que el creador de la invitación haya hecho bien su
+  parte. `InvitationsBanner.js`: se corrigió el copy que aún decía "tu flota y bitácora se
+  transferirán" (comportamiento destructivo superado desde la Fase 5).
+- **(3) y (4)**: el nombre de la organización en el header (`dashboard/layout.js`) era texto
+  estático. Ahora, si la cuenta tiene más de una organización (`memberships.length > 1`,
+  mismo criterio que el switcher existente en el popover de cuenta del sidebar, que se deja
+  intacto como acceso alterno), ese mismo bloque se vuelve un botón con dropdown que lista las
+  organizaciones y llama al mismo `handleSwitchOrg()` — cero cambio visual para cuentas de una
+  sola organización. Con (2) corregido, la recarga completa (`window.location.href =
+  '/dashboard'`) que ya disparaba `handleSwitchOrg()` vuelve a reflejar correctamente
+  rol/plan/permisos de la organización recién activada (menús ocultos/mostrados según
+  `filteredLinks`, todo se recalcula desde el perfil recién leído tras el reload).
+- **Verificación**: `get_advisors` (security) limpio antes y después de la migración y del
+  repair de datos (mismos 2 hallazgos preexistentes); `npx next lint` + `npm run build`
+  limpios (mismos 3 warnings preexistentes). **Limitación documentada**: no se hizo prueba
+  end-to-end en navegador real en este entorno (sin sesión de usuario disponible) — la
+  verificación se apoyó en reproducir la causa raíz contra los datos reales de producción
+  (la cuenta de prueba corrupta encontrada) y confirmar que la migración + el código nuevo la
+  habrían evitado.
+
 ---
 
 ## Roles y planes

@@ -54,6 +54,7 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
               organization_id: prof.organization_id,
               medical_expiry: form.medical_expiry === '' ? null : form.medical_expiry,
               aerocivil_additions: aerocivilChecked,
+              invitation_status: 'pending',
           };
 
           // 1. Insertar piloto y guardar su ID para poder hacer rollback
@@ -62,7 +63,9 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
           if (dbError) throw dbError;
           insertedPilotId = pilotData.id;
 
-          // 2. Enviar invitación — si falla, hacer rollback del piloto
+          // 2. Enviar invitación (crea la fila real en `invitations` con
+          // token/pilot_id/status='pending' server-side — ver /api/invite)
+          // — si falla, hacer rollback del piloto.
           const inviteRes = await fetch('/api/invite', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -71,7 +74,8 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
                   role: form.pilot_role,
                   orgName: org.company_name,
                   inviterName: prof.full_name,
-                  orgCode: org.unique_code
+                  orgCode: org.unique_code,
+                  pilotId: insertedPilotId,
               })
           });
 
@@ -81,15 +85,6 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
               const errBody = await inviteRes.json().catch(() => ({}));
               throw new Error(errBody.error || 'No se pudo enviar la invitación');
           }
-
-          // 3. Registrar invitación en la tabla
-          await supabase.from('invitations').insert([{
-              email: form.email,
-              role: form.pilot_role,
-              organization_id: prof.organization_id,
-              invited_by: user.id,
-              status: 'creado_manualmente'
-          }]);
 
           toast.success(`Tripulante registrado. Correo de acceso enviado a ${form.email}`);
           onSuccess();
@@ -106,10 +101,12 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
     setLoading(true);
     try {
       const ctx = await getOrgContext(supabase);
-      const user = ctx.user;
       const prof = { organization_id: ctx.orgId, full_name: ctx.fullName };
       const { data: org } = await supabase.from('organizations').select('company_name, unique_code').eq('id', prof.organization_id).single();
 
+      // /api/invite crea la fila real en `invitations` server-side (token/status
+      // 'pending') — sin pilotId: no hay una fila `pilots` propia todavía, se crea
+      // al aceptar (ver POST /api/invitations/accept).
       const res = await fetch('/api/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -123,14 +120,11 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
       });
 
       if (res.ok) {
-        await supabase.from('invitations').insert([{
-          email: inviteEmail,
-          role: form.pilot_role,
-          organization_id: prof.organization_id,
-          invited_by: user.id
-        }]);
         toast.success("Invitación enviada exitosamente.");
         onSuccess();
+      } else {
+        const errBody = await res.json().catch(() => ({}));
+        toast.error(errBody.error || 'No se pudo enviar la invitación');
       }
     } catch (e) { toast.error("Falla al enviar invitación"); }
     finally { setLoading(false); }

@@ -58,7 +58,7 @@ export default function InvitationsBanner() {
             <p className="text-sm font-black text-orange-900 uppercase tracking-tight">Invitación a una organización</p>
             <p className="text-xs text-orange-700 font-medium mt-0.5">
               Te invitaron a unirte a <strong>{inv.orgName}</strong> como <strong>{ROLE_LABEL[inv.role] || inv.role}</strong>.
-              Al aceptar, tu flota y bitácora se transferirán a esa organización.
+              Al aceptar, se agrega esta organización a tu cuenta — tus datos actuales no se tocan ni se transfieren.
             </p>
           </div>
           <div className="flex gap-2 shrink-0">

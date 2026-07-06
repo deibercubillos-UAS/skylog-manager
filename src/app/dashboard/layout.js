@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import NotificationBell from '@/components/NotificationBell';
 import GlobalSearch from '@/components/GlobalSearch';
 import { docOpenUrl } from '@/lib/docUrl';
+import { toast } from '@/lib/toast';
 import dynamic from 'next/dynamic';
 
 const InstallAppPrompt = dynamic(() => import('@/components/InstallAppPrompt'), { ssr: false });
@@ -33,6 +34,8 @@ export default function DashboardLayout({ children }) {
   // — el switcher solo se muestra si hay más de una.
   const [memberships, setMemberships]     = useState([]);
   const [switchingOrg, setSwitchingOrg]   = useState(false);
+  const [orgMenuOpen, setOrgMenuOpen]     = useState(false);
+  const orgMenuRef = useRef(null);
   // Grupos del sidebar contraídos por el usuario — persiste entre sesiones
   // (localStorage), igual que otras preferencias de UI de la app (ej. autosync DJI).
   const [collapsedGroups, setCollapsedGroups] = useState({});
@@ -234,6 +237,7 @@ export default function DashboardLayout({ children }) {
   useEffect(() => {
     const handler = (e) => {
       if (accountMenuRef.current && !accountMenuRef.current.contains(e.target)) setAccountMenuOpen(false);
+      if (orgMenuRef.current && !orgMenuRef.current.contains(e.target)) setOrgMenuOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -243,7 +247,7 @@ export default function DashboardLayout({ children }) {
   // una por cuenta, no por pestaña; recarga completa para que TODO el
   // contexto (RLS, getOrgContext, sidebar) quede consistente con la nueva org.
   const handleSwitchOrg = async (orgId) => {
-    if (switchingOrg || orgId === data.profile?.organization_id) { setAccountMenuOpen(false); return; }
+    if (switchingOrg || orgId === data.profile?.organization_id) { setAccountMenuOpen(false); setOrgMenuOpen(false); return; }
     setSwitchingOrg(true);
     try {
       const res = await fetch('/api/org/switch-active', {
@@ -255,7 +259,10 @@ export default function DashboardLayout({ children }) {
       window.location.href = '/dashboard';
     } catch (e) {
       console.error('[switch-org]', e.message);
+      toast.error(e.message || 'No se pudo cambiar de organización');
       setSwitchingOrg(false);
+      setAccountMenuOpen(false);
+      setOrgMenuOpen(false);
     }
   };
 
@@ -633,12 +640,58 @@ const footerLinks = footerLinksAll.filter(link =>
                 {isSidebarOpen ? 'menu_open' : 'menu'}
               </span>
             </button>
-            <div className="text-left truncate">
-              <p className="hidden lg:block text-xs font-black text-slate-400 uppercase leading-none tracking-widest">Organización</p>
-              <h2 className="text-xs md:text-sm font-black text-slate-900 uppercase truncate max-w-[120px] sm:max-w-xs md:max-w-none">
-                {data.org?.company_name || 'Individual'}
-              </h2>
-            </div>
+            {/* Nombre de la organización — si la cuenta pertenece a más de una,
+                este bloque se vuelve el switcher principal (pedido explícito
+                del usuario: cambiar de organización desde "la parte superior,
+                donde aparece el nombre de la organización"). Cuenta de una
+                sola org: mismo texto estático de siempre, sin cambio visual. */}
+            {memberships.length > 1 ? (
+              <div ref={orgMenuRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOrgMenuOpen(v => !v)}
+                  disabled={switchingOrg}
+                  className="flex items-center gap-1.5 text-left truncate rounded-lg px-1.5 -mx-1.5 py-1 hover:bg-slate-50 transition-colors disabled:opacity-60"
+                >
+                  <div className="truncate">
+                    <p className="hidden lg:block text-xs font-black text-slate-400 uppercase leading-none tracking-widest">Organización</p>
+                    <h2 className="text-xs md:text-sm font-black text-slate-900 uppercase truncate max-w-[120px] sm:max-w-xs md:max-w-none">
+                      {data.org?.company_name || 'Individual'}
+                    </h2>
+                  </div>
+                  <span className="material-symbols-outlined text-base text-slate-400 shrink-0">
+                    {orgMenuOpen ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+                {orgMenuOpen && (
+                  <div className="absolute left-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-2xl p-2 shadow-2xl z-30 space-y-0.5">
+                    <p className="px-3 pt-1 pb-1.5 text-[9.5px] font-black uppercase tracking-widest text-slate-400">Cambiar de organización</p>
+                    {memberships.map(m => (
+                      <button
+                        key={m.organization_id}
+                        onClick={() => handleSwitchOrg(m.organization_id)}
+                        disabled={switchingOrg}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50 ${
+                          m.organization_id === data.profile?.organization_id ? 'text-orange-600 bg-orange-50' : 'text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-base shrink-0">
+                          {m.organization_id === data.profile?.organization_id ? 'radio_button_checked' : 'radio_button_unchecked'}
+                        </span>
+                        <span className="truncate flex-1 text-left">{m.organizations?.company_name || 'Organización'}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-left truncate">
+                <p className="hidden lg:block text-xs font-black text-slate-400 uppercase leading-none tracking-widest">Organización</p>
+                <h2 className="text-xs md:text-sm font-black text-slate-900 uppercase truncate max-w-[120px] sm:max-w-xs md:max-w-none">
+                  {data.org?.company_name || 'Individual'}
+                </h2>
+              </div>
+            )}
             {/* Estado operativo — decorativo por ahora (sin fuente de datos de estado
                 de operación); confirma visualmente que el sistema está activo. */}
             <div className="hidden md:flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full pl-2 pr-3 py-1 shrink-0">

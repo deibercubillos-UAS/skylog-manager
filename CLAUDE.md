@@ -475,11 +475,55 @@ legacy y el trigger intactos, sin retirarlos todavía — eso sigue siendo la Fa
   ya estaban probados idénticos desde las Fases 1-3, más revisión de código exhaustiva de
   cada sitio migrado.
 
-**Próxima fase** (diferida a propósito, no se ejecuta todavía): Fase 8 — retirar las columnas
-legacy de `profiles` (`organization_id`, `role`, `subscription_plan`, campos de ePayco) y el
-trigger-puente de la Fase 0, una vez que las Fases 0-7 lleven un tiempo estables en
-producción. Es un cambio de esquema difícil de revertir en una base de datos en vivo con
-pagos reales — el plan original ya recomendaba no apurarlo.
+### Fase 8 — Verificación previa al retiro de columnas legacy (2026-07-06, sin drop todavía)
+
+El usuario pidió avanzar con la Fase 8 (retirar columnas legacy de `profiles` + el
+trigger-puente). Dado que las Fases 5-7 se acababan de aplicar sin ningún tiempo de
+estabilidad en producción ni prueba end-to-end en navegador real, se confirmó con el
+usuario (`AskUserQuestion`) el alcance real antes de tocar el esquema: **solo verificación
+exhaustiva, cero `ALTER TABLE`/`DROP` todavía** — el usuario decide después, con este
+resultado en mano, cuándo ejecutar el drop real.
+
+- **Lectura de código — un sitio real encontrado y corregido**: `api/pilots/my-documents/
+  route.js` (`notifyManagers`) todavía leía `profiles.organization_id`/`role` directo para
+  listar managers a notificar — el mismo patrón ya migrado 6+ veces en la Fase 7, que el
+  inventario original y la revisión manual posterior no habían atrapado. Migrado al mismo
+  patrón `organization_members` (rol) + `profiles.active_organization_id` (org activa).
+- **Funciones RLS (`private.*`) — limpias**: se inspeccionó la definición SQL real de las
+  12 funciones (`pg_get_functiondef`) — `get_my_org`/`get_my_org_id`/`user_org_id` leen
+  únicamente `active_organization_id` (no la columna legacy `organization_id`), `user_role()`
+  resuelve 100% desde `organization_members`. Ninguna función RLS depende ya de las columnas
+  legacy para leer — confirma lo que las Fases 1-3 ya habían hecho.
+- **2 triggers preexistentes NO relacionados con este refactor, encontrados como bloqueantes
+  reales para el drop** (no estaban documentados en ninguna fase anterior — no se habían
+  auditado hasta ahora): `link_pilot_on_profile_insert()` (dispara en `INSERT` sobre
+  `profiles`, usa `NEW.organization_id` para vincular automáticamente una fila `pilots`
+  existente por email) y `prevent_unauthorized_role_change()` (dispara en `UPDATE`, compara
+  `NEW.role` vs `OLD.role` para bloquear cambios de rol no autorizados). Ambos dejarían de
+  compilar/fallarían en cada operación sobre `profiles` si se eliminan `organization_id`/
+  `role` sin antes reescribirlos para leer `organization_members` — **bloqueante real
+  adicional para la Fase 8**, no contemplado en el plan original.
+- **Sincronía de datos — 100% exacta, sin muestreo**: comparación campo por campo
+  (`organization_id`, `role`, `subscription_plan`, los 3 campos de identificación de ePayco,
+  `subscription_expires_at`, `subscription_status`, `last_payment_date`) entre `profiles` y
+  `organization_members` para las 12 cuentas reales con organización — cero discrepancias en
+  cualquier campo. `organization_members` tiene exactamente 12 filas (= cuentas con org),
+  ninguna cuenta ha usado todavía el switcher para tener una segunda membresía activa
+  (`active_organization_id = organization_id` en las 12) — esperable, la función es nueva.
+- **Conclusión**: los datos están listos (sincronía perfecta), pero el código todavía
+  **no** lo está — los 2 triggers preexistentes (`link_pilot_on_profile_insert`,
+  `prevent_unauthorized_role_change`) necesitan reescribirse para depender de
+  `organization_members` antes de poder eliminar las columnas legacy sin romper el alta de
+  perfiles y el cambio de rol. Sin migración SQL en esta fase — solo el fix de código de
+  `pilots/my-documents/route.js` (`npx next lint` + `npm run build` limpios, mismos 3
+  warnings preexistentes).
+
+**Próxima fase** (diferida a propósito, no se ejecuta todavía): Fase 9 — reescribir los 2
+triggers preexistentes para depender de `organization_members`, y solo entonces retirar las
+columnas legacy de `profiles` + el trigger-puente de la Fase 0, una vez que las Fases 0-7
+lleven un tiempo estables en producción. Es un cambio de esquema difícil de revertir en una
+base de datos en vivo con pagos reales — el plan original ya recomendaba no apurarlo, y esta
+verificación confirma que hay trabajo real pendiente antes de poder hacerlo con seguridad.
 
 ---
 
@@ -2835,7 +2879,7 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 - [x] **`20260703_sms_reports_updated_at.sql` aplicada en Supabase (2026-07-03)** — columna `updated_at` + trigger en `sms_reports`. Ver **Seguimiento de casos SMS/VOR/MOR**.
 - [x] **`20260703_vor_mor_reported_fields.sql` aplicada en Supabase (2026-07-03)** — columnas `reported_severity`/`related_barrier_id` en `vor_mor_submissions`. Ver **Editor de formato VOR/MOR rediseñado**.
 - [x] **`20260702_billing_history.sql` aplicada en Supabase (2026-07-03)**, confirmado con el usuario al rediseñar Suscripción. Ver **Historial de facturación**.
-- [x] **`20260705_organization_members_phase0.sql` + `_phase1_rls_helpers.sql` + `_phase3_teammate_select.sql` aplicadas en Supabase (2026-07-05)** — tabla `organization_members` + `profiles.active_organization_id` + trigger-puente + funciones RLS centrales + política de lectura entre compañeros de org. Fase 6 (migrar los 14 sitios de escritura legacy a `organization_members` directamente) y Fase 7 (migrar ~77 sitios de lectura restantes a `getOrgContext()`/`organization_members`, sin migración SQL en ninguna de las dos) también aplicadas. Ver **Multi-organización por cuenta**. Fase 8 (retirar columnas legacy de `profiles` + el trigger-puente) queda pendiente, deliberadamente diferida.
+- [x] **`20260705_organization_members_phase0.sql` + `_phase1_rls_helpers.sql` + `_phase3_teammate_select.sql` aplicadas en Supabase (2026-07-05)** — tabla `organization_members` + `profiles.active_organization_id` + trigger-puente + funciones RLS centrales + política de lectura entre compañeros de org. Fase 6 (migrar los 14 sitios de escritura legacy a `organization_members` directamente) y Fase 7 (migrar ~77 sitios de lectura restantes a `getOrgContext()`/`organization_members`, sin migración SQL en ninguna de las dos) también aplicadas. Fase 8 (verificación previa al retiro de columnas, 2026-07-06, sin drop) encontró 2 triggers preexistentes (`link_pilot_on_profile_insert`, `prevent_unauthorized_role_change`) que aún dependen de las columnas legacy y deben reescribirse antes de poder retirarlas. Ver **Multi-organización por cuenta**. Fase 9 (reescribir esos 2 triggers y retirar columnas legacy de `profiles` + el trigger-puente) queda pendiente, deliberadamente diferida.
 - [ ] Agregar `DJI_API_KEY` a Vercel env vars
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a Vercel env vars
 - [ ] Agregar `AEROCIVIL_SALT` a Vercel env vars (el fallback inseguro ya fue removido — el endpoint lanza error si falta la variable)

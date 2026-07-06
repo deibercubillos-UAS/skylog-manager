@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabaseServer';
+import { isPilotoIndependiente } from '@/lib/pilotoIndependiente';
 import FormSettingsClient from './FormSettingsClient';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,10 +10,8 @@ export default async function FormSettingsPage() {
 
     // PASO 2: PARALELISMO TOTAL EN EL SERVIDOR (TTFB < 200ms)
     // Obtenemos todo lo necesario para el renderizado inicial antes de que el cliente cargue
-    const { data: { user } } = await supabase.auth.getUser();
-
-    // Obtenemos perfil y datos iniciales en una sola ráfaga
-    const { data: profile } = await supabase.from('profiles').select('organization_id, role, subscription_plan').eq('id', user?.id).single();
+    const ctx = await getOrgContext(supabase);
+    const profile = { organization_id: ctx.orgId, role: ctx.role, subscription_plan: ctx.subscription_plan };
 
     const [dronesRes, orgRes, defsRes] = await Promise.all([
         supabase.from('aircraft').select('model').eq('organization_id', profile?.organization_id),
@@ -28,7 +28,7 @@ export default async function FormSettingsPage() {
     defsRes.data?.forEach(d => { initialLabels[d.field_number] = d.label_text; });
 
     // Manuales aplica solo a organizaciones — el piloto independiente (admin + plan piloto) no lo ve.
-    const showManualsLink = !(profile?.role === 'admin' && profile?.subscription_plan === 'piloto');
+    const showManualsLink = !isPilotoIndependiente({ role: profile?.role, plan: profile?.subscription_plan });
 
     const initialData = {
         organizationId: profile?.organization_id,

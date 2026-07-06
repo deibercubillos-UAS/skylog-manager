@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { toast } from '@/lib/toast';
 
-const CATEGORIES = ['Pre-vuelo', 'En vuelo', 'Post-vuelo', 'Emergencia', 'Mantenimiento'];
+const CATEGORIES = ['Prevuelo', 'Reportes', 'Seguridad Operacional', 'Mantenimiento'];
 const ICONS = [
   'checklist', 'photo_camera', 'flight_land', 'signal_disconnected', 'report_problem',
   'fact_check', 'battery_charging_full', 'build', 'engineering', 'medical_services',
@@ -15,7 +15,7 @@ export default function AddProtocolPanel({ protocol, onClose, onSuccess }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [form, setForm] = useState({
     name:        protocol?.name || '',
-    category:    protocol?.category || 'Pre-vuelo',
+    category:    protocol?.category || 'Prevuelo',
     description: protocol?.description || '',
     icon:        protocol?.icon || 'checklist',
   });

@@ -83,14 +83,28 @@ const NAV_CARD_HREF = {
   inventory: '/dashboard/inventory-checklist',
 };
 
-const CATEGORY_STYLE = {
-  'Pre-vuelo':     { color: '#4f46e5', bg: '#eef2ff' },
-  'En vuelo':      { color: '#0d9488', bg: '#f0fdfa' },
-  'Post-vuelo':    { color: '#16a34a', bg: '#f0fdf4' },
-  'Emergencia':    { color: '#dc2626', bg: '#fef2f2' },
-  'Mantenimiento': { color: '#d97706', bg: '#fffbeb' },
+// Los 4 grupos establecidos (2026-07-05): reorganizan TODA la página —
+// checklists fijos, formatos VOR/MOR y la biblioteca libre de protocolos —
+// bajo un mismo criterio de agrupación, en vez de 3 secciones inconexas con
+// su propio filtro de categoría. Decisiones confirmadas con el usuario, ver
+// CLAUDE.md "Protocolos — reorganización en 4 grupos".
+const GROUP_STYLE = {
+  'Prevuelo':              { color: '#4f46e5', bg: '#eef2ff' },
+  'Reportes':              { color: '#7c3aed', bg: '#f5f3ff' },
+  'Seguridad Operacional': { color: '#dc2626', bg: '#fef2f2' },
+  'Mantenimiento':         { color: '#d97706', bg: '#fffbeb' },
 };
-const CATEGORIES = Object.keys(CATEGORY_STYLE);
+const GROUPS = Object.keys(GROUP_STYLE);
+
+// Grupo de cada checklist operativo fijo — Salud/Briefing/Inventario/
+// Pre-vuelo son verificaciones previas al despacho (Prevuelo); Recibo Mtto/
+// Mtto. Menor son de Mantenimiento. Ninguno cae en "Reportes" (formatos
+// VOR/MOR) ni en "Seguridad Operacional" (solo alimentada por la biblioteca
+// libre de protocolos) — decisión confirmada con el usuario.
+const FIXED_TYPE_GROUP = {
+  health: 'Prevuelo', preflight: 'Prevuelo', briefing: 'Prevuelo', inventory: 'Prevuelo',
+  maintenance_return: 'Mantenimiento', minor_maintenance: 'Mantenimiento',
+};
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
@@ -116,7 +130,6 @@ export default function FormSettingsClient({ initialData }) {
     // Biblioteca de protocolos libres (Fase 2026-07-03)
     const [protocols, setProtocols] = useState([]);
     const [loadingProtocols, setLoadingProtocols] = useState(true);
-    const [categoryFilter, setCategoryFilter] = useState('');
     const [activePanel, setActivePanel] = useState(null); // 'new' | protocolo (edición) | null
     const [confirmDlg, setConfirmDlg] = useState(null);
 
@@ -339,10 +352,21 @@ export default function FormSettingsClient({ initialData }) {
         return cards;
     }, [models]);
 
-    const filteredProtocols = useMemo(() => {
-        if (!categoryFilter) return protocols;
-        return protocols.filter(p => p.category === categoryFilter);
-    }, [protocols, categoryFilter]);
+    // Protocolos libres agrupados por su categoría (ya migrada a los 4 grupos)
+    const protocolsByGroup = useMemo(() => {
+        const map = {};
+        GROUPS.forEach(g => { map[g] = []; });
+        protocols.forEach(p => { (map[p.category] ||= []).push(p); });
+        return map;
+    }, [protocols]);
+
+    // Checklists fijos agrupados por su grupo asignado (FIXED_TYPE_GROUP)
+    const fixedCardsByGroup = useMemo(() => {
+        const map = {};
+        GROUPS.forEach(g => { map[g] = []; });
+        fixedCards.forEach(c => { (map[FIXED_TYPE_GROUP[c.type]] ||= []).push(c); });
+        return map;
+    }, [fixedCards]);
 
     // ── Vista principal: grid de Protocolos ─────────────────────────────────
     return (
@@ -371,159 +395,139 @@ export default function FormSettingsClient({ initialData }) {
                 </div>
             )}
 
-            {/* Checklists operativos — los 4 tipos reales del sistema, ligados al despacho */}
-            <section className="space-y-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Checklists operativos</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {fixedCards.map(c => {
-                        const count = fieldCounts[c.key] || 0;
-                        // Inventario y Mantenimiento Menor se editan en su propia página
-                        // (permiso propio, incluye jefe_pilotos) — aquí son solo tarjetas de
-                        // navegación, no abren el editor interno de slots.
-                        if (NAV_CARD_HREF[c.type]) {
-                            return (
-                                <Link key={c.key} href={NAV_CARD_HREF[c.type]}
-                                    className="text-left bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-2.5 transition-all hover:shadow-md hover:border-orange-200">
-                                    <div className="flex items-center justify-between">
-                                        <div className="size-9 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
-                                            <span className="material-symbols-outlined text-lg text-orange-600">{TYPE_ICON[c.type]}</span>
+            {/* 4 grupos establecidos — mezclan checklists fijos, formatos VOR/MOR
+                y la biblioteca libre de protocolos bajo un mismo criterio de
+                agrupación (2026-07-05, ver CLAUDE.md) */}
+            {GROUPS.map(group => {
+                const fixed = fixedCardsByGroup[group] || [];
+                const showVorMor = group === 'Reportes';
+                const protos = protocolsByGroup[group] || [];
+                const style = GROUP_STYLE[group];
+                const isEmpty = !loadingProtocols && fixed.length === 0 && !showVorMor && protos.length === 0;
+
+                return (
+                    <section key={group} className="space-y-3">
+                        <div className="flex items-center gap-2">
+                            <span className="size-2 rounded-full" style={{ background: style.color }} />
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{group}</p>
+                        </div>
+
+                        {isEmpty ? (
+                            <div className="bg-white rounded-[2rem] border border-slate-200 border-dashed p-10 text-center space-y-3">
+                                <span className="material-symbols-outlined text-4xl text-slate-200">rule</span>
+                                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Sin protocolos en este grupo todavía</p>
+                                <button onClick={() => setActivePanel('new')}
+                                    className="inline-flex items-center gap-1.5 text-xs font-black text-orange-600 hover:text-orange-800 uppercase tracking-wide">
+                                    <span className="material-symbols-outlined text-sm">add_circle</span>
+                                    Crear protocolo
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {fixed.map(c => {
+                                    const count = fieldCounts[c.key] || 0;
+                                    // Inventario y Mantenimiento Menor se editan en su propia página
+                                    // (permiso propio, incluye jefe_pilotos) — aquí son solo tarjetas
+                                    // de navegación, no abren el editor interno de slots.
+                                    if (NAV_CARD_HREF[c.type]) {
+                                        return (
+                                            <Link key={c.key} href={NAV_CARD_HREF[c.type]}
+                                                className="text-left bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-2.5 transition-all hover:shadow-md hover:border-orange-200">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="size-9 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
+                                                        <span className="material-symbols-outlined text-lg text-orange-600">{TYPE_ICON[c.type]}</span>
+                                                    </div>
+                                                    <span className="text-[9.5px] font-black text-slate-300 uppercase">{TYPE_LABELS[c.type]}</span>
+                                                </div>
+                                                <p className="text-sm font-black text-slate-900">{c.title}</p>
+                                                <p className="text-xs text-slate-500 leading-snug flex-1">{TYPE_HINTS[c.type]}</p>
+                                                <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
+                                                    <span className="text-[10.5px] font-bold text-slate-500">{count}/{LIMITS[c.type]} campos</span>
+                                                    <span className="flex items-center gap-1 text-orange-600">
+                                                        <span className="material-symbols-outlined text-sm">open_in_new</span>
+                                                        <span className="text-[10px] font-black uppercase">Gestionar</span>
+                                                    </span>
+                                                </div>
+                                            </Link>
+                                        );
+                                    }
+                                    return (
+                                        <button key={c.key} onClick={() => openFixedEditor(c.type, c.model)}
+                                            className="text-left bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-2.5 transition-all hover:shadow-md hover:border-orange-200">
+                                            <div className="flex items-center justify-between">
+                                                <div className="size-9 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
+                                                    <span className="material-symbols-outlined text-lg text-orange-600">{TYPE_ICON[c.type]}</span>
+                                                </div>
+                                                <span className="text-[9.5px] font-black text-slate-300 uppercase">{TYPE_LABELS[c.type]}</span>
+                                            </div>
+                                            <p className="text-sm font-black text-slate-900">{c.title}</p>
+                                            <p className="text-xs text-slate-500 leading-snug flex-1">{TYPE_HINTS[c.type]}</p>
+                                            <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
+                                                <span className="text-[10.5px] font-bold text-slate-500">{count}/{LIMITS[c.type]} campos</span>
+                                                <span className="flex items-center gap-1 text-orange-600">
+                                                    <span className="material-symbols-outlined text-sm">edit</span>
+                                                    <span className="text-[10px] font-black uppercase">Editar</span>
+                                                </span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+
+                                {showVorMor && ['VOR', 'MOR'].map(t => {
+                                    const def = smsFormats.find(f => f.type === t);
+                                    const fallback = t === 'VOR'
+                                        ? { title: 'Reporte Voluntario (VOR)', description: 'Formato para reportar condiciones o eventos que pudieron afectar la seguridad, sin carácter obligatorio.' }
+                                        : { title: 'Reporte Obligatorio (MOR)', description: 'Formato para reportar incidentes o accidentes de reporte obligatorio ante AeroCivil.' };
+                                    // custom_fields puede ser array plano (formato antiguo) u objeto
+                                    // { base_overrides, custom } (formato actual) — parseFormConfig maneja ambos
+                                    const fieldCount = parseFormConfig(def?.custom_fields).custom.length;
+                                    return (
+                                        <button key={t} type="button" onClick={() => openVorMorEditor(t)}
+                                            className="text-left bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-2.5 transition-all hover:shadow-md hover:border-orange-200">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[9.5px] font-black uppercase tracking-wide text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full font-mono">{t}</span>
+                                                <span className="material-symbols-outlined text-lg text-slate-400">{t === 'VOR' ? 'description' : 'gavel'}</span>
+                                            </div>
+                                            <p className="text-sm font-black text-slate-900">{def?.title || fallback.title}</p>
+                                            <p className="text-xs text-slate-500 leading-snug flex-1">{def?.description || fallback.description}</p>
+                                            <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
+                                                <span className="text-[10.5px] font-bold text-slate-500">{fieldCount} campo{fieldCount === 1 ? '' : 's'} personalizado{fieldCount === 1 ? '' : 's'}</span>
+                                                <span className="flex items-center gap-1 text-orange-600">
+                                                    <span className="material-symbols-outlined text-sm">edit</span>
+                                                    <span className="text-[10px] font-black uppercase">Editar formato</span>
+                                                </span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+
+                                {protos.map(p => (
+                                    <div key={p.id} onClick={() => setActivePanel(p)}
+                                        className="text-left bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-2.5 cursor-pointer transition-all hover:shadow-md hover:border-orange-200 group relative">
+                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteProtocol(p); }}
+                                            className="absolute top-4 right-4 size-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100">
+                                            <span className="material-symbols-outlined text-base">delete</span>
+                                        </button>
+                                        <div className="flex items-center justify-between pr-8">
+                                            <span className="text-[9.5px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full" style={{ color: style.color, background: style.bg }}>{p.category}</span>
+                                            <span className="material-symbols-outlined text-lg text-slate-400">{p.icon || 'checklist'}</span>
                                         </div>
-                                        <span className="text-[9.5px] font-black text-slate-300 uppercase">{TYPE_LABELS[c.type]}</span>
+                                        <p className="text-sm font-black text-slate-900 leading-snug">{p.name}</p>
+                                        <p className="text-xs text-slate-500 leading-snug flex-1">{p.description || 'Sin descripción'}</p>
+                                        <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
+                                            <span className="text-[10.5px] font-bold text-slate-500">{(p.steps || []).length} paso{(p.steps || []).length === 1 ? '' : 's'}</span>
+                                            <span className="flex items-center gap-1 text-slate-400">
+                                                <span className="material-symbols-outlined text-sm">edit</span>
+                                                <span className="text-[9.5px] font-semibold">Act. {fmtDate(p.updated_at)}</span>
+                                            </span>
+                                        </div>
                                     </div>
-                                    <p className="text-sm font-black text-slate-900">{c.title}</p>
-                                    <p className="text-xs text-slate-500 leading-snug flex-1">{TYPE_HINTS[c.type]}</p>
-                                    <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
-                                        <span className="text-[10.5px] font-bold text-slate-500">{count}/{LIMITS[c.type]} campos</span>
-                                        <span className="flex items-center gap-1 text-orange-600">
-                                            <span className="material-symbols-outlined text-sm">open_in_new</span>
-                                            <span className="text-[10px] font-black uppercase">Gestionar</span>
-                                        </span>
-                                    </div>
-                                </Link>
-                            );
-                        }
-                        return (
-                            <button key={c.key} onClick={() => openFixedEditor(c.type, c.model)}
-                                className="text-left bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-2.5 transition-all hover:shadow-md hover:border-orange-200">
-                                <div className="flex items-center justify-between">
-                                    <div className="size-9 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
-                                        <span className="material-symbols-outlined text-lg text-orange-600">{TYPE_ICON[c.type]}</span>
-                                    </div>
-                                    <span className="text-[9.5px] font-black text-slate-300 uppercase">{TYPE_LABELS[c.type]}</span>
-                                </div>
-                                <p className="text-sm font-black text-slate-900">{c.title}</p>
-                                <p className="text-xs text-slate-500 leading-snug flex-1">{TYPE_HINTS[c.type]}</p>
-                                <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
-                                    <span className="text-[10.5px] font-bold text-slate-500">{count}/{LIMITS[c.type]} campos</span>
-                                    <span className="flex items-center gap-1 text-orange-600">
-                                        <span className="material-symbols-outlined text-sm">edit</span>
-                                        <span className="text-[10px] font-black uppercase">Editar</span>
-                                    </span>
-                                </div>
-                            </button>
-                        );
-                    })}
-                </div>
-            </section>
-
-            {/* Formatos de reporte SMS — editables directo aquí (panel "vormor") */}
-            <section className="space-y-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Formatos de reporte SMS — editables</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {['VOR', 'MOR'].map(t => {
-                        const def = smsFormats.find(f => f.type === t);
-                        const fallback = t === 'VOR'
-                            ? { title: 'Reporte Voluntario (VOR)', description: 'Formato para reportar condiciones o eventos que pudieron afectar la seguridad, sin carácter obligatorio.' }
-                            : { title: 'Reporte Obligatorio (MOR)', description: 'Formato para reportar incidentes o accidentes de reporte obligatorio ante AeroCivil.' };
-                        // custom_fields puede ser array plano (formato antiguo) u objeto
-                        // { base_overrides, custom } (formato actual) — parseFormConfig maneja ambos
-                        const fieldCount = parseFormConfig(def?.custom_fields).custom.length;
-                        return (
-                            <button key={t} type="button" onClick={() => openVorMorEditor(t)}
-                                className="text-left bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-2.5 transition-all hover:shadow-md hover:border-orange-200">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-[9.5px] font-black uppercase tracking-wide text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full font-mono">{t}</span>
-                                    <span className="material-symbols-outlined text-lg text-slate-400">{t === 'VOR' ? 'description' : 'gavel'}</span>
-                                </div>
-                                <p className="text-sm font-black text-slate-900">{def?.title || fallback.title}</p>
-                                <p className="text-xs text-slate-500 leading-snug flex-1">{def?.description || fallback.description}</p>
-                                <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
-                                    <span className="text-[10.5px] font-bold text-slate-500">{fieldCount} campo{fieldCount === 1 ? '' : 's'} personalizado{fieldCount === 1 ? '' : 's'}</span>
-                                    <span className="flex items-center gap-1 text-orange-600">
-                                        <span className="material-symbols-outlined text-sm">edit</span>
-                                        <span className="text-[10px] font-black uppercase">Editar formato</span>
-                                    </span>
-                                </div>
-                            </button>
-                        );
-                    })}
-                </div>
-            </section>
-
-            {/* Protocolos y procedimientos — biblioteca libre */}
-            <section className="space-y-3">
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Protocolos y procedimientos</p>
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <button onClick={() => setCategoryFilter('')}
-                            className={`px-3.5 py-1.5 rounded-full text-[10.5px] font-black transition-all ${categoryFilter === '' ? 'bg-[#1A202C] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-                            Todos
-                        </button>
-                        {CATEGORIES.map(c => (
-                            <button key={c} onClick={() => setCategoryFilter(c)}
-                                className={`px-3.5 py-1.5 rounded-full text-[10.5px] font-black transition-all ${categoryFilter === c ? 'bg-[#1A202C] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-                                {c}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {loadingProtocols ? (
-                    <div className="py-16 text-center text-xs font-black text-slate-300 uppercase tracking-widest animate-pulse">Cargando protocolos...</div>
-                ) : protocols.length === 0 ? (
-                    <div className="bg-white rounded-[2rem] border border-slate-200 border-dashed p-14 text-center space-y-3">
-                        <span className="material-symbols-outlined text-5xl text-slate-200">rule</span>
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Sin protocolos registrados todavía</p>
-                        <button onClick={() => setActivePanel('new')}
-                            className="inline-flex items-center gap-1.5 text-xs font-black text-orange-600 hover:text-orange-800 uppercase tracking-wide">
-                            <span className="material-symbols-outlined text-sm">add_circle</span>
-                            Crear el primero
-                        </button>
-                    </div>
-                ) : filteredProtocols.length === 0 ? (
-                    <div className="bg-white rounded-[2rem] border border-slate-200 p-14 text-center">
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Sin protocolos en esta categoría</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredProtocols.map(p => {
-                            const cat = CATEGORY_STYLE[p.category] || CATEGORY_STYLE['Pre-vuelo'];
-                            return (
-                                <div key={p.id} onClick={() => setActivePanel(p)}
-                                    className="text-left bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-2.5 cursor-pointer transition-all hover:shadow-md hover:border-orange-200 group relative">
-                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteProtocol(p); }}
-                                        className="absolute top-4 right-4 size-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100">
-                                        <span className="material-symbols-outlined text-base">delete</span>
-                                    </button>
-                                    <div className="flex items-center justify-between pr-8">
-                                        <span className="text-[9.5px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full" style={{ color: cat.color, background: cat.bg }}>{p.category}</span>
-                                        <span className="material-symbols-outlined text-lg text-slate-400">{p.icon || 'checklist'}</span>
-                                    </div>
-                                    <p className="text-sm font-black text-slate-900 leading-snug">{p.name}</p>
-                                    <p className="text-xs text-slate-500 leading-snug flex-1">{p.description || 'Sin descripción'}</p>
-                                    <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
-                                        <span className="text-[10.5px] font-bold text-slate-500">{(p.steps || []).length} paso{(p.steps || []).length === 1 ? '' : 's'}</span>
-                                        <span className="flex items-center gap-1 text-slate-400">
-                                            <span className="material-symbols-outlined text-sm">edit</span>
-                                            <span className="text-[9.5px] font-semibold">Act. {fmtDate(p.updated_at)}</span>
-                                        </span>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </section>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                );
+            })}
 
             {activePanel && (
                 <AddProtocolPanel

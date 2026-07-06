@@ -24,12 +24,25 @@ export async function notifyManualChange({ orgId, manual, version, actorId, acti
   const admin = createAdminClient();
 
   // Todos los miembros de la org (incluye pilotos — la idea es que todos se enteren)
-  const { data: members } = await admin
-    .from('profiles')
-    .select('email, id')
+  // — organization_members (membresía real) + profiles.active_organization_id
+  // (mismo criterio que notify.js: solo cuentan los que tienen esta org como activa).
+  const { data: memberRows } = await admin
+    .from('organization_members')
+    .select('user_id')
     .eq('organization_id', orgId);
+  const candidateIds = (memberRows || []).map(m => m.user_id);
 
-  const recipients = (members || [])
+  let members = [];
+  if (candidateIds.length) {
+    const { data: profs } = await admin
+      .from('profiles')
+      .select('email, id')
+      .eq('active_organization_id', orgId)
+      .in('id', candidateIds);
+    members = profs || [];
+  }
+
+  const recipients = members
     .filter(m => m.id !== actorId && m.email)
     .map(m => m.email);
   if (recipients.length === 0) return;

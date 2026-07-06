@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import { isGerenteGeneral } from '@/lib/planLimits';
+import { getOrgContext } from '@/lib/apiAuth';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import PageHero from '@/components/PageHero';
 import KPIStrip from '@/components/KPIStrip';
@@ -39,23 +40,17 @@ export default function PilotsPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // getUser() verifica el token contra Supabase (más seguro que getSession())
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { window.location.href = '/login'; return; }
+      // getOrgContext valida el token y resuelve organización/rol activos.
+      const ctx = await getOrgContext(supabase);
+      if (!ctx.user) { window.location.href = '/login'; return; }
 
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('organization_id, role')
-        .eq('id', user.id)
-        .single();
+      if (!ctx.orgId) { window.location.href = '/login'; return; }
 
-      if (!prof?.organization_id) { window.location.href = '/login'; return; }
-
-      setUserRole(prof.role);
+      setUserRole(ctx.role);
 
       const [resPilots, resFlights] = await Promise.all([
-        supabase.from('pilots').select('*').eq('organization_id', prof.organization_id).order('name', { ascending: true }),
-        supabase.from('flights').select('pilot_id, total_time, takeoff_time, landing_time').eq('organization_id', prof.organization_id),
+        supabase.from('pilots').select('*').eq('organization_id', ctx.orgId).order('name', { ascending: true }),
+        supabase.from('flights').select('pilot_id, total_time, takeoff_time, landing_time').eq('organization_id', ctx.orgId),
       ]);
 
       // El Gerente General (dueño/representante legal) no se muestra en el roster

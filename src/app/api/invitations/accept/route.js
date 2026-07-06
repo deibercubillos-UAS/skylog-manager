@@ -1,7 +1,17 @@
 // POST /api/invitations/accept  { token }
 // El usuario autenticado acepta una invitación: se une a la organización
-// (transfiriendo su data si es dueño único de su org actual), se marca la
+// (agregando una membresía nueva en organization_members), se marca la
 // invitación como aceptada y el piloto destino queda 'accepted' y vinculado.
+//
+// Fase 5 del refactor multi-organización — cambio de comportamiento
+// confirmado con el usuario: antes, si el invitado era dueño único de su
+// organización actual, se MIGRABA toda su data (aircraft/flights/pilots/...)
+// a la org que lo invitó y su org de origen quedaba "[Migrada]". Con
+// membresía múltiple disponible, eso queda superado: aceptar una invitación
+// SIEMPRE solo agrega una membresía nueva, nunca migra datos ni toca la
+// organización de origen — la cuenta sigue viendo su organización activa
+// actual hasta que use el switcher (`POST /api/org/switch-active`) para
+// cambiar explícitamente, sin auto-cambio.
 import { NextResponse } from 'next/server';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { createNotifications } from '@/lib/notify';
@@ -23,14 +33,6 @@ async function notifyJoin(targetOrgId, name, role, actorId) {
     });
   } catch (e) { console.warn('[invitations/accept] notif:', e.message); }
 }
-
-// Tablas con organization_id que se transfieren cuando el invitado es dueño
-// único de su organización actual (piloto independiente).
-const TRANSFER_TABLES = [
-  'aircraft', 'batteries', 'flights', 'pilots', 'flight_plans',
-  'flight_authorizations', 'sms_reports', 'maintenance_logs',
-  'checklist_templates', 'sora_templates', 'inventory_items',
-];
 
 export async function POST(request) {
   try {
@@ -61,50 +63,26 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Esta invitación pertenece a otro correo.' }, { status: 403 });
     }
 
-    // ── Perfil y org actual del usuario ────────────────────────────────────
     const { data: prof } = await admin
-      .from('profiles').select('organization_id, role, subscription_plan, full_name, email').eq('id', user.id).maybeSingle();
-    const currentOrgId = prof?.organization_id || null;
-    const targetOrgId  = inv.organization_id;
-
+      .from('profiles').select('full_name').eq('id', user.id).maybeSingle();
+    const targetOrgId = inv.organization_id;
     const joinName = prof?.full_name || user.email || invEmail;
 
-    if (currentOrgId === targetOrgId) {
-      // Ya está en la org: solo cerrar la invitación y vincular el piloto
-      await admin.from('invitations').update({ status: 'accepted', accepted_at: new Date().toISOString() }).eq('id', inv.id);
-      if (inv.pilot_id) await admin.from('pilots').update({ invitation_status: 'accepted', profile_id: user.id }).eq('id', inv.pilot_id);
-      await notifyJoin(targetOrgId, joinName, inv.role, user.id);
-      return NextResponse.json({ success: true });
+    // ── ¿Ya es miembro de la org invitante? — solo cerrar la invitación ─────
+    const { data: existingMembership } = await admin
+      .from('organization_members')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('organization_id', targetOrgId)
+      .maybeSingle();
+
+    if (!existingMembership) {
+      // ── Agregar la membresía — nunca migra datos ni toca otra org ─────────
+      const { error: insertError } = await admin
+        .from('organization_members')
+        .insert({ user_id: user.id, organization_id: targetOrgId, role: inv.role, subscription_plan: 'piloto' });
+      if (insertError) throw insertError;
     }
-
-    // ── Transferir data solo si el usuario es dueño ÚNICO de su org actual ──
-    // (evita arrastrar data de otros miembros). Si no, solo cambia de org.
-    if (currentOrgId) {
-      const { data: members } = await admin
-        .from('profiles').select('id').eq('organization_id', currentOrgId);
-      const isSoleMember = (members?.length || 0) <= 1;
-
-      if (isSoleMember) {
-        for (const table of TRANSFER_TABLES) {
-          const { error } = await admin
-            .from(table).update({ organization_id: targetOrgId }).eq('organization_id', currentOrgId);
-          if (error && !/does not exist|column/.test(error.message)) {
-            console.warn(`[invitations/accept] warn ${table}:`, error.message);
-          }
-        }
-        // Marcar la org origen como migrada (no se elimina)
-        const { data: tOrg } = await admin
-          .from('organizations').select('company_name').eq('id', targetOrgId).maybeSingle();
-        await admin.from('organizations')
-          .update({ company_name: `[Migrada] ${tOrg?.company_name || ''}`.trim() })
-          .eq('id', currentOrgId);
-      }
-    }
-
-    // ── Mover el perfil del usuario a la org destino con el rol invitado ────
-    await admin.from('profiles')
-      .update({ organization_id: targetOrgId, role: inv.role })
-      .eq('id', user.id);
 
     // ── Vincular el piloto destino y marcar aceptado ───────────────────────
     if (inv.pilot_id) {

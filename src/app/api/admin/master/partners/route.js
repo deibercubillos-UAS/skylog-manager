@@ -2,6 +2,7 @@ import { createAdminClient, createClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { escHtml, emailHeader, emailFooter } from '@/lib/emailHelpers';
+import { syncOrgMembership } from '@/lib/orgMembership';
 
 export const dynamic = 'force-dynamic';
 
@@ -126,15 +127,23 @@ export async function POST(request) {
         if (error) throw error;
 
         // Beneficio: el dueño de una ESCUELA obtiene plan Enterprise permanente.
+        const { data: profFull } = await admin.from('profiles').select('organization_id').eq('id', prof.id).single();
         if (role === 'owner' && partner.type === 'escuela') {
           await admin.from('profiles')
             .update({ subscription_plan: 'enterprise', subscription_expires_at: null })
             .eq('id', prof.id);
+          if (profFull?.organization_id) {
+            await syncOrgMembership(admin, {
+              userId: prof.id,
+              organizationId: profFull.organization_id,
+              subscriptionPlan: 'enterprise',
+              subscriptionExpiresAt: null,
+            });
+          }
         }
 
         // Campana in-app (inserción directa — el socio puede ser de cualquier org)
         try {
-          const { data: profFull } = await admin.from('profiles').select('organization_id').eq('id', prof.id).single();
           if (profFull?.organization_id) {
             await admin.from('notifications').insert({
               organization_id: profFull.organization_id,
@@ -290,12 +299,25 @@ export async function PATCH(request) {
         .select('profile_id').eq('partner_id', id).eq('role', 'owner');
       const ids = (owners || []).map(o => o.profile_id);
       if (ids.length) {
+        const newPlan = data.status === 'activo' ? 'enterprise' : 'piloto';
         if (data.status === 'activo') {
           await admin.from('profiles')
             .update({ subscription_plan: 'enterprise', subscription_expires_at: null }).in('id', ids);
         } else {
           await admin.from('profiles')
             .update({ subscription_plan: 'piloto' }).in('id', ids);
+        }
+
+        const { data: ownerProfiles } = await admin.from('profiles')
+          .select('id, organization_id').in('id', ids);
+        for (const op of ownerProfiles || []) {
+          if (!op.organization_id) continue;
+          await syncOrgMembership(admin, {
+            userId: op.id,
+            organizationId: op.organization_id,
+            subscriptionPlan: newPlan,
+            subscriptionExpiresAt: newPlan === 'enterprise' ? null : undefined,
+          });
         }
       }
     }

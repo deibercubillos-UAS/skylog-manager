@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
+import { getOrgContext } from '@/lib/apiAuth';
 
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -64,24 +65,19 @@ export default function AddMaintenancePanel({ onClose, onSuccess, maintenance })
 
   useEffect(() => {
     async function loadDrones() {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', user.id)
-        .single();
-      if (prof?.organization_id) {
-        setOrgId(prof.organization_id);
+      const ctx = await getOrgContext(supabase);
+      if (ctx.orgId) {
+        setOrgId(ctx.orgId);
         const [dronesRes, defsRes] = await Promise.all([
           supabase
             .from('aircraft')
             .select('*')
-            .eq('organization_id', prof.organization_id)
+            .eq('organization_id', ctx.orgId)
             .neq('status', 'Baja'),        // excluir aeronaves dadas de baja (en mantenimiento SÍ aparece)
           supabase
             .from('form_definitions')
             .select('field_number,label_text')
-            .eq('organization_id', prof.organization_id)
+            .eq('organization_id', ctx.orgId)
             .eq('form_type', 'maintenance_return')
             .eq('aircraft_model', 'General')
             .order('field_number', { ascending: true }),

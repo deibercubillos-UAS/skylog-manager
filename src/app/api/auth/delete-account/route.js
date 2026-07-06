@@ -21,21 +21,23 @@ export async function DELETE(request) {
     const { orgId } = await getOrgContext(supabase);
     const supabaseAdmin = createAdminClient();
 
-    // Leer perfil para saber si tiene suscripción activa
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('email, subscription_plan, epayco_subscription_id')
-      .eq('id', user.id)
-      .maybeSingle();
+    // Leer membresía (plan/ePayco de la org activa) + email de identidad
+    const [{ data: membership }, { data: identity }] = await Promise.all([
+      orgId
+        ? supabaseAdmin.from('organization_members').select('subscription_plan, epayco_subscription_id')
+          .eq('user_id', user.id).eq('organization_id', orgId).maybeSingle()
+        : Promise.resolve({ data: null }),
+      supabaseAdmin.from('profiles').select('email').eq('id', user.id).maybeSingle(),
+    ]);
 
     // Cancelar suscripción en ePayco si existe (no-crítico si falla)
-    if (profile?.subscription_plan && profile.subscription_plan !== 'piloto') {
+    if (membership?.subscription_plan && membership.subscription_plan !== 'piloto') {
       try {
-        if (profile.epayco_subscription_id) {
+        if (membership.epayco_subscription_id) {
           const { cancelSubscription } = await import('@/lib/epayco');
-          await cancelSubscription(profile.epayco_subscription_id);
-        } else if (profile.email) {
-          await cancelSubscriptionsByEmail(profile.email);
+          await cancelSubscription(membership.epayco_subscription_id);
+        } else if (identity?.email) {
+          await cancelSubscriptionsByEmail(identity.email);
         }
       } catch (err) {
         console.warn('[delete-account] No se pudo cancelar suscripción ePayco:', err.message);
@@ -43,9 +45,10 @@ export async function DELETE(request) {
     }
 
     // Si el usuario es el único admin de la org, eliminar la org también
+    // — organization_members es la fuente real de membresía (no profiles).
     if (orgId) {
       const { count: adminCount } = await supabaseAdmin
-        .from('profiles')
+        .from('organization_members')
         .select('id', { count: 'exact', head: true })
         .eq('organization_id', orgId)
         .in('role', ['admin', 'superadmin']);

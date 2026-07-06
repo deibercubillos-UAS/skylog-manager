@@ -9,6 +9,7 @@ import {
   polygonAreaM2, polygonPerimeter, polylineLength,
 } from '@/lib/kmlGenerator';
 import { LINE_OF_SIGHT_TYPES } from '@/lib/missionTypes';
+import { getOrgContext } from '@/lib/apiAuth';
 
 const MapPickerModal = dynamic(() => import('@/components/authorizations/MapPickerModal'), {
   ssr: false,
@@ -144,14 +145,15 @@ export default function FlightPlanner({ showHeader = true }) {
 
   useEffect(() => {
     async function loadPilot() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: prof } = await supabase
+      const ctx = await getOrgContext(supabase);
+      if (!ctx.user) return;
+      const { data: identity } = await supabase
         .from('profiles')
-        .select('full_name, first_name, email, role, organization_id, city')
-        .eq('id', user.id)
+        .select('full_name, first_name, email, city')
+        .eq('id', ctx.user.id)
         .single();
-      if (!prof) return;
+      if (!identity) return;
+      const prof = { ...identity, role: ctx.role, organization_id: ctx.orgId };
       const { data: org } = await supabase
         .from('organizations')
         .select('company_name, tax_id')

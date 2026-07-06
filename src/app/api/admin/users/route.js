@@ -1,5 +1,6 @@
 import { createAdminClient, createClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
+import { syncOrgMembership } from '@/lib/orgMembership';
 
 export const dynamic = 'force-dynamic';
 
@@ -102,6 +103,16 @@ export async function PATCH(request) {
             .single();
 
         if (error) throw error;
+
+        // Fase 6 multi-org: refleja el cambio en organization_members —
+        // se escribe sobre la org actualmente activa del miembro (target.organization_id),
+        // no se asume que solo pertenece a una.
+        await syncOrgMembership(admin, {
+            userId: targetUserId,
+            organizationId: target.organization_id,
+            role: newRole,
+        });
+
         return NextResponse.json(data);
     } catch (err) {
         return NextResponse.json({ error: err.message }, { status: 500 });

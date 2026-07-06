@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { PERMISSIONS } from '@/lib/roles';
+import { getOrgContext } from '@/lib/apiAuth';
 // ExcelJS se importa dinámicamente dentro del handler para reducir el cold start
 // del serverless function en Vercel (~600 kB menos en el módulo inicial).
 
@@ -73,16 +74,13 @@ export async function POST(request) {
   try {
     // 1. Autenticar usuario
     const supabaseUser = await createClientSSR();
-    const { data: { user } } = await supabaseUser.auth.getUser();
+    const ctx = await getOrgContext(supabaseUser);
+    const user = ctx.user;
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const { data: prof } = await supabaseUser
-      .from('profiles')
-      .select('organization_id, role')
-      .eq('id', user.id)
-      .single();
+    const prof = { organization_id: ctx.orgId, role: ctx.role };
 
-    if (!prof?.organization_id) {
+    if (!prof.organization_id) {
       return NextResponse.json({ error: 'Perfil sin organización asignada' }, { status: 403 });
     }
 

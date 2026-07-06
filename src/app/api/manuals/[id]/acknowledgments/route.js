@@ -33,11 +33,19 @@ export async function GET(_req, { params }) {
 
     const admin = createAdminClient();
 
-    // Todos los miembros de la org (conteo confiable vía service role)
-    const { data: profiles } = await admin
-      .from('profiles')
-      .select('id, full_name, first_name, last_name, email, role')
+    // Todos los miembros REALES de la org — organization_members (no profiles,
+    // que solo refleja la org ACTIVA de cada cuenta) + datos de identidad.
+    const { data: memberRows } = await admin
+      .from('organization_members')
+      .select('user_id, role')
       .eq('organization_id', orgId);
+    const roleByUser = new Map((memberRows || []).map(m => [m.user_id, m.role]));
+    const memberIds = [...roleByUser.keys()];
+
+    const { data: identities } = memberIds.length
+      ? await admin.from('profiles').select('id, full_name, first_name, last_name, email').in('id', memberIds)
+      : { data: [] };
+    const profiles = (identities || []).map(p => ({ ...p, role: roleByUser.get(p.id) }));
 
     // Acuses de la versión vigente
     let ackMap = new Map();

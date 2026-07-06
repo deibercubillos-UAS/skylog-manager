@@ -1,5 +1,6 @@
-import { createAdminClient, createClientSSR } from '@/lib/supabaseServer';
+import { createClientSSR } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,17 +9,10 @@ export const dynamic = 'force-dynamic';
 export async function GET(request) {
   try {
     const supabase = await createClientSSR();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    const ctx = await getOrgContext(supabase);
+    if (!ctx.user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
-    const admin = createAdminClient();
-    const { data: profile } = await admin
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.role !== 'superadmin') {
+    if (ctx.role !== 'superadmin') {
       return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 });
     }
 

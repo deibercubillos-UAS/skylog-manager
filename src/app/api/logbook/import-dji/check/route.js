@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,16 +16,10 @@ export const dynamic = 'force-dynamic';
 export async function POST(request) {
   try {
     const supabaseUser = await createClientSSR();
-    const { data: { user } } = await supabaseUser.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    const ctx = await getOrgContext(supabaseUser);
+    if (!ctx.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const { data: prof } = await supabaseUser
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!prof?.organization_id) {
+    if (!ctx.orgId) {
       return NextResponse.json({ error: 'Sin organización' }, { status: 403 });
     }
 
@@ -41,7 +36,7 @@ export async function POST(request) {
     const { data: rows } = await supabaseAdmin
       .from('flights')
       .select('flight_date, takeoff_time')
-      .eq('organization_id', prof.organization_id)
+      .eq('organization_id', ctx.orgId)
       .eq('imported', true)
       .in('flight_date', uniqueDates);
 

@@ -5,6 +5,8 @@ import { detectAlerts, buildTelemetry, buildPath, buildMeta } from '@/lib/djiTel
 import { canAddResource } from '@/lib/planLimits';
 import { createNotifications } from '@/lib/notify';
 import { storagePut, storageRemove } from '@/lib/storage';
+import { getOrgContext } from '@/lib/apiAuth';
+import { getOrgPlan } from '@/lib/orgPlan';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,16 +23,10 @@ const MAX_REPLAY = 2 * 1024 * 1024; // 2 MB
 export async function GET(request) {
   try {
     const supabaseUser = await createClientSSR();
-    const { data: { user } } = await supabaseUser.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    const ctx = await getOrgContext(supabaseUser);
+    if (!ctx.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const { data: prof } = await supabaseUser
-      .from('profiles')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!prof?.organization_id) {
+    if (!ctx.orgId) {
       return NextResponse.json({ error: 'Sin organización' }, { status: 403 });
     }
 
@@ -57,7 +53,7 @@ export async function GET(request) {
     const { data: rows } = await supabaseAdmin
       .from('flights')
       .select('flight_date, takeoff_time')
-      .eq('organization_id', prof.organization_id)
+      .eq('organization_id', ctx.orgId)
       .eq('imported', true)
       .in('flight_date', uniqueDates);
 
@@ -81,14 +77,7 @@ export async function GET(request) {
 
 // ── Helpers cuota replay ─────────────────────────────────────────────────────
 async function getOrgReplayQuota(admin, orgId) {
-  const { data: prof } = await admin
-    .from('profiles')
-    .select('subscription_plan')
-    .eq('organization_id', orgId)
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  const plan = prof?.subscription_plan ?? 'piloto';
+  const plan = await getOrgPlan(admin, orgId, 'piloto');
 
   const { data: cfg } = await admin
     .from('epayco_plan_config')
@@ -108,16 +97,16 @@ export async function POST(request) {
   try {
     // ── 1. Autenticar ────────────────────────────────────────────
     const supabaseUser = await createClientSSR();
-    const { data: { user } } = await supabaseUser.auth.getUser();
+    const ctx = await getOrgContext(supabaseUser);
+    const user = ctx.user;
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const { data: prof } = await supabaseUser
-      .from('profiles')
-      .select('organization_id, role, subscription_plan')
-      .eq('id', user.id)
-      .single();
+    // Nota: full_name/first_name/last_name se dejan fuera a propósito (no se
+    // leían en el select original) — preserva el comportamiento previo exacto
+    // más abajo, donde el nombre del piloto auto-creado siempre caía a 'Piloto'.
+    const prof = { organization_id: ctx.orgId, role: ctx.role, subscription_plan: ctx.subscription_plan };
 
-    if (!prof?.organization_id) {
+    if (!prof.organization_id) {
       return NextResponse.json({ error: 'Perfil sin organización asignada' }, { status: 403 });
     }
 

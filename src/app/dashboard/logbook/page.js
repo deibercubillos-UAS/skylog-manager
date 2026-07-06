@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { PERMISSIONS } from '@/lib/roles';
+import { getOrgContext } from '@/lib/apiAuth';
 import { useGracePeriod } from '@/lib/gracePeriodContext';
 import dynamic from 'next/dynamic';
 import PageHero from '@/components/PageHero';
@@ -101,11 +102,7 @@ export default function LogbookPage() {
     useEffect(() => {
         loadData(true);
         // Cargar rol del usuario y lista de pilotos en paralelo
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (!session) return;
-            supabase.from('profiles').select('role').eq('id', session.user.id).single()
-                .then(({ data }) => setUserRole(data?.role ?? null));
-        });
+        getOrgContext(supabase).then(ctx => setUserRole(ctx.role ?? null));
         fetch('/api/pilots').then(r => { if (!r.ok) { console.warn('[fetch] /api/pilots failed:', r.status); return []; } return r.json(); }).then(data => setPilots(Array.isArray(data) ? data : []));
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

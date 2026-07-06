@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import FileUpload from './FileUpload';
 import { toast } from '@/lib/toast';
+import { getOrgContext } from '@/lib/apiAuth';
 
 const AEROCIVIL_ADDITIONS = [
     "PBMO SUPERIOR A 25 KG Y HASTA 250 KG", "DISPERSIÓN", "ASPERSIÓN", "ENJAMBRE",
@@ -42,8 +43,9 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
       setLoading(true);
       let insertedPilotId = null;
       try {
-          const { data: { user } } = await supabase.auth.getUser();
-          const { data: prof } = await supabase.from('profiles').select('organization_id, full_name').eq('id', user.id).single();
+          const ctx = await getOrgContext(supabase);
+          const user = ctx.user;
+          const prof = { organization_id: ctx.orgId, full_name: ctx.fullName };
           const { data: org } = await supabase.from('organizations').select('company_name, unique_code').eq('id', prof.organization_id).single();
 
           const cleanData = {
@@ -103,8 +105,9 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
     if (!inviteEmail) return;
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: prof } = await supabase.from('profiles').select('organization_id, full_name').eq('id', user.id).single();
+      const ctx = await getOrgContext(supabase);
+      const user = ctx.user;
+      const prof = { organization_id: ctx.orgId, full_name: ctx.fullName };
       const { data: org } = await supabase.from('organizations').select('company_name, unique_code').eq('id', prof.organization_id).single();
 
       const res = await fetch('/api/invite', {

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabaseServer';
 import { redirect } from 'next/navigation';
 import UsersClient from './UsersClient';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,16 +9,12 @@ const MANAGER_ROLES = ['superadmin', 'admin'];
 
 export default async function UsersPage() {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) redirect('/login');
+    const ctx = await getOrgContext(supabase);
+    if (!ctx.user) redirect('/login');
 
-    const { data: prof } = await supabase
-        .from('profiles')
-        .select('id, organization_id, role, full_name')
-        .eq('id', user.id)
-        .single();
+    const prof = { id: ctx.user.id, organization_id: ctx.orgId, role: ctx.role, full_name: ctx.fullName };
 
-    if (!prof || !MANAGER_ROLES.includes(prof.role)) {
+    if (!ctx.role || !MANAGER_ROLES.includes(prof.role)) {
         redirect('/dashboard');
     }
 

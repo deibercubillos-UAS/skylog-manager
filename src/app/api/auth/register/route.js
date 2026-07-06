@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { uniqueSlug } from '@/lib/slugify';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 import { PLAN_CONFIG } from '@/lib/planLimits';
+import { syncOrgMembership } from '@/lib/orgMembership';
 
 // Roles que se pueden auto-asignar en el formulario de registro público.
 // Nunca permitir: superadmin (se asigna manualmente en BD).
@@ -54,10 +55,11 @@ export async function POST(request) {
 
             const targetOrgId = org.id;
 
-            // Verificar disponibilidad del rol
+            // Verificar disponibilidad del rol — vía organization_members (fuente
+            // real de membresías por org, no profiles que solo refleja la org activa).
             if (UNIQUE_ROLES.includes(role)) {
                 const { count } = await supabaseAdmin
-                    .from('profiles')
+                    .from('organization_members')
                     .select('id', { count: 'exact', head: true })
                     .eq('organization_id', targetOrgId)
                     .eq('role', role);
@@ -69,7 +71,7 @@ export async function POST(request) {
 
             if (role === 'piloto') {
                 const { data: adminProf } = await supabaseAdmin
-                    .from('profiles')
+                    .from('organization_members')
                     .select('subscription_plan')
                     .eq('organization_id', targetOrgId)
                     .eq('role', 'admin')
@@ -78,7 +80,7 @@ export async function POST(request) {
                 const maxPilots  = PLAN_CONFIG[planKey]?.maxPilots;
                 if (maxPilots !== null && maxPilots !== undefined) {
                     const { count } = await supabaseAdmin
-                        .from('profiles')
+                        .from('organization_members')
                         .select('id', { count: 'exact', head: true })
                         .eq('organization_id', targetOrgId)
                         .eq('role', 'piloto');
@@ -109,6 +111,13 @@ export async function POST(request) {
                 subscription_plan: 'piloto',
                 signup_attribution: signupAttribution,
             }, { onConflict: 'id' });
+
+            await syncOrgMembership(supabaseAdmin, {
+                userId: authData.user.id,
+                organizationId: targetOrgId,
+                role,
+                subscriptionPlan: 'piloto',
+            });
 
             // Vincular con la invitación / piloto existente si lo hay.
             // Si la org ya tenía un piloto con este email (p.ej. importado o invitado),
@@ -260,6 +269,13 @@ export async function POST(request) {
             signup_attribution: signupAttribution,
         }, { onConflict: 'id' });
 
+        await syncOrgMembership(supabaseAdmin, {
+            userId: authData.user.id,
+            organizationId: targetOrgId,
+            role: normalizedRole,
+            subscriptionPlan: 'piloto',
+        });
+
         // ── Perfil gratis de socio (grant): activar plan piloto con vencimiento ──
         if (grantToken) {
             const { data: g } = await supabaseAdmin
@@ -272,6 +288,11 @@ export async function POST(request) {
                 await supabaseAdmin.from('profiles')
                     .update({ subscription_expires_at: g.expires_at })
                     .eq('id', authData.user.id);
+                await syncOrgMembership(supabaseAdmin, {
+                    userId: authData.user.id,
+                    organizationId: targetOrgId,
+                    subscriptionExpiresAt: g.expires_at,
+                });
                 await supabaseAdmin.from('free_grants')
                     .update({ status: 'activado', redeemed_org_id: targetOrgId })
                     .eq('id', g.id);
@@ -310,6 +331,12 @@ export async function POST(request) {
                             await supabaseAdmin.from('profiles')
                                 .update({ subscription_plan: 'enterprise', subscription_expires_at: null })
                                 .eq('id', authData.user.id);
+                            await syncOrgMembership(supabaseAdmin, {
+                                userId: authData.user.id,
+                                organizationId: targetOrgId,
+                                subscriptionPlan: 'enterprise',
+                                subscriptionExpiresAt: null,
+                            });
                         }
                     }
                 }

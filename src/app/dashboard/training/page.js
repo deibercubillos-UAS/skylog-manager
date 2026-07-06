@@ -1,13 +1,15 @@
 import { createClient } from '@/lib/supabaseServer';
 import TrainingClient from './TrainingClient';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
 export default async function TrainingPage() {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: profile } = await supabase.from('profiles').select('organization_id, role').eq('id', user?.id).single();
-    const orgId = profile?.organization_id;
+    const ctx = await getOrgContext(supabase);
+    const user = ctx.user;
+    const profile = { organization_id: ctx.orgId, role: ctx.role };
+    const orgId = profile.organization_id;
 
     const [
         { data: sessions },

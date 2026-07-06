@@ -60,9 +60,11 @@ export async function GET(request) {
       });
     }
 
-    // Plan de la org (lo tiene el perfil admin)
+    // Plan de la org (lo tiene la membresía admin) — vía organization_members,
+    // la fuente de verdad real de rol/plan por organización (no profiles, que
+    // solo refleja la organización ACTIVA de cada cuenta).
     const { data: adminProf } = await supabase
-      .from('profiles')
+      .from('organization_members')
       .select('subscription_plan')
       .eq('organization_id', org.id)
       .eq('role', 'admin')
@@ -86,7 +88,7 @@ export async function GET(request) {
 
     if (UNIQUE_ROLES.includes(role)) {
       const { count } = await supabase
-        .from('profiles')
+        .from('organization_members')
         .select('id', { count: 'exact', head: true })
         .eq('organization_id', org.id)
         .eq('role', role);
@@ -105,7 +107,7 @@ export async function GET(request) {
       const maxPilots = planConfig.maxPilots;
       if (maxPilots !== null && maxPilots !== undefined) {
         const { count } = await supabase
-          .from('profiles')
+          .from('organization_members')
           .select('id', { count: 'exact', head: true })
           .eq('organization_id', org.id)
           .eq('role', 'piloto');

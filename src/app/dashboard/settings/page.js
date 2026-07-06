@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import FileUpload from '@/components/FileUpload';
 import { hasPermission, labelForRole } from '@/lib/roles';
+import { getOrgContext } from '@/lib/apiAuth';
 import AerocivilCredentialsSection from '@/components/settings/AerocivilCredentialsSection';
 import { toast } from '@/lib/toast';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -117,7 +118,8 @@ useEffect(() => {
     async function loadOrgData() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) { window.location.href = '/login'; return; }
-        const { data: prof } = await supabase.from('profiles').select('organization_id, role, subscription_plan').eq('id', session.user.id).single();
+        const ctx = await getOrgContext(supabase);
+        const prof = { organization_id: ctx.orgId, role: ctx.role, subscription_plan: ctx.subscription_plan };
         setProfile(prof);
 
         // Carga org, aeronaves y pólizas en paralelo — elimina roundtrip secuencial

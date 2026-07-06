@@ -1,13 +1,15 @@
 import { createClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function DELETE() {
     try {
         const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const ctx = await getOrgContext(supabase);
+        const user = ctx.user;
         if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
         // Requerimos la Service Role Key para eliminar al usuario de auth.users.
@@ -26,20 +28,17 @@ export async function DELETE() {
             { auth: { autoRefreshToken: false, persistSession: false } }
         );
 
-        // 1. Obtener org_id del usuario ANTES de borrarlo (una sola query — evita double-fetch bug)
-        const { data: prof } = await supabase
-            .from('profiles')
-            .select('organization_id')
-            .eq('id', user.id)
-            .single();
+        // 1. Org activa del usuario ANTES de borrarlo (ya resuelta por getOrgContext)
+        const orgId = ctx.orgId;
 
-        const orgId = prof?.organization_id ?? null;
-
-        // 2. Contar miembros de la org (solo si tiene org)
+        // 2. Contar miembros REALES de la org (organization_members, no profiles —
+        // profiles solo refleja quién tiene esta org como ACTIVA ahora mismo; un
+        // miembro que cambió su org activa a otra seguiría contando aquí, evitando
+        // borrar la organización completa por error si todavía tiene otros miembros).
         let isLastMember = false;
         if (orgId) {
             const { count } = await supabase
-                .from('profiles')
+                .from('organization_members')
                 .select('id', { count: 'exact', head: true })
                 .eq('organization_id', orgId);
             isLastMember = count === 1;

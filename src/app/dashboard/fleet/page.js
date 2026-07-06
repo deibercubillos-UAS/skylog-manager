@@ -9,6 +9,7 @@ import AircraftCard from '@/components/AircraftCard';
 import TechCard from '@/components/TechCard';
 import { PLAN_CONFIG } from '@/lib/planLimits';
 import { PERMISSIONS } from '@/lib/roles';
+import { getOrgContext } from '@/lib/apiAuth';
 import PageHero from '@/components/PageHero';
 import KPIStrip from '@/components/KPIStrip';
 
@@ -196,27 +197,25 @@ export default function FleetPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const ctx = await getOrgContext(supabase);
+      if (!ctx.user) return;
 
-      const { data: prof } = await supabase.from('profiles').select('role, organization_id, subscription_plan').eq('id', user.id).single();
-
-      if (prof) {
-        setUserRole(prof.role);
-        setPlanKey(prof.subscription_plan || 'piloto');
+      if (ctx.role) {
+        setUserRole(ctx.role);
+        setPlanKey(ctx.subscription_plan || 'piloto');
       }
 
-      if (prof?.organization_id) {
+      if (ctx.orgId) {
         const [resDrones, resTech, resLogs, resBatteries] = await Promise.all([
-          supabase.from('aircraft').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
-          supabase.from('inventory_items').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
+          supabase.from('aircraft').select('*').eq('organization_id', ctx.orgId).order('created_at', { ascending: false }),
+          supabase.from('inventory_items').select('*').eq('organization_id', ctx.orgId).order('created_at', { ascending: false }),
           // Batería asociada a cada aeronave — se infiere del último vuelo cargado en la
           // Bitácora (battery_logs), mismo patrón que usa /dashboard/batteries a la inversa.
           supabase.from('battery_logs')
             .select('battery_sn, aircraft_id, created_at')
-            .eq('organization_id', prof.organization_id)
+            .eq('organization_id', ctx.orgId)
             .order('created_at', { ascending: false }),
-          supabase.from('batteries').select('id, serial_number, cycles, health_status').eq('organization_id', prof.organization_id),
+          supabase.from('batteries').select('id, serial_number, cycles, health_status').eq('organization_id', ctx.orgId),
         ]);
 
         setDrones(resDrones.data || []);

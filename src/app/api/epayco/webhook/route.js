@@ -236,11 +236,11 @@ export async function POST(request) {
       }
       if (partnerCode) {
         const { data: prof } = await supabase
-          .from('profiles').select('organization_id').eq('id', userId).single();
-        if (prof?.organization_id) {
+          .from('profiles').select('active_organization_id').eq('id', userId).single();
+        if (prof?.active_organization_id) {
           const result = await attributeCommission(supabase, {
             code:     partnerCode,
-            orgId:    prof.organization_id,
+            orgId:    prof.active_organization_id,
             planKey,
             billing:  billing || 'monthly',
             amount:   params.x_amount,
@@ -258,9 +258,9 @@ export async function POST(request) {
     // existe aún (migración sin aplicar), el error se ignora.
     try {
       const { data: prof } = await supabase
-        .from('profiles').select('organization_id').eq('id', userId).maybeSingle();
+        .from('profiles').select('active_organization_id').eq('id', userId).maybeSingle();
       await supabase.from('billing_history').insert({
-        organization_id: prof?.organization_id || null,
+        organization_id: prof?.active_organization_id || null,
         user_id:         userId,
         ref_payco:       refPayco || null,
         plan_key:        planKey,

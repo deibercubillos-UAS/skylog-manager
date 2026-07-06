@@ -9,6 +9,7 @@ import { sailRoman, sailColor } from '@/lib/soraEngine';
 import { resolveZone, riskIndex, ZONE_META } from '@/lib/safetyRiskDefaults';
 import { computeCaseCompliance } from '@/lib/vorMorCompliance';
 import { computeRate, computeYearStats } from '@/lib/safetyIndicatorStats';
+import { getOrgContext } from '@/lib/apiAuth';
 import { nextOccurrence } from '@/lib/trainingCompliance';
 import PageHero from '@/components/PageHero';
 import KPIStrip from '@/components/KPIStrip';
@@ -176,12 +177,11 @@ export default function SafetyPage() {
 
   useEffect(() => {
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
-      const { data: prof } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
-      if (!prof?.organization_id) { setLoading(false); return; }
-      setOrgId(prof.organization_id);
-      await loadAll(prof.organization_id);
+      const ctx = await getOrgContext(supabase);
+      if (!ctx.user) { setLoading(false); return; }
+      if (!ctx.orgId) { setLoading(false); return; }
+      setOrgId(ctx.orgId);
+      await loadAll(ctx.orgId);
       setLoading(false);
     })();
   }, [loadAll]);

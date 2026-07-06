@@ -90,7 +90,8 @@ lib/
 ## Base de datos
 
 Tablas principales:
-- `profiles` — users, tiene `organization_id`, `role`, `subscription_plan`, `epayco_subscription_id`, `subscription_expires_at` (NO existe `org_id` ni `plan`; `organizations` no tiene columna de plan)
+- `profiles` — users, tiene `organization_id`, `role`, `subscription_plan`, `epayco_subscription_id`, `subscription_expires_at` (NO existe `org_id` ni `plan`; `organizations` no tiene columna de plan). Estas columnas siguen siendo la fuente de verdad leída por ~88 archivos sin migrar (ver **Multi-organización por cuenta**, Fase 7 diferida), pero YA NO son la fuente de verdad para RLS/`getOrgContext`/`getOrgPlan` — eso es `organization_members` (ver abajo). `active_organization_id` (nueva, 2026-07-05): cuál organización está activa para la cuenta ahora mismo.
+- `organization_members` (nueva, 2026-07-05) — membresías de una cuenta a N organizaciones: `user_id`, `organization_id`, `role`, `subscription_plan`, campos de ePayco, `is_active` (membresía vigente, no revocada), `joined_at`, `UNIQUE(user_id, organization_id)`. Fuente de verdad real para rol/plan/organización desde la Fase 1 en adelante. Ver **Multi-organización por cuenta**.
 - `organizations` — tenant. Tiene `enable_health_check`, `enable_preflight`, `enable_briefing`, `enable_inventory_checklist` (toggles protocolos, ver **Inventario de Operación**). Registro AeroCivil: `dan_number` (N° Explotador), `operator_number` (N.º de operador UAS), `registration_expiry` (vigencia del registro), `authorized_operations jsonb` (chips de autorizaciones activas, texto libre) — ver **Organización rediseñada**.
 - `pilots` · `aircraft` · `batteries` · `battery_logs`. `pilots.invitation_status` 'pending'/'accepted'/'rejected'/null · `pilots.profile_id` se vincula al aceptar invitación · `pilots.avatar_url`/`aerocivil_additions` (jsonb)/`notes`
   - `aircraft` mantenimiento: `maintenance_interval_hours` (default 200), `maintenance_interval_days` (default 180), `operational_status` ('disponible'/'en_mantenimiento', CHECK, NOT NULL), `last_status_change`. Ver sección **Mantenimiento de Aeronaves**. La foto va en `image_url` (bucket público `fleet-images`, ver Convenciones). Mantenimiento Menor (piloto, contadores independientes): `minor_maintenance_interval_hours`/`_days` (default 0 = deshabilitado por aeronave), `last_minor_maintenance_date`/`_hours`, `minor_maintenance_due` — ver **Mantenimiento Menor (piloto)**.
@@ -115,11 +116,414 @@ Tablas principales:
 - `processed_webhook_refs` — idempotencia webhook (`ref_payco PK`)
 - `epayco_plan_config` — configuración planes: `replay_retention_days`, `replay_max_flights`. Editable desde `/admin/master`.
 - `audit_log` — log append-only de acciones (`organization_id`, `actor_id`, `actor_name`, `action`, `module`, `entity_label`, `metadata jsonb`, `created_at`). RLS: managers de la org leen, solo service role escribe. Ver **Auditoría de acciones**.
-- `protocols` — biblioteca libre de procedimientos (`organization_id`, `name`, `category` CHECK 5 valores, `description`, `icon`, `steps jsonb`, `created_by`). RLS: solo `admin`/`superadmin`/`gerente_sms` de la org leen/escriben. Ver **Protocolos**.
+- `protocols` — biblioteca libre de procedimientos (`organization_id`, `name`, `category` CHECK 4 valores — Prevuelo/Reportes/Seguridad Operacional/Mantenimiento, ver **Protocolos — reorganización en 4 grupos**, `description`, `icon`, `steps jsonb`, `created_by`). RLS: solo `admin`/`superadmin`/`gerente_sms` de la org leen/escriben. Ver **Protocolos**.
 - `suppliers` / `supplier_audit_criteria` / `supplier_audits` — listado de proveedores + checklist de auditoría (personalizable por org) + auditorías realizadas (`responses jsonb` keyed por `criterion_id`: `{value: 'cumple'|'no_cumple'|'no_aplica', notes}`). RLS: `admin`/`superadmin`/`gerente_sms`/`jefe_pilotos` de la org leen/escriben (`private.user_is_manager()`), sin nivel de lectura para piloto. Ver **Proveedores**.
 - `billing_history` ⚠️ **migración creada, NO aplicada aún** (`supabase/migrations/20260702_billing_history.sql`) — historial de pagos informativo (no factura fiscal). RLS: cada usuario ve el suyo, solo service role escribe. Ver **Historial de facturación**.
 
 **Regla `total_hours`**: actualizar siempre vía RPC `increment_aircraft_hours(p_id, p_hours)` — nunca read-calculate-write.
+
+---
+
+## Multi-organización por cuenta (en progreso, 2026-07-05)
+
+A pedido del usuario: una misma cuenta (login) debe poder pertenecer a **varias**
+organizaciones simultáneamente, con un botón/pestaña para cambiar cuál está activa, sin
+mezclar la información de una y otra. Hoy `profiles.id = auth.users.id` (1:1) es la fuente
+única de `organization_id`/`role`/`subscription_plan`/campos de ePayco, y **106 políticas RLS
+en 39 tablas** + `getOrgContext()` (usado por 113 de 173 rutas API) resuelven todo desde esa
+única fila — es un refactor arquitectónico real, no un agregado de UI. Confirmado con el
+usuario (`AskUserQuestion`, 2 rondas): aplica a **ambos** casos de uso (tripulantes que
+trabajan para varias operadoras, y dueños/administradores con varias empresas), con el
+**refactor completo** (separar identidad de membresía), no un parche superficial.
+
+Dado el tamaño (~150-160 archivos tocan estos campos de una forma u otra, según inventario
+con agentes de exploración), el usuario pidió explícitamente **fases cortas, verificables una
+por una, sin arriesgar producción** (app en vivo, con pagos reales de ePayco). El plan
+completo, fase por fase, con qué verificar en cada una antes de avanzar, vive documentado en
+este archivo a medida que se ejecuta — ver subsecciones fechadas más abajo bajo este mismo
+encabezado, y también en `/root/.claude/plans/ethereal-moseying-spring.md` de la sesión que lo
+diseñó (fuera del repo, solo como referencia de la sesión).
+
+**Simplificación de v1, documentada a propósito**: la "organización activa" es **una por
+cuenta**, no por pestaña/sesión — cambiar de organización cambia el contexto en todos lados
+para esa cuenta (coincide con lo pedido literalmente: un botón para pasar de una organización
+a otra, no contextos simultáneos en paralelo).
+
+### Fase 0 — `organization_members` + organización activa + trigger-puente (2026-07-05)
+
+Migración `20260705_organization_members_phase0.sql` (aplicada, verificada):
+
+- **Tabla nueva `organization_members`**: `user_id`, `organization_id`, `role`,
+  `subscription_plan`, `epayco_customer_id`, `epayco_subscription_id`, `epayco_ref`,
+  `subscription_expires_at`, `subscription_status`, `last_payment_date`, `is_active` (membresía
+  vigente/no revocada — **no** "organización seleccionada actualmente", eso es
+  `profiles.active_organization_id`), `joined_at`, `UNIQUE(user_id, organization_id)`. RLS
+  mínima (`user_id = auth.uid()` para SELECT propio) — a propósito **sin** pasar por las
+  funciones `private.*` en sus propias políticas: esas funciones son `SECURITY DEFINER` y ya
+  evitan RLS al leer hoy `profiles`; que dependieran de esta tabla y esta tabla dependiera de
+  ellas habría creado riesgo de recursión sin ningún beneficio real.
+- **`profiles.active_organization_id`** (nueva, nullable): cuál organización está activa para
+  esa cuenta en este momento. Se proyecta desde `organization_members` mediante el endpoint de
+  cambio de organización (`POST /api/org/switch-active`, ver **Fase 5**) — no es un trigger en ese sentido, es
+  una acción explícita del usuario.
+- **Backfill 1:1**: cada `profiles` con `organization_id` no nulo generó exactamente una fila
+  en `organization_members` con los mismos valores, y `active_organization_id = organization_id`
+  para todos — **cero cambio de comportamiento** el día de esta fase (verificado: conteo de
+  filas idéntico, diff campo a campo en la muestra completa de perfiles reales, sin diferencias).
+- **Trigger-puente `private.sync_profile_to_org_member()`** (`AFTER INSERT OR UPDATE OF
+  organization_id, role, subscription_plan, epayco_customer_id, epayco_subscription_id,
+  epayco_ref, subscription_expires_at, subscription_status, last_payment_date ON profiles`):
+  hace upsert automático hacia `organization_members` cada vez que CUALQUIERA de los ~14 sitios
+  que hoy escriben esos campos en `profiles` (registro, `join-org`, aceptar invitación,
+  `epaycoActivation.js`, cancelar suscripción, panel master, etc.) los modifica — es lo que
+  permite que las fases siguientes (RLS, `getOrgContext`, `getOrgPlan`) se desplieguen en
+  cualquier orden sin un "flag day": mientras el código legacy sin migrar siga escribiendo en
+  `profiles`, esta tabla nueva se mantiene sincronizada sola, sin tocar esos ~14 sitios todavía
+  (eso es la Fase 6, deliberadamente al final, empezando por los de menor riesgo y dejando
+  `epaycoActivation.js`/cancelación de suscripción para el final por ser pagos reales).
+- **Verificación realizada**: conteo `profiles` con org vs. `organization_members` idéntico;
+  diff campo a campo (rol/plan/org) en la muestra completa de perfiles reales sin diferencias;
+  update de prueba en un perfil real confirmó que el trigger corre sin error y mantiene los
+  valores sincronizados; `get_advisors` (security) limpio, solo los 2 hallazgos preexistentes
+  conocidos (`partner_invitations` sin política, leaked password protection deshabilitada).
+- **Deliberadamente NO tocado en esta fase**: ninguna función RLS, ninguna ruta de la app,
+  ningún archivo de `src/` — es puramente infraestructura de base de datos, sin ningún efecto
+  visible todavía. Las columnas legacy de `profiles` (`organization_id`, `role`,
+  `subscription_plan`, campos de ePayco) siguen siendo la fuente de verdad real hasta que las
+  Fases 1-3 corten la lectura hacia la tabla nueva.
+
+### Fase 1 — Funciones RLS centrales resuelven vía `organization_members` (2026-07-05)
+
+Migración `20260705_organization_members_phase1_rls_helpers.sql` (aplicada, verificada).
+
+- **Alcance real menor de lo previsto**: de las ~10 funciones `private.*` de las que dependen
+  las 106 políticas RLS (39 tablas), solo **5** necesitaban cambiar —
+  `user_org_id()`/`get_my_org_id()`/`get_my_org()` (3 duplicados, ahora leen
+  `profiles.active_organization_id` en vez de `organization_id`) y `user_role()` (ahora
+  resuelve el rol desde `organization_members` para la organización activa, mismo fallback
+  `'piloto'` y mismo override de superadmin que antes). `has_role()` y todo lo que delega en
+  ella (`can_manage_ops`/`can_view_audit`/`can_view_finance`/`can_close_any_flight`/
+  `can_change_roles`) ya se apoyaban en `user_role()` — heredan el comportamiento correcto sin
+  tocarlas, reduciendo el riesgo real de esta fase.
+- **Bug preexistente corregido de paso**: `user_is_manager()` leía `profiles.role` directo, sin
+  pasar por `user_role()` (inconsistente — no aplicaba el override de superadmin). Ahora delega
+  en `user_role()`, quedando multi-org-aware automáticamente y consistente con el resto.
+- `CREATE OR REPLACE FUNCTION` preserva el OID de cada función — las 106 políticas se
+  actualizan solas, sin editar ninguna individualmente, sin downtime.
+- **Verificación**: comparación rol/org "viejo" (`profiles` directo) vs. "nuevo"
+  (`organization_members` + `active_organization_id`) para los 12 perfiles reales de la base —
+  100% idénticos (`role_matches`/`org_matches` = true en todos); `get_advisors` (security)
+  limpio, mismos 2 hallazgos preexistentes de siempre.
+
+### Fase 2 — `getOrgContext()` resuelve vía `organization_members` (2026-07-05)
+
+`lib/apiAuth.js`, usado por 113 de 173 rutas API — punto de choque único, sin tocar callers.
+
+- `orgId`/`role`/`subscription_plan` ya no se leen de `profiles` directo: se resuelven desde
+  `organization_members` para la organización activa (`profiles.active_organization_id`).
+  `fullName` sigue viniendo de `profiles` (campo de identidad, no cambia con la organización).
+  **Misma forma de retorno exacta que antes** (`{ user, orgId, role, subscription_plan,
+  fullName }`), mismos fallbacks (`subscription_plan ?? 'piloto'`) — los 113 callers no
+  cambian en esta fase.
+- **Sin round-trip adicional**: la consulta a `profiles` (solo `active_organization_id` +
+  `full_name`) y la consulta a `organization_members` (todas las membresías del usuario) corren
+  en paralelo (`Promise.all`), igual costo que la única consulta que había antes.
+- **Verificación**: `next lint` + `npm run build` limpios. La corrección de fondo ya estaba
+  probada en la Fase 1 (la tabla `organization_members` es idéntica a `profiles` para todas las
+  cuentas reales) — esta fase es solo el wrapper JS que lee esos mismos datos ya verificados,
+  sin lógica nueva. **Limitación documentada**: no se hizo una prueba end-to-end contra una
+  sesión real en el navegador en este entorno (sin sesión de usuario disponible); la
+  verificación se apoyó en la corrección ya probada a nivel de base de datos + revisión de
+  código.
+
+### Fase 3 — `getOrgPlan()` resuelve vía `organization_members` (2026-07-05)
+
+`lib/orgPlan.js` — el plan efectivo de una organización se deriva de la membresía del
+**admin** (Gerente General/dueño), no de la organización misma (`organizations` no tiene
+columna de plan).
+
+- Cambia `profiles.select('subscription_plan').eq('organization_id', orgId).eq('role',
+  'admin').order('created_at')` por el equivalente sobre `organization_members`
+  (`order('joined_at')` — en el backfill de la Fase 0, `joined_at = created_at` para toda
+  cuenta existente, así que el orden de desempate no cambia para ningún caso real hoy).
+- **Bug real encontrado y corregido durante esta fase**: `organization_members` solo tenía
+  la política de auto-lectura de la Fase 0 (`user_id = auth.uid()`) — a diferencia de
+  `profiles`, que además permite leer perfiles de **compañeros de la misma organización**
+  (`profiles_select`: propio, o `organization_id = private.user_org_id()`, o superadmin). Sin
+  el equivalente, `getOrgPlan()` habría devuelto silenciosamente el `fallback` para cualquier
+  miembro no-admin consultando el plan de su propia org (el admin no es "uno mismo"). Corregido
+  con la migración `20260705_organization_members_phase3_teammate_select.sql`, política nueva
+  `organization_members_select_teammates` que replica exactamente el mismo criterio de
+  `profiles_select`.
+- **Verificación**: comparación plan-por-org "viejo" (`profiles`) vs. "nuevo"
+  (`organization_members`) para las 11 organizaciones reales con miembros — 100% idénticos
+  (incluye el caso `null=null` de la org del superadmin, que no tiene un miembro con
+  `role='admin'`); `get_advisors` (security) limpio tras agregar la política nueva.
+
+### Fase 4 — helper compartido `isPilotoIndependiente()` (2026-07-05)
+
+`lib/pilotoIndependiente.js` (nuevo) — `isPilotoIndependiente({ role, plan })`.
+
+- **Alcance real menor de lo previsto**: el inventario inicial (agente de exploración)
+  reportó 7-8 archivos con el predicado, pero al verificar directamente con `grep` solo
+  **4 archivos** tenían el predicado combinado exacto (`plan === 'piloto' && role ===
+  'admin'`) duplicado: `dashboard/layout.js`, `dashboard/settings/profile/page.js`,
+  `dashboard/settings/forms/page.js`, `dashboard/logbook/new/page.js`. Los demás archivos
+  mencionados (`api/auth/join-org/route.js`, `api/logbook/import-dji/route.js`,
+  `dashboard/plan-vuelo/layout.js`, `DashboardClient.js`) usan `subscription_plan`/`role` para
+  otras cosas (límites de plan, auto-creación de piloto, `getOrgPlan()`) pero no reimplementan
+  este predicado específico — se dejaron intactos, sin necesidad de refactor.
+- Refactor puro, sin cambio de comportamiento: cada call site pasa sus propias variables
+  (`role`/`plan` del perfil, o el `plan` ya resuelto por `getOrgPlan()` en el caso de
+  `dashboard/layout.js`) al helper en vez de repetir la comparación inline.
+- **Fuera de alcance a propósito**: `dashboard/settings/forms/page.js` sigue leyendo
+  `profiles.role`/`subscription_plan` directo (una de las ~88 lecturas de la Fase 7, diferida)
+  — este refactor solo tocó el predicado, no la fuente de datos subyacente de ese archivo.
+- **Verificación**: `grep` confirma cero ocurrencias inline restantes del patrón fuera del
+  helper nuevo; `next lint` + `npm run build` limpios.
+
+### Fase 5 — Unirse a una segunda organización + switcher + invitaciones (2026-07-05)
+
+Confirmado con el usuario (`AskUserQuestion`, 2 preguntas) antes de construir: aceptar
+cualquier invitación **nunca** migra datos (siempre solo agrega membresía), y unirse a una
+segunda organización **no** cambia automáticamente la organización activa — el usuario decide
+cuándo cambiar, usando el switcher.
+
+- **`POST /api/auth/join-org-additional`** (nuevo): valida NIT + disponibilidad de rol +
+  límite de pilotos del plan destino (igual que `join-org`, pero consultando
+  `organization_members` en vez de `profiles`) e inserta una fila nueva en
+  `organization_members` — **sin transferir ninguna tabla operativa y sin tocar
+  `profiles.organization_id`**. `api/auth/join-org/route.js` (el flujo destructivo original,
+  para el caso piloto-independiente-se-fusiona-a-una-empresa) queda completamente intacto,
+  sin ninguna modificación — son casos de uso distintos que ahora coexisten.
+- **`POST /api/org/switch-active`** (nuevo): valida que exista una membresía activa
+  (`organization_members` con `is_active=true`) para `(auth.uid(), organization_id)` y
+  proyecta esos valores (`role`/`subscription_plan`/campos de ePayco/`organization_id`/
+  `active_organization_id`) de vuelta a `profiles` — el mecanismo que hace que las ~88
+  lecturas directas de `profiles` sin migrar (Fase 7, diferida) reflejen la organización
+  activa sin tener que tocarlas. Usa `createAdminClient()` (mismo patrón que
+  `epaycoActivation.js`/`invitations/accept`) para el UPDATE de `profiles`.
+- **Switcher UI** (`dashboard/layout.js`): reutiliza el popover de cuenta ya existente
+  (avatar + `footerLinks`, patrón de **Corrección 1** — "un solo punto de entrada, en vez de
+  elementos sueltos"). Nueva sección "Organizaciones" (fetch no-bloqueante de
+  `organization_members` con embed `organizations:organization_id(company_name)`, mismo
+  patrón fire-and-forget que ya usaba la detección de `partner_members`) — **solo se
+  renderiza si `memberships.length > 1`**, cero cambio visual para el resto de cuentas.
+  Click en una organización → `handleSwitchOrg()` → `POST /api/org/switch-active` →
+  recarga completa de `/dashboard` (no un simple re-fetch de estado) para que TODO el
+  contexto de la página (RLS, `getOrgContext`, sidebar, cualquier dato ya cargado) quede
+  consistente con la nueva organización activa.
+- **Cambio de comportamiento confirmado en `api/invitations/accept/route.js`**: se eliminó
+  por completo la rama que migraba `aircraft`/`flights`/`pilots`/etc. cuando el invitado era
+  dueño único de su organización actual y renombraba esa org `[Migrada]`. Ahora, aceptar
+  cualquier invitación (sea o no dueño único, tenga o no ya otra organización) **siempre**
+  hace lo mismo: si no existe ya una fila en `organization_members` para `(usuario, org
+  invitante)`, la inserta; si ya existe, no hace nada además de cerrar la invitación —
+  nunca migra datos, nunca toca la organización de origen, nunca cambia la organización
+  activa. El vínculo del piloto destino y la notificación a GG/JP quedan exactamente igual
+  que antes.
+- **Fuera de alcance a propósito**: no se agregaron verificaciones de límite de plan al
+  aceptar una invitación (tampoco existían antes de esta fase) — el manager que crea la
+  invitación ya eligió un rol válido; solo se cambió cómo se registra la membresía, no las
+  reglas de negocio de quién puede ser invitado.
+
+**Próxima fase** (diferida a propósito, no se ejecuta todavía — ver **Fase 6** más abajo para
+lo ya aplicado): Fase 7 — migrar las ~88 lecturas directas de `profiles` restantes y retirar
+las columnas legacy + el trigger-puente.
+
+### Fase 6 — Sitios de escritura legacy ahora también escriben `organization_members` (2026-07-05)
+
+Hasta acá, `organization_members` solo se mantenía al día vía el trigger-puente de la Fase 0
+(`private.sync_profile_to_org_member()`, dispara en cualquier `UPDATE`/`INSERT` sobre las
+columnas relevantes de `profiles`). Esta fase hace que el código de la app también escriba
+`organization_members` explícitamente en cada sitio server-side identificado — el trigger
+sigue activo de respaldo (no se retira, eso es la Fase 7), pero deja de ser la única vía.
+
+- **`lib/orgMembership.js`** (nuevo) → `syncOrgMembership(client, { userId, organizationId,
+  role, subscriptionPlan, epaycoCustomerId, epaycoSubscriptionId, epaycoRef,
+  subscriptionExpiresAt, subscriptionStatus, lastPaymentDate })`: hace
+  `upsert(..., { onConflict: 'user_id,organization_id' })` incluyendo **solo** las columnas
+  realmente pasadas (`!== undefined`) — así una actualización parcial (ej. solo `role` desde
+  `admin/users`) no pisa con `null` el resto de columnas de la fila existente. `role` y
+  `subscription_plan` tienen default `'piloto'` en la tabla, así que un insert nuevo (caso
+  real: cuenta que se registra por primera vez) nunca falla por columnas NOT NULL faltantes
+  aunque el caller no las pase todas.
+- **9 sitios server-side migrados** (siempre usando `createAdminClient()`/service role, igual
+  que ya escriben `profiles`): `api/admin/master` (PATCH superadmin), `cron/free-grants`
+  (degradar grant vencido), `api/socio/grants` (anular regalo ya canjeado — bulk, una fila de
+  `organization_members` por cada perfil afectado de la org), `api/admin/master/partners`
+  (vincular dueño de escuela a Enterprise + sincronizar Enterprise↔piloto al cambiar estado de
+  la escuela, también bulk sobre varios dueños), `api/admin/master/epayco-subscriptions`
+  (cancelar por panel Master), `api/admin/users` (cambio de rol — escribe sobre
+  `target.organization_id`, la org **actualmente activa** del miembro afectado, no se asume
+  que solo pertenece a una), `api/auth/register` (los 2 upserts de registro — join mode y
+  registro normal — más los 2 sub-casos de grant/socio-invite dentro del mismo archivo),
+  `lib/epaycoActivation.js` (`createAccountFromPendingRegistration` + `activatePlanForUser` —
+  pagos reales, migrado al final con más cuidado; `activatePlanForUser` no recibía
+  `organizationId` como parámetro, así que ahora encadena `.select('organization_id').single()`
+  al mismo `UPDATE` de `profiles` para no pagar un round-trip extra) y
+  `api/subscription/cancel` (cancelación self-service, también pagos reales).
+- **2 sitios deliberadamente NO migrados a escritura directa — `dashboard/layout.js`
+  (auto-provisión de org cuando un perfil legacy no tiene `organization_id`) y
+  `dashboard/select-plan/page.js`**: ambos ejecutan la escritura **client-side**, con el
+  cliente Supabase de la sesión del propio usuario (no `createAdminClient()`). RLS de
+  `organization_members` hoy solo permite `SELECT` de la propia fila y de compañeros de
+  org (Fases 0 y 3) — **no** existe política de `INSERT`/`UPDATE` para el usuario final, y
+  agregarla habría significado que cualquier cuenta pudiera escribir su propia fila de
+  `organization_members` (rol/plan) directo desde el navegador, un retroceso de seguridad
+  real para ganar algo que el trigger-puente ya cubre por completo (ambos sitios solo tocan
+  `organization_id`/`subscription_plan`, columnas que el trigger vigila). Se documenta como
+  excepción de alcance explícita, no como un pendiente olvidado — ninguno de los dos necesita
+  revisitarse a menos que ese flujo se mueva a un endpoint server-side por otra razón.
+- **Fuera de alcance, confirmado al revisar cada sitio candidato**: `api/user/profile` y
+  `dashboard/settings/profile/page.js` solo escriben campos de identidad
+  (nombre/teléfono/avatar/etc.), nunca `organization_id`/`role`/`subscription_plan`/campos de
+  ePayco — no son sitios de la Fase 6 pese a escribir en `profiles`.
+  `api/auth/register-pending` y `api/auth/activate-pending` no escriben `profiles` en
+  absoluto (solo guardan/consultan la intención en `pending_registrations`; la cuenta real la
+  crea `createAccountFromPendingRegistration` cuando el webhook confirma el pago). `POST
+  /api/org/switch-active` (Fase 5) escribe `profiles` a propósito como parte de su función —
+  es el mecanismo de proyección en sí, no un sitio legacy a migrar.
+- **Verificación**: `npx next lint` + `npm run build` limpios (mismos 3 warnings preexistentes
+  de siempre); `get_advisors` (security) limpio, mismos 2 hallazgos preexistentes. Sin
+  migración SQL en esta fase — solo código de aplicación, la tabla y sus políticas ya existían
+  desde las Fases 0/3.
+
+### Fase 7 — Lecturas restantes migradas a `organization_members` (2026-07-06)
+
+Antes de construir se confirmó con el usuario (`AskUserQuestion`) el alcance real: a
+diferencia de las Fases 0-6, esta fase **no cambia comportamiento observable** en el caso
+normal — `profiles.role`/`organization_id`/`subscription_plan`/campos de ePayco ya reflejan
+correctamente la organización activa (gracias a `switch-active` + el trigger-puente de la
+Fase 0 + las escrituras explícitas de la Fase 6), así que leerlos directamente ya daba el
+valor correcto. El usuario eligió **"Solo migrar las lecturas"** (dejando las columnas
+legacy y el trigger intactos, sin retirarlos todavía — eso sigue siendo la Fase 8, diferida).
+
+- **Inventario real**: un agente Explore encontró 62 archivos con lecturas directas
+  calificadas (24 API routes, 13 helpers/Server Components, 24 Client Components) fuera de
+  `getOrgContext()`. Una revisión manual posterior (grep dirigido) encontró ~15 sitios
+  adicionales que el inventario había pasado por alto — la mayoría porque ya usaban
+  `getOrgContext()` para *algo* en el archivo pero tenían un segundo `.from('profiles')`
+  suelto más abajo para otra cosa (chequeo de rol redundante, roster de miembros de la org,
+  cuota de plan) — se migraron igual, quedando ~77 archivos tocados en total.
+- **Patrón único para casi todos los sitios**: reemplazar el `.from('profiles').select('role,
+  organization_id, ...')` propio por `getOrgContext(supabase)` — la misma función de la Fase 2,
+  que ya resuelve todo esto vía `organization_members`. Como `getOrgContext()` es una función
+  pura (solo toma un cliente Supabase y llama sus métodos, sin nada server-only), es
+  **exactamente igual de válida en Client Components** pasándole el cliente del navegador
+  (`@/lib/supabase`) que en API routes/Server Components pasándole el cliente SSR — no hizo
+  falta una versión "client-safe" aparte.
+- **`src/lib/authGuards.js`** (`requirePermission`, usado por 11 layouts server) ahora resuelve
+  vía `getOrgContext()` en vez de una consulta propia — `manuales/layout.js` y
+  `pilots/layout.js` (que reimplementaban el mismo guard a mano) se simplificaron a una sola
+  línea reutilizando `requirePermission()`.
+- **`src/utils/rbac.js` eliminado**: `validateRole()` no tenía ningún caller en todo el
+  proyecto (confirmado por grep) — código muerto de una versión anterior del guard, se borró
+  en vez de "migrarlo" sin sentido.
+- **`lib/notify.js`, `lib/manualNotify.js`, `lib/flight-plans` (notifyFlightPlan), y los
+  correos de VOR/MOR públicos** (`api/public/vor|mor/[orgCode]`): el patrón "listar
+  miembros de la org por rol para notificarlos" pasó de `profiles.eq('organization_id', orgId)`
+  a `organization_members.eq('organization_id', orgId).in('role', ...)` cruzado con
+  `profiles.active_organization_id` — mismo criterio exacto de antes (solo cuentan los
+  miembros que tienen esta org como **activa** ahora mismo, no cualquier membresía histórica),
+  documentado explícitamente en cada sitio para que quede claro que no es un cambio de
+  comportamiento.
+- **Bug real de latencia multi-org corregido de paso** (mismo patrón, several sitios): los
+  conteos de "¿es el único admin/miembro con este rol en la org?" (`auth/validate-join`,
+  `auth/register` join-mode, `auth/delete-account`, `api/user/delete`) contaban filas de
+  `profiles` filtradas por `organization_id` — eso solo cuenta cuentas que tienen esa org como
+  **activa ahora mismo**. Antes de la Fase 5 esto era intercambiable con "es miembro real",
+  porque una cuenta solo podía pertenecer a una org. Con multi-org ya no lo es: una cuenta que
+  es la única `jefe_pilotos` de una org pero cambió su organización activa a otra dejaría de
+  contar, permitiendo (incorrectamente) que alguien más tomara ese rol único, o haciendo que
+  "eliminar cuenta"/"eliminar mi cuenta" borrara una organización que en realidad todavía tiene
+  otros miembros reales. Migrado a contar `organization_members` (membresía real,
+  independiente de cuál org tenga activa cada cuenta) en los 4 sitios.
+- **`api/fleet/[id]/transfer`**: resolver la org destino por el email de su admin pasó de
+  `profiles.select('organization_id, role').eq('email', ...)` a buscar el `id` en `profiles`
+  por email y luego su membresía admin/superadmin en `organization_members` — misma
+  semántica (transferir a la org que ese administrador gestiona activamente).
+- **`import-dji/route.js`, `flights/[id]/replay/route.js`**: sus propias reimplementaciones
+  de "plan del primer admin de la org" (duplicando lo que ya hace `getOrgPlan()` desde la
+  Fase 3) se reemplazaron por una llamada directa a `getOrgPlan()` — elimina la duplicación
+  además de migrar la lectura.
+- **`api/user/profile` (GET)**: seguía devolviendo `role`/`organization_id`/`subscription_plan`
+  crudos de `profiles` al cliente vía `select('*')`; ahora los sobreescribe con los valores
+  de `getOrgContext()` antes de responder — mismos valores (están sincronizados), pero ya no
+  se confía en la columna legacy para lo que el cliente realmente consume (confirmado que
+  los 2 callers reales de este endpoint solo leen `.role`).
+- **`dashboard/subscription/page.js`**: el polling de activación de pago (cada 4s durante el
+  flujo de checkout) leía `profiles.subscription_plan/subscription_expires_at/
+  epayco_subscription_id` en 3 sitios. Se resolvió con un `orgIdRef` (la org activa no cambia
+  mientras la página está abierta, se resuelve una sola vez con `getOrgContext()`) + un
+  helper local `fetchSubscriptionState()` que consulta `organization_members` — evita repetir
+  la resolución de organización activa en cada tick del polling.
+- **Deliberadamente sin tocar** (confirmado caso por caso): `dashboard/layout.js`
+  (auto-provisión de org) y `dashboard/select-plan/page.js` — ambos escriben `profiles`
+  **client-side** con la sesión del propio usuario; `organization_members` no tiene política
+  de INSERT/UPDATE para el usuario final (solo lectura propia/compañeros), y agregarla para
+  cubrir estos 2 sitios habría sido un retroceso de seguridad real (mismo razonamiento ya
+  documentado en la Fase 6) a cambio de nada, porque el trigger-puente ya los mantiene
+  correctos. `api/auth/join-org` sigue fuera de todo el refactor (caso de uso distinto,
+  comportamiento destructivo intencional). `POST /api/org/switch-active` sigue escribiendo
+  `profiles` a propósito — es el mecanismo de proyección en sí.
+- **Verificación**: `npx next lint` + `npm run build` limpios (mismos 3 warnings
+  preexistentes) tras cada tanda de archivos migrados, no solo al final; `get_advisors`
+  (security) limpio, mismos 2 hallazgos preexistentes — sin migración SQL en esta fase.
+  **Limitación documentada**: no se hizo una prueba end-to-end en navegador real en este
+  entorno (sin sesión de usuario disponible) — la verificación se apoyó en que los valores
+  ya estaban probados idénticos desde las Fases 1-3, más revisión de código exhaustiva de
+  cada sitio migrado.
+
+### Fase 8 — Verificación previa al retiro de columnas legacy (2026-07-06, sin drop todavía)
+
+El usuario pidió avanzar con la Fase 8 (retirar columnas legacy de `profiles` + el
+trigger-puente). Dado que las Fases 5-7 se acababan de aplicar sin ningún tiempo de
+estabilidad en producción ni prueba end-to-end en navegador real, se confirmó con el
+usuario (`AskUserQuestion`) el alcance real antes de tocar el esquema: **solo verificación
+exhaustiva, cero `ALTER TABLE`/`DROP` todavía** — el usuario decide después, con este
+resultado en mano, cuándo ejecutar el drop real.
+
+- **Lectura de código — un sitio real encontrado y corregido**: `api/pilots/my-documents/
+  route.js` (`notifyManagers`) todavía leía `profiles.organization_id`/`role` directo para
+  listar managers a notificar — el mismo patrón ya migrado 6+ veces en la Fase 7, que el
+  inventario original y la revisión manual posterior no habían atrapado. Migrado al mismo
+  patrón `organization_members` (rol) + `profiles.active_organization_id` (org activa).
+- **Funciones RLS (`private.*`) — limpias**: se inspeccionó la definición SQL real de las
+  12 funciones (`pg_get_functiondef`) — `get_my_org`/`get_my_org_id`/`user_org_id` leen
+  únicamente `active_organization_id` (no la columna legacy `organization_id`), `user_role()`
+  resuelve 100% desde `organization_members`. Ninguna función RLS depende ya de las columnas
+  legacy para leer — confirma lo que las Fases 1-3 ya habían hecho.
+- **2 triggers preexistentes NO relacionados con este refactor, encontrados como bloqueantes
+  reales para el drop** (no estaban documentados en ninguna fase anterior — no se habían
+  auditado hasta ahora): `link_pilot_on_profile_insert()` (dispara en `INSERT` sobre
+  `profiles`, usa `NEW.organization_id` para vincular automáticamente una fila `pilots`
+  existente por email) y `prevent_unauthorized_role_change()` (dispara en `UPDATE`, compara
+  `NEW.role` vs `OLD.role` para bloquear cambios de rol no autorizados). Ambos dejarían de
+  compilar/fallarían en cada operación sobre `profiles` si se eliminan `organization_id`/
+  `role` sin antes reescribirlos para leer `organization_members` — **bloqueante real
+  adicional para la Fase 8**, no contemplado en el plan original.
+- **Sincronía de datos — 100% exacta, sin muestreo**: comparación campo por campo
+  (`organization_id`, `role`, `subscription_plan`, los 3 campos de identificación de ePayco,
+  `subscription_expires_at`, `subscription_status`, `last_payment_date`) entre `profiles` y
+  `organization_members` para las 12 cuentas reales con organización — cero discrepancias en
+  cualquier campo. `organization_members` tiene exactamente 12 filas (= cuentas con org),
+  ninguna cuenta ha usado todavía el switcher para tener una segunda membresía activa
+  (`active_organization_id = organization_id` en las 12) — esperable, la función es nueva.
+- **Conclusión**: los datos están listos (sincronía perfecta), pero el código todavía
+  **no** lo está — los 2 triggers preexistentes (`link_pilot_on_profile_insert`,
+  `prevent_unauthorized_role_change`) necesitan reescribirse para depender de
+  `organization_members` antes de poder eliminar las columnas legacy sin romper el alta de
+  perfiles y el cambio de rol. Sin migración SQL en esta fase — solo el fix de código de
+  `pilots/my-documents/route.js` (`npx next lint` + `npm run build` limpios, mismos 3
+  warnings preexistentes).
+
+**Próxima fase** (diferida a propósito, no se ejecuta todavía): Fase 9 — reescribir los 2
+triggers preexistentes para depender de `organization_members`, y solo entonces retirar las
+columnas legacy de `profiles` + el trigger-puente de la Fase 0, una vez que las Fases 0-7
+lleven un tiempo estables en producción. Es un cambio de esquema difícil de revertir en una
+base de datos en vivo con pagos reales — el plan original ya recomendaba no apurarlo, y esta
+verificación confirma que hay trabajo real pendiente antes de poder hacerlo con seguridad.
 
 ---
 
@@ -546,6 +950,62 @@ no "formatos" con letterhead).
   archivo (vía `Image().naturalWidth/Height`), y `addLogo()` calcula un ajuste tipo
   "contain" centrado dentro de la misma caja — mismo helper, los 6 generadores se
   benefician sin cambios adicionales.
+
+### Reportes — grilla agrupada + 7 formatos nuevos (2026-07-05)
+
+El usuario pidió (1) agrupar la grilla de `dashboard/reports/page.js` para encontrar más
+fácil el reporte deseado, y (2) 7 formatos nuevos. Antes de construir se confirmaron con el
+usuario (`AskUserQuestion`, 4 preguntas) 3 solapamientos reales con reportes ya existentes
+(Indicadores SPI anual, Autoevaluación GAP, Cronograma Capacitación SMS) y el alcance de
+Confirmación de Lectura de Manuales — las 4 con la opción recomendada, confirmando que son
+complementos distintos, no duplicados.
+
+- **Agrupación + búsqueda**: `REPORT_DEFS` gana un campo `group` puramente de presentación
+  (`GROUP_ORDER`: Operación/Tripulación/Documentación/Seguridad SMS/Proveedores) — la grilla
+  ahora renderiza una sección por grupo en vez de una lista plana de 14+ tarjetas. Se agregó
+  además un input de búsqueda (nombre/código/descripción) sobre la grilla ya agrupada, porque
+  el pedido era literalmente "más fácil de **buscar**" — grupos vacíos tras filtrar no
+  se muestran.
+- **Publicación de Manuales** (`F-DOC-014`, grupo Documentación): historial de publicaciones
+  (`manual_versions`, alta inicial + nuevas versiones) en el periodo elegido —
+  `GET /api/reports/manuals-published`.
+- **Confirmación de Lectura de Manuales** (`F-DOC-015`, Documentación): consolidado de
+  TODOS los manuales vigentes con leídos/pendientes sobre su versión actual — snapshot, sin
+  selector de manual (decisión confirmada), a diferencia del "Acta PDF" ya existente en
+  `/dashboard/manuales` que es por manual específico con roster completo —
+  `GET /api/reports/manuals-ack` (cuenta miembros de la org vía `createAdminClient()` +
+  Regla de conteo).
+- **Trazabilidad de Componentes** (`F-FLT-008`, Operación): roster activo de componentes
+  (Hélices/Motores/ESC/personalizados) con horas/días de uso derivados del odómetro de cada
+  aeronave + historial completo de cambios (`maintenance_components`) — toda la flota o una
+  sola aeronave, mismo selector que Mantenimiento/Flota — `GET /api/reports/components-
+  traceability`.
+- **Seguimiento de Indicadores** (`F-SMS-016`, Seguridad SMS): tasa mensual de cada
+  indicador SPI comparada contra sus líneas de alerta (reutiliza `lib/safetyIndicatorStats.js`
+  — promedio + N·desv. estándar poblacional del año anterior completo) dentro del periodo
+  elegido, más los planes de acción todavía abiertos — complementa al Excel anual
+  "Indicadores SPI" (`F-SMS-010`), no lo reemplaza (decisión confirmada) —
+  `GET /api/reports/indicators-tracking`.
+- **Mejora Continua** (`F-SMS-017`, Seguridad SMS): evolución del % de cumplimiento entre
+  TODAS las autoevaluaciones GAP realizadas, por componente y total, con variación vs. la
+  evaluación anterior — distinto de "Autoevaluación GAP del SMS" (`F-SMS-011`), que solo
+  imprime la última (decisión confirmada) — `GET /api/reports/gap-history`.
+- **Listado de Reportes MOR y VOR** (`F-SMS-018`, Seguridad SMS): reportes VOR/MOR recibidos
+  en el periodo (tipo/reportante/severidad reportada vs. asignada/estado/responsable) —
+  complementa al tablero de Acciones Correctivas, que solo lista casos abiertos de 3 fuentes
+  distintas — `GET /api/reports/vor-mor-list`.
+- **Plan de Capacitación SMS (asistencia)** (`F-SMS-019`, Seguridad SMS): asistencia real
+  registrada (`sms_training_attendance`) por sesión y fecha dentro del periodo, con % de
+  cumplimiento del personal — distinto de "Cronograma Capacitación SMS" (`F-SMS-012`), que
+  solo proyecta fechas futuras sin registrar quién asistió (decisión confirmada) —
+  `GET /api/reports/sms-training-attendance`.
+- **Sin migraciones nuevas**: los 7 formatos reutilizan tablas ya existentes
+  (`manual_versions`/`manual_acknowledgments`, `aircraft_components`/`maintenance_components`,
+  `safety_indicators`/`safety_indicator_monthly`/`safety_indicator_actions`,
+  `sms_gap_assessments`/`sms_gap_responses`, `vor_mor_submissions`,
+  `sms_training_sessions`/`sms_training_attendance`) — todos gateados con `canViewAudit`
+  (mismo patrón que el resto de `/api/reports/*`, ver **Auditoría 2026-07-22**), mismo layout
+  jsPDF (logo/versión/fecha/nota de trazabilidad/firmas) que los formatos existentes.
 
 ### Registro de Baterías rediseñado — snapshot por batería (2026-07-04)
 
@@ -1109,6 +1569,40 @@ Jefe de Pilotos, que Protocolos como página completa excluye).
   conteo real de ítems configurados (mismo `fieldCounts`, se agregó `'inventory'` al `.in()`
   de tipos consultados) y su descripción es literalmente lo pedido: "Qué equipos se
   requieren y qué se verifica en el inventario del día de la operación".
+
+### Inventario — relación opcional ítem del checklist ↔ equipo en existencia (2026-07-23)
+
+A pedido del usuario ("relacionar los equipos que hemos creado... no será obligatorio"):
+cada ítem del checklist de verificación puede opcionalmente enlazarse a una fila de
+"Existencias de equipo" (`equipment_stock`), para ver la cantidad disponible junto al
+ítem al configurarlo y al diligenciarlo en Despacho. Confirmado con el usuario
+(`AskUserQuestion`, 2 preguntas) antes de construir: **solo informativo** (nunca descuenta
+`equipment_stock.quantity`, a diferencia de un consumo real por vuelo) y **texto libre +
+relación aparte** (el ítem conserva su propia redacción independiente de qué equipo tenga
+enlazado, en vez de autocompletar el label con el nombre del equipo al elegirlo).
+
+- **`form_definitions.equipment_stock_id`** (columna nueva, migración
+  `20260723_form_definitions_equipment_stock_link.sql`, aplicada): `uuid references
+  equipment_stock(id) on delete set null` — nullable y genérica en la tabla compartida de
+  campos de formulario (irrelevante para el resto de `form_type`, siempre `null` ahí; solo
+  se usa cuando `form_type='inventory'`). `on delete set null`: si se borra el equipo de
+  Existencias, el ítem del checklist queda intacto, solo pierde la relación.
+- **Configuración** (`InventoryChecklistClient.js`): cada uno de los 30 slots del editor
+  (`canManage`) gana un `<select>` junto al input de texto, con las filas de `stock` como
+  opciones (`Nombre (cantidad)`) + "— Sin relacionar —" por defecto — estado nuevo
+  `relations` (`field_number → equipment_stock_id`), inicializado desde
+  `initialData.initialRelations` (armado en `page.js` a partir de `defs.equipment_stock_id`)
+  y persistido en `handleSave()` junto con `label_text`. La vista de solo lectura
+  (`!canManage`) resuelve `stockById(relations[num])` y muestra un badge
+  "Nombre — N en existencia" junto al ítem, cuando hay relación.
+- **Despacho** (`app/dashboard/logbook/new/page.js`): la consulta de `form_definitions` del
+  paso activo ahora embebe `equipment_stock:equipment_stock_id(name, quantity)` (PostgREST,
+  vía el FK real) — sin round-trip adicional, y sin efecto en los demás pasos (la columna es
+  siempre `null` para `health`/`preflight`/`briefing`, el embed simplemente es `null`).
+  `CheckItem` gana una prop opcional `sub` (línea secundaria bajo el label, mismo patrón que
+  el `sub` de `KPICard`); el render del paso `inventory` la pasa como
+  `"${quantity} en existencia"` solo cuando el ítem trae `equipment_stock` — no cambia nada
+  en el guardado de `results_inventory` (sigue siendo el mismo Sí/No por ítem).
 
 ### Evaluación de Riesgos en el Despacho (2026-07-17)
 
@@ -1952,6 +2446,58 @@ existente detrás de cada tarjeta, intacto.
      modelo internos — el panel abre directo sobre el `type`/`selectedModel` de la tarjeta
      en la que se hizo click, sin forma de saltar a otro checklist sin volver al grid.
 
+### Protocolos — reorganización en 4 grupos (2026-07-05)
+
+A pedido del usuario ("organiza los protocolos actuales en los grupos establecidos:
+Prevuelo, Reportes, Seguridad Operacional, Mantenimiento"): antes de construir se
+confirmó el alcance completo con el usuario (`AskUserQuestion`, 2 rondas — 6 preguntas
+en total) porque el pedido tocaba tanto la presentación (3 secciones inconexas, cada
+una con su propio criterio) como el modelo de datos (las 5 categorías reales de
+`protocols.category`, que no correspondían 1-a-1 con los 4 grupos nuevos).
+
+- **Alcance confirmado — toda la página, no solo el grid superior**: además de
+  reorganizar "Checklists operativos" + "Formatos de reporte SMS" (que antes eran 2
+  secciones separadas sin relación entre sí) en los 4 grupos, la biblioteca libre de
+  "Protocolos y procedimientos" **también** migra sus categorías a los mismos 4 valores
+  — un solo criterio de agrupación para toda la página, en vez de 3 taxonomías
+  distintas conviviendo (tipos fijos / VOR-MOR / 5 categorías libres).
+- **Migración `20260705_protocols_category_groups.sql`** (aplicada en Supabase):
+  reemplaza el CHECK de `protocols.category` de 5 valores (`Pre-vuelo`/`En vuelo`/
+  `Post-vuelo`/`Emergencia`/`Mantenimiento`) a los 4 nuevos (`Prevuelo`/`Reportes`/
+  `Seguridad Operacional`/`Mantenimiento`), con `UPDATE` de remapeo para protocolos ya
+  guardados (decisión confirmada, sin equivalente 1-a-1 exacto para 3 de las 5
+  categorías viejas): `Pre-vuelo → Prevuelo`; `En vuelo`/`Post-vuelo`/`Emergencia →
+  Seguridad Operacional` (las 3 describen procedimientos durante/después del vuelo o de
+  emergencia, más cercanos a "seguridad operacional" que a los otros 3 grupos);
+  `Mantenimiento` sin cambio.
+- **Asignación de los 6 checklists fijos a los 4 grupos** (`FIXED_TYPE_GROUP` en
+  `FormSettingsClient.js`, decisión confirmada pregunta por pregunta): Salud del
+  piloto, Briefing de misión, Inventario de Operación y Pre-vuelo (por modelo) → grupo
+  **Prevuelo** (son verificaciones previas al despacho); Recibo de Mantenimiento y
+  Mantenimiento Menor → grupo **Mantenimiento**. Ninguno de los 6 cae en "Reportes"
+  (reservado para VOR/MOR) ni en "Seguridad Operacional" (grupo alimentado solo por la
+  biblioteca libre de protocolos — sin checklist fijo que encaje ahí).
+- **`FormSettingsClient.js` reescrito**: las 3 secciones antiguas (grid de checklists +
+  grid VOR/MOR + grid de protocolos libres con chips de filtro) se reemplazan por un
+  solo `GROUPS.map(...)` que renderiza 4 secciones — cada una mezcla, en un mismo grid,
+  las tarjetas de checklist fijo de ese grupo (`fixedCardsByGroup`), los formatos VOR/MOR
+  (solo en el grupo Reportes) y los protocolos libres de esa categoría
+  (`protocolsByGroup`). Se eliminaron los chips "Todos/Pre-vuelo/En vuelo/..." — la
+  sección ya cumple esa función de filtrado, un segundo filtro habría sido redundante.
+  Un grupo sin ningún ítem (posible hoy solo en "Seguridad Operacional", si la org no ha
+  creado protocolos libres de esa categoría) muestra un estado vacío con atajo directo a
+  "Crear protocolo", en vez de ocultarse — a diferencia de Reportes (donde un grupo vacío
+  tras buscar simplemente no se muestra), aquí los 4 grupos son fijos y siempre visibles
+  para que el usuario sepa que existen, tenga o no contenido todavía.
+- **`GROUP_STYLE`** (antes `CATEGORY_STYLE`): Prevuelo índigo, Reportes violeta (nuevo,
+  para no confundirse con el naranja de marca ni con el ámbar de Mantenimiento),
+  Seguridad Operacional rojo (heredado de la antigua "Emergencia", incluye ahora también
+  lo remapeado desde "En vuelo"/"Post-vuelo"), Mantenimiento ámbar (sin cambio).
+- **`AddProtocolPanel.js`** y las validaciones server-side (`POST`/`PATCH
+  /api/protocols`) actualizan su lista `CATEGORIES` a los 4 valores nuevos — el
+  `<select>` de categoría al crear/editar un protocolo libre ahora ofrece exactamente
+  los mismos 4 grupos que organizan la página, por defecto `Prevuelo`.
+
 ### Mi Perfil rediseñado (2026-07-03)
 
 `dashboard/settings/profile/page.js`: pasó de un formulario de 2 columnas genérico (con
@@ -2333,6 +2879,7 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 - [x] **`20260703_sms_reports_updated_at.sql` aplicada en Supabase (2026-07-03)** — columna `updated_at` + trigger en `sms_reports`. Ver **Seguimiento de casos SMS/VOR/MOR**.
 - [x] **`20260703_vor_mor_reported_fields.sql` aplicada en Supabase (2026-07-03)** — columnas `reported_severity`/`related_barrier_id` en `vor_mor_submissions`. Ver **Editor de formato VOR/MOR rediseñado**.
 - [x] **`20260702_billing_history.sql` aplicada en Supabase (2026-07-03)**, confirmado con el usuario al rediseñar Suscripción. Ver **Historial de facturación**.
+- [x] **`20260705_organization_members_phase0.sql` + `_phase1_rls_helpers.sql` + `_phase3_teammate_select.sql` aplicadas en Supabase (2026-07-05)** — tabla `organization_members` + `profiles.active_organization_id` + trigger-puente + funciones RLS centrales + política de lectura entre compañeros de org. Fase 6 (migrar los 14 sitios de escritura legacy a `organization_members` directamente) y Fase 7 (migrar ~77 sitios de lectura restantes a `getOrgContext()`/`organization_members`, sin migración SQL en ninguna de las dos) también aplicadas. Fase 8 (verificación previa al retiro de columnas, 2026-07-06, sin drop) encontró 2 triggers preexistentes (`link_pilot_on_profile_insert`, `prevent_unauthorized_role_change`) que aún dependen de las columnas legacy y deben reescribirse antes de poder retirarlas. Ver **Multi-organización por cuenta**. Fase 9 (reescribir esos 2 triggers y retirar columnas legacy de `profiles` + el trigger-puente) queda pendiente, deliberadamente diferida.
 - [ ] Agregar `DJI_API_KEY` a Vercel env vars
 - [ ] Agregar `NEXT_PUBLIC_APP_URL` a Vercel env vars
 - [ ] Agregar `AEROCIVIL_SALT` a Vercel env vars (el fallback inseguro ya fue removido — el endpoint lanza error si falta la variable)

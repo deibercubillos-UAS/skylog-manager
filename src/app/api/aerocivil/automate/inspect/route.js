@@ -2,19 +2,15 @@ import { NextResponse }                        from 'next/server';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { decrypt }                             from '@/app/api/aerocivil/credentials/route';
 import { PERMISSIONS }                         from '@/lib/roles';
+import { getOrgContext }                       from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 async function getSession(supabase) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return {};
-  const { data: prof } = await supabase
-    .from('profiles')
-    .select('organization_id, role')
-    .eq('id', user.id)
-    .single();
-  return { user, prof };
+  const ctx = await getOrgContext(supabase);
+  if (!ctx.user) return {};
+  return { user: ctx.user, prof: { organization_id: ctx.orgId, role: ctx.role } };
 }
 
 const ALLOWED_ROLES = PERMISSIONS.canManageAerocivil;

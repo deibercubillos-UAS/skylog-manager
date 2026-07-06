@@ -1,13 +1,14 @@
 import { createClient } from '@/lib/supabaseServer';
 import SuppliersClient from './SuppliersClient';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SuppliersPage() {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: profile } = await supabase.from('profiles').select('organization_id, role').eq('id', user?.id).single();
-    const orgId = profile?.organization_id;
+    const ctx = await getOrgContext(supabase);
+    const profile = { organization_id: ctx.orgId, role: ctx.role };
+    const orgId = profile.organization_id;
 
     const [
         { data: org },

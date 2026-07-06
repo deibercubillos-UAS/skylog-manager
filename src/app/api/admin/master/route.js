@@ -1,5 +1,6 @@
 import { createAdminClient, createClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
+import { syncOrgMembership } from '@/lib/orgMembership';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,6 +86,19 @@ export async function PATCH(request) {
             .eq('id', targetUserId)
             .select();
         if (error) throw error;
+
+        // Fase 6 multi-org: reflejar el mismo cambio en organization_members
+        // (el trigger-puente de profiles ya lo hace, esto es defensa en profundidad).
+        if (data[0]?.organization_id && ('role' in safeUpdate || 'subscription_plan' in safeUpdate || 'subscription_expires_at' in safeUpdate)) {
+            await syncOrgMembership(adminSupabase, {
+                userId: targetUserId,
+                organizationId: data[0].organization_id,
+                role: safeUpdate.role,
+                subscriptionPlan: safeUpdate.subscription_plan,
+                subscriptionExpiresAt: safeUpdate.subscription_expires_at,
+            });
+        }
+
         return NextResponse.json(data[0]);
     } catch (err) {
         return NextResponse.json({ error: err.message }, { status: 500 });

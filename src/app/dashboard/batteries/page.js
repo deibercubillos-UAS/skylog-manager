@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
 import { PERMISSIONS } from '@/lib/roles';
+import { getOrgContext } from '@/lib/apiAuth';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import PageHero from '@/components/PageHero';
 import KPIStrip from '@/components/KPIStrip';
@@ -32,22 +33,20 @@ export default function BatteriesPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const ctx = await getOrgContext(supabase);
+      if (!ctx.user) return;
 
-      const { data: prof } = await supabase
-        .from('profiles').select('role, organization_id').eq('id', user.id).single();
-      if (prof) setUserRole(prof.role);
-      if (!prof?.organization_id) return;
+      if (ctx.role) setUserRole(ctx.role);
+      if (!ctx.orgId) return;
 
       // Baterías + logs para derivar la aeronave asignada (último vuelo por serial).
       // El propio diseño aclara que la aeronave asignada se infiere del último vuelo
       // cargado en la Bitácora — no es un campo del esquema de baterías.
       const [resBat, resLogs] = await Promise.all([
-        supabase.from('batteries').select('*').eq('organization_id', prof.organization_id).order('created_at', { ascending: false }),
+        supabase.from('batteries').select('*').eq('organization_id', ctx.orgId).order('created_at', { ascending: false }),
         supabase.from('battery_logs')
           .select('battery_sn, aircraft:aircraft_id(model, serial_number), created_at')
-          .eq('organization_id', prof.organization_id)
+          .eq('organization_id', ctx.orgId)
           .order('created_at', { ascending: false }),
       ]);
 

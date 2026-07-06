@@ -28,9 +28,11 @@ export async function POST(request) {
         }
 
         // Ambos deben pertenecer a la org — nunca confiar en los ids del cliente.
+        // Membresía real vía organization_members (no profiles.organization_id,
+        // que solo refleja la org ACTIVA de la cuenta).
         const [{ data: session }, { data: profile }] = await Promise.all([
             supabase.from('sms_training_sessions').select('id').eq('id', body.session_id).eq('organization_id', orgId).maybeSingle(),
-            supabase.from('profiles').select('id').eq('id', body.profile_id).eq('organization_id', orgId).maybeSingle(),
+            supabase.from('organization_members').select('id').eq('user_id', body.profile_id).eq('organization_id', orgId).maybeSingle(),
         ]);
         if (!session) return NextResponse.json({ error: 'Sesión no encontrada' }, { status: 404 });
         if (!profile) return NextResponse.json({ error: 'Persona no encontrada en la organización' }, { status: 404 });

@@ -1,12 +1,13 @@
 import { createClient } from '@/lib/supabaseServer';
 import InventoryChecklistClient from './InventoryChecklistClient';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
 export default async function InventoryChecklistPage() {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: profile } = await supabase.from('profiles').select('organization_id, role').eq('id', user?.id).single();
+    const ctx = await getOrgContext(supabase);
+    const profile = { organization_id: ctx.orgId, role: ctx.role };
 
     const [{ data: org }, { data: defs }, { data: stock }] = await Promise.all([
         supabase.from('organizations').select('enable_inventory_checklist').eq('id', profile?.organization_id).single(),
@@ -23,13 +24,18 @@ export default async function InventoryChecklistPage() {
     ]);
 
     const initialLabels = {};
-    (defs || []).forEach(d => { initialLabels[d.field_number] = d.label_text; });
+    const initialRelations = {};
+    (defs || []).forEach(d => {
+        initialLabels[d.field_number] = d.label_text;
+        if (d.equipment_stock_id) initialRelations[d.field_number] = d.equipment_stock_id;
+    });
 
     const initialData = {
         organizationId: profile?.organization_id,
         role: profile?.role,
         enabled: org?.enable_inventory_checklist ?? false,
         initialLabels,
+        initialRelations,
         initialStock: stock || [],
     };
 

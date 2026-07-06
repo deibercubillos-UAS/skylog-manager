@@ -3,6 +3,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { getOrgContext }   from '@/lib/apiAuth';
 import { PERMISSIONS }     from '@/lib/roles';
 import { storagePut, storageDownload, storageRemove } from '@/lib/storage';
+import { getOrgPlan } from '@/lib/orgPlan';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,16 +23,7 @@ async function getFlightOrg(supabase, flightId, orgId) {
 
 // Lee la cuota del plan vigente de la org (usa billing=monthly como referencia)
 async function getOrgQuota(admin, orgId) {
-  // Leer plan del primer perfil admin de la org
-  // Leer plan del primer admin o cualquier perfil de la org
-  const { data: prof } = await admin
-    .from('profiles')
-    .select('subscription_plan')
-    .eq('organization_id', orgId)
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  const plan = prof?.subscription_plan ?? 'piloto';
+  const plan = await getOrgPlan(admin, orgId, 'piloto');
 
   const { data: cfg } = await admin
     .from('epayco_plan_config')

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { fmtDateTimeMed } from '@/lib/formatters';
+import { getOrgContext } from '@/lib/apiAuth';
 
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
@@ -78,18 +79,16 @@ export default function ManualOperacionesPage() {
   useEffect(() => {
     async function load() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        const { data: prof } = await supabase
-          .from('profiles').select('organization_id,role').eq('id', user.id).single();
-        if (!prof?.organization_id) return;
+        const ctx = await getOrgContext(supabase);
+        if (!ctx.user) return;
+        if (!ctx.orgId) return;
 
         const [orgRes, acRes, piRes] = await Promise.all([
           supabase.from('organizations')
             .select('company_name,tax_id,tax_id_type,dan_number,legal_rep,logo_url')
-            .eq('id', prof.organization_id).single(),
-          supabase.from('aircraft').select('id', { count: 'exact', head: true }).eq('organization_id', prof.organization_id),
-          supabase.from('pilots').select('id', { count: 'exact', head: true }).eq('organization_id', prof.organization_id).eq('is_active', true),
+            .eq('id', ctx.orgId).single(),
+          supabase.from('aircraft').select('id', { count: 'exact', head: true }).eq('organization_id', ctx.orgId),
+          supabase.from('pilots').select('id', { count: 'exact', head: true }).eq('organization_id', ctx.orgId).eq('is_active', true),
         ]);
 
         setOrg(orgRes.data);

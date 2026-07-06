@@ -11,11 +11,10 @@ export async function PATCH(request, { params }) {
     if (!id) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
 
     const supabase = await createClientSSR();
-    const { user, orgId } = await getOrgContext(supabase);
+    const { user, orgId, role } = await getOrgContext(supabase);
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-    if (!PERMISSIONS.canManageSafetyConfig.includes(profile?.role)) {
+    if (!PERMISSIONS.canManageSafetyConfig.includes(role)) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
@@ -48,12 +47,10 @@ export async function DELETE(request, { params }) {
     }
 
     const supabase = await createClientSSR();
-    const { user, orgId } = await getOrgContext(supabase);
+    const { user, orgId, role } = await getOrgContext(supabase);
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    // Verificar rol
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-    if (!PERMISSIONS.canManageSafetyConfig.includes(profile?.role)) {
+    if (!PERMISSIONS.canManageSafetyConfig.includes(role)) {
       return NextResponse.json({ error: 'Sin permisos para eliminar protocolos' }, { status: 403 });
     }
 

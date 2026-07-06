@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { hasPermission } from '@/lib/roles';
+import { getOrgContext } from '@/lib/apiAuth';
 import { toast } from '@/lib/toast';
 import { fetchLogoDataUrl } from '@/lib/docUrl';
 import AddMaintenancePanel from '@/components/AddMaintenancePanel';
@@ -94,34 +95,32 @@ export default function MaintenancePage() {
     const [aircraftFilter, setAircraftFilter] = useState('');
 
     const loadData = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        const { data: prof } = await supabase
-            .from('profiles').select('role,organization_id').eq('id', user.id).single();
-        setUserRole(prof?.role || null);
+        const ctx = await getOrgContext(supabase);
+        setUserRole(ctx.role || null);
 
         const [logsRes, defsRes, minorDefsRes, aircraftRes, orgRes] = await Promise.all([
             fetch('/api/maintenance').then(r => r.json()),
-            prof?.organization_id
+            ctx.orgId
                 ? supabase.from('form_definitions')
                     .select('field_number,label_text')
-                    .eq('organization_id', prof.organization_id)
+                    .eq('organization_id', ctx.orgId)
                     .eq('form_type', 'maintenance_return')
                     .eq('aircraft_model', 'General')
                 : Promise.resolve({ data: [] }),
-            prof?.organization_id
+            ctx.orgId
                 ? supabase.from('form_definitions')
                     .select('field_number,label_text')
-                    .eq('organization_id', prof.organization_id)
+                    .eq('organization_id', ctx.orgId)
                     .eq('form_type', 'minor_maintenance')
                     .eq('aircraft_model', 'General')
                 : Promise.resolve({ data: [] }),
-            prof?.organization_id
+            ctx.orgId
                 ? supabase.from('aircraft')
                     .select('id,model,serial_number,maintenance_interval_hours,maintenance_interval_days,last_maintenance_date,last_maintenance_hours,next_maintenance_date,total_hours,operational_status,created_at,status,minor_maintenance_interval_hours,minor_maintenance_interval_days,last_minor_maintenance_date,last_minor_maintenance_hours,minor_maintenance_due')
-                    .eq('organization_id', prof.organization_id)
+                    .eq('organization_id', ctx.orgId)
                 : Promise.resolve({ data: [] }),
-            prof?.organization_id
-                ? supabase.from('organizations').select('company_name, logo_url').eq('id', prof.organization_id).single()
+            ctx.orgId
+                ? supabase.from('organizations').select('company_name, logo_url').eq('id', ctx.orgId).single()
                 : Promise.resolve({ data: null }),
         ]);
 

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { getOrgContext } from '@/lib/apiAuth';
 
 // Dashboard personalizado para el piloto dentro de una organización:
 // solo su información — vuelos programados, horas realizadas, pendientes
@@ -20,10 +21,9 @@ export default function PilotDashboard({ firstName }) {
         const user = session?.user;
         if (!user) { window.location.href = '/login'; return; }
 
-        const { data: prof } = await supabase
-          .from('profiles').select('organization_id').eq('id', user.id).single();
-        if (!prof?.organization_id) { setLoading(false); return; }
-        const orgId = prof.organization_id;
+        const ctx = await getOrgContext(supabase);
+        if (!ctx.orgId) { setLoading(false); return; }
+        const orgId = ctx.orgId;
 
         // Código de la org para las URLs públicas de reporte
         const { data: org } = await supabase

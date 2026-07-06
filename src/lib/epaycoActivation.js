@@ -3,6 +3,7 @@
 // Ambos caminos deben producir el MISMO efecto y ser idempotentes: si uno
 // ya activó el plan, el otro simplemente reescribe los mismos valores.
 import { uniqueSlug } from '@/lib/slugify';
+import { syncOrgMembership } from '@/lib/orgMembership';
 
 /**
  * Resuelve planKey/billing para un usuario a partir de su intent más reciente
@@ -159,6 +160,18 @@ export async function createAccountFromPendingRegistration(supabase, email, paym
     subscription_expires_at: expiresAt.toISOString(),
   }, { onConflict: 'id' });
 
+  if (targetOrgId) {
+    await syncOrgMembership(supabase, {
+      userId,
+      organizationId: targetOrgId,
+      role: normalizedRole,
+      subscriptionPlan: planKey,
+      epaycoSubscriptionId: paymentData.subscriptionId || null,
+      epaycoRef: paymentData.ref || null,
+      subscriptionExpiresAt: expiresAt.toISOString(),
+    });
+  }
+
   // 6. Auto-crear registro de piloto
   if (targetOrgId) {
     await supabase.from('pilots').insert([{
@@ -193,7 +206,7 @@ export async function activatePlanForUser(supabase, { userId, planKey, billing, 
   if (billing === 'annual') expiresAt.setFullYear(expiresAt.getFullYear() + 1);
   else expiresAt.setMonth(expiresAt.getMonth() + 1);
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('profiles')
     .update({
       subscription_plan:       planKey,
@@ -202,9 +215,22 @@ export async function activatePlanForUser(supabase, { userId, planKey, billing, 
       subscription_expires_at: expiresAt.toISOString(),
       updated_at:              now.toISOString(),
     })
-    .eq('id', userId);
+    .eq('id', userId)
+    .select('organization_id')
+    .single();
 
   if (error) throw error;
+
+  if (updated?.organization_id) {
+    await syncOrgMembership(supabase, {
+      userId,
+      organizationId: updated.organization_id,
+      subscriptionPlan: planKey,
+      epaycoSubscriptionId: subscriptionId,
+      epaycoRef: ref,
+      subscriptionExpiresAt: expiresAt.toISOString(),
+    });
+  }
 
   // Limpiar todos los intents pendientes de este usuario
   await supabase.from('pending_subscriptions').delete().eq('user_id', userId);

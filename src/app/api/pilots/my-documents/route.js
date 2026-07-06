@@ -136,13 +136,26 @@ export async function PATCH(request) {
 async function notifyManagers(admin, { orgId, pilot, actorId }) {
   if (!process.env.RESEND_API_KEY) return;
 
-  const { data: managers } = await admin
-    .from('profiles')
-    .select('email, full_name, role, id')
+  // Managers de la org — vía organization_members (rol) + profiles.active_organization_id
+  // (mismo criterio que notify.js: solo cuentan los que tienen esta org como activa).
+  const { data: memberRows } = await admin
+    .from('organization_members')
+    .select('user_id')
     .eq('organization_id', orgId)
     .in('role', ['admin', 'jefe_pilotos', 'gerente_sms']);
+  const candidateIds = (memberRows || []).map(m => m.user_id);
 
-  const recipients = (managers || [])
+  let managers = [];
+  if (candidateIds.length) {
+    const { data: profs } = await admin
+      .from('profiles')
+      .select('email, full_name, id')
+      .eq('active_organization_id', orgId)
+      .in('id', candidateIds);
+    managers = profs || [];
+  }
+
+  const recipients = managers
     .filter(m => m.id !== actorId && m.email)
     .map(m => m.email);
   if (recipients.length === 0) return;

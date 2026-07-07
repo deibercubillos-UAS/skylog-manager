@@ -48,8 +48,48 @@ export default function MasterPanel() {
   const [convertingIndependent, setConvertingIndependent] = useState(false);
   const [deleteConfirm, setDeleteConfirm]   = useState('');
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [addons, setAddons]         = useState([]);
+  const [addonsLoading, setAddonsLoading] = useState(false);
+  const [addonQty, setAddonQty]     = useState({ pilot: 1, drone: 1 });
 
-  const openEdit = (u) => { setEdit({ ...u }); setDeleteConfirm(''); setSaveMsg(''); };
+  const openEdit = (u) => {
+    setEdit({ ...u }); setDeleteConfirm(''); setSaveMsg(''); setAddons([]);
+    if (u.organization_id) loadAddons(u.organization_id);
+  };
+
+  const loadAddons = async (organizationId) => {
+    setAddonsLoading(true);
+    try {
+      const res = await fetch(`/api/admin/master/addons?organization_id=${organizationId}`);
+      const data = await res.json();
+      setAddons(Array.isArray(data) ? data : []);
+    } catch { /* no-op */ }
+    finally { setAddonsLoading(false); }
+  };
+
+  const addAddon = async (type) => {
+    if (!edit?.organization_id) return;
+    try {
+      const res = await fetch('/api/admin/master/addons', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organization_id: edit.organization_id, addon_type: type, quantity: addonQty[type] }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      loadAddons(edit.organization_id);
+    } catch (e) { setSaveMsg('✗ ' + e.message); }
+  };
+
+  const cancelAddon = async (id) => {
+    try {
+      const res = await fetch('/api/admin/master/addons', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) throw new Error('Error al cancelar');
+      loadAddons(edit.organization_id);
+    } catch (e) { setSaveMsg('✗ ' + e.message); }
+  };
 
   const loadData = async () => {
     try {
@@ -522,6 +562,47 @@ export default function MasterPanel() {
               <input value={edit.organization_id || ''} onChange={e => setEdit({ ...edit, organization_id: e.target.value })}
                 className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white font-mono text-xs outline-none focus:border-orange-500/50" />
             </div>
+
+            {/* Recursos adicionales — piloto/dron extra, sin importar el plan
+                (sin checkout self-service todavía — ver CLAUDE.md; esta es la
+                vía real para registrar una venta hecha por fuera de ePayco). */}
+            {edit.organization_id && (
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-slate-500 tracking-widest">Recursos adicionales</label>
+                {addonsLoading ? (
+                  <p className="text-xs text-slate-500">Cargando...</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {addons.filter(a => a.status === 'active').length === 0 && (
+                      <p className="text-xs text-slate-600 italic">Sin recursos adicionales</p>
+                    )}
+                    {addons.filter(a => a.status === 'active').map(a => (
+                      <div key={a.id} className="flex items-center justify-between bg-slate-800 border border-white/10 rounded-lg px-3 py-2">
+                        <span className="text-xs font-bold text-white">
+                          {a.quantity}× {a.addon_type === 'pilot' ? 'Piloto adicional' : 'Dron adicional'}
+                          <span className="text-slate-500 font-mono ml-2">${a.unit_price.toLocaleString('es-CO')}/mes c/u</span>
+                        </span>
+                        <button onClick={() => cancelAddon(a.id)} className="text-red-400 hover:text-red-300 text-xs font-black uppercase">Cancelar</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="flex gap-1">
+                    <input type="number" min="1" value={addonQty.pilot}
+                      onChange={e => setAddonQty({ ...addonQty, pilot: e.target.value })}
+                      className="w-14 p-2 bg-slate-800 border border-white/10 rounded-lg text-white text-xs text-center" />
+                    <button onClick={() => addAddon('pilot')} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white text-xs font-black uppercase rounded-lg px-2">+ Piloto ($30k)</button>
+                  </div>
+                  <div className="flex gap-1">
+                    <input type="number" min="1" value={addonQty.drone}
+                      onChange={e => setAddonQty({ ...addonQty, drone: e.target.value })}
+                      className="w-14 p-2 bg-slate-800 border border-white/10 rounded-lg text-white text-xs text-center" />
+                    <button onClick={() => addAddon('drone')} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white text-xs font-black uppercase rounded-lg px-2">+ Dron ($25k)</button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Zona de peligro — eliminar cuenta. Oculta para superadmin (la API
                 también lo bloquea, esto solo evita mostrar un botón que siempre falla). */}

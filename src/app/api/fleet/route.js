@@ -1,6 +1,7 @@
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { canAddResource } from '@/lib/planLimits';
+import { getOrgAddonCounts } from '@/lib/addons';
 import { logAudit } from '@/lib/auditLog';
 import { NextResponse } from 'next/server';
 
@@ -52,9 +53,10 @@ export async function POST(request) {
       .eq('organization_id', orgId);
     const count = existing?.length || 0;
 
-    if (!canAddResource(subscription_plan, count, 'drone')) {
+    const { drone: extraDrones } = await getOrgAddonCounts(admin, orgId);
+    if (!canAddResource(subscription_plan, count, 'drone', extraDrones)) {
       return NextResponse.json(
-        { error: `Tu plan ${subscription_plan.toUpperCase()} ha llegado al límite de aeronaves.` },
+        { error: `Tu plan ${subscription_plan.toUpperCase()} ha llegado al límite de aeronaves. Puedes agregar un dron adicional desde Suscripción.` },
         { status: 403 }
       );
     }

@@ -46,6 +46,12 @@ BitaFly opera con suscripción mensual o anual procesada por **ePayco** (pasarel
 
 > **Nota sobre conteo de pilotos**: el Gerente General y el Gerente SMS no cuentan contra el límite del plan porque son roles administrativos, no tripulación operativa.
 
+### Recursos adicionales (add-ons)
+Sin importar el plan contratado, la organización puede ampliar sus cupos comprando unidades
+adicionales: **Piloto adicional $30.000 COP/mes** y **Dron adicional $25.000 COP/mes**. Hoy se
+gestionan desde el panel Master (registro manual de la venta); el checkout self-service vía
+ePayco queda pendiente de habilitar.
+
 ### Período de gracia
 Las escuelas socias y asesores registrados en el programa de socios de BitaFly pueden regalar períodos de uso gratuito (por defecto 90 días) a pilotos nuevos antes de que contraten un plan.
 

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { PLAN_CONFIG, crewCountsForLimit } from '@/lib/planLimits';
+import { getOrgAddonCounts, ADDON_PRICING } from '@/lib/addons';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,15 +36,22 @@ export async function GET(request) {
     // Gerente General y Gerente SMS no cuentan contra el límite de tripulantes
     const pilotsCount = (pilotsRes.data || []).filter(p => crewCountsForLimit(p.pilot_role)).length;
 
+    // Recursos adicionales comprados (piloto/dron extra, $30.000/$25.000 COP c/u,
+    // sin importar el plan) — se suman al límite base del plan en la respuesta.
+    const orgAddons = await getOrgAddonCounts(admin, orgId);
+    const droneLimit = currentPlan.maxDrones === Infinity ? currentPlan.maxDrones : currentPlan.maxDrones + orgAddons.drone;
+    const pilotLimit = currentPlan.maxPilots === Infinity ? currentPlan.maxPilots : currentPlan.maxPilots + orgAddons.pilot;
+
     return NextResponse.json({
       planName:  currentPlan.name,
       planSlug:  planKey,
       expiresAt: profileRes.data?.subscription_expires_at || null,
       usage: {
-        drones:      { current: (dronesRes.data || []).length, limit: currentPlan.maxDrones },
-        pilots:      { current: pilotsCount, limit: currentPlan.maxPilots },
+        drones:      { current: (dronesRes.data || []).length, limit: droneLimit },
+        pilots:      { current: pilotsCount, limit: pilotLimit },
         flightsMonth:{ current: (flightsRes.data || []).length, limit: null },
       },
+      addons: { ...orgAddons, pricing: ADDON_PRICING },
       features: currentPlan.features,
     });
   } catch (err) {

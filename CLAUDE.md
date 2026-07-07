@@ -661,9 +661,53 @@ operando solo sobre el propio usuario autenticado).
 | Baterías | 3 | ∞ | ∞ | ∞ |
 | Tech/Payloads | 3 | ∞ | ∞ | ∞ |
 
+Cualquier plan puede ampliar drones/pilotos comprando **Recursos adicionales** (piloto
+$30.000/mes, dron $25.000/mes, sin importar el plan) — ver sección dedicada más abajo.
+
 **Conteo de tripulantes** (`crewCountsForLimit(pilotRole)` en `planLimits.js`): **Gerente General y Gerente SMS NO cuentan** contra el límite de "Pilotos"; sí cuentan Piloto, Jefe de Pilotos y Observador. Aplicado en: import onboarding, `POST /api/pilots`, medidor de uso en `/api/subscription`.
 
 **Gerente General fuera del roster** (`isGerenteGeneral(pilotRole)` en `planLimits.js`): el GG es el dueño/representante legal, no tripulación operativa. La página de Tripulación (`/dashboard/pilots`) **filtra** las filas `pilots` con `pilot_role` "Gerente General" (o rol de sistema `admin`) — no aparecen en la lista ni en el contador "N miembros". Valor canónico de `pilot_role` = "Gerente General" (ver `AddPilotPanel`/`EditPilotPanel`).
+
+### Recursos adicionales — piloto/dron extra (2026-07-07)
+
+A pedido del usuario: cualquier organización puede comprar pilotos o drones adicionales
+**sin importar el plan contratado** — Piloto adicional **$30.000 COP/mes**, Dron adicional
+**$25.000 COP/mes** (`lib/addons.js#ADDON_PRICING`, fuente única de precios).
+
+- **`addon_subscriptions`** (migración `20260707_org_addons.sql`): una fila por compra/lote
+  — `organization_id`, `addon_type` ('pilot'/'drone'), `quantity`, `unit_price` (snapshot COP
+  al momento de la compra), `billing` ('monthly'), `status` ('active'/'cancelled'),
+  `epayco_subscription_id`/`epayco_ref` (para cuando exista checkout self-service),
+  `granted_by`, `notes`. **Sin columnas denormalizadas** en `organizations` — el conteo
+  vigente se calcula sumando `quantity` de filas `status='active'` (`getOrgAddonCounts()`),
+  mismo criterio anti-drift ya aplicado en el resto del proyecto (ver **Multi-organización**).
+  RLS: cualquier miembro de la org lee sus propios add-ons; solo service role escribe.
+- **`canAddResource(planKey, currentCount, type, extra)`** (`lib/planLimits.js`) gana un 4º
+  parámetro opcional: el límite efectivo pasa a ser `base_del_plan + extra`. Solo aplica a
+  `'drone'`/`'pilot'` — baterías y tech/payloads siguen dependiendo solo del plan (sin add-on
+  pedido para esos). Los 4 sitios que ya llamaban esta función (`api/pilots`, `api/fleet`,
+  `api/onboarding/import`) ahora resuelven `extra` con `getOrgAddonCounts()` antes de
+  comparar. `api/logbook/import-dji` no cambia — solo usa `canAddResource` para baterías.
+- **`GET /api/subscription`** ahora suma los add-ons activos al `limit` de los medidores de
+  uso (Aeronaves/Pilotos) y devuelve un bloque `addons: { pilot, drone, pricing }`.
+  `/dashboard/subscription` muestra una tarjeta "Recursos adicionales" con el conteo vigente
+  y los precios, con un CTA `mailto:` a soporte.
+- **⚠️ Sin checkout self-service todavía** (limitación real, documentada a propósito): a
+  diferencia de los planes base (`EPAYCO_PLANS`, con `planUid` reales creados en el panel de
+  ePayco), este proyecto no tiene credenciales para crear los productos recurrentes de
+  add-on en el merchant de ePayco desde este entorno — extender el webhook de pagos
+  (`/api/epayco/webhook`, que ya tiene lógica de resolución de plan muy sensible y probada en
+  producción) con un tipo de cargo nuevo sin poder probarlo de punta a punta habría sido
+  irresponsable. **Vía real y funcional hoy**: `/api/admin/master/addons` (GET/POST/DELETE,
+  superadmin) — Master registra la venta a mano (transferencia, WhatsApp, etc.) desde el
+  modal de edición del tab Usuarios ("Recursos adicionales": agregar N unidades de
+  piloto/dron, o cancelar una fila activa). Cuando se creen los planes recurrentes reales en
+  ePayco (mismo procedimiento ya usado para piloto/escuadrilla/flota/enterprise), falta:
+  1) agregar sus `epaycoId`/`planUid` a un `EPAYCO_ADDON_PLANS` análogo a `EPAYCO_PLANS`,
+  2) un `POST /api/addons/checkout` que cree el intent (mismo patrón que
+  `/api/epayco/checkout`) y devuelva la URL de `subscription-landing.epayco.co`, y
+  3) una rama nueva en el webhook que, al detectar ese intent, inserte en
+  `addon_subscriptions` en vez de tocar `profiles.subscription_plan`.
 
 ### Piloto Independiente (role=`admin` + plan=`piloto`)
 
@@ -2993,6 +3037,13 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 
 ## Pendientes de infraestructura
 
+- [ ] **Checkout self-service de Recursos adicionales (piloto/dron extra)**: falta crear los
+  planes recurrentes reales en el merchant de ePayco ($30.000/$25.000 COP mensuales) y
+  darme sus `epaycoId`/`planUid` para wirear `POST /api/addons/checkout` + la rama nueva del
+  webhook — ver **Recursos adicionales — piloto/dron extra**. Mientras tanto, Master
+  (`/api/admin/master/addons`) registra la venta a mano.
+- [x] **`20260707_org_addons.sql` aplicada en Supabase (2026-07-07)** — tabla
+  `addon_subscriptions` + política RLS creadas y verificadas.
 - [x] **`20260702_audit_log.sql` aplicada en Supabase (2026-07-03)** — tabla `audit_log` + política RLS creadas y verificadas. Auditoría de acciones ya no es inerte; ver **Auditoría rediseñada**.
 - [x] **`20260703_protocols.sql` aplicada en Supabase (2026-07-03)** — tabla `protocols` + política RLS creadas y verificadas. Ver **Protocolos**.
 - [x] **`20260703_org_aerocivil_registration.sql` aplicada en Supabase (2026-07-03)** — columnas `operator_number`/`registration_expiry`/`authorized_operations` en `organizations`, confirmado con el usuario. Ver **Organización rediseñada**.

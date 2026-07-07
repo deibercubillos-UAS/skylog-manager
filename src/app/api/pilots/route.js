@@ -1,6 +1,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { canAddResource, crewCountsForLimit } from '@/lib/planLimits';
+import { getOrgAddonCounts } from '@/lib/addons';
 import { logAudit } from '@/lib/auditLog';
 import { NextResponse } from 'next/server';
 
@@ -55,9 +56,10 @@ export async function POST(request) {
         .eq('is_active', true);
       const count = (activePilots || []).filter(p => crewCountsForLimit(p.pilot_role)).length;
 
-      if (!canAddResource(subscription_plan, count, 'pilot')) {
+      const { pilot: extraPilots } = await getOrgAddonCounts(supabase, orgId);
+      if (!canAddResource(subscription_plan, count, 'pilot', extraPilots)) {
         return NextResponse.json(
-          { error: `Tu plan ${subscription_plan.toUpperCase()} ha llegado al límite de tripulantes.` },
+          { error: `Tu plan ${subscription_plan.toUpperCase()} ha llegado al límite de tripulantes. Puedes agregar un piloto adicional desde Suscripción.` },
           { status: 403 }
         );
       }

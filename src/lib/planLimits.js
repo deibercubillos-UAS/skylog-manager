@@ -111,7 +111,15 @@ export const isGerenteGeneral = (pilotRole) => {
   return s === 'gerente general' || s === 'admin';
 };
 
-export const canAddResource = (planKey, currentCount, type) => {
+/**
+ * @param {string} planKey
+ * @param {number} currentCount
+ * @param {string} type - 'drone' | 'pilot' | 'battery' | 'tech'
+ * @param {number} [extra] - unidades adicionales compradas vía addon_subscriptions
+ *   (piloto/dron extra, $30.000/$25.000 COP c/u — ver lib/addons.js). Solo aplica
+ *   a 'drone'/'pilot': baterías y tech no tienen add-on, siguen dependiendo solo del plan.
+ */
+export const canAddResource = (planKey, currentCount, type, extra = 0) => {
   const plan = PLAN_CONFIG[planKey] || PLAN_CONFIG.piloto;
   if (type === 'battery') {
     if (plan.maxBatteries === null || plan.maxBatteries === Infinity) return true;
@@ -121,8 +129,9 @@ export const canAddResource = (planKey, currentCount, type) => {
     if (plan.maxTech === null || plan.maxTech === Infinity) return true;
     return currentCount < plan.maxTech;
   }
-  const limit = type === 'drone' ? plan.maxDrones : plan.maxPilots;
-  return currentCount < limit;
+  const base = type === 'drone' ? plan.maxDrones : plan.maxPilots;
+  if (base === Infinity) return true;
+  return currentCount < base + (extra || 0);
 };
 
 // Precios en COP para ePayco

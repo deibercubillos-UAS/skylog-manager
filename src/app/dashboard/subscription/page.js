@@ -113,6 +113,7 @@ export default function ManageSubscriptionPage() {
   const [loading, setLoading]           = useState(true);
   const [profile, setProfile]           = useState(null);
   const [usage, setUsage]               = useState(null);
+  const [addons, setAddons]             = useState(null);
   const [billing, setBilling]           = useState('monthly');
   const [partnerCode, setPartnerCode]   = useState('');   // código de escuela/asesor (opcional)
   const [upgrading, setUpgrading]       = useState(null);   // planKey being checked out
@@ -159,7 +160,7 @@ export default function ManageSubscriptionPage() {
       setLoading(false);
 
       // Medidores de uso (aeronaves/pilotos/vuelos del mes) — no bloquea el render principal
-      fetch('/api/subscription').then(r => r.json()).then(d => { if (d.usage) setUsage(d.usage); }).catch(() => {});
+      fetch('/api/subscription').then(r => r.json()).then(d => { if (d.usage) setUsage(d.usage); if (d.addons) setAddons(d.addons); }).catch(() => {});
 
       // Detectar referencia guardada desde la página de retorno de ePayco
       try {
@@ -506,6 +507,27 @@ export default function ManageSubscriptionPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* RECURSOS ADICIONALES — piloto/dron extra, sin importar el plan.
+          Sin checkout self-service todavía (ver CLAUDE.md) — el CTA escribe a
+          soporte; mientras tanto Master puede registrar la venta manualmente. */}
+      {addons && (
+        <div className="bg-white border border-slate-200 rounded-2xl px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">Recursos adicionales</p>
+            <p className="text-xs text-slate-500 font-medium mt-1">
+              {addons.pilot > 0 || addons.drone > 0
+                ? `Tienes ${addons.pilot} piloto(s) y ${addons.drone} dron(es) adicional(es) activos.`
+                : 'Puedes agregar pilotos o drones adicionales sin importar tu plan.'}
+              {' '}Piloto adicional ${addons.pricing.pilot.monthly.toLocaleString('es-CO')}/mes · Dron adicional ${addons.pricing.drone.monthly.toLocaleString('es-CO')}/mes.
+            </p>
+          </div>
+          <a href="mailto:soporte@bitafly.com?subject=Quiero%20agregar%20recursos%20adicionales"
+            className="shrink-0 px-4 py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-black uppercase tracking-wide text-center transition-all">
+            Solicitar
+          </a>
         </div>
       )}
 

@@ -686,7 +686,7 @@ Miembro de una org ajena (se unió por NIT o invitación). `profile.subscription
 - **Sin Suscripción**: el nav de Suscripción solo aparece para `superadmin`/`admin`.
 - **Despacho** (`/logbook/new`): usa el flujo CON orden de vuelo; solo ve las misiones donde es el PIC asignado Y programadas para **hoy** (`visibleAuths` filtra `resources.auths` por su `pilots.id` + `scheduled_at` == fecha actual, 2026-07-02d — antes veía todas sus misiones asignadas sin importar la fecha). No puede adelantar ni atrasar el despacho respecto a la fecha programada. Managers no tienen esta restricción.
 - **Mis Vuelos** (`/dashboard/mis-vuelos`): vista solo-lectura de sus misiones programadas (reutiliza `ProgramacionActivaClient` con props `pilotEmail`/`pilotId`/`readOnly`), con descarga KMZ/PDF.
-- **Planear Vuelo**: puede planear; al guardar (`POST /api/flight-plans`) si `role==='piloto'` se **notifica por correo al Jefe de Pilotos y GG** (`notifyFlightPlan`).
+- **Sin Planear Vuelo (quitado 2026-07-07)**: el piloto de org ya **no** puede crear planeaciones — solo vuela lo que le programaron (Programación/Mis Vuelos), a pedido explícito del usuario. Se quitó la entrada de nav (`dashboard/layout.js`), `POST /api/flight-plans` ahora rechaza `role==='piloto'` con 403 (el piloto independiente siempre tiene `role='admin'`, nunca `'piloto'` — así que este chequeo nunca afecta al independiente) y `layout.js` de `/dashboard/plan-vuelo` redirige a `/dashboard/mis-vuelos` si intenta entrar por URL directa. Se eliminó de paso la notificación `notifyFlightPlan()` (JP/GG al planear), que quedó sin ningún caller.
 - **Expediente self-service** (`/dashboard/settings/profile`): sube cédula, diploma UAS, examen teórico, certificado médico (+ vencimiento), CIPU y contacto de emergencia → `PATCH /api/pilots/my-documents` (campos en `pilots`; crea la fila si falta). Al guardar **notifica a GG/JP/GSMS**. Visibles para ellos en Tripulación / `EditPilotPanel`.
 - **SORA**: visible para el rol piloto.
 - **Dashboard propio** (`PilotDashboard.js`, se renderiza cuando `role==='piloto'`): KPIs propios (horas de vuelo, vuelos realizados, vuelos pendientes), **gráfica de horas mensuales** (últimos 6 meses, suma `flights.total_time` por mes), lista de misiones programadas con botón Despachar, y botones de reporte **VOR**/**MOR** (formularios públicos `/vor/{org}` · `/mor/{org}`).
@@ -1476,7 +1476,7 @@ Registrado todo desde `AddMaintenancePanel` (web y APK; el APK toma los cambios 
 
 ## Planeación, Programación y Despacho
 
-**Planear Vuelo** (`/dashboard/plan-vuelo`): visible para el **piloto independiente** (`pilotOnly`) y para el **piloto de org** (entrada extra `roles:['piloto']`+`pilotHidden`). Usa `components/FlightPlanner.js` (mapa + zona + KMZ + PDF + guardar planeación). Si quien guarda es `role==='piloto'`, `POST /api/flight-plans` notifica al Jefe de Pilotos y GG.
+**Planear Vuelo** (`/dashboard/plan-vuelo`): visible **solo** para el **piloto independiente** (`pilotOnly` — `role==='admin' && plan==='piloto'`). Usa `components/FlightPlanner.js` (mapa + zona + KMZ + PDF + guardar planeación). El piloto dentro de una organización **ya no** tiene acceso (quitado 2026-07-07, ver **Piloto dentro de Organización**) — `layout.js` de la ruta redirige a `/dashboard/mis-vuelos` y `POST /api/flight-plans` rechaza `role==='piloto'` con 403.
 
 **Programación** (`/dashboard/authorizations`, roles admin/jefe_pilotos, `MissionControlClient.js`): el calendario
 (mismo componente que Programación Activa, ver abajo) es la vista principal — `PageHero` +

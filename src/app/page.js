@@ -3,6 +3,7 @@ import Image from 'next/image';
 import LandingNav from '@/components/landing/LandingNav';
 import DashboardMockup from '@/components/landing/DashboardMockup';
 import Pricing from '@/components/landing/Pricing';
+import Contact from '@/components/landing/Contact';
 import Decor from '@/components/landing/Decor';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
@@ -23,46 +24,89 @@ export const metadata = {
 };
 
 // FAQ — preguntas reales de operadores UAS en Colombia (alimenta rich result FAQ)
+// Cada pregunta tiene un "group" solo de presentación (agrupación visual, no cambia el schema)
+const FAQ_GROUPS = ['Plataforma y planes', 'Cumplimiento RAC 100', 'Módulos avanzados', 'Datos y seguridad'];
+
 const FAQS = [
   {
+    group: 'Plataforma y planes',
     q: '¿Qué es Bitafly?',
     a: 'Bitafly es una plataforma SaaS diseñada para operadores de drones (UAS) en Colombia. Centraliza la bitácora digital, el mantenimiento de aeronaves y baterías, el sistema de gestión de seguridad operacional (SMS), las autorizaciones de vuelo ante la AeroCivil y la generación de reportes para auditorías RAC 100, con tu propio código de formato.',
   },
   {
-    q: '¿Bitafly cumple con la normativa RAC 100 de la AeroCivil?',
-    a: 'Sí. Cada módulo de Bitafly está diseñado con base en los registros exigidos por la Unidad Administrativa Especial de Aeronáutica Civil de Colombia (UAEAC). La RAC 100 no impone códigos de formato oficiales: cada operador define su nomenclatura en su manual. Los reportes generados (Maestro de Vuelo, Baterías y Personal, con códigos F-OPS-002, F-MNT-003 y F-HUM-005 por defecto, personalizables) cumplen con la trazabilidad exigida por la RAC 100.',
-  },
-  {
-    q: '¿Puedo registrar los vuelos desde el campo?',
-    a: 'Sí. Bitafly es una aplicación web responsive que funciona desde cualquier celular o tablet con conexión a internet. No requiere instalación: tu tripulación abre el navegador, inicia sesión y registra el vuelo desde el sitio de operación.',
-  },
-  {
-    q: '¿Cuántos drones y pilotos puedo gestionar?',
-    a: 'No hay límite técnico. La plataforma escala desde operadores individuales con un solo dron hasta empresas con flotas de decenas de aeronaves y múltiples tripulantes asignados por roles (administrador, jefe de pilotos, gerente SMS, piloto).',
-  },
-  {
-    q: '¿Cómo se gestionan las autorizaciones de vuelo ante AeroCivil?',
-    a: 'Bitafly genera tu solicitud de autorización (formato F-OPS-001 por defecto, personalizable) con todos los datos exigidos por AeroCivil: zona de operación, coordenadas, fecha, tripulación, aeronave matriculada, póliza vigente y misión. Estamos integrando la radicación automática en el portal de AeroCivil.',
-  },
-  {
-    q: '¿Mis datos están seguros?',
-    a: 'Sí. Toda la información se almacena cifrada en la infraestructura de Supabase con respaldos diarios automáticos. Implementamos Row-Level Security (RLS): cada empresa solo accede a sus propios datos, sin posibilidad técnica de fuga entre organizaciones.',
-  },
-  {
+    group: 'Plataforma y planes',
     q: '¿Cuánto cuesta Bitafly?',
-    a: 'Ofrecemos un plan gratuito para operadores individuales y planes empresariales escalonados según el tamaño de la flota y el número de tripulantes. Puedes comenzar gratis sin tarjeta de crédito y actualizar cuando lo necesites.',
+    a: 'Ofrecemos un plan Piloto para operadores individuales y planes empresariales escalonados (Escuadrilla, Flota, Enterprise) según el tamaño de la flota y el número de tripulantes. Todos los planes tienen período de prueba y no requieren tarjeta de crédito para iniciar.',
   },
   {
+    group: 'Plataforma y planes',
+    q: '¿Puedo agregar drones o pilotos adicionales sin cambiar de plan?',
+    a: 'Sí. Sin importar el plan contratado, puedes ampliar tus cupos comprando unidades adicionales: piloto adicional o dron adicional, por un valor mensual fijo cada uno. No necesitas subir de plan solo por sumar un dron o un tripulante más.',
+  },
+  {
+    group: 'Plataforma y planes',
+    q: '¿Cuántos drones y pilotos puedo gestionar?',
+    a: 'No hay límite técnico. La plataforma escala desde operadores individuales con un solo dron hasta empresas con flotas de decenas de aeronaves y múltiples tripulantes asignados por roles (Gerente General, Jefe de Pilotos, Gerente SMS, Piloto).',
+  },
+  {
+    group: 'Plataforma y planes',
+    q: '¿Puedo gestionar varias organizaciones con una sola cuenta?',
+    a: 'Sí. Una misma cuenta puede pertenecer a varias organizaciones al mismo tiempo (por ejemplo, un piloto que trabaja para varias operadoras, o un dueño con varias empresas). Un selector en el dashboard permite cambiar de organización activa en cualquier momento, sin mezclar los datos de una y otra.',
+  },
+  {
+    group: 'Plataforma y planes',
     q: '¿Necesito instalar algo o tener servidor propio?',
     a: 'No. Bitafly es 100% en la nube. Solo necesitas un navegador (Chrome, Safari, Firefox, Edge) en computador, tablet o celular. Las actualizaciones son automáticas y no requieres equipo de TI.',
   },
   {
-    q: '¿Genera los reportes para auditorías de la AeroCivil?',
-    a: 'Sí. Bitafly genera en PDF los reportes que exige la RAC 100: Maestro de Vuelo, Registro de Baterías, Bitácora de Piloto y Expediente de Tripulante. Cada reporte incluye logo corporativo, tu código de formato y versión, listo para presentar en una inspección. Los códigos no son oficiales de la AeroCivil: los defines tú según tu manual de operaciones.',
+    group: 'Cumplimiento RAC 100',
+    q: '¿Bitafly cumple con la normativa RAC 100 de la AeroCivil?',
+    a: 'Sí. Cada módulo de Bitafly está diseñado con base en los registros exigidos por la Unidad Administrativa Especial de Aeronáutica Civil de Colombia (UAEAC). La RAC 100 no impone códigos de formato oficiales: cada operador define su nomenclatura en su manual. Los reportes generados (Maestro de Vuelo, Baterías y Personal, con códigos F-OPS-002, F-MNT-003 y F-HUM-005 por defecto, personalizables) cumplen con la trazabilidad exigida por la RAC 100.',
   },
   {
+    group: 'Cumplimiento RAC 100',
+    q: '¿Cómo se gestionan las autorizaciones de vuelo ante AeroCivil?',
+    a: 'Bitafly genera tu solicitud de autorización (formato F-OPS-001 por defecto, personalizable) con todos los datos exigidos por AeroCivil: zona de operación, coordenadas, fecha, tripulación, aeronave matriculada, póliza vigente, misión y evaluación SORA asociada. Estamos integrando la radicación automática en el portal de AeroCivil.',
+  },
+  {
+    group: 'Cumplimiento RAC 100',
+    q: '¿Genera los reportes para auditorías de la AeroCivil?',
+    a: 'Sí. Bitafly genera en PDF y Excel más de 20 formatos: Maestro de Vuelo, Registro de Baterías, Bitácora de Piloto, Expediente de Tripulante, Trazabilidad de Componentes, Auditoría de Proveedores, Indicadores de Seguridad Operacional (SPI) y el Reporte Operacional Mensual UAS exigido por Aerocivil, entre otros. Cada reporte incluye logo corporativo, tu código de formato y versión, listo para presentar en una inspección.',
+  },
+  {
+    group: 'Cumplimiento RAC 100',
     q: '¿Qué pasa con los datos históricos si me cambio a Bitafly?',
     a: 'Puedes importar tus bitácoras anteriores en formato Excel/CSV. Nuestro equipo de soporte te ayuda con la migración inicial sin costo, asegurando que las horas totales por aeronave y los ciclos de baterías queden correctos desde el día uno.',
+  },
+  {
+    group: 'Módulos avanzados',
+    q: '¿Bitafly gestiona la capacitación y los exámenes de mis pilotos?',
+    a: 'Sí. Puedes crear un cronograma de capacitación con recurrencia y un examen interno calificado (banco de preguntas, nota mínima e intentos configurables). Si un piloto no aprueba el examen de Operaciones o su plazo vence, el sistema bloquea su despacho hasta que quede al día.',
+  },
+  {
+    group: 'Módulos avanzados',
+    q: '¿Puedo auditar mis proveedores desde la plataforma?',
+    a: 'Sí. El módulo de Proveedores permite llevar tu listado de proveedores con un checklist de auditoría personalizable, calificación por auditoría y reportes descargables por proveedor o consolidados.',
+  },
+  {
+    group: 'Módulos avanzados',
+    q: '¿Qué diferencia hay entre mantenimiento mayor y mantenimiento menor?',
+    a: 'El mantenimiento mayor es el que realiza un técnico cada cierto número de horas de vuelo o días calendario (hélices, calibración, reparaciones). El mantenimiento menor es un chequeo ligero que hace el propio piloto con una periodicidad independiente definida por la organización — ambos, si están vencidos, bloquean el despacho de la aeronave hasta quedar al día.',
+  },
+  {
+    group: 'Módulos avanzados',
+    q: '¿El sistema evalúa el riesgo de cada vuelo antes de despachar?',
+    a: 'Sí. Además de la evaluación SORA por misión, el wizard de despacho incluye un paso de Evaluación de Riesgos: el piloto clasifica Probabilidad y Gravedad contra la matriz configurada por el Gerente SMS de la organización, y si el resultado es "Inaceptable" debe documentar barreras de mitigación antes de poder continuar.',
+  },
+  {
+    group: 'Datos y seguridad',
+    q: '¿Puedo registrar los vuelos desde el campo?',
+    a: 'Sí. Bitafly es una aplicación web responsive que funciona desde cualquier celular o tablet con conexión a internet, y además cuenta con una app Android nativa para los controladores DJI RC Plus. No requiere instalación en PC: tu tripulación abre el navegador o la app, inicia sesión y registra el vuelo desde el sitio de operación.',
+  },
+  {
+    group: 'Datos y seguridad',
+    q: '¿Mis datos están seguros?',
+    a: 'Sí. Toda la información se almacena cifrada en infraestructura en la nube con respaldos automáticos. Implementamos Row-Level Security (RLS): cada organización solo accede a sus propios datos, sin posibilidad técnica de fuga entre organizaciones — incluso cuando una cuenta pertenece a varias organizaciones a la vez.',
   },
 ];
 
@@ -161,13 +205,8 @@ const softwareSchema = {
   },
   // publisher referencia @id del Organization (ancla cross-page)
   publisher: { '@id': `${SITE_URL}/#organization` },
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: '4.9',
-    bestRating: '5',
-    worstRating: '1',
-    ratingCount: '18',
-  },
+  // Nota: sin aggregateRating — no publicamos rich results de calificación hasta
+  // tener reseñas verificables reales que lo respalden.
 };
 
 // WebPage — declara el tipo de página para Googlebot
@@ -467,24 +506,18 @@ export default function LandingPage() {
                 {[
                   {
                     quote: 'Bitafly nos permitió pasar nuestra última auditoría de AeroCivil sin contratiempos. Los reportes PDF son exactamente lo que piden los inspectores.',
-                    name: 'Carlos M.',
                     role: 'Gerente de Operaciones · Bogotá',
-                    initial: 'C',
                   },
                   {
                     quote: 'Antes llevábamos todo en Excel y nos perdíamos ciclos de batería. Ahora el sistema nos alerta automáticamente. No volvemos atrás.',
-                    name: 'Andrés R.',
                     role: 'Jefe de Pilotos · Medellín',
-                    initial: 'A',
                   },
                   {
                     quote: 'La mejor decisión que tomamos como operador UAS. Configuración en menos de 10 minutos y el soporte en español es excelente.',
-                    name: 'Laura V.',
                     role: 'Administradora · Cali',
-                    initial: 'L',
                   },
                 ].map((t) => (
-                  <figure key={t.name} className="bg-slate-50 border border-slate-100 rounded-3xl p-8 flex flex-col gap-6">
+                  <figure key={t.role} className="bg-slate-50 border border-slate-100 rounded-3xl p-8 flex flex-col gap-6">
                     <div className="flex gap-1">
                       {[...Array(5)].map((_, i) => (
                         <span key={i} className="text-primary text-lg">★</span>
@@ -494,11 +527,11 @@ export default function LandingPage() {
                       &ldquo;{t.quote}&rdquo;
                     </blockquote>
                     <figcaption className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0">
-                        <span className="text-white font-black text-sm">{t.initial}</span>
+                      <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-slate-500 text-xl">person</span>
                       </div>
                       <div>
-                        <p className="font-black text-navy text-sm">{t.name}</p>
+                        <p className="font-black text-navy text-sm">Cliente Bitafly</p>
                         <p className="text-xs text-slate-400 font-medium">{t.role}</p>
                       </div>
                     </figcaption>
@@ -513,7 +546,7 @@ export default function LandingPage() {
 
           {/* ==================== FAQ ==================== */}
           <section id="faq" className="py-24 px-6 bg-white">
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-6xl mx-auto">
               <div className="text-center mb-16 space-y-4">
                 <p className="text-xs font-black uppercase tracking-[0.3em] text-primary">
                   Preguntas frecuentes
@@ -521,30 +554,58 @@ export default function LandingPage() {
                 <h2 className="text-3xl md:text-5xl font-black text-navy uppercase tracking-tighter">
                   Resolvemos tus <span className="text-primary">dudas</span>
                 </h2>
+                <p className="text-slate-500 max-w-2xl mx-auto">
+                  Desde planes y precios hasta capacitación, proveedores y evaluación de
+                  riesgos — todo lo que necesitas saber antes de empezar.
+                </p>
               </div>
 
-              <div className="space-y-4">
-                {FAQS.map((f, i) => (
-                  <details
-                    key={i}
-                    className="group bg-[#f8f6f6] rounded-2xl border border-slate-100 overflow-hidden"
-                  >
-                    <summary className="flex items-center justify-between p-6 cursor-pointer list-none">
-                      <h3 className="font-black text-navy text-sm md:text-base pr-4">
-                        {f.q}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-12">
+                {FAQ_GROUPS.map((group) => {
+                  const groupFaqs = FAQS.filter((f) => f.group === group);
+                  if (!groupFaqs.length) return null;
+                  return (
+                    <div key={group} className="space-y-4">
+                      <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-primary">
+                        <span className="material-symbols-outlined text-base">
+                          {{
+                            'Plataforma y planes': 'apps',
+                            'Cumplimiento RAC 100': 'gavel',
+                            'Módulos avanzados': 'auto_awesome',
+                            'Datos y seguridad': 'shield_lock',
+                          }[group]}
+                        </span>
+                        {group}
                       </h3>
-                      <span className="material-symbols-outlined text-primary text-2xl group-open:rotate-180 transition-transform shrink-0">
-                        expand_more
-                      </span>
-                    </summary>
-                    <div className="px-6 pb-6 text-sm text-slate-600 leading-relaxed">
-                      {f.a}
+                      <div className="space-y-3">
+                        {groupFaqs.map((f, i) => (
+                          <details
+                            key={i}
+                            className="group bg-[#f8f6f6] rounded-2xl border border-slate-100 overflow-hidden"
+                          >
+                            <summary className="flex items-center justify-between gap-3 p-5 cursor-pointer list-none">
+                              <h4 className="font-black text-navy text-sm pr-4">
+                                {f.q}
+                              </h4>
+                              <span className="material-symbols-outlined text-primary text-xl group-open:rotate-180 transition-transform shrink-0">
+                                expand_more
+                              </span>
+                            </summary>
+                            <div className="px-5 pb-5 text-sm text-slate-600 leading-relaxed">
+                              {f.a}
+                            </div>
+                          </details>
+                        ))}
+                      </div>
                     </div>
-                  </details>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </section>
+
+          {/* ==================== CONTACTO ==================== */}
+          <Contact />
 
           {/* ==================== CTA FINAL ==================== */}
           <section className="relative isolate overflow-hidden py-24 px-6 bg-navy text-white">
@@ -566,7 +627,7 @@ export default function LandingPage() {
                   Crear mi cuenta gratis
                 </Link>
                 <a
-                  href="mailto:soporte@bitafly.com"
+                  href="#contacto"
                   className="border-2 border-white/20 px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-widest text-white hover:bg-white/5 transition-all"
                 >
                   Hablar con ventas

@@ -24,7 +24,7 @@ const faqSchema = {
     { "@type": "Question", "name": "¿Qué es un Explotador de Sistemas UAS (ESUAS)?", "acceptedAnswer": { "@type": "Answer", "text": "El ESUAS (Explotador de Sistema de Aeronave No Tripulada) es la figura jurídica establecida por la UAEAC en la RAC 100 para las empresas u operadores individuales que realizan operaciones comerciales con drones en Colombia. La certificación como ESUAS es obligatoria para operaciones de trabajo aéreo." } },
     { "@type": "Question", "name": "¿Qué roles de usuario tiene Bitafly?", "acceptedAnswer": { "@type": "Answer", "text": "Bitafly tiene 5 roles: Superadmin (gestión global del SaaS), Administrador (gestión completa de la organización), Gerente SMS (gestión de seguridad operacional), Jefe de Pilotos (gestión de tripulación y programación) y Piloto (registro de vuelos y reportes de incidentes)." } },
     { "@type": "Question", "name": "¿Bitafly sirve para un piloto individual o solo para empresas?", "acceptedAnswer": { "@type": "Answer", "text": "Bitafly sirve para ambos. El plan gratuito (6 meses) está diseñado para pilotos individuales con un dron. Los planes Escuadrilla y Flota son para empresas con múltiples aeronaves y tripulantes. El plan Enterprise es para grandes operadores." } },
-    { "@type": "Question", "name": "¿Bitafly ayuda durante el proceso de certificación ESUAS?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Bitafly ofrece acceso gratuito durante todo el proceso de certificación ante la AeroCivil. Solo necesitas contactarnos con tu número de radicado y activamos tu cuenta con el plan que necesites sin costo hasta obtener la certificación." } },
+    { "@type": "Question", "name": "¿Bitafly ayuda durante el proceso de certificación ESUAS?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Si tu empresa está certificando como Explotador UAS ante la AeroCivil, nuestro equipo te asesora para elegir el plan que mejor se ajusta a tu operación mientras avanza tu proceso de certificación." } },
   ],
 };
 
@@ -145,11 +145,11 @@ export default function OperadoresUASPage() {
             </ul>
           </div>
           <div style={{background:'#1A202C',borderRadius:'32px',padding:'40px',display:'flex',flexDirection:'column',gap:'20px'}}>
-            <div style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.3em',color:accent}}>Oferta especial</div>
+            <div style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.3em',color:accent}}>Proceso de certificación</div>
             <h3 style={{fontSize:'18px',fontWeight:900,textTransform:'uppercase',letterSpacing:'-0.02em',color:'#fff',lineHeight:1.2}}>¿Certificando como ESUAS ante la AeroCivil?</h3>
-            <p style={{fontSize:'13px',color:'#94a3b8',lineHeight:1.7}}>Accede a Bitafly <strong style={{color:'#fff'}}>sin costo</strong> durante todo tu proceso de certificación. Sabemos que cumplir con la RAC 100 tiene un costo y queremos ser parte de la solución.</p>
+            <p style={{fontSize:'13px',color:'#94a3b8',lineHeight:1.7}}>Habla con nuestro equipo: te ayudamos a elegir el plan que mejor se ajusta a tu operación mientras avanza tu proceso de certificación ante la AeroCivil.</p>
             <a href="mailto:soporte@bitafly.com" style={{display:'inline-flex',alignItems:'center',gap:'8px',background:accent,color:'#fff',padding:'12px 20px',borderRadius:'14px',fontSize:'11px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.1em',textDecoration:'none',marginTop:'4px'}}>
-              <span className="material-symbols-outlined" style={{fontSize:'16px'}}>gavel</span>Solicitar acceso gratuito
+              <span className="material-symbols-outlined" style={{fontSize:'16px'}}>gavel</span>Hablar con un asesor
             </a>
           </div>
         </div>

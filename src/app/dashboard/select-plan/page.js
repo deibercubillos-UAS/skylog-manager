@@ -347,16 +347,16 @@ export default function SelectPlanPage() {
             <span className="material-symbols-outlined text-[#ec5b13] text-2xl" aria-hidden="true">verified_user</span>
           </div>
           <div className="flex-1 text-center md:text-left">
-            <p className="text-xs font-black uppercase tracking-widest text-[#ec5b13] mb-1">Oferta especial · Certificación AeroCivil</p>
+            <p className="text-xs font-black uppercase tracking-widest text-[#ec5b13] mb-1">Certificación AeroCivil</p>
             <p className="text-sm font-bold text-[#1A202C]">
-              ¿Tu empresa está certificando como Explotador UAS? Accede a Bitafly <strong>sin costo</strong> durante todo el proceso.
+              ¿Tu empresa está certificando como Explotador UAS? Te ayudamos a elegir el plan que mejor se ajusta a tu operación mientras avanza tu proceso.
             </p>
           </div>
           <a
-            href="mailto:hola@bitafly.com?subject=Acceso certificación AeroCivil"
+            href="mailto:hola@bitafly.com?subject=Consulta certificación AeroCivil"
             className="shrink-0 bg-[#ec5b13] text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-600 transition-all shadow-md text-center"
           >
-            Solicitar acceso
+            Hablar con un asesor
           </a>
         </div>
 

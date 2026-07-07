@@ -308,15 +308,14 @@ export default function Pricing() {
             </div>
             <div>
               <p className="text-xs font-black uppercase tracking-widest text-primary mb-1">
-                Oferta especial · Proceso de certificación
+                Proceso de certificación
               </p>
               <h3 className="text-lg font-black text-navy mb-2">
                 ¿Tu empresa está certificando como Explotador UAS ante la AeroCivil?
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed max-w-2xl">
-                Accede a Bitafly <strong>sin costo</strong> durante todo el proceso de certificación.
-                Sabemos que cumplir con la RAC 100 tiene un costo, y queremos ser parte de la solución.
-                Contáctanos con tu número de radicado y activamos tu cuenta inmediatamente.
+                Habla con nuestro equipo: te ayudamos a elegir el plan que mejor se ajusta a tu
+                operación mientras avanza tu proceso de certificación ante la AeroCivil.
               </p>
             </div>
           </div>
@@ -324,7 +323,7 @@ export default function Pricing() {
             href="#contacto"
             className="shrink-0 w-full md:w-auto bg-primary text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20 text-center block"
           >
-            Solicitar acceso
+            Hablar con un asesor
           </a>
         </div>
 

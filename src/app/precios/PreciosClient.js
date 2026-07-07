@@ -199,13 +199,13 @@ export default function PreciosClient() {
                 <span className="material-symbols-outlined" style={{ color: accent, fontSize: '24px' }}>verified_user</span>
               </div>
               <div>
-                <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: accent, marginBottom: '6px' }}>Oferta especial · Proceso de certificación ESUAS</div>
+                <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: accent, marginBottom: '6px' }}>Proceso de certificación ESUAS</div>
                 <h3 style={{ fontSize: '17px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.02em', color: navy, marginBottom: '8px' }}>¿Tu empresa está certificando como Explotador UAS ante la AeroCivil?</h3>
-                <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.65, maxWidth: '620px' }}>Accede a Bitafly <strong>sin costo</strong> durante todo el proceso. Sabemos que cumplir la RAC 100 tiene un costo, y queremos ser parte de la solución. Contáctanos con tu número de radicado.</p>
+                <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.65, maxWidth: '620px' }}>Habla con nuestro equipo: te ayudamos a elegir el plan que mejor se ajusta a tu operación mientras avanza tu proceso de certificación ante la AeroCivil.</p>
               </div>
             </div>
             <a href="mailto:soporte@bitafly.com" className="flex shrink-0 items-center justify-center gap-2" style={{ background: accent, color: '#fff', padding: '14px 22px', borderRadius: '16px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', textDecoration: 'none', whiteSpace: 'nowrap', boxShadow: '0 4px 14px rgba(236,91,19,0.3)' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>gavel</span>Solicitar acceso
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>gavel</span>Hablar con un asesor
             </a>
           </div>
         </div>

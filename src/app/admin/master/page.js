@@ -45,6 +45,11 @@ export default function MasterPanel() {
   const [search, setSearch]   = useState('');
   const [planFilter, setPlanFilter] = useState('all');
   const [saveMsg, setSaveMsg] = useState('');
+  const [convertingIndependent, setConvertingIndependent] = useState(false);
+  const [deleteConfirm, setDeleteConfirm]   = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
+  const openEdit = (u) => { setEdit({ ...u }); setDeleteConfirm(''); setSaveMsg(''); };
 
   const loadData = async () => {
     try {
@@ -128,6 +133,54 @@ export default function MasterPanel() {
       }),
     });
     loadData();
+  };
+
+  // Convertir a piloto independiente: le crea una org propia nueva (no toca su
+  // membresía anterior) y la deja activa — mismo mecanismo que switch-active.
+  const handleConvertIndependent = async () => {
+    if (!edit) return;
+    if (!confirm(`¿Convertir a ${edit.full_name || edit.email} en piloto independiente? Se le creará una organización propia nueva.`)) return;
+    setConvertingIndependent(true);
+    setSaveMsg('');
+    try {
+      const res = await fetch('/api/admin/master/convert-independent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: edit.id }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Error al convertir');
+      setSaveMsg('✓ Convertido a piloto independiente');
+      setTimeout(() => { setEdit(null); setSaveMsg(''); loadData(); }, 900);
+    } catch (e) {
+      setSaveMsg('✗ ' + e.message);
+    } finally {
+      setConvertingIndependent(false);
+    }
+  };
+
+  // Eliminar cuenta por completo — requiere escribir el correo exacto para confirmar.
+  const handleDeleteAccount = async () => {
+    if (!edit) return;
+    if (deleteConfirm.trim().toLowerCase() !== (edit.email || '').trim().toLowerCase()) return;
+    setDeletingAccount(true);
+    setSaveMsg('');
+    try {
+      const res = await fetch('/api/admin/master/delete-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: edit.id }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Error al eliminar la cuenta');
+      setEdit(null);
+      setDeleteConfirm('');
+      loadData();
+    } catch (e) {
+      setSaveMsg('✗ ' + e.message);
+    } finally {
+      setDeletingAccount(false);
+    }
   };
 
   if (loading) return (
@@ -302,7 +355,7 @@ export default function MasterPanel() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button onClick={() => setEdit({ ...u })}
+                        <button onClick={() => openEdit(u)}
                           className="bg-white/10 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase transition-all">
                           Editar
                         </button>
@@ -358,7 +411,7 @@ export default function MasterPanel() {
                       </button>
                     ))}
                   </div>
-                  <button onClick={() => setEdit({ ...u })}
+                  <button onClick={() => openEdit(u)}
                     className="bg-white/10 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase transition-all">
                     Editar
                   </button>
@@ -442,6 +495,18 @@ export default function MasterPanel() {
               Activar acceso gratuito · Certificación AeroCivil (2 años)
             </button>
 
+            {/* Piloto Independiente — le crea una organización propia nueva
+                (no toca ninguna membresía existente) y la deja activa. */}
+            <button
+              type="button"
+              onClick={handleConvertIndependent}
+              disabled={convertingIndependent || edit.role === 'superadmin'}
+              className="w-full bg-indigo-900/40 border border-indigo-500/30 text-indigo-300 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-900/60 transition-all flex items-center justify-center gap-2 disabled:opacity-40"
+            >
+              <span className="material-symbols-outlined text-base">person</span>
+              {convertingIndependent ? 'Convirtiendo...' : 'Convertir a Piloto Independiente (org. propia nueva)'}
+            </button>
+
             {/* Notas */}
             <div className="space-y-1.5">
               <label className="text-xs font-black uppercase text-slate-500 tracking-widest">Notas internas</label>
@@ -457,6 +522,34 @@ export default function MasterPanel() {
               <input value={edit.organization_id || ''} onChange={e => setEdit({ ...edit, organization_id: e.target.value })}
                 className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white font-mono text-xs outline-none focus:border-orange-500/50" />
             </div>
+
+            {/* Zona de peligro — eliminar cuenta. Oculta para superadmin (la API
+                también lo bloquea, esto solo evita mostrar un botón que siempre falla). */}
+            {edit.role !== 'superadmin' && (
+              <div className="border border-red-500/30 bg-red-950/30 rounded-2xl p-4 space-y-3">
+                <p className="text-xs font-black uppercase text-red-400 tracking-widest">Zona de peligro</p>
+                <p className="text-xs text-red-300/80 leading-relaxed">
+                  Elimina el login y el perfil por completo. Si es el único miembro real de su
+                  organización, la organización también se elimina (flota, vuelos, pilotos).
+                  Escribe el correo exacto para confirmar.
+                </p>
+                <input
+                  value={deleteConfirm}
+                  onChange={e => setDeleteConfirm(e.target.value)}
+                  placeholder={edit.email}
+                  className="w-full bg-slate-800 border border-red-500/20 p-3 rounded-xl text-white font-mono text-xs outline-none focus:border-red-500/50"
+                />
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  disabled={deletingAccount || deleteConfirm.trim().toLowerCase() !== (edit.email || '').trim().toLowerCase()}
+                  className="w-full bg-red-700 hover:bg-red-600 disabled:opacity-40 disabled:hover:bg-red-700 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-base">delete_forever</span>
+                  {deletingAccount ? 'Eliminando...' : 'Eliminar cuenta permanentemente'}
+                </button>
+              </div>
+            )}
 
             {saveMsg && (
               <p className={`text-xs font-black text-center ${saveMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>

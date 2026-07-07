@@ -334,8 +334,8 @@ const navLinks = [
   { name: 'Dashboard',      icon: 'dashboard',               href: '/dashboard',                 group: 'Operación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Bitácora',       icon: 'menu_book',               href: '/dashboard/logbook',         group: 'Operación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      group: 'Operación', roles: ['superadmin', 'admin', 'jefe_pilotos', 'piloto'], pilotOnly: true },
-  // Piloto dentro de una org: también puede planear vuelos (notifica al Jefe de Pilotos al guardar)
-  { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      group: 'Operación', roles: ['piloto'],                                         pilotHidden: true },
+  // Quitado a pedido del usuario (2026-07-07): el piloto dentro de una org ya NO
+  // planea sus propios vuelos — solo vuela lo que le programaron (Mis Vuelos).
   // Programación Activa vive dentro de Programación ("Ver programación activa") — mismos roles, sin entrada propia en el sidebar.
   { name: 'Programación',   icon: 'event_available',         href: '/dashboard/authorizations',  group: 'Operación', roles: ['superadmin', 'admin', 'jefe_pilotos'],            pilotHidden: true },
   // Vista del piloto: solo sus misiones asignadas (solo-lectura, con KMZ/PDF)

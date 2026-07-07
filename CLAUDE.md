@@ -595,6 +595,56 @@ raíz distintas, ninguna documentada hasta ahora:
   (la cuenta de prueba corrupta encontrada) y confirmar que la migración + el código nuevo la
   habrían evitado.
 
+### Master — Convertir a Piloto Independiente + Eliminar cuentas (2026-07-06)
+
+A pedido del usuario: el panel `/admin/master` (tab Usuarios) ya podía editar
+rol/plan/vigencia de cualquier perfil, pero no podía (1) convertir una cuenta a piloto
+independiente ni (2) eliminar cuentas — ambas acciones solo existían en self-service
+(`registro type='solo'`, `DELETE /api/auth/delete-account`/`api/user/delete`, cada una
+operando solo sobre el propio usuario autenticado).
+
+- **`POST /api/admin/master/convert-independent`** (`{ targetUserId }`, superadmin):
+  crea una organización nueva para la cuenta objetivo (mismo patrón que el registro
+  `type='solo'` — `company_name: "Piloto: {nombre}"`, `unique_code` aleatorio, `slug`
+  único vía `uniqueSlug()`), agrega una membresía nueva en `organization_members`
+  (`role='admin'`, `subscription_plan='piloto'`) y proyecta esa membresía a `profiles`
+  como organización activa (mismo mecanismo que `POST /api/org/switch-active`, incluye
+  limpiar los campos de ePayco a `null` — es un plan piloto gratuito nuevo). **Deliberadamente
+  no destructivo**: si la cuenta ya pertenecía a otra organización, esa membresía **no**
+  se toca ni se elimina — coincide con el modelo aditivo de multi-organización ya
+  establecido (Fase 5): la cuenta queda con una organización propia adicional, activa, y
+  puede volver a cambiar con el switcher si hace falta. Bloqueado para cuentas
+  `role='superadmin'`. Esta acción es justamente la que se beneficia del fix del mismo día
+  al trigger `prevent_unauthorized_role_change` (ver arriba) — sin ese fix, el `UPDATE` de
+  `profiles.role` habría fallado en silencio cada vez que el rol anterior de la cuenta no
+  fuera ya `admin`.
+- **`POST /api/admin/master/delete-account`** (`{ targetUserId }`, superadmin): elimina
+  la cuenta por completo. Mismo patrón de limpieza que las rutas self-service, extendido a
+  multi-organización — recorre **todas** las membresías reales de la cuenta
+  (`organization_members`, no solo su organización activa) y, para cada una donde sea el
+  único miembro real, elimina esa organización también (cascade borra flota/vuelos/
+  pilotos/etc. de esa org); las organizaciones donde quedan otros miembros reales nunca se
+  tocan. Cancela suscripción ePayco por membresía si aplica (best-effort, no bloquea el
+  borrado). Bloqueado: eliminar la propia cuenta del superadmin desde este panel (usa el
+  flujo de autoeliminación de su propio perfil) y eliminar cualquier cuenta
+  `role='superadmin'`. El orden importa: se calculan las organizaciones a eliminar
+  **antes** de borrar el usuario (para saber cuáles quedarían huérfanas), se elimina el
+  usuario de Supabase Auth (cascade `ON DELETE CASCADE` limpia `profiles` y **todas** sus
+  filas de `organization_members` automáticamente vía FK `user_id → auth.users`), y solo
+  entonces se eliminan las organizaciones marcadas.
+- **UI** (`admin/master/page.js`, modal de edición del tab Usuarios): botón "Convertir a
+  Piloto Independiente" (con `confirm()` nativo) y una sección "Zona de peligro" con un
+  input que exige escribir el correo exacto de la cuenta antes de habilitar "Eliminar
+  cuenta permanentemente" — mismo patrón de confirmación ya usado en `/api/socio/account`
+  (autoeliminación con correo). Ambos controles se ocultan para cuentas `superadmin`
+  (la API también las bloquea; esto solo evita mostrar un botón que siempre falla).
+- **Verificación**: `npx next lint` + `npm run build` limpios (mismos 3 warnings
+  preexistentes). **Limitación documentada**: no se hizo prueba end-to-end en navegador
+  real en este entorno (sin sesión de superadmin disponible) — la verificación se apoyó en
+  revisión de código exhaustiva + reutilización deliberada de los mismos patrones ya
+  probados (creación de org `type='solo'`, `syncOrgMembership`, cascadas de borrado ya
+  usadas por `api/user/delete`/`api/auth/delete-account`).
+
 ---
 
 ## Roles y planes

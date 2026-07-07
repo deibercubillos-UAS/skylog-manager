@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from '@/lib/toast';
 
-const EMPTY = { type: 'escuela', name: '', parent_partner_id: '', commission_pct: 20, free_seats_limit: '', free_days: 90 };
+const EMPTY = { type: 'escuela', name: '', parent_partner_id: '', commission_pct: 20, free_seats_limit: '', free_days: 90, code: '' };
 
 export default function SociosTab() {
   const [partners, setPartners] = useState([]);
@@ -36,7 +36,8 @@ export default function SociosTab() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al crear');
-      toast.success(`Socio creado. Código: ${data.codes?.[0]?.code ?? '—'}`);
+      if (data.code_error) toast.warn(data.code_error);
+      else toast.success(`Socio creado. Código: ${data.codes?.[0]?.code ?? '—'}`);
       setForm(EMPTY);
       load();
     } catch (err) { toast.error(err.message); }
@@ -68,15 +69,36 @@ export default function SociosTab() {
     } catch { toast.error('No se pudo cambiar el estado'); }
   };
 
+  const [newCode, setNewCode] = useState({}); // {partnerId: texto opcional}
+
   const addCode = async (partnerId) => {
     try {
+      const code = (newCode[partnerId] || '').trim();
       const res = await fetch('/api/admin/master/partners', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'add_code', partner_id: partnerId }),
+        body: JSON.stringify({ action: 'add_code', partner_id: partnerId, code: code || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toast.success(`Código creado: ${data.code}`);
+      setNewCode({ ...newCode, [partnerId]: '' });
+      load();
+    } catch (err) { toast.error(err.message); }
+  };
+
+  const [editingCode, setEditingCode] = useState(null); // { id, value }
+
+  const renameCode = async () => {
+    if (!editingCode) return;
+    try {
+      const res = await fetch('/api/admin/master/partners', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_code', code_id: editingCode.id, code: editingCode.value }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success(`Código actualizado: ${data.code}`);
+      setEditingCode(null);
       load();
     } catch (err) { toast.error(err.message); }
   };
@@ -173,6 +195,11 @@ export default function SociosTab() {
               onChange={e => setForm({ ...form, free_days: e.target.value })}
               className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-900" />
           </label>
+          <label className="space-y-1">
+            <span className="text-[10px] font-black uppercase text-slate-400">Código (opcional — vacío = autogenerado)</span>
+            <input value={form.code} onChange={e => setForm({ ...form, code: e.target.value })}
+              placeholder="Ej: COLEGIO2026" className="w-full p-3 bg-slate-50 rounded-xl text-sm font-mono font-black uppercase" />
+          </label>
         </div>
         <button disabled={creating} className="px-6 py-3 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-60">
           {creating ? 'Creando...' : 'Crear socio + código'}
@@ -244,14 +271,41 @@ export default function SociosTab() {
                     </div>
                   )}
 
-                  {/* Códigos */}
-                  <div className="flex flex-wrap gap-2 mt-2">
+                  {/* Códigos — personalizables: click en el lápiz para renombrar */}
+                  <div className="flex flex-wrap gap-2 mt-2 items-center">
                     {(p.codes || []).map(c => (
-                      <button key={c.code} onClick={() => copy(c.code)} title="Copiar código"
-                        className={`text-xs font-mono font-black px-2 py-1 rounded-lg border ${c.active ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-slate-50 text-slate-400 border-slate-200 line-through'}`}>
-                        {c.code}
-                      </button>
+                      editingCode?.id === c.id ? (
+                        <span key={c.id} className="inline-flex items-center gap-1">
+                          <input
+                            value={editingCode.value}
+                            onChange={e => setEditingCode({ ...editingCode, value: e.target.value })}
+                            onKeyDown={e => e.key === 'Enter' && renameCode()}
+                            autoFocus
+                            className="w-32 p-1.5 bg-white border border-orange-300 rounded-lg text-xs font-mono font-black uppercase outline-none"
+                          />
+                          <button onClick={renameCode} title="Guardar" className="text-emerald-600 hover:text-emerald-700">
+                            <span className="material-symbols-outlined text-base">check</span>
+                          </button>
+                          <button onClick={() => setEditingCode(null)} title="Cancelar" className="text-slate-400 hover:text-slate-600">
+                            <span className="material-symbols-outlined text-base">close</span>
+                          </button>
+                        </span>
+                      ) : (
+                        <span key={c.id} className={`inline-flex items-center gap-1 text-xs font-mono font-black px-2 py-1 rounded-lg border ${c.active ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-slate-50 text-slate-400 border-slate-200 line-through'}`}>
+                          <button onClick={() => copy(c.code)} title="Copiar código">{c.code}</button>
+                          <button onClick={() => setEditingCode({ id: c.id, value: c.code })} title="Renombrar" className="opacity-60 hover:opacity-100">
+                            <span className="material-symbols-outlined text-sm">edit</span>
+                          </button>
+                        </span>
+                      )
                     ))}
+                    <input
+                      value={newCode[p.id] || ''}
+                      onChange={e => setNewCode({ ...newCode, [p.id]: e.target.value })}
+                      onKeyDown={e => e.key === 'Enter' && addCode(p.id)}
+                      placeholder="código (opcional)"
+                      className="w-32 p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-bold uppercase outline-none focus:border-orange-300"
+                    />
                     <button onClick={() => addCode(p.id)} className="text-xs font-black px-2 py-1 rounded-lg border border-dashed border-slate-300 text-slate-400 hover:text-orange-600 hover:border-orange-300">+ código</button>
                   </div>
 

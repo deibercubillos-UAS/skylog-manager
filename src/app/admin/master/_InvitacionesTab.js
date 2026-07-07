@@ -53,7 +53,10 @@ export default function InvitacionesTab() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al enviar');
-      setResult({ ok: true, msg: `Invitación enviada a ${form.email}${data.orgName ? ` → ${data.orgName}` : ''}${data.isExistingUser ? ' (usuario ya registrado — verá banner en su dashboard)' : ''}` });
+      const planMsg = data.activatedPlan
+        ? ` — Plan "${PLANS.find(p => p.value === data.activatedPlan)?.label || data.activatedPlan}" activado sin pago. Define la fecha de vencimiento desde el tab Usuarios.`
+        : '';
+      setResult({ ok: true, msg: `Invitación enviada a ${form.email}${data.orgName ? ` → ${data.orgName}` : ''}${data.isExistingUser ? ' (usuario ya registrado — verá banner en su dashboard)' : ''}${planMsg}` });
       setForm({ email: '', name: '', role: 'piloto', plan: '', message: '' });
       setSelectedOrg(null);
       setOrgSearch('');
@@ -289,6 +292,7 @@ export default function InvitacionesTab() {
             <li>· <strong className="text-slate-400">Usuario nuevo + sin org</strong> — recibe link a registro independiente.</li>
             <li>· <strong className="text-slate-400">Usuario nuevo + con org</strong> — recibe link a registro que lo une a esa org con el rol elegido.</li>
             <li>· <strong className="text-slate-400">Usuario existente + con org</strong> — recibe aviso y ve la invitación como banner en su dashboard.</li>
+            <li>· <strong className="text-slate-400">Usuario existente + plan elegido</strong> — el plan se activa de una vez, sin pasar por ePayco ni pedir tarjeta. La fecha de vencimiento queda sin definir — ajústala luego desde el tab Usuarios.</li>
           </ul>
         </div>
       </div>

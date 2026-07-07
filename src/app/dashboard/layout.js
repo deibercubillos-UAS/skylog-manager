@@ -455,7 +455,14 @@ const footerLinks = footerLinksAll.filter(link =>
             se puede contraer/expandir (preferencia en localStorage). */}
         <nav aria-label="Menú lateral" className="flex-1 p-3 space-y-3 mt-2 overflow-y-auto custom-scrollbar">
           {NAV_GROUPS.map(group => {
-            const groupLinks = filteredLinks.filter(link => link.group === group);
+            // El piloto independiente no tiene acceso al grupo "Documentación"
+            // en absoluto (pedido explícito del usuario, 2026-07-07) — se
+            // vacía el grupo entero en vez de depender de pilotHidden/pilotOnly
+            // por link, que hoy dejaban pasar SORA/Protocolos/Proveedores/
+            // Capacitación para esa cuenta.
+            const groupLinks = (group === 'Documentación' && isPilotoPlan)
+              ? []
+              : filteredLinks.filter(link => link.group === group);
             if (!groupLinks.length) return null;
             const isCollapsed = !!collapsedGroups[group];
             return (

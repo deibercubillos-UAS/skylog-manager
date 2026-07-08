@@ -136,7 +136,7 @@ export const canAddResource = (planKey, currentCount, type, extra = 0) => {
 
 // Precios en COP para ePayco
 // IVA incluido (19%): taxBase = floor(amount / 1.19) · tax = amount - taxBase
-// trial_days: 60 en piloto = 2 meses gratis antes del primer cobro
+// trialDays por plan/ciclo se define abajo en cada bloque (piloto: 30 días antes del primer cobro)
 export const EPAYCO_PLANS = {
   piloto: {
     monthly: {

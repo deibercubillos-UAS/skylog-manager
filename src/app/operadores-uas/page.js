@@ -12,7 +12,7 @@ export const metadata = {
   alternates: { canonical: '/operadores-uas' },
   openGraph: {
     title: 'Software para Operadores UAS Certificados en Colombia | Bitafly',
-    description: 'Plataforma para operadores ESUAS. 5 roles RAC 100, todos los módulos, acceso gratuito durante certificación.',
+    description: 'Plataforma para operadores ESUAS. 5 roles RAC 100, todos los módulos, asesoría durante tu proceso de certificación.',
     url: 'https://bitafly.com/operadores-uas',
   },
 };
@@ -23,7 +23,7 @@ const faqSchema = {
   "mainEntity": [
     { "@type": "Question", "name": "¿Qué es un Explotador de Sistemas UAS (ESUAS)?", "acceptedAnswer": { "@type": "Answer", "text": "El ESUAS (Explotador de Sistema de Aeronave No Tripulada) es la figura jurídica establecida por la UAEAC en la RAC 100 para las empresas u operadores individuales que realizan operaciones comerciales con drones en Colombia. La certificación como ESUAS es obligatoria para operaciones de trabajo aéreo." } },
     { "@type": "Question", "name": "¿Qué roles de usuario tiene Bitafly?", "acceptedAnswer": { "@type": "Answer", "text": "Bitafly tiene 5 roles: Superadmin (gestión global del SaaS), Administrador (gestión completa de la organización), Gerente SMS (gestión de seguridad operacional), Jefe de Pilotos (gestión de tripulación y programación) y Piloto (registro de vuelos y reportes de incidentes)." } },
-    { "@type": "Question", "name": "¿Bitafly sirve para un piloto individual o solo para empresas?", "acceptedAnswer": { "@type": "Answer", "text": "Bitafly sirve para ambos. El plan gratuito (6 meses) está diseñado para pilotos individuales con un dron. Los planes Escuadrilla y Flota son para empresas con múltiples aeronaves y tripulantes. El plan Enterprise es para grandes operadores." } },
+    { "@type": "Question", "name": "¿Bitafly sirve para un piloto individual o solo para empresas?", "acceptedAnswer": { "@type": "Answer", "text": "Bitafly sirve para ambos. El plan Piloto está diseñado para pilotos individuales con un dron, con período de prueba antes del primer cobro. Los planes Escuadrilla y Flota son para empresas con múltiples aeronaves y tripulantes. El plan Enterprise es para grandes operadores." } },
     { "@type": "Question", "name": "¿Bitafly ayuda durante el proceso de certificación ESUAS?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Si tu empresa está certificando como Explotador UAS ante la AeroCivil, nuestro equipo te asesora para elegir el plan que mejor se ajusta a tu operación mientras avanza tu proceso de certificación." } },
   ],
 };
@@ -59,7 +59,7 @@ export default function OperadoresUASPage() {
                 Ver planes y precios
               </Link>
             </div>
-            <p style={{fontSize:'11px',fontWeight:700,color:'#94a3b8',marginTop:'14px'}}>Gratis durante certificación ESUAS · Sin tarjeta de crédito</p>
+            <p style={{fontSize:'11px',fontWeight:700,color:'#94a3b8',marginTop:'14px'}}>Sin tarjeta de crédito · Configuración en 5 minutos</p>
           </div>
           <DroneOpsScene />
         </div>
@@ -102,7 +102,7 @@ export default function OperadoresUASPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{gap:'20px'}}>
             {[
-              { plan:'Plan Piloto', planBg:'rgba(236,91,19,0.08)', planBorder:'rgba(236,91,19,0.2)', planColor:accent, icon:'person_check', title:'Piloto Autónomo', desc:'Un dron, un piloto. Bitácora digital ilimitada, mantenimiento con alertas, gestión de baterías y reporte F-OPS-002 en PDF. 6 meses gratuito.', featured:false },
+              { plan:'Plan Piloto', planBg:'rgba(236,91,19,0.08)', planBorder:'rgba(236,91,19,0.2)', planColor:accent, icon:'person_check', title:'Piloto Autónomo', desc:'Un dron, un piloto. Bitácora digital ilimitada, mantenimiento con alertas, gestión de baterías y reporte F-OPS-002 en PDF. Con período de prueba antes del primer cobro.', featured:false },
               { plan:'Plan Escuadrilla', planBg:'rgba(26,32,44,0.06)', planBorder:'rgba(26,32,44,0.1)', planColor:'#1A202C', icon:'groups', title:'Pequeña Empresa', desc:'Hasta 3 aeronaves y 4 usuarios con 3 roles operacionales. Autorizaciones F-OPS-001, SMS básico y reportes PDF Maestro de Vuelo y Baterías.', featured:false },
               { plan:'Plan Flota ★', planBg:accent, planBorder:accent, planColor:'white', icon:'admin_panel_settings', title:'Empresa Mediana / ESUAS', desc:'Hasta 15 aeronaves y 15 usuarios con los 5 roles RAC 100. SMS completo, auditoría, protocolos personalizables y todos los reportes RAC 100 con tu propio código de formato.', featured:true },
             ].map(item => (

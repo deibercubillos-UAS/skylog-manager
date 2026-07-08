@@ -709,6 +709,53 @@ A pedido del usuario: cualquier organización puede comprar pilotos o drones adi
   3) una rama nueva en el webhook que, al detectar ese intent, inserte en
   `addon_subscriptions` en vez de tocar `profiles.subscription_plan`.
 
+### Trial del plan Piloto + acceso gratuito por certificación Fase 0/I (2026-07-08)
+
+A pedido del usuario, dos correcciones de política comercial que también corrigieron copy
+inconsistente detectado en el landing/marketing (varios lugares afirmaban "6 meses gratis" o
+"acceso gratuito" sin plazo para el proceso de certificación — ninguno de los dos coincidía
+con la realidad):
+
+- **Trial del plan Piloto = 15 días (ciclo mensual)**: fuente de verdad real es
+  `epayco_plan_config.trial_days` (tabla en Supabase, editable desde `/admin/master`) — NO
+  los objetos estáticos `EPAYCO_PLANS`/`PLAN_CONFIG` de `lib/planLimits.js` ni los
+  `PLANS_BASE`/`FALLBACK_PRICES` de cada página de precios, que son solo **respaldo antes de
+  que cargue `/api/plans/public`** (mismo patrón ya documentado en `Pricing.js`). Se
+  actualizó el valor real en BD (antes 14 días, ahora 15) y los 4 fallbacks estáticos
+  (`planLimits.js`, `Pricing.js`, `PreciosClient.js`, `dashboard/select-plan/page.js`) para
+  que coincidan — el ciclo **anual** del plan Piloto no se tocó (sigue en 30 días, valor
+  distinto e intencional, no mencionado en el pedido).
+- **Bug real corregido — `trialText()` redondeaba cualquier trial a meses**
+  (`Math.round(days / 30)`): con un trial real de 14-15 días esto mostraba "1 mes gratis" en
+  `Pricing.js`/`PreciosClient.js` — visualmente falso. Corregido para mostrar días cuando el
+  valor no es múltiplo exacto de 30, meses cuando sí lo es.
+- **Bug real corregido — `dashboard/select-plan/page.js` mostraba el plan Piloto como
+  "Gratis"** (precio $0 fijo, sin trial ni cobro posterior) en vez de su precio real
+  ($20.000 COP/mes) con nota de período de prueba — mismo patrón de badge `🎁 N días gratis
+  al iniciar` que ya usan las páginas de precios. **Limitación real encontrada y NO resuelta
+  en esta pasada** (fuera del alcance de un ajuste de copy, requeriría tocar el flujo de
+  pagos en vivo): `handleSelect('piloto')` en esa misma página activa el plan Piloto
+  escribiendo `subscription_plan: 'piloto'` directo en `profiles` **sin pasar por
+  `/api/epayco/checkout`** — a diferencia de cualquier otro plan/página, esta ruta de
+  onboarding nunca crea una suscripción recurrente real en ePayco para el piloto, así que en
+  la práctica ese camino específico no cobra nunca automáticamente tras el trial. Documentado
+  aquí para que el equipo decida si ese flujo debe wirearse al checkout real o si es
+  intencional.
+- **Acceso gratuito por certificación como Explotador UAS — política real**: aplica
+  únicamente a empresas en **Fase 0 o Fase I** del proceso de certificación ante la
+  AeroCivil, con un **tope máximo de 6 meses** (antes el copy del landing prometía "sin
+  costo durante todo el proceso" sin plazo, y en un punto llegó a decir "6 meses gratis" para
+  el plan Piloto en general, sin relación con la certificación — ambas afirmaciones
+  eliminadas). **Sigue sin ser self-service** (no hay validación automática de en qué fase
+  está un radicado) — el equipo de BitaFly confirma manualmente y activa el acceso desde
+  `/admin/master` (tab Usuarios → botón "Activar acceso gratuito · Fase 0/I certificación
+  (máx. 6 meses)", antes otorgaba 2 años de plan Flota sin relación con las fases reales del
+  proceso — ahora prellena `subscription_expires_at` a +6 meses como tope, editable a mano si
+  la fase del solicitante termina antes). Copy corregido con la misma redacción (Fase 0/Fase
+  I, máximo 6 meses, "contáctanos con tu número de radicado") en las 4 superficies que lo
+  mencionaban: banner de `Pricing.js`/`precios/PreciosClient.js`, hero + meta + FAQ de
+  `/operadores-uas`, y el banner de `dashboard/select-plan`.
+
 ### Piloto Independiente (role=`admin` + plan=`piloto`)
 
 - Se registra como `type='solo'` → crea su propia org. Auto-login directo al dashboard.

@@ -52,6 +52,16 @@ adicionales: **Piloto adicional $30.000 COP/mes** y **Dron adicional $25.000 COP
 gestionan desde el panel Master (registro manual de la venta); el checkout self-service vía
 ePayco queda pendiente de habilitar.
 
+### Prueba gratuita
+El plan Piloto incluye **15 días de prueba** (ciclo mensual) antes del primer cobro — sin
+necesidad de tarjeta de crédito. El ciclo anual incluye 30 días de prueba.
+
+### Acceso gratuito durante certificación (Fase 0 y Fase I)
+Las empresas que se encuentran en **Fase 0 o Fase I** del proceso de certificación como
+Explotador UAS ante la AeroCivil pueden acceder a BitaFly sin costo durante esa etapa, hasta
+un **máximo de 6 meses**. No es un flujo automático/self-service: el equipo de BitaFly
+confirma el número de radicado y activa el acceso manualmente.
+
 ### Período de gracia
 Las escuelas socias y asesores registrados en el programa de socios de BitaFly pueden regalar períodos de uso gratuito (por defecto 90 días) a pilotos nuevos antes de que contraten un plan.
 

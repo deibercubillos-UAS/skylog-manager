@@ -13,7 +13,7 @@ const PLANS_BASE = [
     tagline: 'Para el piloto autónomo',
     monthlyAmount: 20000,
     annualAmount:  200000,
-    trialDays:     30,
+    trialDays:     15,
     dark: false,
     popular: false,
     cta: 'Comenzar gratis',
@@ -113,8 +113,11 @@ const PLANS_BASE = [
 
 function trialText(days) {
   if (!days) return null;
-  const m = Math.round(days / 30);
-  return m === 1 ? '1 mes' : `${m} meses`;
+  if (days % 30 === 0) {
+    const m = days / 30;
+    return m === 1 ? '1 mes' : `${m} meses`;
+  }
+  return days === 1 ? '1 día' : `${days} días`;
 }
 
 export default function Pricing() {
@@ -308,14 +311,15 @@ export default function Pricing() {
             </div>
             <div>
               <p className="text-xs font-black uppercase tracking-widest text-primary mb-1">
-                Proceso de certificación
+                Fase 0 y Fase I · Proceso de certificación
               </p>
               <h3 className="text-lg font-black text-navy mb-2">
                 ¿Tu empresa está certificando como Explotador UAS ante la AeroCivil?
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed max-w-2xl">
-                Habla con nuestro equipo: te ayudamos a elegir el plan que mejor se ajusta a tu
-                operación mientras avanza tu proceso de certificación ante la AeroCivil.
+                Si estás en Fase 0 o Fase I del proceso, accede a Bitafly <strong>sin costo</strong> durante
+                esa etapa, hasta un máximo de 6 meses. Contáctanos con tu número de radicado y
+                activamos tu acceso.
               </p>
             </div>
           </div>
@@ -323,7 +327,7 @@ export default function Pricing() {
             href="#contacto"
             className="shrink-0 w-full md:w-auto bg-primary text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20 text-center block"
           >
-            Hablar con un asesor
+            Solicitar acceso
           </a>
         </div>
 

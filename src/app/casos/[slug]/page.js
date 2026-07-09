@@ -179,7 +179,7 @@ export default function CasoPage({ params }) {
             Gestiona tu flota como {c.empresa}
           </h2>
           <p className="text-slate-300 text-sm mb-5">
-            Bitácora RAC 100, mantenimiento, SMS y autorizaciones AeroCivil. Plan gratuito por 6 meses.
+            Bitácora RAC 100, mantenimiento, SMS y autorizaciones AeroCivil. 15 días de prueba, sin tarjeta.
           </p>
           <Link
             href="/registro"

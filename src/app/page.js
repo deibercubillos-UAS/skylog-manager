@@ -198,7 +198,7 @@ const softwareSchema = {
     '@type': 'Offer',
     price: '0',
     priceCurrency: 'COP',
-    description: 'Plan Piloto — 1 mes gratis para operadores individuales',
+    description: 'Plan Piloto — 15 días de prueba para operadores individuales',
     availability: 'https://schema.org/InStock',
     eligibleRegion: { '@type': 'Country', name: 'Colombia' },
     url: `${SITE_URL}/registro`,

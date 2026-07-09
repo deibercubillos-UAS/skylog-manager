@@ -755,6 +755,25 @@ con la realidad):
   I, máximo 6 meses, "contáctanos con tu número de radicado") en las 4 superficies que lo
   mencionaban: banner de `Pricing.js`/`precios/PreciosClient.js`, hero + meta + FAQ de
   `/operadores-uas`, y el banner de `dashboard/select-plan`.
+- **Barrido adicional (mismo día, a pedido del usuario "aplicar los cambios a la
+  aplicación")**: un segundo grep más amplio encontró **10 archivos más** con el mismo tipo
+  de afirmación desactualizada, no capturados en la primera pasada porque no contenían las
+  palabras clave de esa búsqueda inicial — incluye hallazgos reales de alta visibilidad, no
+  solo variantes menores: el heading grande del CTA final de `/precios`
+  (`PreciosClient.js`, "Gratis por 6 meses" → "15 días gratis"), el FAQ **visible** de esa
+  misma página (`faqItems`, distinto del `faqSchema` de `page.js` que sí se había corregido
+  antes — dos arrays de FAQ paralelos en la misma ruta), el `offers.description` del schema
+  `SoftwareApplication` del home (`page.js`, "1 mes gratis" → "15 días de prueba"), el CTA
+  final de la plantilla de casos de éxito (`casos/[slug]/page.js`, aplica a **todas** las
+  páginas de casos vía el mismo componente), las 4 páginas de comparativa
+  (`comparativa-bitafly-airdata/-dronedesk/-geodrone/-uav-forecast`, ~14 menciones de
+  "30 días" en CTAs/tablas/meta descriptions), el propio flujo de registro
+  (`registro/page.js`, "Gratis 1 mes" en el selector de plan real que ve cualquiera al crear
+  cuenta — no es marketing, es producto) y 2 FAQ que llamaban al plan Piloto "el plan
+  gratuito" sin matiz (`bitacora-digital`, `gestion-flota-drones`). Todos corregidos al
+  mismo estándar (15 días de prueba mensual / Fase 0-I máx. 6 meses). La app Android no
+  requirió ninguna acción — corre en modo *remote URL* (carga `bitafly.com`), así que estos
+  cambios de Next.js se reflejan ahí automáticamente sin generar un APK nuevo.
 
 ### Piloto Independiente (role=`admin` + plan=`piloto`)
 

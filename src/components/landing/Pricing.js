@@ -68,10 +68,10 @@ const PLANS_BASE = [
     popular: true,
     cta: 'Comenzar ahora',
     href: '/registro',
-    limits: '15 aeronaves · 15 usuarios',
+    limits: '10 aeronaves · 10 usuarios',
     features: [
-      'Hasta 15 aeronaves',
-      'Hasta 15 usuarios (5 roles)',
+      'Hasta 10 aeronaves',
+      'Hasta 10 usuarios (5 roles)',
       'Bitácora digital RAC 100 ilimitada',
       'Mantenimiento avanzado + historial',
       'Baterías ilimitadas',
@@ -311,13 +311,13 @@ export default function Pricing() {
             </div>
             <div>
               <p className="text-xs font-black uppercase tracking-widest text-primary mb-1">
-                Fase 0 y Fase I · Proceso de certificación
+                Fase 0 · Proceso de certificación
               </p>
               <h3 className="text-lg font-black text-navy mb-2">
                 ¿Tu empresa está certificando como Explotador UAS ante la AeroCivil?
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed max-w-2xl">
-                Si estás en Fase 0 o Fase I del proceso, accede a Bitafly <strong>sin costo</strong> durante
+                Si estás en Fase 0 del proceso, accede al plan Escuadrilla de Bitafly <strong>sin costo</strong> durante
                 esa etapa, hasta un máximo de 6 meses. Contáctanos con tu número de radicado y
                 activamos tu acceso.
               </p>

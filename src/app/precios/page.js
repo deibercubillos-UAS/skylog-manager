@@ -18,7 +18,7 @@ const faqSchema = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
   "mainEntity": [
-    { "@type": "Question", "name": "¿El plan Piloto de Bitafly requiere tarjeta de crédito para empezar?", "acceptedAnswer": { "@type": "Answer", "text": "No. El plan Piloto incluye 15 días de prueba sin necesidad de tarjeta de crédito; después de ese período se realiza el primer cobro. Empresas en Fase 0 o Fase I del proceso de certificación como Explotador UAS pueden acceder sin costo durante esa etapa, hasta un máximo de 6 meses, contactando a nuestro equipo." } },
+    { "@type": "Question", "name": "¿El plan Piloto de Bitafly requiere tarjeta de crédito para empezar?", "acceptedAnswer": { "@type": "Answer", "text": "No. El plan Piloto incluye 15 días de prueba sin necesidad de tarjeta de crédito; después de ese período se realiza el primer cobro. Empresas en Fase 0 del proceso de certificación como Explotador UAS pueden acceder sin costo al plan Escuadrilla durante esa etapa, hasta un máximo de 6 meses, contactando a nuestro equipo." } },
     { "@type": "Question", "name": "¿Hay descuento por pago anual en Bitafly?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. El pago anual tiene un descuento del 20%. El plan Escuadrilla pasa de $59.000/mes a $49.000/mes (equivalente). El plan Flota pasa de $159.000/mes a $132.500/mes (equivalente)." } },
     { "@type": "Question", "name": "¿Los pagos de Bitafly son en pesos colombianos o dólares?", "acceptedAnswer": { "@type": "Answer", "text": "Todos los precios son en pesos colombianos (COP). El cobro se realiza a través de ePayco. Aceptamos tarjetas Visa, Mastercard, débito y PSE." } },
     { "@type": "Question", "name": "¿Qué pasa con mis datos si cancelo la suscripción?", "acceptedAnswer": { "@type": "Answer", "text": "Tus datos se conservan durante 90 días después de la cancelación, período durante el cual puedes exportar tus bitácoras, reportes y datos de flota en PDF o Excel." } },
@@ -64,7 +64,7 @@ const softwareSchema = {
     {
       "@type": "Offer",
       "name": "Plan Flota",
-      "description": "Hasta 15 aeronaves, 15 usuarios, SORA, reportes avanzados RAC 100.",
+      "description": "Hasta 10 aeronaves, 10 usuarios, SORA, reportes avanzados RAC 100.",
       "price": "159000",
       "priceCurrency": "COP",
       "priceValidUntil": "2026-12-31",

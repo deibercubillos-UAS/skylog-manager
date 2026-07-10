@@ -656,8 +656,8 @@ operando solo sobre el propio usuario autenticado).
 
 | Recurso | piloto | escuadrilla | flota | enterprise |
 |---|---|---|---|---|
-| Drones | 1 | 3 | 15 | ∞ |
-| Pilotos | 1 | 4 | 15 | ∞ |
+| Drones | 1 | 3 | 10 | ∞ |
+| Pilotos | 1 | 4 | 10 | ∞ |
 | Baterías | 3 | ∞ | ∞ | ∞ |
 | Tech/Payloads | 3 | ∞ | ∞ | ∞ |
 
@@ -774,6 +774,29 @@ con la realidad):
   mismo estándar (15 días de prueba mensual / Fase 0-I máx. 6 meses). La app Android no
   requirió ninguna acción — corre en modo *remote URL* (carga `bitafly.com`), así que estos
   cambios de Next.js se reflejan ahí automáticamente sin generar un APK nuevo.
+
+### Ajuste de política: límites del plan Flota + certificación Fase 0 (2026-07-10)
+
+A pedido del usuario, dos correcciones más sobre lo documentado arriba:
+
+- **Plan Flota = 10 drones / 10 pilotos** (antes 15/15): `PLAN_CONFIG.flota.maxDrones` y
+  `.maxPilots` en `lib/planLimits.js` (fuente real que enforced `canAddResource`), más todas
+  las superficies de copy que repetían "15 aeronaves"/"15 usuarios"/"15 drones"/"15 pilotos"
+  del plan Flota: `Pricing.js`, `precios/PreciosClient.js`, `precios/page.js` (schema),
+  `registro/page.js`, `dashboard/select-plan/page.js`, `operadores-uas/page.js`,
+  `gestion-flota-drones/page.js` (meta + FAQ + hero), `admin/master/_InvitacionesTab.js`,
+  `api/admin/master/invite/route.js`, `scripts/gen_pptx.js`, y los docs vivos
+  `docs/bitafly-product-brief.md`/`docs/google-ads.md`/`docs/LINKEDIN_PLAN_COWORK.md`. Los
+  demás planes (Piloto/Escuadrilla/Enterprise) no cambian.
+- **Acceso gratuito por certificación — ahora solo Fase 0, y otorga plan Escuadrilla (no
+  Flota)**: revierte el alcance de la política del 2026-07-08 — ya **no** aplica a empresas en
+  Fase I, solo Fase 0. El tope de 6 meses no cambia. El atajo del panel Master
+  (`admin/master/page.js`) ahora prellena `subscription_plan: 'escuadrilla'` (antes `'flota'`)
+  y su etiqueta/nota pasan de "Fase 0/I" a "Fase 0" — mismo mecanismo de prellenado editable,
+  el superadmin sigue pudiendo ajustar plan/fecha a mano antes de guardar si un caso puntual lo
+  requiere. Copy actualizado en las mismas 4 superficies de la política original
+  (`Pricing.js`, `precios/PreciosClient.js`, `operadores-uas/page.js`,
+  `dashboard/select-plan/page.js`) más el FAQ de `precios/page.js` que también la mencionaba.
 
 ### Piloto Independiente (role=`admin` + plan=`piloto`)
 

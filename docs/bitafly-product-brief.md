@@ -41,7 +41,7 @@ BitaFly opera con suscripción mensual o anual procesada por **ePayco** (pasarel
 |---|---|---|---|---|---|
 | **Piloto** | Piloto autónomo / unipersonal | 1 | 1 | 3 | 3 |
 | **Escuadrilla** | Empresa pequeña | 3 | 4 | Ilimitadas | Ilimitados |
-| **Flota** | Empresa mediana | 15 | 15 | Ilimitadas | Ilimitados |
+| **Flota** | Empresa mediana | 10 | 10 | Ilimitadas | Ilimitados |
 | **Enterprise** | Empresa grande / escuela UAS | Ilimitados | Ilimitados | Ilimitadas | Ilimitados |
 
 > **Nota sobre conteo de pilotos**: el Gerente General y el Gerente SMS no cuentan contra el límite del plan porque son roles administrativos, no tripulación operativa.
@@ -56,11 +56,12 @@ ePayco queda pendiente de habilitar.
 El plan Piloto incluye **15 días de prueba** (ciclo mensual) antes del primer cobro — sin
 necesidad de tarjeta de crédito. El ciclo anual incluye 30 días de prueba.
 
-### Acceso gratuito durante certificación (Fase 0 y Fase I)
-Las empresas que se encuentran en **Fase 0 o Fase I** del proceso de certificación como
-Explotador UAS ante la AeroCivil pueden acceder a BitaFly sin costo durante esa etapa, hasta
-un **máximo de 6 meses**. No es un flujo automático/self-service: el equipo de BitaFly
-confirma el número de radicado y activa el acceso manualmente.
+### Acceso gratuito durante certificación (Fase 0)
+Las empresas que se encuentran en **Fase 0** del proceso de certificación como Explotador UAS
+ante la AeroCivil pueden acceder al **plan Escuadrilla** de BitaFly sin costo durante esa
+etapa, hasta un **máximo de 6 meses**. No aplica a empresas ya en Fase I. No es un flujo
+automático/self-service: el equipo de BitaFly confirma el número de radicado y activa el
+acceso manualmente.
 
 ### Período de gracia
 Las escuelas socias y asesores registrados en el programa de socios de BitaFly pueden regalar períodos de uso gratuito (por defecto 90 días) a pilotos nuevos antes de que contraten un plan.
@@ -540,7 +541,7 @@ El dashboard requiere conexión a internet. Para el uso en campo con el DJI RC P
 Los datos se conservan. El plan vuelve al nivel base (Piloto). Funcionalidades avanzadas quedan deshabilitadas pero no se eliminan datos históricos.
 
 **¿Cuántos usuarios puede tener una organización?**  
-Depende del plan. El plan Piloto es para 1 usuario. Escuadrilla hasta 4 pilotos operativos (más GG y GSMS sin contar contra el límite). Flota hasta 15. Enterprise sin límite.
+Depende del plan. El plan Piloto es para 1 usuario. Escuadrilla hasta 4 pilotos operativos (más GG y GSMS sin contar contra el límite). Flota hasta 10. Enterprise sin límite.
 
 **¿Los datos de vuelo quedan en Colombia?**  
 La base de datos está alojada en Supabase (us-east-1, AWS). El deploy web está en Vercel (CDN global). BitaFly cumple con las políticas de privacidad y seguridad de datos aplicables.

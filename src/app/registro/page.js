@@ -10,7 +10,7 @@ import { attributionParams, getAttribution } from '@/lib/attribution';
 const PLANS = [
   { key: 'piloto',      name: 'Piloto',      price: '15 días gratis', sub: 'luego $20.000/mes',           limits: '1 dron · 1 usuario',   icon: 'person',                rawPrice: 0 },
   { key: 'escuadrilla', name: 'Escuadrilla', price: '$59.000/mes',   sub: 'o $590.000/año (−20%)',       limits: '3 drones · 4 usuarios', icon: 'group',                popular: true, paid: true, rawPrice: 59000 },
-  { key: 'flota',       name: 'Flota',       price: '$159.000/mes',  sub: 'o $1.590.000/año (−20%)',     limits: '15 drones · 15 usuarios', icon: 'precision_manufacturing', paid: true,  rawPrice: 159000 },
+  { key: 'flota',       name: 'Flota',       price: '$159.000/mes',  sub: 'o $1.590.000/año (−20%)',     limits: '10 drones · 10 usuarios', icon: 'precision_manufacturing', paid: true,  rawPrice: 159000 },
   { key: 'enterprise',  name: 'Enterprise',  price: 'A consultar',   sub: 'contactar ventas',            limits: 'Ilimitado',             icon: 'rocket_launch',        contact: true, rawPrice: 0 },
 ];
 

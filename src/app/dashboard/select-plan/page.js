@@ -52,8 +52,8 @@ const PLANS = [
     dark: true,
     cta: 'Comenzar ahora',
     features: [
-      'Hasta 15 aeronaves',
-      'Hasta 15 usuarios (5 roles)',
+      'Hasta 10 aeronaves',
+      'Hasta 10 usuarios (5 roles)',
       'Bitácora digital RAC 100 ilimitada',
       'Autorizaciones F-OPS-001 + historial',
       'SMS completo con trazabilidad',
@@ -351,13 +351,13 @@ export default function SelectPlanPage() {
             <span className="material-symbols-outlined text-[#ec5b13] text-2xl" aria-hidden="true">verified_user</span>
           </div>
           <div className="flex-1 text-center md:text-left">
-            <p className="text-xs font-black uppercase tracking-widest text-[#ec5b13] mb-1">Fase 0 / Fase I · Certificación AeroCivil</p>
+            <p className="text-xs font-black uppercase tracking-widest text-[#ec5b13] mb-1">Fase 0 · Certificación AeroCivil</p>
             <p className="text-sm font-bold text-[#1A202C]">
-              ¿Tu empresa está en Fase 0 o Fase I de certificación como Explotador UAS? Accede a Bitafly sin costo durante esa etapa, hasta un máximo de 6 meses.
+              ¿Tu empresa está en Fase 0 de certificación como Explotador UAS? Accede al plan Escuadrilla de Bitafly sin costo durante esa etapa, hasta un máximo de 6 meses.
             </p>
           </div>
           <a
-            href="mailto:hola@bitafly.com?subject=Acceso Fase 0/I certificación AeroCivil"
+            href="mailto:hola@bitafly.com?subject=Acceso Fase 0 certificación AeroCivil"
             className="shrink-0 bg-[#ec5b13] text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-600 transition-all shadow-md text-center"
           >
             Solicitar acceso

@@ -517,24 +517,25 @@ export default function MasterPanel() {
                 className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white font-bold text-sm outline-none focus:border-orange-500/50" />
             </div>
 
-            {/* AeroCivil gratuito — Fase 0/Fase I del proceso de certificación, tope real de 6 meses.
-                Prellena el máximo permitido; el superadmin puede acortar la fecha "Vigente hasta"
-                arriba si la fase del solicitante termina antes. */}
+            {/* AeroCivil gratuito — solo Fase 0 del proceso de certificación (no Fase I), otorga
+                plan Escuadrilla, tope real de 6 meses. Prellena el máximo permitido; el
+                superadmin puede acortar la fecha "Vigente hasta" arriba si la fase del
+                solicitante termina antes. */}
             <button
               type="button"
               onClick={() => {
                 const max = new Date(); max.setMonth(max.getMonth() + 6);
                 setEdit({
                   ...edit,
-                  subscription_plan: 'flota',
+                  subscription_plan: 'escuadrilla',
                   subscription_expires_at: max.toISOString().split('T')[0],
-                  admin_notes: (edit.admin_notes || '') + '\n[Acceso gratuito — Fase 0/Fase I certificación AeroCivil, máx. 6 meses]',
+                  admin_notes: (edit.admin_notes || '') + '\n[Acceso gratuito — Fase 0 certificación AeroCivil, máx. 6 meses]',
                 });
               }}
               className="w-full bg-emerald-900/40 border border-emerald-500/30 text-emerald-400 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-900/60 transition-all flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-base">verified_user</span>
-              Activar acceso gratuito · Fase 0/I certificación (máx. 6 meses)
+              Activar acceso gratuito · Fase 0 certificación (máx. 6 meses)
             </button>
 
             {/* Piloto Independiente — le crea una organización propia nueva

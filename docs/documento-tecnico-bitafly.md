@@ -334,7 +334,7 @@ dedicado (`/socio`) separado del dashboard operativo.
 Herramienta interna (`/admin/master`, solo `superadmin`) para gestión de usuarios/roles/planes,
 suscripciones ePayco, socios, comisiones, invitaciones de venta, recursos adicionales,
 releases de la app Android y activación manual de accesos especiales (certificación
-Fase 0/I ante AeroCivil, conversión a piloto independiente, eliminación de cuentas).
+Fase 0 ante AeroCivil, conversión a piloto independiente, eliminación de cuentas).
 
 ---
 

@@ -99,7 +99,7 @@ alternativa airdata
 1. Gestión de Flota de Drones
 2. Control Flota Drones Colombia
 3. Software Flota UAS RAC 100
-4. Hasta 15 Aeronaves por Empresa
+4. Hasta 10 Aeronaves por Empresa
 5. Administra Drones DJI y Autel
 6. Horas de Vuelo en Tiempo Real
 7. Registro Aeronaves UAEAC
@@ -115,7 +115,7 @@ alternativa airdata
 **Descripciones (4):**
 1. Registra cada aeronave, controla horas de vuelo acumuladas y monitorea el estado operativo de tu flota. Cumple RAC 100.
 2. Gestiona flotas DJI, Autel, Parrot y más marcas. Alertas automáticas de mantenimiento por horas. Prueba gratis hoy.
-3. Software de flota UAS para Colombia. Hasta 15 aeronaves en plan Flota, ilimitadas en Enterprise. Sin tarjeta de crédito.
+3. Software de flota UAS para Colombia. Hasta 10 aeronaves en plan Flota, ilimitadas en Enterprise. Sin tarjeta de crédito.
 4. Bitafly centraliza aeronaves, baterías, tripulación y bitácora de vuelo en un solo panel RAC 100. Empieza gratis.
 
 **Sitelinks:**

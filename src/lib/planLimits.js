@@ -44,8 +44,8 @@ export const PLAN_CONFIG = {
     name: 'Plan Flota',
     price: { monthly: 39, annual: 29, freeMonths: null },
     allowedRoles: ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'],
-    maxDrones: 15,
-    maxPilots: 15,
+    maxDrones: 10,
+    maxPilots: 10,
     maxBatteries: null,
     maxTech: null,
     features: {

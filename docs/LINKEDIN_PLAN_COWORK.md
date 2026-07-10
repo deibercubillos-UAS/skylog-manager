@@ -26,7 +26,7 @@ Fecha: Junio 2026 | Responsable proyecto: Deiber Cubillos | Contacto: deibercubi
 **Planes:**
 - Piloto independiente: 1 drone, gratis o bajo costo
 - Escuadrilla: hasta 3 drones
-- Flota: hasta 15 drones
+- Flota: hasta 10 drones
 - Enterprise: sin límite
 
 **Acceso para ver el producto:** Crear cuenta gratis en bitafly.com/registro

@@ -381,8 +381,9 @@ Acceso desde el menú de cuenta (avatar), no desde el sidebar principal
 | **Suscripción** | Solo SuperAdmin y Gerente General — pago, cancelación, historial de facturación, recursos adicionales |
 
 **Limitantes**: la cancelación de suscripción degrada el plan al nivel base (Piloto) sin
-borrar datos históricos. El acceso gratuito por certificación (Fase 0/I ante AeroCivil, máximo
-6 meses) se activa manualmente desde el panel Master, no desde esta pestaña.
+borrar datos históricos. El acceso gratuito por certificación (Fase 0 ante AeroCivil, otorga
+el plan Escuadrilla, máximo 6 meses) se activa manualmente desde el panel Master, no desde
+esta pestaña.
 
 ---
 

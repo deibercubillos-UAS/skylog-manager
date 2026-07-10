@@ -798,6 +798,46 @@ A pedido del usuario, dos correcciones más sobre lo documentado arriba:
   (`Pricing.js`, `precios/PreciosClient.js`, `operadores-uas/page.js`,
   `dashboard/select-plan/page.js`) más el FAQ de `precios/page.js` que también la mencionaba.
 
+### Landing — sección "Funciones" reorganizada en 4 grupos (2026-07-10)
+
+A pedido del usuario ("actualiza la sección de plataforma del landing, alineado a la primera
+versión"): el array `FEATURES` de `src/app/page.js` tenía 11 tarjetas planas, congeladas antes
+de todo lo construido esta sesión — no mencionaba Multi-organización, Evaluación de Riesgos en
+el despacho, Mantenimiento Menor, Inventario de Operación, Capacitación con examen calificado,
+Proveedores, Manuales Corporativos, Recursos Adicionales ni la app Android nativa.
+
+- **Reorganizada en 4 grupos** (`FEATURE_GROUPS`, mismo patrón visual ya usado en el FAQ
+  rediseñado) — las mismas 3 categorías del sidebar real de la app (Operación · Flota & Equipo
+  · Documentación & Cumplimiento) más un cuarto grupo "Plataforma y Seguridad" para lo
+  transversal (roles, add-ons, app móvil, infraestructura) — para que el landing describa
+  exactamente la misma arquitectura de información que ve un usuario ya adentro del producto,
+  no una taxonomía de marketing inventada aparte.
+- **21 features en total** (antes 11): 6 en Operación, 5 en Flota & Equipo, 6 en Documentación
+  & Cumplimiento, 4 en Plataforma y Seguridad. Cada una redactada desde lo que el módulo
+  realmente hace hoy (verificado contra `docs/manual-funcional-bitafly.md` y
+  `docs/documento-tecnico-bitafly.md` de esta misma sesión) — ninguna es aspiracional.
+  `href` solo en las que tienen página satélite real (`/gestion-flota-drones` se enlazó por
+  primera vez desde Funciones, existía pero no estaba referenciada desde aquí); las nuevas sin
+  página dedicada (Multi-organización, Despacho con Evaluación de Riesgos, Mantenimiento
+  Menor, Inventario, Capacitación, Proveedores, Manuales, Recursos Adicionales, App Android,
+  Roles) quedan como tarjeta informativa sin enlace, mismo patrón que ya usaban "Roles y
+  Multi-usuario"/"100% en la Nube" antes de este cambio.
+- **Badges reducidos a 2** (antes 3, con "Nuevo" repetido sin criterio claro): "Destacado" en
+  Replay GPS (diferenciador único) y "Nuevo" solo en Multi-organización (el cambio
+  arquitectónico más grande de la sesión) — se quitó de Clima (ya lleva tiempo en producción)
+  para no diluir la señal con demasiadas tarjetas marcadas "Nuevo" a la vez.
+- **Sección "Cumplimiento RAC 100" contigua** también actualizada (de 6 a 7 bullets): agrega
+  "Evaluación SORA obligatoria antes de programar cualquier misión" y actualiza los bullets de
+  SMS (ahora menciona matriz de riesgo/SPI/acciones correctivas) y Reportes (menciona el
+  Reporte Operacional Mensual UAS y "+20 formatos" en vez del genérico "Reportes en PDF").
+- `softwareSchema.featureList` (JSON-LD) sigue derivándose automáticamente de
+  `FEATURES.map(f => f.title)` — no requirió cambio de código, solo se benefició de los datos
+  nuevos.
+- **Verificación visual real**: se levantó `next dev` en este entorno y se capturaron
+  screenshots con Playwright (`playwright-core` instalado con `--no-save`, no se tocó
+  `package.json`/`package-lock.json`) de los 4 grupos y de la sección Cumplimiento antes de
+  dar el cambio por cerrado — no solo lint/build.
+
 ### Piloto Independiente (role=`admin` + plan=`piloto`)
 
 - Se registra como `type='solo'` → crea su propia org. Auto-login directo al dashboard.

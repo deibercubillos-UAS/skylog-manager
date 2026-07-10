@@ -110,15 +110,42 @@ const FAQS = [
   },
 ];
 
-// FEATURES — alimentan tanto la sección visible como el schema SoftwareApplication.featureList
+// FEATURES — alimentan tanto la sección visible como el schema SoftwareApplication.featureList.
+// Agrupadas en las mismas 4 categorías que organiza el propio sidebar de la app (Operación /
+// Flota & Equipo / Documentación & Cumplimiento) + un cuarto grupo de plataforma/negocio —
+// para que el landing describa exactamente lo que existe en el producto, no una versión
+// aspiracional. FEATURE_GROUPS define el orden y el ícono de cada bloque.
+const FEATURE_GROUPS = [
+  { name: 'Operación',                      icon: 'radar' },
+  { name: 'Flota & Equipo',                 icon: 'precision_manufacturing' },
+  { name: 'Documentación & Cumplimiento',   icon: 'gavel' },
+  { name: 'Plataforma y Seguridad',         icon: 'shield_lock' },
+];
+
 const FEATURES = [
+  // ---------- Operación ----------
   {
+    group: 'Operación',
     icon: 'menu_book',
     title: 'Bitácora Digital RAC 100',
     desc: 'Registra cada vuelo con todos los campos exigidos por la AeroCivil: misión, tripulación, aeronave, batería, condiciones meteorológicas, horas de despegue y aterrizaje. Suma automáticamente las horas totales del dron.',
     href: '/bitacora-digital',
   },
   {
+    group: 'Operación',
+    icon: 'event_available',
+    title: 'Programación de Misiones',
+    desc: 'Crea órdenes de vuelo con PIC, aeronave, zona y horario. Toda misión nueva exige una evaluación SORA (GRC/ARC/SAIL) completa antes de poder autorizarse. Exporta KMZ y PDF con un clic.',
+    href: '/autorizaciones-aerocivil',
+  },
+  {
+    group: 'Operación',
+    icon: 'health_and_safety',
+    title: 'Despacho con Evaluación de Riesgos',
+    desc: 'El wizard de despacho evalúa Probabilidad × Gravedad contra la matriz de tu organización antes de cada vuelo; si el riesgo es "Inaceptable" exige documentar barreras de mitigación antes de continuar.',
+  },
+  {
+    group: 'Operación',
     icon: 'my_location',
     title: 'Replay GPS de Vuelo',
     desc: 'Reproduce cada operación cuadro a cuadro sobre el mapa: ruta GPS, altitud, velocidad, batería y joysticks del control. Importa el log del DJI RC/RC 2 y analiza el vuelo como si estuvieras ahí.',
@@ -126,57 +153,120 @@ const FEATURES = [
     badge: 'Destacado',
   },
   {
+    group: 'Operación',
     icon: 'partly_cloudy_day',
     title: 'Clima y Meteorología UAV',
-    desc: 'Verifica viento, ráfagas, visibilidad, lluvia e índice Kp del GPS antes de cada vuelo. Score de aptitud 0-100 integrado en la programación y el despacho.',
+    desc: 'Verifica viento, ráfagas, visibilidad, lluvia e índice Kp del GPS antes de cada vuelo. Score de aptitud 0-100 integrado en la programación, el despacho y el replay.',
     href: '/clima-drones',
-    badge: 'Nuevo',
   },
   {
+    group: 'Operación',
+    icon: 'apartment',
+    title: 'Multi-organización por Cuenta',
+    desc: 'Una misma cuenta puede pertenecer a varias organizaciones a la vez — un piloto que vuela para varias operadoras, o un dueño con varias empresas — y cambiar de una a otra con un clic, sin mezclar datos.',
+    badge: 'Nuevo',
+  },
+
+  // ---------- Flota & Equipo ----------
+  {
+    group: 'Flota & Equipo',
+    icon: 'precision_manufacturing',
+    title: 'Gestión de Flota',
+    desc: 'Registro de aeronaves con serial, modelo, foto y estado operativo. Suma horas de vuelo automáticamente al importar logs DJI y muestra el estado de toda tu flota en tiempo real.',
+    href: '/gestion-flota-drones',
+  },
+  {
+    group: 'Flota & Equipo',
     icon: 'build',
     title: 'Mantenimiento Programado',
-    desc: 'Alertas automáticas cuando una aeronave alcanza 200 horas o 6 meses desde la última intervención. Trazabilidad completa de cada cambio de hélice, calibración y reparación.',
+    desc: 'Alertas automáticas por horas de vuelo o días calendario, con bloqueo de despacho al vencer. Trazabilidad de cada componente cambiado (hélices, motores, ESC) con horas de uso individuales.',
     href: '/mantenimiento-drones',
   },
   {
+    group: 'Flota & Equipo',
+    icon: 'checklist',
+    title: 'Mantenimiento Menor (Piloto)',
+    desc: 'Un chequeo ligero que hace el propio piloto, con periodicidad y contadores 100% independientes del mantenimiento mayor — también bloquea el despacho si está vencido.',
+  },
+  {
+    group: 'Flota & Equipo',
     icon: 'battery_charging_full',
     title: 'Gestión de Baterías LiPo',
     desc: 'Control de ciclos por batería con umbral configurable (200 ciclos por defecto). Detecta inflamiento, registra eventos y previene fallos en operación crítica.',
     href: '/mantenimiento-drones',
   },
   {
+    group: 'Flota & Equipo',
+    icon: 'inventory_2',
+    title: 'Inventario de Operación',
+    desc: 'Checklist de equipo requerido antes de volar (baterías cargadas, botiquín, extintor) con existencias reales de equipo visibles junto a cada ítem al diligenciarlo.',
+  },
+
+  // ---------- Documentación & Cumplimiento ----------
+  {
+    group: 'Documentación & Cumplimiento',
     icon: 'health_and_safety',
     title: 'SMS Aeronáutico',
-    desc: 'Sistema de Gestión de Seguridad Operacional con clasificación de incidentes, narrativa, acciones correctivas y trazabilidad. Listo para auditorías de la AeroCivil.',
+    desc: 'Sistema de Gestión de Seguridad Operacional: matriz de riesgo, Indicadores de Desempeño (SPI) con líneas de alerta, autoevaluación GAP, acciones correctivas y biblioteca de protocolos y auditoría interna.',
     href: '/sms-aeronautico',
   },
   {
+    group: 'Documentación & Cumplimiento',
     icon: 'group',
     title: 'Tripulación y Certificados',
     desc: 'Expediente digital por tripulante: certificado médico, licencia, fechas de vencimiento y horas voladas. Alertas 30 días antes del vencimiento del médico.',
     href: '/gestion-pilotos',
   },
   {
-    icon: 'event_available',
-    title: 'Autorizaciones de Vuelo',
-    desc: 'Generación del formato F-OPS-001 con coordenadas, polígono de operación, póliza vigente y firma digital. Listo para radicar ante AeroCivil.',
-    href: '/autorizaciones-aerocivil',
+    group: 'Documentación & Cumplimiento',
+    icon: 'school',
+    title: 'Capacitación con Examen Calificado',
+    desc: 'Cronograma de capacitación con recurrencia y examen interno calificado. Si un piloto no lo aprueba o vence su plazo, el sistema bloquea su despacho hasta que quede al día.',
   },
   {
+    group: 'Documentación & Cumplimiento',
+    icon: 'store',
+    title: 'Auditoría de Proveedores',
+    desc: 'Listado de proveedores con checklist de auditoría personalizable por tu organización, calificación por auditoría y reportes descargables por proveedor o consolidados.',
+  },
+  {
+    group: 'Documentación & Cumplimiento',
+    icon: 'library_books',
+    title: 'Manuales Corporativos',
+    desc: 'Repositorio versionado de manuales con acuse de lectura obligatorio por versión y acta de divulgación en PDF — evidencia lista para una auditoría de la AeroCivil.',
+  },
+  {
+    group: 'Documentación & Cumplimiento',
     icon: 'assessment',
     title: 'Reportes RAC 100',
-    desc: 'Exporta en PDF el Maestro de Vuelo, Registro de Baterías y Bitácora de Piloto con logo, tu propio código de formato y versión. Cumplimiento documental garantizado.',
+    desc: 'Más de 20 formatos en PDF y Excel —Maestro de Vuelo, Baterías, Expediente de Tripulante, Indicadores SPI, Reporte Operacional Mensual UAS— con tu logo, código de formato y versión.',
     href: '/reportes-auditoria',
   },
+
+  // ---------- Plataforma y Seguridad ----------
   {
+    group: 'Plataforma y Seguridad',
     icon: 'admin_panel_settings',
     title: 'Roles y Multi-usuario',
-    desc: 'Cinco roles predefinidos: Superadmin, Administrador, Gerente SMS, Jefe de Pilotos y Piloto. Permisos granulares y RLS a nivel de base de datos.',
+    desc: 'Cinco roles predefinidos: Administrador, Gerente SMS, Jefe de Pilotos, Piloto y Superadmin. Permisos granulares y aislamiento de datos por organización a nivel de base de datos.',
   },
   {
+    group: 'Plataforma y Seguridad',
+    icon: 'add_circle',
+    title: 'Recursos Adicionales',
+    desc: 'Amplía tus cupos de dron o piloto sin importar el plan contratado, por un valor mensual fijo cada uno — sin necesidad de subir a un plan superior.',
+  },
+  {
+    group: 'Plataforma y Seguridad',
+    icon: 'smartphone',
+    title: 'App Android para DJI RC Plus',
+    desc: 'Aplicación nativa instalada directamente en el controlador DJI RC Plus, con actualizaciones automáticas por aire (OTA) — sin pasar por Google Play.',
+  },
+  {
+    group: 'Plataforma y Seguridad',
     icon: 'cloud_done',
     title: '100% en la Nube',
-    desc: 'Sin instalación, sin servidores. Funciona desde cualquier dispositivo con navegador. Respaldos automáticos diarios y disponibilidad 99.9%.',
+    desc: 'Sin instalación, sin servidores. Funciona desde cualquier dispositivo con navegador. Respaldos automáticos y aislamiento de datos por organización (Row-Level Security).',
   },
 ];
 
@@ -363,50 +453,64 @@ export default function LandingPage() {
                   <span className="text-primary">operador UAS</span>
                 </h2>
                 <p className="text-slate-500 max-w-2xl mx-auto">
-                  Construido por y para operadores de drones en Colombia. Cada módulo
-                  responde a un requerimiento real de la AeroCivil.
+                  Construido por y para operadores de drones en Colombia. Organizado igual que
+                  tu operación: día a día, flota, y cumplimiento documental.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {FEATURES.map((f) => {
-                  const inner = (
-                    <>
-                      <div className="size-12 bg-orange-50 rounded-2xl flex items-center justify-center text-primary mb-5">
-                        <span className="material-symbols-outlined text-2xl">{f.icon}</span>
-                      </div>
-                      <h3 className="flex items-center gap-2 font-black text-navy text-base uppercase tracking-tight mb-2">
-                        {f.title}
-                        {f.badge && (
-                          <span className="bg-primary text-white text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-full leading-none">
-                            {f.badge}
-                          </span>
-                        )}
+              <div className="space-y-14">
+                {FEATURE_GROUPS.map((group) => {
+                  const groupFeatures = FEATURES.filter((f) => f.group === group.name);
+                  if (!groupFeatures.length) return null;
+                  return (
+                    <div key={group.name}>
+                      <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-primary mb-6">
+                        <span className="material-symbols-outlined text-base">{group.icon}</span>
+                        {group.name}
                       </h3>
-                      <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
-                      {f.href && (
-                        <span className="inline-flex items-center gap-1 mt-4 text-xs font-black uppercase tracking-widest text-primary group-hover:gap-2 transition-all">
-                          Ver módulo
-                          <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                        </span>
-                      )}
-                    </>
-                  );
-                  return f.href ? (
-                    <Link
-                      key={f.title}
-                      href={f.href}
-                      className="group bg-white p-8 rounded-3xl border border-slate-100 hover:border-primary/30 hover:shadow-xl transition-all cursor-pointer"
-                    >
-                      {inner}
-                    </Link>
-                  ) : (
-                    <article
-                      key={f.title}
-                      className="bg-white p-8 rounded-3xl border border-slate-100 hover:border-primary/30 hover:shadow-xl transition-all"
-                    >
-                      {inner}
-                    </article>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {groupFeatures.map((f) => {
+                          const inner = (
+                            <>
+                              <div className="size-12 bg-orange-50 rounded-2xl flex items-center justify-center text-primary mb-5">
+                                <span className="material-symbols-outlined text-2xl">{f.icon}</span>
+                              </div>
+                              <h4 className="flex items-center gap-2 font-black text-navy text-base uppercase tracking-tight mb-2">
+                                {f.title}
+                                {f.badge && (
+                                  <span className="bg-primary text-white text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-full leading-none">
+                                    {f.badge}
+                                  </span>
+                                )}
+                              </h4>
+                              <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
+                              {f.href && (
+                                <span className="inline-flex items-center gap-1 mt-4 text-xs font-black uppercase tracking-widest text-primary group-hover:gap-2 transition-all">
+                                  Ver módulo
+                                  <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                                </span>
+                              )}
+                            </>
+                          );
+                          return f.href ? (
+                            <Link
+                              key={f.title}
+                              href={f.href}
+                              className="group bg-white p-8 rounded-3xl border border-slate-100 hover:border-primary/30 hover:shadow-xl transition-all cursor-pointer"
+                            >
+                              {inner}
+                            </Link>
+                          ) : (
+                            <article
+                              key={f.title}
+                              className="bg-white p-8 rounded-3xl border border-slate-100 hover:border-primary/30 hover:shadow-xl transition-all"
+                            >
+                              {inner}
+                            </article>
+                          );
+                        })}
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -437,9 +541,10 @@ export default function LandingPage() {
                     'Bitácora de vuelo (F-OPS-002 por defecto) con horas totales por aeronave',
                     'Registro de baterías (F-MNT-003 por defecto) con control de ciclos',
                     'Bitácora de piloto (F-HUM-005 por defecto) con horas por tripulante',
-                    'Sistema SMS con clasificación de incidente, grave y accidente',
-                    'Expediente de tripulante con anexos digitales',
-                    'Reportes en PDF con logo, tu código de formato y versión corporativa',
+                    'Evaluación SORA obligatoria antes de programar cualquier misión',
+                    'SMS con matriz de riesgo, indicadores de desempeño (SPI) y acciones correctivas',
+                    'Expediente de tripulante con anexos digitales y capacitación registrada',
+                    'Reporte Operacional Mensual UAS y +20 formatos más en PDF/Excel con tu código de formato',
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-3">
                       <span className="material-symbols-outlined text-primary text-lg shrink-0 mt-0.5">

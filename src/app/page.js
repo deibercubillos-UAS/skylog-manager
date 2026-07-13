@@ -5,7 +5,7 @@ import DashboardMockup from '@/components/landing/DashboardMockup';
 import Pricing from '@/components/landing/Pricing';
 import Contact from '@/components/landing/Contact';
 import Decor from '@/components/landing/Decor';
-import { LEGAL_PAGES } from '@/lib/legalPages';
+import SEOFooter from '@/components/seo/SEOFooter';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
@@ -744,60 +744,7 @@ export default function LandingPage() {
         </main>
 
         {/* ==================== FOOTER ==================== */}
-        <footer className="bg-[#0F1419] text-slate-400 py-16 px-6 border-t border-white/5">
-          <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_1fr] gap-8 text-sm">
-            <div className="col-span-2 md:col-span-1">
-              <p className="text-2xl font-black text-white uppercase tracking-tighter">
-                Bitafly
-              </p>
-              <p className="text-xs mt-3 max-w-xs leading-relaxed">
-                Software de gestión aeronáutica para operadores UAS en Colombia. Cumplimiento
-                RAC 100 desde el primer vuelo.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-xs font-black uppercase tracking-widest text-white">
-                Plataforma
-              </p>
-              <ul className="space-y-2 text-xs">
-                <li><a href="#funciones" className="hover:text-primary transition-colors">Funciones</a></li>
-                <li><a href="#precios" className="hover:text-primary transition-colors">Precios</a></li>
-                <li><a href="#cumplimiento" className="hover:text-primary transition-colors">Cumplimiento RAC</a></li>
-                <li><Link href="/bitacora-digital" className="hover:text-primary transition-colors">Bitácora Digital</Link></li>
-                <li><Link href="/replay-gps-drones" className="hover:text-primary transition-colors">Replay GPS</Link></li>
-                <li><Link href="/documentacion" className="hover:text-primary transition-colors">Documentación</Link></li>
-                <li><Link href="/login" className="hover:text-primary transition-colors">Iniciar sesión</Link></li>
-              </ul>
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-xs font-black uppercase tracking-widest text-white">
-                Recursos
-              </p>
-              <ul className="space-y-2 text-xs">
-                <li><Link href="/blog" className="hover:text-primary transition-colors">Blog</Link></li>
-                <li><Link href="/casos" className="hover:text-primary transition-colors">Casos de Éxito</Link></li>
-                <li><Link href="/comparativa-bitafly-airdata" className="hover:text-primary transition-colors">Bitafly vs AirData</Link></li>
-                <li><Link href="/rac-100" className="hover:text-primary transition-colors">Cumplimiento RAC 100</Link></li>
-                <li><a href="#faq" className="hover:text-primary transition-colors">Preguntas frecuentes</a></li>
-                <li><a href="mailto:soporte@bitafly.com" className="hover:text-primary transition-colors">soporte@bitafly.com</a></li>
-                <li><Link href="/registro" className="hover:text-primary transition-colors">Comenzar gratis</Link></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="max-w-6xl mx-auto mt-12 pt-8 border-t border-white/5 flex flex-wrap gap-x-5 gap-y-2 text-xs">
-            {LEGAL_PAGES.map(l => (
-              <Link key={l.href} href={l.href} className="hover:text-primary transition-colors">{l.label}</Link>
-            ))}
-          </div>
-
-          <div className="max-w-6xl mx-auto mt-6 pt-6 border-t border-white/5 flex flex-col sm:flex-row justify-between gap-2 text-xs tracking-wide">
-            <p>© {new Date().getFullYear()} BitaFly S.A.S. Todos los derechos reservados.</p>
-            <p>Hecho en Colombia para operadores UAS</p>
-          </div>
-        </footer>
+        <SEOFooter brandDesc="Software de gestión aeronáutica para operadores UAS en Colombia. Cumplimiento RAC 100 desde el primer vuelo." />
       </div>
     </>
   );

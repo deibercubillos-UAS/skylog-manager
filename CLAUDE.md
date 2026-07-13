@@ -913,6 +913,35 @@ cookies/rastreo usa efectivamente el sitio, en vez de redactar un texto genéric
   sección Funciones) confirmando el banner de cookies, la tabla de contenido lateral y el
   render de las 4 páginas contra `next dev` real, no solo build estático.
 
+### Footer estandarizado en todo el sitio (2026-07-13, mismo día)
+
+A pedido del usuario ("estandariza los footer de todas las páginas"): antes de esta tarea
+convivían **3 implementaciones de footer** distintas — `SEOFooter.js` (usado por las 23
+páginas SEO + las 4 páginas legales vía `LegalLayout`), un footer inline propio en la home
+(`page.js`) y otro footer inline propio en `documentacion/page.js` — cada una con columnas,
+copy y enlaces ligeramente distintos, además de un cuarto componente
+`components/landing/Footer.js` **sin ningún caller en todo el proyecto** (confirmado por
+`grep`), código muerto de una versión anterior.
+
+- **Home y Documentación migradas a `<SEOFooter />`**: se eliminaron los dos footers inline
+  (columnas "Plataforma/Recursos" con anclas internas `#funciones`/`#precios`/`#faq` que
+  solo tenían sentido en esas páginas puntuales) y se reemplazaron por el mismo componente
+  compartido, pasando `brandDesc` (prop ya existente) para conservar la descripción de marca
+  específica de cada una. Ahora las **27 páginas públicas** del sitio (23 SEO + home +
+  documentación + las 4 legales) renderizan exactamente el mismo footer — mismas columnas
+  Plataforma/Empresa/Recursos, mismo badge de cumplimiento, misma fila de enlaces legales y
+  el mismo copyright `BitaFly S.A.S.` agregado el mismo día (ver **Páginas legales** arriba).
+- **`components/landing/Footer.js` eliminado**: código muerto, sin callers, y contenía
+  además una afirmación no verificada en ningún otro lugar del proyecto ("ISO 27001
+  Security") — se borró en vez de "estandarizarlo" sin sentido.
+- **Deliberadamente sin tocar**: las páginas bajo `/dashboard`, `/admin`, `/socio` y las de
+  flujo de autenticación (`/registro`, `/login`, `/reset-password`, `/update-password`) no
+  llevan footer público — son pantallas de aplicación/formulario de pantalla completa, no
+  páginas de marketing, y nunca lo tuvieron; no es una inconsistencia a corregir.
+- **Verificación**: `npx next lint` + `npm run build` limpios (mismos 3 warnings
+  preexistentes); capturas con Playwright confirmando visualmente que home, documentación y
+  una página SEO ya existente (`/rac-100`) renderizan ahora el mismo footer pixel por pixel.
+
 ### Piloto Independiente (role=`admin` + plan=`piloto`)
 
 - Se registra como `type='solo'` → crea su propia org. Auto-login directo al dashboard.

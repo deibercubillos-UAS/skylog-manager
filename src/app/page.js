@@ -5,6 +5,7 @@ import DashboardMockup from '@/components/landing/DashboardMockup';
 import Pricing from '@/components/landing/Pricing';
 import Contact from '@/components/landing/Contact';
 import Decor from '@/components/landing/Decor';
+import { LEGAL_PAGES } from '@/lib/legalPages';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
@@ -786,8 +787,14 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="max-w-6xl mx-auto mt-12 pt-8 border-t border-white/5 flex flex-col sm:flex-row justify-between gap-2 text-xs tracking-wide">
-            <p>© {new Date().getFullYear()} Bitafly Operations. Todos los derechos reservados.</p>
+          <div className="max-w-6xl mx-auto mt-12 pt-8 border-t border-white/5 flex flex-wrap gap-x-5 gap-y-2 text-xs">
+            {LEGAL_PAGES.map(l => (
+              <Link key={l.href} href={l.href} className="hover:text-primary transition-colors">{l.label}</Link>
+            ))}
+          </div>
+
+          <div className="max-w-6xl mx-auto mt-6 pt-6 border-t border-white/5 flex flex-col sm:flex-row justify-between gap-2 text-xs tracking-wide">
+            <p>© {new Date().getFullYear()} BitaFly S.A.S. Todos los derechos reservados.</p>
             <p>Hecho en Colombia para operadores UAS</p>
           </div>
         </footer>

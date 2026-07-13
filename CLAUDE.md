@@ -838,6 +838,81 @@ Proveedores, Manuales Corporativos, Recursos Adicionales ni la app Android nativ
   `package.json`/`package-lock.json`) de los 4 grupos y de la sección Cumplimiento antes de
   dar el cambio por cerrado — no solo lint/build.
 
+### Páginas legales (Aviso Legal, Política de Privacidad, Política de Cookies, Términos y
+### Condiciones) + consentimiento de cookies real (2026-07-13)
+
+A pedido del usuario ("nos falta crear las páginas legales... primero investigues y
+verifiques qué debe llevar cada una"): se investigó primero el contenido mínimo exigido por
+la normativa colombiana antes de escribir nada — Ley 1581 de 2012 + Decreto 1377 de 2013
+(protección de datos/derechos ARCO), Ley 1480 de 2011 Estatuto del Consumidor (Art. 50
+identificación del proveedor, Art. 47 derecho de retracto), Ley 527 de 1999 (validez de
+mensajes de datos) y la Resolución 32.126 de 2022 de la SIC (consentimiento previo, expreso
+e informado para cookies analíticas/de terceros) — y se verificó contra el código real qué
+cookies/rastreo usa efectivamente el sitio, en vez de redactar un texto genérico.
+
+- **Identidad legal — decisión confirmada con el usuario**: se encontró una inconsistencia
+  real entre lo ya publicado (footer/JSON-LD decían "Bitafly Operations", Bogotá) y el
+  borrador de estatutos del repo (`docs/estatutos-bitafly-sas.md`: "BITAFLY S.A.S.",
+  domicilio Madrid-Cundinamarca, NIT aún sin asignar por la DIAN, escritura pública
+  pendiente). Confirmado con el usuario (`AskUserQuestion`): usar **BitaFly S.A.S.**,
+  domicilio Madrid, Cundinamarca, con el NIT marcado explícitamente como "en trámite de
+  asignación ante la DIAN" en los 4 documentos — en vez de inventar un NIT o dejar el campo
+  vacío. `src/lib/legalPages.js` (`COMPANY`) es la fuente única de estos datos; se propagó la
+  misma razón social al JSON-LD `Organization` de `src/app/layout.js`
+  (`legalName`/`addressLocality`/`authors`/`creator`/`publisher`) y al copyright de los 3
+  footers del sitio (`SEOFooter.js`, `page.js`, `documentacion/page.js`) para que no queden
+  2 identidades distintas conviviendo en el sitio.
+- **`components/legal/LegalLayout.js`** (nuevo, server component): shell compartido por los
+  4 documentos — hero navy + tabla de contenido lateral `sticky` (anclas `#id`, sin
+  scroll-spy en JS, CSS puro) + `<article>` con clases Tailwind por selector de descendiente
+  (`[&_h2]:...`, `[&_table]:...`) en vez de un plugin de tipografía (el proyecto no tiene
+  `@tailwindcss/typography` instalado) + tira de enlaces cruzados a los otros 3 documentos +
+  `SEONav`/`SEOFooter` ya existentes.
+- **4 páginas nuevas** (`/aviso-legal`, `/politica-privacidad`, `/politica-cookies`,
+  `/terminos-condiciones`), cada una con su propio `metadata`/`canonical`. Contenido
+  fundamentado en datos reales del proyecto, no genérico: la Política de Privacidad describe
+  los encargados del tratamiento reales (Supabase, Vercel, Cloudflare R2, ePayco, Resend) y
+  aclara que **no se almacenan datos de tarjeta** (los procesa ePayco); los Términos
+  describen el período de prueba, la renovación automática vía ePayco y el derecho de
+  retracto adaptado a un servicio de suscripción digital con período de prueba gratuito.
+- **Política de Cookies — honesta con lo que el sitio realmente hace**: se verificó por
+  código (no se asumió) que Google Tag Manager, Google Analytics (condicional a
+  `NEXT_PUBLIC_GA_ID`) y Microsoft Clarity (condicional a `NEXT_PUBLIC_CLARITY_ID`) sí
+  registran cookies de terceros, y que **Vercel Web Analytics/Speed Insights son
+  cookieless** (confirmado por la documentación oficial de Vercel: identificador anónimo
+  por request, sin almacenarse en el navegador, datos agregados descartados a las 24h) — se
+  documentan ambos hechos tal cual, sin afirmar "no usamos cookies" de forma genérica ni
+  omitir las que sí se usan. También se aclara que la atribución de marketing (UTM/referrer,
+  `lib/attribution.js`) usa `localStorage` de primera parte, no cookies, por lo que no
+  aplica a esta política aunque sí se menciona por transparencia.
+- **Consentimiento de cookies — implementado de verdad, no solo declarado en el texto**:
+  antes de esta tarea, GTM se cargaba siempre de forma incondicional en `layout.js` (script
+  inline hardcodeado, sin ningún gate) — si la Política de Cookies iba a decir "las cookies
+  analíticas solo se activan tras su consentimiento", eso tenía que ser cierto. Se creó
+  `components/legal/CookieConsentManager.js` (client component) que reemplaza los bloques
+  de GTM/GA/Clarity que antes vivían sueltos en `layout.js`: mientras no exista
+  `localStorage.bitafly_cookie_consent`, muestra un banner inferior (Aceptar/Rechazar +
+  enlace a `/politica-cookies`) y **no inyecta ningún script de terceros**; solo tras
+  "Aceptar" monta el `<Script id="gtm">` (+ su `<noscript><iframe>`), `<GoogleAnalytics>` y
+  Clarity. Las cookies esenciales (sesión de Supabase Auth) no pasan por este gate — no
+  requieren consentimiento por ser estrictamente necesarias para el servicio.
+- **Integración natural** (no páginas huérfanas): los 2 pares de enlaces muertos
+  `href="#"` ("Términos de servicio"/"Política de privacidad") que ya existían en
+  `registro/page.js` desde antes ahora apuntan a las rutas reales (`target="_blank"` para no
+  perder el progreso del formulario); `SEOFooter.js` (usado por 23 páginas) gana una fila de
+  enlaces legales en su barra inferior, propagándose a todo el sitio de una sola vez;
+  `page.js` (home) y `documentacion/page.js` (cada uno con su propio footer independiente,
+  no usan `SEOFooter`) recibieron la misma fila de enlaces por separado.
+- **Fuera de alcance a propósito**: no se implementó un panel de preferencias granular por
+  categoría de cookie (solo Aceptar/Rechazar todo) ni persistencia de la elección en el
+  servidor (vive en `localStorage`, por dispositivo/navegador) — suficiente para el
+  requisito legal de consentimiento previo sin construir infraestructura de gestión de
+  consentimiento a medida no pedida.
+- **Verificación**: `npx next lint` + `npm run build` limpios (mismos 3 warnings
+  preexistentes); capturas con Playwright (`playwright-core`, mismo patrón ya usado para la
+  sección Funciones) confirmando el banner de cookies, la tabla de contenido lateral y el
+  render de las 4 páginas contra `next dev` real, no solo build estático.
+
 ### Piloto Independiente (role=`admin` + plan=`piloto`)
 
 - Se registra como `type='solo'` → crea su propia org. Auto-login directo al dashboard.

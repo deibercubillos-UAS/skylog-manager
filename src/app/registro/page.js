@@ -552,9 +552,9 @@ export default function RegisterPage() {
 
                 <p className="text-center text-xs text-slate-400 leading-relaxed">
                   Al registrarte aceptas nuestros{' '}
-                  <a href="#" className="text-primary hover:underline">Términos de servicio</a>
+                  <a href="/terminos-condiciones" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Términos y Condiciones</a>
                   {' '}y{' '}
-                  <a href="#" className="text-primary hover:underline">Política de privacidad</a>.
+                  <a href="/politica-privacidad" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Política de Privacidad</a>.
                 </p>
 
                 <div className="flex gap-3">
@@ -807,9 +807,9 @@ export default function RegisterPage() {
 
               <p className="text-center text-xs text-slate-400 leading-relaxed">
                 Al registrarte aceptas nuestros{' '}
-                <a href="#" className="text-primary hover:underline">Términos de servicio</a>
+                <a href="/terminos-condiciones" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Términos y Condiciones</a>
                 {' '}y{' '}
-                <a href="#" className="text-primary hover:underline">Política de privacidad</a>.
+                <a href="/politica-privacidad" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Política de Privacidad</a>.
               </p>
             </form>
           )}

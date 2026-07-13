@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
+import { LEGAL_PAGES } from '@/lib/legalPages';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
@@ -517,8 +518,13 @@ export default function DocumentacionPage() {
             </ul>
           </div>
         </div>
-        <div className="max-w-6xl mx-auto mt-10 pt-6 border-t border-white/5 flex flex-col md:flex-row justify-between gap-3 text-xs uppercase tracking-widest">
-          <p>© {new Date().getFullYear()} Bitafly Operations. Todos los derechos reservados.</p>
+        <div className="max-w-6xl mx-auto mt-10 pt-6 border-t border-white/5 flex flex-wrap gap-x-5 gap-y-2 text-xs normal-case">
+          {LEGAL_PAGES.map(l => (
+            <Link key={l.href} href={l.href} className="hover:text-primary transition-colors">{l.label}</Link>
+          ))}
+        </div>
+        <div className="max-w-6xl mx-auto mt-6 pt-6 border-t border-white/5 flex flex-col md:flex-row justify-between gap-3 text-xs uppercase tracking-widest">
+          <p>© {new Date().getFullYear()} BitaFly S.A.S. Todos los derechos reservados.</p>
           <p>Hecho en Colombia para operadores UAS</p>
         </div>
       </footer>

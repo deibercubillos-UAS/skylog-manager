@@ -3327,6 +3327,41 @@ accionables de código/DB); Etapa 2 (rendimiento RLS) pendiente, documentada al 
   2027 — subir el runtime del proyecto. **Leaked password protection** — habilitar en Supabase
   Auth (ya estaba en Pendientes).
 
+### Etapa 2 — rendimiento RLS de Supabase (2026-07-14)
+
+Segunda tanda de la auditoría, solo base de datos (migraciones SQL, sin código de `src/`).
+Advisors de rendimiento antes: 156 hallazgos. Después: 125.
+
+- **M4a — `auth_rls_initplan` (25 → 0)**: 25 políticas RLS reevaluaban
+  `auth.uid()`/`auth.email()`/`private.*()` **una vez por fila**. Migración
+  `20260714_rls_initplan_optimize.sql` las envuelve en `(SELECT ...)` → InitPlan evaluado una
+  sola vez por consulta. **Cero cambio semántico** (solo cambia CUÁNDO se evalúa la función, no
+  QUÉ devuelve); se usó `ALTER POLICY` (no DROP/CREATE) para no dejar ninguna ventana sin
+  política. Son las 25 tablas creadas después de la optimización RLS de junio (plan de mejora
+  SMS, training, `organization_members`, etc.). Se dejan leyendo `profiles` directo a propósito
+  (refleja la org activa via switch-active — migrarlas a los helpers `private.*` sería cambio de
+  comportamiento, fuera de alcance de un ajuste de rendimiento).
+- **M4b — `multiple_permissive_policies` (12 → 6)**: los 12 eran 2 casos reales (× 6 roles).
+  `organization_members` tenía 2 políticas SELECT permisivas (`_select_own` + `_select_teammates`)
+  — Postgres evalúa TODAS las permisivas y las OR-ea, duplicando trabajo en una tabla **caliente**
+  (la lee `getOrgContext` en 113 rutas). Migración `20260714_consolidate_org_members_select.sql`
+  las fusiona en una sola `organization_members_select` con el mismo OR (idéntico semánticamente),
+  atómica en la transacción DDL. Los 6 restantes (`app_releases`, público-lee-vigente +
+  superadmin-lee-todo) se dejan **a propósito**: tabla fría (endpoint OTA), patrón intencional, y
+  consolidarla exigiría partir el ALL de superadmin por ganancia nula.
+- **M4c — índices (45 FK sin índice + 74 sin uso) — revisados y diferidos a propósito, NO
+  tocados**: ambos son INFO-level con tradeoffs reales en una BD en vivo y joven (creada marzo
+  2026). Añadir 45 índices FK mete sobrecarga de escritura + almacenamiento por columnas que rara
+  vez se filtran; y "índice sin uso" según `pg_stat` solo significa "no escaneado en la ventana de
+  stats" — en bajo tráfico un índice puede ser útil pero no ejercitado aún, así que dropear 74 a
+  ciegas puede degradar una consulta que no corrió recientemente. Es churn de esquema arriesgado
+  sin señal real de que duela hoy — se difiere hasta tener patrones de consulta reales bajo carga,
+  no se aplica en bloque.
+- **Verificación**: `get_advisors` (security) limpio antes y después (mismos 2 hallazgos
+  preexistentes); `auth_rls_initplan` confirmado en 0 y `organization_members` con una sola
+  política SELECT vía `pg_policies`. Sin cambios en `src/` — no requirió lint/build (las
+  migraciones `.sql` no entran al build de Next).
+
 ## Pendientes de infraestructura
 
 - [ ] **Upgrade mayor de `jspdf` 2.x → 5.x** (cierra el CVE ReDoS ≤4.2.0): requiere probar la

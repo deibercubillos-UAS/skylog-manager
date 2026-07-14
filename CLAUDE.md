@@ -3268,8 +3268,75 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 
 ---
 
+## Auditoría de seguridad y salud de plataforma (2026-07-14)
+
+Auditoría completa a pedido del usuario (código + Supabase + Vercel + Cloudflare R2 + GitHub).
+Verificada contra los servicios reales, no solo lectura de código. **Etapa 1 aplicada** (fixes
+accionables de código/DB); Etapa 2 (rendimiento RLS) pendiente, documentada al final.
+
+- **A1 — Bug real en producción corregido (borrado de cuentas fallaba)**: los logs de Vercel
+  mostraban `[admin/master/delete-account] Database error deleting user` (6 veces, 3 usuarios,
+  la última el mismo día de la auditoría). Causa raíz encontrada consultando la BD real: **15
+  foreign keys hacia `profiles` tenían `ON DELETE NO ACTION`** (columnas de autoría/trazabilidad
+  `created_by`/`updated_by`/`scheduled_by`/`sent_by`/`granted_by` en `flight_authorizations`,
+  todas las `training_*`/`sms_*`/`safety_*`, `addon_subscriptions`, `aerocivil_monthly_reports`,
+  `automation_jobs`). Cuando la cuenta a borrar había creado cualquiera de esos registros, el
+  cascade `auth.users → profiles` se bloqueaba y el borrado fallaba entero. Migración
+  `20260714_fk_profiles_set_null.sql` (aplicada y verificada): las 15 pasan a `ON DELETE SET
+  NULL` — las 15 columnas son nullable, así que la fila histórica se conserva perdiendo solo la
+  referencia al autor (no CASCADE, que borraría evidencia operativa/regulatoria; no NO ACTION,
+  que bloquea). Verificado: 0 FKs `NO ACTION` restantes hacia `profiles` (23 SET NULL + 4
+  CASCADE intencional). Las FKs hacia `auth.users` ya eran todas CASCADE.
+- **A2 — Bypass de auth si `ADMIN_SECRET` no está configurada**: `GET`/`POST /api/epayco/plans`
+  y `POST /api/epayco/sync-redirects` validaban con `key.length === secret.length &&
+  timingSafeEqual(...)`. Si la env var faltaba, `secret=''` igualaba en longitud a una petición
+  sin header (`key=''`) → `timingSafeEqual` de dos buffers vacíos devuelve `true` → **acceso
+  total** a la config de planes de ePayco. Nuevo helper `lib/adminKey.js` (`verifyAdminKey`) con
+  el guard `if (!secret) return false` (mismo patrón defensivo que ya usaban los crons); los 3
+  handlers migrados a él. La lógica de comparación de tiempo constante se conserva.
+- **A3 — Dependencias**: `npm audit fix` (sin `--force`) aplicó solo el patch no-breaking de
+  `ws` (8.20.0 → 8.21.0, transitiva, solo tocó `package-lock.json`). **`jspdf` y `next` NO se
+  bumpearon a propósito**: el CVE de `jspdf` (≤4.2.0, actual 2.5.2) exige saltar a 5.x — cambio
+  mayor que rompería los ~10 generadores de PDF, y la vulnerabilidad es un ReDoS **client-side
+  auto-infligido** (el usuario genera su propio PDF con sus propios datos en su propio navegador
+  → solo puede colgarse a sí mismo, severidad real baja). `next` HIGH exige salto a 15.x (el RCE
+  **crítico** de RSC ya está parcheado en 14.2.35 — no aparece en el audit; solo queda DoS).
+  Ambos quedan como upgrades mayores que requieren regresión dedicada, no bump a ciegas — ver
+  Pendientes abajo.
+- **M2 — Testimonios fabricados eliminados**: `GET /api/testimonials` servía nombres/empresas
+  inventados ("Cap. Julián Arenas", "SkyVisual Drone Services"…) — contradecía la limpieza de
+  testimonios de julio. Su único consumidor (`components/landing/Users.js`) era código muerto
+  sin callers (confirmado por grep). Ambos archivos borrados.
+- **M3 — Rate limiting en 3 endpoints públicos sin auth**: `validate-join` (30/min — acota
+  enumeración de orgs por NIT, que revela nombre+plan), `register-status` (60/min — polling de
+  pago) y `socio/invite-info` (30/min — fuerza bruta de tokens, defensa en profundidad ya que
+  son UUID). Mismo patrón `checkRateLimit(getClientIp(...))` + 429 que el resto de públicos.
+- **Verificado y sano (no asumido)**: advisors de Supabase (security) limpio, mismos 2 hallazgos
+  preexistentes (`partner_invitations` sin política por diseño service-role-only; leaked
+  password protection deshabilitada); los 7 buckets R2 esperados existen; Vercel producción
+  `READY` sobre el último commit con deploys automáticos desde `main`; los 5 crons protegidos
+  con `CRON_SECRET`; webhook ePayco (firma 6 campos + idempotencia) intacto; aislamiento
+  multi-tenant OK (descargas validan prefijo `{orgId}/`, búsqueda global sanitiza separadores
+  PostgREST); cero secretos hardcodeados, cero `.env` en git; los 27 usos de
+  `dangerouslySetInnerHTML` son JSON-LD estático de SEO sin datos de usuario.
+- **Acciones del usuario (fuera de código, no aplicables desde aquí)**: **M1** — el repositorio
+  de GitHub es **público** (expone CLAUDE.md con la arquitectura de seguridad interna, el
+  borrador de estatutos con datos del representante legal, y los planes de marketing); para un
+  SaaS en producción con pagos reales se recomienda hacerlo privado. **M5** — las funciones de
+  Vercel corren en Node 20; el AWS SDK (R2) ya emite warnings y exigirá Node ≥22 desde enero
+  2027 — subir el runtime del proyecto. **Leaked password protection** — habilitar en Supabase
+  Auth (ya estaba en Pendientes).
+
 ## Pendientes de infraestructura
 
+- [ ] **Upgrade mayor de `jspdf` 2.x → 5.x** (cierra el CVE ReDoS ≤4.2.0): requiere probar la
+  generación de los ~10 formatos PDF uno por uno (Libro de Vuelo, Mantenimiento, Baterías,
+  Flota, Bitácora/Expediente de Piloto, SORA, Componentes, SPI, GAP, Capacitación, Proveedores,
+  Actas de manuales) + compatibilidad con `jspdf-autotable`. No es bump a ciegas — ver
+  **Auditoría 2026-07-14** (severidad real baja: ReDoS client-side auto-infligido).
+- [ ] **Upgrade mayor de `next` 14.2.x → 15.x** (cierra los HIGH de DoS restantes; el RCE
+  crítico de RSC ya está parcheado en 14.2.35): cambio de framework mayor, requiere regresión
+  completa. Ver **Auditoría 2026-07-14**.
 - [ ] **Checkout self-service de Recursos adicionales (piloto/dron extra)**: falta crear los
   planes recurrentes reales en el merchant de ePayco ($30.000/$25.000 COP mensuales) y
   darme sus `epaycoId`/`planUid` para wirear `POST /api/addons/checkout` + la rama nueva del

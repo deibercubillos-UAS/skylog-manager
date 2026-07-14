@@ -6,11 +6,20 @@
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   try {
+    // Endpoint público de polling sin auth: acota el sondeo de referencias.
+    // 60/min por IP (la pantalla real sondea cada ~4s, muy por debajo de esto).
+    const ip = getClientIp(request);
+    const { allowed } = checkRateLimit(`register-status:${ip}`, { limit: 60, windowMs: 60_000 });
+    if (!allowed) {
+      return NextResponse.json({ error: 'Demasiadas solicitudes. Intenta más tarde.' }, { status: 429 });
+    }
+
     const ref = new URL(request.url).searchParams.get('ref');
     if (!ref) return NextResponse.json({ error: 'ref requerido' }, { status: 400 });
 

@@ -4,11 +4,20 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   try {
+    // Endpoint público sin auth: acota la fuerza bruta de tokens de invitación.
+    // 30/min por IP (los tokens son UUID aleatorios, esto es defensa en profundidad).
+    const ip = getClientIp(request);
+    const { allowed } = checkRateLimit(`invite-info:${ip}`, { limit: 30, windowMs: 60_000 });
+    if (!allowed) {
+      return NextResponse.json({ error: 'Demasiadas solicitudes. Intenta más tarde.' }, { status: 429 });
+    }
+
     const token = new URL(request.url).searchParams.get('token');
     if (!token) return NextResponse.json({ error: 'token requerido' }, { status: 400 });
 

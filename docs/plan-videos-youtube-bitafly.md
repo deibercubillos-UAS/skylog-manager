@@ -110,12 +110,23 @@ flujo completo en BitaFly, de principio a fin.
 
 ---
 
-## Notas de producción (a definir junto con el usuario)
+## Notas de producción (confirmadas con el usuario)
 
-- Duración objetivo por video: por definir
-- Tono/formato: tutorial guiado en pantalla + fragmentos de vuelo real, por definir
-- Orden de grabación: no necesariamente el orden de publicación
-- Este documento se actualiza con guion/notas de cada video a medida que se profundiza
+- **Duración objetivo por video**: sin duración fija — la que sea necesaria según la
+  importancia/profundidad del tema. Videos de fundamentos o de un módulo simple pueden ser
+  cortos; videos de un flujo completo (ej. 3.6 — un día de operación) pueden extenderse
+  todo lo que haga falta para cubrirlo bien.
+- **Tono/formato**: se usan **ambos formatos** (tutorial guiado en pantalla y fragmentos de
+  vuelo real), elegidos según el tipo de video — no es un formato fijo para toda la serie:
+  - Bloques 0, 1 y 2 (introducción, perfiles, módulos): principalmente tutorial guiado en
+    pantalla — se apoya en vuelo real solo cuando el módulo lo amerite (ej. 2.7 Despacho,
+    2.8 Importación DJI).
+  - Bloque 3 (casos de uso): principalmente vuelo real con el control físico correspondiente
+    (Enterprise/RC/RC 2/RC-N3), intercalado con pantalla para mostrar el registro en la app.
+- **Orden de grabación**: no necesariamente el orden de publicación.
+- Este documento se actualiza con guion/notas de cada video a medida que se profundiza —
+  cada video ampliado gana su propia subsección debajo del bloque correspondiente (guion,
+  tomas necesarias, equipo/control a usar, capturas de pantalla requeridas).
 
 ---
 

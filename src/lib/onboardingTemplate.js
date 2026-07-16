@@ -2,13 +2,15 @@
  * onboardingTemplate.js
  *
  * Genera el workbook Excel de configuración inicial (Onboarding Express).
- * 8 hojas guiadas + hoja oculta _LISTAS con rangos nombrados para dropdowns.
+ * 9 hojas guiadas + hoja oculta _LISTAS con rangos nombrados para dropdowns.
  *
  * Uso (server-side):
  *   const { generateOnboardingTemplate } = await import('@/lib/onboardingTemplate');
  *   const buffer = await generateOnboardingTemplate();
  *   // → Buffer con el .xlsx listo para descargar
  */
+
+import { MISSION_TYPES, LINE_OF_SIGHT_TYPES } from '@/lib/missionTypes';
 
 // ── Paleta de colores ─────────────────────────────────────────────────────
 const C_ORANGE   = 'EC5B13';
@@ -21,11 +23,18 @@ const C_BORDER   = 'E5E7EB';
 const C_GUIDE    = 'EFF6FF'; // azul muy suave — filas de ejemplo
 
 // ── Listas para dropdowns ─────────────────────────────────────────────────
+// `tipos_mision` y `lineas_vista` se importan de lib/missionTypes.js — fuente
+// única compartida con Programación (BasicForm) y Despacho (logbook/new).
+// Antes tenían una lista propia desincronizada (categorías libres viejas,
+// pre-2026-07-04) que ya no coincidía con el vocabulario oficial exigido por
+// la circular de AeroCivil para el reporte mensual — corregido para que la
+// bitácora importada por Excel clasifique igual que el resto de la app.
 const LISTAS = {
   roles_piloto:     ['Piloto', 'Jefe de Pilotos', 'Gerente SMS', 'Observador'],
   fabricantes:      ['DJI', 'Autel', 'Freefly', 'Parrot', 'AgEagle', 'Wingtra', 'senseFly', 'Otro'],
   estados_aeronave: ['Operativo', 'Mantenimiento', 'Baja'],
-  tipos_mision:     ['Inspección', 'Mapeo', 'Fumigación', 'Vigilancia', 'Topografía', 'Delivery', 'Fotografía', 'Publicidad', 'Instrucción', 'Otro'],
+  tipos_mision:     MISSION_TYPES,
+  lineas_vista:     LINE_OF_SIGHT_TYPES,
   condicion_visual: ['VMC', 'IMC', 'NIGHT'],
   tipos_doc:        ['NIT', 'CC', 'CE'],
   si_no:            ['SI', 'NO'],
@@ -313,6 +322,7 @@ function buildBienvenidaSheet(wb) {
     ['👥 Tripulación',           'Pilotos y personal: CIPU, vencimiento médico, roles y contactos de emergencia.'],
     ['✈️ Flota',                 'Aeronaves registradas: fabricante, modelo, serial, RUAS y horas acumuladas.'],
     ['🔋 Baterías',              'Inventario de baterías: serial, marca, ciclos y aeronave asignada.'],
+    ['🛠️ Tech y Payloads',       'Cámaras, sensores, módulos RTK y demás equipo técnico de tu operación.'],
     ['📋 Pólizas RCE',           'Pólizas de Responsabilidad Civil Extracontractual vigentes.'],
     ['🚨 Contactos Emergencia',  'Personas clave a contactar ante un incidente operacional.'],
     ['📒 Bitácora de Vuelos',    'Historial de vuelos previos (opcional): fecha, aeronave, piloto, duración.'],
@@ -373,21 +383,28 @@ function buildOrgSheet(wb, org = null) {
   const ws = wb.addWorksheet('🏢 Organización');
 
   const columns = [
-    { header: 'Razón Social',         required: true,  width: 30 },
-    { header: 'Tipo Documento',       required: false, width: 16 },
-    { header: 'Número Documento',     required: false, width: 20 },
-    { header: 'N° Explotador DAN',    required: false, width: 22 },
-    { header: 'Representante Legal',  required: false, width: 28 },
-    { header: 'Email Corporativo',    required: false, width: 28 },
-    { header: 'Teléfono',             required: false, width: 18 },
-    { header: 'Dirección',            required: false, width: 34 },
-    { header: 'Prefijo Misiones',     required: false, width: 18 },
+    { header: 'Razón Social',           required: true,  width: 30 },
+    { header: 'Tipo Documento',         required: false, width: 16 },
+    { header: 'Número Documento',       required: false, width: 20 },
+    { header: 'N° Explotador DAN',      required: false, width: 22 },
+    { header: 'N° Operador UAS',        required: false, width: 22 },
+    { header: 'Vigencia Registro',      required: false, width: 20, numFmt: 'DD/MM/YYYY' },
+    { header: 'Representante Legal',    required: false, width: 28 },
+    { header: 'Email Corporativo',      required: false, width: 28 },
+    { header: 'Teléfono',               required: false, width: 18 },
+    { header: 'Dirección',              required: false, width: 34 },
+    { header: 'Prefijo Misiones',       required: false, width: 18 },
   ];
 
-  const example = [['Empresa Drones Colombia SAS', 'NIT', '900123456-7', 'DAN-2024-001', 'Carlos Gómez Pérez', 'ops@dronesco.com', '+57 1 234 5678', 'Cra 7 #45-89, Bogotá D.C.', 'EDC']];
+  const example = [[
+    'Empresa Drones Colombia SAS', 'NIT', '900123456-7', 'DAN-2024-001', 'OP-2024-0456',
+    new Date('2025-12-31'), 'Carlos Gómez Pérez', 'ops@dronesco.com', '+57 1 234 5678',
+    'Cra 7 #45-89, Bogotá D.C.', 'EDC',
+  ]];
   const real = org ? [[
     org.company_name || '', org.tax_id_type || '', org.tax_id || '',
-    org.dan_number || '', org.legal_rep || '', org.operator_email || '',
+    org.dan_number || '', org.operator_number || '', toExcelDate(org.registration_expiry),
+    org.legal_rep || '', org.operator_email || '',
     org.phone || '', org.address || '', org.flight_prefix || '',
   ]] : null;
   setupDataSheet(ws, columns, example, real);
@@ -456,6 +473,10 @@ function buildFlotaSheet(wb, aircraft = null) {
 
   addDropdown(ws, 1, 2, lastRow, 'fabricantes');
   addDropdown(ws, 6, 2, lastRow, 'estados_aeronave');
+
+  // Nota
+  ws.getCell('A28').value = '* "Mantenimiento" bloquea la aeronave para despacho en la plataforma hasta que se marque "Operativo" desde Flota. "Baja" es solo informativo.';
+  ws.getCell('A28').font  = { size: 9, color: { argb: 'FF718096' }, italic: true };
 }
 
 // ── HOJA BATERÍAS ─────────────────────────────────────────────────────────
@@ -480,7 +501,33 @@ function buildBateriasSheet(wb, batteries = null) {
   setupDataSheet(ws, columns, example, real);
 
   // Nota
-  ws.getCell('A28').value = '* En "Serial Aeronave Asignada" usa el mismo S/N que escribiste en la hoja ✈️ Flota.';
+  ws.getCell('A28').value = '* "Serial Aeronave Asignada" es solo referencia visual — las baterías de Bitafly son intercambiables entre aeronaves y no se guarda una asignación fija. La "última aeronave usada" se calcula sola con cada vuelo importado.';
+  ws.getCell('A28').font  = { size: 9, color: { argb: 'FF718096' }, italic: true };
+}
+
+// ── HOJA TECH / PAYLOADS ──────────────────────────────────────────────────
+function buildTechSheet(wb, techItems = null) {
+  const ws = wb.addWorksheet('🛠️ Tech y Payloads');
+
+  const columns = [
+    { header: 'Categoría',      required: false, width: 24 },
+    { header: 'Fabricante',     required: false, width: 20 },
+    { header: 'Modelo',         required: false, width: 24 },
+    { header: 'Serial / S/N',   required: true,  width: 26 },
+  ];
+
+  const example = [
+    ['Cámara multiespectral', 'MicaSense', 'RedEdge-P',    'MSSN00112233'],
+    ['Módulo RTK',            'DJI',        'D-RTK 2',      'RTKSN00998877'],
+    ['Radio / Enlace',        'DJI',        'Ocusync 3',    'RADIOSN0011'],
+  ];
+  const real = (techItems && techItems.length) ? techItems.map(t => [
+    t.category || '', t.brand || '', t.model || '', t.serial_number || '',
+  ]) : null;
+  setupDataSheet(ws, columns, example, real);
+
+  // Nota
+  ws.getCell('A28').value = '* Registra aquí cámaras, sensores, módulos RTK, radios u otro equipo técnico/payload de tu operación (distinto de las aeronaves y baterías).';
   ws.getCell('A28').font  = { size: 9, color: { argb: 'FF718096' }, italic: true };
 }
 
@@ -543,7 +590,8 @@ function buildBitacoraSheet(wb) {
     { header: 'Fecha',                    required: true,  width: 16, numFmt: 'DD/MM/YYYY' },
     { header: 'Fabricante + Modelo',      required: false, width: 24 },
     { header: 'Serial Aeronave',          required: true,  width: 24 },
-    { header: 'Tipo de Misión',           required: false, width: 20 },
+    { header: 'Tipo de Misión',           required: false, width: 42 },
+    { header: 'Línea de Vista',           required: false, width: 16 },
     { header: 'Hora Despegue (HH:MM)',    required: false, width: 22 },
     { header: 'Hora Aterrizaje (HH:MM)',  required: false, width: 22 },
     { header: 'Condición Visual',         required: false, width: 18 },
@@ -554,31 +602,34 @@ function buildBitacoraSheet(wb) {
   ];
 
   const example = [
-    [new Date('2024-10-15'), 'DJI Matrice 300 RTK', 'SN1234567890ABC', 'Inspección',   '08:30', '09:45', 'VMC', 'Zipaquirá, Cundinamarca',      'Juan Carlos Rodríguez', 'Inspección torres eléctricas sector norte', 'NO'],
-    [new Date('2024-10-16'), 'DJI Phantom 4 RTK',   'SN9876543210XYZ', 'Topografía',   '14:00', '15:20', 'VMC', 'Fusagasugá, Cundinamarca',     'Laura Martínez Suárez', 'Levantamiento topográfico finca La Esmeralda', 'NO'],
-    [new Date('2024-10-18'), 'DJI Matrice 300 RTK', 'SN1234567890ABC', 'Mapeo',        '07:00', '08:30', 'VMC', 'Girardot, Cundinamarca',       'Juan Carlos Rodríguez', '', 'NO'],
+    [new Date('2024-10-15'), 'DJI Matrice 300 RTK', 'SN1234567890ABC', 'Captura imágenes/datos', 'VLOS', '08:30', '09:45', 'VMC', 'Zipaquirá, Cundinamarca',      'Juan Carlos Rodríguez', 'Inspección torres eléctricas sector norte', 'NO'],
+    [new Date('2024-10-16'), 'DJI Phantom 4 RTK',   'SN9876543210XYZ', 'Captura imágenes/datos', 'VLOS', '14:00', '15:20', 'VMC', 'Fusagasugá, Cundinamarca',     'Laura Martínez Suárez', 'Levantamiento topográfico finca La Esmeralda', 'NO'],
+    [new Date('2024-10-18'), 'DJI Matrice 300 RTK', 'SN1234567890ABC', 'Aspersión',              'VLOS', '07:00', '08:30', 'VMC', 'Girardot, Cundinamarca',       'Juan Carlos Rodríguez', '', 'NO'],
   ];
   const lastRow = setupDataSheet(ws, columns, example);
 
   // Dropdowns
   addDropdown(ws, 4,  2, lastRow, 'tipos_mision');
-  addDropdown(ws, 7,  2, lastRow, 'condicion_visual');
-  addDropdown(ws, 11, 2, lastRow, 'si_no');
+  addDropdown(ws, 5,  2, lastRow, 'lineas_vista');
+  addDropdown(ws, 8,  2, lastRow, 'condicion_visual');
+  addDropdown(ws, 12, 2, lastRow, 'si_no');
 
   // Nota
   ws.getCell('A28').value = '* En "Serial Aeronave" usa el mismo S/N de la hoja ✈️ Flota. En "Nombre Piloto" usa el nombre exacto de la hoja 👥 Tripulación.';
   ws.getCell('A28').font  = { size: 9, color: { argb: 'FF718096' }, italic: true };
   ws.getCell('A29').value = '* La columna "Fabricante + Modelo" es solo referencia visual — no se importa. La plataforma usa el Serial para identificar la aeronave.';
   ws.getCell('A29').font  = { size: 9, color: { argb: 'FF718096' }, italic: true };
-  ws.getCell('A30').value = '* Esta hoja es opcional. Si no tienes historial previo, puedes dejarla vacía (o solo borrar las filas de ejemplo).';
+  ws.getCell('A30').value = '* "Tipo de Misión" y "Línea de Vista" usan las mismas categorías oficiales exigidas por AeroCivil para el reporte mensual — elige de la lista desplegable.';
   ws.getCell('A30').font  = { size: 9, color: { argb: 'FF718096' }, italic: true };
+  ws.getCell('A31').value = '* Esta hoja es opcional. Si no tienes historial previo, puedes dejarla vacía (o solo borrar las filas de ejemplo).';
+  ws.getCell('A31').font  = { size: 9, color: { argb: 'FF718096' }, italic: true };
 }
 
 // ── FUNCIÓN PRINCIPAL ─────────────────────────────────────────────────────
 
 /**
  * @param {object} [data] datos actuales de la org para pre-llenar la plantilla.
- *   { org, pilots, aircraft, batteries, policies, contacts }
+ *   { org, pilots, aircraft, batteries, techItems, policies, contacts }
  *   Si se omite, se genera la plantilla en blanco con ejemplos.
  */
 export async function generateOnboardingTemplate(data = {}) {
@@ -598,9 +649,10 @@ export async function generateOnboardingTemplate(data = {}) {
   buildTripulacionSheet(wb, data.pilots);     // Hoja 3
   buildFlotaSheet(wb, data.aircraft);         // Hoja 4
   buildBateriasSheet(wb, data.batteries);     // Hoja 5
-  buildPolizasSheet(wb, data.policies);       // Hoja 6
-  buildContactosSheet(wb, data.contacts);     // Hoja 7
-  buildBitacoraSheet(wb);                     // Hoja 8 (historial — no se pre-llena)
+  buildTechSheet(wb, data.techItems);         // Hoja 6
+  buildPolizasSheet(wb, data.policies);       // Hoja 7
+  buildContactosSheet(wb, data.contacts);     // Hoja 8
+  buildBitacoraSheet(wb);                     // Hoja 9 (historial — no se pre-llena)
 
   // La primera hoja activa al abrir debe ser Bienvenida
   wb.views = [{ activeTab: 1 }]; // índice 1 = segunda hoja (índice 0 es _LISTAS oculta)

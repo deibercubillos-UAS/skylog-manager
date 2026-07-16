@@ -1331,15 +1331,23 @@ Registrado todo desde `AddMaintenancePanel` (web y APK; el APK toma los cambios 
 
 ## Onboarding Express (Excel) + Invitación de tripulantes
 
-**Plantilla** (`lib/onboardingTemplate.js`, `GET /api/onboarding/template`): genera/descarga un .xlsx con hojas por sección (`🏢 Organización`, `👥 Tripulación`, `✈️ Flota`, `🔋 Baterías`, `📋 Pólizas RCE`, `🚨 Contactos Emergencia`, `📒 Bitácora`). Se **pre-llena con los datos actuales de la org** si existen; si una sección está vacía muestra ejemplos. Bitácora nunca se pre-llena.
+**Plantilla** (`lib/onboardingTemplate.js`, `GET /api/onboarding/template`): genera/descarga un .xlsx con hojas por sección (`🏢 Organización`, `👥 Tripulación`, `✈️ Flota`, `🔋 Baterías`, `🛠️ Tech y Payloads`, `📋 Pólizas RCE`, `🚨 Contactos Emergencia`, `📒 Bitácora`). Se **pre-llena con los datos actuales de la org** si existen; si una sección está vacía muestra ejemplos. Bitácora nunca se pre-llena.
 
 **Import** (`POST /api/onboarding/import`): lee cada hoja por nombre exacto (con emoji).
 - ⚠️ **Las columnas obligatorias llevan ` *` en el encabezado** (`Serial / S/N *`). `readSheet()` quita el ` *` al leer para que las claves coincidan con los nombres limpios — NO romper esto.
 - ⚠️ **`owner_id` viene de `ctx.user.id`** (NO `ctx.userId`, que no existe en `getOrgContext`). Si es null, todo insert falla por NOT NULL.
 - ⚠️ **Celdas con hipervínculo** (Excel auto-enlaza emails) llegan como `{text, hyperlink}` — `getCellValue()` devuelve `.text`, si no parsea como `[object Object]`.
-- ⚠️ **`batteries` NO tiene columna `aircraft_id`** — no insertar ese campo. "Serial Aeronave Asignada" del Excel es informativo.
-- Dedup: aeronaves/baterías por serial, pilotos por **cédula O email**, pólizas por número, contactos por (nombre+teléfono). Re-subir es idempotente.
+- ⚠️ **`batteries` NO tiene columna `aircraft_id`** — no insertar ese campo. "Serial Aeronave Asignada" del Excel es solo referencia visual del usuario (nunca se guarda ni se usa para nada) — las baterías son intercambiables por diseño.
+- ⚠️ **Nombres de hoja de Excel no pueden contener `/`** (ExcelJS lanza error al crear la hoja) — por eso la hoja de equipo técnico se llama `🛠️ Tech y Payloads`, no `Tech / Payloads`.
+- Dedup: aeronaves/baterías/tech por serial, pilotos por **cédula O email**, pólizas por número, contactos por (nombre+teléfono). Re-subir es idempotente.
 - Nunca se auto-invita: filas con el email del propio importador se omiten.
+
+**Revisión de completitud (2026-07-16)** — auditoría a pedido del usuario ("verifica y actualiza para que sea completa y sencilla de usar"), 4 bugs reales encontrados y corregidos, sin cambiar el modelo de datos:
+- **Bug real — "Tipo de Misión" desincronizado del vocabulario oficial**: la plantilla tenía su propia lista hardcodeada (`Inspección`/`Mapeo`/`Fumigación`/...) que quedó obsoleta desde la unificación a las 10 categorías oficiales de AeroCivil (`lib/missionTypes.js`, ver **Reporte Operacional Mensual UAS**, 2026-07-04) — un vuelo importado con el valor del dropdown viejo quedaba con un `mission_type` que el reporte mensual regulatorio no reconoce. Corregido: `LISTAS.tipos_mision` ahora importa `MISSION_TYPES` directo de `lib/missionTypes.js` (fuente única, ya no hay una segunda lista que se pueda desincronizar). Se agregó también la columna **Línea de Vista** (VLOS/EVLOS/BVLOS, `LINE_OF_SIGHT_TYPES`) a la hoja Bitácora — existía en el esquema desde la misma migración pero no se podía capturar por Excel.
+- **Bug real — "Estado" de aeronave no bloqueaba despacho**: la hoja Flota escribía solo la columna legacy `status` (texto libre, sin efecto operacional); el campo real que bloquea el despacho es `operational_status` (ver **Mantenimiento de Aeronaves**). Una aeronave importada con Estado="Mantenimiento" quedaba disponible para volar igual. Corregido: el import ahora fija `operational_status: 'en_mantenimiento'` cuando Estado="Mantenimiento", `'disponible'` en cualquier otro caso.
+- **Bug real — "Serial Aeronave Asignada" de Baterías siempre vacío al regenerar la plantilla**: `template/route.js` calculaba la columna desde `batteries.aircraft_id`, columna que no existe en esa tabla (ver arriba) — el pre-llenado nunca mostraba nada aunque la batería sí tuviera vuelos reales. Corregido: se resuelve igual que `dashboard/batteries/page.js` — última fila de `battery_logs` por `battery_sn`.
+- **Completitud — hoja nueva `🛠️ Tech y Payloads`**: `inventory_items` (equipos técnicos/payloads, limitado por plan igual que drones/pilotos/baterías) no tenía ninguna forma de cargarse por Onboarding Express — quedaba fuera de "configurar todo en un paso". Mismo patrón dedup-por-serial + `canAddResource(plan, count, 'tech')` que Flota.
+- **Completitud — Organización**: se agregaron **N° Operador UAS** (`operator_number`) y **Vigencia Registro** (`registration_expiry`) — campos reales de la sección "Registro AeroCivil" de `/dashboard/settings` (ver **Organización rediseñada**) que faltaban en la plantilla.
 
 **Tripulantes con invitación**: al importar la hoja Tripulación, cada fila con email crea el piloto con `invitation_status='pending'` y dispara `createCrewInvitation()` (`lib/invitations.js`):
 - Registra fila en `invitations` (token único) y envía correo (Resend, `escHtml`).

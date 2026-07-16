@@ -40,7 +40,8 @@ justifique.
 
 ## Bloque 0 — Introducción y fundamentos
 
-- [ ] 0.1 — ¿Qué es BitaFly? Introducción a la plataforma para operadores UAS en Colombia
+- [~] 0.1 — ¿Qué es BitaFly? Introducción a la plataforma para operadores UAS en Colombia
+      (guion listo, ver subsección abajo)
 - [ ] 0.2 — ¿BitaFly es para mí? Piloto independiente vs. empresa/operadora (RAC 100)
 - [ ] 0.3 — Cómo crear tu cuenta: registro paso a paso (piloto independiente)
 - [ ] 0.4 — Cómo crear tu cuenta: registro de una organización/empresa
@@ -50,6 +51,125 @@ justifique.
 - [ ] 0.8 — Periodo de prueba y cómo activar tu suscripción (pago con ePayco)
 - [ ] 0.9 — Multi-organización: cómo pertenecer a varias empresas y cambiar entre ellas
 - [ ] 0.10 — Configurar tu organización: logo, datos de la empresa, registro AeroCivil
+
+### Guion — 0.1 · ¿Qué es BitaFly?
+
+**Formato**: tutorial guiado en pantalla (recorrido del dashboard) + una toma corta de
+vuelo real de apertura, sin necesidad de un dron específico (sirve cualquiera de los
+disponibles). **Duración objetivo**: 3-5 min (~550-650 palabras). **Tono**: profesional y
+cercano. **CTA**: mínimo — el video es puramente introductorio, no vende.
+
+```
+===================================
+GUION — VIDEO 0.1
+===================================
+Título: ¿Qué es BitaFly? Introducción a la plataforma para operadores UAS en Colombia
+Duración estimada: ~4 minutos (~600 palabras)
+Formato: vuelo real (apertura) + pantalla (resto del video)
+===================================
+
+[GANCHO — 0:00-0:12]
+[Visual: toma real de un dron despegando, luego corte a una persona escribiendo a mano
+en una planilla de vuelos]
+
+"Si todavía llevas tu bitácora de vuelo en papel o en un Excel que se te puede dañar
+cualquier día, o si te ha tocado armar un reporte para AeroCivil a las carreras la noche
+antes... este video es para ti."
+
+[INTRO — 0:12-0:40]
+[Visual: corte a pantalla, dashboard de BitaFly abriéndose]
+
+"Hola, bienvenido. Te voy a mostrar qué es BitaFly en menos de 5 minutos: para quién es,
+qué problema resuelve, y qué vas a poder hacer con ella desde el primer día.
+
+Este es el primer video de una serie completa donde vamos a recorrer la plataforma paso
+a paso — desde crear tu cuenta hasta cada módulo, según tu rol. Pero para empezar,
+vamos a lo esencial."
+
+[CONTENIDO PRINCIPAL — 0:40-3:15]
+
+[Bloque 1: Qué es — 0:40-1:30]
+[Visual: pantalla, recorrido rápido del dashboard principal]
+
+"BitaFly es una plataforma para gestionar operaciones con drones, pensada específicamente
+para la normativa colombiana — RAC 100, Aerocivil, UAEAC.
+
+En español simple: en un solo lugar llevas tu bitácora de vuelo digital, el control de
+tu flota de aeronaves y baterías, la programación de tus misiones, la evaluación de
+riesgo antes de volar, y todo lo que necesitas para tu seguridad operacional y tus
+reportes regulatorios.
+
+Nada de papeles sueltos, nada de Excel que se corrompe, nada de armar un PDF a mano cada
+vez que Aerocivil te lo pide."
+
+[Bloque 2: Para quién es — 1:30-2:15]
+[Visual: pantalla, split conceptual piloto independiente vs. empresa (puede ser texto
+en pantalla o dos capturas del dashboard)]
+
+"BitaFly sirve para dos tipos de operación.
+
+Si vuelas por tu cuenta, como piloto independiente, tienes tu propia flota, tu propia
+bitácora, y un flujo simplificado para despachar tus vuelos.
+
+Y si trabajas en una operadora — una empresa de drones — cada persona entra con su rol:
+el Gerente General administra todo, el Jefe de Pilotos programa las misiones y gestiona
+la tripulación, el Gerente SMS lleva la seguridad operacional, y cada piloto ve
+exactamente las misiones que tiene asignadas.
+
+Vamos a dedicarle un video completo a cada uno de estos perfiles más adelante en la
+serie."
+
+[Bloque 3: Qué vas a poder hacer — 2:15-3:15]
+[Visual: pantalla, recorrido rápido — bitácora, flota, programación, mapa de misión,
+alerta de mantenimiento, un reporte descargándose]
+
+"Con BitaFly puedes:
+
+Registrar tus vuelos de forma manual, o importarlos automáticamente si vuelas con
+control DJI — se sincroniza solo.
+
+Llevar el control de mantenimiento de tus aeronaves y baterías, con alertas antes de
+que algo venza.
+
+Programar tus misiones con su evaluación de riesgo, su zona de vuelo en el mapa, y
+descargar la documentación en PDF y KMZ.
+
+Y generar los reportes que necesitas — tu Libro de Vuelo, tu reporte mensual para
+Aerocivil, el expediente de cada tripulante — con un clic, no armándolos a mano."
+
+[CONCLUSIÓN — 3:15-3:45]
+[Visual: pantalla, vuelve al dashboard general]
+
+"Esa es la idea general de BitaFly: toda tu operación, en un solo lugar, hecha para la
+normativa colombiana.
+
+En el próximo video de la serie vamos a ver cómo saber si BitaFly es para ti según el
+tipo de operación que tengas, y después, cómo crear tu cuenta paso a paso."
+
+[CIERRE / CTA MÍNIMO — 3:45-4:00]
+
+"Si te sirvió esta introducción, quédate — la serie completa está pensada para que
+aprendas a usar la plataforma a tu ritmo, sin apuro. Nos vemos en el siguiente video."
+
+===================================
+[FIN DEL GUION]
+
+Conteo de palabras: ~600
+Duración estimada: ~4 minutos
+Audiencia: operadores UAS en Colombia (pilotos independientes y empresas), sin
+conocimiento previo de la plataforma
+Tono: profesional, cercano, sin tecnicismos innecesarios
+
+Notas de producción:
+- Toma real de apertura: dron despegando (cualquier equipo disponible) + corte a
+  alguien escribiendo en una planilla/Excel — contraste "antes/después"
+- Resto del video: pantalla completa, recorrido fluido del dashboard, sin detenerse en
+  ningún módulo (eso es para los videos siguientes)
+- Evitar mostrar datos reales de una organización/cliente en pantalla — usar una cuenta
+  de demostración o difuminar datos sensibles
+- Pantalla final: sin tarjetas de suscripción agresivas, coherente con el CTA mínimo
+===================================
+```
 
 ---
 

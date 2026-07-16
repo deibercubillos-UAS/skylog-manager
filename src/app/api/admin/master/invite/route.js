@@ -52,12 +52,12 @@ export async function GET() {
 }
 
 // POST /api/admin/master/invite — enviar invitación
-// Body: { email, role, name?, orgId?, message? }
+// Body: { email, role, name?, orgId?, message?, freeDays? }
 export async function POST(request) {
   const ctx = await assertSuperadmin();
   if (ctx.error) return NextResponse.json({ error: ctx.error }, { status: ctx.status });
 
-  const { email, role, plan, name, orgId, message } = await request.json();
+  const { email, role, plan, name, orgId, message, freeDays } = await request.json();
 
   if (!isValidEmail(email)) return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
   if (!VALID_ROLES.includes(role)) return NextResponse.json({ error: 'Rol inválido' }, { status: 400 });
@@ -76,6 +76,7 @@ export async function POST(request) {
   let orgName    = null;
   let joinNit    = null;
   let inviteToken = null;
+  let grantDays   = null; // solo prospecto nuevo sin org — ver bloque de abajo
 
   // Si se especificó org → crear registro en invitations
   if (orgId) {
@@ -116,12 +117,50 @@ export async function POST(request) {
     }
   }
 
+  // Sin org + usuario nuevo → acceso gratuito temporal (mismo mecanismo que
+  // el regalo de socios, `free_grants`, pero con `partner_id: null` — un
+  // "regalo de la casa" de Master). Salta plan y tarjeta: el registro entra
+  // directo con `?grant=<token>`, igual que un regalo de escuela/asesor.
+  let grantToken = null;
+  if (!orgId && !isExistingUser) {
+    const { data: existingGrant } = await admin
+      .from('free_grants').select('id').eq('email', cleanEmail).maybeSingle();
+    if (existingGrant) {
+      return NextResponse.json({
+        error: 'Este correo ya recibió un acceso gratuito anteriormente y no es renovable.',
+      }, { status: 409 });
+    }
+
+    grantDays = Number.isFinite(Number(freeDays)) && Number(freeDays) > 0
+      ? Math.min(Math.round(Number(freeDays)), 365)
+      : 90;
+
+    grantToken = (globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + grantDays * 86400000);
+    const purgeAfter = new Date(expiresAt.getTime() + 90 * 86400000);
+
+    const { error: grantErr } = await admin.from('free_grants').insert({
+      partner_id:        null,
+      advisor_member_id: null,
+      email:              cleanEmail,
+      status:             'enviado',
+      token:              grantToken,
+      granted_at:         now.toISOString(),
+      expires_at:         expiresAt.toISOString(),
+      purge_after:        purgeAfter.toISOString(),
+    });
+    if (grantErr) return NextResponse.json({ error: grantErr.message }, { status: 500 });
+  }
+
   // Construir CTA
   let ctaUrl;
   if (isExistingUser && orgId) {
     ctaUrl = `${SITE()}/login?next=${encodeURIComponent('/dashboard')}`;
   } else if (orgId && joinNit) {
     ctaUrl = `${SITE()}/registro?email=${encodeURIComponent(cleanEmail)}&join=1&nit=${encodeURIComponent(joinNit)}`;
+  } else if (grantToken) {
+    ctaUrl = `${SITE()}/registro?email=${encodeURIComponent(cleanEmail)}&grant=${encodeURIComponent(grantToken)}`;
   } else {
     ctaUrl = `${SITE()}/registro?email=${encodeURIComponent(cleanEmail)}`;
   }
@@ -130,14 +169,19 @@ export async function POST(request) {
     ? 'Ver invitación en mi dashboard'
     : orgId
       ? 'Crear cuenta y unirme a la organización'
-      : 'Crear mi cuenta en BitaFly';
+      : grantToken
+        ? 'Activar mi acceso gratis'
+        : 'Crear mi cuenta en BitaFly';
 
   const safeName    = escHtml(name || 'Hola');
   const safeRole    = escHtml(ROLE_LABEL[role]);
   const safeOrg     = escHtml(orgName || 'BitaFly');
   const safeSender  = escHtml(senderName);
   const safeMessage = message ? escHtml(message) : null;
-  const planData    = plan && PLAN_INFO[plan] ? PLAN_INFO[plan] : null;
+  // Con grant, el plan real siempre es Piloto por N días (mismo mecanismo
+  // que el regalo de socios) — el "plan sugerido" decorativo no aplica aquí,
+  // se reemplaza por el bloque de días gratis (ver plantilla más abajo).
+  const planData    = !grantToken && plan && PLAN_INFO[plan] ? PLAN_INFO[plan] : null;
 
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ error: 'Servicio de correo no configurado' }, { status: 500 });
@@ -190,6 +234,14 @@ export async function POST(request) {
               </tr></table>
             </td></tr>
           </table>` : ''}
+          ${grantToken ? `
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;background:#fff8f5;border:2px solid #fde0cc;border-radius:12px;overflow:hidden;">
+            <tr><td style="padding:20px 24px;">
+              <p style="margin:0 0 4px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#ec5b13;">🎁 Acceso gratuito</p>
+              <p style="margin:0;font-size:20px;font-weight:900;color:#1a202c;">${grantDays} días gratis</p>
+              <p style="margin:4px 0 0;font-size:13px;color:#718096;">Sin plan que elegir, sin tarjeta de crédito — crea tu cuenta y empieza a volar.</p>
+            </td></tr>
+          </table>` : ''}
           <table cellpadding="0" cellspacing="0" style="margin-bottom:32px;"><tr>
             <td style="background:#ec5b13;border-radius:10px;">
               <a href="${ctaUrl}" style="display:inline-block;padding:14px 32px;color:#fff;font-size:15px;font-weight:900;text-decoration:none;letter-spacing:-0.2px;">
@@ -213,5 +265,5 @@ export async function POST(request) {
     return NextResponse.json({ error: emailErr.message || 'Error al enviar el correo' }, { status: 502 });
   }
 
-  return NextResponse.json({ success: true, isExistingUser, orgName });
+  return NextResponse.json({ success: true, isExistingUser, orgName, grantDays: grantToken ? grantDays : null });
 }

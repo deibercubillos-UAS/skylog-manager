@@ -1362,6 +1362,106 @@ Registrado todo desde `AddMaintenancePanel` (web y APK; el APK toma los cambios 
 
 ---
 
+## Invitaciones sin fricción de pago + bienvenida (2026-07-16)
+
+A pedido del usuario: cualquier invitación — desde una **organización**, desde **Master**
+(`/admin/master`) o desde el panel de **Socio** (`/socio`) — debe permitir al invitado
+entrar sin elegir plan ni ingresar tarjeta de crédito, y mostrarle una ventana de
+bienvenida ("invitado por X, plan Y, hasta fecha Z") en el dashboard. Confirmado con el
+usuario (`AskUserQuestion`, 3 preguntas) antes de construir: Master elige los días de
+acceso gratis por invitación (no un valor fijo), el modal es el mismo para los 3 orígenes
+pero omite la fecha de vencimiento cuando no aplica (unirse a una empresa no tiene
+vencimiento individual), y "invitado por" muestra el nombre de la organización/escuela,
+no el de la persona.
+
+**Estado real antes de esta mejora, por origen** (verificado con un agente de
+exploración antes de construir, para no asumir):
+- **Organización**: ya era 100% gratis — el piloto hereda el plan de la empresa
+  (`getOrgPlan()` lee la membresía del admin, no la del piloto invitado).
+- **Socio (regalo)**: ya era 100% gratis, con vencimiento real (`free_grants.expires_at`).
+- **Master**: gratis solo si la invitación se vincula a una organización existente
+  (mismo mecanismo que arriba). Si es un prospecto nuevo **sin** organización, antes
+  mandaba al registro genérico — si elegía un plan pagado, sí pagaba con tarjeta. Ese
+  era el hueco real a cerrar.
+
+### Bug real encontrado y corregido de paso: `createCrewInvitation()` mandaba a pago
+
+`lib/invitations.js` (usado por la importación masiva de tripulación por Excel, ver
+**Onboarding Express**) armaba el link de invitación para un usuario **nuevo** como
+`/registro?email=...` — sin `join=1&nit=`, a diferencia de `/api/invite` (AddPilotPanel)
+y de Master, que sí incluían esos parámetros. Sin ellos, `/registro` cae en el flujo
+genérico de creación de cuenta (elegir plan, pagar si es de pago) en vez del flujo
+"unirse" (gratis, hereda el plan de la org) — exactamente lo que el usuario pidió evitar.
+Corregido: `sendInvitationEmail()`/`createCrewInvitation()` ganan el parámetro `orgNit`
+y arman el mismo link `join=1&nit=` que los otros dos orígenes.
+
+### Master: invitación a prospecto sin organización = regalo temporal
+
+Nuevo campo **"Días de acceso gratis"** en `_InvitacionesTab.js` (default 90, solo
+visible cuando no se vincula una organización). `POST /api/admin/master/invite`, en ese
+mismo caso (`!orgId && !isExistingUser`), crea una fila en **`free_grants`** —el mismo
+mecanismo que ya usan los socios— con `partner_id: null` y `advisor_member_id: null`
+("regalo de la casa"), y el CTA del correo pasa a ser `/registro?email=...&grant=<token>`
+(igual que un regalo de escuela/asesor, sin tocar `registro/page.js` — ese flujo ya
+existía y es genérico). Misma regla "1 regalo por correo, no renovable" que ya aplicaba a
+socios (`free_grants.email UNIQUE`, valida antes de crear). El plan real otorgado
+siempre es **Piloto** por N días (mismo límite del mecanismo `free_grants` — no hay forma
+de regalar un plan de organización con este flujo, es consistente con cómo ya funcionaba
+el regalo de socios).
+
+### Ventana de bienvenida (una sola vez) — `GET/POST /api/dashboard/welcome-invite`
+
+Migración `20260716_invite_welcome_free_trial.sql` (aplicada) agrega
+`welcome_shown_at timestamptz` a **`invitations`** y a **`free_grants`** — marca cuándo ya
+se le mostró la ventana al usuario, para que aparezca UNA sola vez. **Backfill
+obligatorio en la misma migración**: las filas ya resueltas antes de este cambio
+(`invitations.status IN ('accepted','creado_manualmente')`, `free_grants.status <>
+'enviado'`) se marcan como ya mostradas — si no, cualquier cuenta antigua vería el modal
+retroactivamente en su primer login tras el deploy.
+
+- **Resolución del origen — no confía en `invitations.status`** por sí solo:
+  `AddPilotPanel` (modo "Registro completo") inserta la fila directo desde el navegador
+  con `status: 'creado_manualmente'` (no `'pending'`), y ese valor **nunca** transiciona a
+  `'accepted'` porque `api/auth/register` solo actualiza filas `status='pending'` al
+  aceptar el join — bug preexistente no relacionado con esta mejora, no corregido (fuera
+  de alcance) pero sí contemplado: la búsqueda de "bienvenida pendiente" acepta ambos
+  valores (`'accepted'` y `'creado_manualmente'`).
+- `findPending()` en la ruta prueba primero `free_grants` (status `'activado'`, mismo
+  email, `welcome_shown_at IS NULL`) → si hay, `invitedByName` = nombre del partner si
+  `partner_id` existe, si no `"BitaFly"` (regalo de Master); `planLabel` siempre "Piloto".
+  Si no hay grant, prueba `invitations` (status accepted/creado_manualmente, filtrado a
+  las organizaciones de las que el usuario ya es miembro vía `organization_members`, para
+  no cruzar tenants) → `invitedByName` = `organizations.company_name`; `planLabel` =
+  `getOrgPlan()` de esa org; sin fecha de vencimiento (indefinido mientras siga siendo
+  miembro).
+- **Nunca confía en IDs del cliente**: tanto el GET como el POST (ack) re-resuelven la
+  fila pendiente server-side a partir del email de la sesión — el POST no recibe ni
+  necesita ningún id en el body.
+- `components/WelcomeInviteModal.js` (montado en `dashboard/layout.js`, `dynamic` +
+  `ssr:false`): modal centrado con overlay, fetch al montar, POST de ack al cerrar.
+
+### Aviso previo al vencimiento (5 días antes) — antes solo existía el aviso posterior
+
+`GET /api/dashboard/grant-expiry` (solo lectura, sin ack — se consulta en cada visita
+mientras el acceso siga activo, a diferencia del modal de bienvenida que es una sola
+vez): si el usuario tiene un `free_grants` propio `status='activado'` con `expires_at` en
+el futuro, devuelve `daysLeft`. `components/GrantExpiringBanner.js` (banner ámbar, mismo
+estilo que el banner de período de gracia ya existente en `dashboard/layout.js`) se
+muestra cuando `daysLeft <= 5`, con dismiss por sesión de navegador+día (`sessionStorage`,
+reaparece al día siguiente si el acceso sigue sin renovarse). Solo aplica a regalos
+(socio o Master sin org) — quien se unió a una organización no tiene vencimiento
+individual, no ve este banner.
+
+`GET /api/cron/grant-expiring-reminder` (nuevo, diario 10:00 UTC, `vercel.json`): mismo
+patrón que `training-exam-reminder` — busca `free_grants` activos con `expires_at` dentro
+de los próximos 5 días, notifica por campana (nuevo tipo `grant_expiring_soon`, agregado
+al CHECK de `notifications.type` y a `NOTIFICATION_TYPES` en `lib/notify.js`) + correo,
+con dedup diario por `grant_id` en `notifications.metadata` (no repite el mismo aviso más
+de una vez por día). Complementa, no reemplaza, al aviso **posterior** al vencimiento que
+ya hacía `/api/cron/free-grants` (ese sigue intacto, sin cambios).
+
+---
+
 ## Planeación, Programación y Despacho
 
 **Planear Vuelo** (`/dashboard/plan-vuelo`): visible para el **piloto independiente** (`pilotOnly`) y para el **piloto de org** (entrada extra `roles:['piloto']`+`pilotHidden`). Usa `components/FlightPlanner.js` (mapa + zona + KMZ + PDF + guardar planeación). Si quien guarda es `role==='piloto'`, `POST /api/flight-plans` notifica al Jefe de Pilotos y GG.

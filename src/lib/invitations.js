@@ -36,7 +36,7 @@ const ROLE_LABEL = {
  *
  * @returns {{ invitation, isExistingUser }}
  */
-export async function createCrewInvitation(admin, { orgId, invitedBy, pilotId, name, email, role, orgName, senderName }) {
+export async function createCrewInvitation(admin, { orgId, invitedBy, pilotId, name, email, role, orgName, orgNit, senderName }) {
   const cleanEmail = String(email || '').trim().toLowerCase();
   if (!cleanEmail) return { invitation: null, isExistingUser: false };
 
@@ -81,6 +81,7 @@ export async function createCrewInvitation(admin, { orgId, invitedBy, pilotId, n
       to:             cleanEmail,
       name:           name,
       orgName:        orgName,
+      orgNit:         orgNit,
       senderName:     senderName,
       role:           sysRole,
       isExistingUser,
@@ -92,7 +93,7 @@ export async function createCrewInvitation(admin, { orgId, invitedBy, pilotId, n
   return { invitation, isExistingUser };
 }
 
-export async function sendInvitationEmail({ to, name, orgName, senderName, role, isExistingUser }) {
+export async function sendInvitationEmail({ to, name, orgName, orgNit, senderName, role, isExistingUser }) {
   if (!process.env.RESEND_API_KEY) return;
   const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -102,10 +103,18 @@ export async function sendInvitationEmail({ to, name, orgName, senderName, role,
   const roleLabel  = escHtml(ROLE_LABEL[role] || 'Tripulante');
 
   // Usuario existente → entra y ve el banner en su dashboard.
-  // Usuario nuevo → se registra con su email.
+  // Usuario nuevo → flujo "unirse" (join=1&nit=), gratis, sin selección de
+  // plan ni tarjeta — hereda el plan de la organización. Antes este CTA
+  // mandaba a /registro sin `join`/`nit`, cayendo en el registro genérico de
+  // pago; corregido para que coincida con /api/invite y el invite de Master.
   const cta = isExistingUser
     ? { url: `${SITE()}/login?next=${encodeURIComponent('/dashboard')}`, label: 'Ver invitación en mi dashboard' }
-    : { url: `${SITE()}/registro?email=${encodeURIComponent(to)}`,       label: 'Crear mi cuenta y unirme' };
+    : {
+        url: orgNit
+          ? `${SITE()}/registro?email=${encodeURIComponent(to)}&join=1&nit=${encodeURIComponent(orgNit)}`
+          : `${SITE()}/registro?email=${encodeURIComponent(to)}`,
+        label: 'Crear mi cuenta y unirme',
+      };
 
   // ⚠️ Resend retorna { data, error } — no lanza en errores de API.
   const { error } = await resend.emails.send({

@@ -223,10 +223,11 @@ export async function POST(request) {
 
       // Datos para los correos de invitación
       const { data: orgRow } = await admin
-        .from('organizations').select('company_name').eq('id', orgId).maybeSingle();
+        .from('organizations').select('company_name, tax_id, unique_code').eq('id', orgId).maybeSingle();
       const { data: senderRow } = await admin
         .from('profiles').select('full_name').eq('id', userId).maybeSingle();
       const orgName    = orgRow?.company_name || 'tu organización';
+      const orgNit     = (orgRow?.tax_id || orgRow?.unique_code || '').replace(/[\s\-.]/g, '');
       const senderName = senderRow?.full_name || 'Un administrador';
       const selfEmail  = String(ctx.user?.email || '').trim().toLowerCase();
 
@@ -307,6 +308,7 @@ export async function POST(request) {
             email:      inv.email,
             role:       roleFromPilotRole(inv.role),
             orgName,
+            orgNit,
             senderName,
           });
           results.tripulacion.invited++;

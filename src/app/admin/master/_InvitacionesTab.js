@@ -23,7 +23,7 @@ export default function InvitacionesTab() {
   const [showOrgList, setShowOrgList] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState(null); // { id, company_name, tax_id }
 
-  const [form, setForm] = useState({ email: '', name: '', role: 'piloto', plan: '', message: '' });
+  const [form, setForm] = useState({ email: '', name: '', role: 'piloto', plan: '', message: '', freeDays: 90 });
   const [sending, setSending] = useState(false);
   const [result, setResult]   = useState(null); // { ok, msg }
 
@@ -48,13 +48,15 @@ export default function InvitacionesTab() {
     try {
       const body = { email: form.email, role: form.role, plan: form.plan || undefined, name: form.name || undefined, message: form.message || undefined };
       if (selectedOrg) body.orgId = selectedOrg.id;
+      else body.freeDays = form.freeDays || 90;
       const res  = await fetch('/api/admin/master/invite', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al enviar');
-      setResult({ ok: true, msg: `Invitación enviada a ${form.email}${data.orgName ? ` → ${data.orgName}` : ''}${data.isExistingUser ? ' (usuario ya registrado — verá banner en su dashboard)' : ''}` });
-      setForm({ email: '', name: '', role: 'piloto', plan: '', message: '' });
+      const grantMsg = data.grantDays ? ` (${data.grantDays} días de acceso gratis, sin tarjeta)` : '';
+      setResult({ ok: true, msg: `Invitación enviada a ${form.email}${data.orgName ? ` → ${data.orgName}` : ''}${data.isExistingUser ? ' (usuario ya registrado — verá banner en su dashboard)' : ''}${grantMsg}` });
+      setForm({ email: '', name: '', role: 'piloto', plan: '', message: '', freeDays: 90 });
       setSelectedOrg(null);
       setOrgSearch('');
     } catch (err) {
@@ -221,6 +223,28 @@ export default function InvitacionesTab() {
           )}
         </div>
 
+        {/* Días de acceso gratis — solo para prospecto nuevo sin organización.
+            Con organización ya es gratis (hereda el plan de la empresa), sin
+            necesidad de regalo. */}
+        {!selectedOrg && (
+          <div className="space-y-1.5">
+            <label className="text-xs font-black uppercase text-slate-500 tracking-widest">
+              Días de acceso gratis
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="number" min={1} max={365}
+                value={form.freeDays}
+                onChange={e => setForm(f => ({ ...f, freeDays: e.target.value }))}
+                className="w-28 bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-sm text-white font-black outline-none focus:border-orange-500/60 transition-colors"
+              />
+              <p className="text-xs text-slate-600 font-bold flex-1">
+                Entra directo, sin elegir plan ni tarjeta — mismo mecanismo que el regalo de socios.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Mensaje personalizado */}
         <div className="space-y-1.5">
           <label className="text-xs font-black uppercase text-slate-500 tracking-widest">
@@ -254,6 +278,12 @@ export default function InvitacionesTab() {
             <span className="material-symbols-outlined text-base text-slate-600">business</span>
             <span>{selectedOrg ? selectedOrg.company_name : 'Cuenta independiente (sin org)'}</span>
           </div>
+          {!selectedOrg && (
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <span className="material-symbols-outlined text-base text-slate-600">redeem</span>
+              <span>{form.freeDays || 90} días de acceso gratis, sin plan ni tarjeta</span>
+            </div>
+          )}
         </div>
 
         {/* Feedback */}
@@ -286,8 +316,8 @@ export default function InvitacionesTab() {
         <div className="space-y-1">
           <p className="text-xs font-black uppercase text-slate-400">Comportamiento según el destinatario</p>
           <ul className="text-xs text-slate-500 space-y-1 font-medium">
-            <li>· <strong className="text-slate-400">Usuario nuevo + sin org</strong> — recibe link a registro independiente.</li>
-            <li>· <strong className="text-slate-400">Usuario nuevo + con org</strong> — recibe link a registro que lo une a esa org con el rol elegido.</li>
+            <li>· <strong className="text-slate-400">Usuario nuevo + sin org</strong> — entra directo con acceso gratis por los días indicados, sin elegir plan ni tarjeta.</li>
+            <li>· <strong className="text-slate-400">Usuario nuevo + con org</strong> — recibe link a registro que lo une a esa org con el rol elegido, gratis (hereda el plan de la org).</li>
             <li>· <strong className="text-slate-400">Usuario existente + con org</strong> — recibe aviso y ve la invitación como banner en su dashboard.</li>
           </ul>
         </div>

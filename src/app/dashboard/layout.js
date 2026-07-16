@@ -14,8 +14,10 @@ import GlobalSearch from '@/components/GlobalSearch';
 import { docOpenUrl } from '@/lib/docUrl';
 import dynamic from 'next/dynamic';
 
-const InstallAppPrompt = dynamic(() => import('@/components/InstallAppPrompt'), { ssr: false });
-const AppUpdateBanner  = dynamic(() => import('@/components/AppUpdateBanner'),  { ssr: false });
+const InstallAppPrompt     = dynamic(() => import('@/components/InstallAppPrompt'),     { ssr: false });
+const AppUpdateBanner      = dynamic(() => import('@/components/AppUpdateBanner'),      { ssr: false });
+const WelcomeInviteModal   = dynamic(() => import('@/components/WelcomeInviteModal'),   { ssr: false });
+const GrantExpiringBanner  = dynamic(() => import('@/components/GrantExpiringBanner'),  { ssr: false });
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
@@ -743,11 +745,18 @@ const footerLinks = footerLinksAll.filter(link =>
               </a>
             </div>
           )}
+          {/* Banner de acceso gratuito por vencer (regalo de socio o de Master
+              sin organización) — independiente del período de gracia de arriba. */}
+          {!gracePeriod.isGracePeriod && <GrantExpiringBanner />}
           <GracePeriodContext.Provider value={gracePeriod}>
             {children}
           </GracePeriodContext.Provider>
         </div>
       </main>
+
+      {/* Ventana de bienvenida post-invitación (organización/Master/socio) —
+          se muestra una sola vez, ver /api/dashboard/welcome-invite. */}
+      <WelcomeInviteModal />
 
       {/* Banner de instalación PWA (Android/escritorio: botón; iOS: instrucciones) */}
       <InstallAppPrompt />

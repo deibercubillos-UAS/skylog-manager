@@ -34,9 +34,10 @@ Por qué este concepto:
    marca de fabricante) atraviesa un anillo de escaneo tipo radar naranja que se expande
    dejando destellos de HUD (coordenadas GPS, % batería, altímetro) apareciendo y
    desvaneciéndose alrededor.
-3. **Toma C — Formación del logo**: las líneas de trayectoria de vuelo del dron se doblan
-   y convergen para formar la "B" del isotipo de BitaFly, con un resplandor naranja en el
-   trazo final.
+3. **Toma C — Formación del logo real**: las líneas de trayectoria de vuelo del dron se
+   doblan y convergen para trazar el isotipo **real** de BitaFly (la "b" fusionada con el
+   dron estilizado, `public/logo.png`) — no una letra genérica — con un resplandor
+   naranja en el trazo final que da paso al azul real de la marca.
 4. **Toma D — Cartón de título**: wordmark "BITAFLY" completo centrado + tagline, con un
    bloque inferior vacío/reservado (lower-third) donde en edición se sobrepone el título
    de cada video ("¿Qué es BitaFly?", "Perfil Piloto Independiente", etc.).
@@ -49,7 +50,7 @@ Por qué este concepto:
 |---|---|
 | Relación de aspecto | 16:9 horizontal (video YouTube estándar) |
 | Resolución sugerida al pedir | "high resolution, 4K, sharp detail" (Nano Banana no acepta px exactos, pero responde a estas señales) |
-| Paleta obligatoria | Fondo navy `#1A202C` (a veces con gradiente a `#0F1420` en los bordes) · Acento naranja `#EC5B13` · Blanco `#FFFFFF` para texto/líneas finas · Gris azulado `#4A5568` como color secundario de UI |
+| Paleta obligatoria | Fondo navy `#1A202C` (a veces con gradiente a `#0F1420` en los bordes) · Acento naranja `#EC5B13` para las líneas de vuelo/escaneo (Tomas A y B) · Blanco `#FFFFFF` para texto/líneas finas · Gris azulado `#4A5568` como color secundario de UI · **azul real del logo** (el de `public/logo.png`, no se recolorea) solo en las Tomas C y D, cuando aparece la marca |
 | Estilo visual | Ilustración digital limpia estilo "tech/SaaS aeroespacial" — flat design con profundidad sutil (no fotorrealista, no 3D render pesado, no acuarela/pintura) |
 | Tipografía de referencia | Geométrica sans-serif, gruesa/black weight, similar a **Lexend** o **Poppins Bold** — mencionar explícitamente "geometric sans-serif font, bold weight, similar to Lexend or Poppins" porque Nano Banana no conoce "Lexend" por nombre en todos los casos |
 | Cosas a evitar (negative) | Sin logos de terceros (DJI, otras marcas), sin marcas de agua, sin texto distorsionado o con letras inventadas, sin caras humanas reconocibles, sin exceso de detalle fotorrealista que choque con el resto (flat/vector limpio) |
@@ -63,6 +64,21 @@ conversación cuando se le pide iterar sobre la imagen anterior ("misma escena, 
 cambia X"). Por eso los 4 prompts están pensados para **pedirse en orden, en la misma
 conversación**, no como 4 chats separados — así el dron, la paleta y el estilo no
 varían de una toma a otra.
+
+**⚠️ Prompts 3 y 4 — adjuntar el logo real como imagen de referencia**: el isotipo real
+de BitaFly (`public/logo.png`) es una "b" minúscula fusionada con la silueta de un dron
+(hélices visibles arriba, un ala/estela curva en la base), en **azul** — no una letra "B"
+genérica ni en naranja. Nano Banana no puede "adivinar" un logo real solo con texto sin
+distorsionarlo, así que en los turnos 3 y 4 hay que **adjuntar el archivo `logo.png`
+como imagen** junto con el prompt de texto (Nano Banana acepta imagen + texto en el mismo
+turno) para que trace/recree ese isotipo exacto en vez de inventar uno nuevo.
+
+**Decisión de color tomada aquí, ajustable**: se deja el logo en su **azul real** (no se
+recolorea a naranja) — recolorear la marca registrada en material de marketing es más
+riesgoso que mantenerla intacta. El naranja de las tomas A/B queda como el color de
+"energía/escaneo" del dron genérico, y el remate en la Toma C es precisamente el
+contraste naranja → azul real de marca en el instante en que aparece el logo. Si
+prefieres todo monocromático (logo también en naranja), dímelo y se ajusta.
 
 ### Prompt 1 — Toma A (establishing shot)
 
@@ -102,31 +118,53 @@ No visible brand logos on the drone. No readable text in the HUD elements — ab
 UI shapes only.
 ```
 
-### Prompt 3 — Toma C (formación del logo) — continuación de la 2
+### Prompt 3 — Toma C (formación del logo real) — continuación de la 2
+
+**Adjunta el archivo `public/logo.png` como imagen junto con este prompt de texto** (no
+enviar el prompt solo — el logo debe ir adjunto para que Nano Banana lo trace tal cual,
+sin reinventarlo):
 
 ```
+I'm attaching the exact brand logo I need you to use — do not redesign it, do not
+simplify it, do not turn it into a different letterform. It is a lowercase "b" merged
+with a stylized drone silhouette (propeller blades visible at the top, a curved
+wing/swoosh shape at the base). Keep its real blue color exactly as shown in the
+attached image — do not recolor it orange or any other color.
+
 Continuing the same style, palette and universe as the previous two images: the orange
-(#EC5B13) flight-path light trails from the drone now curve and converge into a single
-clean geometric shape — a bold, rounded letter "B" icon, glowing softly, centered on the
-deep navy (#1A202C) background. The line work should look like it is actively forming
-itself, with the brightest, sharpest glow concentrated at the final stroke where the
-shape completes. Faint white grid/HUD lines fade into the background, mostly dissolved.
-Minimal, elegant, high-end tech branding aesthetic — similar to a modern SaaS startup's
-animated logo reveal. No other text or wording anywhere in the image. No drone visible in
-this frame, only the light-trail-formed icon.
+(#EC5B13) flight-path light trails from the drone now curve, converge and resolve into
+this exact attached logo mark, centered on the deep navy (#1A202C) background, rendered
+crisp and clean at a larger size. The orange light trails should look like they are
+actively tracing and forming the logo's outline, with the brightest, sharpest orange
+glow concentrated along the final stroke where the shape completes — then the logo itself
+settles into its true blue color as the glow fades, like the orange energy "hands off" to
+the real brand mark. Faint white grid/HUD lines fade into the background, mostly
+dissolved. Minimal, elegant, high-end tech branding aesthetic — similar to a modern SaaS
+startup's animated logo reveal. No other text or wording anywhere in the image. No
+separate drone silhouette visible in this frame — only the attached logo mark, fully
+formed, matching the attached reference exactly in shape and color.
 ```
 
 ### Prompt 4 — Toma D (cartón de título final) — continuación de la 3
 
+**Adjunta de nuevo `public/logo.png`** (o, si el resultado de la Toma C quedó bien,
+adjunta esa imagen generada en su lugar) para que el ícono del cartón final sea
+exactamente el mismo, sin variaciones entre tomas:
+
 ```
+I'm attaching the exact brand logo mark again — reuse it exactly as shown, same blue
+color, same shape, no redesign.
+
 Final frame of the same sequence, same palette and style: a clean brand title card on a
-deep navy (#1A202C) background. Centered, the wordmark "BITAFLY" in a bold, geometric
-sans-serif font (similar to Lexend or Poppins Bold), white color, with the letter
-treatment feeling modern and confident — large and centered in the upper-middle area of
-the frame. Directly below it, in a smaller, lighter-weight version of the same font, the
+deep navy (#1A202C) background. The attached logo mark sits above the wordmark, at
+moderate size, in its real blue color, fully formed and static (no glow effects on the
+logo itself in this frame — the glow/reveal moment already happened in the previous
+frame). Centered below it, the wordmark "BITAFLY" in a bold, geometric sans-serif font
+(similar to Lexend or Poppins Bold), white color, with the letter treatment feeling
+modern and confident — large and centered in the upper-middle area of the frame.
+Directly below the wordmark, in a smaller, lighter-weight version of the same font, the
 tagline "Gestión de operaciones con drones · RAC 100" in a muted orange (#EC5B13) or
-soft gray-blue (#4A5568). The glowing "B" icon from the previous image sits just above
-or beside the wordmark, fully formed, as the finished logo mark.
+soft gray-blue (#4A5568).
 
 Leave the lower third of the frame (bottom 25-30% of the image) clean and empty — a
 subtle darker gradient band with no text or graphic elements — reserved as empty space
@@ -145,7 +183,9 @@ around the wordmark only.
    espera el resultado, revisa que la paleta/estilo te convenza — si no, pide un ajuste
    ("hazlo más oscuro", "quita el grid de fondo") **antes** de pasar al Prompt 2. Recién
    ahí pega el Prompt 2 en el mismo hilo (así hereda el estilo ya aprobado), y así
-   sucesivamente con el 3 y el 4.
+   sucesivamente con el 3 y el 4. **En los turnos 3 y 4, adjunta el archivo
+   `public/logo.png`** (subir imagen + pegar el texto del prompt en el mismo mensaje) —
+   sin la imagen adjunta, Nano Banana va a inventar un ícono parecido pero no el real.
 2. **Guarda las 4 imágenes** en máxima resolución que entregue la herramienta.
 3. **Verifica el bloque inferior vacío** de la Toma D (cartón de título) — es donde vas a
    sobreponer el nombre de cada video en edición; si Nano Banana metió texto ahí, pide

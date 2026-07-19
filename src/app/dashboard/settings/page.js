@@ -413,6 +413,7 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                                     { key: 'flota',       label: 'Aeronaves',    icon: 'flight',          val: `+${obResult.results?.flota?.created || 0}` },
                                     { key: 'tripulacion', label: 'Pilotos',      icon: 'group',           val: `+${obResult.results?.tripulacion?.created || 0}` },
                                     { key: 'baterias',    label: 'Baterías',     icon: 'battery_charging_full', val: `+${obResult.results?.baterias?.created || 0}` },
+                                    { key: 'tech',        label: 'Tech/Payloads', icon: 'settings_input_component', val: `+${obResult.results?.tech?.created || 0}` },
                                     { key: 'polizas',     label: 'Pólizas RCE',  icon: 'shield',          val: `+${obResult.results?.polizas?.created || 0}` },
                                     { key: 'contactos',   label: 'Contactos',    icon: 'emergency',       val: `+${obResult.results?.contactos?.created || 0}` },
                                     { key: 'bitacora',    label: 'Vuelos',       icon: 'menu_book',       val: `+${obResult.results?.bitacora?.inserted || 0}` },

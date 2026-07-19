@@ -117,6 +117,7 @@ export async function POST(request) {
       flota:      { created: 0, skipped: 0, errors: [] },
       tripulacion:{ created: 0, skipped: 0, invited: 0, errors: [] },
       baterias:   { created: 0, skipped: 0, errors: [] },
+      tech:       { created: 0, skipped: 0, errors: [] },
       polizas:    { created: 0, skipped: 0, errors: [] },
       contactos:  { created: 0, skipped: 0 },
       bitacora:   { inserted: 0, duplicates: 0, errors: [] },
@@ -133,6 +134,9 @@ export async function POST(request) {
         if (str(r['Tipo Documento']))      updates.tax_id_type     = str(r['Tipo Documento']);
         if (str(r['Número Documento']))    updates.tax_id          = str(r['Número Documento']);
         if (str(r['N° Explotador DAN']))   updates.dan_number      = str(r['N° Explotador DAN']);
+        if (str(r['N° Operador UAS']))     updates.operator_number = str(r['N° Operador UAS']);
+        const regExpiry = parseDate(r['Vigencia Registro']);
+        if (regExpiry)                     updates.registration_expiry = regExpiry;
         if (str(r['Representante Legal'])) updates.legal_rep       = str(r['Representante Legal']);
         if (str(r['Email Corporativo']))   updates.operator_email  = str(r['Email Corporativo']);
         if (str(r['Teléfono']))            updates.phone           = str(r['Teléfono']);
@@ -180,6 +184,11 @@ export async function POST(request) {
           continue;
         }
 
+        const estado = str(r['Estado']) || 'Operativo';
+        // `status` es el campo de display libre (Operativo/Mantenimiento/Baja);
+        // `operational_status` es el que realmente bloquea el despacho — deben
+        // fijarse juntos o "Mantenimiento" en el Excel no tendría ningún efecto
+        // real en la plataforma (ver EditAircraftPanel / logbook/new).
         const { error } = await admin.from('aircraft').insert({
           organization_id:        orgId,
           owner_id:               userId,
@@ -188,7 +197,8 @@ export async function POST(request) {
           serial_number:          serial,
           ruas:                   str(r['Registro RUAS']) || null,
           total_hours:            num(r['Horas Acumuladas']) || 0,
-          status:                 str(r['Estado']) || 'Operativo',
+          status:                 estado,
+          operational_status:     estado === 'Mantenimiento' ? 'en_mantenimiento' : 'disponible',
           last_maintenance_date:  null,
           last_maintenance_hours: 0,
         });
@@ -215,10 +225,11 @@ export async function POST(request) {
 
       // Datos para los correos de invitación
       const { data: orgRow } = await admin
-        .from('organizations').select('company_name').eq('id', orgId).maybeSingle();
+        .from('organizations').select('company_name, tax_id, unique_code').eq('id', orgId).maybeSingle();
       const { data: senderRow } = await admin
         .from('profiles').select('full_name').eq('id', userId).maybeSingle();
       const orgName    = orgRow?.company_name || 'tu organización';
+      const orgNit     = (orgRow?.tax_id || orgRow?.unique_code || '').replace(/[\s\-.]/g, '');
       const senderName = senderRow?.full_name || 'Un administrador';
       const selfEmail  = String(ctx.user?.email || '').trim().toLowerCase();
 
@@ -299,6 +310,7 @@ export async function POST(request) {
             email:      inv.email,
             role:       roleFromPilotRole(inv.role),
             orgName,
+            orgNit,
             senderName,
           });
           results.tripulacion.invited++;
@@ -343,6 +355,54 @@ export async function POST(request) {
         } else {
           results.baterias.created++;
           existingBatSerials.add(serial);
+        }
+      }
+    }
+
+    // ── 4b. TECH / PAYLOADS ───────────────────────────────────────────────
+    const wsTech = wb.getWorksheet('🛠️ Tech y Payloads');
+    if (wsTech) {
+      const rows = readSheet(wsTech);
+
+      const { data: existingTech } = await admin
+        .from('inventory_items').select('serial_number').eq('organization_id', orgId);
+      const existingTechSerials = new Set((existingTech || []).map(t => String(t.serial_number || '').toUpperCase()));
+      let techCount = existingTechSerials.size;
+
+      for (const r of rows) {
+        const serial = str(r['Serial / S/N']).toUpperCase();
+        if (!serial) {
+          results.tech.errors.push(`Fila ${r._row}: serial es obligatorio`);
+          continue;
+        }
+        if (existingTechSerials.has(serial)) {
+          results.tech.skipped++;
+          continue;
+        }
+        if (!canAddResource(plan, techCount, 'tech')) {
+          results.tech.errors.push(`Fila ${r._row}: límite de equipos técnicos del plan alcanzado (${plan})`);
+          continue;
+        }
+
+        const brand = str(r['Fabricante']);
+        const model = str(r['Modelo']);
+        const { error } = await admin.from('inventory_items').insert({
+          organization_id: orgId,
+          owner_id:        userId,
+          category:        str(r['Categoría']) || '',
+          brand,
+          model,
+          serial_number:   serial,
+          name:            `${brand} ${model}`.trim(),
+          status:          'Operativo',
+        });
+
+        if (error) {
+          results.tech.errors.push(`Fila ${r._row}: ${error.message}`);
+        } else {
+          results.tech.created++;
+          techCount++;
+          existingTechSerials.add(serial);
         }
       }
     }
@@ -500,7 +560,8 @@ export async function POST(request) {
           flight_date:      fecha,
           takeoff_time:     takeoff,
           landing_time:     landing,
-          mission_type:     str(r['Tipo de Misión'])        || 'Inspección',
+          mission_type:     str(r['Tipo de Misión'])        || 'Captura imágenes/datos',
+          line_of_sight:    str(r['Línea de Vista'])         || 'VLOS',
           visual_condition: str(r['Condición Visual'])       || 'VMC',
           location:         str(r['Ubicación / Municipio'])  || null,
           notes:            str(r['Notas / Observaciones'])  || null,
@@ -554,6 +615,7 @@ export async function POST(request) {
       results.flota.created +
       results.tripulacion.created +
       results.baterias.created +
+      results.tech.created +
       results.polizas.created +
       results.contactos.created +
       results.bitacora.inserted;
@@ -562,6 +624,7 @@ export async function POST(request) {
       results.flota.skipped +
       results.tripulacion.skipped +
       results.baterias.skipped +
+      results.tech.skipped +
       results.polizas.skipped +
       results.bitacora.duplicates;
 

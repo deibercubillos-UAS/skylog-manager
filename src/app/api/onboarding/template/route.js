@@ -27,23 +27,36 @@ export async function GET() {
     const admin = createAdminClient();
 
     // ── Cargar datos actuales de la org para pre-llenar la plantilla ──────────
-    const [orgRes, pilotsRes, aircraftRes, batteriesRes, policiesRes, contactsRes] =
+    const [orgRes, pilotsRes, aircraftRes, batteriesRes, techRes, policiesRes, contactsRes, battLogsRes] =
       await Promise.all([
         admin.from('organizations').select('*').eq('id', orgId).maybeSingle(),
         admin.from('pilots').select('*').eq('organization_id', orgId).eq('is_active', true).order('name'),
         admin.from('aircraft').select('*').eq('organization_id', orgId).order('serial_number'),
         admin.from('batteries').select('*').eq('organization_id', orgId).order('serial_number'),
+        admin.from('inventory_items').select('*').eq('organization_id', orgId).order('serial_number'),
         admin.from('insurance_policies').select('*').eq('organization_id', orgId).order('end_date', { ascending: false }),
         admin.from('emergency_contacts').select('*').eq('organization_id', orgId).order('name'),
+        // Última aeronave usada por cada batería — `batteries` no tiene columna
+        // aircraft_id (son intercambiables por diseño), el vínculo real vive en
+        // battery_logs. Mismo criterio que dashboard/batteries/page.js.
+        admin.from('battery_logs').select('battery_sn, aircraft_id, created_at')
+          .eq('organization_id', orgId).order('created_at', { ascending: false }),
       ]);
 
-    // Mapa aircraft_id → serial para baterías y pólizas
+    // Mapa aircraft_id → serial para pólizas
     const acById = {};
     (aircraftRes.data || []).forEach(a => { acById[a.id] = a.serial_number; });
 
-    const batteries = (batteriesRes.data || []).map(b => ({
-      ...b, _aircraft_serial: b.aircraft_id ? (acById[b.aircraft_id] || '') : '',
-    }));
+    // Mapa battery_sn → aircraft_id más reciente (primera ocurrencia = más reciente, ya viene ordenado)
+    const lastAircraftByBattery = {};
+    (battLogsRes.data || []).forEach(l => {
+      if (!lastAircraftByBattery[l.battery_sn]) lastAircraftByBattery[l.battery_sn] = l.aircraft_id;
+    });
+
+    const batteries = (batteriesRes.data || []).map(b => {
+      const lastAcId = lastAircraftByBattery[b.serial_number];
+      return { ...b, _aircraft_serial: lastAcId ? (acById[lastAcId] || '') : '' };
+    });
     const policies = (policiesRes.data || []).map(p => ({
       ...p, _aircraft_serial: p.aircraft_id ? (acById[p.aircraft_id] || '') : 'FLOTA',
     }));
@@ -53,6 +66,7 @@ export async function GET() {
       pilots:     pilotsRes.data || [],
       aircraft:   aircraftRes.data || [],
       batteries,
+      techItems:  techRes.data || [],
       policies,
       contacts:   contactsRes.data || [],
     };

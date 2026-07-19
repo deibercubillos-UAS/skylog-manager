@@ -12,7 +12,7 @@ export const metadata = {
   alternates: { canonical: '/operadores-uas' },
   openGraph: {
     title: 'Software para Operadores UAS Certificados en Colombia | Bitafly',
-    description: 'Plataforma para operadores ESUAS. 5 roles RAC 100, todos los módulos, acceso gratuito durante certificación.',
+    description: 'Plataforma para operadores ESUAS. 5 roles RAC 100, todos los módulos, acceso al plan Escuadrilla sin costo en Fase 0 de certificación (máx. 6 meses).',
     url: 'https://bitafly.com/operadores-uas',
   },
 };
@@ -23,8 +23,8 @@ const faqSchema = {
   "mainEntity": [
     { "@type": "Question", "name": "¿Qué es un Explotador de Sistemas UAS (ESUAS)?", "acceptedAnswer": { "@type": "Answer", "text": "El ESUAS (Explotador de Sistema de Aeronave No Tripulada) es la figura jurídica establecida por la UAEAC en la RAC 100 para las empresas u operadores individuales que realizan operaciones comerciales con drones en Colombia. La certificación como ESUAS es obligatoria para operaciones de trabajo aéreo." } },
     { "@type": "Question", "name": "¿Qué roles de usuario tiene Bitafly?", "acceptedAnswer": { "@type": "Answer", "text": "Bitafly tiene 5 roles: Superadmin (gestión global del SaaS), Administrador (gestión completa de la organización), Gerente SMS (gestión de seguridad operacional), Jefe de Pilotos (gestión de tripulación y programación) y Piloto (registro de vuelos y reportes de incidentes)." } },
-    { "@type": "Question", "name": "¿Bitafly sirve para un piloto individual o solo para empresas?", "acceptedAnswer": { "@type": "Answer", "text": "Bitafly sirve para ambos. El plan gratuito (6 meses) está diseñado para pilotos individuales con un dron. Los planes Escuadrilla y Flota son para empresas con múltiples aeronaves y tripulantes. El plan Enterprise es para grandes operadores." } },
-    { "@type": "Question", "name": "¿Bitafly ayuda durante el proceso de certificación ESUAS?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Bitafly ofrece acceso gratuito durante todo el proceso de certificación ante la AeroCivil. Solo necesitas contactarnos con tu número de radicado y activamos tu cuenta con el plan que necesites sin costo hasta obtener la certificación." } },
+    { "@type": "Question", "name": "¿Bitafly sirve para un piloto individual o solo para empresas?", "acceptedAnswer": { "@type": "Answer", "text": "Bitafly sirve para ambos. El plan Piloto está diseñado para pilotos individuales con un dron, con período de prueba antes del primer cobro. Los planes Escuadrilla y Flota son para empresas con múltiples aeronaves y tripulantes. El plan Enterprise es para grandes operadores." } },
+    { "@type": "Question", "name": "¿Bitafly ayuda durante el proceso de certificación ESUAS?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Si tu empresa está en Fase 0 del proceso de certificación como Explotador UAS ante la AeroCivil, Bitafly te da acceso sin costo al plan Escuadrilla durante esa etapa, hasta un máximo de 6 meses. Contáctanos con tu número de radicado para activarlo." } },
   ],
 };
 
@@ -59,7 +59,7 @@ export default function OperadoresUASPage() {
                 Ver planes y precios
               </Link>
             </div>
-            <p style={{fontSize:'11px',fontWeight:700,color:'#94a3b8',marginTop:'14px'}}>Gratis durante certificación ESUAS · Sin tarjeta de crédito</p>
+            <p style={{fontSize:'11px',fontWeight:700,color:'#94a3b8',marginTop:'14px'}}>Escuadrilla sin costo en Fase 0 de certificación (máx. 6 meses) · Sin tarjeta de crédito</p>
           </div>
           <DroneOpsScene />
         </div>
@@ -102,9 +102,9 @@ export default function OperadoresUASPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{gap:'20px'}}>
             {[
-              { plan:'Plan Piloto', planBg:'rgba(236,91,19,0.08)', planBorder:'rgba(236,91,19,0.2)', planColor:accent, icon:'person_check', title:'Piloto Autónomo', desc:'Un dron, un piloto. Bitácora digital ilimitada, mantenimiento con alertas, gestión de baterías y reporte F-OPS-002 en PDF. 6 meses gratuito.', featured:false },
+              { plan:'Plan Piloto', planBg:'rgba(236,91,19,0.08)', planBorder:'rgba(236,91,19,0.2)', planColor:accent, icon:'person_check', title:'Piloto Autónomo', desc:'Un dron, un piloto. Bitácora digital ilimitada, mantenimiento con alertas, gestión de baterías y reporte F-OPS-002 en PDF. 15 días de prueba antes del primer cobro.', featured:false },
               { plan:'Plan Escuadrilla', planBg:'rgba(26,32,44,0.06)', planBorder:'rgba(26,32,44,0.1)', planColor:'#1A202C', icon:'groups', title:'Pequeña Empresa', desc:'Hasta 3 aeronaves y 4 usuarios con 3 roles operacionales. Autorizaciones F-OPS-001, SMS básico y reportes PDF Maestro de Vuelo y Baterías.', featured:false },
-              { plan:'Plan Flota ★', planBg:accent, planBorder:accent, planColor:'white', icon:'admin_panel_settings', title:'Empresa Mediana / ESUAS', desc:'Hasta 15 aeronaves y 15 usuarios con los 5 roles RAC 100. SMS completo, auditoría, protocolos personalizables y todos los reportes RAC 100 con tu propio código de formato.', featured:true },
+              { plan:'Plan Flota ★', planBg:accent, planBorder:accent, planColor:'white', icon:'admin_panel_settings', title:'Empresa Mediana / ESUAS', desc:'Hasta 10 aeronaves y 10 usuarios con los 5 roles RAC 100. SMS completo, auditoría, protocolos personalizables y todos los reportes RAC 100 con tu propio código de formato.', featured:true },
             ].map(item => (
               <article key={item.icon} style={{background:'#fff',border:`1.5px solid ${item.featured?'rgba(236,91,19,0.3)':'#f1f5f9'}`,borderRadius:'28px',padding:'28px',boxShadow:item.featured?'0 8px 24px rgba(0,0,0,0.08)':'none'}}>
                 <div style={{display:'inline-flex',alignItems:'center',gap:'6px',background:item.planBg,border:`1px solid ${item.planBorder}`,borderRadius:'9999px',padding:'4px 10px',marginBottom:'14px'}}>
@@ -145,11 +145,11 @@ export default function OperadoresUASPage() {
             </ul>
           </div>
           <div style={{background:'#1A202C',borderRadius:'32px',padding:'40px',display:'flex',flexDirection:'column',gap:'20px'}}>
-            <div style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.3em',color:accent}}>Oferta especial</div>
+            <div style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.3em',color:accent}}>Fase 0 · Proceso de certificación</div>
             <h3 style={{fontSize:'18px',fontWeight:900,textTransform:'uppercase',letterSpacing:'-0.02em',color:'#fff',lineHeight:1.2}}>¿Certificando como ESUAS ante la AeroCivil?</h3>
-            <p style={{fontSize:'13px',color:'#94a3b8',lineHeight:1.7}}>Accede a Bitafly <strong style={{color:'#fff'}}>sin costo</strong> durante todo tu proceso de certificación. Sabemos que cumplir con la RAC 100 tiene un costo y queremos ser parte de la solución.</p>
+            <p style={{fontSize:'13px',color:'#94a3b8',lineHeight:1.7}}>Si estás en Fase 0 del proceso, accede al plan Escuadrilla de Bitafly <strong style={{color:'#fff'}}>sin costo</strong> durante esa etapa, hasta un máximo de 6 meses. Contáctanos con tu número de radicado.</p>
             <a href="mailto:soporte@bitafly.com" style={{display:'inline-flex',alignItems:'center',gap:'8px',background:accent,color:'#fff',padding:'12px 20px',borderRadius:'14px',fontSize:'11px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.1em',textDecoration:'none',marginTop:'4px'}}>
-              <span className="material-symbols-outlined" style={{fontSize:'16px'}}>gavel</span>Solicitar acceso gratuito
+              <span className="material-symbols-outlined" style={{fontSize:'16px'}}>gavel</span>Solicitar acceso
             </a>
           </div>
         </div>

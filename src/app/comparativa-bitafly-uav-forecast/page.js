@@ -198,7 +198,7 @@ export default function ComparativaUavForecastPage() {
             className="inline-flex items-center gap-2 text-white px-8 py-4 rounded-2xl text-sm font-black uppercase tracking-widest transition-colors shadow-xl"
             style={{ background: accent, boxShadow: '0 16px 40px rgba(34,197,94,0.25)' }}
           >
-            Comenzar gratis 30 días
+            Comenzar gratis 15 días
             <span className="material-symbols-outlined text-base">arrow_forward</span>
           </Link>
         </div>
@@ -537,7 +537,7 @@ export default function ComparativaUavForecastPage() {
               className="inline-flex items-center justify-center gap-2 text-white px-8 py-4 rounded-2xl text-sm font-black uppercase tracking-widest transition-colors"
               style={{ background: accent }}
             >
-              Comenzar gratis 30 días
+              Comenzar gratis 15 días
               <span className="material-symbols-outlined text-base">arrow_forward</span>
             </Link>
             <Link

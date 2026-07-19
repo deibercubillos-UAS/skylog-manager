@@ -4,17 +4,12 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabaseServer';
 import { updatePlan } from '@/lib/epayco';
-import crypto from 'crypto';
+import { verifyAdminKey } from '@/lib/adminKey';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/+$/, '');
 
 export async function POST(request) {
-  const adminKey = request.headers.get('x-admin-key');
-  const secret   = process.env.ADMIN_SECRET ?? '';
-  const key      = adminKey ?? '';
-  const valid    = key.length === secret.length &&
-    crypto.timingSafeEqual(Buffer.from(key), Buffer.from(secret));
-  if (!valid) {
+  if (!verifyAdminKey(request)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 

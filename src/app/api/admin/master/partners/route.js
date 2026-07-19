@@ -17,6 +17,17 @@ async function requireSuperadmin() {
   return { admin, user };
 }
 
+// Normaliza un código personalizado ingresado por el superadmin: mayúsculas,
+// espacios → guion, solo A-Z/0-9/guion. `partner_codes.code` tiene UNIQUE en BD
+// — cualquier choque se atrapa como error de Postgres más abajo.
+function normalizeCode(raw) {
+  return String(raw || '')
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^A-Z0-9-]/g, '');
+}
+
 // Genera un código a partir de las iniciales del nombre + sufijo aleatorio.
 // Ej: "Escuela Águilas del Cielo" → "EAC-XB12". Garantiza unicidad en BD.
 async function generateCode(admin, name) {
@@ -87,15 +98,42 @@ export async function POST(request) {
   try {
     const body = await request.json();
 
-    // Agregar un código adicional a un socio existente
+    // Agregar un código adicional a un socio existente — personalizable: si
+    // el superadmin manda `code`, se usa tal cual (normalizado); si no, se
+    // autogenera como antes.
     if (body.action === 'add_code') {
       if (!body.partner_id) return NextResponse.json({ error: 'partner_id requerido' }, { status: 400 });
       const { data: partner } = await admin.from('partners').select('name').eq('id', body.partner_id).single();
       if (!partner) return NextResponse.json({ error: 'Socio no encontrado' }, { status: 404 });
-      const code = await generateCode(admin, partner.name);
+      const customCode = normalizeCode(body.code);
+      const code = customCode || await generateCode(admin, partner.name);
       const { data, error } = await admin.from('partner_codes')
         .insert({ partner_id: body.partner_id, code }).select().single();
-      if (error) throw error;
+      if (error) {
+        if (error.code === '23505') return NextResponse.json({ error: `El código "${code}" ya está en uso.` }, { status: 409 });
+        throw error;
+      }
+      return NextResponse.json(data);
+    }
+
+    // Editar el valor de un código ya existente (renombrar) o su estado activo.
+    if (body.action === 'update_code') {
+      if (!body.code_id) return NextResponse.json({ error: 'code_id requerido' }, { status: 400 });
+      const patch = {};
+      if (body.code !== undefined) {
+        const newCode = normalizeCode(body.code);
+        if (!newCode) return NextResponse.json({ error: 'Código inválido' }, { status: 400 });
+        patch.code = newCode;
+      }
+      if (body.active !== undefined) patch.active = !!body.active;
+      if (!Object.keys(patch).length) return NextResponse.json({ error: 'Sin campos para actualizar' }, { status: 400 });
+
+      const { data, error } = await admin.from('partner_codes')
+        .update(patch).eq('id', body.code_id).select().single();
+      if (error) {
+        if (error.code === '23505') return NextResponse.json({ error: `El código "${patch.code}" ya está en uso.` }, { status: 409 });
+        throw error;
+      }
       return NextResponse.json(data);
     }
 
@@ -244,8 +282,9 @@ export async function POST(request) {
       return NextResponse.json({ success: true });
     }
 
-    // Crear socio
-    const { type, name, parent_partner_id, commission_pct, free_seats_limit, free_days } = body;
+    // Crear socio — código personalizable: si el superadmin manda `code`, se
+    // usa tal cual (normalizado); si no, se autogenera como antes.
+    const { type, name, parent_partner_id, commission_pct, free_seats_limit, free_days, code: customCodeInput } = body;
     if (!['escuela', 'asesor'].includes(type)) return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 });
     if (!name?.trim()) return NextResponse.json({ error: 'Nombre requerido' }, { status: 400 });
 
@@ -261,8 +300,15 @@ export async function POST(request) {
     const { data: partner, error } = await admin.from('partners').insert(insert).select().single();
     if (error) throw error;
 
-    const code = await generateCode(admin, partner.name);
-    await admin.from('partner_codes').insert({ partner_id: partner.id, code });
+    const customCode = normalizeCode(customCodeInput);
+    const code = customCode || await generateCode(admin, partner.name);
+    const { error: codeErr } = await admin.from('partner_codes').insert({ partner_id: partner.id, code });
+    if (codeErr) {
+      // El socio ya se creó — no lo revertimos por un choque de código personalizado,
+      // el superadmin puede agregar otro código válido desde "Agregar código".
+      console.warn('[master/partners] código inicial no se pudo crear:', codeErr.message);
+      return NextResponse.json({ ...partner, codes: [], code_error: `El código "${code}" ya está en uso — agrega uno distinto desde "Agregar código".` });
+    }
 
     return NextResponse.json({ ...partner, codes: [{ code }] });
   } catch (err) {

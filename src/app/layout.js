@@ -1,10 +1,10 @@
 import "./globals.css";
 import { Public_Sans, Lexend } from "next/font/google";
-import { GoogleAnalytics } from '@next/third-parties/google';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/next';
 import Script from 'next/script';
 import AttributionTracker from '@/components/AttributionTracker';
+import CookieConsentManager from '@/components/legal/CookieConsentManager';
 
 const publicSans = Public_Sans({
   subsets: ["latin"],
@@ -67,9 +67,9 @@ export const metadata = {
     'sistema gestión seguridad operacional',
     'software aeronáutico Colombia',
   ],
-  authors: [{ name: 'Bitafly Operations', url: SITE_URL }],
-  creator: 'Bitafly Operations',
-  publisher: 'Bitafly Operations',
+  authors: [{ name: 'BitaFly S.A.S.', url: SITE_URL }],
+  creator: 'BitaFly S.A.S.',
+  publisher: 'BitaFly S.A.S.',
   formatDetection: {
     email: false,
     address: false,
@@ -188,7 +188,7 @@ export default function RootLayout({ children }) {
               // la entidad en todos los demás esquemas del sitio.
               "@id": `${SITE_URL}/#organization`,
               "name": "Bitafly",
-              "legalName": "Bitafly Operations",
+              "legalName": "BitaFly S.A.S.",
               "url": SITE_URL,
               // logo como ImageObject (no solo string) — activa Knowledge Panel
               "logo": {
@@ -207,7 +207,7 @@ export default function RootLayout({ children }) {
                 "@type": "PostalAddress",
                 "addressCountry": "CO",
                 "addressRegion": "Cundinamarca",
-                "addressLocality": "Bogotá"
+                "addressLocality": "Madrid"
               },
               "areaServed": [
                 { "@type": "Country", "name": "Colombia" }
@@ -269,36 +269,23 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="font-sans antialiased">
-        {/* Google Tag Manager (noscript) — debe ser lo primero en <body> */}
-        <noscript>
-          <iframe
-            src="https://www.googletagmanager.com/ns.html?id=GTM-TTT98NMJ"
-            height="0" width="0"
-            style={{ display: 'none', visibility: 'hidden' }}
-          />
-        </noscript>
+        {/*
+          GTM/GA/Clarity ya NO se cargan aquí incondicionalmente — ver
+          CookieConsentManager.js. Ese componente muestra el aviso de cookies
+          y solo inyecta estos tres scripts (incluida la variante <noscript>
+          de GTM) después de que el usuario pulsa "Aceptar", conforme a la
+          Resolución 32.126/2022 de la SIC (consentimiento previo, expreso e
+          informado para cookies analíticas/de terceros). Antes de este
+          cambio, GTM se cargaba siempre — ver "Páginas legales" en
+          CLAUDE.md para el detalle de esta corrección.
+        */}
+        <CookieConsentManager />
 
-        {/* Captura de atribución de marketing (UTM + referrer) — sin UI */}
+        {/* Captura de atribución de marketing (UTM + referrer) — localStorage
+            de primera parte, no cookies de terceros; sin UI */}
         <AttributionTracker />
 
         {children}
-
-        {/*
-          Google Tag Manager — lazyOnload (no afterInteractive).
-          GTM arrastra una cadena de tags (GA, LinkedIn Ads, Doubleclick, ~300KB)
-          que ejecutándose con afterInteractive competía con la hidratación y
-          bloqueaba el hilo principal: el LCP del hero quedaba en ~3.7s de "render
-          delay" puro (medido con Lighthouse). lazyOnload difiere todo eso hasta
-          que la página está inactiva (post-load), liberando la ventana crítica.
-          La analítica sigue registrando, solo se inicializa unos ms más tarde.
-        */}
-        <Script id="gtm" strategy="lazyOnload">{`
-          (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-          new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-          j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-          'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-          })(window,document,'script','dataLayer','GTM-TTT98NMJ');
-        `}</Script>
 
         {/* Material Symbols: auto-alojado y precargado en <head> (ver arriba) */}
 
@@ -341,21 +328,11 @@ export default function RootLayout({ children }) {
           `}</Script>
         )}
 
-        {/* Microsoft Clarity — heatmaps + grabaciones de sesión. lazyOnload
-            (terceros, no crítico). Se activa solo si NEXT_PUBLIC_CLARITY_ID existe. */}
-        {process.env.NEXT_PUBLIC_CLARITY_ID && (
-          <Script id="ms-clarity" strategy="lazyOnload">{`
-            (function(c,l,a,r,i,t,y){
-              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-              t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-              y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-            })(window, document, "clarity", "script", "${process.env.NEXT_PUBLIC_CLARITY_ID}");
-          `}</Script>
-        )}
+        {/* Microsoft Clarity y Google Analytics: ver CookieConsentManager —
+            se cargan junto con GTM, solo tras aceptar el aviso de cookies. */}
 
         <SpeedInsights />
         <Analytics />
-        {process.env.NEXT_PUBLIC_GA_ID && <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />}
       </body>
     </html>
   );

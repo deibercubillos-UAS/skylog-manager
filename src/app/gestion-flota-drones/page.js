@@ -12,7 +12,7 @@ export const metadata = {
   alternates: { canonical: '/gestion-flota-drones' },
   openGraph: {
     title: 'Gestión de Flota de Drones para Empresas en Colombia | Bitafly',
-    description: 'Registra aeronaves, controla horas, monitorea estado. Hasta 15 aeronaves en el plan Flota.',
+    description: 'Registra aeronaves, controla horas, monitorea estado. Hasta 10 aeronaves en el plan Flota.',
     url: 'https://bitafly.com/gestion-flota-drones',
   },
 };
@@ -21,7 +21,7 @@ const faqSchema = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
   "mainEntity": [
-    { "@type": "Question", "name": "¿Cuántos drones puedo gestionar con Bitafly?", "acceptedAnswer": { "@type": "Answer", "text": "Bitafly escala desde 1 aeronave en el plan gratuito hasta flotas ilimitadas en el plan Enterprise. El plan Flota (el más popular) soporta hasta 15 aeronaves." } },
+    { "@type": "Question", "name": "¿Cuántos drones puedo gestionar con Bitafly?", "acceptedAnswer": { "@type": "Answer", "text": "Bitafly escala desde 1 aeronave en el plan Piloto (con 15 días de prueba) hasta flotas ilimitadas en el plan Enterprise. El plan Flota (el más popular) soporta hasta 10 aeronaves." } },
     { "@type": "Question", "name": "¿Qué información puedo registrar por cada aeronave?", "acceptedAnswer": { "@type": "Answer", "text": "Por cada aeronave puedes registrar: modelo, fabricante, número de serie, matrícula UAEAC, fecha de adquisición, horas totales acumuladas, estado (operativo, mantenimiento, inactivo), historial de mantenimientos e intervenciones técnicas." } },
     { "@type": "Question", "name": "¿Cómo sé en tiempo real cuántas horas tiene cada dron?", "acceptedAnswer": { "@type": "Answer", "text": "Bitafly suma automáticamente las horas de cada vuelo registrado en la bitácora al totalizador de la aeronave. El panel de flota muestra las horas totales en tiempo real y el porcentaje de aproximación al próximo mantenimiento." } },
     { "@type": "Question", "name": "¿Puedo gestionar drones de diferentes marcas en la misma plataforma?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Bitafly es agnóstico de marca. Puedes registrar DJI, Autel, Parrot, Wingtra o cualquier otro fabricante. El sistema gestiona el registro independientemente del fabricante, siempre que la aeronave tenga matrícula UAEAC." } },
@@ -59,7 +59,7 @@ export default function GestionFlotaDronesPage() {
                 Ver mantenimiento
               </Link>
             </div>
-            <p style={{fontSize:'11px',fontWeight:700,color:'#94a3b8',marginTop:'14px'}}>Hasta 15 aeronaves en el plan Flota · Ilimitadas en Enterprise</p>
+            <p style={{fontSize:'11px',fontWeight:700,color:'#94a3b8',marginTop:'14px'}}>Hasta 10 aeronaves en el plan Flota · Ilimitadas en Enterprise</p>
           </div>
           {/* Fleet grid mockup */}
           <div className="grid grid-cols-1 sm:grid-cols-2" style={{gap:'10px'}}>

@@ -206,7 +206,7 @@ s5.addText('Suscripción mensual/anual — 4 planes escalonados', {
 const plans = [
   { name:'Piloto', price:'$19.900/mes', annual:'$218.900/año', desc:'1 dron, 1 piloto. Para operador independiente.', color:'4A9EDE' },
   { name:'Escuadrilla', price:'$149.900/mes', annual:'$1.648.900/año', desc:'3 drones, 4 pilotos. Empresas pequeñas.', color:SKY },
-  { name:'Flota', price:'$249.900/mes', annual:'$2.748.900/año', desc:'15 drones, 15 pilotos. Empresas medianas.', color:BLUE },
+  { name:'Flota', price:'$249.900/mes', annual:'$2.748.900/año', desc:'10 drones, 10 pilotos. Empresas medianas.', color:BLUE },
   { name:'Enterprise', price:'Cotizar', annual:'Desde $5M/año', desc:'Flota ilimitada. Grandes operadores.', color:NAVY },
 ];
 plans.forEach((p, i) => {

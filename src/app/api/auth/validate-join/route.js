@@ -12,6 +12,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { PLAN_CONFIG } from '@/lib/planLimits';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 
 // Roles únicos (máx 1 por org)
 const UNIQUE_ROLES    = ['admin', 'jefe_pilotos', 'gerente_sms'];
@@ -20,6 +21,14 @@ export const JOINABLE_ROLES = ['piloto', 'jefe_pilotos', 'gerente_sms'];
 
 export async function GET(request) {
   try {
+    // Endpoint público sin auth: acota la enumeración de organizaciones por NIT
+    // (revela nombre + plan de una org si el NIT acierta). 30/min por IP.
+    const ip = getClientIp(request);
+    const { allowed } = checkRateLimit(`validate-join:${ip}`, { limit: 30, windowMs: 60_000 });
+    if (!allowed) {
+      return NextResponse.json({ valid: false, error: 'Demasiadas solicitudes. Intenta más tarde.' }, { status: 429 });
+    }
+
     const { searchParams } = new URL(request.url);
     const rawNit = searchParams.get('nit') || '';
     const role   = searchParams.get('role') || '';

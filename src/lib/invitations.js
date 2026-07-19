@@ -36,7 +36,7 @@ const ROLE_LABEL = {
  *
  * @returns {{ invitation, isExistingUser }}
  */
-export async function createCrewInvitation(admin, { orgId, invitedBy, pilotId, name, email, role, orgName, orgNit, senderName }) {
+export async function createCrewInvitation(admin, { orgId, invitedBy, pilotId, name, email, role, orgName, orgNit, senderName, sendEmail = true }) {
   const cleanEmail = String(email || '').trim().toLowerCase();
   if (!cleanEmail) return { invitation: null, isExistingUser: false };
 
@@ -75,19 +75,23 @@ export async function createCrewInvitation(admin, { orgId, invitedBy, pilotId, n
     invitation = data;
   }
 
-  // Enviar correo (no crítico — no rompe el import si Resend falla)
-  try {
-    await sendInvitationEmail({
-      to:             cleanEmail,
-      name:           name,
-      orgName:        orgName,
-      orgNit:         orgNit,
-      senderName:     senderName,
-      role:           sysRole,
-      isExistingUser,
-    });
-  } catch (e) {
-    console.warn('[invitations] email no enviado a', cleanEmail, e.message);
+  // Enviar correo (no crítico — no rompe el import si Resend falla).
+  // sendEmail:false → el llamador maneja su propia plantilla de correo
+  // (ej. /api/invite, que agrega el NIT para prellenar el flujo de unirse).
+  if (sendEmail) {
+    try {
+      await sendInvitationEmail({
+        to:             cleanEmail,
+        name:           name,
+        orgName:        orgName,
+        orgNit:         orgNit,
+        senderName:     senderName,
+        role:           sysRole,
+        isExistingUser,
+      });
+    } catch (e) {
+      console.warn('[invitations] email no enviado a', cleanEmail, e.message);
+    }
   }
 
   return { invitation, isExistingUser };

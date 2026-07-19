@@ -12,7 +12,7 @@ const PLANS = [
   { value: '',             label: 'Sin plan sugerido',             price: null,            desc: null },
   { value: 'piloto',       label: 'Piloto',                        price: 'Gratis',        desc: '1 drone · 1 piloto · bitácora digital' },
   { value: 'escuadrilla',  label: 'Escuadrilla',                   price: '$59.000/mes',   desc: '3 drones · 4 pilotos · reportes SMS' },
-  { value: 'flota',        label: 'Flota',                         price: '$159.000/mes',  desc: '15 drones · 15 pilotos · todas las funciones' },
+  { value: 'flota',        label: 'Flota',                         price: '$159.000/mes',  desc: '10 drones · 10 pilotos · todas las funciones' },
   { value: 'enterprise',   label: 'Enterprise',                    price: 'A convenir',    desc: 'Ilimitado · soporte dedicado · API' },
 ];
 
@@ -55,7 +55,10 @@ export default function InvitacionesTab() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al enviar');
       const grantMsg = data.grantDays ? ` (${data.grantDays} días de acceso gratis, sin tarjeta)` : '';
-      setResult({ ok: true, msg: `Invitación enviada a ${form.email}${data.orgName ? ` → ${data.orgName}` : ''}${data.isExistingUser ? ' (usuario ya registrado — verá banner en su dashboard)' : ''}${grantMsg}` });
+      const planMsg = data.activatedPlan
+        ? ` — Plan "${PLANS.find(p => p.value === data.activatedPlan)?.label || data.activatedPlan}" activado sin pago. Define la fecha de vencimiento desde el tab Usuarios.`
+        : '';
+      setResult({ ok: true, msg: `Invitación enviada a ${form.email}${data.orgName ? ` → ${data.orgName}` : ''}${data.isExistingUser ? ' (usuario ya registrado — verá banner en su dashboard)' : ''}${grantMsg}${planMsg}` });
       setForm({ email: '', name: '', role: 'piloto', plan: '', message: '', freeDays: 90 });
       setSelectedOrg(null);
       setOrgSearch('');
@@ -319,6 +322,7 @@ export default function InvitacionesTab() {
             <li>· <strong className="text-slate-400">Usuario nuevo + sin org</strong> — entra directo con acceso gratis por los días indicados, sin elegir plan ni tarjeta.</li>
             <li>· <strong className="text-slate-400">Usuario nuevo + con org</strong> — recibe link a registro que lo une a esa org con el rol elegido, gratis (hereda el plan de la org).</li>
             <li>· <strong className="text-slate-400">Usuario existente + con org</strong> — recibe aviso y ve la invitación como banner en su dashboard.</li>
+            <li>· <strong className="text-slate-400">Usuario existente + plan elegido</strong> — el plan se activa de una vez, sin pasar por ePayco ni pedir tarjeta. La fecha de vencimiento queda sin definir — ajústala luego desde el tab Usuarios.</li>
           </ul>
         </div>
       </div>

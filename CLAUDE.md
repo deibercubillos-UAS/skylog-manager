@@ -525,6 +525,126 @@ lleven un tiempo estables en producción. Es un cambio de esquema difícil de re
 base de datos en vivo con pagos reales — el plan original ya recomendaba no apurarlo, y esta
 verificación confirma que hay trabajo real pendiente antes de poder hacerlo con seguridad.
 
+### Bugs reales encontrados y corregidos: switcher + invitaciones (2026-07-06)
+
+El usuario reportó en producción: (1) una invitación aceptada no dejaba al invitado como
+tripulante visible en la org que invitó, (2) el switcher de organizaciones aparece pero "no
+cambia", (3) pidió poder cambiar de organización desde el nombre de la organización en la
+parte superior (header), y (4) que el cambio recargue y refleje el perfil/rol de la otra
+organización. Auditoría completa del código + datos reales en Supabase confirmó 3 causas
+raíz distintas, ninguna documentada hasta ahora:
+
+- **Causa raíz de (2), la más grave — trigger preexistente no relacionado con este
+  refactor**: `prevent_unauthorized_role_change()` (detectado sin arreglar en la Fase 8)
+  bloqueaba **cualquier** `UPDATE` de `profiles.role` hecho vía `createAdminClient()`
+  (service role) cuando el rol cambiaba, porque compara contra `private.can_change_roles()`,
+  que depende de `auth.uid()` — `NULL` bajo el cliente admin (no hay JWT de usuario, solo la
+  service role key). Esto rompía `POST /api/org/switch-active` en silencio (excepción SQL,
+  capturada y devuelta como 500) cada vez que el rol de la cuenta difiere entre las 2
+  organizaciones (ej. admin en una, piloto en otra — el caso real de un dueño de escuela con
+  varias empresas, uno de los 2 casos de uso confirmados al diseñar este refactor). El
+  frontend (`handleSwitchOrg`) solo hacía `console.error`, sin avisar al usuario — de ahí
+  "aparece pero no cambia" sin ningún mensaje visible. **Corregido** (migración
+  `fix_role_change_guard_service_role`): el trigger ahora también permite el cambio cuando
+  `auth.role() = 'service_role'` — las rutas que ya llegan a este punto (`switch-active`,
+  `admin/users`, `epaycoActivation.js`, etc.) validan el permiso a nivel de aplicación antes,
+  el trigger solo debía proteger contra un usuario autenticado normal auto-promoviéndose.
+  `handleSwitchOrg` ahora también muestra `toast.error(...)` si la llamada falla, en vez de
+  fallar en silencio.
+- **Causa raíz de (1)**: `AddPilotPanel.js` (ambos modos, "Registro completo" y "Solo
+  invitación") llamaba a `/api/invite` — que **solo enviaba el correo**, nunca escribía
+  `invitations` correctamente — y luego el cliente insertaba una fila a mano en
+  `invitations` con datos incompletos: modo "Registro completo" grababa
+  `status: 'creado_manualmente'` (no `'pending'`, el único status que el banner de aceptar
+  filtra — la invitación quedaba invisible para el invitado) y modo "Solo invitación" nunca
+  creaba una fila `pilots` ni pasaba `pilot_id`, así que al aceptar,
+  `POST /api/invitations/accept` agregaba la membresía a `organization_members` (por eso el
+  switcher SÍ aparecía — confirma que (1) y (2) son la misma cadena de eventos) pero no
+  encontraba ningún `pilots` que vincular. Además, el rol se guardaba como el label crudo
+  ("Piloto") en vez del rol de sistema normalizado ('piloto') — confirmado en datos reales de
+  producción (una cuenta de prueba tenía exactamente esta corrupción, reparada manualmente:
+  `organization_members.role` 'Piloto'→'piloto', fila `pilots` faltante creada,
+  `invitations.role` históricas normalizadas). **Corregido**: `/api/invite` ahora es la única
+  fuente de verdad — usa `createCrewInvitation()` (el mismo helper ya usado por la
+  importación masiva, con `sendEmail:false` porque esta ruta ya tiene su propia plantilla con
+  el NIT para prellenar el flujo de registro) para crear/reutilizar la fila `invitations` real
+  (token/`pilot_id`/`status='pending'`/rol normalizado), y envía el CTA correcto según
+  `isExistingUser` (login vs. registro — antes siempre mandaba al registro, incluso para
+  cuentas existentes). `AddPilotPanel.js` ya no inserta nada a mano en `invitations`; pasa
+  `pilotId` en modo "Registro completo" y agrega `invitation_status: 'pending'` a la fila
+  `pilots` que crea (antes quedaba `null`, sin badge). `POST /api/invitations/accept` ahora
+  crea la fila `pilots` si no encuentra ninguna para vincular (mismo patrón ya usado por
+  `auth/register` en modo "unirse por NIT") — garantiza que aceptar SIEMPRE deja un
+  tripulante visible, sin depender de que el creador de la invitación haya hecho bien su
+  parte. `InvitationsBanner.js`: se corrigió el copy que aún decía "tu flota y bitácora se
+  transferirán" (comportamiento destructivo superado desde la Fase 5).
+- **(3) y (4)**: el nombre de la organización en el header (`dashboard/layout.js`) era texto
+  estático. Ahora, si la cuenta tiene más de una organización (`memberships.length > 1`,
+  mismo criterio que el switcher existente en el popover de cuenta del sidebar, que se deja
+  intacto como acceso alterno), ese mismo bloque se vuelve un botón con dropdown que lista las
+  organizaciones y llama al mismo `handleSwitchOrg()` — cero cambio visual para cuentas de una
+  sola organización. Con (2) corregido, la recarga completa (`window.location.href =
+  '/dashboard'`) que ya disparaba `handleSwitchOrg()` vuelve a reflejar correctamente
+  rol/plan/permisos de la organización recién activada (menús ocultos/mostrados según
+  `filteredLinks`, todo se recalcula desde el perfil recién leído tras el reload).
+- **Verificación**: `get_advisors` (security) limpio antes y después de la migración y del
+  repair de datos (mismos 2 hallazgos preexistentes); `npx next lint` + `npm run build`
+  limpios (mismos 3 warnings preexistentes). **Limitación documentada**: no se hizo prueba
+  end-to-end en navegador real en este entorno (sin sesión de usuario disponible) — la
+  verificación se apoyó en reproducir la causa raíz contra los datos reales de producción
+  (la cuenta de prueba corrupta encontrada) y confirmar que la migración + el código nuevo la
+  habrían evitado.
+
+### Master — Convertir a Piloto Independiente + Eliminar cuentas (2026-07-06)
+
+A pedido del usuario: el panel `/admin/master` (tab Usuarios) ya podía editar
+rol/plan/vigencia de cualquier perfil, pero no podía (1) convertir una cuenta a piloto
+independiente ni (2) eliminar cuentas — ambas acciones solo existían en self-service
+(`registro type='solo'`, `DELETE /api/auth/delete-account`/`api/user/delete`, cada una
+operando solo sobre el propio usuario autenticado).
+
+- **`POST /api/admin/master/convert-independent`** (`{ targetUserId }`, superadmin):
+  crea una organización nueva para la cuenta objetivo (mismo patrón que el registro
+  `type='solo'` — `company_name: "Piloto: {nombre}"`, `unique_code` aleatorio, `slug`
+  único vía `uniqueSlug()`), agrega una membresía nueva en `organization_members`
+  (`role='admin'`, `subscription_plan='piloto'`) y proyecta esa membresía a `profiles`
+  como organización activa (mismo mecanismo que `POST /api/org/switch-active`, incluye
+  limpiar los campos de ePayco a `null` — es un plan piloto gratuito nuevo). **Deliberadamente
+  no destructivo**: si la cuenta ya pertenecía a otra organización, esa membresía **no**
+  se toca ni se elimina — coincide con el modelo aditivo de multi-organización ya
+  establecido (Fase 5): la cuenta queda con una organización propia adicional, activa, y
+  puede volver a cambiar con el switcher si hace falta. Bloqueado para cuentas
+  `role='superadmin'`. Esta acción es justamente la que se beneficia del fix del mismo día
+  al trigger `prevent_unauthorized_role_change` (ver arriba) — sin ese fix, el `UPDATE` de
+  `profiles.role` habría fallado en silencio cada vez que el rol anterior de la cuenta no
+  fuera ya `admin`.
+- **`POST /api/admin/master/delete-account`** (`{ targetUserId }`, superadmin): elimina
+  la cuenta por completo. Mismo patrón de limpieza que las rutas self-service, extendido a
+  multi-organización — recorre **todas** las membresías reales de la cuenta
+  (`organization_members`, no solo su organización activa) y, para cada una donde sea el
+  único miembro real, elimina esa organización también (cascade borra flota/vuelos/
+  pilotos/etc. de esa org); las organizaciones donde quedan otros miembros reales nunca se
+  tocan. Cancela suscripción ePayco por membresía si aplica (best-effort, no bloquea el
+  borrado). Bloqueado: eliminar la propia cuenta del superadmin desde este panel (usa el
+  flujo de autoeliminación de su propio perfil) y eliminar cualquier cuenta
+  `role='superadmin'`. El orden importa: se calculan las organizaciones a eliminar
+  **antes** de borrar el usuario (para saber cuáles quedarían huérfanas), se elimina el
+  usuario de Supabase Auth (cascade `ON DELETE CASCADE` limpia `profiles` y **todas** sus
+  filas de `organization_members` automáticamente vía FK `user_id → auth.users`), y solo
+  entonces se eliminan las organizaciones marcadas.
+- **UI** (`admin/master/page.js`, modal de edición del tab Usuarios): botón "Convertir a
+  Piloto Independiente" (con `confirm()` nativo) y una sección "Zona de peligro" con un
+  input que exige escribir el correo exacto de la cuenta antes de habilitar "Eliminar
+  cuenta permanentemente" — mismo patrón de confirmación ya usado en `/api/socio/account`
+  (autoeliminación con correo). Ambos controles se ocultan para cuentas `superadmin`
+  (la API también las bloquea; esto solo evita mostrar un botón que siempre falla).
+- **Verificación**: `npx next lint` + `npm run build` limpios (mismos 3 warnings
+  preexistentes). **Limitación documentada**: no se hizo prueba end-to-end en navegador
+  real en este entorno (sin sesión de superadmin disponible) — la verificación se apoyó en
+  revisión de código exhaustiva + reutilización deliberada de los mismos patrones ya
+  probados (creación de org `type='solo'`, `syncOrgMembership`, cascadas de borrado ya
+  usadas por `api/user/delete`/`api/auth/delete-account`).
+
 ---
 
 ## Roles y planes
@@ -536,14 +656,291 @@ verificación confirma que hay trabajo real pendiente antes de poder hacerlo con
 
 | Recurso | piloto | escuadrilla | flota | enterprise |
 |---|---|---|---|---|
-| Drones | 1 | 3 | 15 | ∞ |
-| Pilotos | 1 | 4 | 15 | ∞ |
+| Drones | 1 | 3 | 10 | ∞ |
+| Pilotos | 1 | 4 | 10 | ∞ |
 | Baterías | 3 | ∞ | ∞ | ∞ |
 | Tech/Payloads | 3 | ∞ | ∞ | ∞ |
+
+Cualquier plan puede ampliar drones/pilotos comprando **Recursos adicionales** (piloto
+$30.000/mes, dron $25.000/mes, sin importar el plan) — ver sección dedicada más abajo.
 
 **Conteo de tripulantes** (`crewCountsForLimit(pilotRole)` en `planLimits.js`): **Gerente General y Gerente SMS NO cuentan** contra el límite de "Pilotos"; sí cuentan Piloto, Jefe de Pilotos y Observador. Aplicado en: import onboarding, `POST /api/pilots`, medidor de uso en `/api/subscription`.
 
 **Gerente General fuera del roster** (`isGerenteGeneral(pilotRole)` en `planLimits.js`): el GG es el dueño/representante legal, no tripulación operativa. La página de Tripulación (`/dashboard/pilots`) **filtra** las filas `pilots` con `pilot_role` "Gerente General" (o rol de sistema `admin`) — no aparecen en la lista ni en el contador "N miembros". Valor canónico de `pilot_role` = "Gerente General" (ver `AddPilotPanel`/`EditPilotPanel`).
+
+### Recursos adicionales — piloto/dron extra (2026-07-07)
+
+A pedido del usuario: cualquier organización puede comprar pilotos o drones adicionales
+**sin importar el plan contratado** — Piloto adicional **$30.000 COP/mes**, Dron adicional
+**$25.000 COP/mes** (`lib/addons.js#ADDON_PRICING`, fuente única de precios).
+
+- **`addon_subscriptions`** (migración `20260707_org_addons.sql`): una fila por compra/lote
+  — `organization_id`, `addon_type` ('pilot'/'drone'), `quantity`, `unit_price` (snapshot COP
+  al momento de la compra), `billing` ('monthly'), `status` ('active'/'cancelled'),
+  `epayco_subscription_id`/`epayco_ref` (para cuando exista checkout self-service),
+  `granted_by`, `notes`. **Sin columnas denormalizadas** en `organizations` — el conteo
+  vigente se calcula sumando `quantity` de filas `status='active'` (`getOrgAddonCounts()`),
+  mismo criterio anti-drift ya aplicado en el resto del proyecto (ver **Multi-organización**).
+  RLS: cualquier miembro de la org lee sus propios add-ons; solo service role escribe.
+- **`canAddResource(planKey, currentCount, type, extra)`** (`lib/planLimits.js`) gana un 4º
+  parámetro opcional: el límite efectivo pasa a ser `base_del_plan + extra`. Solo aplica a
+  `'drone'`/`'pilot'` — baterías y tech/payloads siguen dependiendo solo del plan (sin add-on
+  pedido para esos). Los 4 sitios que ya llamaban esta función (`api/pilots`, `api/fleet`,
+  `api/onboarding/import`) ahora resuelven `extra` con `getOrgAddonCounts()` antes de
+  comparar. `api/logbook/import-dji` no cambia — solo usa `canAddResource` para baterías.
+- **`GET /api/subscription`** ahora suma los add-ons activos al `limit` de los medidores de
+  uso (Aeronaves/Pilotos) y devuelve un bloque `addons: { pilot, drone, pricing }`.
+  `/dashboard/subscription` muestra una tarjeta "Recursos adicionales" con el conteo vigente
+  y los precios, con un CTA `mailto:` a soporte.
+- **⚠️ Sin checkout self-service todavía** (limitación real, documentada a propósito): a
+  diferencia de los planes base (`EPAYCO_PLANS`, con `planUid` reales creados en el panel de
+  ePayco), este proyecto no tiene credenciales para crear los productos recurrentes de
+  add-on en el merchant de ePayco desde este entorno — extender el webhook de pagos
+  (`/api/epayco/webhook`, que ya tiene lógica de resolución de plan muy sensible y probada en
+  producción) con un tipo de cargo nuevo sin poder probarlo de punta a punta habría sido
+  irresponsable. **Vía real y funcional hoy**: `/api/admin/master/addons` (GET/POST/DELETE,
+  superadmin) — Master registra la venta a mano (transferencia, WhatsApp, etc.) desde el
+  modal de edición del tab Usuarios ("Recursos adicionales": agregar N unidades de
+  piloto/dron, o cancelar una fila activa). Cuando se creen los planes recurrentes reales en
+  ePayco (mismo procedimiento ya usado para piloto/escuadrilla/flota/enterprise), falta:
+  1) agregar sus `epaycoId`/`planUid` a un `EPAYCO_ADDON_PLANS` análogo a `EPAYCO_PLANS`,
+  2) un `POST /api/addons/checkout` que cree el intent (mismo patrón que
+  `/api/epayco/checkout`) y devuelva la URL de `subscription-landing.epayco.co`, y
+  3) una rama nueva en el webhook que, al detectar ese intent, inserte en
+  `addon_subscriptions` en vez de tocar `profiles.subscription_plan`.
+
+### Trial del plan Piloto + acceso gratuito por certificación Fase 0/I (2026-07-08)
+
+A pedido del usuario, dos correcciones de política comercial que también corrigieron copy
+inconsistente detectado en el landing/marketing (varios lugares afirmaban "6 meses gratis" o
+"acceso gratuito" sin plazo para el proceso de certificación — ninguno de los dos coincidía
+con la realidad):
+
+- **Trial del plan Piloto = 15 días (ciclo mensual)**: fuente de verdad real es
+  `epayco_plan_config.trial_days` (tabla en Supabase, editable desde `/admin/master`) — NO
+  los objetos estáticos `EPAYCO_PLANS`/`PLAN_CONFIG` de `lib/planLimits.js` ni los
+  `PLANS_BASE`/`FALLBACK_PRICES` de cada página de precios, que son solo **respaldo antes de
+  que cargue `/api/plans/public`** (mismo patrón ya documentado en `Pricing.js`). Se
+  actualizó el valor real en BD (antes 14 días, ahora 15) y los 4 fallbacks estáticos
+  (`planLimits.js`, `Pricing.js`, `PreciosClient.js`, `dashboard/select-plan/page.js`) para
+  que coincidan — el ciclo **anual** del plan Piloto no se tocó (sigue en 30 días, valor
+  distinto e intencional, no mencionado en el pedido).
+- **Bug real corregido — `trialText()` redondeaba cualquier trial a meses**
+  (`Math.round(days / 30)`): con un trial real de 14-15 días esto mostraba "1 mes gratis" en
+  `Pricing.js`/`PreciosClient.js` — visualmente falso. Corregido para mostrar días cuando el
+  valor no es múltiplo exacto de 30, meses cuando sí lo es.
+- **Bug real corregido — `dashboard/select-plan/page.js` mostraba el plan Piloto como
+  "Gratis"** (precio $0 fijo, sin trial ni cobro posterior) en vez de su precio real
+  ($20.000 COP/mes) con nota de período de prueba — mismo patrón de badge `🎁 N días gratis
+  al iniciar` que ya usan las páginas de precios. **Limitación real encontrada y NO resuelta
+  en esta pasada** (fuera del alcance de un ajuste de copy, requeriría tocar el flujo de
+  pagos en vivo): `handleSelect('piloto')` en esa misma página activa el plan Piloto
+  escribiendo `subscription_plan: 'piloto'` directo en `profiles` **sin pasar por
+  `/api/epayco/checkout`** — a diferencia de cualquier otro plan/página, esta ruta de
+  onboarding nunca crea una suscripción recurrente real en ePayco para el piloto, así que en
+  la práctica ese camino específico no cobra nunca automáticamente tras el trial. Documentado
+  aquí para que el equipo decida si ese flujo debe wirearse al checkout real o si es
+  intencional.
+- **Acceso gratuito por certificación como Explotador UAS — política real**: aplica
+  únicamente a empresas en **Fase 0 o Fase I** del proceso de certificación ante la
+  AeroCivil, con un **tope máximo de 6 meses** (antes el copy del landing prometía "sin
+  costo durante todo el proceso" sin plazo, y en un punto llegó a decir "6 meses gratis" para
+  el plan Piloto en general, sin relación con la certificación — ambas afirmaciones
+  eliminadas). **Sigue sin ser self-service** (no hay validación automática de en qué fase
+  está un radicado) — el equipo de BitaFly confirma manualmente y activa el acceso desde
+  `/admin/master` (tab Usuarios → botón "Activar acceso gratuito · Fase 0/I certificación
+  (máx. 6 meses)", antes otorgaba 2 años de plan Flota sin relación con las fases reales del
+  proceso — ahora prellena `subscription_expires_at` a +6 meses como tope, editable a mano si
+  la fase del solicitante termina antes). Copy corregido con la misma redacción (Fase 0/Fase
+  I, máximo 6 meses, "contáctanos con tu número de radicado") en las 4 superficies que lo
+  mencionaban: banner de `Pricing.js`/`precios/PreciosClient.js`, hero + meta + FAQ de
+  `/operadores-uas`, y el banner de `dashboard/select-plan`.
+- **Barrido adicional (mismo día, a pedido del usuario "aplicar los cambios a la
+  aplicación")**: un segundo grep más amplio encontró **10 archivos más** con el mismo tipo
+  de afirmación desactualizada, no capturados en la primera pasada porque no contenían las
+  palabras clave de esa búsqueda inicial — incluye hallazgos reales de alta visibilidad, no
+  solo variantes menores: el heading grande del CTA final de `/precios`
+  (`PreciosClient.js`, "Gratis por 6 meses" → "15 días gratis"), el FAQ **visible** de esa
+  misma página (`faqItems`, distinto del `faqSchema` de `page.js` que sí se había corregido
+  antes — dos arrays de FAQ paralelos en la misma ruta), el `offers.description` del schema
+  `SoftwareApplication` del home (`page.js`, "1 mes gratis" → "15 días de prueba"), el CTA
+  final de la plantilla de casos de éxito (`casos/[slug]/page.js`, aplica a **todas** las
+  páginas de casos vía el mismo componente), las 4 páginas de comparativa
+  (`comparativa-bitafly-airdata/-dronedesk/-geodrone/-uav-forecast`, ~14 menciones de
+  "30 días" en CTAs/tablas/meta descriptions), el propio flujo de registro
+  (`registro/page.js`, "Gratis 1 mes" en el selector de plan real que ve cualquiera al crear
+  cuenta — no es marketing, es producto) y 2 FAQ que llamaban al plan Piloto "el plan
+  gratuito" sin matiz (`bitacora-digital`, `gestion-flota-drones`). Todos corregidos al
+  mismo estándar (15 días de prueba mensual / Fase 0-I máx. 6 meses). La app Android no
+  requirió ninguna acción — corre en modo *remote URL* (carga `bitafly.com`), así que estos
+  cambios de Next.js se reflejan ahí automáticamente sin generar un APK nuevo.
+
+### Ajuste de política: límites del plan Flota + certificación Fase 0 (2026-07-10)
+
+A pedido del usuario, dos correcciones más sobre lo documentado arriba:
+
+- **Plan Flota = 10 drones / 10 pilotos** (antes 15/15): `PLAN_CONFIG.flota.maxDrones` y
+  `.maxPilots` en `lib/planLimits.js` (fuente real que enforced `canAddResource`), más todas
+  las superficies de copy que repetían "15 aeronaves"/"15 usuarios"/"15 drones"/"15 pilotos"
+  del plan Flota: `Pricing.js`, `precios/PreciosClient.js`, `precios/page.js` (schema),
+  `registro/page.js`, `dashboard/select-plan/page.js`, `operadores-uas/page.js`,
+  `gestion-flota-drones/page.js` (meta + FAQ + hero), `admin/master/_InvitacionesTab.js`,
+  `api/admin/master/invite/route.js`, `scripts/gen_pptx.js`, y los docs vivos
+  `docs/bitafly-product-brief.md`/`docs/google-ads.md`/`docs/LINKEDIN_PLAN_COWORK.md`. Los
+  demás planes (Piloto/Escuadrilla/Enterprise) no cambian.
+- **Acceso gratuito por certificación — ahora solo Fase 0, y otorga plan Escuadrilla (no
+  Flota)**: revierte el alcance de la política del 2026-07-08 — ya **no** aplica a empresas en
+  Fase I, solo Fase 0. El tope de 6 meses no cambia. El atajo del panel Master
+  (`admin/master/page.js`) ahora prellena `subscription_plan: 'escuadrilla'` (antes `'flota'`)
+  y su etiqueta/nota pasan de "Fase 0/I" a "Fase 0" — mismo mecanismo de prellenado editable,
+  el superadmin sigue pudiendo ajustar plan/fecha a mano antes de guardar si un caso puntual lo
+  requiere. Copy actualizado en las mismas 4 superficies de la política original
+  (`Pricing.js`, `precios/PreciosClient.js`, `operadores-uas/page.js`,
+  `dashboard/select-plan/page.js`) más el FAQ de `precios/page.js` que también la mencionaba.
+
+### Landing — sección "Funciones" reorganizada en 4 grupos (2026-07-10)
+
+A pedido del usuario ("actualiza la sección de plataforma del landing, alineado a la primera
+versión"): el array `FEATURES` de `src/app/page.js` tenía 11 tarjetas planas, congeladas antes
+de todo lo construido esta sesión — no mencionaba Multi-organización, Evaluación de Riesgos en
+el despacho, Mantenimiento Menor, Inventario de Operación, Capacitación con examen calificado,
+Proveedores, Manuales Corporativos, Recursos Adicionales ni la app Android nativa.
+
+- **Reorganizada en 4 grupos** (`FEATURE_GROUPS`, mismo patrón visual ya usado en el FAQ
+  rediseñado) — las mismas 3 categorías del sidebar real de la app (Operación · Flota & Equipo
+  · Documentación & Cumplimiento) más un cuarto grupo "Plataforma y Seguridad" para lo
+  transversal (roles, add-ons, app móvil, infraestructura) — para que el landing describa
+  exactamente la misma arquitectura de información que ve un usuario ya adentro del producto,
+  no una taxonomía de marketing inventada aparte.
+- **21 features en total** (antes 11): 6 en Operación, 5 en Flota & Equipo, 6 en Documentación
+  & Cumplimiento, 4 en Plataforma y Seguridad. Cada una redactada desde lo que el módulo
+  realmente hace hoy (verificado contra `docs/manual-funcional-bitafly.md` y
+  `docs/documento-tecnico-bitafly.md` de esta misma sesión) — ninguna es aspiracional.
+  `href` solo en las que tienen página satélite real (`/gestion-flota-drones` se enlazó por
+  primera vez desde Funciones, existía pero no estaba referenciada desde aquí); las nuevas sin
+  página dedicada (Multi-organización, Despacho con Evaluación de Riesgos, Mantenimiento
+  Menor, Inventario, Capacitación, Proveedores, Manuales, Recursos Adicionales, App Android,
+  Roles) quedan como tarjeta informativa sin enlace, mismo patrón que ya usaban "Roles y
+  Multi-usuario"/"100% en la Nube" antes de este cambio.
+- **Badges reducidos a 2** (antes 3, con "Nuevo" repetido sin criterio claro): "Destacado" en
+  Replay GPS (diferenciador único) y "Nuevo" solo en Multi-organización (el cambio
+  arquitectónico más grande de la sesión) — se quitó de Clima (ya lleva tiempo en producción)
+  para no diluir la señal con demasiadas tarjetas marcadas "Nuevo" a la vez.
+- **Sección "Cumplimiento RAC 100" contigua** también actualizada (de 6 a 7 bullets): agrega
+  "Evaluación SORA obligatoria antes de programar cualquier misión" y actualiza los bullets de
+  SMS (ahora menciona matriz de riesgo/SPI/acciones correctivas) y Reportes (menciona el
+  Reporte Operacional Mensual UAS y "+20 formatos" en vez del genérico "Reportes en PDF").
+- `softwareSchema.featureList` (JSON-LD) sigue derivándose automáticamente de
+  `FEATURES.map(f => f.title)` — no requirió cambio de código, solo se benefició de los datos
+  nuevos.
+- **Verificación visual real**: se levantó `next dev` en este entorno y se capturaron
+  screenshots con Playwright (`playwright-core` instalado con `--no-save`, no se tocó
+  `package.json`/`package-lock.json`) de los 4 grupos y de la sección Cumplimiento antes de
+  dar el cambio por cerrado — no solo lint/build.
+
+### Páginas legales (Aviso Legal, Política de Privacidad, Política de Cookies, Términos y
+### Condiciones) + consentimiento de cookies real (2026-07-13)
+
+A pedido del usuario ("nos falta crear las páginas legales... primero investigues y
+verifiques qué debe llevar cada una"): se investigó primero el contenido mínimo exigido por
+la normativa colombiana antes de escribir nada — Ley 1581 de 2012 + Decreto 1377 de 2013
+(protección de datos/derechos ARCO), Ley 1480 de 2011 Estatuto del Consumidor (Art. 50
+identificación del proveedor, Art. 47 derecho de retracto), Ley 527 de 1999 (validez de
+mensajes de datos) y la Resolución 32.126 de 2022 de la SIC (consentimiento previo, expreso
+e informado para cookies analíticas/de terceros) — y se verificó contra el código real qué
+cookies/rastreo usa efectivamente el sitio, en vez de redactar un texto genérico.
+
+- **Identidad legal — decisión confirmada con el usuario**: se encontró una inconsistencia
+  real entre lo ya publicado (footer/JSON-LD decían "Bitafly Operations", Bogotá) y el
+  borrador de estatutos del repo (`docs/estatutos-bitafly-sas.md`: "BITAFLY S.A.S.",
+  domicilio Madrid-Cundinamarca, NIT aún sin asignar por la DIAN, escritura pública
+  pendiente). Confirmado con el usuario (`AskUserQuestion`): usar **BitaFly S.A.S.**,
+  domicilio Madrid, Cundinamarca, con el NIT marcado explícitamente como "en trámite de
+  asignación ante la DIAN" en los 4 documentos — en vez de inventar un NIT o dejar el campo
+  vacío. `src/lib/legalPages.js` (`COMPANY`) es la fuente única de estos datos; se propagó la
+  misma razón social al JSON-LD `Organization` de `src/app/layout.js`
+  (`legalName`/`addressLocality`/`authors`/`creator`/`publisher`) y al copyright de los 3
+  footers del sitio (`SEOFooter.js`, `page.js`, `documentacion/page.js`) para que no queden
+  2 identidades distintas conviviendo en el sitio.
+- **`components/legal/LegalLayout.js`** (nuevo, server component): shell compartido por los
+  4 documentos — hero navy + tabla de contenido lateral `sticky` (anclas `#id`, sin
+  scroll-spy en JS, CSS puro) + `<article>` con clases Tailwind por selector de descendiente
+  (`[&_h2]:...`, `[&_table]:...`) en vez de un plugin de tipografía (el proyecto no tiene
+  `@tailwindcss/typography` instalado) + tira de enlaces cruzados a los otros 3 documentos +
+  `SEONav`/`SEOFooter` ya existentes.
+- **4 páginas nuevas** (`/aviso-legal`, `/politica-privacidad`, `/politica-cookies`,
+  `/terminos-condiciones`), cada una con su propio `metadata`/`canonical`. Contenido
+  fundamentado en datos reales del proyecto, no genérico: la Política de Privacidad describe
+  los encargados del tratamiento reales (Supabase, Vercel, Cloudflare R2, ePayco, Resend) y
+  aclara que **no se almacenan datos de tarjeta** (los procesa ePayco); los Términos
+  describen el período de prueba, la renovación automática vía ePayco y el derecho de
+  retracto adaptado a un servicio de suscripción digital con período de prueba gratuito.
+- **Política de Cookies — honesta con lo que el sitio realmente hace**: se verificó por
+  código (no se asumió) que Google Tag Manager, Google Analytics (condicional a
+  `NEXT_PUBLIC_GA_ID`) y Microsoft Clarity (condicional a `NEXT_PUBLIC_CLARITY_ID`) sí
+  registran cookies de terceros, y que **Vercel Web Analytics/Speed Insights son
+  cookieless** (confirmado por la documentación oficial de Vercel: identificador anónimo
+  por request, sin almacenarse en el navegador, datos agregados descartados a las 24h) — se
+  documentan ambos hechos tal cual, sin afirmar "no usamos cookies" de forma genérica ni
+  omitir las que sí se usan. También se aclara que la atribución de marketing (UTM/referrer,
+  `lib/attribution.js`) usa `localStorage` de primera parte, no cookies, por lo que no
+  aplica a esta política aunque sí se menciona por transparencia.
+- **Consentimiento de cookies — implementado de verdad, no solo declarado en el texto**:
+  antes de esta tarea, GTM se cargaba siempre de forma incondicional en `layout.js` (script
+  inline hardcodeado, sin ningún gate) — si la Política de Cookies iba a decir "las cookies
+  analíticas solo se activan tras su consentimiento", eso tenía que ser cierto. Se creó
+  `components/legal/CookieConsentManager.js` (client component) que reemplaza los bloques
+  de GTM/GA/Clarity que antes vivían sueltos en `layout.js`: mientras no exista
+  `localStorage.bitafly_cookie_consent`, muestra un banner inferior (Aceptar/Rechazar +
+  enlace a `/politica-cookies`) y **no inyecta ningún script de terceros**; solo tras
+  "Aceptar" monta el `<Script id="gtm">` (+ su `<noscript><iframe>`), `<GoogleAnalytics>` y
+  Clarity. Las cookies esenciales (sesión de Supabase Auth) no pasan por este gate — no
+  requieren consentimiento por ser estrictamente necesarias para el servicio.
+- **Integración natural** (no páginas huérfanas): los 2 pares de enlaces muertos
+  `href="#"` ("Términos de servicio"/"Política de privacidad") que ya existían en
+  `registro/page.js` desde antes ahora apuntan a las rutas reales (`target="_blank"` para no
+  perder el progreso del formulario); `SEOFooter.js` (usado por 23 páginas) gana una fila de
+  enlaces legales en su barra inferior, propagándose a todo el sitio de una sola vez;
+  `page.js` (home) y `documentacion/page.js` (cada uno con su propio footer independiente,
+  no usan `SEOFooter`) recibieron la misma fila de enlaces por separado.
+- **Fuera de alcance a propósito**: no se implementó un panel de preferencias granular por
+  categoría de cookie (solo Aceptar/Rechazar todo) ni persistencia de la elección en el
+  servidor (vive en `localStorage`, por dispositivo/navegador) — suficiente para el
+  requisito legal de consentimiento previo sin construir infraestructura de gestión de
+  consentimiento a medida no pedida.
+- **Verificación**: `npx next lint` + `npm run build` limpios (mismos 3 warnings
+  preexistentes); capturas con Playwright (`playwright-core`, mismo patrón ya usado para la
+  sección Funciones) confirmando el banner de cookies, la tabla de contenido lateral y el
+  render de las 4 páginas contra `next dev` real, no solo build estático.
+
+### Footer estandarizado en todo el sitio (2026-07-13, mismo día)
+
+A pedido del usuario ("estandariza los footer de todas las páginas"): antes de esta tarea
+convivían **3 implementaciones de footer** distintas — `SEOFooter.js` (usado por las 23
+páginas SEO + las 4 páginas legales vía `LegalLayout`), un footer inline propio en la home
+(`page.js`) y otro footer inline propio en `documentacion/page.js` — cada una con columnas,
+copy y enlaces ligeramente distintos, además de un cuarto componente
+`components/landing/Footer.js` **sin ningún caller en todo el proyecto** (confirmado por
+`grep`), código muerto de una versión anterior.
+
+- **Home y Documentación migradas a `<SEOFooter />`**: se eliminaron los dos footers inline
+  (columnas "Plataforma/Recursos" con anclas internas `#funciones`/`#precios`/`#faq` que
+  solo tenían sentido en esas páginas puntuales) y se reemplazaron por el mismo componente
+  compartido, pasando `brandDesc` (prop ya existente) para conservar la descripción de marca
+  específica de cada una. Ahora las **27 páginas públicas** del sitio (23 SEO + home +
+  documentación + las 4 legales) renderizan exactamente el mismo footer — mismas columnas
+  Plataforma/Empresa/Recursos, mismo badge de cumplimiento, misma fila de enlaces legales y
+  el mismo copyright `BitaFly S.A.S.` agregado el mismo día (ver **Páginas legales** arriba).
+- **`components/landing/Footer.js` eliminado**: código muerto, sin callers, y contenía
+  además una afirmación no verificada en ningún otro lugar del proyecto ("ISO 27001
+  Security") — se borró en vez de "estandarizarlo" sin sentido.
+- **Deliberadamente sin tocar**: las páginas bajo `/dashboard`, `/admin`, `/socio` y las de
+  flujo de autenticación (`/registro`, `/login`, `/reset-password`, `/update-password`) no
+  llevan footer público — son pantallas de aplicación/formulario de pantalla completa, no
+  páginas de marketing, y nunca lo tuvieron; no es una inconsistencia a corregir.
+- **Verificación**: `npx next lint` + `npm run build` limpios (mismos 3 warnings
+  preexistentes); capturas con Playwright confirmando visualmente que home, documentación y
+  una página SEO ya existente (`/rac-100`) renderizan ahora el mismo footer pixel por pixel.
 
 ### Piloto Independiente (role=`admin` + plan=`piloto`)
 
@@ -556,6 +953,7 @@ verificación confirma que hay trabajo real pendiente antes de poder hacerlo con
 - **Planeaciones**: guarda en `/plan-vuelo`, selecciona antes de volar desde `/logbook/new`.
 - **Unirse a org**: desde `/dashboard/subscription`, ingresa NIT, elige rol → `POST /api/auth/join-org` transfiere toda la data (aircraft, batteries, flights, pilots, flight_plans, etc.) al nuevo org y actualiza `profiles.organization_id + role`. La org origen queda marcada como `[Migrada]`.
 - OnboardingBanner NO se muestra al piloto independiente.
+- **Sin grupo "Documentación" (2026-07-07)**: el piloto independiente no tiene acceso ni ve el grupo completo (Seguridad SMS, SORA, Auditoría, Reportes, Protocolos, Proveedores, Capacitación, Manuales) — a pedido explícito del usuario. `dashboard/layout.js` vacía el grupo entero para `isPilotoPlan` (antes algunas entradas sin `pilotHidden` —Protocolos/Proveedores/Capacitación— o con `pilotOnly` —SORA— sí se colaban). A nivel de ruta, `requirePermission()` (`lib/authGuards.js`) ganó una opción `{ blockIndependentPilot: true }` (aplicada en los layouts de safety/audit/reports/settings/forms/suppliers/training) que redirige al independiente aunque su rol `admin` esté en la lista de roles permitidos — antes esas páginas se podían visitar por URL directa aunque el nav ya las ocultara. `/dashboard/sora` no tenía ningún guard server-side (page.js 100% client) — se le agregó un `layout.js` mínimo solo para este bloqueo, sin restringir al resto de roles que ya podían entrar.
 
 ### Piloto dentro de Organización (role=`piloto`)
 
@@ -566,7 +964,7 @@ Miembro de una org ajena (se unió por NIT o invitación). `profile.subscription
 - **Sin Suscripción**: el nav de Suscripción solo aparece para `superadmin`/`admin`.
 - **Despacho** (`/logbook/new`): usa el flujo CON orden de vuelo; solo ve las misiones donde es el PIC asignado Y programadas para **hoy** (`visibleAuths` filtra `resources.auths` por su `pilots.id` + `scheduled_at` == fecha actual, 2026-07-02d — antes veía todas sus misiones asignadas sin importar la fecha). No puede adelantar ni atrasar el despacho respecto a la fecha programada. Managers no tienen esta restricción.
 - **Mis Vuelos** (`/dashboard/mis-vuelos`): vista solo-lectura de sus misiones programadas (reutiliza `ProgramacionActivaClient` con props `pilotEmail`/`pilotId`/`readOnly`), con descarga KMZ/PDF.
-- **Planear Vuelo**: puede planear; al guardar (`POST /api/flight-plans`) si `role==='piloto'` se **notifica por correo al Jefe de Pilotos y GG** (`notifyFlightPlan`).
+- **Sin Planear Vuelo (quitado 2026-07-07)**: el piloto de org ya **no** puede crear planeaciones — solo vuela lo que le programaron (Programación/Mis Vuelos), a pedido explícito del usuario. Se quitó la entrada de nav (`dashboard/layout.js`), `POST /api/flight-plans` ahora rechaza `role==='piloto'` con 403 (el piloto independiente siempre tiene `role='admin'`, nunca `'piloto'` — así que este chequeo nunca afecta al independiente) y `layout.js` de `/dashboard/plan-vuelo` redirige a `/dashboard/mis-vuelos` si intenta entrar por URL directa. Se eliminó de paso la notificación `notifyFlightPlan()` (JP/GG al planear), que quedó sin ningún caller.
 - **Expediente self-service** (`/dashboard/settings/profile`): sube cédula, diploma UAS, examen teórico, certificado médico (+ vencimiento), CIPU y contacto de emergencia → `PATCH /api/pilots/my-documents` (campos en `pilots`; crea la fila si falta). Al guardar **notifica a GG/JP/GSMS**. Visibles para ellos en Tripulación / `EditPilotPanel`.
 - **SORA**: visible para el rol piloto.
 - **Dashboard propio** (`PilotDashboard.js`, se renderiza cuando `role==='piloto'`): KPIs propios (horas de vuelo, vuelos realizados, vuelos pendientes), **gráfica de horas mensuales** (últimos 6 meses, suma `flights.total_time` por mes), lista de misiones programadas con botón Despachar, y botones de reporte **VOR**/**MOR** (formularios públicos `/vor/{org}` · `/mor/{org}`).
@@ -1464,7 +1862,7 @@ ya hacía `/api/cron/free-grants` (ese sigue intacto, sin cambios).
 
 ## Planeación, Programación y Despacho
 
-**Planear Vuelo** (`/dashboard/plan-vuelo`): visible para el **piloto independiente** (`pilotOnly`) y para el **piloto de org** (entrada extra `roles:['piloto']`+`pilotHidden`). Usa `components/FlightPlanner.js` (mapa + zona + KMZ + PDF + guardar planeación). Si quien guarda es `role==='piloto'`, `POST /api/flight-plans` notifica al Jefe de Pilotos y GG.
+**Planear Vuelo** (`/dashboard/plan-vuelo`): visible **solo** para el **piloto independiente** (`pilotOnly` — `role==='admin' && plan==='piloto'`). Usa `components/FlightPlanner.js` (mapa + zona + KMZ + PDF + guardar planeación). El piloto dentro de una organización **ya no** tiene acceso (quitado 2026-07-07, ver **Piloto dentro de Organización**) — `layout.js` de la ruta redirige a `/dashboard/mis-vuelos` y `POST /api/flight-plans` rechaza `role==='piloto'` con 403.
 
 **Programación** (`/dashboard/authorizations`, roles admin/jefe_pilotos, `MissionControlClient.js`): el calendario
 (mismo componente que Programación Activa, ver abajo) es la vista principal — `PageHero` +
@@ -2910,7 +3308,7 @@ Sistema de referidos B2B: escuelas de formación UAS y asesores independientes p
 | Tabla | Descripción |
 |---|---|
 | `partners` | Escuela o asesor. `type` (escuela/asesor), `parent_partner_id` (asesor → escuela), `commission_pct`, `free_seats_limit`/`free_seats_used`, `free_days`, `status`, **`logo_url`** (logo del socio para branding de correos/panel) |
-| `partner_codes` | Códigos de venta únicos (`code` UNIQUE). Generados como INICIALES-XXXX (ej. EAC-XB12). Cada partner puede tener varios. |
+| `partner_codes` | Códigos de venta únicos (`code` UNIQUE). Por defecto se autogeneran como INICIALES-XXXX (ej. EAC-XB12), pero son **personalizables desde Master** (crear socio o "+ código" aceptan un valor propio, y cada código ya creado se puede renombrar con el ícono de lápiz) — ver **Rutas Master**. Cada partner puede tener varios. |
 | `partner_members` | Quién accede al panel `/socio`. `role`: `owner` (crea asesores, ve todo) o `asesor` (solo sus datos). Solo service role puede escribir. |
 | `partner_invitations` | Invitación a personas **sin cuenta** BitaFly para acceder al panel `/socio`. `email`, `role` (owner/asesor), `token` (UNIQUE), `status` (pendiente/aceptada/expirada), `expires_at` (+7 días). |
 | `free_grants` | 1 por email, no renovable. `status`: `enviado→activado→degradado→purgado`. `expires_at` + `purge_after` (expiry + 90 días). `redeemed_org_id` al canjearse. Tiene `updated_at`. |
@@ -2960,12 +3358,12 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 - **UI** (`socio/page.js`): tabs **Panel** / **Reportes** / **Perfil**. Perfil: datos de cuenta, subida/cambio de logo (owner) y borrado de cuenta autoconfirmado.
 
 ### Rutas Master (`/admin/master`)
-- `/api/admin/master/partners` — CRUD de socios: crear, editar (comisión/cupos/días inline), agregar código, vincular miembro/invitar, desactivar. GET incluye `invitations[]` por partner.
+- `/api/admin/master/partners` — CRUD de socios: crear, editar (comisión/cupos/días inline), agregar código, vincular miembro/invitar, desactivar. GET incluye `invitations[]` por partner. **Código de venta personalizable (2026-07-07)**: tanto crear socio (`POST` sin `action`) como agregar código (`action:'add_code'`) aceptan un `code` opcional — si se manda, se usa tal cual (normalizado con `normalizeCode()`: mayúsculas, espacios→guion, solo A-Z/0-9/guion) en vez de autogenerar; sin `code`, sigue autogenerando como antes. Nueva acción `action:'update_code' { code_id, code?, active? }` renombra un código ya creado o cambia su estado activo. `partner_codes.code` tiene `UNIQUE` en BD — un choque responde 409 con mensaje claro (`error.code === '23505'`).
 - `/api/admin/master/commissions` — GET comisiones agrupadas por partner/período, POST liquida por IDs
-- `/api/admin/master/invite` — GET lista de organizaciones (para dropdown) · POST `{ email, role, plan?, name?, orgId?, message? }` envía correo de invitación a cliente; si `orgId` crea/actualiza fila en `invitations` (upsert por org+email). CTA adaptada: existente → dashboard, nuevo+org → registro con NIT, nuevo → registro independiente. Card de plan con precio pero **sin fecha de primer pago**.
-- Tab **Socios** (`_SociosTab.js`) — crea escuelas/asesores, jerarquía, miembros, copiar códigos, **invitaciones enviadas** (chips pendiente/aceptada/expirada), **edición inline de condiciones**. Botón "Vincular" con guard anti-doble-envío.
+- `/api/admin/master/invite` — GET lista de organizaciones (para dropdown) · POST `{ email, role, plan?, name?, orgId?, message? }` envía correo de invitación a cliente; si `orgId` crea/actualiza fila en `invitations` (upsert por org+email). CTA adaptada: existente → dashboard, nuevo+org → registro con NIT, nuevo → registro independiente. **Activación directa sin ePayco (2026-07-07)**: si el destinatario YA tiene cuenta (`isExistingUser`) y se eligió un `plan`, ese plan se activa de inmediato sobre su organización activa (`profiles.subscription_plan` + `syncOrgMembership()`) — sin checkout, sin pedir tarjeta. A propósito **no** toca `subscription_expires_at`: el superadmin la define después a mano desde el tab Usuarios (`PATCH /api/admin/master`). El correo dice "Plan activado" en vez de "Plan sugerido" cuando aplica (`activatedPlan` en la respuesta). Sin cuenta previa, el plan queda solo como sugerencia informativa en el correo (no hay perfil todavía sobre el cual activarlo).
+- Tab **Socios** (`_SociosTab.js`) — crea escuelas/asesores, jerarquía, miembros, copiar códigos (ahora con campo de código personalizado al crear/agregar y lápiz para renombrar cada uno), **invitaciones enviadas** (chips pendiente/aceptada/expirada), **edición inline de condiciones**. Botón "Vincular" con guard anti-doble-envío.
 - Tab **Comisiones** (`_ComisionesTab.js`) — filtros pendiente/liquidada, acordeón por socio, "Liquidar todo" o por período
-- Tab **Invitaciones** (`_InvitacionesTab.js`) — formulario: email + nombre, selector visual de rol (4 botones), selector de plan sugerido (5 cards), dropdown buscable de org (nombre/NIT), mensaje personalizado, preview resumen, feedback. Siempre verifica `{ error }` de Resend.
+- Tab **Invitaciones** (`_InvitacionesTab.js`) — formulario: email + nombre, selector visual de rol (4 botones), selector de plan sugerido (5 cards), dropdown buscable de org (nombre/NIT), mensaje personalizado, preview resumen, feedback (incluye aviso de activación de plan sin pago cuando aplica). Siempre verifica `{ error }` de Resend.
 
 ### Reglas críticas
 - **Código en checkout**: campo opcional en `/dashboard/subscription` → `POST /api/epayco/checkout` → `pending_subscriptions.partner_code`. También en registro libre (`registro/page.js`, campo visible salvo cuando viene por invitación/regalo) → `POST /api/auth/register` crea `referrals` org↔socio (crédito; la comisión real se atribuye al pagar).
@@ -2978,8 +3376,117 @@ El **dueño** (`role='owner`) de un partner `type='escuela'` recibe `subscriptio
 
 ---
 
+## Auditoría de seguridad y salud de plataforma (2026-07-14)
+
+Auditoría completa a pedido del usuario (código + Supabase + Vercel + Cloudflare R2 + GitHub).
+Verificada contra los servicios reales, no solo lectura de código. **Etapa 1 aplicada** (fixes
+accionables de código/DB); Etapa 2 (rendimiento RLS) pendiente, documentada al final.
+
+- **A1 — Bug real en producción corregido (borrado de cuentas fallaba)**: los logs de Vercel
+  mostraban `[admin/master/delete-account] Database error deleting user` (6 veces, 3 usuarios,
+  la última el mismo día de la auditoría). Causa raíz encontrada consultando la BD real: **15
+  foreign keys hacia `profiles` tenían `ON DELETE NO ACTION`** (columnas de autoría/trazabilidad
+  `created_by`/`updated_by`/`scheduled_by`/`sent_by`/`granted_by` en `flight_authorizations`,
+  todas las `training_*`/`sms_*`/`safety_*`, `addon_subscriptions`, `aerocivil_monthly_reports`,
+  `automation_jobs`). Cuando la cuenta a borrar había creado cualquiera de esos registros, el
+  cascade `auth.users → profiles` se bloqueaba y el borrado fallaba entero. Migración
+  `20260714_fk_profiles_set_null.sql` (aplicada y verificada): las 15 pasan a `ON DELETE SET
+  NULL` — las 15 columnas son nullable, así que la fila histórica se conserva perdiendo solo la
+  referencia al autor (no CASCADE, que borraría evidencia operativa/regulatoria; no NO ACTION,
+  que bloquea). Verificado: 0 FKs `NO ACTION` restantes hacia `profiles` (23 SET NULL + 4
+  CASCADE intencional). Las FKs hacia `auth.users` ya eran todas CASCADE.
+- **A2 — Bypass de auth si `ADMIN_SECRET` no está configurada**: `GET`/`POST /api/epayco/plans`
+  y `POST /api/epayco/sync-redirects` validaban con `key.length === secret.length &&
+  timingSafeEqual(...)`. Si la env var faltaba, `secret=''` igualaba en longitud a una petición
+  sin header (`key=''`) → `timingSafeEqual` de dos buffers vacíos devuelve `true` → **acceso
+  total** a la config de planes de ePayco. Nuevo helper `lib/adminKey.js` (`verifyAdminKey`) con
+  el guard `if (!secret) return false` (mismo patrón defensivo que ya usaban los crons); los 3
+  handlers migrados a él. La lógica de comparación de tiempo constante se conserva.
+- **A3 — Dependencias**: `npm audit fix` (sin `--force`) aplicó solo el patch no-breaking de
+  `ws` (8.20.0 → 8.21.0, transitiva, solo tocó `package-lock.json`). **`jspdf` y `next` NO se
+  bumpearon a propósito**: el CVE de `jspdf` (≤4.2.0, actual 2.5.2) exige saltar a 5.x — cambio
+  mayor que rompería los ~10 generadores de PDF, y la vulnerabilidad es un ReDoS **client-side
+  auto-infligido** (el usuario genera su propio PDF con sus propios datos en su propio navegador
+  → solo puede colgarse a sí mismo, severidad real baja). `next` HIGH exige salto a 15.x (el RCE
+  **crítico** de RSC ya está parcheado en 14.2.35 — no aparece en el audit; solo queda DoS).
+  Ambos quedan como upgrades mayores que requieren regresión dedicada, no bump a ciegas — ver
+  Pendientes abajo.
+- **M2 — Testimonios fabricados eliminados**: `GET /api/testimonials` servía nombres/empresas
+  inventados ("Cap. Julián Arenas", "SkyVisual Drone Services"…) — contradecía la limpieza de
+  testimonios de julio. Su único consumidor (`components/landing/Users.js`) era código muerto
+  sin callers (confirmado por grep). Ambos archivos borrados.
+- **M3 — Rate limiting en 3 endpoints públicos sin auth**: `validate-join` (30/min — acota
+  enumeración de orgs por NIT, que revela nombre+plan), `register-status` (60/min — polling de
+  pago) y `socio/invite-info` (30/min — fuerza bruta de tokens, defensa en profundidad ya que
+  son UUID). Mismo patrón `checkRateLimit(getClientIp(...))` + 429 que el resto de públicos.
+- **Verificado y sano (no asumido)**: advisors de Supabase (security) limpio, mismos 2 hallazgos
+  preexistentes (`partner_invitations` sin política por diseño service-role-only; leaked
+  password protection deshabilitada); los 7 buckets R2 esperados existen; Vercel producción
+  `READY` sobre el último commit con deploys automáticos desde `main`; los 5 crons protegidos
+  con `CRON_SECRET`; webhook ePayco (firma 6 campos + idempotencia) intacto; aislamiento
+  multi-tenant OK (descargas validan prefijo `{orgId}/`, búsqueda global sanitiza separadores
+  PostgREST); cero secretos hardcodeados, cero `.env` en git; los 27 usos de
+  `dangerouslySetInnerHTML` son JSON-LD estático de SEO sin datos de usuario.
+- **Acciones del usuario (fuera de código, no aplicables desde aquí)**: **M1** — el repositorio
+  de GitHub es **público** (expone CLAUDE.md con la arquitectura de seguridad interna, el
+  borrador de estatutos con datos del representante legal, y los planes de marketing); para un
+  SaaS en producción con pagos reales se recomienda hacerlo privado. **M5** — las funciones de
+  Vercel corren en Node 20; el AWS SDK (R2) ya emite warnings y exigirá Node ≥22 desde enero
+  2027 — subir el runtime del proyecto. **Leaked password protection** — habilitar en Supabase
+  Auth (ya estaba en Pendientes).
+
+### Etapa 2 — rendimiento RLS de Supabase (2026-07-14)
+
+Segunda tanda de la auditoría, solo base de datos (migraciones SQL, sin código de `src/`).
+Advisors de rendimiento antes: 156 hallazgos. Después: 125.
+
+- **M4a — `auth_rls_initplan` (25 → 0)**: 25 políticas RLS reevaluaban
+  `auth.uid()`/`auth.email()`/`private.*()` **una vez por fila**. Migración
+  `20260714_rls_initplan_optimize.sql` las envuelve en `(SELECT ...)` → InitPlan evaluado una
+  sola vez por consulta. **Cero cambio semántico** (solo cambia CUÁNDO se evalúa la función, no
+  QUÉ devuelve); se usó `ALTER POLICY` (no DROP/CREATE) para no dejar ninguna ventana sin
+  política. Son las 25 tablas creadas después de la optimización RLS de junio (plan de mejora
+  SMS, training, `organization_members`, etc.). Se dejan leyendo `profiles` directo a propósito
+  (refleja la org activa via switch-active — migrarlas a los helpers `private.*` sería cambio de
+  comportamiento, fuera de alcance de un ajuste de rendimiento).
+- **M4b — `multiple_permissive_policies` (12 → 6)**: los 12 eran 2 casos reales (× 6 roles).
+  `organization_members` tenía 2 políticas SELECT permisivas (`_select_own` + `_select_teammates`)
+  — Postgres evalúa TODAS las permisivas y las OR-ea, duplicando trabajo en una tabla **caliente**
+  (la lee `getOrgContext` en 113 rutas). Migración `20260714_consolidate_org_members_select.sql`
+  las fusiona en una sola `organization_members_select` con el mismo OR (idéntico semánticamente),
+  atómica en la transacción DDL. Los 6 restantes (`app_releases`, público-lee-vigente +
+  superadmin-lee-todo) se dejan **a propósito**: tabla fría (endpoint OTA), patrón intencional, y
+  consolidarla exigiría partir el ALL de superadmin por ganancia nula.
+- **M4c — índices (45 FK sin índice + 74 sin uso) — revisados y diferidos a propósito, NO
+  tocados**: ambos son INFO-level con tradeoffs reales en una BD en vivo y joven (creada marzo
+  2026). Añadir 45 índices FK mete sobrecarga de escritura + almacenamiento por columnas que rara
+  vez se filtran; y "índice sin uso" según `pg_stat` solo significa "no escaneado en la ventana de
+  stats" — en bajo tráfico un índice puede ser útil pero no ejercitado aún, así que dropear 74 a
+  ciegas puede degradar una consulta que no corrió recientemente. Es churn de esquema arriesgado
+  sin señal real de que duela hoy — se difiere hasta tener patrones de consulta reales bajo carga,
+  no se aplica en bloque.
+- **Verificación**: `get_advisors` (security) limpio antes y después (mismos 2 hallazgos
+  preexistentes); `auth_rls_initplan` confirmado en 0 y `organization_members` con una sola
+  política SELECT vía `pg_policies`. Sin cambios en `src/` — no requirió lint/build (las
+  migraciones `.sql` no entran al build de Next).
+
 ## Pendientes de infraestructura
 
+- [ ] **Upgrade mayor de `jspdf` 2.x → 5.x** (cierra el CVE ReDoS ≤4.2.0): requiere probar la
+  generación de los ~10 formatos PDF uno por uno (Libro de Vuelo, Mantenimiento, Baterías,
+  Flota, Bitácora/Expediente de Piloto, SORA, Componentes, SPI, GAP, Capacitación, Proveedores,
+  Actas de manuales) + compatibilidad con `jspdf-autotable`. No es bump a ciegas — ver
+  **Auditoría 2026-07-14** (severidad real baja: ReDoS client-side auto-infligido).
+- [ ] **Upgrade mayor de `next` 14.2.x → 15.x** (cierra los HIGH de DoS restantes; el RCE
+  crítico de RSC ya está parcheado en 14.2.35): cambio de framework mayor, requiere regresión
+  completa. Ver **Auditoría 2026-07-14**.
+- [ ] **Checkout self-service de Recursos adicionales (piloto/dron extra)**: falta crear los
+  planes recurrentes reales en el merchant de ePayco ($30.000/$25.000 COP mensuales) y
+  darme sus `epaycoId`/`planUid` para wirear `POST /api/addons/checkout` + la rama nueva del
+  webhook — ver **Recursos adicionales — piloto/dron extra**. Mientras tanto, Master
+  (`/api/admin/master/addons`) registra la venta a mano.
+- [x] **`20260707_org_addons.sql` aplicada en Supabase (2026-07-07)** — tabla
+  `addon_subscriptions` + política RLS creadas y verificadas.
 - [x] **`20260702_audit_log.sql` aplicada en Supabase (2026-07-03)** — tabla `audit_log` + política RLS creadas y verificadas. Auditoría de acciones ya no es inerte; ver **Auditoría rediseñada**.
 - [x] **`20260703_protocols.sql` aplicada en Supabase (2026-07-03)** — tabla `protocols` + política RLS creadas y verificadas. Ver **Protocolos**.
 - [x] **`20260703_org_aerocivil_registration.sql` aplicada en Supabase (2026-07-03)** — columnas `operator_number`/`registration_expiry`/`authorized_operations` en `organizations`, confirmado con el usuario. Ver **Organización rediseñada**.

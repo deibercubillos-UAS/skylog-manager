@@ -6,7 +6,7 @@ import SEOFooter from '@/components/seo/SEOFooter';
 import { fmtCOP } from '@/lib/formatters';
 
 const faqItems = [
-  { q: '¿El plan gratuito requiere tarjeta de crédito?', a: 'No. El plan Piloto es gratuito por 6 meses sin necesidad de tarjeta de crédito. Solo necesitas un correo electrónico para registrarte. Al finalizar los 6 meses, puedes elegir continuar con el plan de pago o contactarnos para extender el período gratuito si estás en proceso de certificación.' },
+  { q: '¿El plan Piloto requiere tarjeta de crédito para empezar?', a: 'No. El plan Piloto incluye 15 días de prueba sin necesidad de tarjeta de crédito; al finalizar, se realiza el primer cobro. Si tu empresa está en Fase 0 del proceso de certificación como Explotador UAS, puedes acceder sin costo al plan Escuadrilla durante esa etapa (hasta 6 meses) contactando a nuestro equipo.' },
   { q: '¿Puedo cambiar de plan en cualquier momento?', a: 'Sí. Puedes actualizar o degradar tu plan en cualquier momento desde el panel de suscripción. Los cambios aplican al siguiente período de facturación. Si actualizas, el acceso a las nuevas funciones es inmediato.' },
   { q: '¿Hay descuento por pago anual?', a: 'Sí. El pago anual tiene un descuento del 20%. El plan Escuadrilla pasa de $59.000/mes a $49.000/mes (equivalente). El plan Flota pasa de $159.000/mes a $132.500/mes (equivalente). Selecciona "Anual" en el toggle de precios para ver los valores exactos.' },
   { q: '¿Los pagos son en pesos colombianos o dólares?', a: 'Todos los precios son en pesos colombianos (COP). El cobro se realiza a través de ePayco. Aceptamos tarjetas Visa, Mastercard, débito y PSE.' },
@@ -26,7 +26,7 @@ const CROSS = () => (
 // Precios fallback en COP
 const PLANS_BASE = [
   {
-    key: 'piloto',     monthlyAmount: 20000,  annualAmount: 200000,  trialDays: 30,
+    key: 'piloto',     monthlyAmount: 20000,  annualAmount: 200000,  trialDays: 15,
     name: 'Piloto',    sub: 'Para el piloto autónomo',  tag: '1 aeronave · 1 usuario',
     cta: 'Comenzar gratis', ctaHref: '/registro', dark: false,
     features: [
@@ -57,11 +57,11 @@ const PLANS_BASE = [
   },
   {
     key: 'flota',      monthlyAmount: 159000, annualAmount: 1590000, trialDays: null,
-    name: 'Flota',     sub: 'Para empresas medianas', tag: '15 aeronaves · 15 usuarios',
+    name: 'Flota',     sub: 'Para empresas medianas', tag: '10 aeronaves · 10 usuarios',
     cta: 'Comenzar ahora', ctaHref: '/registro', dark: true, popular: true,
     features: [
-      { ok: true, text: 'Hasta 15 aeronaves' },
-      { ok: true, text: '15 usuarios · 5 roles RAC 100' },
+      { ok: true, text: 'Hasta 10 aeronaves' },
+      { ok: true, text: '10 usuarios · 5 roles RAC 100' },
       { ok: true, text: 'Todos los reportes: F-OPS-002, F-MNT-003, F-HUM-005' },
       { ok: true, text: 'SMS completo con trazabilidad' },
       { ok: true, text: 'Auditoría y trazabilidad completa' },
@@ -87,8 +87,11 @@ const PLANS_BASE = [
 
 function trialText(days) {
   if (!days) return null;
-  const m = Math.round(days / 30);
-  return m === 1 ? '1 mes' : `${m} meses`;
+  if (days % 30 === 0) {
+    const m = days / 30;
+    return m === 1 ? '1 mes' : `${m} meses`;
+  }
+  return days === 1 ? '1 día' : `${days} días`;
 }
 
 export default function PreciosClient() {
@@ -199,9 +202,9 @@ export default function PreciosClient() {
                 <span className="material-symbols-outlined" style={{ color: accent, fontSize: '24px' }}>verified_user</span>
               </div>
               <div>
-                <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: accent, marginBottom: '6px' }}>Oferta especial · Proceso de certificación ESUAS</div>
+                <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: accent, marginBottom: '6px' }}>Fase 0 · Proceso de certificación ESUAS</div>
                 <h3 style={{ fontSize: '17px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.02em', color: navy, marginBottom: '8px' }}>¿Tu empresa está certificando como Explotador UAS ante la AeroCivil?</h3>
-                <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.65, maxWidth: '620px' }}>Accede a Bitafly <strong>sin costo</strong> durante todo el proceso. Sabemos que cumplir la RAC 100 tiene un costo, y queremos ser parte de la solución. Contáctanos con tu número de radicado.</p>
+                <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.65, maxWidth: '620px' }}>Si estás en Fase 0 del proceso, accede al plan Escuadrilla de Bitafly <strong>sin costo</strong> durante esa etapa, hasta un máximo de 6 meses. Contáctanos con tu número de radicado.</p>
               </div>
             </div>
             <a href="mailto:soporte@bitafly.com" className="flex shrink-0 items-center justify-center gap-2" style={{ background: accent, color: '#fff', padding: '14px 22px', borderRadius: '16px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', textDecoration: 'none', whiteSpace: 'nowrap', boxShadow: '0 4px 14px rgba(236,91,19,0.3)' }}>
@@ -232,7 +235,7 @@ export default function PreciosClient() {
 
       {/* CTA */}
       <div style={{ background: navy, padding: '80px 32px', textAlign: 'center' }}>
-        <h2 style={{ fontSize: 'clamp(28px,3vw,44px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.04em', color: '#fff', marginBottom: '12px' }}>Empieza hoy. <span style={{ color: accent }}>Gratis por 6 meses.</span></h2>
+        <h2 style={{ fontSize: 'clamp(28px,3vw,44px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.04em', color: '#fff', marginBottom: '12px' }}>Empieza hoy. <span style={{ color: accent }}>15 días gratis.</span></h2>
         <p style={{ fontSize: '15px', color: '#94a3b8', maxWidth: '560px', margin: '0 auto 32px' }}>Sin tarjeta de crédito, sin contratos, sin letra pequeña. Configura en 5 minutos.</p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/registro" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#fff', color: navy, padding: '14px 28px', borderRadius: '16px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', textDecoration: 'none' }}>

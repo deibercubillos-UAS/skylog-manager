@@ -8,7 +8,7 @@ const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').rep
 export const metadata = {
   title: 'Bitafly vs GEODRONE: ¿cuál es mejor para drones en Colombia?',
   description:
-    'Comparativa entre Bitafly y GEODRONE (Tecnidrones) para operadores de drones en Colombia. Precios transparentes, prueba gratis 30 días, sincronización DJI y cumplimiento RAC 100 completo.',
+    'Comparativa entre Bitafly y GEODRONE (Tecnidrones) para operadores de drones en Colombia. Precios transparentes, prueba gratis 15 días, sincronización DJI y cumplimiento RAC 100 completo.',
   keywords: [
     'bitafly vs geodrone',
     'alternativa geodrone colombia',
@@ -52,7 +52,7 @@ const faqSchema = {
       name: '¿Puedo probar Bitafly antes de pagar?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Sí. Bitafly ofrece 30 días de prueba gratuita sin necesidad de tarjeta de crédito. Puedes registrar tus aeronaves, importar vuelos DJI y generar tu primera bitácora RAC 100 sin ningún costo ni compromiso.',
+        text: 'Sí. Bitafly ofrece 15 días de prueba gratuita sin necesidad de tarjeta de crédito. Puedes registrar tus aeronaves, importar vuelos DJI y generar tu primera bitácora RAC 100 sin ningún costo ni compromiso.',
       },
     },
   ],
@@ -74,7 +74,7 @@ const breadcrumbSchema = {
 
 const ROWS = [
   { feature: 'Precio público visible',               bitafly: '✅ Desde $20.000 COP/mes',                    competitor: '❌ Sin precios públicos' },
-  { feature: 'Prueba gratis',                         bitafly: '✅ 30 días sin tarjeta',                      competitor: '❌ No disponible' },
+  { feature: 'Prueba gratis',                         bitafly: '✅ 15 días sin tarjeta',                      competitor: '❌ No disponible' },
   { feature: 'Bitácora RAC 100 (F-OPS-002)',          bitafly: '✅ Ilimitada',                                competitor: '⚠️ Limitada' },
   { feature: 'Autorizaciones AeroCivil (F-OPS-001)', bitafly: '✅ Incluido',                                 competitor: '⚠️ Parcial' },
   { feature: 'SMS aeronáutico completo',              bitafly: '✅ Con trazabilidad',                         competitor: '⚠️ Básico' },
@@ -96,7 +96,7 @@ const REASONS = [
   },
   {
     icon: 'rocket_launch',
-    title: 'Prueba gratis 30 días sin tarjeta',
+    title: 'Prueba gratis 15 días sin tarjeta',
     description:
       'Regístrate, conecta tus drones e importa tus vuelos DJI sin entregar ningún dato de pago. Solo pagas si decides continuar — y solo si ves el valor.',
   },
@@ -134,7 +134,7 @@ export default function ComparativaGeodronePage() {
             href="/registro"
             className="inline-flex items-center gap-2 bg-orange-500 text-white px-8 py-4 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-orange-600 transition-colors shadow-xl shadow-orange-900/30"
           >
-            Comenzar gratis 30 días
+            Comenzar gratis 15 días
             <span className="material-symbols-outlined text-base">arrow_forward</span>
           </Link>
         </div>
@@ -255,7 +255,7 @@ export default function ComparativaGeodronePage() {
             Pruébalo sin riesgo
           </p>
           <h2 className="font-lexend text-2xl md:text-4xl font-black uppercase tracking-tighter mb-5 leading-tight">
-            Comienza gratis 30 días
+            Comienza gratis 15 días
           </h2>
           <p className="text-slate-300 text-base leading-relaxed mb-8 max-w-xl mx-auto">
             Sin tarjeta de crédito. Sin compromisos. Registra tus drones, sube tus vuelos DJI
@@ -265,7 +265,7 @@ export default function ComparativaGeodronePage() {
             href="/registro"
             className="inline-flex items-center gap-2 bg-orange-500 text-white px-8 py-4 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-orange-600 transition-colors shadow-xl shadow-orange-900/40"
           >
-            Comenzar gratis 30 días
+            Comenzar gratis 15 días
             <span className="material-symbols-outlined text-base">arrow_forward</span>
           </Link>
         </div>

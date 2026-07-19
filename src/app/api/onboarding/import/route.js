@@ -3,6 +3,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { getOrgContext }                       from '@/lib/apiAuth';
 import { PERMISSIONS }                         from '@/lib/roles';
 import { canAddResource, crewCountsForLimit }  from '@/lib/planLimits';
+import { getOrgAddonCounts }                   from '@/lib/addons';
 import { createCrewInvitation, roleFromPilotRole } from '@/lib/invitations';
 
 export const dynamic = 'force-dynamic';
@@ -107,6 +108,7 @@ export async function POST(request) {
     const orgId   = ctx.orgId;
     const userId  = ctx.user?.id;   // getOrgContext retorna `user`, no `userId`
     const plan    = ctx.subscription_plan || 'piloto';
+    const orgAddons = await getOrgAddonCounts(admin, orgId);
 
     if (!userId) return NextResponse.json({ error: 'Sesión inválida' }, { status: 401 });
 
@@ -177,7 +179,7 @@ export async function POST(request) {
           results.flota.skipped++;
           continue;
         }
-        if (!canAddResource(plan, acCount, 'drone')) {
+        if (!canAddResource(plan, acCount, 'drone', orgAddons.drone)) {
           results.flota.errors.push(`Fila ${r._row}: límite de aeronaves del plan alcanzado (${plan})`);
           continue;
         }
@@ -258,7 +260,7 @@ export async function POST(request) {
         const role   = str(r['Rol']) || 'Piloto';
         const counts = crewCountsForLimit(role); // gerentes no cuentan
 
-        if (counts && !canAddResource(plan, pilotCount, 'pilot')) {
+        if (counts && !canAddResource(plan, pilotCount, 'pilot', orgAddons.pilot)) {
           results.tripulacion.errors.push(`Fila ${r._row}: límite de tripulantes del plan alcanzado (${plan})`);
           continue;
         }

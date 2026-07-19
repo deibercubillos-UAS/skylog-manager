@@ -5,7 +5,7 @@ import { fmtCOP } from '@/lib/formatters';
 import { useRouter } from 'next/navigation';
 
 const FALLBACK_PRICES = {
-  piloto:      { monthly: { amount: 0 },      annual: { amount: 0 } },
+  piloto:      { monthly: { amount: 20000, trialDays: 15 }, annual: { amount: 200000, trialDays: 30 } },
   escuadrilla: { monthly: { amount: 59000 },  annual: { amount: 590000 } },
   flota:       { monthly: { amount: 159000 }, annual: { amount: 1590000 } },
 };
@@ -15,7 +15,6 @@ const PLANS = [
     key: 'piloto',
     name: 'Piloto',
     tagline: 'Para el piloto autónomo',
-    free: true,
     cta: 'Comenzar gratis',
     features: [
       '1 aeronave registrada',
@@ -53,8 +52,8 @@ const PLANS = [
     dark: true,
     cta: 'Comenzar ahora',
     features: [
-      'Hasta 15 aeronaves',
-      'Hasta 15 usuarios (5 roles)',
+      'Hasta 10 aeronaves',
+      'Hasta 10 usuarios (5 roles)',
       'Bitácora digital RAC 100 ilimitada',
       'Autorizaciones F-OPS-001 + historial',
       'SMS completo con trazabilidad',
@@ -110,6 +109,11 @@ export default function SelectPlanPage() {
   const getAnnualTotal = (planKey) => {
     const pd = prices?.[planKey] ?? FALLBACK_PRICES[planKey];
     return pd?.annual?.amount ?? 0;
+  };
+
+  const getTrialDays = (planKey) => {
+    const pd = prices?.[planKey] ?? FALLBACK_PRICES[planKey];
+    return (annual ? pd?.annual?.trialDays : pd?.monthly?.trialDays) ?? null;
   };
 
   const handleSelect = async (planKey) => {
@@ -176,6 +180,7 @@ export default function SelectPlanPage() {
           {PLANS.map(plan => {
             const monthlyPrice = getPrice(plan.key);
             const annualTotal  = getAnnualTotal(plan.key);
+            const trialDays    = getTrialDays(plan.key);
             const isLoading    = loading === plan.key;
 
             return (
@@ -210,22 +215,21 @@ export default function SelectPlanPage() {
 
                 {/* Precio */}
                 <div className="mb-6">
-                  {plan.free ? (
-                    <p className={`text-4xl font-black ${plan.dark ? 'text-white' : 'text-[#1A202C]'}`}>Gratis</p>
-                  ) : (
-                    <>
-                      <div className="flex items-baseline gap-1">
-                        <span className={`text-3xl font-black ${plan.dark ? 'text-white' : 'text-[#1A202C]'}`}>
-                          {fmtCOP(monthlyPrice, { free: true })}
-                        </span>
-                        <span className="text-xs font-bold text-slate-400">/mes</span>
-                      </div>
-                      {annual && annualTotal > 0 && (
-                        <p className="text-xs font-bold text-slate-400 mt-1">
-                          Facturado {fmtCOP(annualTotal, { free: true })}/año
-                        </p>
-                      )}
-                    </>
+                  <div className="flex items-baseline gap-1">
+                    <span className={`text-3xl font-black ${plan.dark ? 'text-white' : 'text-[#1A202C]'}`}>
+                      {fmtCOP(monthlyPrice, { free: true })}
+                    </span>
+                    <span className="text-xs font-bold text-slate-400">/mes</span>
+                  </div>
+                  {annual && annualTotal > 0 && (
+                    <p className="text-xs font-bold text-slate-400 mt-1">
+                      Facturado {fmtCOP(annualTotal, { free: true })}/año
+                    </p>
+                  )}
+                  {trialDays > 0 && (
+                    <p className={`text-xs font-bold mt-1 ${plan.dark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      🎁 {trialDays} días gratis al iniciar
+                    </p>
                   )}
                 </div>
 
@@ -347,13 +351,13 @@ export default function SelectPlanPage() {
             <span className="material-symbols-outlined text-[#ec5b13] text-2xl" aria-hidden="true">verified_user</span>
           </div>
           <div className="flex-1 text-center md:text-left">
-            <p className="text-xs font-black uppercase tracking-widest text-[#ec5b13] mb-1">Oferta especial · Certificación AeroCivil</p>
+            <p className="text-xs font-black uppercase tracking-widest text-[#ec5b13] mb-1">Fase 0 · Certificación AeroCivil</p>
             <p className="text-sm font-bold text-[#1A202C]">
-              ¿Tu empresa está certificando como Explotador UAS? Accede a Bitafly <strong>sin costo</strong> durante todo el proceso.
+              ¿Tu empresa está en Fase 0 de certificación como Explotador UAS? Accede al plan Escuadrilla de Bitafly sin costo durante esa etapa, hasta un máximo de 6 meses.
             </p>
           </div>
           <a
-            href="mailto:hola@bitafly.com?subject=Acceso certificación AeroCivil"
+            href="mailto:hola@bitafly.com?subject=Acceso Fase 0 certificación AeroCivil"
             className="shrink-0 bg-[#ec5b13] text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-600 transition-all shadow-md text-center"
           >
             Solicitar acceso

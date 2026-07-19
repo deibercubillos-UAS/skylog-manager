@@ -1,10 +1,10 @@
 // src/lib/planLimits.js
 
-// Precios COP: piloto $20.000/mes ($200.000/año, 30 días gratis) · escuadrilla $59.000/mes · flota $159.000/mes
+// Precios COP: piloto $20.000/mes ($200.000/año, 15 días gratis) · escuadrilla $59.000/mes · flota $159.000/mes
 export const PLAN_CONFIG = {
   piloto: {
     name: 'Plan Piloto',
-    price: { monthly: 20000, annual: 200000, trialDays: 30 },
+    price: { monthly: 20000, annual: 200000, trialDays: 15 },
     allowedRoles: ['piloto'],
     maxDrones: 1,
     maxPilots: 1,
@@ -44,8 +44,8 @@ export const PLAN_CONFIG = {
     name: 'Plan Flota',
     price: { monthly: 39, annual: 29, freeMonths: null },
     allowedRoles: ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'],
-    maxDrones: 15,
-    maxPilots: 15,
+    maxDrones: 10,
+    maxPilots: 10,
     maxBatteries: null,
     maxTech: null,
     features: {
@@ -111,7 +111,15 @@ export const isGerenteGeneral = (pilotRole) => {
   return s === 'gerente general' || s === 'admin';
 };
 
-export const canAddResource = (planKey, currentCount, type) => {
+/**
+ * @param {string} planKey
+ * @param {number} currentCount
+ * @param {string} type - 'drone' | 'pilot' | 'battery' | 'tech'
+ * @param {number} [extra] - unidades adicionales compradas vía addon_subscriptions
+ *   (piloto/dron extra, $30.000/$25.000 COP c/u — ver lib/addons.js). Solo aplica
+ *   a 'drone'/'pilot': baterías y tech no tienen add-on, siguen dependiendo solo del plan.
+ */
+export const canAddResource = (planKey, currentCount, type, extra = 0) => {
   const plan = PLAN_CONFIG[planKey] || PLAN_CONFIG.piloto;
   if (type === 'battery') {
     if (plan.maxBatteries === null || plan.maxBatteries === Infinity) return true;
@@ -121,20 +129,21 @@ export const canAddResource = (planKey, currentCount, type) => {
     if (plan.maxTech === null || plan.maxTech === Infinity) return true;
     return currentCount < plan.maxTech;
   }
-  const limit = type === 'drone' ? plan.maxDrones : plan.maxPilots;
-  return currentCount < limit;
+  const base = type === 'drone' ? plan.maxDrones : plan.maxPilots;
+  if (base === Infinity) return true;
+  return currentCount < base + (extra || 0);
 };
 
 // Precios en COP para ePayco
 // IVA incluido (19%): taxBase = floor(amount / 1.19) · tax = amount - taxBase
-// trial_days: 60 en piloto = 2 meses gratis antes del primer cobro
+// trialDays por plan/ciclo se define abajo en cada bloque (piloto mensual: 15 días antes del primer cobro)
 export const EPAYCO_PLANS = {
   piloto: {
     monthly: {
       amount:      20000,
       taxBase:     16807,
       tax:          3193,
-      trialDays:   30,
+      trialDays:   15,
       name:        'Bitafly Piloto Mensual',
       description: 'Suscripción mensual - Plan Piloto para operadores UAS individuales',
       epaycoId:    'piloto_mensual',

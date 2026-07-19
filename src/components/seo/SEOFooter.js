@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { LEGAL_PAGES } from '@/lib/legalPages';
 
 const PLATFORM_LINKS = [
   { href: '/bitacora-digital',        label: 'Bitácora Digital' },
@@ -123,14 +124,18 @@ export default function SEOFooter({ brandDesc = 'Bitácora digital RAC 100 para 
       </div>
 
       {/* ── Bottom bar ── */}
-      <div
-        className="max-w-[1100px] mx-auto border-t border-white/[0.06] pt-6 flex flex-col sm:flex-row justify-between gap-3"
-        style={{ fontSize: '11px' }}
-      >
-        <span>© {new Date().getFullYear()} Bitafly Operations. Todos los derechos reservados.</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-          <a href="mailto:soporte@bitafly.com" style={{ color: '#475569' }} className="hover:text-primary transition-colors">soporte@bitafly.com</a>
-          <span style={{ color: '#334155' }}>Hecho en Colombia para operadores UAS</span>
+      <div className="max-w-[1100px] mx-auto border-t border-white/[0.06] pt-6 flex flex-col gap-4" style={{ fontSize: '11px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px' }}>
+          {LEGAL_PAGES.map(l => (
+            <Link key={l.href} href={l.href} style={{ color: '#64748b' }} className="hover:text-primary transition-colors">{l.label}</Link>
+          ))}
+        </div>
+        <div className="flex flex-col sm:flex-row justify-between gap-3">
+          <span>© {new Date().getFullYear()} BitaFly S.A.S. Todos los derechos reservados.</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <a href="mailto:soporte@bitafly.com" style={{ color: '#475569' }} className="hover:text-primary transition-colors">soporte@bitafly.com</a>
+            <span style={{ color: '#334155' }}>Hecho en Colombia para operadores UAS</span>
+          </div>
         </div>
       </div>
     </footer>

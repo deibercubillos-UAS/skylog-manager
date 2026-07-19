@@ -45,6 +45,51 @@ export default function MasterPanel() {
   const [search, setSearch]   = useState('');
   const [planFilter, setPlanFilter] = useState('all');
   const [saveMsg, setSaveMsg] = useState('');
+  const [convertingIndependent, setConvertingIndependent] = useState(false);
+  const [deleteConfirm, setDeleteConfirm]   = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [addons, setAddons]         = useState([]);
+  const [addonsLoading, setAddonsLoading] = useState(false);
+  const [addonQty, setAddonQty]     = useState({ pilot: 1, drone: 1 });
+
+  const openEdit = (u) => {
+    setEdit({ ...u }); setDeleteConfirm(''); setSaveMsg(''); setAddons([]);
+    if (u.organization_id) loadAddons(u.organization_id);
+  };
+
+  const loadAddons = async (organizationId) => {
+    setAddonsLoading(true);
+    try {
+      const res = await fetch(`/api/admin/master/addons?organization_id=${organizationId}`);
+      const data = await res.json();
+      setAddons(Array.isArray(data) ? data : []);
+    } catch { /* no-op */ }
+    finally { setAddonsLoading(false); }
+  };
+
+  const addAddon = async (type) => {
+    if (!edit?.organization_id) return;
+    try {
+      const res = await fetch('/api/admin/master/addons', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organization_id: edit.organization_id, addon_type: type, quantity: addonQty[type] }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      loadAddons(edit.organization_id);
+    } catch (e) { setSaveMsg('✗ ' + e.message); }
+  };
+
+  const cancelAddon = async (id) => {
+    try {
+      const res = await fetch('/api/admin/master/addons', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) throw new Error('Error al cancelar');
+      loadAddons(edit.organization_id);
+    } catch (e) { setSaveMsg('✗ ' + e.message); }
+  };
 
   const loadData = async () => {
     try {
@@ -128,6 +173,54 @@ export default function MasterPanel() {
       }),
     });
     loadData();
+  };
+
+  // Convertir a piloto independiente: le crea una org propia nueva (no toca su
+  // membresía anterior) y la deja activa — mismo mecanismo que switch-active.
+  const handleConvertIndependent = async () => {
+    if (!edit) return;
+    if (!confirm(`¿Convertir a ${edit.full_name || edit.email} en piloto independiente? Se le creará una organización propia nueva.`)) return;
+    setConvertingIndependent(true);
+    setSaveMsg('');
+    try {
+      const res = await fetch('/api/admin/master/convert-independent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: edit.id }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Error al convertir');
+      setSaveMsg('✓ Convertido a piloto independiente');
+      setTimeout(() => { setEdit(null); setSaveMsg(''); loadData(); }, 900);
+    } catch (e) {
+      setSaveMsg('✗ ' + e.message);
+    } finally {
+      setConvertingIndependent(false);
+    }
+  };
+
+  // Eliminar cuenta por completo — requiere escribir el correo exacto para confirmar.
+  const handleDeleteAccount = async () => {
+    if (!edit) return;
+    if (deleteConfirm.trim().toLowerCase() !== (edit.email || '').trim().toLowerCase()) return;
+    setDeletingAccount(true);
+    setSaveMsg('');
+    try {
+      const res = await fetch('/api/admin/master/delete-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: edit.id }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Error al eliminar la cuenta');
+      setEdit(null);
+      setDeleteConfirm('');
+      loadData();
+    } catch (e) {
+      setSaveMsg('✗ ' + e.message);
+    } finally {
+      setDeletingAccount(false);
+    }
   };
 
   if (loading) return (
@@ -302,7 +395,7 @@ export default function MasterPanel() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button onClick={() => setEdit({ ...u })}
+                        <button onClick={() => openEdit(u)}
                           className="bg-white/10 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase transition-all">
                           Editar
                         </button>
@@ -358,7 +451,7 @@ export default function MasterPanel() {
                       </button>
                     ))}
                   </div>
-                  <button onClick={() => setEdit({ ...u })}
+                  <button onClick={() => openEdit(u)}
                     className="bg-white/10 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase transition-all">
                     Editar
                   </button>
@@ -424,22 +517,37 @@ export default function MasterPanel() {
                 className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white font-bold text-sm outline-none focus:border-orange-500/50" />
             </div>
 
-            {/* AeroCivil gratuito */}
+            {/* AeroCivil gratuito — solo Fase 0 del proceso de certificación (no Fase I), otorga
+                plan Escuadrilla, tope real de 6 meses. Prellena el máximo permitido; el
+                superadmin puede acortar la fecha "Vigente hasta" arriba si la fase del
+                solicitante termina antes. */}
             <button
               type="button"
               onClick={() => {
-                const far = new Date(); far.setFullYear(far.getFullYear() + 2);
+                const max = new Date(); max.setMonth(max.getMonth() + 6);
                 setEdit({
                   ...edit,
-                  subscription_plan: 'flota',
-                  subscription_expires_at: far.toISOString().split('T')[0],
-                  admin_notes: (edit.admin_notes || '') + '\n[Acceso gratuito — proceso certificación AeroCivil]',
+                  subscription_plan: 'escuadrilla',
+                  subscription_expires_at: max.toISOString().split('T')[0],
+                  admin_notes: (edit.admin_notes || '') + '\n[Acceso gratuito — Fase 0 certificación AeroCivil, máx. 6 meses]',
                 });
               }}
               className="w-full bg-emerald-900/40 border border-emerald-500/30 text-emerald-400 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-900/60 transition-all flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-base">verified_user</span>
-              Activar acceso gratuito · Certificación AeroCivil (2 años)
+              Activar acceso gratuito · Fase 0 certificación (máx. 6 meses)
+            </button>
+
+            {/* Piloto Independiente — le crea una organización propia nueva
+                (no toca ninguna membresía existente) y la deja activa. */}
+            <button
+              type="button"
+              onClick={handleConvertIndependent}
+              disabled={convertingIndependent || edit.role === 'superadmin'}
+              className="w-full bg-indigo-900/40 border border-indigo-500/30 text-indigo-300 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-900/60 transition-all flex items-center justify-center gap-2 disabled:opacity-40"
+            >
+              <span className="material-symbols-outlined text-base">person</span>
+              {convertingIndependent ? 'Convirtiendo...' : 'Convertir a Piloto Independiente (org. propia nueva)'}
             </button>
 
             {/* Notas */}
@@ -457,6 +565,75 @@ export default function MasterPanel() {
               <input value={edit.organization_id || ''} onChange={e => setEdit({ ...edit, organization_id: e.target.value })}
                 className="w-full bg-slate-800 border border-white/10 p-3 rounded-xl text-white font-mono text-xs outline-none focus:border-orange-500/50" />
             </div>
+
+            {/* Recursos adicionales — piloto/dron extra, sin importar el plan
+                (sin checkout self-service todavía — ver CLAUDE.md; esta es la
+                vía real para registrar una venta hecha por fuera de ePayco). */}
+            {edit.organization_id && (
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-slate-500 tracking-widest">Recursos adicionales</label>
+                {addonsLoading ? (
+                  <p className="text-xs text-slate-500">Cargando...</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {addons.filter(a => a.status === 'active').length === 0 && (
+                      <p className="text-xs text-slate-600 italic">Sin recursos adicionales</p>
+                    )}
+                    {addons.filter(a => a.status === 'active').map(a => (
+                      <div key={a.id} className="flex items-center justify-between bg-slate-800 border border-white/10 rounded-lg px-3 py-2">
+                        <span className="text-xs font-bold text-white">
+                          {a.quantity}× {a.addon_type === 'pilot' ? 'Piloto adicional' : 'Dron adicional'}
+                          <span className="text-slate-500 font-mono ml-2">${a.unit_price.toLocaleString('es-CO')}/mes c/u</span>
+                        </span>
+                        <button onClick={() => cancelAddon(a.id)} className="text-red-400 hover:text-red-300 text-xs font-black uppercase">Cancelar</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="flex gap-1">
+                    <input type="number" min="1" value={addonQty.pilot}
+                      onChange={e => setAddonQty({ ...addonQty, pilot: e.target.value })}
+                      className="w-14 p-2 bg-slate-800 border border-white/10 rounded-lg text-white text-xs text-center" />
+                    <button onClick={() => addAddon('pilot')} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white text-xs font-black uppercase rounded-lg px-2">+ Piloto ($30k)</button>
+                  </div>
+                  <div className="flex gap-1">
+                    <input type="number" min="1" value={addonQty.drone}
+                      onChange={e => setAddonQty({ ...addonQty, drone: e.target.value })}
+                      className="w-14 p-2 bg-slate-800 border border-white/10 rounded-lg text-white text-xs text-center" />
+                    <button onClick={() => addAddon('drone')} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white text-xs font-black uppercase rounded-lg px-2">+ Dron ($25k)</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Zona de peligro — eliminar cuenta. Oculta para superadmin (la API
+                también lo bloquea, esto solo evita mostrar un botón que siempre falla). */}
+            {edit.role !== 'superadmin' && (
+              <div className="border border-red-500/30 bg-red-950/30 rounded-2xl p-4 space-y-3">
+                <p className="text-xs font-black uppercase text-red-400 tracking-widest">Zona de peligro</p>
+                <p className="text-xs text-red-300/80 leading-relaxed">
+                  Elimina el login y el perfil por completo. Si es el único miembro real de su
+                  organización, la organización también se elimina (flota, vuelos, pilotos).
+                  Escribe el correo exacto para confirmar.
+                </p>
+                <input
+                  value={deleteConfirm}
+                  onChange={e => setDeleteConfirm(e.target.value)}
+                  placeholder={edit.email}
+                  className="w-full bg-slate-800 border border-red-500/20 p-3 rounded-xl text-white font-mono text-xs outline-none focus:border-red-500/50"
+                />
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  disabled={deletingAccount || deleteConfirm.trim().toLowerCase() !== (edit.email || '').trim().toLowerCase()}
+                  className="w-full bg-red-700 hover:bg-red-600 disabled:opacity-40 disabled:hover:bg-red-700 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-base">delete_forever</span>
+                  {deletingAccount ? 'Eliminando...' : 'Eliminar cuenta permanentemente'}
+                </button>
+              </div>
+            )}
 
             {saveMsg && (
               <p className={`text-xs font-black text-center ${saveMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>

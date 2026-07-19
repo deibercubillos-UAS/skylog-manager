@@ -13,7 +13,7 @@ const PLANS_BASE = [
     tagline: 'Para el piloto autónomo',
     monthlyAmount: 20000,
     annualAmount:  200000,
-    trialDays:     30,
+    trialDays:     15,
     dark: false,
     popular: false,
     cta: 'Comenzar gratis',
@@ -68,10 +68,10 @@ const PLANS_BASE = [
     popular: true,
     cta: 'Comenzar ahora',
     href: '/registro',
-    limits: '15 aeronaves · 15 usuarios',
+    limits: '10 aeronaves · 10 usuarios',
     features: [
-      'Hasta 15 aeronaves',
-      'Hasta 15 usuarios (5 roles)',
+      'Hasta 10 aeronaves',
+      'Hasta 10 usuarios (5 roles)',
       'Bitácora digital RAC 100 ilimitada',
       'Mantenimiento avanzado + historial',
       'Baterías ilimitadas',
@@ -113,8 +113,11 @@ const PLANS_BASE = [
 
 function trialText(days) {
   if (!days) return null;
-  const m = Math.round(days / 30);
-  return m === 1 ? '1 mes' : `${m} meses`;
+  if (days % 30 === 0) {
+    const m = days / 30;
+    return m === 1 ? '1 mes' : `${m} meses`;
+  }
+  return days === 1 ? '1 día' : `${days} días`;
 }
 
 export default function Pricing() {
@@ -308,15 +311,15 @@ export default function Pricing() {
             </div>
             <div>
               <p className="text-xs font-black uppercase tracking-widest text-primary mb-1">
-                Oferta especial · Proceso de certificación
+                Fase 0 · Proceso de certificación
               </p>
               <h3 className="text-lg font-black text-navy mb-2">
                 ¿Tu empresa está certificando como Explotador UAS ante la AeroCivil?
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed max-w-2xl">
-                Accede a Bitafly <strong>sin costo</strong> durante todo el proceso de certificación.
-                Sabemos que cumplir con la RAC 100 tiene un costo, y queremos ser parte de la solución.
-                Contáctanos con tu número de radicado y activamos tu cuenta inmediatamente.
+                Si estás en Fase 0 del proceso, accede al plan Escuadrilla de Bitafly <strong>sin costo</strong> durante
+                esa etapa, hasta un máximo de 6 meses. Contáctanos con tu número de radicado y
+                activamos tu acceso.
               </p>
             </div>
           </div>

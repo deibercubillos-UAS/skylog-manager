@@ -6,6 +6,6 @@ export const dynamic = 'force-dynamic';
 // incluye piloto) — crear/editar programas y registrar evaluaciones se gatea dentro
 // del cliente con canManageTraining (GG+GSMS+JP, mismo split que Manuales).
 export default async function TrainingLayout({ children }) {
-    await requirePermission('canViewTraining');
+    await requirePermission('canViewTraining', { blockIndependentPilot: true });
     return <>{children}</>;
 }

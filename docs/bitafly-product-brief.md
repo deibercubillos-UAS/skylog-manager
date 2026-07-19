@@ -1,6 +1,6 @@
 # BitaFly — Product Brief
 > Documento de referencia para generación de documentación de producto.  
-> Versión: junio 2026. Público destino: redactores técnicos, IA generativa, equipo de marketing.
+> Versión: julio 2026. Público destino: redactores técnicos, IA generativa, equipo de marketing.
 
 ---
 
@@ -41,10 +41,27 @@ BitaFly opera con suscripción mensual o anual procesada por **ePayco** (pasarel
 |---|---|---|---|---|---|
 | **Piloto** | Piloto autónomo / unipersonal | 1 | 1 | 3 | 3 |
 | **Escuadrilla** | Empresa pequeña | 3 | 4 | Ilimitadas | Ilimitados |
-| **Flota** | Empresa mediana | 15 | 15 | Ilimitadas | Ilimitados |
+| **Flota** | Empresa mediana | 10 | 10 | Ilimitadas | Ilimitados |
 | **Enterprise** | Empresa grande / escuela UAS | Ilimitados | Ilimitados | Ilimitadas | Ilimitados |
 
 > **Nota sobre conteo de pilotos**: el Gerente General y el Gerente SMS no cuentan contra el límite del plan porque son roles administrativos, no tripulación operativa.
+
+### Recursos adicionales (add-ons)
+Sin importar el plan contratado, la organización puede ampliar sus cupos comprando unidades
+adicionales: **Piloto adicional $30.000 COP/mes** y **Dron adicional $25.000 COP/mes**. Hoy se
+gestionan desde el panel Master (registro manual de la venta); el checkout self-service vía
+ePayco queda pendiente de habilitar.
+
+### Prueba gratuita
+El plan Piloto incluye **15 días de prueba** (ciclo mensual) antes del primer cobro — sin
+necesidad de tarjeta de crédito. El ciclo anual incluye 30 días de prueba.
+
+### Acceso gratuito durante certificación (Fase 0)
+Las empresas que se encuentran en **Fase 0** del proceso de certificación como Explotador UAS
+ante la AeroCivil pueden acceder al **plan Escuadrilla** de BitaFly sin costo durante esa
+etapa, hasta un **máximo de 6 meses**. No aplica a empresas ya en Fase I. No es un flujo
+automático/self-service: el equipo de BitaFly confirma el número de radicado y activa el
+acceso manualmente.
 
 ### Período de gracia
 Las escuelas socias y asesores registrados en el programa de socios de BitaFly pueden regalar períodos de uso gratuito (por defecto 90 días) a pilotos nuevos antes de que contraten un plan.
@@ -62,7 +79,9 @@ Cada usuario tiene un rol que determina qué puede ver y hacer dentro de la plat
 | `gerente_sms` | Gerente SMS (GSMS) | Responsable del Sistema de Gestión de Seguridad. |
 | `piloto` | Piloto / Tripulante | Opera drones, despacha sus vuelos asignados, gestiona su expediente. |
 
-> El rol **Piloto Independiente** es una variante especial: un piloto que tiene su propia organización unipersonal (plan Piloto) y actúa como GG de sí mismo.
+> El rol **Piloto Independiente** es una variante especial: un piloto que tiene su propia organización unipersonal (plan Piloto) y actúa como GG de sí mismo. En la base de datos su rol siempre es `admin` (nunca `piloto`) — es lo que le da acceso de gestión total sobre su propia flota unipersonal. No tiene acceso al grupo de navegación "Documentación" (SMS, SORA, Auditoría, Reportes, Protocolos, Proveedores, Capacitación, Manuales) — esos módulos aplican solo a organizaciones con equipo.
+
+> **Una cuenta puede pertenecer a varias organizaciones** — ver sección 7 "Multi-organización por cuenta".
 
 ---
 
@@ -75,8 +94,9 @@ Inventario completo de los activos aéreos de la organización.
 **Aeronaves (Drones)**
 - Registro con número de serie, modelo, fabricante, foto y estado operativo.
 - Seguimiento de horas de vuelo totales (acumuladas automáticamente al importar logs DJI).
-- **Configuración de mantenimiento**: el usuario define cada cuántas horas de vuelo y cada cuántos días calendario el drone requiere mantenimiento mayor. El sistema cambia automáticamente el estado a "En mantenimiento" cuando se alcanzan los umbrales, envía notificación al GG y al Jefe de Pilotos, y **bloquea el despacho** de ese drone hasta que se registre el mantenimiento.
-- Registro de mantenimiento con adjuntos (PDF, imágenes de inspección).
+- **Configuración de mantenimiento mayor**: el usuario define cada cuántas horas de vuelo y cada cuántos días calendario el drone requiere mantenimiento mayor (con técnico). El sistema cambia automáticamente el estado a "En mantenimiento" cuando se alcanzan los umbrales, envía notificación al GG y al Jefe de Pilotos, y **bloquea el despacho** de ese drone hasta que se registre el mantenimiento.
+- **Mantenimiento Menor (piloto)**: chequeo periódico ligero que realiza el propio piloto (no un técnico), con contadores de horas/días 100% independientes del mantenimiento mayor — cada organización decide su periodicidad por aeronave. También bloquea el despacho de esa aeronave hasta diligenciar el checklist correspondiente.
+- Registro de mantenimiento con adjuntos (PDF, imágenes de inspección), recibo post-mantenimiento y trazabilidad de componentes cambiados (hélices, motores, ESC) con horas de uso individuales.
 
 **Baterías**
 - Registro de baterías con serial, capacidad, drone asignado y conteo de ciclos de carga.
@@ -107,7 +127,7 @@ Herramienta cartográfica para definir y guardar zonas de operación antes del v
 - Configuración de altitud de vuelo, tipo de operación (RAC 100: categoría, subcategoría), departamento y municipio de Colombia.
 - **Descarga KMZ** (para importar en Google Earth / DJI Fly) y **PDF del plan de vuelo** (documento formal para la operación).
 - Las planeaciones se guardan y pueden reutilizarse en múltiples misiones.
-- Cuando un **piloto** (no GG/JP) guarda una planeación, el sistema notifica automáticamente al Jefe de Pilotos y al Gerente General.
+- **Exclusivo del Piloto Independiente**: un piloto miembro de una organización (rol `piloto`) ya no tiene acceso a Planeación de Vuelo — solo despacha lo que el GG/JP ya le programó (ver 5.4 y "Mis Vuelos"). Solo el Piloto Independiente (dueño de su propia organización unipersonal) puede crear planeaciones libres.
 - **Condiciones meteorológicas integradas**: al seleccionar el municipio de operación, se muestra automáticamente un widget de clima que indica si las condiciones son aptas para volar (score 0-100, basado en viento, ráfagas, visibilidad, precipitación y actividad geomagnética NOAA Kp).
 
 ---
@@ -146,6 +166,17 @@ Registro oficial de todos los vuelos realizados por la organización.
 
 **Edición posterior**
 - El GG y Jefe de Pilotos pueden editar el Piloto en Comando y el número de misión de cualquier vuelo registrado, directamente desde la tabla de la bitácora.
+
+**Wizard de despacho — pasos de seguridad**
+Antes de aprobar el vuelo, el piloto recorre una serie de pasos de seguridad configurables por la organización (indicador de progreso visible en pantalla):
+- **Salud del piloto** — autoevaluación de aptitud física/mental antes de volar.
+- **Inventario de Operación** — checklist de equipo/insumos requeridos (baterías cargadas, botiquín, extintor, chalecos, etc.), con existencias reales de equipo visibles junto a cada ítem.
+- **Evaluación de Riesgos** — el piloto clasifica Probabilidad × Gravedad de la operación contra la matriz de riesgo configurada por el Gerente SMS; si el resultado es "Inaceptable" debe describir barreras/mitigaciones y volver a evaluar un riesgo residual antes de continuar; si es "Tolerable" puede documentar mitigaciones de forma voluntaria.
+- **Pre-vuelo** — checklist configurable por modelo de aeronave.
+- **Briefing de misión** — checklist final antes de despegar.
+- **Bloqueo por capacitación**: si la organización configuró un examen interno obligatorio de Operaciones, el piloto que no lo haya aprobado (o cuyo plazo venció) no puede despachar — ver sección 5.13 Capacitación.
+
+Todos estos pasos son configurables (activar/desactivar) desde Protocolos, salvo la Evaluación de Riesgos, que se omite automáticamente si la organización no ha configurado su matriz de riesgo todavía.
 
 ---
 
@@ -193,27 +224,80 @@ Un score ≥ 70 = **APTO**. Por debajo = **NO APTO**, con detalle de qué condic
 
 ---
 
-### 5.8 Reportes y Cumplimiento Normativo
+### 5.8 Seguridad SMS y Cumplimiento Normativo
 
-**SMS (Safety Management System)**
-- Formularios de reporte de seguridad operacional.
-- Gestión desde el módulo SMS del dashboard.
+Hub "Seguridad SMS" con varias pestañas en vivo, alineado con las circulares de Aerocivil para explotadores UAS:
 
 **SORA (Specific Operations Risk Assessment)**
-- Evaluaciones de riesgo para operaciones en categoría específica bajo RAC 100.
-- Visible para todos los roles incluyendo el piloto.
+- Wizard de evaluación de riesgo (GRC/ARC/SAIL) para operaciones en categoría específica bajo RAC 100. Visible para todos los roles incluyendo el piloto.
+- **Obligatorio al programar una misión**: desde 2026-07, toda misión creada en Programación exige seleccionar (o crear al vuelo) una evaluación SORA completa antes de poder autorizarla.
+
+**Evaluación de Riesgos (matriz de la organización)**
+- Matriz 5×5 de Probabilidad × Gravedad personalizable por organización (semilla de la OACI Doc 9859), con tabla de tolerabilidad (Inaceptable / Tolerable / Aceptable) editable celda por celda.
+- Registro de Peligros (hazards) con mitigación en texto libre.
+- Esta misma matriz alimenta el paso de Evaluación de Riesgos del wizard de Despacho (ver 5.5).
+
+**Indicadores de Desempeño en Seguridad Operacional (SPI)**
+- Catálogo de indicadores (activaciones RTH por batería crítica, pérdida de enlace, aterrizajes de emergencia, incursión en espacio restringido, reportes VOR/MOR, etc.), captura de datos mensuales, línea base y líneas de alerta calculadas automáticamente, planes de acción por indicador con defensa/causa raíz/desencadenante, y rastro de envío anual (recordatorio antes del 30 de marzo).
+
+**Mejora Continua (autoevaluación GAP del SMS)**
+- Catálogo oficial de 100 preguntas (4 componentes / 12 elementos del Apéndice 1 de la circular) con checklist Sí/No, hallazgos con responsable/plazo/estado, y comparativo automático entre evaluaciones sucesivas.
+- Cada organización puede ocultar preguntas que no le apliquen y agregar sus propias preguntas personalizadas.
+
+**Acciones Correctivas**
+- Tablero consolidado de todas las acciones abiertas provenientes de 3 fuentes: casos SMS/VOR/MOR, planes de acción de Indicadores SPI, y hallazgos de la autoevaluación GAP.
+
+**Barreras de Seguridad**
+- Catálogo real de barreras/mitigaciones (categoría, riesgo que mitiga, responsable, estado), enlazable a evaluaciones SORA y seleccionable por el reportante en los formularios públicos VOR/MOR.
+
+**Seguimiento de casos SMS/VOR/MOR**
+- Cada reporte SMS o VOR/MOR abre una página de seguimiento con checklist de acciones correctivas, línea de tiempo de eventos reales (creación, cambios de estado, notificación a AeroCivil) y cierre formal del caso.
+- Severidad clasificada con el mismo vocabulario RAC 100 (incidente / incidente grave / accidente) tanto para SMS como para VOR/MOR.
+
+**Reportes de Seguimiento de plazos (VOR/MOR)**
+- Seguimiento del cumplimiento del plazo regulatorio de radicación en IRIS: 5 días hábiles para MOR (Directiva 02-24), plazo interno sugerido para VOR. Recordatorio automático antes de vencer.
 
 **VOR / MOR (Voluntary / Mandatory Occurrence Reporting)**
-- Formularios públicos accesibles desde `/vor/{organización}` y `/mor/{organización}`.
-- El piloto puede enviarlos directamente desde su dashboard con un botón dedicado.
+- Formularios públicos accesibles desde `/vor/{organización}` y `/mor/{organización}`, personalizables por la organización (campos propios, severidad autoevaluada por el reportante, barrera relacionada).
+- El piloto puede enviarlos directamente desde su dashboard con un botón dedicado, y también al cerrar un vuelo con reporte de seguridad marcado.
+- Incluye impresión de código QR para colgar en el hangar.
 
-**Checklists**
-- Checklist de pre-vuelo configurable por aeronave.
-- Integrado con `health_check`, `preflight` y `briefing` según los toggles activados por la organización.
+**Protocolos** — biblioteca de procedimientos
+- Los checklists operativos fijos (Salud, Inventario, Pre-vuelo por modelo, Briefing, Recibo de Mantenimiento, Mantenimiento Menor) y una biblioteca libre de protocolos/procedimientos (nombre, ícono, pasos) conviven organizados en 4 grupos: **Prevuelo, Reportes, Seguridad Operacional, Mantenimiento**. Los formatos VOR/MOR también se editan desde aquí.
+
+**Auditoría (registro de acciones)**
+- Log append-only de acciones relevantes de usuarios (creación de aeronaves, pilotos, autorizaciones de vuelo) con usuario, fecha, módulo y detalle — evidencia para auditorías internas o de Aerocivil.
+
+**Reportes descargables**
+Hub "Reportes" con más de 20 formatos agrupados por categoría (Operación, Tripulación, Documentación, Seguridad SMS, Proveedores), todos con logo/versión/fecha/nota de trazabilidad y firmas, incluyendo: Libro de Vuelo, Mantenimiento, Flota, Baterías, Bitácora de Piloto, Expediente de Tripulante, Trazabilidad de Componentes, Indicadores SPI (anual), Autoevaluación GAP, Cronograma y Asistencia de Capacitación SMS, Acciones Correctivas, Listado VOR/MOR, Publicación y Confirmación de Lectura de Manuales, Auditoría de Proveedores, y el **Reporte Operacional Mensual UAS** exigido por Aerocivil (Excel con las 8 columnas oficiales, con rastro de "marcado como enviado" y recordatorio automático los primeros 5 días de cada mes).
 
 **Pólizas RCE y Contactos de Emergencia**
 - Registro de pólizas de Responsabilidad Civil Extracontractual con número, vigencia y aseguradora.
 - Directorio de contactos de emergencia de la organización.
+
+---
+
+### 5.13 Capacitación
+
+Dos programas de formación independientes, **Operaciones** y **Mantenimiento**, cada uno con:
+- **Cronograma con recurrencia** (semanal/quincenal/mensual/personalizado) de sesiones/temas de capacitación.
+- **Examen interno calificado** (banco de preguntas de opción múltiple, nota mínima y número de intentos configurables por la organización). El examen de Operaciones **bloquea el despacho** del piloto que no lo aprobó o cuyo plazo venció; el de Mantenimiento es informativo.
+- Alertas automáticas por campana y correo antes de que venza el plazo del examen.
+- Toda evaluación (interna o vía examen) queda registrada en el expediente digital del tripulante con fecha y resultado Aprobado/No aprobado.
+
+Una tercera pestaña, **Capacitación SMS**, cubre cronograma + asistencia de todo el personal (no solo pilotos) a sesiones de sensibilización SMS, sin examen calificado.
+
+---
+
+### 5.14 Proveedores
+
+Listado de proveedores de la organización (nombre, categoría, NIT, contacto, estado) con un **checklist de auditoría personalizable** (criterios definidos por cada organización). Cada auditoría realizada registra respuesta tri-estado (cumple/no cumple/no aplica) + observaciones por criterio, con % de cumplimiento calculado automáticamente. Reportes descargables por auditoría individual, por proveedor o consolidado de todos los proveedores.
+
+---
+
+### 5.15 Inventario de Operación
+
+Checklist de equipo/insumos requeridos antes de volar (baterías cargadas, botiquín, extintor, chalecos, etc.), diligenciado en el Despacho justo antes del checklist de Pre-vuelo. Incluye un catálogo de **existencias de equipo** (tipo, cantidad, notas) que puede enlazarse opcionalmente a cada ítem del checklist para mostrar cuántas unidades hay disponibles al configurarlo y al diligenciarlo — es solo informativo, nunca descuenta inventario automáticamente por vuelo.
 
 ---
 
@@ -316,6 +400,7 @@ Sistema de alianzas B2B para escuelas de formación UAS y asesores independiente
 **Comisiones recurrentes**
 - Cada vez que un cliente adquirido a través de un código de socio renueva su suscripción, el socio recibe una comisión.
 - Las comisiones se liquidan manualmente desde el panel de administración Master de BitaFly.
+- Cada socio puede tener varios códigos de venta únicos, gestionados/generados desde el panel Master.
 
 ### Panel de Socio (`/socio`)
 Los socios tienen acceso a un panel dedicado (separado del dashboard operativo) con:
@@ -344,11 +429,20 @@ El dueño registrado de una escuela socia recibe automáticamente el plan **Ente
 2. El empleado recibe un correo con un enlace de invitación y se registra con sus propios datos.
 3. Queda automáticamente vinculado a la organización con el rol asignado.
 
-### Unirse a una organización (sin invitación)
-Un usuario con cuenta existente puede unirse a una organización si conoce el **NIT** de la empresa. Desde su perfil de Suscripción, ingresa el NIT y el rol con el que desea unirse. Al aceptar, su historial de vuelos, flota y demás datos se transfieren a la nueva organización.
+### Unirse a una organización (sin invitación) — caso especial: piloto independiente se fusiona a una empresa
+Un **piloto independiente** (dueño único de su organización unipersonal) puede unirse a una empresa existente si conoce su **NIT**. Desde su perfil de Suscripción ingresa el NIT y el rol con el que desea unirse. Al aceptar, **su historial de vuelos, flota y demás datos se transfieren** a la nueva organización y su organización de origen queda marcada como migrada — este es el único flujo del sistema que sigue siendo destructivo/de fusión de datos, y aplica solo a este caso puntual (piloto independiente que se integra a una empresa).
 
 ### Registro a través de código de escuela
 Si el usuario recibió un regalo de período de prueba de una escuela socia, llega a la página de registro con su correo pre-llenado y un período gratuito ya activado — sin necesidad de tarjeta de crédito.
+
+### Multi-organización por cuenta
+
+Una misma cuenta puede pertenecer a **varias organizaciones al mismo tiempo** — pensado tanto para tripulantes que trabajan para varias operadoras como para dueños/administradores con varias empresas.
+
+- **Unirse a una organización adicional siempre es aditivo**: aceptar una invitación (o unirse a una segunda organización) **nunca** migra ni mezcla datos de ninguna de las organizaciones involucradas — solo agrega una membresía nueva. La única excepción destructiva es el flujo puntual descrito arriba (piloto independiente que se fusiona a una empresa por NIT).
+- **Organización activa**: en cualquier momento la cuenta tiene exactamente una organización "activa" (rol, plan, datos visibles corresponden a esa organización). Un selector — disponible tanto en el nombre de la organización en la parte superior del dashboard como en el menú de cuenta del sidebar — permite cambiar de organización activa con un clic; la vista se recarga reflejando el rol, plan y datos de la organización recién seleccionada.
+- El selector solo es visible para cuentas que efectivamente pertenecen a más de una organización — cero cambio para el resto de usuarios.
+- **Gestión desde Master**: el equipo de BitaFly puede, desde el panel `/admin/master`, convertir cualquier cuenta en piloto independiente (crea una organización unipersonal nueva para esa cuenta sin tocar sus otras membresías) o eliminar una cuenta por completo (incluye limpiar organizaciones que quedarían sin ningún miembro real).
 
 ---
 
@@ -363,7 +457,6 @@ BitaFly envía los siguientes correos automáticos a través de **Resend** (domi
 | Invitación al panel de socio | Nuevo miembro de escuela/asesor |
 | Regalo de período de prueba | Beneficiario del regalo |
 | Nueva versión de manual publicada | Todos los miembros de la org |
-| Planeación de vuelo guardada por piloto | JP + GG |
 | Notificación de expediente actualizado | GG + JP + GSMS |
 | Bienvenida como asesor | Nuevo asesor |
 
@@ -448,7 +541,7 @@ El dashboard requiere conexión a internet. Para el uso en campo con el DJI RC P
 Los datos se conservan. El plan vuelve al nivel base (Piloto). Funcionalidades avanzadas quedan deshabilitadas pero no se eliminan datos históricos.
 
 **¿Cuántos usuarios puede tener una organización?**  
-Depende del plan. El plan Piloto es para 1 usuario. Escuadrilla hasta 4 pilotos operativos (más GG y GSMS sin contar contra el límite). Flota hasta 15. Enterprise sin límite.
+Depende del plan. El plan Piloto es para 1 usuario. Escuadrilla hasta 4 pilotos operativos (más GG y GSMS sin contar contra el límite). Flota hasta 10. Enterprise sin límite.
 
 **¿Los datos de vuelo quedan en Colombia?**  
 La base de datos está alojada en Supabase (us-east-1, AWS). El deploy web está en Vercel (CDN global). BitaFly cumple con las políticas de privacidad y seguridad de datos aplicables.

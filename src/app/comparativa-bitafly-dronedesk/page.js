@@ -84,7 +84,7 @@ const ROWS = [
   { feature: 'Planificación de vuelo y espacio aéreo',  bitafly: '✅ Mapa + zonas + KMZ',                competitor: '✅ Mapa aéreo (Reino Unido)' },
   { feature: 'Gestión de clientes / trabajos (CRM)',    bitafly: '⚠️ Enfocado en cumplimiento',          competitor: '✅ Incluido' },
   { feature: 'Soporte en zona horaria de Colombia',     bitafly: '✅ Chat + email',                      competitor: '❌ Horario Reino Unido' },
-  { feature: 'Prueba gratis',                           bitafly: '✅ 30 días sin tarjeta',              competitor: '✅ Plan gratuito limitado' },
+  { feature: 'Prueba gratis',                           bitafly: '✅ 15 días sin tarjeta',              competitor: '✅ Plan gratuito limitado' },
 ];
 
 const REASONS = [
@@ -135,7 +135,7 @@ export default function ComparativaDronedeskPage() {
             href="/registro"
             className="inline-flex items-center gap-2 bg-orange-500 text-white px-8 py-4 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-orange-600 transition-colors shadow-xl shadow-orange-900/30"
           >
-            Comenzar gratis 30 días
+            Comenzar gratis 15 días
             <span className="material-symbols-outlined text-base">arrow_forward</span>
           </Link>
         </div>
@@ -256,7 +256,7 @@ export default function ComparativaDronedeskPage() {
             Pruébalo sin riesgo
           </p>
           <h2 className="font-lexend text-2xl md:text-4xl font-black uppercase tracking-tighter mb-5 leading-tight">
-            Comienza gratis 30 días
+            Comienza gratis 15 días
           </h2>
           <p className="text-slate-300 text-base leading-relaxed mb-8 max-w-xl mx-auto">
             Sin tarjeta de crédito. Sin compromisos. Registra tus drones, sube tus vuelos DJI
@@ -266,7 +266,7 @@ export default function ComparativaDronedeskPage() {
             href="/registro"
             className="inline-flex items-center gap-2 bg-orange-500 text-white px-8 py-4 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-orange-600 transition-colors shadow-xl shadow-orange-900/40"
           >
-            Comenzar gratis 30 días
+            Comenzar gratis 15 días
             <span className="material-symbols-outlined text-base">arrow_forward</span>
           </Link>
         </div>

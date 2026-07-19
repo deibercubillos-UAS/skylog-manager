@@ -8,9 +8,9 @@ import { attributionParams, getAttribution } from '@/lib/attribution';
 
 // ── Planes (solo para el flujo "crear") ───────────────────────────────────────
 const PLANS = [
-  { key: 'piloto',      name: 'Piloto',      price: 'Gratis 1 mes', sub: 'luego $20.000/mes',           limits: '1 dron · 1 usuario',   icon: 'person',                rawPrice: 0 },
+  { key: 'piloto',      name: 'Piloto',      price: '15 días gratis', sub: 'luego $20.000/mes',           limits: '1 dron · 1 usuario',   icon: 'person',                rawPrice: 0 },
   { key: 'escuadrilla', name: 'Escuadrilla', price: '$59.000/mes',   sub: 'o $590.000/año (−20%)',       limits: '3 drones · 4 usuarios', icon: 'group',                popular: true, paid: true, rawPrice: 59000 },
-  { key: 'flota',       name: 'Flota',       price: '$159.000/mes',  sub: 'o $1.590.000/año (−20%)',     limits: '15 drones · 15 usuarios', icon: 'precision_manufacturing', paid: true,  rawPrice: 159000 },
+  { key: 'flota',       name: 'Flota',       price: '$159.000/mes',  sub: 'o $1.590.000/año (−20%)',     limits: '10 drones · 10 usuarios', icon: 'precision_manufacturing', paid: true,  rawPrice: 159000 },
   { key: 'enterprise',  name: 'Enterprise',  price: 'A consultar',   sub: 'contactar ventas',            limits: 'Ilimitado',             icon: 'rocket_launch',        contact: true, rawPrice: 0 },
 ];
 
@@ -552,9 +552,9 @@ export default function RegisterPage() {
 
                 <p className="text-center text-xs text-slate-400 leading-relaxed">
                   Al registrarte aceptas nuestros{' '}
-                  <a href="#" className="text-primary hover:underline">Términos de servicio</a>
+                  <a href="/terminos-condiciones" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Términos y Condiciones</a>
                   {' '}y{' '}
-                  <a href="#" className="text-primary hover:underline">Política de privacidad</a>.
+                  <a href="/politica-privacidad" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Política de Privacidad</a>.
                 </p>
 
                 <div className="flex gap-3">
@@ -807,9 +807,9 @@ export default function RegisterPage() {
 
               <p className="text-center text-xs text-slate-400 leading-relaxed">
                 Al registrarte aceptas nuestros{' '}
-                <a href="#" className="text-primary hover:underline">Términos de servicio</a>
+                <a href="/terminos-condiciones" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Términos y Condiciones</a>
                 {' '}y{' '}
-                <a href="#" className="text-primary hover:underline">Política de privacidad</a>.
+                <a href="/politica-privacidad" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Política de Privacidad</a>.
               </p>
             </form>
           )}

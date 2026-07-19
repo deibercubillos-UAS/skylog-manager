@@ -3,6 +3,7 @@ import { createClient, createAdminClient } from '@/lib/supabaseServer';
 import { Resend } from 'resend';
 import { escHtml } from '@/lib/emailHelpers';
 import { getOrgContext } from '@/lib/apiAuth';
+import { syncOrgMembership } from '@/lib/orgMembership';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,7 @@ const VALID_ROLES = Object.keys(ROLE_LABEL);
 const PLAN_INFO = {
   piloto:      { label: 'Piloto',      price: 'Gratis',       features: '1 drone · 1 piloto · bitácora digital RAC 100' },
   escuadrilla: { label: 'Escuadrilla', price: '$59.000/mes',  features: '3 drones · 4 pilotos · reportes SMS · programación de vuelos' },
-  flota:       { label: 'Flota',       price: '$159.000/mes', features: '15 drones · 15 pilotos · todas las funciones · soporte prioritario' },
+  flota:       { label: 'Flota',       price: '$159.000/mes', features: '10 drones · 10 pilotos · todas las funciones · soporte prioritario' },
   enterprise:  { label: 'Enterprise',  price: 'A convenir',   features: 'Ilimitado · API · soporte dedicado · onboarding personalizado' },
 };
 
@@ -68,10 +69,35 @@ export async function POST(request) {
   // Verificar si ya tiene cuenta
   const { data: existing } = await admin
     .from('profiles')
-    .select('id')
+    .select('id, organization_id')
     .ilike('email', cleanEmail)
     .maybeSingle();
   const isExistingUser = !!existing;
+
+  // Activación directa sin ePayco: si el destinatario YA tiene cuenta y se
+  // eligió un plan, se activa de una vez sobre su organización activa — sin
+  // pasar por checkout ni tarjeta. A propósito NO se toca
+  // `subscription_expires_at` aquí: el superadmin la define después, a mano,
+  // desde el tab Usuarios (pedido explícito del usuario, 2026-07-07).
+  let activatedPlan = null;
+  if (isExistingUser && plan && PLAN_INFO[plan]) {
+    const { error: planErr } = await admin
+      .from('profiles')
+      .update({ subscription_plan: plan })
+      .eq('id', existing.id);
+    if (!planErr) {
+      activatedPlan = plan;
+      if (existing.organization_id) {
+        await syncOrgMembership(admin, {
+          userId: existing.id,
+          organizationId: existing.organization_id,
+          subscriptionPlan: plan,
+        });
+      }
+    } else {
+      console.warn('[master/invite] no se pudo activar el plan:', planErr.message);
+    }
+  }
 
   let orgName    = null;
   let joinNit    = null;
@@ -222,7 +248,7 @@ export async function POST(request) {
           ${planData ? `
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;background:#fff8f5;border:2px solid #fde0cc;border-radius:12px;overflow:hidden;">
             <tr><td style="padding:20px 24px;">
-              <p style="margin:0 0 4px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#ec5b13;">Plan sugerido</p>
+              <p style="margin:0 0 4px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#ec5b13;">${activatedPlan ? 'Plan activado' : 'Plan sugerido'}</p>
               <table width="100%" cellpadding="0" cellspacing="0"><tr>
                 <td>
                   <p style="margin:0;font-size:20px;font-weight:900;color:#1a202c;">${escHtml(planData.label)}</p>
@@ -265,5 +291,5 @@ export async function POST(request) {
     return NextResponse.json({ error: emailErr.message || 'Error al enviar el correo' }, { status: 502 });
   }
 
-  return NextResponse.json({ success: true, isExistingUser, orgName, grantDays: grantToken ? grantDays : null });
+  return NextResponse.json({ success: true, isExistingUser, orgName, grantDays: grantToken ? grantDays : null, activatedPlan });
 }

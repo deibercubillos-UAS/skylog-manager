@@ -85,15 +85,37 @@ export async function POST(request) {
     }
 
     // ── Vincular el piloto destino y marcar aceptado ───────────────────────
+    // Bug real corregido: si la invitación no trae pilot_id (ej. modo "Solo
+    // invitación" de AddPilotPanel) y tampoco hay ya un piloto con ese email
+    // en la org, no existía ninguna fila que actualizar — la persona quedaba
+    // con la membresía agregada pero invisible en Tripulación. Ahora, si no
+    // hay match, se crea la fila (mismo patrón que ya usa `auth/register`
+    // en modo "unirse por NIT" para el mismo caso).
+    let pilotRow = null;
     if (inv.pilot_id) {
-      await admin.from('pilots')
+      const { data } = await admin.from('pilots')
         .update({ invitation_status: 'accepted', profile_id: user.id })
-        .eq('id', inv.pilot_id);
+        .eq('id', inv.pilot_id)
+        .select('id').maybeSingle();
+      pilotRow = data;
     } else {
-      // Sin pilot_id: marcar cualquier piloto de esa org con el mismo email
-      await admin.from('pilots')
+      const { data } = await admin.from('pilots')
         .update({ invitation_status: 'accepted', profile_id: user.id })
-        .eq('organization_id', targetOrgId).ilike('email', invEmail);
+        .eq('organization_id', targetOrgId).ilike('email', invEmail)
+        .select('id').maybeSingle();
+      pilotRow = data;
+    }
+
+    if (!pilotRow) {
+      await admin.from('pilots').insert([{
+        organization_id:   targetOrgId,
+        profile_id:        user.id,
+        name:              joinName,
+        email:             invEmail,
+        pilot_role:        labelForRole(inv.role),
+        invitation_status: 'accepted',
+        is_active:         true,
+      }]);
     }
 
     await admin.from('invitations')

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import SEONav from '@/components/seo/SEONav';
+import SEOFooter from '@/components/seo/SEOFooter';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
@@ -491,37 +492,7 @@ export default function DocumentacionPage() {
       </div>
 
       {/* ── FOOTER ── */}
-      <footer className="bg-[#0F1419] text-slate-400 py-12 md:py-16 px-4 md:px-6 border-t border-white/5 mt-12 md:mt-20">
-        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 text-sm">
-          <div className="col-span-2">
-            <p className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter">Bitafly</p>
-            <p className="text-xs mt-3 max-w-xs leading-relaxed">
-              Software de gestión aeronáutica para operadores UAS en Colombia. Cumplimiento RAC 100 desde el primer vuelo.
-            </p>
-          </div>
-          <div className="space-y-3">
-            <p className="text-xs font-black uppercase tracking-widest text-white">Producto</p>
-            <ul className="space-y-2 text-xs">
-              <li><Link href="/#funciones" className="hover:text-primary transition-colors">Funciones</Link></li>
-              <li><Link href="/#precios" className="hover:text-primary transition-colors">Precios</Link></li>
-              <li><Link href="/documentacion" className="hover:text-primary transition-colors">Documentación</Link></li>
-              <li><Link href="/login" className="hover:text-primary transition-colors">Iniciar sesión</Link></li>
-            </ul>
-          </div>
-          <div className="space-y-3">
-            <p className="text-xs font-black uppercase tracking-widest text-white">Empresa</p>
-            <ul className="space-y-2 text-xs">
-              <li><Link href="/#faq" className="hover:text-primary transition-colors">Preguntas frecuentes</Link></li>
-              <li><a href="mailto:soporte@bitafly.com" className="hover:text-primary transition-colors">Contacto</a></li>
-              <li><Link href="/registro" className="hover:text-primary transition-colors">Comenzar gratis</Link></li>
-            </ul>
-          </div>
-        </div>
-        <div className="max-w-6xl mx-auto mt-10 pt-6 border-t border-white/5 flex flex-col md:flex-row justify-between gap-3 text-xs uppercase tracking-widest">
-          <p>© {new Date().getFullYear()} Bitafly Operations. Todos los derechos reservados.</p>
-          <p>Hecho en Colombia para operadores UAS</p>
-        </div>
-      </footer>
+      <SEOFooter brandDesc="Software de gestión aeronáutica para operadores UAS en Colombia. Cumplimiento RAC 100 desde el primer vuelo." />
     </div>
   );
 }

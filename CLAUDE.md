@@ -950,10 +950,11 @@ copy y enlaces ligeramente distintos, además de un cuarto componente
 - **Despacho simplificado**: no requiere orden de vuelo ni batería. Pide `mission_type` + aeronave + hora de despegue. Baterías se sincronizan al importar DJI.
 - **⚠️ Detección del piloto independiente**: TODOS los miembros de una org tienen `profile.subscription_plan='piloto'` (el plan de pago vive en el perfil del **admin**; `organizations` no tiene columna de plan). Por eso el "piloto autónomo" se detecta como **`subscription_plan==='piloto' && role==='admin'`** — usado en `layout.js` (`isPilotoPlan`) y en `logbook/new` (`pilotPlan`). NO usar solo el plan: confundiría a piloto/jefe/gsms con el independiente.
 - **Auto-piloto DJI**: si no existe registro en `pilots` al importar, se crea automáticamente con datos del perfil.
-- **Planeaciones**: guarda en `/plan-vuelo`, selecciona antes de volar desde `/logbook/new`.
+- **Sin Planear Vuelo (quitado 2026-07-20)**: el piloto independiente ya **no** puede crear planeaciones nuevas — ver subsección dedicada más abajo. Las planeaciones ya guardadas antes de este cambio siguen siendo seleccionables desde `/logbook/new`.
 - **Unirse a org**: desde `/dashboard/subscription`, ingresa NIT, elige rol → `POST /api/auth/join-org` transfiere toda la data (aircraft, batteries, flights, pilots, flight_plans, etc.) al nuevo org y actualiza `profiles.organization_id + role`. La org origen queda marcada como `[Migrada]`.
 - OnboardingBanner NO se muestra al piloto independiente.
 - **Sin grupo "Documentación" (2026-07-07)**: el piloto independiente no tiene acceso ni ve el grupo completo (Seguridad SMS, SORA, Auditoría, Reportes, Protocolos, Proveedores, Capacitación, Manuales) — a pedido explícito del usuario. `dashboard/layout.js` vacía el grupo entero para `isPilotoPlan` (antes algunas entradas sin `pilotHidden` —Protocolos/Proveedores/Capacitación— o con `pilotOnly` —SORA— sí se colaban). A nivel de ruta, `requirePermission()` (`lib/authGuards.js`) ganó una opción `{ blockIndependentPilot: true }` (aplicada en los layouts de safety/audit/reports/settings/forms/suppliers/training) que redirige al independiente aunque su rol `admin` esté en la lista de roles permitidos — antes esas páginas se podían visitar por URL directa aunque el nav ya las ocultara. `/dashboard/sora` no tenía ningún guard server-side (page.js 100% client) — se le agregó un `layout.js` mínimo solo para este bloqueo, sin restringir al resto de roles que ya podían entrar.
+- **Sin Planear Vuelo, Mantenimiento ni Inventario (2026-07-20)**: a pedido explícito del usuario, el piloto independiente ya no ve estas 3 entradas en el sidebar — asumen una operación con checklist de equipo compartido/técnico que no aplica a quien opera solo. "Planear Vuelo" se quita para **toda** la plataforma (era su única audiencia restante, ver **Piloto dentro de Organización** — el piloto de org ya la había perdido en 2026-07-07): `layout.js` de `/dashboard/plan-vuelo` ahora redirige también al independiente (a `/logbook/new`, en vez de dejarlo pasar) y el enlace "Crear nueva planeación" del Despacho se quitó — el selector de planeaciones **ya guardadas** se conserva intacto, solo deja de poder crear nuevas. `/dashboard/maintenance` e `/dashboard/inventory-checklist` ganan `pilotHidden: true` en el nav + `{ blockIndependentPilot: true }` en sus `requirePermission()` (sin esto seguirían accesibles por URL directa, ya que el rol `admin` del independiente sí está en `canManageOps`/`canViewInventoryChecklist`). El widget "Planear" de la barra inferior móvil también se quitó. **Confirmado que ya no hace falta ningún cambio en Despacho**: el flujo simplificado (`/logbook/new`) ya no pedía orden de vuelo ni batería desde antes (ver arriba) — coincide con lo pedido ("solo agregar los que hace y cargar los de su dron").
 
 ### Piloto dentro de Organización (role=`piloto`)
 
@@ -1348,6 +1349,18 @@ no "formatos" con letterhead).
   archivo (vía `Image().naturalWidth/Height`), y `addLogo()` calcula un ajuste tipo
   "contain" centrado dentro de la misma caja — mismo helper, los 6 generadores se
   benefician sin cambios adicionales.
+
+### Reportes — panel de descarga inline por sección (2026-07-20)
+
+El panel "Generar — {formato}" (código/versión/fecha/alcance/botón descargar) se
+renderizaba **una sola vez, al final de toda la página**, después de las 5 secciones
+agrupadas — al elegir un formato de una sección de arriba (ej. Operación), el usuario
+tenía que desplazarse mucho para llegar al panel. Corregido: `renderReportPanel()` ahora
+se inserta **dentro de la grilla**, como un ítem `col-span-full` justo después de la
+tarjeta seleccionada (`Fragment` por `def.key` en el `.map()`) — con CSS Grid, un elemento
+de ancho completo cae en la fila siguiente sin importar cuántas columnas tenga la grilla
+en ese viewport, así que el panel siempre aparece inmediatamente debajo de la opción
+elegida, sin importar en qué sección esté.
 
 ### Reportes — grilla agrupada + 7 formatos nuevos (2026-07-05)
 
@@ -1746,6 +1759,14 @@ Registrado todo desde `AddMaintenancePanel` (web y APK; el APK toma los cambios 
 - **Bug real — "Serial Aeronave Asignada" de Baterías siempre vacío al regenerar la plantilla**: `template/route.js` calculaba la columna desde `batteries.aircraft_id`, columna que no existe en esa tabla (ver arriba) — el pre-llenado nunca mostraba nada aunque la batería sí tuviera vuelos reales. Corregido: se resuelve igual que `dashboard/batteries/page.js` — última fila de `battery_logs` por `battery_sn`.
 - **Completitud — hoja nueva `🛠️ Tech y Payloads`**: `inventory_items` (equipos técnicos/payloads, limitado por plan igual que drones/pilotos/baterías) no tenía ninguna forma de cargarse por Onboarding Express — quedaba fuera de "configurar todo en un paso". Mismo patrón dedup-por-serial + `canAddResource(plan, count, 'tech')` que Flota.
 - **Completitud — Organización**: se agregaron **N° Operador UAS** (`operator_number`) y **Vigencia Registro** (`registration_expiry`) — campos reales de la sección "Registro AeroCivil" de `/dashboard/settings` (ver **Organización rediseñada**) que faltaban en la plantilla.
+
+**Restyle de la tarjeta "Inicio Rápido" a tema claro (2026-07-20)**: la tarjeta vivía en
+`bg-slate-800` (oscuro), pegada justo debajo del hero navy de Organización, y por encima
+del resto de la página (tarjetas blancas desde el rediseño de 2026-07-03) — dos bloques
+oscuros consecutivos hacían difícil distinguir el texto, y no concordaba visualmente con
+el resto de la página. Restyleada a tema claro (`bg-white`, mismo header con acento
+`bg-orange-50/60` que el resto de tarjetas de la página, tiles/badges de error-éxito en
+tonos claros en vez de oscuros) — sin tocar la lógica de descarga/subida.
 
 **Tripulantes con invitación**: al importar la hoja Tripulación, cada fila con email crea el piloto con `invitation_status='pending'` y dispara `createCrewInvitation()` (`lib/invitations.js`):
 - Registra fila en `invitations` (token único) y envía correo (Resend, `escHtml`).

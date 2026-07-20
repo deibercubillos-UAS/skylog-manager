@@ -335,7 +335,11 @@ const displayRole = (isPilotoPlan && role === 'admin')
 const navLinks = [
   { name: 'Dashboard',      icon: 'dashboard',               href: '/dashboard',                 group: 'Operación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Bitácora',       icon: 'menu_book',               href: '/dashboard/logbook',         group: 'Operación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Planear Vuelo',  icon: 'map',                     href: '/dashboard/plan-vuelo',      group: 'Operación', roles: ['superadmin', 'admin', 'jefe_pilotos', 'piloto'], pilotOnly: true },
+  // "Planear Vuelo" quitado del sidebar por completo (2026-07-20, pedido explícito
+  // del usuario): el piloto independiente, su única audiencia restante, ya no puede
+  // planear vuelos — solo agrega los que ya hizo (manual) o los importa desde su
+  // dron. La ruta /dashboard/plan-vuelo redirige a cualquiera que entre por URL
+  // directa (ver su layout.js) en vez de dejar el enlace muerto en el sidebar.
   // Quitado a pedido del usuario (2026-07-07): el piloto dentro de una org ya NO
   // planea sus propios vuelos — solo vuela lo que le programaron (Mis Vuelos).
   // Programación Activa vive dentro de Programación ("Ver programación activa") — mismos roles, sin entrada propia en el sidebar.
@@ -345,13 +349,18 @@ const navLinks = [
   { name: 'Meteorología',   icon: 'partly_cloudy_day',       href: '/dashboard/weather',         group: 'Operación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Flota',          icon: 'precision_manufacturing', href: '/dashboard/fleet',           group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Baterías',       icon: 'battery_charging_full',   href: '/dashboard/batteries',       group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  // Mantenimiento e Inventario ocultos para el piloto independiente (2026-07-20,
+  // pedido explícito del usuario) — ambos asumen una operación con
+  // técnico/checklist de equipo compartido, que no aplica a un piloto que opera
+  // solo. Bloqueado también a nivel de ruta (ver maintenance/layout.js e
+  // inventory-checklist/layout.js) para que no quede accesible por URL directa.
+  { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
   // Inventario de Operación: existencias de equipo + checklist de verificación
   // pre-misión. Vive aquí (no en Cumplimiento) porque ahora es también un
   // catálogo de equipo real, igual que Flota/Baterías/Mantenimiento. La edición
   // del checklist sigue en su propia página (gate propio, incluye jefe_pilotos) —
   // Protocolos solo tiene una tarjeta/enlace hacia acá (ver FormSettingsClient.js).
-  { name: 'Inventario',     icon: 'inventory_2',             href: '/dashboard/inventory-checklist', group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  { name: 'Inventario',     icon: 'inventory_2',             href: '/dashboard/inventory-checklist', group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
   // Mantenimiento Menor NO tiene entrada propia: su checklist se edita en
   // Protocolos y se diligencia dentro de /dashboard/maintenance (ver CLAUDE.md).
   { name: 'Tripulación',    icon: 'group',                   href: '/dashboard/pilots',          group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
@@ -853,11 +862,6 @@ const footerLinks = footerLinksAll.filter(link =>
                 <span className="text-[9px] font-black uppercase leading-none mt-0.5 tracking-tight">Nuevo</span>
               </Link>
             </div>
-          )}
-
-          {/* Plan piloto (piloto autónomo): mostrar "Planear" en lugar de Tripulación */}
-          {isPilotoPlan && filteredLinks.some(l => l.href === '/dashboard/plan-vuelo') && (
-            <BottomNavItem href="/dashboard/plan-vuelo" icon="map" label="Planear" active={pathname.startsWith('/dashboard/plan-vuelo')} />
           )}
 
           {/* Tripulación — solo planes con organización (no piloto autónomo) */}

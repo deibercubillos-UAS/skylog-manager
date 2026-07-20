@@ -16,15 +16,16 @@ export default async function PlanVueloLayout({ children }) {
   // tiene columna de plan).
   const plan = await getOrgPlan(supabase, profile.organization_id, profile.subscription_plan || 'piloto');
 
-  // Planear Vuelo es SOLO para el piloto independiente (role='admin' + plan='piloto'
-  // — el piloto independiente siempre tiene ese rol, nunca 'piloto'). El piloto
-  // dentro de una organización ya no planea sus propios vuelos: solo vuela lo que
-  // le programan (Programación/Mis Vuelos) — ver CLAUDE.md, quitado a pedido del
-  // usuario. Los managers de un plan pagado siguen usando Programación.
+  // Planear Vuelo quitado por completo (2026-07-20, pedido explícito del
+  // usuario) — ni siquiera el piloto independiente, su única audiencia
+  // restante, puede planear vuelos: solo agrega los que ya hizo (manual) o
+  // los importa desde su dron. Nadie entra ya a esta ruta; redirige según el
+  // rol real, igual que antes para el resto de los casos.
   const isIndependent = plan === 'piloto' && profile.role === 'admin';
-  if (!isIndependent) {
-    redirect(profile.role === 'piloto' ? '/dashboard/mis-vuelos' : '/dashboard/authorizations');
+  if (isIndependent) {
+    redirect('/dashboard/logbook/new');
   }
+  redirect(profile.role === 'piloto' ? '/dashboard/mis-vuelos' : '/dashboard/authorizations');
 
   return <>{children}</>;
 }

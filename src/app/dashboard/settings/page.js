@@ -326,17 +326,19 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
 
             {/* ── INICIO RÁPIDO — Onboarding Express (oculto para piloto independiente) ── */}
             {profile?.subscription_plan !== 'piloto' && (
-            <section id="inicio-rapido" className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
-                {/* Header */}
-                <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-700 bg-gradient-to-r from-orange-600/20 to-transparent">
-                    <span className="material-symbols-outlined text-2xl text-orange-400">rocket_launch</span>
+            <section id="inicio-rapido" className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                {/* Header — mismo estilo claro que el resto de la página (antes era un bloque
+                    oscuro pegado directo bajo el hero navy, ilegible y sin relación visual
+                    con las demás tarjetas blancas de esta página) */}
+                <div className="flex items-center gap-3 px-5 py-4 md:px-7 border-b border-slate-100 bg-orange-50/60">
+                    <span className="material-symbols-outlined text-2xl text-orange-600">rocket_launch</span>
                     <div>
-                        <p className="text-sm font-black text-white">Inicio Rápido — Onboarding Express</p>
-                        <p className="text-xs text-slate-400">¿Tienes tu información en Excel? Descarga la plantilla, llénala y súbela para configurar todo en un paso.</p>
+                        <p className="text-sm font-black text-slate-900">Inicio Rápido — Onboarding Express</p>
+                        <p className="text-xs text-slate-500">¿Tienes tu información en Excel? Descarga la plantilla, llénala y súbela para configurar todo en un paso.</p>
                     </div>
                 </div>
 
-                <div className="p-5 space-y-4">
+                <div className="p-5 md:p-7 space-y-4">
                     {/* Pasos visuales */}
                     <div className="grid grid-cols-3 gap-3 text-center">
                         {[
@@ -344,10 +346,10 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                             { icon: 'edit',     label: '2. Llenar',    desc: 'Org · Tripulación · Flota · Baterías · más' },
                             { icon: 'upload_file', label: '3. Subir',  desc: 'Bitafly importa todo automáticamente' },
                         ].map(s => (
-                            <div key={s.icon} className="bg-slate-700/50 rounded-xl p-3">
-                                <span className="material-symbols-outlined text-xl text-orange-400 block mb-1">{s.icon}</span>
-                                <p className="text-xs font-black text-white">{s.label}</p>
-                                <p className="text-[10px] text-slate-400 mt-0.5">{s.desc}</p>
+                            <div key={s.icon} className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                                <span className="material-symbols-outlined text-xl text-orange-600 block mb-1">{s.icon}</span>
+                                <p className="text-xs font-black text-slate-900">{s.label}</p>
+                                <p className="text-[10px] text-slate-500 mt-0.5">{s.desc}</p>
                             </div>
                         ))}
                     </div>
@@ -358,7 +360,7 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                             type="button"
                             onClick={handleObDownload}
                             disabled={obDownloading}
-                            className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-50
+                            className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50
                                 text-white text-xs font-black uppercase tracking-wide rounded-xl px-4 py-2.5 transition-colors">
                             {obDownloading
                                 ? <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
@@ -373,7 +375,7 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                             type="button"
                             onClick={() => obFileRef.current?.click()}
                             disabled={obUploading}
-                            className="flex items-center gap-2 bg-sky-700 hover:bg-sky-600 disabled:opacity-50
+                            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-50
                                 text-white text-xs font-black uppercase tracking-wide rounded-xl px-4 py-2.5 transition-colors">
                             {obUploading
                                 ? <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
@@ -385,10 +387,10 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
 
                     {/* Error */}
                     {obError && (
-                        <div className="bg-red-900/30 border border-red-500/40 rounded-xl p-3 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-red-400 text-sm">error</span>
-                            <p className="text-xs text-red-300">{obError}</p>
-                            <button onClick={() => setObError(null)} className="ml-auto text-slate-500 hover:text-white">
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-red-500 text-sm">error</span>
+                            <p className="text-xs text-red-700">{obError}</p>
+                            <button onClick={() => setObError(null)} className="ml-auto text-slate-400 hover:text-slate-600">
                                 <span className="material-symbols-outlined text-xs">close</span>
                             </button>
                         </div>
@@ -396,14 +398,14 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
 
                     {/* Resultado del import */}
                     {obResult && (
-                        <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-4 space-y-3">
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-3">
                             <div className="flex items-center gap-2">
-                                <span className="material-symbols-outlined text-emerald-400">check_circle</span>
-                                <p className="text-sm font-black text-white">
+                                <span className="material-symbols-outlined text-emerald-600">check_circle</span>
+                                <p className="text-sm font-black text-slate-900">
                                     Importación completada — {obResult.totalCreated} registros creados
                                     {obResult.totalSkipped > 0 && `, ${obResult.totalSkipped} omitidos (ya existían)`}
                                 </p>
-                                <button onClick={() => setObResult(null)} className="ml-auto text-slate-500 hover:text-white">
+                                <button onClick={() => setObResult(null)} className="ml-auto text-slate-400 hover:text-slate-600">
                                     <span className="material-symbols-outlined text-sm">close</span>
                                 </button>
                             </div>
@@ -418,11 +420,11 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                                     { key: 'contactos',   label: 'Contactos',    icon: 'emergency',       val: `+${obResult.results?.contactos?.created || 0}` },
                                     { key: 'bitacora',    label: 'Vuelos',       icon: 'menu_book',       val: `+${obResult.results?.bitacora?.inserted || 0}` },
                                 ].map(item => (
-                                    <div key={item.key} className="bg-slate-800 rounded-lg px-3 py-2 flex items-center gap-2">
+                                    <div key={item.key} className="bg-white border border-emerald-100 rounded-lg px-3 py-2 flex items-center gap-2">
                                         <span className="material-symbols-outlined text-sm text-slate-400">{item.icon}</span>
                                         <div>
-                                            <p className="text-[10px] text-slate-400">{item.label}</p>
-                                            <p className="text-xs font-black text-emerald-400">{item.val}</p>
+                                            <p className="text-[10px] text-slate-500">{item.label}</p>
+                                            <p className="text-xs font-black text-emerald-700">{item.val}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -430,11 +432,11 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                             {/* Errores por sección */}
                             {Object.entries(obResult.results || {}).some(([, v]) => v?.errors?.length > 0) && (
                                 <details className="mt-1">
-                                    <summary className="text-xs text-orange-400 cursor-pointer font-semibold">Ver advertencias</summary>
+                                    <summary className="text-xs text-orange-600 cursor-pointer font-semibold">Ver advertencias</summary>
                                     <div className="mt-2 space-y-1">
                                         {Object.entries(obResult.results).map(([section, v]) =>
                                             (v?.errors || []).map((e, i) => (
-                                                <p key={`${section}-${i}`} className="text-[11px] text-orange-300">
+                                                <p key={`${section}-${i}`} className="text-[11px] text-orange-700">
                                                     [{section}] {e}
                                                 </p>
                                             ))

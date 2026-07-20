@@ -467,15 +467,6 @@ export default function NewOperationPage() {
                                                 Aún no tienes planeaciones guardadas.
                                             </p>
                                         )}
-                                        <a
-                                            href="/dashboard/plan-vuelo"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1.5 text-xs font-black uppercase text-orange-600 hover:text-orange-700 ml-1 mt-1"
-                                        >
-                                            <span className="material-symbols-outlined text-sm">add_location_alt</span>
-                                            Crear nueva planeación
-                                        </a>
                                     </div>
 
                                     {/* Clima de la zona — solo si la planeación elegida tiene zona geolocalizada */}

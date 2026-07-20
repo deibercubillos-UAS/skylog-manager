@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { supabase } from '@/lib/supabase';
 import { hasPermission } from '@/lib/roles';
 import { getOrgContext } from '@/lib/apiAuth';
@@ -257,7 +257,6 @@ export default function ReportsPage() {
             .filter(g => g.defs.length > 0);
     }, [search]);
 
-    const activeDef = useMemo(() => REPORT_DEFS.find(d => d.key === openKey) || null, [openKey]);
     const selectedAircraftLabel = useMemo(() => {
         const a = aircraftList.find(x => x.id === selectedAircraft);
         return a ? `${a.model} · ${a.serial_number}` : null;
@@ -436,6 +435,221 @@ export default function ReportsPage() {
 
     const selectCls = "p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500 border border-slate-200";
 
+    // Panel de generación de un formato — se inserta inline dentro de la
+    // grilla, justo debajo de la fila que contiene la tarjeta seleccionada
+    // (antes se renderizaba una sola vez al final de toda la página,
+    // obligando a desplazarse mucho si el formato elegido estaba arriba).
+    const renderReportPanel = (activeDef) => (
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 md:p-6 space-y-5 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center justify-between">
+                <p className="text-sm font-black text-slate-900">Generar — {activeDef.name}</p>
+                <button type="button" onClick={() => setOpenKey(null)}
+                    className="size-8 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all">
+                    <span className="material-symbols-outlined text-base">close</span>
+                </button>
+            </div>
+
+            {(activeDef.code || activeDef.key !== 'aerocivil') && (
+                <div className="flex flex-wrap items-start gap-4">
+                    {activeDef.code && (
+                        <div className="space-y-1 max-w-xs">
+                            <label className="text-[9.5px] font-black text-slate-400 uppercase tracking-wide ml-0.5">Código de formato</label>
+                            <input className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold font-mono text-slate-900"
+                                value={formCodes[activeDef.key]}
+                                onChange={e => setFormCodes({ ...formCodes, [activeDef.key]: e.target.value })} />
+                            <p className="text-[10px] font-semibold text-slate-400">Personaliza el código con el que se identifica este reporte en tu organización.</p>
+                        </div>
+                    )}
+                    {!['aerocivil', 'spi'].includes(activeDef.key) && (
+                        <>
+                            <div className="space-y-1">
+                                <label className="text-[9.5px] font-black text-slate-400 uppercase tracking-wide ml-0.5">Versión</label>
+                                <input className="w-20 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-center"
+                                    value={configs[activeDef.key]?.version || ''}
+                                    onChange={e => updateConfig(activeDef.key, { version: e.target.value })} />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[9.5px] font-black text-slate-400 uppercase tracking-wide ml-0.5">Fecha del formato</label>
+                                <input type="date" className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
+                                    value={configs[activeDef.key]?.reportDate || ''}
+                                    onChange={e => updateConfig(activeDef.key, { reportDate: e.target.value })} />
+                            </div>
+                        </>
+                    )}
+                </div>
+            )}
+
+            {activeDef.needsCutoffDate && (
+                <div className="space-y-1 max-w-xs">
+                    <label className="text-[9.5px] font-black uppercase tracking-wide text-slate-400 ml-0.5">Fecha de corte</label>
+                    <input type="date" className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
+                        value={cutoffDate} onChange={e => setCutoffDate(e.target.value)} max={todayISO} />
+                    <p className="text-[10px] font-semibold text-slate-400">Los ciclos totales se calculan acumulados hasta esta fecha.</p>
+                </div>
+            )}
+
+            {activeDef.needsYear && (
+                <div className="space-y-1 max-w-xs">
+                    <label className="text-[9.5px] font-black uppercase tracking-wide text-slate-400 ml-0.5">Año a reportar</label>
+                    <input type="number" className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold w-28"
+                        value={selectedYear} min="2000" max={new Date().getFullYear()}
+                        onChange={e => setSelectedYear(parseInt(e.target.value, 10) || '')} />
+                    <p className="text-[10px] font-semibold text-slate-400">La línea base (líneas de alerta) se calcula con el año anterior a este.</p>
+                </div>
+            )}
+
+            {activeDef.needsTrainingType && (
+                <div className="space-y-2">
+                    <span className="text-[9.5px] font-black uppercase tracking-wide text-slate-400">Programa</span>
+                    <div className="flex flex-wrap gap-2">
+                        {[['operaciones', 'Operaciones'], ['mantenimiento', 'Mantenimiento']].map(([val, label]) => (
+                            <button key={val} type="button" onClick={() => setTrainingType(val)}
+                                className={`text-xs font-bold px-3.5 py-2 rounded-full transition-all ${
+                                    trainingType === val ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                }`}>
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {activeDef.needsMonth && (
+                <div className="flex flex-wrap items-center gap-4">
+                    <div className="space-y-1">
+                        <label className="text-[9.5px] font-black uppercase tracking-wide text-slate-400 ml-0.5">Mes a reportar (mes vencido)</label>
+                        <input type="month" className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
+                            value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} max={previousMonthISO()} />
+                    </div>
+                    {aerocivilStatus && (
+                        aerocivilStatus.sent ? (
+                            <span className="flex items-center gap-1.5 text-xs font-black text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1.5">
+                                <span className="material-symbols-outlined text-sm">check_circle</span>
+                                Enviado{aerocivilStatus.sentByName ? ` · ${aerocivilStatus.sentByName}` : ''}
+                            </span>
+                        ) : (
+                            <span className="flex items-center gap-1.5 text-xs font-black text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-3 py-1.5">
+                                <span className="material-symbols-outlined text-sm">pending</span>
+                                Pendiente de envío
+                            </span>
+                        )
+                    )}
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Periodo */}
+                {activeDef.needsPeriod && (
+                    <div className="space-y-2">
+                        <span className="text-[9.5px] font-black uppercase tracking-wide text-slate-400">Periodo a descargar</span>
+                        <div className="flex flex-wrap gap-2">
+                            {PERIODS.map(p => (
+                                <button key={p} type="button" onClick={() => setPeriod(p)}
+                                    className={`text-xs font-bold px-3.5 py-2 rounded-full transition-all ${
+                                        period === p ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                    }`}>
+                                    {p}
+                                </button>
+                            ))}
+                        </div>
+                        {period === 'Personalizado' && (
+                            <div className="flex items-center gap-2 pt-1">
+                                <input type="date" className="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" value={customFrom} onChange={e => setCustomFrom(e.target.value)} />
+                                <span className="text-xs font-bold text-slate-400">a</span>
+                                <input type="date" className="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" value={customTo} onChange={e => setCustomTo(e.target.value)} />
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Alcance: una o varias aeronaves (Libro de Vuelo) */}
+                {activeDef.needsAircraftMulti && (
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[9.5px] font-black uppercase tracking-wide text-slate-400">Aeronaves incluidas</span>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => setSelectedAircraftIds(aircraftList.map(a => a.id))}
+                                    className="text-[10px] font-black text-orange-600 hover:underline">Todas</button>
+                                <span className="text-slate-300">·</span>
+                                <button type="button" onClick={() => setSelectedAircraftIds([])}
+                                    className="text-[10px] font-black text-slate-400 hover:underline">Ninguna</button>
+                            </div>
+                        </div>
+                        <div className="max-h-40 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100">
+                            {aircraftList.length === 0 && (
+                                <p className="text-xs font-semibold text-slate-400 px-3 py-3">Sin aeronaves registradas.</p>
+                            )}
+                            {aircraftList.map(a => {
+                                const checked = selectedAircraftIds.includes(a.id);
+                                return (
+                                    <label key={a.id} className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 cursor-pointer hover:bg-slate-50">
+                                        <input type="checkbox" className="accent-orange-600" checked={checked}
+                                            onChange={() => setSelectedAircraftIds(prev => checked ? prev.filter(id => id !== a.id) : [...prev, a.id])} />
+                                        {a.model} · {a.serial_number}
+                                    </label>
+                                );
+                            })}
+                        </div>
+                        <p className="text-[10px] font-semibold text-slate-400">Deja sin marcar ninguna para incluir toda la flota.</p>
+                    </div>
+                )}
+
+                {/* Alcance: aeronave, piloto o proveedor */}
+                {(activeDef.needsAircraft || activeDef.needsPilot || activeDef.needsSupplier) && (
+                    <div className="space-y-2">
+                        <span className="text-[9.5px] font-black uppercase tracking-wide text-slate-400">
+                            {activeDef.needsAircraft ? 'Alcance — aeronave' : activeDef.needsSupplier ? 'Alcance — proveedor' : 'Tripulante'}
+                            {activeDef.needsPilot && <span className="text-orange-600"> *</span>}
+                        </span>
+                        {activeDef.needsAircraft && (
+                            <select className={selectCls + ' w-full'} value={selectedAircraft} onChange={e => setSelectedAircraft(e.target.value)}>
+                                <option value="">Todas las aeronaves</option>
+                                {aircraftList.map(a => <option key={a.id} value={a.id}>{a.model} · {a.serial_number}</option>)}
+                            </select>
+                        )}
+                        {activeDef.needsPilot && (
+                            <select className={selectCls + ' w-full'} value={selectedPilot} onChange={e => setSelectedPilot(e.target.value)}>
+                                <option value="">-- Seleccionar tripulante --</option>
+                                {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                        )}
+                        {activeDef.needsSupplier && (
+                            <select className={selectCls + ' w-full'} value={selectedSupplier} onChange={e => setSelectedSupplier(e.target.value)}>
+                                <option value="">Todos los proveedores</option>
+                                {supplierList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            </select>
+                        )}
+                        {activeDef.needsAircraft && (
+                            <p className="text-[10px] font-semibold text-slate-400">Deja "Todas las aeronaves" para el reporte completo, o elige una para un reporte de solo esa unidad.</p>
+                        )}
+                        {activeDef.needsSupplier && (
+                            <p className="text-[10px] font-semibold text-slate-400">Deja "Todos los proveedores" para el consolidado, o elige uno para su historial de auditorías.</p>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+                <button type="button" onClick={() => setOpenKey(null)}
+                    className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-black text-xs uppercase tracking-wide hover:bg-slate-50 transition-all">
+                    Cancelar
+                </button>
+                {activeDef.key === 'aerocivil' && !aerocivilStatus?.sent && (
+                    <button type="button" onClick={handleMarkSent} disabled={markingSent}
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 font-black text-xs uppercase tracking-wide hover:bg-emerald-100 transition-all disabled:opacity-50">
+                        <span className="material-symbols-outlined text-base">{markingSent ? 'progress_activity' : 'check_circle'}</span>
+                        {markingSent ? 'Guardando...' : 'Marcar como enviado'}
+                    </button>
+                )}
+                <button type="button" onClick={() => handleDownload(activeDef)} disabled={downloadingKey === activeDef.key}
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-wide shadow-lg shadow-orange-600/25 active:scale-95 transition-all disabled:opacity-50">
+                    <span className="material-symbols-outlined text-base">{activeDef.format === 'xlsx' ? 'table_view' : 'picture_as_pdf'}</span>
+                    {downloadingKey === activeDef.key ? 'Generando...' : (activeDef.format === 'xlsx' ? 'Descargar Excel' : 'Descargar PDF')}
+                </button>
+            </div>
+        </div>
+    );
+
     return (
         <div className="space-y-6 md:space-y-8 text-left animate-in fade-in duration-700 pb-20">
             <PageHero
@@ -479,240 +693,39 @@ export default function ReportsPage() {
                             <p className="text-[10.5px] font-black uppercase tracking-widest text-slate-400 px-0.5">{group}</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {defs.map(def => (
-                                    <button key={def.key} type="button" onClick={() => toggleDef(def.key)}
-                                        className={`text-left bg-white border rounded-2xl p-5 flex flex-col gap-2.5 transition-all hover:shadow-md hover:border-orange-200 ${
-                                            openKey === def.key ? 'border-orange-300 ring-2 ring-orange-100' : 'border-slate-200'
-                                        }`}>
-                                        <div className="flex items-center justify-between">
-                                            <div className="size-9 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
-                                                <span className="material-symbols-outlined text-lg text-orange-600">{def.icon}</span>
+                                    <Fragment key={def.key}>
+                                        <button type="button" onClick={() => toggleDef(def.key)}
+                                            className={`text-left bg-white border rounded-2xl p-5 flex flex-col gap-2.5 transition-all hover:shadow-md hover:border-orange-200 ${
+                                                openKey === def.key ? 'border-orange-300 ring-2 ring-orange-100' : 'border-slate-200'
+                                            }`}>
+                                            <div className="flex items-center justify-between">
+                                                <div className="size-9 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
+                                                    <span className="material-symbols-outlined text-lg text-orange-600">{def.icon}</span>
+                                                </div>
+                                                {def.code && <span className="text-[9.5px] font-black text-slate-300 font-mono">{formCodes[def.key]}</span>}
                                             </div>
-                                            {def.code && <span className="text-[9.5px] font-black text-slate-300 font-mono">{formCodes[def.key]}</span>}
-                                        </div>
-                                        <p className="text-sm font-black text-slate-900 uppercase tracking-tight">{def.name}</p>
-                                        <p className="text-xs text-slate-500 leading-snug">{def.desc}</p>
-                                        <div className="flex items-center gap-1.5 mt-auto pt-2.5 border-t border-slate-100 text-orange-600">
-                                            <span className="material-symbols-outlined text-sm">{openKey === def.key ? 'expand_less' : (def.format === 'xlsx' ? 'table_view' : 'picture_as_pdf')}</span>
-                                            <span className="text-[10.5px] font-black uppercase tracking-wide">{openKey === def.key ? 'Ocultar opciones' : (def.format === 'xlsx' ? 'Generar Excel' : 'Generar PDF')}</span>
-                                        </div>
-                                    </button>
+                                            <p className="text-sm font-black text-slate-900 uppercase tracking-tight">{def.name}</p>
+                                            <p className="text-xs text-slate-500 leading-snug">{def.desc}</p>
+                                            <div className="flex items-center gap-1.5 mt-auto pt-2.5 border-t border-slate-100 text-orange-600">
+                                                <span className="material-symbols-outlined text-sm">{openKey === def.key ? 'expand_less' : (def.format === 'xlsx' ? 'table_view' : 'picture_as_pdf')}</span>
+                                                <span className="text-[10.5px] font-black uppercase tracking-wide">{openKey === def.key ? 'Ocultar opciones' : (def.format === 'xlsx' ? 'Generar Excel' : 'Generar PDF')}</span>
+                                            </div>
+                                        </button>
+                                        {/* Panel de generación — ítem de ancho completo del mismo grid,
+                                            justo después de la tarjeta seleccionada: con CSS Grid, un
+                                            elemento col-span-full cae en la fila siguiente sin importar
+                                            el ancho de pantalla ni cuántas columnas tenga la grilla. */}
+                                        {openKey === def.key && (
+                                            <div className="col-span-full">
+                                                {renderReportPanel(def)}
+                                            </div>
+                                        )}
+                                    </Fragment>
                                 ))}
                             </div>
                         </div>
                     ))}
                 </div>
-
-                {/* Panel de generación del formato activo */}
-                {activeDef && (
-                    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 md:p-6 space-y-5 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <div className="flex items-center justify-between">
-                            <p className="text-sm font-black text-slate-900">Generar — {activeDef.name}</p>
-                            <button type="button" onClick={() => setOpenKey(null)}
-                                className="size-8 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all">
-                                <span className="material-symbols-outlined text-base">close</span>
-                            </button>
-                        </div>
-
-                        {(activeDef.code || activeDef.key !== 'aerocivil') && (
-                            <div className="flex flex-wrap items-start gap-4">
-                                {activeDef.code && (
-                                    <div className="space-y-1 max-w-xs">
-                                        <label className="text-[9.5px] font-black text-slate-400 uppercase tracking-wide ml-0.5">Código de formato</label>
-                                        <input className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold font-mono text-slate-900"
-                                            value={formCodes[activeDef.key]}
-                                            onChange={e => setFormCodes({ ...formCodes, [activeDef.key]: e.target.value })} />
-                                        <p className="text-[10px] font-semibold text-slate-400">Personaliza el código con el que se identifica este reporte en tu organización.</p>
-                                    </div>
-                                )}
-                                {!['aerocivil', 'spi'].includes(activeDef.key) && (
-                                    <>
-                                        <div className="space-y-1">
-                                            <label className="text-[9.5px] font-black text-slate-400 uppercase tracking-wide ml-0.5">Versión</label>
-                                            <input className="w-20 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-center"
-                                                value={configs[activeDef.key]?.version || ''}
-                                                onChange={e => updateConfig(activeDef.key, { version: e.target.value })} />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[9.5px] font-black text-slate-400 uppercase tracking-wide ml-0.5">Fecha del formato</label>
-                                            <input type="date" className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
-                                                value={configs[activeDef.key]?.reportDate || ''}
-                                                onChange={e => updateConfig(activeDef.key, { reportDate: e.target.value })} />
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        )}
-
-                        {activeDef.needsCutoffDate && (
-                            <div className="space-y-1 max-w-xs">
-                                <label className="text-[9.5px] font-black uppercase tracking-wide text-slate-400 ml-0.5">Fecha de corte</label>
-                                <input type="date" className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
-                                    value={cutoffDate} onChange={e => setCutoffDate(e.target.value)} max={todayISO} />
-                                <p className="text-[10px] font-semibold text-slate-400">Los ciclos totales se calculan acumulados hasta esta fecha.</p>
-                            </div>
-                        )}
-
-                        {activeDef.needsYear && (
-                            <div className="space-y-1 max-w-xs">
-                                <label className="text-[9.5px] font-black uppercase tracking-wide text-slate-400 ml-0.5">Año a reportar</label>
-                                <input type="number" className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold w-28"
-                                    value={selectedYear} min="2000" max={new Date().getFullYear()}
-                                    onChange={e => setSelectedYear(parseInt(e.target.value, 10) || '')} />
-                                <p className="text-[10px] font-semibold text-slate-400">La línea base (líneas de alerta) se calcula con el año anterior a este.</p>
-                            </div>
-                        )}
-
-                        {activeDef.needsTrainingType && (
-                            <div className="space-y-2">
-                                <span className="text-[9.5px] font-black uppercase tracking-wide text-slate-400">Programa</span>
-                                <div className="flex flex-wrap gap-2">
-                                    {[['operaciones', 'Operaciones'], ['mantenimiento', 'Mantenimiento']].map(([val, label]) => (
-                                        <button key={val} type="button" onClick={() => setTrainingType(val)}
-                                            className={`text-xs font-bold px-3.5 py-2 rounded-full transition-all ${
-                                                trainingType === val ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                            }`}>
-                                            {label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {activeDef.needsMonth && (
-                            <div className="flex flex-wrap items-center gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-[9.5px] font-black uppercase tracking-wide text-slate-400 ml-0.5">Mes a reportar (mes vencido)</label>
-                                    <input type="month" className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
-                                        value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} max={previousMonthISO()} />
-                                </div>
-                                {aerocivilStatus && (
-                                    aerocivilStatus.sent ? (
-                                        <span className="flex items-center gap-1.5 text-xs font-black text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1.5">
-                                            <span className="material-symbols-outlined text-sm">check_circle</span>
-                                            Enviado{aerocivilStatus.sentByName ? ` · ${aerocivilStatus.sentByName}` : ''}
-                                        </span>
-                                    ) : (
-                                        <span className="flex items-center gap-1.5 text-xs font-black text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-3 py-1.5">
-                                            <span className="material-symbols-outlined text-sm">pending</span>
-                                            Pendiente de envío
-                                        </span>
-                                    )
-                                )}
-                            </div>
-                        )}
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Periodo */}
-                            {activeDef.needsPeriod && (
-                                <div className="space-y-2">
-                                    <span className="text-[9.5px] font-black uppercase tracking-wide text-slate-400">Periodo a descargar</span>
-                                    <div className="flex flex-wrap gap-2">
-                                        {PERIODS.map(p => (
-                                            <button key={p} type="button" onClick={() => setPeriod(p)}
-                                                className={`text-xs font-bold px-3.5 py-2 rounded-full transition-all ${
-                                                    period === p ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                                }`}>
-                                                {p}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    {period === 'Personalizado' && (
-                                        <div className="flex items-center gap-2 pt-1">
-                                            <input type="date" className="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" value={customFrom} onChange={e => setCustomFrom(e.target.value)} />
-                                            <span className="text-xs font-bold text-slate-400">a</span>
-                                            <input type="date" className="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" value={customTo} onChange={e => setCustomTo(e.target.value)} />
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Alcance: una o varias aeronaves (Libro de Vuelo) */}
-                            {activeDef.needsAircraftMulti && (
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-[9.5px] font-black uppercase tracking-wide text-slate-400">Aeronaves incluidas</span>
-                                        <div className="flex items-center gap-2">
-                                            <button type="button" onClick={() => setSelectedAircraftIds(aircraftList.map(a => a.id))}
-                                                className="text-[10px] font-black text-orange-600 hover:underline">Todas</button>
-                                            <span className="text-slate-300">·</span>
-                                            <button type="button" onClick={() => setSelectedAircraftIds([])}
-                                                className="text-[10px] font-black text-slate-400 hover:underline">Ninguna</button>
-                                        </div>
-                                    </div>
-                                    <div className="max-h-40 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100">
-                                        {aircraftList.length === 0 && (
-                                            <p className="text-xs font-semibold text-slate-400 px-3 py-3">Sin aeronaves registradas.</p>
-                                        )}
-                                        {aircraftList.map(a => {
-                                            const checked = selectedAircraftIds.includes(a.id);
-                                            return (
-                                                <label key={a.id} className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 cursor-pointer hover:bg-slate-50">
-                                                    <input type="checkbox" className="accent-orange-600" checked={checked}
-                                                        onChange={() => setSelectedAircraftIds(prev => checked ? prev.filter(id => id !== a.id) : [...prev, a.id])} />
-                                                    {a.model} · {a.serial_number}
-                                                </label>
-                                            );
-                                        })}
-                                    </div>
-                                    <p className="text-[10px] font-semibold text-slate-400">Deja sin marcar ninguna para incluir toda la flota.</p>
-                                </div>
-                            )}
-
-                            {/* Alcance: aeronave, piloto o proveedor */}
-                            {(activeDef.needsAircraft || activeDef.needsPilot || activeDef.needsSupplier) && (
-                                <div className="space-y-2">
-                                    <span className="text-[9.5px] font-black uppercase tracking-wide text-slate-400">
-                                        {activeDef.needsAircraft ? 'Alcance — aeronave' : activeDef.needsSupplier ? 'Alcance — proveedor' : 'Tripulante'}
-                                        {activeDef.needsPilot && <span className="text-orange-600"> *</span>}
-                                    </span>
-                                    {activeDef.needsAircraft && (
-                                        <select className={selectCls + ' w-full'} value={selectedAircraft} onChange={e => setSelectedAircraft(e.target.value)}>
-                                            <option value="">Todas las aeronaves</option>
-                                            {aircraftList.map(a => <option key={a.id} value={a.id}>{a.model} · {a.serial_number}</option>)}
-                                        </select>
-                                    )}
-                                    {activeDef.needsPilot && (
-                                        <select className={selectCls + ' w-full'} value={selectedPilot} onChange={e => setSelectedPilot(e.target.value)}>
-                                            <option value="">-- Seleccionar tripulante --</option>
-                                            {pilots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                        </select>
-                                    )}
-                                    {activeDef.needsSupplier && (
-                                        <select className={selectCls + ' w-full'} value={selectedSupplier} onChange={e => setSelectedSupplier(e.target.value)}>
-                                            <option value="">Todos los proveedores</option>
-                                            {supplierList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                        </select>
-                                    )}
-                                    {activeDef.needsAircraft && (
-                                        <p className="text-[10px] font-semibold text-slate-400">Deja "Todas las aeronaves" para el reporte completo, o elige una para un reporte de solo esa unidad.</p>
-                                    )}
-                                    {activeDef.needsSupplier && (
-                                        <p className="text-[10px] font-semibold text-slate-400">Deja "Todos los proveedores" para el consolidado, o elige uno para su historial de auditorías.</p>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
-                            <button type="button" onClick={() => setOpenKey(null)}
-                                className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-black text-xs uppercase tracking-wide hover:bg-slate-50 transition-all">
-                                Cancelar
-                            </button>
-                            {activeDef.key === 'aerocivil' && !aerocivilStatus?.sent && (
-                                <button type="button" onClick={handleMarkSent} disabled={markingSent}
-                                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 font-black text-xs uppercase tracking-wide hover:bg-emerald-100 transition-all disabled:opacity-50">
-                                    <span className="material-symbols-outlined text-base">{markingSent ? 'progress_activity' : 'check_circle'}</span>
-                                    {markingSent ? 'Guardando...' : 'Marcar como enviado'}
-                                </button>
-                            )}
-                            <button type="button" onClick={() => handleDownload(activeDef)} disabled={downloadingKey === activeDef.key}
-                                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs uppercase tracking-wide shadow-lg shadow-orange-600/25 active:scale-95 transition-all disabled:opacity-50">
-                                <span className="material-symbols-outlined text-base">{activeDef.format === 'xlsx' ? 'table_view' : 'picture_as_pdf'}</span>
-                                {downloadingKey === activeDef.key ? 'Generando...' : (activeDef.format === 'xlsx' ? 'Descargar Excel' : 'Descargar PDF')}
-                            </button>
-                        </div>
-                    </div>
-                )}
             </>
             )}
         </div>

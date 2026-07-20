@@ -1801,11 +1801,24 @@ mismo caso (`!orgId && !isExistingUser`), crea una fila en **`free_grants`** —
 mecanismo que ya usan los socios— con `partner_id: null` y `advisor_member_id: null`
 ("regalo de la casa"), y el CTA del correo pasa a ser `/registro?email=...&grant=<token>`
 (igual que un regalo de escuela/asesor, sin tocar `registro/page.js` — ese flujo ya
-existía y es genérico). Misma regla "1 regalo por correo, no renovable" que ya aplicaba a
-socios (`free_grants.email UNIQUE`, valida antes de crear). El plan real otorgado
-siempre es **Piloto** por N días (mismo límite del mecanismo `free_grants` — no hay forma
-de regalar un plan de organización con este flujo, es consistente con cómo ya funcionaba
-el regalo de socios).
+existía y es genérico). El plan real otorgado siempre es **Piloto** por N días (mismo
+límite del mecanismo `free_grants` — no hay forma de regalar un plan de organización con
+este flujo, es consistente con cómo ya funcionaba el regalo de socios).
+
+**Reenvío/renovación exclusivo de Master (2026-07-20)** — a pedido del usuario: la regla
+"1 regalo por correo, no renovable" (Regla #9, `free_grants.email UNIQUE`) sigue intacta
+para el regalo de **socios** (`/api/socio/grants`, sin cambios) — pero desde el **panel de
+Master** ahora se puede reenviar/renovar el acceso gratuito al mismo correo cuantas veces
+haga falta. Motivo real que lo hizo evidente: un correo que recibió un regalo de socio en
+junio, nunca lo canjeó, y quedó `degradado` tras vencer — la Regla #9 le bloqueaba
+cualquier intento de registro futuro para siempre, incluso vía Master. Como
+`free_grants.email` es `UNIQUE` a nivel de base de datos, `POST /api/admin/master/invite`
+ya no bloquea con 409 si existe una fila previa: hace `upsert` por `email`
+(`onConflict: 'email'`) que reinicia la fila por completo — nuevo `token`, nuevas fechas
+(`granted_at`/`expires_at`/`purge_after`), `redeemed_org_id` y `welcome_shown_at` en
+`null` (para que la ventana de bienvenida se muestre de nuevo) — y **desvincula**
+`partner_id`/`advisor_member_id` de cualquier socio que la haya originado antes: la
+renovación siempre queda atribuida a Master, no al socio original.
 
 ### Ventana de bienvenida (una sola vez) — `GET/POST /api/dashboard/welcome-invite`
 

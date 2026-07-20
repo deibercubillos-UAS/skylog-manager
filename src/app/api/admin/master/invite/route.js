@@ -147,16 +147,20 @@ export async function POST(request) {
   // el regalo de socios, `free_grants`, pero con `partner_id: null` — un
   // "regalo de la casa" de Master). Salta plan y tarjeta: el registro entra
   // directo con `?grant=<token>`, igual que un regalo de escuela/asesor.
+  //
+  // ⚠️ A diferencia del regalo de socios (`/api/socio/grants`, que sigue
+  // siendo 1 por correo, no renovable — ver Regla #9), Master SÍ puede
+  // reenviar/renovar el acceso gratuito al mismo correo cuantas veces sea
+  // necesario — pedido explícito del usuario: la excepción a "1 por correo"
+  // solo aplica cuando la invitación se genera desde el panel de Master.
+  // `free_grants.email` es UNIQUE a nivel de base de datos, así que en vez de
+  // bloquear con 409 si ya existe una fila, se hace upsert por email: se
+  // reinicia por completo (nuevo token, nuevas fechas, `redeemed_org_id` y
+  // `welcome_shown_at` a null para que la ventana de bienvenida vuelva a
+  // mostrarse) y se desvincula de cualquier socio/asesor previo — la
+  // renovación la origina Master, no el socio que la haya regalado antes.
   let grantToken = null;
   if (!orgId && !isExistingUser) {
-    const { data: existingGrant } = await admin
-      .from('free_grants').select('id').eq('email', cleanEmail).maybeSingle();
-    if (existingGrant) {
-      return NextResponse.json({
-        error: 'Este correo ya recibió un acceso gratuito anteriormente y no es renovable.',
-      }, { status: 409 });
-    }
-
     grantDays = Number.isFinite(Number(freeDays)) && Number(freeDays) > 0
       ? Math.min(Math.round(Number(freeDays)), 365)
       : 90;
@@ -166,16 +170,19 @@ export async function POST(request) {
     const expiresAt = new Date(now.getTime() + grantDays * 86400000);
     const purgeAfter = new Date(expiresAt.getTime() + 90 * 86400000);
 
-    const { error: grantErr } = await admin.from('free_grants').insert({
-      partner_id:        null,
-      advisor_member_id: null,
+    const { error: grantErr } = await admin.from('free_grants').upsert({
       email:              cleanEmail,
+      partner_id:         null,
+      advisor_member_id:  null,
       status:             'enviado',
       token:              grantToken,
       granted_at:         now.toISOString(),
       expires_at:         expiresAt.toISOString(),
       purge_after:        purgeAfter.toISOString(),
-    });
+      redeemed_org_id:    null,
+      welcome_shown_at:   null,
+      updated_at:         now.toISOString(),
+    }, { onConflict: 'email' });
     if (grantErr) return NextResponse.json({ error: grantErr.message }, { status: 500 });
   }
 

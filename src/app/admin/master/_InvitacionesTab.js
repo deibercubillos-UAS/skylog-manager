@@ -319,7 +319,7 @@ export default function InvitacionesTab() {
         <div className="space-y-1">
           <p className="text-xs font-black uppercase text-slate-400">Comportamiento según el destinatario</p>
           <ul className="text-xs text-slate-500 space-y-1 font-medium">
-            <li>· <strong className="text-slate-400">Usuario nuevo + sin org</strong> — entra directo con acceso gratis por los días indicados, sin elegir plan ni tarjeta.</li>
+            <li>· <strong className="text-slate-400">Usuario nuevo + sin org</strong> — entra directo con acceso gratis por los días indicados, sin elegir plan ni tarjeta. Puedes reenviar/renovar este acceso al mismo correo las veces que quieras desde este panel — a diferencia del regalo de socios, que sigue siendo único por correo.</li>
             <li>· <strong className="text-slate-400">Usuario nuevo + con org</strong> — recibe link a registro que lo une a esa org con el rol elegido, gratis (hereda el plan de la org).</li>
             <li>· <strong className="text-slate-400">Usuario existente + con org</strong> — recibe aviso y ve la invitación como banner en su dashboard.</li>
             <li>· <strong className="text-slate-400">Usuario existente + plan elegido</strong> — el plan se activa de una vez, sin pasar por ePayco ni pedir tarjeta. La fecha de vencimiento queda sin definir — ajústala luego desde el tab Usuarios.</li>

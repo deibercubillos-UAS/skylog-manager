@@ -186,7 +186,7 @@ siendo un video de orientación, no de venta.
 GUION — VIDEO 0.2
 ===================================
 Título: ¿BitaFly es para mí? Piloto independiente vs. empresa/operadora (RAC 100)
-Duración estimada: ~3.5-4 minutos (~530 palabras)
+Duración estimada: ~3.5-4 minutos (~580 palabras)
 Formato: b-roll real (piloto independiente + roles de empresa) + pantalla
 ===================================
 
@@ -195,17 +195,18 @@ Formato: b-roll real (piloto independiente + roles de empresa) + pantalla
 despacho simplificado) con el montaje de roles de empresa (Gerente General, Gerente SMS,
 Jefe de Pilotos, Piloto)]
 
-"¿Vuelas solo, con tu propio dron? ¿O trabajas dentro de una operadora, con más personas
-involucradas en la operación? La respuesta cambia por completo cómo debes usar BitaFly —
-y en este video te ayudo a identificar exactamente cuál es tu caso."
+"Hay una pregunta que casi nadie se hace antes de crear su cuenta en BitaFly, y que te
+puede ahorrar semanas de reacomodar todo después: ¿quién eres tú en esta operación? ¿El
+único que vuela, revisa y responde por todo? ¿O parte de un equipo donde cada persona
+sostiene una pieza distinta? No es un detalle técnico — define cómo vas a trabajar desde
+el primer día."
 
 [INTRO — 0:15-0:35]
 [Visual: corte a pantalla, recordatorio breve del video anterior]
 
-"En el video anterior te conté qué es BitaFly en general. Hoy vamos un paso más allá:
-cómo saber si encajas como piloto independiente o como parte de una empresa — porque la
-plataforma se adapta distinto a cada uno, y elegir bien desde el principio te ahorra
-dolores de cabeza más adelante."
+"En el video anterior te mostré qué es BitaFly. Hoy quiero que salgas de aquí con algo
+más valioso que información: certeza. Porque elegir bien desde el principio no es solo
+comodidad — es no tener que desarmar y volver a armar tu operación más adelante."
 
 [CONTENIDO PRINCIPAL — 0:35-3:15]
 
@@ -213,65 +214,72 @@ dolores de cabeza más adelante."
 [Visual: toma real — piloto independiente preparando su propio equipo, despachando desde
 el celular, un dron, un caso, nadie más alrededor]
 
-"Eres piloto independiente si vuelas por tu cuenta: tú compras tu equipo, tú lo
-mantienes, y tú eres responsable de tu propia bitácora ante AeroCivil. No tienes
-tripulación ni una estructura de roles — eres tú solo.
+"Si vuelas por tu cuenta, cada decisión pasa por ti: compraste tu equipo con tu propio
+esfuerzo, lo cuidas como si fuera una extensión tuya, y cuando algo sale bien —o mal— la
+responsabilidad ante AeroCivil es completamente tuya. Eso no es una carga. Es autonomía
+real.
 
-En BitaFly esto significa el plan Piloto: tu propia flota, aunque sea un solo dron, tu
-bitácora digital, y un flujo de despacho simplificado — sin orden de vuelo, sin batería
-que asignar. Solo registras lo que vuelas, o lo importas directo desde tu control DJI.
+Y BitaFly está pensado exactamente para eso. El plan Piloto te da tu propia flota, así
+sea un solo dron, tu bitácora digital, y un despacho tan simple que no vas a perder
+tiempo llenando formularios que no necesitas: solo registras lo que vuelas, o lo importas
+directo desde tu control DJI.
 
-No necesitas invitar a nadie. No hay jerarquía de roles. La cuenta es tuya y de nadie
-más."
+Nadie más entra a tu cuenta. No hay jerarquías que explicar. Eres tú, tu dron, y tu
+historial — limpio, y a tu nombre."
 
 [Bloque 2: Empresa/operadora — 1:35-2:35]
 [Visual: toma real — montaje de los 4 roles (Gerente General, Gerente SMS, Jefe de
 Pilotos, Piloto)]
 
-"Trabajas en una empresa u operadora si hay más de una persona involucrada en la
-operación — así sea solo tú y un piloto más. Aquí BitaFly reparte el trabajo en roles:
-el Gerente General administra y supervisa todo, el Gerente SMS verifica y controla los
-índices de seguridad operacional, el Jefe de Pilotos programa las misiones y gestiona la
-tripulación, y cada piloto ejecuta exactamente las misiones que tiene asignadas.
+"Pero si detrás de tu operación hay más personas —así sea una sola persona más contigo—
+ya no estás solo, y BitaFly tampoco te trata como si lo estuvieras.
 
-Para esto existen los planes Escuadrilla, Flota y Enterprise, según cuántos drones y
-pilotos tengas. Cada persona entra con su propia cuenta y ve solo lo que le corresponde
-a su rol."
+Aquí cada rol sostiene algo real. El Gerente General responde por toda la operación. El
+Gerente SMS es quien detecta el riesgo antes de que se convierta en un problema,
+verificando los índices de seguridad operacional. El Jefe de Pilotos organiza el trabajo
+del equipo y programa cada misión. Y cada piloto vuela exactamente lo que le
+corresponde, con la tranquilidad de saber que alguien más está cuidando el resto del
+engranaje.
+
+Para esto existen los planes Escuadrilla, Flota y Enterprise —cada persona con su propia
+cuenta, viendo solo lo que necesita ver, sin perderse en información que no le
+corresponde."
 
 [Bloque 3: Cómo saber cuál eres — 2:35-3:15]
 [Visual: pantalla, comparación simple en texto o split de dashboard]
 
-"Si tienes dudas, la pregunta más simple es: ¿hay alguien más, además de ti, operando o
-gestionando esta flota? Si la respuesta es no, empieza como piloto independiente. Si la
-respuesta es sí — aunque sea una sola persona más — empieza como empresa.
+"Si todavía tienes duda, hazte una sola pregunta, la más honesta: ¿hay alguien más,
+además de ti, con responsabilidad real sobre esta flota? Si no, empieza como piloto
+independiente. Si sí —aunque sea una persona más— empieza como empresa.
 
-Y si te equivocas, o tu operación crece con el tiempo, no hay problema: puedes unirte a
-una organización más adelante desde tu misma cuenta, sin perder lo que ya tienes
-registrado."
+Y si te equivocas, o simplemente tu operación crece con el tiempo, respira tranquilo:
+puedes unirte a una organización después, desde tu misma cuenta, sin perder nada de lo
+que ya construiste."
 
 [Bloque 4: RAC 100 aplica a ambos — 3:15-3:35]
 [Visual: pantalla, badge de cumplimiento RAC 100 / reportes]
 
-"Algo importante: no importa cuál seas, el cumplimiento RAC 100 aplica igual —
-bitácora al día, mantenimiento registrado, evaluación de riesgo antes de cada vuelo.
-BitaFly te ayuda con eso sin importar el tamaño de tu operación."
+"Y algo que no cambia sin importar cuál seas: el cumplimiento RAC 100. Bitácora al día,
+mantenimiento registrado, riesgo evaluado antes de cada vuelo —eso es lo que te hace ver,
+ante AeroCivil y ante tus clientes, como un operador serio. BitaFly te acompaña en eso
+desde el primer vuelo, sin importar el tamaño de tu operación."
 
 [CONCLUSIÓN — 3:35-3:55]
 [Visual: pantalla, vuelve al dashboard general]
 
-"Ya sabes cuál es tu caso. En el próximo video de la serie te muestro, paso a paso, cómo
-crear tu cuenta según cada uno — primero como piloto independiente, y después como
-empresa."
+"Ya no tienes que adivinar. Sabes exactamente quién eres dentro de esta plataforma. En el
+próximo video te muestro, paso a paso, cómo crear tu cuenta —primero como piloto
+independiente, y después como empresa."
 
 [CIERRE / CTA MÍNIMO — 3:55-4:05]
 
-"Si te sirvió esta comparación, sígueme en la serie — vamos módulo por módulo, con calma.
-Nos vemos en el siguiente video."
+"Si esta claridad te sirvió, quédate en la serie —vamos a seguir armando tu operación
+pieza por pieza, sin apuro. Nos vemos en el siguiente video."
 
 ===================================
 [FIN DEL GUION]
 
-Conteo de palabras: ~530
+Conteo de palabras: ~580
 Duración estimada: ~3.5-4 minutos
 Audiencia: operadores UAS en Colombia indecisos entre registrarse como piloto
 independiente o como empresa, sin conocimiento previo de la plataforma

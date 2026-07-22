@@ -180,7 +180,6 @@ export async function createAccountFromPendingRegistration(supabase, email, paym
       name:            `${firstName} ${lastName}`.trim(),
       email:           regEmail,
       phone:           phone || null,
-      city:            city  || null,
       pilot_role:      'Piloto',
       is_active:       true,
     }]).catch(() => {}); // no-crítico

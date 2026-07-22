@@ -703,6 +703,120 @@ base de datos real antes de corregir:
   específicas reportadas) antes de corregir, no solo por lectura de código; `npx next lint` +
   `npm run build` limpios (mismos 3 warnings preexistentes).
 
+### Auditoría integral post-incidente (2026-07-22, mismo día)
+
+A raíz de los 3 bugs de arriba, el usuario pidió una verificación exhaustiva de toda la
+plataforma para no seguir encontrando fallas "sencillas" en producción. **Limitación real de
+este entorno, comunicada al usuario antes de empezar**: la política de red de esta sesión
+bloquea explícitamente la salida hacia `bitafly.com` y cualquier URL de Vercel (denegación de
+proxy 403, no un problema de credenciales) — no fue posible abrir un navegador real, iniciar
+sesión como cada rol, hacer clic en botones, ni verificar breakpoints responsive. Esa parte del
+pedido queda pendiente de que el usuario (o un entorno sin esa restricción) la haga. En su
+lugar, se ejecutó la verificación más rigurosa posible sin navegador: 2 barridos automáticos de
+todo `src/` (agentes en paralelo) + revisión manual dirigida de la matriz de permisos
+(sidebar vs. guard de layout vs. guard de API), con **13 bugs reales confirmados y
+corregidos**, ninguno inventado — todos verificados contra el esquema real de Supabase o
+leyendo el código exacto antes de tocar nada.
+
+**A — Columnas de Supabase inexistentes en el código** (9 confirmados, mismo patrón exacto
+del bug de `additions` que originó esta auditoría — un script cruzó cada `.from(tabla)` +
+`.insert/.update/.upsert/.select` contra el esquema real de las ~85 tablas):
+- **`flights` no tiene columna `updated_at`** (`api/logbook/[id]/route.js`, `PATCH`): **rompía
+  por completo** la edición inline de PIC / N° de misión en Bitácora — función real,
+  documentada, usada — con 500 en cada intento. Corregido quitando el campo inexistente del
+  `.update()`.
+- **`flight_authorizations` no tiene columna `notes`** (el nombre real es
+  `cancellation_notes`) en `logbook/new/page.js` → "Cancelar misión" en Despacho: el error
+  ni siquiera se revisaba (`await` sin destructurar `{error}`), así que mostraba "Misión
+  cancelada" con éxito falso mientras la actualización fallaba en silencio. Corregido el
+  nombre de columna y agregado el chequeo de `{error}`.
+- **`pilots` no tiene columna `city`** (existe en `profiles`, no en `pilots` — confusión entre
+  ambas tablas), usada en **5 sitios** al crear/actualizar la fila `pilots` durante
+  registro/onboarding: `api/auth/register/route.js` (×3: unirse a org, alta directa, auto-
+  piloto de un nuevo admin), `api/pilots/my-documents/route.js` (auto-crear `pilots` al primer
+  guardado del expediente self-service — **este sí lanzaba y devolvía 500** real al usuario;
+  los otros 4 fallaban en silencio con `.catch(()=>{})`, dejando la fila `pilots` sin crear o
+  sin vincular `owner_id`/`profile_id` sin que nadie se enterara) y `lib/epaycoActivation.js`
+  (auto-piloto al activarse un pago). Corregido quitando `city` de los 5 payloads hacia
+  `pilots` (se conservó donde sí aplica, los upserts hacia `profiles`).
+- **`organizations` no tiene columna `name`** (el nombre real es `company_name`) en
+  `api/fleet/[id]/transfer/route.js`: el mensaje de éxito al transferir una aeronave siempre
+  mostraba el texto genérico "la organización destino" en vez del nombre real — cosmético,
+  sin romper la transferencia en sí. Corregido.
+- **`form_definitions` no tiene columnas `category`/`label`/`updated_at`** (el nombre real del
+  texto es `label_text`) en `api/safety-config/[id]/PATCH`: **página ya huérfana** — la
+  gestión real de Barreras se movió a la tabla `safety_barriers` en 2026-07-03 y ningún enlace
+  del producto apunta ya a `/dashboard/safety-config` (confirmado con grep) — pero la ruta
+  seguía siendo alcanzable por URL directa y devolvía 500 en cada intento de editar. Corregido
+  el nombre de columna (sin resucitar el concepto de "categoría", que ya no existe en el
+  esquema); se documenta aquí como candidata a eliminación futura en vez de profundizar en una
+  función sin ningún punto de entrada real hoy.
+- **Hallazgo secundario, no corregido a propósito**: `api/form-settings`, `api/form-templates`,
+  `dashboard/records/[templateId]`, `api/sora` referencian tablas que no existen en absoluto
+  (`form_settings`/`form_templates`/`form_records`/`sora_templates`) — confirmado por grep que
+  ningún archivo del proyecto los enlaza ni los llama; código muerto de una iteración anterior
+  (superado por `form_definitions`), sin riesgo real para un usuario porque no hay forma de
+  llegar ahí. Se deja documentado en vez de borrarlo en la misma pasada, por si se quiere
+  limpiar aparte.
+
+**B — `profiles.organization_id` legacy en vez de `organization_members`** (2 confirmados,
+mismo patrón que el bug de Gestión de Usuarios de arriba — agente dedicado revisó todo
+`src/app/api` + `src/app/dashboard` + `src/lib` contra las excepciones ya documentadas de la
+Fase 7 del refactor multi-organización):
+- **`api/cron/free-grants/route.js`**: el cron diario que degrada perfiles gratuitos vencidos
+  buscaba "el admin de la org" filtrando `profiles.organization_id` — si esa cuenta ya había
+  cambiado su organización activa a otra (posible desde la Fase 5, unirse a una segunda
+  organización), la búsqueda devolvía vacío y el downgrade + aviso por correo se saltaban en
+  silencio, dejando el acceso gratuito activo indefinidamente pasado su vencimiento. Corregido
+  para resolver el admin vía `organization_members` (membresía real), y solo tocar
+  `profiles.subscription_plan` si esa organización sigue siendo la activa de esa cuenta (si no,
+  solo se actualiza `organization_members`, igual que en el fix de Gestión de Usuarios).
+- **`api/socio/grants` `DELETE`** (anular un regalo de socio ya canjeado): mismo patrón —
+  degradaba en bloque cualquier `profiles` que tuviera esa org como activa, en vez de los
+  miembros reales vía `organization_members`. Mismo riesgo (beneficiario que cambió de
+  organización activa no se degrada; una cuenta sin relación que tuviera esa org activa en ese
+  momento sí se degradaba por error). Mismo fix aplicado.
+
+**C — Guards de permiso inconsistentes con la intención real del producto** (2 confirmados,
+por revisión manual línea por línea de cada `layout.js` de `/dashboard/*` contra su
+`navLinks`/`footerLinksAll` correspondiente en `dashboard/layout.js`, y de cada API que los
+alimenta):
+- **`/dashboard/subscription` usaba el permiso equivocado**: `canManageFleet` (incluye
+  `jefe_pilotos`) en vez de un permiso propio — el sidebar (`footerLinksAll`) nunca le muestra
+  este enlace a Jefe de Pilotos (`roles: ['superadmin','admin']`), pero por URL directa sí
+  podía entrar, ver el detalle de facturación, y las 3 rutas de API que respaldan la página
+  (`api/epayco/checkout`, `api/epayco/verify`, `api/subscription/cancel`) **no tenían ningún
+  chequeo de rol propio** — solo verificaban que perteneciera a la organización. Confirmado un
+  efecto real y concreto: `POST /api/subscription/cancel` cancela el `referral` activo de la
+  org (atribución de comisión al socio) sin verificar quién llama. Corregido: nuevo permiso
+  `canManageSubscription: ['superadmin','admin']` en `roles.js`, aplicado en
+  `subscription/layout.js` **y** como defensa en profundidad dentro de los 3 endpoints
+  mencionados (gate de rol en la API, no solo en la UI — convención ya establecida en este
+  proyecto que este caso puntual no seguía).
+- **`/dashboard/vor-mor` no tenía NINGÚN guard server-side** (`layout.js` era un passthrough
+  literal) — cualquier usuario autenticado, incluido un `piloto` de la organización, podía
+  navegar ahí directo y ver el listado completo de reportes VOR/MOR, incluyendo
+  `internal_notes`/`investigation_summary`/`contributing_factors` (notas internas de
+  investigación) — pese a que el único enlace real hacia esta página (desde Seguridad SMS y
+  desde Protocolos) solo se muestra a `superadmin/admin/gerente_sms`. `GET /api/vor-mor`
+  tampoco tenía chequeo de rol, solo de organización. Corregido: `vor-mor/layout.js` gana
+  `requirePermission('canManageSMS')`, y el mismo chequeo se agregó dentro del `GET` de
+  `api/vor-mor/route.js`.
+- **Alcance de esta pasada C**: se revisaron los 16 `layout.js` de subrutas de `/dashboard/*`
+  contra su entrada de nav correspondiente; los 2 anteriores fueron los únicos con discrepancia
+  real. Las rutas sin `layout.js` propio (`authorizations`, `settings`, `users`, `fleet`,
+  `batteries`, `logbook`, `weather`, `mis-vuelos`, `programacion-activa`, `dev`, `records`,
+  `manual-operaciones`) se verificaron una por una: `authorizations`/`settings`/`users` sí
+  tienen su propio guard server-side inline en `page.js`; `fleet`/`batteries`/`logbook`/
+  `weather` están correctamente abiertas a todos los roles del sidebar sin necesitar uno;
+  `mis-vuelos`/`programacion-activa` no se profundizaron más allá de confirmar que existe un
+  guard — quedan fuera del detalle de esta nota.
+- **Fuera de alcance, explícitamente documentado como pendiente**: verificación visual/manual
+  en navegador real (clic por clic, por rol, por breakpoint) — bloqueada por la política de red
+  de este entorno, no ejecutada. Tampoco se re-auditaron los ~106 policies de RLS de Supabase
+  ni se re-corrió una prueba de carga — esta pasada fue estrictamente de consistencia de código
+  contra esquema real + matriz de permisos.
+
 ---
 
 ## Roles y planes

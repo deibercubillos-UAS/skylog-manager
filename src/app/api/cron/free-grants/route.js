@@ -47,28 +47,45 @@ export async function GET(request) {
 
   for (const grant of expired || []) {
     try {
-      // Solo notificar/degradar perfil si el grant fue redimido
+      // Solo notificar/degradar perfil si el grant fue redimido.
+      // Auditoría 2026-07-22: buscar al admin vía organization_members (membresía
+      // real), no profiles.organization_id (solo refleja la organización ACTIVA
+      // de la cuenta ahora mismo — si el admin ya cambió su activa a otra org,
+      // la búsqueda anterior devolvía null y el downgrade se saltaba en silencio).
       if (grant.redeemed_org_id) {
-        const { data: orgAdmin } = await admin
-          .from('profiles')
-          .select('id, email, organization_id')
+        const { data: orgAdminMembership } = await admin
+          .from('organization_members')
+          .select('user_id')
           .eq('organization_id', grant.redeemed_org_id)
           .eq('role', 'admin')
+          .eq('is_active', true)
           .maybeSingle();
 
-        if (orgAdmin) {
-          await admin.from('profiles').update({
-            subscription_plan:       'piloto',
-            subscription_expires_at: null,
-            updated_at:              now,
-          }).eq('id', orgAdmin.id);
+        if (orgAdminMembership) {
+          const adminUserId = orgAdminMembership.user_id;
 
           await syncOrgMembership(admin, {
-            userId: orgAdmin.id,
+            userId: adminUserId,
             organizationId: grant.redeemed_org_id,
             subscriptionPlan: 'piloto',
             subscriptionExpiresAt: null,
           });
+
+          // profiles.subscription_plan solo refleja la organización ACTIVA —
+          // solo se toca si esta org sigue siendo esa (si no, escribir aquí
+          // pisaría el plan de la organización que sí tiene activa).
+          const { data: adminProfile } = await admin
+            .from('profiles')
+            .select('active_organization_id')
+            .eq('id', adminUserId)
+            .maybeSingle();
+          if (adminProfile?.active_organization_id === grant.redeemed_org_id) {
+            await admin.from('profiles').update({
+              subscription_plan:       'piloto',
+              subscription_expires_at: null,
+              updated_at:              now,
+            }).eq('id', adminUserId);
+          }
 
           try {
             await createNotifications({

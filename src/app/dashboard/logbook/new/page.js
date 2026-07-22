@@ -341,10 +341,11 @@ export default function NewOperationPage() {
     const handleCancelMission = async () => {
         if (!form.auth_id) return;
         try {
-            await supabase
+            const { error } = await supabase
                 .from('flight_authorizations')
-                .update({ status: 'cancelado', notes: cancelNotes || null })
+                .update({ status: 'cancelado', cancellation_notes: cancelNotes || null })
                 .eq('id', form.auth_id);
+            if (error) throw error;
             toast.warn('Misión cancelada.');
             router.replace('/dashboard/logbook');
         } catch (err) {

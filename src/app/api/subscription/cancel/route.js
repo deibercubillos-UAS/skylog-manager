@@ -2,6 +2,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
 import { cancelSubscription, cancelSubscriptionsByEmail } from '@/lib/epayco';
 import { syncOrgMembership } from '@/lib/orgMembership';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,13 @@ export async function POST(request) {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+
+    // Gate de rol en la API, no solo en la UI (ver Auditoría 2026-07-22): solo
+    // el dueño de la cuenta puede cancelar la suscripción de su organización.
+    const ctx = await getOrgContext(supabase);
+    if (!['superadmin', 'admin'].includes(ctx.role)) {
+      return NextResponse.json({ error: 'Solo el administrador de la organización puede cancelar la suscripción.' }, { status: 403 });
+    }
 
     // Leer perfil completo antes de cancelar
     const { data: profile } = await supabase

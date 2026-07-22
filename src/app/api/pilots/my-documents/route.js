@@ -79,7 +79,7 @@ export async function PATCH(request) {
     if (!pilot) {
       const { data: prof } = await admin
         .from('profiles')
-        .select('full_name, first_name, last_name, email, phone, city')
+        .select('full_name, first_name, last_name, email, phone')
         .eq('id', user.id)
         .maybeSingle();
       const { data: created, error: insErr } = await admin
@@ -91,7 +91,6 @@ export async function PATCH(request) {
           name:            prof?.full_name || `${prof?.first_name || ''} ${prof?.last_name || ''}`.trim() || user.email,
           email:           prof?.email || user.email,
           phone:           prof?.phone || null,
-          city:            prof?.city || null,
           pilot_role:      'Piloto',
           is_active:       true,
           ...updateData,

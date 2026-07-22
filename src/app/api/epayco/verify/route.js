@@ -15,8 +15,14 @@ const VALIDATION_URL = (ref) => `https://secure.epayco.co/validation/v1/referenc
 export async function POST(request) {
   try {
     const ssr = await createClientSSR();
-    const { user } = await getOrgContext(ssr);
+    const { user, role } = await getOrgContext(ssr);
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
+    // Gate de rol en la API, no solo en la UI (ver Auditoría 2026-07-22): solo
+    // el dueño de la cuenta puede verificar/activar el pago de su organización.
+    if (!['superadmin', 'admin'].includes(role)) {
+      return NextResponse.json({ error: 'Solo el administrador de la organización puede verificar el pago.' }, { status: 403 });
+    }
 
     const { ref_payco } = await request.json().catch(() => ({}));
 

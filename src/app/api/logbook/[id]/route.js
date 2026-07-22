@@ -104,7 +104,7 @@ export async function PATCH(request, { params }) {
 
     const { data: updated, error: updateErr } = await supabase
       .from('flights')
-      .update({ ...patch, updated_at: new Date().toISOString() })
+      .update(patch)
       .eq('id', id)
       .eq('organization_id', orgId)
       .select('id, pilot_id, mission_id, pilots:pilot_id(id, name)')

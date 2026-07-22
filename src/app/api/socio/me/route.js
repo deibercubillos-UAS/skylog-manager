@@ -14,16 +14,32 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     // Membresías del usuario
-    const { data: memberships } = await admin
+    const { data: allMemberships } = await admin
       .from('partner_members')
       .select('id, role, partner_id')
       .eq('profile_id', user.id);
 
-    if (!memberships?.length) {
+    if (!allMemberships?.length) {
       return NextResponse.json({ error: 'No es socio' }, { status: 403 });
     }
 
-    // Socio principal = primera membresía (típicamente única)
+    // Desactivar un socio (Master → "Desactivar") solo marca partners.status
+    // = 'inactivo' — no borra las filas de partner_members. Sin este filtro,
+    // cualquier miembro de un socio ya desactivado seguía teniendo acceso
+    // completo al panel /socio (el guard solo miraba si existía la fila de
+    // membresía, nunca si el socio seguía activo).
+    const { data: partnerStatuses } = await admin
+      .from('partners')
+      .select('id, status')
+      .in('id', [...new Set(allMemberships.map(m => m.partner_id))]);
+    const activePartnerIds = new Set((partnerStatuses || []).filter(p => p.status === 'activo').map(p => p.id));
+    const memberships = allMemberships.filter(m => activePartnerIds.has(m.partner_id));
+
+    if (!memberships.length) {
+      return NextResponse.json({ error: 'Tu acceso de socio fue desactivado' }, { status: 403 });
+    }
+
+    // Socio principal = primera membresía activa (típicamente única)
     const primary = memberships[0];
 
     // IDs visibles: el propio + (si es owner) los asesores hijos

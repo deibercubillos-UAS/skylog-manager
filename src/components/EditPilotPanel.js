@@ -19,14 +19,14 @@ const TRAINING_TYPE_LABEL = { operaciones: 'Operaciones', mantenimiento: 'Manten
 
 export default function EditPilotPanel({ pilot, onClose, onSuccess, canEditMedical = false }) {
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ ...pilot, additions: pilot?.additions || [] });
+  const [form, setForm] = useState({ ...pilot, aerocivil_additions: pilot?.aerocivil_additions || [] });
 
   // Evaluaciones de capacitación (solo lectura aquí — se registran en /dashboard/training)
   const [trainingEvals, setTrainingEvals] = useState([]);
   const [loadingEvals, setLoadingEvals] = useState(true);
 
   useEffect(() => {
-    setForm({ ...pilot, additions: pilot?.additions || [] });
+    setForm({ ...pilot, aerocivil_additions: pilot?.aerocivil_additions || [] });
   }, [pilot]);
 
   useEffect(() => {
@@ -60,7 +60,7 @@ export default function EditPilotPanel({ pilot, onClose, onSuccess, canEditMedic
         medical_cert_url: form.medical_cert_url,
         emergency_contact_name: form.emergency_contact_name,
         emergency_contact_phone: form.emergency_contact_phone,
-        additions: form.additions || [],
+        aerocivil_additions: form.aerocivil_additions || [],
         updated_at: new Date().toISOString()
       };
 
@@ -199,13 +199,13 @@ export default function EditPilotPanel({ pilot, onClose, onSuccess, canEditMedic
                   <input
                     type="checkbox"
                     className="rounded text-blue-600 focus:ring-0"
-                    checked={form.additions?.includes(add) || false}
+                    checked={form.aerocivil_additions?.includes(add) || false}
                     onChange={() => {
-                      const current = form.additions || [];
+                      const current = form.aerocivil_additions || [];
                       const updated = current.includes(add)
                         ? current.filter(a => a !== add)
                         : [...current, add];
-                      setForm({ ...form, additions: updated });
+                      setForm({ ...form, aerocivil_additions: updated });
                     }}
                   />
                   <span className="text-xs font-bold text-slate-600">{add}</span>

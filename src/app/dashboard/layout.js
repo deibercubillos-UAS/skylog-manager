@@ -155,8 +155,12 @@ export default function DashboardLayout({ children }) {
         setAircraftCount(acCountRes.count ?? 0);
         setActiveFlight(flightRes.data);
 
-        // ¿El usuario es miembro de un socio (escuela/asesor)? → mostrar acceso al panel
-        supabase.from('partner_members').select('id').eq('profile_id', user.id).limit(1)
+        // ¿El usuario es miembro de un socio (escuela/asesor) ACTIVO? → mostrar
+        // acceso al panel. "Desactivar" un socio desde Master solo marca
+        // partners.status='inactivo' (no borra partner_members) — sin este
+        // filtro, el botón seguía apareciendo aunque el socio ya no estuviera
+        // activo.
+        supabase.from('partner_members').select('id, partners!inner(status)').eq('profile_id', user.id).eq('partners.status', 'activo').limit(1)
           .then(({ data: pm }) => setIsSocio(!!pm?.length))
           .catch(() => {});
 

@@ -645,6 +645,64 @@ operando solo sobre el propio usuario autenticado).
   probados (creación de org `type='solo'`, `syncOrgMembership`, cascadas de borrado ya
   usadas por `api/user/delete`/`api/auth/delete-account`).
 
+### 3 bugs reales encontrados y corregidos: socio desactivado, expediente de piloto, roster de Gestión de Usuarios (2026-07-22)
+
+El usuario reportó en producción, en la misma sesión: (1) desactivó un socio (escuela/asesor)
+desde Master y el letrero/panel "Panel Socio" seguía apareciendo en esa cuenta pese a estar
+"deshabilitada para esta función"; (2) al editar el rol de un tripulante desde el expediente
+(Tripulación → editar), el guardado fallaba con `Could not find the 'additions' column of
+'pilots' in the schema cache` (400); (3) la pantalla `/dashboard/users` (Gestión de Usuarios)
+no mostraba ningún tripulante. Los 3 son bugs reales e independientes, verificados contra la
+base de datos real antes de corregir:
+
+- **(1) — `/api/socio/me` y el botón "Panel Socio" no verificaban `partners.status`**:
+  "Desactivar" un socio en Master (`DELETE /api/admin/master/partners`) solo hace
+  `partners.status = 'inactivo'` — nunca borra las filas de `partner_members`. Tanto el guard
+  de `/socio/layout.js` (que depende 100% de `GET /api/socio/me`) como el `isSocio` que
+  decide si mostrar el botón "Panel Socio" en `dashboard/layout.js` solo comprobaban si
+  existía una fila de membresía, nunca si el socio seguía activo — confirmado contra datos
+  reales: la cuenta reportada tenía su única fila `partner_members` apuntando a un socio con
+  `status='inactivo'`, y aun así conservaba acceso funcional completo al panel. Corregido:
+  `GET /api/socio/me` ahora filtra las membresías por `partners.status='activo'` antes de
+  elegir la "principal" (`partner_id` de un socio inactivo se descarta) y responde 403 si no
+  queda ninguna activa; `dashboard/layout.js` hace el mismo filtro con un embed
+  `partner_members?select=id,partners!inner(status)&partners.status=eq.activo` para decidir
+  `isSocio`. **Fuera de alcance a propósito**: desactivar una escuela no desactiva
+  automáticamente a sus asesores (son filas `partners` propias, con su propio `status`) — no
+  se cambió ese comportamiento, cada socio se evalúa por su propio estado.
+- **(2) — `EditPilotPanel.js` usaba el nombre de columna equivocado**: el panel leía/escribía
+  `pilot.additions`/`form.additions`, pero la columna real de `pilots` (usada por
+  `AddPilotPanel.js`, `api/pilots/route.js` y el resto del proyecto desde su creación) es
+  `aerocivil_additions` — confirmado contra el esquema real en Supabase (`pilots` no tiene
+  columna `additions`). El `UPDATE` a una columna inexistente devolvía el 400 de PostgREST
+  reportado. Corregido: los 4 usos (`useState` inicial, el `useEffect` de sincronización, el
+  payload del `UPDATE`, y los checkboxes de adiciones AeroCivil) renombrados a
+  `aerocivil_additions` — mismo campo, mismo dato, sin cambio de comportamiento salvo que
+  ahora sí persiste.
+- **(3) — `GET/PATCH /api/admin/users` filtraba por `profiles.organization_id`, no por
+  membresía real**: mismo patrón de bug ya documentado y corregido varias veces en la Fase 7
+  del refactor multi-organización (ver arriba), pero este archivo no estaba en el inventario
+  original y quedó sin migrar. `profiles.organization_id` solo refleja la organización
+  **activa** de una cuenta ahora mismo — un tripulante real de la organización que cambió su
+  organización activa a otra (caso confirmado con datos reales: un piloto con fila en
+  `pilots` de la organización A, pero `organization_members` muestra que también es
+  `admin` de su propia organización B, y B es su activa ahora mismo) simplemente dejaba de
+  aparecer en `/dashboard/users` de la organización A, aunque siguiera siendo miembro real
+  vía `organization_members`. Corregido: `GET` arma el roster desde
+  `organization_members` (`organization_id` + `is_active=true`) y solo usa `profiles` para
+  los datos de perfil (nombre/correo/avatar) de esos `user_id`; el rol mostrado es el de
+  `organization_members`, no `profiles.role`. `PATCH` valida la membresía real de la misma
+  forma (ya no 403 falso-positivo por "otra organización" cuando en realidad sí lo es) y
+  **siempre** escribe el nuevo rol en `organization_members` para `me.organization_id`
+  (nunca para `target.organization_id`, que puede ser una organización distinta) — y solo
+  además escribe `profiles.role` cuando `me.organization_id` coincide con la organización
+  **activa** del miembro (`profiles.active_organization_id`), para no pisar el rol de la
+  organización que realmente tiene activa en ese momento.
+- **Verificación**: los 3 se confirmaron contra datos reales en Supabase (consultas directas
+  a `partner_members`/`partners`, `pilots`/`profiles`/`organization_members` para las cuentas
+  específicas reportadas) antes de corregir, no solo por lectura de código; `npx next lint` +
+  `npm run build` limpios (mismos 3 warnings preexistentes).
+
 ---
 
 ## Roles y planes

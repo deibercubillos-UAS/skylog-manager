@@ -196,10 +196,10 @@ despacho simplificado) con el montaje de roles de empresa (Gerente General, Gere
 Jefe de Pilotos, Piloto)]
 
 "Hay una pregunta que casi nadie se hace antes de crear su cuenta en BitaFly, y que te
-puede ahorrar semanas de reacomodar todo después: ¿quién eres tú en esta operación? ¿El
-único que vuela, revisa y responde por todo? ¿O parte de un equipo donde cada persona
-sostiene una pieza distinta? No es un detalle técnico — define cómo vas a trabajar desde
-el primer día."
+puede ahorrar semanas de reacomodar todo después: ¿solo quieres un respaldo confiable de
+lo que vuelas? ¿O estás construyendo una operación que algún día debe responder ante
+AeroCivil como Explotador UAS? No es un detalle técnico — define qué plan es realmente
+para ti."
 
 [INTRO — 0:15-0:35]
 [Visual: corte a pantalla, recordatorio breve del video anterior]
@@ -214,62 +214,65 @@ comodidad — es no tener que desarmar y volver a armar tu operación más adela
 [Visual: toma real — piloto independiente preparando su propio equipo, despachando desde
 el celular, un dron, un caso, nadie más alrededor]
 
-"Si vuelas por tu cuenta, cada decisión pasa por ti: compraste tu equipo con tu propio
-esfuerzo, lo cuidas como si fuera una extensión tuya, y cuando algo sale bien —o mal— la
-responsabilidad ante AeroCivil es completamente tuya. Eso no es una carga. Es autonomía
-real.
+"El plan Piloto es para ti si lo que buscas es simple: llevar tu bitácora de vuelo con
+respaldo real, sin depender de un cuaderno que se pierde o un Excel que se daña. Tal vez
+vuelas por afición, los fines de semana. Tal vez haces trabajos puntuales por tu cuenta
+—una toma aérea, una inspección pequeña. No necesitas una empresa detrás, ni un equipo,
+ni procesos complicados. Solo un lugar confiable donde quede registrado cada vuelo que
+haces, tú solo.
 
-Y BitaFly está pensado exactamente para eso. El plan Piloto te da tu propia flota, así
-sea un solo dron, tu bitácora digital, y un despacho tan simple que no vas a perder
-tiempo llenando formularios que no necesitas: solo registras lo que vuelas, o lo importas
-directo desde tu control DJI.
+En BitaFly esto significa el plan Piloto: tu propia flota, así sea un solo dron, tu
+bitácora digital con respaldo real, y un despacho tan simple que registrar un vuelo te
+toma minutos —a mano, o importado directo desde tu control DJI.
 
-Nadie más entra a tu cuenta. No hay jerarquías que explicar. Eres tú, tu dron, y tu
-historial — limpio, y a tu nombre."
+Nadie más entra a tu cuenta. No hay procesos de empresa que aprender. Es tu vuelo, tu
+bitácora, tu control."
 
 [Bloque 2: Empresa/operadora — 1:35-2:35]
 [Visual: toma real — montaje de los 4 roles (Gerente General, Gerente SMS, Jefe de
 Pilotos, Piloto)]
 
-"Pero si detrás de tu operación hay más personas —así sea una sola persona más contigo—
-ya no estás solo, y BitaFly tampoco te trata como si lo estuvieras.
+"Pero si tu meta es otra —si estás construyendo una operación que debe cumplir la
+normativa RAC 100 de punta a punta en un solo lugar, controlar a tus pilotos, sostener un
+verdadero Sistema de Gestión de Seguridad Operacional, y avanzar hacia convertirte en
+Explotador UAS certificado ante AeroCivil— ahí es donde entran los planes Escuadrilla,
+Flota y Enterprise.
 
-Aquí cada rol sostiene algo real. El Gerente General responde por toda la operación. El
-Gerente SMS es quien detecta el riesgo antes de que se convierta en un problema,
-verificando los índices de seguridad operacional. El Jefe de Pilotos organiza el trabajo
-del equipo y programa cada misión. Y cada piloto vuela exactamente lo que le
-corresponde, con la tranquilidad de saber que alguien más está cuidando el resto del
-engranaje.
+Aquí cada rol sostiene una parte real de esa exigencia. El Gerente General responde por
+toda la operación. El Gerente SMS controla los índices de seguridad operacional antes de
+que se conviertan en un problema. El Jefe de Pilotos programa las misiones y gestiona la
+tripulación. Y cada piloto vuela exactamente lo que le corresponde.
 
-Para esto existen los planes Escuadrilla, Flota y Enterprise —cada persona con su propia
-cuenta, viendo solo lo que necesita ver, sin perderse en información que no le
-corresponde."
+Todo lo que un Explotador UAS necesita demostrar —bitácoras, mantenimiento, capacitación,
+seguridad operacional— vive en un solo lugar, no repartido entre carpetas y hojas de
+cálculo sueltas."
 
 [Bloque 3: Cómo saber cuál eres — 2:35-3:15]
 [Visual: pantalla, comparación simple en texto o split de dashboard]
 
-"Si todavía tienes duda, hazte una sola pregunta, la más honesta: ¿hay alguien más,
-además de ti, con responsabilidad real sobre esta flota? Si no, empieza como piloto
-independiente. Si sí —aunque sea una persona más— empieza como empresa.
+"Si todavía tienes duda, hazte una sola pregunta, la más honesta: ¿solo necesitas un
+respaldo confiable de lo que vuelas por tu cuenta? Empieza como piloto independiente.
+¿Estás formalizando una operación que debe cumplir como empresa ante AeroCivil? Empieza
+como empresa.
 
-Y si te equivocas, o simplemente tu operación crece con el tiempo, respira tranquilo:
-puedes unirte a una organización después, desde tu misma cuenta, sin perder nada de lo
-que ya construiste."
+Y si tu operación crece con el tiempo —de afición a trabajo por encargo, o de operación
+pequeña a Explotador certificado— no hay problema: puedes unirte a una organización
+después, desde tu misma cuenta, sin perder nada de lo que ya construiste."
 
 [Bloque 4: RAC 100 aplica a ambos — 3:15-3:35]
 [Visual: pantalla, badge de cumplimiento RAC 100 / reportes]
 
-"Y algo que no cambia sin importar cuál seas: el cumplimiento RAC 100. Bitácora al día,
-mantenimiento registrado, riesgo evaluado antes de cada vuelo —eso es lo que te hace ver,
-ante AeroCivil y ante tus clientes, como un operador serio. BitaFly te acompaña en eso
-desde el primer vuelo, sin importar el tamaño de tu operación."
+"Y algo importante: aunque vueles solo por afición, llevar tu bitácora al día ya es un
+buen hábito frente a la normativa RAC 100. Y si tu meta es certificarte como Explotador
+UAS, ese mismo cumplimiento se vuelve el centro de toda tu operación. BitaFly te
+acompaña en ambos casos, desde el primer vuelo."
 
 [CONCLUSIÓN — 3:35-3:55]
 [Visual: pantalla, vuelve al dashboard general]
 
-"Ya no tienes que adivinar. Sabes exactamente quién eres dentro de esta plataforma. En el
-próximo video te muestro, paso a paso, cómo crear tu cuenta —primero como piloto
-independiente, y después como empresa."
+"Ya no tienes que adivinar. Sabes exactamente qué plan es para ti. En el próximo video te
+muestro, paso a paso, cómo crear tu cuenta —primero como piloto independiente, y después
+como empresa."
 
 [CIERRE / CTA MÍNIMO — 3:55-4:05]
 
@@ -279,7 +282,7 @@ pieza por pieza, sin apuro. Nos vemos en el siguiente video."
 ===================================
 [FIN DEL GUION]
 
-Conteo de palabras: ~580
+Conteo de palabras: ~590
 Duración estimada: ~3.5-4 minutos
 Audiencia: operadores UAS en Colombia indecisos entre registrarse como piloto
 independiente o como empresa, sin conocimiento previo de la plataforma

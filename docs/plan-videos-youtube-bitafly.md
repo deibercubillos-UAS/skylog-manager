@@ -186,107 +186,95 @@ siendo un video de orientación, no de venta.
 GUION — VIDEO 0.2
 ===================================
 Título: ¿BitaFly es para mí? Piloto independiente vs. empresa/operadora (RAC 100)
-Duración estimada: ~3.5-4 minutos (~580 palabras)
+Duración estimada: ~3.5 minutos (~510 palabras)
 Formato: b-roll real (piloto independiente + roles de empresa) + pantalla
 ===================================
 
-[GANCHO — 0:00-0:15]
+[GANCHO — 0:00-0:12]
 [Visual: cortes rápidos alternando la toma del piloto independiente (equipo propio,
 despacho simplificado) con el montaje de roles de empresa (Gerente General, Gerente SMS,
 Jefe de Pilotos, Piloto)]
 
-"Hay una pregunta que casi nadie se hace antes de crear su cuenta en BitaFly, y que te
-puede ahorrar semanas de reacomodar todo después: ¿solo quieres un respaldo confiable de
-lo que vuelas? ¿O estás construyendo una operación que algún día debe responder ante
-AeroCivil como Explotador UAS? No es un detalle técnico — define qué plan es realmente
-para ti."
+"Hay dos formas de volar dentro de BitaFly: por tu cuenta, con el control total en tus
+manos. O como parte de un equipo, construyendo una operación que cumple el RAC 100 de
+punta a punta. Te muestro exactamente qué te da cada una."
 
-[INTRO — 0:15-0:35]
+[INTRO — 0:12-0:30]
 [Visual: corte a pantalla, recordatorio breve del video anterior]
 
-"En el video anterior te mostré qué es BitaFly. Hoy quiero que salgas de aquí con algo
-más valioso que información: certeza. Porque elegir bien desde el principio no es solo
-comodidad — es no tener que desarmar y volver a armar tu operación más adelante."
+"En el video anterior te mostré qué es BitaFly en general. Hoy vamos más a fondo: cómo se
+ve la plataforma según cómo vuelas — solo, o en equipo."
 
-[CONTENIDO PRINCIPAL — 0:35-3:15]
+[CONTENIDO PRINCIPAL — 0:30-3:00]
 
-[Bloque 1: Piloto independiente — 0:35-1:35]
+[Bloque 1: Piloto independiente — 0:30-1:30]
 [Visual: toma real — piloto independiente preparando su propio equipo, despachando desde
 el celular, un dron, un caso, nadie más alrededor]
 
-"El plan Piloto es para ti si lo que buscas es simple: llevar tu bitácora de vuelo con
-respaldo real, sin depender de un cuaderno que se pierde o un Excel que se daña. Tal vez
-vuelas por afición, los fines de semana. Tal vez haces trabajos puntuales por tu cuenta
-—una toma aérea, una inspección pequeña. No necesitas una empresa detrás, ni un equipo,
-ni procesos complicados. Solo un lugar confiable donde quede registrado cada vuelo que
-haces, tú solo.
+"Si vuelas por tu cuenta, el plan Piloto te da el control total: tú decides qué vuelas,
+cuándo lo vuelas, y cómo lo registras — sin depender de nadie más. Tu propia flota, así
+sea un solo dron, y tu bitácora completamente en tus manos.
 
-En BitaFly esto significa el plan Piloto: tu propia flota, así sea un solo dron, tu
-bitácora digital con respaldo real, y un despacho tan simple que registrar un vuelo te
-toma minutos —a mano, o importado directo desde tu control DJI.
+Y esa bitácora queda respaldada de verdad — no en un cuaderno que se pierde, ni en un
+Excel que se puede dañar cualquier día. Cada vuelo queda registrado con solo un par de
+toques, a mano o importado directo desde tu control DJI.
 
-Nadie más entra a tu cuenta. No hay procesos de empresa que aprender. Es tu vuelo, tu
-bitácora, tu control."
+Sin procesos de empresa que aprender, sin roles que explicar. Tu operación, tu control,
+tu bitácora."
 
-[Bloque 2: Empresa/operadora — 1:35-2:35]
+[Bloque 2: Empresa/operadora — 1:30-2:30]
 [Visual: toma real — montaje de los 4 roles (Gerente General, Gerente SMS, Jefe de
 Pilotos, Piloto)]
 
-"Pero si tu meta es otra —si estás construyendo una operación que debe cumplir la
-normativa RAC 100 de punta a punta en un solo lugar, controlar a tus pilotos, sostener un
-verdadero Sistema de Gestión de Seguridad Operacional, y avanzar hacia convertirte en
-Explotador UAS certificado ante AeroCivil— ahí es donde entran los planes Escuadrilla,
-Flota y Enterprise.
+"Y si tu operación es de varias personas — una empresa u operadora que quiere cumplir el
+RAC 100 de punta a punta, controlar a sus pilotos, y sostener un verdadero Sistema de
+Gestión de Seguridad Operacional — los planes Escuadrilla, Flota y Enterprise te dan
+justamente eso: todo lo que necesitas para avanzar hacia convertirte en Explotador UAS
+certificado ante AeroCivil, en un solo lugar.
 
 Aquí cada rol sostiene una parte real de esa exigencia. El Gerente General responde por
-toda la operación. El Gerente SMS controla los índices de seguridad operacional antes de
-que se conviertan en un problema. El Jefe de Pilotos programa las misiones y gestiona la
-tripulación. Y cada piloto vuela exactamente lo que le corresponde.
+toda la operación. El Gerente SMS controla los índices de seguridad operacional. El Jefe
+de Pilotos programa las misiones y gestiona la tripulación. Y cada piloto vuela
+exactamente lo que le corresponde.
 
-Todo lo que un Explotador UAS necesita demostrar —bitácoras, mantenimiento, capacitación,
-seguridad operacional— vive en un solo lugar, no repartido entre carpetas y hojas de
-cálculo sueltas."
+Bitácoras, mantenimiento, capacitación, seguridad operacional — todo en un solo lugar, no
+repartido entre carpetas y hojas de cálculo sueltas."
 
-[Bloque 3: Cómo saber cuál eres — 2:35-3:15]
+[Bloque 3: Cómo saber cuál eres — 2:30-3:00]
 [Visual: pantalla, comparación simple en texto o split de dashboard]
 
-"Si todavía tienes duda, hazte una sola pregunta, la más honesta: ¿solo necesitas un
-respaldo confiable de lo que vuelas por tu cuenta? Empieza como piloto independiente.
-¿Estás formalizando una operación que debe cumplir como empresa ante AeroCivil? Empieza
-como empresa.
+"¿Cuál eres tú? Si vuelas solo, sin nadie más de por medio, tu plan es Piloto. Si hay más
+personas contigo, o estás construyendo una empresa que debe cumplir ante AeroCivil, tu
+plan es de organización."
 
-Y si tu operación crece con el tiempo —de afición a trabajo por encargo, o de operación
-pequeña a Explotador certificado— no hay problema: puedes unirte a una organización
-después, desde tu misma cuenta, sin perder nada de lo que ya construiste."
-
-[Bloque 4: RAC 100 aplica a ambos — 3:15-3:35]
+[Bloque 4: RAC 100 aplica a ambos — 3:00-3:20]
 [Visual: pantalla, badge de cumplimiento RAC 100 / reportes]
 
 "Y algo importante: aunque vueles solo por afición, llevar tu bitácora al día ya es un
-buen hábito frente a la normativa RAC 100. Y si tu meta es certificarte como Explotador
-UAS, ese mismo cumplimiento se vuelve el centro de toda tu operación. BitaFly te
-acompaña en ambos casos, desde el primer vuelo."
+buen hábito frente al RAC 100. Y si tu meta es certificarte como Explotador UAS, ese
+mismo cumplimiento se vuelve el centro de tu operación. BitaFly te acompaña en ambos
+casos, desde el primer vuelo."
 
-[CONCLUSIÓN — 3:35-3:55]
+[CONCLUSIÓN — 3:20-3:40]
 [Visual: pantalla, vuelve al dashboard general]
 
-"Ya no tienes que adivinar. Sabes exactamente qué plan es para ti. En el próximo video te
-muestro, paso a paso, cómo crear tu cuenta —primero como piloto independiente, y después
-como empresa."
+"Ya sabes exactamente qué te da cada plan. En el próximo video te muestro, paso a paso,
+cómo crear tu cuenta — primero como piloto independiente, y después como empresa."
 
-[CIERRE / CTA MÍNIMO — 3:55-4:05]
+[CIERRE / CTA MÍNIMO — 3:40-3:50]
 
-"Si esta claridad te sirvió, quédate en la serie —vamos a seguir armando tu operación
-pieza por pieza, sin apuro. Nos vemos en el siguiente video."
+"Sígueme en la serie — vamos a seguir armando tu operación pieza por pieza, sin apuro.
+Nos vemos en el siguiente video."
 
 ===================================
 [FIN DEL GUION]
 
-Conteo de palabras: ~590
-Duración estimada: ~3.5-4 minutos
-Audiencia: operadores UAS en Colombia indecisos entre registrarse como piloto
-independiente o como empresa, sin conocimiento previo de la plataforma
-Tono: profesional, cercano, sin tecnicismos innecesarios
+Conteo de palabras: ~510
+Duración estimada: ~3.5 minutos
+Audiencia: operadores UAS en Colombia que quieren saber qué les da cada plan — piloto
+independiente o empresa — sin conocimiento previo de la plataforma
+Tono: profesional, cercano, sin tecnicismos innecesarios. Sin enmarcar la elección como
+una decisión riesgosa o difícil de revertir — son simplemente dos formas de operar.
 
 Notas de producción:
 - Bloque 1 reutiliza la toma real de "piloto independiente" ya diseñada para la serie de

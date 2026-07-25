@@ -192,12 +192,12 @@ export default function PilotsPage() {
             value={search} onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex flex-wrap gap-2">
-          <select aria-label="Filtrar por rol" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+          <select aria-label="Filtrar por rol" className="w-full sm:w-auto p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
             <option value="">Todos los roles</option>
             {uniqueRoles.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
-          <select aria-label="Filtrar por estado" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          <select aria-label="Filtrar por estado" className="w-full sm:w-auto p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
             <option value="">Todos los estados</option>
             <option value="activo">Activo</option>
             <option value="inactivo">Inactivo</option>

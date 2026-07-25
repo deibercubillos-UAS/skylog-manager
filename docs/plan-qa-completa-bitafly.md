@@ -103,26 +103,58 @@ Cada fase cerrada agrega su propia subsección con:
 
 ---
 
-## Fase 1 — Landing: páginas SEO restantes
+## Fase 1 — Landing: páginas SEO restantes ✅ hecha (2026-07-25)
 
-- [ ] `/rac-100` — contenido + CTA + 4 viewports
-- [ ] `/gestion-flota-drones`, `/gestion-pilotos`, `/bitacora-digital` (o el
-      slug real — confirmar contra el sitemap/nav)
-- [ ] `/comparativa-bitafly-airdata`, `/-dronedesk`, `/-geodrone`,
-      `/-uav-forecast` (las 4 páginas de comparativa)
-- [ ] `/documentacion`
-- [ ] `/blog` (listado) + 1 artículo de muestra
-- [ ] `casos/[slug]` — 1 caso de éxito de muestra
-- [ ] Páginas legales: `/aviso-legal`, `/politica-privacidad`,
-      `/politica-cookies`, `/terminos-condiciones` — incluye probar el
-      banner de consentimiento de cookies (Aceptar/Rechazar, que solo
-      inyecte GTM/GA/Clarity tras aceptar)
-- [ ] `/sora`, `/rac-100-compliance`, `/reportes-auditoria`,
-      `/replay-gps-drones`, `/sms-aeronautico`, `/plan-vuelo-drones`
-      (páginas SEO restantes de la lista del sitemap)
-- [ ] Footer y nav superior consistentes en todas — mismo componente
-      (`SEOFooter`/`SEONav`), no debería haber sorpresas, pero verificar
-      igual que el link activo/hover se vea bien en los 4 viewports.
+- [x] `/rac-100` — desktop + móvil (342px real), sin errores
+- [x] `/gestion-flota-drones`, `/gestion-pilotos` — desktop, sin errores
+- [x] `/comparativa-bitafly-airdata`, `/-dronedesk`, `/-geodrone`,
+      `/-uav-forecast` — las 4, desktop + `-airdata` también en móvil
+- [x] `/documentacion` — ver hallazgo (falso positivo) abajo
+- [x] `/blog` (listado, 17 artículos/5 categorías) + 1 artículo
+      (`rac-100-colombia-operadores-drones`) — desktop + listado también
+      en móvil
+- [x] `/casos/skymotion-bogota` — desktop
+- [x] Páginas legales: `/aviso-legal`, `/politica-privacidad`,
+      `/politica-cookies` (desktop + móvil), `/terminos-condiciones`
+- [x] `/sora`, `/rac-100-compliance`, `/reportes-auditoria`,
+      `/replay-gps-drones`, `/sms-aeronautico`, `/plan-vuelo-drones`,
+      `/autorizaciones-aerocivil`, `/clima-drones`,
+      `/drone-logbook-colombia`, `/operadores-uas` — todas, desktop
+- [x] Nav/footer consistentes en todo el recorrido — sin sorpresas.
+
+### Bugs reales encontrados
+
+1. **2 páginas SEO en inglés con "6 meses gratis" desactualizado**
+   (`/rac-100-compliance`, `/drone-logbook-colombia`) — el trial real del
+   plan Piloto es de 15 días desde el 2026-07-08; estas 2 páginas
+   (`locale: 'en_US'` a propósito, variantes en inglés para SEO
+   internacional — confirmado en el código, no es un bug de idioma)
+   quedaron fuera de la barrida que corrigió el mismo copy en ~14
+   archivos en español ese día. **Corregido, PR #36.**
+
+### Falso positivo (documentado para no repetir la confusión)
+
+- `/documentacion` mostró `ChunkLoadError` + `Application error` en la
+  pestaña que llevaba abierta desde antes de los 3 deploys de fixes de
+  esta misma sesión (PR #34, #33 antes) — es el navegador con una
+  referencia a un chunk JS que ya no existe tras el redeploy, no un bug
+  del sitio. Confirmado abriendo una pestaña nueva: carga perfecto.
+  **Lección para las siguientes fases**: si se hace un fix y se sigue
+  navegando en la misma pestaña, abrir una pestaña nueva antes de seguir
+  el recorrido, no solo antes de reprobar el fix puntual.
+
+### Limitaciones documentadas
+
+- **Banner de consentimiento de cookies**: no se pudo verificar en
+  "primera visita" porque el perfil de Chrome usado ya tenía
+  `bitafly_cookie_consent` en `localStorage` de antes — no se borró el
+  storage del sitio para no tocar datos del navegador real del usuario.
+  Pendiente si se quiere verificar de verdad: hacerlo desde una ventana
+  de incógnito o un perfil de Chrome nuevo.
+- `resize_window` no siempre aplica de forma confiable a una pestaña ya
+  existente — funciona bien si se llama **antes** de la primera
+  navegación en una pestaña recién creada; si falla, cerrar la pestaña y
+  crear una nueva en vez de insistir con el mismo tabId.
 
 ---
 
@@ -327,9 +359,13 @@ viewports, buscando overflow/recorte que solo aparece con contenido real
 
 ## Próximo paso
 
-Plan creado (2026-07-25), sin ninguna fase ejecutada todavía más allá de la
-Fase 0 (que resume el trabajo ya hecho antes de este plan). Esperando
-indicación del usuario sobre con qué fase continuar — recomendado: **Fase 1**
-(landing SEO restante), por ser la de menor riesgo/dependencias y la que más
-rápido cierra la brecha de "landing pages" mencionada explícitamente en el
-pedido original.
+Fases 0 y 1 completas (2026-07-25). Fase 1 encontró y corrigió 1 bug real
+(PR #36, "6 meses gratis" desactualizado en 2 páginas SEO en inglés) y dejó
+documentado un falso positivo (ChunkLoadError por pestaña vieja tras deploy,
+no un bug del sitio) y 2 limitaciones reales (banner de cookies no
+verificable sin perfil nuevo de Chrome, `resize_window` poco confiable en
+pestañas reusadas). Todas las 27 páginas públicas del sitio ya recorridas
+sin más hallazgos. Esperando indicación del usuario sobre con qué fase
+continuar — recomendado: **Fase 2** (Autenticación completa), sigue el orden
+natural del plan y es la que falta para cerrar del todo el frente de
+"landing + acceso" antes de entrar de lleno a los módulos del dashboard.

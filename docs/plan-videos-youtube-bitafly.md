@@ -312,12 +312,13 @@ Formato: tutorial 100% en pantalla (grabación real del flujo de registro)
 ===================================
 
 [GANCHO — 0:00-0:12]
-[Visual: cronómetro grande en pantalla arrancando en 00:00, fondo del dashboard/registro
-difuminado detrás. El cronómetro queda como widget pequeño y discreto en una esquina
-durante TODO el video, corriendo en tiempo real — no se menciona de nuevo hasta el cierre]
+[Visual: toma real — estilo documental observacional, macro/close-up de alguien
+preparando café (moliendo, sirviendo), nadie mira a cámara en ningún momento. En los
+últimos 2 segundos cae la primera gota sobre la taza, coincidiendo con el remate de la
+frase — clip ya generado y aprobado, ver prompt en las notas de producción]
 
-"¿Cuánto tiempo crees que toma crear una cuenta profesional para tu operación de drones?
-Te lo voy a demostrar en tiempo real — mira el cronómetro, porque esto empieza ahora."
+"¿Sabes cuánto se demora preparar un café? Vas a tardar lo mismo en abrir tu cuenta en
+BitaFly."
 
 [INTRO — 0:12-0:25]
 [Visual: pantalla, bitafly.com/registro]
@@ -362,13 +363,11 @@ empezar a invitar al resto de tu equipo."
 muestro cómo invitar a tu tripulación, y qué ve cada uno la primera vez que entra."
 
 [CONCLUSIÓN — 3:30-3:45]
-[Visual: el cronómetro que corría discreto en la esquina desde el gancho pasa a primer
-plano, se detiene, y se congela en el tiempo real que duró la grabación — cierra el reto
-planteado en el gancho]
+[Visual: vuelve brevemente a la taza de café del gancho, ahora servida y humeante —
+cierra el paralelo planteado al inicio]
 
-"Mira el cronómetro: [tiempo real de la grabación]. Eso es todo lo que toma tener tu
-cuenta lista, sea cual sea tu caso. Lo que sigue es empezar a construir tu operación
-dentro de la plataforma."
+"¿Ves? Tu café todavía está caliente, y tu cuenta ya está lista, sea cual sea tu caso. Lo
+que sigue es empezar a construir tu operación dentro de la plataforma."
 
 [CIERRE / CTA MÍNIMO — 3:45-3:55]
 
@@ -388,18 +387,25 @@ orientación conceptual como los dos anteriores.
 ```
 
 Notas de producción:
-- **Gancho — reto del cronómetro (elegido de 3 opciones)**: el widget del cronómetro se
-  agrega en edición (CapCut), no durante la grabación en pantalla — no depende de
-  cronometrar la grabación real en vivo. Flujo: (1) graba ambos registros con calma, sin
-  presión de tiempo real; (2) en CapCut, agrega un overlay de cronómetro pequeño en una
-  esquina (elemento de texto/stopwatch animado) que arranca en 00:00 sincronizado con el
-  gancho y corre a lo largo de todo el video editado; (3) en la CONCLUSIÓN, congela el
-  cronómetro en el tiempo real de duración del video ya montado (ej. si el video final
-  queda en 3:45, el cronómetro se detiene ahí) — el número debe coincidir con la duración
-  real del video, no ser aproximado, para que el "reto" planteado en el gancho sea honesto.
-- **Formato distinto a 0.1/0.2**: este video es 100% grabación de pantalla real del flujo
-  `/registro` — no reutiliza ni necesita b-roll de dron/piloto/roles. La única pieza nueva
-  a producir es la grabación de pantalla en sí, no un prompt de video.
+- **Gancho — paralelo del café (guion final, video ya generado y aprobado)**: se descartó
+  el enfoque de cronómetro (arrastraba dos problemas reales: números en pantalla que la IA
+  de video distorsiona, y requería calibrar el overlay a la duración exacta del video ya
+  montado). El paralelo del café resuelve ambos — no necesita overlay ni número exacto, y
+  la duración real del video no tiene que coincidir con nada. Iteraciones del prompt de
+  video hasta llegar a la versión aprobada: (1) presentador mirando directo a cámara con
+  laptop de fondo → generaba glitches de UI en la pantalla del laptop; (2) se quitó
+  cualquier pantalla/dispositivo del cuadro y se probó un tono "disruptivo" (café golpeado
+  contra la mesa, mirada intensa a cámara) → no respetaba el orden del guion (mostraba el
+  café ya listo antes de plantear la pregunta) y la mirada directa resultaba intimidante,
+  restándole enganche; (3) versión final: estilo documental observacional puro, nadie mira
+  a cámara en ningún momento, cámara "descubre" a alguien preparando café de forma
+  candorosa — la primera gota cae justo en el remate de la frase. El guion se ajustó
+  después para calzar con este video ya aprobado (pregunta sobre el café primero, la cuenta
+  BitaFly como remate — orden invertido respecto a versiones anteriores del guion).
+- **Formato distinto a 0.1/0.2 — con una excepción**: el resto del video (Bloques 1-3) es
+  100% grabación de pantalla real del flujo `/registro`, sin b-roll adicional. El gancho es
+  la única excepción — sí lleva una toma real generada (el clip del café descrito arriba),
+  igual que el gancho del Video 0.1 (toma real de apertura + resto en pantalla).
 - **Cuenta de prueba necesaria para grabar**: ambos flujos (piloto independiente y
   empresa) deben grabarse con datos ficticios/desechables — nunca con el NIT o datos
   reales de un cliente. El flujo de empresa además requiere completar un pago real de

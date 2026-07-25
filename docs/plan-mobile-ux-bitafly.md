@@ -187,12 +187,22 @@ formulario, y colapsarla a 1 columna perdería el sentido de comparación.
 - [x] `dashboard/safety-config/page.js` (matriz de riesgo, editor).
 - [x] `dashboard/sora/page.js` (+ `components/sora/SoraWizard.js`, varios pasos).
 
-### Fase 3b — Auditoría, Reportes y Protocolos
+### Fase 3b — Auditoría, Reportes y Protocolos ✅ hecha (2026-07-25)
 
-- [ ] `dashboard/audit/page.js` (tabs Cumplimiento / Registro de acciones)
-- [ ] `dashboard/reports/page.js` (grilla agrupada + panel de descarga — ya rediseñado
-      recientemente, verificar solo el comportamiento en móvil del panel inline nuevo)
-- [ ] `dashboard/settings/forms/page.js` (Protocolos — `FormSettingsClient.js`, 4 grupos)
+Mismo hallazgo de simetría de filtros (Fases 1a/2) una vez más: Auditoría tenía 3
+`<select>` en `flex flex-wrap` sin ancho definido — corregido al mismo patrón de grilla
+2 columnas en móvil (el filtro impar de los 3 ocupa la fila completa). Reportes ya
+estaba resuelto (los controles de "Periodo"/"Programa" ahí son chips/pills, no
+selects — el patrón `flex-wrap` es correcto para esos). Protocolos
+(`FormSettingsClient.js`) ya sigue el mismo patrón de panel deslizable de la Fase 0, sin
+hallazgos.
+
+- [x] `dashboard/audit/page.js` (tabs Cumplimiento / Registro de acciones) — filtros
+      corregidos.
+- [x] `dashboard/reports/page.js` (grilla agrupada + panel de descarga) — sin hallazgos,
+      ya bien resuelto.
+- [x] `dashboard/settings/forms/page.js` (Protocolos — `FormSettingsClient.js`, 4 grupos)
+      — sin hallazgos, ya bien resuelto.
 
 ### Fase 3c — Proveedores, Capacitación, Manuales, SMS/VOR-MOR
 

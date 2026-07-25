@@ -93,12 +93,30 @@ siguientes — por eso va primero.
 
 ## Fase 1 — Operación
 
-- [ ] `dashboard/page.js` + `PilotDashboard.js` (dashboard de piloto dentro de org)
-- [ ] `dashboard/logbook/page.js` (Bitácora — tabla/tarjetas, filtros)
-- [ ] `dashboard/logbook/new/page.js` (Despacho — wizard kiosko completo, todos los pasos)
-- [ ] `dashboard/logbook/finalize/page.js` (Cierre de Vuelo)
-- [ ] `dashboard/logbook/daily`, `/batteries`, `/inventory`, `/pilots` (sub-listados de
-      bitácora)
+Dividida en 2 partes por volumen de páginas (a pedido del usuario) — cada una se
+ejecuta, verifica y fusiona por separado.
+
+### Fase 1a — Vuelo del día a día ✅ hecha (2026-07-25)
+
+- [x] `dashboard/page.js` + `PilotDashboard.js` — ya estaban bien resueltos para móvil
+      (grids con breakpoint, KPIs 2x2), sin cambios.
+- [x] `dashboard/logbook/page.js` — ya tenía vista de tarjetas para móvil (separada de la
+      tabla de escritorio); el hallazgo real fue la **barra de filtros** (fecha, modelo,
+      tipo, condición, piloto, limpiar): en `flex flex-wrap` sin ancho definido, quedaba
+      dispareja en celular. Corregido a `grid grid-cols-2` en móvil (`sm:flex` de vuelta
+      en desktop) para que los 6 controles queden simétricos.
+- [x] `dashboard/logbook/new/page.js` (Despacho) — ya diseñado mobile-first desde antes
+      (flujo kiosko de pantalla completa), sin cambios.
+- [x] `dashboard/logbook/finalize/page.js` (Cierre de Vuelo) — mismo caso, ya mobile-first.
+- [x] `dashboard/logbook/daily`, `/batteries`, `/inventory`, `/pilots` — **huérfanas**:
+      ningún lugar de la app enlaza a estas 4 rutas (verificado por grep), y `daily`
+      tiene código a medio terminar (comentario "el resto del formulario continúa
+      aquí..."). No se les invirtió tiempo de diseño móvil por no ser alcanzables desde
+      la navegación real — si en algún momento se quiere retomarlas o borrarlas, es una
+      decisión aparte, no de esta auditoría.
+
+### Fase 1b — Programación y planeación
+
 - [ ] `dashboard/authorizations/page.js` (Programación — calendario + `MissionFormPanel`)
 - [ ] `dashboard/programacion-activa/page.js` (`ProgramacionActivaClient.js`)
 - [ ] `dashboard/mis-vuelos/page.js`

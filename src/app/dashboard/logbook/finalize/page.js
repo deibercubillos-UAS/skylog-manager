@@ -196,7 +196,7 @@ export default function FinalizeFlightPage() {
                                         </div>
                                         <span className="px-3 py-1 bg-orange-600 text-xs font-black rounded-full animate-pulse">EN VUELO</span>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-white/10 pt-4">
                                         <div>
                                             <p className="text-xs font-black text-slate-500 uppercase">Aeronave / S/N</p>
                                             <p className="text-xs font-bold truncate">{selectedFlight.aircraft?.model}</p>

@@ -484,7 +484,7 @@ export default function NewOperationPage() {
                                     })()}
 
                                     {/* Hora de despegue + condición */}
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="space-y-1">
                                             <label htmlFor="pi-takeoff" className="text-xs font-black uppercase text-slate-600 ml-1">Hora Despegue <span className="text-orange-600">*</span></label>
                                             <input id="pi-takeoff" type="time" value={form.takeoff_time} className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold outline-none focus:ring-2 focus:ring-orange-500" onChange={e => setForm({...form, takeoff_time: e.target.value})} />
@@ -561,7 +561,7 @@ export default function NewOperationPage() {
                                         );
                                     })()}
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="space-y-1">
                                             <label htmlFor="new-flight-takeoff" className="text-xs font-black uppercase text-slate-600 ml-1">Hora Despegue</label>
                                             <input id="new-flight-takeoff" type="time" value={form.takeoff_time} className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold outline-none focus:ring-2 focus:ring-orange-500" onChange={e => setForm({...form, takeoff_time: e.target.value})} />

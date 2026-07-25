@@ -3765,6 +3765,69 @@ La app Capacitor corre en **remote URL mode** (`server.url: https://bitafly.com`
 
 ---
 
+## Auditoría UX móvil (2026-07-21 → 2026-07-25)
+
+Auditoría completa del frontend en tamaño de celular, módulo por módulo, ejecutada en 8 fases
+(0, 1a, 1b, 2, 3a, 3b, 3c, 4, 5, 6 — 1 y 3 se dividieron en sub-fases por volumen de cambios,
+mismo criterio en ambos casos: "son bastantes cambios, divídela"), cada una con su propio PR
+mergeado a `main` (#20-#29) tras `npx next lint` + `npm run build` limpios. Plan de control
+completo, archivo por archivo, con qué se encontró y qué se descartó en cada fase:
+`docs/plan-mobile-ux-bitafly.md` (se conserva como referencia histórica, no se borra).
+
+**Limitación real de esta auditoría, documentada en cada PR**: sin `.env.local` en el entorno
+de ejecución no fue posible levantar `next dev` con datos reales de Supabase ni verificar
+visualmente en navegador/viewport — toda la verificación fue revisión de código dirigida
+(grep + lectura completa de cada archivo candidato) + `lint`/`build`, nunca screenshots reales.
+Se recomienda una pasada visual real (375/390/430px) en un entorno con credenciales antes de
+confiar ciegamente en que el resultado se ve exactamente como se espera.
+
+### Patrones estandarizados (aplicar a cualquier página nueva o rediseño futuro)
+
+- **Barra de filtros con `flex-wrap`**: los `<select>` de filtro nunca deben ir en un
+  `flex flex-wrap` puro en mobile (quedan de ancho irregular, dependiente del contenido de
+  cada opción). Patrón real aplicado en 6+ páginas (Bitácora, Flota, Baterías, Mantenimiento,
+  Tripulación, Auditoría): `<div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">` +
+  cada `<select>` con `className="w-full sm:w-auto ..."` (el que sobra en una fila impar,
+  `col-span-2 sm:col-span-1`).
+- **Pares de campos `grid-cols-2` sin breakpoint**: cualquier formulario con inputs en pareja
+  (nombre/apellido, ciudad/país, etc.) — nunca `grid grid-cols-2` a secas. Patrón real
+  (Mi Perfil, Organización, registro público, ×varios): `grid grid-cols-1 sm:grid-cols-2 gap-4`.
+  Mismo criterio para `grid-cols-3` genuino (Inicio Rápido de Organización, totales de socio):
+  `grid grid-cols-1 sm:grid-cols-3` o `grid-cols-2 sm:grid-cols-3` si el 3er ítem tolera
+  quedar solo en la fila de mobile.
+- **Tablas anchas**: toda `<table>` fuera del patrón ya establecido tabla-desktop/tarjetas-mobile
+  (`hidden md:block` + `md:hidden`) debe llevar como mínimo `overflow-x-auto` en su contenedor
+  directo — nunca dejarla desbordar el viewport sin scroll horizontal contenido (Fase 0:
+  `safety/mapas`, `IndicatorDetailPanel`, `AerocivilForm`).
+- **Panel deslizable (sliding panel)**: patrón ya establecido desde antes de esta auditoría,
+  reutilizado en toda la app — `fixed z-[300] inset-x-0 bottom-0 top-14 rounded-t-3xl
+  md:inset-y-0 md:left-auto md:right-0 md:top-0 md:rounded-none md:w-[92vw] md:max-w-[640px]
+  lg:max-w-[820px]` con header/footer `sticky` y contenido central con scroll propio — usar
+  este patrón exacto para cualquier panel nuevo, no inventar uno paralelo.
+- **Pantallas kiosko de pantalla completa** (Despacho `logbook/new`, Cierre de Vuelo
+  `logbook/finalize`): `fixed inset-0`, header navy `#1A202C` fijo, sin sidebar ni barra de
+  navegación inferior — la barra inferior del dashboard (`dashboard/layout.js`) se **oculta
+  por completo** en estas rutas (`isFullScreenFlow = pathname.startsWith('/dashboard/logbook/new'
+  ) || pathname.startsWith('/dashboard/logbook/finalize')`) porque ambas comparten el mismo
+  `z-index` fijo y la barra pintaba encima del botón de acción final, tapándolo parcialmente en
+  celulares con muesca/home indicator. El contenido interno de estas 2 páginas usa
+  `pb-[max(5rem,calc(2rem+env(safe-area-inset-bottom,16px)))]` como defensa adicional. Cualquier
+  pantalla kiosko nueva debe seguir el mismo criterio: agregar su prefijo de ruta a
+  `isFullScreenFlow` en vez de dejar que la barra conviva con un botón de acción propio.
+- **`env(safe-area-inset-bottom, Npx)`**: usar en cualquier padding inferior de contenido que
+  pueda terminar oculto tras el home indicator de iOS o la barra de navegación fija — no un
+  `pb-N` fijo a secas cuando el contenido es lo último visible de la pantalla.
+
+### Hallazgos documentados, sin acción tomada (decisión del usuario pendiente)
+
+- **4 páginas huérfanas** sin ningún enlace de navegación real (`logbook/daily`, `/batteries`
+  standalone antiguo, `/inventory` standalone antiguo, `/pilots` standalone antiguo) —
+  detectadas durante el grep de rutas, no se les aplicó ningún ajuste móvil por ser
+  inalcanzables desde la UI; queda pendiente decidir si se eliminan, se terminan de conectar,
+  o se dejan así.
+
+---
+
 ## Comandos
 
 ```bash

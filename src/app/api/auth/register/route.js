@@ -123,42 +123,51 @@ export async function POST(request) {
             // Si la org ya tenía un piloto con este email (p.ej. importado o invitado),
             // se reutiliza esa fila: se vincula al perfil y se marca como aceptado
             // (evita duplicados y el badge "Invitación pendiente" permanente).
-            const emailLc = String(email || '').trim().toLowerCase();
-            const { data: existingPilot } = await supabaseAdmin
-                .from('pilots')
-                .select('id')
-                .eq('organization_id', targetOrgId)
-                .ilike('email', emailLc)
-                .maybeSingle();
+            // Todo este bloque va en su propio try/catch: para este punto la cuenta
+            // (auth user + profile + organization_members) ya quedó creada y
+            // confirmada — un error aquí (red, timeout, lo que sea) no debe
+            // devolver 400 y hacerle creer al usuario que el registro falló
+            // cuando en realidad ya tiene cuenta activa en la organización.
+            try {
+                const emailLc = String(email || '').trim().toLowerCase();
+                const { data: existingPilot, error: existingPilotErr } = await supabaseAdmin
+                    .from('pilots')
+                    .select('id')
+                    .eq('organization_id', targetOrgId)
+                    .ilike('email', emailLc)
+                    .maybeSingle();
+                if (existingPilotErr) throw existingPilotErr;
 
-            if (existingPilot) {
-                await supabaseAdmin.from('pilots').update({
-                    owner_id:          authData.user.id,
-                    profile_id:        authData.user.id,
-                    invitation_status: 'accepted',
-                    is_active:         true,
-                    phone:             phone || undefined,
-                }).eq('id', existingPilot.id).catch(() => {});
-            } else {
-                await supabaseAdmin.from('pilots').insert([{
-                    organization_id: targetOrgId,
-                    owner_id:        authData.user.id,
-                    profile_id:      authData.user.id,
-                    name:            `${firstName} ${lastName}`.trim(),
-                    email,
-                    phone:           phone || null,
-                    pilot_role:      'Piloto',
-                    is_active:       true,
-                }]).catch(() => {});
+                if (existingPilot) {
+                    await supabaseAdmin.from('pilots').update({
+                        owner_id:          authData.user.id,
+                        profile_id:        authData.user.id,
+                        invitation_status: 'accepted',
+                        is_active:         true,
+                        phone:             phone || undefined,
+                    }).eq('id', existingPilot.id);
+                } else {
+                    await supabaseAdmin.from('pilots').insert([{
+                        organization_id: targetOrgId,
+                        owner_id:        authData.user.id,
+                        profile_id:      authData.user.id,
+                        name:            `${firstName} ${lastName}`.trim(),
+                        email,
+                        phone:           phone || null,
+                        pilot_role:      'Piloto',
+                        is_active:       true,
+                    }]);
+                }
+
+                // Marcar como aceptada cualquier invitación pendiente para este email/org.
+                await supabaseAdmin.from('invitations')
+                    .update({ status: 'accepted', accepted_at: new Date().toISOString() })
+                    .eq('organization_id', targetOrgId)
+                    .ilike('email', emailLc)
+                    .eq('status', 'pending');
+            } catch (linkErr) {
+                console.warn('[register/join] no se pudo vincular piloto/invitación existente:', linkErr?.message || linkErr);
             }
-
-            // Marcar como aceptada cualquier invitación pendiente para este email/org.
-            await supabaseAdmin.from('invitations')
-                .update({ status: 'accepted', accepted_at: new Date().toISOString() })
-                .eq('organization_id', targetOrgId)
-                .ilike('email', emailLc)
-                .eq('status', 'pending')
-                .catch(() => {});
 
             return NextResponse.json({ success: true });
         }

@@ -15,7 +15,15 @@ export default function UpdatePasswordPage() {
     const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
-      toast.error("Error: " + error.message);
+      // "Auth session missing" es el mensaje crudo de Supabase cuando se
+      // entra a esta página sin el enlace de recuperación válido (sesión de
+      // auth no establecida) — traducirlo en vez de mostrar el string en
+      // inglés tal cual.
+      toast.error(
+        error.message === 'Auth session missing!'
+          ? 'El enlace de recuperación expiró o no es válido. Solicita uno nuevo.'
+          : 'Error: ' + error.message
+      );
     } else {
       toast.success("Contraseña actualizada. Ya puedes ingresar.");
       window.location.href = '/login';

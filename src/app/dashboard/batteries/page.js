@@ -174,13 +174,13 @@ export default function BatteriesPage() {
               value={search} onChange={e => setSearch(e.target.value)}
             />
           </div>
-          <div className="flex flex-wrap gap-2">
-            <select aria-label="Filtrar por estado" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+            <select aria-label="Filtrar por estado" className="w-full sm:w-auto p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
               <option value="">Todos los estados</option>
               <option value="servicio">En servicio</option>
               <option value="retirar">Por retirar</option>
             </select>
-            <select aria-label="Filtrar por modelo" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={modelFilter} onChange={e => setModelFilter(e.target.value)}>
+            <select aria-label="Filtrar por modelo" className="w-full sm:w-auto p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={modelFilter} onChange={e => setModelFilter(e.target.value)}>
               <option value="">Todos los modelos</option>
               {uniqueModels.map(m => <option key={m} value={m}>{m}</option>)}
             </select>

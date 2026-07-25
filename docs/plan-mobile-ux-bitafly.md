@@ -136,17 +136,29 @@ sigue el mismo patrón de hoja deslizable completa establecido en la Fase 0. Los
 
 ---
 
-## Fase 2 — Flota & Equipo
+## Fase 2 — Flota & Equipo ✅ hecha (2026-07-25)
 
-- [ ] `dashboard/fleet/page.js` (+ `AircraftCard.js`, `AddAircraftPanel.js`,
-      `EditAircraftPanel.js`)
-- [ ] `dashboard/batteries/page.js` (+ `AddBatteryPanel.js`, `EditBatteryPanel.js`)
-- [ ] `dashboard/maintenance/page.js` (+ `AddMaintenancePanel.js`,
-      `MinorMaintenancePanel.js` — tabla de intervenciones + sección Mtto. Menor)
-- [ ] `dashboard/inventory-checklist/page.js`
-      (`InventoryChecklistClient.js` — existencias + checklist)
-- [ ] `dashboard/pilots/page.js` (Tripulación — tarjetas de piloto, `AddPilotPanel.js`,
-      `EditPilotPanel.js`)
+Mismo hallazgo que en Bitácora (Fase 1a), repetido en **4 páginas más**: la barra de
+filtros (`flex flex-wrap` sin ancho por control) quedaba dispareja en celular. Corregida
+en las 4 al mismo patrón (`grid grid-cols-2` en móvil, `sm:flex sm:flex-wrap` de vuelta
+en desktop) — en Mantenimiento (3 filtros, cantidad impar) el tercero ocupa el ancho
+completo de su fila en móvil en vez de quedar suelto a la izquierda. Las tarjetas
+(Flota, Tripulación), la tabla de Baterías (con scroll horizontal intencional — decisión
+de diseño ya documentada en `CLAUDE.md`, no una tabla rota) y la tabla de Mantenimiento
+(con su propia vista de tarjetas en móvil) ya estaban bien resueltas, sin cambios.
+
+- [x] `dashboard/fleet/page.js` (+ `AircraftCard.js`, `AddAircraftPanel.js`,
+      `EditAircraftPanel.js`) — filtros corregidos; tarjetas y panel ya estaban bien.
+- [x] `dashboard/batteries/page.js` (+ `AddBatteryPanel.js`, `EditBatteryPanel.js`) —
+      filtros corregidos; tabla con scroll horizontal es diseño intencional, sin cambios.
+- [x] `dashboard/maintenance/page.js` (+ `AddMaintenancePanel.js`,
+      `MinorMaintenancePanel.js`) — filtros corregidos (3, cantidad impar); tabla/tarjetas
+      ya bien resueltas.
+- [x] `dashboard/inventory-checklist/page.js`
+      (`InventoryChecklistClient.js` — existencias + checklist) — sin hallazgos, ya
+      responsivo.
+- [x] `dashboard/pilots/page.js` (Tripulación — tarjetas de piloto, `AddPilotPanel.js`,
+      `EditPilotPanel.js`) — filtros corregidos; grid de tarjetas ya responsivo.
 
 ---
 

@@ -261,18 +261,18 @@ export default function MaintenancePage() {
                         value={search} onChange={e => setSearch(e.target.value)}
                     />
                 </div>
-                <div className="flex flex-wrap gap-2">
-                    <select aria-label="Filtrar por estado" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+                    <select aria-label="Filtrar por estado" className="w-full sm:w-auto p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
                         <option value="">Todos los estados</option>
                         <option value="ok">Al día</option>
                         <option value="soon">Próximo</option>
                         <option value="overdue">Vencido</option>
                     </select>
-                    <select aria-label="Filtrar por aeronave" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={aircraftFilter} onChange={e => setAircraftFilter(e.target.value)}>
+                    <select aria-label="Filtrar por aeronave" className="w-full sm:w-auto p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={aircraftFilter} onChange={e => setAircraftFilter(e.target.value)}>
                         <option value="">Todas las aeronaves</option>
                         {uniqueModels.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
-                    <select aria-label="Filtrar por tipo" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+                    <select aria-label="Filtrar por tipo" className="col-span-2 sm:col-span-1 w-full sm:w-auto p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
                         <option value="">Todos los tipos</option>
                         <option value="PREVENTIVO">Preventivo</option>
                         <option value="CORRECTIVO">Correctivo</option>

@@ -282,6 +282,29 @@ contraseña y la página de plantillas de registro no tuvieron hallazgos.
 
 ## Fase 6 — QA final cruzado
 
+### Corrección previa — barra de navegación inferior tapaba el botón de acción (2026-07-25)
+
+A pedido explícito del usuario ("la parte inferior... que no quede información por
+debajo ni escondida"), encontrada antes de arrancar el recorrido formal de QA: el
+Despacho (`logbook/new`) y el Cierre de Vuelo (`logbook/finalize`) son overlays de
+pantalla completa (`fixed inset-0`) con su propio botón de acción al final del
+contenido ("Aprobar Vuelo", etc.) — pero la barra de navegación inferior persistente
+del layout (también `fixed`, mismo `z-index`, renderizada después en el DOM) seguía
+mostrándose por encima **durante esos flujos**, sin ninguna lógica que la ocultara.
+En celulares con muesca/home indicator, la barra podía pintarse justo sobre ese botón
+de acción, tapándolo parcialmente — el "información escondida" real que reportó el
+usuario.
+
+**Corregido de raíz, no solo con más padding**: se agregó `isFullScreenFlow`
+(`dashboard/layout.js`) que oculta la barra inferior por completo mientras la ruta es
+`/dashboard/logbook/new` o `/dashboard/logbook/finalize` — coherente además con que son
+pantallas de enfoque único (kiosko) que no necesitan navegación paralela compitiendo
+por espacio. Como refuerzo (por si algún flujo similar futuro olvida ocultarla, o para
+el área del gesto de inicio en iOS que persiste sin barra visible), el padding inferior
+de ambas pantallas kiosko pasó de un `pb-20` fijo a uno consciente del área segura del
+dispositivo (`pb-[max(5rem,calc(2rem+env(safe-area-inset-bottom,16px)))]`), mismo
+patrón `env(safe-area-inset-bottom)` que ya usaba la barra de navegación del layout.
+
 - [ ] Recorrido completo en 3 anchos de viewport (375 / 390 / 430px) de los flujos más
       usados de punta a punta: Despacho completo, crear una misión en Programación,
       registrar mantenimiento, ver un reporte.

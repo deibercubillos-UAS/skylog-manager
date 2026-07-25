@@ -327,6 +327,14 @@ const isPaidPlan  = !['piloto', null, undefined, ''].includes(plan);
 // pero NO son autónomos — no deben heredar la navegación del piloto independiente.
 const isPilotoPlan = isPilotoIndependiente({ role, plan });
 
+// Rutas de pantalla completa tipo "kiosko" (Despacho, Cierre de Vuelo): son overlays
+// fixed inset-0 con su propio botón de acción al final del contenido. La barra de
+// navegación inferior (también fixed, mismo z-index) pintaba encima de ese botón en
+// celulares con muesca/home indicator, dejándolo parcialmente tapado — se oculta la
+// barra por completo mientras el usuario está en uno de estos flujos, coherente además
+// con que son pantallas de enfoque único sin necesidad de navegación paralela.
+const isFullScreenFlow = pathname.startsWith('/dashboard/logbook/new') || pathname.startsWith('/dashboard/logbook/finalize');
+
 // Label visible del rol: piloto independiente (admin + plan piloto) → "Piloto Independiente"
 const displayRole = (isPilotoPlan && role === 'admin')
   ? 'Piloto Independiente'
@@ -840,7 +848,12 @@ const footerLinks = footerLinksAll.filter(link =>
       <AppUpdateBanner />
 
       {/* ── BARRA DE NAVEGACIÓN INFERIOR — solo mobile ───────────────────── */}
-      {/* safe-area-inset-bottom: padding dinámico para iPhone con home indicator */}
+      {/* safe-area-inset-bottom: padding dinámico para iPhone con home indicator.
+          Oculta por completo en los flujos de pantalla completa (isFullScreenFlow) —
+          ver la constante más arriba: esos flujos tienen su propio botón de acción al
+          final del contenido, y esta barra (mismo z-index, fixed) podía pintarse encima
+          y taparlo parcialmente en celulares con muesca. */}
+      {!isFullScreenFlow && (
       <nav
         aria-label="Navegación principal"
         className="lg:hidden fixed bottom-0 left-0 right-0 z-[200] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
@@ -882,6 +895,7 @@ const footerLinks = footerLinksAll.filter(link =>
 
         </div>
       </nav>
+      )}
     </div>
   );
 }

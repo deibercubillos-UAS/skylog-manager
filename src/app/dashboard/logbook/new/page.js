@@ -420,7 +420,7 @@ export default function NewOperationPage() {
             <StepProgress allSteps={allSteps} currentStep={step} stepNames={stepNames} stepIcons={stepIcons} />
 
             <main className="flex-1 overflow-y-auto p-4 md:p-12">
-                <div className="max-w-3xl mx-auto space-y-6 md:space-y-8 pb-20">
+                <div className="max-w-3xl mx-auto space-y-6 md:space-y-8 pb-[max(5rem,calc(2rem+env(safe-area-inset-bottom,16px)))]">
                     
                     {step === 'data' && isPilotoPlan && (
                         <div className="space-y-6 animate-in slide-in-from-bottom duration-500">

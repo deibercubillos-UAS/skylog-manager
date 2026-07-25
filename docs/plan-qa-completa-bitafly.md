@@ -158,22 +158,80 @@ Cada fase cerrada agrega su propia subsección con:
 
 ---
 
-## Fase 2 — Autenticación completa
+## Fase 2 — Autenticación completa ✅ (2026-07-25)
 
-- [ ] `/reset-password` (solicitar enlace) — formulario + rate limit visible
-- [ ] `/update-password` (con un token real si es posible simular, si no
-      documentar como no probado)
-- [ ] Flujo "Unirse a organización" completo en `/registro` (NIT real de la
-      org de prueba `QATEST01`, validación de NIT inválido, selección de
-      rol) — no solo el flujo "Crear cuenta" ya probado en Fase 0
-- [ ] Aceptar una invitación real de tripulante (usar uno de los 3 pilotos
-      con invitación pendiente ya creados) de punta a punta: abrir el
-      enlace, crear contraseña, confirmar que aparece como "Aceptado" en
-      Tripulación y que el piloto puede iniciar sesión
-- [ ] Google OAuth — al menos confirmar que el botón redirige al flujo real
-      de Google sin error (no completar el login con una cuenta real ajena)
-- [ ] Mensajes de error reales: contraseña incorrecta, correo no registrado,
-      correo mal formado
+- [x] `/reset-password` (solicitar enlace) — formulario + estado de éxito
+      confirmados
+- [x] `/update-password` — bug real encontrado y corregido (ver abajo)
+- [x] Flujo "Unirse a organización" completo en `/registro` (NIT real de la
+      org de prueba `QATEST01`, selección de rol) — bug real encontrado y
+      corregido (ver abajo)
+- [x] Aceptar una invitación real de tripulante, de punta a punta, con los
+      3 pilotos con invitación pendiente (`qa.nuevopiloto@`, `qa.auditfix@`,
+      `qa.tercerpiloto@bitafly-test.local`) — 2 bugs reales encontrados y
+      corregidos (ver abajo); verificado que el 3er intento (ya con ambos
+      fixes desplegados) funcionó de punta a punta sin intervención manual:
+      cuenta creada, `pilots.invitation_status='accepted'`, login exitoso,
+      modal de bienvenida mostró correctamente "Has sido invitado por
+      BitaFly QA - Organización de Prueba · Plan Flota"
+- [x] Google OAuth — el botón "Continuar con Google" redirige correctamente
+      a `accounts.google.com` con el `redirect_uri` real de Supabase
+      (`.../auth/v1/callback`), sin error. No se completó el login (política
+      de no usar una cuenta real ajena)
+- [x] Mensajes de error reales: contraseña incorrecta, correo no registrado
+      y correo mal formado — los 3 correctos (verificado en Fase 0)
+
+### Bugs reales encontrados y corregidos
+
+- **PR #38** — `/update-password` mostraba el error crudo de Supabase en
+  inglés ("Auth session missing!") en vez de un mensaje traducido, al
+  entrar sin una sesión de recuperación válida.
+- **PR #39** — Editar el NIT desde Organización (con el formato estándar
+  con guion, ej. "900123456-7") rompía "Unirse a organización" para
+  cualquiera que intentara unirse después — `dashboard/settings/page.js`
+  guardaba `tax_id` tal cual lo escribiera el usuario, sin la misma
+  normalización que ya usan `validate-join`/`join-org`/`join-org-additional`
+  al buscar. Requirió backfill del `tax_id` de la org QA en Supabase.
+- **PR #40** — Aceptar una invitación real devolvía 400 en el navegador
+  aunque la cuenta (auth user + profile + organization_members) ya se
+  había creado con éxito — el bloque que vincula la fila `pilots`
+  existente y marca la invitación como aceptada no tenía su propio
+  try/catch, así que cualquier error ahí (encontrado: ver PR #41)
+  tumbaba toda la respuesta con 400 pese a que el registro ya había
+  funcionado. El usuario veía "error" pero en realidad ya tenía cuenta
+  activa, con su fila de `pilots` huérfana en `invitation_status='pending'`
+  para siempre. Reparados los 2 pilotos de prueba afectados
+  (`qa.nuevopiloto@`, `qa.auditfix@`) en Supabase.
+- **PR #41** — **El bug real detrás del 400 de arriba, de mayor alcance**:
+  `profiles.active_organization_id` nunca se seteaba en ningún flujo de
+  creación/migración de cuenta (solo `/api/org/switch-active` lo hace, y
+  requiere que el usuario use el switcher manualmente) — pese a que
+  `private.user_org_id()` (la función detrás de la mayoría de políticas
+  RLS, incluida la que permite leer `organizations`) resuelve la org
+  desde esa columna, no desde `organization_id`. Efecto observado: el
+  header del dashboard mostraba "Organización / Individual" en vez del
+  nombre real para cualquier cuenta nueva. **Confirmado que esto ya
+  afectaba a 2 cuentas reales de producción** (`cubillos-95@hotmail.com`,
+  `andresguerra296@gmail.com`), no solo a las de prueba de esta sesión —
+  hallazgo que va más allá del alcance original de esta verificación
+  puntual. Corregido en los 4 sitios que escriben `organization_id` al
+  crear/migrar una cuenta (`api/auth/register`, `lib/epaycoActivation.js`,
+  `api/auth/join-org`) — deliberadamente sin tocar
+  `api/invitations/accept` (no debe cambiar la org activa automáticamente,
+  por diseño de la Fase 5 del refactor multi-organización). Backfill
+  aplicado en Supabase para las 5 cuentas afectadas.
+
+### Metodología — lección para fases siguientes
+
+El primer intento de probar "aceptar invitación" con `qa.auditfix@` se
+hizo ~20-30s después de mergear el fix de PR #40/#41 y todavía golpeó el
+deployment viejo (mismo 400 + dato huérfano) — la propagación de Vercel
+tomó más de lo habitual esta vez (varios deploys en cola). Reproducido
+limpiamente después vía `curl` directo contra la API (más rápido que
+repetir el flujo de navegador completo) una vez confirmado
+`state: "READY"` del deployment en la API de Vercel — para bugs de backend
+puros, curl es más eficiente que repetir clics de UI para verificar un
+fix.
 
 ---
 
@@ -359,13 +417,13 @@ viewports, buscando overflow/recorte que solo aparece con contenido real
 
 ## Próximo paso
 
-Fases 0 y 1 completas (2026-07-25). Fase 1 encontró y corrigió 1 bug real
-(PR #36, "6 meses gratis" desactualizado en 2 páginas SEO en inglés) y dejó
-documentado un falso positivo (ChunkLoadError por pestaña vieja tras deploy,
-no un bug del sitio) y 2 limitaciones reales (banner de cookies no
-verificable sin perfil nuevo de Chrome, `resize_window` poco confiable en
-pestañas reusadas). Todas las 27 páginas públicas del sitio ya recorridas
-sin más hallazgos. Esperando indicación del usuario sobre con qué fase
-continuar — recomendado: **Fase 2** (Autenticación completa), sigue el orden
-natural del plan y es la que falta para cerrar del todo el frente de
-"landing + acceso" antes de entrar de lleno a los módulos del dashboard.
+Fases 0, 1 y 2 completas (2026-07-25). Fase 1 encontró y corrigió 1 bug real
+(PR #36, "6 meses gratis" desactualizado en 2 páginas SEO en inglés). Fase 2
+encontró y corrigió 4 bugs reales (PR #38, #39, #40, #41) — el más
+significativo (PR #41, `active_organization_id` nunca seteado al crear
+cuenta) resultó tener alcance de producción real, más allá del flujo
+puntual que se estaba probando, y ya fue reparado + backfillado. Esperando
+indicación del usuario sobre con qué fase continuar — recomendado:
+**Fase 3** (Dashboard: Operación — Bitácora + Programación + Meteorología),
+sigue el orden natural del plan y es el primer módulo real del dashboard a
+verificar con los datos de prueba ya cargados en la org QA.

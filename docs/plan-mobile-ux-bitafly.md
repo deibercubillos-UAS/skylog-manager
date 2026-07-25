@@ -164,17 +164,38 @@ de diseño ya documentada en `CLAUDE.md`, no una tabla rota) y la tabla de Mante
 
 ## Fase 3 — Documentación / Cumplimiento
 
-- [ ] `dashboard/safety/page.js` — hub con **9 pestañas** (SORA, Evaluación de Riesgos,
+~8,200 líneas en 19 archivos — bastante más grande que las fases anteriores. Dividida en
+3 partes por tema (mismo criterio que la Fase 1), cada una ejecutada, verificada y
+fusionada por separado.
+
+### Fase 3a — Seguridad SMS y SORA ✅ hecha (2026-07-25, sin cambios de código)
+
+Revisada a fondo — igual que la Fase 1b, no se encontró nada real que corregir. Los
+chips/pills de filtro (tipo de caso, dimensión UA, etc.) ya usan `flex flex-wrap`
+correctamente (a diferencia de los `<select>` de las Fases 1a/2, que sí tenían el
+problema de simetría). La tabla de SORA y la matriz de riesgo de
+`safety-config`/`RiskMatrixEditor.js` ya tienen su wrapper `overflow-x-auto` o su vista
+de tarjetas móvil. Los resultados en 3 columnas de `SoraWizard.js` (GRC intrínseco/Δ
+mitigaciones/GRC final) se dejaron intactos — es una comparación a la vista, no un
+formulario, y colapsarla a 1 columna perdería el sentido de comparación.
+
+- [x] `dashboard/safety/page.js` — hub con **9 pestañas** (SORA, Evaluación de Riesgos,
       Indicadores SPI, Mejora Continua, Acciones Correctivas, Reportes de Seg.
-      Operacional, Barreras, Mapas, Capacitación SMS) — revisar cada pestaña, no solo el
-      contenedor.
-- [ ] `dashboard/safety/case/[id]/page.js`, `dashboard/safety/mapas/page.js`
-- [ ] `dashboard/safety-config/page.js` (matriz de riesgo, editor)
-- [ ] `dashboard/sora/page.js` (+ `SoraWizard.js`, varios pasos)
+      Operacional, Barreras, Mapas, Capacitación SMS).
+- [x] `dashboard/safety/case/[id]/page.js`, `dashboard/safety/mapas/page.js` (esta última
+      ya había recibido el fix de scroll de tabla en la Fase 0).
+- [x] `dashboard/safety-config/page.js` (matriz de riesgo, editor).
+- [x] `dashboard/sora/page.js` (+ `components/sora/SoraWizard.js`, varios pasos).
+
+### Fase 3b — Auditoría, Reportes y Protocolos
+
 - [ ] `dashboard/audit/page.js` (tabs Cumplimiento / Registro de acciones)
 - [ ] `dashboard/reports/page.js` (grilla agrupada + panel de descarga — ya rediseñado
       recientemente, verificar solo el comportamiento en móvil del panel inline nuevo)
 - [ ] `dashboard/settings/forms/page.js` (Protocolos — `FormSettingsClient.js`, 4 grupos)
+
+### Fase 3c — Proveedores, Capacitación, Manuales, SMS/VOR-MOR
+
 - [ ] `dashboard/suppliers/page.js` (`SuppliersClient.js`)
 - [ ] `dashboard/training/page.js` (3 pestañas) + `dashboard/training/exam/page.js`
 - [ ] `dashboard/manuales/page.js`

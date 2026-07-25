@@ -513,7 +513,7 @@ export default function RegisterPage() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Field label="Nombre" required>
                     <input required placeholder="Carlos" value={joinForm.firstName} onChange={setJ('firstName')} className={INPUT} />
                   </Field>
@@ -541,7 +541,7 @@ export default function RegisterPage() {
                   </div>
                 </Field>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Field label="Teléfono">
                     <input placeholder="+57 300 000 0000" value={joinForm.phone} onChange={setJ('phone')} className={INPUT} />
                   </Field>
@@ -688,7 +688,7 @@ export default function RegisterPage() {
                 <p className="text-slate-500 text-sm mt-1">Información de tu cuenta Bitafly.</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Nombre" required><input required placeholder="Carlos" value={form.firstName} onChange={set('firstName')} className={INPUT} /></Field>
                 <Field label="Apellido" required><input required placeholder="Rodríguez" value={form.lastName} onChange={set('lastName')} className={INPUT} /></Field>
               </div>
@@ -724,7 +724,7 @@ export default function RegisterPage() {
                 </div>
               </Field>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Teléfono"><input placeholder="+57 300 000 0000" value={form.phone} onChange={set('phone')} className={INPUT} /></Field>
                 <Field label="Ciudad"><input placeholder="Bogotá" value={form.city} onChange={set('city')} className={INPUT} /></Field>
               </div>

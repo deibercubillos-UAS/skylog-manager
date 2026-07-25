@@ -252,15 +252,31 @@ cambios ahí.
 
 ---
 
-## Fase 5 — Master, Socio y Autenticación (fuera del layout normal del dashboard)
+## Fase 5 — Master, Socio y Autenticación (fuera del layout normal del dashboard) ✅ hecha (2026-07-25)
 
-- [ ] `admin/master/page.js` (todas sus pestañas: Usuarios, Socios, Comisiones,
-      Invitaciones, Releases, Suscripciones ePayco — panel administrativo, uso
-      probablemente poco frecuente en celular pero debe ser usable)
-- [ ] `socio/page.js` (tabs Panel / Reportes / Perfil)
-- [ ] `login/page.js`, `registro/page.js` (formulario largo con varios pasos),
-      `reset-password/page.js`, `update-password/page.js`
-- [ ] `dashboard/records/[templateId]/page.js`
+Hallazgo real de alto impacto: **`registro/page.js`** — el formulario público de
+registro, el más visitado desde celular de toda la app por gente que ni siquiera tiene
+cuenta todavía — tenía **4 pares de campos** (Nombre/Apellido, Teléfono/Ciudad,
+repetidos en los 2 flujos de registro: unirse a organización y cuenta nueva) en
+`grid-cols-2` sin breakpoint, mismo patrón que Mi Perfil en la Fase 4. Corregido. Las
+tarjetas de selección de plan y de tipo de cuenta (2-4 tarjetas comparativas) se dejaron
+intactas — ya son legibles en 2 columnas y colapsarlas perdería el sentido de
+comparación. `socio/page.js` tenía 3 tarjetas de totales (Pagos/Comisión pendiente/
+liquidada) con valores en moneda en `grid-cols-3` sin breakpoint — corregida a 1 columna
+en móvil. En `admin/master` (panel de baja prioridad en celular, pero igual revisado) se
+corrigió un grid de 2 inputs+botón de "recursos adicionales". Las 6 tablas del panel
+Master y las 3 de `socio/page.js` ya tenían `overflow-x-auto`; los chips/badges
+(códigos, roles, miembros) ya usan `flex-wrap` correctamente. Login, reset/update de
+contraseña y la página de plantillas de registro no tuvieron hallazgos.
+
+- [x] `admin/master/page.js` (todas sus pestañas) — 1 grid corregido, tablas ya con
+      scroll horizontal.
+- [x] `socio/page.js` (tabs Panel / Reportes / Perfil) — grid de totales corregido,
+      tablas ya con scroll horizontal.
+- [x] `login/page.js`, `registro/page.js` (formulario largo con varios pasos),
+      `reset-password/page.js`, `update-password/page.js` — 4 pares de campos
+      corregidos en `registro/page.js`; el resto sin hallazgos.
+- [x] `dashboard/records/[templateId]/page.js` — sin hallazgos.
 
 ---
 

@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { PERMISSIONS, ASSIGNABLE_ROLES } from '@/lib/roles';
 import { roleFromPilotRole, createCrewInvitation } from '@/lib/invitations';
 import { getOrgContext } from '@/lib/apiAuth';
+import { logAudit } from '@/lib/auditLog';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +37,7 @@ export async function POST(req) {
     }
 
     // ── Validar payload ──────────────────────────────────────────────────────
-    const { email, role: rawRole, pilotId } = await req.json();
+    const { email, role: rawRole, pilotId, pilotName } = await req.json();
 
     if (!isValidEmail(email)) {
       return NextResponse.json({ error: "Email inválido" }, { status: 400 });
@@ -90,6 +91,17 @@ export async function POST(req) {
       senderName,
       sendEmail:  false,
     });
+
+    // ── Auditoría (solo modo "Registro completo" — pilotId viene del piloto
+    // recién insertado client-side en AddPilotPanel.js, único caller que lo
+    // manda; "Solo invitación" no crea fila `pilots` aquí, no aplica) ────────
+    if (pilotId) {
+      logAudit({
+        orgId: profile.organization_id, actorId: user.id, actorName: senderName,
+        action: 'create', module: 'pilots', entityLabel: pilotName || 'Piloto',
+        metadata: { pilot_id: pilotId },
+      });
+    }
 
     // ── Enviar invitación (branded, con NIT para el flujo de registro) ──────
     const cta = isExistingUser

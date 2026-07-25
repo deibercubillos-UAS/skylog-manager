@@ -173,16 +173,16 @@ function ActivityLog() {
                         value={search} onChange={e => setSearch(e.target.value)}
                     />
                 </div>
-                <div className="flex flex-wrap gap-2">
-                    <select aria-label="Filtrar por módulo" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={moduleFilter} onChange={e => setModuleFilter(e.target.value)}>
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+                    <select aria-label="Filtrar por módulo" className="w-full sm:w-auto p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={moduleFilter} onChange={e => setModuleFilter(e.target.value)}>
                         <option value="">Todos los módulos</option>
                         {uniqueModules.map(m => <option key={m} value={m}>{MODULE_LABEL[m] || m}</option>)}
                     </select>
-                    <select aria-label="Filtrar por usuario" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={userFilter} onChange={e => setUserFilter(e.target.value)}>
+                    <select aria-label="Filtrar por usuario" className="w-full sm:w-auto p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={userFilter} onChange={e => setUserFilter(e.target.value)}>
                         <option value="">Todos los usuarios</option>
                         {uniqueUsers.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
-                    <select aria-label="Filtrar por tipo" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+                    <select aria-label="Filtrar por tipo" className="col-span-2 sm:col-span-1 w-full sm:w-auto p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
                         <option value="">Todo tipo de evento</option>
                         {uniqueTypes.map(t => <option key={t} value={t}>{ACTION_META[t]?.label || t}</option>)}
                     </select>

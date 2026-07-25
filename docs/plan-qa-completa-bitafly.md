@@ -274,24 +274,55 @@ anteriores), y el indicador de conflicto de horario.
 
 ---
 
-## Fase 4 — Dashboard: Flota & Equipo
+## Fase 4 — Dashboard: Flota & Equipo ✅ (2026-07-25)
 
-- [ ] Flota: editar la aeronave ya creada (cambiar estado a "en
-      mantenimiento" y volver a "operativo"), dar de baja, transferir a
-      otra organización (si hay una segunda org de prueba disponible, si no
-      documentar como no probado), trazabilidad de componentes (ESC,
-      Hélices, Motores)
-- [ ] Baterías: editar, cambiar estado a "por retirar", verificar que
-      "última aeronave" se resuelve bien
-- [ ] Mantenimiento: editar el registro ya creado en Fase 0, probar
-      "Mantenimiento Menor" (diligenciar el checklist, aunque esté "sin
-      periodicidad configurada" — configurarla primero desde Flota →
-      Editar aeronave)
-- [ ] Inventario de Operación: activar el checklist, agregar una existencia
-      de equipo, relacionar un ítem del checklist con esa existencia
-- [ ] Tripulación: editar uno de los pilotos ya creados, cambiar su estado
-      a inactivo y volver a activo, verificar el expediente completo
-      (sección de Capacitación aparece vacía correctamente)
+- [x] Flota: editar la aeronave ya creada (cambiar estado a "en
+      mantenimiento" y volver a "operativo" — ambas transiciones correctas,
+      hero/KPI/badge actualizados en vivo), trazabilidad de componentes
+      (ESC, Hélices, Motores, auto-sembrados con 0.6h de uso desde la
+      creación de la aeronave). "Dar de baja" y "transferir a otra
+      organización" **no probados** — son operaciones destructivas/de
+      alto impacto sobre el único dron de la org QA, que sigue en uso por
+      las fases siguientes del plan; no hay una segunda org de prueba
+      disponible para probar transferencia sin perder la aeronave actual
+- [x] Baterías: editar, cambiar ciclos a ≥200 → estado "Por retirar" se
+      deriva automáticamente y correctamente (hero/KPI actualizados),
+      revertido a 0 sin problema. "Última aeronave" ya se verificó como
+      "Disponible — sin uso reciente" (sin `battery_logs`, comportamiento
+      esperado)
+- [x] Mantenimiento: editado el registro de Fase 0 (cambio de técnico,
+      guardado correcto). Mantenimiento Menor: configurada la
+      periodicidad (100h) desde Flota → Editar aeronave, configurado el
+      checklist desde Protocolos (plantilla básica, 9 ítems) — **paso no
+      documentado explícitamente en el plan pero necesario**: el
+      checklist estaba vacío ("pide a un gerente que lo configure
+      primero") hasta configurarlo ahí — y diligenciado completo desde
+      Mantenimiento → Diligenciar. Registro nuevo "Menor (Piloto)"
+      confirmado en la tabla de intervenciones
+- [x] Inventario de Operación: activado el checklist (toggle ON), agregada
+      una existencia de equipo ("Chaleco de identificación", 5 unidades),
+      relacionado el ítem 1 del checklist con esa existencia — guardado
+      correcto en ambos casos
+- [x] Tripulación: editado el expediente de uno de los pilotos de Fase 2/3
+      (CIPU agregado, adición AeroCivil marcada), guardado correcto,
+      reflejado en la tarjeta. Verificado que la sección "06. Capacitación"
+      aparece correctamente vacía ("Sin evaluaciones de capacitación
+      registradas"). **No se encontró un toggle explícito activo/inactivo
+      en el panel de edición** — puede vivir en otro punto de la UI no
+      explorado en esta pasada; no se documenta como bug, solo como no
+      verificado
+
+### Falso positivo real (investigado y descartado)
+
+Al entrar por primera vez a `/dashboard/fleet` se vio "Sin aeronaves
+registradas" (0 de 0) pese a que Bitácora y Programación ya mostraban el
+Matrice 350 correctamente — parecía un bug real. Investigado con
+`read_network_requests`: la consulta real (`aircraft?select=*...`) sí
+devolvía 200 con el dato completo; una segunda captura de pantalla
+inmediata después mostró la aeronave correctamente. Mismo patrón de
+"artefacto de timing en la primera carga" ya documentado en Fases 1-2 —
+no se reportó como bug, se verificó con una recarga limpia antes de
+concluir.
 
 ---
 
@@ -437,16 +468,24 @@ viewports, buscando overflow/recorte que solo aparece con contenido real
 
 ## Próximo paso
 
-Fases 0, 1, 2 y 3 completas (2026-07-25). Fase 1 encontró y corrigió 1 bug
-real (PR #36, "6 meses gratis" desactualizado en 2 páginas SEO en inglés).
-Fase 2 encontró y corrigió 4 bugs reales (PR #38, #39, #40, #41) — el más
-significativo (PR #41, `active_organization_id` nunca seteado al crear
-cuenta) resultó tener alcance de producción real, más allá del flujo
-puntual que se estaba probando, y ya fue reparado + backfillado. Fase 3
-(Bitácora + Programación + Meteorología) no encontró bugs nuevos — todo
-funcionó según lo documentado, incluida la integración SORA obligatoria +
-clima en vivo al programar una misión y el indicador de conflicto de
-horario. Quedó creada 1 misión de prueba adicional en la org QA
-(`BIT-001-Y28`, sábado 26/jul, Chía/Cundinamarca, SAIL I). Esperando
-indicación del usuario sobre con qué fase continuar — recomendado:
-**Fase 4** (Dashboard: Flota & Equipo), sigue el orden natural del plan.
+Fases 0-4 completas (2026-07-25). Fase 1 encontró y corrigió 1 bug real
+(PR #36). Fase 2 encontró y corrigió 4 bugs reales (PR #38, #39, #40,
+#41) — el más significativo (PR #41, `active_organization_id` nunca
+seteado al crear cuenta) resultó tener alcance de producción real, más
+allá del flujo puntual que se estaba probando, y ya fue reparado +
+backfillado. Fase 3 (Bitácora + Programación + Meteorología) no encontró
+bugs nuevos. Fase 4 (Flota & Equipo) tampoco encontró bugs nuevos —
+editar aeronave/batería/mantenimiento, trazabilidad de componentes,
+Mantenimiento Menor (config + diligenciar), Inventario de Operación y
+edición de expediente de Tripulación funcionaron todos correctamente; 1
+falso positivo (mismo patrón de timing de carga ya visto en fases
+anteriores) investigado y descartado antes de reportarlo. Quedaron
+datos de prueba adicionales en la org QA: 1 misión (`BIT-001-Y28`), 1
+existencia de equipo ("Chaleco de identificación"), 1 registro de
+Mantenimiento Menor. Dos sub-ítems del checklist de Fase 4 quedaron sin
+probar a propósito (dar de baja / transferir aeronave — destructivos
+sobre el único dron de la org; toggle activo/inactivo de piloto — no
+localizado en el panel de edición explorado). Esperando indicación del
+usuario sobre con qué fase continuar — recomendado: **Fase 5**
+(Dashboard: Seguridad SMS + SORA + Auditoría), sigue el orden natural
+del plan.

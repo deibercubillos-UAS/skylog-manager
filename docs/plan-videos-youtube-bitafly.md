@@ -312,11 +312,12 @@ Formato: tutorial 100% en pantalla (grabación real del flujo de registro)
 ===================================
 
 [GANCHO — 0:00-0:12]
-[Visual: pantalla, dashboard vacío/limpio de fondo]
+[Visual: cronómetro grande en pantalla arrancando en 00:00, fondo del dashboard/registro
+difuminado detrás. El cronómetro queda como widget pequeño y discreto en una esquina
+durante TODO el video, corriendo en tiempo real — no se menciona de nuevo hasta el cierre]
 
-"Ya viste qué te ofrece cada plan. Ahora te muestro exactamente cómo crear tu cuenta — en
-minutos, sin complicaciones — sea que vueles por tu cuenta o que estés armando tu
-operación como empresa."
+"¿Cuánto tiempo crees que toma crear una cuenta profesional para tu operación de drones?
+Te lo voy a demostrar en tiempo real — mira el cronómetro, porque esto empieza ahora."
 
 [INTRO — 0:12-0:25]
 [Visual: pantalla, bitafly.com/registro]
@@ -361,10 +362,13 @@ empezar a invitar al resto de tu equipo."
 muestro cómo invitar a tu tripulación, y qué ve cada uno la primera vez que entra."
 
 [CONCLUSIÓN — 3:30-3:45]
-[Visual: pantalla, vuelve al dashboard general]
+[Visual: el cronómetro que corría discreto en la esquina desde el gancho pasa a primer
+plano, se detiene, y se congela en el tiempo real que duró la grabación — cierra el reto
+planteado en el gancho]
 
-"Ya tienes tu cuenta lista, sea cual sea tu caso. Lo que sigue es empezar a construir tu
-operación dentro de la plataforma."
+"Mira el cronómetro: [tiempo real de la grabación]. Eso es todo lo que toma tener tu
+cuenta lista, sea cual sea tu caso. Lo que sigue es empezar a construir tu operación
+dentro de la plataforma."
 
 [CIERRE / CTA MÍNIMO — 3:45-3:55]
 
@@ -384,6 +388,15 @@ orientación conceptual como los dos anteriores.
 ```
 
 Notas de producción:
+- **Gancho — reto del cronómetro (elegido de 3 opciones)**: el widget del cronómetro se
+  agrega en edición (CapCut), no durante la grabación en pantalla — no depende de
+  cronometrar la grabación real en vivo. Flujo: (1) graba ambos registros con calma, sin
+  presión de tiempo real; (2) en CapCut, agrega un overlay de cronómetro pequeño en una
+  esquina (elemento de texto/stopwatch animado) que arranca en 00:00 sincronizado con el
+  gancho y corre a lo largo de todo el video editado; (3) en la CONCLUSIÓN, congela el
+  cronómetro en el tiempo real de duración del video ya montado (ej. si el video final
+  queda en 3:45, el cronómetro se detiene ahí) — el número debe coincidir con la duración
+  real del video, no ser aproximado, para que el "reto" planteado en el gancho sea honesto.
 - **Formato distinto a 0.1/0.2**: este video es 100% grabación de pantalla real del flujo
   `/registro` — no reutiliza ni necesita b-roll de dron/piloto/roles. La única pieza nueva
   a producir es la grabación de pantalla en sí, no un prompt de video.

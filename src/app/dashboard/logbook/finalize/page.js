@@ -173,7 +173,7 @@ export default function FinalizeFlightPage() {
             </header>
 
             <main className="flex-1 overflow-y-auto p-4 md:p-12">
-                <div className="max-w-xl mx-auto space-y-6 md:space-y-8 pb-20">
+                <div className="max-w-xl mx-auto space-y-6 md:space-y-8 pb-[max(5rem,calc(2rem+env(safe-area-inset-bottom,16px)))]">
 
                     {openFlights.length === 0 ? (
                         <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-200 text-center space-y-6 animate-in slide-in-from-bottom duration-500">

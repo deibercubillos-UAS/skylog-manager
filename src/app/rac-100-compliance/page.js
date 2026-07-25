@@ -144,7 +144,7 @@ export default function Rac100CompliancePage() {
       <section style={{ background: '#1A202C', padding: '72px 32px', textAlign: 'center', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
         <Decor variant="dark" />
         <div style={{ maxWidth: '580px', margin: '0 auto' }}>
-          <p style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: accent, marginBottom: '16px' }}>Free 6-month trial</p>
+          <p style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: accent, marginBottom: '16px' }}>Free 15-day trial</p>
           <h2 style={{ fontSize: 'clamp(26px,3vw,40px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.04em', color: '#fff', marginBottom: '16px' }}>
             Start your RAC 100 compliance today
           </h2>

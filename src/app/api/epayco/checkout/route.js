@@ -4,11 +4,19 @@ import { NextResponse } from 'next/server';
 import { createClientSSR } from '@/lib/supabaseServer';
 import { createClient } from '@supabase/supabase-js';
 import { EPAYCO_PLANS } from '@/lib/planLimits';
+import { getOrgContext } from '@/lib/apiAuth';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
+  // Gate de rol en la API, no solo en la UI (ver Auditoría 2026-07-22): solo
+  // el dueño de la cuenta puede iniciar un checkout para su organización.
+  const ctx = await getOrgContext(supabase);
+  if (!['superadmin', 'admin'].includes(ctx.role)) {
+    return NextResponse.json({ error: 'Solo el administrador de la organización puede gestionar el pago.' }, { status: 403 });
+  }
 
   const { planKey, billing, partnerCode } = await request.json();
   const cfg = EPAYCO_PLANS[planKey]?.[billing];

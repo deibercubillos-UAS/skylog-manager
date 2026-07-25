@@ -18,12 +18,14 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
-    const { category, label } = await request.json();
+    const { label } = await request.json();
     if (!label?.trim()) return NextResponse.json({ error: 'La descripción es obligatoria' }, { status: 400 });
 
+    // form_definitions no tiene columnas 'category'/'updated_at' — el nombre
+    // real del texto es 'label_text' (ver Auditoría 2026-07-22).
     const { data, error } = await supabase
       .from('form_definitions')
-      .update({ category: category?.trim() || 'General', label: label.trim(), updated_at: new Date().toISOString() })
+      .update({ label_text: label.trim() })
       .eq('id', id)
       .eq('organization_id', orgId)
       .eq('form_type', 'sora')

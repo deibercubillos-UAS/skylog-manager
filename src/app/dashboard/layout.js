@@ -155,8 +155,12 @@ export default function DashboardLayout({ children }) {
         setAircraftCount(acCountRes.count ?? 0);
         setActiveFlight(flightRes.data);
 
-        // ¿El usuario es miembro de un socio (escuela/asesor)? → mostrar acceso al panel
-        supabase.from('partner_members').select('id').eq('profile_id', user.id).limit(1)
+        // ¿El usuario es miembro de un socio (escuela/asesor) ACTIVO? → mostrar
+        // acceso al panel. "Desactivar" un socio desde Master solo marca
+        // partners.status='inactivo' (no borra partner_members) — sin este
+        // filtro, el botón seguía apareciendo aunque el socio ya no estuviera
+        // activo.
+        supabase.from('partner_members').select('id, partners!inner(status)').eq('profile_id', user.id).eq('partners.status', 'activo').limit(1)
           .then(({ data: pm }) => setIsSocio(!!pm?.length))
           .catch(() => {});
 
@@ -349,12 +353,14 @@ const navLinks = [
   { name: 'Meteorología',   icon: 'partly_cloudy_day',       href: '/dashboard/weather',         group: 'Operación', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Flota',          icon: 'precision_manufacturing', href: '/dashboard/fleet',           group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
   { name: 'Baterías',       icon: 'battery_charging_full',   href: '/dashboard/batteries',       group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
-  // Mantenimiento e Inventario ocultos para el piloto independiente (2026-07-20,
-  // pedido explícito del usuario) — ambos asumen una operación con
-  // técnico/checklist de equipo compartido, que no aplica a un piloto que opera
-  // solo. Bloqueado también a nivel de ruta (ver maintenance/layout.js e
+  // Mantenimiento: reactivado para el piloto independiente (2026-07-22, pedido
+  // explícito del usuario — revierte el ocultamiento de 2026-07-20). Su propio
+  // dron también requiere mantenimiento mayor/menor aunque opere solo.
+  { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'] },
+  // Inventario sigue oculto para el piloto independiente (2026-07-20, pedido
+  // explícito del usuario) — asume un checklist de equipo compartido/técnico
+  // que no aplica a quien opera solo. Bloqueado también a nivel de ruta (ver
   // inventory-checklist/layout.js) para que no quede accesible por URL directa.
-  { name: 'Mantenimiento',  icon: 'build',                   href: '/dashboard/maintenance',     group: 'Flota & Equipo', roles: ['superadmin', 'admin', 'gerente_sms', 'jefe_pilotos', 'piloto'], pilotHidden: true },
   // Inventario de Operación: existencias de equipo + checklist de verificación
   // pre-misión. Vive aquí (no en Cumplimiento) porque ahora es también un
   // catálogo de equipo real, igual que Flota/Baterías/Mantenimiento. La edición

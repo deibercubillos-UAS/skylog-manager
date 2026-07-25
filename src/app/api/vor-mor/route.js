@@ -16,6 +16,13 @@ export async function GET(request) {
         const ctx = await getOrgContext(supabase);
         if (!ctx?.orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
+        // Gate de rol en la API, no solo en la UI (ver Auditoría 2026-07-22):
+        // esta lista incluye notas internas de investigación — solo para los
+        // roles que gestionan SMS, no cualquier miembro de la org.
+        if (!PERMISSIONS.canManageSMS.includes(ctx.role)) {
+            return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
+        }
+
         const { searchParams } = new URL(request.url);
         const type   = searchParams.get('type');     // 'VOR' | 'MOR' | null
         const status = searchParams.get('status');   // 'recibido' | etc

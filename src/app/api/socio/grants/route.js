@@ -152,21 +152,41 @@ export async function DELETE(request) {
       return NextResponse.json({ error: 'Regalo no encontrado.' }, { status: 404 });
     }
 
-    // Si ya fue canjeado: degradar a los perfiles de la org beneficiaria.
+    // Si ya fue canjeado: degradar a los miembros reales de la org beneficiaria.
+    // Auditoría 2026-07-22: resolver vía organization_members (membresía real),
+    // no profiles.organization_id — esa columna solo refleja la organización
+    // ACTIVA de cada cuenta ahora mismo. Con el filtro anterior, si el
+    // beneficiario cambiaba su organización activa a otra, la anulación no lo
+    // alcanzaba (su membresía regalada quedaba intacta); y si otra cuenta sin
+    // relación tenía esta org activa en ese momento, se degradaba por error.
     if (grant.redeemed_org_id) {
       const revokedAt = new Date().toISOString();
-      const { data: affected } = await admin.from('profiles')
-        .update({ subscription_plan: 'piloto', subscription_expires_at: revokedAt })
+      const { data: members } = await admin
+        .from('organization_members')
+        .select('user_id')
         .eq('organization_id', grant.redeemed_org_id)
-        .select('id');
+        .eq('is_active', true);
 
-      for (const p of affected || []) {
+      for (const m of members || []) {
         await syncOrgMembership(admin, {
-          userId: p.id,
+          userId: m.user_id,
           organizationId: grant.redeemed_org_id,
           subscriptionPlan: 'piloto',
           subscriptionExpiresAt: revokedAt,
         });
+
+        // profiles solo refleja la organización activa — solo se toca si esta
+        // org sigue siendo esa (si no, pisaría el plan de la que sí tiene activa).
+        const { data: prof } = await admin
+          .from('profiles')
+          .select('active_organization_id')
+          .eq('id', m.user_id)
+          .maybeSingle();
+        if (prof?.active_organization_id === grant.redeemed_org_id) {
+          await admin.from('profiles')
+            .update({ subscription_plan: 'piloto', subscription_expires_at: revokedAt })
+            .eq('id', m.user_id);
+        }
       }
     }
 

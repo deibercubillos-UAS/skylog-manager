@@ -30,6 +30,10 @@ export const PERMISSIONS = {
     canCloseAnyFlight:  ['superadmin', 'jefe_pilotos'],
     canEditOrg:         ['superadmin', 'admin'],
     canManageInsurance: ['superadmin', 'admin'],
+    // Suscripción/facturación — solo el dueño de la cuenta (Gerente General o
+    // Piloto Independiente, ambos role='admin') o superadmin. Ni Jefe de
+    // Pilotos ni Gerente SMS deben poder ver ni tocar el pago de la org.
+    canManageSubscription: ['superadmin', 'admin'],
     canFly:             ['superadmin', 'admin', 'jefe_pilotos', 'piloto'],
     canAccessMaster:    ['superadmin'],
     // Nuevas — reemplazan arrays inline en API routes y páginas

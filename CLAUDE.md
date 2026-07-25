@@ -645,6 +645,178 @@ operando solo sobre el propio usuario autenticado).
   probados (creación de org `type='solo'`, `syncOrgMembership`, cascadas de borrado ya
   usadas por `api/user/delete`/`api/auth/delete-account`).
 
+### 3 bugs reales encontrados y corregidos: socio desactivado, expediente de piloto, roster de Gestión de Usuarios (2026-07-22)
+
+El usuario reportó en producción, en la misma sesión: (1) desactivó un socio (escuela/asesor)
+desde Master y el letrero/panel "Panel Socio" seguía apareciendo en esa cuenta pese a estar
+"deshabilitada para esta función"; (2) al editar el rol de un tripulante desde el expediente
+(Tripulación → editar), el guardado fallaba con `Could not find the 'additions' column of
+'pilots' in the schema cache` (400); (3) la pantalla `/dashboard/users` (Gestión de Usuarios)
+no mostraba ningún tripulante. Los 3 son bugs reales e independientes, verificados contra la
+base de datos real antes de corregir:
+
+- **(1) — `/api/socio/me` y el botón "Panel Socio" no verificaban `partners.status`**:
+  "Desactivar" un socio en Master (`DELETE /api/admin/master/partners`) solo hace
+  `partners.status = 'inactivo'` — nunca borra las filas de `partner_members`. Tanto el guard
+  de `/socio/layout.js` (que depende 100% de `GET /api/socio/me`) como el `isSocio` que
+  decide si mostrar el botón "Panel Socio" en `dashboard/layout.js` solo comprobaban si
+  existía una fila de membresía, nunca si el socio seguía activo — confirmado contra datos
+  reales: la cuenta reportada tenía su única fila `partner_members` apuntando a un socio con
+  `status='inactivo'`, y aun así conservaba acceso funcional completo al panel. Corregido:
+  `GET /api/socio/me` ahora filtra las membresías por `partners.status='activo'` antes de
+  elegir la "principal" (`partner_id` de un socio inactivo se descarta) y responde 403 si no
+  queda ninguna activa; `dashboard/layout.js` hace el mismo filtro con un embed
+  `partner_members?select=id,partners!inner(status)&partners.status=eq.activo` para decidir
+  `isSocio`. **Fuera de alcance a propósito**: desactivar una escuela no desactiva
+  automáticamente a sus asesores (son filas `partners` propias, con su propio `status`) — no
+  se cambió ese comportamiento, cada socio se evalúa por su propio estado.
+- **(2) — `EditPilotPanel.js` usaba el nombre de columna equivocado**: el panel leía/escribía
+  `pilot.additions`/`form.additions`, pero la columna real de `pilots` (usada por
+  `AddPilotPanel.js`, `api/pilots/route.js` y el resto del proyecto desde su creación) es
+  `aerocivil_additions` — confirmado contra el esquema real en Supabase (`pilots` no tiene
+  columna `additions`). El `UPDATE` a una columna inexistente devolvía el 400 de PostgREST
+  reportado. Corregido: los 4 usos (`useState` inicial, el `useEffect` de sincronización, el
+  payload del `UPDATE`, y los checkboxes de adiciones AeroCivil) renombrados a
+  `aerocivil_additions` — mismo campo, mismo dato, sin cambio de comportamiento salvo que
+  ahora sí persiste.
+- **(3) — `GET/PATCH /api/admin/users` filtraba por `profiles.organization_id`, no por
+  membresía real**: mismo patrón de bug ya documentado y corregido varias veces en la Fase 7
+  del refactor multi-organización (ver arriba), pero este archivo no estaba en el inventario
+  original y quedó sin migrar. `profiles.organization_id` solo refleja la organización
+  **activa** de una cuenta ahora mismo — un tripulante real de la organización que cambió su
+  organización activa a otra (caso confirmado con datos reales: un piloto con fila en
+  `pilots` de la organización A, pero `organization_members` muestra que también es
+  `admin` de su propia organización B, y B es su activa ahora mismo) simplemente dejaba de
+  aparecer en `/dashboard/users` de la organización A, aunque siguiera siendo miembro real
+  vía `organization_members`. Corregido: `GET` arma el roster desde
+  `organization_members` (`organization_id` + `is_active=true`) y solo usa `profiles` para
+  los datos de perfil (nombre/correo/avatar) de esos `user_id`; el rol mostrado es el de
+  `organization_members`, no `profiles.role`. `PATCH` valida la membresía real de la misma
+  forma (ya no 403 falso-positivo por "otra organización" cuando en realidad sí lo es) y
+  **siempre** escribe el nuevo rol en `organization_members` para `me.organization_id`
+  (nunca para `target.organization_id`, que puede ser una organización distinta) — y solo
+  además escribe `profiles.role` cuando `me.organization_id` coincide con la organización
+  **activa** del miembro (`profiles.active_organization_id`), para no pisar el rol de la
+  organización que realmente tiene activa en ese momento.
+- **Verificación**: los 3 se confirmaron contra datos reales en Supabase (consultas directas
+  a `partner_members`/`partners`, `pilots`/`profiles`/`organization_members` para las cuentas
+  específicas reportadas) antes de corregir, no solo por lectura de código; `npx next lint` +
+  `npm run build` limpios (mismos 3 warnings preexistentes).
+
+### Auditoría integral post-incidente (2026-07-22, mismo día)
+
+A raíz de los 3 bugs de arriba, el usuario pidió una verificación exhaustiva de toda la
+plataforma para no seguir encontrando fallas "sencillas" en producción. **Limitación real de
+este entorno, comunicada al usuario antes de empezar**: la política de red de esta sesión
+bloquea explícitamente la salida hacia `bitafly.com` y cualquier URL de Vercel (denegación de
+proxy 403, no un problema de credenciales) — no fue posible abrir un navegador real, iniciar
+sesión como cada rol, hacer clic en botones, ni verificar breakpoints responsive. Esa parte del
+pedido queda pendiente de que el usuario (o un entorno sin esa restricción) la haga. En su
+lugar, se ejecutó la verificación más rigurosa posible sin navegador: 2 barridos automáticos de
+todo `src/` (agentes en paralelo) + revisión manual dirigida de la matriz de permisos
+(sidebar vs. guard de layout vs. guard de API), con **13 bugs reales confirmados y
+corregidos**, ninguno inventado — todos verificados contra el esquema real de Supabase o
+leyendo el código exacto antes de tocar nada.
+
+**A — Columnas de Supabase inexistentes en el código** (9 confirmados, mismo patrón exacto
+del bug de `additions` que originó esta auditoría — un script cruzó cada `.from(tabla)` +
+`.insert/.update/.upsert/.select` contra el esquema real de las ~85 tablas):
+- **`flights` no tiene columna `updated_at`** (`api/logbook/[id]/route.js`, `PATCH`): **rompía
+  por completo** la edición inline de PIC / N° de misión en Bitácora — función real,
+  documentada, usada — con 500 en cada intento. Corregido quitando el campo inexistente del
+  `.update()`.
+- **`flight_authorizations` no tiene columna `notes`** (el nombre real es
+  `cancellation_notes`) en `logbook/new/page.js` → "Cancelar misión" en Despacho: el error
+  ni siquiera se revisaba (`await` sin destructurar `{error}`), así que mostraba "Misión
+  cancelada" con éxito falso mientras la actualización fallaba en silencio. Corregido el
+  nombre de columna y agregado el chequeo de `{error}`.
+- **`pilots` no tiene columna `city`** (existe en `profiles`, no en `pilots` — confusión entre
+  ambas tablas), usada en **5 sitios** al crear/actualizar la fila `pilots` durante
+  registro/onboarding: `api/auth/register/route.js` (×3: unirse a org, alta directa, auto-
+  piloto de un nuevo admin), `api/pilots/my-documents/route.js` (auto-crear `pilots` al primer
+  guardado del expediente self-service — **este sí lanzaba y devolvía 500** real al usuario;
+  los otros 4 fallaban en silencio con `.catch(()=>{})`, dejando la fila `pilots` sin crear o
+  sin vincular `owner_id`/`profile_id` sin que nadie se enterara) y `lib/epaycoActivation.js`
+  (auto-piloto al activarse un pago). Corregido quitando `city` de los 5 payloads hacia
+  `pilots` (se conservó donde sí aplica, los upserts hacia `profiles`).
+- **`organizations` no tiene columna `name`** (el nombre real es `company_name`) en
+  `api/fleet/[id]/transfer/route.js`: el mensaje de éxito al transferir una aeronave siempre
+  mostraba el texto genérico "la organización destino" en vez del nombre real — cosmético,
+  sin romper la transferencia en sí. Corregido.
+- **`form_definitions` no tiene columnas `category`/`label`/`updated_at`** (el nombre real del
+  texto es `label_text`) en `api/safety-config/[id]/PATCH`: **página ya huérfana** — la
+  gestión real de Barreras se movió a la tabla `safety_barriers` en 2026-07-03 y ningún enlace
+  del producto apunta ya a `/dashboard/safety-config` (confirmado con grep) — pero la ruta
+  seguía siendo alcanzable por URL directa y devolvía 500 en cada intento de editar. Corregido
+  el nombre de columna (sin resucitar el concepto de "categoría", que ya no existe en el
+  esquema); se documenta aquí como candidata a eliminación futura en vez de profundizar en una
+  función sin ningún punto de entrada real hoy.
+- **Hallazgo secundario, no corregido a propósito**: `api/form-settings`, `api/form-templates`,
+  `dashboard/records/[templateId]`, `api/sora` referencian tablas que no existen en absoluto
+  (`form_settings`/`form_templates`/`form_records`/`sora_templates`) — confirmado por grep que
+  ningún archivo del proyecto los enlaza ni los llama; código muerto de una iteración anterior
+  (superado por `form_definitions`), sin riesgo real para un usuario porque no hay forma de
+  llegar ahí. Se deja documentado en vez de borrarlo en la misma pasada, por si se quiere
+  limpiar aparte.
+
+**B — `profiles.organization_id` legacy en vez de `organization_members`** (2 confirmados,
+mismo patrón que el bug de Gestión de Usuarios de arriba — agente dedicado revisó todo
+`src/app/api` + `src/app/dashboard` + `src/lib` contra las excepciones ya documentadas de la
+Fase 7 del refactor multi-organización):
+- **`api/cron/free-grants/route.js`**: el cron diario que degrada perfiles gratuitos vencidos
+  buscaba "el admin de la org" filtrando `profiles.organization_id` — si esa cuenta ya había
+  cambiado su organización activa a otra (posible desde la Fase 5, unirse a una segunda
+  organización), la búsqueda devolvía vacío y el downgrade + aviso por correo se saltaban en
+  silencio, dejando el acceso gratuito activo indefinidamente pasado su vencimiento. Corregido
+  para resolver el admin vía `organization_members` (membresía real), y solo tocar
+  `profiles.subscription_plan` si esa organización sigue siendo la activa de esa cuenta (si no,
+  solo se actualiza `organization_members`, igual que en el fix de Gestión de Usuarios).
+- **`api/socio/grants` `DELETE`** (anular un regalo de socio ya canjeado): mismo patrón —
+  degradaba en bloque cualquier `profiles` que tuviera esa org como activa, en vez de los
+  miembros reales vía `organization_members`. Mismo riesgo (beneficiario que cambió de
+  organización activa no se degrada; una cuenta sin relación que tuviera esa org activa en ese
+  momento sí se degradaba por error). Mismo fix aplicado.
+
+**C — Guards de permiso inconsistentes con la intención real del producto** (2 confirmados,
+por revisión manual línea por línea de cada `layout.js` de `/dashboard/*` contra su
+`navLinks`/`footerLinksAll` correspondiente en `dashboard/layout.js`, y de cada API que los
+alimenta):
+- **`/dashboard/subscription` usaba el permiso equivocado**: `canManageFleet` (incluye
+  `jefe_pilotos`) en vez de un permiso propio — el sidebar (`footerLinksAll`) nunca le muestra
+  este enlace a Jefe de Pilotos (`roles: ['superadmin','admin']`), pero por URL directa sí
+  podía entrar, ver el detalle de facturación, y las 3 rutas de API que respaldan la página
+  (`api/epayco/checkout`, `api/epayco/verify`, `api/subscription/cancel`) **no tenían ningún
+  chequeo de rol propio** — solo verificaban que perteneciera a la organización. Confirmado un
+  efecto real y concreto: `POST /api/subscription/cancel` cancela el `referral` activo de la
+  org (atribución de comisión al socio) sin verificar quién llama. Corregido: nuevo permiso
+  `canManageSubscription: ['superadmin','admin']` en `roles.js`, aplicado en
+  `subscription/layout.js` **y** como defensa en profundidad dentro de los 3 endpoints
+  mencionados (gate de rol en la API, no solo en la UI — convención ya establecida en este
+  proyecto que este caso puntual no seguía).
+- **`/dashboard/vor-mor` no tenía NINGÚN guard server-side** (`layout.js` era un passthrough
+  literal) — cualquier usuario autenticado, incluido un `piloto` de la organización, podía
+  navegar ahí directo y ver el listado completo de reportes VOR/MOR, incluyendo
+  `internal_notes`/`investigation_summary`/`contributing_factors` (notas internas de
+  investigación) — pese a que el único enlace real hacia esta página (desde Seguridad SMS y
+  desde Protocolos) solo se muestra a `superadmin/admin/gerente_sms`. `GET /api/vor-mor`
+  tampoco tenía chequeo de rol, solo de organización. Corregido: `vor-mor/layout.js` gana
+  `requirePermission('canManageSMS')`, y el mismo chequeo se agregó dentro del `GET` de
+  `api/vor-mor/route.js`.
+- **Alcance de esta pasada C**: se revisaron los 16 `layout.js` de subrutas de `/dashboard/*`
+  contra su entrada de nav correspondiente; los 2 anteriores fueron los únicos con discrepancia
+  real. Las rutas sin `layout.js` propio (`authorizations`, `settings`, `users`, `fleet`,
+  `batteries`, `logbook`, `weather`, `mis-vuelos`, `programacion-activa`, `dev`, `records`,
+  `manual-operaciones`) se verificaron una por una: `authorizations`/`settings`/`users` sí
+  tienen su propio guard server-side inline en `page.js`; `fleet`/`batteries`/`logbook`/
+  `weather` están correctamente abiertas a todos los roles del sidebar sin necesitar uno;
+  `mis-vuelos`/`programacion-activa` no se profundizaron más allá de confirmar que existe un
+  guard — quedan fuera del detalle de esta nota.
+- **Fuera de alcance, explícitamente documentado como pendiente**: verificación visual/manual
+  en navegador real (clic por clic, por rol, por breakpoint) — bloqueada por la política de red
+  de este entorno, no ejecutada. Tampoco se re-auditaron los ~106 policies de RLS de Supabase
+  ni se re-corrió una prueba de carga — esta pasada fue estrictamente de consistencia de código
+  contra esquema real + matriz de permisos.
+
 ---
 
 ## Roles y planes
@@ -954,7 +1126,7 @@ copy y enlaces ligeramente distintos, además de un cuarto componente
 - **Unirse a org**: desde `/dashboard/subscription`, ingresa NIT, elige rol → `POST /api/auth/join-org` transfiere toda la data (aircraft, batteries, flights, pilots, flight_plans, etc.) al nuevo org y actualiza `profiles.organization_id + role`. La org origen queda marcada como `[Migrada]`.
 - OnboardingBanner NO se muestra al piloto independiente.
 - **Sin grupo "Documentación" (2026-07-07)**: el piloto independiente no tiene acceso ni ve el grupo completo (Seguridad SMS, SORA, Auditoría, Reportes, Protocolos, Proveedores, Capacitación, Manuales) — a pedido explícito del usuario. `dashboard/layout.js` vacía el grupo entero para `isPilotoPlan` (antes algunas entradas sin `pilotHidden` —Protocolos/Proveedores/Capacitación— o con `pilotOnly` —SORA— sí se colaban). A nivel de ruta, `requirePermission()` (`lib/authGuards.js`) ganó una opción `{ blockIndependentPilot: true }` (aplicada en los layouts de safety/audit/reports/settings/forms/suppliers/training) que redirige al independiente aunque su rol `admin` esté en la lista de roles permitidos — antes esas páginas se podían visitar por URL directa aunque el nav ya las ocultara. `/dashboard/sora` no tenía ningún guard server-side (page.js 100% client) — se le agregó un `layout.js` mínimo solo para este bloqueo, sin restringir al resto de roles que ya podían entrar.
-- **Sin Planear Vuelo, Mantenimiento ni Inventario (2026-07-20)**: a pedido explícito del usuario, el piloto independiente ya no ve estas 3 entradas en el sidebar — asumen una operación con checklist de equipo compartido/técnico que no aplica a quien opera solo. "Planear Vuelo" se quita para **toda** la plataforma (era su única audiencia restante, ver **Piloto dentro de Organización** — el piloto de org ya la había perdido en 2026-07-07): `layout.js` de `/dashboard/plan-vuelo` ahora redirige también al independiente (a `/logbook/new`, en vez de dejarlo pasar) y el enlace "Crear nueva planeación" del Despacho se quitó — el selector de planeaciones **ya guardadas** se conserva intacto, solo deja de poder crear nuevas. `/dashboard/maintenance` e `/dashboard/inventory-checklist` ganan `pilotHidden: true` en el nav + `{ blockIndependentPilot: true }` en sus `requirePermission()` (sin esto seguirían accesibles por URL directa, ya que el rol `admin` del independiente sí está en `canManageOps`/`canViewInventoryChecklist`). El widget "Planear" de la barra inferior móvil también se quitó. **Confirmado que ya no hace falta ningún cambio en Despacho**: el flujo simplificado (`/logbook/new`) ya no pedía orden de vuelo ni batería desde antes (ver arriba) — coincide con lo pedido ("solo agregar los que hace y cargar los de su dron").
+- **Sin Planear Vuelo ni Inventario (2026-07-20, Mantenimiento reactivado 2026-07-22)**: a pedido explícito del usuario, el piloto independiente originalmente perdió estas 3 entradas del sidebar — asumían una operación con checklist de equipo compartido/técnico que no aplica a quien opera solo. "Planear Vuelo" se quita para **toda** la plataforma (era su única audiencia restante, ver **Piloto dentro de Organización** — el piloto de org ya la había perdido en 2026-07-07): `layout.js` de `/dashboard/plan-vuelo` ahora redirige también al independiente (a `/logbook/new`, en vez de dejarlo pasar) y el enlace "Crear nueva planeación" del Despacho se quitó — el selector de planeaciones **ya guardadas** se conserva intacto, solo deja de poder crear nuevas. `/dashboard/inventory-checklist` conserva `pilotHidden: true` en el nav + `{ blockIndependentPilot: true }` en su `requirePermission()` (sin esto seguiría accesible por URL directa, ya que el rol `admin` del independiente sí está en `canViewInventoryChecklist`). El widget "Planear" de la barra inferior móvil también se quitó. **Confirmado que ya no hace falta ningún cambio en Despacho**: el flujo simplificado (`/logbook/new`) ya no pedía orden de vuelo ni batería desde antes (ver arriba) — coincide con lo pedido ("solo agregar los que hace y cargar los de su dron"). **Mantenimiento reactivado (2026-07-22)**: a pedido explícito del usuario, se revirtió el ocultamiento — el piloto independiente vuelve a ver `/dashboard/maintenance` en el sidebar (`pilotHidden` retirado) y su `requirePermission('canManageOps')` ya no bloquea con `blockIndependentPilot` — su propio dron también requiere mantenimiento mayor/menor aunque opere solo. Inventario y Planear Vuelo siguen sin cambios.
 
 ### Piloto dentro de Organización (role=`piloto`)
 

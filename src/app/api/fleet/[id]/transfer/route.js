@@ -74,7 +74,7 @@ export async function POST(request, { params }) {
     // Obtener nombre de la org destino para el mensaje
     const { data: targetOrg } = await supabaseAdmin
       .from('organizations')
-      .select('name')
+      .select('company_name')
       .eq('id', targetOrgId)
       .maybeSingle();
 
@@ -111,7 +111,7 @@ export async function POST(request, { params }) {
 
     return NextResponse.json({
       success: true,
-      message: `Aeronave transferida a ${targetOrg?.name || 'la organización destino'} correctamente. Las horas de vuelo (${aircraft.model}) y el historial de mantenimiento fueron transferidos. Los registros de bitácora quedan en tu historial privado.`,
+      message: `Aeronave transferida a ${targetOrg?.company_name || 'la organización destino'} correctamente. Las horas de vuelo (${aircraft.model}) y el historial de mantenimiento fueron transferidos. Los registros de bitácora quedan en tu historial privado.`,
     });
   } catch (err) {
     console.error('[fleet/transfer]', err.message);

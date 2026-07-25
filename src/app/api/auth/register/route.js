@@ -138,7 +138,6 @@ export async function POST(request) {
                     invitation_status: 'accepted',
                     is_active:         true,
                     phone:             phone || undefined,
-                    city:              city  || undefined,
                 }).eq('id', existingPilot.id).catch(() => {});
             } else {
                 await supabaseAdmin.from('pilots').insert([{
@@ -148,7 +147,6 @@ export async function POST(request) {
                     name:            `${firstName} ${lastName}`.trim(),
                     email,
                     phone:           phone || null,
-                    city:            city  || null,
                     pilot_role:      'Piloto',
                     is_active:       true,
                 }]).catch(() => {});
@@ -381,7 +379,6 @@ export async function POST(request) {
                 name:            `${firstName} ${lastName}`.trim(),
                 email:           email,
                 phone:           phone || null,
-                city:            city  || null,
                 pilot_role:      'Piloto',
                 is_active:       true,
             }]);

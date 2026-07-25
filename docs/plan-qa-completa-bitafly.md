@@ -401,15 +401,29 @@ archivo — el bug histórico de logo en blanco (2026-07-04) se corrigió a
 nivel de código (`fetchLogoDataUrl()`), no se re-verificó pixel por
 pixel en esta pasada.
 
-### 6b — Documentación y SMS
+### 6b — Documentación y SMS ✅ (2026-07-25)
 
-- [ ] Publicación de Manuales, Confirmación de Lectura de Manuales,
-      Indicadores SPI (Excel), Seguimiento de Indicadores, Autoevaluación
-      GAP, Mejora Continua (histórico GAP), Plan de Capacitación SMS,
-      Cronograma Capacitación SMS, Acciones Correctivas del SMS, Listado
-      de Reportes MOR y VOR, Auditoría de Proveedores
-- [ ] Para cada uno: generar el PDF/Excel real (no solo abrir el panel),
-      confirmar que descarga sin error de consola
+Los 11 formatos restantes generados y descargados con éxito, sin bugs
+nuevos: Publicación de Manuales, Confirmación de Lectura de Manuales
+(snapshot, sin selector de periodo), Indicadores SPI (Excel), Seguimiento
+de Indicadores, Autoevaluación GAP del SMS, Mejora Continua (histórico
+GAP), Plan de Capacitación SMS (asistencia), Cronograma Capacitación SMS,
+Acciones Correctivas del SMS, Listado de Reportes MOR y VOR, Auditoría de
+Proveedores (alcance "todos los proveedores", selector vacío por
+defecto). Todos los paneles inline con sus campos por defecto (Este mes /
+snapshot según el formato), sin errores de consola nuevos atribuibles a
+la página de Reportes — el listado de consola se mantuvo idéntico antes
+y después de las 11 descargas (mismo ruido residual preexistente de
+extensión del navegador en pestañas previas).
+
+Con esto, la **Fase 6 completa** (6a + 6b, los 21 formatos de
+`/dashboard/reports`) queda sin bugs nuevos encontrados.
+
+**Misma limitación documentada en 6a**: no fue posible abrir/inspeccionar
+visualmente el contenido de cada PDF/Excel descargado dentro de este
+entorno de automatización — la verificación se basó en ausencia de error
+de consola + el botón volviendo a su estado normal tras generar
+(confirma que jsPDF/ExcelJS terminó sin excepción client-side).
 
 ---
 
@@ -530,11 +544,11 @@ anteriores) investigados y descartados antes de reportarlos. Quedaron
 datos de prueba adicionales en la org QA: 1 misión, 1 existencia de
 equipo, 1 registro de Mantenimiento Menor, 1 barrera de seguridad, 1
 peligro/hazard, 6 indicadores SPI de ejemplo, 1 autoevaluación GAP
-parcial. Fase 6a (Operación y Tripulación, 10 formatos) completa sin
-bugs nuevos — todos los reportes de esta sub-fase se generaron y
+parcial. Fase 6 completa (6a + 6b, los 21 formatos de
+`/dashboard/reports`) sin bugs nuevos — todos se generaron y
 descargaron sin error de consola; limitación documentada: no fue
 posible inspeccionar visualmente el contenido de cada PDF/Excel dentro
 de este entorno de automatización. Esperando indicación del usuario
-sobre con qué fase continuar — recomendado: **Fase 6b** (Documentación
-y SMS, los ~11 formatos restantes), completa la Fase 6 antes de seguir
+sobre con qué fase continuar — recomendado: **Fase 7** (Protocolos +
+Proveedores + Capacitación + Manuales), siguiendo el orden natural
 con el resto del plan.

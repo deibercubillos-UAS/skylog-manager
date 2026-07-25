@@ -106,6 +106,12 @@ export async function POST(request) {
                 full_name:        `${firstName} ${lastName}`.trim(),
                 role,
                 organization_id:  targetOrgId,
+                // Un perfil recién creado nunca tuvo una org activa antes —
+                // sin esto, private.user_org_id() (usada por casi todas las
+                // políticas RLS) devuelve null y cualquier lectura protegida
+                // por RLS (ej. organizations, para el nombre en el header)
+                // falla en silencio hasta que el usuario use el switcher.
+                active_organization_id: targetOrgId,
                 phone:            phone || null,
                 city:             city  || null,
                 subscription_plan: 'piloto',
@@ -273,6 +279,8 @@ export async function POST(request) {
             full_name: `${firstName} ${lastName}`,
             role: normalizedRole,           // ← siempre el rol validado, nunca el del body
             organization_id: targetOrgId,
+            // Ver comentario equivalente en el flujo joinMode más arriba.
+            active_organization_id: targetOrgId,
             phone,
             city,
             subscription_plan: 'piloto',

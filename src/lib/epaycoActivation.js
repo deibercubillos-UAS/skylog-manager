@@ -152,6 +152,11 @@ export async function createAccountFromPendingRegistration(supabase, email, paym
     full_name:               `${firstName} ${lastName}`.trim(),
     role:                    normalizedRole,
     organization_id:         targetOrgId,
+    // Un perfil recién creado nunca tuvo una org activa antes — sin esto,
+    // private.user_org_id() (usada por casi todas las políticas RLS)
+    // devuelve null y cualquier lectura protegida por RLS falla en
+    // silencio. Ver el mismo fix en api/auth/register/route.js.
+    active_organization_id:  targetOrgId,
     phone:                   phone || null,
     city:                    city  || null,
     subscription_plan:       planKey,

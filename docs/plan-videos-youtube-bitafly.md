@@ -44,14 +44,15 @@ justifique.
       (guion listo, ver subsección abajo)
 - [~] 0.2 — ¿BitaFly es para mí? Piloto independiente vs. empresa/operadora (RAC 100)
       (guion listo, ver subsección abajo)
-- [ ] 0.3 — Cómo crear tu cuenta: registro paso a paso (piloto independiente)
-- [ ] 0.4 — Cómo crear tu cuenta: registro de una organización/empresa
-- [ ] 0.5 — Unirse a una organización existente con el NIT (tripulante nuevo)
-- [ ] 0.6 — Recorrido general del panel: menú lateral, notificaciones, búsqueda, tu perfil
-- [ ] 0.7 — Planes y precios: qué incluye cada plan y cómo elegir el correcto
-- [ ] 0.8 — Periodo de prueba y cómo activar tu suscripción (pago con ePayco)
-- [ ] 0.9 — Multi-organización: cómo pertenecer a varias empresas y cambiar entre ellas
-- [ ] 0.10 — Configurar tu organización: logo, datos de la empresa, registro AeroCivil
+- [~] 0.3 — Cómo crear tu cuenta: registro paso a paso — piloto independiente y
+      organización/empresa, en un solo video (fusiona los 0.3/0.4 originales a pedido del
+      usuario; guion listo, ver subsección abajo)
+- [ ] 0.4 — Unirse a una organización existente con el NIT (tripulante nuevo)
+- [ ] 0.5 — Recorrido general del panel: menú lateral, notificaciones, búsqueda, tu perfil
+- [ ] 0.6 — Planes y precios: qué incluye cada plan y cómo elegir el correcto
+- [ ] 0.7 — Periodo de prueba y cómo activar tu suscripción (pago con ePayco)
+- [ ] 0.8 — Multi-organización: cómo pertenecer a varias empresas y cambiar entre ellas
+- [ ] 0.9 — Configurar tu organización: logo, datos de la empresa, registro AeroCivil
 
 ### Guion — 0.1 · ¿Qué es BitaFly?
 
@@ -293,6 +294,112 @@ Notas de producción:
   retranscribir desde el video final.
 ===================================
 ```
+
+### Guion — 0.3 · Cómo crear tu cuenta (piloto independiente + empresa)
+
+**Formato**: tutorial guiado en pantalla — grabación real del flujo `/registro`, sin
+necesidad de b-roll de dron. **Duración objetivo**: ~4 min (~500-550 palabras). **Tono**:
+profesional, cercano, directo — es un tutorial práctico, no un video de venta. **CTA**:
+mínimo.
+
+```
+===================================
+GUION — VIDEO 0.3
+===================================
+Título: Cómo crear tu cuenta en BitaFly — piloto independiente y empresa, paso a paso
+Duración estimada: ~4 minutos (~530 palabras)
+Formato: tutorial 100% en pantalla (grabación real del flujo de registro)
+===================================
+
+[GANCHO — 0:00-0:12]
+[Visual: pantalla, dashboard vacío/limpio de fondo]
+
+"Ya viste qué te ofrece cada plan. Ahora te muestro exactamente cómo crear tu cuenta — en
+minutos, sin complicaciones — sea que vueles por tu cuenta o que estés armando tu
+operación como empresa."
+
+[INTRO — 0:12-0:25]
+[Visual: pantalla, bitafly.com/registro]
+
+"Vamos a hacerlo juntos, paso a paso. Empezamos por el registro más simple, el de piloto
+independiente, y después seguimos con el de una empresa."
+
+[CONTENIDO PRINCIPAL — 0:25-3:30]
+
+[Bloque 1: Registro piloto independiente — 0:25-1:40]
+[Visual: pantalla, grabación real del flujo /registro con la opción de piloto
+independiente — datos básicos, confirmación, llegada al dashboard]
+
+"Si vas a volar por tu cuenta, entra a bitafly.com y elige la opción para pilotos
+independientes. Te va a pedir tus datos básicos — nombre, correo y una contraseña — nada
+más.
+
+Al confirmar, entras directo a tu panel. No necesitas tarjeta: tienes quince días de
+prueba gratis del plan Piloto para usar la plataforma completa — tu bitácora, tu flota, tu
+mantenimiento — desde el primer minuto.
+
+Y ya está. Esa es toda la creación de cuenta para un piloto independiente."
+
+[Bloque 2: Registro de una empresa/operadora — 1:40-3:10]
+[Visual: pantalla, grabación real del flujo /registro con la opción de empresa/operadora
+— selección de plan, datos de la organización, confirmación de pago, llegada al panel
+como administrador]
+
+"Si tu operación es de varias personas, el registro tiene un paso más: eliges el plan que
+se ajuste al tamaño de tu operación — Escuadrilla, Flota o Enterprise — y completas los
+datos de tu empresa: NIT, razón social, y quién va a ser el administrador de la cuenta,
+normalmente el Gerente General.
+
+Confirmas el pago de forma segura con ePayco, y tu organización queda creada. Entras
+directo a tu panel como administrador — listo para configurar tu flota, tu tripulación, y
+empezar a invitar al resto de tu equipo."
+
+[Bloque 3: Qué sigue — 3:10-3:30]
+[Visual: pantalla, ambos dashboards uno al lado del otro brevemente]
+
+"Y eso es todo — los dos registros toman apenas unos minutos. En el próximo video te
+muestro cómo invitar a tu tripulación, y qué ve cada uno la primera vez que entra."
+
+[CONCLUSIÓN — 3:30-3:45]
+[Visual: pantalla, vuelve al dashboard general]
+
+"Ya tienes tu cuenta lista, sea cual sea tu caso. Lo que sigue es empezar a construir tu
+operación dentro de la plataforma."
+
+[CIERRE / CTA MÍNIMO — 3:45-3:55]
+
+"Sígueme en la serie — seguimos armando tu operación paso a paso. Nos vemos en el
+siguiente video."
+
+===================================
+[FIN DEL GUION]
+
+Conteo de palabras: ~530
+Duración estimada: ~4 minutos
+Audiencia: operadores UAS en Colombia que ya decidieron qué plan quieren (vienen del video
+0.2) y necesitan ver el registro real, paso a paso, antes de intentarlo ellos mismos
+Tono: profesional, directo, práctico — sin relleno, es un tutorial de acción, no de
+orientación conceptual como los dos anteriores.
+===================================
+```
+
+Notas de producción:
+- **Formato distinto a 0.1/0.2**: este video es 100% grabación de pantalla real del flujo
+  `/registro` — no reutiliza ni necesita b-roll de dron/piloto/roles. La única pieza nueva
+  a producir es la grabación de pantalla en sí, no un prompt de video.
+- **Cuenta de prueba necesaria para grabar**: ambos flujos (piloto independiente y
+  empresa) deben grabarse con datos ficticios/desechables — nunca con el NIT o datos
+  reales de un cliente. El flujo de empresa además requiere completar un pago real de
+  prueba en ePayco (aunque sea el monto mínimo) para poder mostrar la confirmación real —
+  no se puede fingir esa pantalla. Mismo tipo de cuenta desechable que se necesitaría para
+  las pruebas de QA de la plataforma (ver conversación de auditoría del mismo día) — si se
+  resuelve el acceso para una, sirve para la otra.
+- Evitar mostrar datos reales de una organización/cliente en pantalla — misma regla que
+  los videos 0.1 y 0.2.
+- **Subtítulos**: este guion es la fuente única para generarlos — el texto de cada bloque
+  ya viene con sus marcas de tiempo aproximadas, así que se puede derivar el archivo de
+  subtítulos (.srt/.vtt) directamente de aquí una vez esté el video montado, sin
+  retranscribir desde el video final.
 
 ---
 

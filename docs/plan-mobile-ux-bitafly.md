@@ -225,13 +225,30 @@ Capacitación son campos únicos (sin nada con qué desalinearse) o chips de acc
 
 ---
 
-## Fase 4 — Cuenta y organización
+## Fase 4 — Cuenta y organización ✅ hecha (2026-07-25)
 
-- [ ] `dashboard/settings/page.js` (Organización — hero + Inicio Rápido + 2 columnas)
-- [ ] `dashboard/settings/profile/page.js` (Mi Perfil)
-- [ ] `dashboard/subscription/page.js` + `/manage` + `/response`
-- [ ] `dashboard/select-plan/page.js`
-- [ ] `dashboard/users/page.js`
+El hallazgo más significativo de todo el plan hasta ahora: **Mi Perfil** tenía 4 pares
+de campos (Nombres/Apellidos, Teléfono/Ciudad, Licencia/Vencimiento certificado médico,
+Contacto de emergencia) en `grid-cols-2` sin ningún breakpoint — justo el problema de
+"campos apretados en celular" que motivó este plan, en una de las páginas que más
+visita cualquier usuario desde el teléfono. **Organización** tenía el mismo patrón en 4
+lugares más (tipo de identificación/NIT, teléfono/representante legal, N.º
+Explotador/N.º operador UAS, fechas de una póliza) — mismo fix. También se corrigió el
+grid de 3 columnas de "Inicio Rápido" (ya detectado como candidato en la Fase 0, sin
+resolver entonces): con texto descriptivo largo dentro de cada paso, 3 columnas en
+móvil quedaban demasiado angostas. Todo corregido a `grid-cols-1 sm:grid-cols-2` (o
+`sm:grid-cols-3`). Las tablas de pólizas, historial de facturación, comparativa de
+planes y usuarios ya tenían su patrón de scroll horizontal o tarjetas móviles — sin
+cambios ahí.
+
+- [x] `dashboard/settings/page.js` (Organización — hero + Inicio Rápido + 2 columnas) —
+      4 pares de campos + el grid de 3 pasos corregidos.
+- [x] `dashboard/settings/profile/page.js` (Mi Perfil) — 4 pares de campos corregidos.
+- [x] `dashboard/subscription/page.js` + `/manage` + `/response` — sin hallazgos, ya
+      bien resuelto.
+- [x] `dashboard/select-plan/page.js` — sin hallazgos, tabla comparativa ya con scroll.
+- [x] `dashboard/users/page.js` (`UsersClient.js`) — sin hallazgos, ya con tarjetas
+      móviles + tabla de escritorio.
 
 ---
 

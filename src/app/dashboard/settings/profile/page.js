@@ -277,7 +277,7 @@ useEffect(() => {
                 <div className="space-y-6">
                     <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-7 space-y-4">
                         <p className="text-[11px] font-black uppercase tracking-wide text-orange-600 border-b border-slate-100 pb-3">Datos personales</p>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <label className={labelCls}>Nombres</label>
                                 <input required className={inputCls} value={profile.first_name || ''} onChange={e => setProfile({...profile, first_name: e.target.value})} />
@@ -287,7 +287,7 @@ useEffect(() => {
                                 <input required className={inputCls} value={profile.last_name || ''} onChange={e => setProfile({...profile, last_name: e.target.value})} />
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <label className={labelCls}>Teléfono</label>
                                 <input className={inputCls} value={profile.phone || ''} onChange={e => setProfile({...profile, phone: e.target.value})} />
@@ -305,7 +305,7 @@ useEffect(() => {
 
                     <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-7 space-y-4">
                         <p className="text-[11px] font-black uppercase tracking-wide text-orange-600 border-b border-slate-100 pb-3">Licencia RPAS</p>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <label className={labelCls}>N.º de licencia / CIPU</label>
                                 <input className={inputCls + ' uppercase'} placeholder="CO-CIPU-XXXX" value={profile.license_number || ''} onChange={e => setProfile({...profile, license_number: e.target.value})} />
@@ -333,7 +333,7 @@ useEffect(() => {
 
                     <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-7 space-y-4">
                         <p className="text-[11px] font-black uppercase tracking-wide text-orange-600 border-b border-slate-100 pb-3">Contacto de emergencia</p>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <label className={labelCls}>Nombre completo</label>
                                 <input className={inputCls} value={profile.emergency_contact_name || ''} onChange={e => setProfile({...profile, emergency_contact_name: e.target.value})} />

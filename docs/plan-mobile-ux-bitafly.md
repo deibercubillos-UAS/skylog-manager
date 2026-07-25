@@ -115,13 +115,24 @@ ejecuta, verifica y fusiona por separado.
       la navegación real — si en algún momento se quiere retomarlas o borrarlas, es una
       decisión aparte, no de esta auditoría.
 
-### Fase 1b — Programación y planeación
+### Fase 1b — Programación y planeación ✅ hecha (2026-07-25, sin cambios de código)
 
-- [ ] `dashboard/authorizations/page.js` (Programación — calendario + `MissionFormPanel`)
-- [ ] `dashboard/programacion-activa/page.js` (`ProgramacionActivaClient.js`)
-- [ ] `dashboard/mis-vuelos/page.js`
-- [ ] `dashboard/weather/page.js` (+ `WeatherWidget.js`)
-- [ ] `dashboard/plan-vuelo/page.js` (`FlightPlanner.js` — mapa + formulario)
+Revisada a fondo — a diferencia de la Fase 1a, no se encontró nada real que corregir.
+El calendario semanal (`ProgramacionActivaClient.js`, usado por Programación,
+Programación Activa y Mis Vuelos) ya colapsa correctamente de grilla 7 columnas a lista
+apilada de 1 columna en móvil (`grid-cols-1 sm:grid-cols-7`), con el mismo patrón
+tarjetas-móvil/tabla-escritorio ya visto en Bitácora. Los selectores de 3 botones (tipo
+de zona en `BasicForm.js`/`FlightPlanner.js`, línea de vista) son compactos pero
+legibles — no se tocan, no son "campos demasiado grandes". `MissionFormPanel.js` ya
+sigue el mismo patrón de hoja deslizable completa establecido en la Fase 0. Los grids de
+`weather/page.js` ya tienen breakpoints (`grid-cols-2 md:grid-cols-3 lg:grid-cols-6`,
+`grid-cols-4 sm:grid-cols-8`).
+
+- [x] `dashboard/authorizations/page.js` (Programación — calendario + `MissionFormPanel`)
+- [x] `dashboard/programacion-activa/page.js` (`ProgramacionActivaClient.js`)
+- [x] `dashboard/mis-vuelos/page.js`
+- [x] `dashboard/weather/page.js` (+ `WeatherWidget.js`)
+- [x] `dashboard/plan-vuelo/page.js` (`FlightPlanner.js` — mapa + formulario)
 
 ---
 

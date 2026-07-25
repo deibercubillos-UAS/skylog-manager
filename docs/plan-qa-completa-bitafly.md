@@ -371,24 +371,45 @@ esta vez), sin pérdida de datos ya guardados.
 
 ## Fase 6 — Dashboard: Reportes (los ~20 formatos)
 
-División sugerida en 2 sub-fases por volumen (mismo criterio ya usado en la
-auditoría móvil — "son bastantes, divídela" si al ejecutar resulta pesado):
+División en 2 sub-fases por volumen (mismo criterio ya usado en la
+auditoría móvil):
 
-- [ ] **6a — Operación y Tripulación**: Libro de Vuelo, Reporte de
-      Mantenimiento, Registro de Baterías, Reporte de Flota, Reporte
-      Operacional UAS (Excel), Trazabilidad de Componentes, Bitácora de
-      Piloto, Expediente de Tripulante, Evaluación de Capacitación,
-      Cronograma de Capacitación
-- [ ] **6b — Documentación y SMS**: Publicación de Manuales, Confirmación
-      de Lectura de Manuales, Indicadores SPI (Excel), Seguimiento de
-      Indicadores, Autoevaluación GAP, Mejora Continua (histórico GAP),
-      Plan de Capacitación SMS, Cronograma Capacitación SMS, Acciones
-      Correctivas del SMS, Listado de Reportes MOR y VOR, Auditoría de
-      Proveedores
+### 6a — Operación y Tripulación ✅ (2026-07-25)
+
+Los 10 formatos generados y descargados con éxito, sin bugs nuevos:
+Libro de Vuelo (con selector de aeronaves múltiple), Reporte de
+Mantenimiento, Registro de Baterías (fecha de corte, sin selector de
+periodo — snapshot correcto), Reporte de Flota (sin fecha — snapshot
+correcto), Reporte Operacional UAS (Excel, mes vencido preseleccionado
+correctamente, badge "Pendiente de envío"), Trazabilidad de
+Componentes, Bitácora de Piloto (tripulante obligatorio, validado),
+Expediente de Tripulante, Evaluación de Capacitación (selector
+Operaciones/Mantenimiento), Cronograma de Capacitación. Todos los
+paneles inline, sin errores de consola atribuibles a la página de
+Reportes (solo ruido residual de extensión del navegador en pestañas
+previas, no relacionado con la app).
+
+**Limitación documentada**: no fue posible abrir/inspeccionar visualmente
+el contenido de cada PDF/Excel descargado dentro de este entorno de
+automatización (no hay lector de PDF embebido) — la verificación se
+basó en: sin error de consola, el botón vuelve a su estado normal tras
+generar (confirma que el proceso client-side de jsPDF/ExcelJS terminó
+sin excepción), y que los datos de entrada (aeronave, piloto, período)
+mostrados en el panel antes de generar eran correctos. No se pudo
+confirmar visualmente que el logo no salga en blanco dentro de cada
+archivo — el bug histórico de logo en blanco (2026-07-04) se corrigió a
+nivel de código (`fetchLogoDataUrl()`), no se re-verificó pixel por
+pixel en esta pasada.
+
+### 6b — Documentación y SMS
+
+- [ ] Publicación de Manuales, Confirmación de Lectura de Manuales,
+      Indicadores SPI (Excel), Seguimiento de Indicadores, Autoevaluación
+      GAP, Mejora Continua (histórico GAP), Plan de Capacitación SMS,
+      Cronograma Capacitación SMS, Acciones Correctivas del SMS, Listado
+      de Reportes MOR y VOR, Auditoría de Proveedores
 - [ ] Para cada uno: generar el PDF/Excel real (no solo abrir el panel),
-      confirmar que descarga sin error de consola y que el logo/datos no
-      salen en blanco (bug histórico ya documentado y corregido — verificar
-      que sigue corregido)
+      confirmar que descarga sin error de consola
 
 ---
 
@@ -509,6 +530,11 @@ anteriores) investigados y descartados antes de reportarlos. Quedaron
 datos de prueba adicionales en la org QA: 1 misión, 1 existencia de
 equipo, 1 registro de Mantenimiento Menor, 1 barrera de seguridad, 1
 peligro/hazard, 6 indicadores SPI de ejemplo, 1 autoevaluación GAP
-parcial. Esperando indicación del usuario sobre con qué fase continuar
-— recomendado: **Fase 6** (Dashboard: Reportes, los ~20 formatos),
-sigue el orden natural del plan.
+parcial. Fase 6a (Operación y Tripulación, 10 formatos) completa sin
+bugs nuevos — todos los reportes de esta sub-fase se generaron y
+descargaron sin error de consola; limitación documentada: no fue
+posible inspeccionar visualmente el contenido de cada PDF/Excel dentro
+de este entorno de automatización. Esperando indicación del usuario
+sobre con qué fase continuar — recomendado: **Fase 6b** (Documentación
+y SMS, los ~11 formatos restantes), completa la Fase 6 antes de seguir
+con el resto del plan.

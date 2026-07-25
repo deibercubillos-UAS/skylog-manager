@@ -103,7 +103,12 @@ export default function DashboardClient() {
   const nextMission = data?.nextMission;
   let nextMissionLabel = null;
   if (nextMission?.date) {
-    const d = new Date(`${nextMission.date}T00:00:00`);
+    // scheduled_at es un timestamptz — PostgREST lo serializa completo
+    // ("2026-08-01 00:00:00+00"), no una fecha suelta. Tomar solo los 10
+    // primeros caracteres (YYYY-MM-DD) antes de forzar medianoche local;
+    // concatenar T00:00:00 directo sobre el string completo producía una
+    // fecha inválida ("Invalid Date" en el hero del Dashboard).
+    const d = new Date(`${nextMission.date.slice(0, 10)}T00:00:00`);
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const dateLabel = d.getTime() === today.getTime()
       ? 'Hoy'

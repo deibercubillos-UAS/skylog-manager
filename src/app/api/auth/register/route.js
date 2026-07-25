@@ -202,9 +202,12 @@ export async function POST(request) {
                 unique_code:  uniqueCode,
                 slug:         orgSlug,
             };
-            // Guardar NIT también en tax_id si es una empresa
+            // Guardar NIT también en tax_id si es una empresa — normalizado
+            // (sin espacios/puntos/guiones) para que siempre coincida con la
+            // búsqueda de /api/auth/validate-join, join-org y
+            // join-org-additional, que normalizan igual antes de comparar.
             if (normalizedRole === 'admin' && nit) {
-                orgInsert.tax_id = nit.replace(/\s|\./g, '');
+                orgInsert.tax_id = nit.replace(/[\s\-.]/g, '');
             }
 
             const { data: org, error: orgErr } = await supabaseAdmin.from('organizations').insert([orgInsert]).select().single();

@@ -172,7 +172,14 @@ const removeAuth = (idx) => setOrg({ ...org, authorized_operations: org.authoriz
                 .from('organizations')
                 .update({
                     company_name: org.company_name,
-                    tax_id: org.tax_id,
+                    // Normalizado (sin espacios/puntos/guiones) — el registro
+                    // de una empresa nueva ya guarda el NIT así (ver
+                    // /api/auth/register); si aquí se guardara tal cual lo
+                    // escribe el usuario (ej. con el guion del NIT
+                    // "900123456-7"), "Unirme a organización" dejaría de
+                    // encontrar la empresa, porque validate-join/join-org/
+                    // join-org-additional buscan siempre normalizado.
+                    tax_id: org.tax_id ? org.tax_id.replace(/[\s\-.]/g, '').toUpperCase() : org.tax_id,
                     tax_id_type: org.tax_id_type,
                     dan_number: org.dan_number,
                     legal_rep: org.legal_rep,

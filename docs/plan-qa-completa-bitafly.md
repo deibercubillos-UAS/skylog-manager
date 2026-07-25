@@ -326,21 +326,46 @@ concluir.
 
 ---
 
-## Fase 5 — Dashboard: Seguridad SMS + SORA + Auditoría
+## Fase 5 — Dashboard: Seguridad SMS + SORA + Auditoría ✅ (2026-07-25)
 
-- [ ] Las 9 pestañas del hub de Seguridad SMS cargan sin error: SORA,
-      Evaluación de Riesgos, Indicadores (SPI), Mejora Continua, Acciones
-      Correctivas, Reportes de Seg. Operacional, Barreras de Seguridad,
-      Mapas de Restricción, Capacitación SMS
-- [ ] Evaluación de Riesgos: configurar la matriz 5×5 (semilla OACI), crear
-      un peligro/hazard
-- [ ] Indicadores (SPI): usar el botón "Cargar ejemplos de indicadores",
-      agregar un dato mensual
-- [ ] Mejora Continua: completar al menos una autoevaluación GAP parcial
-- [ ] Crear una Barrera de Seguridad nueva
-- [ ] Auditoría (`/dashboard/audit`): pestaña Cumplimiento (ya verificada
-      en Fase 0) + pestaña Registro de acciones con más eventos ya
-      generados por las fases anteriores
+- [x] Las 9 pestañas del hub cargan sin error: SORA (1 evaluación de Fase
+      0 visible), Evaluación de Riesgos, Indicadores (SPI), Mejora
+      Continua, Acciones Correctivas, Reportes de Seg. Operacional,
+      Barreras de Seguridad, Mapas de Restricción, Capacitación SMS
+- [x] Evaluación de Riesgos: matriz 5×5 OACI cargada y guardada
+      correctamente (colores de tolerabilidad correctos), 1 peligro
+      creado ("QA - Pérdida de enlace C2 en zona montañosa", 3C ·
+      Tolerable, calculado correctamente)
+- [x] Indicadores (SPI): "Cargar ejemplos de indicadores" agregó 6
+      indicadores reales del catálogo; agregado 1 dato mensual (enero,
+      150 horas / 3 eventos) — tasa /1000 calculada correctamente (20.000)
+- [x] Mejora Continua: autoevaluación GAP parcial completada (2/100
+      preguntas, 1 Sí + 1 No), cumplimiento 50%, 1 hallazgo generado
+- [x] 1 Barrera de Seguridad nueva creada (categoría Humana, con riesgo
+      asociado en texto libre)
+- [x] Acciones Correctivas: verificado que el hallazgo "No" de la
+      autoevaluación GAP aparece correctamente agregado en el tablero
+      (fuente "GAP", estado "Pendiente") — confirma la agregación desde
+      las 3 fuentes documentada
+- [x] Auditoría (`/dashboard/audit`): pestaña Cumplimiento muestra estado
+      real de flota/tripulación (docs faltantes correctos para los
+      pilotos de prueba); pestaña Registro de acciones muestra 5 eventos
+      reales generados por las fases anteriores (creación de misión y
+      pilotos), KPIs correctos (5 eventos, 1 usuario activo, 3 módulos)
+
+### Metodología — 2 falsos positivos más, mismo patrón ya documentado
+
+Tanto la Barrera de Seguridad como el indicador SPI y la autoevaluación
+GAP mostraron brevemente "sin datos" justo después de guardar (toast de
+éxito visible, pero la lista todavía vacía) — mismo artefacto de timing
+de carga ya visto en Fases 1, 2 y 4. Verificado con una recarga limpia
+en los 3 casos antes de concluir que no eran bugs reales.
+
+También se repitió varias veces el error de extensión
+"Cannot access a chrome-extension:// URL of different extension" al
+usar clics/tipeo tras un `form_input` — resuelto cada vez navegando de
+nuevo a la misma URL en la misma pestaña (no hizo falta pestaña nueva
+esta vez), sin pérdida de datos ya guardados.
 
 ---
 
@@ -468,24 +493,22 @@ viewports, buscando overflow/recorte que solo aparece con contenido real
 
 ## Próximo paso
 
-Fases 0-4 completas (2026-07-25). Fase 1 encontró y corrigió 1 bug real
+Fases 0-5 completas (2026-07-25). Fase 1 encontró y corrigió 1 bug real
 (PR #36). Fase 2 encontró y corrigió 4 bugs reales (PR #38, #39, #40,
 #41) — el más significativo (PR #41, `active_organization_id` nunca
 seteado al crear cuenta) resultó tener alcance de producción real, más
 allá del flujo puntual que se estaba probando, y ya fue reparado +
-backfillado. Fase 3 (Bitácora + Programación + Meteorología) no encontró
-bugs nuevos. Fase 4 (Flota & Equipo) tampoco encontró bugs nuevos —
-editar aeronave/batería/mantenimiento, trazabilidad de componentes,
-Mantenimiento Menor (config + diligenciar), Inventario de Operación y
-edición de expediente de Tripulación funcionaron todos correctamente; 1
-falso positivo (mismo patrón de timing de carga ya visto en fases
-anteriores) investigado y descartado antes de reportarlo. Quedaron
-datos de prueba adicionales en la org QA: 1 misión (`BIT-001-Y28`), 1
-existencia de equipo ("Chaleco de identificación"), 1 registro de
-Mantenimiento Menor. Dos sub-ítems del checklist de Fase 4 quedaron sin
-probar a propósito (dar de baja / transferir aeronave — destructivos
-sobre el único dron de la org; toggle activo/inactivo de piloto — no
-localizado en el panel de edición explorado). Esperando indicación del
-usuario sobre con qué fase continuar — recomendado: **Fase 5**
-(Dashboard: Seguridad SMS + SORA + Auditoría), sigue el orden natural
-del plan.
+backfillado. Fases 3 y 4 no encontraron bugs nuevos. Fase 5 (Seguridad
+SMS + SORA + Auditoría) tampoco encontró bugs nuevos — las 9 pestañas
+del hub, la matriz de riesgo OACI + registro de peligro, Indicadores
+SPI (ejemplos + dato mensual), autoevaluación GAP parcial, una Barrera
+de Seguridad nueva, la agregación de Acciones Correctivas desde 3
+fuentes, y las 2 pestañas de Auditoría — todo funcionó correctamente.
+2 falsos positivos más (mismo patrón de timing de carga de fases
+anteriores) investigados y descartados antes de reportarlos. Quedaron
+datos de prueba adicionales en la org QA: 1 misión, 1 existencia de
+equipo, 1 registro de Mantenimiento Menor, 1 barrera de seguridad, 1
+peligro/hazard, 6 indicadores SPI de ejemplo, 1 autoevaluación GAP
+parcial. Esperando indicación del usuario sobre con qué fase continuar
+— recomendado: **Fase 6** (Dashboard: Reportes, los ~20 formatos),
+sigue el orden natural del plan.

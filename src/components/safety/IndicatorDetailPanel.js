@@ -209,7 +209,8 @@ export default function IndicatorDetailPanel({ indicator, onClose, onSuccess }) 
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-          <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[480px]">
             <thead>
               <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-400 tracking-widest">
                 <th className="px-3 py-2">Mes</th><th className="px-3 py-2">Denominador</th><th className="px-3 py-2">Eventos</th><th className="px-3 py-2">Tasa /1000</th>
@@ -232,6 +233,7 @@ export default function IndicatorDetailPanel({ indicator, onClose, onSuccess }) 
               ))}
             </tbody>
           </table>
+          </div>
           <div className="p-3 border-t border-slate-100 flex justify-end">
             <button type="button" onClick={saveMonths} disabled={saving}
               className="flex items-center gap-1.5 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wide disabled:opacity-50">

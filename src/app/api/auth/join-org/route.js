@@ -148,9 +148,13 @@ export async function POST(request) {
     }
 
     // ── Actualizar perfil del usuario ─────────────────────────────────────────
+    // active_organization_id también se actualiza: la org origen queda
+    // marcada "[Migrada]" más abajo, así que dejar la org activa apuntando
+    // ahí rompería private.user_org_id() (y por tanto toda política RLS)
+    // para este usuario hasta que usara el switcher manualmente.
     const { error: profileError } = await admin
       .from('profiles')
-      .update({ organization_id: targetOrg.id, role })
+      .update({ organization_id: targetOrg.id, active_organization_id: targetOrg.id, role })
       .eq('id', user.id);
 
     if (profileError) throw profileError;

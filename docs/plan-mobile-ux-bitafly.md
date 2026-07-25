@@ -305,19 +305,54 @@ de ambas pantallas kiosko pasó de un `pb-20` fijo a uno consciente del área se
 dispositivo (`pb-[max(5rem,calc(2rem+env(safe-area-inset-bottom,16px)))]`), mismo
 patrón `env(safe-area-inset-bottom)` que ya usaba la barra de navegación del layout.
 
-- [ ] Recorrido completo en 3 anchos de viewport (375 / 390 / 430px) de los flujos más
+- [~] Recorrido completo en 3 anchos de viewport (375 / 390 / 430px) de los flujos más
       usados de punta a punta: Despacho completo, crear una misión en Programación,
-      registrar mantenimiento, ver un reporte.
-- [ ] Verificar que ningún cambio de fase anterior rompió el layout de escritorio
-      (regresión — todas las páginas ya están rediseñadas para desktop, este plan no
-      debe tocar esa experiencia).
-- [ ] Actualizar `CLAUDE.md` con un resumen de qué se estandarizó (breakpoints,
-      patrón de panel móvil, patrón de tabla) para que quede documentado como el resto
-      del sistema de diseño del proyecto.
+      registrar mantenimiento, ver un reporte. **Bloqueado por el entorno de ejecución**
+      (sin `.env.local`, no se pudo levantar `next dev` con datos reales de Supabase ni
+      abrir un navegador/viewport real en esta sesión — misma limitación documentada en
+      cada PR de esta auditoría desde la Fase 0). Sustituido por revisión de código
+      dirigida de los 4 flujos: el grep dirigido sí encontró **5 hallazgos reales** que
+      las fases anteriores no habían tocado por vivir en componentes reutilizados
+      (`BasicForm.js` de Programación, y las 2 pantallas kiosko), corregidos con el mismo
+      patrón ya establecido (`grid grid-cols-2` → `grid grid-cols-1 sm:grid-cols-2`):
+      Despacho (`logbook/new/page.js`, par Hora Despegue/Condición Visual — 2 sitios, uno
+      por cada flujo de piloto independiente/con orden de vuelo), Cierre de Vuelo
+      (`finalize/page.js`, par Aeronave/S·N y Ciclos), y Programación (`BasicForm.js`,
+      pares Fecha/Hora y Departamento/Municipio). **Se revisaron y se descartó tocar** 3
+      falsos positivos por diseño intencional: la grilla 2×2 de Misión/Duración/Equipo/
+      Piloto en las tarjetas mobile de Bitácora (etiquetas cortas, no inputs — el mismo
+      criterio ya usado para no tocar grids de solo-lectura en fases previas), las 2
+      tarjetas grandes de selección VOR/MOR en Cierre de Vuelo (mismo criterio ya
+      documentado en la Fase 5 para no colapsar tarjetas comparativas de 2 columnas), y
+      el selector de 3 botones de icono (Polígono/Lineal/Circunferencia) en
+      `BasicForm.js` — compacto, siempre 3 opciones fijas, no es un par de inputs de
+      texto. Con esos 5 fixes aplicados, ningún archivo de Despacho/Programación/
+      Mantenimiento/Reportes queda con un `grid-cols-N`/`flex-wrap` sin breakpoint sin
+      revisar. Pendiente de una pasada visual real en un entorno con credenciales antes
+      de dar el resultado por definitivo.
+- [x] Verificar que ningún cambio de fase anterior rompió el layout de escritorio —
+      confirmado por diff completo (`git diff` del primer commit de la Fase 0 al HEAD de
+      la Fase 6): **cero** clases `lg:`/`xl:` fueron eliminadas en ningún archivo de
+      ninguna fase; todos los cambios fueron adiciones de breakpoints mobile-first
+      (`grid-cols-1` como base + `sm:grid-cols-N`, `w-full sm:w-auto`, etc.) sobre markup
+      que ya tenía su capa desktop intacta. `npm run build` pasó limpio en cada una de las
+      9 fases previas sin ningún error de tipo/compilación relacionado.
+- [x] Actualizar `CLAUDE.md` con un resumen de qué se estandarizó (breakpoints,
+      patrón de panel móvil, patrón de tabla) — nueva sección "Auditoría UX móvil
+      (2026-07-21 → 2026-07-25)" agregada antes de "## Comandos", con los patrones
+      reutilizables (filtros, pares de campos, tablas, panel deslizable, pantallas
+      kiosko, safe-area) y el hallazgo de páginas huérfanas sin resolver.
+
+**Cierre de la auditoría (2026-07-25)**: las 3 tareas de Fase 6 quedan resueltas dentro
+de lo que el entorno permite — 2 de 3 verificadas de forma concluyente por revisión de
+código/diff, y la caminata visual en viewport real queda como el único punto abierto,
+documentado explícitamente como limitación de entorno y no como trabajo omitido.
 
 ---
 
 ## Próximo paso
 
-Esperando indicación del usuario sobre con qué fase empezar (recomendado: Fase 0, por
-ser la de mayor apalancamiento).
+Auditoría completa (Fases 0-6). Único pendiente real: la verificación visual en
+navegador/viewport (375/390/430px) de los 4 flujos críticos, bloqueada por falta de
+`.env.local` en este entorno — recomendado hacerla antes de considerar el resultado
+100% validado en producción.

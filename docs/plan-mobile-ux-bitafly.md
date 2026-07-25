@@ -204,13 +204,24 @@ hallazgos.
 - [x] `dashboard/settings/forms/page.js` (Protocolos — `FormSettingsClient.js`, 4 grupos)
       — sin hallazgos, ya bien resuelto.
 
-### Fase 3c — Proveedores, Capacitación, Manuales, SMS/VOR-MOR
+### Fase 3c — Proveedores, Capacitación, Manuales, SMS/VOR-MOR ✅ hecha (2026-07-25)
 
-- [ ] `dashboard/suppliers/page.js` (`SuppliersClient.js`)
-- [ ] `dashboard/training/page.js` (3 pestañas) + `dashboard/training/exam/page.js`
-- [ ] `dashboard/manuales/page.js`
-- [ ] `dashboard/sms/page.js`, `dashboard/vor-mor/page.js` (2 pestañas)
-- [ ] `dashboard/manual-operaciones/page.js`
+Hallazgo real, distinto a los anteriores: el panel de gestión de un reporte VOR/MOR
+(`dashboard/vor-mor/page.js`) tenía **3 `<select>` en `grid-cols-3` sin ningún
+breakpoint** (Estado / Severidad / Asignado a) — a diferencia de los `flex-wrap`
+dispares de fases anteriores, este forzaba 3 columnas angostas incluso en celular.
+Corregido a `grid-cols-1 sm:grid-cols-3`. Las 3 tablas de `TrainingClient.js` ya tenían
+`overflow-x-auto`; el resto de selects encontrados en Proveedores/Manuales/SMS/
+Capacitación son campos únicos (sin nada con qué desalinearse) o chips de acción con
+`flex-wrap` correcto — sin más cambios.
+
+- [x] `dashboard/suppliers/page.js` (`SuppliersClient.js`) — sin hallazgos.
+- [x] `dashboard/training/page.js` (3 pestañas) + `dashboard/training/exam/page.js` —
+      tablas ya con scroll horizontal, sin hallazgos.
+- [x] `dashboard/manuales/page.js` — sin hallazgos.
+- [x] `dashboard/sms/page.js`, `dashboard/vor-mor/page.js` (2 pestañas) — panel de
+      gestión VOR/MOR corregido (3 selects sin breakpoint → responsivo).
+- [x] `dashboard/manual-operaciones/page.js` — sin hallazgos.
 
 ---
 

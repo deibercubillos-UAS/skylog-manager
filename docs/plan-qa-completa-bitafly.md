@@ -468,18 +468,48 @@ todo el recorrido.
 
 ---
 
-## Fase 8 — Organización, Suscripción, Gestión de Usuarios, Perfil
+## Fase 8 — Organización, Suscripción, Gestión de Usuarios, Perfil ✅ (2026-07-25)
 
-- [ ] Organización: completar Registro AeroCivil (N° operador, vigencia,
-      autorizaciones), subir el logo (PDF/imagen), Onboarding Express
-      (descargar plantilla .xlsx, no hace falta subir una llena)
-- [ ] Suscripción: verificar medidores de uso reales tras los datos creados
-      en fases anteriores, historial de facturación vacío correcto
-- [ ] Gestión de Usuarios: cambiar el rol de uno de los pilotos de prueba
-      (ej. `qa.piloto` → Jefe de Pilotos temporalmente) y confirmar que el
-      cambio se refleja al volver a iniciar sesión con esa cuenta
-- [ ] Mi Perfil: completar Licencia RPAS + Documentos del Piloto (subir los
-      4 PDF/JPG), confirmar la notificación
+Sin bugs nuevos encontrados en las 4 secciones:
+
+- **Organización**: se completó el Registro AeroCivil (N° explotador, N°
+  operador UAS, vigencia a 1 año, chip de autorización "VLOS") — el
+  header pasó a mostrar el badge "Registro AeroCivil Vigente · 24 de jul
+  de 2027 · 365d" tras guardar. Se subió el logo corporativo (PNG de
+  prueba) — toast "Logo actualizado", avatar reflejado de inmediato. Se
+  descargó la plantilla .xlsx de Onboarding Express sin error.
+- **Suscripción**: medidores de uso reflejan datos reales acumulados en
+  fases anteriores (Aeronaves 1/10, Pilotos 3/10, Vuelos este mes 1/
+  ilimitado, plan Flota $159.000/mes) — historial de facturación en
+  estado vacío correcto ("Aún no hay pagos registrados").
+- **Gestión de Usuarios**: se cambió el rol de QA AuditFix (Piloto →
+  Jefe de Pilotos) desde la cuenta GG — modal de confirmación mostrado
+  antes de aplicar. Se cerró sesión y se inició sesión como
+  `qa.auditfix@bitafly-test.local`: el header reflejó correctamente
+  "JEFE DE PILOTOS" de inmediato tras el login, sin necesidad de refresh
+  adicional. Se confirmó además que el sistema permite más de un
+  miembro con rol Jefe de Pilotos simultáneamente (no hay unicidad
+  forzada para ese rol, a diferencia de Gerente General) — comportamiento
+  no documentado explícitamente pero consistente con las reglas
+  mostradas en pantalla ("No se puede degradar al último Gerente
+  General" es la única restricción de unicidad listada). Se revirtió el
+  rol a Piloto al finalizar la prueba.
+- **Mi Perfil** (cuenta QA Gerente General): se completó Licencia RPAS
+  (N° CIPU, vencimiento de certificado médico) y Contacto de Emergencia
+  — guardado confirmado ("Expediente guardado exitosamente"), badge
+  "Certificado médico Vigente" reflejado en el hero. Se subieron los 4
+  documentos de "Documentos del Piloto" (Cédula, Diploma UAS, Examen
+  Teórico Aerocivil, Certificado Médico) — aparecieron de inmediato en
+  "Archivos cargados", y el botón "Guardar Documentos" mostró el estado
+  "Guardando y notificando...". Confirmado en vivo: al iniciar sesión
+  como QA AuditFix (Jefe de Pilotos), la campana de notificaciones
+  mostró "QA Gerente General actualizó su expediente. Revisa sus
+  documentos en la sección Tripulación." — coincide exactamente con lo
+  documentado en **Notificaciones** (expediente actualizado → GG+JP+
+  GSMS).
+
+Sin errores de consola nuevos atribuibles a ninguna de las 4 páginas en
+todo el recorrido (mismo ruido residual de extensión ya documentado).
 
 ---
 
@@ -587,6 +617,18 @@ confirmado como no-bug tras recargar. Quedaron datos de prueba
 adicionales en la org QA: 1 protocolo libre, 1 punto de verificación en
 Salud del piloto, 1 proveedor con 1 auditoría, 1 sesión de cronograma
 de Capacitación Operaciones, 1 examen interno con 1 pregunta, manual QA
-en v2.0. Esperando indicación del usuario sobre con qué fase continuar
-— recomendado: **Fase 8** (Organización, Suscripción, Gestión de
-Usuarios, Perfil), siguiendo el orden natural del plan.
+en v2.0. Fase 8 (Organización, Suscripción, Gestión de Usuarios, Perfil)
+completa sin bugs nuevos — Registro AeroCivil completado con badge de
+vigencia reflejado en el header, logo corporativo subido, plantilla de
+Onboarding Express descargada; medidores de Suscripción reales y
+correctos tras los datos de fases anteriores; cambio de rol en Gestión
+de Usuarios verificado con un login real de la cuenta afectada (el
+rol nuevo se reflejó de inmediato); Mi Perfil completado (Licencia RPAS
++ Contacto de Emergencia + 4 documentos) con la notificación de
+"expediente actualizado" confirmada en vivo en la campana de otra
+cuenta (Jefe de Pilotos). Quedaron datos de prueba adicionales en la
+org QA: Registro AeroCivil completo + logo en la organización, Licencia
+RPAS + contacto de emergencia + 4 documentos en el perfil de QA
+Gerente General. Esperando indicación del usuario sobre con qué fase
+continuar — recomendado: **Fase 9** (Roles no-GG a fondo), siguiendo
+el orden natural del plan.

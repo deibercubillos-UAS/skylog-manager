@@ -242,7 +242,8 @@ export default function MapasRestriccionPage() {
               Límites de altura — RAC 100
             </h3>
             <div className="overflow-hidden border border-slate-200 rounded-2xl">
-              <table className="w-full text-xs">
+              <div className="overflow-x-auto">
+              <table className="w-full text-xs min-w-[420px]">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="px-4 py-3 text-left font-black uppercase tracking-wide text-slate-500">Categoría</th>
@@ -266,6 +267,7 @@ export default function MapasRestriccionPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </section>
 

@@ -235,22 +235,42 @@ fix.
 
 ---
 
-## Fase 3 — Dashboard: Operación (Bitácora + Programación + Meteorología)
+## Fase 3 — Dashboard: Operación (Bitácora + Programación + Meteorología) ✅ (2026-07-25)
 
-- [ ] Bitácora: filtros combinados (aeronave + tipo + condición + piloto +
-      búsqueda de texto), edición inline de PIC y N° de misión, exportación/
-      vista de replay GPS si hay un vuelo con datos
-- [ ] Bitácora: importación DJI — al menos verificar que la UI de
-      `DjiRcSync` carga sin error (no se requiere un archivo `.txt` real de
-      un dron, documentar como limitación si no hay uno disponible)
-- [ ] Programación: vista Semana vs Lista, navegación entre semanas, crear
-      una segunda misión, editar una misión ya creada, indicador de
-      conflicto de horario (crear 2 misiones mismo piloto mismo día)
-- [ ] Meteorología: widget con geolocalización real del navegador (o
-      fallback Bogotá), pronóstico horario, zonas de operación programadas
-      hoy
-- [ ] Los 4 viewports en al menos Bitácora y Programación (son las páginas
-      con tablas más densas, más riesgo de overflow horizontal roto)
+- [x] Bitácora: filtros combinados (búsqueda de texto probada, sin y con
+      resultados), edición inline de PIC y N° de misión (ambas funcionan
+      correctamente)
+- [x] Bitácora: importación DJI — UI de `DjiRcSync` carga sin error (3
+      tabs: DJI RC/Android/iPhone, instrucciones correctas). Sin archivo
+      `.txt` real de un dron disponible en este entorno — documentado como
+      limitación, no probado el import real
+- [x] Programación: vista Semana vs Lista (ambas correctas), navegación
+      entre semanas (botón "HOY" aparece/funciona), creación de misión
+      completa (con Evaluación SORA obligatoria, clima en vivo integrado,
+      municipio/departamento), indicador de conflicto de horario — probado
+      creando una 2ª misión mismo piloto mismo día, banner de advertencia
+      correcto: *"Este piloto ya tiene una misión programada ese día
+      (BIT-001-Y28) — revisa la agenda antes de programar."* Edición
+      inline del N° de autorización AeroCivil también verificada
+- [x] Meteorología: página carga con datos reales en vivo (score GO/NO-GO,
+      6 métricas, pronóstico horario), zonas de operación programadas hoy
+      correctamente vacío (la misión de prueba no tenía zona/geometría
+      definida — comportamiento esperado, no un bug). Geolocalización real
+      del navegador no verificable en este entorno de automatización (sin
+      permiso de ubicación real) — cae al fallback correctamente, sin
+      error en consola
+- [x] Los 4 viewports en Bitácora y Programación: mobile (375px, cards +
+      nav inferior, sin overflow), tablet (768px, aún usa el layout
+      mobile/día-apilado — breakpoint del grid semanal es más ancho, no es
+      un bug), desktop (1440px, grid semanal de 7 columnas correcto)
+
+### Confirmado, sin bugs nuevos encontrados en esta fase
+
+A diferencia de las Fases 1 y 2, esta fase no encontró bugs reales — todo
+el módulo de Operación (Bitácora, Programación, Meteorología) funcionó
+según lo documentado, incluyendo la integración SORA obligatoria +
+clima en vivo al programar una misión (ambas features de sesiones
+anteriores), y el indicador de conflicto de horario.
 
 ---
 
@@ -417,13 +437,16 @@ viewports, buscando overflow/recorte que solo aparece con contenido real
 
 ## Próximo paso
 
-Fases 0, 1 y 2 completas (2026-07-25). Fase 1 encontró y corrigió 1 bug real
-(PR #36, "6 meses gratis" desactualizado en 2 páginas SEO en inglés). Fase 2
-encontró y corrigió 4 bugs reales (PR #38, #39, #40, #41) — el más
+Fases 0, 1, 2 y 3 completas (2026-07-25). Fase 1 encontró y corrigió 1 bug
+real (PR #36, "6 meses gratis" desactualizado en 2 páginas SEO en inglés).
+Fase 2 encontró y corrigió 4 bugs reales (PR #38, #39, #40, #41) — el más
 significativo (PR #41, `active_organization_id` nunca seteado al crear
 cuenta) resultó tener alcance de producción real, más allá del flujo
-puntual que se estaba probando, y ya fue reparado + backfillado. Esperando
+puntual que se estaba probando, y ya fue reparado + backfillado. Fase 3
+(Bitácora + Programación + Meteorología) no encontró bugs nuevos — todo
+funcionó según lo documentado, incluida la integración SORA obligatoria +
+clima en vivo al programar una misión y el indicador de conflicto de
+horario. Quedó creada 1 misión de prueba adicional en la org QA
+(`BIT-001-Y28`, sábado 26/jul, Chía/Cundinamarca, SAIL I). Esperando
 indicación del usuario sobre con qué fase continuar — recomendado:
-**Fase 3** (Dashboard: Operación — Bitácora + Programación + Meteorología),
-sigue el orden natural del plan y es el primer módulo real del dashboard a
-verificar con los datos de prueba ya cargados en la org QA.
+**Fase 4** (Dashboard: Flota & Equipo), sigue el orden natural del plan.

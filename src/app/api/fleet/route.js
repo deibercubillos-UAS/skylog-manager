@@ -22,7 +22,7 @@ export async function GET() {
     if (error) throw error;
 
     const res = NextResponse.json(data || []);
-    res.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=120');
+    res.headers.set('Cache-Control', 'no-store');
     return res;
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });

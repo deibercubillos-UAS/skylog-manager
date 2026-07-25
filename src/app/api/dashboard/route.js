@@ -140,7 +140,12 @@ export async function GET() {
             recentActivity: recentFlightsRes.data || [],
             nextMission,
         });
-        response.headers.set('Cache-Control', 'private, max-age=120, stale-while-revalidate=300');
+        // Sin cache HTTP: esta respuesta depende de la sesión (cookie), y `Cache-Control:
+        // private` por sí solo no evita que el propio navegador reutilice la respuesta
+        // cacheada de un usuario anterior si otra cuenta inicia sesión en el mismo
+        // navegador dentro de la ventana de max-age (sin un header Vary por cookie de
+        // sesión, el fetch() del cliente puede servir datos operativos de otra cuenta).
+        response.headers.set('Cache-Control', 'no-store');
         return response;
 
     } catch (err) {

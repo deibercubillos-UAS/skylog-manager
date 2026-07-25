@@ -427,17 +427,44 @@ de consola + el botón volviendo a su estado normal tras generar
 
 ---
 
-## Fase 7 — Dashboard: Protocolos + Proveedores + Capacitación + Manuales
+## Fase 7 — Dashboard: Protocolos + Proveedores + Capacitación + Manuales ✅ (2026-07-25)
 
-- [ ] Protocolos: los 4 grupos (Prevuelo, Reportes, Seguridad Operacional,
-      Mantenimiento), editar un checklist fijo (ej. Salud), crear un
-      protocolo libre nuevo en "Seguridad Operacional"
-- [ ] Proveedores: crear un proveedor, configurar el checklist de
-      auditoría, realizar una auditoría completa, generar el PDF individual
-- [ ] Capacitación: las 3 pestañas (Operaciones, Mantenimiento, Capacitación
-      SMS), configurar un examen interno, agregar una pregunta
-- [ ] Manuales: publicar una segunda versión del manual ya creado en Fase 0,
-      confirmar que el acuse de lectura se resetea, generar el Acta PDF
+Sin bugs nuevos encontrados en las 4 secciones:
+
+- **Protocolos**: confirmados los 4 grupos (Prevuelo, Reportes, Seguridad
+  Operacional, Mantenimiento). Se editó el checklist fijo "Salud del
+  piloto" (agregado 1 punto de verificación, guardado correcto —
+  "1/30 campos" reflejado en la tarjeta). Se creó un protocolo libre
+  nuevo ("QA Protocolo Emergencia RTH") en el grupo "Seguridad
+  Operacional" (antes vacío) — quedó agrupado correctamente.
+- **Proveedores**: sin proveedores previos en la org QA. Se configuró el
+  checklist de auditoría (2 criterios: Documentación / Calidad), se creó
+  un proveedor ("QA Repuestos y Servicios SAS") y se realizó una
+  auditoría completa (ambos criterios "Cumple", 100% de cumplimiento) —
+  se generó el PDF individual desde el historial de auditorías del
+  proveedor. Mismo falso positivo de timing ya documentado en fases
+  anteriores: el toast confirmó "Auditoría registrada" pero el panel
+  seguía mostrando "sin auditorías" hasta recargar la página — al
+  recargar, los KPIs (Auditorías este año: 1, Cumplimiento: 100%) y la
+  tarjeta del proveedor reflejaron el dato correctamente. No es un bug
+  de guardado, es el mismo patrón de refresco en caliente ya investigado
+  y descartado varias veces en este plan.
+- **Capacitación**: confirmadas las 3 pestañas (Operaciones,
+  Mantenimiento, Capacitación SMS). Se agregó una sesión al cronograma
+  de Operaciones, se guardó la configuración del examen interno
+  (nota mínima 80%, 3 intentos, mensual) y se agregó 1 pregunta de
+  opción múltiple con sus 4 opciones — guardado confirmado ("Banco de
+  preguntas guardado").
+- **Manuales**: se confirmó lectura de la v1.0 ya creada en Fase 0
+  (badge Pendiente → Leído), se revisó el panel de Seguimiento (roster
+  de 7 miembros de la org, 1/7 leído) y se generó el Acta PDF sin error.
+  Se publicó una v2.0 (subiendo un PDF de prueba) — confirmado el
+  comportamiento documentado: el acuse de lectura se resetea por
+  versión, el badge volvió a "Pendiente" para el mismo usuario que ya
+  había leído la v1.0.
+
+Sin errores de consola nuevos atribuibles a ninguna de las 4 páginas en
+todo el recorrido.
 
 ---
 
@@ -548,7 +575,18 @@ parcial. Fase 6 completa (6a + 6b, los 21 formatos de
 `/dashboard/reports`) sin bugs nuevos — todos se generaron y
 descargaron sin error de consola; limitación documentada: no fue
 posible inspeccionar visualmente el contenido de cada PDF/Excel dentro
-de este entorno de automatización. Esperando indicación del usuario
-sobre con qué fase continuar — recomendado: **Fase 7** (Protocolos +
-Proveedores + Capacitación + Manuales), siguiendo el orden natural
-con el resto del plan.
+de este entorno de automatización. Fase 7 (Protocolos + Proveedores +
+Capacitación + Manuales) completa sin bugs nuevos — se creó 1 protocolo
+libre nuevo, se editó 1 checklist fijo, se creó 1 proveedor con su
+checklist de auditoría y 1 auditoría completa (100%), se configuró 1
+examen interno con 1 pregunta, y se publicó una v2.0 del manual QA
+confirmando que el acuse de lectura se resetea correctamente por
+versión. Un falso positivo más de timing de carga (mismo patrón ya
+descartado varias veces) en el panel de Proveedores, investigado y
+confirmado como no-bug tras recargar. Quedaron datos de prueba
+adicionales en la org QA: 1 protocolo libre, 1 punto de verificación en
+Salud del piloto, 1 proveedor con 1 auditoría, 1 sesión de cronograma
+de Capacitación Operaciones, 1 examen interno con 1 pregunta, manual QA
+en v2.0. Esperando indicación del usuario sobre con qué fase continuar
+— recomendado: **Fase 8** (Organización, Suscripción, Gestión de
+Usuarios, Perfil), siguiendo el orden natural del plan.

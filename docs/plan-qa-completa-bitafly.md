@@ -656,14 +656,46 @@ encontrados:
 
 ---
 
-## Fase 12 — Performance y fluidez
+## Fase 12 — Performance y fluidez ✅ (2026-07-26) — 1 bug real encontrado y corregido
 
-- [ ] Tiempos de carga percibidos (no Lighthouse formal, pero sí
+- [x] Tiempos de carga percibidos (no Lighthouse formal, pero sí
       `read_network_requests` para detectar llamadas lentas/duplicadas) en
       Dashboard, Bitácora, Reportes
-- [ ] Confirmar que no hay llamadas repetidas innecesarias a la misma API
+- [x] Confirmar que no hay llamadas repetidas innecesarias a la misma API
       (ej. polling excesivo, refetch en cada render)
-- [ ] Revisar si algún módulo tarda notoriamente más que el resto al cargar
+- [x] Revisar si algún módulo tarda notoriamente más que el resto al cargar
+
+**Bug real encontrado y corregido — query muerta que fallaba (503) en cada
+carga del dashboard (PR #55)**: inspeccionando `read_network_requests` en
+`/dashboard` y `/dashboard/logbook` se encontró que `dashboard/layout.js`
+(envuelve **todas** las rutas del dashboard) ejecutaba en cada navegación
+un `HEAD` `count:'exact'` sobre `aircraft` filtrado por `organization_id`
+— el mismo patrón que `CLAUDE.md` ya documenta como no confiable ("Regla
+de conteo"). En la org QA esa consulta devolvía **503 de forma
+consistente**, y su resultado (`aircraftCount`) **nunca se leía en
+ningún otro lugar del archivo** — el dato real que consume
+`OnboardingBanner` viene de una fuente distinta
+(`DashboardClient.js#data.stats.fleetCount`). Se eliminó la query y el
+estado muerto. Verificado en vivo tras el deploy: `read_network_requests`
+ya no muestra ninguna petición a `aircraft` en `/dashboard`, sin ningún
+cambio visible para el usuario (el contador "Aeronaves activas 1/1" del
+panel sigue viniendo de otra fuente y se ve idéntico).
+
+**Sin más hallazgos**: el resto de llamadas de red en Dashboard, Bitácora,
+Programación y Reportes son las esperadas para cada página (perfil, org,
+plan efectivo, vuelo activo, membresías) — un aparente "doble llamado" a
+`organization_members` (plan del admin) visto en una captura resultó ser
+acumulación del buffer de red entre dos navegaciones sucesivas sin
+limpiar (`clear`), no una llamada real duplicada por el código; una
+segunda captura limpia por página confirmó una sola llamada por
+navegación client-side. El único doble-llamado real detectado —
+`getOrgPlan()` ejecutándose tanto en `dashboard/layout.js` como en
+`DashboardClient.js` al aterrizar exactamente en `/dashboard` por primera
+vez — es menor (una sola vez por sesión, no por cada render/navegación) y
+se documenta pero no se corrige en esta pasada. Ningún módulo mostró
+tiempos de carga notoriamente más lentos que el resto; el polling ya
+documentado (campana de notificaciones cada 45s) es el único
+intencional.
 
 ---
 
@@ -761,6 +793,15 @@ con todos los datos reales acumulados de las Fases 3-10 en 3 viewports
 (375px, 820px, 1920px) — ningún desbordamiento a nivel de página en
 ninguno de los 4 módulos, todo el contenido ancho (tablas, tira de 8
 tabs de Seguridad SMS, calendario semanal) queda contenido en su propio
-scroll horizontal cuando corresponde, sin recortar datos reales.
-Esperando indicación del usuario sobre con qué fase continuar —
-recomendado: **Fase 12** (performance y fluidez).
+scroll horizontal cuando corresponde, sin recortar datos reales. Fase 12
+(performance y fluidez) completa con **1 bug real corregido** (PR #55):
+`dashboard/layout.js` ejecutaba en cada carga de cualquier página del
+dashboard una query muerta (`HEAD count:'exact'` sobre `aircraft`) que
+devolvía 503 de forma consistente en producción y cuyo resultado nunca
+se usaba en ningún lado — eliminada, verificada en vivo tras el deploy
+(la petición ya no aparece en `read_network_requests` y el contador de
+flota del panel se ve idéntico, viene de otra fuente). Sin más hallazgos
+de performance — un aparente doble-llamado a `organization_members` en
+una captura resultó ser acumulación del buffer de red entre navegaciones
+sin limpiar, no un bug real. Esperando indicación del usuario sobre con
+qué fase continuar — recomendado: **Fase 13** (cierre).

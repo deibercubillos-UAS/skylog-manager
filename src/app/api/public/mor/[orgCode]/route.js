@@ -59,7 +59,10 @@ export async function POST(request, { params }) {
         const org = await resolveOrg(orgCode);
         if (!org) return NextResponse.json({ error: 'Organización no encontrada' }, { status: 404 });
 
-        const { data: def } = await supabaseAdmin
+        // Ver nota equivalente en el POST de /api/public/vor/[orgCode]: si la
+        // org nunca visitó el editor de formato, se crea la definición por
+        // defecto de forma perezosa en vez de bloquear el envío.
+        let { data: def } = await supabaseAdmin
             .from('vor_mor_definitions')
             .select('id')
             .eq('organization_id', org.id)
@@ -67,7 +70,20 @@ export async function POST(request, { params }) {
             .eq('is_active', true)
             .maybeSingle();
 
-        if (!def) return NextResponse.json({ error: 'Formulario MOR no disponible para esta organización' }, { status: 404 });
+        if (!def) {
+            const { data: created, error: createErr } = await supabaseAdmin
+                .from('vor_mor_definitions')
+                .insert([{
+                    organization_id: org.id,
+                    type: 'MOR',
+                    title: 'Reporte Obligatorio de Ocurrencia (MOR)',
+                    is_active: true,
+                }])
+                .select('id')
+                .single();
+            if (createErr) throw createErr;
+            def = created;
+        }
 
         const body = await request.json();
         const {

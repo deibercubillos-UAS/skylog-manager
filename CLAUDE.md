@@ -3828,6 +3828,55 @@ confiar ciegamente en que el resultado se ve exactamente como se espera.
 
 ---
 
+## Auditoría funcional QA completa (2026-07-25 → 2026-07-26)
+
+Auditoría end-to-end de toda la plataforma, en vivo contra producción (`bitafly.com`) vía
+`claude-in-chrome`, ejecutada en 13 fases (0 a 13 — landing, autenticación, cada módulo del
+dashboard por rol GG, roles no-GG a fondo, Panel Master + Panel Socio, pasada responsive
+cruzada, performance de red, cierre). Plan de control completo, fase por fase, con qué se
+probó y qué se descartó como falso positivo en cada una: `docs/plan-qa-completa-bitafly.md`
+(se conserva como referencia, no se borra — mismo criterio que `plan-mobile-ux-bitafly.md`).
+
+Metodología: una organización y ~7 cuentas de prueba dedicadas (`BitaFly QA - Organización de
+Prueba`, emails `@bitafly-test.local`, un socio "QA Escuela de Prueba") — **acciones reales**
+en cada módulo (crear, editar, despachar, cerrar vuelo, generar PDF/Excel, aceptar invitación,
+cambiar rol), no solo navegación. Confirmado con el usuario al cerrar: estos datos de prueba
+**se dejan** en producción como fixture reutilizable para rondas futuras.
+
+**12 bugs reales encontrados y corregidos** (tabla completa con severidad en la Fase 13 de
+`plan-qa-completa-bitafly.md`) — los 4 de mayor alcance, con impacto confirmado más allá de la
+org de prueba:
+
+- **PR #51** (el más grave): `POST /api/public/vor|mor/[orgCode]` devolvía 404 para cualquier
+  envío porque exigía una fila en `vor_mor_definitions` que solo se crea si un admin visita el
+  editor de formato — de las 17 organizaciones reales, **ninguna** tenía esa fila. El envío de
+  reportes VOR/MOR estaba roto para el 100% de los clientes reales. Corregido creando la
+  definición por defecto de forma perezosa si no existe, + backfill en producción.
+- **PR #50**: `sms_reports.owner_id` con FK a `auth.users` en vez de `profiles` — bloqueaba el
+  seguimiento de casos SMS (`/dashboard/safety/case`) para **cualquier** reporte SMS de
+  cualquier organización.
+- **PR #41**: `profiles.active_organization_id` nunca se seteaba en los flujos de creación/
+  migración de cuenta — confirmado que ya afectaba a 2 cuentas reales de producción, no solo a
+  las de prueba de esta sesión.
+- **PR #39**: editar el NIT de una organización con el formato estándar (con guion) rompía
+  "Unirse a organización" para cualquiera que intentara unirse después, por una normalización
+  inconsistente entre el guardado y la búsqueda.
+
+Los demás 8 bugs (PR #31-#38, #40, #55) son de menor alcance — desde una fuga de datos entre
+sesiones por `Cache-Control` sin `Vary` (#31, crítica pero contenida) hasta una query muerta
+que fallaba en silencio en cada carga del dashboard (#55). Ver la tabla completa en el plan
+para severidad y fase de cada una.
+
+**Todas las demás fases (3, 4, 5, 6, 7, 8, 10, 11) completaron su recorrido sin bugs nuevos**
+— solo falsos positivos de timing de carga (toast de éxito con la lista aún vacía hasta
+recargar), investigados y descartados caso por caso en cada fase, nunca tratados como bug sin
+antes reproducir con una recarga limpia. **Limitación documentada**: 2 de las 7 tabs de
+`/admin/master` (Comisiones, App Releases) quedaron sin revisar en la Fase 10 — decisión
+explícita del usuario tras un reemplazo de sesión de superadmin en el navegador (mismo storage
+de Supabase Auth compartido entre pestañas del mismo origen, no un bug de la app).
+
+---
+
 ## Comandos
 
 ```bash

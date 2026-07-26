@@ -62,8 +62,14 @@ export async function POST(request, { params }) {
         const org = await resolveOrg(orgCode);
         if (!org) return NextResponse.json({ error: 'Organización no encontrada' }, { status: 404 });
 
-        // Obtener definición activa
-        const { data: def } = await supabaseAdmin
+        // Obtener definición activa — si la org nunca visitó el editor de
+        // formato (caso real: ninguna organización lo hace hasta que le
+        // interesa personalizarlo), no existe ninguna fila todavía. El
+        // formulario público ya se renderiza con los campos base por
+        // defecto en ese caso (ver GET), así que el envío tampoco debe
+        // bloquearse — se crea la definición por defecto de forma perezosa,
+        // igual que si un admin hubiera guardado la "plantilla básica".
+        let { data: def } = await supabaseAdmin
             .from('vor_mor_definitions')
             .select('id')
             .eq('organization_id', org.id)
@@ -71,7 +77,20 @@ export async function POST(request, { params }) {
             .eq('is_active', true)
             .maybeSingle();
 
-        if (!def) return NextResponse.json({ error: 'Formulario VOR no disponible para esta organización' }, { status: 404 });
+        if (!def) {
+            const { data: created, error: createErr } = await supabaseAdmin
+                .from('vor_mor_definitions')
+                .insert([{
+                    organization_id: org.id,
+                    type: 'VOR',
+                    title: 'Reporte Voluntario de Ocurrencia (VOR)',
+                    is_active: true,
+                }])
+                .select('id')
+                .single();
+            if (createErr) throw createErr;
+            def = created;
+        }
 
         const body = await request.json();
         const {

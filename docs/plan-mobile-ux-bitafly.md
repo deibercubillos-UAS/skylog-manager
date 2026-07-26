@@ -356,3 +356,67 @@ Auditoría completa (Fases 0-6). Único pendiente real: la verificación visual 
 navegador/viewport (375/390/430px) de los 4 flujos críticos, bloqueada por falta de
 `.env.local` en este entorno — recomendado hacerla antes de considerar el resultado
 100% validado en producción.
+
+---
+
+## Verificación visual real en vivo + evaluación del APK (2026-07-26)
+
+El pendiente de arriba ya no aplica: con la org y cuentas de prueba del plan de QA
+completo (`docs/plan-qa-completa-bitafly.md`) disponibles, se hizo la caminata visual
+real contra `bitafly.com` vía `claude-in-chrome` en mobile (375-390px). La Fase 11 del
+plan de QA ya cubrió Bitácora/Programación/Reportes/Seguridad SMS con datos reales; esta
+pasada adicional (a pedido explícito del usuario, "evalúa el frontend en mobile,
+incluyendo el APK") cubrió el resto de la superficie no revisada todavía en mobile con
+datos reales: Dashboard (inicio), Flota, Baterías, Mantenimiento, Tripulación,
+Protocolos, Proveedores, Capacitación, Manuales, Auditoría, Organización, Suscripción,
+Gestión de Usuarios, Mi Perfil, Meteorología, Inventario de Operación, el formulario
+público VOR, y el arranque del wizard de Despacho (kiosko). **Cero bugs visuales
+nuevos** — confirma en vivo que los patrones ya estandarizados en las Fases 0-6
+(filtros `grid-cols-2`, pares de campos con breakpoint, tablas con scroll horizontal
+propio, panel deslizable, pantallas kiosko con `isFullScreenFlow`) se sostienen con
+contenido real denso, no solo en teoría de código.
+
+### APK / capa nativa Android — revisión estática (sin emulador/dispositivo disponible)
+
+La app corre en modo "remote URL" (el WebView de Capacitor carga `bitafly.com`), así
+que el contenido visual del APK es el mismo ya evaluado arriba — no hay una "versión
+mobile-web" y una "versión APK" distintas del front. Sin `adb` ni emulador en este
+entorno, la evaluación de la capa nativa fue una revisión de código dirigida (agente),
+no una ejecución real del APK.
+
+**Bug real encontrado y corregido (fuera de `src/`, no requiere deploy web) — PR #58**:
+`android/app/src/main/res/values/colors.xml` **nunca existió en el repositorio**
+(confirmado por `git log` — jamás se agregó, tampoco está en `.gitignore`), pese a que
+`android/app/src/main/res/values/styles.xml` referencia `@color/colorPrimary`,
+`@color/colorPrimaryDark` y `@color/colorAccent`. Un checkout limpio de este repo no
+puede compilar el APK — fallaría el linking de recursos de `aapt2` ("resource not
+found"). Es el archivo estándar que trae cualquier proyecto Capacitor Android por
+defecto; probablemente se omitió por accidente del `git add` original en algún punto
+anterior a esta sesión. Restaurado con los colores de marca ya documentados en
+`CLAUDE.md` (navy `#1A202C` / naranja `#ec5b13`). De paso, `android/gradlew` no tenía
+el bit ejecutable en el repo (`100644` → `100755`) — un checkout fresco en macOS/Linux
+fallaría con "permission denied" al invocar `./gradlew` directamente. **Sin verificar
+con un build real de Gradle** (sin JDK/Android SDK en este entorno) — PR abierto sin
+mergear, a la espera de que el usuario confirme con un build real antes de integrarlo.
+
+**Hallazgo documentado, sin acción tomada (decisión del usuario)**: el
+`AndroidManifest.xml` solicita el permiso `MANAGE_EXTERNAL_STORAGE` ("acceso a todos
+los archivos") para el escaneo de logs DJI — un permiso de alta fricción en Play
+Console (exige declaración especial + video de justificación, y suele ser
+rechazado/retirado para apps que no giran en torno a gestión de archivos). Dado que la
+importación DJI documentada en `CLAUDE.md` es un escaneo acotado a una carpeta
+(`FlightRecord`), Scoped Storage/SAF (`ACTION_OPEN_DOCUMENT_TREE`) probablemente
+alcanzaría sin este permiso tan amplio — pero es una decisión de producto/riesgo de
+publicación, no un bug de código, y la app hoy se distribuye sideloaded (no en Play
+Store) según la documentación de OTA existente, así que puede no ser un problema actual.
+
+**Sin más hallazgos**: el contrato entre `AppUpdatePlugin.java` (nativo) y
+`lib/appUpdate.js`/`AppUpdateBanner.js` (JS) coincide exactamente (nombre de evento
+`downloadProgress`, forma del payload, comparación de `versionCode` correcta vía
+`getLongVersionCode()` en API 28+ con fallback al `versionCode` legado). `minSdk`/
+`targetSdk`/`compileSdk` en `variables.gradle` están vigentes, sin dependencias
+sospechosamente desactualizadas. `capacitor.config.ts` (Android e iOS) coincide con lo
+documentado (`server.url: bitafly.com`, `androidScheme: https`, `cleartext: false`).
+`ios/` es un scaffold nuevo sin código Swift propio y sin ningún script de
+`package.json` que lo referencie — no se profundizó más allá de confirmar que no hay
+drift de configuración, no es un target activo todavía.

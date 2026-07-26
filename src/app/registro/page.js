@@ -179,6 +179,27 @@ export default function RegisterPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPaidPlan]);
 
+  // ── Auto-login tras confirmar el pago ──────────────────────────────────────
+  // Antes, al confirmarse el pago (por polling o por el botón "Ya pagué") solo
+  // se mostraba una pantalla de éxito con un link manual a /login — el usuario
+  // tenía que volver a escribir su correo/contraseña para entrar, pese a que ya
+  // los había ingresado en el formulario de registro segundos antes. Mismo
+  // patrón de auto-login que ya usa handleRegisterFree() para el plan gratuito.
+  const enterAfterPayment = useCallback(async () => {
+    setPayStatus('entering');
+    const { error: signInErr } = await supabase.auth.signInWithPassword({
+      email: form.email, password: form.password,
+    });
+    if (signInErr) {
+      // Fallback: la cuenta sí se activó (ya lo confirmó el backend), pero el
+      // auto-login falló por algún motivo — no bloquear al usuario, solo
+      // pedirle iniciar sesión manualmente esta vez.
+      setPayStatus('completed');
+      return;
+    }
+    window.location.href = '/dashboard';
+  }, [form.email, form.password]);
+
   // ── Verificación de estado (polling) ───────────────────────────────────────
   // ⚠️ Definir ANTES del efecto que lo referencia en sus deps (evita TDZ → crash).
   const checkStatus = useCallback(async (ref) => {
@@ -194,13 +215,13 @@ export default function RegisterPage() {
           items: [{ item_id: form.selectedPlan, item_name: `BitaFly ${form.selectedPlan}` }],
           ...attributionParams(),
         });
-        setPayStatus('completed');
+        enterAfterPayment();
       } else if (data.status === 'expired' || data.status === 'not_found') {
         if (pollRef.current) clearInterval(pollRef.current);
         setPayStatus('expired');
       }
     } catch { /* silencioso */ }
-  }, [form.selectedPlan, PLANS]);
+  }, [form.selectedPlan, PLANS, enterAfterPayment]);
 
   const startPolling = useCallback((ref) => {
     if (pollRef.current) clearInterval(pollRef.current);
@@ -228,7 +249,7 @@ export default function RegisterPage() {
         body: JSON.stringify({ ref: pendingRef }),
       });
       const data = await res.json();
-      if (data.status === 'completed') setPayStatus('completed');
+      if (data.status === 'completed') await enterAfterPayment();
       else if (data.status === 'expired') setPayStatus('expired');
       else {
         // Aún pendiente
@@ -268,7 +289,12 @@ export default function RegisterPage() {
       if (!res.ok) throw new Error(data.error || 'Error al iniciar el pago');
       setPendingRef(data.reference);
       setCreateStep(4);
-      window.open(data.epaycoUrl, '_blank', 'noopener');
+      // Sin 'noopener': igual que dashboard/subscription/page.js, se necesita
+      // la referencia window.opener para que la pestaña de ePayco pueda
+      // detectarse a sí misma como popup y autocerrarse al terminar (ver
+      // dashboard/subscription/response/page.js). Con 'noopener' esa pestaña
+      // no tenía forma de saberlo y se quedaba abierta sin volver a Bitafly.
+      window.open(data.epaycoUrl, '_blank');
       startPolling(data.reference);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -906,6 +932,18 @@ export default function RegisterPage() {
                     </button>
                   </div>
                 </>
+              )}
+
+              {payStatus === 'entering' && (
+                <div className="text-center space-y-5 animate-in fade-in duration-500">
+                  <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
+                    <span className="material-symbols-outlined text-4xl text-emerald-500 animate-spin">progress_activity</span>
+                  </div>
+                  <div>
+                    <h1 className="font-lexend text-3xl font-black text-navy uppercase tracking-tighter">¡Pago confirmado!</h1>
+                    <p className="text-slate-500 text-sm mt-2">Ingresando a tu cuenta...</p>
+                  </div>
+                </div>
               )}
 
               {payStatus === 'completed' && (

@@ -34,8 +34,22 @@ export default function PaymentResponsePage() {
       } catch {}
 
       if (!session) {
-        // Sin sesión: el usuario deberá verificar manualmente desde la página
-        // de suscripción después de iniciar sesión.
+        // Sin sesión: dos casos reales muy distintos comparten esta rama.
+        // 1) Suscripción existente sin sesión activa → sí necesita iniciar
+        //    sesión para activar el plan (rama original, se conserva).
+        // 2) Registro de un usuario NUEVO (registro/page.js): esta pestaña
+        //    nunca tuvo sesión porque la cuenta ni existía al abrir el pago
+        //    — la pestaña ORIGINAL ya activa la cuenta sola vía polling a
+        //    activate-pending, independiente de esta ventana. Antes esta
+        //    rama solo mostraba "inicia sesión", dejando la pestaña de pago
+        //    abierta y sin volver nunca a Bitafly. Si es un popup, solo se
+        //    autocierra — no hay nada más que hacer aquí.
+        const isPopupNoSession = !!window.opener && !window.opener.closed;
+        if (isPopupNoSession) {
+          setStatus('popup_no_session');
+          redirectTimer = setTimeout(() => window.close(), 2500);
+          return;
+        }
         setStatus('no_session');
         return;
       }
@@ -98,6 +112,26 @@ export default function PaymentResponsePage() {
     verifyAndRedirect();
     return () => clearTimeout(redirectTimer);
   }, []);
+
+  // ── Pantalla: popup de un registro nuevo, sin sesión (se autocierra) ──────
+  if (status === 'popup_no_session') {
+    return (
+      <div className="min-h-screen bg-[#f8f6f6] flex flex-col items-center justify-center p-6 text-center">
+        <div className="max-w-md w-full bg-white p-10 rounded-[3rem] shadow-2xl border border-slate-100 space-y-6">
+          <div className="size-20 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center mx-auto">
+            <span className="material-symbols-outlined text-4xl">check_circle</span>
+          </div>
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">¡Pago recibido!</h2>
+            <p className="text-slate-500 mt-3 text-sm leading-relaxed">
+              Ya puedes volver a la pestaña de Bitafly — tu cuenta se está activando sola.
+              <br /><strong>Cerrando esta ventana...</strong>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── Pantalla: sin sesión ──────────────────────────────────────────────────
   if (status === 'no_session') {

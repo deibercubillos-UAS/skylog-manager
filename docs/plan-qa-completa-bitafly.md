@@ -699,14 +699,64 @@ intencional.
 
 ---
 
-## Fase 13 — Cierre
+## Fase 13 — Cierre ✅ (2026-07-26)
 
-- [ ] Consolidar en este archivo la lista completa de bugs encontrados en
+- [x] Consolidar en este archivo la lista completa de bugs encontrados en
       todas las fases (con su número de PR)
-- [ ] Confirmar con el usuario si se eliminan los usuarios/organizaciones de
+- [x] Confirmar con el usuario si se eliminan los usuarios/organizaciones de
       prueba o se dejan
-- [ ] Actualizar `CLAUDE.md` con un resumen de esta auditoría, mismo
+- [x] Actualizar `CLAUDE.md` con un resumen de esta auditoría, mismo
       criterio ya usado para la auditoría móvil
+
+### Lista completa de bugs reales encontrados y corregidos (12 total)
+
+| # | PR | Fase | Bug | Severidad |
+|---|---|---|---|---|
+| 1 | #31 | 0 | `Cache-Control` sin `Vary` — fuga de datos entre sesiones distintas | Crítica |
+| 2 | #32 | 0 | Hueco de auditoría: creación de pilotos no dejaba registro en `audit_log` | Media |
+| 3 | #33 | 0 | Precios desactualizados mostrados en `/registro` | Media |
+| 4 | #34 | 0 | "Invalid Date" en "Próxima misión" del Dashboard | Baja |
+| 5 | #36 | 1 | 2 páginas SEO en inglés con copy de trial desactualizado ("6 meses gratis") | Baja |
+| 6 | #38 | 2 | `/update-password` mostraba el error crudo de Supabase en inglés | Baja |
+| 7 | #39 | 2 | Editar el NIT con formato guion rompía "Unirse a organización" para todos | Alta |
+| 8 | #40 | 2 | Aceptar invitación devolvía 400 pese a que la cuenta ya se había creado con éxito (sin try/catch) | Alta |
+| 9 | #41 | 2 | `active_organization_id` nunca se seteaba al crear/migrar cuenta — afectaba **2 cuentas reales de producción**, no solo pruebas | Alta |
+| 10 | #50 | 9 | `sms_reports.owner_id` con FK a `auth.users` en vez de `profiles` — bloqueaba el seguimiento de **todos** los casos SMS | Alta |
+| 11 | #51 | 9 | `POST /api/public/vor\|mor/[orgCode]` devolvía 404 para cualquier envío — roto para el **100% de las 17 organizaciones reales** | Crítica |
+| 12 | #55 | 12 | Query muerta (`HEAD count:'exact'` sobre `aircraft`) en `dashboard/layout.js`, fallaba con 503 en cada navegación del dashboard | Baja |
+
+De los 12, **4 tuvieron impacto directo confirmado en cuentas/organizaciones
+reales de producción** (no solo en la org de prueba QA): #39 (bloqueaba
+unirse a cualquier org con NIT con guion), #41 (2 cuentas reales con
+`active_organization_id` sin setear), #50 (bloqueaba seguimiento de casos
+SMS para toda organización con al menos un reporte) y #51 (el más grave —
+envío de reportes VOR/MOR roto para las 17 organizaciones reales, sin
+excepción, desde que existe la funcionalidad).
+
+Todas las demás fases (3, 4, 5, 6a, 6b, 7, 8, 10, 11) completaron su
+recorrido **sin bugs nuevos** — solo falsos positivos de timing de carga
+(ya documentados e investigados caso por caso, nunca bugs reales) y, en
+la Fase 10, una limitación explícita aceptada por el usuario (2 de 7 tabs
+de Master sin revisar).
+
+### Datos de prueba
+
+Confirmado con el usuario (`AskUserQuestion`): **se dejan** — la org
+"BitaFly QA - Organización de Prueba", las ~7 cuentas
+`@bitafly-test.local`, el socio "QA Escuela de Prueba" y todos sus datos
+asociados (vuelos, misiones, casos SMS, el reporte VOR real, el regalo
+de perfil) quedan en producción como fixture reutilizable para futuras
+rondas de QA. No representan riesgo para clientes reales: viven en una
+organización propia, claramente separada, con emails de dominio de
+prueba fácilmente identificable.
+
+### `CLAUDE.md` actualizado
+
+Se agregó una sección "Auditoría funcional QA completa" con el mismo
+criterio ya usado para la auditoría UX móvil — resumen de las 13 fases,
+la lista de bugs con PR, y qué queda documentado como limitación
+(sin verificación end-to-end en navegador real con credenciales
+distintas a las de prueba, sin revisar 2 tabs de Master).
 
 ---
 
@@ -803,5 +853,17 @@ se usaba en ningún lado — eliminada, verificada en vivo tras el deploy
 flota del panel se ve idéntico, viene de otra fuente). Sin más hallazgos
 de performance — un aparente doble-llamado a `organization_members` en
 una captura resultó ser acumulación del buffer de red entre navegaciones
-sin limpiar, no un bug real. Esperando indicación del usuario sobre con
-qué fase continuar — recomendado: **Fase 13** (cierre).
+sin limpiar, no un bug real.
+
+**Fase 13 (cierre) completa — el plan de QA completo termina aquí.**
+Consolidados los 12 bugs reales encontrados y corregidos en las 13 fases
+(ver tabla en la sección Fase 13), 4 de ellos con impacto confirmado en
+cuentas/organizaciones reales de producción más allá de la org de
+prueba (#39, #41, #50, #51 — el más grave, #51, tenía el envío de
+reportes VOR/MOR roto para el 100% de las 17 organizaciones reales).
+Confirmado con el usuario: los datos de prueba (org QA, ~7 cuentas
+`@bitafly-test.local`, el socio QA) se dejan en producción como fixture
+reutilizable. `CLAUDE.md` actualizado con el resumen de esta auditoría.
+No queda ninguna fase pendiente — si se necesita una ronda de QA futura,
+puede reutilizarse la org/cuentas de prueba existentes en vez de crear
+otras nuevas.

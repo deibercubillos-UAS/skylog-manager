@@ -7,7 +7,23 @@ const PRV_KEY = () => process.env.EPAYCO_PRIVATE_KEY;
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 // El SDK usa POST con JSON body, devuelve bearer_token
+//
+// ⚠️ Perf real confirmado (2026-07-26): antes NO había ningún cache — cada
+// llamada a headers() (osea cada GET/POST a ePayco) volvía a hacer login
+// completo. `activate-pending` termina llamando a ePayco varias veces en un
+// solo request (listSubscriptions + un getCustomer por cada suscripción activa
+// que resolver), así que sin cache eran N+1 round-trips de login serializados
+// — el usuario reportó que "confirmar el pago" tardaba mucho, esto era la
+// causa. El bearer_token de ePayco dura tiempo suficiente para reutilizarlo
+// dentro de la misma invocación serverless (y entre invocaciones si la
+// instancia sigue caliente) — se cachea en memoria con margen de 60s.
+let _tokenCache = null; // { token, expiresAt }
+
 async function getToken() {
+  if (_tokenCache && _tokenCache.expiresAt > Date.now()) {
+    return _tokenCache.token;
+  }
+
   const res = await fetch(`${BASE}/v1/auth/login`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -22,6 +38,11 @@ async function getToken() {
 
   const token = json.bearer_token || json.token;
   if (!token) throw new Error(`ePayco auth: bearer_token ausente. Resp: ${JSON.stringify(json)}`);
+
+  // El JWT de ePayco típicamente dura ~1h — se cachea 10 min para no arriesgar
+  // usar un token vencido si la instancia serverless sigue caliente por más
+  // tiempo del real (mejor renovar de más que fallar por token expirado).
+  _tokenCache = { token, expiresAt: Date.now() + 10 * 60 * 1000 };
   return token;
 }
 

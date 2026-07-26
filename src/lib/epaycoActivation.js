@@ -4,6 +4,48 @@
 // ya activó el plan, el otro simplemente reescribe los mismos valores.
 import { uniqueSlug } from '@/lib/slugify';
 import { syncOrgMembership } from '@/lib/orgMembership';
+import { listSubscriptions, resolveSubscriptionEmail } from '@/lib/epayco';
+
+const ACTIVE_SUB_STATES = ['active', '1', 'activa', 'activo', 'approved', 'aprobado'];
+
+/**
+ * Verifica con ePayco si hay una suscripción activa para el email de un
+ * pending_registration y, si la hay, crea la cuenta. Única fuente de verdad
+ * compartida entre `activate-pending` (botón manual "Ya pagué") y
+ * `register-status` (polling automático de la pantalla de espera) — antes
+ * cada ruta reimplementaba su propia lógica y solo `activate-pending` de
+ * verdad consultaba ePayco, por lo que el polling automático nunca detectaba
+ * un pago confirmado por sí solo (dependía 100% del webhook, que no siempre
+ * llega — ver nota en api/epayco/webhook).
+ *
+ * @returns {string|null} userId si se activó la cuenta, null si sigue pendiente
+ */
+export async function reconcilePendingRegistration(supabase, pending) {
+  const email = pending.email.trim().toLowerCase();
+
+  const subscriptions = await listSubscriptions();
+  const emailCache = new Map();
+
+  let activeSub = null;
+  for (const s of subscriptions) {
+    const stateRaw = String(s.status || s.state || '').toLowerCase();
+    const isActive = !stateRaw || ACTIVE_SUB_STATES.some(a => stateRaw.includes(a));
+    if (!isActive) continue;
+
+    const subEmail = await resolveSubscriptionEmail(s, emailCache);
+    if (subEmail === email) { activeSub = s; break; }
+  }
+
+  if (!activeSub) return null;
+
+  const subId = activeSub.id || activeSub.uid || activeSub._id || activeSub.subscription_id || null;
+  return createAccountFromPendingRegistration(supabase, pending.email, {
+    planKey:        pending.plan_key,
+    billing:        pending.billing,
+    subscriptionId: subId,
+    ref:            null,
+  });
+}
 
 /**
  * Resuelve planKey/billing para un usuario a partir de su intent más reciente

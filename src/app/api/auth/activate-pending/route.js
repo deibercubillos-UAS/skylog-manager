@@ -12,8 +12,7 @@
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { listSubscriptions, resolveSubscriptionEmail } from '@/lib/epayco';
-import { createAccountFromPendingRegistration } from '@/lib/epaycoActivation';
+import { reconcilePendingRegistration } from '@/lib/epaycoActivation';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 
 export const dynamic = 'force-dynamic';
@@ -53,45 +52,11 @@ export async function POST(request) {
     }
 
     // 2. Consultar ePayco para ver si hay suscripción activa para este email
-    const email = pending.email.trim().toLowerCase();
-
     try {
-      const subscriptions = await listSubscriptions();
-
-      // ⚠️ GET /recurring/v1/subscriptions/{apiKey} NUNCA trae el email del
-      // cliente directo (solo un idCustomer opaco) — bug real confirmado
-      // 2026-07-26 (ver nota en lib/epayco.js#resolveSubscriptionEmail).
-      // Comparar contra s.email/s.customer_data.email/etc. siempre fallaba en
-      // silencio, aunque la suscripción SÍ existiera y estuviera activa en
-      // ePayco. Se resuelve el email real por idCustomer, con caché en este
-      // request para no repetir la búsqueda si hay varias suscripciones.
-      const ACTIVE_STATES = ['active', '1', 'activa', 'activo', 'approved', 'aprobado'];
-      const emailCache = new Map();
-
-      let activeSub = null;
-      for (const s of subscriptions) {
-        const stateRaw = String(s.status || s.state || '').toLowerCase();
-        const isActive = !stateRaw || ACTIVE_STATES.some(a => stateRaw.includes(a));
-        if (!isActive) continue;
-
-        const subEmail = await resolveSubscriptionEmail(s, emailCache);
-        if (subEmail === email) { activeSub = s; break; }
-      }
-
-      if (activeSub) {
-        const subId = activeSub.id || activeSub.uid || activeSub._id || activeSub.subscription_id || null;
-
-        const userId = await createAccountFromPendingRegistration(supabase, pending.email, {
-          planKey:        pending.plan_key,
-          billing:        pending.billing,
-          subscriptionId: subId,
-          ref:            null,
-        });
-
-        if (userId) {
-          console.log(`[epayco] ✓ activate-pending — Cuenta creada manualmente: user=${userId} plan=${pending.plan_key}`);
-          return NextResponse.json({ status: 'completed', plan_key: pending.plan_key });
-        }
+      const userId = await reconcilePendingRegistration(supabase, pending);
+      if (userId) {
+        console.log(`[epayco] ✓ activate-pending — Cuenta creada manualmente: user=${userId} plan=${pending.plan_key}`);
+        return NextResponse.json({ status: 'completed', plan_key: pending.plan_key });
       }
     } catch (epaycoErr) {
       // No-crítico: si la API de ePayco falla, devolvemos 'pending' para que el usuario

@@ -3,9 +3,21 @@
  *
  * Polling endpoint para la pantalla de "Esperando pago".
  * Devuelve el estado de un pending_registration sin exponer datos sensibles.
+ *
+ * ⚠️ Bug real confirmado (2026-07-26): esta ruta solo LEÍA
+ * pending_registrations.completed_at — nunca lo escribía. Esa columna solo
+ * la actualiza el webhook de ePayco (que puede no llegar nunca, ver
+ * api/epayco/webhook) o activate-pending (el botón manual "Ya pagué"). Efecto
+ * real: el polling automático de la pantalla de espera JAMÁS detectaba un
+ * pago confirmado por sí solo — el usuario siempre tenía que hacer clic
+ * manualmente en "Ya pagué" para que algo verificara con ePayco de verdad.
+ * Ahora reutiliza la misma reconciliación real (reconcilePendingRegistration)
+ * que ya usa activate-pending, con el mismo rate limit generoso (60/min) que
+ * ya tenía esta ruta — pensado para el sondeo automático cada ~4-5s.
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { reconcilePendingRegistration } from '@/lib/epaycoActivation';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 
 export const dynamic = 'force-dynamic';
@@ -30,7 +42,7 @@ export async function GET(request) {
 
     const { data } = await supabase
       .from('pending_registrations')
-      .select('completed_at, expires_at, plan_key, billing')
+      .select('id, email, completed_at, expires_at, plan_key, billing')
       .eq('reference', ref)
       .maybeSingle();
 
@@ -42,6 +54,19 @@ export async function GET(request) {
 
     if (new Date(data.expires_at) < new Date()) {
       return NextResponse.json({ status: 'expired' });
+    }
+
+    // Verificación real con ePayco (no solo lectura pasiva — ver nota arriba).
+    try {
+      const userId = await reconcilePendingRegistration(supabase, data);
+      if (userId) {
+        console.log(`[epayco] ✓ register-status — Cuenta activada por polling: user=${userId} plan=${data.plan_key}`);
+        return NextResponse.json({ status: 'completed', plan_key: data.plan_key });
+      }
+    } catch (epaycoErr) {
+      // No-crítico: si ePayco falla transitoriamente, el próximo tick del
+      // polling (cada ~4-5s) lo reintenta solo.
+      console.warn('[register-status] ePayco check failed:', epaycoErr.message);
     }
 
     return NextResponse.json({ status: 'pending' });

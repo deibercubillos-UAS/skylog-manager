@@ -129,20 +129,64 @@ export async function cancelSubscription(uid) {
   });
 }
 
+// Obtiene un cliente por su id — GET /payment/v1/customer/{apiKey}/{uid}
+// (confirmado contra el SDK oficial epayco-node, `customers.get`).
+export async function getCustomer(idCustomer) {
+  const json = await epaycoGet(`/payment/v1/customer/${PUB_KEY()}/${idCustomer}`);
+  return json.data ?? json;
+}
+
+// ⚠️ Bug real confirmado (2026-07-26): la respuesta de
+// `GET /recurring/v1/subscriptions/{apiKey}` NUNCA trae el email del cliente —
+// solo un `idCustomer` opaco. Todo el código que antes intentaba leer
+// `s.email`/`s.customer_data?.email`/etc. directo de la suscripción SIEMPRE
+// fallaba en silencio (`email` quedaba vacío, ninguna comparación coincidía
+// jamás) — afectaba por igual la reconciliación de `activate-pending`, el
+// listado de Master (mostraba "—" en la columna Email para toda suscripción)
+// y `cancelSubscriptionsByEmail()` (ya documentado en CLAUDE.md como
+// "siempre retorna matched: 0"). `resolveSubscriptionEmail()` es la única
+// fuente de verdad correcta desde ahora: resuelve el email real vía
+// `getCustomer(idCustomer)`, con caché en memoria por `idCustomer` dentro de
+// una misma ejecución para no repetir la llamada si varias suscripciones
+// comparten cliente.
+export async function resolveSubscriptionEmail(sub, cache = new Map()) {
+  const direct = (
+    sub.customer_data?.email ||
+    sub.email ||
+    sub.cliente?.email ||
+    sub.subscriber?.email || ''
+  ).trim();
+  if (direct) return direct.toLowerCase();
+
+  const idCustomer = sub.idCustomer || sub._raw?.idCustomer;
+  if (!idCustomer) return '';
+
+  if (cache.has(idCustomer)) return cache.get(idCustomer);
+
+  try {
+    const customer = await getCustomer(idCustomer);
+    const email = (customer?.email || customer?.data?.email || '').trim().toLowerCase();
+    cache.set(idCustomer, email);
+    return email;
+  } catch (err) {
+    cache.set(idCustomer, '');
+    return '';
+  }
+}
+
 // Busca y cancela todas las suscripciones activas de un email.
 // Se usa como fallback cuando epayco_subscription_id no está guardado.
 export async function cancelSubscriptionsByEmail(email) {
   const all = await listSubscriptions();
   const normalEmail = email.trim().toLowerCase();
+  const emailCache = new Map();
 
-  // Los campos de email varían según la respuesta de ePayco
-  const matches = all.filter(s => {
-    const subEmail = (
-      s.customer_data?.email ||
-      s.email ||
-      s.cliente?.email ||
-      s.subscriber?.email || ''
-    ).trim().toLowerCase();
+  // Resuelve el email real de cada suscripción (ver resolveSubscriptionEmail) —
+  // antes comparaba directo contra campos que ePayco nunca envía.
+  const emails = await Promise.all(all.map(s => resolveSubscriptionEmail(s, emailCache)));
+
+  const matches = all.filter((s, i) => {
+    const subEmail = emails[i];
     const isActive = !s.status || ['active', '1', 'activa', 'activo'].includes(
       String(s.status).toLowerCase()
     );

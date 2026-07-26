@@ -12,7 +12,7 @@
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { listSubscriptions } from '@/lib/epayco';
+import { listSubscriptions, resolveSubscriptionEmail } from '@/lib/epayco';
 import { createAccountFromPendingRegistration } from '@/lib/epaycoActivation';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 
@@ -58,35 +58,25 @@ export async function POST(request) {
     try {
       const subscriptions = await listSubscriptions();
 
-      // Diagnóstico temporal (2026-07-26): un pago real ("Aceptada" en ePayco,
-      // confirmado por el usuario) nunca disparó el webhook NI apareció en
-      // listSubscriptions() para el email correspondiente — sin poder inspeccionar
-      // la respuesta cruda de ePayco desde este entorno, se loguea su forma real
-      // (sin PII: solo claves de nivel superior + total) para diagnosticar si el
-      // campo de email/estado que buscamos no coincide con lo que ePayco realmente
-      // devuelve, o si hay paginación que estamos ignorando.
-      console.log('[activate-pending] diagnóstico ePayco', JSON.stringify({
-        ref, email, count: subscriptions.length,
-        sample: subscriptions[0] ? Object.keys(subscriptions[0]) : null,
-        raw0: subscriptions[0] || null,
-      }));
-
+      // ⚠️ GET /recurring/v1/subscriptions/{apiKey} NUNCA trae el email del
+      // cliente directo (solo un idCustomer opaco) — bug real confirmado
+      // 2026-07-26 (ver nota en lib/epayco.js#resolveSubscriptionEmail).
+      // Comparar contra s.email/s.customer_data.email/etc. siempre fallaba en
+      // silencio, aunque la suscripción SÍ existiera y estuviera activa en
+      // ePayco. Se resuelve el email real por idCustomer, con caché en este
+      // request para no repetir la búsqueda si hay varias suscripciones.
       const ACTIVE_STATES = ['active', '1', 'activa', 'activo', 'approved', 'aprobado'];
+      const emailCache = new Map();
 
-      const activeSub = subscriptions.find(s => {
-        const subEmail = (
-          s.customer_data?.email  ||
-          s.email                 ||
-          s.cliente?.email        ||
-          s.subscriber?.email     ||
-          s.payer?.email          || ''
-        ).trim().toLowerCase();
-
+      let activeSub = null;
+      for (const s of subscriptions) {
         const stateRaw = String(s.status || s.state || '').toLowerCase();
         const isActive = !stateRaw || ACTIVE_STATES.some(a => stateRaw.includes(a));
+        if (!isActive) continue;
 
-        return subEmail === email && isActive;
-      });
+        const subEmail = await resolveSubscriptionEmail(s, emailCache);
+        if (subEmail === email) { activeSub = s; break; }
+      }
 
       if (activeSub) {
         const subId = activeSub.id || activeSub.uid || activeSub._id || activeSub.subscription_id || null;

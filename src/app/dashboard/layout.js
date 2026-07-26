@@ -23,7 +23,6 @@ const GrantExpiringBanner  = dynamic(() => import('@/components/GrantExpiringBan
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const [data, setData] = useState({ profile: null, org: null });
-  const [aircraftCount, setAircraftCount] = useState(null); // null = aún cargando
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeFlight, setActiveFlight] = useState(null);
@@ -125,12 +124,12 @@ export default function DashboardLayout({ children }) {
           }
         }
 
-        // Cargar organización EN PARALELO con el primer vuelo activo, count de
-        // aeronaves y el plan efectivo de la org.
+        // Cargar organización EN PARALELO con el primer vuelo activo y el
+        // plan efectivo de la org.
         // ⚠️ organizations NO tiene columna subscription_plan — seleccionarla
         // hacía fallar TODA la consulta (error 42703) y dejaba org=null
         // (nombre/NIT/logo no cargaban). El plan se deriva del perfil del admin.
-        const [orgRes, flightRes, acCountRes, orgPlan] = await Promise.all([
+        const [orgRes, flightRes, orgPlan] = await Promise.all([
           supabase
             .from('organizations')
             .select('id,company_name,unique_code,tax_id,logo_url')
@@ -144,15 +143,10 @@ export default function DashboardLayout({ children }) {
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle(),
-          supabase
-            .from('aircraft')
-            .select('id', { count: 'exact', head: true })
-            .eq('organization_id', prof.organization_id),
           getOrgPlan(supabase, prof.organization_id, prof.subscription_plan || 'piloto'),
         ]);
 
         setData({ profile: prof, org: orgRes.data, orgPlan });
-        setAircraftCount(acCountRes.count ?? 0);
         setActiveFlight(flightRes.data);
 
         // ¿El usuario es miembro de un socio (escuela/asesor) ACTIVO? → mostrar

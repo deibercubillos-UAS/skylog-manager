@@ -58,6 +58,19 @@ export async function POST(request) {
     try {
       const subscriptions = await listSubscriptions();
 
+      // Diagnóstico temporal (2026-07-26): un pago real ("Aceptada" en ePayco,
+      // confirmado por el usuario) nunca disparó el webhook NI apareció en
+      // listSubscriptions() para el email correspondiente — sin poder inspeccionar
+      // la respuesta cruda de ePayco desde este entorno, se loguea su forma real
+      // (sin PII: solo claves de nivel superior + total) para diagnosticar si el
+      // campo de email/estado que buscamos no coincide con lo que ePayco realmente
+      // devuelve, o si hay paginación que estamos ignorando.
+      console.log('[activate-pending] diagnóstico ePayco', JSON.stringify({
+        ref, email, count: subscriptions.length,
+        sample: subscriptions[0] ? Object.keys(subscriptions[0]) : null,
+        raw0: subscriptions[0] || null,
+      }));
+
       const ACTIVE_STATES = ['active', '1', 'activa', 'activo', 'approved', 'aprobado'];
 
       const activeSub = subscriptions.find(s => {

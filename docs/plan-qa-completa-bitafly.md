@@ -513,20 +513,58 @@ todo el recorrido (mismo ruido residual de extensión ya documentado).
 
 ---
 
-## Fase 9 — Roles no-GG a fondo (más allá del nav ya verificado)
+## Fase 9 — Roles no-GG a fondo (más allá del nav ya verificado) ✅ (2026-07-26)
 
 El recorrido anterior solo verificó navegación/permisos por rol. Esta fase
-hace acciones reales con cada rol:
+hizo acciones reales con cada rol — **2 bugs reales encontrados y
+corregidos**, ambos de severidad alta:
 
-- [ ] Jefe de Pilotos: despachar un vuelo real (flujo con orden de vuelo),
-      cerrar el vuelo
-- [ ] Gerente SMS: crear un reporte SMS, gestionar un caso (seguimiento con
-      acciones correctivas)
-- [ ] Piloto de organización: ver "Mis Vuelos", despachar la misión que le
-      asignaron, reportar un VOR desde su dashboard
-- [ ] Piloto Independiente: despacho simplificado completo (crear aeronave
-      propia primero si no tiene), cerrar vuelo, confirmar que su plan
-      Piloto respeta los límites (1 dron, 1 usuario)
+- [x] **Jefe de Pilotos**: se creó una misión (PIC = otro piloto de la org)
+      y se despachó/cerró como Jefe de Pilotos (flujo completo con orden de
+      vuelo, checklists de Salud/Inventario/Pre-vuelo/Briefing). Al aprobar
+      el primer intento se topó con el constraint único
+      `uq_flights_org_aircraft_date_time` (misma aeronave/fecha/hora que un
+      vuelo ya registrado en una fase anterior) — no es un bug, es la
+      protección anti-duplicados funcionando correctamente; se reintentó
+      con otra hora y el despacho + cierre se completaron sin problema
+      (BIT-306-950, 30 min).
+- [x] **Gerente SMS**: se creó un reporte SMS real desde `/dashboard/sms` —
+      al intentar abrir su "Seguimiento de caso"
+      (`/dashboard/safety/case/[id]?source=sms`) se encontró **Bug #1**:
+      la ruta devolvía 404 "Caso no encontrado" para **cualquier** reporte
+      SMS, porque el SELECT embebido `owner:owner_id(full_name)` requiere
+      una foreign key `sms_reports.owner_id -> profiles(id)` que en
+      realidad apuntaba a `auth.users(id)` (tabla sin `full_name`, fuera
+      del schema de PostgREST) — bloqueaba por completo el módulo de
+      seguimiento de casos SMS. Corregido (PR #50, FK redirigida a
+      `profiles` con `ON DELETE SET NULL`) y reverificado en vivo: el
+      caso cargó, mostró el nombre real del reportante, se agregó y
+      completó una acción correctiva, y se cerró el caso — línea de
+      tiempo completa.
+- [x] **Piloto de organización**: se creó una misión asignada a este
+      piloto para el día vigente, se confirmó que "Mis Vuelos Programados"
+      solo muestra esa misión (filtro por PIC correcto), se despachó y
+      cerró el vuelo (BIT-306-950 → renombrado tras colisión de horario,
+      30 min), y se envió un reporte VOR real desde el botón del
+      dashboard del piloto. El primer intento de envío reveló **Bug #2**,
+      más grave: `POST /api/public/vor/[orgCode]` (y el equivalente MOR)
+      devolvía 404 "Formulario no disponible para esta organización" para
+      **cualquier** envío, porque exigía una fila en `vor_mor_definitions`
+      que solo se crea si un admin visita el editor de formato y guarda
+      al menos una vez. Verificado contra producción: **de las 17
+      organizaciones reales, ninguna tenía esa fila** — el envío de
+      reportes VOR/MOR estaba roto para el 100% de los clientes reales.
+      Corregido (PR #51: ambas rutas crean la definición por defecto de
+      forma perezosa si no existe, + backfill aplicado ya en producción
+      para las 17 organizaciones) y reverificado en vivo: el reporte VOR
+      se envió con éxito, con número de referencia de confirmación.
+- [x] **Piloto Independiente**: sin aeronave propia al iniciar sesión — se
+      creó una (Mini 4 Pro, plan Piloto respetó el límite de 1 dron,
+      mostrado como "1/1" con candado de límite de plan). Se completó el
+      despacho simplificado (sin orden de vuelo, sin batería, sin paso de
+      Inventario — 4 pasos en vez de 5) y se cerró el vuelo (30 min).
+
+Con esto, **Fase 9 completa** sin quedar pendiente ningún rol.
 
 ---
 
@@ -629,6 +667,25 @@ rol nuevo se reflejó de inmediato); Mi Perfil completado (Licencia RPAS
 cuenta (Jefe de Pilotos). Quedaron datos de prueba adicionales en la
 org QA: Registro AeroCivil completo + logo en la organización, Licencia
 RPAS + contacto de emergencia + 4 documentos en el perfil de QA
-Gerente General. Esperando indicación del usuario sobre con qué fase
-continuar — recomendado: **Fase 9** (Roles no-GG a fondo), siguiendo
-el orden natural del plan.
+Gerente General. Fase 9 (Roles no-GG a fondo) completa — **2 bugs reales
+de severidad alta encontrados y corregidos**: (1) PR #50, `GET
+/api/safety/case?source=sms` devolvía 404 para cualquier reporte SMS por
+una FK mal apuntada (`sms_reports.owner_id` a `auth.users` en vez de
+`profiles`), bloqueando todo el seguimiento de casos SMS; (2) PR #51,
+`POST /api/public/vor|mor/[orgCode]` devolvía 404 para cualquier envío
+público porque exigía una fila de configuración que ninguna de las 17
+organizaciones reales había creado — el envío de reportes VOR/MOR
+regulatorios estaba roto para el 100% de los clientes en producción
+hasta este fix + backfill. Ambos verificados en vivo tras el fix:
+reporte SMS con acción correctiva + cierre de caso, y reporte VOR
+enviado con éxito con número de referencia. Los 4 roles (Jefe de
+Pilotos, Gerente SMS, Piloto de organización, Piloto Independiente)
+completaron sus flujos reales de extremo a extremo (despacho + cierre
+de vuelo, gestión de casos, reporte VOR, alta de aeronave propia con
+límite de plan verificado). Quedaron datos de prueba adicionales en la
+org QA: 2 misiones nuevas, 2 vuelos más registrados, 1 caso SMS cerrado
+con 1 acción correctiva, 1 reporte VOR real, 1 aeronave propia en la
+org del piloto independiente. Esperando indicación del usuario sobre
+con qué fase continuar — recomendado: **Fase 10** (Panel Master y Panel
+Socio), aunque requiere confirmar antes con el usuario el alcance real
+(cuenta superadmin real, datos de clientes reales).

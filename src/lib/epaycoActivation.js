@@ -178,6 +178,15 @@ export async function createAccountFromPendingRegistration(supabase, email, paym
   }
 
   // 6. Auto-crear registro de piloto
+  // ⚠️ Bug real confirmado (2026-07-26): el query builder de supabase-js v2
+  // es "thenable" pero NO implementa .catch() directo — llamarlo lanzaba
+  // sincrónicamente "e.from(...).insert(...).catch is not a function" y
+  // abortaba TODA la función antes del paso 7 (marcar pending_registration
+  // como completado), aunque el usuario/perfil ya se hubieran creado con
+  // éxito en los pasos 1-5. Efecto real observado: activate-pending seguía
+  // devolviendo "pending" al cliente pese a que la cuenta ya existía.
+  // Mismo patrón .then(() => {}, () => {}) ya usado en el resto del proyecto
+  // (ver POST /api/epayco/webhook) para ignorar errores no críticos.
   if (targetOrgId) {
     await supabase.from('pilots').insert([{
       organization_id: targetOrgId,
@@ -187,7 +196,7 @@ export async function createAccountFromPendingRegistration(supabase, email, paym
       phone:           phone || null,
       pilot_role:      'Piloto',
       is_active:       true,
-    }]).catch(() => {}); // no-crítico
+    }]).then(() => {}, () => {}); // no-crítico
   }
 
   // 7. Marcar pending_registration como completado

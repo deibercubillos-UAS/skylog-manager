@@ -612,7 +612,7 @@ de punta a punta sin tocar datos de socios reales.
 
 ---
 
-## Fase 11 — Pasada responsive final cruzada
+## Fase 11 — Pasada responsive final cruzada ✅ (2026-07-25)
 
 Con todos los módulos ya funcionalmente probados en Fases 3-9, esta fase es
 puramente visual: recorrer los módulos con más densidad de datos (ahora que
@@ -620,10 +620,39 @@ tienen datos reales de las fases anteriores, no estados vacíos) en los 4
 viewports, buscando overflow/recorte que solo aparece con contenido real
 (tablas anchas, chips largos, nombres largos).
 
-- [ ] Bitácora, Programación, Reportes, Seguridad SMS — con datos reales
-- [ ] Confirmar que ningún cambio de las fases anteriores rompió algo ya
+- [x] Bitácora, Programación, Reportes, Seguridad SMS — con datos reales
+- [x] Confirmar que ningún cambio de las fases anteriores rompió algo ya
       verificado en la auditoría móvil de código (Fases 0-6 de
       `plan-mobile-ux-bitafly.md`)
+
+Recorridos los 4 módulos con datos reales (acumulados de las Fases 3-10:
+3 vuelos, 2 misiones programadas, 1 evaluación SORA, 1 caso VOR, 1 peligro
+en la matriz de riesgo, 7 eventos de auditoría) en **3 viewports** —
+mobile (375px), tablet (820px) y desktop ancho (1920px). Sin bugs
+encontrados:
+
+- **Bitácora**: en mobile las tarjetas (patrón tabla-desktop/tarjetas-
+  mobile) no recortan ningún dato real (misión, aeronave, piloto,
+  duración); en tablet/desktop la tabla usa su contenedor con scroll
+  horizontal propio sin desbordar la página.
+- **Programación**: la grilla semanal de 7 días con misiones reales
+  (nombre de tipo de operación + piloto) se lee completa en los 3
+  anchos, con texto truncado correctamente en mobile en vez de recortado.
+- **Reportes**: la barra de búsqueda, los chips "Todas/Ninguna" del
+  selector de aeronaves y el panel de descarga inline (con datos reales
+  de la flota QA) se ven completos en mobile sin desbordar.
+- **Seguridad SMS**: la franja de 8 tabs (incluye las 2 nuevas del plan
+  de mejora SMS) se comprime a una tira con scroll horizontal propio en
+  mobile/tablet y cabe completa en una sola línea en desktop ancho — sin
+  clip del texto. Las tablas de cada tab (SORA, matriz de riesgo 5×5,
+  registro de peligros, cumplimiento VOR/MOR, acciones correctivas
+  consolidadas) con los datos reales de las Fases 9-10 se leen completas
+  o desbordan dentro de su propio contenedor con scroll, nunca a nivel
+  de página.
+- Confirma que ningún cambio de código de las Fases 3-10 (multi-org,
+  SORA obligatorio, casos SMS/VOR, etc.) introdujo una regresión visual
+  sobre los patrones ya establecidos en la auditoría móvil de código
+  (`plan-mobile-ux-bitafly.md`).
 
 ---
 
@@ -726,6 +755,12 @@ Se creó un socio de prueba real ("QA Escuela de Prueba",
 `QATESTSOCIO01`) y se probó `/socio` de punta a punta (Panel, Reportes,
 Perfil, regalo de perfil gratis real) sin bugs. Quedaron datos de
 prueba adicionales: 1 socio QA con 1 cuenta owner vinculada y 1 regalo
-de perfil enviado. Esperando indicación del usuario sobre con qué fase
-continuar — recomendado: **Fase 11** (pasada responsive final
-cruzada).
+de perfil enviado. Fase 11 (pasada responsive final cruzada) completa
+sin bugs: Bitácora, Programación, Reportes y Seguridad SMS recorridas
+con todos los datos reales acumulados de las Fases 3-10 en 3 viewports
+(375px, 820px, 1920px) — ningún desbordamiento a nivel de página en
+ninguno de los 4 módulos, todo el contenido ancho (tablas, tira de 8
+tabs de Seguridad SMS, calendario semanal) queda contenido en su propio
+scroll horizontal cuando corresponde, sin recortar datos reales.
+Esperando indicación del usuario sobre con qué fase continuar —
+recomendado: **Fase 12** (performance y fluidez).

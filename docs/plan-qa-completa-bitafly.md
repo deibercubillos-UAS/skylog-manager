@@ -568,19 +568,47 @@ Con esto, **Fase 9 completa** sin quedar pendiente ningún rol.
 
 ---
 
-## Fase 10 — Panel Master (superadmin) y Panel Socio
+## Fase 10 — Panel Master (superadmin) y Panel Socio ✅ (2026-07-26, parcial por decisión del usuario)
 
-Fuera del alcance de los usuarios QA ya creados (requieren la cuenta
-superadmin real o crear un socio de prueba) — confirmar con el usuario
-antes de tocar `/admin/master` con la cuenta real, dado que ese panel
-gestiona datos de clientes reales (comisiones, suscripciones reales).
+Fuera del alcance de los usuarios QA ya creados (requiere la cuenta
+superadmin real). Confirmado con el usuario (`AskUserQuestion`, 2
+preguntas) antes de tocar `/admin/master` con la cuenta real: alcance
+solo lectura/navegación (sin acciones destructivas ni ediciones sobre
+datos reales), y crear un socio QA de prueba para poder probar `/socio`
+de punta a punta sin tocar datos de socios reales.
 
-- [ ] `/admin/master` — tabs Usuarios, Suscripciones, Socios, Comisiones,
-      Invitaciones, App Releases (solo lectura/navegación, sin acciones
-      destructivas sobre datos reales sin confirmación explícita)
-- [ ] `/socio` — requiere crear un socio de prueba primero (decisión a
-      confirmar con el usuario: ¿crear un socio QA igual que se crearon los
-      5 usuarios?)
+- [x] `/admin/master` — recorridas **5 de 7 tabs** en modo solo lectura,
+      sin bugs encontrados: **Usuarios** (20 usuarios reales, filtros por
+      plan funcionando), **Invitaciones** (formulario de invitación
+      cargó correctamente, sin enviar nada), **Suscripciones** (datos
+      reales de ePayco, mayormente `canceled`), **Planes ePayco**
+      (confirma en vivo el trial de 15 días documentado en Fase 7 de
+      multi-org), **Socios** (usada además para crear el socio de
+      prueba, ver abajo). **Comisiones** y **App Releases** quedaron sin
+      revisar — el usuario decidió cerrar la fase así en vez de volver a
+      iniciar sesión como superadmin (ver nota de sesión abajo).
+- [x] `/socio` — se creó un socio de prueba real ("QA Escuela de
+      Prueba", código `QATESTSOCIO01`, 20% comisión, 90 días gratis)
+      desde el tab Socios de Master, y se vinculó como owner a una
+      cuenta nueva (`qa.socio@bitafly-test.local`) vía el flujo de
+      invitación real (`partner_invitations` → token → `/registro?
+      socio_invite=`) — el formulario de registro mostró correctamente
+      el banner de invitación con el correo bloqueado. Con la cuenta ya
+      registrada se recorrieron las **3 pestañas de `/socio`** sin bugs:
+      Panel (código de venta, KPIs en cero, "Regalar perfil gratis"
+      probado de punta a punta — creó un `free_grants` real para
+      `qa.regalo@bitafly-test.local`, reflejado de inmediato como
+      "Perfiles regalados: 1"), Reportes (filtros de período, estado
+      vacío correcto) y Perfil (datos de cuenta, subida de logo, zona de
+      peligro).
+- **Nota real sobre sesión de navegador**: registrar la cuenta nueva
+  `qa.socio@bitafly-test.local` en una pestaña reemplazó la sesión de
+  superadmin en **todo el navegador** (mismo origen, mismo storage de
+  Supabase Auth compartido entre pestañas) — no es un bug de la app, es
+  el comportamiento esperado de un navegador compartido entre pestañas
+  del mismo sitio. Confirmado con el usuario (`AskUserQuestion`): cerrar
+  la fase así, dejando **Comisiones y App Releases sin revisar** como
+  pendiente explícito en vez de pedirle iniciar sesión de nuevo.
 
 ---
 
@@ -685,7 +713,19 @@ de vuelo, gestión de casos, reporte VOR, alta de aeronave propia con
 límite de plan verificado). Quedaron datos de prueba adicionales en la
 org QA: 2 misiones nuevas, 2 vuelos más registrados, 1 caso SMS cerrado
 con 1 acción correctiva, 1 reporte VOR real, 1 aeronave propia en la
-org del piloto independiente. Esperando indicación del usuario sobre
-con qué fase continuar — recomendado: **Fase 10** (Panel Master y Panel
-Socio), aunque requiere confirmar antes con el usuario el alcance real
-(cuenta superadmin real, datos de clientes reales).
+org del piloto independiente. Fase 10 (Panel Master + Panel Socio)
+completa de forma parcial por decisión del usuario — confirmado el
+alcance solo lectura sobre `/admin/master` con la cuenta superadmin
+real: 5 de 7 tabs recorridas sin bugs (Usuarios, Invitaciones,
+Suscripciones, Planes ePayco, Socios); Comisiones y App Releases
+quedaron sin revisar porque registrar el socio de prueba en una
+pestaña reemplazó la sesión de superadmin en todo el navegador (mismo
+storage de Supabase Auth entre pestañas del mismo origen — no es un
+bug, el usuario decidió cerrar la fase así en vez de reiniciar sesión).
+Se creó un socio de prueba real ("QA Escuela de Prueba",
+`QATESTSOCIO01`) y se probó `/socio` de punta a punta (Panel, Reportes,
+Perfil, regalo de perfil gratis real) sin bugs. Quedaron datos de
+prueba adicionales: 1 socio QA con 1 cuenta owner vinculada y 1 regalo
+de perfil enviado. Esperando indicación del usuario sobre con qué fase
+continuar — recomendado: **Fase 11** (pasada responsive final
+cruzada).

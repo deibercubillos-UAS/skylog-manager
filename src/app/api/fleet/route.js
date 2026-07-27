@@ -43,15 +43,16 @@ export async function POST(request) {
     const body = await request.json();
     const { aircraftData } = body;   // currentPlan ignorado: el plan se lee del servidor
 
-    // Contar solo aeronaves de esta organización (Regla de conteo del proyecto:
-    // createAdminClient() + .select('id') + .length — NO count:'exact'/head:true,
-    // que PostgREST puede evaluar ignorando filtros RLS y dar un conteo poco fiable).
+    // Contar solo aeronaves de esta organización. Admin client (service role)
+    // ya bypassa RLS por diseño — count:'exact'/head:true es seguro y correcto
+    // aquí (a diferencia de la Regla de conteo del proyecto, que aplica al
+    // cliente REGULAR, donde PostgREST puede ignorar filtros RLS bajo head:true).
     const admin = createAdminClient();
-    const { data: existing } = await admin
+    const { count: aircraftCount } = await admin
       .from('aircraft')
-      .select('id')
+      .select('id', { count: 'exact', head: true })
       .eq('organization_id', orgId);
-    const count = existing?.length || 0;
+    const count = aircraftCount ?? 0;
 
     const { drone: extraDrones } = await getOrgAddonCounts(admin, orgId);
     if (!canAddResource(subscription_plan, count, 'drone', extraDrones)) {

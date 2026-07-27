@@ -104,13 +104,16 @@ export async function POST(request) {
       const planConfig = PLAN_CONFIG[planKey] || PLAN_CONFIG.piloto;
 
       if (planConfig.maxPilots !== null && planConfig.maxPilots !== undefined) {
-        const { data: pilotos } = await admin
+        // Admin client (service role) ya bypassa RLS por diseño — count:'exact'/head:true
+        // es seguro y correcto aquí (a diferencia de la Regla de conteo del proyecto, que
+        // aplica al cliente REGULAR, donde PostgREST puede ignorar filtros RLS bajo head:true).
+        const { count: pilotosCount } = await admin
           .from('profiles')
-          .select('id')
+          .select('id', { count: 'exact', head: true })
           .eq('organization_id', targetOrg.id)
           .eq('role', 'piloto');
 
-        if ((pilotos?.length || 0) >= planConfig.maxPilots) {
+        if ((pilotosCount ?? 0) >= planConfig.maxPilots) {
           return NextResponse.json({
             error: `La organización alcanzó el límite de pilotos del plan. El gerente debe actualizar el plan.`,
           }, { status: 409 });

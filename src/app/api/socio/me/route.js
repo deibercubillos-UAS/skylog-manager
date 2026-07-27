@@ -52,11 +52,14 @@ export async function GET() {
     }
     const ids = [...visibleIds];
 
-    const [{ data: partner }, { data: codes }, { data: grants }, { data: refs }] = await Promise.all([
+    // meProfile solo depende de user.id (ya disponible) — se corre en paralelo
+    // con las demás consultas de este bloque en vez de esperar hasta el final.
+    const [{ data: partner }, { data: codes }, { data: grants }, { data: refs }, { data: meProfile }] = await Promise.all([
       admin.from('partners').select('*').eq('id', primary.partner_id).single(),
       admin.from('partner_codes').select('code, active, partner_id').in('partner_id', ids),
       admin.from('free_grants').select('id, status, partner_id').in('partner_id', ids),
       admin.from('referrals').select('id, status, partner_id').in('partner_id', ids),
+      admin.from('profiles').select('email, full_name').eq('id', user.id).maybeSingle(),
     ]);
 
     // Comisiones pendientes/liquidadas de esos referidos
@@ -104,10 +107,6 @@ export async function GET() {
         }));
       }
     }
-
-    // Datos del propio perfil (para el tab Perfil)
-    const { data: meProfile } = await admin
-      .from('profiles').select('email, full_name').eq('id', user.id).maybeSingle();
 
     return NextResponse.json({
       member: { role: primary.role, email: meProfile?.email || user.email, name: meProfile?.full_name || null },

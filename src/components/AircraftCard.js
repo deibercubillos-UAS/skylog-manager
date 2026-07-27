@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, memo } from 'react';
 import { docOpenUrl } from '@/lib/docUrl';
 import IconTile from '@/components/IconTile';
 
@@ -25,7 +25,12 @@ function battChipStyle(health) {
   return { color: '#8992a3', bg: '#f2efeb', border: '#e2ddd5' };
 }
 
-export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, canManage = true, canManageStatus, batteryChips = [] }) {
+// Fallback estable — evita crear un array nuevo en cada render cuando el llamador
+// pasa `batteryChips={mapa[id] || []}` sin memoizar el mapa; con `React.memo` abajo,
+// un array `[]` recién creado en cada render del padre invalidaría el memo igual.
+const EMPTY_BATTERY_CHIPS = [];
+
+function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, canManage = true, canManageStatus, batteryChips = EMPTY_BATTERY_CHIPS }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -315,3 +320,5 @@ export default function AircraftCard({ aircraft, onEdit, onBaja, onTransfer, can
     </>
   );
 }
+
+export default memo(AircraftCard);

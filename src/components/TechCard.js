@@ -1,5 +1,7 @@
 'use client';
-export default function TechCard({ item, onEdit, onDelete, canManage = true }) {
+import { memo } from 'react';
+
+function TechCard({ item, onEdit, onDelete, canManage = true }) {
   if (!item) return null;
 
   return (
@@ -37,3 +39,5 @@ export default function TechCard({ item, onEdit, onDelete, canManage = true }) {
     </div>
   );
 }
+
+export default memo(TechCard);

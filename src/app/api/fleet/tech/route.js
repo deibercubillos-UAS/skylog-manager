@@ -38,14 +38,16 @@ export async function POST(request) {
     }
 
     // ── Verificar límite del plan ─────────────────────────────────
-    // Admin client con filtro explícito de orgId para conteo confiable.
+    // Admin client con filtro explícito de orgId para conteo confiable — ya
+    // bypassa RLS por ser service role, así que count:'exact'/head:true es
+    // seguro y correcto.
     const supabaseAdmin = createAdminClient();
-    const { data: existingTech } = await supabaseAdmin
+    const { count: existingTechCount } = await supabaseAdmin
       .from('inventory_items')
-      .select('id')
+      .select('id', { count: 'exact', head: true })
       .eq('organization_id', orgId);
 
-    const currentTechCount = existingTech?.length ?? 0;
+    const currentTechCount = existingTechCount ?? 0;
 
     if (!canAddResource(subscription_plan, currentTechCount, 'tech')) {
       return NextResponse.json(

@@ -23,14 +23,16 @@ export async function GET(request) {
     monthStart.setDate(1);
     const monthStartStr = monthStart.toISOString().slice(0, 10);
 
-    // Contar recursos de la org (con filtro de organization_id).
-    // Regla de conteo: admin client + .select('id') + .length — NO count:'exact'/head:true
-    // (PostgREST puede ignorar filtros RLS con head:true).
+    // Contar recursos de la org (con filtro de organization_id). Admin client
+    // (service role) ya bypassa RLS por diseño — count:'exact'/head:true es
+    // seguro y correcto para drones/vuelos (conteo puro). `pilots` sigue
+    // trayendo `pilot_role` completo porque el filtro real (excluir GG/GSMS)
+    // se hace en el cliente con `crewCountsForLimit`, no es un conteo puro.
     const [profileRes, dronesRes, pilotsRes, flightsRes] = await Promise.all([
       supabase.from('organization_members').select('subscription_expires_at').eq('user_id', user.id).eq('organization_id', orgId).single(),
-      admin.from('aircraft').select('id').eq('organization_id', orgId),
+      admin.from('aircraft').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
       admin.from('pilots').select('pilot_role').eq('organization_id', orgId).eq('is_active', true),
-      admin.from('flights').select('id').eq('organization_id', orgId).gte('flight_date', monthStartStr),
+      admin.from('flights').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).gte('flight_date', monthStartStr),
     ]);
 
     // Gerente General y Gerente SMS no cuentan contra el límite de tripulantes
@@ -47,9 +49,9 @@ export async function GET(request) {
       planSlug:  planKey,
       expiresAt: profileRes.data?.subscription_expires_at || null,
       usage: {
-        drones:      { current: (dronesRes.data || []).length, limit: droneLimit },
+        drones:      { current: dronesRes.count ?? 0, limit: droneLimit },
         pilots:      { current: pilotsCount, limit: pilotLimit },
-        flightsMonth:{ current: (flightsRes.data || []).length, limit: null },
+        flightsMonth:{ current: flightsRes.count ?? 0, limit: null },
       },
       addons: { ...orgAddons, pricing: ADDON_PRICING },
       features: currentPlan.features,

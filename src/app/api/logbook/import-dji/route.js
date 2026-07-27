@@ -357,14 +357,16 @@ export async function POST(request) {
           ciclos_nuevos:     newCycles,
         };
       } else {
-        // Batería no registrada → crear automáticamente si el plan lo permite
-        const { data: existingBats } = await supabaseAdmin
+        // Batería no registrada → crear automáticamente si el plan lo permite.
+        // Admin client (service role) ya bypassa RLS por diseño — count:'exact'/
+        // head:true es seguro y correcto aquí (mismo patrón ya usado más abajo
+        // en este archivo para el conteo de replays).
+        const { count: batCount } = await supabaseAdmin
           .from('batteries')
-          .select('id')
+          .select('id', { count: 'exact', head: true })
           .eq('organization_id', prof.organization_id);
-        const batCount = existingBats?.length ?? 0;
 
-        if (canAddResource(prof.subscription_plan, batCount, 'battery')) {
+        if (canAddResource(prof.subscription_plan, batCount ?? 0, 'battery')) {
           const { error: batInsertErr } = await supabaseAdmin
             .from('batteries')
             .insert([{

@@ -2117,6 +2117,101 @@ export const BLOG_POSTS = [
 <p><a href="/registro">Crea tu cuenta gratis y comienza a gestionar tus operaciones especiales →</a></p>
 `,
   },
+
+  // ─── 17. Reporte Operacional Mensual UAS ──────────────────────────────────
+  {
+    slug:            'reporte-operacional-mensual-uas-aerocivil-colombia',
+    title:           'Reporte Operacional Mensual UAS: qué exige AeroCivil y cómo generarlo sin perder una tarde',
+    metaTitle:       'Reporte Operacional Mensual UAS AeroCivil Colombia | Bitafly',
+    metaDescription: 'AeroCivil exige a los explotadores UAS un reporte mensual con 8 datos por vuelo, dentro de los primeros 5 días hábiles del mes. Qué enviar, a quién, y cómo generarlo en minutos.',
+    publishedAt:     '2026-07-29',
+    updatedAt:       '2026-07-29',
+    readingTime:     7,
+    category:        'Trámites',
+    keywords:        ['reporte operacional mensual UAS', 'gouas aerocivil', 'reporte mensual drones AeroCivil', 'explotador UAS obligaciones', 'circular AeroCivil drones'],
+    excerpt:         'Desde 2026, todo explotador UAS certificado debe remitir mensualmente a AeroCivil un reporte con el detalle de cada vuelo realizado. Te explicamos qué exige la circular, los 8 datos obligatorios por vuelo y cómo generarlo sin armar un Excel a mano cada mes.',
+    coverAlt:        'Reporte Operacional Mensual UAS para explotadores de drones ante AeroCivil en Colombia',
+    body: `
+<p>Si eres <strong>explotador UAS certificado</strong> ante la AeroCivil, desde 2026 tienes una obligación que muchos operadores todavía no conocen a fondo: el <strong>Reporte Operacional Mensual UAS</strong>. La Dirección de Operaciones de Navegación Aérea, a través del Grupo de Gestión Operacional UAS, exige que cada explotador remita mensualmente el detalle de todos sus vuelos — y el plazo es más corto de lo que parece.</p>
+
+<p>En este artículo te explicamos qué exige exactamente la circular, qué datos debes reportar por cada vuelo, cuándo y a quién enviarlo, y cómo generarlo en minutos en vez de armarlo a mano cada mes.</p>
+
+<div class="stats-row">
+  <div class="stat-item"><div class="num">5</div><div class="lbl">Días hábiles del mes para radicarlo</div></div>
+  <div class="stat-item"><div class="num">8</div><div class="lbl">Datos obligatorios por cada vuelo</div></div>
+  <div class="stat-item"><div class="num">Mensual</div><div class="lbl">Periodicidad exigida por AeroCivil</div></div>
+</div>
+
+<h2>¿Qué es el Reporte Operacional Mensual UAS?</h2>
+<p>Es un informe que todo <strong>explotador UAS</strong> (empresa u operador con Certificado de Explotador, CDO) debe remitir a la AeroCivil con el detalle de la actividad de vuelo realizada durante el mes anterior. A diferencia de la bitácora de vuelo, que es un registro interno de cada operación, este reporte es un <strong>envío formal hacia la autoridad aeronáutica</strong> — la AeroCivil lo usa para supervisar la actividad real del sector UAS en el país.</p>
+<p>El requisito nace de una circular de la Dirección de Operaciones de Navegación Aérea (Grupo de Gestión Operacional UAS) dirigida a todos los explotadores certificados, y aplica sin importar el tamaño de la operación: una sola aeronave o una flota completa.</p>
+
+<h2>¿A quién aplica esta obligación?</h2>
+<p>Aplica a <strong>todo explotador UAS con Certificado de Explotador (CDO) vigente</strong> — no a pilotos recreativos ni a quienes vuelan sin fines comerciales. Si ya pasaste por el proceso de certificación como explotador, esta obligación te corresponde desde el primer mes con vuelos realizados.</p>
+<p>Si todavía no tienes tu CDO, este reporte no aplica todavía — pero es un buen momento para revisar qué exige el trámite. <a href="/blog/cdo-certificado-explotador-uas-colombia">Conoce el proceso de certificación como explotador UAS →</a></p>
+
+<div class="callout warning">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+  <div class="callout-body"><strong>No confundas este reporte con la bitácora de vuelo</strong> La bitácora (F-OPS-002) es un registro de control interno que conservas y muestras en una auditoría. El Reporte Operacional Mensual es un envío activo que tú remites cada mes a AeroCivil — aunque nadie te lo pida ese mes. Es una obligación que se cumple por iniciativa propia, no solo bajo requerimiento.</div>
+</div>
+
+<h2>¿Qué información exige por cada vuelo?</h2>
+<p>El reporte se presenta en formato Excel, con una fila por vuelo realizado durante el mes, y exactamente estas 8 columnas:</p>
+
+<table>
+<thead><tr><th>#</th><th>Columna exigida</th><th>Qué se registra</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>ID Autorización</td><td>Número de autorización de la misión asignado por AeroCivil</td></tr>
+<tr><td>2</td><td>Nombre empresa</td><td>Razón social del explotador</td></tr>
+<tr><td>3</td><td>Fecha de vuelo</td><td>Fecha en que se realizó la operación</td></tr>
+<tr><td>4</td><td>Tiempo volado</td><td>Duración real del vuelo</td></tr>
+<tr><td>5</td><td>RUAS</td><td>Matrícula/registro de la aeronave utilizada</td></tr>
+<tr><td>6</td><td>Tipo de línea de vista</td><td>VLOS, EVLOS o BVLOS</td></tr>
+<tr><td>7</td><td>Tipo de operación ejecutada</td><td>Categoría de la misión (inspección, mapeo, aspersión, etc.)</td></tr>
+<tr><td>8</td><td>Condición de vuelo</td><td>Diurno, nocturno o mixto</td></tr>
+</tbody>
+</table>
+
+<p>Si tu operación no maneja alguno de estos datos de forma sistemática hoy —por ejemplo, el tipo de línea de vista o el ID de autorización por misión— este es exactamente el tipo de campo que se pierde cuando la bitácora se lleva en Excel suelto o en papel.</p>
+
+<h2>¿Cuándo y a quién se envía?</h2>
+<p>El reporte del mes vencido debe radicarse dentro de los <strong>primeros 5 días hábiles del mes siguiente</strong>, directamente al correo <strong>gouas@aerocivil.gov.co</strong>. No hay un portal de radicación específico para este reporte: se envía por correo electrónico en el formato Excel indicado.</p>
+
+<div class="callout important">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>El plazo corre aunque no hayas volado</strong> Si tu operación tuvo actividad cero durante el mes, igual conviene confirmar internamente que no hay vuelos que reportar — no asumas "sin vuelos, sin obligación" sin verificarlo contra tu propia bitácora. Un mes sin reportar a tiempo es un hueco de cumplimiento documental frente a una auditoría.</div>
+</div>
+
+<h2>Por qué este reporte se te puede pasar fácilmente</h2>
+<p>A diferencia de la bitácora, que llenas vuelo a vuelo, este reporte exige sentarte una vez al mes, revisar todos los vuelos del período, y consolidar 8 datos por cada uno en un Excel con el formato exacto. Si tu bitácora vive repartida entre varios archivos, o si campos como el tipo de línea de vista o el ID de autorización no quedaron registrados al momento del vuelo, armar este reporte se convierte en una tarea de reconstrucción, no de consolidación.</p>
+
+<blockquote class="pullquote">El reporte mensual no es difícil de entender — es difícil de armar a mano cada mes si tus datos de vuelo no están centralizados desde el principio.</blockquote>
+
+<h2>Cómo Bitafly genera el reporte por ti</h2>
+<p>Bitafly incorpora los 8 campos de este reporte directamente en el flujo normal de programación y despacho de vuelo — el tipo de línea de vista (VLOS/EVLOS/BVLOS) y el número de autorización se capturan al planear la misión, no se reconstruyen después. Con esos datos ya en la bitácora:</p>
+<ul>
+  <li>Eliges el mes que quieres reportar</li>
+  <li>Bitafly arma el Excel con las 8 columnas exactas, tomando los datos de tus vuelos ya registrados</li>
+  <li>Descargas el archivo listo para enviar a gouas@aerocivil.gov.co</li>
+  <li>Marcas el período como enviado — queda constancia de quién y cuándo lo remitió, útil si AeroCivil pide evidencia después</li>
+</ul>
+<p>La condición de vuelo (diurno/nocturno/mixto) se calcula automáticamente a partir de la hora real de despegue y aterrizaje, así que tampoco tienes que clasificarla a mano vuelo por vuelo.</p>
+<p><a href="/bitacora-digital">Conoce la bitácora digital de Bitafly →</a></p>
+
+<div class="callout tip">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>Alerta antes de que se venza el plazo</strong> Bitafly te avisa por notificación cuando se acercan los primeros días del mes y todavía no has marcado el reporte del período anterior como enviado — para que los 5 días hábiles no se conviertan en una sorpresa de último momento.</div>
+</div>
+
+<h2>Este reporte no reemplaza el resto de tus obligaciones RAC 100</h2>
+<p>El Reporte Operacional Mensual es un requisito adicional, no un sustituto de la bitácora de vuelo, el Manual de Operaciones, el SMS ni las autorizaciones por misión. Si todavía no tienes claro el panorama completo de qué documentos exige la RAC 100, es un buen momento para revisarlo. <a href="/blog/formatos-aerocivil-drones-colombia">Conoce todos los formatos de control documental RAC 100 →</a></p>
+
+<h2>Empieza a capturar estos datos desde tu próximo vuelo</h2>
+<p>Cuanto antes empieces a registrar el tipo de línea de vista, el número de autorización y el resto de estos 8 datos en cada vuelo, más simple será el reporte del mes que viene. No necesitas esperar a fin de mes para "ponerte al día": cada vuelo bien registrado hoy es una fila menos que reconstruir después.</p>
+<p><strong>Bitafly</strong> centraliza toda tu operación UAS —bitácora, programación, mantenimiento, SMS y ahora también el Reporte Operacional Mensual— en una sola plataforma diseñada para la normativa colombiana.</p>
+<p><a href="/registro">Comienza gratis — sin tarjeta de crédito →</a></p>
+`,
+  },
 ];
 
 /** Retorna un post por slug, o undefined si no existe */

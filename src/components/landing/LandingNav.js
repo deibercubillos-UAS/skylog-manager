@@ -350,6 +350,7 @@ export default function LandingNav() {
           <li role="none">
             <Link
               href="/rac-100"
+              role="menuitem"
               className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all duration-150 ${
                 pathname === '/rac-100'
                   ? 'text-primary bg-orange-50 font-bold'
@@ -364,6 +365,7 @@ export default function LandingNav() {
           <li role="none">
             <Link
               href="/blog"
+              role="menuitem"
               className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all duration-150 ${
                 pathname?.startsWith('/blog')
                   ? 'text-primary bg-orange-50 font-bold'
@@ -382,6 +384,7 @@ export default function LandingNav() {
             {pathname === '/' ? (
               <a
                 href="#precios"
+                role="menuitem"
                 className="px-3.5 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:text-navy hover:bg-slate-50 transition-all duration-150"
               >
                 Precios
@@ -389,6 +392,7 @@ export default function LandingNav() {
             ) : (
               <Link
                 href="/precios"
+                role="menuitem"
                 className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all duration-150 ${
                   pathname === '/precios'
                     ? 'text-primary bg-orange-50 font-bold'

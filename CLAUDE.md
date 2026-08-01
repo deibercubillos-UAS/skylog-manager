@@ -3901,12 +3901,15 @@ volando, otros que no aportan o están desactualizados"): auditoría real del á
 - **`npm run lint` + `npm run build` limpios** tras la limpieza (mismos 3 warnings
   preexistentes de siempre) — confirma que ninguna de las 5 rutas borradas tenía un caller
   real que se rompiera.
-- **Deliberadamente diferido, pendiente de decisión del usuario** (no son bugs, son
-  decisiones de organización):
-  - Los documentos de negocio en `docs/` (`Bitafly_Pitch_Inversionistas.pptx`,
-    `Bitafly_Proyeccion_Financiera.xlsx`, `estatutos-bitafly-sas.docx`, etc.) — mezclados
-    con la documentación técnica viva (`.md`), pendiente de decidir si se quedan, se mueven
-    o se sacan del control de versiones.
+- **Documentos de negocio en `docs/` eliminados** (mismo día, a pedido del usuario tras
+  confirmar que ya no se requieren): `Bitafly_MO_MCM_RAC100.docx`,
+  `Bitafly_Pitch_Inversionistas.docx`, `Bitafly_Presentacion_Inversionistas.pptx`,
+  `Bitafly_Proyeccion_Financiera.xlsx` y `estatutos-bitafly-sas.docx` — los 5 eran
+  **archivos generados** (`docs/generate.js`, `scripts/gen_word.js`/`gen_excel.js`/
+  `gen_pptx.js`/`gen_estatutos.js` siguen en el repo y los regeneran si hacen falta), nada
+  los importaba como fuente. `docs/` queda solo con `.md` de documentación técnica viva —
+  `estatutos-bitafly-sas.md` (la fuente real, editable) se conserva intacto.
+- **Deliberadamente diferido, pendiente de decisión del usuario**:
   - `demo-enterprise/` (app Next.js completa e independiente, el proyecto Vercel
     `demo-bitafly-enterprise`) y `railway-robot/` (microservicio Express+Playwright que
     automatiza el portal de AeroCivil, deploy propio a Railway) — ambos viven como carpetas

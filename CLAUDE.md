@@ -744,20 +744,10 @@ del bug de `additions` que originó esta auditoría — un script cruzó cada `.
   mostraba el texto genérico "la organización destino" en vez del nombre real — cosmético,
   sin romper la transferencia en sí. Corregido.
 - **`form_definitions` no tiene columnas `category`/`label`/`updated_at`** (el nombre real del
-  texto es `label_text`) en `api/safety-config/[id]/PATCH`: **página ya huérfana** — la
-  gestión real de Barreras se movió a la tabla `safety_barriers` en 2026-07-03 y ningún enlace
-  del producto apunta ya a `/dashboard/safety-config` (confirmado con grep) — pero la ruta
-  seguía siendo alcanzable por URL directa y devolvía 500 en cada intento de editar. Corregido
-  el nombre de columna (sin resucitar el concepto de "categoría", que ya no existe en el
-  esquema); se documenta aquí como candidata a eliminación futura en vez de profundizar en una
-  función sin ningún punto de entrada real hoy.
-- **Hallazgo secundario, no corregido a propósito**: `api/form-settings`, `api/form-templates`,
-  `dashboard/records/[templateId]`, `api/sora` referencian tablas que no existen en absoluto
-  (`form_settings`/`form_templates`/`form_records`/`sora_templates`) — confirmado por grep que
-  ningún archivo del proyecto los enlaza ni los llama; código muerto de una iteración anterior
-  (superado por `form_definitions`), sin riesgo real para un usuario porque no hay forma de
-  llegar ahí. Se deja documentado en vez de borrarlo en la misma pasada, por si se quiere
-  limpiar aparte.
+  texto es `label_text`) en `api/safety-config/[id]/PATCH`: en su momento se corrigió el nombre
+  de columna sin borrar la página huérfana que la usaba — **la página se eliminó después, ver
+  Limpieza de repositorio (2026-08-01)**. `api/safety-config` (la API, no la página) sigue
+  vivo: `SoraWizard.js` lo consume para cargar OSOs personalizados — no tocar.
 
 **B — `profiles.organization_id` legacy en vez de `organization_members`** (2 confirmados,
 mismo patrón que el bug de Gestión de Usuarios de arriba — agente dedicado revisó todo
@@ -3762,6 +3752,167 @@ La app Capacitor corre en **remote URL mode** (`server.url: https://bitafly.com`
 - **Progreso**: el plugin emite eventos `downloadProgress { progress: 0-100 }` via `notifyListeners`; el banner muestra una barra de progreso.
 - **`GET /api/app/version` usa cliente anon**: es un endpoint público — usa `createClient(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY)`, NO `createAdminClient()`. La tabla `app_releases` tiene una política RLS `public_read_current_version` que permite SELECT WHERE is_current=true sin autenticación.
 - **Versión actual en prod**: v1.1.0 / versionCode 2. APK en `app-releases/bitafly-v1.1.0.apk`.
+
+---
+
+## Auditoría UX móvil (2026-07-21 → 2026-07-25)
+
+Auditoría completa del frontend en tamaño de celular, módulo por módulo, ejecutada en 8 fases
+(0, 1a, 1b, 2, 3a, 3b, 3c, 4, 5, 6 — 1 y 3 se dividieron en sub-fases por volumen de cambios,
+mismo criterio en ambos casos: "son bastantes cambios, divídela"), cada una con su propio PR
+mergeado a `main` (#20-#29) tras `npx next lint` + `npm run build` limpios. Plan de control
+completo, archivo por archivo, con qué se encontró y qué se descartó en cada fase:
+`docs/plan-mobile-ux-bitafly.md` (se conserva como referencia histórica, no se borra).
+
+**Limitación real de esta auditoría, documentada en cada PR**: sin `.env.local` en el entorno
+de ejecución no fue posible levantar `next dev` con datos reales de Supabase ni verificar
+visualmente en navegador/viewport — toda la verificación fue revisión de código dirigida
+(grep + lectura completa de cada archivo candidato) + `lint`/`build`, nunca screenshots reales.
+Se recomienda una pasada visual real (375/390/430px) en un entorno con credenciales antes de
+confiar ciegamente en que el resultado se ve exactamente como se espera.
+
+### Patrones estandarizados (aplicar a cualquier página nueva o rediseño futuro)
+
+- **Barra de filtros con `flex-wrap`**: los `<select>` de filtro nunca deben ir en un
+  `flex flex-wrap` puro en mobile (quedan de ancho irregular, dependiente del contenido de
+  cada opción). Patrón real aplicado en 6+ páginas (Bitácora, Flota, Baterías, Mantenimiento,
+  Tripulación, Auditoría): `<div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">` +
+  cada `<select>` con `className="w-full sm:w-auto ..."` (el que sobra en una fila impar,
+  `col-span-2 sm:col-span-1`).
+- **Pares de campos `grid-cols-2` sin breakpoint**: cualquier formulario con inputs en pareja
+  (nombre/apellido, ciudad/país, etc.) — nunca `grid grid-cols-2` a secas. Patrón real
+  (Mi Perfil, Organización, registro público, ×varios): `grid grid-cols-1 sm:grid-cols-2 gap-4`.
+  Mismo criterio para `grid-cols-3` genuino (Inicio Rápido de Organización, totales de socio):
+  `grid grid-cols-1 sm:grid-cols-3` o `grid-cols-2 sm:grid-cols-3` si el 3er ítem tolera
+  quedar solo en la fila de mobile.
+- **Tablas anchas**: toda `<table>` fuera del patrón ya establecido tabla-desktop/tarjetas-mobile
+  (`hidden md:block` + `md:hidden`) debe llevar como mínimo `overflow-x-auto` en su contenedor
+  directo — nunca dejarla desbordar el viewport sin scroll horizontal contenido (Fase 0:
+  `safety/mapas`, `IndicatorDetailPanel`, `AerocivilForm`).
+- **Panel deslizable (sliding panel)**: patrón ya establecido desde antes de esta auditoría,
+  reutilizado en toda la app — `fixed z-[300] inset-x-0 bottom-0 top-14 rounded-t-3xl
+  md:inset-y-0 md:left-auto md:right-0 md:top-0 md:rounded-none md:w-[92vw] md:max-w-[640px]
+  lg:max-w-[820px]` con header/footer `sticky` y contenido central con scroll propio — usar
+  este patrón exacto para cualquier panel nuevo, no inventar uno paralelo.
+- **Pantallas kiosko de pantalla completa** (Despacho `logbook/new`, Cierre de Vuelo
+  `logbook/finalize`): `fixed inset-0`, header navy `#1A202C` fijo, sin sidebar ni barra de
+  navegación inferior — la barra inferior del dashboard (`dashboard/layout.js`) se **oculta
+  por completo** en estas rutas (`isFullScreenFlow = pathname.startsWith('/dashboard/logbook/new'
+  ) || pathname.startsWith('/dashboard/logbook/finalize')`) porque ambas comparten el mismo
+  `z-index` fijo y la barra pintaba encima del botón de acción final, tapándolo parcialmente en
+  celulares con muesca/home indicator. El contenido interno de estas 2 páginas usa
+  `pb-[max(5rem,calc(2rem+env(safe-area-inset-bottom,16px)))]` como defensa adicional. Cualquier
+  pantalla kiosko nueva debe seguir el mismo criterio: agregar su prefijo de ruta a
+  `isFullScreenFlow` en vez de dejar que la barra conviva con un botón de acción propio.
+- **`env(safe-area-inset-bottom, Npx)`**: usar en cualquier padding inferior de contenido que
+  pueda terminar oculto tras el home indicator de iOS o la barra de navegación fija — no un
+  `pb-N` fijo a secas cuando el contenido es lo último visible de la pantalla.
+
+### Hallazgos documentados, sin acción tomada (decisión del usuario pendiente)
+
+- **4 páginas huérfanas** sin ningún enlace de navegación real (`logbook/daily`, `/batteries`
+  standalone antiguo, `/inventory` standalone antiguo, `/pilots` standalone antiguo) —
+  detectadas durante el grep de rutas, no se les aplicó ningún ajuste móvil por ser
+  inalcanzables desde la UI; queda pendiente decidir si se eliminan, se terminan de conectar,
+  o se dejan así.
+
+---
+
+## Auditoría funcional QA completa (2026-07-25 → 2026-07-26)
+
+Auditoría end-to-end de toda la plataforma, en vivo contra producción (`bitafly.com`) vía
+`claude-in-chrome`, ejecutada en 13 fases (0 a 13 — landing, autenticación, cada módulo del
+dashboard por rol GG, roles no-GG a fondo, Panel Master + Panel Socio, pasada responsive
+cruzada, performance de red, cierre). Plan de control completo, fase por fase, con qué se
+probó y qué se descartó como falso positivo en cada una: `docs/plan-qa-completa-bitafly.md`
+(se conserva como referencia, no se borra — mismo criterio que `plan-mobile-ux-bitafly.md`).
+
+Metodología: una organización y ~7 cuentas de prueba dedicadas (`BitaFly QA - Organización de
+Prueba`, emails `@bitafly-test.local`, un socio "QA Escuela de Prueba") — **acciones reales**
+en cada módulo (crear, editar, despachar, cerrar vuelo, generar PDF/Excel, aceptar invitación,
+cambiar rol), no solo navegación. Confirmado con el usuario al cerrar: estos datos de prueba
+**se dejan** en producción como fixture reutilizable para rondas futuras.
+
+**12 bugs reales encontrados y corregidos** (tabla completa con severidad en la Fase 13 de
+`plan-qa-completa-bitafly.md`) — los 4 de mayor alcance, con impacto confirmado más allá de la
+org de prueba:
+
+- **PR #51** (el más grave): `POST /api/public/vor|mor/[orgCode]` devolvía 404 para cualquier
+  envío porque exigía una fila en `vor_mor_definitions` que solo se crea si un admin visita el
+  editor de formato — de las 17 organizaciones reales, **ninguna** tenía esa fila. El envío de
+  reportes VOR/MOR estaba roto para el 100% de los clientes reales. Corregido creando la
+  definición por defecto de forma perezosa si no existe, + backfill en producción.
+- **PR #50**: `sms_reports.owner_id` con FK a `auth.users` en vez de `profiles` — bloqueaba el
+  seguimiento de casos SMS (`/dashboard/safety/case`) para **cualquier** reporte SMS de
+  cualquier organización.
+- **PR #41**: `profiles.active_organization_id` nunca se seteaba en los flujos de creación/
+  migración de cuenta — confirmado que ya afectaba a 2 cuentas reales de producción, no solo a
+  las de prueba de esta sesión.
+- **PR #39**: editar el NIT de una organización con el formato estándar (con guion) rompía
+  "Unirse a organización" para cualquiera que intentara unirse después, por una normalización
+  inconsistente entre el guardado y la búsqueda.
+
+Los demás 8 bugs (PR #31-#38, #40, #55) son de menor alcance — desde una fuga de datos entre
+sesiones por `Cache-Control` sin `Vary` (#31, crítica pero contenida) hasta una query muerta
+que fallaba en silencio en cada carga del dashboard (#55). Ver la tabla completa en el plan
+para severidad y fase de cada una.
+
+**Todas las demás fases (3, 4, 5, 6, 7, 8, 10, 11) completaron su recorrido sin bugs nuevos**
+— solo falsos positivos de timing de carga (toast de éxito con la lista aún vacía hasta
+recargar), investigados y descartados caso por caso en cada fase, nunca tratados como bug sin
+antes reproducir con una recarga limpia. **Limitación documentada**: 2 de las 7 tabs de
+`/admin/master` (Comisiones, App Releases) quedaron sin revisar en la Fase 10 — decisión
+explícita del usuario tras un reemplazo de sesión de superadmin en el navegador (mismo storage
+de Supabase Auth compartido entre pestañas del mismo origen, no un bug de la app).
+
+---
+
+## Limpieza de repositorio (2026-08-01)
+
+A pedido del usuario ("siento que hay muchos archivos en espacios que no corresponden, otros
+volando, otros que no aportan o están desactualizados"): auditoría real del árbol del repo
+(no solo de `src/`) antes de tocar nada, con 4 hallazgos confirmados y limpiados.
+
+- **Bug real de higiene — `docs/node_modules` estaba commiteado en git** (384 archivos,
+  9.3 MB): causa raíz, `.gitignore` solo tenía `/node_modules` (con `/` inicial, ancla la
+  regla a la raíz del repo) — nunca cubrió `docs/node_modules` (`docs/generate.js` usa el
+  paquete `docx` para generar Word/PDF, alguien corrió `npm install` ahí y quedó commiteado
+  por accidente). Corregido: `git rm -r --cached docs/node_modules` + `.gitignore` cambiado a
+  `node_modules/` sin `/` inicial (cubre cualquier subcarpeta futura, no solo `docs/`) — los
+  archivos siguen en disco, solo dejaron de estar trackeados.
+- **3 archivos/carpetas huérfanos eliminados** (verificado que nada los referencia antes de
+  borrar): `plan_campana_bitafly.docx` (en la **raíz** del repo, ni siquiera dentro de
+  `docs/` — se coló en un commit no relacionado de guion de video, confirmado por
+  `git log`), `docs/design.json` (452 KB) y `docs/extracted/` (páginas HTML exportadas) —
+  ambos son residuos del proyecto de Claude Design ya ejecutado y convertido en las páginas
+  reales de `src/app/` (ver **Sistema de Diseño**); `docs/generate.js` no los referencia en
+  ningún lado.
+- **5 rutas de código muerto eliminadas** (ya documentadas como candidatas en auditorías
+  previas, nunca borradas hasta ahora — re-verificado con grep antes de tocar, no solo
+  confiando en la documentación vieja): `api/form-settings`, `api/form-templates`,
+  `dashboard/records/[templateId]`, `api/sora` (el `route.js` raíz, consultaba una tabla
+  `sora_templates` que no existe — **no** `api/sora/assessments`, que sí es real y se dejó
+  intacto) y `dashboard/safety-config` (página huérfana sin ningún link desde la nav desde
+  2026-07-03). **Verificación adicional que evitó un error real**: al borrar la página
+  `dashboard/safety-config` se revisó si su API (`api/safety-config`) también quedaba
+  huérfana — **no** es el caso, `SoraWizard.js` la consume para cargar OSOs personalizados
+  en la evaluación SORA, así que `api/safety-config` (la API) se dejó intacta pese al nombre
+  compartido con la página borrada.
+- **`npm run lint` + `npm run build` limpios** tras la limpieza (mismos 3 warnings
+  preexistentes de siempre) — confirma que ninguna de las 5 rutas borradas tenía un caller
+  real que se rompiera.
+- **Deliberadamente diferido, pendiente de decisión del usuario** (no son bugs, son
+  decisiones de organización):
+  - Los documentos de negocio en `docs/` (`Bitafly_Pitch_Inversionistas.pptx`,
+    `Bitafly_Proyeccion_Financiera.xlsx`, `estatutos-bitafly-sas.docx`, etc.) — mezclados
+    con la documentación técnica viva (`.md`), pendiente de decidir si se quedan, se mueven
+    o se sacan del control de versiones.
+  - `demo-enterprise/` (app Next.js completa e independiente, el proyecto Vercel
+    `demo-bitafly-enterprise`) y `railway-robot/` (microservicio Express+Playwright que
+    automatiza el portal de AeroCivil, deploy propio a Railway) — ambos viven como carpetas
+    sueltas dentro de este repo sin ningún tooling de monorepo (workspaces/Turborepo) que
+    declare la relación. No es código muerto — ambos son funcionales y se usan — pero la
+    falta de estructura declarada es parte de por qué el repo "se siente desordenado".
 
 ---
 

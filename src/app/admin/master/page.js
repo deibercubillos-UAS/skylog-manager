@@ -590,7 +590,7 @@ export default function MasterPanel() {
                     ))}
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                   <div className="flex gap-1">
                     <input type="number" min="1" value={addonQty.pilot}
                       onChange={e => setAddonQty({ ...addonQty, pilot: e.target.value })}

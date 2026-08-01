@@ -4,6 +4,48 @@
 // ya activó el plan, el otro simplemente reescribe los mismos valores.
 import { uniqueSlug } from '@/lib/slugify';
 import { syncOrgMembership } from '@/lib/orgMembership';
+import { listSubscriptions, resolveSubscriptionEmail } from '@/lib/epayco';
+
+const ACTIVE_SUB_STATES = ['active', '1', 'activa', 'activo', 'approved', 'aprobado'];
+
+/**
+ * Verifica con ePayco si hay una suscripción activa para el email de un
+ * pending_registration y, si la hay, crea la cuenta. Única fuente de verdad
+ * compartida entre `activate-pending` (botón manual "Ya pagué") y
+ * `register-status` (polling automático de la pantalla de espera) — antes
+ * cada ruta reimplementaba su propia lógica y solo `activate-pending` de
+ * verdad consultaba ePayco, por lo que el polling automático nunca detectaba
+ * un pago confirmado por sí solo (dependía 100% del webhook, que no siempre
+ * llega — ver nota en api/epayco/webhook).
+ *
+ * @returns {string|null} userId si se activó la cuenta, null si sigue pendiente
+ */
+export async function reconcilePendingRegistration(supabase, pending) {
+  const email = pending.email.trim().toLowerCase();
+
+  const subscriptions = await listSubscriptions();
+  const emailCache = new Map();
+
+  let activeSub = null;
+  for (const s of subscriptions) {
+    const stateRaw = String(s.status || s.state || '').toLowerCase();
+    const isActive = !stateRaw || ACTIVE_SUB_STATES.some(a => stateRaw.includes(a));
+    if (!isActive) continue;
+
+    const subEmail = await resolveSubscriptionEmail(s, emailCache);
+    if (subEmail === email) { activeSub = s; break; }
+  }
+
+  if (!activeSub) return null;
+
+  const subId = activeSub.id || activeSub.uid || activeSub._id || activeSub.subscription_id || null;
+  return createAccountFromPendingRegistration(supabase, pending.email, {
+    planKey:        pending.plan_key,
+    billing:        pending.billing,
+    subscriptionId: subId,
+    ref:            null,
+  });
+}
 
 /**
  * Resuelve planKey/billing para un usuario a partir de su intent más reciente
@@ -152,6 +194,11 @@ export async function createAccountFromPendingRegistration(supabase, email, paym
     full_name:               `${firstName} ${lastName}`.trim(),
     role:                    normalizedRole,
     organization_id:         targetOrgId,
+    // Un perfil recién creado nunca tuvo una org activa antes — sin esto,
+    // private.user_org_id() (usada por casi todas las políticas RLS)
+    // devuelve null y cualquier lectura protegida por RLS falla en
+    // silencio. Ver el mismo fix en api/auth/register/route.js.
+    active_organization_id:  targetOrgId,
     phone:                   phone || null,
     city:                    city  || null,
     subscription_plan:       planKey,
@@ -173,6 +220,15 @@ export async function createAccountFromPendingRegistration(supabase, email, paym
   }
 
   // 6. Auto-crear registro de piloto
+  // ⚠️ Bug real confirmado (2026-07-26): el query builder de supabase-js v2
+  // es "thenable" pero NO implementa .catch() directo — llamarlo lanzaba
+  // sincrónicamente "e.from(...).insert(...).catch is not a function" y
+  // abortaba TODA la función antes del paso 7 (marcar pending_registration
+  // como completado), aunque el usuario/perfil ya se hubieran creado con
+  // éxito en los pasos 1-5. Efecto real observado: activate-pending seguía
+  // devolviendo "pending" al cliente pese a que la cuenta ya existía.
+  // Mismo patrón .then(() => {}, () => {}) ya usado en el resto del proyecto
+  // (ver POST /api/epayco/webhook) para ignorar errores no críticos.
   if (targetOrgId) {
     await supabase.from('pilots').insert([{
       organization_id: targetOrgId,
@@ -182,7 +238,7 @@ export async function createAccountFromPendingRegistration(supabase, email, paym
       phone:           phone || null,
       pilot_role:      'Piloto',
       is_active:       true,
-    }]).catch(() => {}); // no-crítico
+    }]).then(() => {}, () => {}); // no-crítico
   }
 
   // 7. Marcar pending_registration como completado

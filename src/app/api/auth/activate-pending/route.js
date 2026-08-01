@@ -12,8 +12,7 @@
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { listSubscriptions } from '@/lib/epayco';
-import { createAccountFromPendingRegistration } from '@/lib/epaycoActivation';
+import { reconcilePendingRegistration } from '@/lib/epaycoActivation';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 
 export const dynamic = 'force-dynamic';
@@ -53,42 +52,11 @@ export async function POST(request) {
     }
 
     // 2. Consultar ePayco para ver si hay suscripción activa para este email
-    const email = pending.email.trim().toLowerCase();
-
     try {
-      const subscriptions = await listSubscriptions();
-
-      const ACTIVE_STATES = ['active', '1', 'activa', 'activo', 'approved', 'aprobado'];
-
-      const activeSub = subscriptions.find(s => {
-        const subEmail = (
-          s.customer_data?.email  ||
-          s.email                 ||
-          s.cliente?.email        ||
-          s.subscriber?.email     ||
-          s.payer?.email          || ''
-        ).trim().toLowerCase();
-
-        const stateRaw = String(s.status || s.state || '').toLowerCase();
-        const isActive = !stateRaw || ACTIVE_STATES.some(a => stateRaw.includes(a));
-
-        return subEmail === email && isActive;
-      });
-
-      if (activeSub) {
-        const subId = activeSub.id || activeSub.uid || activeSub._id || activeSub.subscription_id || null;
-
-        const userId = await createAccountFromPendingRegistration(supabase, pending.email, {
-          planKey:        pending.plan_key,
-          billing:        pending.billing,
-          subscriptionId: subId,
-          ref:            null,
-        });
-
-        if (userId) {
-          console.log(`[epayco] ✓ activate-pending — Cuenta creada manualmente: user=${userId} plan=${pending.plan_key}`);
-          return NextResponse.json({ status: 'completed', plan_key: pending.plan_key });
-        }
+      const userId = await reconcilePendingRegistration(supabase, pending);
+      if (userId) {
+        console.log(`[epayco] ✓ activate-pending — Cuenta creada manualmente: user=${userId} plan=${pending.plan_key}`);
+        return NextResponse.json({ status: 'completed', plan_key: pending.plan_key });
       }
     } catch (epaycoErr) {
       // No-crítico: si la API de ePayco falla, devolvemos 'pending' para que el usuario

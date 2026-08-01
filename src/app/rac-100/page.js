@@ -3,6 +3,7 @@ import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import SEOBreadcrumb from '@/components/seo/SEOBreadcrumb';
 import SocialProofStrip from '@/components/seo/SocialProofStrip';
+import RelatedReading from '@/components/seo/RelatedReading';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
 import { ComplianceScene, ReportsScene } from '@/components/landing/Illustrations';
@@ -226,6 +227,12 @@ export default function RAC100Page() {
         </div>
         </div>
       </div>
+
+      <RelatedReading items={[
+        { href: '/blog/checklist-vuelo-drones-rac-100-colombia', title: 'Checklist de vuelo para drones RAC 100: todo lo que debes verificar' },
+        { href: '/blog/formatos-aerocivil-drones-colombia', title: 'Formatos de control documental RAC 100 para drones' },
+        { href: '/blog/como-registrar-drone-uaeac-colombia-2025', title: 'Cómo registrar tu dron ante la UAEAC en Colombia' },
+      ]} />
 
       <SEOFooter brandDesc="Cumplimiento RAC 100 para operadores UAS en Colombia. F-OPS-002, F-MNT-003, F-HUM-005 y SMS aeronáutico." />
     </>

@@ -106,6 +106,12 @@ export async function POST(request) {
                 full_name:        `${firstName} ${lastName}`.trim(),
                 role,
                 organization_id:  targetOrgId,
+                // Un perfil recién creado nunca tuvo una org activa antes —
+                // sin esto, private.user_org_id() (usada por casi todas las
+                // políticas RLS) devuelve null y cualquier lectura protegida
+                // por RLS (ej. organizations, para el nombre en el header)
+                // falla en silencio hasta que el usuario use el switcher.
+                active_organization_id: targetOrgId,
                 phone:            phone || null,
                 city:             city  || null,
                 subscription_plan: 'piloto',
@@ -123,42 +129,51 @@ export async function POST(request) {
             // Si la org ya tenía un piloto con este email (p.ej. importado o invitado),
             // se reutiliza esa fila: se vincula al perfil y se marca como aceptado
             // (evita duplicados y el badge "Invitación pendiente" permanente).
-            const emailLc = String(email || '').trim().toLowerCase();
-            const { data: existingPilot } = await supabaseAdmin
-                .from('pilots')
-                .select('id')
-                .eq('organization_id', targetOrgId)
-                .ilike('email', emailLc)
-                .maybeSingle();
+            // Todo este bloque va en su propio try/catch: para este punto la cuenta
+            // (auth user + profile + organization_members) ya quedó creada y
+            // confirmada — un error aquí (red, timeout, lo que sea) no debe
+            // devolver 400 y hacerle creer al usuario que el registro falló
+            // cuando en realidad ya tiene cuenta activa en la organización.
+            try {
+                const emailLc = String(email || '').trim().toLowerCase();
+                const { data: existingPilot, error: existingPilotErr } = await supabaseAdmin
+                    .from('pilots')
+                    .select('id')
+                    .eq('organization_id', targetOrgId)
+                    .ilike('email', emailLc)
+                    .maybeSingle();
+                if (existingPilotErr) throw existingPilotErr;
 
-            if (existingPilot) {
-                await supabaseAdmin.from('pilots').update({
-                    owner_id:          authData.user.id,
-                    profile_id:        authData.user.id,
-                    invitation_status: 'accepted',
-                    is_active:         true,
-                    phone:             phone || undefined,
-                }).eq('id', existingPilot.id).catch(() => {});
-            } else {
-                await supabaseAdmin.from('pilots').insert([{
-                    organization_id: targetOrgId,
-                    owner_id:        authData.user.id,
-                    profile_id:      authData.user.id,
-                    name:            `${firstName} ${lastName}`.trim(),
-                    email,
-                    phone:           phone || null,
-                    pilot_role:      'Piloto',
-                    is_active:       true,
-                }]).catch(() => {});
+                if (existingPilot) {
+                    await supabaseAdmin.from('pilots').update({
+                        owner_id:          authData.user.id,
+                        profile_id:        authData.user.id,
+                        invitation_status: 'accepted',
+                        is_active:         true,
+                        phone:             phone || undefined,
+                    }).eq('id', existingPilot.id);
+                } else {
+                    await supabaseAdmin.from('pilots').insert([{
+                        organization_id: targetOrgId,
+                        owner_id:        authData.user.id,
+                        profile_id:      authData.user.id,
+                        name:            `${firstName} ${lastName}`.trim(),
+                        email,
+                        phone:           phone || null,
+                        pilot_role:      'Piloto',
+                        is_active:       true,
+                    }]);
+                }
+
+                // Marcar como aceptada cualquier invitación pendiente para este email/org.
+                await supabaseAdmin.from('invitations')
+                    .update({ status: 'accepted', accepted_at: new Date().toISOString() })
+                    .eq('organization_id', targetOrgId)
+                    .ilike('email', emailLc)
+                    .eq('status', 'pending');
+            } catch (linkErr) {
+                console.warn('[register/join] no se pudo vincular piloto/invitación existente:', linkErr?.message || linkErr);
             }
-
-            // Marcar como aceptada cualquier invitación pendiente para este email/org.
-            await supabaseAdmin.from('invitations')
-                .update({ status: 'accepted', accepted_at: new Date().toISOString() })
-                .eq('organization_id', targetOrgId)
-                .ilike('email', emailLc)
-                .eq('status', 'pending')
-                .catch(() => {});
 
             return NextResponse.json({ success: true });
         }
@@ -202,9 +217,12 @@ export async function POST(request) {
                 unique_code:  uniqueCode,
                 slug:         orgSlug,
             };
-            // Guardar NIT también en tax_id si es una empresa
+            // Guardar NIT también en tax_id si es una empresa — normalizado
+            // (sin espacios/puntos/guiones) para que siempre coincida con la
+            // búsqueda de /api/auth/validate-join, join-org y
+            // join-org-additional, que normalizan igual antes de comparar.
             if (normalizedRole === 'admin' && nit) {
-                orgInsert.tax_id = nit.replace(/\s|\./g, '');
+                orgInsert.tax_id = nit.replace(/[\s\-.]/g, '');
             }
 
             const { data: org, error: orgErr } = await supabaseAdmin.from('organizations').insert([orgInsert]).select().single();
@@ -261,6 +279,8 @@ export async function POST(request) {
             full_name: `${firstName} ${lastName}`,
             role: normalizedRole,           // ← siempre el rol validado, nunca el del body
             organization_id: targetOrgId,
+            // Ver comentario equivalente en el flujo joinMode más arriba.
+            active_organization_id: targetOrgId,
             phone,
             city,
             subscription_plan: 'piloto',

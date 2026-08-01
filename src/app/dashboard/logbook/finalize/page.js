@@ -173,7 +173,7 @@ export default function FinalizeFlightPage() {
             </header>
 
             <main className="flex-1 overflow-y-auto p-4 md:p-12">
-                <div className="max-w-xl mx-auto space-y-6 md:space-y-8 pb-20">
+                <div className="max-w-xl mx-auto space-y-6 md:space-y-8 pb-[max(5rem,calc(2rem+env(safe-area-inset-bottom,16px)))]">
 
                     {openFlights.length === 0 ? (
                         <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-200 text-center space-y-6 animate-in slide-in-from-bottom duration-500">
@@ -196,7 +196,7 @@ export default function FinalizeFlightPage() {
                                         </div>
                                         <span className="px-3 py-1 bg-orange-600 text-xs font-black rounded-full animate-pulse">EN VUELO</span>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-white/10 pt-4">
                                         <div>
                                             <p className="text-xs font-black text-slate-500 uppercase">Aeronave / S/N</p>
                                             <p className="text-xs font-bold truncate">{selectedFlight.aircraft?.model}</p>

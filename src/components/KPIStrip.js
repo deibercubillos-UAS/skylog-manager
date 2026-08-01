@@ -1,5 +1,7 @@
 'use client';
 
+import { memo } from 'react';
+
 /**
  * Tarjeta individual de indicador clave (KPI). Extraída del componente
  * KPICard que hoy vive inline en src/app/dashboard/DashboardClient.js,
@@ -8,7 +10,7 @@
  * Se exporta también suelta por si algún módulo necesita una sola tarjeta
  * fuera de la grilla de KPIStrip.
  */
-export function KPICard({ title, value, icon, warning, color, trend, hero, sub, className }) {
+function KPICardBase({ title, value, icon, warning, color, trend, hero, sub, className }) {
   const trendLabel = trend !== null && trend !== undefined
     ? `${trend >= 0 ? 'Subió' : 'Bajó'} ${Math.abs(trend)}% vs mes anterior`
     : null;
@@ -44,6 +46,11 @@ export function KPICard({ title, value, icon, warning, color, trend, hero, sub, 
   );
 }
 
+// Props de KPICard/KPIStripItem son primitivas (strings/numbers/booleans) — se
+// comparan por valor en el shallow-compare de React.memo, así que memoizar es
+// efectivo aunque el `items` array del llamador se reconstruya cada render.
+export const KPICard = memo(KPICardBase);
+
 /**
  * Ítem individual de la variante "strip" (franja sin cajas, separadores
  * verticales) — patrón del mockup Dashboard Layout 1a. Distinto shape que
@@ -52,7 +59,7 @@ export function KPICard({ title, value, icon, warning, color, trend, hero, sub, 
  *
  * item: { icon, iconColor?, label, value, unit?, delta?, deltaTone: 'positive'|'neutral' }
  */
-function KPIStripItem({ icon, iconColor, label, value, unit, delta, deltaTone }) {
+const KPIStripItem = memo(function KPIStripItem({ icon, iconColor, label, value, unit, delta, deltaTone }) {
   return (
     <div className="flex-1 px-4 md:px-6 border-l border-slate-200 first:border-l-0 sm:first:border-l">
       <div className="flex items-center gap-1.5">
@@ -72,7 +79,7 @@ function KPIStripItem({ icon, iconColor, label, value, unit, delta, deltaTone })
       )}
     </div>
   );
-}
+});
 
 /**
  * Grilla de KPICard reutilizable — mismo layout (grid-cols-2 md:grid-cols-4)

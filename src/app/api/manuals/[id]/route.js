@@ -19,21 +19,24 @@ export async function GET(_req, { params }) {
       return NextResponse.json({ error: 'Sin permiso para ver manuales.' }, { status: 403 });
     }
 
-    const { data: manual, error: mErr } = await supabase
-      .from('company_manuals')
-      .select('id,title,category,current_version,current_effective_date,current_file_path,status,created_at,updated_at')
-      .eq('id', params.id)
-      .eq('organization_id', orgId)
-      .maybeSingle();
+    // Ambas consultas filtran directo por params.id/orgId — ninguna depende
+    // del resultado de la otra, se corren en paralelo.
+    const [{ data: manual, error: mErr }, { data: versions, error: vErr }] = await Promise.all([
+      supabase
+        .from('company_manuals')
+        .select('id,title,category,current_version,current_effective_date,current_file_path,status,created_at,updated_at')
+        .eq('id', params.id)
+        .eq('organization_id', orgId)
+        .maybeSingle(),
+      supabase
+        .from('manual_versions')
+        .select('id,version,effective_date,file_path,comments,uploaded_by,created_at')
+        .eq('manual_id', params.id)
+        .eq('organization_id', orgId)
+        .order('created_at', { ascending: false }),
+    ]);
     if (mErr) throw mErr;
     if (!manual) return NextResponse.json({ error: 'Manual no encontrado' }, { status: 404 });
-
-    const { data: versions, error: vErr } = await supabase
-      .from('manual_versions')
-      .select('id,version,effective_date,file_path,comments,uploaded_by,created_at')
-      .eq('manual_id', params.id)
-      .eq('organization_id', orgId)
-      .order('created_at', { ascending: false });
     if (vErr) throw vErr;
 
     return NextResponse.json({ ...manual, versions: versions || [] });
@@ -95,20 +98,23 @@ export async function DELETE(_req, { params }) {
 
     const admin = createAdminClient();
 
-    // Verificar pertenencia + recolectar paths de todas las versiones
-    const { data: manual } = await admin
-      .from('company_manuals')
-      .select('id')
-      .eq('id', params.id)
-      .eq('organization_id', orgId)
-      .maybeSingle();
+    // Verificar pertenencia + recolectar paths de todas las versiones.
+    // Ambas consultas filtran directo por params.id/orgId — independientes,
+    // se corren en paralelo (igual que en el GET de arriba).
+    const [{ data: manual }, { data: versions }] = await Promise.all([
+      admin
+        .from('company_manuals')
+        .select('id')
+        .eq('id', params.id)
+        .eq('organization_id', orgId)
+        .maybeSingle(),
+      admin
+        .from('manual_versions')
+        .select('file_path')
+        .eq('manual_id', params.id)
+        .eq('organization_id', orgId),
+    ]);
     if (!manual) return NextResponse.json({ error: 'Manual no encontrado' }, { status: 404 });
-
-    const { data: versions } = await admin
-      .from('manual_versions')
-      .select('file_path')
-      .eq('manual_id', params.id)
-      .eq('organization_id', orgId);
 
     const paths = (versions || []).map(v => v.file_path).filter(Boolean);
     if (paths.length > 0) {

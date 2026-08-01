@@ -5,14 +5,43 @@ import { supabase } from '@/lib/supabase';
 import AuthSidePanel from '@/components/AuthSidePanel';
 import { trackEvent } from '@/lib/analytics';
 import { attributionParams, getAttribution } from '@/lib/attribution';
+import { fmtCOP } from '@/lib/formatters';
 
-// ── Planes (solo para el flujo "crear") ───────────────────────────────────────
-const PLANS = [
-  { key: 'piloto',      name: 'Piloto',      price: '15 días gratis', sub: 'luego $20.000/mes',           limits: '1 dron · 1 usuario',   icon: 'person',                rawPrice: 0 },
-  { key: 'escuadrilla', name: 'Escuadrilla', price: '$59.000/mes',   sub: 'o $590.000/año (−20%)',       limits: '3 drones · 4 usuarios', icon: 'group',                popular: true, paid: true, rawPrice: 59000 },
-  { key: 'flota',       name: 'Flota',       price: '$159.000/mes',  sub: 'o $1.590.000/año (−20%)',     limits: '10 drones · 10 usuarios', icon: 'precision_manufacturing', paid: true,  rawPrice: 159000 },
-  { key: 'enterprise',  name: 'Enterprise',  price: 'A consultar',   sub: 'contactar ventas',            limits: 'Ilimitado',             icon: 'rocket_launch',        contact: true, rawPrice: 0 },
+// ── Planes (solo para el flujo "crear") ─────────────────────────────────────
+// Precios fallback en COP — se sobrescriben con los reales de
+// GET /api/plans/public (epayco_plan_config) al montar, mismo patrón que
+// /precios (PreciosClient.js) y /admin/master. Sin el fetch, esta página
+// quedaba mostrando precios desactualizados (ver bug real encontrado en QA:
+// esta página mostraba Escuadrilla $59.000/Flota $159.000 mientras el precio
+// real vigente era $149.900/$249.899 — el usuario veía un precio en el
+// selector de plan distinto al que ePayco termina cobrando en el checkout).
+const PLANS_BASE = [
+  { key: 'piloto',      name: 'Piloto',      monthlyAmount: 20000,  annualAmount: 200000,   trialDays: 15, limits: '1 dron · 1 usuario',   icon: 'person' },
+  { key: 'escuadrilla', name: 'Escuadrilla', monthlyAmount: 59000,  annualAmount: 590000,   trialDays: null, limits: '3 drones · 4 usuarios', icon: 'group', popular: true, paid: true },
+  { key: 'flota',       name: 'Flota',       monthlyAmount: 159000, annualAmount: 1590000,  trialDays: null, limits: '10 drones · 10 usuarios', icon: 'precision_manufacturing', paid: true },
+  { key: 'enterprise',  name: 'Enterprise',  monthlyAmount: null,   annualAmount: null,     trialDays: null, limits: 'Ilimitado',             icon: 'rocket_launch', contact: true },
 ];
+
+function buildPlans(livePrices) {
+  return PLANS_BASE.map(plan => {
+    const pd = livePrices?.[plan.key];
+    const monthlyAmount = pd?.monthly?.amount ?? plan.monthlyAmount;
+    const annualAmount  = pd?.annual?.amount  ?? plan.annualAmount;
+    const trialDays     = pd?.monthly?.trialDays ?? pd?.annual?.trialDays ?? plan.trialDays;
+    if (plan.contact) {
+      return { ...plan, price: 'A consultar', sub: 'contactar ventas', rawPrice: 0 };
+    }
+    if (!plan.paid) {
+      return { ...plan, price: `${trialDays || 15} días gratis`, sub: `luego ${fmtCOP(monthlyAmount)}/mes`, rawPrice: 0 };
+    }
+    return {
+      ...plan,
+      price: `${fmtCOP(monthlyAmount)}/mes`,
+      sub: `o ${fmtCOP(annualAmount)}/año (−20%)`,
+      rawPrice: monthlyAmount,
+    };
+  });
+}
 
 const ROLES_JOIN = [
   { key: 'piloto',       label: 'Piloto',         icon: 'flight_takeoff',   sub: 'Opero los drones' },
@@ -73,6 +102,16 @@ export default function RegisterPage() {
   const [joinError,      setJoinError]      = useState('');
   const [joinLoading,    setJoinLoading]    = useState(false);
   const [joinShowPass,   setJoinShowPass]   = useState(false);
+
+  // Precios reales — sobrescriben PLANS_BASE al cargar (ver nota junto a PLANS_BASE)
+  const [livePrices, setLivePrices] = useState(null);
+  useEffect(() => {
+    fetch('/api/plans/public')
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => { if (data && !data.error) setLivePrices(data); })
+      .catch(() => {});
+  }, []);
+  const PLANS = buildPlans(livePrices);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const set    = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
@@ -140,6 +179,27 @@ export default function RegisterPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPaidPlan]);
 
+  // ── Auto-login tras confirmar el pago ──────────────────────────────────────
+  // Antes, al confirmarse el pago (por polling o por el botón "Ya pagué") solo
+  // se mostraba una pantalla de éxito con un link manual a /login — el usuario
+  // tenía que volver a escribir su correo/contraseña para entrar, pese a que ya
+  // los había ingresado en el formulario de registro segundos antes. Mismo
+  // patrón de auto-login que ya usa handleRegisterFree() para el plan gratuito.
+  const enterAfterPayment = useCallback(async () => {
+    setPayStatus('entering');
+    const { error: signInErr } = await supabase.auth.signInWithPassword({
+      email: form.email, password: form.password,
+    });
+    if (signInErr) {
+      // Fallback: la cuenta sí se activó (ya lo confirmó el backend), pero el
+      // auto-login falló por algún motivo — no bloquear al usuario, solo
+      // pedirle iniciar sesión manualmente esta vez.
+      setPayStatus('completed');
+      return;
+    }
+    window.location.href = '/dashboard';
+  }, [form.email, form.password]);
+
   // ── Verificación de estado (polling) ───────────────────────────────────────
   // ⚠️ Definir ANTES del efecto que lo referencia en sus deps (evita TDZ → crash).
   const checkStatus = useCallback(async (ref) => {
@@ -155,13 +215,13 @@ export default function RegisterPage() {
           items: [{ item_id: form.selectedPlan, item_name: `BitaFly ${form.selectedPlan}` }],
           ...attributionParams(),
         });
-        setPayStatus('completed');
+        enterAfterPayment();
       } else if (data.status === 'expired' || data.status === 'not_found') {
         if (pollRef.current) clearInterval(pollRef.current);
         setPayStatus('expired');
       }
     } catch { /* silencioso */ }
-  }, [form.selectedPlan]);
+  }, [form.selectedPlan, PLANS, enterAfterPayment]);
 
   const startPolling = useCallback((ref) => {
     if (pollRef.current) clearInterval(pollRef.current);
@@ -189,7 +249,7 @@ export default function RegisterPage() {
         body: JSON.stringify({ ref: pendingRef }),
       });
       const data = await res.json();
-      if (data.status === 'completed') setPayStatus('completed');
+      if (data.status === 'completed') await enterAfterPayment();
       else if (data.status === 'expired') setPayStatus('expired');
       else {
         // Aún pendiente
@@ -229,7 +289,12 @@ export default function RegisterPage() {
       if (!res.ok) throw new Error(data.error || 'Error al iniciar el pago');
       setPendingRef(data.reference);
       setCreateStep(4);
-      window.open(data.epaycoUrl, '_blank', 'noopener');
+      // Sin 'noopener': igual que dashboard/subscription/page.js, se necesita
+      // la referencia window.opener para que la pestaña de ePayco pueda
+      // detectarse a sí misma como popup y autocerrarse al terminar (ver
+      // dashboard/subscription/response/page.js). Con 'noopener' esa pestaña
+      // no tenía forma de saberlo y se quedaba abierta sin volver a Bitafly.
+      window.open(data.epaycoUrl, '_blank');
       startPolling(data.reference);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -513,7 +578,7 @@ export default function RegisterPage() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Field label="Nombre" required>
                     <input required placeholder="Carlos" value={joinForm.firstName} onChange={setJ('firstName')} className={INPUT} />
                   </Field>
@@ -541,7 +606,7 @@ export default function RegisterPage() {
                   </div>
                 </Field>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Field label="Teléfono">
                     <input placeholder="+57 300 000 0000" value={joinForm.phone} onChange={setJ('phone')} className={INPUT} />
                   </Field>
@@ -688,7 +753,7 @@ export default function RegisterPage() {
                 <p className="text-slate-500 text-sm mt-1">Información de tu cuenta Bitafly.</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Nombre" required><input required placeholder="Carlos" value={form.firstName} onChange={set('firstName')} className={INPUT} /></Field>
                 <Field label="Apellido" required><input required placeholder="Rodríguez" value={form.lastName} onChange={set('lastName')} className={INPUT} /></Field>
               </div>
@@ -724,7 +789,7 @@ export default function RegisterPage() {
                 </div>
               </Field>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Teléfono"><input placeholder="+57 300 000 0000" value={form.phone} onChange={set('phone')} className={INPUT} /></Field>
                 <Field label="Ciudad"><input placeholder="Bogotá" value={form.city} onChange={set('city')} className={INPUT} /></Field>
               </div>
@@ -867,6 +932,18 @@ export default function RegisterPage() {
                     </button>
                   </div>
                 </>
+              )}
+
+              {payStatus === 'entering' && (
+                <div className="text-center space-y-5 animate-in fade-in duration-500">
+                  <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
+                    <span className="material-symbols-outlined text-4xl text-emerald-500 animate-spin">progress_activity</span>
+                  </div>
+                  <div>
+                    <h1 className="font-lexend text-3xl font-black text-navy uppercase tracking-tighter">¡Pago confirmado!</h1>
+                    <p className="text-slate-500 text-sm mt-2">Ingresando a tu cuenta...</p>
+                  </div>
+                </div>
               )}
 
               {payStatus === 'completed' && (

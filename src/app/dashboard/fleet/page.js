@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
@@ -277,7 +277,11 @@ export default function FleetPage() {
 
   const maintenanceCount = activeDrones.filter(d => d.operational_status === 'en_mantenimiento').length;
 
-  const handleDeleteTech = (id) => {
+  // useCallback: TechCard está memoizado con React.memo — sin esto, `onDelete` sería
+  // una función nueva en cada render y anularía el memo. `tech` sigue en las deps
+  // porque el closure lo usa para el rollback en caso de error (mismo comportamiento,
+  // solo con identidad estable entre renders donde `tech` no cambió).
+  const handleDeleteTech = useCallback((id) => {
     setConfirmDlg({
       isOpen: true,
       title: '¿Eliminar este equipo?',
@@ -298,7 +302,7 @@ export default function FleetPage() {
         }
       },
     });
-  };
+  }, [tech]);
 
   if (loading) return <div className="p-20 text-center font-black animate-pulse text-slate-400">CARGANDO INVENTARIO TÉCNICO...</div>;
 
@@ -355,13 +359,13 @@ export default function FleetPage() {
               value={search} onChange={e => setSearch(e.target.value)}
             />
           </div>
-          <div className="flex flex-wrap gap-2">
-            <select aria-label="Filtrar por estado" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+            <select aria-label="Filtrar por estado" className="w-full sm:w-auto p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
               <option value="">Todos los estados</option>
               <option value="operativo">Operativo</option>
               <option value="en_mantenimiento">En mantenimiento</option>
             </select>
-            <select aria-label="Filtrar por modelo" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={modelFilter} onChange={e => setModelFilter(e.target.value)}>
+            <select aria-label="Filtrar por modelo" className="w-full sm:w-auto p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={modelFilter} onChange={e => setModelFilter(e.target.value)}>
               <option value="">Todos los modelos</option>
               {uniqueModels.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
@@ -467,7 +471,7 @@ export default function FleetPage() {
         </header>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {tech.map(t => (
-            <TechCard key={t.id} item={t} onEdit={setEditingTech} onDelete={(id) => handleDeleteTech(id)} canManage={canManage} />
+            <TechCard key={t.id} item={t} onEdit={setEditingTech} onDelete={handleDeleteTech} canManage={canManage} />
           ))}
         </div>
       </section>

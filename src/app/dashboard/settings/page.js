@@ -172,7 +172,14 @@ const removeAuth = (idx) => setOrg({ ...org, authorized_operations: org.authoriz
                 .from('organizations')
                 .update({
                     company_name: org.company_name,
-                    tax_id: org.tax_id,
+                    // Normalizado (sin espacios/puntos/guiones) — el registro
+                    // de una empresa nueva ya guarda el NIT así (ver
+                    // /api/auth/register); si aquí se guardara tal cual lo
+                    // escribe el usuario (ej. con el guion del NIT
+                    // "900123456-7"), "Unirme a organización" dejaría de
+                    // encontrar la empresa, porque validate-join/join-org/
+                    // join-org-additional buscan siempre normalizado.
+                    tax_id: org.tax_id ? org.tax_id.replace(/[\s\-.]/g, '').toUpperCase() : org.tax_id,
                     tax_id_type: org.tax_id_type,
                     dan_number: org.dan_number,
                     legal_rep: org.legal_rep,
@@ -340,7 +347,7 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
 
                 <div className="p-5 md:p-7 space-y-4">
                     {/* Pasos visuales */}
-                    <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
                         {[
                             { icon: 'download', label: '1. Descargar', desc: 'Plantilla .xlsx con 8 hojas guiadas' },
                             { icon: 'edit',     label: '2. Llenar',    desc: 'Org · Tripulación · Flota · Baterías · más' },
@@ -459,7 +466,7 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                             <label className={labelCls}>Razón social</label>
                             <input required className={inputCls} value={org.company_name || ''} onChange={e => setOrg({...org, company_name: e.target.value})} />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <label className={labelCls}>Tipo de identificación</label>
                                 <select className={inputCls} value={org.tax_id_type || 'NIT'} onChange={e => setOrg({...org, tax_id_type: e.target.value})}>
@@ -477,7 +484,7 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                             <label className={labelCls}>Correo corporativo</label>
                             <input type="email" className={inputCls} value={org.operator_email || ''} onChange={e => setOrg({...org, operator_email: e.target.value})} />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <label className={labelCls}>Teléfono</label>
                                 <input className={inputCls} value={org.phone || ''} onChange={e => setOrg({...org, phone: e.target.value})} />
@@ -495,7 +502,7 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
 
                     <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-7 space-y-4">
                         <p className="text-[11px] font-black uppercase tracking-wide text-orange-600 border-b border-slate-100 pb-3">Registro AeroCivil</p>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <label className={labelCls}>N.º Explotador (DAN)</label>
                                 <input className={inputCls} value={org.dan_number || ''} onChange={e => setOrg({...org, dan_number: e.target.value})} />
@@ -738,7 +745,7 @@ const daysUntil = (date) => Math.ceil((new Date(date) - new Date()) / (1000 * 60
                 <input id="policy-number" required className="w-full p-4 bg-slate-50 rounded-2xl border-none font-mono font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={policyForm.policy_number} onChange={e => setPolicyForm({...policyForm, policy_number: e.target.value})} />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                     <label htmlFor="policy-start" className="text-xs font-black uppercase text-slate-600 ml-1">Inicio Cobertura</label>
                     <input id="policy-start" required type="date" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500" value={policyForm.start_date} onChange={e => setPolicyForm({...policyForm, start_date: e.target.value})} />

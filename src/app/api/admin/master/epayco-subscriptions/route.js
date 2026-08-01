@@ -3,7 +3,7 @@
 
 import { NextResponse } from 'next/server';
 import { createAdminClient, createClient } from '@/lib/supabaseServer';
-import { listSubscriptions, cancelSubscription } from '@/lib/epayco';
+import { listSubscriptions, cancelSubscription, resolveSubscriptionEmail } from '@/lib/epayco';
 import { syncOrgMembership } from '@/lib/orgMembership';
 
 export const dynamic = 'force-dynamic';
@@ -24,15 +24,19 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 });
 
     const subs = await listSubscriptions();
-    // Normalizar estructura variable de la respuesta de ePayco
-    const normalized = subs.map(s => ({
+    // Normalizar estructura variable de la respuesta de ePayco.
+    // ⚠️ El email nunca viene directo en la suscripción (solo idCustomer) —
+    // se resuelve vía resolveSubscriptionEmail() (bug real confirmado
+    // 2026-07-26, ver lib/epayco.js) en vez de mostrar "—" siempre.
+    const emailCache = new Map();
+    const normalized = await Promise.all(subs.map(async s => ({
       id:         s.id         || s._id         || s.uid         || s.subscription_id || null,
-      email:      s.customer_data?.email || s.email || s.cliente?.email || s.subscriber?.email || '—',
+      email:      (await resolveSubscriptionEmail(s, emailCache)) || '—',
       status:     s.status     || '—',
       plan:       s.plan?.name || s.id_plan     || s.plan_id     || '—',
       created_at: s.created_at || s.date_created || null,
       _raw: s,
-    }));
+    })));
 
     return NextResponse.json(normalized);
   } catch (err) {

@@ -1,208 +1,422 @@
-# Plan de Auditoría y Mejora Mobile — BitaFly Dashboard
+# Plan de Auditoría y Mejora Visual en Celular — BitaFly
 
 ## Objetivo
 
-Revisar toda la app (`/dashboard/**`, módulo por módulo, sección por sección, pestaña por
-pestaña) en tamaño de celular y dejar un plan ejecutable por fases para que quede
-organizada, simétrica, sin campos ni tarjetas desproporcionadamente grandes, con
-espaciado consistente y objetivos táctiles de tamaño adecuado.
+Revisar **todo el frontend en tamaño de celular** (375-430px de ancho, el rango real de
+iPhone SE hasta iPhone Pro Max / Android estándar), módulo por módulo, pestaña por
+pestaña, y dejar un plan ejecutable en fases para corregir lo que no se vea organizado,
+simétrico o cómodo de usar con el dedo — sin rediseñar de cero lo que ya funciona bien.
 
-**Estado de cada fase**: `[ ] Pendiente` · `[~] En ejecución` · `[x] Verificada`
+**Cómo se ejecuta este documento**: cada fase es independiente y verificable por
+separado. No se avanza a la siguiente fase hasta que el usuario lo pida explícitamente
+("sigue con la Fase X"). Cada fase termina con `next lint` + `npm run build` limpios y
+una nota de qué se cambió, siguiendo la misma convención de los demás `docs/plan-*.md`
+del proyecto.
 
----
-
-## Metodología y limitación real (leer antes de ejecutar cualquier fase)
-
-Este documento se armó en dos pasos:
-
-1. **Criterios objetivos**: se consultó la skill `ui-ux-pro-max` (base de datos local de
-   reglas UX priorizadas) para fijar el estándar contra el que se evalúa cada pantalla —
-   ver tabla de criterios abajo.
-2. **Evidencia real de código**: barrido con `grep` sobre todo `src/app/dashboard` y
-   `src/components` buscando los anti-patrones concretos de la tabla de criterios (grids
-   sin variante responsive, anchos fijos en px, tablas sin scroll horizontal, `h-screen`,
-   etc.) — cada hallazgo listado abajo tiene archivo y contexto real, no es una suposición
-   genérica.
-
-**⚠️ Limitación importante, no resuelta**: en este entorno no hay acceso de red a
-`bitafly.com` ni a las URLs de Vercel (política de red del entorno, ver conversación de
-auditoría del 2026-07-22), y no hay navegador disponible — así que **nada de esto fue
-verificado visualmente en un viewport de celular real**. Es una auditoría estática de
-patrones de código (Tailwind/JSX), no una inspección visual pixel a pixel. Cada fase
-incluye un paso final "Verificar visualmente" que **debes hacer tú** (o quien ejecute la
-fase) en un navegador real a 375px/390px de ancho antes de marcarla como `[x]`.
-
-### Criterios (de la skill `ui-ux-pro-max`, dominio `ux`)
-
-| # | Criterio | Regla concreta | Severidad |
-|---|---|---|---|
-| 1 | Mobile first | Estilos base para mobile, variantes `sm:`/`md:`/`lg:` para ensanchar — nunca al revés | Media |
-| 2 | Objetivos táctiles | Mínimo 44×44px, separación mínima 8px entre elementos clicables adyacentes | **Alta** |
-| 3 | Grids/columnas | `grid-cols-N` (N≥3) siempre con fallback de 1-2 columnas en mobile | **Alta** |
-| 4 | Tablas | Nunca una tabla ancha sin envolver en `overflow-x-auto`, o mejor, layout de tarjetas en mobile | Media |
-| 5 | Anchos fijos | Evitar `w-[Npx]` fijo en contenedores/campos que no colapsan a `w-full` en mobile | Media |
-| 6 | Altura de viewport | `h-screen` es poco confiable en navegadores móviles (barra de dirección) → usar `min-h-dvh`/`min-h-screen` | Media |
-| 7 | Texto | Mínimo `text-base` (16px) para texto de cuerpo — `text-xs` solo para metadatos/etiquetas, nunca contenido principal | **Alta** |
-| 8 | Formularios | Etiqueta visible (no solo placeholder), validación en `onBlur`, indicador de campo requerido, feedback de envío | Media |
-| 9 | Navegación | Back predecible, navegación inferior ≤5 ítems, sin desbordamiento horizontal | **Alta** |
-| 10 | Layout shift | Reservar espacio para contenido async (imágenes, gráficas) para evitar saltos de layout | Media |
+**Estado de cada fase**: `[ ] Pendiente` · `[~] En progreso` · `[x] Hecha`
 
 ---
 
-## Inventario y evidencia real por fase
+## Criterios de revisión (aplican a cada pantalla, en las 3 fases del viewport 375 / 390 / 430px)
 
-Cada fase agrupa páginas por el mismo criterio que ya usa el propio sidebar de la app
-(`NAV_GROUPS` en `dashboard/layout.js`), más 2 fases transversales al principio/final
-porque tienen el mayor apalancamiento (un fix ahí mejora muchas pantallas a la vez).
-
-### Fase 0 — Shell global (sidebar, header, navegación inferior, wizard kiosko)
-
-Afecta a **todas** las páginas — máxima prioridad, hazla primero.
-
-- [ ] `src/app/dashboard/layout.js` — contiene 3 hits de `h-screen`/anchos fijos en el
-  barrido (línea con `w-[` en el popover de cuenta/switcher — revisar que colapse bien
-  <375px) y es el único archivo que renderiza el sidebar + `bottomNavLinks` para todos.
-  Verificar: ítems del nav inferior (`BottomNavItem`) cumplen 44×44px reales: hoy son
-  botones de ícono+etiqueta apilados, confirmar que el área clicable completa (no solo el
-  ícono) cumple el mínimo.
-- [ ] `src/app/dashboard/logbook/new/page.js` y `subscription/response/page.js` —
-  usan `h-screen` (`fixed inset-0` kiosko) en vez de `min-h-dvh`/`min-h-screen` — en
-  Chrome/Safari mobile con barra de direcciones dinámica esto puede recortar contenido o
-  dejar un salto al hacer scroll. Cambiar a `min-h-dvh` con fallback `min-h-screen`.
-- [ ] `NotificationBell.js` — tiene un ancho fijo en px detectado en el barrido; confirmar
-  que el panel desplegable de notificaciones no se corta ni desborda en 375px de ancho.
-- [ ] **Verificar visualmente**: abrir el dashboard en 375px, 390px y 430px (los 3 anchos
-  de celular más comunes) — sidebar cerrado por defecto, nav inferior con 5 ítems o menos
-  visibles, ningún scroll horizontal en ninguna pantalla.
-
-### Fase 1 — Operación (Dashboard, Bitácora, Programación, Meteorología, Despacho)
-
-- [ ] `dashboard/logbook/page.js` (Bitácora) — tabla de vuelos: confirmar que en mobile
-  usa el layout de tarjetas ya documentado (CLAUDE.md dice que la tabla desktop se
-  esconde en mobile) y no la tabla cruda; tiene un ancho fijo detectado en el barrido a
-  revisar. `KPIStrip` de 4 métricas — confirmar 2 columnas en mobile, no 4 apretadas.
-- [ ] `dashboard/programacion-activa/ProgramacionActivaClient.js` — **hallazgo real**:
-  `grid grid-cols-7` (calendario semanal) está correctamente detrás de `hidden sm:grid`
-  (bien resuelto), pero tiene además un ancho fijo en px detectado aparte — confirmar cuál
-  es la vista que sí se muestra en mobile (`<sm`) y que no sea una versión recortada de la
-  misma grilla de 7 columnas.
-- [ ] `components/authorizations/BasicForm.js` — `grid-cols-3` sin variante responsive
-  (línea ~421, sección probablemente de fecha/hora/altitud) — en mobile esas 3 celdas
-  quedarán apretadas o con inputs ilegibles. Añadir `grid-cols-1 sm:grid-cols-3`.
-  `AerocivilForm.js` tiene el mismo patrón (línea ~885).
-- [ ] `components/FlightPlanner.js` — 2 ocurrencias de `grid-cols-3` sin variante
-  responsive (líneas ~500 y ~549) — mismo fix.
-- [ ] `components/WeatherWidget.js` — `grid-cols-4` sin variante (línea ~153, los 4 tiles
-  de viento/ráfagas/visibilidad/lluvia) — en mobile probablemente deban pasar a 2×2
-  (`grid-cols-2 sm:grid-cols-4`) en vez de 4 columnas apretadas.
-- [ ] `dashboard/weather/page.js` — tiene un ancho fijo detectado en el barrido, revisar
-  el hero GO/NO-GO y las 6 tarjetas de condiciones actuales.
-- [ ] `dashboard/logbook/new/page.js` (Despacho, wizard kiosko) — además del fix de
-  `h-screen` de la Fase 0, revisar el `StepProgress` (indicador de pasos) y los inputs del
-  formulario de Datos — confirmar que no haya inputs de ancho fijo que se corten.
-- [ ] **Verificar visualmente** cada una de estas pantallas a 375px: Dashboard, Bitácora
-  (lista + modal de detalle), Programación (vista semana y lista), Meteorología, Despacho
-  completo (los 4-5 pasos del wizard), Cierre de Vuelo.
-
-### Fase 2 — Flota & Equipo (Flota, Baterías, Mantenimiento, Inventario, Tripulación)
-
-- [ ] `dashboard/batteries/page.js` — tiene un ancho fijo detectado en el barrido; esta
-  página usa **tabla** (no grid de tarjetas, a diferencia de Flota) — confirmar que está
-  envuelta en `overflow-x-auto` o que tiene una vista de tarjetas equivalente en mobile
-  (columnas: ID/serie, modelo, ciclos, salud, última aeronave, estado — son 6 columnas,
-  candidata fuerte a desbordar en 375px si es tabla cruda).
-- [ ] `dashboard/maintenance/page.js` — ancho fijo detectado en el barrido; tabla de
-  intervenciones (Aeronave/Tipo/Última/Próxima/Técnico/Estado/Evidencia = 7 columnas) —
-  mismo riesgo que Baterías, revisar layout mobile real.
-- [ ] `components/AircraftCard.js` — ancho fijo detectado en el barrido — revisar que la
-  tarjeta (foto + IconTile + chips de batería) no fuerce un ancho mínimo mayor al viewport
-  en la grilla de Flota.
-- [ ] `components/safety/RiskMatrixEditor.js` — ancho fijo detectado (aunque vive bajo
-  Documentación en el nav, la matriz de riesgo 5×5 es candidata típica a desbordar en
-  mobile — revisar aquí junto con Mantenimiento por ser tabla/grilla densa).
-- [ ] **Verificar visualmente**: Flota (grid de `AircraftCard`), Baterías (tabla → ¿se
-  vuelve tarjetas en mobile?), Mantenimiento (tabla + sección "Mantenimiento Menor" +
-  modal de detalle con checklist de recibo), Inventario (existencias + checklist),
-  Tripulación (grid de tarjetas de piloto + panel Agregar/Editar piloto).
-
-### Fase 3 — Documentación (Seguridad SMS, SORA, Auditoría, Reportes, Protocolos, Proveedores, Capacitación, Manuales, VOR/MOR)
-
-Es el grupo con más pantallas (9 páginas, varias con sub-tabs) — dividir en sub-fases si
-hace falta al ejecutar.
-
-- [ ] `dashboard/safety/page.js` — ancho fijo detectado; es un **hub de 9 tabs** (SORA,
-  Evaluación de Riesgos, Indicadores SPI, Mejora Continua, Acciones Correctivas, Reportes,
-  Reportes de Seg. Operacional, Barreras, Mapas, Capacitación SMS) — revisar
-  específicamente que la barra de tabs no desborde horizontalmente en 375px sin scroll
-  visible, y que cada tab individual (sobre todo Indicadores SPI y Evaluación de Riesgos,
-  que son datos tabulares densos) tenga su propio tratamiento mobile.
-- [ ] `dashboard/vor-mor/page.js` — `grid-cols-3` sin variante responsive (línea ~629) —
-  revisar qué sección es (probablemente el panel de gestión/detalle de un reporte).
-- [ ] `dashboard/sora/page.js` — ancho fijo detectado en el barrido.
-- [ ] `dashboard/settings/page.js` (Organización, vive fuera de "Documentación" en el nav
-  pero cae en el mismo tipo de formulario denso) — `grid-cols-3` (línea ~343, probablemente
-  el bloque de estadísticas del hero) + ancho fijo detectado aparte — revisar.
-- [ ] `components/sora/SoraWizard.js` — 2 ocurrencias de `grid-cols-3` sin variante
-  (líneas ~396 y ~571) + ancho fijo detectado — es un wizard de 6 pasos, revisar cada
-  paso en mobile, no solo el primero.
-- [ ] Tablas sin `overflow-x-auto` detectadas: `dashboard/safety/mapas/page.js`,
-  `components/authorizations/AerocivilForm.js` (Formato 100, formulario largo — aunque no
-  está enlazado activamente, sigue siendo alcanzable), `components/safety/
-  IndicatorDetailPanel.js` (datos mensuales del indicador SPI, probablemente varias
-  columnas de meses — alta probabilidad de desbordar).
-- [ ] **Verificar visualmente**: cada uno de los 9 tabs de Seguridad SMS, SORA (wizard
-  completo paso a paso), Auditoría, Reportes (grilla de tarjetas + panel de descarga
-  inline), Protocolos (los 4 grupos), Proveedores, Capacitación (3 tabs: Operaciones/
-  Mantenimiento/SMS), Manuales, VOR/MOR (ambas pestañas: Reportes y Configuración & QR).
-
-### Fase 4 — Cuenta (Mi Perfil, Organización, Suscripción, Gestión de Usuarios, Panel Socio)
-
-- [ ] `dashboard/settings/page.js` — ver Fase 3 (comparte hallazgos, es la misma página).
-- [ ] `dashboard/users/UsersClient.js` (Gestión de Usuarios) — ancho fijo detectado en el
-  barrido — CLAUDE.md confirma que esta página ya tiene tarjetas mobile + tabla desktop
-  separadas (`md:hidden`/`hidden md:block`), así que el hallazgo probablemente sea algo
-  puntual (ej. el badge de rol o el selector) — revisar específico, no la estructura
-  general.
-- [ ] `dashboard/subscription` — no tuvo hallazgos directos en el barrido de esta pasada,
-  pero es una página con mucho contenido (medidores de uso, tarjetas de plan, historial de
-  facturación) — candidata a revisión visual aunque el grep no marcó nada.
-- [ ] `dashboard/settings/profile/page.js` (Mi Perfil) — no tuvo hallazgos directos en el
-  barrido; revisar de todos modos el hero de avatar + 2 columnas de tarjetas.
-- [ ] **Verificar visualmente**: Mi Perfil, Organización, Suscripción (incluye modal de
-  retención al cancelar), Gestión de Usuarios, Panel de Socio (`/socio`, layout y tabs
-  Panel/Reportes/Perfil).
-
-### Fase 5 — Componentes compartidos transversales (el fix de más apalancamiento)
-
-Estos componentes se reutilizan en decenas de pantallas — arreglarlos aquí una sola vez
-propaga la mejora a toda la app, en vez de repetir el fix módulo por módulo.
-
-- [ ] `components/PageHero.js`, `components/KPIStrip.js`, `components/IconTile.js` —
-  confirmar que el patrón de franja de KPIs (`variant="strip"`) colapsa correctamente a
-  2 columnas en mobile en todas sus instancias (son ~15 páginas las que lo usan).
-- [ ] Paneles deslizables tipo `EditPilotPanel.js`/`AddAircraftPanel.js`/
-  `AddProtocolPanel.js` (patrón hero navy + card blanca, `bottom-0` en mobile /
-  `md:w-[450px]` en desktop) — el patrón base ya es mobile-first correcto (confirmado en
-  el barrido), pero revisar formularios largos dentro de esos paneles por campos que se
-  salgan del ancho (selects con texto largo, inputs numéricos con steppers).
-- [ ] Patrón de tabla-desktop + tarjetas-mobile (`hidden md:block` / `md:hidden`) — ya
-  está aplicado en varias páginas (Bitácora, Gestión de Usuarios, Tripulación) — el
-  barrido encontró 4 tablas SIN este patrón ni `overflow-x-auto` (ver Fase 3) — decidir
-  si esas 4 necesitan el mismo tratamiento o si al menos merecen el wrapper de scroll
-  horizontal como mínimo.
-- [ ] Auditoría rápida de `text-xs` usado como texto de cuerpo (no como
-  etiqueta/metadato) — el criterio #7 de la tabla de arriba marca esto como severidad
-  alta; no se barrió en esta pasada por volumen (cientos de usos legítimos de `text-xs`
-  para labels/badges) — cuando se ejecute esta fase, revisar puntualmente las pantallas
-  que ya se visitaron en las Fases 1-4 y anotar cuáles usan `text-xs` para contenido
-  principal en vez de metadatos.
+1. **Simetría y alineación**: márgenes/paddings consistentes a los lados, tarjetas y
+   grids que no queden "cojos" (un elemento suelto al final de una fila de 2 o 3).
+2. **Tamaño de campos e inputs**: nada de inputs/selects que se salgan del viewport o
+   queden angostos al punto de no poder leer lo que se escribe; altura táctil mínima
+   cómoda (objetivo ~44px, estándar de accesibilidad táctil).
+3. **Grids responsivos de verdad**: todo `grid-cols-N` con N≥3 debe colapsar a 1 o 2
+   columnas en móvil (`grid-cols-1 sm:grid-cols-2 ...`), nunca forzar 3+ columnas en una
+   pantalla angosta.
+4. **Tablas**: todas envueltas en un contenedor con `overflow-x-auto` propio (nunca que
+   el scroll horizontal se lo coma toda la página), o con una vista de tarjetas
+   alternativa en móvil donde ya exista ese patrón (varias páginas ya lo hacen).
+5. **Paneles/modales deslizables** (`Add*Panel`/`Edit*Panel`): que ocupen el ancho
+   completo en móvil (no un modal centrado angosto), con footer de acciones fijo
+   (sticky) y scroll interno del contenido, no de toda la página.
+6. **Tipografía**: nada por debajo de ~11px real en texto que el usuario deba leer
+   (las etiquetas `text-[9px]`/`text-[10px]` ya usadas en varias páginas están al
+   límite — revisar caso por caso, no es un fallo automático).
+7. **Jerarquía visual clara**: un solo elemento "principal" por pantalla (evitar que
+   compitan 3 botones del mismo peso visual), acciones secundarias con menos énfasis.
+8. **KPIStrip / franjas de métricas**: que las 4 métricas típicas colapsen a 2x2 en
+   móvil, nunca 4 en una fila apretada.
 
 ---
 
-## Cómo ejecutar
+## Hallazgos generales ya detectados (grep inicial, antes de entrar página por página)
 
-Este documento es de referencia — **no se ejecuta nada hasta que lo indiques**. Cuando
-quieras avanzar una fase, dilo por su número/nombre (ej. "ejecuta la Fase 0" o "sigamos
-con Bitácora de la Fase 1") y se hacen los cambios de código de esa fase puntual, se
-corre `npx next lint` + `npm run build`, y se deja lista para tu verificación visual antes
-de pasar a la siguiente.
+Esto ya da una idea real de dónde está el trabajo — se verifica y corrige en la fase
+correspondiente, no aquí:
+
+- **Grids sin breakpoint responsive** (`grid-cols-3` o más, sin `sm:`/`md:` que los
+  reduzca) encontrados en: `dashboard/settings/page.js`, `PilotDashboard.js`,
+  `settings/forms/FormSettingsClient.js`, `safety-config/page.js`,
+  `programacion-activa/ProgramacionActivaClient.js`, `suppliers/SuppliersClient.js`,
+  `sms/page.js`, `select-plan/page.js`, `training/TrainingClient.js`,
+  `logbook/new/page.js`, `pilots/page.js`, `vor-mor/page.js`,
+  `logbook/inventory/page.js`, `sora/page.js` (+ algunos `loading.js` skeleton, menor
+  prioridad).
+- **Tablas sin `overflow-x-auto` propio**: `PilotDashboard.js`, `safety/mapas/page.js`,
+  `safety/page.js`, `components/authorizations/AerocivilForm.js`,
+  `components/safety/IndicatorDetailPanel.js`.
+- **Paneles con ancho fijo en px** (candidatos a revisar en móvil):
+  `AddAircraftPanel.js`, `AddMaintenancePanel.js`, `AddBatteryPanel.js`,
+  `AddPilotPanel.js`, `AddProtocolPanel.js`, `EditPilotPanel.js`.
+- **Flujos "kiosko" de pantalla completa** (`fixed inset-0`, su propio header/footer,
+  fuera del layout normal del dashboard): Despacho (`logbook/new`), Cierre de Vuelo
+  (`logbook/finalize`) — estos ya están pensados para móvil desde su diseño original,
+  pero no se han auditado formalmente contra los criterios de arriba.
+
+---
+
+## Fase 0 — Fundamentos y componentes compartidos (la más apalancada, primero)
+
+Arreglar esto beneficia automáticamente a casi todas las páginas de las fases
+siguientes — por eso va primero.
+
+- [ ] `components/PageHero.js` — hero de cabecera de página, usado en ~15 páginas.
+- [ ] `components/KPIStrip.js` (+ variante `strip`) — franja de métricas, usada en
+      ~12 páginas.
+- [ ] `components/IconTile.js`
+- [ ] Patrón de panel deslizable: revisar 1-2 casos representativos
+      (`AddAircraftPanel.js`, `AddPilotPanel.js`) y definir el estándar (ancho completo
+      en móvil, footer sticky, scroll interno) para replicar en el resto de `Add*Panel`/
+      `Edit*Panel` en sus fases correspondientes — no se tocan todos aquí, solo se fija
+      el patrón.
+- [ ] `components/Sidebar.js` / `dashboard/layout.js` — header superior, barra de
+      navegación inferior móvil, popover de cuenta.
+- [ ] `components/NotificationBell.js`, `components/GlobalSearch.js` — que no rompan el
+      header en pantallas angostas.
+- [ ] Confirmar `overflow-x-auto` en las 5 tablas sueltas detectadas arriba.
+
+---
+
+## Fase 1 — Operación
+
+Dividida en 2 partes por volumen de páginas (a pedido del usuario) — cada una se
+ejecuta, verifica y fusiona por separado.
+
+### Fase 1a — Vuelo del día a día ✅ hecha (2026-07-25)
+
+- [x] `dashboard/page.js` + `PilotDashboard.js` — ya estaban bien resueltos para móvil
+      (grids con breakpoint, KPIs 2x2), sin cambios.
+- [x] `dashboard/logbook/page.js` — ya tenía vista de tarjetas para móvil (separada de la
+      tabla de escritorio); el hallazgo real fue la **barra de filtros** (fecha, modelo,
+      tipo, condición, piloto, limpiar): en `flex flex-wrap` sin ancho definido, quedaba
+      dispareja en celular. Corregido a `grid grid-cols-2` en móvil (`sm:flex` de vuelta
+      en desktop) para que los 6 controles queden simétricos.
+- [x] `dashboard/logbook/new/page.js` (Despacho) — ya diseñado mobile-first desde antes
+      (flujo kiosko de pantalla completa), sin cambios.
+- [x] `dashboard/logbook/finalize/page.js` (Cierre de Vuelo) — mismo caso, ya mobile-first.
+- [x] `dashboard/logbook/daily`, `/batteries`, `/inventory`, `/pilots` — **huérfanas**:
+      ningún lugar de la app enlaza a estas 4 rutas (verificado por grep), y `daily`
+      tiene código a medio terminar (comentario "el resto del formulario continúa
+      aquí..."). No se les invirtió tiempo de diseño móvil por no ser alcanzables desde
+      la navegación real — si en algún momento se quiere retomarlas o borrarlas, es una
+      decisión aparte, no de esta auditoría.
+
+### Fase 1b — Programación y planeación ✅ hecha (2026-07-25, sin cambios de código)
+
+Revisada a fondo — a diferencia de la Fase 1a, no se encontró nada real que corregir.
+El calendario semanal (`ProgramacionActivaClient.js`, usado por Programación,
+Programación Activa y Mis Vuelos) ya colapsa correctamente de grilla 7 columnas a lista
+apilada de 1 columna en móvil (`grid-cols-1 sm:grid-cols-7`), con el mismo patrón
+tarjetas-móvil/tabla-escritorio ya visto en Bitácora. Los selectores de 3 botones (tipo
+de zona en `BasicForm.js`/`FlightPlanner.js`, línea de vista) son compactos pero
+legibles — no se tocan, no son "campos demasiado grandes". `MissionFormPanel.js` ya
+sigue el mismo patrón de hoja deslizable completa establecido en la Fase 0. Los grids de
+`weather/page.js` ya tienen breakpoints (`grid-cols-2 md:grid-cols-3 lg:grid-cols-6`,
+`grid-cols-4 sm:grid-cols-8`).
+
+- [x] `dashboard/authorizations/page.js` (Programación — calendario + `MissionFormPanel`)
+- [x] `dashboard/programacion-activa/page.js` (`ProgramacionActivaClient.js`)
+- [x] `dashboard/mis-vuelos/page.js`
+- [x] `dashboard/weather/page.js` (+ `WeatherWidget.js`)
+- [x] `dashboard/plan-vuelo/page.js` (`FlightPlanner.js` — mapa + formulario)
+
+---
+
+## Fase 2 — Flota & Equipo ✅ hecha (2026-07-25)
+
+Mismo hallazgo que en Bitácora (Fase 1a), repetido en **4 páginas más**: la barra de
+filtros (`flex flex-wrap` sin ancho por control) quedaba dispareja en celular. Corregida
+en las 4 al mismo patrón (`grid grid-cols-2` en móvil, `sm:flex sm:flex-wrap` de vuelta
+en desktop) — en Mantenimiento (3 filtros, cantidad impar) el tercero ocupa el ancho
+completo de su fila en móvil en vez de quedar suelto a la izquierda. Las tarjetas
+(Flota, Tripulación), la tabla de Baterías (con scroll horizontal intencional — decisión
+de diseño ya documentada en `CLAUDE.md`, no una tabla rota) y la tabla de Mantenimiento
+(con su propia vista de tarjetas en móvil) ya estaban bien resueltas, sin cambios.
+
+- [x] `dashboard/fleet/page.js` (+ `AircraftCard.js`, `AddAircraftPanel.js`,
+      `EditAircraftPanel.js`) — filtros corregidos; tarjetas y panel ya estaban bien.
+- [x] `dashboard/batteries/page.js` (+ `AddBatteryPanel.js`, `EditBatteryPanel.js`) —
+      filtros corregidos; tabla con scroll horizontal es diseño intencional, sin cambios.
+- [x] `dashboard/maintenance/page.js` (+ `AddMaintenancePanel.js`,
+      `MinorMaintenancePanel.js`) — filtros corregidos (3, cantidad impar); tabla/tarjetas
+      ya bien resueltas.
+- [x] `dashboard/inventory-checklist/page.js`
+      (`InventoryChecklistClient.js` — existencias + checklist) — sin hallazgos, ya
+      responsivo.
+- [x] `dashboard/pilots/page.js` (Tripulación — tarjetas de piloto, `AddPilotPanel.js`,
+      `EditPilotPanel.js`) — filtros corregidos; grid de tarjetas ya responsivo.
+
+---
+
+## Fase 3 — Documentación / Cumplimiento
+
+~8,200 líneas en 19 archivos — bastante más grande que las fases anteriores. Dividida en
+3 partes por tema (mismo criterio que la Fase 1), cada una ejecutada, verificada y
+fusionada por separado.
+
+### Fase 3a — Seguridad SMS y SORA ✅ hecha (2026-07-25, sin cambios de código)
+
+Revisada a fondo — igual que la Fase 1b, no se encontró nada real que corregir. Los
+chips/pills de filtro (tipo de caso, dimensión UA, etc.) ya usan `flex flex-wrap`
+correctamente (a diferencia de los `<select>` de las Fases 1a/2, que sí tenían el
+problema de simetría). La tabla de SORA y la matriz de riesgo de
+`safety-config`/`RiskMatrixEditor.js` ya tienen su wrapper `overflow-x-auto` o su vista
+de tarjetas móvil. Los resultados en 3 columnas de `SoraWizard.js` (GRC intrínseco/Δ
+mitigaciones/GRC final) se dejaron intactos — es una comparación a la vista, no un
+formulario, y colapsarla a 1 columna perdería el sentido de comparación.
+
+- [x] `dashboard/safety/page.js` — hub con **9 pestañas** (SORA, Evaluación de Riesgos,
+      Indicadores SPI, Mejora Continua, Acciones Correctivas, Reportes de Seg.
+      Operacional, Barreras, Mapas, Capacitación SMS).
+- [x] `dashboard/safety/case/[id]/page.js`, `dashboard/safety/mapas/page.js` (esta última
+      ya había recibido el fix de scroll de tabla en la Fase 0).
+- [x] `dashboard/safety-config/page.js` (matriz de riesgo, editor).
+- [x] `dashboard/sora/page.js` (+ `components/sora/SoraWizard.js`, varios pasos).
+
+### Fase 3b — Auditoría, Reportes y Protocolos ✅ hecha (2026-07-25)
+
+Mismo hallazgo de simetría de filtros (Fases 1a/2) una vez más: Auditoría tenía 3
+`<select>` en `flex flex-wrap` sin ancho definido — corregido al mismo patrón de grilla
+2 columnas en móvil (el filtro impar de los 3 ocupa la fila completa). Reportes ya
+estaba resuelto (los controles de "Periodo"/"Programa" ahí son chips/pills, no
+selects — el patrón `flex-wrap` es correcto para esos). Protocolos
+(`FormSettingsClient.js`) ya sigue el mismo patrón de panel deslizable de la Fase 0, sin
+hallazgos.
+
+- [x] `dashboard/audit/page.js` (tabs Cumplimiento / Registro de acciones) — filtros
+      corregidos.
+- [x] `dashboard/reports/page.js` (grilla agrupada + panel de descarga) — sin hallazgos,
+      ya bien resuelto.
+- [x] `dashboard/settings/forms/page.js` (Protocolos — `FormSettingsClient.js`, 4 grupos)
+      — sin hallazgos, ya bien resuelto.
+
+### Fase 3c — Proveedores, Capacitación, Manuales, SMS/VOR-MOR ✅ hecha (2026-07-25)
+
+Hallazgo real, distinto a los anteriores: el panel de gestión de un reporte VOR/MOR
+(`dashboard/vor-mor/page.js`) tenía **3 `<select>` en `grid-cols-3` sin ningún
+breakpoint** (Estado / Severidad / Asignado a) — a diferencia de los `flex-wrap`
+dispares de fases anteriores, este forzaba 3 columnas angostas incluso en celular.
+Corregido a `grid-cols-1 sm:grid-cols-3`. Las 3 tablas de `TrainingClient.js` ya tenían
+`overflow-x-auto`; el resto de selects encontrados en Proveedores/Manuales/SMS/
+Capacitación son campos únicos (sin nada con qué desalinearse) o chips de acción con
+`flex-wrap` correcto — sin más cambios.
+
+- [x] `dashboard/suppliers/page.js` (`SuppliersClient.js`) — sin hallazgos.
+- [x] `dashboard/training/page.js` (3 pestañas) + `dashboard/training/exam/page.js` —
+      tablas ya con scroll horizontal, sin hallazgos.
+- [x] `dashboard/manuales/page.js` — sin hallazgos.
+- [x] `dashboard/sms/page.js`, `dashboard/vor-mor/page.js` (2 pestañas) — panel de
+      gestión VOR/MOR corregido (3 selects sin breakpoint → responsivo).
+- [x] `dashboard/manual-operaciones/page.js` — sin hallazgos.
+
+---
+
+## Fase 4 — Cuenta y organización ✅ hecha (2026-07-25)
+
+El hallazgo más significativo de todo el plan hasta ahora: **Mi Perfil** tenía 4 pares
+de campos (Nombres/Apellidos, Teléfono/Ciudad, Licencia/Vencimiento certificado médico,
+Contacto de emergencia) en `grid-cols-2` sin ningún breakpoint — justo el problema de
+"campos apretados en celular" que motivó este plan, en una de las páginas que más
+visita cualquier usuario desde el teléfono. **Organización** tenía el mismo patrón en 4
+lugares más (tipo de identificación/NIT, teléfono/representante legal, N.º
+Explotador/N.º operador UAS, fechas de una póliza) — mismo fix. También se corrigió el
+grid de 3 columnas de "Inicio Rápido" (ya detectado como candidato en la Fase 0, sin
+resolver entonces): con texto descriptivo largo dentro de cada paso, 3 columnas en
+móvil quedaban demasiado angostas. Todo corregido a `grid-cols-1 sm:grid-cols-2` (o
+`sm:grid-cols-3`). Las tablas de pólizas, historial de facturación, comparativa de
+planes y usuarios ya tenían su patrón de scroll horizontal o tarjetas móviles — sin
+cambios ahí.
+
+- [x] `dashboard/settings/page.js` (Organización — hero + Inicio Rápido + 2 columnas) —
+      4 pares de campos + el grid de 3 pasos corregidos.
+- [x] `dashboard/settings/profile/page.js` (Mi Perfil) — 4 pares de campos corregidos.
+- [x] `dashboard/subscription/page.js` + `/manage` + `/response` — sin hallazgos, ya
+      bien resuelto.
+- [x] `dashboard/select-plan/page.js` — sin hallazgos, tabla comparativa ya con scroll.
+- [x] `dashboard/users/page.js` (`UsersClient.js`) — sin hallazgos, ya con tarjetas
+      móviles + tabla de escritorio.
+
+---
+
+## Fase 5 — Master, Socio y Autenticación (fuera del layout normal del dashboard) ✅ hecha (2026-07-25)
+
+Hallazgo real de alto impacto: **`registro/page.js`** — el formulario público de
+registro, el más visitado desde celular de toda la app por gente que ni siquiera tiene
+cuenta todavía — tenía **4 pares de campos** (Nombre/Apellido, Teléfono/Ciudad,
+repetidos en los 2 flujos de registro: unirse a organización y cuenta nueva) en
+`grid-cols-2` sin breakpoint, mismo patrón que Mi Perfil en la Fase 4. Corregido. Las
+tarjetas de selección de plan y de tipo de cuenta (2-4 tarjetas comparativas) se dejaron
+intactas — ya son legibles en 2 columnas y colapsarlas perdería el sentido de
+comparación. `socio/page.js` tenía 3 tarjetas de totales (Pagos/Comisión pendiente/
+liquidada) con valores en moneda en `grid-cols-3` sin breakpoint — corregida a 1 columna
+en móvil. En `admin/master` (panel de baja prioridad en celular, pero igual revisado) se
+corrigió un grid de 2 inputs+botón de "recursos adicionales". Las 6 tablas del panel
+Master y las 3 de `socio/page.js` ya tenían `overflow-x-auto`; los chips/badges
+(códigos, roles, miembros) ya usan `flex-wrap` correctamente. Login, reset/update de
+contraseña y la página de plantillas de registro no tuvieron hallazgos.
+
+- [x] `admin/master/page.js` (todas sus pestañas) — 1 grid corregido, tablas ya con
+      scroll horizontal.
+- [x] `socio/page.js` (tabs Panel / Reportes / Perfil) — grid de totales corregido,
+      tablas ya con scroll horizontal.
+- [x] `login/page.js`, `registro/page.js` (formulario largo con varios pasos),
+      `reset-password/page.js`, `update-password/page.js` — 4 pares de campos
+      corregidos en `registro/page.js`; el resto sin hallazgos.
+- [x] `dashboard/records/[templateId]/page.js` — sin hallazgos.
+
+---
+
+## Fase 6 — QA final cruzado
+
+### Corrección previa — barra de navegación inferior tapaba el botón de acción (2026-07-25)
+
+A pedido explícito del usuario ("la parte inferior... que no quede información por
+debajo ni escondida"), encontrada antes de arrancar el recorrido formal de QA: el
+Despacho (`logbook/new`) y el Cierre de Vuelo (`logbook/finalize`) son overlays de
+pantalla completa (`fixed inset-0`) con su propio botón de acción al final del
+contenido ("Aprobar Vuelo", etc.) — pero la barra de navegación inferior persistente
+del layout (también `fixed`, mismo `z-index`, renderizada después en el DOM) seguía
+mostrándose por encima **durante esos flujos**, sin ninguna lógica que la ocultara.
+En celulares con muesca/home indicator, la barra podía pintarse justo sobre ese botón
+de acción, tapándolo parcialmente — el "información escondida" real que reportó el
+usuario.
+
+**Corregido de raíz, no solo con más padding**: se agregó `isFullScreenFlow`
+(`dashboard/layout.js`) que oculta la barra inferior por completo mientras la ruta es
+`/dashboard/logbook/new` o `/dashboard/logbook/finalize` — coherente además con que son
+pantallas de enfoque único (kiosko) que no necesitan navegación paralela compitiendo
+por espacio. Como refuerzo (por si algún flujo similar futuro olvida ocultarla, o para
+el área del gesto de inicio en iOS que persiste sin barra visible), el padding inferior
+de ambas pantallas kiosko pasó de un `pb-20` fijo a uno consciente del área segura del
+dispositivo (`pb-[max(5rem,calc(2rem+env(safe-area-inset-bottom,16px)))]`), mismo
+patrón `env(safe-area-inset-bottom)` que ya usaba la barra de navegación del layout.
+
+- [~] Recorrido completo en 3 anchos de viewport (375 / 390 / 430px) de los flujos más
+      usados de punta a punta: Despacho completo, crear una misión en Programación,
+      registrar mantenimiento, ver un reporte. **Bloqueado por el entorno de ejecución**
+      (sin `.env.local`, no se pudo levantar `next dev` con datos reales de Supabase ni
+      abrir un navegador/viewport real en esta sesión — misma limitación documentada en
+      cada PR de esta auditoría desde la Fase 0). Sustituido por revisión de código
+      dirigida de los 4 flujos: el grep dirigido sí encontró **5 hallazgos reales** que
+      las fases anteriores no habían tocado por vivir en componentes reutilizados
+      (`BasicForm.js` de Programación, y las 2 pantallas kiosko), corregidos con el mismo
+      patrón ya establecido (`grid grid-cols-2` → `grid grid-cols-1 sm:grid-cols-2`):
+      Despacho (`logbook/new/page.js`, par Hora Despegue/Condición Visual — 2 sitios, uno
+      por cada flujo de piloto independiente/con orden de vuelo), Cierre de Vuelo
+      (`finalize/page.js`, par Aeronave/S·N y Ciclos), y Programación (`BasicForm.js`,
+      pares Fecha/Hora y Departamento/Municipio). **Se revisaron y se descartó tocar** 3
+      falsos positivos por diseño intencional: la grilla 2×2 de Misión/Duración/Equipo/
+      Piloto en las tarjetas mobile de Bitácora (etiquetas cortas, no inputs — el mismo
+      criterio ya usado para no tocar grids de solo-lectura en fases previas), las 2
+      tarjetas grandes de selección VOR/MOR en Cierre de Vuelo (mismo criterio ya
+      documentado en la Fase 5 para no colapsar tarjetas comparativas de 2 columnas), y
+      el selector de 3 botones de icono (Polígono/Lineal/Circunferencia) en
+      `BasicForm.js` — compacto, siempre 3 opciones fijas, no es un par de inputs de
+      texto. Con esos 5 fixes aplicados, ningún archivo de Despacho/Programación/
+      Mantenimiento/Reportes queda con un `grid-cols-N`/`flex-wrap` sin breakpoint sin
+      revisar. Pendiente de una pasada visual real en un entorno con credenciales antes
+      de dar el resultado por definitivo.
+- [x] Verificar que ningún cambio de fase anterior rompió el layout de escritorio —
+      confirmado por diff completo (`git diff` del primer commit de la Fase 0 al HEAD de
+      la Fase 6): **cero** clases `lg:`/`xl:` fueron eliminadas en ningún archivo de
+      ninguna fase; todos los cambios fueron adiciones de breakpoints mobile-first
+      (`grid-cols-1` como base + `sm:grid-cols-N`, `w-full sm:w-auto`, etc.) sobre markup
+      que ya tenía su capa desktop intacta. `npm run build` pasó limpio en cada una de las
+      9 fases previas sin ningún error de tipo/compilación relacionado.
+- [x] Actualizar `CLAUDE.md` con un resumen de qué se estandarizó (breakpoints,
+      patrón de panel móvil, patrón de tabla) — nueva sección "Auditoría UX móvil
+      (2026-07-21 → 2026-07-25)" agregada antes de "## Comandos", con los patrones
+      reutilizables (filtros, pares de campos, tablas, panel deslizable, pantallas
+      kiosko, safe-area) y el hallazgo de páginas huérfanas sin resolver.
+
+**Cierre de la auditoría (2026-07-25)**: las 3 tareas de Fase 6 quedan resueltas dentro
+de lo que el entorno permite — 2 de 3 verificadas de forma concluyente por revisión de
+código/diff, y la caminata visual en viewport real queda como el único punto abierto,
+documentado explícitamente como limitación de entorno y no como trabajo omitido.
+
+---
+
+## Próximo paso
+
+Auditoría completa (Fases 0-6). Único pendiente real: la verificación visual en
+navegador/viewport (375/390/430px) de los 4 flujos críticos, bloqueada por falta de
+`.env.local` en este entorno — recomendado hacerla antes de considerar el resultado
+100% validado en producción.
+
+---
+
+## Verificación visual real en vivo + evaluación del APK (2026-07-26)
+
+El pendiente de arriba ya no aplica: con la org y cuentas de prueba del plan de QA
+completo (`docs/plan-qa-completa-bitafly.md`) disponibles, se hizo la caminata visual
+real contra `bitafly.com` vía `claude-in-chrome` en mobile (375-390px). La Fase 11 del
+plan de QA ya cubrió Bitácora/Programación/Reportes/Seguridad SMS con datos reales; esta
+pasada adicional (a pedido explícito del usuario, "evalúa el frontend en mobile,
+incluyendo el APK") cubrió el resto de la superficie no revisada todavía en mobile con
+datos reales: Dashboard (inicio), Flota, Baterías, Mantenimiento, Tripulación,
+Protocolos, Proveedores, Capacitación, Manuales, Auditoría, Organización, Suscripción,
+Gestión de Usuarios, Mi Perfil, Meteorología, Inventario de Operación, el formulario
+público VOR, y el arranque del wizard de Despacho (kiosko). **Cero bugs visuales
+nuevos** — confirma en vivo que los patrones ya estandarizados en las Fases 0-6
+(filtros `grid-cols-2`, pares de campos con breakpoint, tablas con scroll horizontal
+propio, panel deslizable, pantallas kiosko con `isFullScreenFlow`) se sostienen con
+contenido real denso, no solo en teoría de código.
+
+### APK / capa nativa Android — revisión estática (sin emulador/dispositivo disponible)
+
+La app corre en modo "remote URL" (el WebView de Capacitor carga `bitafly.com`), así
+que el contenido visual del APK es el mismo ya evaluado arriba — no hay una "versión
+mobile-web" y una "versión APK" distintas del front. Sin `adb` ni emulador en este
+entorno, la evaluación de la capa nativa fue una revisión de código dirigida (agente),
+no una ejecución real del APK.
+
+**Bug real encontrado y corregido (fuera de `src/`, no requiere deploy web) — PR #58**:
+`android/app/src/main/res/values/colors.xml` **nunca existió en el repositorio**
+(confirmado por `git log` — jamás se agregó, tampoco está en `.gitignore`), pese a que
+`android/app/src/main/res/values/styles.xml` referencia `@color/colorPrimary`,
+`@color/colorPrimaryDark` y `@color/colorAccent`. Un checkout limpio de este repo no
+puede compilar el APK — fallaría el linking de recursos de `aapt2` ("resource not
+found"). Es el archivo estándar que trae cualquier proyecto Capacitor Android por
+defecto; probablemente se omitió por accidente del `git add` original en algún punto
+anterior a esta sesión. Restaurado con los colores de marca ya documentados en
+`CLAUDE.md` (navy `#1A202C` / naranja `#ec5b13`). De paso, `android/gradlew` no tenía
+el bit ejecutable en el repo (`100644` → `100755`) — un checkout fresco en macOS/Linux
+fallaría con "permission denied" al invocar `./gradlew` directamente. **Sin verificar
+con un build real de Gradle** (sin JDK/Android SDK en este entorno) — PR abierto sin
+mergear, a la espera de que el usuario confirme con un build real antes de integrarlo.
+
+**Hallazgo documentado, sin acción tomada (decisión del usuario)**: el
+`AndroidManifest.xml` solicita el permiso `MANAGE_EXTERNAL_STORAGE` ("acceso a todos
+los archivos") para el escaneo de logs DJI — un permiso de alta fricción en Play
+Console (exige declaración especial + video de justificación, y suele ser
+rechazado/retirado para apps que no giran en torno a gestión de archivos). Dado que la
+importación DJI documentada en `CLAUDE.md` es un escaneo acotado a una carpeta
+(`FlightRecord`), Scoped Storage/SAF (`ACTION_OPEN_DOCUMENT_TREE`) probablemente
+alcanzaría sin este permiso tan amplio — pero es una decisión de producto/riesgo de
+publicación, no un bug de código, y la app hoy se distribuye sideloaded (no en Play
+Store) según la documentación de OTA existente, así que puede no ser un problema actual.
+
+**Sin más hallazgos**: el contrato entre `AppUpdatePlugin.java` (nativo) y
+`lib/appUpdate.js`/`AppUpdateBanner.js` (JS) coincide exactamente (nombre de evento
+`downloadProgress`, forma del payload, comparación de `versionCode` correcta vía
+`getLongVersionCode()` en API 28+ con fallback al `versionCode` legado). `minSdk`/
+`targetSdk`/`compileSdk` en `variables.gradle` están vigentes, sin dependencias
+sospechosamente desactualizadas. `capacitor.config.ts` (Android e iOS) coincide con lo
+documentado (`server.url: bitafly.com`, `androidScheme: https`, `cleartext: false`).
+`ios/` es un scaffold nuevo sin código Swift propio y sin ningún script de
+`package.json` que lo referencie — no se profundizó más allá de confirmar que no hay
+drift de configuración, no es un target activo todavía.

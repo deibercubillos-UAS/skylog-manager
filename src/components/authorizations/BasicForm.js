@@ -270,7 +270,7 @@ export default function BasicForm({ pilots, drones, org, loadData, onClose }) {
                             </select>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="space-y-1">
                                 <label className={labelCls}>Fecha</label>
                                 <input required type="date" className={inputCls} value={form.scheduled_at} onChange={e => setForm({...form, scheduled_at: e.target.value})} />
@@ -286,7 +286,7 @@ export default function BasicForm({ pilots, drones, org, loadData, onClose }) {
                             <input type="text" placeholder="Ej: Inspección eléctrica – Vereda El Roble" className={inputCls + ' placeholder-slate-400'} value={form.op_name} onChange={e => setForm({...form, op_name: e.target.value})} />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="space-y-1">
                                 <label className={labelCls}>Departamento</label>
                                 <select required className={inputCls} value={form.department} onChange={e => handleDeptChange(e.target.value)}>

@@ -9,7 +9,7 @@ const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').rep
 
 export const metadata = {
   title: 'Digital Drone Logbook for Colombia (RAC 100 Compliant)',
-  description: 'The only drone flight logbook built for Colombia\'s RAC 100 regulation. Generates the flight log PDF with your own format code (F-OPS-002 by default), tracks flight hours and battery cycles. Free 6-month trial.',
+  description: 'The only drone flight logbook built for Colombia\'s RAC 100 regulation. Generates the flight log PDF with your own format code (F-OPS-002 by default), tracks flight hours and battery cycles. Free 15-day trial.',
   keywords: ['drone logbook colombia', 'UAV logbook colombia', 'RAC 100 flight log', 'digital flight logbook colombia', 'RPAS logbook aerocivil'],
   alternates: { canonical: '/drone-logbook-colombia' },
   openGraph: {
@@ -67,7 +67,7 @@ export default function DroneLogbookColombiaPage() {
             </p>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <Link href="/registro" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: accent, color: '#fff', padding: '14px 28px', borderRadius: '16px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', textDecoration: 'none', boxShadow: '0 8px 24px rgba(236,91,19,0.3)' }}>
-                Start free — 6 months
+                Start free — 15 days
               </Link>
               <Link href="/rac-100-compliance" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', border: '1.5px solid #e2e8f0', color: '#475569', padding: '14px 28px', borderRadius: '16px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', textDecoration: 'none' }}>
                 RAC 100 Overview
@@ -157,7 +157,7 @@ export default function DroneLogbookColombiaPage() {
       <section style={{ background: '#1A202C', padding: '72px 32px', textAlign: 'center', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
         <Decor variant="dark" />
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <p style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: accent, marginBottom: '16px' }}>Free 6-month trial</p>
+          <p style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: accent, marginBottom: '16px' }}>Free 15-day trial</p>
           <h2 style={{ fontSize: 'clamp(28px,3vw,40px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.04em', color: '#fff', marginBottom: '16px' }}>Start logging your Colombian operations today</h2>
           <p style={{ fontSize: '15px', color: '#94a3b8', marginBottom: '28px', lineHeight: 1.6 }}>
             RAC 100 logbook, maintenance tracking, SMS and AeroCivil authorizations. No credit card. No commitment.

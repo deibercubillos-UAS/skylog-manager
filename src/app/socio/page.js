@@ -366,7 +366,7 @@ export default function SocioPanel() {
           ) : (
             <>
               {/* Totales propios */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-white border border-slate-200 rounded-2xl p-5">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Pagos recibidos</p>
                   <p className="text-2xl font-black mt-1 text-slate-900">{report.totals?.payments ?? 0}</p>

@@ -76,6 +76,7 @@ export default function AddPilotPanel({ onClose, onSuccess }) {
                   inviterName: prof.full_name,
                   orgCode: org.unique_code,
                   pilotId: insertedPilotId,
+                  pilotName: form.name,
               })
           });
 

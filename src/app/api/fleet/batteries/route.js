@@ -39,14 +39,15 @@ export async function POST(request) {
 
     // ── Verificar límite del plan ─────────────────────────────────
     // Usamos admin client con filtro explícito de orgId para evitar
-    // cualquier interferencia de RLS o sesión en el conteo.
+    // cualquier interferencia de RLS o sesión en el conteo. Ya bypassa RLS por
+    // ser service role, así que count:'exact'/head:true es seguro y correcto.
     const supabaseAdmin = createAdminClient();
-    const { data: existingBatteries } = await supabaseAdmin
+    const { count: existingBatteriesCount } = await supabaseAdmin
       .from('batteries')
-      .select('id')
+      .select('id', { count: 'exact', head: true })
       .eq('organization_id', orgId);
 
-    const currentBatteryCount = existingBatteries?.length ?? 0;
+    const currentBatteryCount = existingBatteriesCount ?? 0;
 
     if (!canAddResource(subscription_plan, currentBatteryCount, 'battery')) {
       return NextResponse.json(

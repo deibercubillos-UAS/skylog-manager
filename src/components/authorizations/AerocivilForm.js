@@ -1261,7 +1261,8 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                 {aeroForm.points.length > 0 && (
                     <>
                     <div className="overflow-hidden rounded-2xl border border-white/10">
-                        <table className="w-full text-left text-xs">
+                        <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs min-w-[420px]">
                             <thead className="bg-white/5 font-black uppercase text-slate-500">
                                 <tr>
                                     <th className="p-3">ITEM</th>
@@ -1279,6 +1280,7 @@ export default function AerocivilForm({ drones, pilots, org, loadData }) {
                                 ))}
                             </tbody>
                         </table>
+                        </div>
                     </div>
 
                     {/* KML Download */}

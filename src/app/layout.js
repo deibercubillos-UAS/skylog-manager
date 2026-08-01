@@ -164,6 +164,15 @@ export default function RootLayout({ children }) {
           aun en mismo origen porque las fuentes se piden en modo CORS.
         */}
         <link rel="preload" href={MATERIAL_SYMBOLS_FONT} as="font" type="font/woff2" crossOrigin="anonymous" fetchPriority="low" />
+        {/*
+          preconnect (no solo dns-prefetch) para Vercel Analytics/Speed Insights:
+          a diferencia de GA/GTM/Clarity, estos 2 orígenes se cargan SIEMPRE en
+          cada página (Analytics/SpeedInsights más abajo, sin gate de cookies) —
+          preconnect adelanta también el handshake TCP/TLS, no solo el DNS.
+          Señalado por PageSpeed Insights (2 sugerencias de preconnect, 2026-08-01).
+        */}
+        <link rel="preconnect" href="https://va.vercel-scripts.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://vitals.vercel-insights.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://va.vercel-scripts.com" />
         <link rel="dns-prefetch" href="https://vitals.vercel-insights.com" />
         {process.env.NEXT_PUBLIC_GA_ID && <link rel="dns-prefetch" href="https://www.google-analytics.com" />}

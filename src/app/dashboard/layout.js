@@ -23,7 +23,6 @@ const GrantExpiringBanner  = dynamic(() => import('@/components/GrantExpiringBan
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const [data, setData] = useState({ profile: null, org: null });
-  const [aircraftCount, setAircraftCount] = useState(null); // null = aún cargando
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeFlight, setActiveFlight] = useState(null);
@@ -125,12 +124,12 @@ export default function DashboardLayout({ children }) {
           }
         }
 
-        // Cargar organización EN PARALELO con el primer vuelo activo, count de
-        // aeronaves y el plan efectivo de la org.
+        // Cargar organización EN PARALELO con el primer vuelo activo y el
+        // plan efectivo de la org.
         // ⚠️ organizations NO tiene columna subscription_plan — seleccionarla
         // hacía fallar TODA la consulta (error 42703) y dejaba org=null
         // (nombre/NIT/logo no cargaban). El plan se deriva del perfil del admin.
-        const [orgRes, flightRes, acCountRes, orgPlan] = await Promise.all([
+        const [orgRes, flightRes, orgPlan] = await Promise.all([
           supabase
             .from('organizations')
             .select('id,company_name,unique_code,tax_id,logo_url')
@@ -144,15 +143,10 @@ export default function DashboardLayout({ children }) {
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle(),
-          supabase
-            .from('aircraft')
-            .select('id', { count: 'exact', head: true })
-            .eq('organization_id', prof.organization_id),
           getOrgPlan(supabase, prof.organization_id, prof.subscription_plan || 'piloto'),
         ]);
 
         setData({ profile: prof, org: orgRes.data, orgPlan });
-        setAircraftCount(acCountRes.count ?? 0);
         setActiveFlight(flightRes.data);
 
         // ¿El usuario es miembro de un socio (escuela/asesor) ACTIVO? → mostrar
@@ -326,6 +320,14 @@ const isPaidPlan  = !['piloto', null, undefined, ''].includes(plan);
 // Los miembros de una org (piloto/jefe/gsms) tienen profile.subscription_plan='piloto'
 // pero NO son autónomos — no deben heredar la navegación del piloto independiente.
 const isPilotoPlan = isPilotoIndependiente({ role, plan });
+
+// Rutas de pantalla completa tipo "kiosko" (Despacho, Cierre de Vuelo): son overlays
+// fixed inset-0 con su propio botón de acción al final del contenido. La barra de
+// navegación inferior (también fixed, mismo z-index) pintaba encima de ese botón en
+// celulares con muesca/home indicator, dejándolo parcialmente tapado — se oculta la
+// barra por completo mientras el usuario está en uno de estos flujos, coherente además
+// con que son pantallas de enfoque único sin necesidad de navegación paralela.
+const isFullScreenFlow = pathname.startsWith('/dashboard/logbook/new') || pathname.startsWith('/dashboard/logbook/finalize');
 
 // Label visible del rol: piloto independiente (admin + plan piloto) → "Piloto Independiente"
 const displayRole = (isPilotoPlan && role === 'admin')
@@ -840,7 +842,12 @@ const footerLinks = footerLinksAll.filter(link =>
       <AppUpdateBanner />
 
       {/* ── BARRA DE NAVEGACIÓN INFERIOR — solo mobile ───────────────────── */}
-      {/* safe-area-inset-bottom: padding dinámico para iPhone con home indicator */}
+      {/* safe-area-inset-bottom: padding dinámico para iPhone con home indicator.
+          Oculta por completo en los flujos de pantalla completa (isFullScreenFlow) —
+          ver la constante más arriba: esos flujos tienen su propio botón de acción al
+          final del contenido, y esta barra (mismo z-index, fixed) podía pintarse encima
+          y taparlo parcialmente en celulares con muesca. */}
+      {!isFullScreenFlow && (
       <nav
         aria-label="Navegación principal"
         className="lg:hidden fixed bottom-0 left-0 right-0 z-[200] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
@@ -882,6 +889,7 @@ const footerLinks = footerLinksAll.filter(link =>
 
         </div>
       </nav>
+      )}
     </div>
   );
 }

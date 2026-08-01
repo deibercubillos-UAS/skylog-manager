@@ -455,25 +455,25 @@ export default function LogbookPage() {
                         value={search} onChange={e => setSearch(e.target.value)}
                     />
                 </div>
-                <div className="flex flex-wrap gap-2">
-                    <input type="date" aria-label="Filtrar por fecha" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.date} onChange={e => setFilters(f => ({...f, date: e.target.value}))} />
-                    <select aria-label="Filtrar por modelo de UAS" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.model} onChange={e => setFilters(f => ({...f, model: e.target.value}))}>
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+                    <input type="date" aria-label="Filtrar por fecha" className="w-full sm:w-auto p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.date} onChange={e => setFilters(f => ({...f, date: e.target.value}))} />
+                    <select aria-label="Filtrar por modelo de UAS" className="w-full sm:w-auto p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.model} onChange={e => setFilters(f => ({...f, model: e.target.value}))}>
                         <option value="">Todas las aeronaves</option>
                         {uniqueModels.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
-                    <select aria-label="Filtrar por tipo de misión" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.type} onChange={e => setFilters(f => ({...f, type: e.target.value}))}>
+                    <select aria-label="Filtrar por tipo de misión" className="w-full sm:w-auto p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.type} onChange={e => setFilters(f => ({...f, type: e.target.value}))}>
                         <option value="">Todos los tipos</option>
                         {uniqueTypes.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
-                    <select aria-label="Filtrar por condición visual" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.condition} onChange={e => setFilters(f => ({...f, condition: e.target.value}))}>
+                    <select aria-label="Filtrar por condición visual" className="w-full sm:w-auto p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.condition} onChange={e => setFilters(f => ({...f, condition: e.target.value}))}>
                         <option value="">Todas las condiciones</option>
                         <option value="VMC">VMC</option><option value="IMC">IMC</option><option value="NIGHT">NOCTURNO</option>
                     </select>
-                    <select aria-label="Filtrar por piloto" className="p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.pilot} onChange={e => setFilters(f => ({...f, pilot: e.target.value}))}>
+                    <select aria-label="Filtrar por piloto" className="w-full sm:w-auto p-2.5 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500" value={filters.pilot} onChange={e => setFilters(f => ({...f, pilot: e.target.value}))}>
                         <option value="">Todos los pilotos</option>
                         {uniquePilots.map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
-                    <button onClick={clearFilters} className="px-3 py-2.5 text-xs font-black uppercase text-slate-400 hover:text-orange-600 transition-colors border border-slate-200 rounded-xl">
+                    <button onClick={clearFilters} className="w-full sm:w-auto px-3 py-2.5 text-xs font-black uppercase text-slate-400 hover:text-orange-600 transition-colors border border-slate-200 rounded-xl">
                         Limpiar
                     </button>
                 </div>

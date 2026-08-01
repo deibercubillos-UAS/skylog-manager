@@ -7,7 +7,23 @@ const PRV_KEY = () => process.env.EPAYCO_PRIVATE_KEY;
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 // El SDK usa POST con JSON body, devuelve bearer_token
+//
+// ⚠️ Perf real confirmado (2026-07-26): antes NO había ningún cache — cada
+// llamada a headers() (osea cada GET/POST a ePayco) volvía a hacer login
+// completo. `activate-pending` termina llamando a ePayco varias veces en un
+// solo request (listSubscriptions + un getCustomer por cada suscripción activa
+// que resolver), así que sin cache eran N+1 round-trips de login serializados
+// — el usuario reportó que "confirmar el pago" tardaba mucho, esto era la
+// causa. El bearer_token de ePayco dura tiempo suficiente para reutilizarlo
+// dentro de la misma invocación serverless (y entre invocaciones si la
+// instancia sigue caliente) — se cachea en memoria con margen de 60s.
+let _tokenCache = null; // { token, expiresAt }
+
 async function getToken() {
+  if (_tokenCache && _tokenCache.expiresAt > Date.now()) {
+    return _tokenCache.token;
+  }
+
   const res = await fetch(`${BASE}/v1/auth/login`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -22,6 +38,11 @@ async function getToken() {
 
   const token = json.bearer_token || json.token;
   if (!token) throw new Error(`ePayco auth: bearer_token ausente. Resp: ${JSON.stringify(json)}`);
+
+  // El JWT de ePayco típicamente dura ~1h — se cachea 10 min para no arriesgar
+  // usar un token vencido si la instancia serverless sigue caliente por más
+  // tiempo del real (mejor renovar de más que fallar por token expirado).
+  _tokenCache = { token, expiresAt: Date.now() + 10 * 60 * 1000 };
   return token;
 }
 
@@ -129,20 +150,64 @@ export async function cancelSubscription(uid) {
   });
 }
 
+// Obtiene un cliente por su id — GET /payment/v1/customer/{apiKey}/{uid}
+// (confirmado contra el SDK oficial epayco-node, `customers.get`).
+export async function getCustomer(idCustomer) {
+  const json = await epaycoGet(`/payment/v1/customer/${PUB_KEY()}/${idCustomer}`);
+  return json.data ?? json;
+}
+
+// ⚠️ Bug real confirmado (2026-07-26): la respuesta de
+// `GET /recurring/v1/subscriptions/{apiKey}` NUNCA trae el email del cliente —
+// solo un `idCustomer` opaco. Todo el código que antes intentaba leer
+// `s.email`/`s.customer_data?.email`/etc. directo de la suscripción SIEMPRE
+// fallaba en silencio (`email` quedaba vacío, ninguna comparación coincidía
+// jamás) — afectaba por igual la reconciliación de `activate-pending`, el
+// listado de Master (mostraba "—" en la columna Email para toda suscripción)
+// y `cancelSubscriptionsByEmail()` (ya documentado en CLAUDE.md como
+// "siempre retorna matched: 0"). `resolveSubscriptionEmail()` es la única
+// fuente de verdad correcta desde ahora: resuelve el email real vía
+// `getCustomer(idCustomer)`, con caché en memoria por `idCustomer` dentro de
+// una misma ejecución para no repetir la llamada si varias suscripciones
+// comparten cliente.
+export async function resolveSubscriptionEmail(sub, cache = new Map()) {
+  const direct = (
+    sub.customer_data?.email ||
+    sub.email ||
+    sub.cliente?.email ||
+    sub.subscriber?.email || ''
+  ).trim();
+  if (direct) return direct.toLowerCase();
+
+  const idCustomer = sub.idCustomer || sub._raw?.idCustomer;
+  if (!idCustomer) return '';
+
+  if (cache.has(idCustomer)) return cache.get(idCustomer);
+
+  try {
+    const customer = await getCustomer(idCustomer);
+    const email = (customer?.email || customer?.data?.email || '').trim().toLowerCase();
+    cache.set(idCustomer, email);
+    return email;
+  } catch (err) {
+    cache.set(idCustomer, '');
+    return '';
+  }
+}
+
 // Busca y cancela todas las suscripciones activas de un email.
 // Se usa como fallback cuando epayco_subscription_id no está guardado.
 export async function cancelSubscriptionsByEmail(email) {
   const all = await listSubscriptions();
   const normalEmail = email.trim().toLowerCase();
+  const emailCache = new Map();
 
-  // Los campos de email varían según la respuesta de ePayco
-  const matches = all.filter(s => {
-    const subEmail = (
-      s.customer_data?.email ||
-      s.email ||
-      s.cliente?.email ||
-      s.subscriber?.email || ''
-    ).trim().toLowerCase();
+  // Resuelve el email real de cada suscripción (ver resolveSubscriptionEmail) —
+  // antes comparaba directo contra campos que ePayco nunca envía.
+  const emails = await Promise.all(all.map(s => resolveSubscriptionEmail(s, emailCache)));
+
+  const matches = all.filter((s, i) => {
+    const subEmail = emails[i];
     const isActive = !s.status || ['active', '1', 'activa', 'activo'].includes(
       String(s.status).toLowerCase()
     );

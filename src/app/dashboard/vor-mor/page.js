@@ -626,7 +626,7 @@ export default function VorMorPage() {
                   <div className="p-6 space-y-5 bg-slate-50 rounded-b-3xl">
                     <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Gestión del reporte</h4>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       {/* Estado */}
                       <div>
                         <label className={LABEL}>Estado</label>

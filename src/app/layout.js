@@ -197,6 +197,9 @@ export default function RootLayout({ children }) {
               // la entidad en todos los demás esquemas del sitio.
               "@id": `${SITE_URL}/#organization`,
               "name": "Bitafly",
+              // Variantes/errores tipográficos comunes (autocorrección de teclado,
+              // separación de sílabas) — le indica a Google que son la misma entidad.
+              "alternateName": ["BitaFly", "Vita Fly", "VitaFly", "Bita Fly", "Vitafly"],
               "legalName": "BitaFly S.A.S.",
               "url": SITE_URL,
               // logo como ImageObject (no solo string) — activa Knowledge Panel

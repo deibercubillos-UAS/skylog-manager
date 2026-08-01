@@ -744,20 +744,10 @@ del bug de `additions` que originó esta auditoría — un script cruzó cada `.
   mostraba el texto genérico "la organización destino" en vez del nombre real — cosmético,
   sin romper la transferencia en sí. Corregido.
 - **`form_definitions` no tiene columnas `category`/`label`/`updated_at`** (el nombre real del
-  texto es `label_text`) en `api/safety-config/[id]/PATCH`: **página ya huérfana** — la
-  gestión real de Barreras se movió a la tabla `safety_barriers` en 2026-07-03 y ningún enlace
-  del producto apunta ya a `/dashboard/safety-config` (confirmado con grep) — pero la ruta
-  seguía siendo alcanzable por URL directa y devolvía 500 en cada intento de editar. Corregido
-  el nombre de columna (sin resucitar el concepto de "categoría", que ya no existe en el
-  esquema); se documenta aquí como candidata a eliminación futura en vez de profundizar en una
-  función sin ningún punto de entrada real hoy.
-- **Hallazgo secundario, no corregido a propósito**: `api/form-settings`, `api/form-templates`,
-  `dashboard/records/[templateId]`, `api/sora` referencian tablas que no existen en absoluto
-  (`form_settings`/`form_templates`/`form_records`/`sora_templates`) — confirmado por grep que
-  ningún archivo del proyecto los enlaza ni los llama; código muerto de una iteración anterior
-  (superado por `form_definitions`), sin riesgo real para un usuario porque no hay forma de
-  llegar ahí. Se deja documentado en vez de borrarlo en la misma pasada, por si se quiere
-  limpiar aparte.
+  texto es `label_text`) en `api/safety-config/[id]/PATCH`: en su momento se corrigió el nombre
+  de columna sin borrar la página huérfana que la usaba — **la página se eliminó después, ver
+  Limpieza de repositorio (2026-08-01)**. `api/safety-config` (la API, no la página) sigue
+  vivo: `SoraWizard.js` lo consume para cargar OSOs personalizados — no tocar.
 
 **B — `profiles.organization_id` legacy en vez de `organization_members`** (2 confirmados,
 mismo patrón que el bug de Gestión de Usuarios de arriba — agente dedicado revisó todo
@@ -3874,6 +3864,58 @@ antes reproducir con una recarga limpia. **Limitación documentada**: 2 de las 7
 `/admin/master` (Comisiones, App Releases) quedaron sin revisar en la Fase 10 — decisión
 explícita del usuario tras un reemplazo de sesión de superadmin en el navegador (mismo storage
 de Supabase Auth compartido entre pestañas del mismo origen, no un bug de la app).
+
+---
+
+## Limpieza de repositorio (2026-08-01)
+
+A pedido del usuario ("siento que hay muchos archivos en espacios que no corresponden, otros
+volando, otros que no aportan o están desactualizados"): auditoría real del árbol del repo
+(no solo de `src/`) antes de tocar nada, con 4 hallazgos confirmados y limpiados.
+
+- **Bug real de higiene — `docs/node_modules` estaba commiteado en git** (384 archivos,
+  9.3 MB): causa raíz, `.gitignore` solo tenía `/node_modules` (con `/` inicial, ancla la
+  regla a la raíz del repo) — nunca cubrió `docs/node_modules` (`docs/generate.js` usa el
+  paquete `docx` para generar Word/PDF, alguien corrió `npm install` ahí y quedó commiteado
+  por accidente). Corregido: `git rm -r --cached docs/node_modules` + `.gitignore` cambiado a
+  `node_modules/` sin `/` inicial (cubre cualquier subcarpeta futura, no solo `docs/`) — los
+  archivos siguen en disco, solo dejaron de estar trackeados.
+- **3 archivos/carpetas huérfanos eliminados** (verificado que nada los referencia antes de
+  borrar): `plan_campana_bitafly.docx` (en la **raíz** del repo, ni siquiera dentro de
+  `docs/` — se coló en un commit no relacionado de guion de video, confirmado por
+  `git log`), `docs/design.json` (452 KB) y `docs/extracted/` (páginas HTML exportadas) —
+  ambos son residuos del proyecto de Claude Design ya ejecutado y convertido en las páginas
+  reales de `src/app/` (ver **Sistema de Diseño**); `docs/generate.js` no los referencia en
+  ningún lado.
+- **5 rutas de código muerto eliminadas** (ya documentadas como candidatas en auditorías
+  previas, nunca borradas hasta ahora — re-verificado con grep antes de tocar, no solo
+  confiando en la documentación vieja): `api/form-settings`, `api/form-templates`,
+  `dashboard/records/[templateId]`, `api/sora` (el `route.js` raíz, consultaba una tabla
+  `sora_templates` que no existe — **no** `api/sora/assessments`, que sí es real y se dejó
+  intacto) y `dashboard/safety-config` (página huérfana sin ningún link desde la nav desde
+  2026-07-03). **Verificación adicional que evitó un error real**: al borrar la página
+  `dashboard/safety-config` se revisó si su API (`api/safety-config`) también quedaba
+  huérfana — **no** es el caso, `SoraWizard.js` la consume para cargar OSOs personalizados
+  en la evaluación SORA, así que `api/safety-config` (la API) se dejó intacta pese al nombre
+  compartido con la página borrada.
+- **`npm run lint` + `npm run build` limpios** tras la limpieza (mismos 3 warnings
+  preexistentes de siempre) — confirma que ninguna de las 5 rutas borradas tenía un caller
+  real que se rompiera.
+- **Documentos de negocio en `docs/` eliminados** (mismo día, a pedido del usuario tras
+  confirmar que ya no se requieren): `Bitafly_MO_MCM_RAC100.docx`,
+  `Bitafly_Pitch_Inversionistas.docx`, `Bitafly_Presentacion_Inversionistas.pptx`,
+  `Bitafly_Proyeccion_Financiera.xlsx` y `estatutos-bitafly-sas.docx` — los 5 eran
+  **archivos generados** (`docs/generate.js`, `scripts/gen_word.js`/`gen_excel.js`/
+  `gen_pptx.js`/`gen_estatutos.js` siguen en el repo y los regeneran si hacen falta), nada
+  los importaba como fuente. `docs/` queda solo con `.md` de documentación técnica viva —
+  `estatutos-bitafly-sas.md` (la fuente real, editable) se conserva intacto.
+- **Deliberadamente diferido, pendiente de decisión del usuario**:
+  - `demo-enterprise/` (app Next.js completa e independiente, el proyecto Vercel
+    `demo-bitafly-enterprise`) y `railway-robot/` (microservicio Express+Playwright que
+    automatiza el portal de AeroCivil, deploy propio a Railway) — ambos viven como carpetas
+    sueltas dentro de este repo sin ningún tooling de monorepo (workspaces/Turborepo) que
+    declare la relación. No es código muerto — ambos son funcionales y se usan — pero la
+    falta de estructura declarada es parte de por qué el repo "se siente desordenado".
 
 ---
 

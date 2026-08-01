@@ -1,7 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
+# dependencies — sin "/" inicial para cubrir node_modules en cualquier subcarpeta
+# (docs/, demo-enterprise/, railway-robot/, etc.), no solo la raíz del repo
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -41,9 +42,15 @@ yarn-error.log*
 next-env.d.ts
 .env.local
 
-# claude / local tooling
-.claude/
+# claude / local tooling — .claude/skills/ SÍ se versiona (skills instaladas para el
+# proyecto, ej. ui-ux-pro-max); el resto de .claude/ (config/permisos locales) sigue ignorado.
+.claude/*
+!.claude/skills
 .clone/
+__pycache__/
+*.pyc
+.coverage
+coverage-ui.json
 # docs/ — descomentado para versionar documentación del proyecto
 # docs/
 graphify-out/

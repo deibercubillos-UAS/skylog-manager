@@ -47,8 +47,9 @@ justifique.
 - [~] 0.3 — Cómo crear tu cuenta: registro paso a paso — piloto independiente y
       organización/empresa, en un solo video (fusiona los 0.3/0.4 originales a pedido del
       usuario; guion listo, ver subsección abajo)
-- [ ] 0.4 — Unirse a una organización existente con el NIT (tripulante nuevo)
-- [ ] 0.5 — Recorrido general del panel: menú lateral, notificaciones, búsqueda, tu perfil
+- [~] 0.5 — Recorrido general del panel: menú lateral, notificaciones, búsqueda, tu perfil
+      (guion listo, ver subsección abajo — se omitió el 0.4 original "Unirse a una
+      organización con el NIT" a pedido del usuario, sin renumerar el resto de la serie)
 - [ ] 0.6 — Planes y precios: qué incluye cada plan y cómo elegir el correcto
 - [ ] 0.7 — Periodo de prueba y cómo activar tu suscripción (pago con ePayco)
 - [ ] 0.8 — Multi-organización: cómo pertenecer a varias empresas y cambiar entre ellas
@@ -312,11 +313,13 @@ Formato: tutorial 100% en pantalla (grabación real del flujo de registro)
 ===================================
 
 [GANCHO — 0:00-0:12]
-[Visual: pantalla, dashboard vacío/limpio de fondo]
+[Visual: toma real — estilo documental observacional, macro/close-up de alguien
+preparando café (moliendo, sirviendo), nadie mira a cámara en ningún momento. En los
+últimos 2 segundos cae la primera gota sobre la taza, coincidiendo con el remate de la
+frase — clip ya generado y aprobado, ver prompt en las notas de producción]
 
-"Ya viste qué te ofrece cada plan. Ahora te muestro exactamente cómo crear tu cuenta — en
-minutos, sin complicaciones — sea que vueles por tu cuenta o que estés armando tu
-operación como empresa."
+"¿Sabes cuánto se demora preparar un café? Vas a tardar lo mismo en abrir tu cuenta en
+BitaFly."
 
 [INTRO — 0:12-0:25]
 [Visual: pantalla, bitafly.com/registro]
@@ -358,13 +361,15 @@ empezar a invitar al resto de tu equipo."
 [Visual: pantalla, ambos dashboards uno al lado del otro brevemente]
 
 "Y eso es todo — los dos registros toman apenas unos minutos. En el próximo video te
-muestro cómo invitar a tu tripulación, y qué ve cada uno la primera vez que entra."
+muestro un recorrido completo del panel, para que sepas exactamente dónde está todo apenas
+entres."
 
 [CONCLUSIÓN — 3:30-3:45]
-[Visual: pantalla, vuelve al dashboard general]
+[Visual: vuelve brevemente a la taza de café del gancho, ahora servida y humeante —
+cierra el paralelo planteado al inicio]
 
-"Ya tienes tu cuenta lista, sea cual sea tu caso. Lo que sigue es empezar a construir tu
-operación dentro de la plataforma."
+"¿Ves? Tu café todavía está caliente, y tu cuenta ya está lista, sea cual sea tu caso. Lo
+que sigue es empezar a construir tu operación dentro de la plataforma."
 
 [CIERRE / CTA MÍNIMO — 3:45-3:55]
 
@@ -384,9 +389,25 @@ orientación conceptual como los dos anteriores.
 ```
 
 Notas de producción:
-- **Formato distinto a 0.1/0.2**: este video es 100% grabación de pantalla real del flujo
-  `/registro` — no reutiliza ni necesita b-roll de dron/piloto/roles. La única pieza nueva
-  a producir es la grabación de pantalla en sí, no un prompt de video.
+- **Gancho — paralelo del café (guion final, video ya generado y aprobado)**: se descartó
+  el enfoque de cronómetro (arrastraba dos problemas reales: números en pantalla que la IA
+  de video distorsiona, y requería calibrar el overlay a la duración exacta del video ya
+  montado). El paralelo del café resuelve ambos — no necesita overlay ni número exacto, y
+  la duración real del video no tiene que coincidir con nada. Iteraciones del prompt de
+  video hasta llegar a la versión aprobada: (1) presentador mirando directo a cámara con
+  laptop de fondo → generaba glitches de UI en la pantalla del laptop; (2) se quitó
+  cualquier pantalla/dispositivo del cuadro y se probó un tono "disruptivo" (café golpeado
+  contra la mesa, mirada intensa a cámara) → no respetaba el orden del guion (mostraba el
+  café ya listo antes de plantear la pregunta) y la mirada directa resultaba intimidante,
+  restándole enganche; (3) versión final: estilo documental observacional puro, nadie mira
+  a cámara en ningún momento, cámara "descubre" a alguien preparando café de forma
+  candorosa — la primera gota cae justo en el remate de la frase. El guion se ajustó
+  después para calzar con este video ya aprobado (pregunta sobre el café primero, la cuenta
+  BitaFly como remate — orden invertido respecto a versiones anteriores del guion).
+- **Formato distinto a 0.1/0.2 — con una excepción**: el resto del video (Bloques 1-3) es
+  100% grabación de pantalla real del flujo `/registro`, sin b-roll adicional. El gancho es
+  la única excepción — sí lleva una toma real generada (el clip del café descrito arriba),
+  igual que el gancho del Video 0.1 (toma real de apertura + resto en pantalla).
 - **Cuenta de prueba necesaria para grabar**: ambos flujos (piloto independiente y
   empresa) deben grabarse con datos ficticios/desechables — nunca con el NIT o datos
   reales de un cliente. El flujo de empresa además requiere completar un pago real de
@@ -400,6 +421,104 @@ Notas de producción:
   ya viene con sus marcas de tiempo aproximadas, así que se puede derivar el archivo de
   subtítulos (.srt/.vtt) directamente de aquí una vez esté el video montado, sin
   retranscribir desde el video final.
+
+### Guion — 0.5 · Recorrido general del panel
+
+**Formato**: tutorial 100% en pantalla (recorrido guiado del dashboard real), sin necesidad
+de b-roll de dron. **Duración objetivo**: ~3:30 min (~480 palabras). **Tono**: profesional,
+cercano, directo. **CTA**: mínimo — video de orientación, no de venta.
+
+```
+===================================
+GUION — VIDEO 0.5
+===================================
+Título: Recorrido completo del panel de BitaFly — todo lo que necesitas saber para empezar
+Duración estimada: ~3:30 minutos (~480 palabras)
+Formato: tutorial 100% en pantalla (recorrido guiado del dashboard)
+===================================
+
+[GANCHO — 0:00-0:12]
+[Visual: pantalla, dashboard recién cargado, cursor quieto un instante como quien no sabe
+por dónde empezar]
+
+"Ya tienes tu cuenta lista — y ahora ves un panel completo, con menús, campana, buscador...
+¿por dónde empiezas? Te lo muestro todo en los próximos minutos, para que nunca te sientas
+perdido."
+
+[INTRO — 0:12-0:25]
+[Visual: pantalla, dashboard general]
+
+"No importa si acabas de crear tu cuenta o si te uniste a una empresa ya existente — el
+panel que vas a ver es el mismo. Vamos a recorrerlo juntos, parte por parte."
+
+[CONTENIDO PRINCIPAL — 0:25-2:35]
+
+[Bloque 1: El menú lateral — 0:25-0:55]
+[Visual: pantalla, sidebar completo, mostrando los 3 grupos y cómo se contraen/expanden]
+
+"A la izquierda está tu menú principal, organizado en tres grupos: Operación, Flota y
+Equipo, y Documentación. Cada grupo se puede contraer si quieres más espacio — y no te
+preocupes si ves menos opciones que en este video: lo que aparece depende de tu rol dentro
+de la organización."
+
+[Bloque 2: La barra de búsqueda — 0:55-1:25]
+[Visual: pantalla, escribiendo en el buscador del header, resultados desplegándose en vivo]
+
+"Arriba tienes un buscador global. Escribe el número de un vuelo, el modelo de una
+aeronave, o el nombre de un piloto, y te lleva directo — sin tener que navegar módulo por
+módulo para encontrar algo."
+
+[Bloque 3: La campana de notificaciones — 1:25-1:55]
+[Visual: pantalla, clic en la campana, panel de notificaciones desplegado]
+
+"La campana te avisa en tiempo real de lo que pasa en tu operación: un vuelo programado
+para ti, una alerta de mantenimiento, una invitación pendiente. No tienes que estar
+revisando cada módulo — las notificaciones llegan solas."
+
+[Bloque 4: Tu perfil y menú de cuenta — 1:55-2:35]
+[Visual: pantalla, clic en el avatar, menú desplegado con Perfil / Organización /
+Suscripción / Cerrar sesión]
+
+"Y en tu avatar, arriba a la derecha, está todo lo relacionado con tu cuenta: tu perfil
+personal, los datos de tu organización si te corresponde verlos, tu suscripción, y por
+supuesto, cerrar sesión."
+
+[CONCLUSIÓN — 2:35-3:00]
+[Visual: pantalla, vuelve al dashboard general]
+
+"Con esto ya sabes ubicarte en cualquier parte del panel. El resto de la serie va a ir
+mucho más rápido ahora que conoces el terreno."
+
+[CIERRE / CTA MÍNIMO — 3:00-3:10]
+
+"En el próximo video vemos los planes y precios — qué incluye cada uno, y cómo saber cuál
+te conviene. Nos vemos ahí."
+
+===================================
+[FIN DEL GUION]
+
+Conteo de palabras: ~480
+Duración estimada: ~3:30 minutos
+Audiencia: cualquier usuario recién registrado (piloto independiente o miembro de una
+organización) que necesita orientarse en el panel por primera vez
+Tono: profesional, cercano, directo — video de orientación pura, sin venta.
+===================================
+```
+
+Notas de producción:
+- **Sin toma real de apertura**: como 0.3, es 100% pantalla — el gancho se apoya en la
+  situación relatable ("panel completo, ¿por dónde empiezas?") sin necesidad de b-roll.
+- **Grabar con una cuenta que tenga notificaciones reales pendientes**: para que el Bloque
+  3 (campana) no muestre un estado vacío — vale la pena programar una misión o generar
+  alguna alerta de prueba antes de grabar, para que el panel de notificaciones tenga
+  contenido real que mostrar.
+- **Evitar mostrar datos reales de una organización/cliente en pantalla** — misma regla que
+  el resto de la serie.
+- **No profundizar en ningún módulo específico**: este video es solo orientación de la
+  "cáscara" del dashboard (menú, búsqueda, notificaciones, cuenta) — cada módulo (Flota,
+  Bitácora, Programación, etc.) tiene su propio video dedicado más adelante en el Bloque 2.
+- **Subtítulos**: mismo criterio que los guiones anteriores — se derivan de este documento
+  una vez esté el video montado.
 
 ---
 

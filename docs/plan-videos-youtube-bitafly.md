@@ -47,9 +47,9 @@ justifique.
 - [~] 0.3 — Cómo crear tu cuenta: registro paso a paso — piloto independiente y
       organización/empresa, en un solo video (fusiona los 0.3/0.4 originales a pedido del
       usuario; guion listo, ver subsección abajo)
-- [~] 0.4 — Unirse a una organización existente con el NIT (tripulante nuevo)
-      (guion listo, ver subsección abajo)
-- [ ] 0.5 — Recorrido general del panel: menú lateral, notificaciones, búsqueda, tu perfil
+- [~] 0.5 — Recorrido general del panel: menú lateral, notificaciones, búsqueda, tu perfil
+      (guion listo, ver subsección abajo — se omitió el 0.4 original "Unirse a una
+      organización con el NIT" a pedido del usuario, sin renumerar el resto de la serie)
 - [ ] 0.6 — Planes y precios: qué incluye cada plan y cómo elegir el correcto
 - [ ] 0.7 — Periodo de prueba y cómo activar tu suscripción (pago con ePayco)
 - [ ] 0.8 — Multi-organización: cómo pertenecer a varias empresas y cambiar entre ellas
@@ -361,7 +361,8 @@ empezar a invitar al resto de tu equipo."
 [Visual: pantalla, ambos dashboards uno al lado del otro brevemente]
 
 "Y eso es todo — los dos registros toman apenas unos minutos. En el próximo video te
-muestro cómo invitar a tu tripulación, y qué ve cada uno la primera vez que entra."
+muestro un recorrido completo del panel, para que sepas exactamente dónde está todo apenas
+entres."
 
 [CONCLUSIÓN — 3:30-3:45]
 [Visual: vuelve brevemente a la taza de café del gancho, ahora servida y humeante —
@@ -421,104 +422,101 @@ Notas de producción:
   subtítulos (.srt/.vtt) directamente de aquí una vez esté el video montado, sin
   retranscribir desde el video final.
 
-### Guion — 0.4 · Unirse a una organización existente con el NIT
+### Guion — 0.5 · Recorrido general del panel
 
-**Formato**: tutorial 100% en pantalla (grabación real del flujo `/registro`, modo
-"Unirse a una organización"), sin necesidad de b-roll de dron. **Duración objetivo**: ~2:45
-min (~380 palabras). **Tono**: profesional, directo, práctico — mismo registro que 0.3.
-**CTA**: mínimo.
+**Formato**: tutorial 100% en pantalla (recorrido guiado del dashboard real), sin necesidad
+de b-roll de dron. **Duración objetivo**: ~3:30 min (~480 palabras). **Tono**: profesional,
+cercano, directo. **CTA**: mínimo — video de orientación, no de venta.
 
 ```
 ===================================
-GUION — VIDEO 0.4
+GUION — VIDEO 0.5
 ===================================
-Título: Cómo unirte a una organización con tu NIT — para tripulantes nuevos
-Duración estimada: ~2:45 minutos (~380 palabras)
-Formato: tutorial 100% en pantalla (grabación real del flujo de registro, modo "unirse")
+Título: Recorrido completo del panel de BitaFly — todo lo que necesitas saber para empezar
+Duración estimada: ~3:30 minutos (~480 palabras)
+Formato: tutorial 100% en pantalla (recorrido guiado del dashboard)
 ===================================
 
-[GANCHO — 0:00-0:10]
-[Visual: pantalla, bitafly.com/registro]
+[GANCHO — 0:00-0:12]
+[Visual: pantalla, dashboard recién cargado, cursor quieto un instante como quien no sabe
+por dónde empezar]
 
-"Si en tu nuevo trabajo te dieron un NIT y no un plan que pagar, este video es para ti —
-no vas a crear una organización, vas a entrar a una que ya existe."
+"Ya tienes tu cuenta lista — y ahora ves un panel completo, con menús, campana, buscador...
+¿por dónde empiezas? Te lo muestro todo en los próximos minutos, para que nunca te sientas
+perdido."
 
-[INTRO — 0:10-0:22]
-[Visual: pantalla, recordatorio breve del video anterior]
+[INTRO — 0:12-0:25]
+[Visual: pantalla, dashboard general]
 
-"En el video anterior te mostré cómo crear una cuenta desde cero. Pero si ya te contrató
-una empresa que usa BitaFly, el camino es distinto — y todavía más corto."
+"No importa si acabas de crear tu cuenta o si te uniste a una empresa ya existente — el
+panel que vas a ver es el mismo. Vamos a recorrerlo juntos, parte por parte."
 
-[CONTENIDO PRINCIPAL — 0:22-2:15]
+[CONTENIDO PRINCIPAL — 0:25-2:35]
 
-[Bloque 1: Elegir "Unirse a una organización" — 0:22-0:45]
-[Visual: pantalla, grabación real de /registro, seleccionando la opción de unirse en vez
-de crear una organización nueva]
+[Bloque 1: El menú lateral — 0:25-0:55]
+[Visual: pantalla, sidebar completo, mostrando los 3 grupos y cómo se contraen/expanden]
 
-"En bitafly.com/registro vas a ver dos caminos: crear tu propia operación, o unirte a una
-que ya existe. Elige la segunda opción."
+"A la izquierda está tu menú principal, organizado en tres grupos: Operación, Flota y
+Equipo, y Documentación. Cada grupo se puede contraer si quieres más espacio — y no te
+preocupes si ves menos opciones que en este video: lo que aparece depende de tu rol dentro
+de la organización."
 
-[Bloque 2: Ingresar el NIT — 0:45-1:15]
-[Visual: pantalla, campo de NIT, validación en vivo]
+[Bloque 2: La barra de búsqueda — 0:55-1:25]
+[Visual: pantalla, escribiendo en el buscador del header, resultados desplegándose en vivo]
 
-"Aquí es donde entra el NIT que te dio tu empresa. Lo escribes, y el sistema valida al
-instante que esa organización existe y tiene un cupo disponible para ti — sin que tengas
-que adivinar nada ni escribir el nombre exacto de la empresa."
+"Arriba tienes un buscador global. Escribe el número de un vuelo, el modelo de una
+aeronave, o el nombre de un piloto, y te lleva directo — sin tener que navegar módulo por
+módulo para encontrar algo."
 
-[Bloque 3: Elegir tu rol — 1:15-1:40]
-[Visual: pantalla, selector de rol dentro de la organización]
+[Bloque 3: La campana de notificaciones — 1:25-1:55]
+[Visual: pantalla, clic en la campana, panel de notificaciones desplegado]
 
-"Después eliges tu rol dentro de esa operación — piloto, jefe de pilotos, gerente SMS,
-según lo que te haya asignado tu empresa. Este paso decide qué vas a ver y qué vas a poder
-hacer desde el primer día."
+"La campana te avisa en tiempo real de lo que pasa en tu operación: un vuelo programado
+para ti, una alerta de mantenimiento, una invitación pendiente. No tienes que estar
+revisando cada módulo — las notificaciones llegan solas."
 
-[Bloque 4: Completar datos y entrar — 1:40-2:15]
-[Visual: pantalla, datos básicos → confirmar → llegada directa al dashboard con el rol
-asignado]
+[Bloque 4: Tu perfil y menú de cuenta — 1:55-2:35]
+[Visual: pantalla, clic en el avatar, menú desplegado con Perfil / Organización /
+Suscripción / Cerrar sesión]
 
-"Completas tus datos básicos, confirmas, y entras directo a tu panel — sin elegir plan, sin
-tarjeta de crédito. Tu acceso es gratis: heredas el plan de la empresa a la que te uniste."
+"Y en tu avatar, arriba a la derecha, está todo lo relacionado con tu cuenta: tu perfil
+personal, los datos de tu organización si te corresponde verlos, tu suscripción, y por
+supuesto, cerrar sesión."
 
-[CONCLUSIÓN — 2:15-2:35]
-[Visual: pantalla, dashboard ya cargado con el rol del tripulante]
+[CONCLUSIÓN — 2:35-3:00]
+[Visual: pantalla, vuelve al dashboard general]
 
-"Y ya está. Ya eres parte de la operación, con tu rol asignado, listo para lo que te toque
-hacer — despachar un vuelo, revisar tu flota, o lo que tu equipo necesite de ti."
+"Con esto ya sabes ubicarte en cualquier parte del panel. El resto de la serie va a ir
+mucho más rápido ahora que conoces el terreno."
 
-[CIERRE / CTA MÍNIMO — 2:35-2:45]
+[CIERRE / CTA MÍNIMO — 3:00-3:10]
 
-"En el próximo video te muestro un recorrido completo del panel — el menú, las
-notificaciones, tu perfil — para que no te pierdas nada apenas entres. Nos vemos ahí."
+"En el próximo video vemos los planes y precios — qué incluye cada uno, y cómo saber cuál
+te conviene. Nos vemos ahí."
 
 ===================================
 [FIN DEL GUION]
 
-Conteo de palabras: ~380
-Duración estimada: ~2:45 minutos
-Audiencia: tripulantes nuevos que ya recibieron el NIT de su empresa (por invitación,
-correo o de viva voz) y necesitan ver el flujo de unión real, paso a paso
-Tono: profesional, directo, práctico — más corto que 0.3 porque el flujo en sí es más
-simple (un solo camino, no dos).
+Conteo de palabras: ~480
+Duración estimada: ~3:30 minutos
+Audiencia: cualquier usuario recién registrado (piloto independiente o miembro de una
+organización) que necesita orientarse en el panel por primera vez
+Tono: profesional, cercano, directo — video de orientación pura, sin venta.
 ===================================
 ```
 
 Notas de producción:
-- **Sin toma real de apertura** (a diferencia de 0.3): este flujo es más corto y directo,
-  sin la tensión de "cuánto se demora" que ameritó un gancho con b-roll — el gancho en
-  pantalla ya tiene su propio enganche (la situación relatable de "te dieron un NIT, no un
-  plan que pagar"). Si al revisarlo se siente plano, mismo patrón de iteración que ya
-  usamos en 0.1-0.3: se puede mejorar a pedido.
-- **Cuenta de prueba necesaria para grabar**: se necesita una organización de prueba ya
-  existente (con NIT ficticio) para poder mostrar el flujo de unión real — no se puede
-  grabar "uniéndose" a una organización que no existe de antemano. Mismo criterio de datos
-  desechables que 0.1-0.3: nunca el NIT real de un cliente.
-- **Roles asignables**: el video menciona piloto/jefe de pilotos/gerente SMS como ejemplos
-  reales de roles que un tripulante nuevo puede recibir al unirse — no incluye Gerente
-  General, que corresponde a quien crea la organización, no a quien se une después.
-- **Gratis, sin fricción de pago**: el tripulante que se une por NIT nunca paga ni elige
-  plan — hereda el plan de la organización a la que entra. Vale la pena que el guion lo
-  diga explícito (Bloque 4), porque es la principal duda/objeción de alguien viendo este
-  flujo por primera vez.
+- **Sin toma real de apertura**: como 0.3, es 100% pantalla — el gancho se apoya en la
+  situación relatable ("panel completo, ¿por dónde empiezas?") sin necesidad de b-roll.
+- **Grabar con una cuenta que tenga notificaciones reales pendientes**: para que el Bloque
+  3 (campana) no muestre un estado vacío — vale la pena programar una misión o generar
+  alguna alerta de prueba antes de grabar, para que el panel de notificaciones tenga
+  contenido real que mostrar.
+- **Evitar mostrar datos reales de una organización/cliente en pantalla** — misma regla que
+  el resto de la serie.
+- **No profundizar en ningún módulo específico**: este video es solo orientación de la
+  "cáscara" del dashboard (menú, búsqueda, notificaciones, cuenta) — cada módulo (Flota,
+  Bitácora, Programación, etc.) tiene su propio video dedicado más adelante en el Bloque 2.
 - **Subtítulos**: mismo criterio que los guiones anteriores — se derivan de este documento
   una vez esté el video montado.
 

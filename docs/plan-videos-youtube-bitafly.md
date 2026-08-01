@@ -47,7 +47,8 @@ justifique.
 - [~] 0.3 — Cómo crear tu cuenta: registro paso a paso — piloto independiente y
       organización/empresa, en un solo video (fusiona los 0.3/0.4 originales a pedido del
       usuario; guion listo, ver subsección abajo)
-- [ ] 0.4 — Unirse a una organización existente con el NIT (tripulante nuevo)
+- [~] 0.4 — Unirse a una organización existente con el NIT (tripulante nuevo)
+      (guion listo, ver subsección abajo)
 - [ ] 0.5 — Recorrido general del panel: menú lateral, notificaciones, búsqueda, tu perfil
 - [ ] 0.6 — Planes y precios: qué incluye cada plan y cómo elegir el correcto
 - [ ] 0.7 — Periodo de prueba y cómo activar tu suscripción (pago con ePayco)
@@ -419,6 +420,107 @@ Notas de producción:
   ya viene con sus marcas de tiempo aproximadas, así que se puede derivar el archivo de
   subtítulos (.srt/.vtt) directamente de aquí una vez esté el video montado, sin
   retranscribir desde el video final.
+
+### Guion — 0.4 · Unirse a una organización existente con el NIT
+
+**Formato**: tutorial 100% en pantalla (grabación real del flujo `/registro`, modo
+"Unirse a una organización"), sin necesidad de b-roll de dron. **Duración objetivo**: ~2:45
+min (~380 palabras). **Tono**: profesional, directo, práctico — mismo registro que 0.3.
+**CTA**: mínimo.
+
+```
+===================================
+GUION — VIDEO 0.4
+===================================
+Título: Cómo unirte a una organización con tu NIT — para tripulantes nuevos
+Duración estimada: ~2:45 minutos (~380 palabras)
+Formato: tutorial 100% en pantalla (grabación real del flujo de registro, modo "unirse")
+===================================
+
+[GANCHO — 0:00-0:10]
+[Visual: pantalla, bitafly.com/registro]
+
+"Si en tu nuevo trabajo te dieron un NIT y no un plan que pagar, este video es para ti —
+no vas a crear una organización, vas a entrar a una que ya existe."
+
+[INTRO — 0:10-0:22]
+[Visual: pantalla, recordatorio breve del video anterior]
+
+"En el video anterior te mostré cómo crear una cuenta desde cero. Pero si ya te contrató
+una empresa que usa BitaFly, el camino es distinto — y todavía más corto."
+
+[CONTENIDO PRINCIPAL — 0:22-2:15]
+
+[Bloque 1: Elegir "Unirse a una organización" — 0:22-0:45]
+[Visual: pantalla, grabación real de /registro, seleccionando la opción de unirse en vez
+de crear una organización nueva]
+
+"En bitafly.com/registro vas a ver dos caminos: crear tu propia operación, o unirte a una
+que ya existe. Elige la segunda opción."
+
+[Bloque 2: Ingresar el NIT — 0:45-1:15]
+[Visual: pantalla, campo de NIT, validación en vivo]
+
+"Aquí es donde entra el NIT que te dio tu empresa. Lo escribes, y el sistema valida al
+instante que esa organización existe y tiene un cupo disponible para ti — sin que tengas
+que adivinar nada ni escribir el nombre exacto de la empresa."
+
+[Bloque 3: Elegir tu rol — 1:15-1:40]
+[Visual: pantalla, selector de rol dentro de la organización]
+
+"Después eliges tu rol dentro de esa operación — piloto, jefe de pilotos, gerente SMS,
+según lo que te haya asignado tu empresa. Este paso decide qué vas a ver y qué vas a poder
+hacer desde el primer día."
+
+[Bloque 4: Completar datos y entrar — 1:40-2:15]
+[Visual: pantalla, datos básicos → confirmar → llegada directa al dashboard con el rol
+asignado]
+
+"Completas tus datos básicos, confirmas, y entras directo a tu panel — sin elegir plan, sin
+tarjeta de crédito. Tu acceso es gratis: heredas el plan de la empresa a la que te uniste."
+
+[CONCLUSIÓN — 2:15-2:35]
+[Visual: pantalla, dashboard ya cargado con el rol del tripulante]
+
+"Y ya está. Ya eres parte de la operación, con tu rol asignado, listo para lo que te toque
+hacer — despachar un vuelo, revisar tu flota, o lo que tu equipo necesite de ti."
+
+[CIERRE / CTA MÍNIMO — 2:35-2:45]
+
+"En el próximo video te muestro un recorrido completo del panel — el menú, las
+notificaciones, tu perfil — para que no te pierdas nada apenas entres. Nos vemos ahí."
+
+===================================
+[FIN DEL GUION]
+
+Conteo de palabras: ~380
+Duración estimada: ~2:45 minutos
+Audiencia: tripulantes nuevos que ya recibieron el NIT de su empresa (por invitación,
+correo o de viva voz) y necesitan ver el flujo de unión real, paso a paso
+Tono: profesional, directo, práctico — más corto que 0.3 porque el flujo en sí es más
+simple (un solo camino, no dos).
+===================================
+```
+
+Notas de producción:
+- **Sin toma real de apertura** (a diferencia de 0.3): este flujo es más corto y directo,
+  sin la tensión de "cuánto se demora" que ameritó un gancho con b-roll — el gancho en
+  pantalla ya tiene su propio enganche (la situación relatable de "te dieron un NIT, no un
+  plan que pagar"). Si al revisarlo se siente plano, mismo patrón de iteración que ya
+  usamos en 0.1-0.3: se puede mejorar a pedido.
+- **Cuenta de prueba necesaria para grabar**: se necesita una organización de prueba ya
+  existente (con NIT ficticio) para poder mostrar el flujo de unión real — no se puede
+  grabar "uniéndose" a una organización que no existe de antemano. Mismo criterio de datos
+  desechables que 0.1-0.3: nunca el NIT real de un cliente.
+- **Roles asignables**: el video menciona piloto/jefe de pilotos/gerente SMS como ejemplos
+  reales de roles que un tripulante nuevo puede recibir al unirse — no incluye Gerente
+  General, que corresponde a quien crea la organización, no a quien se une después.
+- **Gratis, sin fricción de pago**: el tripulante que se une por NIT nunca paga ni elige
+  plan — hereda el plan de la organización a la que entra. Vale la pena que el guion lo
+  diga explícito (Bloque 4), porque es la principal duda/objeción de alguien viendo este
+  flujo por primera vez.
+- **Subtítulos**: mismo criterio que los guiones anteriores — se derivan de este documento
+  una vez esté el video montado.
 
 ---
 

@@ -4,6 +4,7 @@ import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
 import { SmsSafetyScene } from '@/components/landing/Illustrations';
+import RelatedReading from '@/components/seo/RelatedReading';
 
 export const metadata = {
   title: 'SMS Aeronáutico para Operadores de Drones UAS Colombia',
@@ -171,6 +172,11 @@ export default function SMSAeronauticoPage() {
           </Link>
         </div>
       </div>
+
+      <RelatedReading items={[
+        { href: '/blog/sms-aeronautico-operadores-rpas-colombia', title: 'SMS aeronáutico para operadores RPAS en Colombia' },
+        { href: '/blog/analisis-sora-operaciones-drones-colombia', title: 'Análisis SORA para operaciones de drones' },
+      ]} />
 
       <SEOFooter brandDesc="SMS aeronáutico para operadores UAS en Colombia. Cumplimiento RAC 100 desde el primer vuelo." />
     </>

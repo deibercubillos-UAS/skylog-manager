@@ -4,6 +4,7 @@ import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
 import { CrewScene } from '@/components/landing/Illustrations';
+import RelatedReading from '@/components/seo/RelatedReading';
 
 export const metadata = {
   title: 'Gestión de Pilotos de Drones y Certificaciones CPR',
@@ -157,6 +158,11 @@ export default function GestionPilotosPage() {
           </Link>
         </div>
       </section>
+
+      <RelatedReading items={[
+        { href: '/blog/certificado-piloto-remoto-drones-colombia', title: 'Certificado de Piloto Remoto (CPR): cómo obtenerlo' },
+        { href: '/blog/cdo-certificado-explotador-uas-colombia', title: 'CDO: qué es el Certificado de Explotador UAS' },
+      ]} />
 
       <SEOFooter />
     </>

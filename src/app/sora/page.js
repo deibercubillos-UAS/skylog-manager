@@ -4,6 +4,7 @@ import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
 import { SoraScene } from '@/components/landing/Illustrations';
+import RelatedReading from '@/components/seo/RelatedReading';
 
 export const metadata = {
   title: 'Análisis SORA para Operadores de Drones en Colombia',
@@ -155,6 +156,11 @@ export default function SoraPage() {
           </Link>
         </div>
       </section>
+
+      <RelatedReading items={[
+        { href: '/blog/analisis-sora-operaciones-drones-colombia', title: 'Análisis SORA para operaciones de drones: qué es y cómo se calcula' },
+        { href: '/blog/operaciones-bvlos-drones-colombia', title: 'Operaciones BVLOS con drones en Colombia: requisitos' },
+      ]} />
 
       <SEOFooter />
     </>

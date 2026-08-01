@@ -4,6 +4,7 @@ import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
 import { DroneOpsScene, FleetScene } from '@/components/landing/Illustrations';
+import RelatedReading from '@/components/seo/RelatedReading';
 
 export const metadata = {
   title: 'Software para Operadores UAS Certificados en Colombia',
@@ -189,6 +190,11 @@ export default function OperadoresUASPage() {
           </Link>
         </div>
       </div>
+
+      <RelatedReading items={[
+        { href: '/blog/cdo-certificado-explotador-uas-colombia', title: 'CDO: qué es el Certificado de Explotador UAS y cómo obtenerlo' },
+        { href: '/blog/certificado-piloto-remoto-drones-colombia', title: 'Certificado de Piloto Remoto (CPR): cómo obtenerlo' },
+      ]} />
 
       <SEOFooter brandDesc="Software para operadores UAS certificados en Colombia. ESUAS · RAC 100 · AeroCivil." />
     </>

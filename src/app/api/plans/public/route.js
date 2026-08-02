@@ -41,7 +41,10 @@ export async function GET() {
     // el costo de no cachear sea insignificante frente al riesgo de mostrar
     // un precio incorrecto.
     // DEBUG TEMPORAL — quitar después de diagnosticar el problema de precios stale
+    const k = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
     result.__debug_supabase_url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    result.__debug_anon_key_masked = k ? `${k.slice(0,24)}...${k.slice(-12)} (len=${k.length})` : null;
+    result.__debug_raw_rows = data;
     return NextResponse.json(result, {
       headers: { 'Cache-Control': 'no-store' },
     });

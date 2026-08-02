@@ -33,8 +33,15 @@ export async function GET() {
       };
     }
 
+    // Sin caché de CDN/edge: un superadmin puede cambiar precios desde
+    // /admin/master y necesita que se reflejen de inmediato, no en hasta
+    // 5 minutos. Bug real encontrado (2026-08-02): con s-maxage=300 el
+    // borde de Vercel siguió sirviendo un precio viejo bastante después de
+    // vencido el TTL nominal — tráfico bajísimo de este endpoint hace que
+    // el costo de no cachear sea insignificante frente al riesgo de mostrar
+    // un precio incorrecto.
     return NextResponse.json(result, {
-      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' },
+      headers: { 'Cache-Control': 'no-store' },
     });
   } catch (err) {
     console.error('[plans/public]', err.message);

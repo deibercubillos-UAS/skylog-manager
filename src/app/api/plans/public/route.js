@@ -40,6 +40,8 @@ export async function GET() {
     // vencido el TTL nominal — tráfico bajísimo de este endpoint hace que
     // el costo de no cachear sea insignificante frente al riesgo de mostrar
     // un precio incorrecto.
+    // DEBUG TEMPORAL — quitar después de diagnosticar el problema de precios stale
+    result.__debug_supabase_url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     return NextResponse.json(result, {
       headers: { 'Cache-Control': 'no-store' },
     });

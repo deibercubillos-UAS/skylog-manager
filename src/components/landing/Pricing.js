@@ -211,9 +211,17 @@ export default function Pricing() {
         {/* Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
           {PLANS.map((plan) => {
-            const displayAmount = annual && plan.annualAmount
+            // Escuadrilla/Flota: el monto guardado (ePayco/DB) es el TOTAL con IVA
+            // (lo que realmente se cobra). Mostramos el valor base sin IVA + rótulo
+            // "IVA no incluido" — Piloto/Enterprise no cambian (fuera de este pedido).
+            const excludesIva = plan.key === 'escuadrilla' || plan.key === 'flota';
+            const rawAmount = annual && plan.annualAmount
               ? plan.annualAmount / 12
               : plan.monthlyAmount;
+            const displayAmount = excludesIva && rawAmount != null ? rawAmount / 1.19 : rawAmount;
+            const rawAnnualAmount = excludesIva && plan.annualAmount != null
+              ? plan.annualAmount / 1.19
+              : plan.annualAmount;
 
             return (
               <article
@@ -251,12 +259,17 @@ export default function Pricing() {
                           {fmtCOP(displayAmount)}
                         </span>
                         <span className={`text-xs font-bold ${plan.popular ? 'text-slate-400' : 'text-slate-400'}`}>
-                          /mes
+                          /mes{excludesIva ? ' + IVA' : ''}
                         </span>
                       </div>
+                      {excludesIva && (
+                        <p className={`text-[11px] font-semibold mt-0.5 ${plan.popular ? 'text-slate-500' : 'text-slate-400'}`}>
+                          IVA no incluido
+                        </p>
+                      )}
                       {annual && plan.annualAmount && (
                         <p className={`text-xs font-bold mt-1 ${plan.popular ? 'text-slate-400' : 'text-slate-400'}`}>
-                          Facturado {fmtCOP(plan.annualAmount)}/año
+                          Facturado {fmtCOP(rawAnnualAmount)}/año{excludesIva ? ' + IVA' : ''}
                         </p>
                       )}
                       {plan.trialDays && (

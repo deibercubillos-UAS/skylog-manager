@@ -180,8 +180,13 @@ export default function SelectPlanPage() {
         {/* Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
           {PLANS.map(plan => {
-            const monthlyPrice = getPrice(plan.key);
-            const annualTotal  = getAnnualTotal(plan.key);
+            // Escuadrilla/Flota: el monto guardado (ePayco/DB) es el TOTAL con IVA
+            // — se muestra el valor base sin IVA + rótulo "IVA no incluido".
+            const excludesIva  = plan.key === 'escuadrilla' || plan.key === 'flota';
+            const rawMonthly   = getPrice(plan.key);
+            const rawAnnual    = getAnnualTotal(plan.key);
+            const monthlyPrice = excludesIva ? rawMonthly / 1.19 : rawMonthly;
+            const annualTotal  = excludesIva ? rawAnnual  / 1.19 : rawAnnual;
             const trialDays    = getTrialDays(plan.key);
             const isLoading    = loading === plan.key;
 
@@ -221,11 +226,14 @@ export default function SelectPlanPage() {
                     <span className={`text-3xl font-black ${plan.dark ? 'text-white' : 'text-[#1A202C]'}`}>
                       {fmtCOP(monthlyPrice, { free: true })}
                     </span>
-                    <span className="text-xs font-bold text-slate-400">/mes</span>
+                    <span className="text-xs font-bold text-slate-400">/mes{excludesIva ? ' + IVA' : ''}</span>
                   </div>
+                  {excludesIva && (
+                    <p className="text-[11px] font-semibold text-slate-400 mt-0.5">IVA no incluido</p>
+                  )}
                   {annual && annualTotal > 0 && (
                     <p className="text-xs font-bold text-slate-400 mt-1">
-                      Facturado {fmtCOP(annualTotal, { free: true })}/año
+                      Facturado {fmtCOP(annualTotal, { free: true })}/año{excludesIva ? ' + IVA' : ''}
                     </p>
                   )}
                   {trialDays > 0 && (

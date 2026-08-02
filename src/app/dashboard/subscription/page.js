@@ -46,7 +46,7 @@ const PLANS = {
   escuadrilla: {
     label:    'Escuadrilla',
     color:    'orange',
-    price:    '$238.000/mes',
+    price:    '$200.000/mes + IVA',
     drones:   3,
     pilots:   5,
     batteries:'Ilimitadas',
@@ -57,7 +57,7 @@ const PLANS = {
   flota: {
     label:    'Flota',
     color:    'blue',
-    price:    '$476.000/mes',
+    price:    '$400.000/mes + IVA',
     drones:   10,
     pilots:   10,
     batteries:'Ilimitadas',
@@ -623,8 +623,8 @@ export default function ManageSubscriptionPage() {
               const np     = PLANS[pk];
               const nc     = COLOR[np.color];
               const isEnt  = pk === 'enterprise';
-              const prices = { escuadrilla: { monthly: '$238.000/mes', annual: '$214.200/mes' },
-                               flota:       { monthly: '$476.000/mes', annual: '$428.400/mes' } };
+              const prices = { escuadrilla: { monthly: '$200.000/mes + IVA', annual: '$180.000/mes + IVA' },
+                               flota:       { monthly: '$400.000/mes + IVA', annual: '$360.000/mes + IVA' } };
               const priceLabel = isEnt ? 'A consultar' : (prices[pk]?.[billing] || np.price);
 
               return (

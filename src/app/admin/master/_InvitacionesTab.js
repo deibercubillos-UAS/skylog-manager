@@ -11,8 +11,8 @@ const ROLES = [
 const PLANS = [
   { value: '',             label: 'Sin plan sugerido',             price: null,            desc: null },
   { value: 'piloto',       label: 'Piloto',                        price: 'Gratis',        desc: '1 drone · 1 piloto · bitácora digital' },
-  { value: 'escuadrilla',  label: 'Escuadrilla',                   price: '$59.000/mes',   desc: '3 drones · 4 pilotos · reportes SMS' },
-  { value: 'flota',        label: 'Flota',                         price: '$159.000/mes',  desc: '10 drones · 10 pilotos · todas las funciones' },
+  { value: 'escuadrilla',  label: 'Escuadrilla',                   price: '$238.000/mes',  desc: '3 drones · 5 usuarios · todas las funciones' },
+  { value: 'flota',        label: 'Flota',                         price: '$476.000/mes',  desc: '10 drones · 10 usuarios · todas las funciones' },
   { value: 'enterprise',   label: 'Enterprise',                    price: 'A convenir',    desc: 'Ilimitado · soporte dedicado · API' },
 ];
 

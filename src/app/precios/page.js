@@ -2,7 +2,7 @@ import PreciosClient from './PreciosClient';
 
 export const metadata = {
   title: 'Planes y Precios para Operadores de Drones en Colombia',
-  description: 'Bitafly desde el Plan Piloto hasta Enterprise. Plan Piloto con 15 días de prueba, Escuadrilla $59.000/mes, Flota $159.000/mes. Sin contratos. Cumplimiento RAC 100 incluido. Paga con PSE o tarjeta.',
+  description: 'Bitafly desde el Plan Piloto hasta Enterprise. Plan Piloto con 15 días de prueba, Escuadrilla $238.000/mes, Flota $476.000/mes. Sin contratos. Cumplimiento RAC 100 incluido. Paga con PSE o tarjeta.',
   keywords: ['precios software drones Colombia', 'plan drones RAC 100', 'software UAS precio Colombia', 'bitácora drones gratis', 'plataforma drones mensual anual'],
   alternates: { canonical: '/precios' },
   openGraph: {
@@ -19,7 +19,7 @@ const faqSchema = {
   "@type": "FAQPage",
   "mainEntity": [
     { "@type": "Question", "name": "¿El plan Piloto de Bitafly requiere tarjeta de crédito para empezar?", "acceptedAnswer": { "@type": "Answer", "text": "No. El plan Piloto incluye 15 días de prueba sin necesidad de tarjeta de crédito; después de ese período se realiza el primer cobro. Empresas en Fase 0 del proceso de certificación como Explotador UAS pueden acceder sin costo al plan Escuadrilla durante esa etapa, hasta un máximo de 6 meses, contactando a nuestro equipo." } },
-    { "@type": "Question", "name": "¿Hay descuento por pago anual en Bitafly?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. El pago anual tiene un descuento del 20%. El plan Escuadrilla pasa de $59.000/mes a $49.000/mes (equivalente). El plan Flota pasa de $159.000/mes a $132.500/mes (equivalente)." } },
+    { "@type": "Question", "name": "¿Hay descuento por pago anual en Bitafly?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. El pago anual tiene un descuento del 10%. El plan Escuadrilla pasa de $238.000/mes a $214.200/mes (equivalente). El plan Flota pasa de $476.000/mes a $428.400/mes (equivalente)." } },
     { "@type": "Question", "name": "¿Los pagos de Bitafly son en pesos colombianos o dólares?", "acceptedAnswer": { "@type": "Answer", "text": "Todos los precios son en pesos colombianos (COP). El cobro se realiza a través de ePayco. Aceptamos tarjetas Visa, Mastercard, débito y PSE." } },
     { "@type": "Question", "name": "¿Qué pasa con mis datos si cancelo la suscripción?", "acceptedAnswer": { "@type": "Answer", "text": "Tus datos se conservan durante 90 días después de la cancelación, período durante el cual puedes exportar tus bitácoras, reportes y datos de flota en PDF o Excel." } },
     { "@type": "Question", "name": "¿Puedo cambiar de plan en cualquier momento?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Puedes subir o bajar de plan en cualquier momento desde la configuración de tu cuenta. El cambio se aplica en el siguiente ciclo de facturación y la diferencia se prorratea automáticamente." } },
@@ -53,8 +53,8 @@ const softwareSchema = {
     {
       "@type": "Offer",
       "name": "Plan Escuadrilla",
-      "description": "Hasta 3 aeronaves, 4 usuarios, módulo SMS, autorizaciones AeroCivil.",
-      "price": "59000",
+      "description": "Hasta 3 aeronaves, 5 usuarios, SORA, reportes avanzados RAC 100.",
+      "price": "238000",
       "priceCurrency": "COP",
       "priceValidUntil": "2026-12-31",
       "availability": "https://schema.org/InStock",
@@ -65,7 +65,7 @@ const softwareSchema = {
       "@type": "Offer",
       "name": "Plan Flota",
       "description": "Hasta 10 aeronaves, 10 usuarios, SORA, reportes avanzados RAC 100.",
-      "price": "159000",
+      "price": "476000",
       "priceCurrency": "COP",
       "priceValidUntil": "2026-12-31",
       "availability": "https://schema.org/InStock",

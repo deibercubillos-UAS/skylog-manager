@@ -35,34 +35,36 @@ const PLANS_BASE = [
     name: 'Escuadrilla',
     badge: null,
     tagline: 'Para pequeñas empresas',
-    monthlyAmount: 59000,
-    annualAmount:  590000,
+    monthlyAmount: 238000,
+    annualAmount:  2570400,
     trialDays:     null,
     dark: false,
     popular: false,
     cta: 'Comenzar ahora',
     href: '/registro',
-    limits: '3 aeronaves · 4 usuarios',
+    limits: '3 aeronaves · 5 usuarios',
     features: [
       'Hasta 3 aeronaves',
-      'Hasta 4 usuarios (3 roles)',
+      'Hasta 5 usuarios (3 pilotos + jefe de pilotos + gerente SMS)',
       'Bitácora digital RAC 100 ilimitada',
-      'Mantenimiento con alertas automáticas',
+      'Mantenimiento avanzado + historial',
       'Baterías ilimitadas',
-      'Autorizaciones de vuelo F-OPS-001',
-      'Reportes PDF: Maestro de Vuelo + Baterías',
-      'SMS básico (registro de incidentes)',
-      'Soporte por correo (24h)',
+      'Autorizaciones F-OPS-001 + historial',
+      'Todos los reportes RAC 100 (F-OPS-002, F-MNT-003, F-HUM-005)',
+      'SMS completo con trazabilidad de incidentes',
+      'Auditoría y trazabilidad completa',
+      'Protocolos y checklists personalizables',
+      'Soporte prioritario chat + email (12h)',
     ],
-    missing: ['Auditoría completa', 'SMS con trazabilidad', 'Checklists personalizados'],
+    missing: [],
   },
   {
     key: 'flota',
     name: 'Flota',
     badge: 'Más popular',
     tagline: 'Para empresas medianas',
-    monthlyAmount: 159000,
-    annualAmount:  1590000,
+    monthlyAmount: 476000,
+    annualAmount:  5140800,
     trialDays:     null,
     dark: true,
     popular: true,
@@ -201,7 +203,7 @@ export default function Pricing() {
               className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${annual ? 'bg-navy text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
             >
               Anual
-              <span className="bg-primary text-white text-xs px-2 py-0.5 rounded-full font-black">-20%</span>
+              <span className="bg-primary text-white text-xs px-2 py-0.5 rounded-full font-black">-10%</span>
             </button>
           </div>
         </div>

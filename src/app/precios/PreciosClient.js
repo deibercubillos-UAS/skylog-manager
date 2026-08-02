@@ -8,7 +8,7 @@ import { fmtCOP } from '@/lib/formatters';
 const faqItems = [
   { q: '¿El plan Piloto requiere tarjeta de crédito para empezar?', a: 'No. El plan Piloto incluye 15 días de prueba sin necesidad de tarjeta de crédito; al finalizar, se realiza el primer cobro. Si tu empresa está en Fase 0 del proceso de certificación como Explotador UAS, puedes acceder sin costo al plan Escuadrilla durante esa etapa (hasta 6 meses) contactando a nuestro equipo.' },
   { q: '¿Puedo cambiar de plan en cualquier momento?', a: 'Sí. Puedes actualizar o degradar tu plan en cualquier momento desde el panel de suscripción. Los cambios aplican al siguiente período de facturación. Si actualizas, el acceso a las nuevas funciones es inmediato.' },
-  { q: '¿Hay descuento por pago anual?', a: 'Sí. El pago anual tiene un descuento del 20%. El plan Escuadrilla pasa de $59.000/mes a $49.000/mes (equivalente). El plan Flota pasa de $159.000/mes a $132.500/mes (equivalente). Selecciona "Anual" en el toggle de precios para ver los valores exactos.' },
+  { q: '¿Hay descuento por pago anual?', a: 'Sí. El pago anual tiene un descuento del 10%. El plan Escuadrilla pasa de $238.000/mes a $214.200/mes (equivalente). El plan Flota pasa de $476.000/mes a $428.400/mes (equivalente). Selecciona "Anual" en el toggle de precios para ver los valores exactos.' },
   { q: '¿Los pagos son en pesos colombianos o dólares?', a: 'Todos los precios son en pesos colombianos (COP). El cobro se realiza a través de ePayco. Aceptamos tarjetas Visa, Mastercard, débito y PSE.' },
   { q: '¿Qué pasa con mis datos si cancelo?', a: 'Tus datos se conservan durante 90 días después de la cancelación, período durante el cual puedes exportar tus bitácoras, reportes y datos de flota en PDF o Excel. Transcurrido ese período, los datos son eliminados de forma permanente.' },
 ];
@@ -41,22 +41,23 @@ const PLANS_BASE = [
     ],
   },
   {
-    key: 'escuadrilla', monthlyAmount: 59000, annualAmount: 590000,  trialDays: null,
-    name: 'Escuadrilla', sub: 'Para pequeñas empresas', tag: '3 aeronaves · 4 usuarios',
+    key: 'escuadrilla', monthlyAmount: 238000, annualAmount: 2570400,  trialDays: null,
+    name: 'Escuadrilla', sub: 'Para pequeñas empresas', tag: '3 aeronaves · 5 usuarios',
     cta: 'Comenzar ahora', ctaHref: '/registro', dark: false,
     features: [
       { ok: true,  text: 'Hasta 3 aeronaves' },
-      { ok: true,  text: 'Hasta 4 usuarios (3 roles)' },
+      { ok: true,  text: 'Hasta 5 usuarios (3 pilotos + jefe de pilotos + gerente SMS)' },
       { ok: true,  text: 'Bitácora RAC 100 ilimitada' },
       { ok: true,  text: 'Baterías ilimitadas' },
       { ok: true,  text: 'Autorizaciones F-OPS-001' },
-      { ok: true,  text: 'SMS básico' },
-      { ok: false, text: 'Auditoría completa' },
-      { ok: false, text: 'Checklists personalizados' },
+      { ok: true,  text: 'Todos los reportes: F-OPS-002, F-MNT-003, F-HUM-005' },
+      { ok: true,  text: 'SMS completo con trazabilidad' },
+      { ok: true,  text: 'Auditoría y trazabilidad completa' },
+      { ok: true,  text: 'Checklists personalizables' },
     ],
   },
   {
-    key: 'flota',      monthlyAmount: 159000, annualAmount: 1590000, trialDays: null,
+    key: 'flota',      monthlyAmount: 476000, annualAmount: 5140800, trialDays: null,
     name: 'Flota',     sub: 'Para empresas medianas', tag: '10 aeronaves · 10 usuarios',
     cta: 'Comenzar ahora', ctaHref: '/registro', dark: true, popular: true,
     features: [
@@ -136,7 +137,7 @@ export default function PreciosClient() {
               Mensual
             </button>
             <button onClick={() => setAnnual(true)} style={{ padding: '8px 20px', borderRadius: '12px', border: 'none', fontFamily: 'inherit', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', cursor: 'pointer', background: annual ? navy : 'transparent', color: annual ? '#fff' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.15s' }}>
-              Anual <span style={{ background: accent, color: '#fff', fontSize: '8px', padding: '2px 7px', borderRadius: '9999px' }}>−20%</span>
+              Anual <span style={{ background: accent, color: '#fff', fontSize: '8px', padding: '2px 7px', borderRadius: '9999px' }}>−10%</span>
             </button>
           </div>
         </div>

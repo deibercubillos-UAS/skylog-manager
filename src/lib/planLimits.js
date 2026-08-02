@@ -4,7 +4,6 @@
 export const PLAN_CONFIG = {
   piloto: {
     name: 'Plan Piloto',
-    price: { monthly: 20000, annual: 200000, trialDays: 15 },
     allowedRoles: ['piloto'],
     maxDrones: 1,
     maxPilots: 1,
@@ -23,7 +22,6 @@ export const PLAN_CONFIG = {
   },
   escuadrilla: {
     name: 'Plan Escuadrilla',
-    price: { monthly: 238000, annual: 2570400, freeMonths: null },
     allowedRoles: ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'],
     maxDrones: 3,
     // 5 cupos = 3 piloto + 1 jefe_pilotos + 1 gerente_sms (Gerente General no cuenta,
@@ -44,7 +42,6 @@ export const PLAN_CONFIG = {
   },
   flota: {
     name: 'Plan Flota',
-    price: { monthly: 476000, annual: 5140800, freeMonths: null },
     allowedRoles: ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'],
     maxDrones: 10,
     maxPilots: 10,
@@ -63,7 +60,6 @@ export const PLAN_CONFIG = {
   },
   enterprise: {
     name: 'Plan Enterprise',
-    price: { monthly: null, annual: null, freeMonths: null }, // A consultar
     allowedRoles: ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'],
     maxDrones: Infinity,
     maxPilots: Infinity,

@@ -670,10 +670,9 @@ Formato: tutorial 100% en pantalla (recorrido real de Suscripción + switcher de
 [Visual: pantalla, /dashboard/subscription con el plan Piloto activo y el contador de
 días de prueba visible]
 
-"Ya elegiste tu plan. Ahora te voy a mostrar tres cosas que vas a necesitar tarde o
-temprano: qué pasa cuando termina tu período de prueba, cómo activar el pago cuando estés
-listo, y qué hacer si en algún momento tu cuenta necesita estar en más de una
-organización."
+"Ya elegiste tu plan. Ahora vamos directo a lo práctico: qué pasa cuando termina tu
+período de prueba, cómo activas el pago en el momento que decidas, y cómo trabajar con
+más de una organización si tu operación lo pide."
 
 [INTRO — 0:15-0:30]
 [Visual: pantalla, menú de cuenta / Suscripción]

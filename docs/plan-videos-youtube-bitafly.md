@@ -54,8 +54,9 @@ justifique.
       (guion listo, ver subsección abajo — precios y beneficios verificados contra
       `epayco_plan_config` en Supabase en vivo, no contra el código, ver nota en la
       subsección)
-- [ ] 0.7 — Periodo de prueba y cómo activar tu suscripción (pago con ePayco)
-- [ ] 0.8 — Multi-organización: cómo pertenecer a varias empresas y cambiar entre ellas
+- [~] 0.7 — Período de prueba, activar tu suscripción y trabajar en varias
+      organizaciones (fusiona los 0.7/0.8 originales a pedido del usuario, mismo
+      criterio ya aplicado al fusionar 0.3/0.4 — guion listo, ver subsección abajo)
 - [ ] 0.9 — Configurar tu organización: logo, datos de la empresa, registro AeroCivil
 
 ### Guion — 0.1 · ¿Qué es BitaFly?
@@ -637,6 +638,150 @@ Notas de producción:
   precios, pero el guion no menciona el precio anual de cada plan en el audio para no
   saturar de números — si se quiere agregar, el precio anual real (verificado en la misma
   consulta) es: Piloto $218.899/año, Escuadrilla $2.570.400/año, Flota $5.140.800/año.
+- **Subtítulos**: mismo criterio que los guiones anteriores — se derivan de este documento
+  una vez esté el video montado.
+
+---
+
+### Guion — 0.7 · Período de prueba, activar tu suscripción y varias organizaciones
+
+**Formato**: tutorial 100% en pantalla — recorrido real de `/dashboard/subscription` y del
+switcher de organizaciones, mismo criterio que 0.5/0.6 (sin b-roll). **Duración
+objetivo**: ~5-5:30 min (~700-750 palabras — más largo que el resto de la serie por venir
+de la fusión de dos temas). **Tono**: profesional, cercano, práctico. **CTA**: mínimo.
+
+**Por qué se fusionan estos dos temas en un solo video**: ambos son, en el fondo, "qué
+puede hacer tu cuenta además de simplemente usar la plataforma" — activar/cambiar tu plan
+de pago y pertenecer a más de una organización viven en la misma zona del producto
+(Suscripción / menú de cuenta) y se resuelven desde las mismas pantallas. Separarlos en
+dos videos de ~2-3 min cada uno habría repetido la misma introducción ("esto lo
+encuentras en tu menú de cuenta...") dos veces sin necesidad.
+
+```
+===================================
+GUION — VIDEO 0.7
+===================================
+Título: Período de prueba, activar tu suscripción y trabajar en varias organizaciones
+Duración estimada: ~5:15 minutos (~730 palabras)
+Formato: tutorial 100% en pantalla (recorrido real de Suscripción + switcher de org)
+===================================
+
+[GANCHO — 0:00-0:15]
+[Visual: pantalla, /dashboard/subscription con el plan Piloto activo y el contador de
+días de prueba visible]
+
+"Ya elegiste tu plan. Ahora te voy a mostrar tres cosas que vas a necesitar tarde o
+temprano: qué pasa cuando termina tu período de prueba, cómo activar el pago cuando estés
+listo, y qué hacer si en algún momento tu cuenta necesita estar en más de una
+organización."
+
+[INTRO — 0:15-0:30]
+[Visual: pantalla, menú de cuenta / Suscripción]
+
+"Todo esto vive en el mismo lugar: tu menú de cuenta. Vamos paso a paso."
+
+[CONTENIDO PRINCIPAL — 0:30-4:45]
+
+[Bloque 1: Cómo funciona el período de prueba — 0:30-1:15]
+[Visual: pantalla, /dashboard/subscription — fecha de vencimiento del período de prueba]
+
+"Si te registraste con el plan Piloto, tienes quince días de prueba gratis sin necesidad
+de tarjeta de crédito. Durante esos quince días tienes acceso completo a la plataforma —
+tu bitácora, tu flota, tu mantenimiento, todo. Aquí en Suscripción siempre puedes ver
+cuántos días te quedan. Si el período termina y no has activado un pago, tu cuenta no se
+borra ni pierde tu información: simplemente algunas funciones quedan pausadas hasta que
+actives tu plan."
+
+[Bloque 2: Activar tu suscripción — pago con ePayco — 1:15-2:45]
+[Visual: pantalla, botón "Mejorar plan" / "Activar suscripción" → se abre ePayco en una
+pestaña nueva → vuelve a BitaFly y muestra el estado actualizándose]
+
+"Para activar tu plan, sea el mismo Piloto ya vencido o uno superior como Escuadrilla o
+Flota, entra a Suscripción y elige tu plan. Vas a pasar a una pestaña nueva, la de
+nuestra pasarela de pagos ePayco, donde completas el pago de forma segura con tu tarjeta.
+
+No necesitas volver a hacer nada más: en cuanto el pago se confirma, tu cuenta en BitaFly
+se actualiza sola — la página va revisando el estado cada pocos segundos, así que no
+tienes que recargar nada manualmente.
+
+Y si por algún motivo tu plan no se actualiza solo después de pagar — por ejemplo, si
+cerraste la pestaña muy rápido — no te preocupes: en la misma pantalla de Suscripción
+tienes un botón para 'Verificar pago', donde pegas la referencia que te llega por correo
+de ePayco y confirmamos el pago manualmente."
+
+[Bloque 3: Y si tu cuenta necesita estar en más de una organización... — 2:45-3:00]
+[Visual: pantalla, transición al menú de cuenta]
+
+"Ahora, algo distinto: qué pasa si tú, con esta misma cuenta, necesitas trabajar para más
+de una empresa — o eres dueño de varias operadoras."
+
+[Bloque 4: Unirse a una segunda organización — 3:00-3:45]
+[Visual: pantalla, flujo de unirse a una organización adicional desde el menú de cuenta —
+ingreso del NIT de la segunda empresa]
+
+"BitaFly te permite pertenecer a más de una organización con la misma cuenta, sin perder
+nada de lo que ya tienes. Desde tu menú de cuenta, eliges unirte a otra organización e
+ingresas su NIT. Esto no mueve ni mezcla tu información — tu flota, tus vuelos y tu
+historial de la primera organización se quedan intactos, y simplemente se agrega esta
+segunda como una membresía nueva."
+
+[Bloque 5: Cambiar entre organizaciones — el switcher — 3:45-4:45]
+[Visual: pantalla, clic en el nombre de la organización en el encabezado, se despliega el
+listado de organizaciones, clic en la otra, la página recarga y refleja el nuevo
+contexto]
+
+"Para moverte de una a otra, no necesitas cerrar sesión ni volver a entrar. Haz clic en
+el nombre de tu organización, arriba en el encabezado, y vas a ver el listado completo de
+organizaciones a las que perteneces. Eliges la que quieres activar, y la plataforma
+recarga con todo el contexto de esa organización — tu rol, tu flota, tu tripulación, todo
+lo que corresponde a esa empresa específica, sin mezclarse con la otra.
+
+Puedes cambiar cuantas veces quieras, cuando quieras — es simplemente decirle a BitaFly
+en cuál de tus organizaciones estás trabajando en este momento."
+
+[CONCLUSIÓN — 4:45-5:05]
+[Visual: pantalla, vuelve a Suscripción y luego al switcher, brevemente]
+
+"Y eso es todo: ya sabes cómo funciona tu período de prueba, cómo activar tu pago cuando
+estés listo, y cómo moverte entre varias organizaciones si tu operación lo necesita. Tu
+cuenta está lista para crecer contigo."
+
+[CIERRE / CTA MÍNIMO — 5:05-5:15]
+
+"En el próximo video te muestro cómo configurar los datos de tu organización — tu logo,
+tu registro ante la Aerocivil, y más. Nos vemos ahí."
+
+===================================
+[FIN DEL GUION]
+
+Conteo de palabras: ~730
+Duración estimada: ~5:15 minutos
+Audiencia: usuarios que ya tienen una cuenta activa en BitaFly (vienen del video 0.6) y
+necesitan saber qué pasa después de su período de prueba, o que gestionan/trabajan para
+más de una organización
+Tono: profesional, cercano, práctico — dos temas de "gestión de cuenta" resueltos en un
+solo recorrido, sin relleno.
+===================================
+```
+
+Notas de producción:
+- **Sin toma real de apertura**: como 0.5/0.6, es 100% pantalla — el gancho se apoya en
+  listar directamente los tres beneficios concretos del video, sin necesidad de b-roll.
+- **Cuenta de prueba necesaria para grabar**: el Bloque 2 requiere completar un pago real
+  de prueba en ePayco (mismo caso ya documentado en las notas de 0.3) para poder mostrar
+  la confirmación y el estado actualizándose en vivo — no se puede fingir esa pantalla. El
+  Bloque 4 requiere una segunda cuenta/organización de prueba ya existente para poder
+  mostrar el flujo de unión real con un NIT válido.
+- **Verificar el comportamiento exacto de ePayco antes de grabar**: el correo con la
+  referencia de pago y el copy exacto del botón "Verificar pago" pueden diferir
+  ligeramente de lo descrito aquí si el flujo cambió desde que se escribió este guion —
+  revisar `/dashboard/subscription` en producción el mismo día de la grabación.
+- **El switcher solo aparece con más de una organización**: para grabar el Bloque 5, la
+  cuenta de prueba usada debe tener ya al menos dos membresías activas (unida vía el
+  Bloque 4, o preparada de antemano) — con una sola organización, el nombre en el
+  encabezado no es clicable y no hay nada que mostrar.
+- **Evitar mostrar datos reales de una organización/cliente en pantalla** — misma regla
+  que el resto de la serie.
 - **Subtítulos**: mismo criterio que los guiones anteriores — se derivan de este documento
   una vez esté el video montado.
 

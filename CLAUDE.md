@@ -819,14 +819,20 @@ alimenta):
 | Recurso | piloto | escuadrilla | flota | enterprise |
 |---|---|---|---|---|
 | Drones | 1 | 3 | 10 | ∞ |
-| Pilotos | 1 | 4 | 10 | ∞ |
+| Pilotos | 1 | 5 | 10 | ∞ |
 | Baterías | 3 | ∞ | ∞ | ∞ |
 | Tech/Payloads | 3 | ∞ | ∞ | ∞ |
 
 Cualquier plan puede ampliar drones/pilotos comprando **Recursos adicionales** (piloto
 $30.000/mes, dron $25.000/mes, sin importar el plan) — ver sección dedicada más abajo.
 
-**Conteo de tripulantes** (`crewCountsForLimit(pilotRole)` en `planLimits.js`): **Gerente General y Gerente SMS NO cuentan** contra el límite de "Pilotos"; sí cuentan Piloto, Jefe de Pilotos y Observador. Aplicado en: import onboarding, `POST /api/pilots`, medidor de uso en `/api/subscription`.
+**Conteo de tripulantes** (`crewCountsForLimit(pilotRole)` en `planLimits.js`): **solo Gerente
+General NO cuenta** contra el límite de "Pilotos"; sí cuentan Piloto, Jefe de Pilotos, Gerente
+SMS y Observador. Aplicado en: import onboarding, `POST /api/pilots`, medidor de uso en
+`/api/subscription`. **Cambio 2026-08-01**: antes Gerente SMS tampoco contaba (junto con
+Gerente General) — ahora sí, porque el cupo de 5 de Escuadrilla se definió explícitamente
+como 3 piloto + 1 jefe_pilotos + 1 gerente_sms. Regla compartida por todos los planes, no
+solo Escuadrilla.
 
 **Gerente General fuera del roster** (`isGerenteGeneral(pilotRole)` en `planLimits.js`): el GG es el dueño/representante legal, no tripulación operativa. La página de Tripulación (`/dashboard/pilots`) **filtra** las filas `pilots` con `pilot_role` "Gerente General" (o rol de sistema `admin`) — no aparecen en la lista ni en el contador "N miembros". Valor canónico de `pilot_role` = "Gerente General" (ver `AddPilotPanel`/`EditPilotPanel`).
 
@@ -959,6 +965,58 @@ A pedido del usuario, dos correcciones más sobre lo documentado arriba:
   requiere. Copy actualizado en las mismas 4 superficies de la política original
   (`Pricing.js`, `precios/PreciosClient.js`, `operadores-uas/page.js`,
   `dashboard/select-plan/page.js`) más el FAQ de `precios/page.js` que también la mencionaba.
+
+### Nuevos precios Escuadrilla/Flota + Escuadrilla = beneficios de Flota (2026-08-01)
+
+A pedido del usuario, cambio de política comercial: Escuadrilla $59.000→**$238.000/mes**
+($200.000 + IVA), Flota $159.000→**$476.000/mes** ($400.000 + IVA). Anual con **10% de
+descuento** sobre 12 meses (antes ~17%, ratio 10x): Escuadrilla $2.570.400/año, Flota
+$5.140.800/año.
+
+- **Escuadrilla hereda todos los beneficios de Flota** (SMS completo, auditoría,
+  checklists personalizables, todos los reportes RAC 100 — `PLAN_CONFIG.escuadrilla.features`
+  ahora es idéntico a `.flota.features` en `lib/planLimits.js`). La única diferencia entre
+  ambos planes pasa a ser precio + capacidad (3 vs 10 drones, 5 vs 10 usuarios). Retención de
+  replay GPS **deliberadamente sin igualar** (Escuadrilla se queda en 50 vuelos/90 días vs.
+  200/180 de Flota, a pedido explícito del usuario — ver **Replay de Vuelo**).
+- **Cupo de Escuadrilla: 4 → 5 usuarios** (3 piloto + 1 jefe_pilotos + 1 gerente_sms). Ver
+  cambio de `crewCountsForLimit()` documentado arriba en **Roles y planes** — Gerente SMS
+  ahora cuenta contra el límite en todos los planes, no solo Escuadrilla.
+- **Precio visible sin IVA + "IVA no incluido"**: el monto que se muestra en cada página
+  (`$200.000`/`$400.000`) es el valor **base**, distinto del monto real cobrado por ePayco
+  (`$238.000`/`$476.000`, con IVA incluido). La conversión se hace en cada componente de
+  render (`rawAmount / 1.19`), NO en la fuente de datos — `epayco_plan_config.amount` y
+  `EPAYCO_PLANS` siguen guardando el total real con IVA, es el único monto que existe para el
+  checkout. Deliberadamente **sin tocar** el campo `price` del JSON-LD `Offer` en
+  `precios/page.js` (schema.org, para Google) — ese sigue mostrando el total real cobrado;
+  cambiarlo al valor base crearía una discrepancia entre lo indexado y lo que el checkout
+  realmente cobra.
+- **Actualización en producción — dos capas separadas, ambas necesarias**: (1) código
+  (`lib/planLimits.js` como fuente de verdad + 9 páginas más con el precio hardcodeado como
+  fallback/copy: `Pricing.js`, `precios/page.js` + `PreciosClient.js`, `registro/page.js`,
+  `dashboard/select-plan/page.js`, `dashboard/subscription/page.js`, `admin/master/page.js` +
+  `_InvitacionesTab.js`, `api/admin/master/invite/route.js`); (2) el precio **real** que
+  cobra el checkout vive en Supabase (`epayco_plan_config`, editable desde
+  `PATCH /api/epayco/config`, que actualiza la BD y ePayco a la vez vía `updatePlan()`) — son
+  independientes, cambiar solo el código no mueve un centavo del cobro real. Se actualizaron
+  los 4 planes (`escuadrilla_monthly/annual`, `flota_monthly/annual`) manualmente desde una
+  sesión de superadmin ya autenticada en `/admin/master`, confirmado con `updated_at` +
+  respuesta `"Plan Actualizado"` de ePayco para los 4.
+- **Bug real encontrado y corregido — `/api/plans/public` servía precios viejos
+  indefinidamente**: el endpoint tenía `Cache-Control: public, s-maxage=300` — el usuario
+  reportó que tras la actualización, la página cargaba bien con el fallback estático
+  ($200.000) pero al llegar la respuesta del endpoint cambiaba a un valor viejo mal
+  convertido ($125.966 = $149.900 viejo ÷ 1.19). Se descartaron uno por uno: caché del
+  navegador/Service Worker (sin entradas para `plans`), caché de Cloudflare (`cf-cache-status:
+  DYNAMIC`, purga manual sin efecto), caché de borde de Vercel (con `?cache-busting` seguía
+  igual, incluso con `x-vercel-cache: MISS` confirmando ejecución fresca de la función). La
+  causa real: el propio `s-maxage=300` seguía siendo honrado por el borde de Vercel bastante
+  más allá del TTL nominal. Corregido a `Cache-Control: no-store` — tráfico bajísimo de este
+  endpoint hace insignificante el costo de no cachear frente al riesgo de precios
+  desactualizados tras un cambio desde `/admin/master`.
+- **Bug real corregido de paso**: `dashboard/subscription/page.js` mostraba Flota con
+  `drones:15/pilots:15` — desactualizado desde el ajuste de política del 2026-07-10 (arriba),
+  límite real 10/10. Este archivo no estaba en el inventario de esa fase anterior.
 
 ### Landing — sección "Funciones" reorganizada en 4 grupos (2026-07-10)
 

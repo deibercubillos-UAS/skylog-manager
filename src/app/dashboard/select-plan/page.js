@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 
 const FALLBACK_PRICES = {
   piloto:      { monthly: { amount: 20000, trialDays: 15 }, annual: { amount: 200000, trialDays: 30 } },
-  escuadrilla: { monthly: { amount: 59000 },  annual: { amount: 590000 } },
-  flota:       { monthly: { amount: 159000 }, annual: { amount: 1590000 } },
+  escuadrilla: { monthly: { amount: 238000 }, annual: { amount: 2570400 } },
+  flota:       { monthly: { amount: 476000 }, annual: { amount: 5140800 } },
 };
 
 const PLANS = [
@@ -35,15 +35,17 @@ const PLANS = [
     cta: 'Comenzar ahora',
     features: [
       'Hasta 3 aeronaves',
-      'Hasta 4 usuarios (3 roles)',
+      'Hasta 5 usuarios (3 pilotos + jefe de pilotos + gerente SMS)',
       'Bitácora digital RAC 100 ilimitada',
-      'Autorizaciones de vuelo F-OPS-001',
-      'SMS — registro de incidentes',
-      'Reportes PDF: Maestro + Baterías',
+      'Autorizaciones F-OPS-001 + historial',
+      'SMS completo con trazabilidad',
+      'Todos los reportes RAC 100',
+      'Análisis SORA/ARC/SAIL asistido',
+      'Auditoría y trazabilidad completa',
+      'Checklists personalizables',
       'Baterías ilimitadas',
-      '50 replays GPS · 90 días de historial',
     ],
-    missing: ['Auditoría completa', 'SORA avanzado', 'Checklists personalizados'],
+    missing: [],
   },
   {
     key: 'flota',
@@ -170,7 +172,7 @@ export default function SelectPlanPage() {
               className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${annual ? 'bg-[#1A202C] text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
             >
               Anual
-              <span className="bg-[#ec5b13] text-white text-[10px] px-2 py-0.5 rounded-full font-black">-20%</span>
+              <span className="bg-[#ec5b13] text-white text-[10px] px-2 py-0.5 rounded-full font-black">-10%</span>
             </button>
           </div>
         </header>

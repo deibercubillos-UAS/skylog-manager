@@ -20,8 +20,8 @@ const VALID_ROLES = Object.keys(ROLE_LABEL);
 
 const PLAN_INFO = {
   piloto:      { label: 'Piloto',      price: 'Gratis',       features: '1 drone · 1 piloto · bitácora digital RAC 100' },
-  escuadrilla: { label: 'Escuadrilla', price: '$59.000/mes',  features: '3 drones · 4 pilotos · reportes SMS · programación de vuelos' },
-  flota:       { label: 'Flota',       price: '$159.000/mes', features: '10 drones · 10 pilotos · todas las funciones · soporte prioritario' },
+  escuadrilla: { label: 'Escuadrilla', price: '$238.000/mes', features: '3 drones · 5 usuarios · todas las funciones · soporte prioritario' },
+  flota:       { label: 'Flota',       price: '$476.000/mes', features: '10 drones · 10 usuarios · todas las funciones · soporte prioritario' },
   enterprise:  { label: 'Enterprise',  price: 'A convenir',   features: 'Ilimitado · API · soporte dedicado · onboarding personalizado' },
 };
 

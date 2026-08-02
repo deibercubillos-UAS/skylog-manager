@@ -17,8 +17,8 @@ import { fmtCOP } from '@/lib/formatters';
 // selector de plan distinto al que ePayco termina cobrando en el checkout).
 const PLANS_BASE = [
   { key: 'piloto',      name: 'Piloto',      monthlyAmount: 20000,  annualAmount: 200000,   trialDays: 15, limits: '1 dron · 1 usuario',   icon: 'person' },
-  { key: 'escuadrilla', name: 'Escuadrilla', monthlyAmount: 59000,  annualAmount: 590000,   trialDays: null, limits: '3 drones · 4 usuarios', icon: 'group', popular: true, paid: true },
-  { key: 'flota',       name: 'Flota',       monthlyAmount: 159000, annualAmount: 1590000,  trialDays: null, limits: '10 drones · 10 usuarios', icon: 'precision_manufacturing', paid: true },
+  { key: 'escuadrilla', name: 'Escuadrilla', monthlyAmount: 238000, annualAmount: 2570400, trialDays: null, limits: '3 drones · 5 usuarios', icon: 'group', popular: true, paid: true },
+  { key: 'flota',       name: 'Flota',       monthlyAmount: 476000, annualAmount: 5140800, trialDays: null, limits: '10 drones · 10 usuarios', icon: 'precision_manufacturing', paid: true },
   { key: 'enterprise',  name: 'Enterprise',  monthlyAmount: null,   annualAmount: null,     trialDays: null, limits: 'Ilimitado',             icon: 'rocket_launch', contact: true },
 ];
 
@@ -37,7 +37,7 @@ function buildPlans(livePrices) {
     return {
       ...plan,
       price: `${fmtCOP(monthlyAmount)}/mes`,
-      sub: `o ${fmtCOP(annualAmount)}/año (−20%)`,
+      sub: `o ${fmtCOP(annualAmount)}/año (−10%)`,
       rawPrice: monthlyAmount,
     };
   });
@@ -705,7 +705,7 @@ export default function RegisterPage() {
 
               {isPaidPlan && (
                 <div className="flex gap-2 bg-slate-100 rounded-xl p-1">
-                  {[{ key: 'monthly', label: 'Mensual' }, { key: 'annual', label: 'Anual (−20%)' }].map(b => (
+                  {[{ key: 'monthly', label: 'Mensual' }, { key: 'annual', label: 'Anual (−10%)' }].map(b => (
                     <button key={b.key} type="button" onClick={() => setVal('billing', b.key)}
                       className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${form.billing === b.key ? 'bg-white text-navy shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
                       {b.label}

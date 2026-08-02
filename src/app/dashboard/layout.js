@@ -877,9 +877,9 @@ const footerLinks = footerLinksAll.filter(link =>
             </div>
           )}
 
-          {/* Tripulación — solo planes con organización (no piloto autónomo) */}
-          {!isPilotoPlan && filteredLinks.some(l => l.href === '/dashboard/pilots') && (
-            <BottomNavItem href="/dashboard/pilots" icon="group" label="Tripulación" active={pathname.startsWith('/dashboard/pilots')} />
+          {/* Meteorología — todos los roles la tienen */}
+          {filteredLinks.some(l => l.href === '/dashboard/weather') && (
+            <BottomNavItem href="/dashboard/weather" icon="partly_cloudy_day" label="Meteorología" active={pathname.startsWith('/dashboard/weather')} />
           )}
 
           {/* Flota */}

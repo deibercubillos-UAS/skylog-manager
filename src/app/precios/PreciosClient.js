@@ -8,7 +8,7 @@ import { fmtCOP } from '@/lib/formatters';
 const faqItems = [
   { q: '¿El plan Piloto requiere tarjeta de crédito para empezar?', a: 'No. El plan Piloto incluye 15 días de prueba sin necesidad de tarjeta de crédito; al finalizar, se realiza el primer cobro. Si tu empresa está en Fase 0 del proceso de certificación como Explotador UAS, puedes acceder sin costo al plan Escuadrilla durante esa etapa (hasta 6 meses) contactando a nuestro equipo.' },
   { q: '¿Puedo cambiar de plan en cualquier momento?', a: 'Sí. Puedes actualizar o degradar tu plan en cualquier momento desde el panel de suscripción. Los cambios aplican al siguiente período de facturación. Si actualizas, el acceso a las nuevas funciones es inmediato.' },
-  { q: '¿Hay descuento por pago anual?', a: 'Sí. El pago anual tiene un descuento del 10%. El plan Escuadrilla pasa de $238.000/mes a $214.200/mes (equivalente). El plan Flota pasa de $476.000/mes a $428.400/mes (equivalente). Selecciona "Anual" en el toggle de precios para ver los valores exactos.' },
+  { q: '¿Hay descuento por pago anual?', a: 'Sí. El pago anual tiene un descuento del 10%. El plan Escuadrilla pasa de $200.000/mes a $180.000/mes (equivalente, + IVA). El plan Flota pasa de $400.000/mes a $360.000/mes (equivalente, + IVA). Selecciona "Anual" en el toggle de precios para ver los valores exactos.' },
   { q: '¿Los pagos son en pesos colombianos o dólares?', a: 'Todos los precios son en pesos colombianos (COP). El cobro se realiza a través de ePayco. Aceptamos tarjetas Visa, Mastercard, débito y PSE.' },
   { q: '¿Qué pasa con mis datos si cancelo?', a: 'Tus datos se conservan durante 90 días después de la cancelación, período durante el cual puedes exportar tus bitácoras, reportes y datos de flota en PDF o Excel. Transcurrido ese período, los datos son eliminados de forma permanente.' },
 ];
@@ -147,7 +147,12 @@ export default function PreciosClient() {
       <section style={{ padding: '0 32px 80px', background: '#fff' }}>
         <div className="max-w-[1100px] mx-auto grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4" style={{ alignItems: 'start' }}>
           {plans.map(plan => {
-            const dispAmount = annual && plan.annualAmount ? plan.annualAmount / 12 : plan.monthlyAmount;
+            // Escuadrilla/Flota: el monto guardado (ePayco/DB) es el TOTAL con IVA.
+            // Se muestra el valor base sin IVA + rótulo "IVA no incluido".
+            const excludesIva = plan.key === 'escuadrilla' || plan.key === 'flota';
+            const rawAmount = annual && plan.annualAmount ? plan.annualAmount / 12 : plan.monthlyAmount;
+            const dispAmount = excludesIva && rawAmount != null ? rawAmount / 1.19 : rawAmount;
+            const dispAnnualAmount = excludesIva && plan.annualAmount != null ? plan.annualAmount / 1.19 : plan.annualAmount;
             return (
             <div key={plan.key} style={{ background: plan.dark ? navy : '#fff', border: `1.5px solid ${plan.popular ? accent : '#e2e8f0'}`, borderRadius: '28px', padding: '28px', display: 'flex', flexDirection: 'column', position: 'relative', boxShadow: plan.popular ? '0 24px 48px rgba(26,32,44,0.25)' : 'none' }}>
               {plan.popular && (
@@ -162,11 +167,16 @@ export default function PreciosClient() {
                   <>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                       <span style={{ fontSize: '28px', fontWeight: 900, color: plan.dark ? '#fff' : navy, lineHeight: 1.2 }}>{fmtCOP(dispAmount)}</span>
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: plan.dark ? '#64748b' : '#94a3b8' }}>/mes</span>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: plan.dark ? '#64748b' : '#94a3b8' }}>/mes{excludesIva ? ' + IVA' : ''}</span>
                     </div>
+                    {excludesIva && (
+                      <div style={{ fontSize: '10px', fontWeight: 600, color: plan.dark ? '#64748b' : '#94a3b8', marginTop: '2px' }}>
+                        IVA no incluido
+                      </div>
+                    )}
                     {annual && plan.annualAmount && (
                       <div style={{ fontSize: '11px', fontWeight: 700, color: plan.dark ? '#64748b' : '#94a3b8', marginTop: '4px' }}>
-                        Facturado {fmtCOP(plan.annualAmount)}/año
+                        Facturado {fmtCOP(dispAnnualAmount)}/año{excludesIva ? ' + IVA' : ''}
                       </div>
                     )}
                     {plan.trialDays && (

@@ -34,10 +34,16 @@ function buildPlans(livePrices) {
     if (!plan.paid) {
       return { ...plan, price: `${trialDays || 15} días gratis`, sub: `luego ${fmtCOP(monthlyAmount)}/mes`, rawPrice: 0 };
     }
+    // Escuadrilla/Flota: el monto guardado (ePayco/DB) es el TOTAL con IVA — se
+    // muestra el valor base sin IVA + "IVA no incluido". rawPrice (analytics/
+    // tracking) sigue siendo el total real cobrado, no el base.
+    const excludesIva = plan.key === 'escuadrilla' || plan.key === 'flota';
+    const dispMonthly = excludesIva ? monthlyAmount / 1.19 : monthlyAmount;
+    const dispAnnual  = excludesIva ? annualAmount  / 1.19 : annualAmount;
     return {
       ...plan,
-      price: `${fmtCOP(monthlyAmount)}/mes`,
-      sub: `o ${fmtCOP(annualAmount)}/año (−10%)`,
+      price: `${fmtCOP(dispMonthly)}/mes${excludesIva ? ' + IVA' : ''}`,
+      sub: `o ${fmtCOP(dispAnnual)}/año (−10%)${excludesIva ? ' + IVA' : ''}`,
       rawPrice: monthlyAmount,
     };
   });

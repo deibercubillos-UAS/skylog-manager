@@ -50,7 +50,10 @@ justifique.
 - [~] 0.5 — Recorrido general del panel: menú lateral, notificaciones, búsqueda, tu perfil
       (guion listo, ver subsección abajo — se omitió el 0.4 original "Unirse a una
       organización con el NIT" a pedido del usuario, sin renumerar el resto de la serie)
-- [ ] 0.6 — Planes y precios: qué incluye cada plan y cómo elegir el correcto
+- [~] 0.6 — Planes y precios: qué incluye cada plan y cómo elegir el correcto
+      (guion listo, ver subsección abajo — precios y beneficios verificados contra
+      `epayco_plan_config` en Supabase en vivo, no contra el código, ver nota en la
+      subsección)
 - [ ] 0.7 — Periodo de prueba y cómo activar tu suscripción (pago con ePayco)
 - [ ] 0.8 — Multi-organización: cómo pertenecer a varias empresas y cambiar entre ellas
 - [ ] 0.9 — Configurar tu organización: logo, datos de la empresa, registro AeroCivil
@@ -517,6 +520,123 @@ Notas de producción:
 - **No profundizar en ningún módulo específico**: este video es solo orientación de la
   "cáscara" del dashboard (menú, búsqueda, notificaciones, cuenta) — cada módulo (Flota,
   Bitácora, Programación, etc.) tiene su propio video dedicado más adelante en el Bloque 2.
+- **Subtítulos**: mismo criterio que los guiones anteriores — se derivan de este documento
+  una vez esté el video montado.
+
+### Guion — 0.6 · Planes y precios
+
+**Formato**: tutorial 100% en pantalla (recorrido real de `/precios`), sin necesidad de
+b-roll de dron. **Duración objetivo**: ~3:45 min (~530 palabras). **Tono**: profesional,
+cercano, directo. **CTA**: mínimo — orientación, no venta agresiva.
+
+**⚠️ Verificación de precios (antes de grabar)**: los montos de este guion se tomaron de la
+tabla real `epayco_plan_config` en Supabase (fuente de verdad — la misma que sirve
+`GET /api/plans/public` a la página pública de precios), **no** de las constantes
+`PLAN_CONFIG`/`EPAYCO_PLANS` en `src/lib/planLimits.js` ni del array `PLANS_BASE` en
+`src/app/precios/PreciosClient.js`, que están desactualizados (documentado como bug real,
+ver nota en la conversación de esta sesión). Antes de grabar, **vuelve a consultar la tabla
+en vivo** — si los precios cambiaron de nuevo entre que se escribió este guion y la
+grabación, hay que actualizar los números aquí primero.
+
+```
+===================================
+GUION — VIDEO 0.6
+===================================
+Título: Planes y precios de BitaFly — qué incluye cada uno y cómo elegir el correcto
+Duración estimada: ~3:45 minutos (~530 palabras)
+Formato: tutorial 100% en pantalla (recorrido real de /precios)
+===================================
+
+[GANCHO — 0:00-0:12]
+[Visual: pantalla, la grilla de 4 planes en /precios]
+
+"Cuatro planes, cada uno con su propia lista de lo que incluye — ¿cómo elegir sin perder
+media hora comparando tabla por tabla? Te lo resumo en los próximos minutos."
+
+[INTRO — 0:12-0:25]
+[Visual: pantalla, /precios]
+
+"Ya viste en un video anterior si BitaFly es para ti como piloto independiente o como
+empresa. Ahora vamos a los números concretos: qué te da cada plan, y cuánto cuesta."
+
+[CONTENIDO PRINCIPAL — 0:25-3:00]
+
+[Bloque 1: Plan Piloto — 0:25-0:55]
+[Visual: pantalla, tarjeta del plan Piloto en /precios]
+
+"El plan Piloto cuesta $19.900 al mes, con quince días de prueba gratis sin tarjeta de
+crédito. Incluye una aeronave, bitácora RAC 100 ilimitada, alertas de mantenimiento, hasta
+tres baterías, y tu reporte en PDF. Es para quien vuela solo — no incluye SMS aeronáutico
+ni varios usuarios, porque simplemente no los necesita."
+
+[Bloque 2: Plan Escuadrilla — 0:55-1:30]
+[Visual: pantalla, tarjeta del plan Escuadrilla]
+
+"El plan Escuadrilla cuesta $238.000 al mes. Es para pequeñas empresas: hasta tres
+aeronaves, hasta cuatro usuarios con distintos roles, autorizaciones de vuelo, y un módulo
+de SMS básico para empezar a documentar tu seguridad operacional."
+
+[Bloque 3: Plan Flota — 1:30-2:10]
+[Visual: pantalla, tarjeta del plan Flota, la más elegida]
+
+"El plan Flota cuesta $476.000 al mes, y es el más elegido por empresas medianas: hasta
+diez aeronaves, diez usuarios con los cinco roles del sistema, todos los reportes
+regulatorios, SMS completo con trazabilidad, auditoría, checklists personalizables, y
+soporte prioritario."
+
+[Bloque 4: Plan Enterprise — 2:10-2:35]
+[Visual: pantalla, tarjeta Enterprise]
+
+"Y si tu operación no cabe en ningún límite de los anteriores, está Enterprise: aeronaves y
+usuarios ilimitados, marca propia, acceso a API, y soporte dedicado. El precio es a
+consultar directamente con nuestro equipo, porque se ajusta a cada operación."
+
+[Bloque 5: Cómo elegir — 2:35-3:00]
+[Visual: pantalla, toggle mensual/anual, botón de cambio de plan en el dashboard]
+
+"Para elegir, cuenta tus aeronaves y tu equipo de HOY, no los que planeas tener en dos
+años — puedes cambiar de plan cuando quieras, sin contratos rígidos. Y si tienes dudas, el
+plan Piloto tiene quince días gratis para que pruebes la plataforma completa antes de
+decidir."
+
+[CONCLUSIÓN — 3:00-3:25]
+[Visual: pantalla, vuelve a la grilla completa de planes]
+
+"Ya tienes claro qué te da cada plan y cuánto cuesta. La decisión ya no es sobre qué incluye
+cada uno — es sobre qué tamaño tiene tu operación hoy."
+
+[CIERRE / CTA MÍNIMO — 3:25-3:45]
+
+"En el próximo video te muestro cómo funciona el período de prueba y cómo activar tu
+suscripción cuando estés listo. Nos vemos ahí."
+
+===================================
+[FIN DEL GUION]
+
+Conteo de palabras: ~530
+Duración estimada: ~3:45 minutos
+Audiencia: cualquier usuario evaluando qué plan de BitaFly le conviene — ya sea antes de
+registrarse o ya con una cuenta activa considerando cambiar de plan
+Tono: profesional, cercano, directo — informa precios y beneficios reales, sin presión de
+venta.
+===================================
+```
+
+Notas de producción:
+- **Sin toma real de apertura**: como 0.5, es 100% pantalla — el gancho se apoya en la
+  situación relatable de comparar planes, sin necesidad de b-roll.
+- **Precios sujetos a cambio**: a diferencia del resto de la serie, este guion tiene una
+  fecha de caducidad real — los precios pueden cambiar de nuevo antes de grabar. Revisar
+  `epayco_plan_config` (o simplemente cargar `/precios` en producción y mirar los números
+  reales que muestra) el mismo día de la grabación, no confiar en los montos de este
+  documento si pasó tiempo desde que se escribió.
+- **Plan Enterprise sin precio público**: se mantiene "a consultar" en el guion — no se
+  inventa un rango de precio, porque no existe un valor único real (se negocia caso a
+  caso).
+- **Toggle mensual/anual**: el video puede mostrar brevemente el toggle de la página de
+  precios, pero el guion no menciona el precio anual de cada plan en el audio para no
+  saturar de números — si se quiere agregar, el precio anual real (verificado en la misma
+  consulta) es: Piloto $218.899/año, Escuadrilla $2.570.400/año, Flota $5.140.800/año.
 - **Subtítulos**: mismo criterio que los guiones anteriores — se derivan de este documento
   una vez esté el video montado.
 

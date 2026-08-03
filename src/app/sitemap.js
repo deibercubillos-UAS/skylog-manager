@@ -29,6 +29,7 @@ export default function sitemap() {
     { url: `${SITE_URL}/precios`,                    lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${SITE_URL}/registro`,                   lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${SITE_URL}/documentacion`,              lastModified: now, changeFrequency: 'monthly', priority: 0.88 },
+    { url: `${SITE_URL}/tutoriales`,                 lastModified: now, changeFrequency: 'weekly',  priority: 0.85 },
 
     // ── Blog ─────────────────────────────────────────────────────────────
     { url: `${SITE_URL}/blog`,                       lastModified: now, changeFrequency: 'weekly',  priority: 0.85 },

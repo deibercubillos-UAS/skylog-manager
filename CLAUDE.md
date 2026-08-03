@@ -3977,6 +3977,41 @@ volando, otros que no aportan o están desactualizados"): auditoría real del á
 
 ---
 
+## Tutoriales en video — `/tutoriales` (2026-08-02)
+
+Página pública nueva (sin login, accesible desde el header/footer de todo el sitio) que
+muestra la serie de video tutoriales de YouTube (`youtube.com/@Bitafly`), organizada en
+los mismos 4 bloques definidos en `docs/plan-videos-youtube-bitafly.md` (Introducción y
+fundamentos / Por perfil y rol / Por módulo funcional / Casos de uso con drones reales).
+
+- **`src/lib/tutorialVideos.js`** — fuente de metadata de cada video (título, descripción,
+  `youtubeId`, duración ISO 8601, fecha de publicación), **pero la presencia en la página
+  no depende solo de este array**: en cada carga server-side se lee
+  `docs/plan-videos-youtube-bitafly.md` y solo se muestran los videos cuyo número
+  (`id: '0.1'`, etc.) tiene una sección `### Guion — N.N ·` vigente en ese documento — a
+  pedido explícito del usuario, para que editar/eliminar un guion del plan editorial haga
+  desaparecer automáticamente su tarjeta en `/tutoriales` sin tocar código. Al día de hoy
+  solo el Bloque 0 tiene guiones listos (0.1, 0.2, 0.3, 0.5, 0.6) — los Bloques 1-3 son
+  bullets sin guion todavía en el plan, así que esas secciones no se renderizan aún.
+- **Videos sin `youtubeId`** (guion listo pero aún no grabado/publicado, ej. 0.6 que
+  estaba "Programado" en YouTube Studio al momento de crear la página) se muestran como
+  tarjeta "Próximamente" (`VideoCard.js`) — igual entran en el bloque, comunican la serie
+  completa desde el día uno.
+- **Sin integración con la API de Data de YouTube**: bajo volumen de contenido, no
+  justifica manejar API key/cuota — mismo criterio ya usado en el resto del proyecto para
+  catálogos chicos (agregar un video nuevo es una entrada más en el array).
+- **`VideoCard.js`** (client component): facade — miniatura estática de YouTube
+  (`i.ytimg.com/vi/{id}/hqdefault.jpg`) + botón de play; el iframe (`youtube-nocookie.com`)
+  solo se monta al hacer clic, para no pagar el costo de rendimiento de cargar el JS de
+  YouTube para cada video visible de entrada.
+- **SEO**: JSON-LD `CollectionPage` + `ItemList` + un `VideoObject` por cada video
+  publicado (ayuda a aparecer en resultados de video de Google), entrada en
+  `sitemap.js`, enlace en `LandingNav.js` (dropdown Recursos, todas las páginas) y en
+  `SEOFooter.js` (27+ páginas públicas), más un botón "Ver en video" en el sidebar de
+  `/documentacion` (cross-link entre la guía escrita y la guía en video).
+
+---
+
 ## Comandos
 
 ```bash

@@ -27,6 +27,7 @@ const COMPANY_LINKS = [
 
 const RESOURCES_LINKS = [
   { href: '/blog',                            label: 'Blog' },
+  { href: '/tutoriales',                      label: 'Tutoriales en Video' },
   { href: '/documentacion',                   label: 'Documentación' },
   { href: '/casos',                           label: 'Casos de Éxito' },
   { href: '/comparativa-bitafly-airdata',     label: 'Bitafly vs AirData' },

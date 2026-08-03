@@ -352,6 +352,10 @@ export default function DocumentacionPage() {
                 </a>
               ))}
               <div className="border-t border-slate-100 mt-6 pt-5 space-y-2 px-3">
+                <Link href="/tutoriales" className="flex items-center justify-center gap-1.5 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-xs font-black uppercase tracking-widest hover:border-primary hover:text-primary transition-all">
+                  <span className="material-symbols-outlined text-sm">play_circle</span>
+                  Ver en video
+                </Link>
                 <Link href="/registro" className="block text-center py-2.5 bg-primary text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-orange-600 transition-all">
                   Comenzar gratis
                 </Link>

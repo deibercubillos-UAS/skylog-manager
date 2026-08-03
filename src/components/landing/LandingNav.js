@@ -23,6 +23,7 @@ const PLATFORM_ITEMS = [
 // ── Recursos dropdown items ───────────────────────────────────────────────────
 const RESOURCES_ITEMS = [
   { href: '/blog',                         icon: 'article',       label: 'Blog',              desc: 'Artículos y novedades', badge: 'Nuevo' },
+  { href: '/tutoriales',                  icon: 'play_circle',   label: 'Tutoriales',        desc: 'Videos paso a paso', badge: 'Nuevo' },
   { href: '/documentacion',               icon: 'library_books', label: 'Documentación',     desc: 'Guía de uso detallada' },
   { href: '/casos',                        icon: 'star',          label: 'Casos de éxito',   desc: 'Resultados reales' },
   { href: '/comparativa-bitafly-airdata', icon: 'compare_arrows',label: 'Comparativas',      desc: 'Bitafly vs competidores' },

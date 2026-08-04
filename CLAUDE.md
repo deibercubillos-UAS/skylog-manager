@@ -2112,6 +2112,34 @@ con dedup diario por `grant_id` en `notifications.metadata` (no repite el mismo 
 de una vez por día). Complementa, no reemplaza, al aviso **posterior** al vencimiento que
 ya hacía `/api/cron/free-grants` (ese sigue intacto, sin cambios).
 
+### Banner de vigencia de suscripción de PAGO (2026-08-03)
+
+Distinto del banner de arriba (ese es para regalos gratuitos vía `free_grants`): este
+avisa sobre el ciclo de pago **real** de un plan piloto/escuadrilla/flota — a pedido del
+usuario, porque no existía ningún aviso ni forma de pagar para quien está por vencer o ya
+venció, más allá de la opción de "mejorar de plan" (ver **Permitir pagar/renovar el plan
+actual en Suscripción**, mismo día).
+
+- `GET /api/dashboard/subscription-expiry` (solo lectura): filtra por
+  `PERMISSIONS.canManageSubscription` (Gerente General/Piloto Independiente — ambos
+  `role='admin'` — o superadmin; Jefe de Pilotos/Gerente SMS/Piloto no ven este banner,
+  no gestionan la facturación) y devuelve `daysLeft`/`expiresAt`/`planKey`/`recurring`
+  (si tiene `epayco_subscription_id`) desde `organization_members` de la org activa.
+  Sin `subscription_expires_at` (ej. Enterprise) → no se muestra nada.
+- `components/SubscriptionExpiryBanner.js`: dos estados, con umbral de 7 días (no 5,
+  como el de regalos — una suscripción de pago real amerita más antelación) —
+  **"Vence en N días"** (ámbar, dismiss por sesión+día, mismo patrón que
+  `GrantExpiringBanner`) y **"Cuenta vencida — se requiere pago"** (rojo, `daysLeft<=0`,
+  **sin** botón de descartar — es un estado real, no un recordatorio). Ambos con botón
+  "Pagar ahora" que enlaza a `/dashboard/subscription` (reutiliza el botón
+  Pagar/Renovar ya construido ahí, en vez de duplicar el flujo de checkout+polling
+  dentro de un banner que vive en el layout global).
+- **Deliberadamente sin enforcement de acceso**: a diferencia de `free_grants` (que sí
+  tiene un cron que degrada el perfil al vencer), no existe hoy ningún cron que actúe
+  sobre `subscription_expires_at` de un plan de pago — esta fase es solo la
+  notificación/CTA que pidió el usuario, no un cambio de las reglas de negocio de
+  facturación.
+
 ---
 
 ## Planeación, Programación y Despacho

@@ -135,19 +135,18 @@ export default function ManageSubscriptionPage() {
   const [joinError,      setJoinError]      = useState('');
   const joinConfirmRef = useRef(null);
 
-  // ── Estado "Verificar pago pendiente" ────────────────────────────────────
-  const [pendingRef,     setPendingRef]     = useState('');
-  const [verifying,      setVerifying]      = useState(false);
-  const [verifyResult,   setVerifyResult]   = useState(null);   // { activated, planName, reason }
-  const [showVerify,     setShowVerify]     = useState(false);
+  // ── Estado de confirmación de pago (automático, sin formulario manual) ────
+  const [verifyResult,     setVerifyResult]     = useState(null);   // { activated, planName }
+  const [autoConfirming,   setAutoConfirming]   = useState(false);  // reconciliando en segundo plano tras volver de ePayco
 
   // ── Refs para el polling del pago (no provocan re-render) ──────────────────
-  const pollRef         = useRef(null);  // interval de polling del perfil
-  const winWatchRef     = useRef(null);  // interval que vigila el cierre del popup
-  const payWindowRef    = useRef(null);  // referencia a la pestaña de ePayco
-  const orgIdRef        = useRef(null);  // organización activa (resuelta una vez en load())
-  const baselinePlanRef = useRef(null);  // plan antes de iniciar el pago
-  const pollDeadlineRef = useRef(null);  // timestamp límite del polling
+  const pollRef           = useRef(null);  // interval de polling del perfil
+  const winWatchRef       = useRef(null);  // interval que vigila el cierre del popup
+  const payWindowRef      = useRef(null);  // referencia a la pestaña de ePayco
+  const orgIdRef          = useRef(null);  // organización activa (resuelta una vez en load())
+  const baselinePlanRef    = useRef(null);  // plan antes de iniciar el pago
+  const baselineExpiresRef = useRef(null);  // vigencia antes de iniciar el pago (detecta renovación del mismo plan)
+  const pollDeadlineRef   = useRef(null);  // timestamp límite del polling
 
   useEffect(() => {
     async function load() {
@@ -162,16 +161,27 @@ export default function ManageSubscriptionPage() {
       // Medidores de uso (aeronaves/pilotos/vuelos del mes) — no bloquea el render principal
       fetch('/api/subscription').then(r => r.json()).then(d => { if (d.usage) setUsage(d.usage); if (d.addons) setAddons(d.addons); }).catch(() => {});
 
-      // Detectar referencia guardada desde la página de retorno de ePayco
+      // Si volvemos de ePayco sin haber recibido el postMessage de activación
+      // (ej. el usuario cerró la pestaña de pago y volvió después), reconciliar
+      // en segundo plano contra el perfil real — sin pedirle nada al usuario.
       try {
         const storedRef = sessionStorage.getItem('epayco_pending_ref');
         if (storedRef) {
-          setPendingRef(storedRef);
-          setShowVerify(true);
+          baselinePlanRef.current    = data?.subscription_plan || 'piloto';
+          baselineExpiresRef.current = data?.subscription_expires_at || null;
+          setAutoConfirming(true);
+          stopPolling();
+          pollDeadlineRef.current = Date.now() + 1000 * 60 * 2; // 2 min de reconciliación silenciosa
+          pollRef.current = setInterval(async () => {
+            if (Date.now() > pollDeadlineRef.current) { stopPolling(); setAutoConfirming(false); return; }
+            const ok = await pollProfileOnce();
+            if (ok) setAutoConfirming(false);
+          }, 4000);
         }
       } catch {}
     }
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-focus retention modal
@@ -208,12 +218,15 @@ export default function ManageSubscriptionPage() {
   function stopPolling() {
     if (pollRef.current)     { clearInterval(pollRef.current);   pollRef.current = null; }
     if (winWatchRef.current) { clearInterval(winWatchRef.current); winWatchRef.current = null; }
-    payWindowRef.current   = null;
-    baselinePlanRef.current = null;
+    payWindowRef.current    = null;
+    baselinePlanRef.current    = null;
+    baselineExpiresRef.current = null;
     pollDeadlineRef.current = null;
   }
 
-  // Consulta el perfil; si el plan ya es pago (distinto del baseline) → activado
+  // Consulta el perfil; detecta tanto un upgrade real (cambio de plan) como una
+  // renovación/pago del MISMO plan (la vigencia avanza aunque el plan no cambie
+  // — ej. el piloto independiente pagando para continuar en Piloto).
   async function pollProfileOnce() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -221,8 +234,11 @@ export default function ManageSubscriptionPage() {
       const data = await fetchSubscriptionState(user.id, orgIdRef.current);
       if (!data) return false;
       const base = baselinePlanRef.current;
-      const isPaidNow = data.subscription_plan && data.subscription_plan !== 'piloto';
-      if (isPaidNow && data.subscription_plan !== base) {
+      const planChanged     = !!data.subscription_plan && data.subscription_plan !== base;
+      const renewedSamePlan = data.subscription_plan === base
+        && !!data.subscription_expires_at
+        && data.subscription_expires_at !== baselineExpiresRef.current;
+      if (planChanged || renewedSamePlan) {
         markActivated({
           newPlan:   data.subscription_plan,
           expiresAt: data.subscription_expires_at,
@@ -267,9 +283,10 @@ export default function ManageSubscriptionPage() {
       // Abrir ePayco en nueva pestaña (sin noopener: necesitamos la referencia
       // para detectar el cierre y recibir el postMessage de retorno).
       const win = window.open(json.url, '_blank');
-      payWindowRef.current    = win;
-      baselinePlanRef.current = planKey; // plan antes del pago
-      pollDeadlineRef.current = Date.now() + 1000 * 60 * 10; // hasta 10 min
+      payWindowRef.current       = win;
+      baselinePlanRef.current    = planKey; // plan antes del pago
+      baselineExpiresRef.current = profile?.subscription_expires_at || null; // vigencia antes del pago (detecta renovación del mismo plan)
+      pollDeadlineRef.current    = Date.now() + 1000 * 60 * 10; // hasta 10 min
 
       // Polling del perfil: el webhook de ePayco activa el plan server-side,
       // así detectamos el cambio aunque ePayco no redirija a nuestra página.
@@ -278,7 +295,6 @@ export default function ManageSubscriptionPage() {
         if (Date.now() > pollDeadlineRef.current) {
           stopPolling();
           setUpgrading(null);
-          setShowVerify(true); // ofrecer verificación manual como último recurso
           return;
         }
         pollProfileOnce();
@@ -295,7 +311,7 @@ export default function ManageSubscriptionPage() {
             const grace = Date.now() + 40000;
             if (pollDeadlineRef.current > grace) pollDeadlineRef.current = grace;
             const ok = await pollProfileOnce();
-            if (!ok) setShowVerify(true);
+            if (!ok) setUpgrading(null);
           }
         }, 1500);
       }
@@ -303,38 +319,6 @@ export default function ManageSubscriptionPage() {
       alert('Error al iniciar pago: ' + e.message);
       setUpgrading(null);
       stopPolling();
-    }
-  }
-
-  // ── Verificar pago pendiente ───────────────────────────────────────────────
-  async function handleVerifyPending() {
-    const ref = pendingRef.trim();
-    if (!ref) return;
-    setVerifying(true);
-    setVerifyResult(null);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Sesión no disponible — vuelve a iniciar sesión');
-      const res  = await fetch('/api/epayco/verify', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body:    JSON.stringify({ ref_payco: ref }),
-      });
-      const json = await res.json();
-      setVerifyResult(json);
-      if (json.activated) {
-        try { sessionStorage.removeItem('epayco_pending_ref'); } catch {}
-        // Refrescar perfil para mostrar el nuevo plan
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const data = await fetchSubscriptionState(user.id, orgIdRef.current);
-          setProfile(data ? { ...data, email: user.email } : null);
-        }
-      }
-    } catch (e) {
-      setVerifyResult({ activated: false, reason: e.message });
-    } finally {
-      setVerifying(false);
     }
   }
 
@@ -439,7 +423,7 @@ export default function ManageSubscriptionPage() {
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-500">Plan actual</p>
           <div className="flex items-baseline gap-3 mt-1 flex-wrap">
             <h2 className="text-xl md:text-2xl font-black text-white tracking-tight">{plan.label}</h2>
-            {isPaid && <span className="text-[13px] font-bold text-slate-400">{plan.price}</span>}
+            <span className="text-[13px] font-bold text-slate-400">{plan.price}</span>
           </div>
           <div className="flex items-center gap-3 mt-2 flex-wrap">
             {expiresAt && (
@@ -448,19 +432,26 @@ export default function ManageSubscriptionPage() {
                 {profile?.epayco_subscription_id ? `Renueva el ${expiresAt}` : `Vence el ${expiresAt}`}
               </span>
             )}
-            {!isPaid && (
-              <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
-                <span className="material-symbols-outlined text-sm">info</span>
-                Plan gratuito — actualiza para desbloquear funciones
-              </span>
-            )}
           </div>
         </div>
-        <div className="flex items-center gap-4 shrink-0">
+        <div className="flex items-center gap-3 shrink-0 flex-wrap">
           {isPaid && !cancelDone && (
             <button type="button" onClick={() => setShowRetention(true)}
               className="text-[11px] font-black text-slate-400 hover:text-red-400 uppercase tracking-wide transition-colors">
               Cancelar plan
+            </button>
+          )}
+          {planKey !== 'enterprise' && (
+            <button
+              type="button"
+              onClick={() => handleUpgrade(planKey)}
+              disabled={!!upgrading}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-black text-xs uppercase tracking-wide active:scale-95 transition-all disabled:opacity-50">
+              {upgrading === planKey ? (
+                <><span className="material-symbols-outlined text-base animate-spin">progress_activity</span>Esperando pago...</>
+              ) : (
+                <><span className="material-symbols-outlined text-base">payments</span>{profile?.epayco_subscription_id ? `Renovar ${plan.label}` : `Pagar ${plan.label}`}</>
+              )}
             </button>
           )}
           {nextPlan && (
@@ -549,9 +540,9 @@ export default function ManageSubscriptionPage() {
           <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-7 space-y-3">
             <p className="text-[11px] font-black uppercase tracking-wide text-orange-600 border-b border-slate-100 pb-3">Gestión de pago</p>
             <p className="text-xs text-slate-500 font-medium leading-relaxed">
-              {isPaid
+              {profile?.epayco_subscription_id
                 ? 'ePayco procesa el cobro recurrente de tu suscripción de forma segura. Para actualizar tu tarjeta o resolver un problema con un cobro, contáctanos.'
-                : 'Aún no tienes un método de pago activo — se configura al actualizar a un plan pago.'}
+                : 'Aún no tienes un método de pago recurrente activo — se configura al pagar o renovar tu plan.'}
             </p>
             <a href="mailto:hola@bitafly.com?subject=Método%20de%20pago%20BitaFly"
               className="inline-flex items-center gap-1.5 text-[11px] font-black text-orange-600 hover:text-orange-800">
@@ -681,71 +672,12 @@ export default function ManageSubscriptionPage() {
         </section>
       )}
 
-      {/* ── Verificar pago pendiente ─────────────────────────────────────── */}
-      {(showVerify || !isPaid) && !verifyResult?.activated && (
-        <section aria-label="Verificar pago pendiente"
-                 className={`border rounded-2xl p-6 space-y-4 ${showVerify ? 'border-orange-300 bg-orange-50/60' : 'border-slate-200 bg-slate-50/40'}`}>
-          <div className="flex items-start gap-3">
-            <div className="size-10 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-orange-600 text-xl" aria-hidden="true">receipt_long</span>
-            </div>
-            <div className="flex-1">
-              <h4 className="font-black text-slate-800 text-sm uppercase tracking-wide flex items-center gap-2">
-                {showVerify ? '¡Pago detectado! Activar plan' : '¿Ya pagaste? Verificar pago'}
-              </h4>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                {showVerify
-                  ? 'Encontramos una referencia de pago reciente. Haz clic para activar tu plan ahora.'
-                  : 'Si realizaste un pago y tu plan no se actualizó, ingresa la referencia de la transacción (visible en el correo de confirmación de ePayco).'}
-              </p>
-            </div>
-            {!showVerify && (
-              <button onClick={() => setShowVerify(true)}
-                      className="text-xs font-black text-orange-600 hover:text-orange-700 underline shrink-0">
-                Verificar
-              </button>
-            )}
-          </div>
-
-          {showVerify && (
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={pendingRef}
-                onChange={e => { setPendingRef(e.target.value); setVerifyResult(null); }}
-                placeholder="Referencia ePayco (ej. bitafly_escuadrilla_monthly_...)"
-                className="flex-1 px-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-sm font-medium focus:border-orange-400 focus:outline-none transition-colors font-mono"
-                disabled={verifying}
-                aria-label="Referencia de transacción ePayco"
-              />
-              <button
-                onClick={handleVerifyPending}
-                disabled={verifying || !pendingRef.trim()}
-                className="px-5 py-3 bg-[#ec5b13] text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-orange-600 disabled:opacity-50 transition-colors flex items-center gap-2"
-              >
-                {verifying
-                  ? <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
-                  : <span className="material-symbols-outlined text-sm">verified</span>}
-                {verifying ? 'Verificando...' : 'Activar'}
-              </button>
-            </div>
-          )}
-
-          {verifyResult && !verifyResult.activated && (
-            <div className="flex items-start gap-2 text-xs text-red-600 bg-red-50 rounded-xl px-4 py-3" role="alert">
-              <span className="material-symbols-outlined text-sm shrink-0">error</span>
-              <span>
-                {verifyResult.reason === 'no_encontrada'   && 'Referencia no encontrada en ePayco. Verifica que sea la correcta.'}
-                {verifyResult.reason === 'no_aprobada'     && `Pago no aprobado (estado: ${verifyResult.state || 'desconocido'}).`}
-                {verifyResult.reason === 'no_coincide_usuario' && 'El pago no coincide con tu cuenta. Contacta soporte.'}
-                {verifyResult.reason === 'plan_no_resuelto' && 'No se pudo determinar el plan. Contacta soporte con tu referencia.'}
-                {verifyResult.reason === 'sin_referencia'  && 'Ingresa la referencia del pago.'}
-                {!['no_encontrada','no_aprobada','no_coincide_usuario','plan_no_resuelto','sin_referencia'].includes(verifyResult.reason)
-                  && (verifyResult.reason || 'Error inesperado. Contacta soporte en hola@bitafly.com.')}
-              </span>
-            </div>
-          )}
-        </section>
+      {/* ── Confirmando pago en segundo plano (sin formulario manual) ────── */}
+      {autoConfirming && !verifyResult?.activated && (
+        <div className="border border-slate-200 bg-slate-50/60 rounded-2xl p-5 flex items-center gap-3" role="status" aria-live="polite">
+          <span className="material-symbols-outlined text-slate-400 animate-spin">progress_activity</span>
+          <p className="text-xs text-slate-500 font-medium">Confirmando tu pago... esto puede tardar unos minutos.</p>
+        </div>
       )}
 
       {verifyResult?.activated && (

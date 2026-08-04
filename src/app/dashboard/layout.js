@@ -19,6 +19,7 @@ const InstallAppPrompt     = dynamic(() => import('@/components/InstallAppPrompt
 const AppUpdateBanner      = dynamic(() => import('@/components/AppUpdateBanner'),      { ssr: false });
 const WelcomeInviteModal   = dynamic(() => import('@/components/WelcomeInviteModal'),   { ssr: false });
 const GrantExpiringBanner  = dynamic(() => import('@/components/GrantExpiringBanner'),  { ssr: false });
+const SubscriptionExpiryBanner = dynamic(() => import('@/components/SubscriptionExpiryBanner'), { ssr: false });
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
@@ -825,6 +826,10 @@ const footerLinks = footerLinksAll.filter(link =>
           {/* Banner de acceso gratuito por vencer (regalo de socio o de Master
               sin organización) — independiente del período de gracia de arriba. */}
           {!gracePeriod.isGracePeriod && <GrantExpiringBanner />}
+          {/* Banner de vigencia de suscripción de PAGO — solo quien puede
+              gestionar el pago (Gerente General/Piloto Independiente/superadmin,
+              el propio endpoint filtra por rol). Distinto del regalo gratuito. */}
+          {!gracePeriod.isGracePeriod && <SubscriptionExpiryBanner />}
           <GracePeriodContext.Provider value={gracePeriod}>
             {children}
           </GracePeriodContext.Provider>

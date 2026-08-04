@@ -69,9 +69,9 @@ const VIDEOS = [
     bloque: 0,
     title: 'Planes y precios de BitaFly: ¿cuál elegir para tu operación? (RAC 100)',
     description: '¿Cuál plan de BitaFly te conviene según el tamaño de tu operación con drones? Te mostramos qué incluye cada uno de los 4 planes y cuánto cuesta, para que elijas sin perder tiempo comparando tabla por tabla.',
-    youtubeId: null, // programado en YouTube — completar cuando pase a público
+    youtubeId: 'BhbOdvT1etc',
     duration: 'PT2M20S',
-    publishedAt: null,
+    publishedAt: '2026-08-03',
   },
 ];
 

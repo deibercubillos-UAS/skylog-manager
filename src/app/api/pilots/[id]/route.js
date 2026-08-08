@@ -1,4 +1,4 @@
-import { createClientSSR } from '@/lib/supabaseServer';
+import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { getOrgContext } from '@/lib/apiAuth';
 import { NextResponse } from 'next/server';
 import { PERMISSIONS } from '@/lib/roles';
@@ -80,23 +80,24 @@ export async function PATCH(request, { params }) {
   }
 }
 
-// DAR DE BAJA (SOFT DELETE) — solo admin / jefe_pilotos / superadmin
+// DAR DE BAJA (SOFT DELETE del expediente + REVOCAR acceso real si tiene cuenta)
+// — solo admin / jefe_pilotos / superadmin
 export async function DELETE(request, { params }) {
   try {
     const { id } = await params;
 
     const supabase = await createClientSSR();
-    const { orgId, role } = await getOrgContext(supabase);
+    const { user, orgId, role } = await getOrgContext(supabase);
     if (!orgId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     if (!PERMISSIONS.canManageFleet.includes(role)) {
       return NextResponse.json({ error: 'Sin permisos para dar de baja tripulantes' }, { status: 403 });
     }
 
-    // Leer datos del piloto ANTES de la baja (para el correo)
+    // Leer datos del piloto ANTES de la baja (para el correo y para revocar acceso)
     const { data: pilot } = await supabase
       .from('pilots')
-      .select('name, email')
+      .select('name, email, profile_id')
       .eq('id', id)
       .eq('organization_id', orgId)
       .maybeSingle();
@@ -108,7 +109,92 @@ export async function DELETE(request, { params }) {
       .eq('id', orgId)
       .maybeSingle();
 
-    // Borrado lógico verificando org — graba deactivated_at para enforcement de 30 días
+    // ── Revocar acceso real a la organización ────────────────────────────
+    // El expediente (`pilots`) es solo un registro/perfil operativo — el
+    // acceso real vive en `organization_members`. Dar de baja aquí SOLO
+    // desactivaba la fila `pilots`, sin tocar la membresía: el tripulante
+    // seguía apareciendo en Gestión de Usuarios y conservaba acceso pleno
+    // al dashboard aunque el correo de aviso ya afirmaba lo contrario.
+    // `organization_members` no tiene política de escritura para clientes
+    // normales (solo service role) — se usa createAdminClient() aquí.
+    if (pilot?.profile_id) {
+      if (pilot.profile_id === user.id) {
+        return NextResponse.json({ error: 'No puedes quitarte a ti mismo el acceso desde aquí.' }, { status: 400 });
+      }
+
+      const admin = createAdminClient();
+
+      const { data: membership } = await admin
+        .from('organization_members')
+        .select('role')
+        .eq('user_id', pilot.profile_id)
+        .eq('organization_id', orgId)
+        .maybeSingle();
+
+      if (membership?.role === 'admin') {
+        const { data: admins } = await admin
+          .from('organization_members')
+          .select('user_id')
+          .eq('organization_id', orgId)
+          .eq('role', 'admin')
+          .eq('is_active', true);
+        if ((admins || []).length <= 1) {
+          return NextResponse.json({ error: 'No se puede quitar al único Gerente General de la organización.' }, { status: 400 });
+        }
+      }
+
+      const { error: memDelErr } = await admin
+        .from('organization_members')
+        .delete()
+        .eq('user_id', pilot.profile_id)
+        .eq('organization_id', orgId);
+      if (memDelErr) throw memDelErr;
+
+      // Si esta era su organización activa, reasignar a otra membresía real
+      // que le quede, o dejarla sin org (mismo estado que una cuenta nueva
+      // sin onboarding completo) — de lo contrario, active_organization_id
+      // quedaría apuntando a una org de la que ya no es miembro.
+      const { data: targetProfile } = await admin
+        .from('profiles')
+        .select('active_organization_id')
+        .eq('id', pilot.profile_id)
+        .maybeSingle();
+
+      if (targetProfile?.active_organization_id === orgId) {
+        const { data: otherMembership } = await admin
+          .from('organization_members')
+          .select('organization_id, role, subscription_plan, epayco_customer_id, epayco_subscription_id, epayco_ref, subscription_expires_at, subscription_status, last_payment_date')
+          .eq('user_id', pilot.profile_id)
+          .eq('is_active', true)
+          .order('joined_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (otherMembership) {
+          await admin.from('profiles').update({
+            organization_id:         otherMembership.organization_id,
+            active_organization_id:  otherMembership.organization_id,
+            role:                    otherMembership.role,
+            subscription_plan:       otherMembership.subscription_plan,
+            epayco_customer_id:      otherMembership.epayco_customer_id,
+            epayco_subscription_id:  otherMembership.epayco_subscription_id,
+            epayco_ref:              otherMembership.epayco_ref,
+            subscription_expires_at: otherMembership.subscription_expires_at,
+            subscription_status:     otherMembership.subscription_status,
+            last_payment_date:       otherMembership.last_payment_date,
+          }).eq('id', pilot.profile_id);
+        } else {
+          await admin.from('profiles').update({
+            organization_id: null,
+            active_organization_id: null,
+            role: null,
+          }).eq('id', pilot.profile_id);
+        }
+      }
+    }
+
+    // Borrado lógico del expediente verificando org — graba deactivated_at
+    // para enforcement de 30 días (reclamo de bitácora como independiente)
     const now = new Date().toISOString();
     const { error } = await supabase
       .from('pilots')

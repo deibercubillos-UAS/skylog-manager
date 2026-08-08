@@ -176,19 +176,27 @@ export default function PilotsPage() {
   };
 
   const handleDelete = (pilot) => {
+    const hasAccount = !!pilot.profile_id;
     setConfirmDlg({
       isOpen: true,
       title: `¿Eliminar a ${pilot.name}?`,
-      message: 'Esta acción es irreversible. Se eliminarán todos los datos del expediente.',
+      message: hasAccount
+        ? 'Esta acción es irreversible: se desactiva el expediente y se revoca su acceso real a la organización (deja de aparecer en Gestión de Usuarios).'
+        : 'Esta acción es irreversible. Se elimina el expediente.',
       confirmText: 'Eliminar',
       danger: true,
       onConfirm: async () => {
         setConfirmDlg(null);
         try {
-          const { error } = await supabase.from('pilots').delete().eq('id', pilot.id);
-          if (error) throw error;
+          // DELETE /api/pilots/[id]: además de dar de baja el expediente,
+          // revoca la membresía real en organization_members si el
+          // tripulante tiene cuenta — un delete directo del cliente sobre
+          // `pilots` NUNCA tocaba esa membresía (esa era la fuga de acceso).
+          const res = await fetch(`/api/pilots/${pilot.id}`, { method: 'DELETE' });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(json.error || 'Error al eliminar');
           setPilots(prev => prev.filter(p => p.id !== pilot.id));
-          toast.success(`${pilot.name} eliminado del expediente.`);
+          toast.success(`${pilot.name} eliminado${hasAccount ? ' — su acceso a la organización fue revocado' : ''}.`);
         } catch (err) {
           toast.error('No se pudo eliminar: ' + err.message);
         }

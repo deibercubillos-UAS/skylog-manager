@@ -129,6 +129,7 @@ export default function ManageSubscriptionPage() {
   const [joinOrg,        setJoinOrg]        = useState(null);   // { orgId, orgName, plan }
   const [joinOrgError,   setJoinOrgError]   = useState('');
   const [joinRole,       setJoinRole]       = useState('piloto');
+  const [joinMode,       setJoinMode]       = useState('additive'); // 'additive' (conserva cuenta) | 'transfer' (fusiona, destructivo)
   const [joinConfirming, setJoinConfirming] = useState(false);  // modal visible
   const [joining,        setJoining]        = useState(false);
   const [joinDone,       setJoinDone]       = useState(false);
@@ -370,7 +371,8 @@ export default function ManageSubscriptionPage() {
     setJoining(true);
     setJoinError('');
     try {
-      const res  = await fetch('/api/auth/join-org', {
+      const endpoint = joinMode === 'additive' ? '/api/auth/join-org-additional' : '/api/auth/join-org';
+      const res  = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nit: joinNit.trim(), role: joinRole }),
@@ -379,8 +381,13 @@ export default function ManageSubscriptionPage() {
       if (!res.ok) throw new Error(json.error || 'Error al unirse');
       setJoinDone(true);
       setJoinConfirming(false);
-      // Recargar la sesión para reflejar el nuevo org/rol
-      setTimeout(() => router.push('/dashboard'), 2500);
+      if (joinMode === 'transfer') {
+        // Fusión destructiva: la sesión cambió de org/rol por completo, recargar.
+        setTimeout(() => router.push('/dashboard'), 2500);
+      }
+      // Modo aditivo: la organización activa no cambió — el usuario sigue en su
+      // cuenta de piloto independiente y puede cambiar cuando quiera desde el
+      // selector de organizaciones del header. No hace falta recargar.
     } catch (e) {
       setJoinError(e.message);
     } finally {
@@ -704,8 +711,9 @@ export default function ManageSubscriptionPage() {
             <div>
               <h4 className="font-black text-slate-800 text-sm uppercase tracking-wide">Unirme a una organización</h4>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Si perteneces a una empresa que ya usa BitaFly, ingresa su NIT para transferir
-                toda tu bitácora y flota a esa organización.
+                Si perteneces a una empresa que ya usa BitaFly, ingresa su NIT. Puedes conservar
+                tu cuenta de piloto independiente y solo agregar el rol dentro de la empresa, o
+                fusionar por completo tu bitácora y flota a esa organización.
               </p>
             </div>
           </div>
@@ -753,6 +761,39 @@ export default function ManageSubscriptionPage() {
               </div>
 
               <div className="space-y-2">
+                <p className="text-xs font-black text-slate-500 uppercase tracking-widest">¿Cómo quieres unirte?</p>
+                <div className="grid gap-2">
+                  <label className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                            joinMode === 'additive' ? 'border-emerald-400 bg-emerald-50' : 'border-slate-100 bg-slate-50 hover:border-slate-200'
+                          }`}>
+                    <input type="radio" name="joinMode" value="additive" checked={joinMode === 'additive'}
+                           onChange={() => setJoinMode('additive')} className="accent-emerald-500" />
+                    <div>
+                      <p className="text-sm font-black text-slate-800">Conservar mi cuenta independiente <span className="text-emerald-600">(recomendado)</span></p>
+                      <p className="text-xs text-slate-500">
+                        Agrega el rol en {joinOrg.orgName} sin tocar tu bitácora ni tu flota actual.
+                        Podrás cambiar entre tu perfil independiente y esa organización desde el
+                        selector de organizaciones del encabezado, cuando quieras.
+                      </p>
+                    </div>
+                  </label>
+                  <label className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                            joinMode === 'transfer' ? 'border-orange-400 bg-orange-50' : 'border-slate-100 bg-slate-50 hover:border-slate-200'
+                          }`}>
+                    <input type="radio" name="joinMode" value="transfer" checked={joinMode === 'transfer'}
+                           onChange={() => setJoinMode('transfer')} className="accent-orange-500" />
+                    <div>
+                      <p className="text-sm font-black text-slate-800">Fusionar y transferir todo</p>
+                      <p className="text-xs text-slate-500">
+                        Traslada tu bitácora, flota y baterías a {joinOrg.orgName} y desactiva tu
+                        cuenta de piloto independiente. No se puede deshacer.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-2">
                 <p className="text-xs font-black text-slate-500 uppercase tracking-widest">¿Con qué rol te unirás?</p>
                 <div className="grid gap-2">
                   {JOIN_ROLES.map(r => (
@@ -781,7 +822,9 @@ export default function ManageSubscriptionPage() {
 
               <button
                 onClick={() => setJoinConfirming(true)}
-                className="w-full py-3 bg-[#ec5b13] text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-orange-600 transition-all flex items-center justify-center gap-2"
+                className={`w-full py-3 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 ${
+                  joinMode === 'additive' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#ec5b13] hover:bg-orange-600'
+                }`}
               >
                 <span className="material-symbols-outlined text-sm">transit_enterexit</span>
                 Unirme a {joinOrg.orgName}
@@ -798,7 +841,11 @@ export default function ManageSubscriptionPage() {
           <span className="material-symbols-outlined text-emerald-500 text-2xl shrink-0">check_circle</span>
           <div>
             <p className="text-sm font-black text-emerald-800">¡Te uniste exitosamente!</p>
-            <p className="text-xs text-emerald-700 mt-0.5">Tu bitácora y flota han sido transferidas. Redirigiendo al dashboard...</p>
+            <p className="text-xs text-emerald-700 mt-0.5">
+              {joinMode === 'additive'
+                ? 'Tu cuenta independiente sigue intacta. Cambia a la nueva organización desde el selector del encabezado cuando quieras.'
+                : 'Tu bitácora y flota han sido transferidas. Redirigiendo al dashboard...'}
+            </p>
           </div>
         </div>
       )}
@@ -821,24 +868,36 @@ export default function ManageSubscriptionPage() {
                 <h3 id="join-title" className="text-xl font-black text-slate-900 uppercase tracking-tighter">
                   ¿Confirmas la unión?
                 </h3>
-                <p className="text-xs text-slate-500 mt-1">Esta acción transferirá toda tu data y no se puede deshacer.</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {joinMode === 'additive'
+                    ? 'Se agregará una membresía nueva, sin tocar tu cuenta independiente.'
+                    : 'Esta acción transferirá toda tu data y no se puede deshacer.'}
+                </p>
               </div>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2">
-              <p className="text-xs font-black text-amber-800 uppercase tracking-wide flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-sm">warning</span>
+            <div className={`border rounded-2xl p-4 space-y-2 ${joinMode === 'additive' ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+              <p className={`text-xs font-black uppercase tracking-wide flex items-center gap-1.5 ${joinMode === 'additive' ? 'text-emerald-800' : 'text-amber-800'}`}>
+                <span className="material-symbols-outlined text-sm">{joinMode === 'additive' ? 'info' : 'warning'}</span>
                 Lo que ocurrirá
               </p>
               <ul className="space-y-1.5">
-                {[
-                  `Tu rol cambiará a: ${JOIN_ROLES.find(r => r.value === joinRole)?.label}`,
-                  `Tu flota y baterías pasarán a ${joinOrg.orgName}`,
-                  'Tu bitácora completa de vuelos se transferirá',
-                  'Tu planeaciones de vuelo se transferirán',
-                  'Tu cuenta de piloto independiente quedará inactiva',
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-amber-800">
+                {(joinMode === 'additive'
+                  ? [
+                      `Se agrega el rol ${JOIN_ROLES.find(r => r.value === joinRole)?.label} en ${joinOrg.orgName}`,
+                      'Tu bitácora, flota y baterías de piloto independiente NO se tocan',
+                      'Tu organización activa sigue siendo tu cuenta independiente',
+                      'Cambia entre ambas cuando quieras desde el selector del encabezado',
+                    ]
+                  : [
+                      `Tu rol cambiará a: ${JOIN_ROLES.find(r => r.value === joinRole)?.label}`,
+                      `Tu flota y baterías pasarán a ${joinOrg.orgName}`,
+                      'Tu bitácora completa de vuelos se transferirá',
+                      'Tu planeaciones de vuelo se transferirán',
+                      'Tu cuenta de piloto independiente quedará inactiva',
+                    ]
+                ).map((item, i) => (
+                  <li key={i} className={`flex items-start gap-2 text-xs ${joinMode === 'additive' ? 'text-emerald-800' : 'text-amber-800'}`}>
                     <span className="material-symbols-outlined text-xs mt-0.5 shrink-0">arrow_right</span>
                     {item}
                   </li>

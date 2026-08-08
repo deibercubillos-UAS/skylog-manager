@@ -12,6 +12,16 @@ import KPIStrip from '@/components/KPIStrip';
 const AddPilotPanel  = dynamic(() => import('@/components/AddPilotPanel'),  { ssr: false });
 const EditPilotPanel = dynamic(() => import('@/components/EditPilotPanel'), { ssr: false });
 
+// Solicitudes de unión de piloto independiente (join-org-additional) —
+// pilot_role llega como label, aquí se mapea de vuelta al rol de sistema
+// para preseleccionar el <select> de aprobación.
+const LABEL_TO_ROLE = { 'Piloto': 'piloto', 'Jefe de Pilotos': 'jefe_pilotos', 'Gerente SMS': 'gerente_sms' };
+const JOIN_ROLE_OPTIONS = [
+  { value: 'piloto',       label: 'Piloto' },
+  { value: 'jefe_pilotos', label: 'Jefe de Pilotos' },
+  { value: 'gerente_sms',  label: 'Gerente SMS' },
+];
+
 // Duración real de un vuelo en horas — mismo criterio que PilotDashboard.js
 // (prefiere total_time, si no calcula desde takeoff/landing).
 function flightHours(f) {
@@ -31,6 +41,8 @@ export default function PilotsPage() {
   const [showAddPanel,  setShowAddPanel]  = useState(false);
   const [editingPilot,  setEditingPilot]  = useState(null);
   const [confirmDlg,    setConfirmDlg]    = useState(null);
+  const [approveRoleById, setApproveRoleById] = useState({});
+  const [resolvingId,   setResolvingId]   = useState(null);
 
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
@@ -75,6 +87,54 @@ export default function PilotsPage() {
 
   const canManage = ['superadmin', 'admin', 'jefe_pilotos'].includes(userRole);
   const canEditMedical = ['superadmin', 'admin', 'jefe_pilotos'].includes(userRole);
+  // Aprobar/rechazar una solicitud de unión asigna un rol de sistema real —
+  // mismo permiso que /api/invite (canChangeRoles: solo admin/superadmin).
+  const canApprove = ['superadmin', 'admin'].includes(userRole);
+
+  const handleApprove = async (pilot) => {
+    const role = approveRoleById[pilot.id] || LABEL_TO_ROLE[pilot.pilot_role] || 'piloto';
+    setResolvingId(pilot.id);
+    try {
+      const res = await fetch(`/api/pilots/${pilot.id}/approve-join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Error al aprobar la solicitud');
+      toast.success(`${pilot.name} se unió como ${JOIN_ROLE_OPTIONS.find(r => r.value === role)?.label}.`);
+      loadData();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setResolvingId(null);
+    }
+  };
+
+  const handleReject = (pilot) => {
+    setConfirmDlg({
+      isOpen: true,
+      title: `¿Rechazar la solicitud de ${pilot.name}?`,
+      message: 'El solicitante será notificado. No se puede deshacer.',
+      confirmText: 'Rechazar',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDlg(null);
+        setResolvingId(pilot.id);
+        try {
+          const res = await fetch(`/api/pilots/${pilot.id}/reject-join`, { method: 'POST' });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error || 'Error al rechazar la solicitud');
+          toast.success('Solicitud rechazada.');
+          loadData();
+        } catch (err) {
+          toast.error(err.message);
+        } finally {
+          setResolvingId(null);
+        }
+      },
+    });
+  };
 
   const handleDelete = (pilot) => {
     setConfirmDlg({
@@ -105,6 +165,7 @@ export default function PilotsPage() {
     if (status === 'pending')  return { color: 'bg-amber-100 text-amber-700 border-amber-200',     label: 'Invitación pendiente' };
     if (status === 'accepted') return { color: 'bg-emerald-100 text-emerald-700 border-emerald-200', label: 'Aceptado' };
     if (status === 'rejected') return { color: 'bg-red-100 text-red-600 border-red-200',           label: 'Invitación rechazada' };
+    if (status === 'solicitud_pendiente') return { color: 'bg-orange-100 text-orange-700 border-orange-200', label: 'Solicitud de unión pendiente' };
     return null;
   };
 
@@ -137,7 +198,8 @@ export default function PilotsPage() {
     </div>
   );
 
-  const activeCount = pilots.filter(p => p.is_active !== false).length;
+  const pendingRequestsCount = pilots.filter(p => p.invitation_status === 'solicitud_pendiente').length;
+  const activeCount = pilots.filter(p => p.is_active !== false && p.invitation_status !== 'solicitud_pendiente').length;
   const totalHours = Object.values(hoursByPilot).reduce((s, h) => s + h, 0);
   const expiringCount = pilots.filter(p => {
     const ms = medicalStatus(p.medical_expiry);
@@ -153,6 +215,12 @@ export default function PilotsPage() {
         description="Pilotos, licencias RPAS y vigencia de certificaciones."
         right={
           <div className="flex items-center gap-4 md:gap-6">
+            {canApprove && pendingRequestsCount > 0 && (
+              <div className="hidden sm:flex flex-col justify-center pr-4 md:pr-6 border-r border-white/10">
+                <p className="text-xs font-black uppercase tracking-wide text-white/40">Solicitudes pendientes</p>
+                <p className="text-sm font-black text-emerald-400 mt-1 whitespace-nowrap">{pendingRequestsCount} por revisar</p>
+              </div>
+            )}
             {expiringCount > 0 && (
               <div className="hidden sm:flex flex-col justify-center pr-4 md:pr-6 border-r border-white/10">
                 <p className="text-xs font-black uppercase tracking-wide text-white/40">Certificaciones por vencer</p>
@@ -256,7 +324,39 @@ export default function PilotsPage() {
                 </div>
               </div>
 
-              {canManage && (
+              {p.invitation_status === 'solicitud_pendiente' && canApprove && (
+                <div className="flex flex-col gap-2 pt-1 border-t border-slate-100 mt-1">
+                  <select
+                    aria-label={`Rol a asignar a ${p.name}`}
+                    className="w-full p-2 bg-slate-50 rounded-lg text-[10.5px] font-bold outline-none focus:ring-2 focus:ring-orange-500"
+                    value={approveRoleById[p.id] || LABEL_TO_ROLE[p.pilot_role] || 'piloto'}
+                    onChange={e => setApproveRoleById(prev => ({ ...prev, [p.id]: e.target.value }))}
+                    disabled={resolvingId === p.id}
+                  >
+                    {JOIN_ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  </select>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleApprove(p)}
+                      disabled={resolvingId === p.id}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white transition-colors text-[10px] font-black uppercase disabled:opacity-50"
+                    >
+                      <span className="material-symbols-outlined text-sm">check</span>
+                      Aprobar
+                    </button>
+                    <button
+                      onClick={() => handleReject(p)}
+                      disabled={resolvingId === p.id}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-red-50 text-red-500 hover:bg-red-600 hover:text-white transition-colors text-[10px] font-black uppercase disabled:opacity-50"
+                    >
+                      <span className="material-symbols-outlined text-sm">close</span>
+                      Rechazar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {p.invitation_status !== 'solicitud_pendiente' && canManage && (
                 <div className="flex gap-2 pt-1">
                   <button
                     onClick={() => setEditingPilot(p)}

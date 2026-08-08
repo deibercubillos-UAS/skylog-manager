@@ -162,7 +162,7 @@ export default function DashboardLayout({ children }) {
         // Organizaciones a las que pertenece la cuenta — el switcher del popover
         // de cuenta solo se muestra si hay más de una (Fase 5 multi-organización).
         supabase.from('organization_members')
-          .select('organization_id, role, organizations:organization_id(company_name)')
+          .select('organization_id, role, subscription_plan, organizations:organization_id(company_name)')
           .eq('user_id', user.id)
           .eq('is_active', true)
           .then(({ data: mems }) => setMemberships(mems || []))
@@ -321,6 +321,19 @@ const isPaidPlan  = !['piloto', null, undefined, ''].includes(plan);
 // Los miembros de una org (piloto/jefe/gsms) tienen profile.subscription_plan='piloto'
 // pero NO son autónomos — no deben heredar la navegación del piloto independiente.
 const isPilotoPlan = isPilotoIndependiente({ role, plan });
+
+// Nombre a mostrar por membresía en el switcher de organizaciones: la propia
+// org de un piloto independiente (role admin + plan piloto EN ESA membresía)
+// se rotula "Piloto Independiente" en vez de su company_name interno
+// ("Piloto: {nombre}") — más claro que mostrar un nombre de "empresa" que en
+// realidad es solo su cuenta personal. Para el resto, usa el nombre real de
+// la organización (RLS permite leerlo para cualquier membresía propia, no
+// solo la activa — antes caía en el fallback "Organización" para cualquier
+// membresía que no fuera la activa).
+const membershipLabel = (m) =>
+  isPilotoIndependiente({ role: m.role, plan: m.subscription_plan })
+    ? 'Piloto Independiente'
+    : (m.organizations?.company_name || 'Organización');
 
 // Rutas de pantalla completa tipo "kiosko" (Despacho, Cierre de Vuelo): son overlays
 // fixed inset-0 con su propio botón de acción al final del contenido. La barra de
@@ -592,7 +605,7 @@ const footerLinks = footerLinksAll.filter(link =>
                         <span className="material-symbols-outlined text-base shrink-0">
                           {m.organization_id === data.profile?.organization_id ? 'radio_button_checked' : 'radio_button_unchecked'}
                         </span>
-                        <span className="truncate flex-1 text-left">{m.organizations?.company_name || 'Organización'}</span>
+                        <span className="truncate flex-1 text-left">{membershipLabel(m)}</span>
                       </button>
                     ))}
                   </>
@@ -705,7 +718,7 @@ const footerLinks = footerLinksAll.filter(link =>
                         <span className="material-symbols-outlined text-base shrink-0">
                           {m.organization_id === data.profile?.organization_id ? 'radio_button_checked' : 'radio_button_unchecked'}
                         </span>
-                        <span className="truncate flex-1 text-left">{m.organizations?.company_name || 'Organización'}</span>
+                        <span className="truncate flex-1 text-left">{membershipLabel(m)}</span>
                       </button>
                     ))}
                   </div>

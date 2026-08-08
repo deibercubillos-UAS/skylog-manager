@@ -771,9 +771,10 @@ export default function ManageSubscriptionPage() {
                     <div>
                       <p className="text-sm font-black text-slate-800">Conservar mi cuenta independiente <span className="text-emerald-600">(recomendado)</span></p>
                       <p className="text-xs text-slate-500">
-                        Agrega el rol en {joinOrg.orgName} sin tocar tu bitácora ni tu flota actual.
-                        Podrás cambiar entre tu perfil independiente y esa organización desde el
-                        selector de organizaciones del encabezado, cuando quieras.
+                        Envía una solicitud a {joinOrg.orgName} sin tocar tu bitácora ni tu flota
+                        actual. El gerente debe revisar y aprobar el rol antes de que quede activa;
+                        una vez aprobada, cambia entre tu perfil independiente y esa organización
+                        desde el selector de organizaciones del encabezado.
                       </p>
                     </div>
                   </label>
@@ -827,7 +828,7 @@ export default function ManageSubscriptionPage() {
                 }`}
               >
                 <span className="material-symbols-outlined text-sm">transit_enterexit</span>
-                Unirme a {joinOrg.orgName}
+                {joinMode === 'additive' ? `Enviar solicitud a ${joinOrg.orgName}` : `Unirme a ${joinOrg.orgName}`}
               </button>
             </div>
           )}
@@ -840,10 +841,12 @@ export default function ManageSubscriptionPage() {
              role="status" aria-live="polite">
           <span className="material-symbols-outlined text-emerald-500 text-2xl shrink-0">check_circle</span>
           <div>
-            <p className="text-sm font-black text-emerald-800">¡Te uniste exitosamente!</p>
+            <p className="text-sm font-black text-emerald-800">
+              {joinMode === 'additive' ? '¡Solicitud enviada!' : '¡Te uniste exitosamente!'}
+            </p>
             <p className="text-xs text-emerald-700 mt-0.5">
               {joinMode === 'additive'
-                ? 'Tu cuenta independiente sigue intacta. Cambia a la nueva organización desde el selector del encabezado cuando quieras.'
+                ? 'Tu cuenta independiente sigue intacta. El gerente debe aprobar tu rol antes de que la membresía quede activa — te notificaremos cuando lo haga.'
                 : 'Tu bitácora y flota han sido transferidas. Redirigiendo al dashboard...'}
             </p>
           </div>
@@ -870,7 +873,7 @@ export default function ManageSubscriptionPage() {
                 </h3>
                 <p className="text-xs text-slate-500 mt-1">
                   {joinMode === 'additive'
-                    ? 'Se agregará una membresía nueva, sin tocar tu cuenta independiente.'
+                    ? 'Se enviará una solicitud al gerente, sin tocar tu cuenta independiente.'
                     : 'Esta acción transferirá toda tu data y no se puede deshacer.'}
                 </p>
               </div>
@@ -884,10 +887,11 @@ export default function ManageSubscriptionPage() {
               <ul className="space-y-1.5">
                 {(joinMode === 'additive'
                   ? [
-                      `Se agrega el rol ${JOIN_ROLES.find(r => r.value === joinRole)?.label} en ${joinOrg.orgName}`,
+                      `Se solicita el rol ${JOIN_ROLES.find(r => r.value === joinRole)?.label} en ${joinOrg.orgName}`,
+                      'El gerente puede aprobar el rol solicitado o corregirlo antes de aprobar',
                       'Tu bitácora, flota y baterías de piloto independiente NO se tocan',
-                      'Tu organización activa sigue siendo tu cuenta independiente',
-                      'Cambia entre ambas cuando quieras desde el selector del encabezado',
+                      'Tu organización activa sigue siendo tu cuenta independiente mientras esperas',
+                      'Una vez aprobada, cambia entre ambas desde el selector del encabezado',
                     ]
                   : [
                       `Tu rol cambiará a: ${JOIN_ROLES.find(r => r.value === joinRole)?.label}`,

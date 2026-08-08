@@ -65,9 +65,48 @@ export default function PilotsPage() {
         supabase.from('flights').select('pilot_id, total_time, takeoff_time, landing_time').eq('organization_id', ctx.orgId),
       ]);
 
+      let pilotRows = resPilots.data || [];
+
+      // ── Auto-reparación: cualquier miembro real de organization_members con
+      //    rol de tripulación (piloto/jefe_pilotos/gerente_sms) que no tenga
+      //    fila en `pilots` queda invisible aquí aunque sí aparezca en Gestión
+      //    de Usuarios — pasa cuando la membresía se creó por una vía que no
+      //    toca `pilots` (panel Master, cambio de rol, etc.). Se repara sola al
+      //    cargar la página, sin esperar una migración manual cada vez.
+      if (['superadmin', 'admin', 'jefe_pilotos'].includes(ctx.role)) {
+        const existingProfileIds = new Set(pilotRows.map(p => p.profile_id).filter(Boolean));
+        const { data: members } = await supabase
+          .from('organization_members')
+          .select('user_id, role')
+          .eq('organization_id', ctx.orgId)
+          .in('role', ['piloto', 'jefe_pilotos', 'gerente_sms']);
+
+        const missing = (members || []).filter(m => !existingProfileIds.has(m.user_id));
+        if (missing.length) {
+          const { data: profs } = await supabase.from('profiles').select('id, full_name, email').in('id', missing.map(m => m.user_id));
+          const profMap = Object.fromEntries((profs || []).map(p => [p.id, p]));
+          const roleLabel = { piloto: 'Piloto', jefe_pilotos: 'Jefe de Pilotos', gerente_sms: 'Gerente SMS' };
+          const rowsToInsert = missing.map(m => {
+            const pr = profMap[m.user_id] || {};
+            return {
+              organization_id: ctx.orgId,
+              profile_id: m.user_id,
+              owner_id: m.user_id,
+              name: pr.full_name || pr.email || 'Sin nombre',
+              email: pr.email || null,
+              pilot_role: roleLabel[m.role] || 'Piloto',
+              invitation_status: 'accepted',
+              is_active: true,
+            };
+          });
+          const { data: inserted } = await supabase.from('pilots').insert(rowsToInsert).select('*');
+          if (inserted?.length) pilotRows = [...pilotRows, ...inserted];
+        }
+      }
+
       // El Gerente General (dueño/representante legal) no se muestra en el roster
       // de tripulación — no es tripulación operativa.
-      setPilots((resPilots.data || []).filter(p => !isGerenteGeneral(p.pilot_role)));
+      setPilots(pilotRows.filter(p => !isGerenteGeneral(p.pilot_role)));
 
       // Horas PIC totales por piloto — dato real, sumado desde la bitácora.
       const hoursMap = {};

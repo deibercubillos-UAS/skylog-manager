@@ -57,7 +57,12 @@ justifique.
 - [~] 0.7 — Período de prueba, activar tu suscripción y trabajar en varias
       organizaciones (fusiona los 0.7/0.8 originales a pedido del usuario, mismo
       criterio ya aplicado al fusionar 0.3/0.4 — guion listo, ver subsección abajo)
-- [ ] 0.9 — Configurar tu organización: logo, datos de la empresa, registro AeroCivil
+
+**0.9 omitido** — "Configurar tu organización: logo, datos de la empresa, registro
+AeroCivil" se descarta por completo a pedido del usuario (distinto del caso de 0.4, que se
+omitió sin reemplazo; aquí tampoco se fusiona con otro video, simplemente no se produce).
+El Bloque 0 queda cerrado con el 0.7. Sin renumerar el resto de la serie — el Bloque 1
+sigue empezando en 1.1.
 
 ### Guion — 0.1 · ¿Qué es BitaFly?
 
@@ -790,14 +795,143 @@ Notas de producción:
 
 Cada video muestra el dashboard y las opciones reales que ve ESE rol, con ejemplos en vivo.
 
-- [ ] 1.1 — Perfil Piloto Independiente: todo lo que necesitas para volar y llevar tu
-      bitácora tú solo (flota propia, planeación, despacho simplificado)
+- [~] 1.1 — Perfil Piloto Independiente: todo lo que necesitas para volar y llevar tu
+      bitácora tú solo (flota propia, planeación, despacho simplificado) (guion listo, ver
+      subsección abajo)
 - [ ] 1.2 — Perfil Gerente General (Admin): gestión completa de la organización
 - [ ] 1.3 — Perfil Jefe de Pilotos: programación de misiones, tripulación, flota
 - [ ] 1.4 — Perfil Gerente SMS: seguridad operacional, reportes VOR/MOR, indicadores
 - [ ] 1.5 — Perfil Piloto (dentro de una organización): despacho de misiones asignadas,
       mis vuelos, expediente personal
 - [ ] 1.6 — Diferencias clave entre los 4 perfiles: quién ve qué y por qué
+
+### Guion — 1.1 · Perfil Piloto Independiente
+
+**Formato**: reutiliza la toma real de apertura ya diseñada para el piloto independiente
+(la misma usada en el Bloque 1 del Video 0.2 — "piloto independiente preparando su propio
+equipo, despachando desde el celular, un dron, un caso, nadie más alrededor"), y el resto
+del video 100% en pantalla — mismo criterio que el resto del Bloque 0/1: solo se graba
+b-roll nuevo cuando el tema lo amerita, y aquí ya existe un clip aprobado que encaja
+perfecto. **Duración objetivo**: ~4:30-5 min (~650-700 palabras). **Tono**: profesional,
+cercano, directo. **CTA**: mínimo.
+
+```
+===================================
+GUION — VIDEO 1.1
+===================================
+Título: Perfil Piloto Independiente: todo lo que necesitas para volar y llevar tu
+bitácora tú solo
+Duración estimada: ~4:45 minutos (~680 palabras)
+Formato: toma real de apertura (reutilizada de 0.2) + tutorial 100% en pantalla
+===================================
+
+[GANCHO — 0:00-0:15]
+[Visual: toma real reutilizada — piloto independiente preparando su propio equipo,
+despachando desde el celular, un dron, un caso, nadie más alrededor]
+
+"Si vuelas por tu cuenta, no necesitas un equipo de personas ni procesos de empresa para
+llevar tu operación en regla. Te muestro exactamente lo que tienes dentro de BitaFly para
+volar y llevar tu bitácora tú solo."
+
+[INTRO — 0:15-0:30]
+[Visual: pantalla, dashboard del piloto independiente]
+
+"En un video anterior viste si este es tu perfil. Ahora vamos a fondo: qué ves en tu
+panel, y cómo se ve cada paso, desde registrar tu dron hasta cerrar un vuelo."
+
+[CONTENIDO PRINCIPAL — 0:30-4:15]
+
+[Bloque 1: Tu flota, a tu medida — 0:30-1:15]
+[Visual: pantalla, /dashboard/fleet y /dashboard/batteries del piloto independiente]
+
+"Tu panel empieza simple: registras tu aeronave, con sus datos técnicos y una foto si
+quieres, y tus baterías. No hay tripulación que gestionar ni roles que asignar — todo lo
+que ves aquí es tuyo, y solo tuyo. Y como sigues siendo el administrador de tu propia
+cuenta, tienes acceso completo a todo lo que necesitas configurar, sin restricciones."
+
+[Bloque 2: Despacho simplificado — 1:15-2:15]
+[Visual: pantalla, flujo de despacho /logbook/new sin orden de vuelo — selección de
+aeronave, tipo de misión, hora de despegue]
+
+"Aquí está la diferencia más grande frente a una operación de empresa: tu despacho es
+simplificado. No necesitas crear una orden de vuelo ni elegir batería a mano — solo
+indicas el tipo de misión, tu aeronave y la hora de despegue, y listo. Si tu organización
+tiene configurado el checklist de salud o el de pre-vuelo, los completas en el mismo
+paso, y puedes ver de una vez el clima de la zona donde vas a volar, para decidir con
+información real si es un buen momento para despegar."
+
+[Bloque 3: Tu bitácora — manual o automática — 2:15-3:15]
+[Visual: pantalla, registro manual de un vuelo + importación automática desde el control
+remoto DJI]
+
+"Para tu bitácora tienes dos caminos. Puedes registrar el vuelo a mano, con los datos
+básicos. O, si vuelas con un control DJI, conectas tu equipo y BitaFly importa tus
+vuelos automáticamente — calcula la duración, suma las horas a tu aeronave, y actualiza
+los ciclos de tus baterías. Si es tu primer vuelo importado, el sistema incluso crea tu
+perfil de piloto solo, para que nunca te quede un vuelo sin dueño."
+
+[Bloque 4: Mantenimiento de tu dron — 3:15-3:45]
+[Visual: pantalla, /dashboard/maintenance — configuración de intervalos + registro de una
+intervención]
+
+"Aunque vueles solo, tu dron también necesita mantenimiento — mayor y menor. Configuras
+cada cuánto, en horas de vuelo o en días, y BitaFly te avisa cuando se acerca la fecha, y
+bloquea el despacho si tu aeronave ya lo necesita. Así tu operación se mantiene segura,
+sin que tengas que llevar la cuenta tú mismo en un cuaderno aparte."
+
+[Bloque 5: Simplicidad a propósito — 3:45-4:15]
+[Visual: pantalla, barra lateral del piloto independiente — sin el grupo de
+Documentación]
+
+"Vas a notar que tu menú es más corto que el de una empresa: no tienes SMS aeronáutico,
+SORA, reportes regulatorios ni protocolos — todo eso está pensado para operaciones con
+varias personas y procesos que documentar. Volando solo, no lo necesitas. Es una decisión
+de diseño, no algo que te esté faltando: tu panel te muestra exactamente lo que tu
+operación individual requiere, ni más ni menos."
+
+[CONCLUSIÓN — 4:15-4:35]
+[Visual: vuelve brevemente a la toma real del gancho]
+
+"Y eso es todo lo que necesitas para operar por tu cuenta dentro de BitaFly: tu flota, tu
+despacho, tu bitácora y tu mantenimiento, sin nada de más."
+
+[CIERRE / CTA MÍNIMO — 4:35-4:45]
+
+"En el próximo video te muestro el otro lado: el perfil de Gerente General, para quien
+administra una operación completa con equipo. Nos vemos ahí."
+
+===================================
+[FIN DEL GUION]
+
+Conteo de palabras: ~680
+Duración estimada: ~4:45 minutos
+Audiencia: pilotos independientes que ya crearon su cuenta (vienen de los videos 0.2/0.3)
+y quieren ver en detalle cómo se ve operar día a día dentro de la plataforma
+Tono: profesional, cercano, directo — un recorrido práctico por su propio flujo, sin
+comparaciones innecesarias con el perfil de empresa (eso ya se cubrió en 0.2).
+===================================
+```
+
+Notas de producción:
+- **Toma real de apertura reutilizada, no una nueva**: mismo clip ya aprobado y usado en
+  el Bloque 1 del Video 0.2 — evita regrabar o regenerar b-roll que ya existe y encaja
+  perfecto con el tema de este video.
+- **Cuenta de prueba necesaria para grabar**: una cuenta de piloto independiente real
+  (`role='admin'`, `subscription_plan='piloto'`) con al menos una aeronave y una batería ya
+  registradas, para no tener que registrar todo desde cero en cámara y alargar el video.
+  El Bloque 3 (importación DJI) requiere un archivo de log real de un control remoto DJI de
+  prueba — mismo tipo de archivo ya usado para otras grabaciones de la serie.
+- **Verificar los límites del plan Piloto antes de grabar** (1 aeronave, 3 baterías, 3
+  tech): si cambiaron desde que se escribió este guion, ajustar el Bloque 1 en
+  consecuencia — mismo criterio de verificación ya aplicado en 0.6.
+- **Bloque 5 — verificar que el menú lateral siga sin el grupo "Documentación" para este
+  rol** antes de grabar (comportamiento documentado como intencional en el proyecto, pero
+  puede cambiar) — si el piloto independiente ya tiene acceso a alguna de esas secciones
+  para cuando se grabe, ajustar el bloque.
+- **Evitar mostrar datos reales de una organización/cliente en pantalla** — misma regla
+  que el resto de la serie.
+- **Subtítulos**: mismo criterio que los guiones anteriores — se derivan de este documento
+  una vez esté el video montado.
 
 ---
 

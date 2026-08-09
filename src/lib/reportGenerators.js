@@ -228,6 +228,62 @@ export const generatePilotReport = (data, config) => {
     doc.save(`${formCode}_PILOTO_${(pilotName || 'PILOTO').replace(/\s+/g, '_')}.pdf`);
 };
 
+// --- GENERADOR: BITÁCORA PERSONAL CONSOLIDADA (piloto independiente, TODAS
+// las organizaciones donde ha volado) — ver GET /api/pilots/my-flights.
+// Deliberadamente solo 4 columnas (fecha/operación/tiempo/organización): es
+// un resumen personal, no un formato operativo de una organización — no
+// lleva firma de un certificador, porque no pertenece a ninguna org.
+export const generatePilotAllOrgsReport = (data, config) => {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const { pilotName, logo, version, reportDate, downloadedAt } = config;
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.4);
+    doc.rect(10, 10, 190, 22);
+    doc.line(45, 10, 45, 32);
+    doc.line(160, 10, 160, 32);
+    doc.line(45, 21, 160, 21);
+
+    addLogo(doc, logo, 12, 12, 30, 18);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text(`PILOTO: ${(pilotName || 'N/A').toUpperCase()}`, 102.5, 17, { align: 'center' });
+    doc.setFontSize(12);
+    doc.text("BITÁCORA PERSONAL CONSOLIDADA", 102.5, 28, { align: 'center' });
+
+    doc.setFontSize(6.5);
+    doc.line(160, 15.5, 190, 15.5);
+    doc.text(`VERSIÓN: ${version}`, 162, 13);
+    doc.text(`FECHA: ${reportDate}`, 162, 19);
+
+    let totalAcumulado = 0;
+    autoTable(doc, {
+        startY: 36,
+        head: [['FECHA', 'OPERACIÓN', 'TIEMPO DE VUELO (H)', 'ORGANIZACIÓN']],
+        body: (data || []).map(f => {
+            totalAcumulado += Number(f.duration_hours || 0);
+            return [f.flight_date, f.mission_type, Number(f.duration_hours || 0).toFixed(2), f.organization_name];
+        }),
+        foot: [['', '', 'TOTAL: ' + totalAcumulado.toFixed(2) + ' H', '']],
+        styles: { fontSize: 8, cellPadding: 2.5, lineColor: [0, 0, 0], lineWidth: 0.1 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center' },
+        footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+        margin: { left: 10, right: 10 }
+    });
+
+    const noteY = safeAutoTableY(doc, 60) + 10;
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(7.5);
+    doc.setTextColor(90, 90, 90);
+    doc.text('Resumen personal generado por el propio piloto — incluye vuelos de todas las organizaciones donde ha volado como PIC.', 12, noteY);
+    doc.text(`Descargado el: ${downloadedAt || '---'}`, 12, noteY + 4);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "normal");
+
+    doc.save(`BITACORA_PERSONAL_${(pilotName || 'PILOTO').replace(/\s+/g, '_')}.pdf`);
+};
+
 // --- GENERADOR: REPORTE DE MANTENIMIENTO (todas las aeronaves o una sola) ---
 export const generateMaintenanceReport = (data, config) => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });

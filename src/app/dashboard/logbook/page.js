@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase';
 import { PERMISSIONS } from '@/lib/roles';
 import { getOrgContext } from '@/lib/apiAuth';
 import { useGracePeriod } from '@/lib/gracePeriodContext';
+import { isPilotoIndependiente } from '@/lib/pilotoIndependiente';
+import { generatePilotAllOrgsReport } from '@/lib/reportGenerators';
 import dynamic from 'next/dynamic';
 import PageHero from '@/components/PageHero';
 import KPIStrip from '@/components/KPIStrip';
@@ -35,6 +37,14 @@ export default function LogbookPage() {
     const missionInputRef = useRef(null);
 
     const [showImport, setShowImport] = useState(false);
+
+    // Bitácora personal consolidada (piloto independiente, ver GET
+    // /api/pilots/my-flights) — vuelos como PIC en cualquier organización.
+    const [isPilotoPlan, setIsPilotoPlan] = useState(false);
+    const [pilotFullName, setPilotFullName] = useState('');
+    const [allOrgsFlights, setAllOrgsFlights] = useState([]);
+    const [loadingAllOrgs, setLoadingAllOrgs] = useState(false);
+    const [showAllOrgs, setShowAllOrgs] = useState(false);
 
     const canEditPilot   = CAN_EDIT_PILOT.includes(userRole);
     const canDeleteEntry = PERMISSIONS.canDeleteLogbook.includes(userRole);
@@ -102,10 +112,38 @@ export default function LogbookPage() {
     useEffect(() => {
         loadData(true);
         // Cargar rol del usuario y lista de pilotos en paralelo
-        getOrgContext(supabase).then(ctx => setUserRole(ctx.role ?? null));
+        getOrgContext(supabase).then(ctx => {
+            setUserRole(ctx.role ?? null);
+            setPilotFullName(ctx.fullName || '');
+            setIsPilotoPlan(isPilotoIndependiente({ role: ctx.role, plan: ctx.subscription_plan }));
+        });
         fetch('/api/pilots').then(r => { if (!r.ok) { console.warn('[fetch] /api/pilots failed:', r.status); return []; } return r.json(); }).then(data => setPilots(Array.isArray(data) ? data : []));
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Solo para el piloto independiente: su historial completo en TODAS las
+    // organizaciones donde ha volado — carga bajo demanda al abrir la sección.
+    const loadAllOrgsFlights = async () => {
+        setLoadingAllOrgs(true);
+        try {
+            const res = await fetch('/api/pilots/my-flights');
+            const data = await res.json();
+            setAllOrgsFlights(Array.isArray(data) ? data : []);
+        } catch (e) {
+            console.error('Error cargando bitácora consolidada');
+        } finally {
+            setLoadingAllOrgs(false);
+        }
+    };
+
+    const handleDownloadAllOrgs = () => {
+        generatePilotAllOrgsReport(allOrgsFlights, {
+            pilotName: pilotFullName,
+            version: '1.0',
+            reportDate: new Date().toLocaleDateString('es-CO'),
+            downloadedAt: new Date().toLocaleString('es-CO', { dateStyle: 'long', timeStyle: 'short' }),
+        });
+    };
 
     // Cerrar dropdown al hacer clic fuera
     useEffect(() => {
@@ -443,6 +481,75 @@ export default function LogbookPage() {
                     },
                 ]} />
             </section>
+
+            {/* Bitácora personal consolidada — solo piloto independiente. Vuelos como
+                PIC en CUALQUIER organización donde haya volado, no solo la propia —
+                ver GET /api/pilots/my-flights. Colapsada por defecto (carga bajo
+                demanda) para no pagar el costo de la consulta cruzada en cada visita. */}
+            {isPilotoPlan && (
+                <section aria-label="Mi historial completo" className="bg-white rounded-2xl border border-orange-200 shadow-sm p-5 space-y-4">
+                    <button
+                        type="button"
+                        onClick={() => { const next = !showAllOrgs; setShowAllOrgs(next); if (next && allOrgsFlights.length === 0) loadAllOrgsFlights(); }}
+                        className="w-full flex items-center justify-between gap-3 text-left"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="size-10 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+                                <span className="material-symbols-outlined text-orange-600 text-xl" aria-hidden="true">travel_explore</span>
+                            </div>
+                            <div>
+                                <h4 className="font-black text-slate-800 text-sm uppercase tracking-wide">Mi historial completo</h4>
+                                <p className="text-xs text-slate-500 mt-0.5">
+                                    Todos tus vuelos como PIC, en cualquier organización donde hayas volado — solo fecha, operación, tiempo de vuelo y organización.
+                                </p>
+                            </div>
+                        </div>
+                        <span className="material-symbols-outlined text-slate-400 shrink-0">{showAllOrgs ? 'expand_less' : 'expand_more'}</span>
+                    </button>
+
+                    {showAllOrgs && (
+                        loadingAllOrgs ? (
+                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest text-center py-6">Cargando...</p>
+                        ) : allOrgsFlights.length === 0 ? (
+                            <p className="text-xs text-slate-400 text-center py-6">Sin vuelos registrados todavía.</p>
+                        ) : (
+                            <>
+                                <div className="flex justify-end">
+                                    <button
+                                        onClick={handleDownloadAllOrgs}
+                                        className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-xl font-black text-[10.5px] uppercase tracking-wider transition-all active:scale-95"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">download</span>
+                                        Descargar PDF
+                                    </button>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-xs">
+                                        <thead>
+                                            <tr className="text-left text-slate-400 uppercase text-[9.5px] font-black tracking-widest border-b border-slate-100">
+                                                <th className="py-2 pr-3">Fecha</th>
+                                                <th className="py-2 pr-3">Operación</th>
+                                                <th className="py-2 pr-3">Tiempo de vuelo</th>
+                                                <th className="py-2 pr-3">Organización</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {allOrgsFlights.map((f, i) => (
+                                                <tr key={i} className="border-b border-slate-50">
+                                                    <td className="py-2 pr-3 font-bold text-slate-700 whitespace-nowrap">{f.flight_date}</td>
+                                                    <td className="py-2 pr-3 text-slate-600">{f.mission_type}</td>
+                                                    <td className="py-2 pr-3 font-bold text-orange-600 whitespace-nowrap">{f.duration_hours.toFixed(2)} h</td>
+                                                    <td className="py-2 pr-3 text-slate-600">{f.organization_name}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </>
+                        )
+                    )}
+                </section>
+            )}
 
             {/* Barra de filtros unificada */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col md:flex-row md:items-center gap-3">

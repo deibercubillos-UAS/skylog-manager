@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, Fragment } from 'react';
 import { supabase } from '@/lib/supabase';
 import { hasPermission } from '@/lib/roles';
 import { getOrgContext } from '@/lib/apiAuth';
+import { isPilotoIndependiente } from '@/lib/pilotoIndependiente';
 import FileUpload from '@/components/FileUpload';
 import { toast } from '@/lib/toast';
 import PageHero from '@/components/PageHero';
@@ -49,6 +50,11 @@ const REPORT_DEFS = [
         key: 'components', code: 'F-FLT-008', name: 'Trazabilidad de Componentes', icon: 'settings_suggest', group: 'Operación',
         desc: 'Roster activo (horas/días de uso) e historial de cambios — toda la flota o una sola aeronave.',
         needsAircraft: true,
+    },
+    {
+        key: 'myFlights', code: null, name: 'Mi Bitácora Personal', icon: 'travel_explore', group: 'Tripulación',
+        desc: 'Todos tus vuelos como PIC en cualquier organización donde hayas volado — fecha, operación, tiempo de vuelo y organización.',
+        pilotOnly: true,
     },
     {
         key: 'pilots', code: 'F-HUM-005', name: 'Bitácora de Piloto', icon: 'menu_book', group: 'Tripulación',
@@ -157,6 +163,8 @@ export default function ReportsPage() {
     const [supplierList, setSupplierList] = useState([]);
     const [selectedSupplier, setSelectedSupplier] = useState('');
     const [userRole, setUserRole] = useState(null);
+    const [isPilotoPlan, setIsPilotoPlan] = useState(false);
+    const [pilotFullName, setPilotFullName] = useState('');
     const [openKey, setOpenKey] = useState(null);
 
     const [period, setPeriod] = useState('Este mes');
@@ -197,6 +205,8 @@ export default function ReportsPage() {
         ]);
 
         setUserRole(ctx.role || null);
+        setIsPilotoPlan(isPilotoIndependiente({ role: ctx.role, plan: ctx.subscription_plan }));
+        setPilotFullName(ctx.fullName || '');
         setOrgData(org);
         setPilots(crew || []);
         setAircraftList(fleet || []);
@@ -253,9 +263,9 @@ export default function ReportsPage() {
         const q = search.trim().toLowerCase();
         const matches = (d) => !q || `${d.name} ${d.desc} ${d.code || ''}`.toLowerCase().includes(q);
         return GROUP_ORDER
-            .map(group => ({ group, defs: REPORT_DEFS.filter(d => d.group === group && matches(d)) }))
+            .map(group => ({ group, defs: REPORT_DEFS.filter(d => d.group === group && matches(d) && (!d.pilotOnly || isPilotoPlan)) }))
             .filter(g => g.defs.length > 0);
-    }, [search]);
+    }, [search, isPilotoPlan]);
 
     const selectedAircraftLabel = useMemo(() => {
         const a = aircraftList.find(x => x.id === selectedAircraft);
@@ -346,6 +356,15 @@ export default function ReportsPage() {
             if (def.key === 'pilots') {
                 const res = await fetch(`/api/reports/pilots?from=${from}&to=${to}&pilotId=${selectedPilot}`);
                 generators.generatePilotReport(await res.json(), common);
+            }
+            if (def.key === 'myFlights') {
+                const res = await fetch('/api/pilots/my-flights');
+                generators.generatePilotAllOrgsReport(await res.json(), {
+                    pilotName: pilotFullName,
+                    version: cfg.version,
+                    reportDate: cfg.reportDate,
+                    downloadedAt,
+                });
             }
             if (def.key === 'dossier') {
                 const res = await fetch(`/api/reports/crew/expediente?pilotId=${selectedPilot}`);

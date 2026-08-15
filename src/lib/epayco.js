@@ -138,8 +138,22 @@ export async function updatePlan(epaycoId, { name, description, amount, trialDay
 }
 
 // Lista todas las suscripciones — GET /recurring/v1/subscriptions/{apiKey}
+//
+// ⚠️ Comportamiento real confirmado (2026-08-15, cuenta ePayco nueva): cuando
+// la cuenta todavía no tiene NINGUNA suscripción real, este endpoint responde
+// HTTP 200 con `status: false` y `message: "Error inesperado"` en vez de una
+// lista vacía — un genérico de ePayco para "sin datos", no un error real.
+// epaycoGet() lo trataría como fallo (lanzaría). Se trata explícitamente ese
+// caso como lista vacía; cualquier otro `status: false` sigue propagándose
+// como error real.
 export async function listSubscriptions() {
-  const json = await epaycoGet(`/recurring/v1/subscriptions/${PUB_KEY()}`);
+  let json;
+  try {
+    json = await epaycoGet(`/recurring/v1/subscriptions/${PUB_KEY()}`);
+  } catch (err) {
+    if (/error inesperado/i.test(err.message)) return [];
+    throw err;
+  }
   return Array.isArray(json) ? json : (json.data ?? json.subscriptions ?? []);
 }
 

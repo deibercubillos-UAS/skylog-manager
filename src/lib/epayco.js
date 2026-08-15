@@ -62,7 +62,8 @@ async function epaycoGet(path) {
   const res  = await fetch(`${BASE}${path}`, { headers: await headers(), cache: 'no-store' });
   const json = await res.json();
   if (!res.ok || json.status === false) {
-    throw new Error(json.message || json.error || json.error_description || `ePayco GET ${res.status}`);
+    const msg = json.message || json.error || json.error_description || `ePayco GET ${res.status}`;
+    throw new Error(`${msg} (HTTP ${res.status}, path=${path})`);
   }
   return json;
 }

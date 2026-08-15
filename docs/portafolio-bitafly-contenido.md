@@ -729,4 +729,155 @@ Riesgos" o "Indicadores (SPI)" del hub de Seguridad SMS]`
 
 ---
 
+## PÁGINA 6 — METEOROLOGÍA INTEGRADA
+
+### Propósito de la página
+Cierra el trío de páginas destacadas retomando el mismo patrón de
+comparación directa de la página 4 (nombra a un competidor específico y
+conocido: UAV Forecast) — pero con un giro distinto: aquí BitaFly no dice
+"hacemos lo mismo y más", dice **"hacemos lo mismo, pero en el lugar
+correcto"**. El argumento no es de cobertura de funciones (como con AirData)
+sino de **integración en el flujo de trabajo** — el dato meteorológico es
+idéntico, lo que cambia es dónde y cuándo aparece.
+
+### Jerarquía de lectura (en orden de peso visual)
+1. Título — el argumento central ("verificar el clima no es suficiente").
+2. Bloque de dos tarjetas enfrentadas (UAV Forecast vs. BitaFly) — mismo
+   lenguaje visual que la página 4, para que el lector reconozca de
+   inmediato el patrón "página destacada de comparación".
+3. Las 6 variables del score — la prueba técnica de que es el mismo
+   criterio, no uno inventado.
+4. Los 3 momentos de integración — el argumento diferencial real, en
+   formato de línea de tiempo horizontal.
+5. Frase de remate.
+6. Espacio de captura real.
+7. Kicker + número de página.
+
+### Contenido exacto, elemento por elemento
+
+**Kicker:** `METEOROLOGÍA · PÁGINA DESTACADA`
+
+**Número de página:** `06`
+
+**Título:** *"Verificar el clima no es suficiente — el clima debe estar
+donde operas"*
+
+Por qué esta frase y no una estructura de dos golpes cortos como la página
+4: a diferencia de AirData (donde el argumento es "tienen menos que
+nosotros"), UAV Forecast no tiene una carencia de calidad — su score es
+igual de bueno. El título necesita comunicar un problema de
+**ubicación/flujo**, no de cobertura, así que funciona mejor como una sola
+frase con giro conceptual ("no es suficiente... debe estar donde") que como
+un golpe-contragolpe.
+
+Tratamiento: 24-28pt, extra bold, navy `#1A202C` — sin segmento en naranja,
+mismo criterio que la página 5 (es una idea continua, no dos mitades en
+contraste).
+
+**Párrafo de contexto:**
+*"UAV Forecast te dice si el clima es apto para volar. BitaFly integra
+exactamente ese mismo criterio — directamente en tu programación de
+misiones, tu despacho y tu bitácora — sin que tengas que cambiar de app ni
+copiar un solo dato a mano."*
+
+Tratamiento: igual convención (13-14pt, regular, gris oscuro `#3C4450`,
+ancho ~70%).
+
+**Bloque de dos tarjetas enfrentadas** — mismo lenguaje visual exacto que la
+página 4 (reutilizar el patrón, no reinventarlo, para que el lector que ya
+vio la página 4 reconozca inmediatamente la estructura).
+
+*Tarjeta izquierda — UAV Forecast*
+- Fondo gris `#F1F2F4`, borde 1px gris.
+- Encabezado: `UAV FORECAST` — gris medio.
+- Subtítulo: *"Verificador de clima independiente"*
+- Lista (✓ gris / ✕ rojo-teja):
+  - ✓ Score de vuelo con viento, ráfagas, visibilidad y Kp
+  - ✓ Interfaz limpia, fácil de usar
+  - ✕ Sin integración con tu bitácora o programación de vuelos
+  - ✕ Sin registro del clima por vuelo para auditorías
+  - ✕ Sin bitácora, SMS, autorizaciones ni SORA
+  - ✕ Freemium en dólares, principalmente en inglés
+
+*Tarjeta derecha — BitaFly*
+- Blanco, borde 2px naranja `#EC5B13`, sombra suave.
+- Encabezado: `BITAFLY` — naranja.
+- Subtítulo: *"Clima integrado en tu operación RAC 100"*
+- Lista (✓ naranja, sin ningún ✕):
+  - ✓ Score de vuelo (viento, ráfagas, visibilidad, lluvia, Kp) — igual que
+    UAV Forecast
+  - ✓ Aparece al programar misiones — sin cambiar de app
+  - ✓ Badge APTO/NO APTO al despachar cada vuelo
+  - ✓ Condiciones históricas en el Replay GPS de cada vuelo
+  - ✓ Bitácora, SMS, autorizaciones y SORA incluidos
+  - ✓ En español, precios en pesos colombianos
+
+Por qué el primer punto vuelve a decir "igual que UAV Forecast": mismo
+principio de honestidad estratégica ya usado en la página 4 — confirmar
+primero que no se pierde nada de lo que el lector ya conoce y confía, antes
+de sumar la diferencia real.
+
+**Las 6 variables del score** (franja horizontal, no tabla — a diferencia de
+la página 4): elemento distinto porque aquí el dato no es "cuánto dura" sino
+"de qué está hecho el cálculo" — funciona mejor como una fila de 6 etiquetas
+con su peso porcentual, tipo "ingredientes":
+
+`Viento 30%` · `Ráfagas 22%` · `Visibilidad 22%` · `Precipitación 16%` ·
+`Prob. de lluvia 5%` · `Índice Kp 5%`
+
+Tratamiento: cada variable en una pill/cápsula pequeña (fondo gris
+`#F7F8FA`, borde `#E4E7EC`, texto navy 11pt), el porcentaje en naranja bold
+— en una sola fila que puede envolver a 2 líneas si el formato es angosto.
+Debajo, una línea pequeña en gris: *"Fuentes: Open-Meteo y NOAA SWPC — el
+mismo tipo de fuente que usa cualquier app meteorológica seria."*
+
+**Los 3 momentos de integración** — elemento que reemplaza la tabla de
+retención de la página 4: una línea de tiempo horizontal de 3 pasos, tomada
+directamente del mismo recurso ya usado en la página real de comparativa
+del sitio ("El clima en cada paso de tu operación"):
+
+1. **Al programar la misión** — Seleccionas el municipio → BitaFly
+   geocodifica la ubicación → aparece el widget de clima completo con score
+   de aptitud, las 6 métricas y el índice Kp.
+2. **Al despachar el vuelo** — Seleccionas la orden de vuelo autorizada →
+   aparece un badge compacto APTO / NO APTO con viento actual y
+   temperatura, junto a la orden.
+3. **Al revisar vuelos pasados** — Abres el Replay GPS de cualquier vuelo →
+   panel con las condiciones meteorológicas históricas al momento exacto
+   del vuelo — evidencia real para auditorías SMS.
+
+Tratamiento: 3 bloques en línea horizontal (o apilados si el formato es
+angosto), cada uno con un número grande (01/02/03) en naranja claro de
+fondo, ícono pequeño, título bold y descripción de 1-2 líneas — mismo
+espíritu que el checklist de la página 3, pero horizontal en vez de
+vertical, para transmitir secuencia/flujo en vez de lista.
+
+**Frase de remate:** *"El mismo criterio que ya confías. Integrado en tu
+operación, no en una app aparte que tienes que recordar abrir."*
+
+**Espacio de captura real**
+Etiqueta: `[ESPACIO PARA CAPTURA DE PANTALLA REAL: /dashboard/weather con el
+semáforo GO/NO-GO, o el badge compacto en Despacho]`
+
+### Dirección visual general
+- Fondo: blanco.
+- Orden: título → contexto → dos tarjetas → franja de 6 variables → 3
+  momentos → remate → imagen.
+- Esta página tiene más elementos distintos que la página 4 o la 5 (tarjetas
+  + franja + línea de tiempo) — vigilar que no se sienta saturada: usar
+  separadores de espacio generosos entre cada bloque (mínimo 8-10mm), más
+  que en las otras dos destacadas.
+
+### Qué evitar en esta página
+- No repetir la tabla de retención de la página 4 aquí — la meteorología no
+  tiene un concepto de "retención de datos" equivalente, forzarlo sería
+  relleno sin sentido real.
+- No usar un logo real de UAV Forecast — mismo criterio que AirData en la
+  página 4, solo texto plano.
+- No sonar como que BitaFly "inventó" el score meteorológico — el argumento
+  completo de la página depende de reconocer que el criterio es el mismo
+  que ya existe y es confiable; la única novedad es la integración.
+
+---
+
 <!-- Las siguientes páginas se agregan a medida que se desarrollan con el mismo nivel de detalle. -->

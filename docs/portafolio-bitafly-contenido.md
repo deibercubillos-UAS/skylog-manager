@@ -435,4 +435,158 @@ ejemplo, solo un formulario vacío.
 
 ---
 
+## PÁGINA 4 — ANÁLISIS DE VUELO (Replay GPS)
+
+### Propósito de la página
+Es la primera de las 3 páginas "destacadas" — el patrón cambia
+deliberadamente respecto a las páginas 2-3 (argumento/checklist) hacia un
+formato de **comparación directa nombrando al competidor**. El lector que
+llega aquí probablemente ya usa o conoce AirData UAV — el objetivo es que
+sienta "no tengo que elegir entre mi análisis de vuelo de siempre y cumplir
+el RAC 100, BitaFly me da los dos".
+
+Esta página **sí nombra a la competencia explícitamente** (a diferencia de
+las páginas 2-3, que hablan en términos genéricos de "herramientas
+sueltas") — decisión deliberada: el 90% de operadores colombianos que ya
+analizan sus vuelos usan AirData, así que nombrarlo genera reconocimiento
+inmediato en vez de forzar al lector a adivinar a qué se refiere el
+documento.
+
+### Jerarquía de lectura (en orden de peso visual)
+1. Título — el gancho de la página destacada.
+2. Bloque de dos tarjetas enfrentadas (AirData vs. BitaFly) — el corazón
+   visual de la página, comparación directa.
+3. Tabla de retención por plan — el dato concreto que un comprador técnico
+   va a buscar.
+4. Frase de remate — resumen de una línea para quien solo escanea.
+5. Espacio de captura real.
+6. Kicker + número de página.
+
+### Contenido exacto, elemento por elemento
+
+**Kicker:** `ANÁLISIS DE VUELO · PÁGINA DESTACADA` — misma convención
+tipográfica que el resto, pero agrega la etiqueta "· PÁGINA DESTACADA" (se
+repite igual en las páginas 5 y 6) para que el lector entienda que estas 3
+páginas son un grupo distinto dentro del documento, sin que se lo digamos
+explícitamente.
+
+**Número de página:** `04`
+
+**Título:** *"El mismo análisis de vuelo que ya conoces. El cumplimiento que
+AirData nunca va a tener."*
+
+Por qué esta estructura de dos frases cortas y no una sola oración larga: es
+el mismo recurso retórico que ya usa la página real de comparativa AirData
+del sitio ("AirData es una herramienta global. BitaFly está hecho para la
+RAC 100 colombiana") — dos afirmaciones cortas, casi golpe-contragolpe, en
+vez de una oración compuesta que diluye el contraste.
+
+Tratamiento: 24-28pt (ligeramente menor que el título de la página 3, más
+elementos compitiendo por espacio), extra bold, navy `#1A202C` — la segunda
+frase ("El cumplimiento que AirData nunca va a tener") en naranja `#EC5B13`,
+para que el ojo distinga las dos mitades del argumento sin leerlas completas.
+
+**Párrafo de contexto:**
+*"Herramientas como AirData UAV son excelentes analizando vuelos — pero son
+globales: cobran en dólares, están en inglés y no tienen idea de qué es la
+RAC 100. El Replay de Vuelo de BitaFly hace exactamente lo que ya esperas de
+un análisis de vuelo, y además queda integrado con tu bitácora regulatoria,
+sin exportar ni importar nada entre dos sistemas distintos."*
+
+Tratamiento: igual que el párrafo de contexto de la página 3 (13-14pt,
+regular, gris oscuro `#3C4450`, ancho ~70%).
+
+**Bloque de dos tarjetas enfrentadas** — elemento central y nuevo de la
+página: dos tarjetas del mismo tamaño, lado a lado, con tratamiento de color
+deliberadamente desigual (una apagada, una destacada) para que el ojo sepa
+cuál "gana" sin leer una palabra.
+
+*Tarjeta izquierda — AirData UAV*
+- Fondo: gris claro neutro (`#F1F2F4`), borde 1px gris (`#E4E7EC`) — sin
+  color de marca, a propósito: es la tarjeta "de afuera".
+- Encabezado: `AIRDATA UAV` — 10pt, bold, mayúsculas, gris medio (`#8B93A1`).
+- Subtítulo: *"Analizador de vuelo independiente"* — 14pt, bold, navy
+  apagado.
+- Lista (✓ gris para lo que sí tiene, ✕ rojo-teja para lo que no):
+  - ✓ Sincronización automática DJI
+  - ✓ Replay GPS animado de cada vuelo
+  - ✕ Sin bitácora RAC 100 (F-OPS-002)
+  - ✕ Sin autorizaciones AeroCivil (F-OPS-001)
+  - ✕ Sin SMS aeronáutico ni SORA
+  - ✕ Solo en inglés, cobrado en dólares
+
+*Tarjeta derecha — BitaFly*
+- Fondo: blanco con borde de 2px en naranja `#EC5B13` (grosor doble respecto
+  a la tarjeta izquierda — jerarquía visual clara de "esta es la respuesta
+  correcta"), sombra suave hacia abajo para que "flote" ligeramente.
+- Encabezado: `BITAFLY` — 10pt, bold, mayúsculas, naranja `#EC5B13`.
+- Subtítulo: *"Análisis de vuelo + cumplimiento RAC 100, en un solo lugar"* —
+  14pt, bold, navy.
+- Lista (✓ naranja para todo, sin ningún ✕ a propósito):
+  - ✓ Sincronización automática DJI — igual que AirData
+  - ✓ Replay GPS animado de cada vuelo — igual que AirData
+  - ✓ Bitácora RAC 100 (F-OPS-002) nativa
+  - ✓ Autorizaciones AeroCivil (F-OPS-001) incluidas
+  - ✓ SMS aeronáutico y SORA incluidos
+  - ✓ En español, precios en pesos colombianos
+
+Por qué la tarjeta de BitaFly repite "igual que AirData" en los 2 primeros
+puntos, en vez de solo listar ventajas: es honestidad estratégica — si el
+lector ya usa AirData y confía en su análisis de vuelo, la tarjeta de
+BitaFly necesita confirmar primero "no vas a perder nada de lo que ya usas"
+antes de sumar lo nuevo. Prometer solo lo nuevo sin reconocer lo existente
+genera desconfianza en un comprador técnico.
+
+**Tabla de retención por plan** — mismo tratamiento de "fondo gris = dato
+verificable" ya establecido en la página 3:
+
+| Plan | Retención | Vuelos máximos |
+|---|---|---|
+| Piloto | 30 días | 10 |
+| Escuadrilla | 90 días | 50 |
+| Flota | 180 días | 200 |
+| Enterprise | Permanente | Ilimitado |
+
+Tratamiento: 4 filas, encabezado navy con texto blanco (mismo patrón que las
+tablas comparativas reales del sitio), filas alternadas blanco/gris muy
+claro, alineación centrada en columnas numéricas.
+
+**Frase de remate** (antes del espacio de captura):
+*"El mismo análisis de vuelo que ya conoces. El cumplimiento regulatorio que
+AirData nunca va a tener."* (Repite el título a propósito — resumen de una
+sola línea para quien solo escanea el documento.)
+
+Tratamiento: 15-16pt, bold, centrado, navy, con espacio propio (no pegado al
+final de la tabla) — funciona como "cierre de capítulo".
+
+**Espacio de captura real**
+Etiqueta: `[ESPACIO PARA CAPTURA DE PANTALLA REAL: modal de Replay GPS con
+el mapa animado de la trayectoria abierto]` — mismo tratamiento visual
+(borde punteado, esquinas redondeadas) ya establecido en la página 3.
+
+### Dirección visual general
+- Fondo: blanco.
+- El bloque de dos tarjetas es el elemento dominante de la página — ocupa el
+  ancho completo del bloque de contenido, con las tarjetas del mismo alto
+  exacto (si una lista tiene más ítems, ajustar el espaciado interno para
+  igualar el alto, nunca dejar una tarjeta visiblemente más corta).
+- La tabla de retención y la frase de remate van debajo del bloque de
+  tarjetas, antes del espacio de captura — orden: tarjetas → tabla → remate
+  → imagen.
+
+### Qué evitar en esta página
+- No poner ningún ✕ en la tarjeta de BitaFly, aunque exista una limitación
+  real (ej. tope de retención en el plan Piloto) — esa información ya vive
+  en la tabla de retención, honesta por sí sola; duplicarla como "carencia"
+  en la tarjeta debilita el contraste que la página necesita.
+- No usar un logo real de AirData (problema de marca registrada) — solo el
+  nombre en texto plano, como ya hace la página de comparativa real del
+  sitio.
+- No dejar que la tarjeta de AirData se vea "rota" o ridícula — debe leerse
+  como una herramienta seria pero incompleta para el contexto colombiano, no
+  como un producto malo. El argumento de BitaFly es de cobertura, no de
+  calidad.
+
+---
+
 <!-- Las siguientes páginas se agregan a medida que se desarrollan con el mismo nivel de detalle. -->

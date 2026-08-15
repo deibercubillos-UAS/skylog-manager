@@ -880,4 +880,139 @@ semáforo GO/NO-GO, o el badge compacto en Despacho]`
 
 ---
 
+## PÁGINA 7 — GRID COMPLETO DE MÓDULOS
+
+### Propósito de la página
+Después de 3 páginas destacadas con mucho desarrollo individual (4, 5, 6),
+esta página cumple una función distinta: **cerrar el argumento de
+completitud**. El mensaje implícito es "y todo esto también está incluido"
+— el lector ya está convencido por las páginas anteriores, aquí solo
+necesita confirmar que no le falta nada por revisar antes de llegar a
+precios. Es, a propósito, la página con **menor desarrollo de texto por
+ítem** de todo el documento — la profundidad ya se demostró antes, aquí el
+volumen mismo es el argumento.
+
+### Jerarquía de lectura (en orden de peso visual)
+1. Título — de transición, no de gancho (esta página no necesita
+   "enganchar", ya lo hizo el resto del documento).
+2. Los 4 grupos, en el mismo orden y con los mismos nombres que la barra
+   lateral real del producto (Operación · Flota & Equipo · Documentación &
+   Cumplimiento · Plataforma) — reconocibles para cualquiera que ya haya
+   visto una demo o capturas de la app.
+3. Dentro de cada grupo, las tarjetas tienen igual peso entre sí — ningún
+   módulo se destaca sobre otro (esa jerarquía ya se resolvió en las
+   páginas 3-6).
+
+### Contenido exacto, elemento por elemento
+
+**Kicker:** `TODO INCLUIDO`
+(Esta página **no** lleva el sufijo "· PÁGINA DESTACADA" — señal visual de
+que volvemos al registro de las páginas 2-3, cerrando el paréntesis abierto
+por las páginas 4-6.)
+
+**Número de página:** `07`
+
+**Título:** *"Y todo lo demás que tu operación necesita"*
+
+Por qué un título tan simple, casi de transición: después de tres páginas de
+argumento intenso (4, 5, 6), un título igual de trabajado se sentiría
+repetitivo — el contraste deliberado (título corto y directo) le da a esta
+página su propio tono de "capítulo de cierre de catálogo", distinto al de
+"capítulo de argumento".
+
+Tratamiento: 22-24pt (el título más pequeño de todo el documento, a
+propósito), extra bold, navy `#1A202C`.
+
+**Los 4 grupos** — mismos nombres exactos que la barra lateral real de la
+aplicación (no una taxonomía de marketing inventada aparte) — refuerza que
+el documento describe el producto tal cual es, no una versión idealizada
+para vender.
+
+*Grupo 1 — OPERACIÓN*
+- **Programación de Misiones** — Crea una misión con zona de operación en el
+  mapa, PIC y aeronave asignados.
+- **Despacho Guiado** — El wizard completo de verificaciones antes de cada
+  vuelo, configurable por tu organización.
+
+*Grupo 2 — FLOTA & EQUIPO*
+- **Gestión de Flota** — Aeronaves, componentes y trazabilidad individual de
+  cada pieza.
+- **Baterías** — Ciclos, salud y control de vida útil en tiempo real.
+- **Mantenimiento** — Mayor y menor, con alertas automáticas e intervalos
+  configurables.
+- **Tripulación** — Roles, invitaciones, expedientes y certificaciones de
+  todo tu equipo.
+
+*Grupo 3 — DOCUMENTACIÓN & CUMPLIMIENTO*
+- **Reportes Regulatorios** — Más de 20 formatos, en PDF o Excel, listos
+  para radicar.
+- **Manuales Corporativos** — Versionado, publicación y acuse de lectura
+  obligatorio.
+- **Capacitación** — Cronograma, asistencia y examen calificado.
+- **Proveedores** — Registro y auditoría con checklist de criterios propio.
+- **Auditoría de cumplimiento** — Verifica en un vistazo si tu operación
+  está al día.
+
+*Grupo 4 — PLATAFORMA*
+- **Multi-organización** — Una cuenta, varias empresas, cambia de contexto
+  con un clic.
+- **App móvil Android** — Actualizaciones automáticas, sin tienda de
+  aplicaciones.
+- **Notificaciones en tiempo real** — Nunca te pierdas una alerta
+  importante de tu operación.
+
+**Total: 14 módulos**, agrupados exactamente como los ve cualquier usuario
+real dentro de la plataforma.
+
+**Tratamiento de cada tarjeta (mini icon-card):**
+- Tile de ícono: 34-36px (más pequeño que el de la página 5, porque aquí hay
+  muchos más ítems compitiendo por espacio), fondo naranja claro `#FDE9DD`,
+  glifo `#EC5B13`.
+- Título del módulo: 11pt, bold, navy.
+- Descripción: 9-9.5pt, regular, gris `#5B6472`, **una sola línea** (a
+  diferencia de las 2-3 líneas permitidas en la página 5) — la brevedad es
+  intencional, refuerza el tono "catálogo de referencia" en vez de
+  "argumento de venta".
+- Cada tarjeta con borde 1px gris claro (`#E4E7EC`), esquinas redondeadas
+  12-14px, fondo blanco.
+
+**Tratamiento de cada encabezado de grupo:** mayúsculas, 12pt, extra bold,
+navy, con un subrayado corto de 2px en naranja `#EC5B13` debajo (no una
+línea completa del ancho de la página — solo del ancho del texto del
+encabezado, como un "acento", mismo recurso ya usado en el grid de módulos
+original de la página 3).
+
+**Grid — distribución sugerida:** 3 columnas para los grupos de 2 y 4 ítems
+(Operación en 2 columnas o centrado, Flota & Equipo en 4/3+1, Plataforma en
+3 columnas exactas); 3 columnas × 2 filas (última fila incompleta, 2 de 3)
+para el grupo de 5 ítems (Documentación & Cumplimiento). Si el formato final
+es más angosto, bajar a 2 columnas de forma consistente en los 4 grupos —
+nunca mezclar 3 columnas en un grupo y 2 en otro dentro de la misma página.
+
+### Dirección visual general
+- Fondo: blanco.
+- Los 4 grupos se leen de arriba hacia abajo, con separación vertical
+  generosa entre uno y otro (12-14mm) — aunque cada tarjeta individual es
+  compacta, el espacio entre grupos evita que la página se sienta como una
+  sola masa de texto.
+- Sin espacio de captura de pantalla en esta página — a diferencia de las
+  páginas 3-6, aquí el volumen de módulos ya es la prueba, no hace falta
+  una imagen adicional.
+
+### Qué evitar en esta página
+- No repetir aquí ninguno de los 4 módulos ya cubiertos en las páginas 3-6
+  (Bitácora, SORA, Replay/Análisis de vuelo, SMS completo, Meteorología,
+  Autorizaciones/RAC 100) — esta página es exclusivamente "el resto",
+  duplicarlos generaría confusión sobre qué ya se explicó a fondo y qué no.
+- No alargar las descripciones de cada módulo más de una línea — si una
+  descripción no cabe en una línea a 9-9.5pt, acórtala en vez de dejar que
+  la tarjeta crezca; la consistencia de altura entre las 14 tarjetas es más
+  importante que la completitud de cada descripción individual.
+- No agregar un ítem 15 que no exista en el producto real solo para
+  "redondear" el grid — el documento completo se sostiene en no inventar
+  nada; esta página, al ser la más enumerativa, es la más fácil de romper
+  esa regla sin darse cuenta.
+
+---
+
 <!-- Las siguientes páginas se agregan a medida que se desarrollan con el mismo nivel de detalle. -->

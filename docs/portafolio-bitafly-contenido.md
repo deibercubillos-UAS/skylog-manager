@@ -589,4 +589,144 @@ el mapa animado de la trayectoria abierto]` — mismo tratamiento visual
 
 ---
 
+## PÁGINA 5 — SMS AERONÁUTICO
+
+### Propósito de la página
+A diferencia de la página 4 (que compite contra un producto específico y
+nombrado, AirData), esta página no tiene un competidor único al cual
+señalar — el "competidor" real del SMS de BitaFly es la percepción de que un
+SMS es "una lista de chequeo con apariencia de sistema", algo que un Gerente
+SMS con experiencia real reconoce de inmediato como insuficiente. El
+objetivo es **demostrar profundidad técnica real** — que quien la lea, si
+conoce la normativa SMS, sienta que está viendo un sistema construido por
+alguien que entiende la materia, no una interpretación superficial.
+
+Es la página más "técnica" del documento — el público que más la va a
+escrutar es el Gerente SMS o el asesor de seguridad operacional, no
+necesariamente el dueño de la operación.
+
+### Jerarquía de lectura (en orden de peso visual)
+1. Título — posicionamiento de seriedad técnica.
+2. Franja de estadísticas rápidas — prueba numérica, mismo criterio que la
+   página 3.
+3. Grid de 6 pilares del SMS — el cuerpo principal, con más peso visual que
+   el checklist de la página 3 (cada pilar lleva icono propio, como página
+   destacada que es).
+4. Frase de remate.
+5. Espacio de captura real.
+6. Kicker + número de página.
+
+### Contenido exacto, elemento por elemento
+
+**Kicker:** `SMS AERONÁUTICO · PÁGINA DESTACADA` (misma convención que la
+página 4)
+
+**Número de página:** `05`
+
+**Título:** *"El SMS que una auditoría real espera encontrar — no el que
+solo se ve bien en una demo"*
+
+Por qué esta frase: a diferencia del título de la página 4 (estructura de
+dos frases cortas, golpe-contragolpe contra un competidor nombrado), aquí es
+una sola oración con una comparación implícita ("lo que espera una
+auditoría" vs. "lo que se ve bien en una demo") — apunta a la ansiedad real
+de un Gerente SMS: que su sistema no resista una revisión seria. Interpela
+directamente a quien tiene esa responsabilidad, no al comprador genérico.
+
+Tratamiento: 24-28pt, extra bold, navy `#1A202C` — sin segmento en color
+naranja (a diferencia de la página 4), porque no hay una "segunda mitad" que
+contraste contra un competidor: es una sola afirmación continua.
+
+**Párrafo de contexto:**
+*"El Sistema de Gestión de Seguridad Operacional (SMS) de BitaFly sigue los
+lineamientos de la autoridad aeronáutica de punta a punta — no es una lista
+de chequeo genérica, es la infraestructura completa que un explotador UAS
+necesita para documentar, medir y mejorar su seguridad operacional de forma
+continua."*
+
+Tratamiento: igual convención que las páginas anteriores (13-14pt, regular,
+gris oscuro `#3C4450`, ancho ~70%).
+
+**Franja de estadísticas rápidas** — mismo tratamiento visual que la página
+3 (fondo gris `#F7F8FA`, bloques separados por líneas verticales, número
+grande naranja + etiqueta gris debajo). Repetir el patrón entre páginas 3 y
+5 (ambas "de autoridad") ayuda a que el lector reconozca inconscientemente
+"esta es una página de hechos verificables", sin que se lo digamos:
+
+| Número | Etiqueta |
+|---|---|
+| **5×5** | Matriz de riesgos, con semilla del estándar OACI Doc 9859 |
+| **100** | Preguntas de autoevaluación de madurez del SMS (Apéndice 1) |
+| **3** | Fuentes de acciones correctivas, consolidadas en un solo tablero |
+| **1** | Solo sistema — SMS, VOR/MOR, capacitación e indicadores, sin herramientas aparte |
+
+**Grid de 6 pilares del SMS** — a diferencia del checklist de una sola
+columna de la página 3 (sensación de "acta seria"), aquí cada pilar lleva su
+propio icon tile: es página destacada, con más jerarquía visual que la
+página 3, mismo tratamiento de tarjeta con ícono que usarán luego las
+páginas 6 y 7. Grid de 2 columnas × 3 filas:
+
+1. **Evaluación de Riesgos** — Matriz de probabilidad y gravedad 5×5
+   personalizable por organización, con tabla de tolerabilidad (inaceptable
+   / tolerable / aceptable) editable celda por celda, y registro de peligros
+   identificados con su mitigación.
+2. **Indicadores de Desempeño (SPI)** — Captura de datos mensuales por
+   indicador, con línea de alerta calculada automáticamente (promedio más
+   desviación estándar del año anterior) — la misma fórmula que exige el
+   formato oficial, no una aproximación simplificada.
+3. **Mejora Continua (autoevaluación GAP)** — 100 preguntas del Apéndice 1,
+   agrupadas en 4 componentes y 12 elementos, con comparativo automático
+   entre evaluaciones para medir avance real de madurez.
+4. **Acciones Correctivas** — Tablero único que consolida 3 fuentes
+   distintas (casos SMS/VOR/MOR, planes de acción de indicadores, hallazgos
+   de la autoevaluación GAP) — nada se pierde entre módulos separados.
+5. **Reportes VOR/MOR** — Formulario público configurable por organización,
+   con seguimiento de cada caso mediante línea de tiempo de investigación y
+   control del plazo regulatorio de radicación ante la autoridad.
+6. **Capacitación SMS** — Cronograma recurrente y registro real de
+   asistencia de todo el personal de la organización, no solo de los
+   pilotos — el SMS es responsabilidad de toda la operación.
+
+Tratamiento de cada tarjeta: ícono en tile redondeado naranja claro
+(`#FDE9DD` de fondo, glifo `#EC5B13`) de 44-48px, título en bold navy
+13-14pt, descripción en gris regular 11.5-12pt de 2-3 líneas — mismo
+lenguaje visual que las tarjetas de módulos de la página 7, pero aquí con
+más espacio de respiración entre ellas (son solo 6, no 20+), reforzando que
+este grupo merece más atención individual que el resto de módulos del
+producto.
+
+**Frase de remate:** *"El SMS que una auditoría real espera encontrar — no
+el que solo se ve bien en una demo."* (Repite el título, mismo criterio de
+cierre-de-capítulo ya establecido en la página 4.)
+
+**Espacio de captura real**
+Etiqueta: `[ESPACIO PARA CAPTURA DE PANTALLA REAL: tab "Evaluación de
+Riesgos" o "Indicadores (SPI)" del hub de Seguridad SMS]`
+
+### Dirección visual general
+- Fondo: blanco.
+- El grid de 6 pilares es el elemento dominante — 2 columnas en formato
+  carta/A4 vertical (si el formato final es más ancho tipo slide 16:9, puede
+  pasar a 3 columnas × 2 filas sin perder el balance).
+- Orden: título → contexto → franja de estadísticas → grid de 6 pilares →
+  remate → imagen. Mismo orden estructural que la página 4, para que el
+  lector aprenda el patrón de las páginas destacadas y no tenga que
+  reorientarse en cada una.
+
+### Qué evitar en esta página
+- No reducir los 6 pilares a menos de 6 para que quepan más cómodos — cada
+  uno responde a un componente real y distinto del SMS; combinarlos
+  artificialmente (ej. juntar SPI y GAP en un solo bloque) diluye
+  precisamente el argumento de profundidad que la página busca demostrar.
+- No usar aquí el formato de dos tarjetas enfrentadas de la página 4 — no
+  hay un competidor único al que nombrar, y forzar esa estructura sin un
+  contraste real se sentiría artificial.
+- No prometer "cumplimiento automático" o "aprobación garantizada" — el SMS
+  es responsabilidad de la organización; BitaFly da la infraestructura, no
+  certifica nada por sí sola. Mantener el lenguaje en términos de
+  "infraestructura completa" y "consolidado en un solo lugar", nunca de
+  garantías regulatorias.
+
+---
+
 <!-- Las siguientes páginas se agregan a medida que se desarrollan con el mismo nivel de detalle. -->

@@ -283,4 +283,156 @@ pena que salten incluso en un vistazo rápido.
 
 ---
 
+## PÁGINA 3 — CUMPLIMIENTO RAC 100 (la base de todo)
+
+### Propósito de la página
+Es la página de **autoridad/credibilidad** del documento — el lector ya sintió
+el problema (página 2), ahora necesita confirmar que BitaFly no es una
+promesa vaga sino un sistema real y exhaustivo de cumplimiento. Debe sentirse
+**densa en contenido real, no en adjetivos** — la que un Gerente SMS o un
+asesor legal va a leer con más atención que ninguna otra, así que cada línea
+debe ser verificable, no marketing genérico.
+
+A diferencia de las páginas 2 y 4-6 (que argumentan o comparan), esta página
+**enumera** — su fuerza está en la cantidad y precisión de lo que cubre, no
+en la persuasión retórica.
+
+### Jerarquía de lectura (en orden de peso visual)
+1. Título — la afirmación de posicionamiento ("no es un módulo más").
+2. Franja de estadísticas rápidas — prueba numérica antes de entrar al
+   detalle.
+3. Checklist de 8 ítems — el cuerpo principal, cada uno con peso visual
+   igual (ningún ítem "vale más" que otro, refuerza la sensación de sistema
+   completo, no de lista priorizada).
+4. Espacio de captura real — evidencia visual de que esto existe de verdad.
+5. Kicker + número de página.
+
+### Contenido exacto, elemento por elemento
+
+**Kicker:** `EL CORAZÓN DEL PRODUCTO` — misma convención que páginas
+anteriores (mayúsculas, tracking amplio, 10-12pt, bold, naranja `#EC5B13`
+sobre fondo blanco).
+
+**Número de página:** `03`
+
+**Título:** *"No es un módulo más — es la razón por la que existe BitaFly"*
+
+Por qué esta frase y no una más genérica tipo "Cumplimiento RAC 100
+completo": el lector ya vio en la portada y en la página 2 que BitaFly hace
+muchas cosas (clima, análisis de vuelo, flota). Esta frase reordena su
+percepción antes de que siga leyendo: todo lo demás en el documento es
+secundario frente a esto. Es una frase de jerarquía, no de feature.
+
+Tratamiento: mismo tamaño/peso que la página 2 (26-30pt, extra bold, navy
+`#1A202C`), pero aquí puede ocupar el ancho completo del bloque de contenido
+(no limitado al 60%) — es una afirmación categórica, no una pregunta que
+necesite "aire" alrededor.
+
+**Párrafo de contexto** (debajo del título, antes de la franja de
+estadísticas):
+*"BitaFly se diseñó de adentro hacia afuera pensando en el RAC 100, no como
+un parche agregado después. Cada función del producto — desde la bitácora
+hasta el análisis de vuelo — existe primero para sostener tu cumplimiento
+documental ante la Aerocivil, y solo después para hacerte la operación más
+cómoda."*
+
+Tratamiento: 13-14pt, regular, gris oscuro (`#3C4450`), ancho limitado a ~70%
+para mantener línea de lectura cómoda.
+
+**Franja de estadísticas rápidas** (4 números en línea horizontal — prueba
+social numérica antes del checklist, mismo recurso que `KPIStrip` en el
+producto real):
+
+| Número | Etiqueta |
+|---|---|
+| **2** | Formatos base incluidos (F-OPS-001 y F-OPS-002) |
+| **+20** | Formatos regulatorios descargables en total |
+| **3** | Niveles de riesgo calculados automáticamente por SORA (GRC, ARC, SAIL) |
+| **100%** | En español, sin traducir procesos internacionales |
+
+Tratamiento: cada número en 28-32pt extra bold naranja `#EC5B13`, etiqueta
+debajo en 10pt regular gris (`#5B6472`), los 4 bloques separados por líneas
+verticales finas (mismo recurso que los chips de la portada, continuidad
+visual entre páginas). Fondo del bloque: gris muy claro `#F7F8FA` con bordes
+redondeados (16px) — mismo tratamiento que la "solution box" de la página 2,
+ya establece el patrón "fondo gris = dato duro, no opinión" cada vez que
+reaparece en el documento.
+
+**Checklist de 8 ítems** — ícono/check a la izquierda + título bold +
+descripción de una línea en gris regular, en una sola columna (no en grid de
+2, a diferencia de la página 6 que sí es grid) — refuerza que es una lista
+jerárquica seria, tipo acta de auditoría, no un catálogo de features:
+
+1. **Bitácora digital de vuelo (F-OPS-002)** — nativa, con cálculo
+   automático de horas de vuelo.
+2. **Autorizaciones de vuelo (F-OPS-001)** — con generación de KMZ y PDF de
+   la zona de operación.
+3. **Evaluación SORA obligatoria** — antes de programar cualquier misión,
+   cálculo automático de riesgo terrestre (GRC), riesgo aéreo (ARC) y Nivel
+   de Garantía de Integridad (SAIL).
+4. **Reporte Operacional Mensual UAS** — el formato Excel exigido por la
+   Aerocivil, generado con un clic.
+5. **Manuales corporativos** — con versionado y acuse de lectura obligatorio
+   de toda la tripulación.
+6. **Auditoría de cumplimiento** — verifica en un vistazo si tu operación
+   está al día en documentos y vigencias.
+7. **Expedientes de tripulación** — licencias, certificados médicos,
+   capacitación, centralizados.
+8. **Más de 20 formatos regulatorios** — descargables en PDF o Excel, listos
+   para radicar.
+
+Tratamiento del ícono/check: un check circular sólido (círculo relleno
+naranja `#EC5B13`, ✓ blanco adentro) de 20-22px — NO un simple bullet punto
+como en la página 2; aquí cada ítem "ya está resuelto", así que el check
+refuerza que es una lista de cosas cumplidas, no de opciones.
+
+Título de cada ítem: 13-14pt, bold, navy `#1A202C`. Descripción: 11.5-12pt,
+regular, gris (`#5B6472`), en la misma línea o debajo según el ancho
+disponible — en formato angosto, línea aparte; en formato ancho (tipo slide
+16:9), puede ir en la misma línea separada por un guión largo.
+
+Separación entre ítems: línea divisoria fina gris claro (`#E4E7EC`) entre
+cada uno, con padding vertical generoso (10-12px) — mismo recurso que la
+columna "El problema" de la página 2.
+
+**Espacio de captura real**
+Etiqueta del placeholder: `[ESPACIO PARA CAPTURA DE PANTALLA REAL: panel de
+Auditoría de cumplimiento, o un reporte PDF ya generado]`
+
+Tratamiento: rectángulo con borde punteado (dashed, 1.5px, gris `#C9CFD8`),
+fondo blanco, esquinas redondeadas (12px), texto de la etiqueta centrado en
+gris — "marco de imagen pendiente" reconocible. Proporción sugerida: 16:9 o
+4:3, ubicado a la derecha del checklist si el formato es ancho, o debajo del
+checklist completo si es angosto.
+
+Por qué esta imagen específica: de los 8 ítems, "Auditoría de cumplimiento"
+es el que mejor resume visualmente el mensaje de la página completa (una
+vista de estado que confirma "estás al día") — más fuerte que mostrar, por
+ejemplo, solo un formulario vacío.
+
+### Dirección visual general
+- Fondo: blanco — continúa el registro "de contenido" iniciado en la página
+  2, sin quiebres de color todavía (el próximo cambio de fondo fuerte es la
+  página 9, cierre navy).
+- Layout de dos zonas: bloque de texto (título + contexto + estadísticas +
+  checklist) a la izquierda/arriba, espacio de captura a la derecha/abajo —
+  mismo principio de asimetría intencional que la portada, nunca centrado.
+- Esta es la página con más densidad de texto de todo el documento — está
+  bien que se sienta "llena" (a diferencia de la portada, que debía
+  respirar): aquí la densidad ES el argumento.
+
+### Qué evitar en esta página
+- No convertir el checklist en un grid de tarjetas con íconos grandes (eso
+  corresponde a la página 7, "grid completo de módulos") — aquí la lista
+  vertical simple es intencional, para que se lea como acta/checklist, no
+  como catálogo de producto.
+- No agregar los otros módulos de BitaFly (flota, baterías, tripulación) en
+  esta página — es exclusivamente la vitrina de cumplimiento regulatorio;
+  todo lo demás vive en la página 7.
+- No dejar el espacio de captura vacío sin la etiqueta — un rectángulo en
+  blanco sin marcar se puede confundir con un error de maquetación al
+  revisar el documento antes de publicarlo.
+
+---
+
 <!-- Las siguientes páginas se agregan a medida que se desarrollan con el mismo nivel de detalle. -->

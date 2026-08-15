@@ -154,4 +154,133 @@ parte del diseño, no un vacío que haya que llenar.
 
 ---
 
+## PÁGINA 2 — EL PROBLEMA / LA SOLUCIÓN
+
+### Propósito de la página
+Es la página que convierte la promesa abstracta de la portada en algo concreto
+y reconocible. El lector (dueño de una operadora, piloto independiente,
+Gerente SMS) debe sentir "esto me pasa a mí" en los primeros 5 segundos, y
+luego "esto ya lo resolvieron" en los siguientes 5. Es una página de
+**tensión → alivio**, no de venta directa todavía — la venta empieza en la
+página 3.
+
+### Jerarquía de lectura (en orden de peso visual)
+1. Título — la afirmación central que engancha.
+2. Columna "El problema" — genera identificación/tensión.
+3. Columna "La solución" — genera alivio, en espejo exacto de cada punto del
+   problema.
+4. Caja de cierre (solution box) — el resumen ejecutivo de la página, lo único
+   que alguien que hojea rápido debe leer si se salta el resto.
+5. Kicker + número de página — orientación, bajo peso visual.
+
+### Contenido exacto, elemento por elemento
+
+**Kicker (esquina superior izquierda)**
+Texto: `POR QUÉ BITAFLY`
+Tratamiento: igual que la portada — mayúsculas, tracking amplio, 10-12pt,
+bold, color naranja `#EC5B13`. Aquí sobre **fondo blanco**, no navy — marca el
+cambio de registro entre la portada (marca/promesa) y el cuerpo del documento
+(contenido/argumento).
+
+**Número de página (esquina superior derecha)**
+Texto: `02`
+Tratamiento: pequeño (10pt), bold, gris oscuro (`#5B6472`), alineado a la
+misma línea de base que el kicker — ancla de navegación en un documento de 9
+páginas.
+
+**Título** — usar la Opción A (más universal, funciona para cualquier lector
+que todavía no conoce AirData/UAV Forecast):
+*"Operar un RPAS en Colombia implica mucho más que volar"*
+
+(Opción B, más punzante, queda reservada para el remate de la caja de cierre
+más abajo: *"Tu operación no necesita 4 apps distintas — necesita una que
+hable RAC 100"*.)
+
+Tratamiento: 26-30pt, extra bold (800), color navy `#1A202C`, máximo 2
+líneas, ancho de columna limitado (~60% del ancho de página) — mantiene la
+sensación editorial del resto del documento.
+
+**Columna izquierda — "EL PROBLEMA"**
+Encabezado: `EL PROBLEMA` — 13-14pt, extra bold, mayúsculas, color rojo-teja
+oscuro (`#B23A1A`, un rojo terroso que combina con la paleta en vez de
+romperla — no un rojo de alarma genérico).
+
+Los 5 puntos (bullet circular sólido del mismo rojo-teja, línea divisoria fina
+gris debajo de cada uno):
+1. Registros en papel o en hojas de cálculo dispersas, sin respaldo real.
+2. Herramientas internacionales sueltas para clima y análisis de vuelo — en
+   inglés, cobradas en dólares, sin idea de qué es el RAC 100.
+3. Dificultad real para demostrar cumplimiento ante una auditoría de la
+   Aerocivil.
+4. Sin trazabilidad histórica confiable de vuelos, mantenimiento ni eventos de
+   seguridad.
+5. Procesos manuales que consumen tiempo que debería ir a la operación, no al
+   papeleo.
+
+**Columna derecha — "LA SOLUCIÓN"**
+Encabezado: `LA SOLUCIÓN` — mismo tamaño/peso que "EL PROBLEMA", color naranja
+de marca `#EC5B13` (contraste rojo-teja → naranja intencional: dos tonos
+cálidos emparentados, sin saltar a verde/azul).
+
+Los 5 puntos — en espejo 1:1 exacto con la columna izquierda (mismo orden,
+para que el ojo lea horizontalmente el antes/después de cada fila):
+1. Bitácora digital con registro automático desde tu control remoto — sin
+   papel, sin Excel.
+2. Análisis de vuelo y meteorología integrados en la misma plataforma — un
+   solo lugar, en español, en pesos colombianos.
+3. Reportes regulatorios generados en segundos, con evidencia real y
+   trazable.
+4. Cada vuelo, mantenimiento y evento de seguridad queda registrado
+   automáticamente, con historial completo.
+5. Todo accesible desde el navegador o la app móvil — configuras una vez,
+   opera todos los días.
+
+Por qué el espejo 1:1 importa: cada línea de la derecha responde
+textualmente a la de la izquierda — mismo recurso retórico que ya usa la
+página real de comparativa contra AirData del sitio (antes/después función
+por función), manteniendo coherencia de argumento con el resto del marketing
+de BitaFly.
+
+**Caja de cierre (solution box)**
+Tratamiento visual: rectángulo redondeado (radio ~16-18px), fondo gris muy
+claro (`#F7F8FA`), borde de 1px en gris claro (`#E4E7EC`) — único bloque con
+fondo de color de la página, actúa como resumen ejecutivo separado del resto.
+
+Párrafo 1: *"BitaFly centraliza, digitaliza y automatiza la totalidad de las
+obligaciones documentales, operacionales y de seguridad que exige el
+Reglamento Aeronáutico Colombiano RAC 100 — desde el primer vuelo hasta el
+cierre del mes."*
+
+Párrafo 2: *"Sirve tanto al **piloto independiente** que opera por su cuenta
+como a la **empresa operadora** con flota, tripulación y roles definidos —
+cada uno con exactamente lo que necesita, ni más ni menos."*
+
+Tratamiento tipográfico: 13pt, peso regular, color gris oscuro (`#3C4450`),
+con las dos palabras clave ("piloto independiente" / "empresa operadora") en
+bold navy — son los dos públicos objetivo del documento completo, vale la
+pena que salten incluso en un vistazo rápido.
+
+### Dirección visual general
+- Fondo: blanco puro — primer quiebre visual fuerte respecto a la portada
+  navy, señala "ahora entramos al contenido".
+- Layout: dos columnas de igual ancho, separadas por un gutter generoso
+  (~12mm), sin línea divisoria vertical — el color de cada encabezado de
+  columna ya hace suficiente de separador.
+- La caja de cierre va debajo de ambas columnas, ocupando el ancho completo
+  del bloque de contenido (respeta los mismos márgenes laterales que el
+  título, no el ancho total de la página).
+- Pie de página: igual que el resto del documento — marca pequeña (isotipo +
+  "BitaFly") a la izquierda, `bitafly.com` a la derecha, en gris, tamaño
+  mínimo (8-9pt).
+
+### Qué evitar en esta página
+- No usar rojo de alarma/error saturado (`#FF0000` o similar) para la columna
+  de problemas — rompe la paleta de marca y hace que la página se sienta como
+  un mensaje de error de software, no como un argumento editorial.
+- No repetir exactamente el mismo ícono/glifo en ambas columnas — el color ya
+  diferencia; si se usa un glifo (✕ / ✓) en vez de un punto simple, deben ser
+  formas distintas, no el mismo símbolo en dos colores.
+
+---
+
 <!-- Las siguientes páginas se agregan a medida que se desarrollan con el mismo nivel de detalle. -->

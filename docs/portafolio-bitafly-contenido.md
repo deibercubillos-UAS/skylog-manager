@@ -1138,4 +1138,111 @@ página web y encuentra un número distinto.
 
 ---
 
+## PÁGINA 9 — CIERRE / CONTACTO
+
+### Propósito de la página
+Es el "bookend" del documento — cierra visualmente el círculo abierto en la
+portada (mismo fondo navy, mismo motivo de anillos), señalando al lector que
+llegó al final sin necesidad de que se lo digamos con texto. Después de 8
+páginas de argumento, prueba y precio, esta página tiene una sola función:
+**dar la acción concreta más fácil posible**. Cero información nueva, cero
+argumento adicional — solo el CTA.
+
+### Jerarquía de lectura (en orden de peso visual)
+1. Título — el cierre emocional del recorrido.
+2. Los dos botones de CTA — el único lugar del documento donde hay una
+   acción explícita a tomar.
+3. Párrafo breve de apoyo — reduce fricción justo antes de la acción (sin
+   tarjeta, sin instalar nada).
+4. Footer legal — la constancia formal, en texto pequeño.
+
+### Contenido exacto, elemento por elemento
+
+**Kicker:** `EMPIEZA HOY` — igual convención que el resto del documento,
+pero aquí sobre fondo navy (como la portada) — naranja `#EC5B13`,
+mayúsculas, tracking amplio.
+
+**Título** — usar la Opción B (cierra el hilo narrativo abierto en la
+página 2, que hablaba de "herramientas sueltas"):
+*"De varias herramientas sueltas, a una sola que las reemplaza"*
+
+(Opción A, más genérica: *"Lleva tu operación a un solo lugar"* — se
+descarta a favor de la B porque es la única página del documento donde vale
+la pena hacer explícito el arco narrativo completo — problema de
+fragmentación en la página 2 → solución unificada en las páginas 4 y 6 —
+cerrarlo aquí, en la última página, funciona como remate de todo el
+documento, no solo de esta página.)
+
+Tratamiento: 32-36pt (el título más grande después del wordmark de la
+portada — segundo momento de mayor peso visual del documento completo),
+extra bold, blanco puro, centrado.
+
+**Párrafo de apoyo:**
+*"Crea tu cuenta gratis y prueba la plataforma completa — bitácora, análisis
+de vuelo, meteorología y SMS incluidos — sin tarjeta de crédito, sin
+instalar nada."*
+
+Por qué se nombran explícitamente 4 módulos (bitácora, análisis de vuelo,
+meteorología, SMS) en vez de decir solo "la plataforma completa": son
+exactamente los 4 conceptos de las páginas 3-6 — nombrarlos aquí, en la
+frase final antes del botón, es el último refuerzo de que el trial gratuito
+no es una versión recortada, incluye justo lo que se acaba de mostrar.
+
+Tratamiento: 14-15pt, regular, gris claro (`#D3D8E0` — más claro que el
+gris usado en páginas de fondo blanco, para mantener contraste legible
+sobre navy), centrado, ancho máximo ~65%.
+
+**Botones de CTA** — dos, uno junto al otro:
+- Primario: `bitafly.com/registro` — fondo naranja sólido `#EC5B13`, texto
+  navy oscuro (no blanco, mismo criterio de contraste ya usado en badges
+  sobre naranja), bold, esquinas redondeadas 12px, padding generoso.
+- Secundario: `bitafly.com/precios` — borde blanco semitransparente (1px,
+  `rgba(255,255,255,.35)`), texto blanco, mismo padding y radio que el
+  primario, fondo transparente.
+
+Por qué dos CTA y no solo uno: el lector que llega hasta la página 9 puede
+estar en dos estados distintos — listo para registrarse ya, o necesitando
+releer precios una vez más antes de decidir. Ofrecer ambos evita perder al
+segundo grupo por forzar solo la opción de registro inmediato.
+
+**Footer legal** (parte inferior de la página, texto pequeño):
+Línea 1: `BitaFly S.A.S. · Madrid, Cundinamarca, Colombia · bitafly.com`
+Línea 2: `Alineado al RAC 100 · UAEAC / Aerocivil`
+
+Tratamiento: 9-9.5pt, centrado, gris apagado (`#8B93A1`), con "BitaFly
+S.A.S." en un tono ligeramente más claro (`#C9CFD8`) para diferenciarlo
+sutilmente del resto de la línea sin necesitar bold.
+
+### Dirección visual general
+- Fondo: navy sólido `#1A202C` — mismo tono exacto que la portada, cierre
+  del bookend.
+- Motivo de anillos de radar: mismo lenguaje que la portada, pero en la
+  esquina **inferior izquierda** en vez de superior derecha (posición
+  espejada) — refuerza visualmente que es el cierre, no una repetición
+  literal de la portada.
+- Todo el contenido centrado verticalmente en la página (a diferencia de la
+  portada, que usaba asimetría hacia la mitad superior-izquierda) — aquí la
+  simetría comunica resolución/cierre, mientras que la asimetría de la
+  portada comunicaba apertura/posibilidad.
+- Espaciado generoso entre el párrafo de apoyo y los botones (mínimo 10mm)
+  para que el par de CTA se perciba como el elemento de acción, no como una
+  continuación del párrafo.
+
+### Qué evitar en esta página
+- No agregar un tercer CTA (ej. "Contáctanos", "Agenda una demo") — dos ya
+  cubren los dos estados reales del lector (registrarse / revisar
+  precios); un tercero diluye cuál es la acción principal.
+- No repetir aquí ninguna estadística o feature ya mostrada en páginas
+  anteriores — esta página es 100% acción, cero argumento nuevo.
+- No usar un email o teléfono de contacto que no esté confirmado como canal
+  real vigente de la empresa — si no hay uno verificado al momento de
+  maquetar, dejar solo `bitafly.com` como punto de contacto (ya es
+  suficiente, el sitio tiene sus propios canales).
+
+---
+
+Con esta página se completa el brief de las 9 páginas del portafolio
+comercial de BitaFly — de la portada al cierre, con dirección visual y
+tratamiento tipográfico específico en cada una.
+
 <!-- Las siguientes páginas se agregan a medida que se desarrollan con el mismo nivel de detalle. -->

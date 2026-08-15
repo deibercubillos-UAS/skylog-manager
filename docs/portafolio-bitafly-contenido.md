@@ -1015,4 +1015,127 @@ nunca mezclar 3 columnas en un grupo y 2 en otro dentro de la misma página.
 
 ---
 
+## PÁGINA 8 — PLANES Y PRECIOS
+
+### Propósito de la página
+Es la página de **decisión** — todo el documento hasta acá construyó
+confianza (páginas 2-3), demostró profundidad (4-6) y completitud (7); esta
+página existe para que el lector pueda *actuar* sobre esa confianza sin
+fricción. El objetivo no es "vender el plan más caro" sino **eliminar la
+ambigüedad de precio** — que cualquiera pueda ubicarse en la columna
+correcta sin tener que llamar a preguntar.
+
+Es también la página con la información más sensible a quedar desactualizada
+de todo el documento — los precios cambian con más frecuencia que cualquier
+otro contenido, así que debe quedar clarísimo (ver nota al pie) que estos
+valores necesitan verificarse antes de cada envío del portafolio.
+
+### Jerarquía de lectura (en orden de peso visual)
+1. Título.
+2. Las 4 tarjetas de plan, con la tarjeta "Flota" (más elegido) con mayor
+   peso visual que las otras 3.
+3. Nota al pie sobre IVA, ciclo anual y flexibilidad de cambio de plan.
+4. Kicker + número de página.
+
+### Contenido exacto, elemento por elemento
+
+**Kicker:** `PLANES Y PRECIOS`
+
+**Número de página:** `08`
+
+**Título:** *"Un plan para cada tamaño de operación"*
+
+Tratamiento: 26-28pt, extra bold, navy `#1A202C` — mismo peso que la página
+3 (esta también es una página de "hechos", no de argumento persuasivo).
+
+**Las 4 tarjetas de plan**
+
+*Tarjeta 1 — PILOTO*
+- Precio: **$19.900 COP / mes**
+- Nota bajo el precio (única de las 4 tarjetas): *"15 días gratis, sin
+  tarjeta"* — en naranja, bold, para que salte incluso en un vistazo rápido.
+- Incluye: 1 aeronave · Bitácora RAC 100 ilimitada · Alertas de
+  mantenimiento · Hasta 3 baterías · Reporte en PDF · Para quien vuela solo
+
+*Tarjeta 2 — ESCUADRILLA*
+- Precio: **$238.000 COP / mes**
+- Incluye: Hasta 3 aeronaves · Hasta 5 usuarios y roles · Autorizaciones de
+  vuelo · SMS completo · Reportes regulatorios · Para pequeñas empresas
+
+*Tarjeta 3 — FLOTA (Más elegido)*
+- Precio: **$476.000 COP / mes**
+- Incluye: Hasta 10 aeronaves · Hasta 10 usuarios, 5 roles · SMS completo
+  con trazabilidad · Auditoría y checklists propios · Todos los reportes
+  RAC 100 · Soporte prioritario
+
+*Tarjeta 4 — ENTERPRISE*
+- Precio: **A consultar**
+- Incluye: Aeronaves y usuarios ilimitados · Marca propia (white-label) ·
+  Acceso a API · Soporte dedicado · Precio ajustado a tu operación
+
+Por qué Escuadrilla y Flota comparten casi los mismos beneficios (SMS
+completo, reportes, auditoría) y solo cambian en capacidad (3 vs. 10
+aeronaves/usuarios): es un dato real del producto, no un error de
+redacción — desde el ajuste de precios de agosto de 2026, Escuadrilla
+heredó todos los beneficios de Flota; la única diferencia real entre ambos
+planes es capacidad y precio. Esto **debe** reflejarse tal cual en las
+tarjetas — no inventar una diferencia de funciones entre ellas que no
+existe.
+
+**Tratamiento de las tarjetas:**
+- Las 4 del mismo ancho y (idealmente) del mismo alto — si la lista de
+  "incluye" de una tarjeta tiene menos ítems que otra, ajustar el
+  espaciado interno para igualar el alto, mismo criterio ya aplicado en las
+  tarjetas de la página 4.
+- Tarjeta **Flota** con tratamiento distinto: borde 2px naranja `#EC5B13`
+  (en vez de 1px gris de las otras 3), y un badge tipo pill flotando sobre
+  el borde superior con el texto `MÁS ELEGIDO` — fondo naranja sólido,
+  texto navy oscuro, mismo patrón de badge ya usado en la portada.
+- Nombre del plan: mayúsculas, bold, 12-13pt, navy, centrado.
+- Precio: el elemento más grande de la tarjeta (18-20pt, extra bold, navy),
+  con la unidad ("COP / mes") en texto pequeño gris debajo, no en la misma
+  línea — evita que el precio se lea como un número más largo de lo que es.
+- Lista de "incluye": items con un guión corto (—) en naranja como marcador
+  (no un check circular como en la página 3 — aquí el tono es más de
+  "ficha técnica" que de "checklist cumplido"), texto 9.5-10pt gris oscuro.
+
+**Nota al pie** (debajo de las 4 tarjetas):
+*"Precios en pesos colombianos, IVA incluido, ciclo mensual — ciclo anual
+con 10% de descuento. Cambia de plan cuando quieras, sin contratos
+rígidos."*
+
+Tratamiento: 9-10pt, centrado, gris (`#5B6472`), separado de las tarjetas
+por un espacio claro (8-10mm) para que no se lea como parte de la tarjeta
+Enterprise (la última a la derecha).
+
+⚠️ Nota solo para quien maqueta el documento, no para imprimir: estos
+precios deben verificarse contra `/precios` o el panel de administración
+antes de cada envío — cambiaron más de una vez en lo que va del año, y el
+documento pierde toda credibilidad si un prospecto compara el PDF contra la
+página web y encuentra un número distinto.
+
+### Dirección visual general
+- Fondo: blanco.
+- Grid de 4 columnas iguales (si el formato es angosto, 2×2 — nunca menos
+  de 2 columnas, las 4 tarjetas deben poder compararse en la misma vista
+  sin scroll/paso de página).
+- Es una de las páginas más "limpias" del documento — sin párrafo de
+  contexto largo, sin espacio de captura de pantalla — el precio y el
+  contenido de cada tarjeta son autoexplicativos, no necesitan argumento
+  adicional a esta altura del documento.
+
+### Qué evitar en esta página
+- No inventar una diferencia de funciones entre Escuadrilla y Flota que no
+  existe — la diferencia real es capacidad (aeronaves/usuarios) y precio,
+  ver nota arriba.
+- No mostrar un precio para Enterprise, ni siquiera "desde $X" — no existe
+  un piso real publicado, se cotiza caso por caso.
+- No poner el ✕ (cosas que NO incluye) en ninguna tarjeta — a diferencia de
+  las tarjetas comparativas de las páginas 4 y 6 (que comparan contra un
+  competidor), aquí las 4 tarjetas compiten entre sí dentro de la misma
+  marca; mostrar carencias generaría fricción interna en vez de ayudar a
+  decidir.
+
+---
+
 <!-- Las siguientes páginas se agregan a medida que se desarrollan con el mismo nivel de detalle. -->

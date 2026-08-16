@@ -6,6 +6,11 @@
  * - Batería: gráfico + celdas
  * - Timeline con scrubber y marcadores de alerta
  * - Métricas en vivo: altitud, velocidad, modo, satélites
+ * - Clima del vuelo — panel fijo, siempre visible (no se oculta con el scroll de alertas)
+ *
+ * Layout responsive: en desktop (md+) los paneles laterales son columnas fijas.
+ * En mobile son drawers deslizables (off-canvas) activados por botones flotantes
+ * sobre el mapa, para no apretar el visor en pantallas pequeñas.
  */
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
@@ -36,14 +41,30 @@ const SEVERITY_TEXT  = { critical: 'text-red-300',  warning: 'text-amber-300' };
 
 const SPEEDS = [1, 2, 5, 10];
 
+// ── Card de sección reutilizable — encabezado consistente ─────────
+function Panel({ icon, label, right, children, className = '' }) {
+  return (
+    <div className={`bg-slate-900/70 rounded-2xl border border-slate-800/80 overflow-hidden ${className}`}>
+      <div className="px-3 py-2 border-b border-slate-800/80 flex items-center justify-between gap-2 bg-slate-900">
+        <div className="flex items-center gap-1.5 min-w-0">
+          {icon && <span className="material-symbols-outlined text-sm text-slate-500 shrink-0">{icon}</span>}
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">{label}</p>
+        </div>
+        {right}
+      </div>
+      <div className="p-3">{children}</div>
+    </div>
+  );
+}
+
 // ── Joystick mini ─────────────────────────────────────────────────
 function Joystick({ x, y, label, sublabel }) {
   const cx = 50 + (x ?? 0) * 38;
   const cy = 50 - (y ?? 0) * 38;
   const hasData = x != null;
   return (
-    <div className="flex flex-col items-center gap-1 min-w-0">
-      <svg width="64" height="64" viewBox="0 0 100 100">
+    <div className="flex flex-col items-center gap-1.5 min-w-0">
+      <svg width="68" height="68" viewBox="0 0 100 100">
         <circle cx="50" cy="50" r="46" fill="#1e293b" stroke="#334155" strokeWidth="1.5"/>
         <line x1="50" y1="8"  x2="50" y2="92" stroke="#334155" strokeWidth="0.8"/>
         <line x1="8"  y1="50" x2="92" y2="50" stroke="#334155" strokeWidth="0.8"/>
@@ -69,14 +90,14 @@ function Joystick({ x, y, label, sublabel }) {
 // ── Battery chart (SVG) ──────────────────────────────────────────
 function BatteryChart({ telemetry, alerts, currentTime, totalDuration, onSeek }) {
   const svgRef = useRef(null);
-  const W = 800, H = 48;
+  const W = 800, H = 56;
 
   const points = useMemo(() => {
     const hasBat = telemetry.some(f => f.bat != null);
     if (!hasBat || totalDuration === 0) return [];
     return telemetry
       .filter(f => f.bat != null)
-      .map(f => ({ x: (f.t / totalDuration) * W, y: H - (f.bat / 100) * (H - 4) - 2 }));
+      .map(f => ({ x: (f.t / totalDuration) * W, y: H - (f.bat / 100) * (H - 6) - 3 }));
   }, [telemetry, totalDuration]);
 
   const polyline = points.map(p => `${p.x},${p.y}`).join(' ');
@@ -90,20 +111,20 @@ function BatteryChart({ telemetry, alerts, currentTime, totalDuration, onSeek })
 
   return (
     <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
-      className="w-full h-full cursor-pointer" onClick={handleClick}>
-      <rect width={W} height={H} fill="#0f172a"/>
+      className="w-full h-full cursor-pointer rounded-lg" onClick={handleClick}>
+      <rect width={W} height={H} fill="#0f172a" rx="6"/>
       {points.length > 0 && (
-        <polygon points={`0,${H} ${polyline} ${W},${H}`} fill="#EC5B13" opacity="0.12"/>
+        <polygon points={`0,${H} ${polyline} ${W},${H}`} fill="#EC5B13" opacity="0.14"/>
       )}
       {points.length > 0 && (
-        <polyline points={polyline} fill="none" stroke="#EC5B13" strokeWidth="1.5" opacity="0.8"/>
+        <polyline points={polyline} fill="none" stroke="#EC5B13" strokeWidth="1.75" opacity="0.9"/>
       )}
       {[25, 50, 75].map(pct => {
-        const y = H - (pct / 100) * (H - 4) - 2;
+        const y = H - (pct / 100) * (H - 6) - 3;
         return (
           <g key={pct}>
             <line x1="0" y1={y} x2={W} y2={y} stroke="#1e293b" strokeWidth="0.8"/>
-            <text x="4" y={y - 2} fill="#475569" fontSize="7">{pct}%</text>
+            <text x="4" y={y - 2} fill="#64748b" fontSize="7.5">{pct}%</text>
           </g>
         );
       })}
@@ -113,14 +134,173 @@ function BatteryChart({ telemetry, alerts, currentTime, totalDuration, onSeek })
           <g key={i}>
             <line x1={x} y1="0" x2={x} y2={H}
               stroke={SEVERITY_COLOR[a.severity] ?? '#f59e0b'} strokeWidth="1.5" opacity="0.8"/>
-            <circle cx={x} cy={H - 5} r="3"
+            <circle cx={x} cy={H - 6} r="3.5"
               fill={SEVERITY_COLOR[a.severity] ?? '#f59e0b'} opacity="0.9"/>
           </g>
         );
       })}
-      <line x1={playX} y1="0" x2={playX} y2={H} stroke="white" strokeWidth="1.5" opacity="0.9"/>
-      <circle cx={playX} cy={H / 2} r="4" fill="white" opacity="0.9"/>
+      <line x1={playX} y1="0" x2={playX} y2={H} stroke="white" strokeWidth="1.75" opacity="0.95"/>
+      <circle cx={playX} cy={H / 2} r="4.5" fill="white" opacity="0.95"/>
     </svg>
+  );
+}
+
+// ── Contenido del panel de Alertas + Clima (compartido desktop/mobile) ──
+function AlertsPanelContent({ alerts, pause, seek, weatherCoords, weatherDate, weatherHour, meta }) {
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-3 py-2.5 border-b border-slate-800 flex items-center justify-between shrink-0">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Alertas</p>
+        <span className={`text-xs font-black px-1.5 py-0.5 rounded-md ${
+          alerts.length > 0 ? 'bg-red-900/60 text-red-300' : 'bg-slate-800 text-slate-500'
+        }`}>{alerts.length}</span>
+      </div>
+
+      {/* Lista de alertas — es la ÚNICA sección que hace scroll */}
+      <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5 min-h-[88px]">
+        {alerts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full gap-2 opacity-50 py-6">
+            <span className="material-symbols-outlined text-3xl text-green-500">check_circle</span>
+            <p className="text-[10px] text-slate-500 text-center">Sin alertas detectadas en este vuelo</p>
+          </div>
+        ) : alerts.map((a, i) => (
+          <button key={i} onClick={() => { pause(); seek(a.t); }}
+            className={`w-full text-left p-2.5 rounded-xl border text-[10px] transition-all hover:opacity-100 ${SEVERITY_BG[a.severity]} opacity-85 hover:scale-[1.02]`}>
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className={`material-symbols-outlined text-sm ${SEVERITY_TEXT[a.severity]}`}>
+                {a.severity === 'critical' ? 'error' : 'warning'}
+              </span>
+              <span className={`font-black ${SEVERITY_TEXT[a.severity]}`}>{fmtTime(a.t)}</span>
+            </div>
+            <p className="text-slate-300 leading-snug">{a.label}</p>
+          </button>
+        ))}
+      </div>
+
+      {/* Clima del vuelo — SIEMPRE visible, fuera del scroll de alertas */}
+      {weatherCoords && weatherDate && (
+        <div className="shrink-0 border-t border-slate-800 p-2.5">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+            <span className="material-symbols-outlined text-xs">cloud</span>
+            Clima del vuelo
+          </p>
+          <WeatherWidget
+            lat={weatherCoords.lat}
+            lon={weatherCoords.lon}
+            date={weatherDate}
+            hour={weatherHour}
+            className="!p-2.5"
+          />
+        </div>
+      )}
+
+      {/* Stats resumen — siempre visible al pie */}
+      <div className="shrink-0 border-t border-slate-800 p-3 space-y-1.5">
+        {[
+          { icon: 'straighten', label: 'Distancia', value: meta.distanceM ? fmtDist(meta.distanceM) : '---' },
+          { icon: 'landscape',  label: 'Alt. máx',  value: meta.altMax ? `${meta.altMax.toFixed(0)} m` : '---' },
+          { icon: 'speed',      label: 'Vel. máx',  value: meta.speedMax ? `${meta.speedMax.toFixed(1)} m/s` : '---' },
+        ].map(s => (
+          <div key={s.label} className="flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              <span className="material-symbols-outlined text-xs text-slate-500">{s.icon}</span>
+              <span className="text-[10px] text-slate-500">{s.label}</span>
+            </div>
+            <span className="text-[10px] font-black text-slate-300">{s.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Contenido del panel de Telemetría/Batería/RC (compartido desktop/mobile) ──
+function TelemetryPanelContent({ f, displayTime, totalDuration, batColor, meta }) {
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="border-b border-slate-800 px-3 py-2.5 text-center shrink-0">
+        <p className="text-lg font-black text-white font-mono tracking-wider">{fmtTime(displayTime)}</p>
+        <p className="text-[10px] text-slate-500">/ {fmtTime(totalDuration)}</p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5">
+        {/* Métricas live */}
+        <Panel icon="speed" label="Vuelo en vivo">
+          <div className="space-y-2">
+            {[
+              { icon: 'landscape',     label: 'Altitud', value: f?.alt    != null ? `${f.alt.toFixed(1)} m`                                : '---' },
+              { icon: 'speed',         label: 'Vel. H',  value: f?.speedH != null ? `${f.speedH.toFixed(1)} m/s`                           : '---' },
+              { icon: 'arrow_upward',  label: 'Vel. V',  value: f?.speedV != null ? `${f.speedV > 0 ? '+' : ''}${f.speedV.toFixed(1)} m/s` : '---' },
+              { icon: 'satellite_alt', label: 'GPS',     value: f?.gpsNum != null ? `${f.gpsNum} sat`                                       : '---' },
+            ].map(s => (
+              <div key={s.label} className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-xs text-slate-500">{s.icon}</span>
+                  <span className="text-[10px] text-slate-500">{s.label}</span>
+                </div>
+                <span className="text-[10px] font-black text-slate-200">{s.value}</span>
+              </div>
+            ))}
+            {f?.flightMode && (
+              <div className="bg-slate-800/80 rounded-lg px-2 py-1.5 text-center mt-1">
+                <p className="text-[9px] text-slate-500 uppercase tracking-wide">Modo</p>
+                <p className="text-[10px] font-black text-orange-400">{f.flightMode}</p>
+              </div>
+            )}
+          </div>
+        </Panel>
+
+        {/* Batería */}
+        <Panel icon="battery_full" label="Batería" right={
+          <span className={`text-xs font-black ${batColor}`}>{f?.bat != null ? `${f.bat}%` : '---'}</span>
+        }>
+          <div className="space-y-2.5">
+            <div className="h-2.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className={`h-full rounded-full transition-all ${
+                (f?.bat ?? 100) > 40 ? 'bg-green-500' : (f?.bat ?? 100) > 20 ? 'bg-amber-500' : 'bg-red-500'
+              }`} style={{ width: `${f?.bat ?? 0}%` }} />
+            </div>
+            {f?.voltage != null && <p className="text-[10px] text-slate-400 font-mono">{f.voltage.toFixed(2)} V</p>}
+            {f?.cellVolts?.length > 0 && (
+              <div className="space-y-1">
+                {f.cellVolts.map((v, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <span className="text-[9px] text-slate-600 w-5">C{i+1}</span>
+                    <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${v > 3.7 ? 'bg-green-500' : v > 3.5 ? 'bg-amber-400' : 'bg-red-500'}`}
+                        style={{ width: `${Math.min(((v-3.0)/(4.2-3.0))*100,100)}%` }}/>
+                    </div>
+                    <span className="text-[9px] text-slate-500 font-mono w-9 text-right">{v.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Panel>
+
+        {/* Joysticks RC */}
+        {meta.hasRC ? (
+          <Panel icon="sports_esports" label="Control RC">
+            <div className="flex justify-center gap-3">
+              <Joystick x={f?.rc_rud} y={f?.rc_thr} label="Izq." sublabel="Throt · Rud"/>
+              <Joystick x={f?.rc_ail} y={f?.rc_ele} label="Der." sublabel="Ail · Ele"/>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5 text-[9px] mt-3">
+              {[['Thr', f?.rc_thr], ['Rud', f?.rc_rud], ['Ail', f?.rc_ail], ['Ele', f?.rc_ele]].map(([k, v]) => (
+                <div key={k} className="flex justify-between bg-slate-800/80 rounded-lg px-1.5 py-1">
+                  <span className="text-slate-500">{k}</span>
+                  <span className="font-mono text-slate-300">{v != null ? v.toFixed(2) : '---'}</span>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        ) : (
+          <div className="p-3 text-center">
+            <p className="text-[10px] text-slate-600">RC no registrado en este log</p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -132,6 +312,7 @@ export default function FlightReplayView({ flightData, fileName, onReset, onClos
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed]         = useState(1);
   const [displayTime, setDisplayTime] = useState(0);
+  const [mobilePanel, setMobilePanel] = useState(null); // null | 'alerts' | 'telemetry' — drawers en mobile
 
   const timeRef       = useRef(0);
   const playRef       = useRef(false);
@@ -217,14 +398,14 @@ export default function FlightReplayView({ flightData, fileName, onReset, onClos
     <div className="h-full flex flex-col bg-slate-950 text-white overflow-hidden">
 
       {/* ── HEADER ─────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800 bg-slate-900 shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
+      <header className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-slate-800 bg-slate-900 shrink-0 gap-2">
+        <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-7 h-7 rounded-lg bg-orange-500/20 flex items-center justify-center shrink-0">
             <span className="material-symbols-outlined text-orange-500 text-sm">route</span>
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-black text-white truncate max-w-[160px] md:max-w-[260px]">{fileName}</p>
-            <p className="text-[10px] text-slate-500">
+            <p className="text-xs font-black text-white truncate max-w-[120px] sm:max-w-[180px] md:max-w-[260px]">{fileName}</p>
+            <p className="text-[10px] text-slate-500 truncate max-w-[160px] sm:max-w-none">
               {meta.model ?? 'DJI'} · {meta.serial ?? '---'} · {fmtTime(totalDuration)}
               {meta.alertCount > 0 && (
                 <span className="ml-2 text-red-400 font-bold">{meta.alertCount} alerta{meta.alertCount !== 1 ? 's' : ''}</span>
@@ -233,8 +414,8 @@ export default function FlightReplayView({ flightData, fileName, onReset, onClos
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
-          <div className="flex bg-slate-800 rounded-lg p-0.5 gap-0.5">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          <div className="hidden xs:flex bg-slate-800 rounded-lg p-0.5 gap-0.5">
             {SPEEDS.map(s => (
               <button key={s} onClick={() => changeSpeed(s)}
                 className={`px-2 py-1 rounded text-[10px] font-black transition-all ${
@@ -243,18 +424,18 @@ export default function FlightReplayView({ flightData, fileName, onReset, onClos
             ))}
           </div>
           <button onClick={isPlaying ? pause : play}
-            className="w-9 h-9 rounded-xl bg-orange-600 hover:bg-orange-500 flex items-center justify-center transition-colors active:scale-95">
+            className="w-9 h-9 rounded-xl bg-orange-600 hover:bg-orange-500 flex items-center justify-center transition-colors active:scale-95 shrink-0">
             <span className="material-symbols-outlined text-base">
               {isPlaying ? 'pause' : 'play_arrow'}
             </span>
           </button>
           <button onClick={() => { pause(); seek(0); }}
-            className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-colors">
+            className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-colors shrink-0">
             <span className="material-symbols-outlined text-base text-slate-300">skip_previous</span>
           </button>
           {onReset && (
             <button onClick={onReset}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-2 text-xs font-black text-slate-400 hover:text-white border border-slate-700 rounded-xl transition-colors">
+              className="hidden md:flex items-center gap-1.5 px-3 py-2 text-xs font-black text-slate-400 hover:text-white border border-slate-700 rounded-xl transition-colors">
               <span className="material-symbols-outlined text-sm">upload_file</span>
               Otro archivo
             </button>
@@ -276,7 +457,7 @@ export default function FlightReplayView({ flightData, fileName, onReset, onClos
           {onClose && (
             <button onClick={onClose}
               aria-label="Cerrar replay"
-              className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-colors focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:outline-none">
+              className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-colors focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:outline-none shrink-0">
               <span className="material-symbols-outlined text-slate-300 text-base">close</span>
             </button>
           )}
@@ -284,172 +465,85 @@ export default function FlightReplayView({ flightData, fileName, onReset, onClos
       </header>
 
       {/* ── BODY ───────────────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
 
-        {/* Panel izquierdo: alertas */}
-        <aside className="w-56 shrink-0 flex flex-col border-r border-slate-800 bg-slate-900 overflow-hidden">
-          <div className="px-3 py-2 border-b border-slate-800 flex items-center justify-between">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Alertas</p>
-            <span className={`text-xs font-black px-1.5 py-0.5 rounded ${
-              alerts.length > 0 ? 'bg-red-900/60 text-red-300' : 'bg-slate-800 text-slate-500'
-            }`}>{alerts.length}</span>
+        {/* Panel izquierdo: alertas + clima — columna fija en desktop, drawer en mobile */}
+        <aside className={`
+          fixed md:static inset-y-0 left-0 z-30 w-[85vw] max-w-80 md:w-60 lg:w-64
+          flex flex-col border-r border-slate-800 bg-slate-900
+          transform transition-transform duration-300 ease-out
+          ${mobilePanel === 'alerts' ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
+        `}>
+          {/* Header del drawer — solo mobile */}
+          <div className="flex md:hidden items-center justify-between px-3 py-2.5 border-b border-slate-800 shrink-0">
+            <p className="text-xs font-black text-white">Alertas y clima</p>
+            <button onClick={() => setMobilePanel(null)} className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center">
+              <span className="material-symbols-outlined text-slate-300 text-base">close</span>
+            </button>
           </div>
-
-          <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-            {alerts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full gap-2 opacity-50">
-                <span className="material-symbols-outlined text-3xl text-green-500">check_circle</span>
-                <p className="text-[10px] text-slate-500 text-center">Sin alertas detectadas en este vuelo</p>
-              </div>
-            ) : alerts.map((a, i) => (
-              <button key={i} onClick={() => { pause(); seek(a.t); }}
-                className={`w-full text-left p-2 rounded-lg border text-[10px] transition-all hover:opacity-100 ${SEVERITY_BG[a.severity]} opacity-80 hover:scale-[1.02]`}>
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className={`material-symbols-outlined text-sm ${SEVERITY_TEXT[a.severity]}`}>
-                    {a.severity === 'critical' ? 'error' : 'warning'}
-                  </span>
-                  <span className={`font-black ${SEVERITY_TEXT[a.severity]}`}>{fmtTime(a.t)}</span>
-                </div>
-                <p className="text-slate-300 leading-snug">{a.label}</p>
-              </button>
-            ))}
-
-            {/* Clima durante el vuelo — debajo de las alertas */}
-            {weatherCoords && weatherDate && (
-              <div className="pt-2 mt-1 border-t border-slate-800">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-xs">cloud</span>
-                  Clima del vuelo
-                </p>
-                <WeatherWidget
-                  lat={weatherCoords.lat}
-                  lon={weatherCoords.lon}
-                  date={weatherDate}
-                  hour={weatherHour}
-                  className="!p-2.5"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Stats resumen */}
-          <div className="p-3 border-t border-slate-800 space-y-1.5">
-            {[
-              { icon: 'straighten', label: 'Distancia', value: meta.distanceM ? fmtDist(meta.distanceM) : '---' },
-              { icon: 'landscape',  label: 'Alt. máx',  value: meta.altMax ? `${meta.altMax.toFixed(0)} m` : '---' },
-              { icon: 'speed',      label: 'Vel. máx',  value: meta.speedMax ? `${meta.speedMax.toFixed(1)} m/s` : '---' },
-            ].map(s => (
-              <div key={s.label} className="flex items-center justify-between">
-                <div className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-xs text-slate-500">{s.icon}</span>
-                  <span className="text-[10px] text-slate-500">{s.label}</span>
-                </div>
-                <span className="text-[10px] font-black text-slate-300">{s.value}</span>
-              </div>
-            ))}
-          </div>
+          <AlertsPanelContent
+            alerts={alerts} pause={pause} seek={seek}
+            weatherCoords={weatherCoords} weatherDate={weatherDate} weatherHour={weatherHour}
+            meta={meta}
+          />
         </aside>
 
+        {/* Backdrop mobile */}
+        {mobilePanel && (
+          <div className="fixed inset-0 z-20 bg-black/60 md:hidden" onClick={() => setMobilePanel(null)} />
+        )}
+
         {/* Mapa */}
-        <main className="flex-1 relative">
+        <main className="flex-1 relative min-w-0">
           <FlightAnimMap
             path={path}
             telemetry={telemetry}
             meta={meta}
             onReady={(api) => { mapApiRef.current = api; }}
           />
+
+          {/* Botones flotantes — solo mobile, abren los drawers */}
+          <div className="md:hidden absolute top-3 left-3 z-10">
+            <button onClick={() => setMobilePanel('alerts')}
+              className="flex items-center gap-1.5 bg-slate-900/90 backdrop-blur border border-slate-700 rounded-full pl-2.5 pr-3 py-2 shadow-lg">
+              <span className="material-symbols-outlined text-orange-400 text-base">notifications</span>
+              <span className="text-[11px] font-black text-white">Alertas</span>
+              {alerts.length > 0 && (
+                <span className="text-[9px] font-black bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center">{alerts.length}</span>
+              )}
+            </button>
+          </div>
+          <div className="md:hidden absolute top-3 right-3 z-10">
+            <button onClick={() => setMobilePanel('telemetry')}
+              className="flex items-center gap-1.5 bg-slate-900/90 backdrop-blur border border-slate-700 rounded-full pl-2.5 pr-3 py-2 shadow-lg">
+              <span className="text-[11px] font-black text-white">Datos</span>
+              <span className="material-symbols-outlined text-orange-400 text-base">speed</span>
+            </button>
+          </div>
         </main>
 
-        {/* Panel derecho: telemetría */}
-        <aside className="w-52 shrink-0 flex flex-col border-l border-slate-800 bg-slate-900 overflow-hidden">
-          <div className="border-b border-slate-800 px-3 py-2 text-center">
-            <p className="text-lg font-black text-white font-mono tracking-wider">{fmtTime(displayTime)}</p>
-            <p className="text-[10px] text-slate-500">/ {fmtTime(totalDuration)}</p>
+        {/* Panel derecho: telemetría — columna fija en desktop, drawer en mobile */}
+        <aside className={`
+          fixed md:static inset-y-0 right-0 z-30 w-[85vw] max-w-72 md:w-52 lg:w-56
+          flex flex-col border-l border-slate-800 bg-slate-900
+          transform transition-transform duration-300 ease-out
+          ${mobilePanel === 'telemetry' ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0
+        `}>
+          {/* Header del drawer — solo mobile */}
+          <div className="flex md:hidden items-center justify-between px-3 py-2.5 border-b border-slate-800 shrink-0">
+            <p className="text-xs font-black text-white">Telemetría</p>
+            <button onClick={() => setMobilePanel(null)} className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center">
+              <span className="material-symbols-outlined text-slate-300 text-base">close</span>
+            </button>
           </div>
-
-          <div className="flex-1 overflow-y-auto">
-            {/* Métricas live */}
-            <div className="p-3 space-y-2 border-b border-slate-800">
-              {[
-                { icon: 'landscape',     label: 'Altitud', value: f?.alt    != null ? `${f.alt.toFixed(1)} m`                                : '---' },
-                { icon: 'speed',         label: 'Vel. H',  value: f?.speedH != null ? `${f.speedH.toFixed(1)} m/s`                           : '---' },
-                { icon: 'arrow_upward',  label: 'Vel. V',  value: f?.speedV != null ? `${f.speedV > 0 ? '+' : ''}${f.speedV.toFixed(1)} m/s` : '---' },
-                { icon: 'satellite_alt', label: 'GPS',     value: f?.gpsNum != null ? `${f.gpsNum} sat`                                       : '---' },
-              ].map(s => (
-                <div key={s.label} className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-xs text-slate-500">{s.icon}</span>
-                    <span className="text-[10px] text-slate-500">{s.label}</span>
-                  </div>
-                  <span className="text-[10px] font-black text-slate-200">{s.value}</span>
-                </div>
-              ))}
-              {f?.flightMode && (
-                <div className="bg-slate-800 rounded-lg px-2 py-1 text-center">
-                  <p className="text-[9px] text-slate-500 uppercase tracking-wide">Modo</p>
-                  <p className="text-[10px] font-black text-orange-400">{f.flightMode}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Batería */}
-            <div className="p-3 border-b border-slate-800 space-y-2">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Batería</p>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full transition-all ${
-                    (f?.bat ?? 100) > 40 ? 'bg-green-500' : (f?.bat ?? 100) > 20 ? 'bg-amber-500' : 'bg-red-500'
-                  }`} style={{ width: `${f?.bat ?? 0}%` }} />
-                </div>
-                <span className={`text-sm font-black ${batColor}`}>{f?.bat != null ? `${f.bat}%` : '---'}</span>
-              </div>
-              {f?.voltage != null && <p className="text-[10px] text-slate-400 font-mono">{f.voltage.toFixed(2)} V</p>}
-              {f?.cellVolts?.length > 0 && (
-                <div className="space-y-0.5">
-                  {f.cellVolts.map((v, i) => (
-                    <div key={i} className="flex items-center gap-1.5">
-                      <span className="text-[9px] text-slate-600 w-4">C{i+1}</span>
-                      <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full ${v > 3.7 ? 'bg-green-500' : v > 3.5 ? 'bg-amber-400' : 'bg-red-500'}`}
-                          style={{ width: `${Math.min(((v-3.0)/(4.2-3.0))*100,100)}%` }}/>
-                      </div>
-                      <span className="text-[9px] text-slate-500 font-mono w-8 text-right">{v.toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Joysticks RC */}
-            {meta.hasRC ? (
-              <div className="p-3 space-y-3">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Control RC</p>
-                <div className="flex justify-center gap-2">
-                  <Joystick x={f?.rc_rud} y={f?.rc_thr} label="Izq." sublabel="Throt · Rud"/>
-                  <Joystick x={f?.rc_ail} y={f?.rc_ele} label="Der." sublabel="Ail · Ele"/>
-                </div>
-                <div className="grid grid-cols-2 gap-1 text-[9px]">
-                  {[['Thr', f?.rc_thr], ['Rud', f?.rc_rud], ['Ail', f?.rc_ail], ['Ele', f?.rc_ele]].map(([k, v]) => (
-                    <div key={k} className="flex justify-between bg-slate-800 rounded px-1.5 py-0.5">
-                      <span className="text-slate-500">{k}</span>
-                      <span className="font-mono text-slate-300">{v != null ? v.toFixed(2) : '---'}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="p-3 text-center">
-                <p className="text-[10px] text-slate-600">RC no registrado en este log</p>
-              </div>
-            )}
-          </div>
+          <TelemetryPanelContent f={f} displayTime={displayTime} totalDuration={totalDuration} batColor={batColor} meta={meta} />
         </aside>
       </div>
 
       {/* ── BOTTOM: timeline + battery chart ───────────────────── */}
-      <div className="shrink-0 bg-slate-900 border-t border-slate-800">
-        <div className="px-4 py-1 flex items-center gap-3">
-          <span className="text-[10px] font-mono text-slate-500 w-10 text-right shrink-0">
+      <div className="shrink-0 bg-slate-900 border-t border-slate-800 px-3 sm:px-4 py-2.5 space-y-2">
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-mono text-slate-500 w-9 text-right shrink-0">
             {fmtTime(displayTime)}
           </span>
           <input
@@ -459,20 +553,27 @@ export default function FlightReplayView({ flightData, fileName, onReset, onClos
             step={0.1}
             value={displayTime}
             onChange={e => { pause(); seek(parseFloat(e.target.value)); }}
-            className="flex-1 accent-orange-500 cursor-pointer h-1"
+            className="flex-1 accent-orange-500 cursor-pointer h-1.5"
+            aria-label="Posición en la línea de tiempo del vuelo"
           />
-          <span className="text-[10px] font-mono text-slate-500 w-10 shrink-0">
+          <span className="text-[10px] font-mono text-slate-500 w-9 shrink-0">
             {fmtTime(totalDuration)}
           </span>
         </div>
-        <div className="px-4 pb-2 h-12">
-          <BatteryChart
-            telemetry={telemetry}
-            alerts={alerts}
-            currentTime={displayTime}
-            totalDuration={totalDuration}
-            onSeek={t => { pause(); seek(t); }}
-          />
+        <div className="flex items-center gap-2">
+          <span className="hidden sm:flex items-center gap-1 text-[9px] text-slate-500 uppercase tracking-widest font-bold shrink-0 w-16">
+            <span className="material-symbols-outlined text-xs">battery_full</span>
+            Batería
+          </span>
+          <div className="flex-1 h-12">
+            <BatteryChart
+              telemetry={telemetry}
+              alerts={alerts}
+              currentTime={displayTime}
+              totalDuration={totalDuration}
+              onSeek={t => { pause(); seek(t); }}
+            />
+          </div>
         </div>
       </div>
     </div>

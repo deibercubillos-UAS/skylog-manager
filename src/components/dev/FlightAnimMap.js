@@ -180,17 +180,23 @@ export default function FlightAnimMap({ path, telemetry, meta, onReady }) {
       style={{ height: '100%', width: '100%' }}
       zoomControl={true}
     >
-      {/* Satelital ESRI */}
+      {/* Satelital ESRI — maxZoom (22) es hasta dónde se puede acercar en la UI;
+          maxNativeZoom (19, la cobertura real de Esri en la mayoría de Colombia)
+          es hasta dónde existen tiles reales. Por encima de eso, Leaflet amplía
+          el último tile real disponible en vez de pedir uno inexistente — así se
+          evita el tile gris de "imagen no disponible" al hacer zoom máximo. */}
       <TileLayer
         url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
         attribution="Tiles © Esri"
-        maxZoom={20}
+        maxZoom={22}
+        maxNativeZoom={19}
       />
       {/* Labels */}
       <TileLayer
         url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
         attribution=""
-        maxZoom={20}
+        maxZoom={22}
+        maxNativeZoom={19}
         opacity={0.65}
       />
       <MapController path={path} telemetry={telemetry} onReady={onReady} />

@@ -87,16 +87,15 @@ subida del replay, no el mapa animado — la QA org no tiene un log `.txt` DJI r
 para generar la vista con mapa/telemetría; se necesitaría subir uno real para esa captura
 específica).
 
-**Limitación real encontrada, a tener en cuenta en las Fases 2-6**: la organización QA
-tiene datos de fixture reales pero **escasos** para fines de marketing — 1 sola aeronave,
-0 vuelos del mes actual, 0.0 horas, calendario de Programación vacío en la semana actual.
-Las capturas de **Meteorología** y **Reportes** salieron visualmente ricas (datos en vivo,
-grid de formatos) y son las mejores candidatas para el Hero/Features. Las de **Dashboard
-principal** y **Programación** se ven correctas pero "vacías" — antes de usarlas en el
-Hero conviene decidir: (a) usarlas tal cual (auténtico pero poco vistoso), (b) agregar más
-datos de fixture a la QA org (más vuelos recientes, 2-3 aeronaves) solo para mejorar estas
-capturas puntuales, o (c) usar Meteorología/Reportes/Bitácora como las piezas principales
-del Hero y evitar Dashboard/Programación hasta enriquecer los datos.
+**Limitación real encontrada, ya resuelta**: la primera pasada de capturas mostró la QA org
+con datos escasos (1 aeronave, 0 vuelos del mes, calendario vacío). Se enriqueció la
+organización QA con una 2ª aeronave (Mavic 3 Enterprise), 6 vuelos reales repartidos en
+agosto 2026 y 3 misiones programadas en la semana en curso — y se recapturaron Dashboard,
+Flota, Bitácora y Programación con ese contenido. Las 9 capturas finales en
+`public/screenshots/` ya reflejan un flujo de operación creíble (2 aeronaves, 9 vuelos,
+5.2h, 6 vuelos este mes, calendario con 3 misiones). Pendiente real: `replay-gps-upload.jpg`
+sigue siendo el modal de subida (no el mapa animado) — falta un log `.txt` real de DJI para
+generar esa vista; se retoma si el usuario aporta uno.
 
 ## Fase 1 — Sistema de diseño: menos repetición, más variación intencional
 

@@ -485,12 +485,12 @@ para ti, una alerta de mantenimiento, una invitación pendiente. No tienes que e
 revisando cada módulo — las notificaciones llegan solas."
 
 [Bloque 4: Tu perfil y menú de cuenta — 1:55-2:35]
-[Visual: pantalla, clic en el avatar, menú desplegado con Perfil / Organización /
-Suscripción / Cerrar sesión]
+[Visual: pantalla, clic en el avatar+nombre al pie del menú lateral, menú desplegado con
+Configurar Organización / Gestión de Usuarios / Mi Perfil / Suscripción / Cerrar sesión]
 
-"Y en tu avatar, arriba a la derecha, está todo lo relacionado con tu cuenta: tu perfil
-personal, los datos de tu organización si te corresponde verlos, tu suscripción, y por
-supuesto, cerrar sesión."
+"Y al pie del menú lateral, en tu nombre y tu rol, está todo lo relacionado con tu cuenta:
+tu perfil personal, los datos de tu organización si te corresponde verlos, tu suscripción,
+y por supuesto, cerrar sesión."
 
 [CONCLUSIÓN — 2:35-3:00]
 [Visual: pantalla, vuelve al dashboard general]
@@ -528,6 +528,17 @@ Notas de producción:
   Bitácora, Programación, etc.) tiene su propio video dedicado más adelante en el Bloque 2.
 - **Subtítulos**: mismo criterio que los guiones anteriores — se derivan de este documento
   una vez esté el video montado.
+- **GIFs de referencia grabados (2026-08-17)**: 4 clips silenciosos, uno por bloque, contra
+  la organización QA de prueba, sin overlays (sin círculos de clic/etiquetas/marca de agua)
+  — `0.5-bloque1-menu-lateral.gif`, `0.5-bloque2-buscador.gif`, `0.5-bloque3-campana.gif`,
+  `0.5-bloque4-menu-cuenta.gif`. Son referencia/b-roll de apoyo (ritmo de demo, no
+  cronometrados a los segundos del guion) — el usuario los usa como base para grabar su
+  propia pantalla con narración, o los recorta directo en su editor.
+- **Corrección real encontrada al grabar**: el avatar de **arriba a la derecha** del header
+  NO abre un menú — navega directo a Mi Perfil. El menú de cuenta real (Configurar
+  Organización / Gestión de Usuarios / Mi Perfil / Suscripción / Cerrar sesión) está en el
+  **pie del menú lateral** (avatar + nombre + rol). El guion del Bloque 4 ya se corrigió
+  arriba para reflejar esto.
 
 ### Guion — 0.6 · Planes y precios
 

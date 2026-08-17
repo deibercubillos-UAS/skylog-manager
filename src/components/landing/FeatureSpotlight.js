@@ -12,18 +12,22 @@
  *   children   node    — la ilustración (DroneOpsScene, FleetScene, etc.)
  *   flip       bool    — true = ilustración a la izquierda
  *   bg         string  — color de fondo de la sección (default #fff)
+ *   decor      string  — variante de <Decor> (default "light"); usar "minimal"
+ *                        cuando `children` es un screenshot real (la decoración
+ *                        no debe competir con la imagen — ver Fase 1 del plan
+ *                        de mejora visual)
  *
- * Incluye Decor variant="light" para textura sutil. Cero peticiones de red.
+ * Incluye <Decor> para textura sutil. Cero peticiones de red.
  */
 import Decor from '@/components/landing/Decor';
 
 const ACCENT = '#ec5b13';
 const NAVY = '#1A202C';
 
-export default function FeatureSpotlight({ overline, title, desc, bullets = [], children, flip = false, bg = '#fff' }) {
+export default function FeatureSpotlight({ overline, title, desc, bullets = [], children, flip = false, bg = '#fff', decor = 'light' }) {
   return (
     <section className="relative overflow-hidden isolate px-6 lg:px-8 py-16 lg:py-20" style={{ background: bg }}>
-      <Decor variant="light" />
+      <Decor variant={decor} />
       <div
         className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center"
         style={{ maxWidth: '1100px', margin: '0 auto' }}

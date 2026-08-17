@@ -5,6 +5,7 @@ import DashboardMockup from '@/components/landing/DashboardMockup';
 import Pricing from '@/components/landing/Pricing';
 import Contact from '@/components/landing/Contact';
 import Decor from '@/components/landing/Decor';
+import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
 import SEOFooter from '@/components/seo/SEOFooter';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
@@ -517,6 +518,74 @@ export default function LandingPage() {
               </div>
             </div>
           </section>
+
+          {/* ==================== BITAFLY EN ACCIÓN (screenshots reales) ==================== */}
+          {/* 3 módulos reales, capturados contra la organización QA de prueba
+              (ver docs/plan-mejora-visual-landing-bitafly.md, Fase 0) — reemplaza
+              el patrón repetido de ícono+texto con evidencia real del producto,
+              reutilizando FeatureSpotlight (mismo componente ya usado en las
+              páginas SEO satélite) en vez de duplicar el layout. */}
+          <FeatureSpotlight
+            overline="Meteorología integrada"
+            title={<>Decide con datos, no <span style={{ color: '#ec5b13' }}>a ojo</span></>}
+            desc="Viento, ráfagas, visibilidad, precipitación e índice Kp del punto exacto de vuelo, con semáforo GO / Precaución / NO-GO y pronóstico horario — sin salir de Bitafly."
+            bullets={[
+              'Datos en tiempo real por coordenada, no un promedio regional',
+              'Pronóstico horario para planear la ventana de vuelo del día',
+              'Se integra directo en Programación, Despacho y Replay GPS',
+            ]}
+            decor="minimal"
+          >
+            <Image
+              src="/screenshots/meteorologia.jpg"
+              alt="Pantalla de Meteorología de Bitafly con viento, ráfagas, visibilidad y pronóstico horario"
+              width={1568}
+              height={718}
+              className="w-full h-auto rounded-3xl shadow-2xl border border-slate-200"
+            />
+          </FeatureSpotlight>
+
+          <FeatureSpotlight
+            overline="Documentación RAC 100"
+            title={<>Más de 20 formatos, listos en <span style={{ color: '#ec5b13' }}>un clic</span></>}
+            desc="Libro de vuelo, mantenimiento, baterías, flota, SORA, componentes, capacitación y más — cada uno en PDF o Excel con tu propio código de formato y firma."
+            bullets={[
+              'Alcance configurable: toda la flota, una aeronave o un tripulante',
+              'Nota de trazabilidad con periodo y fecha de descarga en cada reporte',
+              'El mismo set que pide una auditoría de AeroCivil, sin armarlo a mano',
+            ]}
+            flip
+            bg="#f8f6f6"
+            decor="minimal"
+          >
+            <Image
+              src="/screenshots/reportes.jpg"
+              alt="Pantalla de Reportes de Bitafly con la grilla de formatos RAC 100 disponibles"
+              width={1568}
+              height={718}
+              className="w-full h-auto rounded-3xl shadow-2xl border border-slate-200"
+            />
+          </FeatureSpotlight>
+
+          <FeatureSpotlight
+            overline="Seguridad SMS"
+            title={<>Todo tu sistema de gestión <span style={{ color: '#ec5b13' }}>de seguridad</span></>}
+            desc="SORA, evaluación de riesgos, indicadores de desempeño (SPI), mejora continua, acciones correctivas y capacitación — organizados en un solo hub, no repartidos en pestañas sueltas."
+            bullets={[
+              'Análisis SORA obligatorio antes de autorizar cualquier misión',
+              'Indicadores SPI con líneas de alerta calculadas automáticamente',
+              'Capacitación SMS con cronograma, asistencia y evidencia real',
+            ]}
+            decor="minimal"
+          >
+            <Image
+              src="/screenshots/seguridad-sms.jpg"
+              alt="Hub de Seguridad SMS de Bitafly con las secciones de Evaluación, Desempeño, Cumplimiento y Recursos"
+              width={1456}
+              height={667}
+              className="w-full h-auto rounded-3xl shadow-2xl border border-slate-200"
+            />
+          </FeatureSpotlight>
 
           {/* ==================== CUMPLIMIENTO RAC 100 ==================== */}
           <section id="cumplimiento" className="py-24 px-6 bg-white">

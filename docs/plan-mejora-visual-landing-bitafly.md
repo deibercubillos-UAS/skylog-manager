@@ -97,18 +97,25 @@ Flota, Bitácora y Programación con ese contenido. Las 9 capturas finales en
 sigue siendo el modal de subida (no el mapa animado) — falta un log `.txt` real de DJI para
 generar esa vista; se retoma si el usuario aporta uno.
 
-## Fase 1 — Sistema de diseño: menos repetición, más variación intencional
+## Fase 1 — Sistema de diseño: menos repetición, más variación intencional `[x] Hecha (2026-08-17)`
 
 **Objetivo**: que las 28 páginas dejen de sentirse "cortadas con el mismo molde".
 
 - Ampliar `tailwind.config.mjs` con tonos derivados de los 2 colores de marca (navy más
   claro/oscuro, naranja con variantes de saturación) en vez de recurrir siempre a la
-  escala genérica `slate-*`/`orange-*`.
+  escala genérica `slate-*`/`orange-*`. ✅ Escalas `primary-*`/`navy-*` (50-900) + acento
+  nuevo `sky-*` (azul cielo, temática aviación) — `DEFAULT` intacto, cero cambio visual
+  todavía (nadie usa los tonos nuevos hasta las Fases 2/6).
 - Definir 2-3 "familias" de composición de sección (no todas con glow+dot-grid+ícono):
   ej. secciones con screenshot real a pantalla completa sin decoración, secciones con
-  ícono+texto minimalista, secciones con cita/testimonio real.
+  ícono+texto minimalista, secciones con cita/testimonio real. ✅ `Decor.js` gana 2
+  variantes nuevas: `"minimal"` (aura muy tenue sin dot-grid, para secciones con
+  screenshot real como protagonista) y `"accent"` (usa `sky` en vez de naranja).
 - Auditar `Decor.js` y reducir su uso a puntos específicos (hero, algún CTA de cierre)
-  en vez de repetirse en cada sección de cada una de las 28 páginas.
+  en vez de repetirse en cada sección de cada una de las 28 páginas. **Diferido a
+  propósito a las Fases 2 y 6** — reducir el uso real en cada página es un cambio de
+  contenido por página, no de infraestructura; esta fase solo deja las piezas listas
+  (tokens + variantes) para que las Fases 2/6 las apliquen al reconstruir cada página.
 
 ## Fase 2 — Home (`src/app/page.js` + `components/landing/*`)
 

@@ -47,6 +47,17 @@ const TABS = [
   { id: 'capacitacion-sms', label: 'Capacitación SMS', icon: 'school' },
 ];
 
+// Agrupación puramente de presentación (mismo patrón de UX del pedido del
+// usuario: 9 sub-tabs en una sola fila con scroll horizontal obligaban a
+// "buscar a ciegas" — se agrupan por afinidad temática, en filas que envuelven
+// (flex-wrap) en vez de desplazarse, para que todas queden visibles de una vez).
+const TAB_GROUPS = [
+  { label: 'Evaluación',    tabIds: ['sora', 'riesgos'] },
+  { label: 'Desempeño',     tabIds: ['indicadores', 'mejora'] },
+  { label: 'Cumplimiento',  tabIds: ['acciones', 'plazos'] },
+  { label: 'Recursos',      tabIds: ['barreras', 'mapas', 'capacitacion-sms'] },
+];
+
 const SORA_STATUS = {
   complete: { label: 'Completada', cls: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
   draft:    { label: 'Borrador',   cls: 'bg-amber-50 text-amber-600 border-amber-200' },
@@ -608,16 +619,32 @@ export default function SafetyPage() {
         right={heroRight}
       />
 
-      {/* Sub-tabs */}
-      <div className="flex items-center gap-6 border-b border-slate-200 overflow-x-auto">
-        {TABS.map(t => (
-          <button key={t.id} type="button" onClick={() => setTab(t.id)}
-            className={`flex items-center gap-1.5 py-3 shrink-0 border-b-2 transition-colors ${
-              tab === t.id ? 'border-orange-600 text-orange-600' : 'border-transparent text-slate-400 hover:text-slate-600'
-            }`}>
-            <span className="material-symbols-outlined text-base">{t.icon}</span>
-            <span className="text-xs font-black uppercase tracking-tight whitespace-nowrap">{t.label}</span>
-          </button>
+      {/* Sub-tabs — agrupados por afinidad, en filas que envuelven (sin scroll
+          horizontal) para que las 9 secciones queden visibles de una vez */}
+      <div className="flex flex-wrap items-start gap-x-5 gap-y-2.5 border-b border-slate-200 pb-2.5">
+        {TAB_GROUPS.map((g, gi) => (
+          <div key={g.label} className={`flex items-start gap-1 ${gi > 0 ? 'md:pl-5 md:border-l md:border-slate-200' : ''}`}>
+            <div className="flex flex-col gap-1">
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-0.5">{g.label}</p>
+              <div className="flex flex-wrap gap-1">
+                {g.tabIds.map(id => {
+                  const t = TABS.find(x => x.id === id);
+                  if (!t) return null;
+                  const active = tab === t.id;
+                  return (
+                    <button key={t.id} type="button" onClick={() => setTab(t.id)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors ${
+                        active ? 'bg-orange-50 border-orange-200 text-orange-600'
+                               : 'bg-white border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                      }`}>
+                      <span className="material-symbols-outlined text-base">{t.icon}</span>
+                      <span className="text-xs font-black uppercase tracking-tight whitespace-nowrap">{t.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         ))}
       </div>
 

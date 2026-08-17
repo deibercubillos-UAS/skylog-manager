@@ -117,16 +117,24 @@ generar esa vista; se retoma si el usuario aporta uno.
   contenido por página, no de infraestructura; esta fase solo deja las piezas listas
   (tokens + variantes) para que las Fases 2/6 las apliquen al reconstruir cada página.
 
-## Fase 2 — Home (`src/app/page.js` + `components/landing/*`)
+## Fase 2 — Home (`src/app/page.js` + `components/landing/*`) `[x] Hecha (2026-08-17)`
 
-- **Hero**: reemplazar la foto de stock de Unsplash por un screenshot real (Fase 0) o,
-  si el usuario aporta una foto real de operación más adelante, esa tiene prioridad.
-- **`DashboardMockup.js`**: reemplazar la recreación dibujada a mano por el screenshot
-  real del dashboard dentro de un frame de navegador simple (mismo efecto visual, dato
-  real detrás).
-- **`Features.js`**: alternar tarjetas de ícono+texto con 2-3 bloques que muestren un
-  screenshot real del módulo correspondiente (Replay GPS, Reportes, Seguridad SMS).
-- Reducir densidad de `Decor.js` en la página según lo definido en Fase 1.
+- **Hero**: ✅ el Hero real de Home nunca usaba `Hero.js`/la foto de stock (ese componente
+  resultó ser código muerto sin importadores — se eliminó). El Hero real vive inline en
+  `page.js` y usa `DashboardMockup`, ya corregido abajo.
+- **`DashboardMockup.js`**: ✅ reemplazada la recreación dibujada a mano por el screenshot
+  real del dashboard (Fase 0) dentro del mismo frame de navegador — mismo efecto visual,
+  dato real detrás.
+- **`Features.js`**: ✅ implementado como nueva sección "Bitafly en acción" (3 bloques
+  `FeatureSpotlight` con screenshot real) insertada después de la grilla de íconos —
+  se usó **Meteorología, Reportes y Seguridad SMS** en vez de Replay GPS (la captura de
+  Replay GPS disponible es solo el modal de subida, no el mapa animado — ver limitación
+  de la Fase 0; se reconsidera si llega un log `.txt` real).
+- Reducir densidad de `Decor.js` en la página: ✅ las 3 vitrinas nuevas usan la variante
+  `"minimal"` (Fase 1) en vez del `"light"` por defecto, para que la decoración no compita
+  con el screenshot.
+- **Verificado visualmente** con `next dev` + captura de navegador real (no solo build) —
+  las 3 vitrinas y el Hero renderizan correctamente con las imágenes cargando.
 
 ## Fase 3 — Precios (`src/app/precios/`)
 

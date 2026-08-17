@@ -1090,6 +1090,13 @@ Notas de producción:
   que el resto de la serie.
 - **Subtítulos**: mismo criterio que los guiones anteriores — se derivan de este documento
   una vez esté el video montado.
+- **GIFs de referencia grabados (2026-08-17)**: 5 clips silenciosos, uno por bloque
+  (el gancho reutiliza el clip real de 0.2), sin overlays — `1.2-bloque1-equipo.gif`,
+  `1.2-bloque2-flota.gif`, `1.2-bloque3-programacion.gif`,
+  `1.2-bloque4-documentacion.gif`, `1.2-bloque5-cuenta-suscripcion.gif`. Grabados contra
+  `qa.gerente@bitafly-test.local` (organización QA principal, con datos reales: 7
+  tripulantes, 2 aeronaves, 3 misiones programadas, plan Flota) — todos los bloques
+  coincidieron con lo escrito en el guion sin necesitar ajustes.
 
 ---
 

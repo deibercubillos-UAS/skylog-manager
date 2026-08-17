@@ -18,14 +18,21 @@
  *   </section>
  *
  * Variantes:
- *   "hero"  → aura naranja + dot-grid sutil + arco de ruta GPS (fondo claro)
- *   "light" → solo dot-grid muy tenue (secciones claras intermedias)
- *   "dark"  → líneas topográficas + grid sobre navy (#1A202C)
- *   "glow"  → solo aura naranja difusa (para CTAs / bandas)
+ *   "hero"    → aura naranja + dot-grid sutil + arco de ruta GPS (fondo claro)
+ *   "light"   → solo dot-grid muy tenue (secciones claras intermedias)
+ *   "dark"    → líneas topográficas + grid sobre navy (#1A202C)
+ *   "glow"    → solo aura naranja difusa (para CTAs / bandas)
+ *   "minimal" → aura muy tenue, sin dot-grid — para secciones que llevan un
+ *               screenshot real como protagonista (Fase 1/2 del plan de
+ *               mejora visual): la decoración no debe competir con la imagen.
+ *   "accent"  → aura azul cielo (en vez de naranja) — variedad cromática
+ *               deliberada para no repetir siempre navy+naranja en cada
+ *               sección de cada página pública.
  */
 
 const ORANGE = '#ec5b13';
 const NAVY = '#1A202C';
+const SKY = '#1d7fbf';
 
 function Aura({ color = ORANGE, size = 520, top, left, right, bottom, opacity = 0.12 }) {
   return (
@@ -138,6 +145,17 @@ export default function Decor({ variant = 'light' }) {
   }
   if (variant === 'glow') {
     return <Aura top="-180px" right="-120px" size={540} opacity={0.12} />;
+  }
+  if (variant === 'minimal') {
+    return <Aura top="-140px" right="-100px" size={420} opacity={0.06} />;
+  }
+  if (variant === 'accent') {
+    return (
+      <>
+        <DotGrid opacity={0.045} />
+        <Aura color={SKY} top="-160px" right="-120px" size={520} opacity={0.12} />
+      </>
+    );
   }
   // light
   return <DotGrid opacity={0.05} />;

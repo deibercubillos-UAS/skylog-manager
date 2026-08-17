@@ -1,9 +1,17 @@
 'use client';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import { fmtCOP } from '@/lib/formatters';
+
+const TRUST_BADGES = [
+  { icon: 'verified_user',   label: 'RAC 100 / 2024' },
+  { icon: 'gavel',           label: 'AeroCivil · UAEAC' },
+  { icon: 'lock',            label: 'Datos en Colombia' },
+  { icon: 'credit_card_off', label: 'Sin tarjeta para iniciar' },
+];
 
 const faqItems = [
   { q: '¿El plan Piloto requiere tarjeta de crédito para empezar?', a: 'No. El plan Piloto incluye 15 días de prueba sin necesidad de tarjeta de crédito; al finalizar, se realiza el primer cobro. Si tu empresa está en Fase 0 del proceso de certificación como Explotador UAS, puedes acceder sin costo al plan Escuadrilla durante esa etapa (hasta 6 meses) contactando a nuestro equipo.' },
@@ -140,6 +148,16 @@ export default function PreciosClient() {
               Anual <span style={{ background: accent, color: '#fff', fontSize: '8px', padding: '2px 7px', borderRadius: '9999px' }}>−10%</span>
             </button>
           </div>
+
+          {/* Badges de confianza — misma credibilidad que el Hero de Home, antes ausente aquí */}
+          <ul style={{ listStyle: 'none', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px', margin: '28px 0 0', padding: 0 }} aria-label="Certificaciones y características">
+            {TRUST_BADGES.map(b => (
+              <li key={b.label} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '9999px', background: '#f8fafc', fontSize: '11px', fontWeight: 700, color: '#475569' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '15px', color: accent }} aria-hidden="true">{b.icon}</span>
+                {b.label}
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
@@ -201,6 +219,46 @@ export default function PreciosClient() {
               </ul>
             </div>
           ); })}
+        </div>
+      </section>
+
+      {/* SUSCRIPCIÓN REAL — screenshot real del panel, no solo texto (ver
+          docs/plan-mejora-visual-landing-bitafly.md, Fase 3) */}
+      <section style={{ padding: '0 32px 80px', background: '#fff' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center" style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: accent, marginBottom: '12px' }}>
+              Sin sorpresas
+            </div>
+            <h2 style={{ fontSize: 'clamp(24px,3vw,36px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.04em', lineHeight: 1.08, color: navy, marginBottom: '16px' }}>
+              Ves exactamente <span style={{ color: accent }}>qué estás pagando</span>
+            </h2>
+            <p style={{ fontSize: '14px', color: '#64748b', lineHeight: 1.7, maxWidth: '460px', marginBottom: '20px' }}>
+              Tu panel de suscripción muestra en tiempo real cuántas aeronaves y pilotos
+              llevas usados de tu cupo, los vuelos del mes, y la opción de sumar
+              recursos adicionales sin cambiar de plan — todo desde adentro de Bitafly,
+              sin letra pequeña ni cobros ocultos.
+            </p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {[
+                'Medidores de uso de aeronaves y pilotos en vivo',
+                'Recursos adicionales (piloto o dron extra) sin subir de plan',
+                'Historial de facturación y cancelación en un clic',
+              ].map((b) => (
+                <li key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', fontWeight: 500, color: '#475569', lineHeight: 1.5 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: accent, flexShrink: 0 }}>check_circle</span>
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <Image
+            src="/screenshots/suscripcion.jpg"
+            alt="Panel de suscripción de Bitafly con cupo de aeronaves, pilotos y recursos adicionales"
+            width={1440}
+            height={756}
+            className="w-full h-auto rounded-3xl shadow-2xl border border-slate-200"
+          />
         </div>
       </section>
 

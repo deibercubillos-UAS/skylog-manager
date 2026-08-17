@@ -136,10 +136,16 @@ generar esa vista; se retoma si el usuario aporta uno.
 - **Verificado visualmente** con `next dev` + captura de navegador real (no solo build) —
   las 3 vitrinas y el Hero renderizan correctamente con las imágenes cargando.
 
-## Fase 3 — Precios (`src/app/precios/`)
+## Fase 3 — Precios (`src/app/precios/`) `[x] Hecha (2026-08-17)`
 
 - Reforzar credibilidad con elementos reales (captura real de la pantalla de
   Suscripción, badges de cumplimiento RAC 100 ya existentes) en vez de solo texto.
+  ✅ Capturada `suscripcion.jpg` (Fase 0, contra la QA org) y agregada como vitrina
+  nueva entre la grilla de precios y el banner ESUAS; fila de badges de confianza
+  (RAC 100/2024, AeroCivil·UAEAC, Datos en Colombia, Sin tarjeta para iniciar) agregada
+  bajo el toggle Mensual/Anual — mismo patrón `TRUST_BADGES` que ya existía en el
+  `Hero.js` eliminado en la Fase 2, reutilizado aquí donde sí aporta.
+- **Verificado visualmente** con `next dev` + captura de navegador real.
 
 ## Fase 4 — Registro (`src/app/registro/`)
 

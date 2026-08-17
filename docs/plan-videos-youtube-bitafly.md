@@ -809,7 +809,8 @@ Cada video muestra el dashboard y las opciones reales que ve ESE rol, con ejempl
 - [~] 1.1 — Perfil Piloto Independiente: todo lo que necesitas para volar y llevar tu
       bitácora tú solo (flota propia, planeación, despacho simplificado) (guion listo, ver
       subsección abajo)
-- [ ] 1.2 — Perfil Gerente General (Admin): gestión completa de la organización
+- [~] 1.2 — Perfil Gerente General (Admin): gestión completa de la organización (guion
+      listo, ver subsección abajo)
 - [ ] 1.3 — Perfil Jefe de Pilotos: programación de misiones, tripulación, flota
 - [ ] 1.4 — Perfil Gerente SMS: seguridad operacional, reportes VOR/MOR, indicadores
 - [ ] 1.5 — Perfil Piloto (dentro de una organización): despacho de misiones asignadas,
@@ -962,6 +963,133 @@ Notas de producción:
   DJI, pero no el resultado de una importación real (requiere un archivo `.txt` real de
   un log DJI, que tampoco está disponible en este entorno — mismo pendiente que el
   Replay GPS de la Fase 0 del plan visual).
+
+### Guion — 1.2 · Perfil Gerente General (Admin)
+
+**Formato**: reutiliza la toma real ya diseñada para la perspectiva de empresa/operadora
+(la misma usada en el Bloque 2 del Video 0.2 — "montaje de los 4 roles: Gerente General,
+Gerente SMS, Jefe de Pilotos, Piloto"), y el resto del video 100% en pantalla — mismo
+criterio que 1.1: solo se graba b-roll nuevo cuando el tema lo amerita, y aquí ya existe un
+clip aprobado que encaja. **Duración objetivo**: ~5:30-6 min (~800-850 palabras) — más largo
+que 1.1 porque el Gerente General ve toda la plataforma, no un subconjunto. **Tono**:
+profesional, cercano, directo. **CTA**: mínimo.
+
+```
+===================================
+GUION — VIDEO 1.2
+===================================
+Título: Perfil Gerente General: gestión completa de tu organización en BitaFly
+Duración estimada: ~5:45 minutos (~830 palabras)
+Formato: toma real reutilizada (de 0.2) + tutorial 100% en pantalla
+===================================
+
+[GANCHO — 0:00-0:15]
+[Visual: toma real reutilizada — montaje de los 4 roles (Gerente General, Gerente SMS,
+Jefe de Pilotos, Piloto)]
+
+"Si administras una operación con más de una persona, tu cuenta ve la plataforma completa:
+tu equipo, tu flota, tu documentación regulatoria y tu facturación, todo en un solo lugar.
+Te muestro exactamente qué tienes como Gerente General dentro de BitaFly."
+
+[INTRO — 0:15-0:30]
+[Visual: pantalla, dashboard del Gerente General — franja de KPIs con datos reales]
+
+"En un video anterior viste si este es tu perfil. Ahora vamos a fondo: tu equipo, tu
+flota, la documentación de tu organización, y cómo se administra la cuenta detrás de
+todo."
+
+[CONTENIDO PRINCIPAL — 0:30-5:15]
+
+[Bloque 1: Tu equipo — 0:30-1:30]
+[Visual: pantalla, /dashboard/users (Gestión de Usuarios) y el panel de Tripulación —
+invitar a alguien, ver roles asignados]
+
+"Como Gerente General, tú administras quién entra a tu organización y con qué rol: Jefe
+de Pilotos, Gerente SMS, o Piloto. Invitas a alguien por correo, y en cuanto acepta, ya
+tiene exactamente los permisos de su rol — ni más, ni menos. Y en Tripulación llevas el
+expediente de cada persona: licencia, certificado médico, capacitación, todo con alertas
+de vencimiento."
+
+[Bloque 2: Tu flota, sin límites artificiales — 1:30-2:15]
+[Visual: pantalla, /dashboard/fleet con varias aeronaves, /dashboard/batteries,
+/dashboard/maintenance]
+
+"Tu flota ya no es una sola aeronave: aquí administras todas las que tenga tu operación,
+con sus baterías y su mantenimiento — mayor y menor — configurado por equipo, no por
+persona. Cada aeronave tiene su propio historial, sus propios intervalos, y sus propias
+alertas."
+
+[Bloque 3: Programación de misiones — 2:15-3:00]
+[Visual: pantalla, /dashboard/authorizations — calendario semanal con misiones asignadas
+a distintos pilotos]
+
+"Aquí programas misiones con anticipación: eliges piloto, aeronave, zona y horario, y el
+sistema exige una evaluación SORA completa antes de poder autorizarla. Cada tripulante ve
+solo lo que le corresponde a él en su propio panel — tú ves la operación completa."
+
+[Bloque 4: El grupo Documentación — 3:00-4:15]
+[Visual: pantalla, sidebar abriendo el grupo Documentación, recorrido rápido por
+Seguridad SMS, Auditoría, Reportes y Protocolos]
+
+"Este es el grupo que no existe en una cuenta de piloto independiente: Documentación.
+Aquí vive todo lo que exige operar como empresa ante la AeroCivil — el Sistema de Gestión
+de Seguridad Operacional completo, con SORA, evaluación de riesgos e indicadores;
+Auditoría, con la trazabilidad de aeronavegabilidad y documentos de tu tripulación; más de
+veinte formatos de Reportes en PDF y Excel; y tu biblioteca de Protocolos, Proveedores,
+Capacitación y Manuales corporativos. Cada uno de estos módulos tiene su propio video más
+adelante en la serie — aquí solo te muestro que existen y para qué sirven en conjunto."
+
+[Bloque 5: La cuenta detrás de todo — 4:15-5:00]
+[Visual: pantalla, menú de cuenta al pie del sidebar → Configurar Organización y
+Suscripción]
+
+"Y al pie de tu menú lateral está la administración de la cuenta misma: los datos de tu
+organización — NIT, registro AeroCivil, código de acceso para que tu equipo se una — y tu
+suscripción, con el plan contratado, cuántas aeronaves y pilotos llevas usados de tu cupo,
+y la opción de sumar recursos adicionales sin cambiar de plan."
+
+[CONCLUSIÓN — 5:00-5:30]
+[Visual: vuelve brevemente a la toma real del gancho]
+
+"Y eso es tu perspectiva completa como Gerente General: tu equipo, tu flota, tu
+documentación regulatoria y tu cuenta, todo desde un solo panel — sin tener que repartir
+la operación entre Excels y carpetas sueltas."
+
+[CIERRE / CTA MÍNIMO — 5:30-5:45]
+
+"En el próximo video vemos el perfil de Jefe de Pilotos — quien programa las misiones y
+gestiona la tripulación día a día. Nos vemos ahí."
+
+===================================
+[FIN DEL GUION]
+
+Conteo de palabras: ~830
+Duración estimada: ~5:45 minutos
+Audiencia: administradores/dueños de una operación con más de una persona que ya crearon
+su organización (vienen de los videos 0.2/0.3) y quieren ver en detalle todo lo que
+administran desde su cuenta
+Tono: profesional, cercano, directo — un recorrido amplio por toda la plataforma desde la
+perspectiva de quien responde por la operación completa, sin profundizar en ningún módulo
+específico (eso lo cubre cada video del Bloque 2).
+===================================
+```
+
+Notas de producción:
+- **Toma real de apertura reutilizada, no una nueva**: mismo clip ya aprobado y usado en
+  el Bloque 2 del Video 0.2 — evita regrabar b-roll que ya existe y encaja con las 4
+  perspectivas de rol.
+- **Cuenta de prueba necesaria para grabar**: una cuenta Gerente General real
+  (`role='admin'` dentro de una organización, no plan piloto) con datos reales — al menos
+  2 aeronaves, varios tripulantes con roles distintos, vuelos recientes y alguna misión
+  programada — para que los Bloques 1-3 no se vean vacíos.
+- **Bloque 4 es deliberadamente superficial**: es un recorrido de "qué existe", no un
+  tutorial de cada módulo — cada uno (SMS, Auditoría, Reportes, Protocolos, etc.) tiene su
+  propio video dedicado en el Bloque 2 de la serie. No alargar este bloque más de lo
+  necesario.
+- **Evitar mostrar datos reales de una organización/cliente en pantalla** — misma regla
+  que el resto de la serie.
+- **Subtítulos**: mismo criterio que los guiones anteriores — se derivan de este documento
+  una vez esté el video montado.
 
 ---
 

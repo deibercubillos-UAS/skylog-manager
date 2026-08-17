@@ -10,6 +10,14 @@ const BENEFITS = [
   { icon: 'assessment',         text: 'Reportes RAC 100 en PDF listos para AeroCivil' },
 ];
 
+// Screenshot real por modo (ver docs/plan-mejora-visual-landing-bitafly.md,
+// Fase 0) — distinto según el mensaje: "tu flota bajo control" en login usa el
+// dashboard; "cumplimiento RAC 100" en registro usa la pantalla de Reportes.
+const SCREENSHOT = {
+  login:    { src: '/screenshots/dashboard-home.jpg', alt: 'Panel de control de Bitafly con horas de vuelo y actividad reciente' },
+  register: { src: '/screenshots/reportes.jpg',        alt: 'Pantalla de Reportes de Bitafly con formatos RAC 100 listos para descargar' },
+};
+
 export default function AuthSidePanel({ mode = 'login' }) {
   const headline = mode === 'login'
     ? 'Tu flota, bajo control.'
@@ -18,6 +26,8 @@ export default function AuthSidePanel({ mode = 'login' }) {
   const sub = mode === 'login'
     ? 'Todo lo que necesitas para operar con seguridad y cumplir la normativa aeronáutica colombiana.'
     : 'Únete a los operadores UAS que ya confían en Bitafly para gestionar su operación y cumplir con la AeroCivil.';
+
+  const shot = SCREENSHOT[mode] ?? SCREENSHOT.login;
 
   return (
     <aside className="hidden lg:flex lg:w-[42%] bg-[#1A202C] p-12 flex-col justify-between relative overflow-hidden">
@@ -42,9 +52,20 @@ export default function AuthSidePanel({ mode = 'login' }) {
         <h2 className="text-white text-4xl font-black leading-[1.1] uppercase tracking-tighter mb-4">
           {headline}
         </h2>
-        <p className="text-slate-400 text-sm leading-relaxed mb-10 max-w-xs">
+        <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-xs">
           {sub}
         </p>
+
+        {/* Screenshot real del producto (antes: solo texto) */}
+        <div className="rounded-2xl overflow-hidden border border-white/10 shadow-2xl mb-8">
+          <Image
+            src={shot.src}
+            alt={shot.alt}
+            width={1568}
+            height={718}
+            className="w-full h-auto block"
+          />
+        </div>
 
         {/* Benefits */}
         <ul className="space-y-4 flex-1">
@@ -57,21 +78,6 @@ export default function AuthSidePanel({ mode = 'login' }) {
             </li>
           ))}
         </ul>
-
-        {/* Testimonial */}
-        <div className="mt-10 bg-white/5 border border-white/10 rounded-2xl p-6">
-          <div className="flex gap-1 mb-3">
-            {[...Array(5)].map((_, i) => (
-              <span key={i} className="text-primary text-sm">★</span>
-            ))}
-          </div>
-          <p className="text-slate-300 text-sm leading-relaxed italic">
-            &ldquo;Bitafly nos permitió pasar la auditoría de AeroCivil sin contratiempos. Los reportes PDF son exactamente lo que piden los inspectores.&rdquo;
-          </p>
-          <p className="text-slate-500 text-xs font-bold uppercase mt-3">
-            Carlos M. · Gerente de Operaciones, Bogotá
-          </p>
-        </div>
 
         {/* RAC badge */}
         <div className="mt-6 flex items-center gap-2">

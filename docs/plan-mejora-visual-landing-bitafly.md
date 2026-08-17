@@ -147,11 +147,19 @@ generar esa vista; se retoma si el usuario aporta uno.
   `Hero.js` eliminado en la Fase 2, reutilizado aquí donde sí aporta.
 - **Verificado visualmente** con `next dev` + captura de navegador real.
 
-## Fase 4 — Registro (`src/app/registro/`)
+## Fase 4 — Registro (`src/app/registro/`) `[x] Hecha (2026-08-17)`
 
 - Rediseño visual del formulario de alta (primera pantalla de "producto" real que ve
   alguien a punto de pagar) — layout a dos columnas con imagen/screenshot real al lado
-  del formulario en vez de fondo genérico.
+  del formulario en vez de fondo genérico. ✅ El layout de 2 columnas ya existía vía
+  `components/AuthSidePanel.js` (compartido con `/login`) — el panel era 100% texto
+  (lista de beneficios + un **testimonio ficticio** "Carlos M."). Se agregó el
+  screenshot real correspondiente (Reportes para registro — coincide con el mensaje
+  "Cumplimiento RAC 100"; Dashboard para login — "Tu flota, bajo control") y se
+  **eliminó el testimonio inventado** (no estaba en el alcance original de esta fase,
+  pero es el mismo tipo de contenido fabricado que el resto del plan viene corrigiendo
+  — dejarlo habría sido inconsistente).
+- **Verificado visualmente** con `next dev` en ambos modos (`/login` y `/registro`).
 
 ## Fase 5 — Casos de Éxito reales (`lib/caseStudies.js` + `app/casos/`)
 

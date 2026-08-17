@@ -1,9 +1,9 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
-import { AuthMapScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Planificación de Vuelos de Drones y KML para AeroCivil',
@@ -99,6 +99,7 @@ export default function PlanVueloDronesPage() {
 
             {/* SPOTLIGHT */}
       <FeatureSpotlight
+        decor="minimal"
         overline="Planeación de misión"
         title={<>Dibuja la zona y genera el <span style={{color:'#ec5b13'}}>KMZ</span></>}
         desc="Define el polígono de operación sobre el mapa, fija altitud y coordenadas, y descarga el KMZ y el PDF de la planeación listos para tu tripulación y la AeroCivil."
@@ -109,7 +110,13 @@ export default function PlanVueloDronesPage() {
           'Guarda planeaciones y reutilízalas antes de volar',
         ]}
       >
-        <AuthMapScene />
+        <Image
+          src="/screenshots/programacion.jpg"
+          alt="Calendario de Programación de misiones de Bitafly"
+          width={1568}
+          height={718}
+          className="w-full h-auto rounded-3xl shadow-2xl border border-slate-200"
+        />
       </FeatureSpotlight>
 
       {/* FEATURES */}

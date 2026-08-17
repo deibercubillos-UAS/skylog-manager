@@ -1,9 +1,9 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
-import { FleetScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Gestión de Flota de Drones para Empresas en Colombia',
@@ -104,6 +104,7 @@ export default function GestionFlotaDronesPage() {
 
       {/* SPOTLIGHT */}
       <FeatureSpotlight
+        decor="minimal"
         overline="Visión de flota"
         title={<>Toda tu <span style={{color:'#ec5b13'}}>flota</span> en un solo panel</>}
         desc="Cada aeronave con sus horas totales, ciclos de batería, estado operativo y próximos mantenimientos. Sin hojas de cálculo dispersas: el panel se actualiza solo al registrar cada vuelo."
@@ -114,7 +115,13 @@ export default function GestionFlotaDronesPage() {
           'Límites de flota por plan, sin sorpresas',
         ]}
       >
-        <FleetScene />
+        <Image
+          src="/screenshots/flota.jpg"
+          alt="Pantalla de Flota de Bitafly con las aeronaves registradas"
+          width={1568}
+          height={718}
+          className="w-full h-auto rounded-3xl shadow-2xl border border-slate-200"
+        />
       </FeatureSpotlight>
 
       {/* FUNCIONES */}

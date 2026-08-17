@@ -1,9 +1,9 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
-import { AuthMapScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Autorizaciones de Vuelo AeroCivil para Drones F-OPS-001',
@@ -106,6 +106,7 @@ export default function AutorizacionesAerocivilPage() {
 
       {/* SPOTLIGHT */}
       <FeatureSpotlight
+        decor="minimal"
         flip
         overline="Zona de operación"
         title={<>Define el <span style={{color:'#ec5b13'}}>polígono</span> y radica ante AeroCivil</>}
@@ -117,7 +118,13 @@ export default function AutorizacionesAerocivilPage() {
           'Descarga de KMZ y PDF por misión programada',
         ]}
       >
-        <AuthMapScene />
+        <Image
+          src="/screenshots/programacion.jpg"
+          alt="Calendario de Programación de misiones de Bitafly"
+          width={1568}
+          height={718}
+          className="w-full h-auto rounded-3xl shadow-2xl border border-slate-200"
+        />
       </FeatureSpotlight>
 
       {/* FUNCIONES */}

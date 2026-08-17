@@ -172,13 +172,41 @@ generar esa vista; se retoma si el usuario aporta uno.
   persona, foto (o autorización para tomarla de LinkedIn/redes públicas del cliente), y
   el testimonio en texto.
 
-## Fase 6 — Páginas SEO satélite (17 páginas: 8 módulo + 5 temáticas + 4 comparativas)
+## Fase 6 — Páginas SEO satélite `[x] Hecha (2026-08-17, alcance ajustado)`
 
 - Aplicar el sistema de diseño de la Fase 1 y, donde exista un screenshot real
-  relevante de la Fase 0 (ej. la página de "Replay GPS" usa el screenshot real de
-  replay), reemplazar la ilustración genérica actual.
+  relevante de la Fase 0, reemplazar la ilustración genérica actual.
 - Se agrupan porque comparten la misma estructura de componentes — se ejecutan en lote,
   no una por una.
+
+**Resultado real**: de las 19 páginas públicas que usan `Decor`/`FeatureSpotlight`
+(más que las ~17 estimadas al escribir el plan), **14 usan `FeatureSpotlight` con una
+sola ilustración SVG** (`components/landing/Illustrations.js`) en un punto de inserción
+limpio y uniforme — se procesaron en lote con un script, no una por una:
+
+- **12 páginas con screenshot real que sí coincide con el tema** (`decor="minimal"`
+  agregado a cada `FeatureSpotlight`, import no usado de `Illustrations` limpiado):
+  `bitacora-digital`, `drone-logbook-colombia` → `bitacora.jpg` · `gestion-flota-drones`
+  → `flota.jpg` · `mantenimiento-drones` → `mantenimiento.jpg` · `sms-aeronautico` →
+  `seguridad-sms.jpg` · `clima-drones` → `meteorologia.jpg` · `plan-vuelo-drones`,
+  `autorizaciones-aerocivil` → `programacion.jpg` (calendario de misiones) ·
+  `rac-100`, `reportes-auditoria` → `reportes.jpg` · `replay-gps-drones` →
+  `replay-gps-upload.jpg` (limitación ya documentada en la Fase 0: es el modal de
+  carga, no el mapa animado) · `operadores-uas` → `dashboard-home.jpg`.
+- **2 páginas sin screenshot real disponible — se dejaron con su ilustración SVG
+  intacta, a propósito**: `sora` (el wizard SORA no se capturó en la Fase 0) y
+  `gestion-pilotos` (la página de Tripulación tampoco se capturó). No se fuerza un
+  screenshot que no corresponde al tema solo por completar la lista.
+- **5 páginas fuera de este lote, diferidas a propósito**: los 4 `comparativa-bitafly-*`
+  y `rac-100-compliance` no usan `FeatureSpotlight` — son páginas de tabla comparativa
+  sin un punto de inserción de imagen ya existente; agregar un screenshot ahí requiere
+  diseñar una sección nueva por página, no un swap de 1 línea como en las 12 anteriores.
+  Queda como trabajo futuro si se pide explícitamente.
+- **Verificado**: `next lint` + `npm run build` limpios (mismos 3 warnings
+  preexistentes) tras el lote completo; verificación visual real con `next dev` en 3
+  páginas representativas (`bitacora-digital`, `mantenimiento-drones`,
+  `sms-aeronautico`) — las 9 restantes no se inspeccionaron una por una en navegador
+  por ser el mismo cambio mecánico ya verificado, pero si algo se ve mal, avisar.
 
 ## Fase 7 — Limpieza final
 

@@ -1,11 +1,11 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import SEOBreadcrumb from '@/components/seo/SEOBreadcrumb';
 import SocialProofStrip from '@/components/seo/SocialProofStrip';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
-import { ReplayScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Replay GPS de Vuelo para Drones — Reproduce tu Vuelo DJI',
@@ -205,6 +205,7 @@ export default function ReplayGpsDronesPage() {
 
             {/* SPOTLIGHT */}
       <FeatureSpotlight
+        decor="minimal"
         overline="Análisis post-vuelo"
         title={<>Reproduce cada vuelo <span style={{color:'#ec5b13'}}>cuadro a cuadro</span></>}
         desc="Importa el log del DJI RC y revive la operación sobre el mapa: ruta GPS, altitud, velocidad, batería y los joysticks del control, segundo a segundo."
@@ -215,7 +216,13 @@ export default function ReplayGpsDronesPage() {
           'Importación directa del log del DJI RC / RC 2',
         ]}
       >
-        <ReplayScene />
+        <Image
+          src="/screenshots/replay-gps-upload.jpg"
+          alt="Pantalla de carga del Replay GPS de Bitafly"
+          width={1568}
+          height={718}
+          className="w-full h-auto rounded-3xl shadow-2xl border border-slate-200"
+        />
       </FeatureSpotlight>
 
       {/* FEATURES */}

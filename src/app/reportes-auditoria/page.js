@@ -1,9 +1,9 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
-import { ReportsScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Reportes y Auditoría AeroCivil para Drones — Formatos PDF',
@@ -109,6 +109,7 @@ export default function ReportesAuditoriaPage() {
 
             {/* SPOTLIGHT */}
       <FeatureSpotlight
+        decor="minimal"
         flip
         overline="Listo para auditoría"
         title={<>Exporta tus reportes <span style={{color:'#ec5b13'}}>RAC 100</span> en un clic</>}
@@ -120,7 +121,13 @@ export default function ReportesAuditoriaPage() {
           'Cabecera personalizable según tu manual',
         ]}
       >
-        <ReportsScene />
+        <Image
+          src="/screenshots/reportes.jpg"
+          alt="Pantalla de Reportes de Bitafly con formatos RAC 100"
+          width={1568}
+          height={718}
+          className="w-full h-auto rounded-3xl shadow-2xl border border-slate-200"
+        />
       </FeatureSpotlight>
 
       {/* REPORTES */}

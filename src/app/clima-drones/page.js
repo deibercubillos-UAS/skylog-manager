@@ -1,11 +1,12 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import SEOBreadcrumb from '@/components/seo/SEOBreadcrumb';
 import SocialProofStrip from '@/components/seo/SocialProofStrip';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
-import { WeatherScene, ReplayScene } from '@/components/landing/Illustrations';
+import { WeatherScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Clima y Meteorología para Drones — Verificación Pre-Vuelo | Bitafly',
@@ -129,6 +130,7 @@ export default function ClimaDronesPage() {
 
       {/* SPOTLIGHT — integración */}
       <FeatureSpotlight
+        decor="minimal"
         flip
         overline="En el flujo de trabajo"
         title={<>El clima <span style={{color:accent}}>donde tomas la decisión</span></>}
@@ -140,7 +142,13 @@ export default function ClimaDronesPage() {
           'Documentado junto a la bitácora para tu SMS',
         ]}
       >
-        <ReplayScene />
+        <Image
+          src="/screenshots/meteorologia.jpg"
+          alt="Pantalla de Meteorología de Bitafly con viento, ráfagas y pronóstico horario"
+          width={1568}
+          height={718}
+          className="w-full h-auto rounded-3xl shadow-2xl border border-slate-200"
+        />
       </FeatureSpotlight>
 
       {/* QUÉ MIDE */}

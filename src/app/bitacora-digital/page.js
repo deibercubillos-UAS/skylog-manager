@@ -1,11 +1,11 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import SEOBreadcrumb from '@/components/seo/SEOBreadcrumb';
 import SocialProofStrip from '@/components/seo/SocialProofStrip';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
-import { DroneOpsScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Bitácora Digital de Vuelo para Drones RAC 100 en Colombia',
@@ -122,6 +122,7 @@ export default function BitacoraDigitalPage() {
 
             {/* SPOTLIGHT */}
       <FeatureSpotlight
+        decor="minimal"
         flip
         overline="Desde el sitio de operación"
         title={<>Registra cada vuelo <span style={{color:'#ec5b13'}}>en segundos</span></>}
@@ -133,7 +134,13 @@ export default function BitacoraDigitalPage() {
           'Suma de horas totales por aeronave sin cálculos',
         ]}
       >
-        <DroneOpsScene />
+        <Image
+          src="/screenshots/bitacora.jpg"
+          alt="Bitácora de vuelo de Bitafly con los registros RAC 100"
+          width={1568}
+          height={718}
+          className="w-full h-auto rounded-3xl shadow-2xl border border-slate-200"
+        />
       </FeatureSpotlight>
 
       {/* CAMPOS */}

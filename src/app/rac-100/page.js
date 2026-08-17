@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import SEOBreadcrumb from '@/components/seo/SEOBreadcrumb';
@@ -6,7 +7,7 @@ import SocialProofStrip from '@/components/seo/SocialProofStrip';
 import RelatedReading from '@/components/seo/RelatedReading';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
-import { ComplianceScene, ReportsScene } from '@/components/landing/Illustrations';
+import { ComplianceScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Cumplimiento RAC 100 Drones Colombia | Bitácora Digital AeroCivil',
@@ -100,6 +101,7 @@ export default function RAC100Page() {
 
             {/* SPOTLIGHT */}
       <FeatureSpotlight
+        decor="minimal"
         flip
         overline="Documentación lista"
         title={<>Todos tus registros RAC 100 <span style={{color:'#ec5b13'}}>en PDF</span></>}
@@ -111,7 +113,13 @@ export default function RAC100Page() {
           'Códigos configurables según tu manual',
         ]}
       >
-        <ReportsScene />
+        <Image
+          src="/screenshots/reportes.jpg"
+          alt="Pantalla de Reportes de Bitafly con formatos RAC 100"
+          width={1568}
+          height={718}
+          className="w-full h-auto rounded-3xl shadow-2xl border border-slate-200"
+        />
       </FeatureSpotlight>
 
       {/* QUÉ ES RAC 100 */}

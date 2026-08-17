@@ -1,9 +1,9 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
-import { BatteryMaintScene } from '@/components/landing/Illustrations';
 
 export const metadata = {
   title: 'Software de Mantenimiento de Drones y Baterías LiPo',
@@ -110,6 +110,7 @@ export default function MantenimientoDronesPage() {
 
       {/* SPOTLIGHT */}
       <FeatureSpotlight
+        decor="minimal"
         flip
         overline="Ciclos y alertas"
         title={<>Mantenimiento <span style={{color:'#ec5b13'}}>predictivo</span> sin hojas de cálculo</>}
@@ -121,7 +122,13 @@ export default function MantenimientoDronesPage() {
           'Trazabilidad de cada cambio de hélice, calibración y reparación',
         ]}
       >
-        <BatteryMaintScene />
+        <Image
+          src="/screenshots/mantenimiento.jpg"
+          alt="Pantalla de Mantenimiento de Bitafly con el estado de la flota"
+          width={1568}
+          height={718}
+          className="w-full h-auto rounded-3xl shadow-2xl border border-slate-200"
+        />
       </FeatureSpotlight>
 
       {/* FUNCIONES */}

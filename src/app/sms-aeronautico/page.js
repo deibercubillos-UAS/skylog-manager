@@ -1,9 +1,9 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
-import { SmsSafetyScene } from '@/components/landing/Illustrations';
 import RelatedReading from '@/components/seo/RelatedReading';
 
 export const metadata = {
@@ -98,6 +98,7 @@ export default function SMSAeronauticoPage() {
 
       {/* SPOTLIGHT */}
       <FeatureSpotlight
+        decor="minimal"
         overline="Seguridad operacional"
         title={<>Clasifica cada <span style={{color:'#ec5b13'}}>evento</span> de seguridad</>}
         desc="Registra incidentes, eventos graves y accidentes con su narrativa, acciones correctivas y seguimiento. El SMS queda documentado y listo para una auditoría de la AeroCivil."
@@ -108,7 +109,13 @@ export default function SMSAeronauticoPage() {
           'Reporte SMS exportable con tu código de formato',
         ]}
       >
-        <SmsSafetyScene />
+        <Image
+          src="/screenshots/seguridad-sms.jpg"
+          alt="Hub de Seguridad SMS de Bitafly"
+          width={1456}
+          height={667}
+          className="w-full h-auto rounded-3xl shadow-2xl border border-slate-200"
+        />
       </FeatureSpotlight>
 
       {/* FUNCIONES SMS */}

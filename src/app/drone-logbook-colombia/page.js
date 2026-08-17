@@ -1,9 +1,9 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
-import { ComplianceScene } from '@/components/landing/Illustrations';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
@@ -103,6 +103,7 @@ export default function DroneLogbookColombiaPage() {
 
             {/* SPOTLIGHT */}
       <FeatureSpotlight
+        decor="minimal"
         flip
         overline="Bitácora digital"
         title={<>Tu logbook de drones <span style={{color:'#ec5b13'}}>RAC 100</span></>}
@@ -114,7 +115,13 @@ export default function DroneLogbookColombiaPage() {
           'Bitácora ilimitada en todos los planes',
         ]}
       >
-        <ComplianceScene />
+        <Image
+          src="/screenshots/bitacora.jpg"
+          alt="Bitácora de vuelo de Bitafly con los registros RAC 100"
+          width={1568}
+          height={718}
+          className="w-full h-auto rounded-3xl shadow-2xl border border-slate-200"
+        />
       </FeatureSpotlight>
 
       {/* FEATURES */}

@@ -1,9 +1,10 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import SEONav from '@/components/seo/SEONav';
 import SEOFooter from '@/components/seo/SEOFooter';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
-import { DroneOpsScene, FleetScene } from '@/components/landing/Illustrations';
+import { DroneOpsScene } from '@/components/landing/Illustrations';
 import RelatedReading from '@/components/seo/RelatedReading';
 
 export const metadata = {
@@ -79,6 +80,7 @@ export default function OperadoresUASPage() {
 
             {/* SPOTLIGHT */}
       <FeatureSpotlight
+        decor="minimal"
         flip
         overline="Una sola plataforma"
         title={<>Gestiona toda tu <span style={{color:'#ec5b13'}}>operación UAS</span></>}
@@ -90,7 +92,13 @@ export default function OperadoresUASPage() {
           'Escala de 1 dron a flotas de decenas',
         ]}
       >
-        <FleetScene />
+        <Image
+          src="/screenshots/dashboard-home.jpg"
+          alt="Panel de control de Bitafly con horas de vuelo y actividad reciente"
+          width={1568}
+          height={718}
+          className="w-full h-auto rounded-3xl shadow-2xl border border-slate-200"
+        />
       </FeatureSpotlight>
 
       {/* PARA QUIÉN */}

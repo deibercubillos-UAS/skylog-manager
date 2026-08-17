@@ -60,7 +60,7 @@ páginas públicas, no solo Home/Precios/Registro.
 
 ---
 
-## Fase 0 — Banco de screenshots reales del producto
+## Fase 0 — Banco de screenshots reales del producto `[x] Hecha (2026-08-17)`
 
 **Objetivo**: reemplazar todo mockup/ilustración falsa del dashboard por capturas
 reales, en alta resolución, de los módulos más vendibles del producto.
@@ -79,6 +79,24 @@ reales, en alta resolución, de los módulos más vendibles del producto.
 - **Verificación**: cada screenshot se revisa a ojo antes de usarse (que no muestre
   datos sensibles reales de ninguna organización real — la QA org es sintética a
   propósito para esto).
+
+**Resultado real**: 9 capturas guardadas en `public/screenshots/` — `dashboard-home.jpg`,
+`bitacora.jpg`, `flota.jpg`, `mantenimiento.jpg`, `seguridad-sms.jpg`, `meteorologia.jpg`,
+`reportes.jpg`, `programacion.jpg`, `replay-gps-upload.jpg` (esta última es el modal de
+subida del replay, no el mapa animado — la QA org no tiene un log `.txt` DJI real cargado
+para generar la vista con mapa/telemetría; se necesitaría subir uno real para esa captura
+específica).
+
+**Limitación real encontrada, a tener en cuenta en las Fases 2-6**: la organización QA
+tiene datos de fixture reales pero **escasos** para fines de marketing — 1 sola aeronave,
+0 vuelos del mes actual, 0.0 horas, calendario de Programación vacío en la semana actual.
+Las capturas de **Meteorología** y **Reportes** salieron visualmente ricas (datos en vivo,
+grid de formatos) y son las mejores candidatas para el Hero/Features. Las de **Dashboard
+principal** y **Programación** se ven correctas pero "vacías" — antes de usarlas en el
+Hero conviene decidir: (a) usarlas tal cual (auténtico pero poco vistoso), (b) agregar más
+datos de fixture a la QA org (más vuelos recientes, 2-3 aeronaves) solo para mejorar estas
+capturas puntuales, o (c) usar Meteorología/Reportes/Bitácora como las piezas principales
+del Hero y evitar Dashboard/Programación hasta enriquecer los datos.
 
 ## Fase 1 — Sistema de diseño: menos repetición, más variación intencional
 

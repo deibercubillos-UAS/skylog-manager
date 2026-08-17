@@ -111,9 +111,21 @@ export default function CasoPage({ params }) {
             <span className="bg-orange-50 text-orange-700 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full">
               Caso de Éxito
             </span>
+            {c.illustrative && (
+              <span className="bg-slate-100 text-slate-500 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full"
+                    title="Ejemplo representativo, no un cliente real todavía">
+                Ilustrativo
+              </span>
+            )}
             <span className="text-xs text-slate-400">{c.ciudad}</span>
             <span className="text-xs text-slate-300">· {c.tipo}</span>
           </div>
+          {c.illustrative && (
+            <p className="text-xs text-slate-400 italic mb-4">
+              Este caso es un ejemplo ilustrativo de un flujo de trabajo típico, no un cliente
+              real todavía — publicaremos casos reales apenas los tengamos.
+            </p>
+          )}
           <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight text-navy leading-tight mb-2">
             {c.empresa}
           </h1>

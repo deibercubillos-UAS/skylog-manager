@@ -668,49 +668,46 @@ export default function LandingPage() {
             </div>
           </section>
 
-          {/* ==================== TESTIMONIOS ==================== */}
-          <section className="py-24 px-6 bg-white" aria-labelledby="testimonios-heading">
+          {/* ==================== POR QUÉ ELEGIR BITAFLY ==================== */}
+          {/* Antes: "Testimonios" con citas atribuidas a un "Cliente Bitafly"
+              genérico (ícono de persona + rol/ciudad inventados) y 5 estrellas
+              — no eran reseñas reales de ningún cliente. Se reformula como
+              razones de la plataforma, sin fingir ser una reseña de alguien
+              que no existe. Ver Fase 5 del plan de mejora visual — los casos
+              de éxito reales (cuando existan) viven en /casos, no aquí. */}
+          <section className="py-24 px-6 bg-white" aria-labelledby="porque-heading">
             <div className="max-w-6xl mx-auto">
               <div className="text-center mb-14 space-y-3">
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-primary">Testimonios</p>
-                <h2 id="testimonios-heading" className="text-3xl md:text-4xl font-black text-navy uppercase tracking-tighter">
-                  Lo que dicen nuestros <span className="text-primary">operadores</span>
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-primary">Por qué Bitafly</p>
+                <h2 id="porque-heading" className="text-3xl md:text-4xl font-black text-navy uppercase tracking-tighter">
+                  Pensado para <span className="text-primary">operadores UAS</span> en Colombia
                 </h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
                   {
-                    quote: 'Bitafly nos permitió pasar nuestra última auditoría de AeroCivil sin contratiempos. Los reportes PDF son exactamente lo que piden los inspectores.',
-                    role: 'Gerente de Operaciones · Bogotá',
+                    icon: 'gavel',
+                    title: 'Auditorías sin sorpresas',
+                    text: 'Los reportes PDF (F-OPS-002, F-MNT-003, F-HUM-005 y +20 formatos más) traen exactamente los campos que pide un inspector de la AeroCivil.',
                   },
                   {
-                    quote: 'Antes llevábamos todo en Excel y nos perdíamos ciclos de batería. Ahora el sistema nos alerta automáticamente. No volvemos atrás.',
-                    role: 'Jefe de Pilotos · Medellín',
+                    icon: 'battery_alert',
+                    title: 'Cero ciclos de batería perdidos',
+                    text: 'Alertas automáticas de mantenimiento mayor, menor y ciclos de batería — sin depender de una hoja de Excel que alguien olvidó actualizar.',
                   },
                   {
-                    quote: 'La mejor decisión que tomamos como operador UAS. Configuración en menos de 10 minutos y el soporte en español es excelente.',
-                    role: 'Administradora · Cali',
+                    icon: 'bolt',
+                    title: 'Configuración en minutos, no semanas',
+                    text: 'Sin instalación, sin servidor propio, sin curva de aprendizaje larga. Soporte en español para todo el proceso de onboarding.',
                   },
-                ].map((t) => (
-                  <figure key={t.role} className="bg-slate-50 border border-slate-100 rounded-3xl p-8 flex flex-col gap-6">
-                    <div className="flex gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <span key={i} className="text-primary text-lg">★</span>
-                      ))}
+                ].map((f) => (
+                  <div key={f.title} className="bg-slate-50 border border-slate-100 rounded-3xl p-8 flex flex-col gap-4">
+                    <div className="size-11 bg-orange-50 rounded-2xl flex items-center justify-center text-primary">
+                      <span className="material-symbols-outlined text-2xl">{f.icon}</span>
                     </div>
-                    <blockquote className="text-sm text-slate-600 leading-relaxed flex-1">
-                      &ldquo;{t.quote}&rdquo;
-                    </blockquote>
-                    <figcaption className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined text-slate-500 text-xl">person</span>
-                      </div>
-                      <div>
-                        <p className="font-black text-navy text-sm">Cliente Bitafly</p>
-                        <p className="text-xs text-slate-400 font-medium">{t.role}</p>
-                      </div>
-                    </figcaption>
-                  </figure>
+                    <h3 className="font-black text-navy text-base uppercase tracking-tight">{f.title}</h3>
+                    <p className="text-sm text-slate-600 leading-relaxed">{f.text}</p>
+                  </div>
                 ))}
               </div>
             </div>

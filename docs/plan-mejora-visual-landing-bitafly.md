@@ -161,16 +161,30 @@ generar esa vista; se retoma si el usuario aporta uno.
   — dejarlo habría sido inconsistente).
 - **Verificado visualmente** con `next dev` en ambos modos (`/login` y `/registro`).
 
-## Fase 5 — Casos de Éxito reales (`lib/caseStudies.js` + `app/casos/`)
+## Fase 5 — Casos de Éxito reales (`lib/caseStudies.js` + `app/casos/`) `[~] Parcial (2026-08-17)`
 
 - Reemplazar 1-2 de las 3 empresas ficticias por los clientes reales confirmados por el
-  usuario (nombre real, foto real, testimonio real, con su autorización).
+  usuario (nombre real, foto real, testimonio real, con su autorización). **Diferido**
+  — el usuario no tenía los datos listos en esta sesión ("omítelos mientras tanto"); se
+  retoma cuando los aporte (plantilla de datos necesarios ya solicitada en el chat).
 - El/los caso(s) ficticio(s) que queden mientras se consiguen más testimonios reales se
   re-etiquetan honestamente (ej. "Caso ilustrativo") en vez de presentarse como reales
-  — no dejar ambigüedad entre lo real y lo ilustrativo.
-- **Acción del usuario para esta fase**: nombre de la empresa, nombre y cargo de la
-  persona, foto (o autorización para tomarla de LinkedIn/redes públicas del cliente), y
-  el testimonio en texto.
+  — no dejar ambigüedad entre lo real y lo ilustrativo. ✅ **Hecho**: los 3 casos de
+  `caseStudies.js` ganan `illustrative: true`, mostrado como badge "Caso ilustrativo" en
+  `/casos` y "Ilustrativo" + nota aclaratoria en `/casos/[slug]`; copy del hero de
+  `/casos` ajustado para no decir "historias reales" mientras no lo sean.
+- **Hallazgo adicional corregido, mismo problema de fondo**: la sección "Testimonios"
+  del Home (`page.js`) tenía 3 citas atribuidas a un "Cliente Bitafly" genérico (ícono
+  de persona + rol/ciudad inventados + 5 estrellas) — ni siquiera venían de
+  `caseStudies.js`, eran reseñas fabricadas aparte. Se reemplazó por una sección "Por
+  qué Bitafly" con las mismas 3 ideas reformuladas como beneficios de la plataforma, sin
+  fingir ser una reseña de un cliente que no existe.
+- **Acción pendiente del usuario para completar esta fase**: nombre de la empresa,
+  nombre y cargo de la persona, foto (o autorización para tomarla de LinkedIn/redes
+  públicas del cliente), testimonio en texto, reto/solución/resultados y autorización
+  explícita — para 1-2 de los 3 casos.
+- **Verificado**: `next lint` + `npm run build` limpios; verificación visual real con
+  `next dev` en `/casos` y en la sección corregida del Home.
 
 ## Fase 6 — Páginas SEO satélite `[x] Hecha (2026-08-17, alcance ajustado)`
 

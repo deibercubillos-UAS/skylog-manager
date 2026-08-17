@@ -5,8 +5,14 @@
  */
 
 export const CASE_STUDIES = [
+  // NOTA: los 3 casos son ILUSTRATIVOS (empresas ficticias) — `illustrative: true`
+  // en cada uno, mostrado honestamente en la UI (ver casos/page.js y
+  // casos/[slug]/page.js). Reemplazar por casos reales apenas haya datos
+  // reales de clientes (nombre, testimonio y autorización) — ver Fase 5 de
+  // docs/plan-mejora-visual-landing-bitafly.md.
   {
     slug:        'skymotion-bogota',
+    illustrative: true,
     empresa:     'Sky Motion UAS',
     ciudad:      'Bogotá, Cundinamarca',
     operador:    'Carlos M.',
@@ -32,6 +38,7 @@ export const CASE_STUDIES = [
   },
   {
     slug:        'aerovisual-medellin',
+    illustrative: true,
     empresa:     'AeroVisual Colombia',
     ciudad:      'Medellín, Antioquia',
     operador:    'Andrés R.',
@@ -57,6 +64,7 @@ export const CASE_STUDIES = [
   },
   {
     slug:        'agrodrone-cali',
+    illustrative: true,
     empresa:     'AgroDrone del Valle',
     ciudad:      'Cali, Valle del Cauca',
     operador:    'Laura V.',

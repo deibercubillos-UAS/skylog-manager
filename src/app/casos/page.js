@@ -68,8 +68,9 @@ export default function CasosPage() {
             Operadores que ya <span className="text-orange-400">cumplen la RAC 100</span> con Bitafly
           </h1>
           <p className="text-slate-300 text-base max-w-xl mx-auto leading-relaxed">
-            Historias reales de empresas y pilotos en Colombia que gestionan su flota, bitácoras
-            y certificaciones con Bitafly.
+            Ejemplos de cómo un operador UAS en Colombia puede gestionar su flota, bitácoras
+            y certificaciones con Bitafly — marcados como ilustrativos hasta que publiquemos
+            casos de clientes reales.
           </p>
         </div>
       </section>
@@ -85,6 +86,12 @@ export default function CasosPage() {
               className="group block bg-white border border-slate-100 rounded-3xl p-8 hover:shadow-lg hover:border-orange-100 transition-all"
             >
               <div className="flex flex-wrap items-center gap-3 mb-5">
+                {c.illustrative && (
+                  <span className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full bg-slate-100 text-slate-500"
+                        title="Caso ilustrativo: ejemplo representativo, no un cliente real todavía">
+                    Caso ilustrativo
+                  </span>
+                )}
                 <span className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full ${tc.bg} ${tc.text}`}>
                   {c.tipo}
                 </span>

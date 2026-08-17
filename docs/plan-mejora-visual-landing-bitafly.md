@@ -222,13 +222,25 @@ limpio y uniforme — se procesaron en lote con un script, no una por una:
   `sms-aeronautico`) — las 9 restantes no se inspeccionaron una por una en navegador
   por ser el mismo cambio mecánico ya verificado, pero si algo se ve mal, avisar.
 
-## Fase 7 — Limpieza final
+## Fase 7 — Limpieza final `[x] Hecha (2026-08-17)`
 
-- Eliminar `public/next.svg`/`public/vercel.svg` (boilerplate sin usar).
+- Eliminar `public/next.svg`/`public/vercel.svg` (boilerplate sin usar). ✅ Confirmado
+  sin referencias en todo `src/` antes de borrarlos.
 - Confirmar que ninguna imagen externa (Unsplash u otra) sigue cargándose desde fuera
-  del propio dominio — todo auto-hospedado vía `next/image`.
-- Auditoría final de peso de página (Lighthouse/Core Web Vitals) tras agregar
-  screenshots reales, para no sacrificar performance por las nuevas imágenes.
+  del propio dominio — todo auto-hospedado vía `next/image`. ✅ Cero referencias a
+  `images.unsplash.com`/dominios externos en las páginas públicas de este plan (la
+  última, en `Hero.js`, se fue con la Fase 2). **Hallazgo fuera de alcance, documentado
+  y NO tocado**: `src/components/AircraftCard.js` (`DEFAULT_AIRCRAFT_IMG`) sigue usando
+  una foto de stock de Unsplash como imagen por defecto de una aeronave sin foto propia
+  — es un componente del **dashboard** (detrás de login), fuera del alcance de este
+  plan ("Landing y Sitio Público"); se deja para una revisión aparte si se pide.
+- Auditoría final de peso de página tras agregar screenshots reales: las 9 capturas en
+  `public/screenshots/` pesan ~600 KB en total (27-76 KB cada una), servidas vía
+  `next/image` (recorte/reencodado automático por breakpoint en producción). **Limitación
+  real documentada**: no se corrió una auditoría Lighthouse/Core Web Vitals real (sin
+  navegador con esa herramienta disponible en este entorno) — se verificó en su lugar
+  que el tamaño de bundle JS de Home (`next build`) no cambió (112 kB First Load JS,
+  igual que antes de la Fase 2) y que el peso de imagen agregado es moderado.
 
 ---
 

@@ -943,6 +943,25 @@ Notas de producción:
   que el resto de la serie.
 - **Subtítulos**: mismo criterio que los guiones anteriores — se derivan de este documento
   una vez esté el video montado.
+- **GIFs de referencia grabados (2026-08-17)**: 5 clips silenciosos, uno por bloque
+  (2-5, el gancho reutiliza el clip real de 0.2), sin overlays — `1.1-bloque1-flota-
+  baterias.gif`, `1.1-bloque2-despacho-simplificado.gif`, `1.1-bloque3-bitacora.gif`,
+  `1.1-bloque4-mantenimiento.gif`, `1.1-bloque5-menu-simplificado.gif`. Grabados contra
+  `qa.independiente@bitafly-test.local` (organización propia "Piloto: QA Piloto
+  Independiente", separada de la QA org principal — la misma cuenta también es miembro
+  regular de la QA org, así que tiene dos membresías; se usó la organización activa
+  correcta para la grabación).
+- **Bloque 5 confirmado real**: el menú lateral del piloto independiente efectivamente
+  no tiene el grupo Documentación — solo Operación (Dashboard/Bitácora/Meteorología) y
+  Flota & Equipo (Flota/Baterías/Mantenimiento). El guion no necesita ajuste.
+- **Limitación real encontrada al grabar el Bloque 3**: la organización de prueba no
+  tenía fila en `pilots` para el piloto independiente (solo `profiles`+
+  `organization_members`), así que no se pudo demostrar en vivo el "auto-piloto DJI"
+  (crear el registro de piloto automáticamente al importar el primer vuelo) — el GIF
+  grabado muestra la bitácora real (1 vuelo sin PIC asignado) + el panel de importación
+  DJI, pero no el resultado de una importación real (requiere un archivo `.txt` real de
+  un log DJI, que tampoco está disponible en este entorno — mismo pendiente que el
+  Replay GPS de la Fase 0 del plan visual).
 
 ---
 

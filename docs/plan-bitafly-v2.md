@@ -174,108 +174,209 @@ cae la conexión a mitad del wizard, se pierde. Propuesta: cola de escritura loc
 
 ## 4. F2 — Comando y Control (C2 en vivo)
 
-Este es el frente de mayor riesgo técnico y el de mayor valor diferencial. Requiere honestidad
-sobre lo que es posible.
+> **Actualizado tras validación técnica (2026-08-22)** — se verificó la documentación oficial de
+> DJI (`dji-sdk/Cloud-API-Doc`, clonada y leída) y la del FlightHub 2. Las decisiones de esta
+> sección ya no son hipótesis: están contrastadas contra la especificación real.
 
 ### 4.1 Qué exige exactamente la norma
 
 `100.415(a)(2)(iii)` — el software de control debe suministrar **en todo momento**:
-posición georreferenciada, azimuth, velocidad horizontal, altura, velocidad vertical, nivel de
-energía, **calidad de la señal del enlace C2**, e **imagen de video frontal desde la UA**.
+actitud de vuelo, posición georreferenciada, azimuth, velocidad horizontal, altura, velocidad
+vertical, nivel de energía, **calidad de la señal del enlace C2**, e **imagen de video frontal
+desde la UA**.
 
 `100.440(a)(12)` — para BVLOS, un **sistema tecnológico de gestión de vuelo UAS** con geocercas
 en toda el área de operación y visualización de telemetría en todas las fases.
 
 Apéndice 2, Tabla 1 — la telemetría en BVLOS debe ser "robusta, redundante y con
-**almacenamiento/registro de eventos críticos**", y deben existir "sistemas avanzados de
-detección, alertamiento y mitigación de degradación del enlace".
+**almacenamiento/registro de eventos críticos**", con "sistemas avanzados de detección,
+alertamiento y mitigación de degradación del enlace".
 
-Traducción: BitaFly no necesita *pilotar* el dron. Necesita **recibir, mostrar, geocercar,
-alertar y archivar** — que es precisamente donde un SaaS aporta y donde el fabricante no llega.
+BitaFly no necesita *pilotar* el dron. Necesita **recibir, mostrar, geocercar, alertar y
+archivar** — que es donde un SaaS aporta y donde el fabricante no llega.
 
-### 4.2 De dónde salen los datos — las tres vías, con su costo real
+### 4.2 Hallazgo clave: la integración con DJI Pilot 2 es una página web
 
-| Vía | Cómo funciona | Alcance | Esfuerzo | Veredicto |
-|---|---|---|---|---|
-| **A — DJI Cloud API** | DJI Pilot 2 / Dock se conectan por **MQTT a nuestro servidor** para telemetría, y publican video a nuestro servidor de streaming (RTMP/GB28181/WHIP/Agora). Protocolo abierto y documentado por DJI. | Enterprise: Matrice 30/300/350/4, Mavic 3E/T con Pilot 2, Dock 1/2/3 | **Medio** — servidor propio, sin app nativa | ✅ **Vía principal** |
-| **B — DJI Mobile SDK (MSDK)** | App **nativa** Android/iOS conectada al RC que reenvía telemetría y video a nuestro backend. | Consumo + enterprise (Mini, Air, Mavic) | **Muy alto** — hoy el APK es un cascarón Capacitor en *remote URL mode*; esto exige una app nativa real, con su ciclo de release y aprobación DJI | 🔶 Fase posterior |
-| **C — Genérico MAVLink / RTSP** | Drones no-DJI (ArduPilot/PX4) o cualquier cámara IP en la estación. | Todo lo demás | Bajo por vía, alto en soporte | 🔶 Nicho, después |
+La documentación oficial lo confirma: DJI Pilot 2 tiene un portal **"Open Platforms"** en su
+sección de Cloud Service, donde el usuario introduce una **URL http/https**. Pilot 2 carga esa
+página en un WebView y toda la interacción ocurre mediante el puente JavaScript
+`window.djiBridge` (`platformVerifyLicense`, `apiGetToken`, `platformLoadComponent`…).
 
-**Decisión propuesta**: v2 arranca con **A (DJI Cloud API)**. Es la única que cubre los requisitos
-de la categoría específica/BVLOS —que es justo el segmento que necesita C2— sin construir una app
-nativa desde cero. B queda planificada pero fuera del alcance inicial, y es la que abriría C2 al
-piloto independiente con equipo de consumo.
+**Consecuencia directa: no hace falta una app nativa.** La integración C2 con Pilot 2 es una
+página web servida por BitaFly — exactamente la competencia que el proyecto ya tiene. Esto
+elimina el mayor riesgo que tenía este frente en la versión anterior del plan.
 
-> ⚠️ **Riesgo a validar antes de comprometer la fase**: el acceso a la DJI Cloud API requiere una
-> cuenta de desarrollador DJI Enterprise y aprobación de aplicación. No lo doy por hecho —
-> es la primera tarea verificable del frente F2 y puede modificar el plan.
+Requisitos formales: registrarse como desarrollador DJI y crear una aplicación "Cloud API" para
+obtener **APP ID, APP Key y APP License** (ya disponible — confirmado por el usuario).
 
-### 4.3 Arquitectura — y por qué no cabe en Vercel
+### 4.3 Modelos soportados — y por qué coinciden con la decisión comercial
 
-Restricción dura: **Vercel es serverless**. No sostiene conexiones MQTT persistentes, ni
-WebSockets de larga duración, ni ingesta/transcodificación de video. Intentarlo es la principal
-forma en que este frente puede fracasar.
+Según la tabla oficial de modelos soportados por la Cloud API:
+
+| Aeronave | Gateway |
+|---|---|
+| Matrice 350 RTK | DJI RC Plus + Pilot 2 |
+| Matrice 300 RTK | DJI RC Plus / Smart Controller Enterprise + Pilot 2 |
+| Matrice 30 / 30T | DJI RC Plus + Pilot 2 · DJI Dock |
+| Mavic 3 Enterprise (M3E/M3T) | DJI RC Pro + Pilot 2 |
+| Matrice 3D / 3TD | DJI Dock 2 |
+
+La Cloud API **no soporta** M200/M200 V2, M2E, P4R, M2EA ni drones de consumo. La aeronave nunca
+se conecta directo: siempre pasa por un *gateway* (RC o Dock).
+
+**Decisión comercial confirmada por el usuario: C2 solo para planes superiores a Escuadrilla**
+(Flota y Enterprise). Encaja perfecto — el hardware que la Cloud API soporta es exactamente
+equipo enterprise, que es el que tienen esos clientes. La restricción comercial y la técnica
+coinciden, no se contradicen.
+
+> **Efecto de producto a tener presente**: desde el cambio de precios de agosto 2026, Escuadrilla
+> y Flota comparten funcionalidad idéntica y solo difieren en capacidad y precio. **C2 vuelve a
+> ser el primer diferenciador real de funcionalidad entre ambos planes.** Es un argumento de
+> venta fuerte para el salto Escuadrilla → Flota.
+
+### 4.4 Vía A — Operación con RC en campo (Pilot 2 → BitaFly)
+
+Es la vía principal, y **no interfiere con el Dock ni con FlightHub 2** (§4.5).
+
+- **Telemetría por MQTT** en `thing/product/{sn}/osd`, con `pushMode: 0` = **frecuencia estable
+  de 0,5 Hz** (una muestra cada 2 s). Estados y eventos van por `thing/product/{sn}/state`,
+  reportados solo al cambiar.
+- **Video en vivo**: la Cloud API soporta **RTMP, RTSP, GB28181 y Agora**. El servidor ordena
+  iniciar/detener el stream por MQTT; el RC lo publica al servidor de medios de BitaFly.
+- **Mapeo directo contra el RAC 100** — cada campo exigido por `100.415(a)(2)(iii)` existe como
+  propiedad real de la Cloud API:
+
+| RAC 100 100.415(a)(2)(iii) | Campo DJI Cloud API |
+|---|---|
+| (A) Actitud de vuelo | `attitude_pitch`, `attitude_roll` |
+| (B) Posición georreferenciada | `latitude`, `longitude` |
+| (C) Azimuth de vuelo | `attitude_head` |
+| (D) Velocidad horizontal | `horizontal_speed` |
+| (E) Altura de vuelo | `height` (absoluta) · `elevation` (relativa al despegue) |
+| (F) Velocidad vertical | `vertical_speed` |
+| (G) Nivel y estado de la fuente de energía | `battery` (struct) |
+| (H) Calidad de señal del enlace C2 | `wireless_link.sdr_quality` (0–5), `sdr_link_state`, `link_workmode` (SDR / fusión 4G), `dongle_infos` |
+| (I) Imagen de video frontal desde la UA | Livestream RTMP/RTSP/GB28181/Agora |
+| (J) Alertas | `mode_code` + `mode_code_reason` (22 causas: batería crítica, pérdida de señal del RC, RTH, aterrizaje forzoso, obstáculo…) + HMS |
+
+Además, `total_flight_time` y `total_flight_distance` permiten **conciliar automáticamente** el
+odómetro de la aeronave y la bitácora, y `mode_code_reason` alimenta el SMS sin intervención
+humana (§5.4).
+
+**Este mapeo es la prueba de que el frente es viable**: no hay un solo campo exigido por la
+norma que la Cloud API no entregue.
+
+### 4.5 Vía B — Docks que operan con FlightHub 2 (respuesta al punto 4 del usuario)
+
+> "no intervendremos el dock, ya que este cuenta con un software de FlightHub 2 para vuelo
+> automático, a menos que encuentres la forma de extraer la información."
+
+**La restricción del usuario es técnicamente correcta**: un Dock se vincula a **una sola**
+plataforma en la nube a la vez. Si está en FlightHub 2 para vuelo automático, no puede además
+apuntar su MQTT a BitaFly. No hay forma de tener las dos cosas por la vía de la Cloud API — y
+forzarlo rompería la automatización que el cliente ya usa.
+
+**Sí hay forma de extraer la información, y sin tocar el Dock.** DJI expone tres mecanismos de
+salida desde FlightHub 2 hacia plataformas de terceros:
+
+| Mecanismo | Qué entrega | Uso en BitaFly |
+|---|---|---|
+| **FlightHub OpenAPI** (REST) | Organizaciones, dispositivos, **registros de vuelo** (tareas de ruta del Dock, vuelos manuales y vuelos por Virtual Cockpit), con exportación de reporte resumen y datos completos | Alimenta bitácora, horas de aeronave, ciclos de batería y el reporte mensual UAS — **sin captura manual** |
+| **FlightHub Sync** | Sincronización sin código de **archivos multimedia** y **reenvío de livestream** a nubes de terceros (RTMP/RTMPS, **RTSP y GB28181**) | El video del Dock llega a la pantalla de C2 de BitaFly, en paralelo a FlightHub 2 |
+| **Event API** | Reglas de eventos configurables que empujan eventos específicos de FlightHub a sistemas externos | Alimenta `c2_events` y genera borradores de reporte SMS |
+
+**El Dock queda intacto**: sigue volando con FlightHub 2 como hoy. BitaFly se conecta *aguas
+abajo*, como consumidor de datos. Es lectura, nunca control.
+
+Precedente que confirma viabilidad: **AirData UAV ya publica una integración de livestream desde
+DJI FlightHub 2** — es decir, un competidor directo ya opera exactamente este camino.
+
+> ⚠️ **A verificar antes de comprometer esta vía**: el alcance exacto de la FlightHub OpenAPI y
+> del Event API depende de la licencia de FlightHub 2 del cliente (y difiere entre la versión
+> nube y la *on-premises*). Es la primera tarea de la vía B: confirmar con la cuenta de
+> desarrollador ya disponible qué endpoints están habilitados para el tipo de licencia que
+> tienen los clientes objetivo.
+
+### 4.6 Vía C — Descartada por ahora
+
+DJI Mobile SDK (app nativa) queda **fuera de alcance**, consistente con la decisión del usuario
+de limitar C2 a planes superiores a Escuadrilla: los drones de consumo que exigirían MSDK
+pertenecen a los planes que no tendrán C2. Se documenta como no-objetivo, no como pendiente.
+
+### 4.7 Arquitectura — y por qué no cabe en Vercel
+
+Vercel es serverless: no sostiene conexiones MQTT persistentes, ni WebSockets de larga duración,
+ni ingesta de video. Intentarlo es la principal forma en que este frente puede fracasar.
 
 ```
-  Dron / Dock / Pilot 2
-        │
-        ├── MQTT (telemetría, ~1–10 Hz) ──►  c2-gateway  (servicio siempre encendido)
-        │                                     - broker MQTT (EMQX/Mosquitto) con ACL por org
-        │                                     - motor de reglas: geocercas, límites, enlace
-        │                                     - buffer caliente en memoria/Redis
-        │                                     - persistencia: 1 Hz → Postgres, full → R2 (.gz)
-        │
-        └── RTMP/WHIP (video) ─────────────►  media-server (MediaMTX / Cloudflare Stream)
-                                              - reempaqueta a LL-HLS / WebRTC
-                                              - claves de publicación rotables por sesión
-
-  Navegador (BitaFly v2)
-        ├── WebSocket ◄── c2-gateway   (telemetría en vivo + alertas)
-        └── LL-HLS/WebRTC ◄── media-server (video, URL firmada de corta vida)
+  VÍA A — RC en campo                        VÍA B — Dock en FlightHub 2
+  ───────────────────                        ──────────────────────────
+  Aeronave                                    Dock ──► FlightHub 2  (intacto)
+     │ AirLink                                              │
+  RC Plus/Pro + Pilot 2                          OpenAPI · Sync · Event API
+     │  ┌─ H5 (página servida por BitaFly)                  │
+     │  └─ MQTT 0,5 Hz  ─┐                                  │
+     └─ RTMP/RTSP/GB28181 ─┐                                │
+                          ▼                                 ▼
+                   ┌─────────────────────────────────────────────┐
+                   │  c2-gateway   (servicio siempre encendido)   │
+                   │  · broker MQTT (EMQX) con ACL por org        │
+                   │  · reglas: geocercas, límites, enlace C2     │
+                   │  · buffer caliente en memoria/Redis          │
+                   │  · persistencia: 0,5 Hz → Postgres           │
+                   │                 traza completa → R2 (.gz)    │
+                   └─────────────────────────────────────────────┘
+                          │                          │
+                   media-server                  WebSocket
+                (Cloudflare Stream)                  │
+                          └──────────► Navegador (BitaFly v2)
 ```
 
-- **`c2-gateway`**: Node/Fastify en un runtime siempre encendido. El repo **ya tiene precedente**
-  de servicio fuera de Vercel: `railway-robot/` (Express + Playwright en Railway). Se reutiliza
-  el mismo patrón de despliegue.
-- **Media server**: primera opción **Cloudflare Stream** (el proyecto ya está todo en
-  Cloudflare R2, mismo proveedor, mismo facturador, cero servidores que operar). Alternativa
-  autoalojada: MediaMTX. Se decide con números de costo por hora de operación.
-- **Frontend**: mapa en vivo (MapLibre GL, no Google Maps — el proyecto ya usa OSM/Nominatim),
-  HUD de telemetría con los 9 campos de 100.415, panel de video, y línea de eventos.
+- **`c2-gateway`**: Node/Fastify en runtime siempre encendido. El repo **ya tiene precedente**:
+  `railway-robot/` (Express + Playwright en Railway). Mismo patrón de despliegue.
+- **Página H5 para Pilot 2**: se sirve desde el mismo Next.js, en una ruta dedicada. Login,
+  verificación de licencia y carga de módulos vía `window.djiBridge`.
+- **Media server**: primera opción **Cloudflare Stream** — el proyecto ya está íntegramente en
+  Cloudflare R2, mismo proveedor y misma factura. Alternativa autoalojada: MediaMTX (soporta
+  RTMP/RTSP/WebRTC/HLS, que cubre los cuatro protocolos de DJI).
+- **Frontend**: mapa en vivo (MapLibre GL — el proyecto ya usa OSM/Nominatim, no Google Maps),
+  HUD con los 9 campos de 100.415, panel de video y línea de eventos.
+- **Seguridad del enlace**: DJI Pilot 2 y Dock aceptan certificados emitidos por GoDaddy para
+  MQTT sobre SSL, y admiten autenticación del cliente (`clientAuth`) si el servidor la exige.
+  Se activa — no se deja el MQTT en anónimo.
 
-### 4.4 Persistencia — el punto donde esto se cae si se hace mal
+### 4.8 Persistencia — el punto donde esto se cae si se hace mal
 
-Telemetría a 10 Hz × 1 hora × 1 dron = 36.000 filas. Con 20 organizaciones volando a diario,
-Postgres se vuelve el cuello de botella y la factura.
+La validación técnica **mejoró mucho el panorama**: la telemetría llega a **0,5 Hz**, no a 10 Hz
+como se asumió en la versión anterior de este plan. Una hora de vuelo son **1.800 muestras**, no
+36.000. Postgres lo absorbe sin problema.
 
-**Solución, reutilizando un patrón que BitaFly ya tiene probado**: es exactamente lo que hace hoy
-el Replay GPS (JSON comprimido en R2, no filas en Postgres).
+Aun así se conserva el diseño en capas, porque el volumen crece con la flota y porque el patrón
+ya está probado en el proyecto (es exactamente lo que hace hoy el Replay GPS: JSON comprimido en
+R2, no filas en Postgres):
 
-- **En vivo**: buffer en memoria/Redis en `c2-gateway`, nunca toca Postgres.
-- **Persistencia continua**: submuestreo a **1 Hz** → `c2_telemetry` en Postgres (suficiente para
-  auditoría y para reconstruir la trayectoria).
-- **Al cerrar sesión**: la traza completa a tasa nativa se comprime y se sube a R2 como el replay
-  actual, y se enlaza al vuelo. Así el "registro de eventos críticos" del Apéndice 2 queda
-  íntegro sin inflar la base.
-- **Eventos** (`c2_events`): siempre en Postgres, son pocos y son la evidencia regulatoria.
+- **En vivo**: buffer en memoria/Redis en `c2-gateway`. No toca Postgres.
+- **Persistencia**: las muestras a 0,5 Hz → `c2_telemetry`. Retención 12 meses en Postgres.
+- **Al cerrar sesión**: la traza completa se comprime y se sube a R2, enlazada al vuelo — así el
+  "almacenamiento/registro de eventos críticos" del Apéndice 2 queda íntegro.
+- **Eventos** (`c2_events`): siempre en Postgres. Son pocos y son la evidencia regulatoria.
 
-### 4.5 Geocercas (100.440(a)(12))
+### 4.9 Geocercas (100.440(a)(12))
 
-Se derivan de la zona ya definida en la programación (`flight_authorizations.plan_data.points`)
-— **no se pide al usuario dibujarlas otra vez**. `c2-gateway` evalúa cada muestra contra el
-polígono + techo de altura y genera un `c2_event` de tipo `geofence_breach`, que:
-1. alerta en pantalla al piloto y al jefe de pilotos,
-2. crea automáticamente un **borrador de reporte SMS** (ver F3).
+Se derivan de la zona ya definida en la programación
+(`flight_authorizations.plan_data.points`) — **no se le pide al usuario dibujarlas otra vez**.
+`c2-gateway` evalúa cada muestra contra el polígono y el techo de altura, y genera un `c2_event`
+de tipo `geofence_breach` que alerta en pantalla y crea un **borrador de reporte SMS** (§5.4).
 
-### 4.6 Lo que BitaFly explícitamente NO hará
+### 4.10 Lo que BitaFly explícitamente NO hará
 
-No enviar comandos al dron (despegar, cambiar waypoint, RTH remoto). Es una decisión de
-producto y de responsabilidad: convierte a BitaFly en parte de la cadena de mando, con
-implicaciones de certificación y de seguro que no queremos. BitaFly **observa, registra, alerta
-y documenta**. El mando lo conserva la estación de control del fabricante, como exige la propia
-norma al hablar de "estación de control de vuelo".
+No enviar comandos al dron (despegar, cambiar waypoint, RTH remoto). La Cloud API sí lo permite
+(módulo DRC), pero es una decisión de producto y de responsabilidad: convertiría a BitaFly en
+parte de la cadena de mando, con implicaciones de certificación y de seguro que no queremos.
+BitaFly **observa, registra, alerta y documenta**. El mando lo conserva la estación de control
+del fabricante, como la propia norma presupone al hablar de "estación de control de vuelo".
 
----
+Esta decisión además hace consistente el trato del Dock: ni control por RC, ni control por Dock.
 
 ## 5. F3 — SMS fácil de integrar y aplicar
 
@@ -471,9 +572,9 @@ cálculos se hacen al leer, como ya se hace con SPI, zonas de riesgo y % de cump
 
 | Tabla | Propósito | Notas |
 |---|---|---|
-| `c2_devices` | Vincula una `aircraft` con su fuente de telemetría | `device_sn`, `source` (`dji_cloud`/`msdk`/`mavlink`), `bound_at`, `status`. Credenciales **nunca** aquí — en el gestor de secretos |
+| `c2_devices` | Vincula una `aircraft` con su fuente de telemetría | `device_sn`, `gateway_sn` (RC o Dock — la aeronave nunca conecta directo), `source` (`dji_pilot2`/`dji_flighthub2`), `bound_at`, `status`. Credenciales **nunca** aquí — en el gestor de secretos |
 | `c2_sessions` | Una sesión de vuelo en vivo | FK a `aircraft`, `pilots`, `flight_authorizations`, `flights`. `started_at`, `ended_at`, `link_quality_min/avg`, `replay_path` (R2) |
-| `c2_telemetry` | Muestras a **1 Hz** | Particionada por mes. Retención en Postgres: 90 días; la traza completa vive en R2 |
+| `c2_telemetry` | Muestras a **0,5 Hz** (frecuencia real de la Cloud API, §4.8) | Particionada por mes. Retención en Postgres: 12 meses; la traza completa vive en R2 |
 | `c2_events` | Eventos críticos | `type` (`link_lost`/`link_degraded`/`geofence_breach`/`low_battery`/`rth_triggered`/`altitude_exceeded`), severidad, `sms_report_id` nullable |
 | `c2_geofences` | Geocercas de la sesión | Derivadas de `plan_data.points` + techo. `breach_count` |
 | `c2_stream_keys` | Claves de publicación de video | Rotables, TTL corto, una por sesión, revocables |
@@ -524,6 +625,23 @@ El **motor de cumplimiento** es una función pura compartida cliente/servidor
 
 > Esta distinción es una decisión de producto con implicaciones legales. Se marca para
 > validación explícita (§11).
+
+---
+
+### 8.6 Habilitación de C2 por plan
+
+Decisión confirmada: C2 solo para **Flota y Enterprise**. Se implementa donde ya vive la
+lógica de planes, sin inventar un mecanismo paralelo:
+
+- `PLAN_CONFIG` (`lib/planLimits.js`) gana la capacidad `commandAndControl: true` solo en
+  `flota` y `enterprise` — mismo patrón que las demás `features` del plan.
+- El nav del espacio **OPERAR** oculta la entrada de C2 cuando el plan no la incluye.
+- **Gate de rol y de plan también en la API**, no solo en la interfaz — convención ya
+  establecida en el proyecto y reforzada tras la auditoría de reportes del 2026-07-22: el
+  `c2-gateway` rechaza el registro de un dispositivo cuyo plan de organización no incluya C2,
+  y los endpoints de sesión/telemetría verifican lo mismo.
+- El plan efectivo se resuelve con `getOrgPlan()` (membresía del admin), igual que el resto de
+  límites — no se lee `profiles.subscription_plan` directo.
 
 ---
 
@@ -633,28 +751,34 @@ arquitectura de seguridad interna descrita en `CLAUDE.md`.
 
 ---
 
-## 11. Decisiones que requieren tu confirmación
+## 11. Decisiones — estado
 
-No bloquean el arranque del plan, pero sí cambian el alcance. Las dejo explícitas en vez de
-asumirlas:
+### 11.1 Resueltas (2026-08-22)
 
-1. **DJI Cloud API** — ¿tienes o puedes gestionar cuenta de desarrollador DJI Enterprise? Sin
-   ella, F2 tendría que ir por la vía B (app nativa MSDK), que es un proyecto en sí mismo y
-   cambia el cronograma por completo.
-2. **Segmento objetivo de C2** — ¿es para tus clientes enterprise con Matrice/Dock (vía A,
-   viable ya) o necesitas que funcione también con drones de consumo del piloto independiente
-   (vía B, mucho más costoso)?
-3. **F4b — radicación automática** — ¿comprometemos la automatización del portal desde v2, con
-   la custodia de credenciales que implica, o entregamos primero solo el expediente listo para
-   radicar (4a) y decidimos 4b con datos de uso?
-4. **Retención de 5 años vs. planes** — ¿confirmas la distinción de §8.5 (registros
-   operacionales 5 años en todos los planes; replay y video con retención por plan, declarada
-   explícitamente)?
-5. **Formato oficial de la matriz de riesgos de la Aerocivil** — `100.805(a)(3)` la exige "en el
-   formato establecido por la Aerocivil". ¿Lo tienes? Es un insumo, no desarrollo, pero bloquea
-   la entrega de F4a.
-6. **Prioridad entre frentes** — mi recomendación es F5 → F3 → F1 → F2 → F4 (ver §12). Si tu
-   prioridad comercial es otra (p. ej. C2 primero como diferenciador de venta), lo reordenamos.
+| # | Decisión | Respuesta | Efecto en el plan |
+|---|---|---|---|
+| 1 | Cuenta de desarrollador DJI | **Sí, disponible** | Desbloquea la vía A. Falta crear la aplicación "Cloud API" y obtener APP ID / Key / License (§4.2) |
+| 2 | Segmento objetivo de C2 | **Solo planes superiores a Escuadrilla** (Flota y Enterprise) | Coincide con el hardware que soporta la Cloud API. C2 vuelve a diferenciar Escuadrilla de Flota (§4.3) |
+| 3 | Formato oficial de la matriz de riesgos Aerocivil | **Aún no es público** | F4a se construye con plantilla intercambiable; se emite matriz propia mientras tanto (§6.3) |
+| 4 | Intervención del Dock | **No se interviene** — sigue en FlightHub 2 | Vía B: extracción de datos *aguas abajo* vía FlightHub OpenAPI + FlightHub Sync + Event API, sin tocar el Dock (§4.5) |
+
+### 11.2 Pendientes
+
+| # | Decisión | Por qué importa |
+|---|---|---|
+| 5 | **Retención de 5 años vs. planes** — ¿se confirma la distinción de §8.5 (registros operacionales 5 años en todos los planes; replay y video con retención por plan, declarada explícitamente en la interfaz)? | Tiene implicaciones legales: un explotador no debe creer que su obligación de 5 años está cubierta por un replay de 30 días |
+| 6 | **F4b — radicación automática** — ¿se compromete la automatización del portal, con custodia de credenciales, o se entrega primero solo F4a? | Es el mayor riesgo de responsabilidad del plan (§6.4, §10.5) |
+| 7 | **Prioridad entre frentes** — la recomendación es F5 → F3 → F1 → F2 → F4 (§12). ¿Se mantiene, o la prioridad comercial exige adelantar C2? | Con F2 ya validado técnicamente, adelantarlo es más viable que antes |
+
+### 11.3 Verificaciones técnicas pendientes (tareas de arranque, no decisiones)
+
+- **V1** — Crear la aplicación Cloud API en el portal de desarrollador DJI y validar
+  `platformVerifyLicense` contra un RC real (§4.2).
+- **V2** — Confirmar qué endpoints de la **FlightHub OpenAPI** y del **Event API** están
+  habilitados para el tipo de licencia de FlightHub 2 que tienen los clientes objetivo, y si
+  difiere entre versión nube y *on-premises* (§4.5).
+- **V3** — Comparar costo por hora de operación entre **Cloudflare Stream** y **MediaMTX**
+  autoalojado para los 4 protocolos de DJI (§4.7).
 
 ---
 
@@ -667,7 +791,7 @@ El orden **no** es el de la lista del usuario, y quiero explicar por qué.
 | **1º** | **F5 — Tiempos de servicio** | Es un incumplimiento **actual** de una norma vigente. Es además el frente más pequeño y de menor riesgo: valida el aislamiento de desarrollo y el sistema de diseño con algo acotado. |
 | **2º** | **F3 — SMS** | Alto valor, riesgo medio, sin dependencias externas. La conexión "eventos operacionales → SMS" da un salto de utilidad inmediato. |
 | **3º** | **F1 — Rediseño** | Necesita que F5 y F3 ya existan, para que el rediseño acomode el mapa completo de módulos y no haya que rehacerlo. Empieza antes en paralelo con `packages/ui`. |
-| **4º** | **F2 — C2** | El más grande y el de mayor riesgo. Arranca con la validación de acceso a DJI Cloud API, que puede cambiar el plan. |
+| **4º** | **F2 — C2** | Sigue siendo el más grande, pero **ya no el de mayor incertidumbre**: la validación técnica del 2026-08-22 confirmó que la integración con Pilot 2 es una página web y que todos los campos exigidos por el RAC 100 existen en la Cloud API. Arranca con V1/V2 (§11.3). |
 | **5º** | **F4a → F4b** | 4a en cualquier momento (es autónomo). 4b solo al final, y solo si se aprueba. |
 
 Cada frente termina en una **puerta de verificación** contra el Supabase branch y el deploy de
@@ -680,7 +804,9 @@ preview, con criterios de aceptación escritos antes de empezar a construir. Nin
 
 Para que el alcance sea honesto:
 
-- **No** enviar comandos de vuelo al dron (§4.6).
+- **No** enviar comandos de vuelo al dron — ni por RC ni por Dock (§4.10).
+- **No** intervenir el Dock ni desplazar a FlightHub 2: BitaFly se conecta aguas abajo, como consumidor de datos (§4.5).
+- **No** soportar drones de consumo en C2 (DJI Mobile SDK fuera de alcance, §4.6) — consistente con limitar C2 a planes superiores a Escuadrilla.
 - **No** migrar a TypeScript de forma completa (§9.4).
 - **No** tests de UI ni de las 181 rutas API (§9.3).
 - **No** rehacer el landing público, las páginas SEO ni el Panel Socio — funcionan y están fuera
@@ -692,4 +818,30 @@ Para que el alcance sea honesto:
 
 ---
 
+## 14. Fuentes consultadas
+
+**Normativa**
+- RAC 100 — Operación de Sistemas de Aeronaves No Tripuladas (UAS), resolución que modifica
+  integralmente la norma. Documento completo aportado por el usuario, leído en su totalidad
+  (7.638 líneas). Secciones citadas: 100.215, 100.240, 100.410, 100.415, 100.440, 100.535,
+  100.540, 100.545, 100.550, 100.805, 100.810, 100.815, Apéndice 1, Apéndice 2, Apéndice 4.
+
+**DJI — validación técnica del 2026-08-22**
+- [`dji-sdk/Cloud-API-Doc`](https://github.com/dji-sdk/Cloud-API-Doc) — repositorio oficial de
+  documentación de la Cloud API, clonado y leído directamente. Archivos usados:
+  `10.overview/30.product-support.md` (modelos soportados),
+  `30.feature-set/10.pilot-feature-set/10.pilot-access-to-cloud.md` (portal Open Platforms,
+  JSBridge, licencia, MQTT SSL), `30.pilot-livestream.md` (protocolos de video),
+  `60.api-reference/10.pilot-to-cloud/00.mqtt/10.m3-series/00.properties.md` y
+  `20.rc-pro/00.properties.md` (campos de telemetría, `wireless_link`, frecuencia 0,5 Hz).
+- [FlightHub Sync — sincronización con nubes de terceros](https://fh.dji.com/user-manual/en/custom-development/flighthub-sync/introduction.html)
+- [FlightHub 2 — versión On-Premises y notas de versión](https://fh.dji.com/user-manual/en/release-notes/release-notes-private.html)
+- [DJI FlightHub 2 — FAQ Enterprise](https://enterprise.dji.com/flighthub-2/faq)
+- [DJI FlightHub 2: A New Era of Cloud-Based Drone Intelligence](https://enterprise-insights.dji.com/blog/dji-flighthub-2-a-new-era-of-cloud-based-drone-intelligence)
+- [Actualización FlightHub 2 V13.1 (registros de vuelo, Event API)](https://enterprise-insights.dji.com/blog/new-update-flighthub2-april)
+- [AirData UAV — Live Streaming from DJI FlightHub 2](https://app.airdata.com/wiki/Help/Live+Streaming+from+DJI+FlightHub+2) — precedente de competidor operando la vía B.
+
+---
+
 *Documento vivo. Se actualiza al cerrar cada decisión de §11 y al completar cada frente.*
+*Última actualización: 2026-08-22 — validación técnica de F2 y decisiones 1–4 resueltas.*

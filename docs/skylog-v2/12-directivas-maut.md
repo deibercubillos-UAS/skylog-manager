@@ -11,7 +11,7 @@ La circular de indicadores (MAUT-1.0-22-005) tiene documento propio por extensi�
 | **MAUT-1.0-22-006** — Aceptación de los SMS | ✅ Analizado (§1) |
 | **MAUT-1.0-22-004** — Directiva 02-24, Reporte de eventos (MOR/VOR) | ✅ Analizado (§2) |
 | **MAUT-1.0-22-007** — Asuntos complementarios | ✅ [Documento propio](16-asuntos-complementarios.md) |
-| MAUT-5.0-22-017 — Implementación SMS en explotadores UAS + Apéndice 1 GAP | ⬜ Pendiente · ⚠️ **no está en la carpeta nueva**, sí en la anterior del Drive |
+| **MAUT-5.0-22-017** — Implementación SMS en explotadores UAS | ✅ [Documento propio](17-implementacion-sms-uas.md) |
 | MAUT-1.0-22-005 — Definición de SPI | ✅ [Documento propio](13-herramientas-spi.md) |
 
 ---

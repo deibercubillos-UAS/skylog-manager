@@ -9,7 +9,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:domain": "npm run test -w packages/domain"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1073.0",
@@ -54,5 +55,8 @@
     "and_chr >= 100",
     "ios_saf >= 15",
     "not dead"
+  ],
+  "workspaces": [
+    "packages/*"
   ]
 }

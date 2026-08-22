@@ -23,7 +23,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 |---|---|---|---|
 | [`10-rac219-sms.md`](10-rac219-sms.md) | **RAC 219** — Gestión de Seguridad Operacional (vigente, Res. 718/2024) | 199 | ✅ Texto primario |
 | [`11-rac100-uas.md`](11-rac100-uas.md) | **RAC 100** — 15 brechas · **los 4 apéndices siguen sin analizar (Apéndice 1 = contenido obligatorio del MO)** | 109 | ✅ Texto primario |
-| [`12-directivas-maut.md`](12-directivas-maut.md) | **MAUT-1.0-22-006** (Aceptación, P/S/O/E) ✅ · **-004** (MOR/VOR, 12 eventos UAS) ✅ | 299 | 🔄 |
+| [`12-directivas-maut.md`](12-directivas-maut.md) | **MAUT-1.0-22-006** (Aceptación, P/S/O/E) ✅ · **-004** (MOR/VOR, 12 eventos UAS) ✅ — referencias a C2/RAC 114 marcadas ⏸/diferidas | 314 | ✅ |
 | [`13-herramientas-spi.md`](13-herramientas-spi.md) | **MAUT-1.0-22-005** v02 (SPI) — 11 indicadores oficiales UAS · 9 correcciones · **§9 fórmulas del Excel MAUT-1.0-12-002 verificadas** | 349 | ✅ |
 | [`14-listas-verificacion.md`](14-listas-verificacion.md) | **MAUT-5.0-12-095** — lista de verificación del MO, 57 ítems con los que se certifica el CDO-U | 275 | ✅ |
 | [`15-evaluacion-sms.md`](15-evaluacion-sms.md) | **MAUT-3.0-12-097** — el instrumento con que la autoridad califica el SMS: 47 ítems, pesos, descriptores P/S/O/E, puntaje sobre 615 | 297 | ✅ |
@@ -66,7 +66,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
 | [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 289 | ✅ |
-| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 213 | ✅ |
+| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 233 | ✅ |
 
 **Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · ⏸ omitido por ahora
 
@@ -77,9 +77,11 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 - **28 documentos**, todos bajo el límite de 500 líneas. El mayor: `21-auditoria-sms.md` (433).
 - `plan-bitafly-v2.md` e `investigacion-sms-rac219-bitafly.md` **se eliminaron**: su contenido
   vive repartido aquí. No hay duplicados (regla E1).
-- Los marcados 🔄 se escribieron bajo la premisa anterior de *evolución aditiva*. Con la
-  autorización de reestructuración total ([`01-reglas.md`](01-reglas.md) §8) deben rehacerse
-  desde el problema, no desde lo que existe.
+- **Ningún documento queda marcado 🔄**: los siete que se escribieron bajo la premisa anterior
+  de *evolución aditiva* (`33`, `34`, `35`, `40`, `41`, `43`, `12`) ya se rehicieron desde el
+  problema, sobre el mapa de entidades ([`30`](30-entidades.md)/[`31`](31-esquema-datos.md)) y
+  el sitemap ([`36`](36-sitemap.md)), con la autorización de reestructuración total
+  ([`01-reglas.md`](01-reglas.md) §8).
 
 ### Documentos normativos pendientes de conseguir
 
@@ -92,9 +94,9 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Próximos pasos
 
-Etapas ①② del ciclo cerradas, `32-migracion.md` escrito, y **los seis documentos de diseño
-rehechos** (`33`, `34`, `35`, `40`, `41`, `43`) — todo sobre el mapa de entidades y el sitemap,
-sin nada pendiente de la premisa de evolución aditiva salvo `12-directivas-maut.md`.
+Etapas ①② del ciclo cerradas, `32-migracion.md` escrito, y **los siete documentos de diseño
+rehechos** (`33`, `34`, `35`, `40`, `41`, `43`, `12`) — todo sobre el mapa de entidades y el
+sitemap. **Cero documentos en 🔄**: la premisa de evolución aditiva quedó cerrada por completo.
 
 **Dos decisiones de infraestructura siguen esperando al usuario** ([`51`](51-bitacora.md)
 §11.6-§11.7): el plan Pro de Supabase para crear el branch de desarrollo, y ejecutar a mano en

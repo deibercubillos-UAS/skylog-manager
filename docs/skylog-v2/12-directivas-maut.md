@@ -13,6 +13,7 @@ La circular de indicadores (MAUT-1.0-22-005) tiene documento propio por extensi�
 | **MAUT-1.0-22-007** — Asuntos complementarios | ✅ [Documento propio](16-asuntos-complementarios.md) |
 | **MAUT-5.0-22-017** — Implementación SMS en explotadores UAS | ✅ [Documento propio](17-implementacion-sms-uas.md) |
 | MAUT-1.0-22-005 — Definición de SPI | ✅ [Documento propio](13-herramientas-spi.md) |
+| **MAUT-3.0-12-097** — Herramienta de evaluación P·S·O·E del SMS | ✅ [Documento propio](15-evaluacion-sms.md) |
 
 ---
 
@@ -135,8 +136,12 @@ Columnas de la matriz: `Ítem · Componente · Elemento · Indicadores de cumpli
 rendimiento · Eficacia · ¿Cómo se logra? · Comentarios`, con orientación *"Qué buscar"* por
 nivel.
 
-> **Nota de orden**: en el plan aprobado, MAUT-3.0-12-097 iba al final por su tamaño. Con este
-> hallazgo debería adelantarse — **pero no lo reordeno sin tu visto bueno**.
+> **Nota de orden — resuelta**: en el plan aprobado, MAUT-3.0-12-097 iba al final por su
+> tamaño. El hallazgo de esta sección la adelantó — la matriz de 47 ítems ya fue localizada y
+> analizada en [`15-evaluacion-sms.md`](15-evaluacion-sms.md), con las fórmulas de ponderación
+> (`Resultado = Peso × (P+S+O+E)`, máximo 615) verificadas. Ese documento es hoy la fuente de
+> los ítems que Skylog V2.0 debe poder autoevaluar; esta sección queda como el porqué normativo
+> de que existan.
 
 ---
 
@@ -191,10 +196,12 @@ Tripuladas (Drones, UAS y RPAS)"*.
 (meteorología `WSTRW`, fatiga `MED`, fauna `WILD`, procedimientos `PROC`…). La tabla UAS es
 adicional, no sustitutiva.
 
-### 2.3 El círculo se cierra: detección → reporte → indicador
+### 2.3 El círculo se cierra: detección → reporte → indicador — ⏸ depende de C2
 
 Tres normas distintas apuntan al mismo dato. Con el módulo C2, esto queda encadenado de punta
-a punta:
+a punta. **C2 está omitido por ahora (decisión 20,
+[`51-bitacora.md`](51-bitacora.md)) — esta sección describe el diseño para cuando se retome,
+no algo que Skylog V2.0 construya en esta fase.**
 
 | Norma | Qué exige |
 |---|---|
@@ -236,8 +243,12 @@ En Skylog V2.0 la clasificación de severidad debe **bifurcar el flujo**, no sol
 al marcar accidente o incidente grave, el sistema debe indicar que **no se radica por IRIS/MOR**
 y remitir al procedimiento del RAC 114.
 
-> **Pendiente**: el RAC 114 no está entre los documentos revisados. Se necesita para diseñar
-> esa rama.
+> **Decisión 11 (`51-bitacora.md`) — RAC 114 no se toca por ahora.** La bifurcación queda
+> identificada aquí como el punto exacto donde debe ocurrir (severidad = accidente o incidente
+> grave → fuera del flujo MOR/VOR), pero **sin diseñar el procedimiento de destino** — eso
+> requiere el texto de RAC 114, deliberadamente fuera de esta fase. Mientras tanto, `reports`/
+> `cases` (`31-esquema-datos.md` §4) marcan esas severidades como no-radicables por IRIS sin
+> más automatización que esa señal.
 
 ### 2.6 No punitivo — con una condición
 
@@ -288,12 +299,16 @@ internamente, no solo frente a la autoridad.
 
 ## 3 · Pendientes
 
-| # | Pendiente |
-|---|---|
-| P-MAUT-1 | **RAC 114** — Investigación de Accidentes e Incidentes. No está entre los documentos del Drive; hace falta para la bifurcación de §2.5 |
-| P-MAUT-3 | Localizar y analizar **MAUT-5.0-22-017** + su Apéndice 1 (catálogo GAP de 100 preguntas) |
-| P-MAUT-4 | Analizar **MAUT-3.0-12-097** — la matriz P/S/O/E · ver §1.9 |
+| # | Pendiente | Estado |
+|---|---|---|
+| P-MAUT-1 | **RAC 114** — Investigación de Accidentes e Incidentes, para diseñar la bifurcación de §2.5 | ⏸ Diferido a propósito (decisión 11) — no bloquea el resto del plan |
+| ~~P-MAUT-3~~ | ~~Localizar y analizar MAUT-5.0-22-017~~ | ✅ Resuelto → [`17-implementacion-sms-uas.md`](17-implementacion-sms-uas.md) |
+| ~~P-MAUT-4~~ | ~~Analizar MAUT-3.0-12-097 — la matriz P/S/O/E~~ | ✅ Resuelto → [`15-evaluacion-sms.md`](15-evaluacion-sms.md), ver §1.9 |
+
+Único pendiente vivo de este documento: **P-MAUT-1**, y solo se retoma junto con el módulo C2
+(decisión 20) o si el usuario pide adelantar RAC 114 por separado.
 
 ---
 
-*Analizado 2026-08-22 contra el texto primario.*
+*Analizado 2026-08-22 contra el texto primario. Referencias cruzadas actualizadas
+2026-08-22 tras cerrar `15-evaluacion-sms.md` y `17-implementacion-sms-uas.md`.*

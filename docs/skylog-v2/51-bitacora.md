@@ -14,7 +14,7 @@
 |---|---|---|---|
 | 1 | Cuenta de desarrollador DJI | **Sí, disponible** | Desbloquea la vía A. Falta crear la aplicación "Cloud API" y obtener APP ID / Key / License (§4.2) |
 | 2 | Segmento objetivo de C2 | **Solo planes superiores a Escuadrilla** (Flota y Enterprise) | Coincide con el hardware que soporta la Cloud API. C2 vuelve a diferenciar Escuadrilla de Flota (§4.3) |
-| 3 | Formato oficial de la matriz de riesgos Aerocivil | **Aún no es público** | F4a se construye con plantilla intercambiable; se emite matriz propia mientras tanto (§6.3) |
+| 3 | Formato oficial de la matriz de riesgos Aerocivil | **Aún no es público** | F4a se construye con plantilla intercambiable; se emite matriz propia mientras tanto (§6.3). ⚠️ **Resuelto 2026-08-22**: `MAUT-5.0-12-055` (Análisis de riesgos para la operación aérea UA) es el formato oficial y fijo exigido por `100.805(a)(3)` — obtenido y analizado en [`18-analisis-riesgos-vuelo.md`](18-analisis-riesgos-vuelo.md). `risk_analyses` (`31-esquema-datos.md`) emite ese formato exacto; ya no hace falta plantilla intercambiable. Distinto de la matriz de riesgo propia de la organización (configurable, C1-C5) |
 | 4 | Intervención del Dock | **No se interviene** — sigue en FlightHub 2 | Vía B: extracción de datos *aguas abajo* vía FlightHub OpenAPI + FlightHub Sync + Event API, sin tocar el Dock (§4.5) |
 | 5 | Retención de 5 años vs. planes | **Registros operacionales 5 años. Replay y video se mantienen como están** — la retención regulatoria es **documental**, no de replay | Confirma la distinción de §8.5. Se declara explícitamente en la interfaz para que nadie confunda un replay de 30 días con el archivo obligatorio. ⚠️ **Matizado 2026-08-22**: vale para operación **normal**. El ítem 34 de MAUT-5.0-12-095 exige un procedimiento de *"preservación y custodia de los registros de vuelo (logs de vuelo), grabaciones de audio y video, ante la ocurrencia de un incidente, accidente y/o suceso operacional"* — es decir, al abrirse un caso el material de ese vuelo queda bajo **retención legal** y sale de la purga por cuota. Ver [`14-listas-verificacion.md`](14-listas-verificacion.md) §4.7 |
 | 6 | F4b — radicación automática | **Sí, las dos de una vez** (F4a + F4b) | F4 completo entra al alcance. F4b conserva sus salvaguardas: modo asistido con confirmación humana, credenciales cifradas, uso auditado, revocable (§6.4, §10.5) |
@@ -210,4 +210,24 @@ copiarla a mano del panel de Supabase en cualquier caso.
 usuario la ejecute manualmente en el panel — no es una limitación de la decisión tomada, es que
 esta sesión no tiene el acceso necesario. Pasos exactos entregados fuera de este documento,
 cuando el Supabase branch exista.
+
+### 11.8 Cierre de la reescritura documental — cero documentos en 🔄
+
+Commit `c19df97` (rama `claude/plan-bitafly-v2`, PR #93): rehechos `33-arquitectura.md`,
+`34-seguridad.md`, `35-frontend.md`, `40-sms.md`, `41-tiempos-servicio.md` y `43-aerocivil.md`
+sobre el mapa de entidades (`30`/`31`) y el sitemap (`36`), más el fix del resumen incompleto de
+límites de tiempos de servicio en `31-esquema-datos.md`.
+
+A continuación se rehizo `12-directivas-maut.md` (último 🔄): se cerró la nota de orden de
+§1.9 (MAUT-3.0-12-097 ya analizado en `15-evaluacion-sms.md`, referencia bidireccional
+agregada), se marcó §2.3 (cadena detección→reporte→indicador vía C2) como ⏸ dormant por la
+decisión 20, y se corrigió §2.5/pendientes: RAC 114 pasa de "pendiente por conseguir" a
+"diferido a propósito" (decisión 11, ya cerrada desde antes — el documento no lo reflejaba). De
+paso se corrigió la decisión 3 de §11.1 arriba, que seguía diciendo "formato aún no público"
+pese a que `18-analisis-riesgos-vuelo.md` ya lo había resuelto (`MAUT-5.0-12-055`) — mismo tipo
+de desalineación que motivó rehacer los seis documentos anteriores.
+
+**Estado tras esto**: `00-INDICE.md` no tiene ninguna fila en 🔄. Los únicos pendientes activos
+del plan son los dos de infraestructura (§11.6-§11.7, esperando al usuario) y P-MAUT-1 (RAC 114,
+diferido a propósito, no bloqueante).
 

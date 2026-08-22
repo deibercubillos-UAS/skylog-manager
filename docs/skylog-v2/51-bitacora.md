@@ -20,6 +20,49 @@
 | 6 | F4b — radicación automática | **Sí, las dos de una vez** (F4a + F4b) | F4 completo entra al alcance. F4b conserva sus salvaguardas: modo asistido con confirmación humana, credenciales cifradas, uso auditado, revocable (§6.4, §10.5) |
 | 7 | Proveedores de infraestructura | **Evaluado — ver §15** | Cloudflare **se queda** (migrar a AWS sería ~27× más caro en egress). **AWS no se abre**: MediaMTX co-ubicado con `c2-gateway`. **Cero cuentas nuevas en todo v2** |
 
+### 11.1b Resueltas (2026-08-22, segunda tanda — tras el análisis normativo)
+
+| # | Decisión | Respuesta | Efecto en el plan |
+|---|---|---|---|
+| 8 | Catálogo de indicadores SPI | Los **11 oficiales UAS precargados + el cliente puede agregar los suyos** | [`13`](13-herramientas-spi.md) §10. Las reglas de qué NO es un SPI aplican igual a los propios; el envío anual conserva el formato oficial |
+| 9 | Rol de las listas de verificación oficiales | Son **insumo de diseño, no rúbrica de producto**. Dicen qué ítems son trascendentes; el cliente configura todo según sus manuales | [`14`](14-listas-verificacion.md) recuadro inicial · origen de las reglas **C1–C5** de [`01-reglas.md`](01-reglas.md) §5b |
+| 10 | Quién diligencia y quién analiza MOR/VOR | Diligencia **cualquier persona**; el **Gerente SMS** es el asignado para análisis y toma de datos | [`40`](40-sms.md) §5.7. Coincide con el descriptor *Eficaz* del ítem 1.1.1 de [`15`](15-evaluacion-sms.md), que pide que terceros puedan notificar |
+| 11 | RAC 114 | **No se toca por ahora** | Sale de la lista de documentos bloqueantes. La bifurcación de accidentes queda sin diseñar, a propósito |
+| 12 | Módulo de Proveedores | **Se queda como está.** No se convierte en el registro de interfases del SMS | [`16`](16-asuntos-complementarios.md) §6. La gestión de interfases se atiende en el Manual del SMS del cliente |
+| 13 | Acto de aceptación del Ejecutivo Responsable | **No se construye** — ya está en el manual del cliente. Se conserva solo el **nombramiento** | [`16`](16-asuntos-complementarios.md) §2 |
+| 14 | Perfil del Gerente SMS | **Sí se construye**, como expediente **con carga de archivos** para tener el registro completo | [`16`](16-asuntos-complementarios.md) §3 |
+| 15 | Plan de respuesta ante emergencias | Diseñable **y editable por el cliente**: el sistema garantiza la estructura de los 8 requisitos, el contenido lo escribe la organización | [`16`](16-asuntos-complementarios.md) §8 |
+| 16 | Currículo de instrucción SMS | Se ofrece como **recomendación**; el usuario escoge. El **registro** (tipo, intensidad horaria, nombre, fecha, institución) sí se estructura | [`16`](16-asuntos-complementarios.md) §9 |
+| 17 | Cultura Justa | **No la manejamos** — ya está en los manuales del cliente. Permanecen solo la confidencialidad del notificante y la retroalimentación, que vienen de otras obligaciones | [`17`](17-implementacion-sms-uas.md) §3 |
+| 18 | Proyecto demo en Vercel | **Deja de construirse en cada push**: `demo-enterprise/vercel.json` con `ignoreCommand` | Ver §11.4 |
+| 19 | Organización del proyecto | La hoja de ruta se reescribe alrededor del **ciclo de trabajo** de seis etapas | [`50`](50-hoja-de-ruta.md) §3 |
+
+**Principio transversal que sale de las decisiones 8, 9, 12, 13, 15, 16 y 17**: la norma se
+precarga como plantilla, nunca se impone. Formalizado como reglas **C1–C5** en
+[`01-reglas.md`](01-reglas.md) §5b, y respaldado por la propia circular MAUT-5.0-22-017, que
+presenta su análisis GAP como modelo *"que puede ser personalizado por el explotador UAS"*.
+
+### 11.4 Proyecto demo — cómo se detuvo (2026-08-22)
+
+El proyecto Vercel `demo-bitafly-enterprise` tiene su *root directory* en `demo-enterprise/` y
+construía en **cada push a cualquier rama** de este repositorio, incluidas las ramas de
+planeación que solo tocan `docs/`. De ahí venían las notificaciones de despliegue sin relación
+con el trabajo.
+
+Solución aplicada: `demo-enterprise/vercel.json` con
+
+```json
+{ "ignoreCommand": "git diff --quiet HEAD^ HEAD -- ." }
+```
+
+Vercel salta el build cuando el comando sale con código 0 — es decir, cuando el commit **no tocó
+nada dentro de `demo-enterprise/`**. Si el comando falla por cualquier razón (por ejemplo, un
+clon superficial donde `HEAD^` no existe) devuelve un código distinto de cero y el build
+procede: el modo de falla es construir de más, nunca dejar de construir algo que sí cambió.
+
+**Nota**: el commit que introduce este archivo **sí toca `demo-enterprise/`**, así que dispara
+un último build. A partir del siguiente, se salta.
+
 ### 11.2 Pendientes
 
 Ninguna decisión de alcance queda abierta. Lo único pendiente es de ejecución:

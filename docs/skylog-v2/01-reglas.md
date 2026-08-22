@@ -95,6 +95,25 @@ análisis** de datos de seguridad operacional. Ver [`10-rac219-sms.md`](10-rac21
 
 ---
 
+## 5b · Reglas de configurabilidad
+
+Decisión del usuario (2026-08-22): *"el usuario debe poder configurar todo según lo tengan en
+sus manuales"* · *"Se ajusta según necesidades del cliente"*. La propia norma lo respalda: la
+circular MAUT-5.0-22-017 presenta su análisis GAP como un modelo que *"puede ser **personalizado**
+por el explotador UAS"*.
+
+| # | Regla |
+|---|---|
+| **C1** | **La norma se precarga, no se impone.** Todo catálogo normativo (indicadores, checklists, criterios, currículos) entra como **plantilla editable**, nunca incrustado en el código |
+| **C2** | **Lo que se radica ante la autoridad conserva su formato exacto.** Ahí no hay configuración: el Excel de SPI, el análisis de riesgos por autorización y el reporte mensual salen como los pide la Aerocivil |
+| **C3** | **Lo que vive dentro de la organización es del cliente.** Sus procedimientos, sus listas, su currículo, su plan de emergencias — el sistema los estructura, no los dicta |
+| **C4** | Cuando la norma sugiere un contenido, se ofrece como **recomendación explicada**. El usuario decide si la adopta |
+| **C5** | Un catálogo oficial siempre admite **entradas propias del cliente** junto a las precargadas, distinguibles entre sí |
+
+> C2 y C3 son la misma línea vista desde los dos lados: **hacia afuera, formato fijo; hacia
+> adentro, del cliente.** Confundirlas produce o un formato que la autoridad rechaza, o un
+> sistema que le impone al cliente un procedimiento que no es el suyo.
+
 ## 6 · Reglas de verificación
 
 | # | Regla |

@@ -12,6 +12,21 @@ Su valor para Skylog V2.0 es directo — **enumera, ítem por ítem, qué eviden
 producir un explotador.** Todo lo que aquí aparece como "evidencia válida" es un dato o un
 documento que el sistema debería poder generar sin que nadie lo transcriba a mano.
 
+> ### Cómo se usa este documento
+>
+> Decisión del usuario (2026-08-22): *"Las listas de chequeo son solo información que le evalúan
+> a los explotadores, son información que nos permite saber ítems de trascendencia para nuestro
+> sistema, recuerda que el usuario debe poder configurar todo según lo tengan en sus manuales."*
+>
+> Esta lista es **insumo de diseño, no rúbrica de producto**. Sirve para saber **qué es
+> trascendente** y qué evidencia pide un inspector. **No** se convierte en un checklist que el
+> sistema le imponga al cliente, ni en una estructura fija de sus procedimientos.
+>
+> Todo lo que aquí se traduce en producto entra bajo las reglas de configurabilidad
+> **C1–C5** de [`01-reglas.md`](01-reglas.md): plantilla precargada, editable, con lo que se
+> radica ante la autoridad conservando su formato exacto y lo interno quedando en manos del
+> cliente.
+
 ---
 
 ## 1 · Estructura del formulario
@@ -236,11 +251,12 @@ mandatoria · retroalimentación · confidencialidad y protección de datos · a
 
 | # | Consecuencia |
 |---|---|
-| L1 | La lista de 57 ítems es un **checklist de preparación para certificación** que el explotador puede correr antes de que llegue el inspector, con la misma redacción y los mismos tres estados. |
+| L1 | La lista de 57 ítems se ofrece como **preparación opcional para certificación** —correrla antes de que llegue el inspector—, precargada y editable. No es obligatoria ni condiciona ningún otro módulo. |
 | L2 | Cada ítem se puede **enlazar a la evidencia real** que ya vive en el sistema (ficha de flota, roster de pilotos con CIPU y adiciones, formato de libro de vuelo, procedimientos). El ítem deja de ser una casilla y pasa a ser un enlace. |
-| L3 | El Manual de Operaciones se **genera** en su mayor parte: flota, ETA, pilotos, observadores, organigrama, instalaciones y procedimientos son datos, no prosa. Lo redactado a mano se reduce a lo que de verdad es criterio propio. |
+| L3 | El Manual de Operaciones se **genera** en su mayor parte: flota, ETA, pilotos, observadores, organigrama e instalaciones son datos, no prosa. Los **procedimientos los escribe el cliente** — el sistema los estructura y los versiona, no los redacta por él. |
 | L4 | El estado debe ser **binario** (`Satisfactorio` / `No satisfactorio`) más `No aplicable`. Nada de porcentajes de avance por ítem. |
 | L5 | La evaluación **conjuntiva** de la casilla 10 obliga a modelar los sub-puntos de orientación, no solo la pregunta. Un ítem tiene N condiciones y falla con una. |
+| L6 | Las **once fases de vuelo** del ítem 30 y los **dieciséis escenarios de emergencia** del ítem 31 se precargan como plantilla y el cliente los ajusta: la norma dice *"como mínimo y sin limitarse a"*, así que quitar no se puede pero **agregar sí**, y la redacción de cada paso es suya. |
 
 ---
 

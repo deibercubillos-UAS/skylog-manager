@@ -92,17 +92,24 @@ Y el límite, explícito:
 > medidas punitivas y de forma confidencial**, pero **sin tolerar las negligencias, las
 > conductas ilegales intencionadas, ni los actos destructivos**."*
 
-### Requisitos concretos que se derivan
+### Decisión de alcance (2026-08-22): la Cultura Justa no la maneja el sistema
 
-1. **Confidencialidad del notificador** — enlaza con la desidentificación de la Directiva 02-24
-   y con `219.115`–`219.140`.
-2. **Precisar qué se reconoce y qué se sanciona** — la organización debe **declararlo por
-   escrito**, no dejarlo implícito. Es un artefacto del SMS, no una actitud.
-3. **Comunicación en doble vía** — el reportante debe recibir retroalimentación.
-4. Arranca con la **declaración de política firmada por el Gerente Responsable**.
+> *"YA ESTÁ AGREGADO EN LOS MANUALES DE ELLOS, NO LO MANEJAMOS NOSOTROS."*
 
-En el modelo de datos: un reporte necesita **nivel de confidencialidad** y control de quién ve
-la identidad del notificador. Hoy los formularios VOR/MOR públicos no lo modelan.
+**No se construye módulo de Cultura Justa**: ni la declaración de comportamientos reconocidos y
+sancionados, ni la política, ni su ciclo de revisión. Vive en el manual del cliente (regla
+**C3** de [`01-reglas.md`](01-reglas.md)) y esta sección queda solo como referencia normativa.
+
+**Lo que sí permanece, por venir de otra obligación distinta:**
+
+| Requisito | Por qué se queda |
+|---|---|
+| **Confidencialidad del notificador** | No es Cultura Justa: es protección de datos de seguridad operacional, `RAC 219 §219.115`–`219.140`, ya recogida como regla **S4**. Es exigible aunque la política de Cultura Justa viva íntegra en el manual del cliente |
+| **Retroalimentación al reportante** | Es un descriptor de madurez del ítem 1.1.1 de [`15-evaluacion-sms.md`](15-evaluacion-sms.md): sin él, el sistema de notificación no pasa de *Adecuado* a *Operativo* |
+
+En el modelo de datos eso significa **nivel de confidencialidad por reporte** y control de quién
+ve la identidad del notificante — hoy los formularios VOR/MOR públicos no lo modelan. Los demás
+requisitos de esta sección quedan documentados, no construidos.
 
 ---
 
@@ -209,5 +216,18 @@ número de reportes**…"*
 | P-017-3 | Definir el **perfil de organización** que modula la exigencia (§5) → `30-entidades.md` |
 
 ---
+
+> ### Verificado contra el texto completo (2026-08-22)
+>
+> El análisis inicial se hizo sobre una extracción parcial. Con la circular completa disponible
+> (45 páginas), se confirmó: las **cuatro fases** están en §7.3.5 tal como se documentaron, el
+> plan **tipo Gantt** que se presenta a la Aerocivil está en §7.3.5 y §7.3.5.1, y existe además
+> un **§7.3.5.5 "Elementos transversales a todas las fases"** (formación, disponibilidad del
+> personal, y actas/formatos/registros por fase) que no estaba en la extracción previa.
+>
+> El **Apéndice 1** trae las **100 preguntas** del análisis GAP — las mismas que la plataforma
+> actual ya tiene cargadas— y dice literalmente que *"puede utilizarse como modelo… y **puede
+> ser personalizado por el explotador UAS**"*. Es el respaldo normativo directo de la regla
+> **C1**: la norma se precarga, no se impone.
 
 *Analizado 2026-08-22. Leído completo el §7.3; §7.1, §7.2 y anexos no transcritos.*

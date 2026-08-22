@@ -87,3 +87,35 @@ capacitación), versionado, con el histórico de acuses que Manuales ya maneja. 
 sigue siendo válido para quien lo prefiera — se añade una vía, no se quita ninguna.
 
 ---
+
+## 5.7 Quién reporta y quién analiza (decisión 2026-08-22)
+
+> *"El MOR y VOR debe ser diligenciado por cualquier persona, pero el asignado para análisis y
+> toma de datos es el Gerente SMS."*
+
+Separa dos cosas que hoy se confunden en la plataforma actual, donde el mismo permiso
+(`canManageSMS`) gobierna todo el ciclo:
+
+| Etapa | Quién | Nota |
+|---|---|---|
+| **Diligenciar** el reporte | **Cualquier persona** — tripulante, personal de tierra, contratista, tercero | Los formularios públicos por organización ya lo permiten sin cuenta. No se restringe |
+| **Analizar** y tomar los datos | **Gerente SMS**, como responsable asignado | Es el rol que clasifica severidad, investiga, decide acciones y cierra el caso |
+
+Consecuencias de diseño:
+
+1. **La entrada es abierta por diseño, no por descuido.** Restringir quién puede reportar
+   contradice el propio descriptor de madurez del ítem 1.1.1 de
+   [`15-evaluacion-sms.md`](15-evaluacion-sms.md), que en nivel *Eficaz* pide que **terceros —
+   socios, proveedores y contratistas— puedan notificar**.
+2. **El análisis tiene dueño nominal.** No es "quien tenga el permiso": es el Gerente SMS
+   designado, la misma persona cuyo expediente se construye
+   ([`16-asuntos-complementarios.md`](16-asuntos-complementarios.md) §3). Un caso sin analista
+   asignado es un caso sin dueño.
+3. **La confidencialidad se define en el borde entre las dos etapas.** Quien reporta puede
+   pedir confidencialidad; quien analiza necesita ver el contenido. Es ahí donde se aplica la
+   protección de `219.115`–`219.140` (regla **S4**), no en el formulario de entrada.
+4. El Gerente SMS puede delegar la ejecución de acciones correctivas, pero **la toma de datos y
+   el análisis quedan asignados a él** — es lo que la decisión fija.
+
+---
+

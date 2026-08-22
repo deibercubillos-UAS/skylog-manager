@@ -311,6 +311,28 @@ sí puede fijar el vocabulario exacto de categorías de evento. Queda como pendi
 
 ---
 
+## 10 · Decisión de producto: catálogo abierto (2026-08-22)
+
+> *"Existe una lista oficial de 11 indicadores UAS: agrega la opción si el usuario quiere
+> agregar más indicadores."*
+
+El catálogo de indicadores **no es cerrado**. Se modela como plantilla precargada más las
+entradas propias del cliente (regla **C5** de [`01-reglas.md`](01-reglas.md)):
+
+| | Origen | Comportamiento |
+|---|---|---|
+| **Oficiales** | Los 11 de MAUT-1.0-22-005 | Precargados, con su taxonomía y su definición. El cliente los activa o los deja inactivos, pero **no los inventa ni los renombra** — son los que la autoridad espera ver |
+| **Propios** | Definidos por el cliente | Se crean con la misma ficha técnica y la misma mecánica de cálculo. Distinguibles de los oficiales en la interfaz y en el reporte |
+
+Las reglas de §5 (*qué NO es un indicador*) y de §4 (*verbos prohibidos en planes de acción*)
+aplican **igual a los propios**: son criterios de la autoridad sobre qué constituye un SPI, no
+una restricción del catálogo oficial. Un indicador propio que mida "cantidad de reportes
+recibidos" es tan inválido como uno oficial mal definido, y el sistema debe advertirlo al
+crearlo.
+
+Lo que **no** cambia: el envío anual conserva el formato del Excel oficial (regla **C2**). Un
+indicador propio se envía en una hoja con la misma disposición que uno oficial.
+
 ## 8 · Pendientes
 
 | # | Pendiente |

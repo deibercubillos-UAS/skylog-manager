@@ -48,6 +48,12 @@ aceptación ([`12-directivas-maut.md`](12-directivas-maut.md) §1.7).
 
 Aplica aunque la organización tenga **varias certificaciones**: un solo Ejecutivo Responsable.
 
+> **Decisión de alcance (2026-08-22): no se construye acto de aceptación.** La aceptación
+> expresa del rol y la comprensión de los once deberes **ya viven en el manual del cliente**;
+> el sistema no las vuelve a pedir ni las registra como flujo propio. Lo que sí queda es el
+> **nombramiento** — quién es, desde cuándo — porque el resto del sistema lo necesita para
+> saber a quién dirigir aprobaciones y notificaciones.
+
 ### Los once deberes (§7.1.2)
 
 1. Garantizar recursos humanos, financieros y demás medios
@@ -74,6 +80,12 @@ responsabilidades"* → hay un **acto de aceptación** que registrar.
 
 **Nominado por el Ejecutivo Responsable** (§7.1.4). Puede ser empleado directo **o contratado**
 (§7.2.2).
+
+> **Decisión de alcance (2026-08-22): el perfil del Gerente SMS sí se construye, con carga de
+> archivos.** *"SE DEBEN CARGAR LOS ARCHIVOS PARA TENER EL REGISTRO COMPLETO."* Es un expediente
+> con documentos adjuntos —hoja de vida, certificados de formación en SMS, acta de nominación—,
+> no solo un campo con un nombre. Reutiliza el patrón de expediente de tripulante y de manuales
+> corporativos que ya existe.
 
 ### Perfil (§7.2.3) — ⚠️ difiere del RAC 100
 
@@ -170,22 +182,24 @@ superposiciones**"*.
 
 ### Qué significa para Skylog V2.0
 
-**BitaFly ya tiene el módulo Proveedores** (listado + checklist de auditoría). Pero hoy es un
-módulo aislado de back-office: **no está conectado al SMS**.
+**BitaFly ya tiene el módulo Proveedores** (listado + checklist de auditoría), hoy aislado del
+SMS. Según §7.8, un proveedor contratado es una **interfase** cuyos riesgos entran al SMS del
+explotador — así que existía la tentación de fusionar ambos módulos.
 
-Según §7.8, un proveedor contratado es una **interfase** cuyos riesgos entran al SMS del
-explotador. La conexión que falta:
+> **Decisión del usuario (2026-08-22): no se hace.** *"No agregaremos proveedores de SMS,
+> dejaremos proveedores como está."* El módulo de Proveedores conserva su alcance actual —
+> listado y auditoría de back-office— y **no se convierte en el registro de interfases del SMS**.
 
-| Hoy | Debería |
-|---|---|
-| Proveedor auditado con un checklist | Proveedor **como interfase declarada** del sistema |
-| Auditoría con % de cumplimiento | Auditoría que **genera peligros** en el registro del SMS |
-| Sin relación con riesgos | **El Comité monitorea** *"la efectividad de las operaciones y servicios subcontratados"* |
+La gestión de interfases sigue siendo una obligación del explotador, pero se atiende **donde ya
+corresponde**: la interfase se declara en la descripción del sistema dentro del Manual del SMS,
+que es del cliente (regla **C3**), y cualquier peligro que surja de un contratista entra al
+registro de peligros por la vía normal de identificación, igual que cualquier otro peligro. No
+hace falta un puente automático entre dos módulos para que eso ocurra.
 
-Los cinco criterios de §7.8.4 son directamente una lista de verificación por interfase:
-temas críticos y peligros identificados · incidentes notificados y abordados · controles
-aplicados **y revisados regularmente** · interfases **revisadas periódicamente** · sesiones de
-instrucción con las organizaciones externas.
+Los cinco criterios de §7.8.4 quedan documentados como referencia de qué revisar por interfase
+—temas críticos y peligros identificados · incidentes notificados y abordados · controles
+aplicados y revisados regularmente · interfases revisadas periódicamente · sesiones de
+instrucción con las organizaciones externas— **sin convertirse en un checklist del sistema**.
 
 ---
 
@@ -233,6 +247,13 @@ Ocho requisitos concretos — deja de ser un vacío difuso:
 Con esto, el ERP es diseñable: procedimientos, roles, autoridad líder, activación y criterios
 de retorno. Muy distinto de los 3 teléfonos que hay hoy en `emergency_contacts`.
 
+> **Decisión del usuario (2026-08-22): diseñable **y editable por el cliente**.** Los ocho
+> requisitos son la **estructura** que el sistema garantiza que esté cubierta; el **contenido**
+> de cada procedimiento lo escribe la organización según su manual (regla **C3**). El sistema
+> precarga un esqueleto con los ocho puntos y el cliente lo llena, lo reordena y lo amplía.
+> También se conecta con los dieciséis escenarios de emergencia del ítem 31 de
+> [`14-listas-verificacion.md`](14-listas-verificacion.md), precargados bajo la misma regla.
+
 ---
 
 ## 9 · Instrucción en SMS (§7.10) — currículo mínimo
@@ -255,6 +276,13 @@ horaria** · nombre · fecha · institución.
 
 Hoy el módulo de Capacitación SMS registra asistencia, pero **no el currículo mínimo ni la
 intensidad horaria**.
+
+> **Decisión del usuario (2026-08-22): el currículo se ofrece como recomendación, escoge el
+> usuario.** Los cuatro componentes se precargan como plan sugerido y explicado, y la
+> organización arma el suyo encima (regla **C4**). Lo que **sí** se estructura sin negociación
+> es el **registro**: tipo de evento, intensidad horaria, nombre, fecha e institución, porque
+> son los campos del certificado que la norma exige conservar y son los que una inspección pide
+> ver.
 
 ---
 

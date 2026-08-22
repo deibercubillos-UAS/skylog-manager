@@ -86,7 +86,6 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | Documento | Naturaleza | Por qué importa | Prioridad |
 |---|---|---|---|
 | MAUT-5.0-22-016 "01-23" | Directiva **vinculante** | Criterios de aceptación del **enlace C2** — deja de ser urgente al omitirse C2 (decisión 20); necesario el día que se retome | ⏸ |
-| **MAUT-5.0-22-011** | Circular informativa | Guía del CDO-U, citada en 50 de los 57 ítems del MO | Media |
 | ~~MAUT-5.0-22-014 DI~~ | Directiva vinculante | Dronpuertos — **ya no se necesita** (decisión 28) | — |
 | **MIU** | Manual del Inspector UAS | Procedimiento con el que se aplica la lista de verificación | Baja |
 | ~~RAC 114~~ | Reglamento | Accidentes e incidentes graves — **el usuario decidió no tocarlo por ahora** (decisión 11) | — |

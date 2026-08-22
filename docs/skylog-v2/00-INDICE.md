@@ -56,17 +56,17 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 |---|---|---|---|
 | [`40-sms.md`](40-sms.md) | SMS orientado a evidencia | 121 | 🔄 |
 | [`41-tiempos-servicio.md`](41-tiempos-servicio.md) | Tiempos de servicio, vuelo y descanso (100.540) | 50 | 🔄 |
-| [`42-comando-control.md`](42-comando-control.md) | C2 en vivo — telemetría + video | 298 | ✅ |
+| [`42-comando-control.md`](42-comando-control.md) | C2 en vivo — telemetría + video · **omitido por ahora** (decisión 20) | 307 | ⏸ |
 | [`43-aerocivil.md`](43-aerocivil.md) | Expediente y radicación de autorizaciones | 77 | 🔄 |
 
 ## 5 · Ejecución
 
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
-| [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 211 | ✅ |
-| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 146 | ✅ |
+| [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 227 | ✅ |
+| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 147 | ✅ |
 
-**Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · 🔜 siguiente
+**Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · ⏸ omitido por ahora
 
 ---
 
@@ -83,7 +83,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 | Documento | Naturaleza | Por qué importa | Prioridad |
 |---|---|---|---|
-| **MAUT-5.0-22-016 "01-23"** | Directiva **vinculante** | Criterios de aceptación del **enlace C2**. Sin ella, [`42-comando-control.md`](42-comando-control.md) está diseñado a ciegas frente a la autoridad | **Alta** |
+| MAUT-5.0-22-016 "01-23" | Directiva **vinculante** | Criterios de aceptación del **enlace C2** — deja de ser urgente al omitirse C2 (decisión 20); necesario el día que se retome | ⏸ |
 | **MAUT-5.0-22-011** | Circular informativa | Guía del CDO-U, citada en 50 de los 57 ítems del MO | Media |
 | **MAUT-5.0-22-014 DI "03-23"** | Directiva **vinculante** | Condiciones técnicas para dronpuertos | Media |
 | **MIU** | Manual del Inspector UAS | Procedimiento con el que se aplica la lista de verificación | Baja |
@@ -91,8 +91,9 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Próximos pasos
 
-El frente normativo está cerrado y las decisiones de producto están tomadas
-([`51-bitacora.md`](51-bitacora.md) §11.1b). Lo que sigue es la **etapa ① del ciclo**
+El frente normativo está cerrado, las decisiones de producto están tomadas
+([`51-bitacora.md`](51-bitacora.md) §11.1b) y con **C2 omitido** (decisión 20) **ningún frente
+activo tiene un bloqueante externo**. Lo que sigue es la **etapa ① del ciclo**
 ([`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) §3):
 
 1. **`30-entidades.md`** — inventario de las entidades reales del negocio. Ningún frente se
@@ -100,9 +101,6 @@ El frente normativo está cerrado y las decisiones de producto están tomadas
 2. `31-esquema-datos.md` · `32-migracion.md` — sobre esa base.
 3. Rehacer los 🔄 restantes (`12`, `31`, `33`, `34`, `35`, `40`, `41`, `43`), que se escribieron
    bajo la premisa superada de evolución aditiva.
-
-Único documento que bloquea diseño real: **MAUT-5.0-22-016** (criterios de aceptación del
-enlace C2), necesario antes de dar por válido [`42-comando-control.md`](42-comando-control.md).
 
 ---
 

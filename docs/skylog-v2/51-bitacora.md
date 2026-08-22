@@ -36,6 +36,7 @@
 | 17 | Cultura Justa | **No la manejamos** — ya está en los manuales del cliente. Permanecen solo la confidencialidad del notificante y la retroalimentación, que vienen de otras obligaciones | [`17`](17-implementacion-sms-uas.md) §3 |
 | 18 | Proyecto demo en Vercel | **Deja de construirse en cada push**: `demo-enterprise/vercel.json` con `ignoreCommand` | Ver §11.4 |
 | 19 | Organización del proyecto | La hoja de ruta se reescribe alrededor del **ciclo de trabajo** de seis etapas | [`50`](50-hoja-de-ruta.md) §3 |
+| 20 | **Comando y Control (F2)** | **Omitido por ahora.** Salen F2-a (RC + Pilot 2) y F2-b (Docks / FlightHub 2). El documento técnico se conserva listo para retomarse | [`42`](42-comando-control.md) · [`50`](50-hoja-de-ruta.md) §4. Libera el único bloqueante del plan y deja abiertas las brechas B6/B7/B8 de [`11`](11-rac100-uas.md) |
 
 **Principio transversal que sale de las decisiones 8, 9, 12, 13, 15, 16 y 17**: la norma se
 precarga como plantilla, nunca se impone. Formalizado como reglas **C1–C5** en
@@ -69,8 +70,8 @@ Ninguna decisión de alcance queda abierta. Lo único pendiente es de ejecución
 
 | # | Pendiente | Naturaleza |
 |---|---|---|
-| P1 | Validar `platformVerifyLicense` contra un RC real | Requiere hardware. No se puede hacer desde este entorno |
-| P2 | Confirmar el alcance de FlightHub OpenAPI / Event API (V2) | Bloqueado hoy. Mantiene F2-b diferida |
+| ~~P1~~ | ~~Validar `platformVerifyLicense` contra un RC real~~ | ⏸ **Suspendido** junto con C2 (decisión 20) |
+| ~~P2~~ | ~~Confirmar el alcance de FlightHub OpenAPI / Event API~~ | ⏸ **Suspendido** junto con C2 (decisión 20) |
 | P3 | Confirmar si Cloudflare está proxeando delante de Vercel (§15.4) | Requiere inspeccionar cabeceras de `bitafly.com`, bloqueado por la política de red de este entorno |
 
 ### 11.3 Verificaciones técnicas — estado (2026-08-22)

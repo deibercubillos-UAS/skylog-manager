@@ -6,21 +6,30 @@
 
 ---
 
-> ## ⚠️ Falta la norma que gobierna este módulo
+> ## ⏸ Módulo omitido por ahora (2026-08-22)
 >
-> Existe una **directiva vinculante** de la Aerocivil llamada
-> **`MAUT-5.0-22-016 "01-23" — Criterios de aceptación del enlace C2 para explotadores UAS`**,
-> descubierta el 2026-08-22 al analizar la lista de verificación del Manual de Operaciones
-> ([`14-listas-verificacion.md`](14-listas-verificacion.md) §3). El **ítem 23** de esa lista
-> evalúa el enlace C2 **exclusivamente contra esa directiva**.
+> Decisión del usuario: *"Omite el C2, por el momento."* **F2-a y F2-b salen del plan activo.**
 >
-> Todo este documento se construyó contra la especificación técnica de DJI y el RAC 100. Eso lo
-> hace **técnicamente correcto**, pero no dice nada sobre si lo que el módulo captura, muestra y
-> conserva satisface los criterios de aceptación de la autoridad. Hasta leer `MAUT-5.0-22-016`,
-> cualquier afirmación de cumplimiento sobre el enlace C2 es una suposición.
+> Este documento **no se archiva ni se borra**: el análisis técnico está hecho y verificado
+> contra la documentación oficial de DJI (repositorio `Cloud-API-Doc` clonado y leído), así que
+> queda listo para retomarse sin repetir el trabajo. Lo que sigue vigente y lo que no está
+> marcado en [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) §5.
 >
-> **No invalida el diseño técnico** (protocolos, telemetría, servidor de medios). Sí deja abierto
-> qué campos son obligatorios, con qué frecuencia y por cuánto tiempo. Pendiente **P-LV-1**.
+> **Dos cosas que hay que resolver el día que se retome**, y que no estaban resueltas al
+> suspenderlo:
+>
+> 1. **Falta una directiva vinculante**: `MAUT-5.0-22-016 "01-23" — Criterios de aceptación del
+>    enlace C2 para explotadores UAS`. El **ítem 23** de la lista de verificación del Manual de
+>    Operaciones ([`14-listas-verificacion.md`](14-listas-verificacion.md) §3) evalúa el enlace
+>    C2 **exclusivamente contra ella**. Todo lo que sigue en este documento se construyó contra
+>    la especificación de DJI y el RAC 100 — técnicamente correcto, pero sin decir nada sobre si
+>    satisface los criterios de aceptación de la autoridad.
+> 2. **Validar `platformVerifyLicense` contra un RC real.** Requiere hardware; nunca se pudo
+>    hacer desde este entorno.
+>
+> **Consecuencia de omitirlo**: las brechas **B6**, **B7** y **B8** de
+> [`11-rac100-uas.md`](11-rac100-uas.md) siguen abiertas. B7 (`100.440(a)(12)`) solo aplica a
+> operación **BVLOS** — mientras la base de clientes sea VLOS/EVLOS no impide operar.
 
 ---
 

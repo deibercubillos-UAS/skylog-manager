@@ -109,11 +109,29 @@ Los cuatro que pidió el usuario, más uno que la norma impone.
 | Frente | Origen | Riesgo técnico | Valor regulatorio |
 |---|---|---|---|
 | **F1** — Rediseño de frontend y distribución | Usuario | Bajo | Indirecto |
-| **F2-a** — Comando y Control, vía RC + Pilot 2 | Usuario + B6/B7/B8 | Medio | Muy alto (habilita categoría específica) |
-| **F2-b** — C2 con Docks en FlightHub 2 | Usuario | ⏸ Diferida — sin verificación posible hoy | Alto, no bloquea cumplimiento |
 | **F3** — SMS fácil de integrar y aplicar | Usuario + B3 | Medio | Alto |
 | **F4** — Autorizaciones Aerocivil | Usuario + B9/B10 | Alto (dependencia externa) | Alto |
 | **F5** — Tiempos de servicio, vuelo y descanso | **Norma (B1/B2)** | Bajo | **Crítico — hoy incumplido** |
+| ~~**F2**~~ — Comando y Control | Usuario + B6/B7/B8 | — | ⏸ **Omitido por ahora** (decisión 20) |
+
+> ### F2 — Comando y Control: omitido por ahora (2026-08-22)
+>
+> *"Omite el C2, por el momento."*
+>
+> Salen del plan **F2-a** (vía RC + Pilot 2) y **F2-b** (Docks / FlightHub 2). El trabajo técnico
+> ya hecho **no se borra**: [`42-comando-control.md`](42-comando-control.md) queda como referencia
+> lista para retomarse, con la integración DJI validada contra la documentación oficial.
+>
+> **Lo que se libera**: desaparece el único bloqueante del plan (conseguir `MAUT-5.0-22-016`),
+> desaparece el riesgo de validar la licencia contra un RC real, y no hace falta levantar
+> `c2-gateway` ni MediaMTX — la infraestructura se queda exactamente como está hoy.
+>
+> **Lo que queda sin cerrar, y conviene tenerlo presente**: las brechas **B6, B7 y B8** de
+> [`11-rac100-uas.md`](11-rac100-uas.md) siguen abiertas. B6 (`100.415(a)(2)(iii)`) y B8
+> (Apéndice 2, enlace C2) aplican a toda operación; **B7 (`100.440(a)(12)`) solo muerde si el
+> cliente opera BVLOS**, porque exige un sistema de gestión de vuelo con geocercas y telemetría
+> en todas las fases. Mientras la base de clientes sea VLOS/EVLOS, omitir C2 no impide operar;
+> el día que alguien certifique BVLOS, B7 vuelve a ser bloqueante.
 
 ### Fase 0 — Cimientos, antes de cualquier frente
 
@@ -129,15 +147,13 @@ Sin esto cada frente reinventa el andamiaje, y el rediseño llega tarde a módul
 | **1º** | **F5 — Tiempos de servicio** | Es un **incumplimiento actual** de norma vigente (100.540). Es además el frente más pequeño: valida los cimientos con algo acotado y de alto valor regulatorio antes de arriesgar nada grande |
 | **2º** | **F4a — Expediente Aerocivil listo para radicar** | Autónomo, de valor inmediato (le ahorra trabajo manual en **cada** misión) y **F4b depende de que exista y esté rodado**. Ponerlo temprano le da a 4b su tiempo de maduración |
 | **3º** | **F3 — SMS fácil de aplicar** | Alto valor, sin dependencias externas. Su pieza clave —eventos operacionales convertidos en borradores de reporte— se beneficia de que F5 ya exista: el exceso de tiempo de servicio es una fuente de evento |
-| **4º** | **F2-a — Comando y Control** | El diferenciador comercial. Va cuarto porque los tres anteriores no tienen riesgo externo y este sí: depende de validar la licencia contra un RC real. Arrancarlo aquí deja resolver esa validación en paralelo |
-| **5º** | **F1 — Rediseño y distribución** | Al final **a propósito**: para entonces el mapa de módulos ya incluye los cuatro nuevos. Rediseñar antes obligaría a rehacerlo.<br>**Excepción**: `packages/ui` arranca en Fase 0 y crece con cada frente, así **cada módulo nace ya con el sistema de diseño**. F1 no es "rediseñar desde cero" sino reorganizar la navegación y aplicar el sistema al resto |
-| **6º** | **F4b — Radicación automática** | Último por ser el de **mayor riesgo de responsabilidad**: custodia de credenciales ante una autoridad estatal. Necesita que F4a lleve tiempo estable |
-| **⏸** | **F2-b — Docks / FlightHub 2** | Sin cronograma hasta poder verificar el alcance de la API (P2) |
+| **4º** | **F1 — Rediseño y distribución** | Al final **a propósito**: para entonces el mapa de módulos ya incluye los tres nuevos. Rediseñar antes obligaría a rehacerlo.<br>**Excepción**: `packages/ui` arranca en Fase 0 y crece con cada frente, así **cada módulo nace ya con el sistema de diseño**. F1 no es "rediseñar desde cero" sino reorganizar la navegación y aplicar el sistema al resto |
+| **5º** | **F4b — Radicación automática** | Último por ser el de **mayor riesgo de responsabilidad**: custodia de credenciales ante una autoridad estatal. Necesita que F4a lleve tiempo estable |
+| **⏸** | **F2 — Comando y Control** | Omitido por ahora (decisión 20). Se retoma cuando el usuario lo decida |
 
-**Alternativa comercial legítima**: adelantar **F2-a al 2º lugar**. El costo real es (a) asumir
-el riesgo de la validación con hardware antes de tener los cimientos rodados, y (b) que F1 tenga
-que acomodar después una pantalla ya construida. Es un intercambio de velocidad al mercado por
-algo de retrabajo. La recomendación sigue siendo el orden de arriba.
+Con C2 fuera, el plan queda **sin ningún frente que dependa de hardware, de una API de terceros
+ni de un documento normativo que aún no tenemos**. Los cinco restantes se pueden ejecutar de
+principio a fin con lo que ya está en la mano — es la consecuencia más útil de esta decisión.
 
 ---
 
@@ -147,16 +163,16 @@ algo de retrabajo. La recomendación sigue siendo el orden de arriba.
 
 | Tema | Decisión | Fundamento |
 |---|---|---|
-| Integración con DJI | **Cloud API vía Pilot 2**, como página web en el portal "Open Platforms" | No requiere app nativa |
-| Telemetría | MQTT a **0,5 Hz**; los 9 campos de 100.415(a)(2)(iii) existen todos | Mapeo campo por campo |
-| Persistencia | 0,5 Hz → Postgres (12 meses) · traza completa → R2 comprimida · eventos → Postgres siempre | Reutiliza el patrón ya probado del Replay GPS |
-| Servidor de medios | **MediaMTX co-ubicado con `c2-gateway`** | Cloudflare Stream descartada por protocolo; AWS no se abre |
+| Integración con DJI | **Cloud API vía Pilot 2**, como página web en el portal "Open Platforms" | No requiere app nativa · ⏸ **dormida**: aplica solo si se retoma C2 |
+| Telemetría | MQTT a **0,5 Hz**; los 9 campos de 100.415(a)(2)(iii) existen todos | Mapeo campo por campo · ⏸ dormida |
+| Persistencia | 0,5 Hz → Postgres (12 meses) · traza completa → R2 comprimida · eventos → Postgres siempre | Reutiliza el patrón del Replay GPS · ⏸ dormida |
+| Servidor de medios | **MediaMTX co-ubicado con `c2-gateway`** | ⏸ **No se levanta**: sin C2 no hay video que retransmitir. La infraestructura se queda como está |
 | Proveedores | Vercel + Supabase + Cloudflare + Resend + ePayco + Railway. **Ninguno nuevo** | Migrar R2 a S3 sería ~27× más caro en egress |
 | Retención documental | Registros operacionales **5 años**; replay y video conservan su retención por plan, **salvo custodia por suceso** | 100.535(a)(29) es documental · ítem 34 de MAUT-5.0-12-095 impone la excepción |
-| Dock | **No se interviene.** Sigue en FlightHub 2 | Un Dock se vincula a una sola nube a la vez |
-| Drones de consumo | Fuera de alcance (DJI Mobile SDK no se construye) | Coherente con limitar C2 a Flota/Enterprise |
-| Control del dron | **BitaFly nunca envía comandos de vuelo** | Decisión de producto y responsabilidad |
-| Habilitación por plan | `commandAndControl` solo Flota y Enterprise, con gate también en la API | Convención ya establecida |
+| Dock | **No se interviene.** Sigue en FlightHub 2 | Un Dock se vincula a una sola nube a la vez · sigue vigente |
+| Drones de consumo | Fuera de alcance (DJI Mobile SDK no se construye) | ⏸ dormida |
+| Control del dron | **BitaFly nunca envía comandos de vuelo** | Decisión de producto y responsabilidad · se mantiene si C2 se retoma |
+| Habilitación por plan | `commandAndControl` solo Flota y Enterprise, con gate también en la API | ⏸ dormida |
 
 ### De producto (2026-08-22)
 
@@ -181,19 +197,19 @@ Detalle y trazabilidad de cada una en [`51-bitacora.md`](51-bitacora.md).
 
 | # | Abierto | Naturaleza |
 |---|---|---|
-| A1 | Validar `platformVerifyLicense` contra un **RC real** | Requiere hardware — no se puede desde este entorno |
-| A2 | Alcance de FlightHub OpenAPI / Event API | Bloquea F2-b indefinidamente |
-| A3 | Conseguir **MAUT-5.0-22-016** — criterios de aceptación del enlace C2 (vinculante) | **Bloquea la validación normativa de F2-a** |
-| A4 | Conseguir **MAUT-5.0-22-014 DI** (dronpuertos) y **MAUT-5.0-22-011** (guía CDO-U) | Deseable, no bloqueante |
-| A5 | Si se mantiene este orden o se adelanta F2-a por prioridad comercial | Decisión del usuario, sin fecha límite |
+| A1 | Conseguir **MAUT-5.0-22-014 DI** (dronpuertos) y **MAUT-5.0-22-011** (guía CDO-U) | Deseable, no bloqueante |
+| A2 | Cuándo se retoma **F2 — Comando y Control** | Decisión del usuario, sin fecha |
+
+Con C2 omitido, **ningún frente activo tiene un abierto que lo bloquee**. Lo que antes eran
+A1–A3 (validar la licencia contra un RC real, el alcance de FlightHub, conseguir
+`MAUT-5.0-22-016`) quedó suspendido junto con el frente que lo necesitaba.
 
 ---
 
 ## 7 · Qué NO está en este plan, a propósito
 
-- **No** enviar comandos de vuelo al dron — ni por RC ni por Dock.
-- **No** intervenir el Dock ni desplazar a FlightHub 2: BitaFly se conecta aguas abajo.
-- **No** soportar drones de consumo en C2 (DJI Mobile SDK fuera de alcance).
+- **No** construir Comando y Control por ahora (decisión 20) — y por tanto tampoco enviar
+  comandos de vuelo, intervenir el Dock, ni soportar drones de consumo.
 - **No** migrar a TypeScript de forma completa.
 - **No** tests de UI ni de las 181 rutas API.
 - **No** rehacer el landing público, las páginas SEO ni el Panel Socio — funcionan y están fuera

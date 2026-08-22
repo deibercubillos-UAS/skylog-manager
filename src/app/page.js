@@ -12,14 +12,14 @@ const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').rep
 
 // METADATA específico del landing (sobrescribe el global con copy de mayor densidad)
 export const metadata = {
-  title: 'Software de Gestión para Drones en Colombia | Bitafly',
-  description: 'Plataforma SaaS líder para operadores UAS en Colombia. Bitácora digital RAC 100, mantenimiento, baterías, SMS aeronáutico, autorizaciones AeroCivil y reportes RAC 100 con tu propio código de formato. Comienza gratis.',
+  title: 'Bitácora de Vuelo, SMS y Gestión de Flota de Drones | Bitafly',
+  description: 'Plataforma SaaS para operadores UAS en Colombia: bitácora de vuelo digital, sistema de gestión de seguridad operacional (SMS), mantenimiento de drones y baterías, y revisión de vuelos con replay GPS. Cumple también con la RAC 100. Comienza gratis.',
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'Bitafly | Software para Operadores de Drones — Cumplimiento RAC 100',
-    description: 'Bitácora UAS, mantenimiento, SMS y autorizaciones AeroCivil en una plataforma. Diseñado para operadores de drones en Colombia.',
+    title: 'Bitafly | Bitácora de Vuelo, SMS y Gestión de Flota de Drones',
+    description: 'Bitácora UAS, mantenimiento, sistema de gestión de seguridad operacional y revisión de vuelos en una sola plataforma. Diseñado para operadores de drones en Colombia.',
     url: SITE_URL,
     type: 'website',
   },
@@ -282,7 +282,7 @@ const softwareSchema = {
   applicationSubCategory: 'Aviation Management Software',
   operatingSystem: 'Web, iOS, Android',
   description:
-    'Plataforma SaaS para operadores UAS (drones) en Colombia. Bitácora digital RAC 100, mantenimiento, SMS aeronáutico, autorizaciones AeroCivil y reportes RAC 100 con tu propio código de formato.',
+    'Plataforma SaaS para operadores UAS (drones) en Colombia. Bitácora de vuelo digital, sistema de gestión de seguridad operacional (SMS), mantenimiento de drones y baterías, revisión de vuelos con replay GPS, y autorizaciones AeroCivil. Cumple también con la RAC 100.',
   url: SITE_URL,
   inLanguage: 'es-CO',
   featureList: FEATURES.map((f) => f.title).join(', '),
@@ -307,11 +307,11 @@ const webPageSchema = {
   '@type': 'WebPage',
   '@id': `${SITE_URL}/#webpage`,
   'url': SITE_URL,
-  'name': 'Bitafly | Software de Gestión para Operadores de Drones en Colombia',
+  'name': 'Bitafly | Bitácora de Vuelo, SMS y Gestión de Flota de Drones en Colombia',
   'isPartOf': { '@id': `${SITE_URL}/#website` },
   'about': { '@id': `${SITE_URL}/#software` },
   'inLanguage': 'es-CO',
-  'description': 'Plataforma SaaS líder para operadores UAS en Colombia. Bitácora digital RAC 100, mantenimiento, baterías, SMS aeronáutico, autorizaciones AeroCivil y reportes RAC 100 con tu propio código de formato.',
+  'description': 'Plataforma SaaS para operadores UAS en Colombia: bitácora de vuelo digital, sistema de gestión de seguridad operacional (SMS), mantenimiento de drones y baterías, y revisión de vuelos con replay GPS. Cumple también con la RAC 100.',
 };
 
 // JSON-LD: FAQPage (rich result de preguntas frecuentes)
@@ -363,18 +363,18 @@ export default function LandingPage() {
               <div className="flex flex-col gap-7">
                 <p className="inline-flex items-center gap-2 bg-orange-50 text-primary px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest w-fit">
                   <span className="material-symbols-outlined text-sm">verified</span>
-                  Diseñado para la RAC 100 de Colombia
+                  Bitácora, SMS y gestión de flota en un solo lugar
                 </p>
 
                 <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-navy leading-[0.95] tracking-tighter uppercase">
-                  Software de Gestión para{' '}
-                  <span className="text-primary">Operadores de Drones</span> en Colombia
+                  Bitácora de Vuelo y{' '}
+                  <span className="text-primary">Gestión de Flota de Drones</span> en Colombia
                 </h1>
 
                 <p className="text-base md:text-lg font-medium text-slate-600 max-w-xl">
-                  Bitácora digital, mantenimiento, baterías, SMS aeronáutico y autorizaciones
-                  AeroCivil en una sola plataforma. Diseñado para cumplir con la RAC 100 desde
-                  el primer vuelo.
+                  Bitácora digital, sistema de gestión de seguridad operacional (SMS),
+                  mantenimiento de baterías y revisión de vuelos con replay GPS, todo en una
+                  sola plataforma. Cumple también con la RAC 100 desde el primer vuelo.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-start gap-3">

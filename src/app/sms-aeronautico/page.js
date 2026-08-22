@@ -7,13 +7,13 @@ import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
 import RelatedReading from '@/components/seo/RelatedReading';
 
 export const metadata = {
-  title: 'SMS Aeronáutico para Operadores de Drones UAS Colombia',
-  description: 'Sistema de Gestión de Seguridad (SMS) aeronáutico para operadores UAS en Colombia. Clasificación de incidentes, accidentes y eventos de seguridad según RAC 100. Trazabilidad completa para auditorías AeroCivil.',
-  keywords: ['SMS aeronáutico drones', 'sistema gestión seguridad UAS', 'incidentes drones Colombia', 'seguridad operacional UAS', 'RAC 100 SMS'],
+  title: 'Sistema de Gestión de Seguridad Operacional (SMS) para Drones',
+  description: 'Software SMS para operadores de drones en Colombia: clasifica incidentes, accidentes y eventos de seguridad, con acciones correctivas y trazabilidad completa. También cumple con la RAC 100 y las auditorías AeroCivil.',
+  keywords: ['sistema de gestión de seguridad operacional', 'SMS drones', 'SMS aeronáutico drones', 'sistema gestión seguridad UAS', 'incidentes drones Colombia', 'seguridad operacional UAS'],
   alternates: { canonical: '/sms-aeronautico' },
   openGraph: {
-    title: 'SMS Aeronáutico para Operadores UAS en Colombia | Bitafly',
-    description: 'Sistema de Gestión de Seguridad Operacional para drones. Clasificación RAC 100, trazabilidad y reportes para auditorías AeroCivil.',
+    title: 'Sistema de Gestión de Seguridad Operacional (SMS) para Drones | Bitafly',
+    description: 'Software SMS para operadores UAS: clasificación de incidentes, trazabilidad y reportes. Cumple con la RAC 100 y las auditorías AeroCivil.',
     url: 'https://bitafly.com/sms-aeronautico',
   },
 };

@@ -8,13 +8,13 @@ import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
 export const metadata = {
-  title: 'Digital Drone Logbook for Colombia (RAC 100 Compliant)',
-  description: 'The only drone flight logbook built for Colombia\'s RAC 100 regulation. Generates the flight log PDF with your own format code (F-OPS-002 by default), tracks flight hours and battery cycles. Free 15-day trial.',
-  keywords: ['drone logbook colombia', 'UAV logbook colombia', 'RAC 100 flight log', 'digital flight logbook colombia', 'RPAS logbook aerocivil'],
+  title: 'UAS Flight Logbook & Drone Fleet Management — Colombia',
+  description: 'Digital flight logbook for drone operators in Colombia: log every flight, track flight hours and battery cycles, and manage your fleet in the cloud. Generates the flight log PDF automatically (F-OPS-002 by default). Also complies with RAC 100. Free 15-day trial.',
+  keywords: ['UAS flight logbook', 'drone logbook colombia', 'UAV logbook colombia', 'digital flight logbook colombia', 'RPAS logbook aerocivil', 'RAC 100 flight log'],
   alternates: { canonical: '/drone-logbook-colombia' },
   openGraph: {
-    title: 'Digital Drone Logbook for Colombia — RAC 100 Compliant | Bitafly',
-    description: 'Automated flight log generation (F-OPS-002 by default), flight hour tracking and battery cycle management for UAS operators in Colombia.',
+    title: 'UAS Flight Logbook & Drone Fleet Management — Colombia | Bitafly',
+    description: 'Digital flight logbook, flight hour tracking and battery cycle management for UAS operators in Colombia. Also complies with RAC 100.',
     url: `${SITE_URL}/drone-logbook-colombia`,
     type: 'website',
     locale: 'en_US',
@@ -56,14 +56,16 @@ export default function DroneLogbookColombiaPage() {
           <div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'rgba(236,91,19,0.08)', border: '1px solid rgba(236,91,19,0.2)', borderRadius: '9999px', padding: '5px 14px', marginBottom: '20px' }}>
               <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: accent }} />
-              <span style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: accent }}>Colombia · RAC 100 Compliant</span>
+              <span style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: accent }}>UAS Flight Logbook · Colombia</span>
             </div>
             <h1 style={{ fontSize: 'clamp(36px,4vw,52px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.04em', lineHeight: 1.02, color: '#1A202C', marginBottom: '20px' }}>
-              Digital Drone Logbook for <span style={{ color: accent }}>Colombia</span>
+              Digital Flight Logbook for <span style={{ color: accent }}>Drone Operators</span>
             </h1>
             <p style={{ fontSize: '16px', fontWeight: 500, color: '#64748b', lineHeight: 1.65, maxWidth: '480px', marginBottom: '28px' }}>
-              The only drone flight management platform built specifically for Colombia's <strong>RAC 100</strong> regulation.
-              Automatically generates the flight log PDF required by RAC 100 for every commercial flight — with your own format code (F-OPS-002 by default).
+              The drone flight management platform built for operators in Colombia. Log every
+              flight, track hours and battery cycles, and generate the flight log PDF
+              automatically — with your own format code (F-OPS-002 by default). Also complies
+              with the <strong>RAC 100</strong> regulation.
             </p>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <Link href="/registro" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: accent, color: '#fff', padding: '14px 28px', borderRadius: '16px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', textDecoration: 'none', boxShadow: '0 8px 24px rgba(236,91,19,0.3)' }}>

@@ -8,13 +8,13 @@ import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
 
 export const metadata = {
-  title: 'Bitácora Digital de Vuelo para Drones RAC 100 en Colombia',
-  description: 'Registra cada vuelo de drones con los campos exigidos por la RAC 100. Bitácora digital con tu propio código de formato (F-OPS-002 por defecto, personalizable). Suma automática de horas, reportes PDF instantáneos. Prueba gratis.',
-  keywords: ['bitácora digital drones', 'bitácora vuelo RAC 100', 'F-OPS-002', 'registro vuelos drones Colombia', 'bitácora UAS AeroCivil'],
+  title: 'Bitácora de Vuelo UAS — Bitácora Digital de Drones en Colombia',
+  description: 'Registra cada vuelo de tus drones en una bitácora digital: despegue, aterrizaje, batería, condiciones y piloto, con suma automática de horas. Genera el reporte PDF en segundos (F-OPS-002 por defecto, personalizable). También cumple con la RAC 100. Prueba gratis.',
+  keywords: ['bitácora de vuelo UAS', 'bitácora digital drones', 'bitácora drones Colombia', 'registro vuelos drones', 'bitácora vuelo RAC 100', 'F-OPS-002'],
   alternates: { canonical: '/bitacora-digital' },
   openGraph: {
-    title: 'Bitácora Digital de Vuelo para Drones RAC 100 | Bitafly',
-    description: 'Bitácora digital RAC 100. Genera el F-OPS-002 en PDF en segundos. Sin Excel, sin papel.',
+    title: 'Bitácora de Vuelo UAS — Bitácora Digital de Drones | Bitafly',
+    description: 'Registra cada vuelo de tus drones y genera el reporte PDF en segundos. Suma automática de horas. Sin Excel, sin papel.',
     url: 'https://bitafly.com/bitacora-digital',
   },
 };
@@ -71,8 +71,8 @@ export default function BitacoraDigitalPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2" style={{maxWidth:'1100px',margin:'0 auto',gap:'56px',alignItems:'center'}}>
           <div>
             <div style={s.badge}><div style={s.dot}/><span style={s.badgeText}>Formato F-OPS-002 · configurable</span></div>
-            <h1 style={s.h1}>Bitácora Digital de Vuelo para <span style={s.accent}>Drones RAC 100</span></h1>
-            <p style={s.desc}>Registra cada operación UAS con los campos exigidos por la AeroCivil. Genera el Maestro de Vuelo F-OPS-002 en PDF en segundos. Sin Excel, sin papel.</p>
+            <h1 style={s.h1}>Bitácora de Vuelo <span style={s.accent}>UAS</span> para Drones</h1>
+            <p style={s.desc}>Registra cada operación con despegue, aterrizaje, batería, condiciones y piloto. Genera el Maestro de Vuelo en PDF en segundos (F-OPS-002 por defecto, también cumple con la RAC 100). Sin Excel, sin papel.</p>
             <div style={{display:'flex',gap:'12px',flexWrap:'wrap'}}>
               <Link href="/registro" style={s.btnPrimary}><span className="material-symbols-outlined" style={{fontSize:'18px'}}>flight_takeoff</span>Registrar mi primer vuelo</Link>
               <Link href="/rac-100" style={s.btnGhost}>Ver cumplimiento RAC 100</Link>

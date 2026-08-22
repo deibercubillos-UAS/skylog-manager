@@ -453,6 +453,12 @@ Esta decisión además hace consistente el trato del Dock: ni control por RC, ni
 
 ## 5. F3 — SMS fácil de integrar y aplicar
 
+> 📄 **Investigación completa en `docs/investigacion-sms-rac219-bitafly.md`** (2026-08-22):
+> marco de 4 componentes / 12 elementos verificado literal contra el catálogo oficial, cobertura
+> real de BitaFly elemento por elemento, y el hallazgo central — la autoevaluación GAP declara
+> **99 % de cumplimiento** mientras la tabla de datos mensuales de indicadores tiene **cero
+> filas**. Ese documento manda sobre lo que sigue en esta sección.
+
 ### 5.1 Diagnóstico honesto
 
 El SMS de BitaFly **no está incompleto — está desconectado**. Tiene 9 pestañas, matriz de riesgo

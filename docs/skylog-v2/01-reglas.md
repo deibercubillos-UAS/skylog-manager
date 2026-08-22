@@ -106,12 +106,40 @@ análisis** de datos de seguridad operacional. Ver [`10-rac219-sms.md`](10-rac21
 
 ---
 
-## 7 · Nombres
+## 7 · Nombres y confidencialidad
 
-- El proyecto se llama **Skylog V2.0**.
-- El producto en producción sigue siendo **BitaFly**. No se renombra nada en producción.
-- La decisión de qué nombre lleva el producto al salir a público **está abierta** — no se
-  asume que sea uno u otro.
+| | |
+|---|---|
+| **Nombre del proyecto** | **Skylog V2.0** — nombre interno, **de confidencialidad** |
+| **Nombre del producto al salir** | **BitaFly.** La versión 2.0 se publica bajo la marca BitaFly |
+| **Producto en producción hoy** | BitaFly. No se renombra nada |
+
+**Regla N1**: mientras dure el desarrollo, toda referencia externa (repositorio, deploys de
+prueba, documentación compartida) usa **Skylog V2.0**. La marca BitaFly no se asocia
+públicamente a esta reconstrucción hasta el lanzamiento.
+
+**Regla N2**: en el código, nada de nombres de marca acoplados. Módulos, tablas y rutas se
+nombran por lo que **hacen**, no por la marca — para que el cambio de nombre sea de
+configuración, no de refactor.
+
+---
+
+## 8 · Autorización de reestructuración total
+
+> *"De ser necesario puedes reestructurar toda la página, recuerda que queremos mejorar, y la
+> base de hoy en día presenta desorden, y la idea es crear una base sólida libre de escalar."*
+> — 2026-08-22
+
+**Autorización explícita del usuario.** Levanta la restricción de conservar la estructura
+actual **dentro de Skylog V2.0**. No levanta ninguna regla del §1: producción sigue intocable.
+
+| # | Regla |
+|---|---|
+| **A1** | Skylog V2.0 **no hereda** la estructura actual. Se diseña desde el problema, no desde lo que existe |
+| **A2** | Nada se conserva por inercia. Cada tabla, ruta y pantalla debe justificar su existencia |
+| **A3** | **Sí se conserva la lógica de negocio ya probada** (límites de plan, motor SORA, estadística SPI, cumplimiento de capacitación, matriz de riesgo): se traslada a una capa pura y se le agregan pruebas. Reestructurar no es reinventar las reglas |
+| **A4** | Lo que se elimina se **registra con su motivo** en `51-bitacora.md`. Nada desaparece en silencio |
+| **A5** | El criterio de éxito no es "hace lo mismo mejor ordenado", es **"escala sin que cada campo nuevo cueste tres tablas"** |
 
 ---
 

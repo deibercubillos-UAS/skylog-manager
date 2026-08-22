@@ -1,4 +1,25 @@
-# Investigación — SMS, RAC 219 y directivas Aerocivil, para BitaFly v2
+# Auditoría del módulo SMS actual
+
+[← Índice maestro](00-INDICE.md) · [Reglas](01-reglas.md) · Normativa: [`10-rac219-sms.md`](10-rac219-sms.md)
+
+> Migrado desde `../investigacion-sms-rac219-bitafly.md` el 2026-08-22.
+>
+> ⚠️ **Corregido tras leer el texto primario del RAC 219** (ver [`10-rac219-sms.md`](10-rac219-sms.md)):
+> el §0 de este documento declaraba que no se pudo acceder al RAC 219 — **ya se accedió**,
+> vía el Drive del usuario. Las afirmaciones marcadas `⚠️ VERIFICAR` en el §6 quedaron así:
+>
+> | Afirmación original | Veredicto contra texto primario |
+> |---|---|
+> | Comité de Seguridad Operacional / GESO exigidos | ❌ **Incorrecta.** No aparecen en el RAC 219 vigente. Venían de la versión 2016 y de fuentes secundarias |
+> | Ejecutivo Responsable exigido | ✅ Confirmado — `219.105(a)(2)(i)` |
+> | Plan de respuesta ante emergencias exigido | ✅ Confirmado — `219.105(a)(4)` |
+> | Gestión del cambio exigida | ✅ Confirmado — `219.105(c)(2)` |
+> | SPT exigidos | ⏳ No aparece en 219.105. Pendiente en las directivas MAUT |
+>
+> **Y lo más importante**: la captura automática de eventos, que aquí se propone como
+> diseño, resultó ser **requisito normativo** — `219.110(f)`. Ver `10-rac219-sms.md` §3.
+
+---
 
 Documento de insumo para el rediseño del módulo SMS en la versión 2.0. Su objeto es
 responder tres preguntas: **qué exige la norma**, **qué cubre BitaFly hoy**, y **cómo

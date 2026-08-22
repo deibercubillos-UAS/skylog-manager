@@ -2,72 +2,86 @@
 
 Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.**
 
-> **Regla de oro**: ningún archivo supera las **500 líneas**. Al llegar al límite se crea
-> uno nuevo, se enlaza desde aquí y se referencia mutuamente. Ver `01-reglas.md`.
+> **Skylog V2.0** es el nombre interno de confidencialidad. Al lanzarse, el producto se
+> publica como **BitaFly**. Ver [`01-reglas.md`](01-reglas.md) §7.
+
+> **Regla de oro**: ningún archivo supera las **500 líneas**. Al llegar al límite se crea uno
+> nuevo, se enlaza desde aquí y se referencia mutuamente.
 
 ---
 
 ## 0 · Gobierno del proyecto
 
-| Doc | Contenido | Estado |
-|---|---|---|
-| [`01-reglas.md`](01-reglas.md) | Reglas de trabajo, aislamiento respecto de producción, convenciones de documentación | ✅ Vigente |
-| `02-glosario.md` | Vocabulario común (entidades del negocio, siglas normativas) | ⬜ Pendiente |
+| Doc | Contenido | Líneas | Estado |
+|---|---|---|---|
+| [`01-reglas.md`](01-reglas.md) | Reglas de trabajo: producción intocable, documentación, veracidad, datos, SMS, verificación, nombres, autorización de reestructuración | 146 | ✅ |
+| `02-glosario.md` | Vocabulario común (entidades, siglas normativas) | — | ⬜ |
 
-## 1 · Normativa (análisis de fuentes oficiales)
+## 1 · Normativa
 
-| Doc | Fuente | Estado |
-|---|---|---|
-| [`10-rac219-sms.md`](10-rac219-sms.md) | RAC 219 — Gestión de Seguridad Operacional (vigente, enmendado por Res. 718/2024) | ✅ Analizado |
-| `11-rac100-uas.md` | RAC 100 — Operación de UAS (modificación integral) | 🔄 Analizado en `../plan-bitafly-v2.md` §1 — pendiente de migrar aquí |
-| `12-directivas-maut.md` | MAUT-1.0-22-001/004/006/007, MAUT-5.0-22-017 | ⬜ Pendiente |
-| `13-herramientas-spi.md` | MAUT-1.0-12-002 (SPI), MAUT-3.0-12-097 (evaluación SMS ponderada) | ⬜ Pendiente |
-| `14-listas-verificacion.md` | MAUT-5.0-12-055 (MO), MAUT-5.0-12-095 | ⬜ Pendiente |
+| Doc | Fuente | Líneas | Estado |
+|---|---|---|---|
+| [`10-rac219-sms.md`](10-rac219-sms.md) | **RAC 219** — Gestión de Seguridad Operacional (vigente, Res. 718/2024) | 195 | ✅ Texto primario |
+| [`11-rac100-uas.md`](11-rac100-uas.md) | **RAC 100** — Operación de UAS · 15 brechas identificadas | 50 | ✅ Texto primario |
+| `12-directivas-maut.md` | MAUT-1.0-22-001 (SPI) · -004 (MOR) · -006 (Aceptación) · -007 (Complementarios) · MAUT-5.0-22-017 | — | 🔜 **Siguiente** |
+| `13-herramientas-spi.md` | MAUT-1.0-12-002 (definición de SPIs) | — | ⬜ |
+| `14-listas-verificacion.md` | MAUT-5.0-12-055 (MO) · MAUT-5.0-12-095 | — | ⬜ |
+| `15-evaluacion-sms.md` | MAUT-3.0-12-097 (evaluación ponderada, 1 MB — al final) | — | ⬜ |
 
 ## 2 · Diagnóstico del sistema actual
 
-| Doc | Contenido | Estado |
-|---|---|---|
-| `20-auditoria-datos.md` | Auditoría del modelo de datos actual | 🔄 En `../plan-bitafly-v2.md` §16 — pendiente de migrar |
-| `21-auditoria-sms.md` | Cobertura real del módulo SMS por elemento | 🔄 En `../investigacion-sms-rac219-bitafly.md` — pendiente de migrar |
-| `22-infraestructura.md` | Proveedores, costos, velocidad de carga | 🔄 En `../plan-bitafly-v2.md` §15 — pendiente de migrar |
+| Doc | Contenido | Líneas | Estado |
+|---|---|---|---|
+| [`20-auditoria-datos.md`](20-auditoria-datos.md) | Modelo de datos: 84 tablas, 20 vacías, duplicación `profiles`/`pilots` divergente en producción | 217 | ✅ |
+| [`21-auditoria-sms.md`](21-auditoria-sms.md) | Cobertura SMS elemento por elemento · 99 % autodeclarado con cero evidencia | 415 | ✅ |
+| [`22-infraestructura.md`](22-infraestructura.md) | Proveedores, costos, velocidad de carga | 155 | ✅ |
 
 ## 3 · Diseño de Skylog V2.0
 
-| Doc | Contenido | Estado |
-|---|---|---|
-| `30-entidades.md` | Mapa de entidades reales del negocio | ⬜ Pendiente |
-| `31-esquema-datos.md` | Esquema objetivo, tabla por tabla | ⬜ Pendiente |
-| `32-migracion.md` | ETL desde la base actual, reglas de precedencia | ⬜ Pendiente |
-| `33-arquitectura.md` | Monorepo, servicios, capa de dominio | ⬜ Pendiente |
-| `34-seguridad.md` | RLS, multi-tenant, protección de datos SMS | ⬜ Pendiente |
-| `35-frontend.md` | Espacios de trabajo, sistema de diseño, modo campo | ⬜ Pendiente |
+| Doc | Contenido | Líneas | Estado |
+|---|---|---|---|
+| `30-entidades.md` | Mapa de entidades reales del negocio | — | ⬜ |
+| [`31-esquema-datos.md`](31-esquema-datos.md) | Esquema objetivo — **punto de partida, se rehará** tras `30-entidades.md` | 98 | 🔄 |
+| `32-migracion.md` | ETL desde la base actual, reglas de precedencia | — | ⬜ |
+| [`33-arquitectura.md`](33-arquitectura.md) | Monorepo, servicios, capa de dominio, pruebas | 57 | 🔄 |
+| [`34-seguridad.md`](34-seguridad.md) | RLS, multi-tenant, C2 · **falta protección de datos SMS (RAC 219 §219.115-140)** | 63 | 🔄 |
+| [`35-frontend.md`](35-frontend.md) | Espacios de trabajo, sistema de diseño, modo campo | 71 | 🔄 |
 
 ## 4 · Módulos
 
-| Doc | Módulo | Estado |
-|---|---|---|
-| `40-sms.md` | SMS orientado a evidencia | ⬜ Pendiente |
-| `41-tiempos-servicio.md` | Tiempos de servicio, vuelo y descanso (RAC 100 100.540) | ⬜ Pendiente |
-| `42-comando-control.md` | C2 en vivo (telemetría + video) | ⬜ Pendiente |
-| `43-aerocivil.md` | Expediente y radicación de autorizaciones | ⬜ Pendiente |
+| Doc | Módulo | Líneas | Estado |
+|---|---|---|---|
+| [`40-sms.md`](40-sms.md) | SMS orientado a evidencia | 89 | 🔄 |
+| [`41-tiempos-servicio.md`](41-tiempos-servicio.md) | Tiempos de servicio, vuelo y descanso (100.540) | 50 | 🔄 |
+| [`42-comando-control.md`](42-comando-control.md) | C2 en vivo — telemetría + video | 280 | ✅ |
+| [`43-aerocivil.md`](43-aerocivil.md) | Expediente y radicación de autorizaciones | 77 | 🔄 |
 
 ## 5 · Ejecución
 
-| Doc | Contenido | Estado |
-|---|---|---|
-| `50-hoja-de-ruta.md` | Fases, orden, puertas de verificación | ⬜ Pendiente |
-| `51-bitacora.md` | Registro cronológico de decisiones | ⬜ Pendiente |
+| Doc | Contenido | Líneas | Estado |
+|---|---|---|---|
+| [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | Aislamiento, frentes, orden recomendado, no-objetivos | 165 | 🔄 |
+| [`51-bitacora.md`](51-bitacora.md) | Decisiones cerradas y fuentes consultadas | 82 | 🔄 |
+
+**Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · 🔜 siguiente
 
 ---
 
-## Documentos previos (anteriores a esta estructura)
+## Estado
 
-Se conservan y se migrarán progresivamente. **Superan las 500 líneas** — su división es
-parte del trabajo pendiente:
+- **17 documentos**, todos bajo el límite de 500 líneas. El mayor: `21-auditoria-sms.md` (415).
+- `plan-bitafly-v2.md` e `investigacion-sms-rac219-bitafly.md` **se eliminaron**: su contenido
+  vive repartido aquí. No hay duplicados (regla E1).
+- Los marcados 🔄 se escribieron bajo la premisa anterior de *evolución aditiva*. Con la
+  autorización de reestructuración total ([`01-reglas.md`](01-reglas.md) §8) deben rehacerse
+  desde el problema, no desde lo que existe.
 
-- `../plan-bitafly-v2.md` (~1.150 líneas) — plan general, 16 secciones
-- `../investigacion-sms-rac219-bitafly.md` (~394 líneas) — investigación SMS
+## Próximos pasos
+
+1. `12-directivas-maut.md` — analizar las 5 directivas MAUT
+2. `13-herramientas-spi.md` · `14-listas-verificacion.md` · `15-evaluacion-sms.md`
+3. `30-entidades.md` — mapa de entidades, base de todo el diseño
+4. Rehacer los 🔄 sobre esa base
 
 ---
 

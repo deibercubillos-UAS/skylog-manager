@@ -42,6 +42,7 @@
 | 24 | **Replay multimarca** | Arquitectura de **parsers por marca** sobre una traza canónica, para crecer a Autel, Parrot y otras sin tocar visor ni almacenamiento | [`36`](36-sitemap.md) §3 |
 | 25 | **Centro de control** | Panorama vivo de la jornada con datos que ya tenemos. **No es C2 en vivo**, que sigue omitido por la decisión 20 | [`36`](36-sitemap.md) §3 |
 | 26 | **Todo activable** | Cada módulo se enciende o apaga según la operación del cliente | [`36`](36-sitemap.md) §5. ⚠️ Mercancías peligrosas **no se apaga del todo**: la declaración y la capacitación son exigibles aun sin transportar |
+| 30 | **Migración — se puede verificar sin apuro** | Aún no hay clientes reales usando v2, así que `32-migracion.md` no bloquea el arranque de Fase 0; se afina más adelante, contra datos reales, antes del corte real | Confirmado con el usuario, 2026-08-22 |
 | 29 | **Esquema de datos rehecho** | `31-esquema-datos.md` reorganizado por entidad de negocio, sobre `30-entidades.md`. Retira la sección C2 activa; la deja dormida en `42` | [`31`](31-esquema-datos.md) |
 | 27 | **RAC 5 — servicios aéreos comerciales** | **No entra al alcance.** Es solo informativo, para estar alineados con el contexto regulatorio del cliente. Cero pantallas, cero entidades | [`19`](19-registros-obligatorios.md) §2.6 |
 | 28 | **Dronpuertos** | **No se construye nada.** No se lleva registro operacional: se describe en el Manual de Operaciones del cliente | [`36`](36-sitemap.md) ② · retira el Apéndice 3 de [`11`](11-rac100-uas.md) y `MAUT-5.0-22-014` de los documentos por conseguir |
@@ -160,3 +161,19 @@ Ninguna decisión de alcance queda abierta. Lo único pendiente es de ejecución
 | 2026-08-22 | Que convenía abrir una cuenta de AWS para Amazon IVS | Decisión 7 y V3 de este documento — **MediaMTX co-ubicado** |
 | 2026-08-22 | Que replay y video quedaban fuera de toda retención regulatoria | Decisión 5 de este documento — hay **retención legal por suceso** |
 | 2026-08-22 | Haber leído la normativa de manuales como si fuéramos a **construir manuales**, y escrito una sección entera de brechas sobre esa premisa | Decisión 21 · [`50`](50-hoja-de-ruta.md) §8 reescrita · [`19`](19-registros-obligatorios.md) reemplaza el enfoque |
+
+### 11.5 Fase 0 — infraestructura, estado real (2026-08-22)
+
+Inventario verificado contra las cuentas reales (Supabase MCP, Vercel MCP), no supuesto:
+
+| Recurso | Estado |
+|---|---|
+| Rama `develop-v2` | ✅ Creada desde `origin/main` (no desde esta rama de planeación) y **empujada** a origin. Trae consigo `docs/skylog-v2/` completo |
+| `packages/domain` | ✅ Con Vitest **corrido y en verde** (no solo configurado), npm workspaces, cero herramienta nueva |
+| `packages/ui` | ✅ Esqueleto vacío a propósito — crece con cada frente |
+| `next lint` sobre `develop-v2` | ✅ Mismos 3 warnings preexistentes — confirma que agregar `workspaces` no rompió nada de producción |
+| **Supabase branch** | ⏸ **Sin crear — requiere decisión del usuario.** La organización (`xpsomztjfbughukylzgi`) está en **plan Free**, con **2 proyectos ya activos** (`skylog-manager` prod + `tecni`, otro cliente). Un branch de desarrollo cuesta **US$0,01344/hora ≈ US$9,68/mes** si queda corriendo, y no está confirmado si cuenta contra el tope de 2 proyectos del plan Free |
+| **Proyecto Vercel separado** | ⏸ **Replanteado, no creado.** Ya existe deploy de preview automático para cualquier rama sobre el mismo proyecto `skylog-manager` — es lo que se ha visto toda la sesión. Recomendación: variables de entorno con alcance *Preview* atadas a `develop-v2`, sobre el proyecto existente, en vez de un proyecto nuevo |
+
+**Nada de esto se ejecutó sin confirmación** porque son las primeras acciones del plan con costo real o que tocan un recurso pagado compartido — a diferencia de la rama Git y el andamiaje de paquetes, que son locales, gratis y reversibles.
+

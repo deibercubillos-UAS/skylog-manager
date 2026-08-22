@@ -66,7 +66,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
 | [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 289 | ✅ |
-| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 162 | ✅ |
+| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 179 | ✅ |
 
 **Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · ⏸ omitido por ahora
 
@@ -92,15 +92,20 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Próximos pasos
 
-Etapas ① y ② del ciclo cerradas: [`30-entidades.md`](30-entidades.md) y
-[`31-esquema-datos.md`](31-esquema-datos.md).
+Etapas ① y ② del ciclo cerradas. **Fase 0 en marcha** — ver
+[`51-bitacora.md`](51-bitacora.md) §11.5: rama `develop-v2` creada y empujada desde `main`, con
+`packages/domain` (Vitest en verde) y `packages/ui` (esqueleto). Confirmado con el usuario:
+`32-migracion.md` no bloquea el arranque — aún no hay clientes reales en v2, se afina antes del
+corte real.
 
-1. **`32-migracion.md`** — ETL desde la base actual. Punto crítico: reglas de precedencia para
-   `people` donde `profiles`/`pilots` ya divergen en producción (P-ES-3).
-2. Levantar la **Fase 0** de infraestructura ([`50`](50-hoja-de-ruta.md) §1): rama `develop-v2`,
-   Supabase branch, proyecto Vercel de preview, `packages/ui`.
-3. Rehacer `33-arquitectura.md`, `34-seguridad.md`, `35-frontend.md`, `40-sms.md`,
-   `41-tiempos-servicio.md`, `43-aerocivil.md` — siguen 🔄, bajo la premisa superada.
+**Dos decisiones de costo pendientes, ninguna otra cosa bloquea**:
+
+1. Crear el **Supabase branch** de desarrollo — org en plan Free, ~US$9,68/mes si queda
+   corriendo, posible tope de 2 proyectos.
+2. **Vercel**: variables de entorno por rama sobre el proyecto existente (recomendado) vs.
+   proyecto nuevo.
+
+Con eso resuelto, sigue `32-migracion.md` y el primer código real de F5 (tiempos de servicio).
 
 ---
 

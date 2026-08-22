@@ -2212,6 +2212,98 @@ export const BLOG_POSTS = [
 <p><a href="/registro">Comienza gratis — sin tarjeta de crédito →</a></p>
 `,
   },
+
+  // ─── 18. ¿Listos para la próxima actualización de la RAC 100? ────────────
+  {
+    slug:            'listos-proxima-actualizacion-rac-100-colombia',
+    title:           '¿Tu operación está lista para la próxima actualización de la RAC 100?',
+    metaTitle:       '¿Listo para la Próxima Actualización de la RAC 100? | Bitafly',
+    metaDescription: 'La normativa de drones en Colombia no se queda quieta. Te contamos por qué conviene prepararte con anticipación para la próxima actualización de la RAC 100 y cómo llevar tu operación a otro nivel con Bitafly.',
+    publishedAt:     '2026-08-21',
+    updatedAt:       '2026-08-21',
+    readingTime:     7,
+    category:        'Normativa',
+    keywords:        ['actualización RAC 100', 'próxima actualización RAC 100 colombia', 'cambios RAC 100 drones', 'preparación normativa drones colombia', 'RAC 100 2026'],
+    excerpt:         'La regulación de drones en Colombia evoluciona constantemente para alinearse con estándares internacionales (OACI, JARUS). Si tu operación depende de bitácoras en Excel o de procesos manuales, cada actualización de la RAC 100 se siente como una carrera contrarreloj. Aquí te explicamos cómo prepararte con anticipación.',
+    coverAlt:        'Operador de drones preparándose para la próxima actualización de la RAC 100 en Colombia',
+    body: `
+<p>La <strong>RAC 100</strong> no es un documento estático. Desde su expedición, la UAEAC (AeroCivil) la ha venido ajustando de forma periódica para acercar la regulación colombiana a los estándares que ya maneja la aviación tripulada y a las recomendaciones internacionales de la OACI y de JARUS (el organismo detrás de metodologías como el SORA). Cada operador serio sabe que esto no es una amenaza: es la dirección lógica hacia la que se mueve toda la industria UAS a nivel global.</p>
+
+<p>La pregunta real no es <em>si</em> habrá otra actualización, sino <strong>si tu operación está en condiciones de absorberla sin parar vuelos</strong> cuando llegue.</p>
+
+<div class="stats-row">
+  <div class="stat-item"><div class="num">7</div><div class="lbl">Frentes de cumplimiento que cualquier actualización puede tocar</div></div>
+  <div class="stat-item"><div class="num">2 años</div><div class="lbl">Historial de registros que la AeroCivil puede auditar</div></div>
+  <div class="stat-item"><div class="num">0</div><div class="lbl">Días de gracia si tu bitácora vive en un Excel disperso</div></div>
+</div>
+
+<h2>Por qué la normativa de drones sigue evolucionando</h2>
+<p>La aviación no tripulada es, comparada con la aviación tripulada, una industria joven. A medida que aumenta el número de operadores, se diversifican los casos de uso (BVLOS, operaciones urbanas, integración con espacio aéreo compartido) y se acumula experiencia operacional real, es esperable —y sano— que la autoridad aeronáutica siga refinando los requisitos. Las tendencias que ya se observan en el ecosistema regulatorio internacional apuntan hacia:</p>
+<ul>
+  <li><strong>Mayor exigencia en trazabilidad digital</strong> de vuelos, mantenimiento y certificaciones — cada vez menos tolerancia a registros en papel o en hojas de cálculo sueltas</li>
+  <li><strong>Evaluaciones de riesgo más estandarizadas</strong> (metodologías tipo SORA) para operaciones que hoy podrían tramitarse de forma más informal</li>
+  <li><strong>Sistemas de gestión de seguridad (SMS) más robustos</strong>, extendiéndose a operadores que hoy quedan por debajo del umbral obligatorio</li>
+  <li><strong>Reportería más frecuente y estructurada</strong> hacia la autoridad, como ya ocurre con el Reporte Operacional Mensual UAS</li>
+</ul>
+<p>No sabemos con certeza cuál será el próximo cambio puntual —eso lo define la UAEAC y se debe seguir siempre desde la fuente oficial—, pero sí sabemos hacia dónde apunta la tendencia. Y esa dirección favorece claramente a los operadores que ya tienen su información centralizada y digitalizada.</p>
+
+<div class="callout important">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div class="callout-body"><strong>Fuente oficial siempre primero</strong> Este artículo no reemplaza la publicación oficial de la UAEAC. Ante cualquier cambio normativo, consulta directamente el portal de la AeroCivil o a tu asesor regulatorio. Aquí te ayudamos a evaluar qué tan preparada está tu <em>operación</em> para adaptarse, sin importar el detalle exacto del próximo cambio.</div>
+</div>
+
+<h2>Autodiagnóstico: 7 preguntas para saber si estás preparado</h2>
+<p>Antes de pensar en qué dirá la próxima actualización, vale la pena hacerte estas preguntas sobre tu operación <em>hoy</em>:</p>
+
+<h3>1. ¿Puedes mostrar tu bitácora de los últimos 12 meses en menos de 5 minutos?</h3>
+<p>Si la respuesta implica abrir tres Excel distintos, buscar hojas de papel o llamar a un piloto para que te pase sus datos, tu operación depende de procesos que no escalan con una exigencia mayor de trazabilidad.</p>
+
+<h3>2. ¿Sabes exactamente cuántas horas y ciclos lleva cada aeronave y cada batería?</h3>
+<p>El mantenimiento preventivo por horas de vuelo ya es una exigencia real. Si hoy te cuesta trabajo responder esta pregunta con precisión, una regulación más estricta sobre trazabilidad de componentes te va a doler más de lo necesario.</p>
+
+<h3>3. ¿Tu SMS genera evidencia real, o es un documento guardado en un cajón?</h3>
+<p>Un sistema de gestión de seguridad que no produce reportes, acciones correctivas y auditorías internas documentadas no sobrevive una inspección hoy — y mucho menos un estándar más exigente mañana.</p>
+
+<h3>4. ¿Podrías hacer una evaluación de riesgo tipo SORA para tu operación habitual sin empezar de cero?</h3>
+<p>Si cada vez que necesitas autorización para una operación especial tienes que reconstruir el análisis desde el principio, no tienes un proceso: tienes un trámite que se repite manualmente cada vez.</p>
+
+<h3>5. ¿Tus certificaciones de pilotos y pólizas se vencen sin que nadie se dé cuenta a tiempo?</h3>
+<p>Un CPR vencido o una póliza de responsabilidad civil caducada no son detalles menores frente a una auditoría — y son de los datos más fáciles de perder de vista sin un sistema de alertas.</p>
+
+<h3>6. ¿Podrías generar un reporte consolidado de tu operación mensual en minutos, no en horas?</h3>
+<p>El Reporte Operacional Mensual UAS ya exige consolidar 8 datos por vuelo dentro de los primeros 5 días hábiles del mes. Si armar ese reporte hoy te toma una tarde completa, cualquier reportería adicional se va a sentir insostenible.</p>
+
+<h3>7. ¿Tu información depende de una sola persona?</h3>
+<p>Si toda la trazabilidad de tu operación vive en la cabeza —o en la laptop— de una sola persona, no tienes un sistema: tienes un punto único de falla. Eso es un riesgo hoy, independientemente de lo que diga la próxima actualización de la norma.</p>
+
+<div class="callout warning">
+  <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+  <div class="callout-body"><strong>Si respondiste "no" a tres o más preguntas</strong> tu operación probablemente está cumpliendo la RAC 100 hoy a base de esfuerzo manual — funciona, pero no escala, y cada exigencia nueva se va a sentir como una crisis en vez de un ajuste menor.</div>
+</div>
+
+<h2>La diferencia entre "cumplir" y estar realmente preparado</h2>
+<p>Cumplir la RAC 100 hoy, con lo que exige hoy, es el mínimo. Estar <strong>preparado</strong> significa que tu operación puede absorber una exigencia nueva —más trazabilidad, más reportería, un SMS más robusto— sin tener que rediseñar tus procesos desde cero cada vez.</p>
+
+<blockquote class="pullquote">La normativa cambia cada cierto tiempo. Tu forma de operar no debería tener que cambiar cada vez que lo hace.</blockquote>
+
+<p>La diferencia entre ambos escenarios casi nunca está en el esfuerzo del equipo, sino en si la información de la operación —vuelos, mantenimiento, pilotos, riesgos, reportes— vive centralizada y estructurada, o repartida entre Excel, WhatsApp, carpetas de Drive y memoria de quien lleva más tiempo en la empresa.</p>
+
+<h2>Llevar tu sistema al siguiente nivel con Bitafly</h2>
+<p>Bitafly no es solo una bitácora digital: es la capa de trazabilidad completa que hace que tu operación esté lista para lo que venga, no solo para lo que exige la norma hoy.</p>
+<ul>
+  <li><strong>Bitácora digital centralizada</strong> — cada vuelo queda registrado con todos los campos exigidos, sumando horas y generando el PDF automáticamente. <a href="/bitacora-digital">Ver bitácora digital →</a></li>
+  <li><strong>Mantenimiento por horas y ciclos reales</strong> — de aeronaves y baterías, con alertas antes de que se venza el umbral, no después. <a href="/mantenimiento-drones">Ver mantenimiento de drones →</a></li>
+  <li><strong>SMS que genera evidencia real</strong> — reportes de peligros, acciones correctivas y auditorías internas documentadas, no un manual guardado sin uso. <a href="/sms-aeronautico">Ver módulo SMS →</a></li>
+  <li><strong>Evaluación de riesgo SORA asistida</strong> — reutilizable operación tras operación, sin reconstruir el análisis desde cero cada vez. <a href="/sora">Ver módulo SORA →</a></li>
+  <li><strong>Alertas de vencimiento</strong> — certificaciones de pilotos, pólizas y matrículas, para que nada te tome por sorpresa. <a href="/gestion-pilotos">Ver gestión de pilotos →</a></li>
+  <li><strong>Reportería lista en minutos</strong> — desde el Reporte Operacional Mensual hasta cualquier documento que pida una auditoría, generado desde datos que ya están centralizados. <a href="/reportes-auditoria">Ver reportes y auditoría →</a></li>
+</ul>
+
+<p>Ninguna plataforma puede decirte hoy con certeza qué dirá la próxima actualización de la RAC 100. Lo que sí puede hacer Bitafly es asegurarse de que, cuando llegue, tu operación ya tenga la trazabilidad, la estructura y la evidencia que cualquier exigencia nueva probablemente va a pedir — porque ya es exactamente lo que un operador profesional necesita para volar con control real, actualización de por medio o no.</p>
+
+<p><a href="/registro">Empieza gratis y lleva tu operación al siguiente nivel →</a></p>
+`,
+  },
 ];
 
 /** Retorna un post por slug, o undefined si no existe */

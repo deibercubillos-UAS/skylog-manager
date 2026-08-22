@@ -16,7 +16,7 @@
 | 2 | Segmento objetivo de C2 | **Solo planes superiores a Escuadrilla** (Flota y Enterprise) | Coincide con el hardware que soporta la Cloud API. C2 vuelve a diferenciar Escuadrilla de Flota (§4.3) |
 | 3 | Formato oficial de la matriz de riesgos Aerocivil | **Aún no es público** | F4a se construye con plantilla intercambiable; se emite matriz propia mientras tanto (§6.3) |
 | 4 | Intervención del Dock | **No se interviene** — sigue en FlightHub 2 | Vía B: extracción de datos *aguas abajo* vía FlightHub OpenAPI + FlightHub Sync + Event API, sin tocar el Dock (§4.5) |
-| 5 | Retención de 5 años vs. planes | **Registros operacionales 5 años. Replay y video se mantienen como están** — la retención regulatoria es **documental**, no de replay | Confirma la distinción de §8.5. Se declara explícitamente en la interfaz para que nadie confunda un replay de 30 días con el archivo obligatorio |
+| 5 | Retención de 5 años vs. planes | **Registros operacionales 5 años. Replay y video se mantienen como están** — la retención regulatoria es **documental**, no de replay | Confirma la distinción de §8.5. Se declara explícitamente en la interfaz para que nadie confunda un replay de 30 días con el archivo obligatorio. ⚠️ **Matizado 2026-08-22**: vale para operación **normal**. El ítem 34 de MAUT-5.0-12-095 exige un procedimiento de *"preservación y custodia de los registros de vuelo (logs de vuelo), grabaciones de audio y video, ante la ocurrencia de un incidente, accidente y/o suceso operacional"* — es decir, al abrirse un caso el material de ese vuelo queda bajo **retención legal** y sale de la purga por cuota. Ver [`14-listas-verificacion.md`](14-listas-verificacion.md) §4.7 |
 | 6 | F4b — radicación automática | **Sí, las dos de una vez** (F4a + F4b) | F4 completo entra al alcance. F4b conserva sus salvaguardas: modo asistido con confirmación humana, credenciales cifradas, uso auditado, revocable (§6.4, §10.5) |
 | 7 | Proveedores de infraestructura | **Evaluado — ver §15** | Cloudflare **se queda** (migrar a AWS sería ~27× más caro en egress). **AWS no se abre**: MediaMTX co-ubicado con `c2-gateway`. **Cero cuentas nuevas en todo v2** |
 
@@ -36,7 +36,7 @@ Ninguna decisión de alcance queda abierta. Lo único pendiente es de ejecución
 |---|---|---|---|
 | **V1** | Aplicación Cloud API en el portal DJI (APP ID / Key / License) | ✅ **Resuelto** | Las claves ya están cargadas como variables de entorno en Vercel. **Pendiente funcional**: validar `platformVerifyLicense` contra un RC real — no se puede hacer desde este entorno, requiere hardware |
 | **V2** | Alcance de FlightHub OpenAPI / Event API según licencia del cliente | ⏸ **Bloqueado** — "no hay forma al momento" | La **vía B queda documentada pero no verificada**. Se planifica como fase posterior, condicionada a poder confirmar el alcance con una licencia real. **No se compromete cronograma sobre ella** |
-| **V3** | Servidor de medios: costo y estabilidad | ✅ **Resuelto** | Ver **§4.11**. Cloudflare Stream descartada por incompatibilidad de protocolo. Recomendación: **Amazon IVS canal Basic** (≈$69/mes al escenario base), con MediaMTX como plan B y opción *on-premises*. Decisión reversible cambiando una URL |
+| **V3** | Servidor de medios: costo y estabilidad | ✅ **Resuelto** | Cloudflare Stream descartada por incompatibilidad de protocolo (solo RTMPS/SRT; el RC de DJI emite RTMP). Primero se recomendó **Amazon IVS Basic** (≈$69/mes); **corregido** al evaluar la decisión 7: como `c2-gateway` debe correr siempre de todos modos, **MediaMTX co-ubicado** no agrega punto único de falla ni cuenta nueva, y sale más barato. Decisión final: **MediaMTX co-ubicado, cero cuentas nuevas**. Reversible cambiando una URL |
 
 > **Consecuencia de V2 sobre el plan**: la vía B (Docks en FlightHub 2) pasa de "parte de F2" a
 > **fase F2-b diferida**. F2 se entrega completa con la vía A (RC + Pilot 2), que es la que
@@ -80,3 +80,23 @@ Ninguna decisión de alcance queda abierta. Lo único pendiente es de ejecución
 - [Self-Hosted Live Streaming: Owncast, MediaMTX & Nginx RTMP (2026)](https://www.pistack.xyz/posts/self-hosted-live-streaming-owncast-mediamtx-nginx-rtmp-guide-2026/) — dimensionamiento de MediaMTX en modo relay.
 
 ---
+
+**Normativa Aerocivil analizada el 2026-08-22 (documentos primarios provistos por el usuario)**
+- `RAC 219` (vigente, Res. 718/2024) · `RAC 100` (modificación integral) →
+  [`10-rac219-sms.md`](10-rac219-sms.md) · [`11-rac100-uas.md`](11-rac100-uas.md)
+- `MAUT-1.0-22-004` (MOR/VOR) · `MAUT-1.0-22-006` (aceptación, P/S/O/E) →
+  [`12-directivas-maut.md`](12-directivas-maut.md)
+- `MAUT-1.0-22-005` v02 y el libro `MAUT-1.0-12-002` v01 (SPI) →
+  [`13-herramientas-spi.md`](13-herramientas-spi.md)
+- `MAUT-5.0-12-095` (lista de verificación del MO) → [`14-listas-verificacion.md`](14-listas-verificacion.md)
+- `MAUT-1.0-22-007` (asuntos complementarios) → [`16-asuntos-complementarios.md`](16-asuntos-complementarios.md)
+- `MAUT-5.0-22-017` (implementación SMS UAS) → [`17-implementacion-sms-uas.md`](17-implementacion-sms-uas.md)
+- `MAUT-5.0-12-055` v01 (análisis de riesgos por autorización) → [`18-analisis-riesgos-vuelo.md`](18-analisis-riesgos-vuelo.md)
+
+**Correcciones propias registradas** (regla V4)
+| Fecha | Qué se afirmó mal | Dónde queda la corrección |
+|---|---|---|
+| 2026-08-22 | Que el Comité de Seguridad Operacional y el GESO no eran exigibles por no estar en el articulado del RAC 219 | [`10-rac219-sms.md`](10-rac219-sms.md) §recuadro · confirmado por el ítem 52 de `MAUT-5.0-12-095` |
+| 2026-08-22 | Que el denominador de los SPI de UAS eran horas de vuelo | [`13-herramientas-spi.md`](13-herramientas-spi.md) §7 — son **ciclos de vuelo** |
+| 2026-08-22 | Que convenía abrir una cuenta de AWS para Amazon IVS | Decisión 7 y V3 de este documento — **MediaMTX co-ubicado** |
+| 2026-08-22 | Que replay y video quedaban fuera de toda retención regulatoria | Decisión 5 de este documento — hay **retención legal por suceso** |

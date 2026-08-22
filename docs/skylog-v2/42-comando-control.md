@@ -6,6 +6,24 @@
 
 ---
 
+> ## ⚠️ Falta la norma que gobierna este módulo
+>
+> Existe una **directiva vinculante** de la Aerocivil llamada
+> **`MAUT-5.0-22-016 "01-23" — Criterios de aceptación del enlace C2 para explotadores UAS`**,
+> descubierta el 2026-08-22 al analizar la lista de verificación del Manual de Operaciones
+> ([`14-listas-verificacion.md`](14-listas-verificacion.md) §3). El **ítem 23** de esa lista
+> evalúa el enlace C2 **exclusivamente contra esa directiva**.
+>
+> Todo este documento se construyó contra la especificación técnica de DJI y el RAC 100. Eso lo
+> hace **técnicamente correcto**, pero no dice nada sobre si lo que el módulo captura, muestra y
+> conserva satisface los criterios de aceptación de la autoridad. Hasta leer `MAUT-5.0-22-016`,
+> cualquier afirmación de cumplimiento sobre el enlace C2 es una suposición.
+>
+> **No invalida el diseño técnico** (protocolos, telemetría, servidor de medios). Sí deja abierto
+> qué campos son obligatorios, con qué frecuencia y por cuánto tiempo. Pendiente **P-LV-1**.
+
+---
+
 ## 4. F2 — Comando y Control (C2 en vivo)
 
 > **Actualizado tras validación técnica (2026-08-22)** — se verificó la documentación oficial de

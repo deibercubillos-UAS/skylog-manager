@@ -235,15 +235,93 @@ detalles normativos mal — coherente con el diagnóstico general del proyecto.
 
 ---
 
+## 9 · Estructura real del Excel MAUT-1.0-12-002 (P-SPI-1 resuelto)
+
+Analizado sobre el archivo oficial `MAUT-1.0-12-002 Herramienta definición de SPIs`
+(versión 01, aprobado 22/12/2023), hoja de ejemplo *"Aterrizaje fuerte (Hard Landing)"*.
+Las fórmulas no vienen expuestas como texto, así que **se reprodujeron numéricamente** contra
+los datos del ejemplo hasta reventar cada hipótesis. Lo que sigue está verificado, no supuesto.
+
+### 9.1 Disposición de la hoja
+
+Una hoja por indicador, dividida en cinco bloques:
+
+| Bloque | Contenido |
+|---|---|
+| **Encabezado** | Clave `MAUT-1.0-12-002` · Versión · Fecha de aprobación · nombre del indicador |
+| **Año anterior** | Mes · Ciclos de Vuelo · Evento · Tasa de eventos · Promedio año |
+| **Año presente** | Mes · Ciclos de Vuelo · Evento · Tasa de eventos · 1.ª / 2.ª / 3.ª alerta · Meta |
+| **Criterios y meta** | Prom+1DE · Prom+2DE · Prom+3DE · % de mejora esperada · meta sugerida |
+| **Planes de acción** | 9 filas: Defensa (T/R/E) · Causa raíz · Desencadenante · Plan · Documento · Tiempo |
+| **Histórico** | `Mon-YY` · Ciclos · Eventos · Tasa · columna auxiliar *"datos sin div 0"* |
+
+### 9.2 Fórmulas reconstruidas y verificadas
+
+| Cálculo | Fórmula | Verificación sobre el ejemplo |
+|---|---|---|
+| Tasa mensual | `eventos / ciclos × 1000` | ene: 2 / 1 842 × 1000 = 1,0858 → **1,09** ✓ |
+| Promedio del año | media aritmética de las 12 tasas | 3,04 / 12 = 0,2533 → **0,25** ✓ |
+| Desviación estándar | **poblacional** (÷ n), no muestral | σ = 0,318 → **0,32** ✓ · s muestral = 0,332 ✗ |
+| Líneas de alerta | `promedio_año_anterior + {1,2,3} × σ_año_anterior` | 0,57 / 0,89 / 1,21 ✓ |
+| Meta | `promedio_año_anterior × (1 − mejora_esperada)` | 0,25 × 0,90 = 0,228 → **0,23** ✓ |
+
+La desviación **poblacional** queda confirmada: la muestral da 0,33 y el archivo dice 0,32. Es
+la única de las dos que reproduce el número oficial.
+
+### 9.3 Tres reglas que el archivo hace explícitas y no estaban en la circular
+
+1. **Las tres líneas de alerta son constantes durante todo el año presente.** Se calculan una
+   sola vez con el cierre del año anterior y se repiten idénticas en los doce meses — no son
+   una ventana móvil que se recalcula cada mes. Lo mismo la meta, que se dibuja como línea
+   horizontal. *(Coincide con lo implementado hoy — se confirma correcto.)*
+2. **El histórico es una rejilla fija de 144 meses: `Jan-15` … `Dec-26`.** No es "desde 2015
+   hacia adelante": el formato oficial vigente **se queda sin filas en diciembre de 2026**.
+3. **Columna auxiliar `datos sin div 0`.** Duplica la tasa en precisión completa y neutraliza
+   la división por cero de los meses sin operación. Es el dato que alimenta la gráfica, no la
+   columna redondeada a dos decimales.
+
+### 9.4 Nota de interpretación incluida en el propio archivo
+
+> *"Sobre el comportamiento histórico es necesario analizar tendencia. Al revisar pendiente y si
+> hay comportamiento con frecuentes picos y valles que evidencian alta «inestabilidad» o
+> comportamiento caótico, denota que los planes de acción (barreras) no están siendo útiles o no
+> están siendo aplicados."*
+
+Es un criterio de evaluación, no un adorno: **la varianza alta del histórico se lee como prueba
+de que las barreras no funcionan.** Un módulo que solo grafica la serie deja al cliente sin esa
+lectura. Calcular pendiente y volatilidad del histórico y decirlo en palabras es trabajo que el
+software puede hacer y hoy nadie hace.
+
+### 9.5 Consecuencias de diseño
+
+| # | Consecuencia |
+|---|---|
+| D1 | El generador debe emitir el `.xlsx` **con la disposición oficial exacta**, no una tabla propia. Aerocivil recibe este formato. |
+| D2 | Meses con **cero ciclos** no son un error: se guardan y se neutralizan como el archivo oficial. Prohibido `NULL` silencioso. |
+| D3 | Guardar la tasa **sin redondear**; el redondeo a dos decimales es de presentación. |
+| D4 | El histórico exige serie mensual desde `Jan-15`. Para un operador nuevo se envía vacío — no se inventa relleno. |
+| D5 | Alertas y meta se **congelan al cerrar el año** y se guardan como valores, no se recalculan al vuelo. Si se corrige un mes del año anterior, es una reapertura explícita y auditable. |
+| D6 | El archivo oficial caduca en `Dec-26`. Habrá versión nueva; el generador no puede asumir esta rejilla como eterna. |
+
+### 9.6 Lo que quedó sin ver
+
+La extracción devolvió **una sola hoja**, nombrada `O-Taxonomia`. El nombre delata que el libro
+trae además una hoja de **taxonomía de ocurrencias** que no se obtuvo. No cambia las fórmulas —
+sí puede fijar el vocabulario exacto de categorías de evento. Queda como pendiente P-SPI-5.
+
+---
+
 ## 8 · Pendientes
 
 | # | Pendiente |
 |---|---|
-| P-SPI-1 | Analizar el Excel **MAUT-1.0-12-002** para la estructura exacta de hoja y fórmulas |
+| ~~P-SPI-1~~ | ~~Analizar el Excel MAUT-1.0-12-002~~ → **resuelto en §9** |
 | P-SPI-2 | Confirmar la definición operativa de cada uno de los 11 indicadores (qué cuenta como "cuasi colisión") |
 | P-SPI-3 | Obtener el modelo de **ficha técnica** del Plan Colombiano de Seguridad Operacional |
 | P-SPI-4 | Revisar la taxonomía MOR completa → [`12-directivas-maut.md`](12-directivas-maut.md) |
+| P-SPI-5 | Obtener la hoja `O-Taxonomia` del libro oficial (categorías de ocurrencia) |
 
 ---
 
-*Analizado 2026-08-22 contra el texto primario, versión 02 del 20-03-2026.*
+*Analizado 2026-08-22 contra el texto primario (circular v02 del 20-03-2026) y contra el
+libro Excel oficial MAUT-1.0-12-002 v01 (§9).*

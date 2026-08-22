@@ -176,7 +176,7 @@ Esto no se resuelve con RLS por organización. Exige:
 
 | Tema | Antes | Ahora |
 |---|---|---|
-| Comité / GESO | Brecha normativa | ✅ **Exigibles**, vía MAUT-1.0-22-007, y **escalables** por tamaño |
+| Comité / GESO | Brecha normativa | ✅ **Exigibles**, vía MAUT-1.0-22-007, y **escalables** por tamaño. Confirmado de nuevo por el **ítem 52** de la lista de verificación del MO ([`14-listas-verificacion.md`](14-listas-verificacion.md)), que los inspecciona expresamente |
 | Captura automática de eventos | Mejora de producto | **Requisito**, `219.110(f)` |
 | Protección de datos SMS | Mencionado de pasada | **6 de 11 secciones de la norma.** Módulo propio |
 | Investigaciones internas | No contemplado | **Requisito**, `219.110(a)(b)` |

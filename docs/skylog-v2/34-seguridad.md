@@ -61,3 +61,29 @@ es un interruptor) y evaluar hacer el repositorio privado — hoy es público y 
 arquitectura de seguridad interna descrita en `CLAUDE.md`.
 
 ---
+
+---
+
+## Retención legal por suceso (añadido 2026-08-22)
+
+> Nota para la reescritura de este documento. El ítem 34 de `MAUT-5.0-12-095` exige que el
+> Manual de Operaciones describa el procedimiento de **preservación y custodia de los registros
+> de vuelo (logs), grabaciones de audio y video ante la ocurrencia de un incidente, accidente o
+> suceso operacional**.
+
+Implica un mecanismo que hoy no existe en ninguna parte del sistema:
+
+| Requisito | Efecto |
+|---|---|
+| **Congelamiento** | Al abrirse un caso (MOR, VOR, accidente), el log de vuelo y el material de audio y video de ese vuelo dejan de ser elegibles para purga por cuota de plan |
+| **Custodia** | Debe quedar registro de quién puede liberar el material y bajo qué condición — no se libera solo por vencimiento de cuota |
+| **Trazabilidad** | El acceso al material bajo custodia se audita; es evidencia potencial de una investigación |
+| **Alcance** | El congelamiento lo dispara la **apertura del caso**, no el cierre. Un caso abierto tarde no debe encontrar el material ya borrado |
+
+Interacción con la protección de datos SMS (`RAC 219 §219.115-140`): el material bajo custodia
+sigue sujeto a las restricciones de uso de la información de seguridad operacional. Preservarlo
+no lo vuelve de libre consulta interna.
+
+Ver [`14-listas-verificacion.md`](14-listas-verificacion.md) §4.7 y la decisión 5 corregida en
+[`51-bitacora.md`](51-bitacora.md).
+

@@ -21,13 +21,14 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 | Doc | Fuente | Líneas | Estado |
 |---|---|---|---|
-| [`10-rac219-sms.md`](10-rac219-sms.md) | **RAC 219** — Gestión de Seguridad Operacional (vigente, Res. 718/2024) | 195 | ✅ Texto primario |
+| [`10-rac219-sms.md`](10-rac219-sms.md) | **RAC 219** — Gestión de Seguridad Operacional (vigente, Res. 718/2024) | 199 | ✅ Texto primario |
 | [`11-rac100-uas.md`](11-rac100-uas.md) | **RAC 100** — Operación de UAS · 15 brechas identificadas | 50 | ✅ Texto primario |
 | [`12-directivas-maut.md`](12-directivas-maut.md) | **MAUT-1.0-22-006** (Aceptación, P/S/O/E) ✅ · **-004** (MOR/VOR, 12 eventos UAS) ✅ | 299 | 🔄 |
-| [`13-herramientas-spi.md`](13-herramientas-spi.md) | **MAUT-1.0-22-005** v02 (SPI) — 11 indicadores oficiales UAS · 9 correcciones a lo implementado | 249 | ✅ |
-| `14-listas-verificacion.md` | MAUT-5.0-12-055 (MO) · MAUT-5.0-12-095 | — | ⬜ |
+| [`13-herramientas-spi.md`](13-herramientas-spi.md) | **MAUT-1.0-22-005** v02 (SPI) — 11 indicadores oficiales UAS · 9 correcciones · **§9 fórmulas del Excel MAUT-1.0-12-002 verificadas** | 327 | ✅ |
+| [`14-listas-verificacion.md`](14-listas-verificacion.md) | **MAUT-5.0-12-095** — lista de verificación del MO, 57 ítems con los que se certifica el CDO-U | 259 | ✅ |
 | [`16-asuntos-complementarios.md`](16-asuntos-complementarios.md) | **MAUT-1.0-22-007** — Ejecutivo Responsable, Comité, GESO, interfases, ERP, currículo SMS | 315 | ✅ |
-| [`17-implementacion-sms-uas.md`](17-implementacion-sms-uas.md) | **MAUT-5.0-22-017** — las 4 fases oficiales de implementación, Cultura Justa, plan Gantt | 215 | ✅ |
+| [`17-implementacion-sms-uas.md`](17-implementacion-sms-uas.md) | **MAUT-5.0-22-017** — las 4 fases oficiales de implementación, Cultura Justa, plan Gantt | 213 | ✅ |
+| [`18-analisis-riesgos-vuelo.md`](18-analisis-riesgos-vuelo.md) | **MAUT-5.0-12-055** — análisis de riesgos por autorización de vuelo · matriz oficial fija · 24 peligros | 243 | ✅ |
 | `15-evaluacion-sms.md` | MAUT-3.0-12-097 — matriz P/S/O/E. **Sube de prioridad**: es la fuente de los ítems a autoevaluar (ver `12` §1.9) | — | ⬜ |
 
 ## 2 · Diagnóstico del sistema actual
@@ -71,19 +72,28 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Estado
 
-- **17 documentos**, todos bajo el límite de 500 líneas. El mayor: `21-auditoria-sms.md` (415).
+- **21 documentos**, todos bajo el límite de 500 líneas. El mayor: `21-auditoria-sms.md` (415).
 - `plan-bitafly-v2.md` e `investigacion-sms-rac219-bitafly.md` **se eliminaron**: su contenido
   vive repartido aquí. No hay duplicados (regla E1).
 - Los marcados 🔄 se escribieron bajo la premisa anterior de *evolución aditiva*. Con la
   autorización de reestructuración total ([`01-reglas.md`](01-reglas.md) §8) deben rehacerse
   desde el problema, no desde lo que existe.
 
+### Documentos normativos pendientes de conseguir
+
+| Documento | Naturaleza | Por qué importa | Prioridad |
+|---|---|---|---|
+| **MAUT-5.0-22-016 "01-23"** | Directiva **vinculante** | Criterios de aceptación del **enlace C2**. Sin ella, [`42-comando-control.md`](42-comando-control.md) está diseñado a ciegas frente a la autoridad | **Alta** |
+| **RAC 114** | Reglamento | Accidentes e incidentes graves — no van por MOR; falta la bifurcación | **Alta** |
+| **MAUT-5.0-22-011** | Circular informativa | Guía del CDO-U, citada en 50 de los 57 ítems del MO | Media |
+| **MAUT-5.0-22-014 DI "03-23"** | Directiva **vinculante** | Condiciones técnicas para dronpuertos | Media |
+| **MIU** | Manual del Inspector UAS | Procedimiento con el que se aplica la lista de verificación | Baja |
+
 ## Próximos pasos
 
-1. `15-evaluacion-sms.md` — matriz P/S/O/E de MAUT-3.0-12-097 · conseguir **RAC 114**
-2. `15-evaluacion-sms.md` (matriz P/S/O/E) · `13` P-SPI-1 (Excel) · `14-listas-verificacion.md`
-3. `30-entidades.md` — mapa de entidades, base de todo el diseño
-4. Rehacer los 🔄 sobre esa base
+1. `15-evaluacion-sms.md` — matriz P/S/O/E de **MAUT-3.0-12-097** (el archivo ya está disponible)
+2. `30-entidades.md` — mapa de entidades, base de todo el diseño
+3. Rehacer los 🔄 sobre esa base
 
 ---
 

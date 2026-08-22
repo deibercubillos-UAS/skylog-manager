@@ -697,8 +697,15 @@ El **motor de cumplimiento** es una función pura compartida cliente/servidor
   replay de 30 días. Se propone además una **exportación de archivo** para que el cliente
   conserve por su cuenta lo que vaya a expirar.
 
-> Esta distinción es una decisión de producto con implicaciones legales. Se marca para
-> validación explícita (§11).
+> ✅ **Confirmado (2026-08-22)**: la obligación de conservar 5 años es **documental**, no de
+> replay. Los registros operacionales (bitácora, mantenimiento, autorizaciones, reportes SMS,
+> tiempos de servicio) se conservan 5 años **en todos los planes, sin excepción**. El replay GPS
+> y el video de C2 **mantienen su retención por plan tal como está hoy** — son evidencia
+> complementaria, no el registro obligatorio.
+>
+> Consecuencia de diseño: esa distinción tiene que quedar **explícita en la interfaz**, no solo
+> en este documento. Un explotador no debe poder creer que su obligación de 5 años está cubierta
+> por un replay de 30 días.
 
 ---
 
@@ -835,14 +842,19 @@ arquitectura de seguridad interna descrita en `CLAUDE.md`.
 | 2 | Segmento objetivo de C2 | **Solo planes superiores a Escuadrilla** (Flota y Enterprise) | Coincide con el hardware que soporta la Cloud API. C2 vuelve a diferenciar Escuadrilla de Flota (§4.3) |
 | 3 | Formato oficial de la matriz de riesgos Aerocivil | **Aún no es público** | F4a se construye con plantilla intercambiable; se emite matriz propia mientras tanto (§6.3) |
 | 4 | Intervención del Dock | **No se interviene** — sigue en FlightHub 2 | Vía B: extracción de datos *aguas abajo* vía FlightHub OpenAPI + FlightHub Sync + Event API, sin tocar el Dock (§4.5) |
+| 5 | Retención de 5 años vs. planes | **Registros operacionales 5 años. Replay y video se mantienen como están** — la retención regulatoria es **documental**, no de replay | Confirma la distinción de §8.5. Se declara explícitamente en la interfaz para que nadie confunda un replay de 30 días con el archivo obligatorio |
+| 6 | F4b — radicación automática | **Sí, las dos de una vez** (F4a + F4b) | F4 completo entra al alcance. F4b conserva sus salvaguardas: modo asistido con confirmación humana, credenciales cifradas, uso auditado, revocable (§6.4, §10.5) |
+| 7 | Proveedores de infraestructura | **Evaluado — ver §15** | Cloudflare **se queda** (migrar a AWS sería ~27× más caro en egress). **AWS no se abre**: MediaMTX co-ubicado con `c2-gateway`. **Cero cuentas nuevas en todo v2** |
 
 ### 11.2 Pendientes
 
-| # | Decisión | Por qué importa |
+Ninguna decisión de alcance queda abierta. Lo único pendiente es de ejecución:
+
+| # | Pendiente | Naturaleza |
 |---|---|---|
-| 5 | **Retención de 5 años vs. planes** — ¿se confirma la distinción de §8.5 (registros operacionales 5 años en todos los planes; replay y video con retención por plan, declarada explícitamente en la interfaz)? | Tiene implicaciones legales: un explotador no debe creer que su obligación de 5 años está cubierta por un replay de 30 días |
-| 6 | **F4b — radicación automática** — ¿se compromete la automatización del portal, con custodia de credenciales, o se entrega primero solo F4a? | Es el mayor riesgo de responsabilidad del plan (§6.4, §10.5) |
-| 7 | **Prioridad entre frentes** — la recomendación es F5 → F3 → F1 → F2 → F4 (§12). ¿Se mantiene, o la prioridad comercial exige adelantar C2? | Con F2 ya validado técnicamente, adelantarlo es más viable que antes |
+| P1 | Validar `platformVerifyLicense` contra un RC real | Requiere hardware. No se puede hacer desde este entorno |
+| P2 | Confirmar el alcance de FlightHub OpenAPI / Event API (V2) | Bloqueado hoy. Mantiene F2-b diferida |
+| P3 | Confirmar si Cloudflare está proxeando delante de Vercel (§15.4) | Requiere inspeccionar cabeceras de `bitafly.com`, bloqueado por la política de red de este entorno |
 
 ### 11.3 Verificaciones técnicas — estado (2026-08-22)
 
@@ -863,21 +875,37 @@ arquitectura de seguridad interna descrita en `CLAUDE.md`.
 
 Estado consolidado tras resolver las decisiones 1–4 y las verificaciones V1/V2/V3.
 
-### 12.1 Hoja de ruta
+### 12.1 Orden recomendado
 
-| # | Frente | Alcance concreto | Estado de arranque |
-|---|---|---|---|
-| **1º** | **F5 — Tiempos de servicio, vuelo y descanso** | Motor de cumplimiento de 100.540 (90 h/mes · 8 h/día VLOS-EVLOS · 6 h/día BVLOS · 2 h continuas + 30 min · descanso 10/12 h no fraccionable), captura de servicio en modo campo, bloqueo de despacho, alertas al 80%, certificación anual, vista de disponibilidad para el Jefe de Pilotos | ✅ **Listo para arrancar.** Sin dependencias externas. Es incumplimiento actual de norma vigente |
-| **2º** | **F3 — SMS fácil de aplicar** | Asistente de implantación por fases (RAC 219 + MAUT-1.0-22-006/007), plantillas de peligros/barreras/SPI por tipo de operación, **eventos operacionales → borradores de reporte SMS**, reporte mensual consolidado (estadística + SPI + MOR), MSMS como documento vivo | ✅ **Listo para arrancar.** Sin dependencias externas |
-| **3º** | **F1 — Rediseño de frontend y distribución** | 4 espacios por momento operacional (OPERAR · PLANEAR · REGISTRAR · CUMPLIR), `packages/ui` con tokens y primitivas, modo campo, resiliencia sin señal (IndexedDB + cola de sincronización), command palette | ✅ **Listo para arrancar.** `packages/ui` puede empezar en paralelo desde el día 1 |
-| **4º** | **F2-a — Comando y Control (RC + Pilot 2)** | Página H5 para el portal "Open Platforms" de Pilot 2, `c2-gateway` (MQTT + reglas + persistencia), servidor de medios, mapa en vivo + HUD con los 9 campos de 100.415, geocercas derivadas de la programación, `c2_events` → SMS. Solo Flota y Enterprise | ✅ **Desbloqueado.** Claves DJI ya en Vercel. Falta validar `platformVerifyLicense` contra un RC real (requiere hardware) |
-| **5º** | **F4a — Expediente Aerocivil listo para radicar** | KML (no KMZ), matriz de riesgos con plantilla intercambiable, certificado de póliza RCE validado contra fecha y serial, alerta de antelación (15 / 10 días hábiles), checklist de vigencias (CDO-U, CIPU + adiciones), seguimiento de estado del trámite | ✅ **Listo para arrancar.** El formato oficial de la matriz no bloquea (§6.3) |
-| **⏸** | **F2-b — C2 con Docks en FlightHub 2** | FlightHub OpenAPI (registros de vuelo) + FlightHub Sync (media y reenvío de livestream) + Event API | ⏸ **Diferida sin cronograma.** No hay forma de confirmar el alcance de la licencia hoy (V2) |
-| **⏸** | **F4b — Radicación automática ante la Plataforma UAS Colombia** | RPA con custodia de credenciales, modo asistido con confirmación humana | ⏸ **Pendiente de decisión** (§11.2 #6) |
+El orden **no** es el de la lista original, y cada posición tiene una razón.
 
-**5 frentes arrancables hoy. 2 diferidos, ninguno de ellos bloqueante para el cumplimiento
-normativo.** Ese es el resultado neto de esta ronda: lo que no se puede verificar se apartó del
-camino crítico en vez de quedar como riesgo latente en el cronograma.
+#### Fase 0 — Cimientos (antes de cualquier frente)
+
+Rama `develop-v2` · Supabase branch · proyecto Vercel de preview · `packages/ui` con tokens y
+primitivas · Vitest sobre `packages/domain`. Sin esto, cada frente reinventa el andamiaje y el
+rediseño llega tarde a módulos ya construidos.
+
+#### Los frentes
+
+| # | Frente | Por qué va aquí |
+|---|---|---|
+| **1º** | **F5 — Tiempos de servicio, vuelo y descanso** | Es un **incumplimiento actual** de norma vigente (100.540). Es además el frente más pequeño: valida los cimientos de la Fase 0 con algo acotado y de alto valor regulatorio, antes de arriesgar nada grande |
+| **2º** | **F4a — Expediente Aerocivil listo para radicar** | Sube de posición. Es autónomo, de valor visible e inmediato para el cliente (le ahorra trabajo manual en **cada** misión), y **F4b depende de que 4a exista y esté rodado**. Ponerlo temprano le da a 4b el tiempo de maduración que necesita |
+| **3º** | **F3 — SMS fácil de aplicar** | Alto valor, sin dependencias externas. Su pieza clave —"eventos operacionales → borradores de reporte SMS"— se beneficia de que F5 ya exista: el exceso de tiempo de servicio es una de las fuentes de evento (§5.4) |
+| **4º** | **F2-a — Comando y Control (RC + Pilot 2)** | El diferenciador comercial. Va cuarto por una razón concreta: los tres anteriores **no tienen ningún riesgo externo**, y F2-a sí depende de validar la licencia contra un RC real (P1). Arrancarlo aquí deja resolver esa validación en paralelo sin bloquear el avance |
+| **5º** | **F1 — Rediseño y distribución** | Al final **a propósito**. Para cuando llegue, el mapa de módulos ya incluirá los cuatro módulos nuevos (tiempos de servicio, expediente Aerocivil, C2, SMS reformado). Rediseñar antes obligaría a rehacerlo.<br><br>**Excepción importante**: `packages/ui` arranca en la Fase 0 y crece con cada frente, así **cada módulo nuevo nace ya con el sistema de diseño**. F1 entonces no es "rediseñar todo desde cero", es "reorganizar la navegación en los 4 espacios y aplicar el sistema al resto de la app" — mucho más barato |
+| **6º** | **F4b — Radicación automática ante la Plataforma UAS Colombia** | Último por ser el de **mayor riesgo de responsabilidad** de todo el plan (custodia de credenciales ante una autoridad estatal). Necesita que F4a lleve tiempo estable y que el expediente ya sea confiable antes de automatizar su envío |
+| **⏸** | **F2-b — C2 con Docks en FlightHub 2** | Sin cronograma hasta poder verificar P2 |
+
+#### La alternativa, si la prioridad es comercial
+
+Adelantar **F2-a al 2º lugar** es viable ahora que está validado técnicamente. El costo real de
+hacerlo: (a) se asume el riesgo de P1 antes de tener los cimientos rodados, y (b) F1 tendría que
+acomodar después una pantalla de C2 ya construida, en vez de que nazca con el sistema de diseño.
+
+Es un intercambio legítimo — velocidad al mercado a cambio de algo de retrabajo. Mi
+recomendación es el orden de arriba, pero si C2 es la palanca de venta que necesitas para el
+salto Escuadrilla → Flota, adelantarlo no rompe nada.
 
 ### 12.2 Decisiones técnicas ya cerradas
 
@@ -886,7 +914,9 @@ camino crítico en vez de quedar como riesgo latente en el cronograma.
 | Integración con DJI | **Cloud API vía Pilot 2**, como página web en el portal "Open Platforms" | No requiere app nativa (§4.2) |
 | Telemetría | MQTT a **0,5 Hz**; los 9 campos de 100.415(a)(2)(iii) existen todos | Mapeo campo por campo (§4.4) |
 | Persistencia | 0,5 Hz → Postgres (12 meses) · traza completa → R2 comprimida · eventos → Postgres siempre | Reutiliza el patrón ya probado del Replay GPS (§4.8) |
-| Servidor de medios | **Amazon IVS canal Basic**; MediaMTX como plan B y opción *on-premises* | Cloudflare Stream descartada: solo acepta RTMPS/SRT, Pilot 2 emite RTMP en claro (§4.11) |
+| Servidor de medios | **MediaMTX co-ubicado con `c2-gateway`** — corregido, ver §15.2. Amazon IVS documentado como salida si la flota crece | Cloudflare Stream descartada por protocolo (§4.11); AWS no se abre, cero cuentas nuevas (§15.3) |
+| Proveedores | Vercel + Supabase + Cloudflare + Resend + ePayco + Railway. **Ninguno nuevo** | Migrar R2 a S3 sería ~27× más caro en egress (§15.1) |
+| Retención documental | **Registros operacionales 5 años en todos los planes.** Replay y video conservan su retención por plan | La obligación de 100.535(a)(29) es **documental**, no de replay (§8.5) |
 | Dock | **No se interviene.** Sigue en FlightHub 2 | Un Dock se vincula a una sola nube a la vez (§4.5) |
 | Drones de consumo | Fuera de alcance (DJI Mobile SDK no se construye) | Coherente con limitar C2 a Flota/Enterprise (§4.6) |
 | Control del dron | **BitaFly nunca envía comandos de vuelo** | Decisión de producto y responsabilidad (§4.10) |
@@ -925,6 +955,11 @@ Para que el alcance sea honesto:
   de los cinco frentes.
 - **No** resolver las 4 páginas huérfanas heredadas — se decidirán durante F1, cuando el mapa
   nuevo diga si tienen lugar o se eliminan.
+- **No** migrar Cloudflare R2 a AWS S3 — sería ~27× más caro en egress y desharía la fase F8 ya
+  completada (§15.1).
+- **No** abrir cuenta en AWS: MediaMTX se co-ubica con `c2-gateway` (§15.2).
+- **No** arreglar aquí el problema de bundle de `reportGenerators.js` (§15.4 H1) — es código de
+  producción y este plan es de desarrollo aislado. Se documenta para decidirlo aparte.
 
 ---
 
@@ -962,5 +997,148 @@ Para que el alcance sea honesto:
 
 ---
 
+## 15. Infraestructura — ¿se puede simplificar? (2026-08-22)
+
+Pregunta del usuario: *"verifica si es viable mantener todas esas cuentas, o puedo suprimir
+Cloudflare y migrar todo a Amazon (evalúa siempre costos), o si puedo optimizar velocidades de
+carga suprimiendo algo."*
+
+### 15.1 Migrar de Cloudflare R2 a AWS S3 — **no conviene, por un margen muy amplio**
+
+La diferencia decisiva es una sola línea de la tabla de precios: **R2 no cobra egress. S3 sí.**
+
+| | Cloudflare R2 | AWS S3 + CloudFront |
+|---|---|---|
+| Almacenamiento | $0,015 / GB-mes | $0,023 / GB-mes |
+| **Egress** | **$0 — gratis, sin límite** | **~$0,085–0,09 / GB** |
+| Nivel gratuito | 10 GB-mes + 1 M Class A + 10 M Class B | 100 GB egress/mes |
+
+Escenario conservador para BitaFly (100 GB almacenados, 500 GB de egress al mes entre imágenes
+de flota por CDN, manuales de hasta 25 MB, APKs de hasta 100 MB, documentos y replays):
+
+| | Costo mensual |
+|---|---|
+| **R2** | (100 − 10) × $0,015 = **$1,35** · egress **$0** → **≈ $1,35** |
+| **S3 + CloudFront** | 100 × $0,023 = $2,30 · egress (500 − 100) × $0,085 = $34 → **≈ $36** |
+
+**≈ 27× más caro, y la brecha crece linealmente con el tráfico.** BitaFly es una aplicación que
+sirve archivos: cuanto más crece, peor es la migración.
+
+A eso se suma un argumento no económico: **la migración a R2 ya se hizo y funciona.** La fase F8
+(junio 2026) movió los 7 buckets, resolvió las políticas CORS por bucket, el *gotcha* del
+checksum CRC32 del AWS SDK y montó 3 dominios CDN (`cdn`, `logos`, `releases`). Deshacer eso es
+tirar trabajo terminado y reintroducir problemas ya resueltos.
+
+**Veredicto: Cloudflare se queda. Es el proveedor que más dinero ahorra de todo el stack.**
+
+### 15.2 Corrección: tampoco hace falta abrir cuenta en AWS
+
+En §4.11 recomendé **Amazon IVS** para el servidor de medios, priorizando estabilidad sobre un
+sobrecosto de $20–50/mes. Con la restricción nueva que planteas —minimizar cuentas— **esa
+recomendación cambia**, y los argumentos que la sostenían pierden fuerza:
+
+| Argumento original a favor de IVS | Por qué ya no pesa igual |
+|---|---|
+| "Evita operar un servidor de medios" | **Ya vamos a operar un servicio siempre encendido igual** (`c2-gateway`, para MQTT). MediaMTX es un binario Go / contenedor que corre **en el mismo despliegue**. No es un servidor nuevo: es un contenedor más en algo que ya existe |
+| "MediaMTX es un punto único de falla" | `c2-gateway` **ya es** punto único de falla para C2. Si cae, la telemetría cae igual. Poner el video en el mismo dominio de falla no agrega un modo de falla nuevo — hace que C2 falle como una unidad, más simple de monitorear |
+| "IVS trae CDN global" | Los espectadores están **en Colombia, en la misma organización que el piloto**, con 1–3 concurrentes. La ventaja de una CDN global es marginal aquí |
+| Costo | IVS ≈ **$69/mes y creciendo con las horas de vuelo**. MediaMTX ≈ **$0 adicional** (mismo runtime que ya se paga) |
+
+**Recomendación corregida: MediaMTX co-ubicado con `c2-gateway`.** Y sigue siendo reversible: si
+la flota crece hasta hacer pesada la operación, migrar a IVS es cambiar la cadena de la URL que
+se envía por MQTT (§4.11). IVS queda documentado como salida, no como punto de partida.
+
+### 15.3 Cuentas resultantes — cero nuevas
+
+| Servicio | Rol | Veredicto |
+|---|---|---|
+| **Vercel** | Hosting Next.js, funciones serverless | Se queda |
+| **Supabase** | Postgres, Auth, RLS, Realtime, pg_cron | Se queda |
+| **Cloudflare** | R2 (7 buckets) + DNS + 3 dominios CDN | **Se queda** — el que más ahorra (§15.1) |
+| **Resend** | Correo transaccional | Se queda |
+| **ePayco** | Pagos (obligatorio en Colombia) | Se queda |
+| **Railway** | Hoy `railway-robot`. Pasaría a alojar además `c2-gateway` + MediaMTX + `aerocivil-agent` | Se **consolida**: 1 cuenta, 3 servicios |
+| ~~**AWS**~~ | — | **No se abre** (§15.2) |
+
+**Todo v2 se construye sin abrir una sola cuenta nueva.** El único cambio es que Railway pasa de
+alojar un servicio a alojar tres.
+
+### 15.4 Optimización de velocidad de carga — hallazgos reales
+
+#### ⚠️ H1 — Un problema de rendimiento real, verificado, en producción
+
+`src/lib/reportGenerators.js` importa **estáticamente** en sus tres primeras líneas:
+
+```js
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import ExcelJS from 'exceljs';
+```
+
+Y **dos archivos de cliente lo importan estáticamente**:
+
+- `src/app/dashboard/logbook/page.js:9` → **la Bitácora**, una de las páginas más usadas de toda
+  la aplicación.
+- `src/components/suppliers/SupplierDetailPanel.js:4`
+
+Consecuencia: esas pantallas envían al navegador **exceljs (925 KB minificado) + jsPDF +
+jspdf-autotable** en la carga inicial, aunque el usuario nunca pida un reporte. Más de **1 MB de
+JavaScript inútil** en la ruta crítica.
+
+Lo revelador es que **el patrón correcto ya existe en el proyecto**: los otros cinco sitios que
+usan estas librerías lo hacen bien, con `await import(...)` —
+`dashboard/reports/page.js`, `dashboard/maintenance/page.js`, `ExportActions.js`,
+`FlightPlanner.js`, `AerocivilForm.js`, `flightPlanDocs.js`, `manualActaPdf.js`. Estos dos son
+la excepción, no la regla.
+
+Arreglo: convertir esas dos importaciones al mismo patrón dinámico. Es un cambio de dos líneas
+con impacto medible en la página más transitada del producto.
+
+> **No se aplica ahora**: es código de producción y estamos en planeación (§0, regla operativa
+> #2). Queda documentado para que lo decidas — es de los pocos casos donde el arreglo es tan
+> pequeño y el beneficio tan claro que podría justificar un PR aparte, fuera de v2.
+
+#### ⚠️ H2 — Cloudflare parece estar delante de Vercel (doble CDN)
+
+Evidencia documental: el incidente de precios desactualizados de agosto 2026 registró **ambas**
+cabeceras — `cf-cache-status: DYNAMIC` **y** `x-vercel-cache: MISS`. Eso solo ocurre si
+Cloudflare proxea (nube naranja) delante de Vercel.
+
+Vercel **ya tiene su propia CDN global**. Ponerle Cloudflare delante añade un salto de red y
+crea una segunda capa de caché — que es exactamente lo que hizo tan difícil diagnosticar aquel
+incidente: hubo que descartar caché del navegador, de Cloudflare y de Vercel, una por una.
+
+Evaluar poner `bitafly.com` en modo **solo DNS** (nube gris), **manteniendo Cloudflare para R2 y
+los tres subdominios CDN**, que sí aportan valor real y gratuito. No se puede confirmar desde
+este entorno (la política de red bloquea `bitafly.com`) → **pendiente P3**.
+
+#### H3 — `demo-bitafly-enterprise` duplica el tiempo de CI
+
+Cada push construye **dos** proyectos de Vercel, incluso cuando el cambio es solo documentación
+(visible en este mismo PR). Si el demo no cambia, sacarlo del repositorio o desactivar sus
+builds automáticos reduce a la mitad el tiempo de CI de cada push. Coincide con la deuda de
+monorepo ya documentada en la limpieza de agosto 2026.
+
+#### H4 — Un bucket todavía fuera de R2
+
+`vor-mor-attachments` sigue en Supabase Storage (decisión consciente de julio 2026, los adjuntos
+pesan poco). Consolidarlo en R2 elimina un sistema de almacenamiento del stack. Impacto bajo,
+pero es simplificación real y encaja bien con F1.
+
+#### H5 — Cuatro sistemas de analítica conviviendo
+
+Vercel Analytics + Vercel Speed Insights + Google Tag Manager/Analytics + Microsoft Clarity.
+GTM/GA/Clarity ya están correctamente detrás del consentimiento de cookies; Vercel Analytics y
+Speed Insights cargan siempre y se solapan parcialmente con GA. Evaluar quedarse con uno de los
+dos conjuntos.
+
+#### ✅ H6 — Un pendiente antiguo que ya está resuelto
+
+La auditoría de julio 2026 dejó abierto **M5**: subir el runtime a Node ≥22 antes de enero 2027,
+porque el AWS SDK lo exigiría. Ya está hecho — `package.json` declara `"node": "22.x"` y el
+proyecto de Vercel reporta `nodeVersion: 22.x`. Se puede tachar de la lista de pendientes.
+
+---
+
 *Documento vivo. Se actualiza al cerrar cada decisión de §11 y al completar cada frente.*
-*Última actualización: 2026-08-22 — decisiones 1–4 y verificaciones V1/V3 resueltas; V2 diferida; hoja de ruta consolidada en §12.*
+*Última actualización: 2026-08-22 — las 7 decisiones de alcance cerradas; orden recomendado en §12.1; evaluación de infraestructura y velocidad de carga en §15.*

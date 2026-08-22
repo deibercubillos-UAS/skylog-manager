@@ -83,12 +83,16 @@ ya está transcrito en la base de datos:
 | Plan de respuesta ante emergencias (219.105(a)(4)) | ✅ **Confirmado como requisito.** Sin implementación |
 | Manual de SMS (219.105(a)(5)(i)) | ✅ Confirmado. Solo como repositorio de archivos |
 | **Gestión del cambio (219.105(c)(2))** | ✅ **Confirmado como requisito.** Sin implementación |
-| **Comité de Seguridad Operacional / GESO** | ⚠️ **NO aparece** en el texto vigente. Estaba en la versión 2016 y en fuentes secundarias. **Corrige el §6 de la investigación previa: no es exigible por el RAC 219 vigente** |
+| **Comité de Seguridad Operacional / GESO** | ⚠️➡️✅ **CORREGIDO 2026-08-22.** No aparecen nominalmente en el articulado, pero la directiva **vinculante** MAUT-1.0-22-007 §7.3 y §7.4 los deriva de `219.105(a)(2)(iii,iv,v)` y los desarrolla. **Sí son exigibles**, y son **escalables según dimensión y complejidad**. Ver [`16-asuntos-complementarios.md`](16-asuntos-complementarios.md) §1 |
 | SPT (metas) como entidad exigida | ⚠️ No aparece explícito en 219.105. Pendiente de revisar en MAUT-1.0-22-001/005 |
 
-> **Corrección importante**: la investigación anterior listaba "Comité / GESO" como brecha
-> normativa apoyándose en fuentes secundarias. **El texto vigente no lo exige.** Sigue siendo
-> una buena práctica y puede ofrecerse como opcional, pero **no como requisito**.
+> ⚠️ **Esta sección contenía un error, corregido el 2026-08-22.** Se afirmó aquí que el Comité
+> y el GESO *"no son exigibles por el RAC 219 vigente"* por no aparecer en el articulado. **Es
+> incorrecto**: la directiva vinculante MAUT-1.0-22-007 los desarrolla en detalle a partir de
+> `219.105(a)(2)`. Ver [`16-asuntos-complementarios.md`](16-asuntos-complementarios.md) §1.
+>
+> **Lección de método**: el articulado del RAC no agota la obligación — las directivas
+> vinculantes lo desarrollan. Nunca declarar "no exigible" sin revisarlas.
 
 ---
 
@@ -172,7 +176,7 @@ Esto no se resuelve con RLS por organización. Exige:
 
 | Tema | Antes | Ahora |
 |---|---|---|
-| Comité / GESO | Brecha normativa | **No exigible** por el RAC 219 vigente. Opcional |
+| Comité / GESO | Brecha normativa | ✅ **Exigibles**, vía MAUT-1.0-22-007, y **escalables** por tamaño |
 | Captura automática de eventos | Mejora de producto | **Requisito**, `219.110(f)` |
 | Protección de datos SMS | Mencionado de pasada | **6 de 11 secciones de la norma.** Módulo propio |
 | Investigaciones internas | No contemplado | **Requisito**, `219.110(a)(b)` |

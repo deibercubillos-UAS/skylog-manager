@@ -10,7 +10,7 @@ La circular de indicadores (MAUT-1.0-22-005) tiene documento propio por extensi�
 |---|---|
 | **MAUT-1.0-22-006** — Aceptación de los SMS | ✅ Analizado (§1) |
 | **MAUT-1.0-22-004** — Directiva 02-24, Reporte de eventos (MOR/VOR) | ✅ Analizado (§2) |
-| MAUT-1.0-22-007 — Asuntos complementarios | ⬜ Pendiente |
+| **MAUT-1.0-22-007** — Asuntos complementarios | ✅ [Documento propio](16-asuntos-complementarios.md) |
 | MAUT-5.0-22-017 — Implementación SMS en explotadores UAS + Apéndice 1 GAP | ⬜ Pendiente · ⚠️ **no está en la carpeta nueva**, sí en la anterior del Drive |
 | MAUT-1.0-22-005 — Definición de SPI | ✅ [Documento propio](13-herramientas-spi.md) |
 
@@ -291,7 +291,6 @@ internamente, no solo frente a la autoridad.
 | # | Pendiente |
 |---|---|
 | P-MAUT-1 | **RAC 114** — Investigación de Accidentes e Incidentes. No está entre los documentos del Drive; hace falta para la bifurcación de §2.5 |
-| P-MAUT-2 | Analizar **MAUT-1.0-22-007** (asuntos complementarios) |
 | P-MAUT-3 | Localizar y analizar **MAUT-5.0-22-017** + su Apéndice 1 (catálogo GAP de 100 preguntas) |
 | P-MAUT-4 | Analizar **MAUT-3.0-12-097** — la matriz P/S/O/E · ver §1.9 |
 

@@ -2,17 +2,22 @@
 
 [← Índice maestro](00-INDICE.md) · [Reglas](01-reglas.md)
 
-> Migrado desde `../plan-bitafly-v2.md` el 2026-08-22 al partir ese documento por la regla de 500 líneas (D1).
+> **Revisado 2026-08-22.** Corregida la referencia a un documento eliminado y marcados como
+> dormidos los dos eventos que dependían de C2 (decisión 20). El resto del diagnóstico y del
+> diseño de este documento sigue vigente — no se reescribió a fondo, se corrigió.
 
 ---
 
 ## 5. F3 — SMS fácil de integrar y aplicar
 
-> 📄 **Investigación completa en `docs/investigacion-sms-rac219-bitafly.md`** (2026-08-22):
-> marco de 4 componentes / 12 elementos verificado literal contra el catálogo oficial, cobertura
-> real de BitaFly elemento por elemento, y el hallazgo central — la autoevaluación GAP declara
-> **99 % de cumplimiento** mientras la tabla de datos mensuales de indicadores tiene **cero
-> filas**. Ese documento manda sobre lo que sigue en esta sección.
+> **Fuentes normativas** (el documento monolítico original de investigación se partió y se
+> eliminó, regla E1): marco de 4 componentes / 12 elementos en
+> [`10-rac219-sms.md`](10-rac219-sms.md), cobertura real de BitaFly elemento por elemento y el
+> hallazgo central —la autoevaluación GAP declara **99 % de cumplimiento** mientras la tabla de
+> datos mensuales de indicadores tiene **cero filas**— en
+> [`21-auditoria-sms.md`](21-auditoria-sms.md). El **instrumento real de calificación** —47
+> ítems ponderados, no el GAP binario— está en [`15-evaluacion-sms.md`](15-evaluacion-sms.md) y
+> explica *por qué* ese 99 % y ese cero conviven sin contradicción aparente.
 
 ### 5.1 Diagnóstico honesto
 
@@ -37,7 +42,7 @@ Fases con % de avance visible, cada una desbloqueando la siguiente:
    formación acreditada, curso avanzado, ≥1 año de experiencia), política firmada, alcance.
 2. **Gestión del riesgo** — matriz + tolerabilidad (hoy se siembra OACI Doc 9859, se conserva) +
    **catálogo de peligros precargado por tipo de operación**.
-3. **Aseguramiento** — ≥3 SPI activos con datos de al menos 3 meses, primera autoevaluación GAP.
+3. **Aseguramiento** — SPI activos con datos de al menos 3 meses (de los **11 oficiales precargados + los propios**, decisión 8 en [`13-herramientas-spi.md`](13-herramientas-spi.md) §10), primera autoevaluación GAP.
 4. **Promoción** — cronograma de capacitación SMS con asistencia registrada, MSMS publicado.
 5. **Listo para aceptación** — expediente descargable con toda la evidencia.
 
@@ -61,9 +66,9 @@ o descarte:
 | Batería sobre umbral de retiro (200 ciclos) | Escáner del dashboard | Falla de energía |
 | Mantenimiento mayor/menor vencido | Cron diario | Aeronavegabilidad |
 | Examen de capacitación reprobado/vencido | `training-exam-reminder` | Competencia del personal |
-| **Geocerca violada** (nuevo, F2) | `c2-gateway` | Incursión en espacio aéreo |
-| **Pérdida/degradación de enlace C2** (nuevo, F2) | `c2-gateway` | Pérdida de mando y control |
-| **Exceso de tiempo de servicio** (nuevo, F5) | Motor de tiempos | Fatiga del piloto |
+| **Exceso de tiempo de servicio** (nuevo, F5) | `dutyCompliance` | Fatiga del piloto |
+| ⏸ *Geocerca violada* | `c2-gateway` | Dormido con C2 (decisión 20) — se reactiva si se retoma |
+| ⏸ *Pérdida/degradación de enlace C2* | `c2-gateway` | Dormido con C2 (decisión 20) — se reactiva si se retoma |
 
 Esto convierte el SMS de "formulario que alguien debe recordar llenar" en "bandeja de entrada de
 lo que realmente pasó". Es el mayor salto de valor de todo el frente.
@@ -119,3 +124,4 @@ Consecuencias de diseño:
 
 ---
 
+*Actualizado: 2026-08-22.*

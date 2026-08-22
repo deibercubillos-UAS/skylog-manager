@@ -2,13 +2,17 @@
 
 [← Índice maestro](00-INDICE.md) · [Reglas](01-reglas.md)
 
-> Migrado desde `../plan-bitafly-v2.md` el 2026-08-22 al partir ese documento por la regla de 500 líneas (D1).
+> **Revisado 2026-08-22.** Corrección real: el "formato oficial de la matriz de riesgos" que
+> §6.3 daba por no público **ya se obtuvo y se analizó** — es `MAUT-5.0-12-055`
+> ([`18-analisis-riesgos-vuelo.md`](18-analisis-riesgos-vuelo.md)). Deja de ser una plantilla
+> intercambiable por necesidad y pasa a ser **el formato real que se emite**. También se
+> actualiza la decisión de alcance de F4b, ya cerrada.
 
 ---
 
-## 6. F4 — Autorizaciones de vuelo ante la Aerocivil
+## 1 · F4 — Autorizaciones de vuelo ante la Aerocivil
 
-### 6.1 Lo que dice la norma, textualmente
+### 1.1 Lo que dice la norma, textualmente
 
 `100.805(a)`: la solicitud se presenta **"por medio de la Plataforma UAS Colombia"** adjuntando:
 (1) certificado de vigencia de la póliza RCE, (2) **archivo KML** del área de operación,
@@ -18,7 +22,7 @@
 Antelación: **15 días hábiles** en espacio aéreo controlado; **10 días hábiles** en corredores
 BVLOS. Y `100.810(b)`: **no se puede volar hasta tener la autorización**.
 
-### 6.2 El problema y la respuesta honesta
+### 1.2 El problema y la respuesta honesta
 
 La Plataforma UAS Colombia **no publica una API**. Automatizar la radicación implica RPA
 (automatización del navegador) contra un portal de la autoridad aeronáutica, con custodia de
@@ -31,21 +35,22 @@ el portal de la Aerocivil). Existe, funciona, y también demuestra el costo de m
 Por eso el frente se parte en dos entregables independientes, y el primero da el 80% del valor
 sin ningún riesgo externo:
 
-### 6.3 Fase 4a — Expediente listo para radicar (sin dependencia externa)
+### 1.3 Fase 4a — Expediente listo para radicar (sin dependencia externa)
 
 Un botón "Preparar expediente Aerocivil" en cada misión programada que genera un paquete
 completo y validado:
 
 - ✅ **Archivo KML** (no KMZ) del área — cierra B9. Es un cambio menor en `lib/flightPlanDocs.js`.
-- ⚠️ **Matriz de riesgos en el formato de la Aerocivil** — **el formato oficial aún no es
-  público** (confirmado 2026-08-22). No se puede replicar lo que no se conoce. Solución
-  adoptada: el generador se construye con **capa de plantilla intercambiable** — el contenido
-  (peligros, probabilidad, gravedad, mitigaciones, riesgo residual) se deriva de la evaluación
-  SORA y de la matriz SMS que la organización ya tiene, y la **presentación** vive en una
-  plantilla aparte. Cuando la Aerocivil publique el formato, se sustituye la plantilla sin tocar
-  la lógica. Mientras tanto se emite una matriz propia, completa y trazable, que el explotador
-  transcribe al formato oficial cuando exista. Convierte un bloqueo en un retraso de formato,
-  no de funcionalidad.
+- ✅ **Matriz de riesgos en el formato exacto de la Aerocivil** — **resuelto**: es
+  `MAUT-5.0-12-055`, obtenido y analizado en
+  [`18-analisis-riesgos-vuelo.md`](18-analisis-riesgos-vuelo.md). Deja de ser una plantilla
+  intercambiable a la espera de un formato desconocido — la entidad `risk_analyses`
+  ([`31-esquema-datos.md`](31-esquema-datos.md) §3) ya se diseñó para emitir **ese** formato:
+  24 peligros fijos + libres, matriz de tolerabilidad de la autoridad (no la del SMS interno de
+  la organización, que es distinta a propósito — ver [`18`](18-analisis-riesgos-vuelo.md) §5),
+  firma del Jefe de Pilotos. Diez de los 24 peligros son computables con datos que el sistema ya
+  tiene ([`18`](18-analisis-riesgos-vuelo.md) §5, tabla de preguntas resueltas solas) — el mayor
+  ahorro de trabajo manual de todo este frente.
 - ✅ **Certificado de vigencia de póliza RCE** — ya vive en `insurance_policies`; se adjunta y se
   valida que cubra la fecha de operación y el serial de la UA (`100.410(a)(2)(i)`).
 - ✅ **Validación previa de antelación** (B10): si faltan menos de 15 días hábiles y la zona es
@@ -58,7 +63,7 @@ completo y validado:
 
 Esto elimina el 80% del trabajo manual y **no depende de que la Aerocivil no cambie nada**.
 
-### 6.4 Fase 4b — Radicación asistida (condicional)
+### 1.4 Fase 4b — Radicación asistida
 
 Sólo si 4a está estable y el usuario lo autoriza expresamente:
 
@@ -71,7 +76,12 @@ Sólo si 4a está estable y el usuario lo autoriza expresamente:
   considera después de un histórico de confiabilidad demostrado.
 - Detección de cambios del portal con alerta al equipo, en vez de fallar en silencio.
 
-> **Decisión pendiente del usuario** (§11): si prefiere 4a sola (recomendado para v2) o
-> comprometer 4b desde el inicio.
+**Decisión ya cerrada** ([`51-bitacora.md`](51-bitacora.md), decisión 6): el usuario eligió
+comprometer **F4a + F4b desde el inicio**, con F4b como último en el orden de ejecución por ser
+el de mayor riesgo de responsabilidad ([`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) §4).
 
 ---
+
+---
+
+*Actualizado: 2026-08-22.*

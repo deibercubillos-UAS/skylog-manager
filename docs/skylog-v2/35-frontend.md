@@ -2,7 +2,11 @@
 
 [← Índice maestro](00-INDICE.md) · [Reglas](01-reglas.md)
 
-> Migrado desde `../plan-bitafly-v2.md` el 2026-08-22 al partir ese documento por la regla de 500 líneas (D1).
+> **Revisado 2026-08-22.** Contenido en lo esencial — es la propuesta de navegación por
+> *momento operacional*, distinta y complementaria del catálogo por *entidad* de
+> [`36-sitemap.md`](36-sitemap.md). Ver §6, nueva, para la reconciliación entre ambos. Se quitó
+> la mención a C2 en vivo del espacio OPERAR (decisión 20 — dormido, no forma parte de la
+> navegación mientras esté omitido).
 
 ---
 
@@ -26,7 +30,7 @@ Cuatro espacios, cada uno con su propia densidad visual y su propio "modo":
 
 | Espacio | Momento | Contiene | Densidad |
 |---|---|---|---|
-| **OPERAR** | Hoy / ahora / en campo | Dashboard del día, Despacho, **C2 en vivo**, Mis vuelos, Clima, Cierre de vuelo | Baja — botones grandes, alto contraste, un pulgar |
+| **OPERAR** | Hoy / ahora / en campo | Dashboard del día, Despacho, Mis vuelos, Clima, Cierre de vuelo — ⏸ *C2 en vivo se agrega aquí si se retoma la decisión 20* | Baja — botones grandes, alto contraste, un pulgar |
 | **PLANEAR** | Días antes | Programación, **Autorizaciones Aerocivil**, SORA, Evaluación de riesgos, Asignación de tripulación, **Tiempos de servicio** | Media — calendario + mapa |
 | **REGISTRAR** | Después / administrativo | Bitácora, Flota, Baterías, Mantenimiento, Inventario, Componentes | Alta — tablas densas, filtros |
 | **CUMPLIR** | Auditoría / dirección | SMS, Auditoría, Reportes, Manuales, Protocolos, Proveedores, Capacitación | Alta — documentos y evidencia |
@@ -69,3 +73,35 @@ cae la conexión a mitad del wizard, se pierde. Propuesta: cola de escritura loc
 "ver misión de mañana". Absorbe y amplía `GlobalSearch` actual.
 
 ---
+
+---
+
+## 6 · Reconciliación con `36-sitemap.md` — dos proyecciones, no dos planes
+
+**Tensión real detectada al rehacer este documento**: §3.2 agrupa por **momento operacional**
+(OPERAR/PLANEAR/REGISTRAR/CUMPLIR, cuatro espacios); [`36-sitemap.md`](36-sitemap.md) agrupa por
+**entidad/registro obligatorio** (Operación/Flota & Equipo/Tripulación/SMS/Cumplimiento/
+Administración, seis espacios). No son el mismo mapa, y no se reconciliaron hasta ahora.
+
+**Resolución propuesta, no aplicada aún** (F1 sigue siendo el último frente activo del orden,
+hay tiempo): son dos proyecciones legítimas del mismo conjunto de pantallas, no dos diseños en
+competencia.
+
+| | [`36-sitemap.md`](36-sitemap.md) | Este documento |
+|---|---|---|
+| Agrupa por | Entidad de negocio / qué registro obligatorio respalda cada pantalla | Momento en que el usuario la necesita |
+| Sirve para | Diseñar el esquema de datos, permisos, RLS — [`31`](31-esquema-datos.md) | Diseñar la navegación real que ve un piloto en campo |
+| Ejemplo | "Mantenimiento" vive en Flota & Equipo porque es dato de aeronave | "Registrar mantenimiento" puede aparecer también en REGISTRAR, como acción del *momento* |
+
+**Una pantalla puede — y va a — aparecer en más de un espacio de navegación**, sin que eso
+duplique dato ni entidad: el sitemap sigue siendo la fuente única de qué existe y de quién es
+cada dato; la agrupación de §3.2 es solo **cómo se accede** a lo mismo. El *command palette*
+de §3.6 ya asume esto (una acción, alcanzable desde cualquier espacio).
+
+**Pendiente real**: al construir F1, mapear explícitamente cada pantalla del sitemap a uno o más
+de los cuatro espacios operacionales — no se hace en este documento, sería adelantar diseño de
+un frente que va último a propósito.
+
+---
+
+*Actualizado: 2026-08-22.*

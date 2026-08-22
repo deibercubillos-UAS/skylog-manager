@@ -45,28 +45,28 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
 | [`30-entidades.md`](30-entidades.md) | **Mapa de entidades reales del negocio** — 7 separaciones estructurales · clasificación declarado/derivado/vigente/evento | 231 | ✅ |
-| [`31-esquema-datos.md`](31-esquema-datos.md) | **Esquema de datos** — tablas por entidad, sobre `30-entidades.md`. C2 dormido, sin tocar | 155 | ✅ |
+| [`31-esquema-datos.md`](31-esquema-datos.md) | **Esquema de datos** — tablas por entidad, sobre `30-entidades.md`. C2 dormido, sin tocar | 158 | ✅ |
 | [`32-migracion.md`](32-migracion.md) | **Reglas de precedencia** para el ETL — corte por organización, conflictos de alto/bajo riesgo | 157 | ✅ |
-| [`33-arquitectura.md`](33-arquitectura.md) | Monorepo, servicios, capa de dominio, pruebas | 57 | 🔄 |
-| [`34-seguridad.md`](34-seguridad.md) | RLS, multi-tenant, C2 · **falta protección de datos SMS (RAC 219 §219.115-140)** | 89 | 🔄 |
-| [`35-frontend.md`](35-frontend.md) | Espacios de trabajo, sistema de diseño, modo campo | 71 | 🔄 |
+| [`33-arquitectura.md`](33-arquitectura.md) | **npm workspaces real** (no pnpm/Turbo) · `packages/domain` con Vitest verificado en verde | 104 | ✅ |
+| [`34-seguridad.md`](34-seguridad.md) | RLS sobre el esquema nuevo · **protección de datos SMS resuelta** (`219.115-140`) · custodia legal · deuda de seguridad | 87 | ✅ |
+| [`35-frontend.md`](35-frontend.md) | Espacios por momento operacional, reconciliados con `36-sitemap.md` | 107 | ✅ |
 | [`36-sitemap.md`](36-sitemap.md) | **Sitemap** — 6 espacios + complementos, todo activable · replay multimarca · análisis forense | 183 | ✅ |
 
 ## 4 · Módulos
 
 | Doc | Módulo | Líneas | Estado |
 |---|---|---|---|
-| [`40-sms.md`](40-sms.md) | SMS orientado a evidencia | 121 | 🔄 |
-| [`41-tiempos-servicio.md`](41-tiempos-servicio.md) | Tiempos de servicio, vuelo y descanso (100.540) | 50 | 🔄 |
+| [`40-sms.md`](40-sms.md) | SMS orientado a evidencia · eventos C2 marcados dormidos · quién reporta/analiza (decisión 10) | 127 | ✅ |
+| [`41-tiempos-servicio.md`](41-tiempos-servicio.md) | Tiempos de servicio, vuelo y descanso (100.540) — **1er frente**, esquema listo | 72 | ✅ |
 | [`42-comando-control.md`](42-comando-control.md) | C2 en vivo — telemetría + video · **omitido por ahora** (decisión 20) | 307 | ⏸ |
-| [`43-aerocivil.md`](43-aerocivil.md) | Expediente y radicación de autorizaciones | 77 | 🔄 |
+| [`43-aerocivil.md`](43-aerocivil.md) | Expediente y radicación · **matriz de riesgos = formato oficial ya obtenido** (`MAUT-5.0-12-055`) | 87 | ✅ |
 
 ## 5 · Ejecución
 
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
 | [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 289 | ✅ |
-| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 212 | ✅ |
+| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 213 | ✅ |
 
 **Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · ⏸ omitido por ahora
 
@@ -74,7 +74,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Estado
 
-- **26 documentos**, todos bajo el límite de 500 líneas. El mayor: `21-auditoria-sms.md` (433).
+- **28 documentos**, todos bajo el límite de 500 líneas. El mayor: `21-auditoria-sms.md` (433).
 - `plan-bitafly-v2.md` e `investigacion-sms-rac219-bitafly.md` **se eliminaron**: su contenido
   vive repartido aquí. No hay duplicados (regla E1).
 - Los marcados 🔄 se escribieron bajo la premisa anterior de *evolución aditiva*. Con la
@@ -92,17 +92,17 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Próximos pasos
 
-Etapas ①② del ciclo cerradas + [`32-migracion.md`](32-migracion.md) — reglas de precedencia
-para los conflictos ya medidos (`phone`/`license_number`/`medical_expiry` divergentes entre
-`profiles`/`pilots`). No bloquea nada: se verifica contra datos reales antes del primer corte.
+Etapas ①② del ciclo cerradas, `32-migracion.md` escrito, y **los seis documentos de diseño
+rehechos** (`33`, `34`, `35`, `40`, `41`, `43`) — todo sobre el mapa de entidades y el sitemap,
+sin nada pendiente de la premisa de evolución aditiva salvo `12-directivas-maut.md`.
 
 **Dos decisiones de infraestructura siguen esperando al usuario** ([`51`](51-bitacora.md)
-§11.6-§11.7): el plan Pro de Supabase para poder crear el branch de desarrollo, y ejecutar a
-mano en el panel de Vercel las variables de entorno por rama (esta sesión no tiene herramienta
-para escribirlas).
+§11.6-§11.7): el plan Pro de Supabase para crear el branch de desarrollo, y ejecutar a mano en
+el panel de Vercel las variables de entorno por rama.
 
-Mientras tanto, sigue abierto: rehacer `33`, `34`, `35`, `40`, `41`, `43` (🔄) — y, cuando el
-Supabase branch exista, el primer código real de F5 (tiempos de servicio, `100.540`).
+Con eso resuelto, el primer código real es `dutyCompliance` en `packages/domain` (F5, ya
+esqueleto en `develop-v2`), sobre los ocho límites de `100.540` de
+[`41-tiempos-servicio.md`](41-tiempos-servicio.md) §1.1.
 
 ---
 

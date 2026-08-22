@@ -2,17 +2,23 @@
 
 [← Índice maestro](00-INDICE.md) · [Reglas](01-reglas.md)
 
-> Migrado desde `../plan-bitafly-v2.md` el 2026-08-22 al partir ese documento por la regla de 500 líneas (D1).
+> **Revisado 2026-08-22.** El diagnóstico y las reglas de este documento se sostienen sin
+> cambios — es el análisis mejor verificado del plan original. Se actualizan las referencias
+> cruzadas: F5 es hoy el **1º frente del orden** ([`50-hoja-de-ruta.md`](50-hoja-de-ruta.md)
+> §4), y su esquema de datos ya está diseñado en
+> [`31-esquema-datos.md`](31-esquema-datos.md) §3.1 (`duty_periods`, `duty_exceptions`,
+> `duty_annual_certifications`). `packages/domain` ya existe en la rama `develop-v2`, listo para
+> recibir `dutyCompliance` como su primer módulo real.
 
 ---
 
-## 7. F5 — Tiempos de servicio, vuelo y descanso (nuevo, obligatorio)
+## 1 · F5 — Tiempos de servicio, vuelo y descanso
 
 No estaba en la lista del usuario. Es la brecha más grave que encontré: `100.540` es una sección
 completa, nueva, con límites numéricos duros, y `100.535(a)(10)(11)(12)` obliga a **prevenir la
 fatiga, registrar todo y certificar anualmente**. Hoy BitaFly no tiene absolutamente nada de esto.
 
-### 7.1 Reglas exactas a implementar
+### 1.1 Reglas exactas a implementar
 
 | Límite | Valor | Fuente |
 |---|---|---|
@@ -28,7 +34,7 @@ fatiga, registrar todo y certificar anualmente**. Hoy BitaFly no tiene absolutam
 Además, el tiempo de vuelo efectivo debe estar **dentro** del tiempo de servicio asignado —
 cumplir el límite de vuelo no exime del límite de servicio (100.540(b)(2)).
 
-### 7.2 Diseño
+### 1.2 Diseño
 
 - El **tiempo de vuelo efectivo** se deriva de lo que ya se registra: `flights.total_time`. No se
   le pide al piloto capturarlo dos veces.
@@ -48,3 +54,19 @@ cumplir el límite de vuelo no exime del límite de servicio (100.540(b)(2)).
   descanso obligatorio y hasta cuándo. Esto convierte una obligación en una herramienta útil.
 
 ---
+
+---
+
+### 1.3 Por qué va primero — reafirmado
+
+Tres razones, ya fijadas en [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) §4 y que siguen siendo
+válidas tras omitir C2: es un **incumplimiento actual** de norma vigente, no una mejora — la
+plataforma no tiene hoy ningún control sobre `100.540`; es el frente más **acotado** de los
+cinco activos, ideal para probar los cimientos de Fase 0 con algo de alcance chico y valor
+regulatorio alto; y **no depende de nada externo** — a diferencia de C2 (hardware, directiva
+faltante) o F4b (credenciales de un tercero), todo lo que necesita ya está en `flights` y en el
+esquema nuevo de `people`/`memberships`.
+
+---
+
+*Actualizado: 2026-08-22.*

@@ -80,9 +80,12 @@ disciplina.
 
 El **motor de cumplimiento** es una función pura compartida cliente/servidor
 (`lib/dutyCompliance.js`), mismo patrón que `lib/trainingCompliance.js` y
-`lib/safetyIndicatorStats.js` — sin estado, sin columna derivada, con tests. Evalúa los límites
-de `§100.540` (90 h/mes · 6 h BVLOS u 8 h VLOS/EVLOS por 24 h · 2 h continuas + 30 min) y
-**bloquea** la asignación que los rompe, no la reporta después.
+`lib/safetyIndicatorStats.js` — sin estado, sin columna derivada, con tests. Evalúa los **ocho**
+límites completos de `§100.540`, detallados en [`41-tiempos-servicio.md`](41-tiempos-servicio.md)
+§1 (90 h/mes · 6 h BVLOS u 8 h VLOS/EVLOS por 24 h · 2 h continuas + 30 min · descanso 10 h o
+12 h según el servicio previo · descanso nunca inferior al servicio inmediatamente anterior ·
+fraccionamiento del descanso prohibido) y **bloquea** la asignación que los rompe, no la
+reporta después.
 
 ---
 

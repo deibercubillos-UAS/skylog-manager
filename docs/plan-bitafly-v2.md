@@ -101,7 +101,8 @@ Los cuatro que pidió el usuario, más uno que la norma impone.
 | Frente | Origen | Riesgo técnico | Valor regulatorio |
 |---|---|---|---|
 | **F1 — Rediseño de frontend y distribución** | Usuario | Bajo | Indirecto |
-| **F2 — Comando y Control (C2 en vivo)** | Usuario + B6/B7/B8 | **Alto** | Muy alto (habilita categoría específica BVLOS) |
+| **F2-a — Comando y Control, vía RC + Pilot 2** | Usuario + B6/B7/B8 | **Medio** — bajó tras validar que la integración con Pilot 2 es una página web, no una app nativa (§4.2) | Muy alto (habilita categoría específica) |
+| **F2-b — C2 con Docks en FlightHub 2** | Usuario | ⏸ **Diferida** — sin verificación posible hoy (§4.5, V2) | Alto, pero no bloquea cumplimiento |
 | **F3 — SMS fácil de integrar y aplicar** | Usuario + B3 | Medio | Alto |
 | **F4 — Autorizaciones Aerocivil automáticas** | Usuario + B9/B10 | **Alto** (dependencia externa) | Alto |
 | **F5 — Tiempos de servicio, vuelo y descanso** | **Norma (B1/B2)** | Bajo | **Crítico — hoy incumplido** |
@@ -336,14 +337,81 @@ ni ingesta de video. Intentarlo es la principal forma en que este frente puede f
   `railway-robot/` (Express + Playwright en Railway). Mismo patrón de despliegue.
 - **Página H5 para Pilot 2**: se sirve desde el mismo Next.js, en una ruta dedicada. Login,
   verificación de licencia y carga de módulos vía `window.djiBridge`.
-- **Media server**: primera opción **Cloudflare Stream** — el proyecto ya está íntegramente en
-  Cloudflare R2, mismo proveedor y misma factura. Alternativa autoalojada: MediaMTX (soporta
-  RTMP/RTSP/WebRTC/HLS, que cubre los cuatro protocolos de DJI).
+- **Media server**: ver **§4.11** — la elección se resolvió con datos, y **Cloudflare Stream
+  quedó descartada por incompatibilidad de protocolo**, pese a ser la opción natural por
+  proveedor.
 - **Frontend**: mapa en vivo (MapLibre GL — el proyecto ya usa OSM/Nominatim, no Google Maps),
   HUD con los 9 campos de 100.415, panel de video y línea de eventos.
 - **Seguridad del enlace**: DJI Pilot 2 y Dock aceptan certificados emitidos por GoDaddy para
   MQTT sobre SSL, y admiten autenticación del cliente (`clientAuth`) si el servidor la exige.
   Se activa — no se deja el MQTT en anónimo.
+
+### 4.11 Servidor de medios — decisión con datos (2026-08-22)
+
+#### Hallazgo decisivo: Cloudflare Stream no sirve para esta vía
+
+La documentación de la Cloud API define el protocolo de video como un enum cerrado. Para
+**RC + Pilot 2** (nuestra vía principal):
+
+```
+url_type: { 0: Agora, 1: RTMP, 3: GB28181 }
+url ejemplo RTMP: rtmp://192.168.1.1:8080/live
+```
+
+Los Docks añaden además **WebRTC (WHIP)**, pero el Dock no es nuestra vía (§4.5).
+
+**Cloudflare Stream Live solo acepta ingesta por RTMPS y SRT.** Pilot 2 en un RC no emite
+ninguno de los dos: emite **RTMP en claro**, Agora o GB28181. Es incompatible, y no hay
+configuración que lo salve.
+
+Es un descarte a pesar de ser la opción más cómoda — el proyecto ya vive íntegramente en
+Cloudflare (R2, CDN, DNS). Se documenta el motivo para que nadie lo reconsidere sin releer esto.
+
+#### Modelo de uso para dimensionar (no es broadcast)
+
+C2 no es televisión: es **un dron transmitiendo a 1–3 personas** (piloto, jefe de pilotos,
+gerente SMS). Los ejemplos de "40.000 espectadores concurrentes" que dominan las comparativas
+de precio de streaming no aplican en absoluto.
+
+Escenario base para calcular: **10 organizaciones** con C2 (Flota/Enterprise), **20 h de
+operación con video al mes** cada una → **200 h de ingesta/mes**, con 2 espectadores promedio →
+**400 h-espectador/mes**.
+
+#### Comparación
+
+| Opción | Compatible con RTMP en claro | Costo al escenario base | Estabilidad / operación |
+|---|---|---|---|
+| **Cloudflare Stream** | ❌ **No** (solo RTMPS/SRT) | — | — (descartada) |
+| **Amazon IVS** (canal Basic) | ✅ Sí — el canal se puede configurar para aceptar RTMP inseguro | Input $0,20/h × 200 h = **$40** · Output HD $0,072/h-esp. × 400 = **$28,80** → **≈ $69/mes** | Gestionado por AWS, con SLA. Cero operación. AWS publica un caso de uso específico de **streaming desde drones vía RTMP a IVS** |
+| **MediaMTX autoalojado** | ✅ Sí — RTMP nativo de entrada, WebRTC/LL-HLS de salida | VPS ~$10–25 + egress ~360 GB (incluido en Hetzner; $7–36 en Fly/Railway) → **≈ $15–50/mes** | Operación propia: TLS, actualizaciones, monitoreo, alta disponibilidad. **Un solo VPS es punto único de falla** en un módulo que la norma considera parte del sistema de gestión de vuelo |
+| **Agora** | ✅ Sí — soporte nativo de DJI (`url_type: 0`) | Modelo RTC, precio por minuto notablemente superior | Gestionado, latencia sub-segundo. Sobredimensionado para 2 espectadores |
+
+**Nota de costo**: en IVS el *input* se cobra aunque nadie esté mirando. Con C2 el stream solo
+se activa durante la operación, así que no hay canales encendidos en vacío — pero la regla
+obliga a apagar el stream al cerrar la sesión, no a dejarlo abierto "por si acaso". Se
+implementa como cierre automático al terminar la sesión C2.
+
+#### Recomendación: Amazon IVS (canal Basic), con MediaMTX como plan B
+
+La diferencia real de costo entre las dos opciones viables es de **$20–50 al mes** al volumen
+esperado. Eso no justifica asumir la operación de un servidor de medios propio, con su punto
+único de falla, en un módulo que sostiene evidencia regulatoria y que el RAC 100 exige que
+funcione "durante todas las fases del vuelo". **Se prioriza estabilidad sobre costo porque la
+diferencia de costo es irrelevante.**
+
+**Y la decisión es reversible casi sin costo**: ambas opciones aceptan RTMP en claro, así que
+cambiar de una a otra es cambiar la cadena de la URL que se envía por MQTT. No hay acoplamiento
+arquitectónico. Por eso la elección definitiva puede tomarse después de V1, con el flujo ya
+funcionando, en vez de ahora sobre estimaciones.
+
+**MediaMTX se mantiene documentado** como la opción para un cliente que exija despliegue
+*on-premises* (caso real en operaciones de infraestructura crítica o entidades públicas), y como
+salida si el costo de IVS se dispara al crecer la flota.
+
+> **Contrapartida honesta**: IVS introduce a **AWS** como proveedor nuevo, cuando hoy todo está
+> en Cloudflare + Supabase + Vercel. Se mitiga en parte porque el proyecto **ya usa el AWS SDK**
+> (`@aws-sdk/client-s3` contra R2), así que el manejo de credenciales estilo AWS no es terreno
+> nuevo. Pero es una cuenta más que administrar y facturar, y hay que decirlo.
 
 ### 4.8 Persistencia — el punto donde esto se cae si se hace mal
 
@@ -485,9 +553,15 @@ Un botón "Preparar expediente Aerocivil" en cada misión programada que genera 
 completo y validado:
 
 - ✅ **Archivo KML** (no KMZ) del área — cierra B9. Es un cambio menor en `lib/flightPlanDocs.js`.
-- ✅ **Matriz de riesgos en el formato de la Aerocivil** — se deriva de la evaluación SORA y de la
-  matriz SMS que la organización ya tiene. *Requiere obtener el formato oficial vigente; es una
-  tarea de insumo, no de desarrollo.*
+- ⚠️ **Matriz de riesgos en el formato de la Aerocivil** — **el formato oficial aún no es
+  público** (confirmado 2026-08-22). No se puede replicar lo que no se conoce. Solución
+  adoptada: el generador se construye con **capa de plantilla intercambiable** — el contenido
+  (peligros, probabilidad, gravedad, mitigaciones, riesgo residual) se deriva de la evaluación
+  SORA y de la matriz SMS que la organización ya tiene, y la **presentación** vive en una
+  plantilla aparte. Cuando la Aerocivil publique el formato, se sustituye la plantilla sin tocar
+  la lógica. Mientras tanto se emite una matriz propia, completa y trazable, que el explotador
+  transcribe al formato oficial cuando exista. Convierte un bloqueo en un retraso de formato,
+  no de funcionalidad.
 - ✅ **Certificado de vigencia de póliza RCE** — ya vive en `insurance_policies`; se adjunta y se
   valida que cubra la fecha de operación y el serial de la UA (`100.410(a)(2)(i)`).
 - ✅ **Validación previa de antelación** (B10): si faltan menos de 15 días hábiles y la zona es
@@ -770,33 +844,69 @@ arquitectura de seguridad interna descrita en `CLAUDE.md`.
 | 6 | **F4b — radicación automática** — ¿se compromete la automatización del portal, con custodia de credenciales, o se entrega primero solo F4a? | Es el mayor riesgo de responsabilidad del plan (§6.4, §10.5) |
 | 7 | **Prioridad entre frentes** — la recomendación es F5 → F3 → F1 → F2 → F4 (§12). ¿Se mantiene, o la prioridad comercial exige adelantar C2? | Con F2 ya validado técnicamente, adelantarlo es más viable que antes |
 
-### 11.3 Verificaciones técnicas pendientes (tareas de arranque, no decisiones)
+### 11.3 Verificaciones técnicas — estado (2026-08-22)
 
-- **V1** — Crear la aplicación Cloud API en el portal de desarrollador DJI y validar
-  `platformVerifyLicense` contra un RC real (§4.2).
-- **V2** — Confirmar qué endpoints de la **FlightHub OpenAPI** y del **Event API** están
-  habilitados para el tipo de licencia de FlightHub 2 que tienen los clientes objetivo, y si
-  difiere entre versión nube y *on-premises* (§4.5).
-- **V3** — Comparar costo por hora de operación entre **Cloudflare Stream** y **MediaMTX**
-  autoalojado para los 4 protocolos de DJI (§4.7).
+| # | Verificación | Estado | Detalle |
+|---|---|---|---|
+| **V1** | Aplicación Cloud API en el portal DJI (APP ID / Key / License) | ✅ **Resuelto** | Las claves ya están cargadas como variables de entorno en Vercel. **Pendiente funcional**: validar `platformVerifyLicense` contra un RC real — no se puede hacer desde este entorno, requiere hardware |
+| **V2** | Alcance de FlightHub OpenAPI / Event API según licencia del cliente | ⏸ **Bloqueado** — "no hay forma al momento" | La **vía B queda documentada pero no verificada**. Se planifica como fase posterior, condicionada a poder confirmar el alcance con una licencia real. **No se compromete cronograma sobre ella** |
+| **V3** | Servidor de medios: costo y estabilidad | ✅ **Resuelto** | Ver **§4.11**. Cloudflare Stream descartada por incompatibilidad de protocolo. Recomendación: **Amazon IVS canal Basic** (≈$69/mes al escenario base), con MediaMTX como plan B y opción *on-premises*. Decisión reversible cambiando una URL |
+
+> **Consecuencia de V2 sobre el plan**: la vía B (Docks en FlightHub 2) pasa de "parte de F2" a
+> **fase F2-b diferida**. F2 se entrega completa con la vía A (RC + Pilot 2), que es la que
+> cubre las brechas B6/B7/B8 del RAC 100 y la que ya tiene todo verificado. Nada del cronograma
+> depende de algo que hoy no se puede confirmar.
 
 ---
 
-## 12. Secuencia recomendada
+## 12. Cómo queda el plan
 
-El orden **no** es el de la lista del usuario, y quiero explicar por qué.
+Estado consolidado tras resolver las decisiones 1–4 y las verificaciones V1/V2/V3.
 
-| Orden | Frente | Razón |
+### 12.1 Hoja de ruta
+
+| # | Frente | Alcance concreto | Estado de arranque |
+|---|---|---|---|
+| **1º** | **F5 — Tiempos de servicio, vuelo y descanso** | Motor de cumplimiento de 100.540 (90 h/mes · 8 h/día VLOS-EVLOS · 6 h/día BVLOS · 2 h continuas + 30 min · descanso 10/12 h no fraccionable), captura de servicio en modo campo, bloqueo de despacho, alertas al 80%, certificación anual, vista de disponibilidad para el Jefe de Pilotos | ✅ **Listo para arrancar.** Sin dependencias externas. Es incumplimiento actual de norma vigente |
+| **2º** | **F3 — SMS fácil de aplicar** | Asistente de implantación por fases (RAC 219 + MAUT-1.0-22-006/007), plantillas de peligros/barreras/SPI por tipo de operación, **eventos operacionales → borradores de reporte SMS**, reporte mensual consolidado (estadística + SPI + MOR), MSMS como documento vivo | ✅ **Listo para arrancar.** Sin dependencias externas |
+| **3º** | **F1 — Rediseño de frontend y distribución** | 4 espacios por momento operacional (OPERAR · PLANEAR · REGISTRAR · CUMPLIR), `packages/ui` con tokens y primitivas, modo campo, resiliencia sin señal (IndexedDB + cola de sincronización), command palette | ✅ **Listo para arrancar.** `packages/ui` puede empezar en paralelo desde el día 1 |
+| **4º** | **F2-a — Comando y Control (RC + Pilot 2)** | Página H5 para el portal "Open Platforms" de Pilot 2, `c2-gateway` (MQTT + reglas + persistencia), servidor de medios, mapa en vivo + HUD con los 9 campos de 100.415, geocercas derivadas de la programación, `c2_events` → SMS. Solo Flota y Enterprise | ✅ **Desbloqueado.** Claves DJI ya en Vercel. Falta validar `platformVerifyLicense` contra un RC real (requiere hardware) |
+| **5º** | **F4a — Expediente Aerocivil listo para radicar** | KML (no KMZ), matriz de riesgos con plantilla intercambiable, certificado de póliza RCE validado contra fecha y serial, alerta de antelación (15 / 10 días hábiles), checklist de vigencias (CDO-U, CIPU + adiciones), seguimiento de estado del trámite | ✅ **Listo para arrancar.** El formato oficial de la matriz no bloquea (§6.3) |
+| **⏸** | **F2-b — C2 con Docks en FlightHub 2** | FlightHub OpenAPI (registros de vuelo) + FlightHub Sync (media y reenvío de livestream) + Event API | ⏸ **Diferida sin cronograma.** No hay forma de confirmar el alcance de la licencia hoy (V2) |
+| **⏸** | **F4b — Radicación automática ante la Plataforma UAS Colombia** | RPA con custodia de credenciales, modo asistido con confirmación humana | ⏸ **Pendiente de decisión** (§11.2 #6) |
+
+**5 frentes arrancables hoy. 2 diferidos, ninguno de ellos bloqueante para el cumplimiento
+normativo.** Ese es el resultado neto de esta ronda: lo que no se puede verificar se apartó del
+camino crítico en vez de quedar como riesgo latente en el cronograma.
+
+### 12.2 Decisiones técnicas ya cerradas
+
+| Tema | Decisión | Fundamento |
 |---|---|---|
-| **1º** | **F5 — Tiempos de servicio** | Es un incumplimiento **actual** de una norma vigente. Es además el frente más pequeño y de menor riesgo: valida el aislamiento de desarrollo y el sistema de diseño con algo acotado. |
-| **2º** | **F3 — SMS** | Alto valor, riesgo medio, sin dependencias externas. La conexión "eventos operacionales → SMS" da un salto de utilidad inmediato. |
-| **3º** | **F1 — Rediseño** | Necesita que F5 y F3 ya existan, para que el rediseño acomode el mapa completo de módulos y no haya que rehacerlo. Empieza antes en paralelo con `packages/ui`. |
-| **4º** | **F2 — C2** | Sigue siendo el más grande, pero **ya no el de mayor incertidumbre**: la validación técnica del 2026-08-22 confirmó que la integración con Pilot 2 es una página web y que todos los campos exigidos por el RAC 100 existen en la Cloud API. Arranca con V1/V2 (§11.3). |
-| **5º** | **F4a → F4b** | 4a en cualquier momento (es autónomo). 4b solo al final, y solo si se aprueba. |
+| Integración con DJI | **Cloud API vía Pilot 2**, como página web en el portal "Open Platforms" | No requiere app nativa (§4.2) |
+| Telemetría | MQTT a **0,5 Hz**; los 9 campos de 100.415(a)(2)(iii) existen todos | Mapeo campo por campo (§4.4) |
+| Persistencia | 0,5 Hz → Postgres (12 meses) · traza completa → R2 comprimida · eventos → Postgres siempre | Reutiliza el patrón ya probado del Replay GPS (§4.8) |
+| Servidor de medios | **Amazon IVS canal Basic**; MediaMTX como plan B y opción *on-premises* | Cloudflare Stream descartada: solo acepta RTMPS/SRT, Pilot 2 emite RTMP en claro (§4.11) |
+| Dock | **No se interviene.** Sigue en FlightHub 2 | Un Dock se vincula a una sola nube a la vez (§4.5) |
+| Drones de consumo | Fuera de alcance (DJI Mobile SDK no se construye) | Coherente con limitar C2 a Flota/Enterprise (§4.6) |
+| Control del dron | **BitaFly nunca envía comandos de vuelo** | Decisión de producto y responsabilidad (§4.10) |
+| Habilitación por plan | `commandAndControl` en `PLAN_CONFIG`, solo Flota y Enterprise, con gate también en la API | Convención ya establecida (§8.6) |
 
-Cada frente termina en una **puerta de verificación** contra el Supabase branch y el deploy de
-preview, con criterios de aceptación escritos antes de empezar a construir. Ninguno se mergea a
-`main`.
+### 12.3 Lo que sigue abierto
+
+- **Decisión 5** — retención de 5 años vs. planes (§11.2).
+- **Decisión 6** — si se compromete F4b.
+- **Decisión 7** — si se mantiene este orden o la prioridad comercial exige adelantar F2-a como
+  diferenciador de venta. Con F2-a ya validado técnicamente, adelantarlo es viable; el costo es
+  que el rediseño (F1) tendría que acomodar después una pantalla que ya existe.
+- **V1 funcional** — validar `platformVerifyLicense` contra un RC real. Requiere hardware, no se
+  puede hacer desde aquí.
+
+### 12.4 Puertas de verificación
+
+Cada frente termina en una puerta contra el **Supabase branch** y el deploy de preview, con
+criterios de aceptación escritos **antes** de empezar a construir. Ninguno se mergea a `main`
+hasta el sign-off final. El aislamiento de §0 se mantiene íntegro durante todo el recorrido.
 
 ---
 
@@ -841,7 +951,16 @@ Para que el alcance sea honesto:
 - [Actualización FlightHub 2 V13.1 (registros de vuelo, Event API)](https://enterprise-insights.dji.com/blog/new-update-flighthub2-april)
 - [AirData UAV — Live Streaming from DJI FlightHub 2](https://app.airdata.com/wiki/Help/Live+Streaming+from+DJI+FlightHub+2) — precedente de competidor operando la vía B.
 
+**Servidores de medios — comparación de costo y estabilidad (§4.11)**
+- [Cloudflare Stream — Start a live stream](https://developers.cloudflare.com/stream/stream-live/start-stream-live/) — confirma ingesta solo por RTMPS y SRT.
+- [Cloudflare Stream — precios](https://developers.cloudflare.com/stream/pricing/)
+- [Amazon IVS — Streaming Configuration](https://docs.aws.amazon.com/ivs/latest/LowLatencyUserGuide/streaming-config.html) — configuración de canal para aceptar RTMP inseguro.
+- [Amazon IVS — Real-Time Streaming ahora soporta ingesta RTMP](https://aws.amazon.com/about-aws/whats-new/2024/09/amazon-ivs-real-time-streaming-rtmp-ingest/)
+- [AWS — Live streaming from specialized live cameras and drones using RTMP to Amazon IVS](https://aws.amazon.com/blogs/media/live-streaming-from-specialized-live-cameras-and-drones-using-rtmp-to-amazon-ivs) — caso de uso directo con drones.
+- [Amazon IVS — costos](https://docs.aws.amazon.com/ivs/latest/LowLatencyUserGuide/costs.html) y [calculadora](https://ivs.rocks/calculator/)
+- [Self-Hosted Live Streaming: Owncast, MediaMTX & Nginx RTMP (2026)](https://www.pistack.xyz/posts/self-hosted-live-streaming-owncast-mediamtx-nginx-rtmp-guide-2026/) — dimensionamiento de MediaMTX en modo relay.
+
 ---
 
 *Documento vivo. Se actualiza al cerrar cada decisión de §11 y al completar cada frente.*
-*Última actualización: 2026-08-22 — validación técnica de F2 y decisiones 1–4 resueltas.*
+*Última actualización: 2026-08-22 — decisiones 1–4 y verificaciones V1/V3 resueltas; V2 diferida; hoja de ruta consolidada en §12.*

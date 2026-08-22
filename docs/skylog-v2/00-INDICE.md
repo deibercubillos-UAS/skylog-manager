@@ -66,7 +66,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
 | [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 289 | ✅ |
-| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 179 | ✅ |
+| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 212 | ✅ |
 
 **Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · ⏸ omitido por ahora
 
@@ -92,20 +92,18 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Próximos pasos
 
-Etapas ① y ② del ciclo cerradas. **Fase 0 en marcha** — ver
-[`51-bitacora.md`](51-bitacora.md) §11.5: rama `develop-v2` creada y empujada desde `main`, con
-`packages/domain` (Vitest en verde) y `packages/ui` (esqueleto). Confirmado con el usuario:
-`32-migracion.md` no bloquea el arranque — aún no hay clientes reales en v2, se afina antes del
-corte real.
+Etapas ① y ② del ciclo cerradas, Fase 0 de código en marcha
+([`51-bitacora.md`](51-bitacora.md) §11.5). Dos hallazgos nuevos, ambos bloqueando solo la
+infraestructura externa, no el trabajo de diseño/código local:
 
-**Dos decisiones de costo pendientes, ninguna otra cosa bloquea**:
+1. **Supabase branch — bloqueado.** El costo aprobado (~US$9,68/mes) resultó incompleto:
+   branching **exige plan Pro** (≥US$25/mes, para toda la organización) además del cómputo del
+   branch. No se subió el plan — espera confirmación nueva sobre el costo real. Ver §11.6.
+2. **Vercel — sin herramienta en esta sesión** para escribir variables de entorno; requiere que
+   el usuario lo haga a mano en el panel. Ver §11.7.
 
-1. Crear el **Supabase branch** de desarrollo — org en plan Free, ~US$9,68/mes si queda
-   corriendo, posible tope de 2 proyectos.
-2. **Vercel**: variables de entorno por rama sobre el proyecto existente (recomendado) vs.
-   proyecto nuevo.
-
-Con eso resuelto, sigue `32-migracion.md` y el primer código real de F5 (tiempos de servicio).
+Mientras se resuelve, puede avanzar en paralelo lo que no depende de ninguno de los dos:
+`32-migracion.md`, y rehacer `33`, `34`, `35`, `40`, `41`, `43` (siguen 🔄).
 
 ---
 

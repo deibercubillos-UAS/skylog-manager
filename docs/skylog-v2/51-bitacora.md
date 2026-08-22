@@ -177,3 +177,36 @@ Inventario verificado contra las cuentas reales (Supabase MCP, Vercel MCP), no s
 
 **Nada de esto se ejecutó sin confirmación** porque son las primeras acciones del plan con costo real o que tocan un recurso pagado compartido — a diferencia de la rama Git y el andamiaje de paquetes, que son locales, gratis y reversibles.
 
+### 11.6 Intento real de crear el Supabase branch — bloqueado, costo distinto al estimado (2026-08-22)
+
+El usuario aprobó el costo estimado (~US$9,68/mes) y se ejecutó el flujo real
+(`get_cost` → `confirm_cost` → `create_branch`). **Falló**:
+
+```
+PaymentRequiredException: Branching is supported only on the Pro plan or above
+```
+
+**El estimado de §11.5 era incompleto — corrección propia, regla V4.** `get_cost` devuelve solo
+el costo de cómputo del branch en sí (US$0,01344/hora); no advierte que branching **requiere
+primero el plan Pro** de la organización (**US$25/mes base**, plan completo, no solo esta
+función) — ese prerrequisito no aparece hasta que la creación falla. El costo real de habilitar
+branching **no es ~US$9,68/mes**, es **≥US$25/mes de plan Pro + el cómputo del branch encima**,
+y afecta a toda la organización (incluye el proyecto `tecni`, de otro cliente), no solo a
+`skylog-manager`.
+
+**No se subió el plan.** Es un compromiso de facturación mayor y distinto al aprobado — se
+detiene aquí para una confirmación nueva y explícita, no se asume.
+
+### 11.7 Vercel — límite real de esta sesión: sin herramienta para variables de entorno
+
+Verificado el conjunto de herramientas MCP de Vercel disponibles: hay para desplegar, leer
+logs, gestionar dominios/compras y protección de deployment — **ninguna escribe variables de
+entorno de un proyecto**. Tampoco hay `vercel` CLI ni token en este entorno. Por diseño de
+Vercel además, la clave `service_role` de Supabase nunca se expone por la API/MCP — hay que
+copiarla a mano del panel de Supabase en cualquier caso.
+
+**Consecuencia**: la parte de Vercel (variables *Preview* atadas a `develop-v2`) requiere que el
+usuario la ejecute manualmente en el panel — no es una limitación de la decisión tomada, es que
+esta sesión no tiene el acceso necesario. Pasos exactos entregados fuera de este documento,
+cuando el Supabase branch exista.
+

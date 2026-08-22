@@ -26,10 +26,10 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | [`12-directivas-maut.md`](12-directivas-maut.md) | **MAUT-1.0-22-006** (Aceptación, P/S/O/E) ✅ · **-004** (MOR/VOR, 12 eventos UAS) ✅ | 299 | 🔄 |
 | [`13-herramientas-spi.md`](13-herramientas-spi.md) | **MAUT-1.0-22-005** v02 (SPI) — 11 indicadores oficiales UAS · 9 correcciones · **§9 fórmulas del Excel MAUT-1.0-12-002 verificadas** | 327 | ✅ |
 | [`14-listas-verificacion.md`](14-listas-verificacion.md) | **MAUT-5.0-12-095** — lista de verificación del MO, 57 ítems con los que se certifica el CDO-U | 259 | ✅ |
+| [`15-evaluacion-sms.md`](15-evaluacion-sms.md) | **MAUT-3.0-12-097** — el instrumento con que la autoridad califica el SMS: 47 ítems, pesos, descriptores P/S/O/E, puntaje sobre 615 | 296 | ✅ |
 | [`16-asuntos-complementarios.md`](16-asuntos-complementarios.md) | **MAUT-1.0-22-007** — Ejecutivo Responsable, Comité, GESO, interfases, ERP, currículo SMS | 315 | ✅ |
 | [`17-implementacion-sms-uas.md`](17-implementacion-sms-uas.md) | **MAUT-5.0-22-017** — las 4 fases oficiales de implementación, Cultura Justa, plan Gantt | 213 | ✅ |
 | [`18-analisis-riesgos-vuelo.md`](18-analisis-riesgos-vuelo.md) | **MAUT-5.0-12-055** — análisis de riesgos por autorización de vuelo · matriz oficial fija · 24 peligros | 243 | ✅ |
-| `15-evaluacion-sms.md` | MAUT-3.0-12-097 — matriz P/S/O/E. **Sube de prioridad**: es la fuente de los ítems a autoevaluar (ver `12` §1.9) | — | ⬜ |
 
 ## 2 · Diagnóstico del sistema actual
 
@@ -72,7 +72,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Estado
 
-- **21 documentos**, todos bajo el límite de 500 líneas. El mayor: `21-auditoria-sms.md` (415).
+- **22 documentos**, todos bajo el límite de 500 líneas. El mayor: `21-auditoria-sms.md` (415).
 - `plan-bitafly-v2.md` e `investigacion-sms-rac219-bitafly.md` **se eliminaron**: su contenido
   vive repartido aquí. No hay duplicados (regla E1).
 - Los marcados 🔄 se escribieron bajo la premisa anterior de *evolución aditiva*. Con la
@@ -91,9 +91,15 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Próximos pasos
 
-1. `15-evaluacion-sms.md` — matriz P/S/O/E de **MAUT-3.0-12-097** (el archivo ya está disponible)
-2. `30-entidades.md` — mapa de entidades, base de todo el diseño
-3. Rehacer los 🔄 sobre esa base
+El frente normativo está cerrado con los documentos disponibles. Lo que sigue es diseño:
+
+1. **`30-entidades.md`** — mapa de entidades reales del negocio. Es la base de todo lo demás y
+   ahora se puede escribir con la normativa en la mano, no antes.
+2. `31-esquema-datos.md` · `32-migracion.md` — sobre esa base.
+3. Rehacer los 🔄, que se escribieron bajo la premisa superada de evolución aditiva.
+
+En paralelo, conseguir los cinco documentos de la tabla anterior; **MAUT-5.0-22-016** y el
+**RAC 114** son los que bloquean diseño real.
 
 ---
 

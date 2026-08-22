@@ -413,3 +413,21 @@ Traducción de todo lo anterior a experiencia de uso:
 ---
 
 *Documento de insumo para `docs/plan-bitafly-v2.md` §F3. Creado 2026-08-22.*
+
+---
+
+## Nota posterior (2026-08-22) — el instrumento real de calificación
+
+El diagnóstico de este documento se hizo contra la autoevaluación GAP implementada (100
+preguntas binarias). Al analizar **MAUT-3.0-12-097**
+([`15-evaluacion-sms.md`](15-evaluacion-sms.md)) quedó claro que ese no es el instrumento con el
+que la autoridad califica: son **47 ítems ponderados** en cinco niveles, sobre un máximo de
+**615 puntos**, con descriptores explícitos de qué significa cada nivel.
+
+Eso **explica** el hallazgo central de aquí —99 de 102 preguntas en "Sí" con cero indicadores
+mensuales cargados— sin necesidad de suponer mala fe: con una escala binaria, *"existe el
+procedimiento"* y *"el procedimiento funciona y es eficaz"* son literalmente la misma casilla.
+Con la escala de la autoridad son un **1** y un **10**.
+
+La reescritura de este documento debe medir contra los 47 ítems, no contra el catálogo propio.
+

@@ -89,6 +89,7 @@ Ninguna decisión de alcance queda abierta. Lo único pendiente es de ejecución
 - `MAUT-1.0-22-005` v02 y el libro `MAUT-1.0-12-002` v01 (SPI) →
   [`13-herramientas-spi.md`](13-herramientas-spi.md)
 - `MAUT-5.0-12-095` (lista de verificación del MO) → [`14-listas-verificacion.md`](14-listas-verificacion.md)
+- `MAUT-3.0-12-097` v01, ejemplar 17/07/2026 (herramienta de evaluación del SMS) → [`15-evaluacion-sms.md`](15-evaluacion-sms.md)
 - `MAUT-1.0-22-007` (asuntos complementarios) → [`16-asuntos-complementarios.md`](16-asuntos-complementarios.md)
 - `MAUT-5.0-22-017` (implementación SMS UAS) → [`17-implementacion-sms-uas.md`](17-implementacion-sms-uas.md)
 - `MAUT-5.0-12-055` v01 (análisis de riesgos por autorización) → [`18-analisis-riesgos-vuelo.md`](18-analisis-riesgos-vuelo.md)

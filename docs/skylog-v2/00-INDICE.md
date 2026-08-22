@@ -45,7 +45,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
 | [`30-entidades.md`](30-entidades.md) | **Mapa de entidades reales del negocio** — 7 separaciones estructurales · clasificación declarado/derivado/vigente/evento | 231 | ✅ |
-| [`31-esquema-datos.md`](31-esquema-datos.md) | Esquema objetivo — **punto de partida, se rehará** tras `30-entidades.md` | 98 | 🔄 |
+| [`31-esquema-datos.md`](31-esquema-datos.md) | **Esquema de datos** — tablas por entidad, sobre `30-entidades.md`. C2 dormido, sin tocar | 155 | ✅ |
 | `32-migracion.md` | ETL desde la base actual, reglas de precedencia | — | ⬜ |
 | [`33-arquitectura.md`](33-arquitectura.md) | Monorepo, servicios, capa de dominio, pruebas | 57 | 🔄 |
 | [`34-seguridad.md`](34-seguridad.md) | RLS, multi-tenant, C2 · **falta protección de datos SMS (RAC 219 §219.115-140)** | 89 | 🔄 |
@@ -66,7 +66,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
 | [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 289 | ✅ |
-| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 161 | ✅ |
+| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 162 | ✅ |
 
 **Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · ⏸ omitido por ahora
 
@@ -92,16 +92,15 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Próximos pasos
 
-Etapa ① del ciclo cerrada: [`30-entidades.md`](30-entidades.md) ya está.
-**No queda ninguna decisión de alcance abierta** — RAC 5 y Dronpuertos quedaron descartados
-(decisiones 27 y 28), y C2 sigue omitido (decisión 20).
+Etapas ① y ② del ciclo cerradas: [`30-entidades.md`](30-entidades.md) y
+[`31-esquema-datos.md`](31-esquema-datos.md).
 
-1. **`31-esquema-datos.md`** — rehacerlo sobre el mapa de entidades. Hoy es un borrador escrito
-   bajo la premisa superada de evolución aditiva.
-2. `32-migracion.md` — ETL desde la base actual, con reglas de precedencia para los campos que
-   hoy divergen entre `profiles` y `pilots`.
-3. `34-seguridad.md` — RLS sobre el modelo nuevo, más protección de datos SMS y custodia legal.
-4. Rehacer los 🔄 restantes.
+1. **`32-migracion.md`** — ETL desde la base actual. Punto crítico: reglas de precedencia para
+   `people` donde `profiles`/`pilots` ya divergen en producción (P-ES-3).
+2. Levantar la **Fase 0** de infraestructura ([`50`](50-hoja-de-ruta.md) §1): rama `develop-v2`,
+   Supabase branch, proyecto Vercel de preview, `packages/ui`.
+3. Rehacer `33-arquitectura.md`, `34-seguridad.md`, `35-frontend.md`, `40-sms.md`,
+   `41-tiempos-servicio.md`, `43-aerocivil.md` — siguen 🔄, bajo la premisa superada.
 
 ---
 

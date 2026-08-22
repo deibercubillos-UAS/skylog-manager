@@ -23,7 +23,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 |---|---|---|---|
 | [`10-rac219-sms.md`](10-rac219-sms.md) | **RAC 219** — Gestión de Seguridad Operacional (vigente, Res. 718/2024) | 195 | ✅ Texto primario |
 | [`11-rac100-uas.md`](11-rac100-uas.md) | **RAC 100** — Operación de UAS · 15 brechas identificadas | 50 | ✅ Texto primario |
-| [`12-directivas-maut.md`](12-directivas-maut.md) | **MAUT-1.0-22-006** (Aceptación, escala P/S/O/E) ✅ · -004 (MOR) ⬜ · -007 ⬜ · MAUT-5.0-22-017 ⬜ | 121 | 🔄 |
+| [`12-directivas-maut.md`](12-directivas-maut.md) | **MAUT-1.0-22-006** (Aceptación, P/S/O/E) ✅ · **-004** (MOR/VOR, 12 eventos UAS) ✅ · -007 ⬜ · MAUT-5.0-22-017 ⬜ | 300 | 🔄 |
 | [`13-herramientas-spi.md`](13-herramientas-spi.md) | **MAUT-1.0-22-005** v02 (SPI) — 11 indicadores oficiales UAS · 9 correcciones a lo implementado | 249 | ✅ |
 | `14-listas-verificacion.md` | MAUT-5.0-12-055 (MO) · MAUT-5.0-12-095 | — | ⬜ |
 | `15-evaluacion-sms.md` | MAUT-3.0-12-097 — matriz P/S/O/E. **Sube de prioridad**: es la fuente de los ítems a autoevaluar (ver `12` §1.9) | — | ⬜ |
@@ -78,7 +78,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Próximos pasos
 
-1. Completar `12-directivas-maut.md`: MOR (-004), complementarios (-007), MAUT-5.0-22-017
+1. Completar `12-directivas-maut.md`: MAUT-1.0-22-007 y MAUT-5.0-22-017 · conseguir **RAC 114**
 2. `15-evaluacion-sms.md` (matriz P/S/O/E) · `13` P-SPI-1 (Excel) · `14-listas-verificacion.md`
 3. `30-entidades.md` — mapa de entidades, base de todo el diseño
 4. Rehacer los 🔄 sobre esa base

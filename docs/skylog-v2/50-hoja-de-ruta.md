@@ -270,9 +270,9 @@ De las 29 de `RAC 100 §100.535`, seis no tienen **ningún** soporte hoy:
 
 | # | Frente | Nota |
 |---|---|---|
-| R13 | **Dronpuertos** | Parte C del MO, Apéndice 3 del RAC 100. No existe como entidad |
+| ~~R13~~ | ~~Dronpuertos~~ | ❌ **Descartado** (decisión 28): no se lleva registro, va en el MO del cliente |
 | R14 | **Mercancías peligrosas** | Activable, pero **no apagable del todo** — ver [`36-sitemap.md`](36-sitemap.md) §5 |
-| R15 | **RAC 5 — permiso de servicios aéreos comerciales** | Segunda vía regulatoria, enmendada en 2025 para incluir UAS. **Fuera de alcance hasta que el usuario decida** |
+| ~~R15~~ | ~~RAC 5 — servicios aéreos comerciales~~ | ❌ **Fuera de alcance** (decisión 27): solo informativo, para estar alineados con el contexto del cliente |
 | R16 | **Replay multimarca** (Autel, Parrot…) | Arquitectura de parsers por marca sobre una traza canónica |
 | R17 | **Análisis forense** | Complemento de pago aparte |
 

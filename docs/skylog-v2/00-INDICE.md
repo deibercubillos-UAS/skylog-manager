@@ -30,7 +30,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | [`16-asuntos-complementarios.md`](16-asuntos-complementarios.md) | **MAUT-1.0-22-007** — Ejecutivo Responsable, Comité, GESO, interfases, ERP, currículo SMS | 343 | ✅ |
 | [`17-implementacion-sms-uas.md`](17-implementacion-sms-uas.md) | **MAUT-5.0-22-017** — las 4 fases oficiales de implementación, Cultura Justa, plan Gantt | 233 | ✅ |
 | [`18-analisis-riesgos-vuelo.md`](18-analisis-riesgos-vuelo.md) | **MAUT-5.0-12-055** — análisis de riesgos por autorización de vuelo · matriz oficial fija · 24 peligros | 243 | ✅ |
-| [`19-registros-obligatorios.md`](19-registros-obligatorios.md) | **Qué debe llevar registrado el explotador** — las 29 obligaciones de `100.535` + `MAUT-5.0-22-011`, `-12-090`, `-12-174`, RAC 5 | 147 | ✅ |
+| [`19-registros-obligatorios.md`](19-registros-obligatorios.md) | **Qué debe llevar registrado el explotador** — las 29 obligaciones de `100.535` + `MAUT-5.0-22-011`, `-12-090`, `-12-174`, RAC 5 | 149 | ✅ |
 
 ## 2 · Diagnóstico del sistema actual
 
@@ -44,13 +44,13 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
-| `30-entidades.md` | Mapa de entidades reales del negocio | — | ⬜ |
+| [`30-entidades.md`](30-entidades.md) | **Mapa de entidades reales del negocio** — 7 separaciones estructurales · clasificación declarado/derivado/vigente/evento | 231 | ✅ |
 | [`31-esquema-datos.md`](31-esquema-datos.md) | Esquema objetivo — **punto de partida, se rehará** tras `30-entidades.md` | 98 | 🔄 |
 | `32-migracion.md` | ETL desde la base actual, reglas de precedencia | — | ⬜ |
 | [`33-arquitectura.md`](33-arquitectura.md) | Monorepo, servicios, capa de dominio, pruebas | 57 | 🔄 |
 | [`34-seguridad.md`](34-seguridad.md) | RLS, multi-tenant, C2 · **falta protección de datos SMS (RAC 219 §219.115-140)** | 89 | 🔄 |
 | [`35-frontend.md`](35-frontend.md) | Espacios de trabajo, sistema de diseño, modo campo | 71 | 🔄 |
-| [`36-sitemap.md`](36-sitemap.md) | **Sitemap** — 6 espacios + complementos, todo activable · replay multimarca · análisis forense | 182 | ✅ |
+| [`36-sitemap.md`](36-sitemap.md) | **Sitemap** — 6 espacios + complementos, todo activable · replay multimarca · análisis forense | 183 | ✅ |
 
 ## 4 · Módulos
 
@@ -66,7 +66,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
 | [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 289 | ✅ |
-| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 159 | ✅ |
+| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 161 | ✅ |
 
 **Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · ⏸ omitido por ahora
 
@@ -74,7 +74,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Estado
 
-- **24 documentos**, todos bajo el límite de 500 líneas. El mayor: `21-auditoria-sms.md` (433).
+- **25 documentos**, todos bajo el límite de 500 líneas. El mayor: `21-auditoria-sms.md` (433).
 - `plan-bitafly-v2.md` e `investigacion-sms-rac219-bitafly.md` **se eliminaron**: su contenido
   vive repartido aquí. No hay duplicados (regla E1).
 - Los marcados 🔄 se escribieron bajo la premisa anterior de *evolución aditiva*. Con la
@@ -87,24 +87,22 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 |---|---|---|---|
 | MAUT-5.0-22-016 "01-23" | Directiva **vinculante** | Criterios de aceptación del **enlace C2** — deja de ser urgente al omitirse C2 (decisión 20); necesario el día que se retome | ⏸ |
 | **MAUT-5.0-22-011** | Circular informativa | Guía del CDO-U, citada en 50 de los 57 ítems del MO | Media |
-| **MAUT-5.0-22-014 DI "03-23"** | Directiva **vinculante** | Condiciones técnicas para dronpuertos | Media |
+| ~~MAUT-5.0-22-014 DI~~ | Directiva vinculante | Dronpuertos — **ya no se necesita** (decisión 28) | — |
 | **MIU** | Manual del Inspector UAS | Procedimiento con el que se aplica la lista de verificación | Baja |
 | ~~RAC 114~~ | Reglamento | Accidentes e incidentes graves — **el usuario decidió no tocarlo por ahora** (decisión 11) | — |
 
 ## Próximos pasos
 
-**Corrección de enfoque del 2026-08-22 (decisión 21)**: la normativa es el inventario de
-**registros obligatorios**, no un plano para construir manuales. Ver
-[`19-registros-obligatorios.md`](19-registros-obligatorios.md) y
-[`36-sitemap.md`](36-sitemap.md).
+Etapa ① del ciclo cerrada: [`30-entidades.md`](30-entidades.md) ya está.
+**No queda ninguna decisión de alcance abierta** — RAC 5 y Dronpuertos quedaron descartados
+(decisiones 27 y 28), y C2 sigue omitido (decisión 20).
 
-1. **`30-entidades.md`** — inventario de entidades, ahora sobre el sitemap y el catálogo de
-   registros, con la clasificación *una vez / derivado / por enmienda*.
-2. `31-esquema-datos.md` · `32-migracion.md`.
-3. Rehacer los 🔄 restantes.
-
-Decisiones que esperan al usuario: si **RAC 5** (permiso de servicios aéreos comerciales) entra
-al alcance, y si **Dronpuertos** se construye desde el inicio.
+1. **`31-esquema-datos.md`** — rehacerlo sobre el mapa de entidades. Hoy es un borrador escrito
+   bajo la premisa superada de evolución aditiva.
+2. `32-migracion.md` — ETL desde la base actual, con reglas de precedencia para los campos que
+   hoy divergen entre `profiles` y `pilots`.
+3. `34-seguridad.md` — RLS sobre el modelo nuevo, más protección de datos SMS y custodia legal.
+4. Rehacer los 🔄 restantes.
 
 ---
 

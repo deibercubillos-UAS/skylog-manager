@@ -42,6 +42,9 @@ Un séptimo bloque, **Complementos**, agrupa lo que se activa aparte o se cobra 
 
 ### ② Flota y equipo
 
+> **Dronpuertos no aparece aquí, a propósito** (decisión 28): no genera registro operacional —
+> se describe en el Manual de Operaciones del cliente, que es suyo. Nosotros no llevamos nada.
+
 | Pantalla | Qué guarda | Obligación |
 |---|---|---|
 | **Aeronaves** | **Ficha de 26 atributos** + propiedad + RUAS | Apéndice 1 · 100.535(1)(21) |
@@ -53,7 +56,6 @@ Un séptimo bloque, **Complementos**, agrupa lo que se activa aparte o se cobra 
 | **Calibración de equipos** | Patrón, incertidumbre, periodo, certificado | `MAUT-5.0-12-090` |
 | **Eventos inesperados** | Evaluación tras aterrizaje fuerte, impacto con aves, FOD, pérdida de hélice | `MAUT-5.0-12-090` |
 | **Inventario** | Existencias y verificación previa a la operación | — |
-| **Dronpuertos** | Áreas de despegue y aterrizaje con sus condiciones técnicas | Apéndice 3 · opcional |
 
 ### ③ Tripulación
 
@@ -159,7 +161,6 @@ Ninguna área es obligatoria para todos. El cliente enciende lo que su operació
 | Módulo | Cuándo se enciende | Nota al apagarlo |
 |---|---|---|
 | **Mercancías peligrosas** | Si transporta, o si sus OpSpecs lo mencionan | ⚠️ **No desaparece del todo**: aun sin transportar, el explotador debe declarar que no lo hace y capacitar a su personal (`MAUT-5.0-12-174`, ítems 7 y 24). Apagarlo oculta clasificación, marcas, NOTOC y diagramas; **conserva la declaración y la capacitación** |
-| **Dronpuertos** | Si opera desde áreas declaradas | Sin efecto sobre el resto |
 | **BVLOS** | Si tiene la condición aprobada | Cambia límites de tiempo (6 h) y exige monitoreo meteorológico continuo |
 | **Mantenimiento menor** | Por aeronave | Ya es opt-in hoy |
 | **Replay · Centro de control · Forense** | Por plan o compra | — |

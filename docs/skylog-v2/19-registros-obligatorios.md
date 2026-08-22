@@ -128,8 +128,10 @@ servicios aéreos comerciales**, con obligaciones propias:
 - No aplica certificación de aeronavegabilidad a los UAS, *"a menos que la Autoridad lo
   determine de otro modo"*.
 
-> **Es un frente nuevo, no cubierto por ningún documento del proyecto.** Queda anotado; decidir
-> si entra al alcance es del usuario.
+> **Decisión 27 (2026-08-22): RAC 5 NO entra al alcance.** Es **solo informativo**, para tener
+> presente el contexto regulatorio completo del cliente. No genera ninguna pantalla, ninguna
+> entidad ni ningún registro en la plataforma. Se documenta aquí y no vuelve a aparecer en el
+> plan.
 
 ---
 

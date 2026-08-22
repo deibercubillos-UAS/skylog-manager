@@ -58,7 +58,7 @@ tocaron**, y el primero es la pieza más importante que le falta al proyecto.
 |---|---|---|
 | **1** | **Organización y contenido de los documentos del explotador UAS** — la tabla de contenido **obligatoria** del MO, del MCM y de la Carta de Cumplimiento | ⬜ **Sin analizar — máxima prioridad** |
 | **2** | Condiciones de aceptación del **enlace C2** (VLOS/EVLOS/BVLOS) | ⬜ Sin analizar · es la base normativa de **B8** y de lo que desarrolla `MAUT-5.0-22-016` |
-| **3** | Condiciones técnicas para el uso de **dronpuertos** | ⬜ Sin analizar · base de lo que desarrolla `MAUT-5.0-22-014` |
+| ~~3~~ | Condiciones técnicas para el uso de **dronpuertos** | ❌ **No se analizará** (decisión 28): no genera registro, va en el MO del cliente |
 | **4** | Programa de instrucción *"Curso Piloto UAS y Adiciones"* | ⬜ Sin analizar · aplica a **CIAC**, no al explotador |
 
 ### Apéndice 1 — la estructura obligatoria de los manuales

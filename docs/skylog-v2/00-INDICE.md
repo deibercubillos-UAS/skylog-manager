@@ -22,7 +22,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | Doc | Fuente | Líneas | Estado |
 |---|---|---|---|
 | [`10-rac219-sms.md`](10-rac219-sms.md) | **RAC 219** — Gestión de Seguridad Operacional (vigente, Res. 718/2024) | 199 | ✅ Texto primario |
-| [`11-rac100-uas.md`](11-rac100-uas.md) | **RAC 100** — Operación de UAS · 15 brechas identificadas | 50 | ✅ Texto primario |
+| [`11-rac100-uas.md`](11-rac100-uas.md) | **RAC 100** — 15 brechas · **los 4 apéndices siguen sin analizar (Apéndice 1 = contenido obligatorio del MO)** | 104 | ✅ Texto primario |
 | [`12-directivas-maut.md`](12-directivas-maut.md) | **MAUT-1.0-22-006** (Aceptación, P/S/O/E) ✅ · **-004** (MOR/VOR, 12 eventos UAS) ✅ | 299 | 🔄 |
 | [`13-herramientas-spi.md`](13-herramientas-spi.md) | **MAUT-1.0-22-005** v02 (SPI) — 11 indicadores oficiales UAS · 9 correcciones · **§9 fórmulas del Excel MAUT-1.0-12-002 verificadas** | 349 | ✅ |
 | [`14-listas-verificacion.md`](14-listas-verificacion.md) | **MAUT-5.0-12-095** — lista de verificación del MO, 57 ítems con los que se certifica el CDO-U | 275 | ✅ |
@@ -63,7 +63,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
-| [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 227 | ✅ |
+| [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 266 | ✅ |
 | [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 147 | ✅ |
 
 **Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · ⏸ omitido por ahora
@@ -91,16 +91,17 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Próximos pasos
 
-El frente normativo está cerrado, las decisiones de producto están tomadas
-([`51-bitacora.md`](51-bitacora.md) §11.1b) y con **C2 omitido** (decisión 20) **ningún frente
-activo tiene un bloqueante externo**. Lo que sigue es la **etapa ① del ciclo**
-([`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) §3):
+Hallazgo del 2026-08-22: **el RAC 100 tiene cuatro apéndices sin analizar**, y el primero
+—*Organización y contenido de los documentos del explotador UAS*, ~509 requisitos— es la tabla
+de contenido obligatoria del Manual de Operaciones. Es la pieza que le faltaba al módulo de
+manuales y **no depende de conseguir nada nuevo**. Ver [`11`](11-rac100-uas.md) y el análisis de
+brechas en [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) §8.
 
-1. **`30-entidades.md`** — inventario de las entidades reales del negocio. Ningún frente se
-   diseña sin esto.
-2. `31-esquema-datos.md` · `32-migracion.md` — sobre esa base.
-3. Rehacer los 🔄 restantes (`12`, `31`, `33`, `34`, `35`, `40`, `41`, `43`), que se escribieron
-   bajo la premisa superada de evolución aditiva.
+1. **`19-contenido-manuales.md`** — analizar el Apéndice 1 del RAC 100 (M1).
+2. **`30-entidades.md`** — inventario de entidades, ahora con la clasificación *una vez /
+   derivado / por enmienda* que fijó el usuario (M4).
+3. `31-esquema-datos.md` · `32-migracion.md` — sobre esa base.
+4. Rehacer los 🔄 restantes.
 
 ---
 

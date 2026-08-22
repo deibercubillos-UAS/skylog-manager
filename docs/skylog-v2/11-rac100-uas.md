@@ -48,3 +48,57 @@ urgente de todas: **B1, tiempos de servicio y descanso**, sin la cual ningún ex
 demostrar cumplimiento de 100.540.
 
 ---
+
+## Los apéndices del RAC 100 — sin analizar (hallazgo 2026-08-22)
+
+Este documento se escribió sobre el articulado. **El RAC 100 tiene cuatro apéndices que no se
+tocaron**, y el primero es la pieza más importante que le falta al proyecto.
+
+| Apéndice | Contenido | Estado |
+|---|---|---|
+| **1** | **Organización y contenido de los documentos del explotador UAS** — la tabla de contenido **obligatoria** del MO, del MCM y de la Carta de Cumplimiento | ⬜ **Sin analizar — máxima prioridad** |
+| **2** | Condiciones de aceptación del **enlace C2** (VLOS/EVLOS/BVLOS) | ⬜ Sin analizar · es la base normativa de **B8** y de lo que desarrolla `MAUT-5.0-22-016` |
+| **3** | Condiciones técnicas para el uso de **dronpuertos** | ⬜ Sin analizar · base de lo que desarrolla `MAUT-5.0-22-014` |
+| **4** | Programa de instrucción *"Curso Piloto UAS y Adiciones"* | ⬜ Sin analizar · aplica a **CIAC**, no al explotador |
+
+### Apéndice 1 — la estructura obligatoria de los manuales
+
+```
+Sección   MO                                MCM
+Parte A   Generalidades                     Generalidades
+Parte B   Información sobre la operación    Información sobre el mantenimiento
+Parte C   Dronpuertos                       Programa de entrenamiento periódico (PEP)
+Parte D   Programa de entrenamiento (PEP)   Programa de mantenimiento
+Parte E   Mercancías peligrosas             N/A
+```
+
+Más la **Carta de Cumplimiento (CC)**, cuya Parte B es una **Lista de Cumplimiento**: una tabla
+`Referencia RAC 100 · Descripción del requisito · Comentarios de la implementación · Documento
+de referencia` — es decir, un cruce requisito por requisito contra el capítulo, sección y
+**página** del manual donde se cumple.
+
+**Volumen contado sobre el texto**: el Apéndice 1 enumera **~509 requisitos** en cuatro niveles
+de anidación (108 de nivel `a)`, 159 de nivel `1)`, 213 de nivel `i)`, 29 de nivel `A)`) a lo
+largo de 1.747 líneas.
+
+### Por qué esto cambia el proyecto
+
+Hasta ahora el diseño del módulo de manuales se apoyaba en la **lista de verificación**
+(`MAUT-5.0-12-095`, [`14`](14-listas-verificacion.md)), que dice **cómo se evalúa** un manual ya
+escrito. El Apéndice 1 dice **qué debe contener**, campo por campo. Son documentos
+complementarios y hacía falta el segundo:
+
+| | Fuente | Responde |
+|---|---|---|
+| Lista de verificación | `MAUT-5.0-12-095` | *¿Está bien lo que escribió el explotador?* — 57 ítems |
+| **Apéndice 1 del RAC 100** | Reglamento | *¿Qué tiene que escribir?* — ~509 requisitos |
+
+También **baja la urgencia** de dos de las tres directivas que se buscaban: los apéndices 2 y 3
+son la base normativa del enlace C2 y de los dronpuertos. `MAUT-5.0-22-016` y `MAUT-5.0-22-014`
+las desarrollan, pero el requisito de fondo ya está aquí, en un documento que sí tenemos.
+
+Ver el análisis de brechas de producto que se deriva en
+[`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) §8.
+
+---
+

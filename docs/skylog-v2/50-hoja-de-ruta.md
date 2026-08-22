@@ -225,3 +225,42 @@ A1–A3 (validar la licencia contra un RC real, el alcance de FlightHub, consegu
 ---
 
 *Actualizado: 2026-08-22.*
+
+## 8 · Qué falta para el módulo de manuales (2026-08-22)
+
+Contexto que fijó el usuario:
+
+> *"todo esto son los datos que pide Aerocivil a los explotadores para que diseñen sus manuales,
+> usamos esta info como lo básico que requieren llevar y deben personalizar; muchos datos solo se
+> llevan una vez dentro del manual, como lo es la declaración de compromiso. Todo debe ser
+> personalizable, con ejemplo como guía de llenado o que debe cargarse."*
+
+### 8.1 Lo que falta **analizar** (no depende de conseguir nada)
+
+| # | Falta | Por qué importa |
+|---|---|---|
+| M1 | **RAC 100 Apéndice 1** — ~509 requisitos, la tabla de contenido obligatoria del MO, del MCM y de la Carta de Cumplimiento | Es *qué debe contener* el manual. Sin esto no hay catálogo que precargar. **Máxima prioridad** |
+| M2 | **RAC 100 Apéndice 2** — condiciones de aceptación del enlace C2 | Cierra **B8** sin depender de `MAUT-5.0-22-016`. Baja prioridad mientras C2 esté omitido |
+| M3 | **RAC 100 Apéndice 3** — condiciones técnicas de dronpuertos | Parte C del MO. Hoy los dronpuertos no existen como entidad en ningún documento |
+
+### 8.2 Lo que falta **modelar**
+
+| # | Falta | Nota |
+|---|---|---|
+| M4 | **Clasificación de cada dato por frecuencia**: se declara *una vez* (declaración de compromiso, introducción, alcance, política firmada) · se *deriva de la operación* (flota, tripulantes, dronpuertos, ETA) · cambia *por enmienda* | Es la distinción que fijó el usuario y no está en ningún documento. Determina la arquitectura entera del módulo |
+| M5 | **Modelo de campo configurable**: tipo (texto · selección · **archivo que se carga**), **ejemplo o guía de llenado**, obligatoriedad, y **quién firma** | Regla **C4** exige la guía; el usuario pidió además "o qué debe cargarse" |
+| M6 | **Ciclo de enmiendas del manual** | El ítem 11 de [`14`](14-listas-verificacion.md) exige procedimiento para **informar revisiones a la Aerocivil**; `100.530` regula las modificaciones al CDO-U. Es un ciclo de vida, no un archivo subido |
+| M7 | **Carta de Cumplimiento (CC)** | Tabla que cruza cada requisito del RAC contra el capítulo, sección y **página** del manual donde se cumple. Es lo que un sistema genera solo y una persona mantiene mal |
+| M8 | **MCM — Manual de Control de Mantenimiento** | Todo el plan habla del MO y del MSMS. El MCM tiene sus propias cuatro partes y **no aparece en ningún documento del proyecto** |
+| M9 | **Parte E — Mercancías peligrosas** · **Parte C — Dronpuertos** · **Parte D — PEP** | Las tres partes del MO que el proyecto no ha tocado. El PEP no es lo mismo que el examen de Capacitación ya construido |
+
+### 8.3 Lo que falta **conseguir**
+
+| # | Documento | Nota |
+|---|---|---|
+| M10 | **MAUT-5.0-22-011** — *Guía para obtener el certificado de explotador UAS* | Citada en **50 de los 57 ítems** de la lista de verificación. Es el documento que más falta ahora |
+| M11 | Formatos de **solicitud de autorización de vuelo**, y de registro **RUAS** / **RETA** | Alimentan F4a; hoy se conocen solo por referencia |
+| M12 | **MIU** — Manual del Inspector UAS | Baja prioridad |
+
+---
+

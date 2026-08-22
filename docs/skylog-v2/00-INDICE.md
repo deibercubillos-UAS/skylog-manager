@@ -46,7 +46,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 |---|---|---|---|
 | [`30-entidades.md`](30-entidades.md) | **Mapa de entidades reales del negocio** — 7 separaciones estructurales · clasificación declarado/derivado/vigente/evento | 231 | ✅ |
 | [`31-esquema-datos.md`](31-esquema-datos.md) | **Esquema de datos** — tablas por entidad, sobre `30-entidades.md`. C2 dormido, sin tocar | 155 | ✅ |
-| `32-migracion.md` | ETL desde la base actual, reglas de precedencia | — | ⬜ |
+| [`32-migracion.md`](32-migracion.md) | **Reglas de precedencia** para el ETL — corte por organización, conflictos de alto/bajo riesgo | 157 | ✅ |
 | [`33-arquitectura.md`](33-arquitectura.md) | Monorepo, servicios, capa de dominio, pruebas | 57 | 🔄 |
 | [`34-seguridad.md`](34-seguridad.md) | RLS, multi-tenant, C2 · **falta protección de datos SMS (RAC 219 §219.115-140)** | 89 | 🔄 |
 | [`35-frontend.md`](35-frontend.md) | Espacios de trabajo, sistema de diseño, modo campo | 71 | 🔄 |
@@ -74,7 +74,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Estado
 
-- **25 documentos**, todos bajo el límite de 500 líneas. El mayor: `21-auditoria-sms.md` (433).
+- **26 documentos**, todos bajo el límite de 500 líneas. El mayor: `21-auditoria-sms.md` (433).
 - `plan-bitafly-v2.md` e `investigacion-sms-rac219-bitafly.md` **se eliminaron**: su contenido
   vive repartido aquí. No hay duplicados (regla E1).
 - Los marcados 🔄 se escribieron bajo la premisa anterior de *evolución aditiva*. Con la
@@ -92,18 +92,17 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Próximos pasos
 
-Etapas ① y ② del ciclo cerradas, Fase 0 de código en marcha
-([`51-bitacora.md`](51-bitacora.md) §11.5). Dos hallazgos nuevos, ambos bloqueando solo la
-infraestructura externa, no el trabajo de diseño/código local:
+Etapas ①② del ciclo cerradas + [`32-migracion.md`](32-migracion.md) — reglas de precedencia
+para los conflictos ya medidos (`phone`/`license_number`/`medical_expiry` divergentes entre
+`profiles`/`pilots`). No bloquea nada: se verifica contra datos reales antes del primer corte.
 
-1. **Supabase branch — bloqueado.** El costo aprobado (~US$9,68/mes) resultó incompleto:
-   branching **exige plan Pro** (≥US$25/mes, para toda la organización) además del cómputo del
-   branch. No se subió el plan — espera confirmación nueva sobre el costo real. Ver §11.6.
-2. **Vercel — sin herramienta en esta sesión** para escribir variables de entorno; requiere que
-   el usuario lo haga a mano en el panel. Ver §11.7.
+**Dos decisiones de infraestructura siguen esperando al usuario** ([`51`](51-bitacora.md)
+§11.6-§11.7): el plan Pro de Supabase para poder crear el branch de desarrollo, y ejecutar a
+mano en el panel de Vercel las variables de entorno por rama (esta sesión no tiene herramienta
+para escribirlas).
 
-Mientras se resuelve, puede avanzar en paralelo lo que no depende de ninguno de los dos:
-`32-migracion.md`, y rehacer `33`, `34`, `35`, `40`, `41`, `43` (siguen 🔄).
+Mientras tanto, sigue abierto: rehacer `33`, `34`, `35`, `40`, `41`, `43` (🔄) — y, cuando el
+Supabase branch exista, el primer código real de F5 (tiempos de servicio, `100.540`).
 
 ---
 

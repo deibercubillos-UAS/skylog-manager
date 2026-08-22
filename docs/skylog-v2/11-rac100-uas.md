@@ -81,23 +81,28 @@ de referencia` — es decir, un cruce requisito por requisito contra el capítul
 de anidación (108 de nivel `a)`, 159 de nivel `1)`, 213 de nivel `i)`, 29 de nivel `A)`) a lo
 largo de 1.747 líneas.
 
-### Por qué esto cambia el proyecto
+### Para qué lo usamos — y para qué no
 
-Hasta ahora el diseño del módulo de manuales se apoyaba en la **lista de verificación**
-(`MAUT-5.0-12-095`, [`14`](14-listas-verificacion.md)), que dice **cómo se evalúa** un manual ya
-escrito. El Apéndice 1 dice **qué debe contener**, campo por campo. Son documentos
-complementarios y hacía falta el segundo:
+> **No construimos manuales.** El Apéndice 1 se lee como **inventario de los datos que un
+> explotador tiene que llevar registrados**, no como el plano de un generador de documentos.
+> Ver [`19-registros-obligatorios.md`](19-registros-obligatorios.md).
+
+Su aporte concreto es la **ficha técnica de la aeronave**: la Parte B enumera **26 atributos por
+cada UAS** (peso, PMBO, dimensiones con hélices extendidas, velocidades, techo, autonomía,
+alcance, GNSS, IP, arquitectura y frecuencias del enlace C2, estación de control, autorización
+ANE…) y la ficha del **ETA** con su número RETA. Hoy la plataforma guarda cuatro campos.
 
 | | Fuente | Responde |
 |---|---|---|
 | Lista de verificación | `MAUT-5.0-12-095` | *¿Está bien lo que escribió el explotador?* — 57 ítems |
-| **Apéndice 1 del RAC 100** | Reglamento | *¿Qué tiene que escribir?* — ~509 requisitos |
+| **Apéndice 1 del RAC 100** | Reglamento | *¿Qué datos debe tener?* — ~509 requisitos |
+| **`RAC 100 §100.535`** | Reglamento | ***¿Qué debe llevar registrado?* — 29 obligaciones.** La fuente más directa para nosotros |
 
 También **baja la urgencia** de dos de las tres directivas que se buscaban: los apéndices 2 y 3
 son la base normativa del enlace C2 y de los dronpuertos. `MAUT-5.0-22-016` y `MAUT-5.0-22-014`
 las desarrollan, pero el requisito de fondo ya está aquí, en un documento que sí tenemos.
 
-Ver el análisis de brechas de producto que se deriva en
+Ver [`19-registros-obligatorios.md`](19-registros-obligatorios.md) y el análisis de brechas en
 [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) §8.
 
 ---

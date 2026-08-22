@@ -36,6 +36,12 @@
 | 17 | Cultura Justa | **No la manejamos** — ya está en los manuales del cliente. Permanecen solo la confidencialidad del notificante y la retroalimentación, que vienen de otras obligaciones | [`17`](17-implementacion-sms-uas.md) §3 |
 | 18 | Proyecto demo en Vercel | **Deja de construirse en cada push**: `demo-enterprise/vercel.json` con `ignoreCommand` | Ver §11.4 |
 | 19 | Organización del proyecto | La hoja de ruta se reescribe alrededor del **ciclo de trabajo** de seis etapas | [`50`](50-hoja-de-ruta.md) §3 |
+| 21 | **Alcance: registros, no manuales** | La normativa es el **inventario de registros obligatorios**. No construimos un asistente de redacción de manuales | [`19`](19-registros-obligatorios.md) · [`36`](36-sitemap.md) · corrige [`50`](50-hoja-de-ruta.md) §8 |
+| 22 | **Guía de referencia en manuales** | **Opcional, a futuro**: un texto que el cliente copia a su MO/MCM/MSMS para declarar que sus registros son digitales y viven aquí | [`36`](36-sitemap.md) §6 |
+| 23 | **Análisis forense** | Complemento de **pago aparte**: expediente congelado que reúne replay, clima archivado, checklists, mantenimiento, tiempos de servicio y caso SMS | [`36`](36-sitemap.md) §4 |
+| 24 | **Replay multimarca** | Arquitectura de **parsers por marca** sobre una traza canónica, para crecer a Autel, Parrot y otras sin tocar visor ni almacenamiento | [`36`](36-sitemap.md) §3 |
+| 25 | **Centro de control** | Panorama vivo de la jornada con datos que ya tenemos. **No es C2 en vivo**, que sigue omitido por la decisión 20 | [`36`](36-sitemap.md) §3 |
+| 26 | **Todo activable** | Cada módulo se enciende o apaga según la operación del cliente | [`36`](36-sitemap.md) §5. ⚠️ Mercancías peligrosas **no se apaga del todo**: la declaración y la capacitación son exigibles aun sin transportar |
 | 20 | **Comando y Control (F2)** | **Omitido por ahora.** Salen F2-a (RC + Pilot 2) y F2-b (Docks / FlightHub 2). El documento técnico se conserva listo para retomarse | [`42`](42-comando-control.md) · [`50`](50-hoja-de-ruta.md) §4. Libera el único bloqueante del plan y deja abiertas las brechas B6/B7/B8 de [`11`](11-rac100-uas.md) |
 
 **Principio transversal que sale de las decisiones 8, 9, 12, 13, 15, 16 y 17**: la norma se
@@ -137,6 +143,11 @@ Ninguna decisión de alcance queda abierta. Lo único pendiente es de ejecución
 - `MAUT-1.0-22-007` (asuntos complementarios) → [`16-asuntos-complementarios.md`](16-asuntos-complementarios.md)
 - `MAUT-5.0-22-017` (implementación SMS UAS) → [`17-implementacion-sms-uas.md`](17-implementacion-sms-uas.md)
 - `MAUT-5.0-12-055` v01 (análisis de riesgos por autorización) → [`18-analisis-riesgos-vuelo.md`](18-analisis-riesgos-vuelo.md)
+- `RAC 100` Apéndice 1 (contenido de documentos) y §100.535 (29 obligaciones) · `RAC 5` enmendado
+  (Res. 00998 de 2025, UAS como equipo de trabajos aéreos especiales) · `MAUT-5.0-22-011` (guía
+  de certificación, 4 fases) · `MAUT-5.0-12-090` (programa de mantenimiento, 22 ítems) ·
+  `MAUT-5.0-12-174` (mercancías peligrosas, 37 ítems) →
+  [`19-registros-obligatorios.md`](19-registros-obligatorios.md)
 
 **Correcciones propias registradas** (regla V4)
 | Fecha | Qué se afirmó mal | Dónde queda la corrección |
@@ -145,3 +156,4 @@ Ninguna decisión de alcance queda abierta. Lo único pendiente es de ejecución
 | 2026-08-22 | Que el denominador de los SPI de UAS eran horas de vuelo | [`13-herramientas-spi.md`](13-herramientas-spi.md) §7 — son **ciclos de vuelo** |
 | 2026-08-22 | Que convenía abrir una cuenta de AWS para Amazon IVS | Decisión 7 y V3 de este documento — **MediaMTX co-ubicado** |
 | 2026-08-22 | Que replay y video quedaban fuera de toda retención regulatoria | Decisión 5 de este documento — hay **retención legal por suceso** |
+| 2026-08-22 | Haber leído la normativa de manuales como si fuéramos a **construir manuales**, y escrito una sección entera de brechas sobre esa premisa | Decisión 21 · [`50`](50-hoja-de-ruta.md) §8 reescrita · [`19`](19-registros-obligatorios.md) reemplaza el enfoque |

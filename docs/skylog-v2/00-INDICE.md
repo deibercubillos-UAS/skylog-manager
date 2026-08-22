@@ -22,7 +22,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | Doc | Fuente | Líneas | Estado |
 |---|---|---|---|
 | [`10-rac219-sms.md`](10-rac219-sms.md) | **RAC 219** — Gestión de Seguridad Operacional (vigente, Res. 718/2024) | 199 | ✅ Texto primario |
-| [`11-rac100-uas.md`](11-rac100-uas.md) | **RAC 100** — 15 brechas · **los 4 apéndices siguen sin analizar (Apéndice 1 = contenido obligatorio del MO)** | 104 | ✅ Texto primario |
+| [`11-rac100-uas.md`](11-rac100-uas.md) | **RAC 100** — 15 brechas · **los 4 apéndices siguen sin analizar (Apéndice 1 = contenido obligatorio del MO)** | 109 | ✅ Texto primario |
 | [`12-directivas-maut.md`](12-directivas-maut.md) | **MAUT-1.0-22-006** (Aceptación, P/S/O/E) ✅ · **-004** (MOR/VOR, 12 eventos UAS) ✅ | 299 | 🔄 |
 | [`13-herramientas-spi.md`](13-herramientas-spi.md) | **MAUT-1.0-22-005** v02 (SPI) — 11 indicadores oficiales UAS · 9 correcciones · **§9 fórmulas del Excel MAUT-1.0-12-002 verificadas** | 349 | ✅ |
 | [`14-listas-verificacion.md`](14-listas-verificacion.md) | **MAUT-5.0-12-095** — lista de verificación del MO, 57 ítems con los que se certifica el CDO-U | 275 | ✅ |
@@ -30,6 +30,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | [`16-asuntos-complementarios.md`](16-asuntos-complementarios.md) | **MAUT-1.0-22-007** — Ejecutivo Responsable, Comité, GESO, interfases, ERP, currículo SMS | 343 | ✅ |
 | [`17-implementacion-sms-uas.md`](17-implementacion-sms-uas.md) | **MAUT-5.0-22-017** — las 4 fases oficiales de implementación, Cultura Justa, plan Gantt | 233 | ✅ |
 | [`18-analisis-riesgos-vuelo.md`](18-analisis-riesgos-vuelo.md) | **MAUT-5.0-12-055** — análisis de riesgos por autorización de vuelo · matriz oficial fija · 24 peligros | 243 | ✅ |
+| [`19-registros-obligatorios.md`](19-registros-obligatorios.md) | **Qué debe llevar registrado el explotador** — las 29 obligaciones de `100.535` + `MAUT-5.0-22-011`, `-12-090`, `-12-174`, RAC 5 | 147 | ✅ |
 
 ## 2 · Diagnóstico del sistema actual
 
@@ -49,6 +50,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | [`33-arquitectura.md`](33-arquitectura.md) | Monorepo, servicios, capa de dominio, pruebas | 57 | 🔄 |
 | [`34-seguridad.md`](34-seguridad.md) | RLS, multi-tenant, C2 · **falta protección de datos SMS (RAC 219 §219.115-140)** | 89 | 🔄 |
 | [`35-frontend.md`](35-frontend.md) | Espacios de trabajo, sistema de diseño, modo campo | 71 | 🔄 |
+| [`36-sitemap.md`](36-sitemap.md) | **Sitemap** — 6 espacios + complementos, todo activable · replay multimarca · análisis forense | 182 | ✅ |
 
 ## 4 · Módulos
 
@@ -63,8 +65,8 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
-| [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 266 | ✅ |
-| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 147 | ✅ |
+| [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 289 | ✅ |
+| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 159 | ✅ |
 
 **Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · ⏸ omitido por ahora
 
@@ -72,7 +74,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Estado
 
-- **22 documentos**, todos bajo el límite de 500 líneas. El mayor: `21-auditoria-sms.md` (433).
+- **24 documentos**, todos bajo el límite de 500 líneas. El mayor: `21-auditoria-sms.md` (433).
 - `plan-bitafly-v2.md` e `investigacion-sms-rac219-bitafly.md` **se eliminaron**: su contenido
   vive repartido aquí. No hay duplicados (regla E1).
 - Los marcados 🔄 se escribieron bajo la premisa anterior de *evolución aditiva*. Con la
@@ -91,17 +93,18 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Próximos pasos
 
-Hallazgo del 2026-08-22: **el RAC 100 tiene cuatro apéndices sin analizar**, y el primero
-—*Organización y contenido de los documentos del explotador UAS*, ~509 requisitos— es la tabla
-de contenido obligatoria del Manual de Operaciones. Es la pieza que le faltaba al módulo de
-manuales y **no depende de conseguir nada nuevo**. Ver [`11`](11-rac100-uas.md) y el análisis de
-brechas en [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) §8.
+**Corrección de enfoque del 2026-08-22 (decisión 21)**: la normativa es el inventario de
+**registros obligatorios**, no un plano para construir manuales. Ver
+[`19-registros-obligatorios.md`](19-registros-obligatorios.md) y
+[`36-sitemap.md`](36-sitemap.md).
 
-1. **`19-contenido-manuales.md`** — analizar el Apéndice 1 del RAC 100 (M1).
-2. **`30-entidades.md`** — inventario de entidades, ahora con la clasificación *una vez /
-   derivado / por enmienda* que fijó el usuario (M4).
-3. `31-esquema-datos.md` · `32-migracion.md` — sobre esa base.
-4. Rehacer los 🔄 restantes.
+1. **`30-entidades.md`** — inventario de entidades, ahora sobre el sitemap y el catálogo de
+   registros, con la clasificación *una vez / derivado / por enmienda*.
+2. `31-esquema-datos.md` · `32-migracion.md`.
+3. Rehacer los 🔄 restantes.
+
+Decisiones que esperan al usuario: si **RAC 5** (permiso de servicios aéreos comerciales) entra
+al alcance, y si **Dronpuertos** se construye desde el inicio.
 
 ---
 

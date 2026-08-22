@@ -226,41 +226,64 @@ A1–A3 (validar la licencia contra un RC real, el alcance de FlightHub, consegu
 
 *Actualizado: 2026-08-22.*
 
-## 8 · Qué falta para el módulo de manuales (2026-08-22)
+## 8 · Qué falta — enfoque corregido (2026-08-22)
 
-Contexto que fijó el usuario:
+> ### ⚠️ Corrección de rumbo
+>
+> La versión anterior de esta sección se titulaba *"qué falta para el módulo de manuales"* y
+> listaba brechas para **construir manuales**. Era una tergiversación. El usuario lo corrigió:
+>
+> *"nosotros no queremos hacer el manual, nosotros queremos llevar todos los documentos mínimos
+> requeridos… usamos estos documentos como base de lo mínimo que debemos tener para satisfacer
+> todas las necesidades de un explotador UAS."*
+>
+> Los documentos normativos son el **inventario de registros obligatorios**, no un plano de
+> redacción. El catálogo corregido vive en
+> [`19-registros-obligatorios.md`](19-registros-obligatorios.md) y su organización en
+> [`36-sitemap.md`](36-sitemap.md).
 
-> *"todo esto son los datos que pide Aerocivil a los explotadores para que diseñen sus manuales,
-> usamos esta info como lo básico que requieren llevar y deben personalizar; muchos datos solo se
-> llevan una vez dentro del manual, como lo es la declaración de compromiso. Todo debe ser
-> personalizable, con ejemplo como guía de llenado o que debe cargarse."*
+### 8.1 Las seis obligaciones sin cubrir
 
-### 8.1 Lo que falta **analizar** (no depende de conseguir nada)
+De las 29 de `RAC 100 §100.535`, seis no tienen **ningún** soporte hoy:
 
-| # | Falta | Por qué importa |
+| # | Obligación | Prioridad |
 |---|---|---|
-| M1 | **RAC 100 Apéndice 1** — ~509 requisitos, la tabla de contenido obligatoria del MO, del MCM y de la Carta de Cumplimiento | Es *qué debe contener* el manual. Sin esto no hay catálogo que precargar. **Máxima prioridad** |
-| M2 | **RAC 100 Apéndice 2** — condiciones de aceptación del enlace C2 | Cierra **B8** sin depender de `MAUT-5.0-22-016`. Baja prioridad mientras C2 esté omitido |
-| M3 | **RAC 100 Apéndice 3** — condiciones técnicas de dronpuertos | Parte C del MO. Hoy los dronpuertos no existen como entidad en ningún documento |
+| R1 | **Tiempos de servicio, vuelo y descanso** por piloto (10, 11) | **Crítica** — es el frente F5 |
+| R2 | **Certificación anual de horas** a cada piloto (12) | Alta — se deriva de R1 |
+| R3 | **Retención de 5 años** de registros operacionales + custodia por suceso (29) | Alta |
+| R4 | **Registro de firmware** por aeronave, con copia de la última versión que funcionó (7) | Media |
+| R5 | **Propiedad o derecho de uso** documentado por aeronave (1) | Media |
+| R6 | **Actas de designación** de Jefe de Pilotos, Gerente SMS y ejecutivo (14-16) | Media |
 
-### 8.2 Lo que falta **modelar**
+### 8.2 Lo que existe pero incompleto
 
-| # | Falta | Nota |
+| # | Qué | Falta |
 |---|---|---|
-| M4 | **Clasificación de cada dato por frecuencia**: se declara *una vez* (declaración de compromiso, introducción, alcance, política firmada) · se *deriva de la operación* (flota, tripulantes, dronpuertos, ETA) · cambia *por enmienda* | Es la distinción que fijó el usuario y no está en ningún documento. Determina la arquitectura entera del módulo |
-| M5 | **Modelo de campo configurable**: tipo (texto · selección · **archivo que se carga**), **ejemplo o guía de llenado**, obligatoriedad, y **quién firma** | Regla **C4** exige la guía; el usuario pidió además "o qué debe cargarse" |
-| M6 | **Ciclo de enmiendas del manual** | El ítem 11 de [`14`](14-listas-verificacion.md) exige procedimiento para **informar revisiones a la Aerocivil**; `100.530` regula las modificaciones al CDO-U. Es un ciclo de vida, no un archivo subido |
-| M7 | **Carta de Cumplimiento (CC)** | Tabla que cruza cada requisito del RAC contra el capítulo, sección y **página** del manual donde se cumple. Es lo que un sistema genera solo y una persona mantiene mal |
-| M8 | **MCM — Manual de Control de Mantenimiento** | Todo el plan habla del MO y del MSMS. El MCM tiene sus propias cuatro partes y **no aparece en ningún documento del proyecto** |
-| M9 | **Parte E — Mercancías peligrosas** · **Parte C — Dronpuertos** · **Parte D — PEP** | Las tres partes del MO que el proyecto no ha tocado. El PEP no es lo mismo que el examen de Capacitación ya construido |
+| R7 | Ficha de aeronave | **26 atributos**, hoy hay cuatro |
+| R8 | Libro de vuelo | Separarlo de la **bitácora del piloto** — son dos documentos |
+| R9 | Programa de mantenimiento | Es **por modelo**, no por aeronave; faltan tolerancias y calibración de equipos |
+| R10 | Reporte mensual a la autoridad | Debe ser un paquete de **tres** (estadística + SPI + MOR), hoy solo estadística |
+| R11 | Análisis de riesgos por operación | Debe emitir el **formato oficial** `MAUT-5.0-12-055` |
+| R12 | SMS | Ver [`21-auditoria-sms.md`](21-auditoria-sms.md): declarado al 99 %, sin evidencia |
 
-### 8.3 Lo que falta **conseguir**
+### 8.3 Frentes nuevos que aparecieron
+
+| # | Frente | Nota |
+|---|---|---|
+| R13 | **Dronpuertos** | Parte C del MO, Apéndice 3 del RAC 100. No existe como entidad |
+| R14 | **Mercancías peligrosas** | Activable, pero **no apagable del todo** — ver [`36-sitemap.md`](36-sitemap.md) §5 |
+| R15 | **RAC 5 — permiso de servicios aéreos comerciales** | Segunda vía regulatoria, enmendada en 2025 para incluir UAS. **Fuera de alcance hasta que el usuario decida** |
+| R16 | **Replay multimarca** (Autel, Parrot…) | Arquitectura de parsers por marca sobre una traza canónica |
+| R17 | **Análisis forense** | Complemento de pago aparte |
+
+### 8.4 Lo que falta conseguir
 
 | # | Documento | Nota |
 |---|---|---|
-| M10 | **MAUT-5.0-22-011** — *Guía para obtener el certificado de explotador UAS* | Citada en **50 de los 57 ítems** de la lista de verificación. Es el documento que más falta ahora |
-| M11 | Formatos de **solicitud de autorización de vuelo**, y de registro **RUAS** / **RETA** | Alimentan F4a; hoy se conocen solo por referencia |
-| M12 | **MIU** — Manual del Inspector UAS | Baja prioridad |
+| R18 | **MIU** — Manual del Inspector UAS | Baja prioridad |
+| R19 | `MAUT-5.0-22-012` — guía de solicitud de autorización de vuelo | Alimenta F4a; citada en la fase III de la certificación |
+| R20 | Formatos de registro **RUAS** y **RETA** | Alimentan la ficha de aeronave y de ETA |
 
 ---
 
+*Actualizado: 2026-08-22.*

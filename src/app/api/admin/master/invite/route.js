@@ -186,25 +186,50 @@ export async function POST(request) {
     if (grantErr) return NextResponse.json({ error: grantErr.message }, { status: 500 });
   }
 
-  // Construir CTA
+  // Construir CTA — ctaUrl y ctaLabel se calculan juntos en el mismo if/else
+  // (antes vivían en dos bloques separados que podían desincronizarse: el
+  // caso "ya tiene cuenta pero sin organización vinculada" caía al `else`
+  // final —un link a /registro con un correo que ya existe— mientras el
+  // label seguía diciendo "Ver invitación en mi dashboard". Corregido
+  // 2026-08-22.)
   let ctaUrl;
+  let ctaLabel;
   if (isExistingUser && orgId) {
+    // Ya tiene cuenta y se le vinculó una organización → inicia sesión con
+    // su contraseña actual y acepta la invitación desde el banner del
+    // dashboard (InvitationsBanner → POST /api/invitations/accept).
     ctaUrl = `${SITE()}/login?next=${encodeURIComponent('/dashboard')}`;
+    ctaLabel = 'Ver invitación en mi dashboard';
+  } else if (isExistingUser) {
+    // Ya tiene cuenta, sin organización vinculada (ej. solo se le activó un
+    // plan directo desde Master). No tiene sentido mandarlo a /registro (su
+    // correo ya existe) ni asumir que recuerda su contraseña actual: se
+    // genera un enlace de recuperación real (Supabase Admin `generateLink`,
+    // SIN disparar el correo propio de Supabase — el link va embebido en
+    // ESTE correo) para que defina una contraseña nueva y quede con sesión
+    // activa de una vez, viendo ya lo que se le autorizó (plan/acceso).
+    const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+      type: 'recovery',
+      email: cleanEmail,
+      options: { redirectTo: `${SITE()}/update-password` },
+    });
+    if (linkErr || !linkData?.properties?.action_link) {
+      console.warn('[master/invite] no se pudo generar el enlace de acceso:', linkErr?.message);
+      ctaUrl = `${SITE()}/login?next=${encodeURIComponent('/dashboard')}`;
+    } else {
+      ctaUrl = linkData.properties.action_link;
+    }
+    ctaLabel = 'Crear mi contraseña y entrar';
   } else if (orgId && joinNit) {
     ctaUrl = `${SITE()}/registro?email=${encodeURIComponent(cleanEmail)}&join=1&nit=${encodeURIComponent(joinNit)}`;
+    ctaLabel = 'Crear cuenta y unirme a la organización';
   } else if (grantToken) {
     ctaUrl = `${SITE()}/registro?email=${encodeURIComponent(cleanEmail)}&grant=${encodeURIComponent(grantToken)}`;
+    ctaLabel = 'Activar mi acceso gratis';
   } else {
     ctaUrl = `${SITE()}/registro?email=${encodeURIComponent(cleanEmail)}`;
+    ctaLabel = 'Crear mi cuenta en BitaFly';
   }
-
-  const ctaLabel = isExistingUser
-    ? 'Ver invitación en mi dashboard'
-    : orgId
-      ? 'Crear cuenta y unirme a la organización'
-      : grantToken
-        ? 'Activar mi acceso gratis'
-        : 'Crear mi cuenta en BitaFly';
 
   const safeName    = escHtml(name || 'Hola');
   const safeRole    = escHtml(ROLE_LABEL[role]);
@@ -227,7 +252,9 @@ export async function POST(request) {
     to:      [cleanEmail],
     subject: orgId
       ? `Invitación para unirte a ${orgName} en BitaFly`
-      : '¡Te invitamos a gestionar tus operaciones de drones con BitaFly!',
+      : isExistingUser
+        ? 'Tu cuenta de BitaFly tiene una actualización — crea tu contraseña'
+        : '¡Te invitamos a gestionar tus operaciones de drones con BitaFly!',
     html: `
 <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f7f8fa;font-family:Arial,Helvetica,sans-serif;">
@@ -245,11 +272,16 @@ export async function POST(request) {
                 <strong>${safeSender}</strong> te invitó a unirte a <strong>${safeOrg}</strong>
                 en BitaFly con el rol de <strong>${safeRole}</strong>.
                </p>`
-            : `<p style="margin:0 0 20px;font-size:15px;color:#4a5568;line-height:1.7;">
-                El equipo de <strong>BitaFly</strong> te invita a conocer la plataforma de gestión de
-                operaciones con drones más completa de Colombia. Cumple con la normativa RAC 100,
-                lleva tu bitácora digital y programa tus vuelos con seguridad.
-               </p>`
+            : isExistingUser
+              ? `<p style="margin:0 0 20px;font-size:15px;color:#4a5568;line-height:1.7;">
+                  Tu cuenta de <strong>BitaFly</strong> tiene una actualización esperándote.
+                  Define una contraseña nueva para entrar de una vez con el acceso ya autorizado.
+                 </p>`
+              : `<p style="margin:0 0 20px;font-size:15px;color:#4a5568;line-height:1.7;">
+                  El equipo de <strong>BitaFly</strong> te invita a conocer la plataforma de gestión de
+                  operaciones con drones más completa de Colombia. Cumple con la normativa RAC 100,
+                  lleva tu bitácora digital y programa tus vuelos con seguridad.
+                 </p>`
           }
           ${safeMessage ? `<p style="margin:0 0 24px;font-size:15px;color:#4a5568;line-height:1.7;padding:16px;background:#fff8f5;border-left:4px solid #ec5b13;border-radius:0 8px 8px 0;">${safeMessage}</p>` : ''}
           ${planData ? `

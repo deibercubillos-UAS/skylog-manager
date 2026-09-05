@@ -66,7 +66,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
 | [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 289 | ✅ |
-| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 233 | ✅ |
+| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 258 | ✅ |
 
 **Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · ⏸ omitido por ahora
 
@@ -100,11 +100,16 @@ sitemap. **Cero documentos en 🔄**: la premisa de evolución aditiva quedó ce
 
 **Dos decisiones de infraestructura siguen esperando al usuario** ([`51`](51-bitacora.md)
 §11.6-§11.7): el plan Pro de Supabase para crear el branch de desarrollo, y ejecutar a mano en
-el panel de Vercel las variables de entorno por rama.
+el panel de Vercel las variables de entorno por rama. Ninguna de las dos bloquea la lógica de
+dominio pura — solo su conexión a datos reales.
 
-Con eso resuelto, el primer código real es `dutyCompliance` en `packages/domain` (F5, ya
-esqueleto en `develop-v2`), sobre los ocho límites de `100.540` de
-[`41-tiempos-servicio.md`](41-tiempos-servicio.md) §1.1.
+**`dutyCompliance` ya está construido** (F5, `packages/domain` en `develop-v2`, commit
+`ec04dcd`, [`51`](51-bitacora.md) §11.9): las 8 reglas de `100.540` de
+[`41-tiempos-servicio.md`](41-tiempos-servicio.md) §1.1 como funciones puras, 23 pruebas en
+verde. Sin Supabase todavía no puede leer `duty_periods`/`flights` reales — queda listo para
+conectarse en cuanto la infraestructura lo permita. Siguiente módulo de dominio candidato,
+sin depender de infraestructura: la certificación anual de F5
+(`duty_annual_certifications`, `100.535(12)`) o el modelo de `risk_analyses` (F4a).
 
 ---
 

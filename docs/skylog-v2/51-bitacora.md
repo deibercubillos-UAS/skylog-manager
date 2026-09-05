@@ -231,3 +231,28 @@ de desalineación que motivó rehacer los seis documentos anteriores.
 del plan son los dos de infraestructura (§11.6-§11.7, esperando al usuario) y P-MAUT-1 (RAC 114,
 diferido a propósito, no bloqueante).
 
+### 11.9 `dutyCompliance` — primer módulo real de código (2026-09-05)
+
+Retomado el proyecto tras el paréntesis de producción (invitaciones de Master, guiones de
+video). Verificado antes de seguir: `develop-v2` sí existe en remoto con el commit `bd46006`
+de Fase 0 (`packages/domain`/`packages/ui`) — no se había perdido, solo faltaba el `git fetch`
+completo para verlo. PR #93 sin actividad humana nueva desde el cierre de §11.8.
+
+Como los dos pendientes de infraestructura (§11.6 Supabase Pro, §11.7 Vercel env vars) solo
+bloquean la integración con datos reales — no la lógica pura — se adelantó lo que sí se puede
+construir sin ellos: `packages/domain/src/dutyCompliance.js`, primer módulo real (F5, sobre
+`41-tiempos-servicio.md` §1.1), commit `ec04dcd` en `develop-v2`. Las 8 reglas de `100.540`
+implementadas como funciones puras (`checkMonthlyFlightHours`, `checkDailyFlightHours`,
+`checkContinuousOperation`, `checkRestPeriod`) + un agregador `evaluateDutyCompliance` con
+`blocksDispatch` — pensado para conectarse tal cual a `duty_periods`/`flights`
+(`31-esquema-datos.md` §3.1) cuando la infraestructura lo permita, sin acoplarse hoy a la
+forma exacta de esas tablas. 23 pruebas en verde (`npm run test:domain`), `next lint` + `npm
+run build` limpios (mismos 3 warnings preexistentes de siempre).
+
+**Sigue sin resolverse** (esperando al usuario, sin cambios desde §11.6-§11.7): el plan Pro
+de Supabase y las variables de entorno de Vercel para `develop-v2`. Mientras tanto, el
+siguiente módulo de dominio que se puede seguir construyendo sin infraestructura es el que el
+usuario indique — candidatos naturales sobre lo ya diseñado: la certificación anual de F5
+(`duty_annual_certifications`, `100.535(12)`) o adelantar el modelo de `risk_analyses`
+(F4a, `18-analisis-riesgos-vuelo.md`) como funciones puras antes de tocar Supabase.
+

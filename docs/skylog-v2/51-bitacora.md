@@ -256,3 +256,51 @@ usuario indique — candidatos naturales sobre lo ya diseñado: la certificació
 (`duty_annual_certifications`, `100.535(12)`) o adelantar el modelo de `risk_analyses`
 (F4a, `18-analisis-riesgos-vuelo.md`) como funciones puras antes de tocar Supabase.
 
+### 11.10 Supabase Pro comprado + branch `develop-v2` creado (2026-09-05)
+
+Cierra §11.6. Antes de comprar Pro, el usuario intentó liberar el bloqueo de otra forma —
+"libere un espacio en Supabase" — que se verificó primero en vez de asumir: la organización
+`deibercubillos-UAS` (plan `free` en ese momento) tenía solo 1 proyecto propio
+(`skylog-manager`), pero el intento de crear un **segundo proyecto gratuito** (alternativa sin
+costo a un branch, evaluada primero por ser $0/mes) falló con un error real y no anticipado:
+
+> *"gerencia@tecnisas.co (2 project limit)"* — el límite de proyectos gratuitos de Supabase es
+> **por persona, across todas las organizaciones donde es admin/owner**, no por organización.
+> Esa cuenta (el otro administrador de `deibercubillos-UAS`, del cliente "tecni" mencionado en
+> sesiones previas) ya tenía su cupo de 2 proyectos gratuitos copado en **otra** organización —
+> bloqueaba crear uno nuevo aquí aunque esta organización solo tuviera 1.
+
+El usuario resolvió esto comprando el **plan Pro** directamente (confirmado vía
+`get_organization`: `plan: "pro"`, antes `"free"`) — con Pro ya no aplica el límite de
+proyectos gratuitos, y además **habilita branching real** sobre `skylog-manager`, la opción
+técnicamente mejor sobre la que ya se había decidido en su momento (un branch clona el
+esquema/RLS/funciones de producción automáticamente vía `create_branch`; un proyecto separado
+habría exigido replicar a mano las ~85 tablas).
+
+- **Branch `develop-v2` creado** sobre `skylog-manager` (`ilozajejhecskmhwxkui`) — costo
+  adicional $0,01344/hora (~$9,68 USD/mes) sobre el Pro base, confirmado con el usuario antes
+  de crear. Resultado: `project_ref` **`bqimtkwzayewwubgsaji`**, estado `FUNCTIONS_DEPLOYED` /
+  `ACTIVE_HEALTHY` — creación exitosa. **Sin datos de producción** (los branches solo clonan
+  esquema vía replay de migraciones, no filas — comportamiento esperado y documentado por la
+  propia herramienta).
+  - URL: `https://bqimtkwzayewwubgsaji.supabase.co`
+  - `anon`/`publishable` key: obtenida vía `get_publishable_keys` (no es secreta).
+  - **`service_role` key: sigue sin poder leerse por API** (mismo hallazgo de §11.7,
+    confirmado de nuevo) — el usuario debe copiarla a mano desde el panel de este proyecto
+    branch en Supabase (Project Settings → API) para poder configurarla en Vercel.
+- **Hallazgo sin resolver, no bloqueante para develop-v2**: el branch **`main`** (el registro
+  que representa producción una vez se activa branching, `is_default: true`) muestra
+  `status: "MIGRATIONS_FAILED"` desde el 22 de agosto — probablemente por el historial de
+  migraciones inconsistente de producción, ya documentado en `CLAUDE.md` (ej. `sora_assessments`
+  creada directo en Supabase, fuera de control de versiones). No impidió crear `develop-v2`
+  (que sí completó todas sus migraciones limpio), pero es una señal real de salud del proyecto
+  que vale la pena que el usuario revise en el panel de Supabase cuando tenga oportunidad —
+  fuera del alcance de esta sesión arreglarlo sin más contexto de cuáles migraciones fallan.
+
+**Único pendiente de infraestructura que queda abierto: §11.7 (Vercel)** — configurar en el
+panel de Vercel, para el branch de git `develop-v2`, las variables de entorno *Preview*:
+`NEXT_PUBLIC_SUPABASE_URL` (la URL de arriba), `NEXT_PUBLIC_SUPABASE_ANON_KEY` (la key de
+arriba) y `SUPABASE_SERVICE_ROLE_KEY` (a copiar a mano del panel de Supabase) — scope
+"Preview" y branch `develop-v2` específicamente, no "todas las Preview" (para no exponer la
+base de desarrollo a otros previews del mismo proyecto Vercel).
+

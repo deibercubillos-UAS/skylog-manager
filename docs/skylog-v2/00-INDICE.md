@@ -66,7 +66,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
 | [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 289 | ✅ |
-| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 306 | ✅ |
+| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 354 | ✅ |
 
 **Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · ⏸ omitido por ahora
 
@@ -98,23 +98,31 @@ Etapas ①② del ciclo cerradas, `32-migracion.md` escrito, y **los siete docum
 rehechos** (`33`, `34`, `35`, `40`, `41`, `43`, `12`) — todo sobre el mapa de entidades y el
 sitemap. **Cero documentos en 🔄**: la premisa de evolución aditiva quedó cerrada por completo.
 
-**Supabase Pro comprado + branch `develop-v2` creado (2026-09-05, [`51`](51-bitacora.md)
-§11.10)** — cierra §11.6. `project_ref` `bqimtkwzayewwubgsaji`, `FUNCTIONS_DEPLOYED`/
-`ACTIVE_HEALTHY`, URL y `anon` key ya obtenidas. **Único pendiente de infraestructura que
-queda abierto: §11.7** — configurar en Vercel, scope Preview + branch `develop-v2`, las 3
-variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-`SUPABASE_SERVICE_ROLE_KEY` — esta última a copiar a mano del panel de Supabase, nunca
-expuesta por API). Hallazgo sin resolver y sin bloquear nada: el branch `main` (producción)
-muestra `MIGRATIONS_FAILED` desde el 22 de agosto — revisar en el panel cuando haya
-oportunidad.
+**Infraestructura de Fase 0 completa (2026-09-05, [`51`](51-bitacora.md) §11.10-§11.11)** —
+cierra §11.6 y §11.7, las dos últimas decisiones pendientes. Supabase Pro comprado, branch
+`develop-v2` creado sobre `skylog-manager` (`project_ref` `bqimtkwzayewwubgsaji`), y las 3
+variables de entorno confirmadas en Vercel (scope Preview + rama `develop-v2`).
 
-**`dutyCompliance` ya está construido** (F5, `packages/domain` en `develop-v2`, commit
-`ec04dcd`, [`51`](51-bitacora.md) §11.9): las 8 reglas de `100.540` de
-[`41-tiempos-servicio.md`](41-tiempos-servicio.md) §1.1 como funciones puras, 23 pruebas en
-verde. Con la base de datos de desarrollo ya creada, el siguiente paso natural es cablear
-este módulo contra `duty_periods`/`flights` reales en cuanto se resuelva §11.7 — o seguir
-adelantando módulos de dominio puro mientras tanto (certificación anual de F5,
-`duty_annual_certifications`, `100.535(12)`; o el modelo de `risk_analyses`, F4a).
+**Hallazgo real, no bloqueante**: el branch de Supabase nació **vacío** (0 tablas) — el
+replay de las 111 migraciones de producción falló (mismo problema que el `MIGRATIONS_FAILED`
+del branch `main` desde el 22 de agosto, causa raíz sin diagnosticar a propósito, ver
+[`51`](51-bitacora.md) §11.11). No afecta a F5 porque sus tablas son enteramente nuevas —
+si una fase futura necesita el esquema/datos de v1 replicados aquí, hay que resolver esto
+primero.
+
+**F5 ya tiene lógica y esquema reales**: `dutyCompliance` en `packages/domain`
+(`develop-v2` en git, commit `ec04dcd`, [`51`](51-bitacora.md) §11.9) — las 8 reglas de
+`100.540` de [`41-tiempos-servicio.md`](41-tiempos-servicio.md) §1.1 como funciones puras, 23
+pruebas en verde. Y las 3 tablas de `31-esquema-datos.md` §3.1 (`duty_periods`,
+`duty_exceptions`, `duty_annual_certifications`) ya creadas en `develop-v2` (Supabase),
+con RLS habilitado sin políticas todavía (deny-all a propósito — el modelo de identidad
+`people`/`accounts`/`memberships` de `30-entidades.md` §2 aún no existe, sin FK ni políticas
+inventadas sin él).
+
+**Próximo paso, a decisión del usuario**: escribir el primer API route real de v2 que
+conecte `dutyCompliance` con `duty_periods` en la base de desarrollo, construir el modelo de
+identidad (`people`/`accounts`/`memberships`) que las FK de F5 están esperando, o seguir
+adelantando otro módulo de dominio puro (certificación anual de F5, o `risk_analyses` de F4a).
 
 ---
 

@@ -304,3 +304,51 @@ arriba) y `SUPABASE_SERVICE_ROLE_KEY` (a copiar a mano del panel de Supabase) �
 "Preview" y branch `develop-v2` específicamente, no "todas las Preview" (para no exponer la
 base de desarrollo a otros previews del mismo proyecto Vercel).
 
+### 11.11 Vercel confirmado + primeras tablas reales de F5 (2026-09-05, mismo día)
+
+Cierra §11.7 — el usuario confirmó las 3 variables ya cargadas en Vercel (tras un conflicto
+real de la propia consola de Vercel, "ya existe una variable con ese nombre para Preview en
+la rama develop-v2" y también para "branch undefined" — dos filas previas del mismo nombre,
+una general de Preview sin restricción de rama y otra ya puntual a `develop-v2`; resuelto por
+el usuario editando en vez de crear, sin que esta sesión tocara nada de Vercel — no existe
+ninguna herramienta con permiso de escritura ahí). **Con esto, las dos decisiones de
+infraestructura de §11.6-§11.7 quedan cerradas.**
+
+**Hallazgo real antes de seguir, verificado con `list_tables`**: el branch `develop-v2` de
+Supabase quedó **completamente vacío** (0 tablas en `public`) — no clonó el esquema de
+producción pese a que `create_branch` dice hacerlo. Consistente con el `MIGRATIONS_FAILED` del
+branch `main` ya visto en §11.10: `list_migrations` sobre producción muestra 111 migraciones
+reales trackeadas (desde `remote_schema` del 9 de abril), pero el replay hacia el branch nuevo
+no las aplicó — causa raíz no diagnosticada (se decidió no invertir tiempo en repararla ahora,
+ver razón abajo).
+
+**Por qué esto no bloquea F5**: las tablas de tiempos de servicio (`duty_periods`,
+`duty_exceptions`, `duty_annual_certifications`, `31-esquema-datos.md` §3.1) son
+**enteramente nuevas** — no existen en el esquema de producción (`100.540` no estaba cubierto
+por la plataforma, es la brecha que origina todo el frente F5). No hace falta que el resto de
+las ~85 tablas de producción estén replicadas en este branch para poder construir y probar
+esto. Se decidió no diagnosticar el replay roto ahora mismo — sería una investigación aparte,
+sin urgencia mientras F5 no necesite datos/esquema de v1, y se revisita antes de cualquier
+fase que sí los necesite (ej. F1 leyendo `flights` reales).
+
+**Migración `f5_duty_compliance_tables` aplicada** en `develop-v2`
+(`bqimtkwzayewwubgsaji`) vía `apply_migration`: las 3 tablas exactas de `31-esquema-datos.md`
+§3.1, con dos decisiones de diseño explícitas:
+- `organization_id`/`person_id` (y `authorized_by`/`certified_by`) son `uuid` **sin foreign
+  key todavía** — el modelo de identidad de v2 (`people`/`accounts`/`memberships`,
+  `30-entidades.md` §2) todavía no existe en esta base. Las FK se agregan cuando esas tablas
+  se creen; documentado en un comentario dentro de la propia migración, no solo aquí.
+- RLS habilitado en las 3 tablas **sin ninguna política** — deny-all por defecto hasta que
+  exista el modelo de organización real para escribir políticas correctas, en vez de inventar
+  una regla de acceso sin ese modelo detrás. Confirmado con `get_advisors` (security): los 3
+  únicos hallazgos son exactamente `rls_enabled_no_policy` sobre estas 3 tablas — nivel INFO,
+  esperado y a propósito, no un error.
+
+**Estado real de Fase 0 tras esto**: infraestructura completa (Supabase Pro + branch +
+Vercel), `packages/domain` con `dutyCompliance` (lógica pura, `develop-v2` en git) y ahora
+también el primer esquema real de v2 (`develop-v2` en Supabase, mismo nombre por coincidencia
+con la rama de git — son dos cosas distintas: una rama de git y un branch de base de datos).
+Pendiente natural siguiente: escribir el primer API route real de v2 que lea/escriba
+`duty_periods` contra este branch, o seguir el mismo patrón (esquema + función pura) para el
+siguiente frente. A decisión del usuario.
+

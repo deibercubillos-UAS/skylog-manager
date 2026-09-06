@@ -352,3 +352,34 @@ Pendiente natural siguiente: escribir el primer API route real de v2 que lea/esc
 `duty_periods` contra este branch, o seguir el mismo patrón (esquema + función pura) para el
 siguiente frente. A decisión del usuario.
 
+### 11.12 Reglas de oro de frontend — marca, stack, rutas por rol (2026-09-06)
+
+El usuario compartió una guía externa de frontend (`FRONTEND_GUIDE.md`) pidiendo reconciliarla
+con las reglas ya existentes antes de adoptar nada. Verificado punto por punto contra
+`docs/bitafly-brand-visual-brief.md`, `CLAUDE.md` y el código real antes de responder — no se
+aceptó nada de la guía a ciegas. Documento completo:
+[`37-marca-y-motion.md`](37-marca-y-motion.md).
+
+**4 contradicciones reales encontradas y resueltas con el usuario** (`AskUserQuestion`):
+- **Alcance** → **solo v2, en `develop-v2`**. No toca `main` — coincide con la regla de oro que
+  el usuario reafirmó dos veces en esta misma sesión.
+- **Nombre de marca**: la guía exige "Bitafly" (una palabra); todo el código, la razón social
+  (`BitaFly S.A.S.`) y el brief de marca existente usan "BitaFly". **Decisión: "Bitafly" para
+  todo lo nuevo de v2** — producción sigue "BitaFly" hasta que se decida converger (pendiente
+  de negocio explícito, `37` §1.1 P-FM-1 — no se asume ni se ejecuta el cambio de razón social,
+  que es un trámite societario real, no de código).
+- **Stack**: la guía declaraba TypeScript; el proyecto es 100% JavaScript, decisión ya
+  documentada en `33-arquitectura.md`. **Decisión: se mantiene JavaScript** — se corrige la
+  guía, no el código.
+- **Interfaces por rol** (pedido nuevo del usuario, más allá de la guía): **rutas separadas de
+  verdad** (`src/app/(v2)/piloto/`, `.../jefe-pilotos/`, etc.), no solo componentes distintos en
+  la misma URL — precisa `35-frontend.md` §3.2. `PERMISSIONS`/RLS siguen siendo la única fuente
+  de seguridad real.
+
+**Otros hallazgos honestos, sin resolver a ciegas**: GSAP/Framer Motion no están instalados
+(se instalan cuando F1 los necesite, regla E5); Figma Dev Mode MCP no se puede usar desde esta
+sesión remota (requiere Figma local del usuario); las skills `impeccable`/`animate-skill`/
+`gsap-skills` no están disponibles aquí; el "plugin Ponytail" que menciona la guía **no se
+encontró en el repo**, no se adopta como referencia real; `bitafly-home-redesign.md`
+(referenciado por la guía) no existe en este repo — pendiente si el usuario lo tiene.
+

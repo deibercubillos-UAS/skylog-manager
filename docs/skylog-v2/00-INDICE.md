@@ -49,8 +49,9 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | [`32-migracion.md`](32-migracion.md) | **Reglas de precedencia** para el ETL — corte por organización, conflictos de alto/bajo riesgo | 157 | ✅ |
 | [`33-arquitectura.md`](33-arquitectura.md) | **npm workspaces real** (no pnpm/Turbo) · `packages/domain` con Vitest verificado en verde | 104 | ✅ |
 | [`34-seguridad.md`](34-seguridad.md) | RLS sobre el esquema nuevo · **protección de datos SMS resuelta** (`219.115-140`) · custodia legal · deuda de seguridad | 87 | ✅ |
-| [`35-frontend.md`](35-frontend.md) | Espacios por momento operacional, reconciliados con `36-sitemap.md` | 107 | ✅ |
+| [`35-frontend.md`](35-frontend.md) | Espacios por momento operacional, reconciliados con `36-sitemap.md` · rutas por rol precisadas en `37` | 120 | ✅ |
 | [`36-sitemap.md`](36-sitemap.md) | **Sitemap** — 6 espacios + complementos, todo activable · replay multimarca · análisis forense | 183 | ✅ |
+| [`37-marca-y-motion.md`](37-marca-y-motion.md) | **Reglas de oro de frontend** — marca "Bitafly" (solo v2), neuromarketing/UX, stack de motion, rutas separadas por rol, assets reales | 213 | ✅ |
 
 ## 4 · Módulos
 
@@ -66,7 +67,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
 | [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 289 | ✅ |
-| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 354 | ✅ |
+| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 385 | ✅ |
 
 **Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · ⏸ omitido por ahora
 
@@ -74,7 +75,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Estado
 
-- **28 documentos**, todos bajo el límite de 500 líneas. El mayor: `21-auditoria-sms.md` (433).
+- **29 documentos**, todos bajo el límite de 500 líneas. El mayor: `21-auditoria-sms.md` (433).
 - `plan-bitafly-v2.md` e `investigacion-sms-rac219-bitafly.md` **se eliminaron**: su contenido
   vive repartido aquí. No hay duplicados (regla E1).
 - **Ningún documento queda marcado 🔄**: los siete que se escribieron bajo la premisa anterior
@@ -124,6 +125,15 @@ conecte `dutyCompliance` con `duty_periods` en la base de desarrollo, construir 
 identidad (`people`/`accounts`/`memberships`) que las FK de F5 están esperando, o seguir
 adelantando otro módulo de dominio puro (certificación anual de F5, o `risk_analyses` de F4a).
 
+**Reglas de oro de frontend fijadas (2026-09-06, [`37-marca-y-motion.md`](37-marca-y-motion.md))**
+— 4 decisiones cerradas con el usuario antes de que F1 se construya: alcance solo v2/
+`develop-v2` (no toca `main`); marca "Bitafly" para todo lo nuevo de v2 (producción sigue
+"BitaFly" hasta que se decida converger — pendiente de negocio, no técnico); se mantiene
+JavaScript, no TypeScript; interfaces por rol como **rutas separadas de verdad**
+(`src/app/(v2)/piloto/`, `.../jefe-pilotos/`, etc.), no solo componentes distintos —
+detalle en `35-frontend.md` §3.2. Sin cambios de código todavía: F1 sigue siendo el último
+frente del orden.
+
 ---
 
-*Actualizado: 2026-09-05*
+*Actualizado: 2026-09-06*

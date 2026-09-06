@@ -7,6 +7,11 @@
 > [`36-sitemap.md`](36-sitemap.md). Ver §6, nueva, para la reconciliación entre ambos. Se quitó
 > la mención a C2 en vivo del espacio OPERAR (decisión 20 — dormido, no forma parte de la
 > navegación mientras esté omitido).
+>
+> **Actualizado 2026-09-06**: [`37-marca-y-motion.md`](37-marca-y-motion.md) trae las reglas de
+> oro de marca/motion/UX para cuando F1 se construya, y precisa §3.2 — el "espacio por defecto
+> según el rol" de abajo se implementa como **rutas separadas de verdad por rol**, no solo
+> componentes distintos en la misma ruta (decisión del usuario, ver ese documento §6).
 
 ---
 
@@ -38,6 +43,14 @@ Cuatro espacios, cada uno con su propia densidad visual y su propio "modo":
 El rol sigue filtrando qué se ve (sin cambios en `PERMISSIONS`), pero además **el espacio por
 defecto depende del rol**: piloto → OPERAR; jefe de pilotos → PLANEAR; gerente SMS → CUMPLIR;
 gerente general → un panel ejecutivo transversal.
+
+**Precisión 2026-09-06**: esto se implementa como **árboles de ruta separados por rol**
+(`src/app/(v2)/piloto/`, `.../jefe-pilotos/`, `.../gerente-sms/`, `.../gerente-general/`), no
+solo como un componente distinto en la misma URL — cada rol carga solo su propio código, más
+rápido de verdad, no solo más ordenado. Detalle en
+[`37-marca-y-motion.md`](37-marca-y-motion.md) §6. `PERMISSIONS`/RLS siguen siendo la única
+fuente real de seguridad; la separación de rutas es una decisión de organización y rendimiento,
+no un mecanismo de acceso paralelo.
 
 ### 3.3 Modo campo
 

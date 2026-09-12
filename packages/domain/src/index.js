@@ -7,3 +7,12 @@ export function domainReady() {
 }
 
 export * from './dutyCompliance.js';
+export * from './riskAnalysis.js';
+export * from './smsReporting.js';
+export * from './internalRiskMatrix.js';
+export * from './safetyIndicators.js';
+export * from './smsTrainingSchedule.js';
+export * from './trainingExamCompliance.js';
+export * from './smsGovernance.js';
+export * from './smsImplementationProgress.js';
+export * from './workspaces.js';

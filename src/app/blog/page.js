@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import SEONav from '@/components/seo/SEONav';
-import SEOFooter from '@/components/seo/SEOFooter';
+import PublicHeader from '@/components/bitafly/PublicHeader';
+import PublicFooter from '@/components/bitafly/PublicFooter';
 import NewsletterSignup from '@/components/NewsletterSignup';
 import { BLOG_POSTS } from '@/lib/blogPosts';
 
@@ -82,7 +82,7 @@ export default function BlogIndex() {
       {schemas.map((s, i) => (
         <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(s) }} />
       ))}
-      <SEONav />
+      <PublicHeader />
 
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <section className="relative bg-navy text-white overflow-hidden">
@@ -257,7 +257,7 @@ export default function BlogIndex() {
                 Todo lo que lees aquí,<br className="hidden md:block"/> automatizado en Bitafly
               </h2>
               <p className="text-slate-300 text-sm mb-6 max-w-lg mx-auto leading-relaxed">
-                Bitácora digital, SMS, SORA, autorizaciones AeroCivil y gestión de flota
+                Bitácora digital, SMS, SORA, capacitación con examen y gestión de flota
                 en una sola plataforma diseñada para la RAC 100.
               </p>
               <Link
@@ -274,7 +274,7 @@ export default function BlogIndex() {
         </div>
       </main>
 
-      <SEOFooter />
+      <PublicFooter />
     </>
   );
 }

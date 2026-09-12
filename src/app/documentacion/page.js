@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import SEONav from '@/components/seo/SEONav';
-import SEOFooter from '@/components/seo/SEOFooter';
+import PublicHeader from '@/components/bitafly/PublicHeader';
+import PublicFooter from '@/components/bitafly/PublicFooter';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
 
@@ -280,11 +280,11 @@ export default function DocumentacionPage() {
     <div className="min-h-screen bg-white text-slate-800">
 
       {/* ── HEADER ── */}
-      <SEONav />
+      <PublicHeader />
 
       {/* ── MOBILE STICKY NAV — navegación entre fases ── */}
       {/* Solo visible en mobile/tablet, sticky justo debajo del header */}
-      <div className="lg:hidden sticky top-14 z-30 bg-white/95 backdrop-blur-sm border-b border-slate-100 shadow-sm">
+      <div className="lg:hidden sticky top-16 z-30 bg-white/95 backdrop-blur-sm border-b border-slate-100 shadow-sm">
         <div className="flex overflow-x-auto gap-1.5 px-4 py-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {FASES.map((f) => (
             <a
@@ -397,7 +397,7 @@ export default function DocumentacionPage() {
                 key={fase.id}
                 id={fase.id}
                 // scroll-mt compensa: header (56px mobile / 64px desktop) + mobile nav (44px) + margen
-                className="scroll-mt-28 lg:scroll-mt-24"
+                className="scroll-mt-32 lg:scroll-mt-24"
               >
                 {/* Encabezado de fase */}
                 <div className="flex items-start gap-4 mb-6">
@@ -496,7 +496,7 @@ export default function DocumentacionPage() {
       </div>
 
       {/* ── FOOTER ── */}
-      <SEOFooter brandDesc="Software de gestión aeronáutica para operadores UAS en Colombia. Cumplimiento RAC 100 desde el primer vuelo." />
+      <PublicFooter brandDesc="Software de gestión aeronáutica para operadores UAS en Colombia. Cumplimiento RAC 100 desde el primer vuelo." />
     </div>
   );
 }

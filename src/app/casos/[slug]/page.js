@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import SEONav from '@/components/seo/SEONav';
-import SEOFooter from '@/components/seo/SEOFooter';
+import PublicHeader from '@/components/bitafly/PublicHeader';
+import PublicFooter from '@/components/bitafly/PublicFooter';
 import { CASE_STUDIES, getCaseBySlug, getAllCaseSlugs } from '@/lib/caseStudies';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
@@ -28,6 +28,11 @@ export function generateMetadata({ params }) {
   };
 }
 
+// Sin entrada para 'autorizaciones-aerocivil' a propósito: esa página pública
+// se retiró (ver 51-bitacora.md decisión 87) — el módulo real sigue existiendo
+// dentro del producto, pero ya no tiene una landing propia a la que enlazar.
+// El badge se renderiza como texto plano (no <Link>) cuando falta el href,
+// en vez de apuntar a '/' por defecto (regla V1 — nunca un enlace fantasma).
 const MODULE_HREF = {
   'bitacora-digital':        '/bitacora-digital',
   'gestion-flota-drones':    '/gestion-flota-drones',
@@ -35,7 +40,6 @@ const MODULE_HREF = {
   'reportes-auditoria':      '/reportes-auditoria',
   'sms-aeronautico':         '/sms-aeronautico',
   'gestion-pilotos':         '/gestion-pilotos',
-  'autorizaciones-aerocivil':'/autorizaciones-aerocivil',
   'sora':                    '/sora',
 };
 const MODULE_LABEL = {
@@ -93,7 +97,7 @@ export default function CasoPage({ params }) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
-      <SEONav />
+      <PublicHeader />
 
       <main className="max-w-3xl mx-auto px-6 py-12">
         {/* Breadcrumb */}
@@ -148,13 +152,19 @@ export default function CasoPage({ params }) {
           <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Módulos utilizados</p>
           <div className="flex flex-wrap gap-2">
             {c.modulos.map(m => (
-              <Link
-                key={m}
-                href={MODULE_HREF[m] ?? '/'}
-                className="bg-navy text-white text-xs font-black px-3 py-1.5 rounded-full hover:bg-orange-600 transition-colors"
-              >
-                {MODULE_LABEL[m] ?? m}
-              </Link>
+              MODULE_HREF[m] ? (
+                <Link
+                  key={m}
+                  href={MODULE_HREF[m]}
+                  className="bg-navy text-white text-xs font-black px-3 py-1.5 rounded-full hover:bg-orange-600 transition-colors"
+                >
+                  {MODULE_LABEL[m] ?? m}
+                </Link>
+              ) : (
+                <span key={m} className="bg-navy text-white text-xs font-black px-3 py-1.5 rounded-full">
+                  {MODULE_LABEL[m] ?? m}
+                </span>
+              )
             ))}
           </div>
         </section>
@@ -233,7 +243,7 @@ export default function CasoPage({ params }) {
         </div>
       </main>
 
-      <SEOFooter />
+      <PublicFooter />
     </>
   );
 }

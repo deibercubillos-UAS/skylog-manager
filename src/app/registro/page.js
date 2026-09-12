@@ -42,6 +42,11 @@ function buildPlans(livePrices) {
     const dispAnnual  = excludesIva ? annualAmount  / 1.19 : annualAmount;
     return {
       ...plan,
+      // Montos crudos — el precio mostrado en la tarjeta se recalcula en el
+      // render según form.billing (mensual/anual), no queda fijo aquí.
+      monthlyAmountDisp: dispMonthly,
+      annualAmountDisp: dispAnnual,
+      excludesIva,
       price: `${fmtCOP(dispMonthly)}/mes${excludesIva ? ' + IVA' : ''}`,
       sub: `o ${fmtCOP(dispAnnual)}/año (−10%)${excludesIva ? ' + IVA' : ''}`,
       rawPrice: monthlyAmount,
@@ -126,7 +131,11 @@ export default function RegisterPage() {
 
   const emailLocked  = !!socioInvite || !!grantToken; // correo fijo por invitación/regalo
   const isPaidPlan   = PLANS.find(p => p.key === form.selectedPlan)?.paid ?? false;
-  const CREATE_STEPS = isPaidPlan ? ['Plan', 'Datos', 'Cuenta', 'Pago'] : ['Plan', 'Datos', 'Cuenta'];
+  // Plan + tipo de cuenta (solo/empresa + NIT) fusionados en un solo paso —
+  // antes eran 2 pasos separados con "Datos" en medio, y para planes pagados
+  // el paso "Cuenta" solo pedía NIT porque el tipo ya estaba forzado a
+  // 'company' (useEffect de abajo) — puro relleno de un paso completo.
+  const CREATE_STEPS = isPaidPlan ? ['Plan y cuenta', 'Datos', 'Pago'] : ['Plan y cuenta', 'Datos'];
   const JOIN_STEPS   = ['Organización', 'Tus datos'];
 
   // Limpieza del polling
@@ -294,7 +303,7 @@ export default function RegisterPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al iniciar el pago');
       setPendingRef(data.reference);
-      setCreateStep(4);
+      setCreateStep(3);
       // Sin 'noopener': igual que dashboard/subscription/page.js, se necesita
       // la referencia window.opener para que la pestaña de ePayco pueda
       // detectarse a sí misma como popup y autocerrarse al terminar (ver
@@ -320,19 +329,21 @@ export default function RegisterPage() {
     finally { setJoinValidating(false); }
   };
 
-  // Re-validar rol cuando cambia (si ya se validó la org)
-  const handleJoinRoleChange = async (newRole) => {
-    setJoinRole(newRole);
-    if (!joinOrg?.valid) return;
-    setJoinValidating(true); setJoinError('');
-    try {
-      const nit  = joinNit.replace(/[\s\-.]/g, '').toUpperCase();
-      const res  = await fetch(`/api/auth/validate-join?nit=${encodeURIComponent(nit)}&role=${newRole}`);
-      const data = await res.json();
-      if (data.valid) setJoinOrg(data);
-    } catch { /* silencioso */ }
-    finally { setJoinValidating(false); }
-  };
+  // Cambiar de rol solo actualiza el estado — el efecto de abajo revalida
+  // automáticamente contra el NIT ya ingresado (sin duplicar la llamada aquí).
+  const handleJoinRoleChange = (newRole) => setJoinRole(newRole);
+
+  // Auto-validación del NIT — antes exigía un clic explícito en "Buscar" +
+  // otro clic por cada cambio de rol; ahora se valida solo, con un pequeño
+  // debounce para no disparar una petición por cada tecla mientras se
+  // escribe (feedback del usuario: "siento que tiene muchos clics y botones").
+  useEffect(() => {
+    const cleaned = joinNit.replace(/[\s\-.]/g, '');
+    if (cleaned.length < 6) { setJoinOrg(null); return; }
+    const t = setTimeout(() => { validateJoin(); }, 450);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [joinNit, joinRole]);
 
   const handleRegisterJoin = async (e) => {
     e.preventDefault();
@@ -369,7 +380,7 @@ export default function RegisterPage() {
     return (
       <div className="flex min-h-screen bg-white">
         <main className="flex-1 flex flex-col justify-center px-8 md:px-16 lg:px-20 py-12 overflow-y-auto">
-          <div className="max-w-lg w-full mx-auto space-y-8 animate-in fade-in duration-300">
+          <div className="max-w-lg w-full mx-auto space-y-8 step-fade">
             <Link href="/" className="inline-flex items-center gap-2 lg:hidden">
               <span className="text-2xl font-black text-navy uppercase tracking-tighter">Bitafly</span>
             </Link>
@@ -487,31 +498,25 @@ export default function RegisterPage() {
 
             {/* ── JOIN PASO 1: NIT + Rol ── */}
             {joinStep === 1 && (
-              <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="space-y-6 step-fade">
                 <div>
                   <h1 className="font-lexend text-3xl font-black text-navy uppercase tracking-tighter">Tu organización</h1>
                   <p className="text-slate-500 text-sm mt-1">Ingresa el NIT de la empresa y el rol que desempeñas.</p>
                 </div>
 
                 <Field label="NIT de la organización" required>
-                  <div className="flex gap-2">
+                  <div className="relative">
                     <input
                       placeholder="Ej: 900123456-7"
                       value={joinNit}
                       onChange={e => { setJoinNit(e.target.value); setJoinOrg(null); setJoinError(''); }}
-                      className={`${INPUT} flex-1 font-mono font-black tracking-widest`}
+                      className={`${INPUT} font-mono font-black tracking-widest pr-11`}
                     />
-                    <button
-                      type="button"
-                      onClick={validateJoin}
-                      disabled={joinValidating || !joinNit}
-                      className="px-4 py-2 rounded-2xl bg-navy text-white text-xs font-black uppercase tracking-widest hover:bg-slate-700 transition-all disabled:opacity-50 shrink-0"
-                    >
-                      {joinValidating
-                        ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin block" />
-                        : 'Buscar'}
-                    </button>
+                    {joinValidating && (
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-slate-300 border-t-navy rounded-full animate-spin" />
+                    )}
                   </div>
+                  <p className="text-[10px] text-slate-400 font-medium mt-1 px-1">Se verifica automáticamente al terminar de escribir.</p>
                   {joinOrg?.valid && (
                     <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl">
                       <span className="material-symbols-outlined text-emerald-500 text-base" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
@@ -566,7 +571,7 @@ export default function RegisterPage() {
                     type="button"
                     onClick={() => { setJoinError(''); setJoinStep(2); }}
                     disabled={!joinOrg?.valid || joinOrg?.roleAvailable === false}
-                    className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg hover:bg-blue-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg hover:bg-blue-700 hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Continuar
                   </button>
@@ -576,7 +581,7 @@ export default function RegisterPage() {
 
             {/* ── JOIN PASO 2: Datos personales ── */}
             {joinStep === 2 && (
-              <form onSubmit={handleRegisterJoin} className="space-y-5 animate-in fade-in duration-300">
+              <form onSubmit={handleRegisterJoin} className="space-y-5 step-fade">
                 <div>
                   <h1 className="font-lexend text-3xl font-black text-navy uppercase tracking-tighter">Tus datos</h1>
                   <p className="text-slate-500 text-sm mt-1">
@@ -594,16 +599,20 @@ export default function RegisterPage() {
                 </div>
 
                 <Field label="Correo electrónico" required>
-                  <input required type="email" placeholder="correo@empresa.com" value={joinForm.email} onChange={setJ('email')} className={INPUT} />
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl pointer-events-none">mail</span>
+                    <input required type="email" placeholder="correo@empresa.com" value={joinForm.email} onChange={setJ('email')} className={`${INPUT} pl-12`} />
+                  </div>
                 </Field>
 
                 <Field label="Contraseña" required>
                   <div className="relative">
+                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl pointer-events-none">lock</span>
                     <input
                       required type={joinShowPass ? 'text' : 'password'}
                       placeholder="Mínimo 8 caracteres" minLength={8}
                       value={joinForm.password} onChange={setJ('password')}
-                      className={`${INPUT} pr-12`}
+                      className={`${INPUT} pl-12 pr-12`}
                     />
                     <button type="button" onClick={() => setJoinShowPass(v => !v)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -632,7 +641,7 @@ export default function RegisterPage() {
                   <button type="button" onClick={() => setJoinStep(1)} className="px-6 py-4 rounded-2xl border border-slate-200 text-sm font-black text-slate-500 hover:border-slate-400 transition-all">
                     Atrás
                   </button>
-                  <button type="submit" disabled={joinLoading} className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg hover:bg-blue-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                  <button type="submit" disabled={joinLoading} className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg hover:bg-blue-700 hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                     {joinLoading
                       ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Creando cuenta...</>
                       : 'Crear cuenta'
@@ -652,7 +661,10 @@ export default function RegisterPage() {
   return (
     <div className="flex min-h-screen bg-white">
       <main className="flex-1 flex flex-col justify-center px-8 md:px-16 lg:px-20 py-12 overflow-y-auto">
-        <div className="max-w-lg w-full mx-auto">
+        {/* max-w-2xl en el paso de Plan (createStep 1) para que la grilla de
+            4 planes respire en una sola fila en desktop — el resto de pasos
+            (Datos/Pago) se conserva en max-w-lg, su ancho original. */}
+        <div className={`w-full mx-auto ${createStep === 1 ? 'max-w-lg xl:max-w-2xl' : 'max-w-lg'}`}>
           <Link href="/" className="inline-flex items-center gap-2 mb-8 lg:hidden">
             <span className="text-2xl font-black text-navy uppercase tracking-tighter">Bitafly</span>
           </Link>
@@ -682,31 +694,75 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* ── CREAR PASO 1: Plan ── */}
+          {/* ── CREAR PASO 1: Plan + cuenta (fusionado) ──
+              Antes "Plan" y "Cuenta" (tipo solo/empresa + NIT) eran 2 pasos
+              separados con "Datos" en medio — para cualquier plan pagado el
+              paso "Cuenta" solo pedía NIT, porque el tipo ya se forzaba a
+              'company' (ver useEffect de isPaidPlan). Fusionarlos quita un
+              paso completo sin perder ningún campo real. */}
           {createStep === 1 && (
-            <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="space-y-6 step-fade">
               <div>
                 <h1 className="font-lexend text-3xl font-black text-navy uppercase tracking-tighter">Elige tu plan</h1>
                 <p className="text-slate-500 text-sm mt-1">Puedes cambiar de plan en cualquier momento.</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                {PLANS.map(plan => (
-                  <button key={plan.key} type="button"
-                    onClick={() => { if (plan.contact) { window.location.href = '/#contacto'; return; } setVal('selectedPlan', plan.key); }}
-                    className={`relative p-4 rounded-2xl border-2 text-left transition-all ${form.selectedPlan === plan.key ? 'border-primary bg-orange-50' : 'border-slate-200 hover:border-slate-300 bg-white'}`}
-                  >
-                    {plan.popular && <span className="absolute -top-2.5 left-4 bg-primary text-white text-xs font-black uppercase tracking-widest px-2 py-0.5 rounded-full">Popular</span>}
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className={`material-symbols-outlined text-lg ${form.selectedPlan === plan.key ? 'text-primary' : 'text-slate-400'}`}>{plan.icon}</span>
-                      <span className={`text-xs font-black uppercase tracking-widest ${form.selectedPlan === plan.key ? 'text-primary' : 'text-navy'}`}>{plan.name}</span>
-                    </div>
-                    <p className={`text-sm font-black ${form.selectedPlan === plan.key ? 'text-navy' : 'text-slate-700'}`}>{plan.price}</p>
-                    <p className="text-xs text-slate-400 font-medium">{plan.sub}</p>
-                    <p className={`text-xs font-black uppercase mt-1 ${form.selectedPlan === plan.key ? 'text-primary' : 'text-slate-400'}`}>{plan.limits}</p>
-                    {plan.contact && <p className="text-xs text-primary font-bold mt-1">Contactar →</p>}
-                  </button>
-                ))}
+              {/* xl (no lg) a propósito: el panel lateral con foto aparece
+                  justo en lg (AuthSidePanel usa "hidden lg:flex"), así que
+                  4 columnas ya en lg quedarían muy angostas compitiendo con
+                  ese ancho — xl da espacio real para que respiren. */}
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+                {PLANS.map(plan => {
+                  const selected = form.selectedPlan === plan.key;
+                  // Precio de la tarjeta reactivo a Mensual/Anual (form.billing) —
+                  // antes siempre mostraba el mensual como precio principal, sin
+                  // importar el toggle de facturación.
+                  let priceLabel = plan.price;
+                  let subLabel = plan.sub;
+                  if (plan.paid) {
+                    const ivaTxt = plan.excludesIva ? ' + IVA' : '';
+                    if (form.billing === 'annual') {
+                      priceLabel = `${fmtCOP(plan.annualAmountDisp)}/año${ivaTxt}`;
+                      subLabel = `Equivale a ${fmtCOP(plan.annualAmountDisp / 12)}/mes${ivaTxt}`;
+                    } else {
+                      priceLabel = `${fmtCOP(plan.monthlyAmountDisp)}/mes${ivaTxt}`;
+                      subLabel = `o ${fmtCOP(plan.annualAmountDisp)}/año (−10%)${ivaTxt}`;
+                    }
+                  }
+                  return (
+                    <button key={plan.key} type="button"
+                      onClick={() => { if (plan.contact) { window.location.href = '/#contacto'; return; } setVal('selectedPlan', plan.key); }}
+                      className={`relative flex flex-col gap-3 p-5 rounded-2xl border-2 text-left transition-all min-w-0 ${
+                        selected ? 'border-primary bg-orange-50 shadow-lg shadow-orange-500/10 -translate-y-0.5' : 'border-slate-200 hover:border-slate-300 hover:shadow-md bg-white'
+                      }`}
+                    >
+                      {plan.popular && <span className="absolute -top-2.5 left-4 bg-primary text-white text-xs font-black uppercase tracking-widest px-2 py-0.5 rounded-full shadow-sm">Popular</span>}
+                      {selected && (
+                        <span className="absolute top-3 right-3 size-5 rounded-full bg-primary text-white flex items-center justify-center">
+                          <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
+                        </span>
+                      )}
+
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${selected ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}>
+                          <span className="material-symbols-outlined text-lg">{plan.icon}</span>
+                        </div>
+                        <span className={`min-w-0 flex-1 text-xs font-black uppercase tracking-wide leading-tight break-words ${selected ? 'text-primary' : 'text-navy'}`}>{plan.name}</span>
+                      </div>
+
+                      <div className="pt-3 border-t border-dashed border-slate-200 min-w-0">
+                        <p className={`text-base font-black leading-snug break-words ${selected ? 'text-navy' : 'text-slate-700'}`}>{priceLabel}</p>
+                        <p className="text-xs text-slate-400 font-medium mt-0.5 break-words">{subLabel}</p>
+                      </div>
+
+                      <span className={`self-start max-w-full text-[10px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full break-words ${selected ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-500'}`}>
+                        {plan.limits}
+                      </span>
+
+                      {plan.contact && <p className="text-xs text-primary font-bold">Contactar →</p>}
+                    </button>
+                  );
+                })}
               </div>
 
               {isPaidPlan && (
@@ -719,118 +775,6 @@ export default function RegisterPage() {
                   ))}
                 </div>
               )}
-
-              <button onClick={goNext} className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all">
-                Continuar
-              </button>
-
-              <button type="button" onClick={() => setMode(null)} className="w-full text-center text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">
-                ← Volver
-              </button>
-
-              <p className="text-center text-xs text-slate-400 font-bold uppercase tracking-widest">
-                ¿Ya tienes cuenta?{' '}
-                <Link href="/login" className="text-primary hover:underline">Ingresar</Link>
-              </p>
-            </div>
-          )}
-
-          {/* ── CREAR PASO 2: Datos personales ── */}
-          {createStep === 2 && (
-            <form onSubmit={socioInvite ? handleRegisterFree : goNext} className="space-y-5 animate-in fade-in duration-300">
-
-              {/* Banner invitación socio */}
-              {socioInvite && (
-                <div className="flex items-start gap-3 p-4 rounded-2xl bg-orange-50 border border-orange-200">
-                  <span className="material-symbols-outlined text-orange-500 text-xl mt-0.5">handshake</span>
-                  <div>
-                    <p className="text-sm font-black text-orange-800">
-                      Invitación de {socioInvite.partner_type === 'escuela' ? 'escuela' : 'socio'}: <span className="text-orange-600">{socioInvite.partner_name}</span>
-                    </p>
-                    <p className="text-xs text-orange-600 mt-0.5">
-                      Rol: <strong>{socioInvite.role === 'owner' ? 'Representante / Dueño' : 'Asesor de ventas'}</strong>. Al crear tu cuenta quedarás vinculado automáticamente.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <h1 className="font-lexend text-3xl font-black text-navy uppercase tracking-tighter">Tus datos</h1>
-                <p className="text-slate-500 text-sm mt-1">Información de tu cuenta Bitafly.</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Nombre" required><input required placeholder="Carlos" value={form.firstName} onChange={set('firstName')} className={INPUT} /></Field>
-                <Field label="Apellido" required><input required placeholder="Rodríguez" value={form.lastName} onChange={set('lastName')} className={INPUT} /></Field>
-              </div>
-
-              <Field label="Correo electrónico" required>
-                <div className="relative">
-                  <input required type="email" placeholder="correo@empresa.com"
-                    value={socioInvite?.email ?? form.email} onChange={set('email')}
-                    readOnly={emailLocked}
-                    className={`${INPUT} ${emailLocked ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`} />
-                  {emailLocked && (
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-base">lock</span>
-                  )}
-                </div>
-                {emailLocked && <p className="text-[10px] text-slate-400 font-medium mt-1 px-1">Correo fijo por la invitación — no se puede cambiar.</p>}
-              </Field>
-
-              {isPaidPlan && form.email && (
-                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
-                  <span className="material-symbols-outlined text-amber-500 text-base mt-0.5 shrink-0">info</span>
-                  <p className="text-xs font-bold text-amber-800">
-                    Al pagar en ePayco, <strong>usa el mismo correo</strong>: <span className="font-mono">{form.email}</span>
-                  </p>
-                </div>
-              )}
-
-              <Field label="Contraseña" required>
-                <div className="relative">
-                  <input required type={showPass ? 'text' : 'password'} placeholder="Mínimo 8 caracteres" minLength={8} value={form.password} onChange={set('password')} className={`${INPUT} pr-12`} />
-                  <button type="button" onClick={() => setShowPass(v => !v)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                    <span className="material-symbols-outlined text-xl">{showPass ? 'visibility_off' : 'visibility'}</span>
-                  </button>
-                </div>
-              </Field>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Teléfono"><input placeholder="+57 300 000 0000" value={form.phone} onChange={set('phone')} className={INPUT} /></Field>
-                <Field label="Ciudad"><input placeholder="Bogotá" value={form.city} onChange={set('city')} className={INPUT} /></Field>
-              </div>
-
-              {!emailLocked && (
-                <Field label="Código de escuela / asesor (opcional)">
-                  <input placeholder="Ej: EAC-XB12" value={partnerCode}
-                    onChange={e => setPartnerCode(e.target.value.toUpperCase())} className={`${INPUT} font-mono`} />
-                  <p className="text-[10px] text-slate-400 font-medium mt-1 px-1">Si una escuela o asesor te recomendó BitaFly, ingresa su código.</p>
-                </Field>
-              )}
-
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => socioInvite ? setMode(null) : setCreateStep(1)}
-                  className="px-6 py-4 rounded-2xl border border-slate-200 text-sm font-black text-slate-500 hover:border-slate-400 transition-all">Atrás</button>
-                <button type="submit" disabled={loading}
-                  className="flex-1 bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all disabled:opacity-60 flex items-center justify-center gap-2">
-                  {loading
-                    ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Creando cuenta...</>
-                    : socioInvite ? 'Crear cuenta y unirme' : 'Continuar'
-                  }
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* ── CREAR PASO 3: Información de la cuenta ── */}
-          {createStep === 3 && (
-            <form onSubmit={isPaidPlan ? handleInitiatePayment : handleRegisterFree} className="space-y-6 animate-in fade-in duration-300">
-              <div>
-                <h1 className="font-lexend text-3xl font-black text-navy uppercase tracking-tighter">Tu cuenta</h1>
-                <p className="text-slate-500 text-sm mt-1">
-                  {isPaidPlan ? 'Datos de tu organización.' : '¿Cómo vas a operar?'}
-                </p>
-              </div>
 
               {!isPaidPlan && (
                 <div className="grid grid-cols-2 gap-3">
@@ -863,18 +807,100 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setCreateStep(2)} className="px-6 py-4 rounded-2xl border border-slate-200 text-sm font-black text-slate-500 hover:border-slate-400 transition-all">Atrás</button>
-                <button type="submit" disabled={loading}
-                  className="flex-1 bg-navy text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                  {loading
-                    ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{isPaidPlan ? 'Preparando pago...' : 'Creando cuenta...'}</>
-                    : isPaidPlan
-                      ? <><span className="material-symbols-outlined text-lg">payment</span>Ir a pagar</>
-                      : 'Crear cuenta'
-                  }
-                </button>
+              <button onClick={goNext} className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-600 hover:-translate-y-0.5 hover:shadow-orange-500/30 transition-all">
+                Continuar
+              </button>
+
+              <button type="button" onClick={() => setMode(null)} className="w-full text-center text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">
+                ← Volver
+              </button>
+
+              <p className="text-center text-xs text-slate-400 font-bold uppercase tracking-widest">
+                ¿Ya tienes cuenta?{' '}
+                <Link href="/login" className="text-primary hover:underline">Ingresar</Link>
+              </p>
+            </div>
+          )}
+
+          {/* ── CREAR PASO 2: Datos personales — envía directo a pago (plan
+              pagado) o crea la cuenta (plan gratis), sin un 3er paso de por
+              medio. ── */}
+          {createStep === 2 && (
+            <form
+              onSubmit={socioInvite ? handleRegisterFree : (isPaidPlan ? handleInitiatePayment : handleRegisterFree)}
+              className="space-y-5 step-fade"
+            >
+
+              {/* Banner invitación socio */}
+              {socioInvite && (
+                <div className="flex items-start gap-3 p-4 rounded-2xl bg-orange-50 border border-orange-200">
+                  <span className="material-symbols-outlined text-orange-500 text-xl mt-0.5">handshake</span>
+                  <div>
+                    <p className="text-sm font-black text-orange-800">
+                      Invitación de {socioInvite.partner_type === 'escuela' ? 'escuela' : 'socio'}: <span className="text-orange-600">{socioInvite.partner_name}</span>
+                    </p>
+                    <p className="text-xs text-orange-600 mt-0.5">
+                      Rol: <strong>{socioInvite.role === 'owner' ? 'Representante / Dueño' : 'Asesor de ventas'}</strong>. Al crear tu cuenta quedarás vinculado automáticamente.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h1 className="font-lexend text-3xl font-black text-navy uppercase tracking-tighter">Tus datos</h1>
+                <p className="text-slate-500 text-sm mt-1">Información de tu cuenta Bitafly.</p>
               </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Nombre" required><input required placeholder="Carlos" value={form.firstName} onChange={set('firstName')} className={INPUT} /></Field>
+                <Field label="Apellido" required><input required placeholder="Rodríguez" value={form.lastName} onChange={set('lastName')} className={INPUT} /></Field>
+              </div>
+
+              <Field label="Correo electrónico" required>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl pointer-events-none">mail</span>
+                  <input required type="email" placeholder="correo@empresa.com"
+                    value={socioInvite?.email ?? form.email} onChange={set('email')}
+                    readOnly={emailLocked}
+                    className={`${INPUT} pl-12 ${emailLocked ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`} />
+                  {emailLocked && (
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-base">lock</span>
+                  )}
+                </div>
+                {emailLocked && <p className="text-[10px] text-slate-400 font-medium mt-1 px-1">Correo fijo por la invitación — no se puede cambiar.</p>}
+              </Field>
+
+              {isPaidPlan && form.email && (
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                  <span className="material-symbols-outlined text-amber-500 text-base mt-0.5 shrink-0">info</span>
+                  <p className="text-xs font-bold text-amber-800">
+                    Al pagar en ePayco, <strong>usa el mismo correo</strong>: <span className="font-mono">{form.email}</span>
+                  </p>
+                </div>
+              )}
+
+              <Field label="Contraseña" required>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl pointer-events-none">lock</span>
+                  <input required type={showPass ? 'text' : 'password'} placeholder="Mínimo 8 caracteres" minLength={8} value={form.password} onChange={set('password')} className={`${INPUT} pl-12 pr-12`} />
+                  <button type="button" onClick={() => setShowPass(v => !v)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    <span className="material-symbols-outlined text-xl">{showPass ? 'visibility_off' : 'visibility'}</span>
+                  </button>
+                </div>
+              </Field>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Teléfono"><input placeholder="+57 300 000 0000" value={form.phone} onChange={set('phone')} className={INPUT} /></Field>
+                <Field label="Ciudad"><input placeholder="Bogotá" value={form.city} onChange={set('city')} className={INPUT} /></Field>
+              </div>
+
+              {!emailLocked && (
+                <Field label="Código de escuela / asesor (opcional)">
+                  <input placeholder="Ej: EAC-XB12" value={partnerCode}
+                    onChange={e => setPartnerCode(e.target.value.toUpperCase())} className={`${INPUT} font-mono`} />
+                  <p className="text-[10px] text-slate-400 font-medium mt-1 px-1">Si una escuela o asesor te recomendó BitaFly, ingresa su código.</p>
+                </Field>
+              )}
 
               <p className="text-center text-xs text-slate-400 leading-relaxed">
                 Al registrarte aceptas nuestros{' '}
@@ -882,12 +908,28 @@ export default function RegisterPage() {
                 {' '}y{' '}
                 <a href="/politica-privacidad" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Política de Privacidad</a>.
               </p>
+
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => socioInvite ? setMode(null) : setCreateStep(1)}
+                  className="px-6 py-4 rounded-2xl border border-slate-200 text-sm font-black text-slate-500 hover:border-slate-400 transition-all">Atrás</button>
+                <button type="submit" disabled={loading}
+                  className="flex-1 bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-600 hover:-translate-y-0.5 hover:shadow-orange-500/30 transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                  {loading
+                    ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{isPaidPlan && !socioInvite ? 'Preparando pago...' : 'Creando cuenta...'}</>
+                    : socioInvite
+                      ? 'Crear cuenta y unirme'
+                      : isPaidPlan
+                        ? <><span className="material-symbols-outlined text-lg">payment</span>Ir a pagar</>
+                        : 'Crear cuenta'
+                  }
+                </button>
+              </div>
             </form>
           )}
 
-          {/* ── CREAR PASO 4: Esperando pago ── */}
-          {createStep === 4 && (
-            <div className="space-y-6 animate-in fade-in duration-300">
+          {/* ── CREAR PASO 3: Esperando pago ── */}
+          {createStep === 3 && (
+            <div className="space-y-6 step-fade">
               {payStatus === 'pending' && (
                 <>
                   <div className="text-center space-y-3">
@@ -914,7 +956,7 @@ export default function RegisterPage() {
                     <button
                       onClick={activatePending}
                       disabled={loading}
-                      className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-primary text-white font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all disabled:opacity-60"
+                      className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-primary text-white font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-600 hover:-translate-y-0.5 hover:shadow-orange-500/30 transition-all disabled:opacity-60"
                     >
                       {loading
                         ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Verificando...</>
@@ -932,7 +974,7 @@ export default function RegisterPage() {
                   </div>
 
                   <div className="border-t pt-4">
-                    <button onClick={() => { if (pollRef.current) clearInterval(pollRef.current); setCreateStep(3); setPendingRef(null); setError(''); }}
+                    <button onClick={() => { if (pollRef.current) clearInterval(pollRef.current); setCreateStep(2); setPendingRef(null); setError(''); }}
                       className="w-full text-center text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">
                       ← Volver a revisar mis datos
                     </button>
@@ -941,7 +983,7 @@ export default function RegisterPage() {
               )}
 
               {payStatus === 'entering' && (
-                <div className="text-center space-y-5 animate-in fade-in duration-500">
+                <div className="text-center space-y-5 step-fade">
                   <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
                     <span className="material-symbols-outlined text-4xl text-emerald-500 animate-spin">progress_activity</span>
                   </div>
@@ -953,7 +995,7 @@ export default function RegisterPage() {
               )}
 
               {payStatus === 'completed' && (
-                <div className="text-center space-y-5 animate-in fade-in duration-500">
+                <div className="text-center space-y-5 step-fade">
                   <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
                     <span className="material-symbols-outlined text-4xl text-emerald-500" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
                   </div>
@@ -963,7 +1005,7 @@ export default function RegisterPage() {
                       Tu cuenta está activa con el plan <strong>{PLANS.find(p => p.key === form.selectedPlan)?.name}</strong>.
                     </p>
                   </div>
-                  <Link href="/login" className="block w-full bg-navy text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all text-center">
+                  <Link href="/login" className="block w-full bg-navy text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 hover:-translate-y-0.5 transition-all text-center">
                     Iniciar sesión
                   </Link>
                 </div>
@@ -979,7 +1021,7 @@ export default function RegisterPage() {
                     <p className="text-slate-500 text-sm mt-2">El tiempo de espera venció. Vuelve al inicio para intentar de nuevo.</p>
                   </div>
                   <button onClick={() => { setCreateStep(1); setForm(EMPTY_CREATE); setPendingRef(null); setPayStatus('pending'); }}
-                    className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all">
+                    className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-600 hover:-translate-y-0.5 hover:shadow-orange-500/30 transition-all">
                     Comenzar de nuevo
                   </button>
                 </div>

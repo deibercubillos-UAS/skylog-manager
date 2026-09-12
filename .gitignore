@@ -69,3 +69,6 @@ mobile/emulator-*.png
 *.keystore
 *.jks
 android/keystore.properties
+.playwright-mcp/
+/*.png
+.impeccable/

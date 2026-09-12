@@ -1,8 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import Image from 'next/image';
 import AuthSidePanel from '@/components/AuthSidePanel';
 
 export default function LoginPage() {
@@ -11,8 +12,13 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [mounted, setMounted] = useState(false);
 
   const router = useRouter();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -50,11 +56,16 @@ export default function LoginPage() {
     <div className="flex min-h-screen bg-white">
       {/* Formulario */}
       <main className="flex-1 flex flex-col justify-center px-8 md:px-16 lg:px-24 py-12">
-        <div className="max-w-md w-full mx-auto">
+        <div
+          className={`max-w-md w-full mx-auto transition-all duration-500 ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+          }`}
+        >
 
-          {/* Logo móvil */}
+          {/* Logo móvil — logo real de BitaFly, mismo patrón que header/footer */}
           <Link href="/" className="inline-flex items-center gap-2 mb-10 lg:hidden">
-            <span className="text-2xl font-black text-navy uppercase tracking-tighter">Bitafly</span>
+            <Image src="/logo.png" alt="" width={32} height={28} className="h-7 w-auto" priority />
+            <span className="text-xl font-black text-navy uppercase tracking-tighter">Bitafly</span>
           </Link>
 
           <h1 className="text-3xl font-black text-navy uppercase tracking-tighter">Iniciar sesión</h1>
@@ -66,15 +77,20 @@ export default function LoginPage() {
               <label className="text-xs font-black text-slate-500 uppercase tracking-widest">
                 Correo electrónico
               </label>
-              <input
-                type="email"
-                required
-                autoComplete="email"
-                placeholder="correo@empresa.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium outline-none focus:border-primary focus:ring-2 focus:ring-orange-100 transition-all"
-              />
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl pointer-events-none">
+                  mail
+                </span>
+                <input
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="correo@empresa.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium outline-none focus:border-primary focus:ring-2 focus:ring-orange-100 transition-all"
+                />
+              </div>
             </div>
 
             {/* Password */}
@@ -83,6 +99,9 @@ export default function LoginPage() {
                 Contraseña
               </label>
               <div className="relative">
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl pointer-events-none">
+                  lock
+                </span>
                 <input
                   type={showPass ? 'text' : 'password'}
                   required
@@ -90,7 +109,7 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium outline-none focus:border-primary focus:ring-2 focus:ring-orange-100 transition-all pr-12"
+                  className="w-full pl-12 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium outline-none focus:border-primary focus:ring-2 focus:ring-orange-100 transition-all"
                 />
                 <button
                   type="button"
@@ -125,7 +144,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-600 hover:shadow-orange-500/30 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
@@ -146,7 +165,7 @@ export default function LoginPage() {
           {/* Google */}
           <button
             onClick={handleGoogleLogin}
-            className="w-full border border-slate-200 py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 transition-all active:scale-95 text-sm font-bold text-slate-600"
+            className="w-full border border-slate-200 py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm transition-all active:scale-95 text-sm font-bold text-slate-600"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

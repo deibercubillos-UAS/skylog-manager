@@ -87,6 +87,19 @@ body {
   animation: shimmer-slide 2.5s linear infinite;
 }
 
+/* Transición de paso (registro/login) — reemplaza las clases muertas
+   "animate-in fade-in duration-300" que se usaban en src/app/registro y
+   src/app/login sin tener el plugin tailwindcss-animate instalado (no
+   hacían nada). Se combina con un `key` distinto por paso en el JSX para
+   que la animación se repita en cada cambio, no solo al montar la página. */
+@keyframes step-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.step-fade {
+  animation: step-fade-in 0.35s ease-out both;
+}
+
 /* Mejora foco visible para accesibilidad (cumple WCAG y suma puntos en Lighthouse SEO) */
 :focus-visible {
   outline: 2px solid var(--color-primary);

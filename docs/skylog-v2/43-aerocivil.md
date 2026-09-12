@@ -37,15 +37,15 @@ Un botón "Preparar expediente Aerocivil" en cada misión programada que genera 
 completo y validado:
 
 - ✅ **Archivo KML** (no KMZ) del área — cierra B9. Es un cambio menor en `lib/flightPlanDocs.js`.
-- ⚠️ **Matriz de riesgos en el formato de la Aerocivil** — **el formato oficial aún no es
-  público** (confirmado 2026-08-22). No se puede replicar lo que no se conoce. Solución
-  adoptada: el generador se construye con **capa de plantilla intercambiable** — el contenido
-  (peligros, probabilidad, gravedad, mitigaciones, riesgo residual) se deriva de la evaluación
-  SORA y de la matriz SMS que la organización ya tiene, y la **presentación** vive en una
-  plantilla aparte. Cuando la Aerocivil publique el formato, se sustituye la plantilla sin tocar
-  la lógica. Mientras tanto se emite una matriz propia, completa y trazable, que el explotador
-  transcribe al formato oficial cuando exista. Convierte un bloqueo en un retraso de formato,
-  no de funcionalidad.
+- ✅ **Matriz de riesgos en el formato oficial de la Aerocivil — resuelto (2026-09-06)**: el
+  formato SÍ se consiguió — es `MAUT-5.0-12-055` (libro Excel oficial v01, aprobado 07/11/2023,
+  documentado en detalle en [`18-analisis-riesgos-vuelo.md`](18-analisis-riesgos-vuelo.md)). La
+  nota "aún no es público" (2026-08-22) quedó superada por la obtención posterior de ese
+  documento — no hay contradicción real, solo dos estados del proyecto en momentos distintos.
+  Se descarta la capa de plantilla intercambiable: al ser un formato fijo (regla C2), se
+  construye directo contra el catálogo de 24 peligros + matriz de probabilidad/severidad/
+  tolerabilidad oficiales — sin derivarlo de la matriz SMS interna (regla C3, configurable),
+  que es un instrumento distinto y no debe conflarse (`18-analisis-riesgos-vuelo.md` R1).
 - ✅ **Certificado de vigencia de póliza RCE** — ya vive en `insurance_policies`; se adjunta y se
   valida que cubra la fecha de operación y el serial de la UA (`100.410(a)(2)(i)`).
 - ✅ **Validación previa de antelación** (B10): si faltan menos de 15 días hábiles y la zona es

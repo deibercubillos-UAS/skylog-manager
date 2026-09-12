@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import SEONav from '@/components/seo/SEONav';
-import SEOFooter from '@/components/seo/SEOFooter';
+import PublicHeader from '@/components/bitafly/PublicHeader';
+import PublicFooter from '@/components/bitafly/PublicFooter';
 import SEOBreadcrumb from '@/components/seo/SEOBreadcrumb';
 import SocialProofStrip from '@/components/seo/SocialProofStrip';
 import RelatedReading from '@/components/seo/RelatedReading';
@@ -68,7 +68,7 @@ export default function RAC100Page() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <SEONav />
+      <PublicHeader />
       <SEOBreadcrumb items={[{ label: 'Cumplimiento RAC 100' }]} />
 
       {/* HERO */}
@@ -242,7 +242,7 @@ export default function RAC100Page() {
         { href: '/blog/como-registrar-drone-uaeac-colombia-2025', title: 'Cómo registrar tu dron ante la UAEAC en Colombia' },
       ]} />
 
-      <SEOFooter brandDesc="Cumplimiento RAC 100 para operadores UAS en Colombia. F-OPS-002, F-MNT-003, F-HUM-005 y SMS aeronáutico." />
+      <PublicFooter brandDesc="Cumplimiento RAC 100 para operadores UAS en Colombia. F-OPS-002, F-MNT-003, F-HUM-005 y SMS aeronáutico." />
     </>
   );
 }

@@ -49,17 +49,17 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | `32-migracion.md` | ETL desde la base actual, reglas de precedencia | — | ⬜ |
 | [`33-arquitectura.md`](33-arquitectura.md) | Monorepo, servicios, capa de dominio, pruebas | 57 | 🔄 |
 | [`34-seguridad.md`](34-seguridad.md) | RLS, multi-tenant, C2 · **falta protección de datos SMS (RAC 219 §219.115-140)** | 89 | 🔄 |
-| [`35-frontend.md`](35-frontend.md) | Espacios de trabajo, sistema de diseño, modo campo | 71 | 🔄 |
+| [`35-frontend.md`](35-frontend.md) | Espacios de trabajo, sistema de diseño, modo campo — **F1 en construcción**: `@skylog/ui` real (tokens+primitivas) + primer retrofit (`/duty`), ver decisión 59 en `51-bitacora.md` | 71 | 🔄 |
 | [`36-sitemap.md`](36-sitemap.md) | **Sitemap** — 6 espacios + complementos, todo activable · replay multimarca · análisis forense | 183 | ✅ |
 
 ## 4 · Módulos
 
 | Doc | Módulo | Líneas | Estado |
 |---|---|---|---|
-| [`40-sms.md`](40-sms.md) | SMS orientado a evidencia | 121 | 🔄 |
-| [`41-tiempos-servicio.md`](41-tiempos-servicio.md) | Tiempos de servicio, vuelo y descanso (100.540) | 50 | 🔄 |
+| [`40-sms.md`](40-sms.md) | SMS orientado a evidencia — **F3 en construcción**: enrutamiento MOR/VOR/RAC 114 + reportes/casos/acciones correctivas + primera fuente automática (excepciones F5→borrador), ver decisiones 48-50 en `51-bitacora.md` | 121 | 🔄 |
+| [`41-tiempos-servicio.md`](41-tiempos-servicio.md) | Tiempos de servicio, vuelo y descanso (100.540) — **F5 construido y verificado** (motor + esquema/RLS + API + bloqueo real + certificación + planificación), ver decisiones 34-42 en `51-bitacora.md` | 50 | ✅ |
 | [`42-comando-control.md`](42-comando-control.md) | C2 en vivo — telemetría + video · **omitido por ahora** (decisión 20) | 307 | ⏸ |
-| [`43-aerocivil.md`](43-aerocivil.md) | Expediente y radicación de autorizaciones | 77 | 🔄 |
+| [`43-aerocivil.md`](43-aerocivil.md) | Expediente y radicación de autorizaciones — **F4a en construcción**: dominio del análisis de riesgos (MAUT-5.0-12-055) + esquema/RLS + API, ver decisiones 44-45 en `51-bitacora.md` | 77 | 🔄 |
 
 ## 5 · Ejecución
 

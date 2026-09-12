@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import SEONav from '@/components/seo/SEONav';
-import SEOFooter from '@/components/seo/SEOFooter';
+import PublicHeader from '@/components/bitafly/PublicHeader';
+import PublicFooter from '@/components/bitafly/PublicFooter';
 import VideoCard from '@/components/tutorials/VideoCard';
 import { getTutorialBloques, getPublishedTutorialVideos } from '@/lib/tutorialVideos';
 
@@ -79,7 +79,7 @@ export default function TutorialesPage() {
 
   return (
     <div className="min-h-screen bg-white text-slate-800">
-      <SEONav />
+      <PublicHeader />
 
       {schemas.map((s, i) => (
         <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(s) }} />
@@ -189,7 +189,7 @@ export default function TutorialesPage() {
         </section>
       </div>
 
-      <SEOFooter brandDesc="Software de gestión aeronáutica para operadores UAS en Colombia. Cumplimiento RAC 100 desde el primer vuelo." />
+      <PublicFooter brandDesc="Software de gestión aeronáutica para operadores UAS en Colombia. Cumplimiento RAC 100 desde el primer vuelo." />
     </div>
   );
 }

@@ -23,7 +23,7 @@ rompe producción con certeza, no con probabilidad.
 |---|---|---|
 | **Git** | `main` | Rama larga `develop-v2`, nunca mergeada hasta sign-off explícito |
 | **Base de datos** | Proyecto Supabase actual | **Supabase branch** dedicado — copia del esquema, datos de prueba propios |
-| **Deploy** | Proyecto Vercel `skylog-manager` → `bitafly.com` | Proyecto Vercel separado apuntando al Supabase branch |
+| **Deploy** | Proyecto Vercel `skylog-manager` → `bitafly.com` | **Mismo proyecto Vercel**, deployment de Preview de la rama `develop-v2` (URL propia, nunca `bitafly.com`), con variables de Supabase con alcance específico a esa rama apuntando al Supabase branch — ver decisión 32, [`51-bitacora.md`](51-bitacora.md) |
 | **Código** | `src/app/dashboard/**` actual | Route group nuevo `src/app/(v2)/**` — rutas que en producción **no existen** |
 
 **O1** · Ninguna migración SQL toca el proyecto Supabase de producción durante toda la fase v2.

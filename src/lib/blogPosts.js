@@ -9,7 +9,7 @@ export const BLOG_POSTS = [
   {
     slug:            'rac-100-colombia-operadores-drones',
     title:           '¿Qué es la RAC 100 y cómo cumplirla siendo operador de drones en Colombia?',
-    metaTitle:       'RAC 100 Colombia: Guía para Operadores de Drones | Bitafly',
+    metaTitle:       'RAC 100 Colombia: Guía para Operadores de Drones',
     metaDescription: 'Todo lo que necesitas saber sobre la RAC 100 de la AeroCivil: qué exige, cómo cumplirla y qué documentos debes llevar como operador UAS en Colombia.',
     publishedAt:     '2025-03-10',
     updatedAt:       '2026-06-07',
@@ -90,7 +90,7 @@ export const BLOG_POSTS = [
   {
     slug:            'bitacora-digital-drone-f-ops-002',
     title:           'Bitácora digital de vuelo para drones: guía completa del formato F-OPS-002',
-    metaTitle:       'Bitácora Digital Drone F-OPS-002 Colombia | Guía 2026 | Bitafly',
+    metaTitle:       'Bitácora Digital Drone F-OPS-002 Colombia | Guía 2026',
     metaDescription: 'Aprende qué campos debe contener la bitácora de vuelo según la RAC 100, por qué la bitácora digital agiliza el cumplimiento y cómo generarla con tu propio código de formato (F-OPS-002 por defecto) en Bitafly.',
     publishedAt:     '2025-03-18',
     updatedAt:       '2026-06-07',
@@ -312,7 +312,7 @@ export const BLOG_POSTS = [
   {
     slug:            'analisis-sora-operaciones-drones-colombia',
     title:           'Análisis SORA para operaciones de drones: qué es y por qué lo necesitas',
-    metaTitle:       'Análisis SORA Drones Colombia: Guía JARUS v2 | Bitafly',
+    metaTitle:       'Análisis SORA Drones Colombia: Guía JARUS v2',
     metaDescription: 'El SORA (Specific Operations Risk Assessment) es el estándar internacional para evaluar riesgos en operaciones RPAS. Aprende cómo aplicarlo a tus vuelos en Colombia.',
     publishedAt:     '2025-04-28',
     updatedAt:       '2026-06-07',
@@ -388,7 +388,7 @@ export const BLOG_POSTS = [
   {
     slug:            'software-gestion-operadores-drones-colombia-2025',
     title:           'Software para operadores de drones en Colombia: qué necesitas realmente en 2026',
-    metaTitle:       'Software Operadores Drones Colombia 2026 | Comparativo | Bitafly',
+    metaTitle:       'Software Operadores Drones Colombia 2026 | Comparativo',
     metaDescription: 'Qué funcionalidades debe tener un software de gestión para operadores RPAS en Colombia: RAC 100, bitácora, SMS, autorizaciones AeroCivil. Guía 2026.',
     publishedAt:     '2025-05-10',
     updatedAt:       '2026-06-07',
@@ -449,7 +449,7 @@ export const BLOG_POSTS = [
   {
     slug:            'formatos-aerocivil-drones-colombia',
     title:           'Formatos de control documental RAC 100 para drones: F-OPS-001, F-OPS-002, F-MNT-003 y F-HUM-005',
-    metaTitle:       'Formatos Drones RAC 100: F-OPS-001, F-OPS-002, F-MNT-003, F-HUM-005 | Bitafly',
+    metaTitle:       'Formatos Drones RAC 100: F-OPS-001, F-OPS-002, F-MNT-003, F-HUM-005',
     metaDescription: 'Guía de los registros que exige la RAC 100 a operadores de drones en Colombia. Los códigos de formato no son oficiales: cada operador los define en su manual. Bitafly los genera con tu nomenclatura.',
     publishedAt:     '2025-05-28',
     updatedAt:       '2026-06-07',
@@ -662,7 +662,7 @@ export const BLOG_POSTS = [
   {
     slug:            'checklist-vuelo-drones-rac-100-colombia',
     title:           'Checklist de vuelo para drones RAC 100: todo lo que debes verificar antes de despegar',
-    metaTitle:       'Checklist Vuelo Drones RAC 100 Colombia 2026 | Bitafly',
+    metaTitle:       'Checklist Vuelo Drones RAC 100 Colombia 2026',
     metaDescription: 'Checklist completo de pre-vuelo para operadores de drones en Colombia bajo la RAC 100: documentos, aeronave, batería, espacio aéreo y tripulación. Descargable.',
     publishedAt:     '2025-06-01',
     updatedAt:       '2026-06-07',
@@ -776,7 +776,7 @@ export const BLOG_POSTS = [
   {
     slug:            'gestion-flota-drones-colombia',
     title:           'Cómo gestionar una flota de drones en Colombia: guía para operadores profesionales',
-    metaTitle:       'Gestión de Flota de Drones Colombia | Guía para Operadores UAS | Bitafly',
+    metaTitle:       'Gestión de Flota de Drones Colombia | Guía para Operadores UAS',
     metaDescription: 'Guía completa para gestionar una flota de drones en Colombia: matrículas UAEAC, mantenimiento programado, horas de vuelo y cumplimiento RAC 100. Para ESUAS certificados.',
     publishedAt:     '2025-06-01',
     updatedAt:       '2026-06-07',
@@ -865,7 +865,7 @@ export const BLOG_POSTS = [
   {
     slug:            'replay-gps-analizar-vuelos-drone',
     title:           'Cómo analizar tus vuelos con el replay GPS: reproduce la operación cuadro a cuadro',
-    metaTitle:       'Replay GPS de Vuelo para Drones: Analiza tus Operaciones | Bitafly',
+    metaTitle:       'Replay GPS de Vuelo para Drones: Analiza tus Operaciones',
     metaDescription: 'Aprende a reproducir tus vuelos de drone cuadro a cuadro con el replay GPS: ruta, altitud, velocidad, batería y joysticks del DJI RC/RC 2. Para análisis, capacitación e investigación de incidentes.',
     publishedAt:     '2026-06-08',
     updatedAt:       '2026-06-08',
@@ -939,7 +939,7 @@ export const BLOG_POSTS = [
   {
     slug:            'cdo-certificado-explotador-uas-colombia',
     title:           'CDO: qué es el Certificado de Explotador UAS y cómo obtenerlo en Colombia',
-    metaTitle:       'CDO Certificado Explotador UAS Colombia 2026 | Guía AeroCivil | Bitafly',
+    metaTitle:       'CDO Certificado Explotador UAS Colombia 2026 | Guía AeroCivil',
     metaDescription: 'Todo sobre el Certificado de Explotador UAS (CDO) exigido por AeroCivil desde mayo 2025. Requisitos, pasos, documentos y cuánto tarda el proceso en Colombia.',
     publishedAt:     '2026-06-10',
     updatedAt:       '2026-06-10',
@@ -1119,7 +1119,7 @@ export const BLOG_POSTS = [
   {
     slug:            'mantenimiento-preventivo-drones-rac-100',
     title:           'Mantenimiento preventivo de drones bajo la RAC 100: guía completa para operadores en Colombia',
-    metaTitle:       'Mantenimiento Preventivo Drones RAC 100 Colombia 2026 | Bitafly',
+    metaTitle:       'Mantenimiento Preventivo Drones RAC 100 Colombia 2026',
     metaDescription: 'Guía completa de mantenimiento preventivo de drones para operadores RAC 100 en Colombia. Intervalos, registros F-MNT-003, baterías y alertas automáticas con Bitafly.',
     publishedAt:     '2026-06-10',
     updatedAt:       '2026-06-10',
@@ -1298,7 +1298,7 @@ export const BLOG_POSTS = [
   {
     slug:            'certificado-piloto-remoto-drones-colombia',
     title:           'Certificado de Piloto Remoto (CPR): cómo obtenerlo para volar drones en Colombia',
-    metaTitle:       'Certificado Piloto Remoto CPR Drones Colombia 2026 | Guía Completa | Bitafly',
+    metaTitle:       'Certificado Piloto Remoto CPR Drones Colombia 2026 | Guía Completa',
     metaDescription: 'Guía completa para obtener el Certificado de Piloto Remoto (CPR) en Colombia bajo la RAC 100. Requisitos, OEAs autorizadas, examen teórico y costo del trámite.',
     publishedAt:     '2026-06-10',
     updatedAt:       '2026-06-10',
@@ -1466,7 +1466,7 @@ export const BLOG_POSTS = [
   {
     slug:            'como-leer-clima-antes-volar-dron-colombia',
     title:           'Cómo leer las condiciones meteorológicas antes de volar un dron en Colombia',
-    metaTitle:       'Clima para Volar Drones Colombia: Viento, Kp y Score de Aptitud | Bitafly',
+    metaTitle:       'Clima para Volar Drones Colombia: Viento, Kp y Score de Aptitud',
     metaDescription: 'Guía práctica para interpretar viento, ráfagas, visibilidad, lluvia e índice Kp antes de cada vuelo de dron en Colombia. Con los umbrales reales de la RAC 100.',
     publishedAt:     '2026-06-12',
     readingTime:     8,
@@ -1703,7 +1703,7 @@ export const BLOG_POSTS = [
   {
     slug:            'seguro-responsabilidad-civil-drones-colombia',
     title:           'Seguro de responsabilidad civil para drones en Colombia: qué cubrir, cuánto cuesta y cómo gestionarlo',
-    metaTitle:       'Seguro Drones Colombia 2026: RC, Cobertura y Gestión RAC 100 | Bitafly',
+    metaTitle:       'Seguro Drones Colombia 2026: RC, Cobertura y Gestión RAC 100',
     metaDescription: 'El seguro de responsabilidad civil es obligatorio para operar drones comercialmente en Colombia. Guía completa: qué cubre, cuánto cuesta, cómo elegirlo y cómo no perder la vigencia bajo la RAC 100.',
     publishedAt:     '2026-06-20',
     readingTime:     7,
@@ -1896,7 +1896,7 @@ export const BLOG_POSTS = [
   {
     slug:            'operaciones-bvlos-drones-colombia',
     title:           'Operaciones BVLOS con drones en Colombia: requisitos, autorizaciones y cómo solicitarlas ante la AeroCivil',
-    metaTitle:       'BVLOS Drones Colombia 2026: Requisitos y Autorizaciones AeroCivil | Bitafly',
+    metaTitle:       'BVLOS Drones Colombia 2026: Requisitos y Autorizaciones AeroCivil',
     metaDescription: 'Guía completa para operaciones BVLOS con drones en Colombia bajo la RAC 100: qué documentos exige la AeroCivil, cómo hacer el análisis SORA, seguro requerido y paso a paso para la autorización especial.',
     publishedAt:     '2026-06-20',
     readingTime:     9,
@@ -2122,7 +2122,7 @@ export const BLOG_POSTS = [
   {
     slug:            'reporte-operacional-mensual-uas-aerocivil-colombia',
     title:           'Reporte Operacional Mensual UAS: qué exige AeroCivil y cómo generarlo sin perder una tarde',
-    metaTitle:       'Reporte Operacional Mensual UAS AeroCivil Colombia | Bitafly',
+    metaTitle:       'Reporte Operacional Mensual UAS AeroCivil Colombia',
     metaDescription: 'AeroCivil exige a los explotadores UAS un reporte mensual con 8 datos por vuelo, dentro de los primeros 5 días hábiles del mes. Qué enviar, a quién, y cómo generarlo en minutos.',
     publishedAt:     '2026-07-29',
     updatedAt:       '2026-07-29',
@@ -2217,7 +2217,7 @@ export const BLOG_POSTS = [
   {
     slug:            'listos-proxima-actualizacion-rac-100-colombia',
     title:           '¿Tu operación está lista para la próxima actualización de la RAC 100?',
-    metaTitle:       '¿Listo para la Próxima Actualización de la RAC 100? | Bitafly',
+    metaTitle:       '¿Listo para la Próxima Actualización de la RAC 100?',
     metaDescription: 'La normativa de drones en Colombia no se queda quieta. Te contamos por qué conviene prepararte con anticipación para la próxima actualización de la RAC 100 y cómo llevar tu operación a otro nivel con Bitafly.',
     publishedAt:     '2026-08-21',
     updatedAt:       '2026-08-21',

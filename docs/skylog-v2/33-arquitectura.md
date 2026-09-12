@@ -14,12 +14,23 @@ Hoy `demo-enterprise/` y `railway-robot/` cuelgan del repo sin ningún tooling q
 relación — ya documentado como deuda en la limpieza del 2026-08-01. Con dos servicios nuevos
 (`c2-gateway`, `aerocivil-agent`) esto deja de ser incómodo y pasa a ser insostenible.
 
+**Estado real (decisión 30, `51-bitacora.md`)**: solo se movió `railway-robot/` — autocontenido
+(`package.json`/deps propio, sin imports cruzados con `src/`) y ya vive en `apps/`.
+**`demo-enterprise/` se deja intacto donde está**, a pedido explícito del usuario (2026-08-22):
+tiene su propio proyecto Vercel con *Root Directory* apuntando a `demo-enterprise/` — moverlo
+exige antes actualizar ese ajuste externo, y el usuario prefirió no tocarlo por ahora. El
+Next.js principal (`src/`, `android/`, `public/`, configs) **sigue en la raíz**, sin mover a
+`apps/web` — es la operación de mayor riesgo (cientos de imports, `vercel.json` de producción,
+Capacitor) y no tiene beneficio real todavía con un solo servicio activo. Se retoma cuando
+exista un segundo servicio real (`aerocivil-agent` en F4b, o si se retoma F2/`c2-gateway`).
+
 ```
 apps/
-  web/               ← el Next.js actual (movido, sin cambios funcionales)
-  c2-gateway/        ← nuevo, siempre encendido (Railway/Fly)
-  aerocivil-agent/   ← nuevo, condicional a F4b
-  demo-enterprise/   ← movido tal cual
+  railway-robot/     ← ✅ movido (2026-08-22)
+  web/               ← ⬜ pendiente — el Next.js actual, movido sin cambios funcionales
+  c2-gateway/        ← ⬜ pendiente, nuevo, siempre encendido (Railway/Fly) — condicional a retomar F2
+  aerocivil-agent/   ← ⬜ pendiente, nuevo — condicional a F4b
+demo-enterprise/     ← se queda en la raíz, a propósito (Root Directory de Vercel apunta ahí)
 packages/
   ui/                ← sistema de diseño extraído
   domain/            ← reglas de negocio puras y testeadas

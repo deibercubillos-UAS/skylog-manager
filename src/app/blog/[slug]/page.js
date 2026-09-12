@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Script from 'next/script';
-import SEONav from '@/components/seo/SEONav';
-import SEOFooter from '@/components/seo/SEOFooter';
+import PublicHeader from '@/components/bitafly/PublicHeader';
+import PublicFooter from '@/components/bitafly/PublicFooter';
 import BlogReadingProgress from '@/components/blog/BlogReadingProgress';
 import { BLOG_POSTS, getPostBySlug, getAllSlugs } from '@/lib/blogPosts';
 
@@ -196,7 +196,7 @@ export default function BlogPost({ params }) {
 
   return (
     <>
-      <SEONav />
+      <PublicHeader />
       <BlogReadingProgress />
 
       <Script id="schema-article" type="application/ld+json" strategy="afterInteractive"
@@ -416,7 +416,7 @@ export default function BlogPost({ params }) {
         </div>
       </main>
 
-      <SEOFooter />
+      <PublicFooter />
     </>
   );
 }

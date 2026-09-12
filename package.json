@@ -26,6 +26,7 @@
     "exceljs": "^4.4.0",
     "fflate": "^0.8.3",
     "file-saver": "^2.0.5",
+    "gsap": "^3.15.0",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
     "leaflet": "^1.9.4",
@@ -54,5 +55,8 @@
     "and_chr >= 100",
     "ios_saf >= 15",
     "not dead"
+  ],
+  "workspaces": [
+    "packages/*"
   ]
 }

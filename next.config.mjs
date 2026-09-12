@@ -5,6 +5,11 @@ const nextConfig = {
     serverComponentsExternalPackages: ['dji-log-parser-js'],
   },
 
+  // @skylog/ui vive en packages/ui (npm workspace) — Next no transpila JSX/ESM
+  // de paquetes de workspace por defecto. Sin esto, el build falla en cuanto
+  // ese paquete tenga un componente real.
+  transpilePackages: ['@skylog/ui'],
+
   // Compresión gzip/brotli en respuestas (mejora TTFB)
   compress: true,
 

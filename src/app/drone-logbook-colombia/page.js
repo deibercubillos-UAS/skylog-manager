@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import SEONav from '@/components/seo/SEONav';
-import SEOFooter from '@/components/seo/SEOFooter';
+import PublicHeader from '@/components/bitafly/PublicHeader';
+import PublicFooter from '@/components/bitafly/PublicFooter';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
 
@@ -47,7 +47,7 @@ export default function DroneLogbookColombiaPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <SEONav />
+      <PublicHeader />
 
       {/* HERO */}
       <section style={{ padding: '80px 32px 72px', background: '#fff', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
@@ -177,7 +177,7 @@ export default function DroneLogbookColombiaPage() {
         </div>
       </section>
 
-      <SEOFooter />
+      <PublicFooter />
     </>
   );
 }

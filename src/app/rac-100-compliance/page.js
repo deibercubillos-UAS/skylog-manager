@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import SEONav from '@/components/seo/SEONav';
-import SEOFooter from '@/components/seo/SEOFooter';
+import PublicHeader from '@/components/bitafly/PublicHeader';
+import PublicFooter from '@/components/bitafly/PublicFooter';
 import Decor from '@/components/landing/Decor';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
@@ -48,7 +48,7 @@ export default function Rac100CompliancePage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <SEONav />
+      <PublicHeader />
 
       {/* HERO */}
       <section style={{ background: '#1A202C', padding: '80px 32px 72px', color: '#fff', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
@@ -158,7 +158,7 @@ export default function Rac100CompliancePage() {
         </div>
       </section>
 
-      <SEOFooter />
+      <PublicFooter />
     </>
   );
 }

@@ -2,6 +2,9 @@
 const config = {
   content: [
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
+    // @skylog/ui (packages/ui, docs/skylog-v2/33-arquitectura.md) — sin esto,
+    // las clases usadas dentro del paquete nunca se generan en el CSS final.
+    "./packages/ui/src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {

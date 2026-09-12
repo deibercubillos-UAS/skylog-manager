@@ -1,9 +1,10 @@
 'use client';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
-import SEONav from '@/components/seo/SEONav';
-import SEOFooter from '@/components/seo/SEOFooter';
+import { useState, useEffect, useRef } from 'react';
+import gsap from 'gsap';
+import PublicHeader from '@/components/bitafly/PublicHeader';
+import PublicFooter from '@/components/bitafly/PublicFooter';
 import { fmtCOP } from '@/lib/formatters';
 
 const TRUST_BADGES = [
@@ -42,8 +43,8 @@ const PLANS_BASE = [
       { ok: true,  text: 'Bitácora RAC 100 ilimitada' },
       { ok: true,  text: 'Alertas de mantenimiento' },
       { ok: true,  text: 'Hasta 3 baterías' },
-      { ok: true,  text: 'Reporte PDF F-OPS-002' },
-      { ok: false, text: 'Autorizaciones F-OPS-001' },
+      { ok: true,  text: 'Reporte PDF (código personalizable)' },
+      { ok: false, text: 'Autorizaciones (código personalizable)' },
       { ok: false, text: 'SMS aeronáutico' },
       { ok: false, text: 'Multi-usuario' },
     ],
@@ -57,8 +58,8 @@ const PLANS_BASE = [
       { ok: true,  text: 'Hasta 5 usuarios (3 pilotos + jefe de pilotos + gerente SMS)' },
       { ok: true,  text: 'Bitácora RAC 100 ilimitada' },
       { ok: true,  text: 'Baterías ilimitadas' },
-      { ok: true,  text: 'Autorizaciones F-OPS-001' },
-      { ok: true,  text: 'Todos los reportes: F-OPS-002, F-MNT-003, F-HUM-005' },
+      { ok: true,  text: 'Autorizaciones (código personalizable)' },
+      { ok: true,  text: 'Todos los reportes en PDF/Excel — cada código 100% personalizable' },
       { ok: true,  text: 'SMS completo con trazabilidad' },
       { ok: true,  text: 'Auditoría y trazabilidad completa' },
       { ok: true,  text: 'Checklists personalizables' },
@@ -71,7 +72,7 @@ const PLANS_BASE = [
     features: [
       { ok: true, text: 'Hasta 10 aeronaves' },
       { ok: true, text: '10 usuarios · 5 roles RAC 100' },
-      { ok: true, text: 'Todos los reportes: F-OPS-002, F-MNT-003, F-HUM-005' },
+      { ok: true, text: 'Todos los reportes en PDF/Excel — cada código 100% personalizable' },
       { ok: true, text: 'SMS completo con trazabilidad' },
       { ok: true, text: 'Auditoría y trazabilidad completa' },
       { ok: true, text: 'Checklists personalizables' },
@@ -106,12 +107,58 @@ function trialText(days) {
 export default function PreciosClient() {
   const [annual, setAnnual] = useState(false);
   const [prices, setPrices] = useState(null);
+  const heroRef = useRef(null);
+  const rootRef = useRef(null);
 
   useEffect(() => {
     fetch('/api/plans/public')
       .then(r => { if (!r.ok) { console.warn('[fetch] /api/plans/public failed:', r.status); return null; } return r.json(); })
       .then(data => { if (data && !data.error) setPrices(data); })
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let ctx;
+    if (!prefersReduced) {
+      ctx = gsap.context(() => {
+        gsap.from('.pc-hero-eyebrow, .pc-hero-title, .pc-hero-sub, .pc-hero-toggle, .pc-hero-badges', {
+          opacity: 0,
+          y: 16,
+          duration: 0.5,
+          ease: 'power1.out',
+          stagger: 0.08,
+        });
+      }, heroRef);
+    }
+
+    const revealTargets = [
+      ...document.querySelectorAll('.reveal-fade'),
+      ...document.querySelectorAll('.reveal-stagger'),
+    ];
+    revealTargets.forEach((el) => el.classList.add('reveal-pending'));
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const el = entry.target;
+          if (el.classList.contains('reveal-stagger')) {
+            Array.from(el.children).forEach((child, i) => {
+              child.style.transitionDelay = `${i * 70}ms`;
+            });
+          }
+          el.classList.remove('reveal-pending');
+          observer.unobserve(el);
+        });
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -8% 0px' }
+    );
+    revealTargets.forEach((el) => observer.observe(el));
+
+    return () => {
+      if (ctx) ctx.revert();
+      observer.disconnect();
+    };
   }, []);
 
   const plans = PLANS_BASE.map(plan => {
@@ -126,33 +173,57 @@ export default function PreciosClient() {
   });
 
   return (
-    <>
-      <SEONav />
+    <div ref={rootRef}>
+      <style jsx global>{`
+        .reveal-fade,
+        .reveal-stagger > * {
+          transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+        }
+        .reveal-fade.reveal-pending {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        .reveal-stagger.reveal-pending > * {
+          opacity: 0;
+          transform: translateY(16px) scale(0.97);
+        }
+      `}</style>
 
-      {/* HERO */}
-      <section style={{ padding: '72px 32px 56px', background: '#fff', textAlign: 'center' }}>
-        <div style={{ maxWidth: '700px', margin: '0 auto' }}>
-          <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: accent, marginBottom: '14px', display: 'flex', justifyContent: 'center' }}>Planes y precios</div>
-          <h1 style={{ fontSize: 'clamp(32px,4vw,52px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.04em', lineHeight: 1.02, color: navy, marginBottom: '16px' }}>
+      <PublicHeader />
+
+      {/* HERO — full-bleed, foto real de dos drones en vuelo (metáfora de "crecer con tu flota") */}
+      <section ref={heroRef} className="relative isolate overflow-hidden py-24 px-6 text-center">
+        <Image
+          src="/screenshots/marketing/hero-precios-flota.jpg"
+          alt="Dos drones de tamaños distintos en vuelo, uno pequeño y uno industrial"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover -z-20"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-navy/90 via-navy/85 to-navy/95 -z-10" />
+        <div style={{ maxWidth: '700px', margin: '0 auto', position: 'relative' }}>
+          <div className="pc-hero-eyebrow" style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: accent, marginBottom: '14px', display: 'flex', justifyContent: 'center' }}>Planes y precios</div>
+          <h1 className="pc-hero-title" style={{ fontSize: 'clamp(32px,4vw,52px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.04em', lineHeight: 1.02, color: '#fff', marginBottom: '16px' }}>
             Planes que <span style={{ color: accent }}>crecen con tu flota</span>
           </h1>
-          <p style={{ fontSize: '15px', color: '#64748b', lineHeight: 1.65, margin: '0 auto 32px', maxWidth: '520px' }}>
+          <p className="pc-hero-sub" style={{ fontSize: '15px', color: '#cbd5e1', lineHeight: 1.65, margin: '0 auto 32px', maxWidth: '520px' }}>
             Empieza gratis. Actualiza cuando agregues más drones, tripulantes o necesites el SMS empresarial. Sin contratos rígidos. Sin letra pequeña.
           </p>
           {/* Toggle */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '16px', padding: '5px' }}>
-            <button onClick={() => setAnnual(false)} style={{ padding: '8px 20px', borderRadius: '12px', border: 'none', fontFamily: 'inherit', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', cursor: 'pointer', background: !annual ? navy : 'transparent', color: !annual ? '#fff' : '#94a3b8', transition: 'all 0.15s' }}>
+          <div className="pc-hero-toggle" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)', borderRadius: '16px', padding: '5px' }}>
+            <button onClick={() => setAnnual(false)} style={{ padding: '8px 20px', borderRadius: '12px', border: 'none', fontFamily: 'inherit', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', cursor: 'pointer', background: !annual ? '#fff' : 'transparent', color: !annual ? navy : '#cbd5e1', transition: 'all 0.15s' }}>
               Mensual
             </button>
-            <button onClick={() => setAnnual(true)} style={{ padding: '8px 20px', borderRadius: '12px', border: 'none', fontFamily: 'inherit', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', cursor: 'pointer', background: annual ? navy : 'transparent', color: annual ? '#fff' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.15s' }}>
+            <button onClick={() => setAnnual(true)} style={{ padding: '8px 20px', borderRadius: '12px', border: 'none', fontFamily: 'inherit', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', cursor: 'pointer', background: annual ? '#fff' : 'transparent', color: annual ? navy : '#cbd5e1', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.15s' }}>
               Anual <span style={{ background: accent, color: '#fff', fontSize: '8px', padding: '2px 7px', borderRadius: '9999px' }}>−10%</span>
             </button>
           </div>
 
-          {/* Badges de confianza — misma credibilidad que el Hero de Home, antes ausente aquí */}
-          <ul style={{ listStyle: 'none', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px', margin: '28px 0 0', padding: 0 }} aria-label="Certificaciones y características">
+          {/* Badges de confianza */}
+          <ul className="pc-hero-badges" style={{ listStyle: 'none', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px', margin: '28px 0 0', padding: 0 }} aria-label="Certificaciones y características">
             {TRUST_BADGES.map(b => (
-              <li key={b.label} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '9999px', background: '#f8fafc', fontSize: '11px', fontWeight: 700, color: '#475569' }}>
+              <li key={b.label} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '9999px', background: 'rgba(255,255,255,0.08)', fontSize: '11px', fontWeight: 700, color: '#e2e8f0' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '15px', color: accent }} aria-hidden="true">{b.icon}</span>
                 {b.label}
               </li>
@@ -162,7 +233,7 @@ export default function PreciosClient() {
       </section>
 
       {/* PRICING CARDS */}
-      <section style={{ padding: '0 32px 80px', background: '#fff' }}>
+      <section className="reveal-fade" style={{ padding: '56px 32px 80px', background: '#fff' }}>
         <div className="max-w-[1100px] mx-auto grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4" style={{ alignItems: 'start' }}>
           {plans.map(plan => {
             // Escuadrilla/Flota: el monto guardado (ePayco/DB) es el TOTAL con IVA.
@@ -224,7 +295,7 @@ export default function PreciosClient() {
 
       {/* SUSCRIPCIÓN REAL — screenshot real del panel, no solo texto (ver
           docs/plan-mejora-visual-landing-bitafly.md, Fase 3) */}
-      <section style={{ padding: '0 32px 80px', background: '#fff' }}>
+      <section className="reveal-fade" style={{ padding: '0 32px 80px', background: '#fff' }}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center" style={{ maxWidth: '1100px', margin: '0 auto' }}>
           <div>
             <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: accent, marginBottom: '12px' }}>
@@ -263,7 +334,7 @@ export default function PreciosClient() {
       </section>
 
       {/* ESUAS banner */}
-      <section style={{ padding: '0 32px 80px', background: '#fff' }}>
+      <section className="reveal-fade" style={{ padding: '0 32px 80px', background: '#fff' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
           <div className="flex flex-col md:flex-row gap-6 md:items-center" style={{ background: '#fff', border: '1.5px solid rgba(236,91,19,0.2)', borderRadius: '28px', padding: '32px 36px' }}>
             <div style={{ display: 'flex', gap: '18px', alignItems: 'flex-start', flex: 1 }}>
@@ -284,7 +355,7 @@ export default function PreciosClient() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" style={{ background: '#f8f6f6', padding: '80px 32px' }}>
+      <section id="faq" className="reveal-fade" style={{ background: '#f8f6f6', padding: '80px 32px' }}>
         <div style={{ maxWidth: '760px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
             <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: accent, marginBottom: '12px' }}>Precios — Preguntas</div>
@@ -303,7 +374,7 @@ export default function PreciosClient() {
       </section>
 
       {/* CTA */}
-      <div style={{ background: navy, padding: '80px 32px', textAlign: 'center' }}>
+      <div className="reveal-fade" style={{ background: navy, padding: '80px 32px', textAlign: 'center' }}>
         <h2 style={{ fontSize: 'clamp(28px,3vw,44px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.04em', color: '#fff', marginBottom: '12px' }}>Empieza hoy. <span style={{ color: accent }}>15 días gratis.</span></h2>
         <p style={{ fontSize: '15px', color: '#94a3b8', maxWidth: '560px', margin: '0 auto 32px' }}>Sin tarjeta de crédito, sin contratos, sin letra pequeña. Configura en 5 minutos.</p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -316,7 +387,7 @@ export default function PreciosClient() {
         </div>
       </div>
 
-      <SEOFooter brandDesc="Planes y precios de Bitafly para operadores de drones en Colombia. Sin contratos, sin letra pequeña." />
-    </>
+      <PublicFooter brandDesc="Planes y precios de Bitafly para operadores de drones en Colombia. Sin contratos, sin letra pequeña." />
+    </div>
   );
 }

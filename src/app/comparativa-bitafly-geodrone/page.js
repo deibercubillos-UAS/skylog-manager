@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import SEONav from '@/components/seo/SEONav';
-import SEOFooter from '@/components/seo/SEOFooter';
+import PublicHeader from '@/components/bitafly/PublicHeader';
+import PublicFooter from '@/components/bitafly/PublicFooter';
 import Decor from '@/components/landing/Decor';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
@@ -113,7 +113,7 @@ export default function ComparativaGeodronePage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
-      <SEONav />
+      <PublicHeader />
 
       {/* HERO */}
       <section className="relative overflow-hidden isolate bg-navy text-white py-20 px-6">
@@ -271,7 +271,7 @@ export default function ComparativaGeodronePage() {
         </div>
       </section>
 
-      <SEOFooter />
+      <PublicFooter />
     </>
   );
 }

@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import SEONav from '@/components/seo/SEONav';
-import SEOFooter from '@/components/seo/SEOFooter';
+import PublicHeader from '@/components/bitafly/PublicHeader';
+import PublicFooter from '@/components/bitafly/PublicFooter';
 import { CASE_STUDIES } from '@/lib/caseStudies';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com').replace(/\/$/, '');
@@ -56,7 +56,7 @@ export default function CasosPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
-      <SEONav />
+      <PublicHeader />
 
       {/* HERO */}
       <section className="bg-navy text-white py-16 px-6">
@@ -146,7 +146,7 @@ export default function CasosPage() {
         </div>
       </div>
 
-      <SEOFooter />
+      <PublicFooter />
     </>
   );
 }

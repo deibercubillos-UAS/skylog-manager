@@ -1,13 +1,15 @@
 'use client';
 
-// Vista previa de F1 — landing pública, réplica más clara de la landing real
-// de BitaFly (src/app/page.js), redisañada con @skylog/ui + GSAP (skill
-// ui-ux-pro-max: patrón "Hero + Features + CTA", motion "Scroll Reveal" +
-// "Stagger List", estilo con profundidad tipo glass sutil). NUNCA dice
-// "Skylog V2.0" — de cara al público el producto siempre es BitaFly
-// (01-reglas.md §7). Vive FUERA del route group (v2) a propósito: esa
-// carpeta lleva el nav de espacios de trabajo (post-login), que no debe
-// aparecer en una landing pre-login.
+// Home pública real (promovida desde el prototipo de /preview-bitafly),
+// redisañada con @skylog/ui + GSAP (patrón "Hero + Features + CTA", motion
+// "Scroll Reveal" + "Stagger List", estilo con profundidad tipo glass sutil).
+// Componente cliente separado de src/app/page.js (Server Component) para que
+// éste conserve el metadata/JSON-LD reales — mismo patrón *Client.js ya usado
+// en las 23 páginas públicas migradas (BitacoraDigitalClient, SmsClient, etc).
+// NUNCA dice "Skylog V2.0" — de cara al público el producto siempre es
+// BitaFly. Vive FUERA del route group (v2) a propósito: esa carpeta lleva el
+// nav de espacios de trabajo (post-login), que no debe aparecer en un home
+// pre-login.
 //
 // Imágenes: capturas REALES del producto en producción (public/screenshots/,
 // ya existían en el repo) — nunca mockups fabricados (regla V1). El hero
@@ -507,7 +509,7 @@ function RecursosDropdown({ onClose }) {
   );
 }
 
-export default function BitaflyLandingPreview() {
+export default function HomeClient() {
   const heroRef = useRef(null);
   const rootRef = useRef(null);
   const navRef = useRef(null);

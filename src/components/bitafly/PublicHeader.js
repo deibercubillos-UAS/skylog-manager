@@ -85,7 +85,7 @@ function FuncionesMegaMenu({ onClose }) {
         <p className="text-[11px] text-navy-300">
           <span className="font-bold text-navy">11 módulos</span> · Cumplimiento RAC 100 completo
         </p>
-        <a href="/preview-bitafly#funciones" onClick={onClose} className="text-[11px] font-bold text-primary-600 hover:text-primary-700">
+        <a href="/#funciones" onClick={onClose} className="text-[11px] font-bold text-primary-600 hover:text-primary-700">
           Ver todas las funciones →
         </a>
       </div>
@@ -131,7 +131,7 @@ export default function PublicHeader() {
   return (
     <header ref={navRef} className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-navy-100">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center gap-6">
-        <a href="/preview-bitafly" className="flex items-center gap-2 shrink-0 group">
+        <a href="/" className="flex items-center gap-2 shrink-0 group">
           <Image
             src="/logo.png"
             alt=""

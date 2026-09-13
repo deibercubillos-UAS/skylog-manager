@@ -74,6 +74,22 @@ const EMPTY_JOIN = {
 
 const INPUT = 'w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium outline-none focus:border-primary focus:ring-2 focus:ring-orange-100 transition-all';
 
+// Carga el script del Widget de Wompi una sola vez (idempotente) — mismo
+// helper que dashboard/subscription/page.js.
+function loadWompiWidgetScript() {
+  return new Promise((resolve, reject) => {
+    if (window.WidgetCheckout) { resolve(); return; }
+    const existing = document.getElementById('wompi-widget-script');
+    if (existing) { existing.addEventListener('load', () => resolve()); return; }
+    const script = document.createElement('script');
+    script.id = 'wompi-widget-script';
+    script.src = 'https://checkout.wompi.co/widget.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('No se pudo cargar el widget de pago'));
+    document.body.appendChild(script);
+  });
+}
+
 function Field({ label, required, children }) {
   return (
     <div className="space-y-1.5">
@@ -304,12 +320,13 @@ export default function RegisterPage() {
       if (!res.ok) throw new Error(data.error || 'Error al iniciar el pago');
       setPendingRef(data.reference);
       setCreateStep(3);
-      // Sin 'noopener': igual que dashboard/subscription/page.js, se necesita
-      // la referencia window.opener para que la pestaña de ePayco pueda
-      // detectarse a sí misma como popup y autocerrarse al terminar (ver
-      // dashboard/subscription/response/page.js). Con 'noopener' esa pestaña
-      // no tenía forma de saberlo y se quedaba abierta sin volver a Bitafly.
-      window.open(data.epaycoUrl, '_blank');
+      // El Widget de Wompi abre un overlay en la misma página — sin pestaña
+      // nueva ni redirección a un dominio externo como hacía ePayco. El
+      // polling por referencia (startPolling, contra /api/auth/register-status)
+      // sigue funcionando igual: activa la cuenta cuando el webhook confirme.
+      await loadWompiWidgetScript();
+      const checkout = new window.WidgetCheckout(data.widget);
+      checkout.open(() => {}); // la activación real la confirma el webhook + polling
       startPolling(data.reference);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -948,7 +965,7 @@ export default function RegisterPage() {
                       <span className="material-symbols-outlined text-base">info</span>Importante
                     </p>
                     <p className="text-xs font-bold text-amber-700">
-                      En ePayco usa el correo <span className="font-mono bg-amber-100 px-1 rounded">{form.email}</span> para que la activación sea automática.
+                      Completa el pago en la ventana emergente. Tu cuenta se activa automáticamente al confirmarse.
                     </p>
                   </div>
 
@@ -964,11 +981,21 @@ export default function RegisterPage() {
                       }
                     </button>
                     <button
-                      onClick={() => { const planCfg = { escuadrilla: { monthly: 'a1dea39b3836c9ee300a1b4', annual: 'a1dea83a021a7cbb106d996' }, flota: { monthly: 'a1deab1b8bef2c21807e912', annual: 'a1deaea5d185a11c30a7419' } }; const uid = planCfg[form.selectedPlan]?.[form.billing]; if (uid) window.open(`https://subscription-landing.epayco.co/plan/${uid}`, '_blank', 'noopener'); }}
+                      onClick={async () => {
+                        // Reabre el mismo widget — /api/auth/register-pending es
+                        // idempotente para un pending activo (misma referencia).
+                        try {
+                          const res = await fetch('/api/auth/register-pending', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, partnerCode, attribution: getAttribution() }) });
+                          const data = await res.json();
+                          if (!res.ok || !data.widget) return;
+                          await loadWompiWidgetScript();
+                          new window.WidgetCheckout(data.widget).open(() => {});
+                        } catch { /* el botón "Ya pagué" sigue disponible como respaldo */ }
+                      }}
                       className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-slate-200 text-slate-600 text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
                     >
                       <span className="material-symbols-outlined text-base">open_in_new</span>
-                      Abrir ventana de pago
+                      Volver a abrir el pago
                     </button>
                     <p className="text-center text-xs text-slate-400">Esta página también se actualiza automáticamente al confirmar el pago.</p>
                   </div>

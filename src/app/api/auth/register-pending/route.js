@@ -8,8 +8,22 @@
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { EPAYCO_PLANS } from '@/lib/planLimits';
+import { WOMPI_PLANS } from '@/lib/planLimits';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
+import { buildIntegritySignature } from '@/lib/wompi';
+
+function buildWidgetConfig(reference, cfg, email) {
+  const amountInCents = cfg.amount * 100;
+  return {
+    publicKey: process.env.WOMPI_PUBLIC_KEY,
+    currency: 'COP',
+    amountInCents,
+    reference,
+    signature: { integrity: buildIntegritySignature({ reference, amountInCents, currency: 'COP' }) },
+    redirectUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://bitafly.com'}/registro?ref=${reference}`,
+    customerData: { email },
+  };
+}
 
 function makeAdmin() {
   return createClient(
@@ -38,7 +52,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Plan no válido para pago.' }, { status: 400 });
     }
 
-    const cfg = EPAYCO_PLANS[selectedPlan]?.[billing];
+    const cfg = WOMPI_PLANS[selectedPlan]?.[billing];
     if (!cfg) {
       return NextResponse.json({ error: 'Configuración de plan no encontrada.' }, { status: 400 });
     }
@@ -73,8 +87,8 @@ export async function POST(request) {
         .eq('id', existingPending.id)
         .single();
 
-      const epaycoUrl = `https://subscription-landing.epayco.co/plan/${EPAYCO_PLANS[pending.plan_key]?.[pending.billing]?.planUid || cfg.planUid}`;
-      return NextResponse.json({ reference: pending.reference, epaycoUrl });
+      const pendingCfg = WOMPI_PLANS[pending.plan_key]?.[pending.billing] || cfg;
+      return NextResponse.json({ reference: pending.reference, widget: buildWidgetConfig(pending.reference, pendingCfg, email) });
     }
 
     // Referencia única
@@ -107,8 +121,7 @@ export async function POST(request) {
 
     if (insertErr) throw insertErr;
 
-    const epaycoUrl = `https://subscription-landing.epayco.co/plan/${cfg.planUid}`;
-    return NextResponse.json({ reference, epaycoUrl });
+    return NextResponse.json({ reference, widget: buildWidgetConfig(reference, cfg, email) });
 
   } catch (err) {
     console.error('[register-pending]', err.message);

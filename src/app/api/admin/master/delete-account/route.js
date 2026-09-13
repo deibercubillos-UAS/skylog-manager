@@ -48,7 +48,7 @@ export async function POST(request) {
     // Membresías reales ANTES de borrar nada — determina qué orgs quedarían huérfanas.
     const { data: memberships } = await admin
       .from('organization_members')
-      .select('organization_id, epayco_subscription_id, subscription_plan')
+      .select('organization_id, epayco_subscription_id, subscription_plan, payment_provider')
       .eq('user_id', targetUserId);
 
     const orgsToDelete = [];
@@ -60,7 +60,9 @@ export async function POST(request) {
       if ((count || 0) <= 1) orgsToDelete.push(m.organization_id);
 
       // Cancelar suscripción ePayco de esa membresía si existe (no-crítico).
-      if (m.subscription_plan && m.subscription_plan !== 'piloto') {
+      // Wompi no tiene un "plan" remoto que cancelar — solo aplica a
+      // membresías legacy que aún tengan ese proveedor.
+      if (m.subscription_plan && m.subscription_plan !== 'piloto' && m.payment_provider === 'epayco') {
         try {
           if (m.epayco_subscription_id) {
             await cancelSubscription(m.epayco_subscription_id);

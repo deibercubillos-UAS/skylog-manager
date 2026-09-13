@@ -202,3 +202,9 @@ export const EPAYCO_PLANS = {
     },
   },
 };
+
+// Alias — mismos datos (amount/taxBase/tax en COP), leído por el código nuevo
+// de Wompi (epaycoId/planUid ya no aplican con Wompi, se ignoran ahí). No se
+// duplica el objeto ni se renombra EPAYCO_PLANS para no tocar los ~6 archivos
+// que ya lo importan con ese nombre.
+export const WOMPI_PLANS = EPAYCO_PLANS;

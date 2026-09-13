@@ -12,7 +12,6 @@
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { reconcilePendingRegistration } from '@/lib/epaycoActivation';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 
 export const dynamic = 'force-dynamic';
@@ -51,20 +50,10 @@ export async function POST(request) {
       return NextResponse.json({ status: 'expired' });
     }
 
-    // 2. Consultar ePayco para ver si hay suscripción activa para este email
-    try {
-      const userId = await reconcilePendingRegistration(supabase, pending);
-      if (userId) {
-        console.log(`[epayco] ✓ activate-pending — Cuenta creada manualmente: user=${userId} plan=${pending.plan_key}`);
-        return NextResponse.json({ status: 'completed', plan_key: pending.plan_key });
-      }
-    } catch (epaycoErr) {
-      // No-crítico: si la API de ePayco falla, devolvemos 'pending' para que el usuario
-      // pueda volver a intentar o contactar soporte.
-      console.warn('[activate-pending] ePayco check failed:', epaycoErr.message);
-    }
-
-    // 3. Aún pendiente — no se encontró suscripción activa
+    // 2. Wompi no tiene un "listado de suscripciones" que consultar (a
+    // diferencia de ePayco) — su webhook (transaction.updated) es la única
+    // fuente real de confirmación, y es mucho más confiable que el de ePayco
+    // (motivo original de este botón manual). Si aún no llegó, sigue pendiente.
     return NextResponse.json({ status: 'pending' });
 
   } catch (err) {

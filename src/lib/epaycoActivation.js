@@ -250,7 +250,10 @@ export async function createAccountFromPendingRegistration(supabase, email, paym
   return userId;
 }
 
-export async function activatePlanForUser(supabase, { userId, planKey, billing, subscriptionId = null, ref = null }) {
+export async function activatePlanForUser(supabase, {
+  userId, planKey, billing, subscriptionId = null, ref = null,
+  provider = 'wompi', wompiPaymentSourceId = null,
+}) {
   // Validar que planKey sea uno de los planes de pago conocidos
   if (!planKey || !VALID_PAID_PLANS.includes(planKey)) {
     throw new Error(`plan_key inválido o no reconocido: "${planKey}". Valores permitidos: ${VALID_PAID_PLANS.join(', ')}`);
@@ -261,15 +264,23 @@ export async function activatePlanForUser(supabase, { userId, planKey, billing, 
   if (billing === 'annual') expiresAt.setFullYear(expiresAt.getFullYear() + 1);
   else expiresAt.setMonth(expiresAt.getMonth() + 1);
 
+  // Las columnas epayco_subscription_id/epayco_ref se conservan tal cual (no
+  // se renombraron — evita tocar ~40 archivos que solo las leen para mostrar
+  // "suscripción recurrente" o cancelarla) pero ya son provider-agnostic:
+  // guardan el ID de transacción/referencia de Wompi cuando provider='wompi'.
+  const patch = {
+    subscription_plan:       planKey,
+    epayco_subscription_id:  subscriptionId,
+    epayco_ref:              ref,
+    payment_provider:        provider,
+    subscription_expires_at: expiresAt.toISOString(),
+    updated_at:              now.toISOString(),
+  };
+  if (wompiPaymentSourceId) patch.wompi_payment_source_id = wompiPaymentSourceId;
+
   const { data: updated, error } = await supabase
     .from('profiles')
-    .update({
-      subscription_plan:       planKey,
-      epayco_subscription_id:  subscriptionId,
-      epayco_ref:              ref,
-      subscription_expires_at: expiresAt.toISOString(),
-      updated_at:              now.toISOString(),
-    })
+    .update(patch)
     .eq('id', userId)
     .select('organization_id')
     .single();
@@ -284,6 +295,8 @@ export async function activatePlanForUser(supabase, { userId, planKey, billing, 
       epaycoSubscriptionId: subscriptionId,
       epaycoRef: ref,
       subscriptionExpiresAt: expiresAt.toISOString(),
+      paymentProvider: provider,
+      ...(wompiPaymentSourceId ? { wompiPaymentSourceId } : {}),
     });
   }
 

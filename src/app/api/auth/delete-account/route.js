@@ -21,17 +21,20 @@ export async function DELETE(request) {
     const { orgId } = await getOrgContext(supabase);
     const supabaseAdmin = createAdminClient();
 
-    // Leer membresía (plan/ePayco de la org activa) + email de identidad
+    // Leer membresía (plan/proveedor de la org activa) + email de identidad
     const [{ data: membership }, { data: identity }] = await Promise.all([
       orgId
-        ? supabaseAdmin.from('organization_members').select('subscription_plan, epayco_subscription_id')
+        ? supabaseAdmin.from('organization_members').select('subscription_plan, epayco_subscription_id, payment_provider')
           .eq('user_id', user.id).eq('organization_id', orgId).maybeSingle()
         : Promise.resolve({ data: null }),
       supabaseAdmin.from('profiles').select('email').eq('id', user.id).maybeSingle(),
     ]);
 
-    // Cancelar suscripción en ePayco si existe (no-crítico si falla)
-    if (membership?.subscription_plan && membership.subscription_plan !== 'piloto') {
+    // Cancelar suscripción de pago si existe (no-crítico si falla). Wompi no
+    // tiene un "plan" remoto que cancelar — borrar la cuenta ya detiene el
+    // cron de recurrencia (deja de encontrar la fila). Solo se llama a
+    // ePayco para membresías legacy que aún tengan ese proveedor.
+    if (membership?.subscription_plan && membership.subscription_plan !== 'piloto' && membership.payment_provider === 'epayco') {
       try {
         if (membership.epayco_subscription_id) {
           const { cancelSubscription } = await import('@/lib/epayco');

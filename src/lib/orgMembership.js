@@ -15,6 +15,8 @@ export async function syncOrgMembership(client, {
   subscriptionExpiresAt,
   subscriptionStatus,
   lastPaymentDate,
+  paymentProvider,
+  wompiPaymentSourceId,
 }) {
   if (!userId || !organizationId) return;
 
@@ -27,6 +29,8 @@ export async function syncOrgMembership(client, {
   if (subscriptionExpiresAt !== undefined) patch.subscription_expires_at = subscriptionExpiresAt;
   if (subscriptionStatus !== undefined) patch.subscription_status = subscriptionStatus;
   if (lastPaymentDate !== undefined) patch.last_payment_date = lastPaymentDate;
+  if (paymentProvider !== undefined) patch.payment_provider = paymentProvider;
+  if (wompiPaymentSourceId !== undefined) patch.wompi_payment_source_id = wompiPaymentSourceId;
 
   const { error } = await client
     .from('organization_members')

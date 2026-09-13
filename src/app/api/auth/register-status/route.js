@@ -17,7 +17,6 @@
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { reconcilePendingRegistration } from '@/lib/epaycoActivation';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 
 export const dynamic = 'force-dynamic';
@@ -56,19 +55,10 @@ export async function GET(request) {
       return NextResponse.json({ status: 'expired' });
     }
 
-    // Verificación real con ePayco (no solo lectura pasiva — ver nota arriba).
-    try {
-      const userId = await reconcilePendingRegistration(supabase, data);
-      if (userId) {
-        console.log(`[epayco] ✓ register-status — Cuenta activada por polling: user=${userId} plan=${data.plan_key}`);
-        return NextResponse.json({ status: 'completed', plan_key: data.plan_key });
-      }
-    } catch (epaycoErr) {
-      // No-crítico: si ePayco falla transitoriamente, el próximo tick del
-      // polling (cada ~4-5s) lo reintenta solo.
-      console.warn('[register-status] ePayco check failed:', epaycoErr.message);
-    }
-
+    // Con Wompi no hay un "listado de suscripciones" que reconciliar — el
+    // webhook (transaction.updated) es la fuente real y confiable de
+    // confirmación. Este polling solo lee completed_at (ya chequeado arriba);
+    // el próximo tick (cada ~4-5s) lo detecta apenas el webhook corra.
     return NextResponse.json({ status: 'pending' });
 
   } catch (err) {

@@ -80,10 +80,22 @@ const PLANS = {
 
 const PLAN_ORDER = ['piloto', 'escuadrilla', 'flota', 'enterprise'];
 
-const EPAYCO_UIDS = {
-  escuadrilla: { monthly: 'a1dea39b3836c9ee300a1b4', annual: 'a1dea83a021a7cbb106d996' },
-  flota:       { monthly: 'a1deab1b8bef2c21807e912', annual: 'a1deaea5d185a11c30a7419' },
-};
+// Carga el script del Widget de Wompi una sola vez (idempotente si ya está
+// en el DOM) — el overlay de pago se abre en la misma página, sin pestaña
+// nueva ni redirección a un dominio externo como hacía ePayco.
+function loadWompiWidgetScript() {
+  return new Promise((resolve, reject) => {
+    if (window.WidgetCheckout) { resolve(); return; }
+    const existing = document.getElementById('wompi-widget-script');
+    if (existing) { existing.addEventListener('load', () => resolve()); return; }
+    const script = document.createElement('script');
+    script.id = 'wompi-widget-script';
+    script.src = 'https://checkout.wompi.co/widget.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('No se pudo cargar el widget de pago'));
+    document.body.appendChild(script);
+  });
+}
 
 // ── Colores por plan ─────────────────────────────────────────────────────────
 const COLOR = {
@@ -273,24 +285,45 @@ export default function ManageSubscriptionPage() {
         setUpgrading(null);
         return;
       }
-      const res = await fetch('/api/epayco/checkout', {
+      const res = await fetch('/api/wompi/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planKey: targetPlan, billing, partnerCode }),
       });
       const json = await res.json();
-      if (!json.url) throw new Error(json.error || 'No se pudo iniciar el pago');
+      if (!json.widget) throw new Error(json.error || 'No se pudo iniciar el pago');
 
-      // Abrir ePayco en nueva pestaña (sin noopener: necesitamos la referencia
-      // para detectar el cierre y recibir el postMessage de retorno).
-      const win = window.open(json.url, '_blank');
-      payWindowRef.current       = win;
       baselinePlanRef.current    = planKey; // plan antes del pago
       baselineExpiresRef.current = profile?.subscription_expires_at || null; // vigencia antes del pago (detecta renovación del mismo plan)
       pollDeadlineRef.current    = Date.now() + 1000 * 60 * 10; // hasta 10 min
 
-      // Polling del perfil: el webhook de ePayco activa el plan server-side,
-      // así detectamos el cambio aunque ePayco no redirija a nuestra página.
+      // El Widget de Wompi abre un overlay en la misma página (no una pestaña
+      // nueva) — carga el script una sola vez y reutiliza si ya está.
+      await loadWompiWidgetScript();
+      const checkout = new window.WidgetCheckout(json.widget);
+      checkout.open(async (result) => {
+        const tx = result?.transaction;
+        if (!tx?.id) { setUpgrading(null); return; }
+        try {
+          const verifyRes = await fetch('/api/wompi/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transactionId: tx.id }),
+          });
+          const verifyJson = await verifyRes.json();
+          if (verifyJson.status === 'completed') {
+            await pollProfileOnce();
+          } else {
+            setUpgrading(null);
+          }
+        } catch {
+          setUpgrading(null);
+        }
+      });
+
+      // Polling del perfil como red de seguridad: si el callback del widget
+      // falla por algún motivo, el webhook de Wompi igual activa el plan
+      // server-side apenas Wompi confirme la transacción.
       stopPolling();
       pollRef.current = setInterval(() => {
         if (Date.now() > pollDeadlineRef.current) {
@@ -300,22 +333,6 @@ export default function ManageSubscriptionPage() {
         }
         pollProfileOnce();
       }, 4000);
-
-      // Vigilar el cierre de la ventana de pago: al cerrarse, hacemos un
-      // barrido extra de verificación durante ~40s antes de rendirnos.
-      if (win) {
-        winWatchRef.current = setInterval(async () => {
-          if (win.closed) {
-            clearInterval(winWatchRef.current);
-            winWatchRef.current = null;
-            // Extender el polling unos segundos por si el webhook tarda
-            const grace = Date.now() + 40000;
-            if (pollDeadlineRef.current > grace) pollDeadlineRef.current = grace;
-            const ok = await pollProfileOnce();
-            if (!ok) setUpgrading(null);
-          }
-        }, 1500);
-      }
     } catch (e) {
       alert('Error al iniciar pago: ' + e.message);
       setUpgrading(null);

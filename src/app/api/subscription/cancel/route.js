@@ -1,6 +1,5 @@
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
-import { cancelSubscription, cancelSubscriptionsByEmail } from '@/lib/epayco';
 import { syncOrgMembership } from '@/lib/orgMembership';
 import { getOrgContext } from '@/lib/apiAuth';
 
@@ -23,38 +22,25 @@ export async function POST(request) {
     // Leer perfil completo antes de cancelar
     const { data: profile } = await supabase
       .from('profiles')
-      .select('epayco_subscription_id, email, organization_id')
+      .select('email, organization_id')
       .eq('id', user.id)
       .single();
 
-    // ── Cancelar en ePayco ────────────────────────────────────────────────────
-    if (profile?.epayco_subscription_id) {
-      // Camino principal: tenemos el ID guardado
-      try {
-        await cancelSubscription(profile.epayco_subscription_id);
-        console.log(`[epayco] ✓ Cancel OK uid=${profile.epayco_subscription_id} user=${user.id}`);
-      } catch (err) {
-        console.error(`✗ Cancel ePayco falló uid=${profile.epayco_subscription_id}:`, err.message);
-      }
-    } else {
-      // Fallback: buscar por email en listado de suscripciones de ePayco
-      const email = profile?.email || user.email;
-      console.log(`[epayco] Cancel fallback: buscando suscripciones por email=${email} user=${user.id}`);
-      try {
-        const result = await cancelSubscriptionsByEmail(email);
-        console.log(`[epayco] Cancel by email: matched=${result.matched}`, JSON.stringify(result.results));
-      } catch (err) {
-        console.error('Cancel by email falló:', err.message);
-      }
-    }
+    // ── Cancelar con Wompi ────────────────────────────────────────────────────
+    // A diferencia de ePayco, no existe un "plan hospedado" que cancelar
+    // remotamente — Wompi solo guarda el token de tarjeta (payment_source_id).
+    // Cancelar = limpiar ese token para que el cron de recurrencia
+    // (api/cron/wompi-recurring-charge) deje de intentar cobrar.
 
-    // ── Degradar a plan piloto en Supabase (siempre, independiente de ePayco) ─
+    // ── Degradar a plan piloto en Supabase ─────────────────────────────────────
     const { error } = await supabase
       .from('profiles')
       .update({
         subscription_plan:       'piloto',
         epayco_subscription_id:  null,
         epayco_ref:              null,
+        payment_provider:        null,
+        wompi_payment_source_id: null,
         subscription_expires_at: null,
         updated_at:              new Date().toISOString(),
       })
@@ -71,6 +57,8 @@ export async function POST(request) {
         subscriptionPlan: 'piloto',
         epaycoSubscriptionId: null,
         epaycoRef: null,
+        paymentProvider: null,
+        wompiPaymentSourceId: null,
         subscriptionExpiresAt: null,
       });
 

@@ -294,21 +294,29 @@ export async function POST(request) {
             subscriptionPlan: 'piloto',
         });
 
-        // ── Perfil gratis de socio (grant): activar plan piloto con vencimiento ──
+        // ── Perfil gratis (grant): activar plan con vencimiento ──────────────
+        // ⚠️ Bug real corregido 2026-09-14: este bloque solo tocaba
+        // `subscription_expires_at`, dejando el plan siempre en 'piloto' (fijado
+        // arriba, líneas 286/294) sin importar qué plan hubiera elegido el
+        // superadmin al crear el regalo desde Master. `free_grants.plan` ahora
+        // guarda el plan real — los regalos de socio siguen siendo 'piloto' por
+        // el default de la columna (regla de negocio #9, sin cambio para ellos).
         if (grantToken) {
             const { data: g } = await supabaseAdmin
                 .from('free_grants')
-                .select('id, email, status, expires_at')
+                .select('id, email, status, expires_at, plan')
                 .eq('token', grantToken)
                 .maybeSingle();
             // Solo si el regalo existe, es para este correo y aún no fue activado
             if (g && g.email?.toLowerCase() === email.toLowerCase() && g.status !== 'activado') {
+                const grantedPlan = PLAN_CONFIG[g.plan] ? g.plan : 'piloto';
                 await supabaseAdmin.from('profiles')
-                    .update({ subscription_expires_at: g.expires_at })
+                    .update({ subscription_plan: grantedPlan, subscription_expires_at: g.expires_at })
                     .eq('id', authData.user.id);
                 await syncOrgMembership(supabaseAdmin, {
                     userId: authData.user.id,
                     organizationId: targetOrgId,
+                    subscriptionPlan: grantedPlan,
                     subscriptionExpiresAt: g.expires_at,
                 });
                 await supabaseAdmin.from('free_grants')

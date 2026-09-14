@@ -160,6 +160,13 @@ export async function POST(request) {
   // mostrarse) y se desvincula de cualquier socio/asesor previo — la
   // renovación la origina Master, no el socio que la haya regalado antes.
   let grantToken = null;
+  // Plan real a activar con el regalo — antes SIEMPRE quedaba en 'piloto' sin
+  // importar qué eligiera el superadmin en `plan` (bug real: el desplegable de
+  // plan del formulario de Master no tenía ningún efecto para un prospecto
+  // nuevo sin organización — corregido 2026-09-14). Válido cualquiera de los
+  // 4 planes; con un `plan` inválido o ausente cae al comportamiento de
+  // siempre (regalo de Piloto gratis por N días).
+  const grantPlan = plan && PLAN_INFO[plan] ? plan : 'piloto';
   if (!orgId && !isExistingUser) {
     grantDays = Number.isFinite(Number(freeDays)) && Number(freeDays) > 0
       ? Math.min(Math.round(Number(freeDays)), 365)
@@ -176,6 +183,7 @@ export async function POST(request) {
       advisor_member_id:  null,
       status:             'enviado',
       token:              grantToken,
+      plan:               grantPlan,
       granted_at:         now.toISOString(),
       expires_at:         expiresAt.toISOString(),
       purge_after:        purgeAfter.toISOString(),
@@ -236,10 +244,17 @@ export async function POST(request) {
   const safeOrg     = escHtml(orgName || 'BitaFly');
   const safeSender  = escHtml(senderName);
   const safeMessage = message ? escHtml(message) : null;
-  // Con grant, el plan real siempre es Piloto por N días (mismo mecanismo
-  // que el regalo de socios) — el "plan sugerido" decorativo no aplica aquí,
-  // se reemplaza por el bloque de días gratis (ver plantilla más abajo).
-  const planData    = !grantToken && plan && PLAN_INFO[plan] ? PLAN_INFO[plan] : null;
+  // Plan realmente activado sin pago: para usuario existente ya se resolvió
+  // arriba (activatedPlan). Para un grant nuevo sin organización, se activa
+  // aquí mismo si el superadmin eligió algo distinto de Piloto — antes de
+  // 2026-09-14 esto se ignoraba y el registro siempre aplicaba Piloto. Con
+  // Piloto (o sin `plan`), sigue siendo el regalo de siempre — bloque de días
+  // gratis, sin plan que mostrar como "activado".
+  const grantActivatedPlan   = grantToken && grantPlan !== 'piloto' ? grantPlan : null;
+  const anyActivatedPlan     = activatedPlan || grantActivatedPlan;
+  const planData    = anyActivatedPlan
+    ? PLAN_INFO[anyActivatedPlan]
+    : (!grantToken && plan && PLAN_INFO[plan] ? PLAN_INFO[plan] : null);
 
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ error: 'Servicio de correo no configurado' }, { status: 500 });
@@ -287,7 +302,7 @@ export async function POST(request) {
           ${planData ? `
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;background:#fff8f5;border:2px solid #fde0cc;border-radius:12px;overflow:hidden;">
             <tr><td style="padding:20px 24px;">
-              <p style="margin:0 0 4px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#ec5b13;">${activatedPlan ? 'Plan activado' : 'Plan sugerido'}</p>
+              <p style="margin:0 0 4px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#ec5b13;">${anyActivatedPlan ? 'Plan activado' : 'Plan sugerido'}</p>
               <table width="100%" cellpadding="0" cellspacing="0"><tr>
                 <td>
                   <p style="margin:0;font-size:20px;font-weight:900;color:#1a202c;">${escHtml(planData.label)}</p>
@@ -297,9 +312,10 @@ export async function POST(request) {
                   <p style="margin:0;font-size:18px;font-weight:900;color:#ec5b13;">${escHtml(planData.price)}</p>
                 </td>
               </tr></table>
+              ${grantActivatedPlan ? `<p style="margin:10px 0 0;font-size:13px;color:#718096;">Sin tarjeta de crédito — activo por ${grantDays} días, crea tu cuenta y entra directo.</p>` : ''}
             </td></tr>
           </table>` : ''}
-          ${grantToken ? `
+          ${grantToken && !grantActivatedPlan ? `
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;background:#fff8f5;border:2px solid #fde0cc;border-radius:12px;overflow:hidden;">
             <tr><td style="padding:20px 24px;">
               <p style="margin:0 0 4px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#ec5b13;">🎁 Acceso gratuito</p>
@@ -330,5 +346,5 @@ export async function POST(request) {
     return NextResponse.json({ error: emailErr.message || 'Error al enviar el correo' }, { status: 502 });
   }
 
-  return NextResponse.json({ success: true, isExistingUser, orgName, grantDays: grantToken ? grantDays : null, activatedPlan });
+  return NextResponse.json({ success: true, isExistingUser, orgName, grantDays: grantToken ? grantDays : null, activatedPlan: anyActivatedPlan });
 }

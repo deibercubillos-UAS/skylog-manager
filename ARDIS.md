@@ -265,3 +265,104 @@ Empieza por la Fase 0.
 - [ ] Probar el micrófono en Safari del iPhone
 - [ ] Clave gratuita de Gemini en Google AI Studio
 - [ ] Generar las claves VAPID (`npx web-push generate-vapid-keys`) y los secretos
+
+---
+
+## 13. Google Apps Script (Fase 4)
+
+El script vive fuera del repo, en [script.google.com](https://script.google.com) — esto es
+la referencia para crearlo.
+
+**Pasos:**
+1. `script.google.com` → **Nuevo proyecto**.
+2. Pega el código de abajo (reemplaza el `Code.gs` que trae por defecto).
+3. **Configuración del proyecto** (ícono de engranaje) → **Propiedades del script** → agrega
+   `ARDIS_GAS_SECRET` con un valor aleatorio largo (el mismo que pondrás en Vercel como
+   `ARDIS_GAS_SECRET`).
+4. **Implementar** → **Nueva implementación** → tipo **Aplicación web** → Ejecutar como: **Yo**,
+   Quién tiene acceso: **Cualquier usuario**.
+5. Copia la URL que te da (termina en `/exec`) → esa es `ARDIS_GAS_URL` en Vercel.
+6. La primera vez te pedirá autorizar permisos de Calendar/Sheets/Drive — acéptalos (es tu
+   propia cuenta, tu propio script).
+
+```javascript
+const GAS_SECRET_PROPERTY = 'ARDIS_GAS_SECRET';
+const BACKUP_FOLDER_NAME = 'ARDIS backups';
+
+function doPost(e) {
+  let body;
+  try {
+    body = JSON.parse(e.postData.contents);
+  } catch (err) {
+    return jsonResponse({ error: 'JSON inválido' });
+  }
+
+  const expectedSecret = PropertiesService.getScriptProperties().getProperty(GAS_SECRET_PROPERTY);
+  if (!expectedSecret || body.secret !== expectedSecret) {
+    return jsonResponse({ error: 'No autorizado' });
+  }
+
+  try {
+    switch (body.action) {
+      case 'get_week_meetings':
+        return jsonResponse({ meetings: getWeekMeetings() });
+      case 'create_calendar_block':
+        return jsonResponse({ event: createCalendarBlock(body.payload) });
+      case 'sync_gantt':
+        syncGantt(body.payload);
+        return jsonResponse({ ok: true });
+      case 'backup':
+        return jsonResponse({ ok: true, file: backupToDrive(body.payload) });
+      default:
+        return jsonResponse({ error: 'Acción desconocida' });
+    }
+  } catch (err) {
+    return jsonResponse({ error: String(err) });
+  }
+}
+
+function jsonResponse(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function getWeekMeetings() {
+  const cal = CalendarApp.getDefaultCalendar();
+  const now = new Date();
+  const start = new Date(now);
+  start.setDate(now.getDate() - now.getDay());
+  const end = new Date(start);
+  end.setDate(start.getDate() + 7);
+  return cal.getEvents(start, end).map(function (ev) {
+    return { title: ev.getTitle(), start: ev.getStartTime(), end: ev.getEndTime() };
+  });
+}
+
+function createCalendarBlock(payload) {
+  const cal = CalendarApp.getDefaultCalendar();
+  const ev = cal.createEvent(payload.title, new Date(payload.start), new Date(payload.end));
+  return { id: ev.getId(), title: ev.getTitle() };
+}
+
+function syncGantt(payload) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.create('ARDIS Gantt');
+  let sheet = ss.getSheetByName(payload.projectName);
+  if (!sheet) sheet = ss.insertSheet(payload.projectName);
+  sheet.clear();
+  sheet.appendRow(['Título', 'Estado', 'Inicio', 'Vence']);
+  (payload.tasks || []).forEach(function (t) {
+    sheet.appendRow([t.title, t.status, t.start_date || '', t.due_at || '']);
+  });
+}
+
+function backupToDrive(payload) {
+  const folders = DriveApp.getFoldersByName(BACKUP_FOLDER_NAME);
+  const folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(BACKUP_FOLDER_NAME);
+  const filename = 'ardis-backup-' + new Date().toISOString() + '.json';
+  const file = folder.createFile(filename, JSON.stringify(payload), MimeType.PLAIN_TEXT);
+  return file.getName();
+}
+```
+
+**Nota:** `SpreadsheetApp.getActiveSpreadsheet()` solo funciona si el script está vinculado a
+una hoja de cálculo (créala tú y vincula el script desde ahí, o cambia esa línea por
+`SpreadsheetApp.openById('TU_ID_DE_HOJA')` apuntando a una hoja fija que crees una vez).

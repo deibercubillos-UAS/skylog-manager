@@ -1,0 +1,44 @@
+name: ardis-cron
+
+on:
+  schedule:
+    - cron: '30 11 * * 1-5'   # 6:30 Colombia lun-vie -> resumen del día
+    - cron: '0 * * * *'       # cada hora -> vencimientos en menos de 24h
+    - cron: '0 23 * * 1-5'    # 18:00 Colombia lun-vie -> recordatorio de cierre
+    - cron: '0 21 * * 5'      # 16:00 Colombia viernes -> revisión semanal
+    - cron: '0 23 * * 5'      # 18:00 Colombia viernes -> Gantt a Sheets + respaldo a Drive
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: 'Tipo de aviso a disparar manualmente'
+        required: true
+        type: choice
+        options:
+          - daily_summary
+          - due_soon
+          - close_reminder
+          - weekly_review
+          - gantt_backup
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determinar tipo de aviso
+        id: kind
+        shell: bash
+        run: |
+          case "${{ github.event.schedule }}" in
+            "30 11 * * 1-5") echo "kind=daily_summary" >> "$GITHUB_OUTPUT" ;;
+            "0 * * * *")     echo "kind=due_soon" >> "$GITHUB_OUTPUT" ;;
+            "0 23 * * 1-5")  echo "kind=close_reminder" >> "$GITHUB_OUTPUT" ;;
+            "0 21 * * 5")    echo "kind=weekly_review" >> "$GITHUB_OUTPUT" ;;
+            "0 23 * * 5")    echo "kind=gantt_backup" >> "$GITHUB_OUTPUT" ;;
+            *)               echo "kind=${{ github.event.inputs.kind }}" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Llamar a /api/ardis/cron
+        shell: bash
+        run: |
+          curl -sf -X GET "https://bitafly.com/api/ardis/cron?kind=${{ steps.kind.outputs.kind }}" \
+            -H "x-ardis-cron-secret: ${{ secrets.ARDIS_CRON_SECRET }}"

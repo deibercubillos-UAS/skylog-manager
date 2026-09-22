@@ -4,7 +4,9 @@ import 'server-only';
 // necesita agregar una dependencia nueva (ARDIS.md solo pre-aprueba
 // chrono-node y web-push). ARDIS_GEMINI_MODEL se verifica en AI Studio, no
 // se asume un nombre fijo de modelo.
-const DEFAULT_MODEL = 'gemini-2.0-flash';
+// Verificado sep. 2026: flash-lite da 500 solicitudes/día gratis, de sobra
+// para uso personal — "flash" a secas solo da ~20/día en el free tier.
+const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
 
 const SYSTEM_INSTRUCTION = `Eres el intérprete de comandos de ARDIS, un asistente personal de tareas y proyectos. Tu única función es convertir una frase en español a un objeto JSON con una de estas formas EXACTAS. No inventes campos. No calcules fechas (eso lo hace otro sistema). Si la frase no encaja en ninguna, responde exactamente {"type":"unknown"}.
 

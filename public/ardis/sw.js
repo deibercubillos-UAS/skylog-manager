@@ -18,8 +18,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'ARDIS', {
       body: data.body || '',
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
+      icon: '/ardis/icons/icon-192.png',
+      badge: '/ardis/icons/icon-192.png',
       data: { url: data.url || '/ardis' },
     })
   );

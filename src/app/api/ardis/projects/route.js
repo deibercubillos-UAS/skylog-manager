@@ -1,28 +1,18 @@
 import { NextResponse } from 'next/server';
 import { guardArdisRoute } from '@/lib/ardis/guard';
 import { createArdisAdminClient } from '@/lib/ardis/admin';
-
-function withProgress(project, tasks) {
-  const projectTasks = tasks.filter((t) => t.project_id === project.id);
-  const done = projectTasks.filter((t) => t.status === 'done').length;
-  const total = projectTasks.length;
-  return { ...project, progress: total ? Math.round((done / total) * 100) : 0, taskCount: total };
-}
+import { listProjectsWithProgress } from '@/lib/ardis/actions';
 
 export async function GET() {
   const guard = guardArdisRoute();
   if (guard) return guard;
 
-  const supabase = createArdisAdminClient();
-  const [{ data: projects, error: projectsError }, { data: tasks, error: tasksError }] = await Promise.all([
-    supabase.from('projects').select('*').order('created_at', { ascending: false }),
-    supabase.from('tasks').select('id, project_id, status'),
-  ]);
-
-  if (projectsError) return NextResponse.json({ error: projectsError.message }, { status: 500 });
-  if (tasksError) return NextResponse.json({ error: tasksError.message }, { status: 500 });
-
-  return NextResponse.json({ projects: (projects || []).map((p) => withProgress(p, tasks || [])) });
+  try {
+    const projects = await listProjectsWithProgress();
+    return NextResponse.json({ projects });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }
 
 export async function POST(request) {

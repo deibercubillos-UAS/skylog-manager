@@ -35,51 +35,27 @@ export default function ArdisEntrarPage() {
   }
 
   return (
-    <main
-      style={{
-        display: 'flex',
-        minHeight: '100vh',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#111318',
-        color: '#f5f5f5',
-        fontFamily: 'system-ui, sans-serif',
-        padding: '1rem',
-      }}
-    >
-      <form
-        onSubmit={handleSubmit}
-        style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '20rem' }}
-      >
-        <h1 style={{ fontSize: '1.25rem', fontWeight: 600 }}>ARDIS</h1>
+    <main className="flex min-h-screen items-center justify-center bg-navy px-4 text-white">
+      <form onSubmit={handleSubmit} className="flex w-80 flex-col items-center gap-4">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5">
+          <span className="material-symbols-outlined text-3xl text-primary">graphic_eq</span>
+        </div>
+        <h1 className="text-xl font-semibold">ARDIS</h1>
+
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Contraseña"
           autoFocus
-          style={{
-            padding: '0.6rem 0.75rem',
-            borderRadius: '0.4rem',
-            border: '1px solid #333',
-            background: '#1a1c22',
-            color: '#f5f5f5',
-          }}
+          className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-center text-white
+                     placeholder:text-white/30 focus:border-primary focus:outline-none"
         />
-        {error && <p style={{ color: '#f87171', fontSize: '0.85rem', margin: 0 }}>{error}</p>}
+        {error && <p className="text-sm text-red-400">{error}</p>}
         <button
           type="submit"
           disabled={loading || !password}
-          style={{
-            padding: '0.6rem 0.75rem',
-            borderRadius: '0.4rem',
-            border: 'none',
-            background: '#ec5b13',
-            color: '#fff',
-            fontWeight: 600,
-            cursor: loading ? 'default' : 'pointer',
-            opacity: loading ? 0.7 : 1,
-          }}
+          className="w-full rounded-xl bg-primary py-3 font-semibold text-white disabled:opacity-60"
         >
           {loading ? 'Entrando…' : 'Entrar'}
         </button>

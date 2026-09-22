@@ -11,6 +11,27 @@ export const metadata = {
     nocache: true,
     googleBot: { index: false, follow: false },
   },
+  manifest: '/ardis/manifest.webmanifest',
+  icons: {
+    icon: [
+      { url: '/ardis/icons/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/ardis/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: [{ url: '/ardis/icons/apple-touch-icon-180.png', sizes: '180x180', type: 'image/png' }],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'ARDIS',
+  },
+};
+
+export const viewport = {
+  themeColor: '#111318',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: 'cover',
 };
 
 export default function ArdisLayout({ children }) {

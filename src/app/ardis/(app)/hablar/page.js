@@ -231,97 +231,78 @@ export default function ArdisHablarPage() {
   };
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        background: '#111318',
-        color: '#f5f5f5',
-        fontFamily: 'system-ui, sans-serif',
-        padding: '2rem 1.5rem',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '1.5rem',
-      }}
-    >
-      <h1 style={{ fontSize: '1.25rem', fontWeight: 600 }}>ARDIS — Hablar</h1>
+    <main className="mx-auto flex min-h-[calc(100vh-6rem)] max-w-md flex-col items-center gap-6 px-6 pt-8">
+      <h1 className="text-xl font-semibold text-white">Hablar con ARDIS</h1>
 
-      <p style={{ color: '#9a9a9a', fontSize: '0.9rem', textAlign: 'center', maxWidth: '28rem' }}>
+      <p className="max-w-xs text-center text-sm text-white/50">
         {status === 'listening' && 'Escuchando…'}
         {status === 'thinking' && 'Pensando…'}
         {status === 'speaking' && 'Respondiendo…'}
         {status === 'idle' && 'Mantén presionado para hablar, o activa conversación continua.'}
+        {status === 'reviewing' && 'Revisa antes de confirmar'}
         {status === 'error' && 'Este navegador no soporta reconocimiento de voz (usa Chrome).'}
       </p>
 
-      {transcript && status !== 'idle' && (
-        <p style={{ color: '#ccc', fontStyle: 'italic', maxWidth: '28rem', textAlign: 'center' }}>
-          &ldquo;{transcript}&rdquo;
-        </p>
+      {/* Indicador de estado */}
+      {(status === 'listening' || status === 'thinking' || status === 'speaking') && (
+        <div className="relative flex h-24 w-24 items-center justify-center">
+          {status === 'listening' && (
+            <>
+              <span className="absolute h-24 w-24 animate-ping rounded-full bg-primary/30" />
+              <span className="absolute h-16 w-16 animate-ping rounded-full bg-primary/40 [animation-delay:150ms]" />
+              <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white">
+                <span className="material-symbols-outlined text-2xl">mic</span>
+              </span>
+            </>
+          )}
+          {status === 'thinking' && (
+            <span className="h-14 w-14 animate-spin rounded-full border-4 border-white/15 border-t-primary" />
+          )}
+          {status === 'speaking' && (
+            <div className="flex items-end gap-1.5">
+              {[0, 1, 2, 3].map((i) => (
+                <span
+                  key={i}
+                  className="w-2 animate-pulse rounded-full bg-primary"
+                  style={{ height: `${16 + (i % 2) * 20}px`, animationDelay: `${i * 120}ms` }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
-      {error && <p style={{ color: '#f87171', fontSize: '0.85rem' }}>{error}</p>}
+      {transcript && status !== 'idle' && (
+        <p className="max-w-xs text-center text-sm italic text-white/60">&ldquo;{transcript}&rdquo;</p>
+      )}
+
+      {error && <p className="text-sm text-red-400">{error}</p>}
 
       {status === 'reviewing' && pending && (
-        <div
-          style={{
-            width: '100%',
-            maxWidth: '28rem',
-            background: '#1a1c22',
-            border: '1px solid #333',
-            borderRadius: '0.6rem',
-            padding: '1rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.75rem',
-          }}
-        >
-          <p style={{ margin: 0, fontSize: '0.75rem', color: '#9a9a9a' }}>
-            Fuente: {pending.source === 'parser' ? 'reconocido directo' : pending.source === 'learned' ? 'frase aprendida' : 'Gemini'}
-          </p>
-          <p style={{ margin: 0 }}>{describeIntent(pending.intent)}</p>
+        <div className="flex w-full flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+          <span className="w-fit rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white/50">
+            {pending.source === 'parser' ? 'Reconocido directo' : pending.source === 'learned' ? 'Frase aprendida' : 'Gemini'}
+          </span>
+          <p className="text-sm text-white">{describeIntent(pending.intent)}</p>
 
           {EDITABLE_FIELD_BY_TYPE[pending.intent.type] && (
             <input
               value={editedValue}
               onChange={(e) => setEditedValue(e.target.value)}
-              style={{
-                padding: '0.5rem 0.6rem',
-                borderRadius: '0.4rem',
-                border: '1px solid #333',
-                background: '#111318',
-                color: '#f5f5f5',
-              }}
+              className="rounded-lg border border-white/15 bg-navy px-3 py-2 text-sm text-white"
             />
           )}
 
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div className="flex gap-2">
             <button
               onClick={() => confirmIntent(true)}
-              style={{
-                flex: 1,
-                padding: '0.6rem',
-                borderRadius: '0.4rem',
-                border: 'none',
-                background: '#ec5b13',
-                color: '#fff',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
+              className="flex-1 rounded-lg bg-primary py-2 text-sm font-semibold text-white"
             >
               Confirmar
             </button>
             <button
               onClick={() => confirmIntent(false)}
-              style={{
-                flex: 1,
-                padding: '0.6rem',
-                borderRadius: '0.4rem',
-                border: '1px solid #444',
-                background: 'transparent',
-                color: '#f5f5f5',
-                cursor: 'pointer',
-              }}
+              className="flex-1 rounded-lg border border-white/20 py-2 text-sm text-white"
             >
               Cancelar
             </button>
@@ -329,47 +310,30 @@ export default function ArdisHablarPage() {
         </div>
       )}
 
-      {reply && status === 'idle' && (
-        <p style={{ color: '#9a9a9a', fontSize: '0.85rem', maxWidth: '28rem', textAlign: 'center' }}>{reply}</p>
-      )}
+      {reply && status === 'idle' && <p className="max-w-xs text-center text-sm text-white/50">{reply}</p>}
 
       {(status === 'idle' || status === 'listening') && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+        <div className="mt-auto flex flex-col items-center gap-3 pb-4">
           <button
             onMouseDown={handlePushToTalkStart}
             onMouseUp={handlePushToTalkEnd}
             onTouchStart={handlePushToTalkStart}
             onTouchEnd={handlePushToTalkEnd}
             disabled={continuous}
-            style={{
-              width: '5rem',
-              height: '5rem',
-              borderRadius: '50%',
-              border: 'none',
-              background: status === 'listening' ? '#ec5b13' : '#2a2d35',
-              color: '#fff',
-              fontSize: '1.5rem',
-              cursor: continuous ? 'not-allowed' : 'pointer',
-              opacity: continuous ? 0.4 : 1,
-            }}
+            className={`flex h-20 w-20 items-center justify-center rounded-full text-white transition
+                        ${status === 'listening' ? 'bg-primary' : 'bg-white/10'}
+                        ${continuous ? 'cursor-not-allowed opacity-40' : 'active:scale-95'}`}
           >
-            🎙
+            <span className="material-symbols-outlined text-3xl">mic</span>
           </button>
-          <span style={{ fontSize: '0.75rem', color: '#9a9a9a' }}>Pulsar para hablar</span>
+          <span className="text-xs text-white/40">Pulsar para hablar</span>
 
           <button
             onClick={toggleContinuous}
-            style={{
-              padding: '0.5rem 1rem',
-              borderRadius: '2rem',
-              border: '1px solid #444',
-              background: continuous ? '#ec5b13' : 'transparent',
-              color: '#fff',
-              cursor: 'pointer',
-              fontSize: '0.85rem',
-            }}
+            className={`rounded-full border px-4 py-2 text-xs font-medium transition
+                        ${continuous ? 'border-primary bg-primary text-white' : 'border-white/20 text-white/70'}`}
           >
-            {continuous ? 'Conversación activa (di "gracias ARDIS" para salir)' : 'Iniciar conversación'}
+            {continuous ? 'Conversación activa — di "gracias ARDIS" para salir' : 'Iniciar conversación'}
           </button>
         </div>
       )}

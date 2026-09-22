@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -10,8 +11,10 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 export default function ArdisAjustesPage() {
+  const router = useRouter();
   const [status, setStatus] = useState('idle'); // idle | pidiendo | activo | denegado | error
   const [supported, setSupported] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -53,52 +56,52 @@ export default function ArdisAjustesPage() {
     }
   }
 
+  async function cerrarSesion() {
+    setLoggingOut(true);
+    await fetch('/api/ardis/logout', { method: 'POST' });
+    router.push('/ardis/entrar');
+    router.refresh();
+  }
+
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        background: '#111318',
-        color: '#f5f5f5',
-        fontFamily: 'system-ui, sans-serif',
-        padding: '2rem',
-      }}
-    >
-      <h1 style={{ fontSize: '1.25rem', fontWeight: 600 }}>ARDIS — Ajustes</h1>
+    <main className="mx-auto max-w-md px-4 pt-8">
+      <h1 className="text-2xl font-semibold text-white">Ajustes</h1>
 
-      {!supported && (
-        <p style={{ color: '#f87171', marginTop: '1rem' }}>Este navegador no soporta avisos push.</p>
-      )}
+      <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <h2 className="text-sm font-semibold text-white">Avisos</h2>
+        <p className="mt-1 text-xs text-white/50">
+          Resumen del día, vencimientos y cierre — directo a tu teléfono.
+        </p>
 
-      {supported && (
-        <div style={{ marginTop: '1.5rem' }}>
-          <button
-            onClick={activarAvisos}
-            disabled={status === 'pidiendo' || status === 'activo'}
-            style={{
-              padding: '0.6rem 1.2rem',
-              borderRadius: '0.4rem',
-              border: 'none',
-              background: '#ec5b13',
-              color: '#fff',
-              fontWeight: 600,
-              cursor: status === 'activo' ? 'default' : 'pointer',
-              opacity: status === 'pidiendo' ? 0.7 : 1,
-            }}
-          >
-            {status === 'activo' ? 'Avisos activados' : 'Activar avisos'}
-          </button>
-          {status === 'denegado' && (
-            <p style={{ color: '#f87171', marginTop: '0.75rem', fontSize: '0.85rem' }}>
-              Permiso de notificaciones denegado.
-            </p>
-          )}
-          {status === 'error' && (
-            <p style={{ color: '#f87171', marginTop: '0.75rem', fontSize: '0.85rem' }}>
-              Hubo un error activando los avisos.
-            </p>
-          )}
-        </div>
-      )}
+        {!supported && <p className="mt-3 text-sm text-red-400">Este navegador no soporta avisos push.</p>}
+
+        {supported && (
+          <div className="mt-3">
+            <button
+              onClick={activarAvisos}
+              disabled={status === 'pidiendo' || status === 'activo'}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {status === 'activo' ? 'Avisos activados ✓' : 'Activar avisos'}
+            </button>
+            {status === 'denegado' && (
+              <p className="mt-2 text-xs text-red-400">Permiso de notificaciones denegado.</p>
+            )}
+            {status === 'error' && <p className="mt-2 text-xs text-red-400">Hubo un error activando los avisos.</p>}
+          </div>
+        )}
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <h2 className="text-sm font-semibold text-white">Sesión</h2>
+        <button
+          onClick={cerrarSesion}
+          disabled={loggingOut}
+          className="mt-3 rounded-lg border border-white/15 px-4 py-2 text-sm text-white/70 disabled:opacity-60"
+        >
+          {loggingOut ? 'Saliendo…' : 'Cerrar sesión'}
+        </button>
+      </section>
     </main>
   );
 }

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { ARDIS_COOKIE_NAME, verifySessionCookieValue } from '@/lib/ardis/session';
+import BottomNav from './BottomNav';
 
 // Grupo de rutas "(app)": no aparece en la URL, solo agrupa todo lo que
 // requiere sesión para que quede fuera de este guard únicamente /ardis/entrar
@@ -13,5 +14,10 @@ export default function ArdisProtectedLayout({ children }) {
     notFound();
   }
 
-  return children;
+  return (
+    <div className="min-h-screen bg-navy text-white">
+      <div className="pb-24">{children}</div>
+      <BottomNav />
+    </div>
+  );
 }

@@ -1,5 +1,6 @@
 import { createArdisAdminClient } from './admin.js';
 import { computeNextOccurrence } from './recurrence.js';
+import { colombiaStartOfDay, colombiaEndOfDay } from './colombiaTime.js';
 
 // Ejecuta una intención ya confirmada por el usuario contra ardis.projects /
 // ardis.tasks. La fecha (dueAt) ya viene resuelta desde /api/ardis/command
@@ -22,6 +23,81 @@ async function findProjectByName(supabase, name) {
   if (!name) return null;
   const { data } = await supabase.from('projects').select('*').ilike('name', `%${name}%`).limit(1);
   return data?.[0] || null;
+}
+
+// Compartido entre /api/ardis/projects (GET) y la pantalla de proyectos del
+// frontend (Fase 5) — evita duplicar el cálculo de avance.
+export async function listProjectsWithProgress() {
+  const supabase = createArdisAdminClient();
+  const [{ data: projects, error: projectsError }, { data: tasks, error: tasksError }] = await Promise.all([
+    supabase.from('projects').select('*').order('created_at', { ascending: false }),
+    supabase.from('tasks').select('id, project_id, status'),
+  ]);
+  if (projectsError) throw new Error(projectsError.message);
+  if (tasksError) throw new Error(tasksError.message);
+
+  return (projects || []).map((project) => {
+    const projectTasks = (tasks || []).filter((t) => t.project_id === project.id);
+    const done = projectTasks.filter((t) => t.status === 'done').length;
+    const total = projectTasks.length;
+    return { ...project, progress: total ? Math.round((done / total) * 100) : 0, taskCount: total };
+  });
+}
+
+export async function getProjectWithTasks(id) {
+  const supabase = createArdisAdminClient();
+  const { data: project, error } = await supabase.from('projects').select('*').eq('id', id).single();
+  if (error) return null;
+
+  const { data: tasks, error: tasksError } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('project_id', id)
+    .order('due_at', { ascending: true, nullsFirst: false });
+  if (tasksError) throw new Error(tasksError.message);
+
+  const done = (tasks || []).filter((t) => t.status === 'done').length;
+  const total = (tasks || []).length;
+  return {
+    project: { ...project, progress: total ? Math.round((done / total) * 100) : 0, taskCount: total },
+    tasks: tasks || [],
+  };
+}
+
+// Tareas abiertas (no hechas) cuya dependencia, si tiene, ya está hecha —
+// compartido entre el comando "qué sigue"/"buenos días"/"cierre" y la
+// pantalla "Hoy" del frontend (Fase 5), para no duplicar la lógica.
+export async function getTaskOverview() {
+  const supabase = createArdisAdminClient();
+  const { data: allTasks, error } = await supabase.from('tasks').select('*');
+  if (error) throw new Error(error.message);
+
+  const doneIds = new Set(allTasks.filter((t) => t.status === 'done').map((t) => t.id));
+  const openTasks = allTasks
+    .filter((t) => t.status !== 'done')
+    .filter((t) => !t.depends_on || doneIds.has(t.depends_on))
+    .sort((a, b) => {
+      if (!a.due_at) return 1;
+      if (!b.due_at) return -1;
+      return new Date(a.due_at) - new Date(b.due_at);
+    });
+
+  const startOfToday = colombiaStartOfDay();
+  const endOfToday = colombiaEndOfDay();
+
+  const dueToday = openTasks.filter((t) => t.due_at && new Date(t.due_at) < endOfToday);
+  const completedToday = allTasks.filter(
+    (t) => t.status === 'done' && t.done_at && new Date(t.done_at) >= startOfToday
+  );
+
+  return {
+    allTasks,
+    openTasks,
+    dueToday,
+    completedToday,
+    nextTask: openTasks[0] || null,
+    inboxTasks: allTasks.filter((t) => t.status === 'inbox'),
+  };
 }
 
 export async function executeIntent(intent) {
@@ -123,37 +199,15 @@ export async function executeIntent(intent) {
     case 'daily_summary':
     case 'next_task':
     case 'day_close': {
-      const { data: allTasks, error } = await supabase.from('tasks').select('*');
-      if (error) throw new Error(error.message);
-
-      const doneIds = new Set(allTasks.filter((t) => t.status === 'done').map((t) => t.id));
-      const openTasks = allTasks
-        .filter((t) => t.status !== 'done')
-        .filter((t) => !t.depends_on || doneIds.has(t.depends_on))
-        .sort((a, b) => {
-          if (!a.due_at) return 1;
-          if (!b.due_at) return -1;
-          return new Date(a.due_at) - new Date(b.due_at);
-        });
+      const overview = await getTaskOverview();
 
       if (intent.type === 'next_task') {
-        return { task: openTasks[0] || null };
+        return { task: overview.nextTask };
       }
-
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-      const endOfToday = new Date(startOfToday);
-      endOfToday.setDate(endOfToday.getDate() + 1);
-
       if (intent.type === 'daily_summary') {
-        const dueToday = openTasks.filter((t) => t.due_at && new Date(t.due_at) < endOfToday);
-        return { dueToday, totalOpen: openTasks.length };
+        return { dueToday: overview.dueToday, totalOpen: overview.openTasks.length };
       }
-
-      const completedToday = allTasks.filter(
-        (t) => t.status === 'done' && t.done_at && new Date(t.done_at) >= startOfToday
-      );
-      return { completedToday, remaining: openTasks.length };
+      return { completedToday: overview.completedToday, remaining: overview.openTasks.length };
     }
 
     default:

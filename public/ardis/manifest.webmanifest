@@ -1,0 +1,23 @@
+{
+  "id": "/ardis",
+  "name": "ARDIS",
+  "short_name": "ARDIS",
+  "description": "Asistente personal de tareas, proyectos y agenda.",
+  "start_url": "/ardis",
+  "scope": "/ardis/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "background_color": "#111318",
+  "theme_color": "#111318",
+  "orientation": "portrait",
+  "lang": "es-CO",
+  "dir": "ltr",
+  "categories": ["productivity", "utilities"],
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "/ardis/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/ardis/icons/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/ardis/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/ardis/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

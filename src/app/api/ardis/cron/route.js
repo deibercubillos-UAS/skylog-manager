@@ -3,6 +3,7 @@ import { isArdisEnabled } from '@/lib/ardis/env';
 import { createArdisAdminClient } from '@/lib/ardis/admin';
 import { sendPushToAll } from '@/lib/ardis/push';
 import { syncGanttToSheet, backupToDrive } from '@/lib/ardis/gas';
+import { colombiaStartOfDay, colombiaEndOfDay } from '@/lib/ardis/colombiaTime';
 
 // Colombia es UTC-5 todo el año (sin horario de verano) — seguro fijarlo.
 // 21:00–6:00 hora Colombia == 02:00–11:00 UTC.
@@ -68,10 +69,7 @@ export async function GET(request) {
 
   if (kind === 'daily_summary') {
     const openTasks = await getOpenTasksWithDeps(supabase);
-    const startOfToday = new Date(now);
-    startOfToday.setUTCHours(0, 0, 0, 0);
-    const endOfToday = new Date(startOfToday);
-    endOfToday.setUTCDate(endOfToday.getUTCDate() + 1);
+    const endOfToday = colombiaEndOfDay(now);
     const dueToday = openTasks.filter((t) => t.due_at && new Date(t.due_at) < endOfToday);
 
     const body = dueToday.length
@@ -110,8 +108,7 @@ export async function GET(request) {
 
   if (kind === 'close_reminder') {
     const openTasks = await getOpenTasksWithDeps(supabase);
-    const startOfToday = new Date(now);
-    startOfToday.setUTCHours(0, 0, 0, 0);
+    const startOfToday = colombiaStartOfDay(now);
     const { data: allTasks, error } = await supabase.from('tasks').select('status, done_at');
     if (error) return NextResponse.json({ ok: false, kind, error: error.message }, { status: 500 });
 

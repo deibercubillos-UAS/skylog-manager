@@ -1,4 +1,5 @@
 import * as chrono from 'chrono-node';
+import { stripAccents, collapseSpaces, normalizeForMatch } from './text.js';
 
 // Parser de comandos sin IA (ARDIS.md §6). Puro: no toca la base de datos,
 // solo texto -> intención estructurada. La ejecución contra Supabase vive en
@@ -14,18 +15,6 @@ const DAY_NAME_TO_CODE = {
   sabado: 'SA',
   domingo: 'SU',
 };
-
-function stripAccents(text) {
-  return text.normalize('NFD').replace(/[̀-ͯ]/g, '');
-}
-
-function collapseSpaces(text) {
-  return text.replace(/\s+/g, ' ').trim();
-}
-
-function normalizeForMatch(text) {
-  return stripAccents(text.trim().toLowerCase());
-}
 
 function extractArea(body) {
   const match = body.match(/\b(sky|was|bit|per)\b\s*$/i);

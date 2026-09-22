@@ -88,6 +88,13 @@ const nextConfig = {
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
         ],
       },
+      {
+        // ARDIS necesita micrófono para el modo de voz (Fase 3). Solo /ardis/*.
+        source: '/ardis/:path*',
+        headers: [
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=(self)' },
+        ],
+      },
     ];
   },
 };

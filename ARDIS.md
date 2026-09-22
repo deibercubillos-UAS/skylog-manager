@@ -343,8 +343,23 @@ function createCalendarBlock(payload) {
   return { id: ev.getId(), title: ev.getTitle() };
 }
 
+function getGanttSpreadsheet() {
+  const props = PropertiesService.getScriptProperties();
+  const savedId = props.getProperty('GANTT_SHEET_ID');
+  if (savedId) {
+    try {
+      return SpreadsheetApp.openById(savedId);
+    } catch (err) {
+      // El archivo pudo haberse borrado o movido — se crea uno nuevo abajo.
+    }
+  }
+  const ss = SpreadsheetApp.create('ARDIS Gantt');
+  props.setProperty('GANTT_SHEET_ID', ss.getId());
+  return ss;
+}
+
 function syncGantt(payload) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet() || SpreadsheetApp.create('ARDIS Gantt');
+  const ss = getGanttSpreadsheet();
   let sheet = ss.getSheetByName(payload.projectName);
   if (!sheet) sheet = ss.insertSheet(payload.projectName);
   sheet.clear();
@@ -363,6 +378,6 @@ function backupToDrive(payload) {
 }
 ```
 
-**Nota:** `SpreadsheetApp.getActiveSpreadsheet()` solo funciona si el script está vinculado a
-una hoja de cálculo (créala tú y vincula el script desde ahí, o cambia esa línea por
-`SpreadsheetApp.openById('TU_ID_DE_HOJA')` apuntando a una hoja fija que crees una vez).
+**Nota:** `syncGantt` crea la hoja "ARDIS Gantt" la primera vez que corre y guarda su ID en las
+Propiedades del script (`GANTT_SHEET_ID`) — las siguientes veces reusa la misma hoja, con una
+pestaña por proyecto.

@@ -63,7 +63,9 @@ export default function GanttChart({ tasks }) {
       {tasks.length === 0 ? (
         <p className="mt-6 text-center text-sm text-white/40">Sin tareas con fecha para mostrar en el Gantt.</p>
       ) : (
-        <div className="ardis-gantt mt-4 overflow-x-auto rounded-xl bg-white p-2" ref={containerRef} />
+        <div className="mt-4 rounded-2xl border border-primary/20 bg-white/[0.02] p-1 shadow-[0_0_25px_rgba(236,91,19,0.08)]">
+          <div className="ardis-gantt overflow-x-auto rounded-xl bg-white p-2" ref={containerRef} />
+        </div>
       )}
     </>
   );

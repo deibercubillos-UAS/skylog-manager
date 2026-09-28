@@ -52,14 +52,14 @@ export default function InboxCard({ task, projects }) {
   if (gone) return null;
 
   return (
-    <div className="rounded-xl border border-white/5 bg-white/[0.03] p-4">
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 backdrop-blur-sm">
       <p className="text-sm font-medium text-white">{task.title}</p>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <select
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
-          className="rounded-lg border border-white/10 bg-navy px-2 py-1.5 text-xs text-white"
+          className="rounded-lg border border-white/10 bg-[#0a0c10] px-2 py-1.5 text-xs text-white focus:border-primary/50 focus:outline-none"
         >
           <option value="">Sin proyecto</option>
           {projects.map((p) => (
@@ -72,7 +72,7 @@ export default function InboxCard({ task, projects }) {
         <select
           value={area}
           onChange={(e) => setArea(e.target.value)}
-          className="rounded-lg border border-white/10 bg-navy px-2 py-1.5 text-xs text-white"
+          className="rounded-lg border border-white/10 bg-[#0a0c10] px-2 py-1.5 text-xs text-white focus:border-primary/50 focus:outline-none"
         >
           <option value="">Sin área</option>
           {AREAS.map((a) => (
@@ -86,7 +86,7 @@ export default function InboxCard({ task, projects }) {
           type="datetime-local"
           value={dueAt}
           onChange={(e) => setDueAt(e.target.value)}
-          className="col-span-2 rounded-lg border border-white/10 bg-navy px-2 py-1.5 text-xs text-white"
+          className="col-span-2 rounded-lg border border-white/10 bg-[#0a0c10] px-2 py-1.5 text-xs text-white focus:border-primary/50 focus:outline-none"
         />
       </div>
 
@@ -94,7 +94,7 @@ export default function InboxCard({ task, projects }) {
         <button
           onClick={procesar}
           disabled={busy}
-          className="flex-1 rounded-lg bg-primary py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+          className="flex-1 rounded-lg bg-primary py-1.5 text-xs font-semibold text-white shadow-md shadow-primary/20 disabled:opacity-50"
         >
           Procesar
         </button>

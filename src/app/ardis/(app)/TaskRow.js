@@ -43,32 +43,34 @@ export default function TaskRow({ task, onDone }) {
 
   return (
     <div
-      className={`flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 transition-opacity ${
-        done ? 'opacity-40' : ''
-      }`}
+      className={`group flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03]
+                  px-4 py-3 backdrop-blur-sm transition-all hover:border-white/10 ${done ? 'opacity-40' : ''}`}
     >
       <button
         onClick={complete}
         disabled={done || pending}
         aria-label="Completar"
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-white/25
-                   text-transparent hover:border-primary active:scale-95"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-white/20
+                   text-transparent transition hover:border-primary hover:text-primary hover:shadow-[0_0_10px_rgba(236,91,19,0.5)]
+                   active:scale-95"
       >
         <span className="material-symbols-outlined text-[16px]">check</span>
       </button>
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-white">{task.title}</p>
-        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+        <div className="mt-1 flex flex-wrap items-center gap-1.5 font-mono text-[10px]">
           {task.area && (
-            <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${AREA_COLOR[task.area] || 'bg-white/10 text-white/60'}`}>
+            <span
+              className={`rounded px-1.5 py-0.5 font-semibold tracking-wide ${AREA_COLOR[task.area] || 'bg-white/10 text-white/60'}`}
+            >
               {task.area}
             </span>
           )}
           {dueLabel && (
-            <span className={`text-[11px] ${overdue ? 'text-red-400' : 'text-white/40'}`}>{dueLabel}</span>
+            <span className={overdue ? 'text-red-400' : 'text-white/35'}>{dueLabel.toUpperCase()}</span>
           )}
-          {task.waiting_for && <span className="text-[11px] text-white/40">esperando a {task.waiting_for}</span>}
+          {task.waiting_for && <span className="text-white/35">→ {task.waiting_for.toUpperCase()}</span>}
         </div>
       </div>
     </div>

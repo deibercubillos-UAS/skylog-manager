@@ -64,12 +64,16 @@ export default function ArdisAjustesPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md px-4 pt-8">
-      <h1 className="text-2xl font-semibold text-white">Ajustes</h1>
+    <main className="mx-auto max-w-md px-4 pt-10">
+      <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/70">Sistema</p>
+      <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">Ajustes</h1>
 
-      <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-        <h2 className="text-sm font-semibold text-white">Avisos</h2>
-        <p className="mt-1 text-xs text-white/50">
+      <section className="mt-6 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 backdrop-blur-sm">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-white">
+          <span className="material-symbols-outlined text-[18px] text-primary">notifications</span>
+          Avisos
+        </h2>
+        <p className="mt-1 text-xs text-white/40">
           Resumen del día, vencimientos y cierre — directo a tu teléfono.
         </p>
 
@@ -80,7 +84,7 @@ export default function ArdisAjustesPage() {
             <button
               onClick={activarAvisos}
               disabled={status === 'pidiendo' || status === 'activo'}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white shadow-md shadow-primary/20 disabled:opacity-60"
             >
               {status === 'activo' ? 'Avisos activados ✓' : 'Activar avisos'}
             </button>
@@ -92,12 +96,15 @@ export default function ArdisAjustesPage() {
         )}
       </section>
 
-      <section className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-        <h2 className="text-sm font-semibold text-white">Sesión</h2>
+      <section className="mt-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 backdrop-blur-sm">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-white">
+          <span className="material-symbols-outlined text-[18px] text-primary">lock</span>
+          Sesión
+        </h2>
         <button
           onClick={cerrarSesion}
           disabled={loggingOut}
-          className="mt-3 rounded-lg border border-white/15 px-4 py-2 text-sm text-white/70 disabled:opacity-60"
+          className="mt-3 rounded-lg border border-white/15 px-4 py-2 text-sm text-white/70 transition hover:border-white/30 disabled:opacity-60"
         >
           {loggingOut ? 'Saliendo…' : 'Cerrar sesión'}
         </button>

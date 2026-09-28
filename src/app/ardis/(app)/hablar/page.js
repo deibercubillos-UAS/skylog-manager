@@ -231,10 +231,11 @@ export default function ArdisHablarPage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-6rem)] max-w-md flex-col items-center gap-6 px-6 pt-8">
-      <h1 className="text-xl font-semibold text-white">Hablar con ARDIS</h1>
+    <main className="mx-auto flex min-h-[calc(100vh-6rem)] max-w-md flex-col items-center gap-6 px-6 pt-10">
+      <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/70">Voz</p>
+      <h1 className="-mt-4 text-xl font-bold tracking-tight text-white">Hablar con ARDIS</h1>
 
-      <p className="max-w-xs text-center text-sm text-white/50">
+      <p className="max-w-xs text-center text-sm text-white/40">
         {status === 'listening' && 'Escuchando…'}
         {status === 'thinking' && 'Pensando…'}
         {status === 'speaking' && 'Respondiendo…'}
@@ -279,8 +280,8 @@ export default function ArdisHablarPage() {
       {error && <p className="text-sm text-red-400">{error}</p>}
 
       {status === 'reviewing' && pending && (
-        <div className="flex w-full flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-          <span className="w-fit rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white/50">
+        <div className="flex w-full flex-col gap-3 rounded-2xl border border-primary/20 bg-white/[0.04] p-4 backdrop-blur-sm shadow-[0_0_30px_rgba(236,91,19,0.1)]">
+          <span className="w-fit rounded-full bg-white/10 px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wide text-white/50">
             {pending.source === 'parser' ? 'Reconocido directo' : pending.source === 'learned' ? 'Frase aprendida' : 'Gemini'}
           </span>
           <p className="text-sm text-white">{describeIntent(pending.intent)}</p>
@@ -289,14 +290,14 @@ export default function ArdisHablarPage() {
             <input
               value={editedValue}
               onChange={(e) => setEditedValue(e.target.value)}
-              className="rounded-lg border border-white/15 bg-navy px-3 py-2 text-sm text-white"
+              className="rounded-lg border border-white/15 bg-[#0a0c10] px-3 py-2 text-sm text-white focus:border-primary/50 focus:outline-none"
             />
           )}
 
           <div className="flex gap-2">
             <button
               onClick={() => confirmIntent(true)}
-              className="flex-1 rounded-lg bg-primary py-2 text-sm font-semibold text-white"
+              className="flex-1 rounded-lg bg-primary py-2 text-sm font-semibold text-white shadow-md shadow-primary/25"
             >
               Confirmar
             </button>
@@ -320,18 +321,18 @@ export default function ArdisHablarPage() {
             onTouchStart={handlePushToTalkStart}
             onTouchEnd={handlePushToTalkEnd}
             disabled={continuous}
-            className={`flex h-20 w-20 items-center justify-center rounded-full text-white transition
-                        ${status === 'listening' ? 'bg-primary' : 'bg-white/10'}
+            className={`relative flex h-20 w-20 items-center justify-center rounded-full text-white transition
+                        ${status === 'listening' ? 'bg-primary shadow-[0_0_30px_rgba(236,91,19,0.5)]' : 'border border-white/10 bg-white/[0.04]'}
                         ${continuous ? 'cursor-not-allowed opacity-40' : 'active:scale-95'}`}
           >
             <span className="material-symbols-outlined text-3xl">mic</span>
           </button>
-          <span className="text-xs text-white/40">Pulsar para hablar</span>
+          <span className="font-mono text-[10px] uppercase tracking-widest text-white/30">Pulsar para hablar</span>
 
           <button
             onClick={toggleContinuous}
             className={`rounded-full border px-4 py-2 text-xs font-medium transition
-                        ${continuous ? 'border-primary bg-primary text-white' : 'border-white/20 text-white/70'}`}
+                        ${continuous ? 'border-primary bg-primary text-white shadow-md shadow-primary/25' : 'border-white/15 text-white/60'}`}
           >
             {continuous ? 'Conversación activa — di "gracias ARDIS" para salir' : 'Iniciar conversación'}
           </button>

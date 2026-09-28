@@ -77,6 +77,7 @@ const EDITABLE_FIELD_BY_TYPE = {
 export default function ArdisHablarPage() {
   const [status, setStatus] = useState('idle'); // idle | listening | thinking | reviewing | speaking | error
   const [transcript, setTranscript] = useState('');
+  const [liveText, setLiveText] = useState(''); // lo que va reconociendo en vivo, mientras escucha
   const [pending, setPending] = useState(null); // { intent, source, rawText }
   const [editedValue, setEditedValue] = useState('');
   const [reply, setReply] = useState('');
@@ -96,15 +97,38 @@ export default function ArdisHablarPage() {
 
     const recognition = new Ctor();
     recognition.lang = 'es-CO';
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
     recognition.onresult = (event) => {
-      const text = event.results?.[0]?.[0]?.transcript || '';
-      onResult(text);
+      let interim = '';
+      let final = '';
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const chunk = event.results[i][0]?.transcript || '';
+        if (event.results[i].isFinal) {
+          final += chunk;
+        } else {
+          interim += chunk;
+        }
+      }
+      if (final) {
+        setLiveText('');
+        onResult(final);
+      } else {
+        setLiveText(interim);
+      }
     };
-    recognition.onerror = () => {
-      setError('No pude escuchar bien, intenta de nuevo.');
+    recognition.onerror = (event) => {
+      const messages = {
+        'not-allowed': 'Permiso de micrófono denegado. Revisa Ajustes → Safari → Micrófono.',
+        'no-speech': 'No detecté voz. Intenta hablar más cerca del teléfono.',
+        'audio-capture': 'No encontré un micrófono disponible.',
+        network: 'Error de red durante el reconocimiento de voz.',
+        aborted: 'Se canceló el reconocimiento.',
+        'service-not-allowed': 'El navegador bloqueó el reconocimiento de voz.',
+      };
+      setError(messages[event.error] || `Error de voz: ${event.error}`);
+      setLiveText('');
       setStatus('idle');
     };
     recognition.onend = () => {
@@ -114,6 +138,7 @@ export default function ArdisHablarPage() {
     recognitionRef.current = recognition;
     setStatus('listening');
     setError('');
+    setLiveText('');
     recognition.start();
   }, []);
 
@@ -313,8 +338,19 @@ export default function ArdisHablarPage() {
 
       {reply && status === 'idle' && <p className="max-w-xs text-center text-sm text-white/50">{reply}</p>}
 
+      {/* Texto en vivo: lo que va reconociendo el micrófono mientras hablas.
+          Sirve para confirmar que sí está escuchando, aunque todavía no
+          hayas soltado el botón. */}
+      {status === 'listening' && (
+        <div className="mt-auto w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 backdrop-blur-sm">
+          <p className="min-h-[1.5rem] text-center text-sm text-white/80">
+            {liveText || <span className="text-white/25">Escuchando…</span>}
+          </p>
+        </div>
+      )}
+
       {(status === 'idle' || status === 'listening') && (
-        <div className="mt-auto flex flex-col items-center gap-3 pb-4">
+        <div className={`flex flex-col items-center gap-3 pb-4 ${status === 'listening' ? '' : 'mt-auto'}`}>
           <button
             onMouseDown={handlePushToTalkStart}
             onMouseUp={handlePushToTalkEnd}

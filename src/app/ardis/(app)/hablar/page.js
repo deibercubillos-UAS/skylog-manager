@@ -87,6 +87,7 @@ export default function ArdisHablarPage() {
   const [reply, setReply] = useState('');
   const [error, setError] = useState('');
   const [continuous, setContinuous] = useState(false);
+  const [typedText, setTypedText] = useState('');
 
   const recognitionRef = useRef(null);
   const continuousRef = useRef(false);
@@ -227,6 +228,14 @@ export default function ArdisHablarPage() {
   const handlePushToTalkStart = () => startListening(handleVoiceResult);
   const handlePushToTalkEnd = () => stopListening();
 
+  const handleTypedSubmit = (e) => {
+    e.preventDefault();
+    const text = typedText.trim();
+    if (!text) return;
+    setTypedText('');
+    askArdis(text);
+  };
+
   const toggleContinuous = () => {
     if (continuousRef.current) {
       continuousRef.current = false;
@@ -293,124 +302,147 @@ export default function ArdisHablarPage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-6rem)] max-w-md flex-col items-center gap-6 px-6 pt-10">
+    <main className="mx-auto flex min-h-[calc(100vh-6rem)] max-w-md flex-col items-center px-6 pt-10 pb-4">
       <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/70">Voz</p>
       <h1 className="-mt-4 text-xl font-bold tracking-tight text-white">Hablar con ARDIS</h1>
 
-      <p className="max-w-xs text-center text-sm text-white/40">
-        {status === 'listening' && 'Escuchando…'}
-        {status === 'thinking' && 'Pensando…'}
-        {status === 'speaking' && 'Respondiendo…'}
-        {status === 'idle' && 'Mantén presionado para hablar, o activa conversación continua.'}
-        {status === 'reviewing' && 'Revisa antes de confirmar'}
-        {status === 'error' && 'Este navegador no soporta reconocimiento de voz (usa Chrome).'}
-      </p>
+      {/* Todo lo demás vive en un bloque centrado verticalmente en el
+          espacio restante, para que el micrófono quede en la mitad de
+          la pantalla en vez de pegado abajo. */}
+      <div className="flex w-full flex-1 flex-col items-center justify-center gap-6">
+        <p className="max-w-xs text-center text-sm text-white/40">
+          {status === 'listening' && 'Escuchando…'}
+          {status === 'thinking' && 'Pensando…'}
+          {status === 'speaking' && 'Respondiendo…'}
+          {status === 'idle' && 'Habla, escribe, o activa conversación continua.'}
+          {status === 'reviewing' && 'Revisa antes de confirmar'}
+          {status === 'error' && 'Este navegador no soporta reconocimiento de voz (usa Chrome).'}
+        </p>
 
-      {/* Indicador de estado */}
-      {(status === 'listening' || status === 'thinking' || status === 'speaking') && (
-        <div className="relative flex h-24 w-24 items-center justify-center">
-          {status === 'listening' && (
-            <>
-              <span className="absolute h-24 w-24 animate-ping rounded-full bg-primary/30" />
-              <span className="absolute h-16 w-16 animate-ping rounded-full bg-primary/40 [animation-delay:150ms]" />
-              <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white">
-                <span className="material-symbols-outlined text-2xl">mic</span>
-              </span>
-            </>
-          )}
-          {status === 'thinking' && (
-            <span className="h-14 w-14 animate-spin rounded-full border-4 border-white/15 border-t-primary" />
-          )}
-          {status === 'speaking' && (
-            <div className="flex items-end gap-1.5">
-              {[0, 1, 2, 3].map((i) => (
-                <span
-                  key={i}
-                  className="w-2 animate-pulse rounded-full bg-primary"
-                  style={{ height: `${16 + (i % 2) * 20}px`, animationDelay: `${i * 120}ms` }}
-                />
-              ))}
+        {/* Indicador de estado */}
+        {(status === 'listening' || status === 'thinking' || status === 'speaking') && (
+          <div className="relative flex h-24 w-24 items-center justify-center">
+            {status === 'listening' && (
+              <>
+                <span className="absolute h-24 w-24 animate-ping rounded-full bg-primary/30" />
+                <span className="absolute h-16 w-16 animate-ping rounded-full bg-primary/40 [animation-delay:150ms]" />
+                <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white">
+                  <span className="material-symbols-outlined text-2xl">mic</span>
+                </span>
+              </>
+            )}
+            {status === 'thinking' && (
+              <span className="h-14 w-14 animate-spin rounded-full border-4 border-white/15 border-t-primary" />
+            )}
+            {status === 'speaking' && (
+              <div className="flex items-end gap-1.5">
+                {[0, 1, 2, 3].map((i) => (
+                  <span
+                    key={i}
+                    className="w-2 animate-pulse rounded-full bg-primary"
+                    style={{ height: `${16 + (i % 2) * 20}px`, animationDelay: `${i * 120}ms` }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {transcript && status !== 'idle' && (
+          <p className="max-w-xs text-center text-sm italic text-white/60">&ldquo;{transcript}&rdquo;</p>
+        )}
+
+        {error && <p className="text-sm text-red-400">{error}</p>}
+
+        {status === 'reviewing' && pending && (
+          <div className="flex w-full flex-col gap-3 rounded-2xl border border-primary/20 bg-white/[0.04] p-4 backdrop-blur-sm shadow-[0_0_30px_rgba(236,91,19,0.1)]">
+            <span className="w-fit rounded-full bg-white/10 px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wide text-white/50">
+              {pending.source === 'parser' ? 'Reconocido directo' : pending.source === 'learned' ? 'Frase aprendida' : 'Gemini'}
+            </span>
+            <p className="text-sm text-white">{describeIntent(pending.intent)}</p>
+
+            {EDITABLE_FIELD_BY_TYPE[pending.intent.type] && (
+              <input
+                value={editedValue}
+                onChange={(e) => setEditedValue(e.target.value)}
+                className="rounded-lg border border-white/15 bg-[#0a0c10] px-3 py-2 text-sm text-white focus:border-primary/50 focus:outline-none"
+              />
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => confirmIntent(true)}
+                className="flex-1 rounded-lg bg-primary py-2 text-sm font-semibold text-white shadow-md shadow-primary/25"
+              >
+                Confirmar
+              </button>
+              <button
+                onClick={() => confirmIntent(false)}
+                className="flex-1 rounded-lg border border-white/20 py-2 text-sm text-white"
+              >
+                Cancelar
+              </button>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
 
-      {transcript && status !== 'idle' && (
-        <p className="max-w-xs text-center text-sm italic text-white/60">&ldquo;{transcript}&rdquo;</p>
-      )}
+        {reply && status === 'idle' && <p className="max-w-xs text-center text-sm text-white/50">{reply}</p>}
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
+        {/* Texto en vivo: lo que va reconociendo el micrófono mientras hablas.
+            Sirve para confirmar que sí está escuchando, aunque todavía no
+            hayas soltado el botón. */}
+        {status === 'listening' && (
+          <div className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 backdrop-blur-sm">
+            <p className="min-h-[1.5rem] text-center text-sm text-white/80">
+              {liveText || <span className="text-white/25">Escuchando…</span>}
+            </p>
+          </div>
+        )}
 
-      {status === 'reviewing' && pending && (
-        <div className="flex w-full flex-col gap-3 rounded-2xl border border-primary/20 bg-white/[0.04] p-4 backdrop-blur-sm shadow-[0_0_30px_rgba(236,91,19,0.1)]">
-          <span className="w-fit rounded-full bg-white/10 px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wide text-white/50">
-            {pending.source === 'parser' ? 'Reconocido directo' : pending.source === 'learned' ? 'Frase aprendida' : 'Gemini'}
-          </span>
-          <p className="text-sm text-white">{describeIntent(pending.intent)}</p>
-
-          {EDITABLE_FIELD_BY_TYPE[pending.intent.type] && (
+        {status === 'idle' && (
+          <form onSubmit={handleTypedSubmit} className="flex w-full items-center gap-2">
             <input
-              value={editedValue}
-              onChange={(e) => setEditedValue(e.target.value)}
-              className="rounded-lg border border-white/15 bg-[#0a0c10] px-3 py-2 text-sm text-white focus:border-primary/50 focus:outline-none"
+              value={typedText}
+              onChange={(e) => setTypedText(e.target.value)}
+              placeholder="Escribe un comando para ARDIS…"
+              className="flex-1 rounded-full border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-primary/50 focus:outline-none"
             />
-          )}
-
-          <div className="flex gap-2">
             <button
-              onClick={() => confirmIntent(true)}
-              className="flex-1 rounded-lg bg-primary py-2 text-sm font-semibold text-white shadow-md shadow-primary/25"
+              type="submit"
+              disabled={!typedText.trim()}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-md shadow-primary/25 disabled:cursor-not-allowed disabled:opacity-30"
             >
-              Confirmar
+              <span className="material-symbols-outlined text-lg">send</span>
             </button>
+          </form>
+        )}
+
+        {(status === 'idle' || status === 'listening') && (
+          <div className="flex flex-col items-center gap-3">
             <button
-              onClick={() => confirmIntent(false)}
-              className="flex-1 rounded-lg border border-white/20 py-2 text-sm text-white"
+              onMouseDown={handlePushToTalkStart}
+              onMouseUp={handlePushToTalkEnd}
+              onTouchStart={handlePushToTalkStart}
+              onTouchEnd={handlePushToTalkEnd}
+              disabled={continuous}
+              className={`relative flex h-20 w-20 items-center justify-center rounded-full text-white transition
+                          ${status === 'listening' ? 'bg-primary shadow-[0_0_30px_rgba(236,91,19,0.5)]' : 'border border-white/10 bg-white/[0.04]'}
+                          ${continuous ? 'cursor-not-allowed opacity-40' : 'active:scale-95'}`}
             >
-              Cancelar
+              <span className="material-symbols-outlined text-3xl">mic</span>
+            </button>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-white/30">Pulsar para hablar</span>
+
+            <button
+              onClick={toggleContinuous}
+              className={`rounded-full border px-4 py-2 text-xs font-medium transition
+                          ${continuous ? 'border-primary bg-primary text-white shadow-md shadow-primary/25' : 'border-white/15 text-white/60'}`}
+            >
+              {continuous ? 'Conversación activa — di "gracias ARDIS" para salir' : 'Iniciar conversación'}
             </button>
           </div>
-        </div>
-      )}
-
-      {reply && status === 'idle' && <p className="max-w-xs text-center text-sm text-white/50">{reply}</p>}
-
-      {/* Texto en vivo: lo que va reconociendo el micrófono mientras hablas.
-          Sirve para confirmar que sí está escuchando, aunque todavía no
-          hayas soltado el botón. */}
-      {status === 'listening' && (
-        <div className="mt-auto w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 backdrop-blur-sm">
-          <p className="min-h-[1.5rem] text-center text-sm text-white/80">
-            {liveText || <span className="text-white/25">Escuchando…</span>}
-          </p>
-        </div>
-      )}
-
-      {(status === 'idle' || status === 'listening') && (
-        <div className={`flex flex-col items-center gap-3 pb-4 ${status === 'listening' ? '' : 'mt-auto'}`}>
-          <button
-            onMouseDown={handlePushToTalkStart}
-            onMouseUp={handlePushToTalkEnd}
-            onTouchStart={handlePushToTalkStart}
-            onTouchEnd={handlePushToTalkEnd}
-            disabled={continuous}
-            className={`relative flex h-20 w-20 items-center justify-center rounded-full text-white transition
-                        ${status === 'listening' ? 'bg-primary shadow-[0_0_30px_rgba(236,91,19,0.5)]' : 'border border-white/10 bg-white/[0.04]'}
-                        ${continuous ? 'cursor-not-allowed opacity-40' : 'active:scale-95'}`}
-          >
-            <span className="material-symbols-outlined text-3xl">mic</span>
-          </button>
-          <span className="font-mono text-[10px] uppercase tracking-widest text-white/30">Pulsar para hablar</span>
-
-          <button
-            onClick={toggleContinuous}
-            className={`rounded-full border px-4 py-2 text-xs font-medium transition
-                        ${continuous ? 'border-primary bg-primary text-white shadow-md shadow-primary/25' : 'border-white/15 text-white/60'}`}
-          >
-            {continuous ? 'Conversación activa — di "gracias ARDIS" para salir' : 'Iniciar conversación'}
-          </button>
-        </div>
-      )}
+        )}
+      </div>
     </main>
   );
 }

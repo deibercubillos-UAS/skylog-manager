@@ -28,13 +28,14 @@ export default function BottomNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex -translate-y-3 flex-col items-center gap-1"
+                className="flex -translate-y-4 flex-col items-center gap-1.5"
               >
                 <span className="relative flex h-14 w-14 items-center justify-center">
-                  <span className="absolute h-14 w-14 rounded-full bg-primary/40 blur-md" />
+                  <span className="absolute inset-0 -m-1.5 rounded-full bg-primary/50 blur-lg" aria-hidden />
                   <span
-                    className={`material-symbols-outlined relative flex h-12 w-12 items-center justify-center
-                                rounded-full text-2xl text-white shadow-[0_0_20px_rgba(236,91,19,0.5)]
+                    className={`material-symbols-outlined relative z-10 flex h-14 w-14 items-center justify-center
+                                rounded-full text-[26px] text-white ring-4 ring-[#0a0c10]
+                                shadow-[0_4px_16px_rgba(236,91,19,0.45)]
                                 ${active ? 'bg-primary' : 'bg-gradient-to-br from-primary to-orange-600'}`}
                   >
                     {item.icon}

@@ -193,17 +193,25 @@ export default function ArdisHablarPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
       });
-      const data = await res.json();
+      // Un 502/504 de la plataforma (no de nuestro código) puede llegar sin
+      // cuerpo JSON — sin este try, res.json() lanzaría y todo se reportaría
+      // como "error de red", ocultando que sí llegó al servidor.
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        // sin cuerpo o no es JSON — se maneja abajo con el status
+      }
       if (!res.ok) {
-        setError(data.error || 'Error interpretando el comando');
+        setError(data?.error || `ARDIS respondió con error (${res.status})`);
         setStatus('idle');
         return;
       }
       setPending(data);
       setEditedValue(data.intent?.[EDITABLE_FIELD_BY_TYPE[data.intent?.type]] || '');
       setStatus('reviewing');
-    } catch {
-      setError('Error de red hablando con ARDIS');
+    } catch (err) {
+      setError(`Error de red hablando con ARDIS${err?.message ? `: ${err.message}` : ''}`);
       setStatus('idle');
     }
   }, []);

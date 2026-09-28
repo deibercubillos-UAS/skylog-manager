@@ -67,6 +67,10 @@ function describeIntent(intent) {
   }
 }
 
+// En conversación continua, si no hay habla nueva en este tiempo, se cierra
+// solo (igual que si dijeras "gracias ARDIS"). No aplica a pulsar-para-hablar.
+const SILENCE_TIMEOUT_MS = 2000;
+
 const EDITABLE_FIELD_BY_TYPE = {
   create_task: 'title',
   complete_task: 'title',
@@ -86,6 +90,15 @@ export default function ArdisHablarPage() {
 
   const recognitionRef = useRef(null);
   const continuousRef = useRef(false);
+  const silenceTimerRef = useRef(null);
+  const endedBySilenceRef = useRef(false);
+
+  const clearSilenceTimer = useCallback(() => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+  }, []);
 
   const startListening = useCallback((onResult) => {
     const Ctor = getSpeechRecognitionCtor();
@@ -100,7 +113,19 @@ export default function ArdisHablarPage() {
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
+    // Solo en conversación continua: reinicia el conteo cada vez que llega
+    // habla nueva (interina o final); si pasan 2s sin nada, corta solo.
+    const armSilenceTimer = () => {
+      clearSilenceTimer();
+      if (!continuousRef.current) return;
+      silenceTimerRef.current = setTimeout(() => {
+        endedBySilenceRef.current = true;
+        recognition.stop();
+      }, SILENCE_TIMEOUT_MS);
+    };
+
     recognition.onresult = (event) => {
+      armSilenceTimer();
       let interim = '';
       let final = '';
       for (let i = event.resultIndex; i < event.results.length; i += 1) {
@@ -112,6 +137,7 @@ export default function ArdisHablarPage() {
         }
       }
       if (final) {
+        clearSilenceTimer();
         setLiveText('');
         onResult(final);
       } else {
@@ -119,6 +145,7 @@ export default function ArdisHablarPage() {
       }
     };
     recognition.onerror = (event) => {
+      clearSilenceTimer();
       const messages = {
         'not-allowed': 'Permiso de micrófono denegado. Revisa Ajustes → Safari → Micrófono.',
         'no-speech': 'No detecté voz. Intenta hablar más cerca del teléfono.',
@@ -133,18 +160,28 @@ export default function ArdisHablarPage() {
     };
     recognition.onend = () => {
       recognitionRef.current = null;
+      if (endedBySilenceRef.current) {
+        endedBySilenceRef.current = false;
+        setLiveText('');
+        continuousRef.current = false;
+        setContinuous(false);
+        setStatus('speaking');
+        speak('Hasta luego').then(() => setStatus('idle'));
+      }
     };
 
     recognitionRef.current = recognition;
     setStatus('listening');
     setError('');
     setLiveText('');
+    armSilenceTimer();
     recognition.start();
-  }, []);
+  }, [clearSilenceTimer]);
 
   const stopListening = useCallback(() => {
+    clearSilenceTimer();
     recognitionRef.current?.stop();
-  }, []);
+  }, [clearSilenceTimer]);
 
   const askArdis = useCallback(async (text) => {
     setTranscript(text);

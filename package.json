@@ -21,7 +21,6 @@
     "@supabase/supabase-js": "^2.104.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
-    "chrono-node": "^2.10.1",
     "dji-log-parser-js": "^0.5.7",
     "docx": "^9.7.1",
     "exceljs": "^4.4.0",
@@ -37,9 +36,7 @@
     "react-hook-form": "^7.51.3",
     "react-leaflet": "^4.2.1",
     "resend": "^6.12.2",
-    "server-only": "^0.0.1",
-    "sharp": "^0.34.5",
-    "web-push": "^3.6.7"
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",

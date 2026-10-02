@@ -17,18 +17,26 @@ export async function GET() {
     return Response.json({ personId: null, organizations: [] });
   }
 
+  // fullName — el shell de nav (sidebar estilo v1) lo necesita para el menú
+  // de cuenta (avatar/nombre), igual que ya lo tenía profiles.full_name en v1.
+  const { data: person } = await supabase.from('people').select('full_name').eq('id', personId).maybeSingle();
+
   const orgIds = memberships.map((m) => m.organization_id);
   const { data: orgs, error: orgsError } = orgIds.length
-    ? await supabase.from('organizations').select('id, company_name').in('id', orgIds)
+    ? await supabase.from('organizations').select('id, company_name, logo_url').in('id', orgIds)
     : { data: [], error: null };
   if (orgsError) return Response.json({ error: 'Error consultando organizaciones' }, { status: 500 });
 
-  const organizations = memberships.map((m) => ({
-    id: m.organization_id,
-    role: m.role,
-    isDutyManager: ['admin', 'jefe_pilotos', 'gerente_sms', 'superadmin'].includes(m.role),
-    name: orgs.find((o) => o.id === m.organization_id)?.company_name || m.organization_id,
-  }));
+  const organizations = memberships.map((m) => {
+    const org = orgs.find((o) => o.id === m.organization_id);
+    return {
+      id: m.organization_id,
+      role: m.role,
+      isDutyManager: ['admin', 'jefe_pilotos', 'gerente_sms', 'superadmin'].includes(m.role),
+      name: org?.company_name || m.organization_id,
+      logoUrl: org?.logo_url || null,
+    };
+  });
 
-  return Response.json({ personId, organizations });
+  return Response.json({ personId, fullName: person?.full_name || null, organizations });
 }

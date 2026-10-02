@@ -3,7 +3,7 @@
 // (horas mensuales/diarias de vuelo + operación continua). El cálculo en sí vive
 // en packages/domain/dutyCompliance.js — función pura, sin Supabase, con tests.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, getOpenDutyPeriod, getRecentDutyPeriods, getRecentFlights } from '@/lib/v2/duty';
+import { resolveCurrentPerson, isDutyManager, getOpenDutyPeriod, getRecentDutyPeriods, getRecentFlights } from '@/lib/v2/duty';
 import { evaluateDutyCompliance } from '@skylog/domain';
 
 function monthKey(date) {
@@ -14,16 +14,32 @@ function dayKey(date) {
   return date.toISOString().slice(0, 10);
 }
 
-export async function GET() {
+// `personId`/`organizationId` opcionales — un gestor puede consultar el
+// estado de OTRO piloto de su organización (filtro por piloto en la UI,
+// pedido del usuario). Sin esos params, se resuelve la persona de la sesión
+// (comportamiento original, sin cambios para un piloto viendo lo suyo).
+export async function GET(request) {
   const supabase = await createClientSSR();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
-  const { error: resolveError, personId } = await resolveCurrentPerson(supabase, user.id);
+  const { error: resolveError, personId: selfPersonId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
+  if (!selfPersonId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
+
+  const { searchParams } = new URL(request.url);
+  const requestedPersonId = searchParams.get('personId');
+  const organizationId = searchParams.get('organizationId');
+
+  let personId = selfPersonId;
+  if (requestedPersonId && requestedPersonId !== selfPersonId) {
+    if (!organizationId || !isDutyManager(memberships, organizationId)) {
+      return Response.json({ error: 'Solo un gestor puede consultar el estado de otro piloto' }, { status: 403 });
+    }
+    personId = requestedPersonId;
+  }
 
   const [
     { data: open, error: openError },

@@ -1,17 +1,18 @@
 'use client';
 
-// Skylog V2.0 — F5 §100.540, captura de tiempos de servicio ("modo campo").
-// Botones inicio/fin + registro de vuelo + estado de cumplimiento real (horas
-// mensuales/diarias + operación continua). Primer consumidor real de
-// @skylog/ui (F1, 35-frontend.md §3.4) — retrofit deliberadamente parcial
-// (header + selector de organización): prueba que el sistema de diseño
-// funciona sobre una página ya construida y probada, sin arriesgar el resto
-// de la lógica de bloqueo real que ya está verificada end-to-end (decisión 43,
-// 51-bitacora.md). El resto de la página sigue con estilos inline hasta que
-// F1 la retome por completo.
-
+// Skylog V2.0 — F5 §100.540, Tiempos de servicio. Convertida de formulario
+// de captura a **panorama informativo** (decisión del usuario, 2026-09-13):
+// ya no tiene botones Iniciar/Cerrar período ni el formulario "Registrar
+// vuelo" — esa captura vive ahora en Bitácora (`/operacion/bitacora`, mismo
+// endpoint `POST /api/flights`), que ya la construye con su propio flujo.
+// Esta página solo muestra: el período abierto (si lo hay, de solo lectura),
+// el cumplimiento real (§100.540) calculado por packages/domain, y para un
+// gestor, la disponibilidad de la tripulación y la certificación anual
+// (§100.535(12) — acción administrativa distinta de la captura personal de
+// tiempo, se conserva).
 import { useEffect, useState, useCallback } from 'react';
-import { PageHero, Field } from '@skylog/ui';
+import { Field, Button } from '@skylog/ui';
+import { SectionHero, StatCard } from '../../_components/SectionHero';
 
 const TYPE_LABELS = {
   servicio: 'Servicio',
@@ -21,42 +22,22 @@ const TYPE_LABELS = {
 };
 
 const CHECK_LABELS = {
-  monthlyFlight: '§100.540(c)(1) — vuelo mensual (90h)',
-  dailyFlight: '§100.540(d)(1) — vuelo diario (6-8h)',
-  continuousOperation: '§100.540(e) — operación continua (2h + 30min)',
+  monthlyFlight: '§100.540(c)(1) — vuelo mensual',
+  dailyFlight: '§100.540(d)(1) — vuelo diario',
+  continuousOperation: '§100.540(e) — operación continua',
   rest: '§100.540(f) — descanso post-servicio',
 };
 
-function CheckRow({ name, check }) {
-  if (!check) return null;
-  return (
-    <div style={{ marginBottom: 8 }}>
-      <p style={{ fontWeight: 600, fontSize: 13, color: check.compliant ? '#1A202C' : '#8a2f10' }}>
-        {CHECK_LABELS[name] || name}: {check.compliant ? 'Cumple' : 'Excede el límite'}
-        {check.hours != null && ` — ${check.hours.toFixed(1)}h / ${check.limit}h`}
-      </p>
-      {!check.compliant &&
-        Array.isArray(check.violations) &&
-        check.violations.map((v, i) => (
-          <p key={i} style={{ fontSize: 12, color: '#8a2f10', marginLeft: 8 }}>
-            {v.durationHours != null && `${v.durationHours.toFixed(1)}h continuas`}
-            {v.restMinutes != null ? `, solo ${v.restMinutes.toFixed(0)} min de descanso` : ''}
-          </p>
-        ))}
-    </div>
-  );
-}
-
-export default function DutyCapturePage() {
+export default function DutyOverviewPage() {
   const [context, setContext] = useState(null);
   const [organizationId, setOrganizationId] = useState('');
   const [status, setStatus] = useState(null);
+  const [summary, setSummary] = useState(null); // resumen de TODA la empresa — vista por defecto de un gestor
+  const [pilotFilter, setPilotFilter] = useState(''); // '' = "toda la empresa" (solo aplica a gestores)
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [blocked, setBlocked] = useState(null); // { message, checks } — 409 real, distinto de un error genérico
-  const [flightForm, setFlightForm] = useState({ takeoffAt: '', landingAt: '', totalTime: '', visualCondition: 'VLOS' });
   const [certForm, setCertForm] = useState({ targetPersonId: '', year: new Date().getFullYear() });
+  const [certBusy, setCertBusy] = useState(false);
   const [certifications, setCertifications] = useState([]);
   const [certMessage, setCertMessage] = useState(null);
   const [roster, setRoster] = useState(null);
@@ -69,20 +50,18 @@ export default function DutyCapturePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
       setContext(data);
-      if (data.organizations?.length && !organizationId) {
-        setOrganizationId(data.organizations[0].id);
-      }
+      if (data.organizations?.length) setOrganizationId((prev) => prev || data.organizations[0].id);
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadStatus = useCallback(async () => {
+  const loadStatus = useCallback(async (personId, orgId) => {
     try {
-      const res = await fetch('/api/duty/current');
+      const qs = personId ? `?personId=${personId}&organizationId=${orgId}` : '';
+      const res = await fetch(`/api/duty/current${qs}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error cargando estado');
       setStatus(data);
@@ -91,16 +70,38 @@ export default function DutyCapturePage() {
     }
   }, []);
 
+  const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
+  const isManager = !!currentOrg?.isDutyManager;
+
+  const loadSummary = useCallback(async (orgId) => {
+    if (!orgId) return;
+    try {
+      const res = await fetch(`/api/duty/compliance-summary?organizationId=${orgId}`);
+      const data = await res.json();
+      if (res.ok) setSummary(data.summary || []);
+    } catch {
+      // panel secundario, no bloquea el resto de la vista
+    }
+  }, []);
+
   useEffect(() => {
     loadContext();
   }, [loadContext]);
 
+  // Un piloto (no gestor) siempre ve solo lo suyo. Un gestor entra viendo el
+  // resumen de la empresa (pilotFilter vacío) — pedido explícito del usuario
+  // ("al ingresar muestre el general de la empresa") — y solo pide su propio
+  // estado detallado si elige verse a sí mismo en el filtro.
   useEffect(() => {
-    if (context?.personId) loadStatus();
-  }, [context, loadStatus]);
-
-  const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+    if (!context?.personId) return;
+    if (!isManager) {
+      loadStatus();
+      return;
+    }
+    if (organizationId) loadSummary(organizationId);
+    if (pilotFilter) loadStatus(pilotFilter, organizationId);
+    else setStatus(null);
+  }, [context, isManager, organizationId, pilotFilter, loadStatus, loadSummary]);
 
   const loadCertifications = useCallback(async () => {
     if (!organizationId) return;
@@ -109,7 +110,7 @@ export default function DutyCapturePage() {
       const data = await res.json();
       if (res.ok) setCertifications(data.certifications || []);
     } catch {
-      // silencioso — panel secundario, no bloquea el resto de la vista
+      // panel secundario, no bloquea el resto de la vista
     }
   }, [organizationId]);
 
@@ -124,7 +125,7 @@ export default function DutyCapturePage() {
       const data = await res.json();
       if (res.ok) setRoster(data.roster || []);
     } catch {
-      // silencioso — panel secundario, no bloquea el resto de la vista
+      // panel secundario, no bloquea el resto de la vista
     }
   }, [organizationId]);
 
@@ -132,101 +133,16 @@ export default function DutyCapturePage() {
     if (isManager) loadRoster();
   }, [isManager, loadRoster]);
 
-  async function startPeriod(type) {
-    if (!organizationId) return;
-    setBusy(true);
-    setError(null);
-    setBlocked(null);
-    try {
-      const res = await fetch('/api/duty/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organizationId, type }),
-      });
-      const data = await res.json();
-      if (res.status === 409 && data.checks) {
-        setBlocked({ message: data.error, checks: data.checks });
-        return;
-      }
-      if (res.status === 409 && data.check) {
-        setBlocked({ message: data.error, checks: { rest: data.check } });
-        return;
-      }
-      if (res.status === 409 && data.examCompliance) {
-        setBlocked({ message: data.error, examCompliance: data.examCompliance });
-        return;
-      }
-      if (!res.ok) throw new Error(data.error || 'Error al iniciar');
-      await loadStatus();
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function endPeriod() {
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/duty/end', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al cerrar');
-      await loadStatus();
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function logFlight(e) {
-    e.preventDefault();
-    if (!organizationId) return;
-    setBusy(true);
-    setError(null);
-    setBlocked(null);
-    try {
-      const res = await fetch('/api/flights', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          organizationId,
-          takeoffAt: flightForm.takeoffAt,
-          landingAt: flightForm.landingAt,
-          totalTime: Number(flightForm.totalTime),
-          visualCondition: flightForm.visualCondition,
-        }),
-      });
-      const data = await res.json();
-      if (res.status === 409 && data.checks) {
-        setBlocked({ message: data.error, checks: data.checks });
-        return;
-      }
-      if (!res.ok) throw new Error(data.error || 'Error al registrar el vuelo');
-      setFlightForm({ takeoffAt: '', landingAt: '', totalTime: '', visualCondition: 'VLOS' });
-      await loadStatus();
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function certifyPilot(e) {
     e.preventDefault();
     if (!organizationId || !certForm.targetPersonId) return;
-    setBusy(true);
+    setCertBusy(true);
     setCertMessage(null);
     try {
       const res = await fetch('/api/duty/certifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          organizationId,
-          targetPersonId: certForm.targetPersonId,
-          year: Number(certForm.year),
-        }),
+        body: JSON.stringify({ organizationId, targetPersonId: certForm.targetPersonId, year: Number(certForm.year) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al certificar');
@@ -236,22 +152,26 @@ export default function DutyCapturePage() {
     } catch (e) {
       setCertMessage(e.message);
     } finally {
-      setBusy(false);
+      setCertBusy(false);
     }
   }
 
   if (loading) {
-    return <div style={{ padding: 24 }}>Cargando…</div>;
+    return (
+      <div className="h-full flex items-center justify-center py-24">
+        <div className="text-center space-y-3">
+          <div className="size-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs font-black text-navy-300 uppercase tracking-widest animate-pulse">Cargando…</p>
+        </div>
+      </div>
+    );
   }
 
   if (!context?.personId) {
     return (
-      <div style={{ padding: 24, maxWidth: 480 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: '#1A202C' }}>Tiempos de servicio</h1>
-        <p style={{ marginTop: 12, color: '#702810' }}>
-          Esta cuenta no tiene todavía un registro de Persona vinculado (modelo de identidad de
-          Skylog V2.0) — no se puede capturar tiempos de servicio hasta que exista.
-        </p>
+      <div className="space-y-4">
+        <SectionHero eyebrow="RAC 100 §100.540" title="Tiempos de servicio" description="Panorama de cumplimiento de tiempos de servicio." />
+        <p className="text-sm text-navy-400">Esta cuenta no tiene todavía un registro de Persona vinculado.</p>
       </div>
     );
   }
@@ -259,274 +179,268 @@ export default function DutyCapturePage() {
   const open = status?.openPeriod;
   const checks = status?.compliance?.checks;
   const blocksDispatch = status?.compliance?.blocksDispatch;
-  const inputStyle = { display: 'block', marginTop: 4, marginBottom: 10, padding: 8, width: '100%', boxSizing: 'border-box' };
+  const alertCount = summary ? summary.filter((s) => s.compliance?.blocksDispatch).length : 0;
+
+  let heroMetric;
+  if (isManager && !pilotFilter && summary) {
+    heroMetric = {
+      value: <span className={alertCount > 0 ? 'text-red-300' : 'text-emerald-300'}>{alertCount}</span>,
+      label: alertCount > 0 ? 'Pilotos con alerta' : 'Toda la tripulación cumple',
+    };
+  } else if (checks) {
+    heroMetric = {
+      value: <span className={blocksDispatch ? 'text-red-300' : 'text-emerald-300'}>{blocksDispatch ? 'Bloqueado' : 'Habilitado'}</span>,
+      label: blocksDispatch ? 'Despacho bloqueado' : 'Sin bloqueos de §100.540',
+    };
+  }
 
   return (
-    <div className="p-6 max-w-lg mx-auto font-sans">
-      <PageHero eyebrow="RAC 100 §100.540" title="Tiempos de servicio" description="Skylog V2.0" />
+    <div className="space-y-6">
+      <SectionHero
+        eyebrow="RAC 100 §100.540"
+        title="Tiempos de servicio"
+        description="Panorama de cumplimiento — la captura de vuelos vive en Bitácora."
+        metric={heroMetric}
+      />
 
-      {context.organizations.length > 1 && (
-        <div className="mt-4">
-          <Field as="select" label="Organización" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}>
-            {context.organizations.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.name}
-              </option>
-            ))}
-          </Field>
-        </div>
-      )}
-
-      {error && (
-        <div style={{ marginTop: 12, padding: 10, background: '#fde3d0', color: '#8a2f10', borderRadius: 8, fontSize: 13 }}>
-          {error}
-        </div>
-      )}
-
-      {blocked && (
-        <div style={{ marginTop: 12, padding: 12, background: '#8a2f10', color: 'white', borderRadius: 8, fontSize: 13 }}>
-          <p style={{ fontWeight: 700, marginBottom: 6 }}>⛔ Bloqueado — {blocked.message}</p>
-          {blocked.examCompliance && (
-            <p style={{ fontSize: 12, opacity: 0.9 }}>
-              Estado del examen: {blocked.examCompliance.status} —{' '}
-              <a href="/capacitacion" style={{ color: 'white', textDecoration: 'underline' }}>
-                ir a Capacitación y Examen
-              </a>
-            </p>
-          )}
-          {blocked.checks &&
-            Object.entries(blocked.checks).map(([name, c]) => (
-            <div key={name} style={{ marginBottom: 4 }}>
-              <p style={{ fontSize: 12, opacity: 0.9 }}>
-                {CHECK_LABELS[name] || name}
-                {c.hours != null && `: ${c.hours.toFixed(1)}h / ${c.limit}h`}
-                {c.requiredHours != null && `: requiere ${c.requiredHours.toFixed(1)}h de descanso`}
-              </p>
-              {Array.isArray(c.violations) &&
-                c.violations.map((v, i) => (
-                  <p key={i} style={{ fontSize: 12, opacity: 0.8, marginLeft: 8 }}>
-                    {v.actualHours != null ? `Solo ${v.actualHours.toFixed(1)}h — ${v.rule}` : v.message}
-                  </p>
-                ))}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {blocksDispatch && !blocked && (
-        <div style={{ marginTop: 12, padding: 10, background: '#8a2f10', color: 'white', borderRadius: 8, fontSize: 13, fontWeight: 600 }}>
-          Despacho bloqueado — al menos un límite de §100.540 está excedido
-        </div>
-      )}
-
-      <div style={{ marginTop: 20, padding: 16, borderRadius: 12, background: open ? '#fef3ec' : '#f4f5f7' }}>
-        {open ? (
-          <>
-            <p style={{ fontWeight: 600, color: '#1A202C' }}>
-              Período abierto: {TYPE_LABELS[open.type] || open.type}
-            </p>
-            <p style={{ fontSize: 13, color: '#a3aab8' }}>Desde {new Date(open.started_at).toLocaleString()}</p>
-            <button
-              onClick={endPeriod}
-              disabled={busy}
-              style={{
-                marginTop: 12,
-                padding: '10px 20px',
-                borderRadius: 8,
-                border: 'none',
-                background: '#ec5b13',
-                color: 'white',
-                fontWeight: 600,
-                cursor: busy ? 'not-allowed' : 'pointer',
-              }}
-            >
-              Cerrar {TYPE_LABELS[open.type] || open.type}
-            </button>
-          </>
-        ) : (
-          <>
-            <p style={{ color: '#a3aab8', fontSize: 13, marginBottom: 8 }}>Sin período abierto</p>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {Object.entries(TYPE_LABELS).map(([type, label]) => (
-                <button
-                  key={type}
-                  onClick={() => startPeriod(type)}
-                  disabled={busy || !organizationId}
-                  style={{
-                    padding: '10px 16px',
-                    borderRadius: 8,
-                    border: '1px solid #c9cdd6',
-                    background: 'white',
-                    cursor: busy ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  Iniciar {label}
-                </button>
+      {(context.organizations.length > 1 || isManager) && (
+        <div className="bg-white rounded-2xl border border-navy-100 p-4 flex flex-wrap gap-4">
+          {context.organizations.length > 1 && (
+            <Field as="select" label="Organización" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)} className="mb-0">
+              {context.organizations.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.name}
+                </option>
               ))}
-            </div>
-          </>
-        )}
-      </div>
-
-      {checks && (
-        <div style={{ marginTop: 16 }}>
-          <p style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5, color: '#a3aab8', marginBottom: 8 }}>
-            Cumplimiento §100.540
-          </p>
-          <CheckRow name="monthlyFlight" check={checks.monthlyFlight} />
-          <CheckRow name="dailyFlight" check={checks.dailyFlight} />
-          <CheckRow name="continuousOperation" check={checks.continuousOperation} />
-          <CheckRow name="rest" check={checks.rest} />
+            </Field>
+          )}
+          {isManager && (
+            <Field as="select" label="Piloto" value={pilotFilter} onChange={(e) => setPilotFilter(e.target.value)} className="mb-0">
+              <option value="">Toda la empresa</option>
+              {(summary || []).map((s) => (
+                <option key={s.personId} value={s.personId}>
+                  {s.fullName}
+                </option>
+              ))}
+            </Field>
+          )}
         </div>
       )}
 
-      <form onSubmit={logFlight} style={{ marginTop: 24, padding: 16, borderRadius: 12, border: '1px solid #e6e8ec' }}>
-        <p style={{ fontWeight: 600, fontSize: 14, color: '#1A202C', marginBottom: 8 }}>Registrar vuelo</p>
-        <label style={{ fontSize: 13 }}>
-          Despegue
-          <input
-            type="datetime-local"
-            required
-            value={flightForm.takeoffAt}
-            onChange={(e) => setFlightForm((f) => ({ ...f, takeoffAt: e.target.value }))}
-            style={inputStyle}
-          />
-        </label>
-        <label style={{ fontSize: 13 }}>
-          Aterrizaje
-          <input
-            type="datetime-local"
-            required
-            value={flightForm.landingAt}
-            onChange={(e) => setFlightForm((f) => ({ ...f, landingAt: e.target.value }))}
-            style={inputStyle}
-          />
-        </label>
-        <label style={{ fontSize: 13 }}>
-          Tiempo total (horas)
-          <input
-            type="number"
-            step="0.01"
-            min="0.01"
-            required
-            value={flightForm.totalTime}
-            onChange={(e) => setFlightForm((f) => ({ ...f, totalTime: e.target.value }))}
-            style={inputStyle}
-          />
-        </label>
-        <label style={{ fontSize: 13 }}>
-          Línea de vista
-          <select
-            value={flightForm.visualCondition}
-            onChange={(e) => setFlightForm((f) => ({ ...f, visualCondition: e.target.value }))}
-            style={inputStyle}
-          >
-            <option value="VLOS">VLOS</option>
-            <option value="EVLOS">EVLOS</option>
-            <option value="BVLOS">BVLOS</option>
-          </select>
-        </label>
-        <button
-          type="submit"
-          disabled={busy || !organizationId}
-          style={{
-            padding: '10px 20px',
-            borderRadius: 8,
-            border: 'none',
-            background: '#1A202C',
-            color: 'white',
-            fontWeight: 600,
-            cursor: busy ? 'not-allowed' : 'pointer',
-          }}
-        >
-          Guardar vuelo
-        </button>
-      </form>
+      {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>}
 
-      {isManager && roster && (
-        <div style={{ marginTop: 24, padding: 16, borderRadius: 12, border: '1px solid #e6e8ec' }}>
-          <p style={{ fontWeight: 600, fontSize: 14, color: '#1A202C', marginBottom: 4 }}>Planificación de tripulación</p>
-          <p style={{ fontSize: 12, color: '#a3aab8', marginBottom: 8 }}>
-            Quién está disponible ahora, y hasta cuándo dura el descanso obligatorio de quien no lo está.
-          </p>
-          {roster.length === 0 ? (
-            <p style={{ fontSize: 13, color: '#a3aab8' }}>Sin tripulación en esta organización</p>
-          ) : (
-            roster.map((r) => (
-              <div key={r.personId} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f4f5f7' }}>
-                <span style={{ fontSize: 13 }}>
-                  {r.fullName} <span style={{ color: '#a3aab8' }}>({r.role})</span>
-                </span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: r.status === 'disponible' ? '#1A202C' : r.status === 'servicio' ? '#8a2f10' : '#ec5b13',
-                  }}
-                >
-                  {r.status === 'disponible' ? 'Disponible' : TYPE_LABELS[r.status] || r.status}
-                  {r.availableAt && ` hasta ${new Date(r.availableAt).toLocaleString()}`}
-                </span>
-              </div>
-            ))
+      {isManager && !pilotFilter ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <StatCard icon="groups" color="primary" label="Pilotos monitoreados" value={summary?.length ?? '—'} />
+            <StatCard icon="verified" color="emerald" label="En cumplimiento" value={summary ? summary.filter((s) => !s.compliance?.blocksDispatch).length : '—'} />
+            <StatCard icon="warning" color={alertCount > 0 ? 'red' : 'emerald'} label="Con alerta" value={alertCount} />
+          </div>
+
+          <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+            <div className="px-6 py-3.5 border-b border-navy-50 bg-navy-50/30">
+              <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest">Cumplimiento por piloto</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-navy-50/50 text-xs font-black text-navy-300 uppercase tracking-widest">
+                    <th className="px-6 py-2.5">Piloto</th>
+                    <th className="px-6 py-2.5">Vuelo mensual</th>
+                    <th className="px-6 py-2.5">Vuelo diario</th>
+                    <th className="px-6 py-2.5">Estado</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-navy-50">
+                  {!summary || summary.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="py-12 text-center opacity-40">
+                        <span className="material-symbols-outlined text-5xl text-navy-300 mb-3 block">groups</span>
+                        <p className="text-xs font-black uppercase tracking-widest text-navy-500">Sin tripulación en esta organización</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    summary.map((s) => {
+                      const c = s.compliance?.checks;
+                      const alert = !!s.compliance?.blocksDispatch;
+                      return (
+                        <tr key={s.personId} className="hover:bg-navy-50/40 cursor-pointer transition-colors" onClick={() => setPilotFilter(s.personId)}>
+                          <td className="px-6 py-2.5 text-xs font-bold text-navy whitespace-nowrap">
+                            {s.fullName} <span className="text-navy-300 font-medium">({s.role})</span>
+                          </td>
+                          <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 whitespace-nowrap">
+                            {c?.monthlyFlight?.hours != null ? `${c.monthlyFlight.hours.toFixed(1)}h / ${c.monthlyFlight.limit}h` : '—'}
+                          </td>
+                          <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 whitespace-nowrap">
+                            {c?.dailyFlight?.hours != null ? `${c.dailyFlight.hours.toFixed(1)}h / ${c.dailyFlight.limit}h` : '—'}
+                          </td>
+                          <td className="px-6 py-2.5 whitespace-nowrap">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase border ${
+                                alert ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                              }`}
+                            >
+                              {alert ? 'Con alerta' : 'Cumple'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {isManager && (
+            <button
+              type="button"
+              onClick={() => setPilotFilter('')}
+              className="flex items-center gap-1 text-xs font-bold text-navy-400 hover:text-navy-600"
+            >
+              <span className="material-symbols-outlined text-sm">arrow_back</span>
+              Volver al resumen de la empresa
+            </button>
           )}
+
+          {blocksDispatch && (
+            <div className="flex items-center gap-2 text-sm font-bold text-white bg-red-600 rounded-2xl px-4 py-3 shadow-sm shadow-red-900/20">
+              <span className="material-symbols-outlined">block</span>
+              Despacho bloqueado — al menos un límite de §100.540 está excedido
+            </div>
+          )}
+
+          {checks && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <StatCard
+                icon="event_repeat"
+                color={checks.monthlyFlight?.compliant ? 'emerald' : 'red'}
+                label={CHECK_LABELS.monthlyFlight}
+                value={checks.monthlyFlight?.hours != null ? `${checks.monthlyFlight.hours.toFixed(1)}h / ${checks.monthlyFlight.limit}h` : '—'}
+                sub={checks.monthlyFlight?.compliant ? 'Cumple' : 'Excede'}
+              />
+              <StatCard
+                icon="today"
+                color={checks.dailyFlight?.compliant ? 'emerald' : 'red'}
+                label={CHECK_LABELS.dailyFlight}
+                value={checks.dailyFlight?.hours != null ? `${checks.dailyFlight.hours.toFixed(1)}h / ${checks.dailyFlight.limit}h` : '—'}
+                sub={checks.dailyFlight?.compliant ? 'Cumple' : 'Excede'}
+              />
+              <StatCard
+                icon="hourglass_top"
+                color={checks.continuousOperation?.compliant ? 'emerald' : 'red'}
+                label={CHECK_LABELS.continuousOperation}
+                value={checks.continuousOperation?.compliant ? 'Sin novedad' : 'Revisar'}
+              />
+              <StatCard
+                icon="bedtime"
+                color={checks.rest?.compliant ? 'emerald' : 'red'}
+                label={CHECK_LABELS.rest}
+                value={checks.rest?.compliant ? 'Sin novedad' : 'Revisar'}
+              />
+            </div>
+          )}
+
+          <div
+            className={`rounded-[2rem] border p-5 flex items-center gap-3 ${
+              open ? 'bg-primary-50/50 border-primary-100' : 'bg-navy-50/40 border-navy-100'
+            }`}
+          >
+            <span className={`material-symbols-outlined text-2xl ${open ? 'text-primary-600' : 'text-navy-300'}`}>
+              {open ? 'timer' : 'timer_off'}
+            </span>
+            {open ? (
+              <div>
+                <p className="text-sm font-bold text-navy">Período abierto: {TYPE_LABELS[open.type] || open.type}</p>
+                <p className="text-xs text-navy-400 mt-0.5">Desde {new Date(open.started_at).toLocaleString('es-CO')}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-navy-400">Sin período de servicio abierto en este momento.</p>
+            )}
+          </div>
+        </>
+      )}
+
+      {isManager && (
+        <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+          <div className="px-6 py-3.5 border-b border-navy-50 bg-navy-50/30">
+            <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest">Disponibilidad de la tripulación</h3>
+            <p className="text-xs text-navy-400 mt-0.5">Quién está disponible ahora, y hasta cuándo dura el descanso obligatorio de quien no lo está.</p>
+          </div>
+          <div className="p-5">
+            {!roster || roster.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-6 opacity-40 text-center">
+                <span className="material-symbols-outlined text-4xl text-navy-300 mb-2">groups</span>
+                <p className="text-xs font-black uppercase tracking-widest text-navy-500">Sin tripulación en esta organización</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-navy-50">
+                {roster.map((r) => (
+                  <div key={r.personId} className="flex items-center justify-between py-2.5 text-sm">
+                    <span className="font-bold text-navy">
+                      {r.fullName} <span className="text-navy-300 font-medium">({r.role})</span>
+                    </span>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase border ${
+                        r.status === 'disponible' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'
+                      }`}
+                    >
+                      {r.status === 'disponible' ? 'Disponible' : TYPE_LABELS[r.status] || r.status}
+                      {r.availableAt && ` hasta ${new Date(r.availableAt).toLocaleString('es-CO')}`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {isManager && (
-        <div style={{ marginTop: 24, padding: 16, borderRadius: 12, border: '1px solid #e6e8ec' }}>
-          <p style={{ fontWeight: 600, fontSize: 14, color: '#1A202C', marginBottom: 4 }}>Certificación anual</p>
-          <p style={{ fontSize: 12, color: '#a3aab8', marginBottom: 8 }}>
-            §100.535(12) — las horas se calculan del sistema, no se capturan a mano.
+        <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow p-5">
+          <p className="text-xs font-black uppercase text-navy-300 tracking-widest mb-1 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-primary" />
+            Certificación anual
           </p>
-          <form onSubmit={certifyPilot}>
-            <label style={{ fontSize: 13 }}>
-              ID de la Persona a certificar
-              <input
-                type="text"
-                required
-                placeholder="uuid de people.id"
-                value={certForm.targetPersonId}
-                onChange={(e) => setCertForm((f) => ({ ...f, targetPersonId: e.target.value }))}
-                style={inputStyle}
-              />
-            </label>
-            <label style={{ fontSize: 13 }}>
-              Año
-              <input
-                type="number"
-                required
-                value={certForm.year}
-                onChange={(e) => setCertForm((f) => ({ ...f, year: e.target.value }))}
-                style={inputStyle}
-              />
-            </label>
-            <button
-              type="submit"
-              disabled={busy}
-              style={{
-                padding: '10px 20px',
-                borderRadius: 8,
-                border: 'none',
-                background: '#1A202C',
-                color: 'white',
-                fontWeight: 600,
-                cursor: busy ? 'not-allowed' : 'pointer',
-              }}
-            >
-              Certificar
-            </button>
+          <p className="text-xs text-navy-400 mb-4">§100.535(12) — las horas se calculan del sistema, no se capturan a mano.</p>
+          <form onSubmit={certifyPilot} className="grid grid-cols-1 sm:grid-cols-3 gap-x-3 items-end">
+            <Field as="select" label="Persona a certificar" value={certForm.targetPersonId} onChange={(e) => setCertForm((f) => ({ ...f, targetPersonId: e.target.value }))} required>
+              <option value="">Selecciona…</option>
+              {(roster || summary || []).map((r) => (
+                <option key={r.personId} value={r.personId}>
+                  {r.fullName}
+                </option>
+              ))}
+            </Field>
+            <Field
+              label="Año"
+              type="number"
+              value={certForm.year}
+              onChange={(e) => setCertForm((f) => ({ ...f, year: e.target.value }))}
+              required
+            />
+            <Button type="submit" disabled={certBusy} className="mb-3">
+              {certBusy ? 'Certificando…' : 'Certificar'}
+            </Button>
           </form>
-          {certMessage && <p style={{ marginTop: 8, fontSize: 13, color: '#1A202C' }}>{certMessage}</p>}
+          {certMessage && <p className="text-sm text-navy bg-navy-50 rounded-xl px-3 py-2">{certMessage}</p>}
 
           {certifications.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 12, textTransform: 'uppercase', color: '#a3aab8', marginBottom: 6 }}>Certificaciones existentes</p>
-              {certifications.map((c) => (
-                <p key={c.id} style={{ fontSize: 13 }}>
-                  {c.year}: {Number(c.total_hours).toFixed(1)}h — persona {c.person_id.slice(0, 8)}…
-                </p>
-              ))}
+            <div className="mt-4 pt-4 border-t border-navy-50">
+              <p className="text-xs font-black uppercase text-navy-300 tracking-widest mb-2">Certificaciones existentes</p>
+              <div className="space-y-1">
+                {certifications.map((c) => {
+                  const person = (roster || summary || []).find((r) => r.personId === c.person_id);
+                  return (
+                    <p key={c.id} className="text-sm text-navy-500">
+                      <span className="font-bold text-navy">{c.year}:</span> {Number(c.total_hours).toFixed(1)}h —{' '}
+                      {person?.fullName || `persona ${c.person_id.slice(0, 8)}…`}
+                    </p>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

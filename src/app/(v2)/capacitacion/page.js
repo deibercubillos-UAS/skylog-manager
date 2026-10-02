@@ -1,29 +1,52 @@
 'use client';
 
-// Skylog V2.0 — Área de Capacitación y Examen, página propia (a pedido del
-// usuario, distinta de /sms — que solo tiene cronograma de asistencia sin
-// calificar). Vista utilitaria mínima (PRODUCT.md: sin superficie visual
-// propia de F1 todavía). Cubre: configurar el examen, administrar el banco
-// de preguntas, presentar el examen y ver el roster de cumplimiento.
+// Skylog V2.0 — Capacitación: página única de ingreso para CUALQUIER
+// miembro (piloto o gestor) — revisa el material de apoyo (si lo hay) y
+// presenta el examen correspondiente, sin importar si es de Operación, SMS
+// o Mantenimiento. Reemplaza las 3 páginas por pista
+// (operacional/mantenimiento/seguridad-operacional) + el dashboard viejo de
+// tarjetas con contadores — a pedido explícito del usuario
+// (2026-09-26): "quiero que los pilotos tengan una sola pagina de ingreso
+// para realizar la verificación de material (si lo hay), y para presentar
+// la evaluación pertinente, sin importar si es de operación, sms o
+// mantenimiento".
+//
+// La creación de evaluaciones, la carga de material y el roster de
+// cumplimiento de otros miembros viven aparte, en
+// `/capacitacion/administracion` (solo gestores) — un gestor que también
+// vuela sigue viendo su propio cumplimiento aquí, con un acceso directo a
+// Administración arriba.
+import { useCallback, useEffect, useState } from 'react';
+import { SectionHero } from '../_components/SectionHero';
+import { Button } from '@skylog/ui';
+import { TRAINING_TYPES, TRAINING_TYPE_LABELS } from '@/lib/v2/training';
 
-import { useEffect, useState, useCallback } from 'react';
+const TRACK_ICON = { operaciones: 'flight', mantenimiento: 'build', seguridad_operacional: 'shield' };
+const TRACK_TILE = {
+  operaciones: 'bg-blue-500 text-white',
+  mantenimiento: 'bg-amber-500 text-white',
+  seguridad_operacional: 'bg-red-500 text-white',
+};
 
 const STATUS_LABELS = {
   not_configured: 'Sin examen configurado',
   ok: 'Aprobado',
   pending: 'Pendiente',
   failed: 'Reprobado — sin intentos',
+  overdue: 'Vencido',
 };
 
-function ComplianceBadge({ compliance }) {
-  if (!compliance) return null;
-  const color = compliance.status === 'ok' ? '#1a7f37' : compliance.status === 'failed' ? '#8a2f10' : '#a3aab8';
-  return (
-    <span style={{ color, fontWeight: 600, fontSize: 13 }}>
-      {STATUS_LABELS[compliance.status] || compliance.status}
-      {compliance.attemptsRemaining != null && ` · ${compliance.attemptsRemaining} intento(s) restante(s)`}
-    </span>
-  );
+const STATUS_BADGE = {
+  ok: 'bg-emerald-50 text-emerald-700',
+  pending: 'bg-amber-50 text-amber-700',
+  failed: 'bg-red-50 text-red-700',
+  overdue: 'bg-red-50 text-red-700',
+  not_configured: 'bg-navy-50 text-navy-400',
+};
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(`${d}T00:00:00`).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function ExamForm({ questions, onSubmit, busy }) {
@@ -31,351 +54,219 @@ function ExamForm({ questions, onSubmit, busy }) {
   const allAnswered = answers.every((a) => a !== null);
 
   return (
-    <div style={{ border: '1px solid #e2e4e9', borderRadius: 8, padding: 12, marginTop: 12 }}>
-      <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>Examen</p>
+    <div className="bg-navy-50/60 rounded-xl p-4 mt-3">
+      <p className="text-sm font-semibold text-navy mb-3">Examen</p>
       {questions.map((q, i) => (
-        <div key={q.id} style={{ marginBottom: 12 }}>
-          <p style={{ fontSize: 13, fontWeight: 600 }}>
+        <div key={q.id} className="mb-4">
+          <p className="text-sm font-medium text-navy mb-1">
             {i + 1}. {q.question}
           </p>
           {q.options.map((opt, oi) => (
-            <label key={oi} style={{ display: 'block', fontSize: 13, marginLeft: 8 }}>
-              <input
-                type="radio"
-                name={`q${i}`}
-                checked={answers[i] === oi}
-                onChange={() => setAnswers((prev) => prev.map((a, idx) => (idx === i ? oi : a)))}
-              />{' '}
+            <label key={oi} className="flex items-center gap-2 text-sm text-navy-500 ml-2">
+              <input type="radio" name={`q${i}`} checked={answers[i] === oi} onChange={() => setAnswers((prev) => prev.map((a, idx) => (idx === i ? oi : a)))} />
               {opt}
             </label>
           ))}
         </div>
       ))}
-      <button type="button" disabled={busy || !allAnswered} onClick={() => onSubmit(answers)}>
-        Enviar examen
-      </button>
+      <Button disabled={!allAnswered || busy} onClick={() => onSubmit(answers)}>
+        {busy ? 'Calificando…' : 'Enviar examen'}
+      </Button>
     </div>
   );
 }
 
-export default function CapacitacionPage() {
-  const [context, setContext] = useState(null);
-  const [organizationId, setOrganizationId] = useState('');
-  const [examConfig, setExamConfig] = useState({ passingScore: 70, maxAttempts: 3, recurrence: 'mensual', recurrenceDays: '', startDate: '' });
-  const [questionForm, setQuestionForm] = useState({ question: '', options: ['', ''], correctIndex: 0 });
-  const [questions, setQuestions] = useState([]);
-  const [examData, setExamData] = useState(null);
-  const [result, setResult] = useState(null);
-  const [roster, setRoster] = useState(null);
-  const [myCompliance, setMyCompliance] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
+function EvaluationRow({ evaluation, compliance, onError, onGraded }) {
+  const [examQuestions, setExamQuestions] = useState(null);
+  const [examBusy, setExamBusy] = useState(false);
+  const [examResult, setExamResult] = useState(null);
 
-  const loadContext = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/duty/context');
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
-      setContext(data);
-      if (data.organizations?.length && !organizationId) setOrganizationId(data.organizations[0].id);
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
+  const hasMaterial = !!evaluation.material_path;
+  const materialHref = `/api/capacitacion/material?evaluationId=${evaluation.id}`;
+  const canAttempt = compliance?.status === 'pending' || compliance?.status === 'overdue';
+
+  async function handleStartExam() {
+    onError(null);
+    const res = await fetch(`/api/capacitacion/exam?evaluationId=${evaluation.id}`);
+    const data = await res.json();
+    if (!res.ok) {
+      onError(data.error);
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    loadContext();
-  }, [loadContext]);
-
-  const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
-
-  const loadCompliance = useCallback(async () => {
-    if (!organizationId) return;
-    try {
-      const res = await fetch('/api/capacitacion/compliance?organizationId=' + organizationId);
-      const data = await res.json();
-      if (!res.ok) return;
-      if (data.roster) setRoster(data.roster);
-      else setMyCompliance(data.compliance);
-    } catch {
-      // silencioso
-    }
-  }, [organizationId]);
-
-  useEffect(() => {
-    loadCompliance();
-  }, [loadCompliance]);
-
-  const loadQuestions = useCallback(async () => {
-    if (!organizationId || !isManager) return;
-    try {
-      const res = await fetch('/api/capacitacion/questions?organizationId=' + organizationId);
-      const data = await res.json();
-      if (res.ok) setQuestions(data.questions || []);
-    } catch {
-      // silencioso
-    }
-  }, [organizationId, isManager]);
-
-  useEffect(() => {
-    loadQuestions();
-  }, [loadQuestions]);
-
-  const loadExam = useCallback(async () => {
-    if (!organizationId) return;
-    try {
-      const res = await fetch('/api/capacitacion/exam?organizationId=' + organizationId);
-      const data = await res.json();
-      if (res.ok) setExamData(data);
-    } catch {
-      // silencioso
-    }
-  }, [organizationId]);
-
-  useEffect(() => {
-    loadExam();
-  }, [loadExam]);
-
-  async function saveExamConfig(e) {
-    e.preventDefault();
-    if (!organizationId) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/capacitacion/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          organizationId,
-          passingScore: Number(examConfig.passingScore),
-          maxAttempts: Number(examConfig.maxAttempts),
-          recurrence: examConfig.recurrence,
-          recurrenceDays: examConfig.recurrenceDays ? Number(examConfig.recurrenceDays) : null,
-          startDate: examConfig.startDate,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al guardar la configuración');
-      await Promise.all([loadExam(), loadCompliance()]);
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setBusy(false);
-    }
+    setExamQuestions(data.questions || []);
+    if (!data.questions?.length) onError('Esta evaluación todavía no tiene preguntas configuradas.');
   }
 
-  async function addQuestion(e) {
-    e.preventDefault();
-    if (!organizationId || !questionForm.question || questionForm.options.some((o) => !o)) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/capacitacion/questions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          organizationId,
-          question: questionForm.question,
-          options: questionForm.options,
-          correctIndex: Number(questionForm.correctIndex),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al agregar la pregunta');
-      setQuestionForm({ question: '', options: ['', ''], correctIndex: 0 });
-      await loadQuestions();
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function submitExam(answers) {
-    setBusy(true);
-    setError(null);
-    setResult(null);
+  async function handleSubmitExam(answers) {
+    setExamBusy(true);
+    onError(null);
     try {
       const res = await fetch('/api/capacitacion/exam', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organizationId, answers }),
+        body: JSON.stringify({ evaluationId: evaluation.id, answers }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al enviar el examen');
-      setResult(data.grading);
-      await Promise.all([loadExam(), loadCompliance()]);
+      if (!res.ok) throw new Error(data.error || 'Error calificando el examen');
+      setExamResult(data.grading);
+      setExamQuestions(null);
+      await onGraded();
     } catch (e) {
-      setError(e.message);
+      onError(e.message);
     } finally {
-      setBusy(false);
+      setExamBusy(false);
     }
   }
 
-  if (loading) return <div style={{ padding: 24 }}>Cargando…</div>;
+  return (
+    <div className="border border-navy-100 rounded-xl p-4">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <p className="text-sm font-semibold text-navy">{evaluation.title}</p>
+          <p className="text-xs text-navy-400 mt-0.5">Fecha límite: {fmtDate(evaluation.due_date)}</p>
+        </div>
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold shrink-0 ${STATUS_BADGE[compliance?.status] || 'bg-navy-50 text-navy-400'}`}>
+          {STATUS_LABELS[compliance?.status] || '—'}
+          {compliance?.attemptsRemaining != null && ` · ${compliance.attemptsRemaining} intento(s)`}
+        </span>
+      </div>
+
+      {hasMaterial && (
+        <div className="flex items-start justify-between gap-3 bg-navy-50/60 rounded-xl p-3 mt-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-navy truncate">{evaluation.material_title}</p>
+            {evaluation.material_description && <p className="text-xs text-navy-400 mt-0.5">{evaluation.material_description}</p>}
+          </div>
+          <a href={materialHref} target="_blank" rel="noopener noreferrer" className="shrink-0 text-xs font-bold text-primary hover:underline whitespace-nowrap">
+            Ver material
+          </a>
+        </div>
+      )}
+
+      {canAttempt && !examQuestions && (
+        <div className="mt-3">
+          <Button onClick={handleStartExam}>Presentar examen</Button>
+        </div>
+      )}
+
+      {examResult && (
+        <div className={`text-sm rounded-lg px-3 py-2 mt-3 ${examResult.passed ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+          Resultado: {examResult.score}% — {examResult.passed ? 'Aprobado' : 'Reprobado'}
+        </div>
+      )}
+
+      {examQuestions?.length > 0 && <ExamForm questions={examQuestions} onSubmit={handleSubmitExam} busy={examBusy} />}
+    </div>
+  );
+}
+
+function TrackCard({ type, organizationId, onError }) {
+  const [evaluations, setEvaluations] = useState([]);
+  const [compliances, setCompliances] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    if (!organizationId) return;
+    const res = await fetch(`/api/capacitacion/compliance?organizationId=${organizationId}&type=${type}`);
+    const data = await res.json();
+    if (res.ok) {
+      setEvaluations(data.evaluations || []);
+      setCompliances(data.compliances || {});
+    }
+    setLoading(false);
+  }, [organizationId, type]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return (
+    <div className="bg-white rounded-2xl border border-navy-100 overflow-hidden">
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-navy-50">
+        <span className={`flex items-center justify-center w-10 h-10 rounded-xl shrink-0 shadow-sm ${TRACK_TILE[type]}`}>
+          <span className="material-symbols-outlined text-xl">{TRACK_ICON[type]}</span>
+        </span>
+        <p className="text-sm font-bold text-navy">{TRAINING_TYPE_LABELS[type]}</p>
+      </div>
+
+      <div className="p-5 space-y-3">
+        {loading ? (
+          <p className="text-sm text-navy-300">Cargando…</p>
+        ) : evaluations.length === 0 ? (
+          <p className="text-sm text-navy-300">Sin evaluaciones configuradas todavía.</p>
+        ) : (
+          evaluations.map((evaluation) => (
+            <EvaluationRow key={evaluation.id} evaluation={evaluation} compliance={compliances[evaluation.id]} onError={onError} onGraded={load} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function CapacitacionInicio() {
+  const [context, setContext] = useState(null);
+  const [organizationId, setOrganizationId] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
+  const isManager = !!currentOrg?.isDutyManager;
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/duty/context');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
+        setContext(data);
+        setOrganizationId(data.organizations?.[0]?.id || '');
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  if (loading) return <p className="text-sm text-navy-400">Cargando…</p>;
 
   if (!context?.personId) {
     return (
-      <div style={{ padding: 24, maxWidth: 480 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: '#1A202C' }}>Capacitación y Examen</h1>
-        <p style={{ marginTop: 12, color: '#702810' }}>
-          Esta cuenta no tiene todavía un registro de Persona vinculado — no se puede acceder
-          hasta que exista.
-        </p>
+      <div>
+        <SectionHero eyebrow="Documentación" title="Capacitación" description="Material de estudio y evaluaciones — Operación, Mantenimiento y Seguridad Operacional." />
+        <p className="text-sm text-navy-400 mt-4">Esta cuenta no tiene todavía un registro de Persona vinculado.</p>
       </div>
     );
   }
 
-  const inputStyle = { display: 'block', marginTop: 4, marginBottom: 10, padding: 8, width: '100%', boxSizing: 'border-box' };
-
   return (
-    <div style={{ padding: 24, maxWidth: 720, fontFamily: 'system-ui, sans-serif' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: '#1A202C' }}>Capacitación y Examen</h1>
-      <p style={{ fontSize: 13, color: '#a3aab8', marginTop: 4 }}>Skylog V2.0 — área propia, con examen calificado</p>
+    <div className="space-y-6">
+      <SectionHero
+        eyebrow="Documentación"
+        title="Capacitación"
+        description="Revisa el material de apoyo y presenta la evaluación correspondiente — Operación, Mantenimiento y Seguridad Operacional."
+        cta={
+          isManager && (
+            <a href="/capacitacion/administracion">
+              <Button>
+                <span className="material-symbols-outlined text-base align-middle mr-1">admin_panel_settings</span>
+                Administración
+              </Button>
+            </a>
+          )
+        }
+      />
 
-      {context.organizations?.length > 1 && (
-        <select style={inputStyle} value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}>
-          {context.organizations.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.name} ({o.role})
-            </option>
-          ))}
-        </select>
-      )}
+      {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
 
-      {error && <p style={{ color: '#8a2f10', fontSize: 13 }}>{error}</p>}
-
-      {!isManager && myCompliance && (
-        <p>
-          Mi estado: <ComplianceBadge compliance={myCompliance} />
-        </p>
-      )}
-
-      {isManager && (
-        <>
-          <form onSubmit={saveExamConfig} style={{ marginTop: 12, marginBottom: 20, padding: 12, border: '1px solid #e2e4e9', borderRadius: 8 }}>
-            <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>Configurar el examen</p>
-            <label style={{ fontSize: 12 }}>Umbral de aprobación (%)</label>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              style={inputStyle}
-              value={examConfig.passingScore}
-              onChange={(e) => setExamConfig((f) => ({ ...f, passingScore: e.target.value }))}
-            />
-            <label style={{ fontSize: 12 }}>Intentos por ciclo</label>
-            <input
-              type="number"
-              min="1"
-              style={inputStyle}
-              value={examConfig.maxAttempts}
-              onChange={(e) => setExamConfig((f) => ({ ...f, maxAttempts: e.target.value }))}
-            />
-            <select style={inputStyle} value={examConfig.recurrence} onChange={(e) => setExamConfig((f) => ({ ...f, recurrence: e.target.value }))}>
-              <option value="semanal">Semanal</option>
-              <option value="quincenal">Quincenal</option>
-              <option value="mensual">Mensual</option>
-              <option value="personalizado">Personalizado (días)</option>
-            </select>
-            {examConfig.recurrence === 'personalizado' && (
-              <input
-                type="number"
-                min="1"
-                placeholder="Días del ciclo"
-                style={inputStyle}
-                value={examConfig.recurrenceDays}
-                onChange={(e) => setExamConfig((f) => ({ ...f, recurrenceDays: e.target.value }))}
-              />
-            )}
-            <label style={{ fontSize: 12 }}>Fecha de inicio del cronograma</label>
-            <input
-              type="date"
-              style={inputStyle}
-              value={examConfig.startDate}
-              onChange={(e) => setExamConfig((f) => ({ ...f, startDate: e.target.value }))}
-              required
-            />
-            <button type="submit" disabled={busy}>
-              Guardar configuración
-            </button>
-          </form>
-
-          <form onSubmit={addQuestion} style={{ marginBottom: 20, padding: 12, border: '1px solid #e2e4e9', borderRadius: 8 }}>
-            <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>Banco de preguntas ({questions.length})</p>
-            <input
-              style={inputStyle}
-              placeholder="Pregunta"
-              value={questionForm.question}
-              onChange={(e) => setQuestionForm((f) => ({ ...f, question: e.target.value }))}
-            />
-            {questionForm.options.map((opt, i) => (
-              <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-                <input
-                  style={{ ...inputStyle, marginBottom: 0, flex: 1 }}
-                  placeholder={`Opción ${i + 1}`}
-                  value={opt}
-                  onChange={(e) =>
-                    setQuestionForm((f) => ({ ...f, options: f.options.map((o, oi) => (oi === i ? e.target.value : o)) }))
-                  }
-                />
-                <label style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
-                  <input
-                    type="radio"
-                    name="correct"
-                    checked={questionForm.correctIndex === i}
-                    onChange={() => setQuestionForm((f) => ({ ...f, correctIndex: i }))}
-                  />{' '}
-                  Correcta
-                </label>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => setQuestionForm((f) => ({ ...f, options: [...f.options, ''] }))}
-              style={{ marginBottom: 8 }}
-            >
-              + Opción
-            </button>
-            <button type="submit" disabled={busy}>
-              Agregar pregunta
-            </button>
-          </form>
-
-          {roster && (
-            <div style={{ marginBottom: 20 }}>
-              <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 6 }}>Cumplimiento del equipo</p>
-              {roster.map((r) => (
-                <p key={r.personId} style={{ fontSize: 13 }}>
-                  {r.fullName} — <ComplianceBadge compliance={r.compliance} />
-                </p>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-
-      {examData?.compliance?.status === 'pending' && examData.questions?.length > 0 && (
-        <ExamForm questions={examData.questions} onSubmit={submitExam} busy={busy} />
-      )}
-      {examData && examData.exam && examData.compliance?.status !== 'pending' && (
-        <p style={{ fontSize: 13, marginTop: 12 }}>
-          Estado del examen: <ComplianceBadge compliance={examData.compliance} />
-        </p>
-      )}
-      {result && (
-        <p style={{ fontSize: 13, marginTop: 8, fontWeight: 600, color: result.passed ? '#1a7f37' : '#8a2f10' }}>
-          Resultado: {result.score.toFixed(1)}% ({result.correctCount}/{result.total}) —{' '}
-          {result.passed ? 'Aprobado' : 'No aprobado'}
-        </p>
-      )}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {TRAINING_TYPES.map((type) => (
+          <TrackCard key={type} type={type} organizationId={organizationId} onError={setError} />
+        ))}
+      </div>
     </div>
   );
 }

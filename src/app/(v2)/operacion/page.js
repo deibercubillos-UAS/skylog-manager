@@ -11,6 +11,14 @@ import { SectionHero } from '../_components/SectionHero';
 
 const CARDS = [
   {
+    key: 'centro-de-control',
+    href: '/operacion/centro-de-control',
+    icon: 'hub',
+    title: 'Centro de Control',
+    description: 'Panorama de la jornada: qué se vuela hoy, quién, dónde, con qué clima y qué falta por cerrar.',
+    color: { wash: 'from-violet-50 to-white', tile: 'bg-violet-500 text-white' },
+  },
+  {
     key: 'bitacora',
     href: '/operacion/bitacora',
     icon: 'menu_book',

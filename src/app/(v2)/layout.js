@@ -29,6 +29,7 @@ const ROLE_LABELS = {
 // a diferencia de v1); se ajustará cuando V2 tenga esa lógica.
 const NAV_LINKS = [
   { name: 'Dashboard', icon: 'dashboard', href: '/inicio', group: 'Operación' },
+  { name: 'Centro de Control', icon: 'hub', href: '/operacion/centro-de-control', group: 'Operación' },
   { name: 'Bitácora', icon: 'menu_book', href: '/operacion/bitacora', group: 'Operación' },
   { name: 'Programación', icon: 'event_available', href: '/operacion/programacion', group: 'Operación' },
   { name: 'Meteorología', icon: 'partly_cloudy_day', href: '/operacion/meteorologia', group: 'Operación' },

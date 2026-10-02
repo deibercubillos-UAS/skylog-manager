@@ -27,7 +27,7 @@ Un séptimo bloque, **Complementos**, agrupa lo que se activa aparte o se cobra 
 | Pantalla | Qué guarda | Obligación |
 |---|---|---|
 | **Tablero** | Estado del día: misiones, alertas, vencimientos | — |
-| **Centro de control** | Vista viva de la jornada: qué se vuela hoy, quién, dónde, con qué clima y qué falta por cerrar | — |
+| **Centro de control** | ✅ **Construido (2026-10-01)** — `/operacion/centro-de-control`: misiones de hoy (con clima por zona si tiene geometría), vuelos ya registrados, estado de la flota, y "qué falta por cerrar" (misiones de hoy cuya hora ya pasó sin vuelo del PIC ese día — heurística, sin FK misión↔vuelo todavía) | — |
 | **Programación de misiones** | Misión + PIC + aeronave + zona + **análisis de riesgos por operación** | 100.535(25) |
 | **Autorizaciones** | Expediente por solicitud: KMZ, análisis de riesgos, N.º de autorización | 100.535(24) |
 | **Despacho** | Checklists **por fase de vuelo** (11 fases), salud, inventario, briefing | 100.535(23) |

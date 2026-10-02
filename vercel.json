@@ -23,6 +23,10 @@
     {
       "path": "/api/cron/grant-expiring-reminder",
       "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/wompi-recurring-charge-v2",
+      "schedule": "0 9 * * *"
     }
   ]
 }

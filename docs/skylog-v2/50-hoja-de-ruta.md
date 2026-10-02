@@ -155,6 +155,14 @@ Con C2 fuera, el plan queda **sin ningún frente que dependa de hardware, de una
 ni de un documento normativo que aún no tenemos**. Los cinco restantes se pueden ejecutar de
 principio a fin con lo que ya está en la mano — es la consecuencia más útil de esta decisión.
 
+**Estado real (2026-09-15)**, adelantado sobre este orden porque F1 arrancó en paralelo con
+F3/F4a en vez de estrictamente al final: F5 ✅ completo. F4a y F3 construidos como utilitarios
+funcionales (sin el rediseño visual de F1 todavía). **F1 en construcción activa**: el sidebar y
+el lenguaje visual reales quedaron definidos tras dos correcciones de rumbo — ver decisiones
+98-104 en [`51-bitacora.md`](51-bitacora.md) y el diseño vigente en
+[`35-frontend.md §3.2b/§3.4`](35-frontend.md) — con el frente Operación completo y Flota &
+Equipo/Documentación como el trabajo que sigue.
+
 ---
 
 ## 5 · Decisiones cerradas
@@ -260,7 +268,7 @@ De las 29 de `RAC 100 §100.535`, seis no tienen **ningún** soporte hoy:
 | # | Qué | Falta |
 |---|---|---|
 | R7 | Ficha de aeronave | **26 atributos**, hoy hay cuatro |
-| R8 | Libro de vuelo | Separarlo de la **bitácora del piloto** — son dos documentos |
+| R8 | Libro de vuelo | ✅ **Resuelto (2026-10-01)** — `/operacion/bitacora` gana un toggle "Bitácora · por piloto" / "Libro de vuelo · por aeronave" (misma tabla `flights`, segunda vista agrupada por `aircraft_id`, con `aircraft.total_hours` real) — ver decisión 154, `51-bitacora.md` |
 | R9 | Programa de mantenimiento | Es **por modelo**, no por aeronave; faltan tolerancias y calibración de equipos |
 | R10 | Reporte mensual a la autoridad | Debe ser un paquete de **tres** (estadística + SPI + MOR), hoy solo estadística |
 | R11 | Análisis de riesgos por operación | Debe emitir el **formato oficial** `MAUT-5.0-12-055` |

@@ -106,7 +106,7 @@ personalización de checklists, catálogos y formatos.
 
 | Complemento | Qué es | Cómo se ofrece |
 |---|---|---|
-| **Replay** | Reconstrucción del vuelo desde el log | Por plan, con retención por plan |
+| **Replay** | Reconstrucción del vuelo desde el log | ✅ **Construido** (2026-10-01) — traza GPS decimada inline en `flights.replay_track` (jsonb), sin bucket/gzip como v1 todavía; visor MVP (mapa animado + scrubber). Retención por plan: pendiente de diseñar |
 | **Meteorología** | Consulta y archivo de condiciones | Incluido |
 | **Centro de control** | Panorama vivo de la jornada | Por plan |
 | **Análisis forense** | Ver §4 | **Pago aparte** |

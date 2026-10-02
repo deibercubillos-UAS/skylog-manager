@@ -20,31 +20,34 @@ lista de verificación, porque no describe un documento sino una conducta perman
 
 | # | Obligación (resumida) | Registro que implica | ¿Existe hoy? |
 |---|---|---|---|
-| 1 | Demostrar propiedad o derecho de uso de cada UAS | Documento de propiedad por aeronave | ❌ |
-| 2 | Operar con UAS aptos para el vuelo | Estado de aeronavegabilidad | ⚠️ parcial |
-| 3 | Programa de mantenimiento **por cada modelo** | Programa por modelo, no por aeronave | ⚠️ hoy es por aeronave |
-| 4 | **Libro de vuelo y libro de mantenimiento de cada UA** | Dos libros distintos, por aeronave | ⚠️ uno solo |
-| 5, 6 | Documentar trabajos de mantenimiento con **quién los ejecutó** e histórico | Orden de trabajo con responsable | ✅ |
-| 7 | **Firmware al día + copia de la última versión que funcionó** | Registro de firmware por aeronave | ❌ |
-| 8 | Personal competente: repaso, entrenamiento, verificaciones | Registros de instrucción | ✅ |
-| 9 | Aptitud psicofísica del personal | Certificado médico vigente | ✅ |
-| 10, 11 | **Tiempos de servicio, vuelo, descanso y asignaciones** por piloto | Registro diario por piloto | ❌ |
-| 12 | **Certificar a cada piloto su tiempo acumulado, ≥1 vez por año calendario** | Certificado anual firmado | ❌ |
+| 1 | Demostrar propiedad o derecho de uso de cada UAS | Documento de propiedad por aeronave | ✅ V2 (Fase 3 Flota, decisión 117) — `aircraft.ownership_type/reference/document_path`, descargable en el reporte Flota |
+| 2 | Operar con UAS aptos para el vuelo | Estado de aeronavegabilidad | ⚠️ parcial — `aircraft.operational_status` real, sin certificación de aeronavegabilidad formal |
+| 3 | Programa de mantenimiento **por cada modelo** | Programa por modelo, no por aeronave | ✅ V2 (Fase 4a, decisión 112) — `maintenance_programs`+`maintenance_tasks` por `model_id`, ya **por modelo**, no por aeronave. Descargable en el reporte Mantenimiento |
+| 4 | **Libro de vuelo y libro de mantenimiento de cada UA** | Dos libros distintos, por aeronave | ✅ V2 — Libro de Vuelo y Mantenimiento son dos reportes distintos (decisión 128), ambos filtrables por aeronave |
+| 5, 6 | Documentar trabajos de mantenimiento con **quién los ejecutó** e histórico | Orden de trabajo con responsable | ✅ V2 — `maintenance_events.performed_by`, descargable |
+| 7 | **Firmware al día + copia de la última versión que funcionó** | Registro de firmware por aeronave | ✅ V2 (Fase 1 Flota) — `aircraft.firmware_version/firmware_previous_version/firmware_backup_path`, agregado al reporte Flota (decisión 129) |
+| 8 | Personal competente: repaso, entrenamiento, verificaciones | Registros de instrucción | ✅ V2 (Capacitación, decisiones 121-124) — evaluaciones con fecha límite, descargable |
+| 9 | Aptitud psicofísica del personal | Certificado médico vigente | ✅ V2 — `people.medical_cert_expiry`, en el reporte de Tripulación |
+| 10, 11 | **Tiempos de servicio, vuelo, descanso y asignaciones** por piloto | Registro diario por piloto | ⚠️ mejorado — `duty_periods` (F5) ya bloquea el despacho por incumplimiento y ahora tiene reporte descargable (decisión 129); falta un tablero de cumplimiento mensual/diario visual, no solo el bloqueo |
+| 12 | **Certificar a cada piloto su tiempo acumulado, ≥1 vez por año calendario** | Certificado anual firmado | ❌ sin cambios — no hay flujo de certificación anual firmada |
 | 13 | Datos al día en el sistema de información operacional aprobado | — | ⚠️ |
-| 14, 15, 16 | Designar Jefe de Pilotos, Gerente SMS y ejecutivo responsable | Acta de designación con vigencia | ⚠️ solo el rol |
-| 18 | Implementar y mantener el **SMS** (RAC 219) | Módulo completo | ⚠️ inerte |
-| 19, 20 | Mantener actualizados **MO** y **MCM** | Repositorio con versiones y acuses | ⚠️ solo MO |
-| 21, 22 | Registro ante Aerocivil al día (aeronaves, personal) | RUAS, RETA, personal | ⚠️ parcial |
-| 23 | Ejecutar según el MO y los manuales del fabricante | Checklists por fase de vuelo | ⚠️ |
-| 24 | Tramitar las autorizaciones de vuelo | Expediente por autorización | ⚠️ |
-| 25 | **Análisis de riesgos por cada operación** | `MAUT-5.0-12-055` por autorización | ⚠️ matriz propia |
-| 26 | **Reporte mensual dentro de los 5 primeros días hábiles**: estadística, SPI y MOR | Paquete mensual con acuse | ⚠️ solo estadística |
-| 27 | Pólizas vigentes | Vigencias con alerta | ✅ |
-| 29 | **Conservar los registros operacionales 5 años** | Retención + custodia por suceso | ❌ |
+| 14, 15, 16 | Designar Jefe de Pilotos, Gerente SMS y ejecutivo responsable | Acta de designación con vigencia | ⚠️ solo el rol (`memberships.role`), sin acta con vigencia propia |
+| 18 | Implementar y mantener el **SMS** (RAC 219) | Módulo completo | ⚠️ V2 tiene `/sms` (riesgos/indicadores/reportes/asistente) construido en F3, sin el rediseño visual completo todavía |
+| 19, 20 | Mantener actualizados **MO** y **MCM** | Repositorio con versiones y acuses | ❌ sin cambios — no existe repositorio de manuales en V2 |
+| 21, 22 | Registro ante Aerocivil al día (aeronaves, personal) | RUAS, RETA, personal | ✅ V2 — RUAS en `aircraft.ruas_number`, RETA en `eta_items.reta_number` (con reporte propio, decisión 129), personal en `people` |
+| 23 | Ejecutar según el MO y los manuales del fabricante | Checklists por fase de vuelo | ⚠️ V2 tiene Listas de Chequeo (decisiones 126-127, biblioteca + PDF imprimible), sin wiring todavía a un flujo de Despacho (que no existe en V2) |
+| 24 | Tramitar las autorizaciones de vuelo | Expediente por autorización | ✅ V2 (F4a) — `authorization_requests` (status/radicado/alcance), con reporte propio "Programación y Autorizaciones" (decisión 129) |
+| 25 | **Análisis de riesgos por cada operación** | `MAUT-5.0-12-055` por autorización | ✅ V2 (F4a) — `risk_analyses` real por autorización (peligros + firma), en el mismo reporte de Programación y Autorizaciones |
+| 26 | **Reporte mensual dentro de los 5 primeros días hábiles**: estadística, SPI y MOR | Paquete mensual con acuse | ❌ sin cambios — SPI y MOR no existen en V2 todavía |
+| 27 | Pólizas vigentes | Vigencias con alerta | ❌ V2 — no existe todavía una entidad de pólizas/vigencias en V2 (sí en v1) |
+| 29 | **Conservar los registros operacionales 5 años** | Retención + custodia por suceso | ❌ sin cambios |
 
-**Lectura del cuadro**: de 29 obligaciones, la plataforma actual cubre bien 4, cubre a medias 13
-y **no cubre 6**. Las tres ausencias más graves son los **tiempos de servicio y descanso** (10-12),
-el **registro de firmware** (7) y la **retención de cinco años** (29).
+**Lectura del cuadro (actualizada 2026-09-27, decisión 129 — antes reflejaba solo v1, ver
+`51-bitacora.md`)**: de las 20 obligaciones listadas, V2 hoy cubre bien **12**, a medias **5**
+y **no cubre 3** con datos propios (12, 26, 27, 29 — pólizas quedó documentada aparte). Las
+ausencias reales que quedan son la **certificación anual de horas** (12), el **paquete mensual
+SPI/MOR** (26), las **pólizas** (27, existían en v1, no en V2) y la **retención de 5 años** (29)
+— ninguna se fabricó sin datos reales detrás.
 
 ---
 

@@ -176,14 +176,22 @@ no reportarla después.
 | **Indicador (SPI)** | Definición: qué mide, denominador, meta | ① |
 | **Dato mensual de indicador** | Numerador y denominador de un mes | ④ |
 | **Evaluación del SMS** | Autoevaluación contra los 47 ítems oficiales | ④ |
+| **Perfil de organización (SMS)** | Clasificación **derivada**, nunca declarada a mano: cuántas aeronaves tiene registradas la organización | ④ |
 
-Dos precisiones que salen del análisis normativo:
+Tres precisiones que salen del análisis normativo:
 
 - **Reporte y Caso son entidades distintas.** El reporte lo crea **cualquiera**; el caso lo
   gestiona el **Gerente SMS** (decisión 10). Fundirlos obliga a dar permisos de gestión a quien
   solo debía poder reportar.
 - **Definición de indicador y dato mensual son distintos.** La definición es ①, el dato es ④. Las
   líneas de alerta se **congelan al cerrar el año** y se guardan como valores, no se recalculan.
+- **Perfil de organización — resuelve P-017-3 de [`17-implementacion-sms-uas.md §5`](17-implementacion-sms-uas.md),
+  con alcance deliberadamente acotado a lo que la norma ya verifica literal**: *"RAC 100
+  §100.545(a): hasta 2 UAS, una persona puede ser JP y GSMS a la vez"*. No se modela "tipo de
+  operación" ni "complejidad" como ejes del perfil — ninguna fuente normativa ya leída en este
+  proyecto fija un umbral verificable para esos dos ejes, y fabricarlo violaría la regla **V1**.
+  El perfil es clase ④ (se recalcula en vivo contando `aircraft` de la organización) — nunca se
+  declara a mano ni se guarda como columna, para que no pueda desincronizarse de la flota real.
 
 ---
 

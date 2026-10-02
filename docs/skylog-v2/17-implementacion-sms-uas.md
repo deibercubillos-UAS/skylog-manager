@@ -202,7 +202,7 @@ número de reportes**…"*
 | 5 | **Cultura Justa** con comportamientos reconocidos y sancionados declarados | ❌ No existe |
 | 6 | Confidencialidad del notificador | ❌ No modelada |
 | 7 | **BSC**: políticas ↔ objetivos ↔ indicadores ↔ metas | ❌ Indicadores sin objetivo asociado |
-| 8 | **Perfil de organización** que module la exigencia | ❌ Checklist único para todos |
+| 8 | **Perfil de organización** que module la exigencia | ✅ Resuelto 2026-09-30 (SMS-J), acotado a `100.545(a)` — ver §8 abajo |
 | 9 | Estadísticas de reporte como medida de cultura, **separadas de los SPI** | ❌ No existe |
 
 ---
@@ -213,7 +213,7 @@ número de reportes**…"*
 |---|---|
 | P-017-1 | Transcribir el detalle de las Fases 2, 3 y 4 (≈50.000 caracteres) al diseñar el asistente → `40-sms.md` |
 | P-017-2 | Verificar las referencias cruzadas de la circular contra el RAC 100 y el RAC 219 vigentes (cita `100.520`, hoy `100.545`) |
-| P-017-3 | Definir el **perfil de organización** que modula la exigencia (§5) → `30-entidades.md` |
+| ~~P-017-3~~ | ~~Definir el **perfil de organización** que modula la exigencia (§5) → `30-entidades.md`~~ — **resuelto 2026-09-30** (SMS-J): entidad "Perfil de organización (SMS)" en `30-entidades.md §6`, acotada al único umbral verificable (`100.545(a)`, ≤2 UAS combina JP+GSO) |
 
 ---
 

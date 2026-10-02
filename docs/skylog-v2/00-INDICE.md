@@ -30,7 +30,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | [`16-asuntos-complementarios.md`](16-asuntos-complementarios.md) | **MAUT-1.0-22-007** — Ejecutivo Responsable, Comité, GESO, interfases, ERP, currículo SMS | 343 | ✅ |
 | [`17-implementacion-sms-uas.md`](17-implementacion-sms-uas.md) | **MAUT-5.0-22-017** — las 4 fases oficiales de implementación, Cultura Justa, plan Gantt | 233 | ✅ |
 | [`18-analisis-riesgos-vuelo.md`](18-analisis-riesgos-vuelo.md) | **MAUT-5.0-12-055** — análisis de riesgos por autorización de vuelo · matriz oficial fija · 24 peligros | 243 | ✅ |
-| [`19-registros-obligatorios.md`](19-registros-obligatorios.md) | **Qué debe llevar registrado el explotador** — las 29 obligaciones de `100.535` + `MAUT-5.0-22-011`, `-12-090`, `-12-174`, RAC 5 | 149 | ✅ |
+| [`19-registros-obligatorios.md`](19-registros-obligatorios.md) | **Qué debe llevar registrado el explotador** — las 29 obligaciones de `100.535` + `MAUT-5.0-22-011`, `-12-090`, `-12-174`, RAC 5. **Tabla de estado actualizada 2026-09-27 (decisión 129) para reflejar V2, no v1** | 152 | ✅ |
 
 ## 2 · Diagnóstico del sistema actual
 
@@ -49,14 +49,14 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | `32-migracion.md` | ETL desde la base actual, reglas de precedencia | — | ⬜ |
 | [`33-arquitectura.md`](33-arquitectura.md) | Monorepo, servicios, capa de dominio, pruebas | 57 | 🔄 |
 | [`34-seguridad.md`](34-seguridad.md) | RLS, multi-tenant, C2 · **falta protección de datos SMS (RAC 219 §219.115-140)** | 89 | 🔄 |
-| [`35-frontend.md`](35-frontend.md) | Espacios de trabajo, sistema de diseño, modo campo — **F1 en construcción**: `@skylog/ui` real (tokens+primitivas) + primer retrofit (`/duty`), ver decisión 59 en `51-bitacora.md` | 71 | 🔄 |
+| [`35-frontend.md`](35-frontend.md) | Sistema de diseño, distribución del sidebar, modo campo — **F1 ✅ completo, salvo Aerocivil** (2026-10-01): sidebar réplica de v1 (4 grupos: Operación/Flota & Equipo/SMS/Documentación) + `_components/SectionHero.js` (lenguaje visual moderno, capa 2 sobre `@skylog/ui`) en **todas** las páginas del árbol. Operación ✅, Flota & Equipo ✅, Documentación ✅ (Capacitación, Proveedores, Listas de Chequeo, Reportes, Manuales), **SMS ✅** (las 11 páginas, incluido el restyle de riesgos/indicadores/reportes-y-casos). Único pendiente deliberado: **Expediente Aerocivil (`/aerocivil`, F4a) sigue como utilitario**, excluido a propósito de este cierre. **§3.2 (4 espacios por momento operacional) se construyó y se abandonó** — ver decisiones 98-153 en `51-bitacora.md` | 180 | ✅ |
 | [`36-sitemap.md`](36-sitemap.md) | **Sitemap** — 6 espacios + complementos, todo activable · replay multimarca · análisis forense | 183 | ✅ |
 
 ## 4 · Módulos
 
 | Doc | Módulo | Líneas | Estado |
 |---|---|---|---|
-| [`40-sms.md`](40-sms.md) | SMS orientado a evidencia — **F3 en construcción**: enrutamiento MOR/VOR/RAC 114 + reportes/casos/acciones correctivas + primera fuente automática (excepciones F5→borrador), ver decisiones 48-50 en `51-bitacora.md` | 121 | 🔄 |
+| [`40-sms.md`](40-sms.md) | SMS orientado a evidencia — **F3 completo**: los 11 sub-frentes de §5.9 construidos (gobernanza, objetivos BSC, riesgo/SPI, GAP, SMS alimentado por eventos, reporte mensual, confidencialidad real, MSMS vivo, perfil escalable, mapas) — ver decisiones 137-148 en `51-bitacora.md` | 213 | ✅ |
 | [`41-tiempos-servicio.md`](41-tiempos-servicio.md) | Tiempos de servicio, vuelo y descanso (100.540) — **F5 construido y verificado** (motor + esquema/RLS + API + bloqueo real + certificación + planificación), ver decisiones 34-42 en `51-bitacora.md` | 50 | ✅ |
 | [`42-comando-control.md`](42-comando-control.md) | C2 en vivo — telemetría + video · **omitido por ahora** (decisión 20) | 307 | ⏸ |
 | [`43-aerocivil.md`](43-aerocivil.md) | Expediente y radicación de autorizaciones — **F4a en construcción**: dominio del análisis de riesgos (MAUT-5.0-12-055) + esquema/RLS + API, ver decisiones 44-45 en `51-bitacora.md` | 77 | 🔄 |
@@ -66,7 +66,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
 | [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 289 | ✅ |
-| [`51-bitacora.md`](51-bitacora.md) | **19 decisiones cerradas**, correcciones propias y fuentes consultadas | 162 | ✅ |
+| [`51-bitacora.md`](51-bitacora.md) | **154 decisiones cerradas**, correcciones propias y fuentes consultadas | 268 | ✅ |
 
 **Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · ⏸ omitido por ahora
 
@@ -92,16 +92,28 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 
 ## Próximos pasos
 
-Etapas ① y ② del ciclo cerradas: [`30-entidades.md`](30-entidades.md) y
-[`31-esquema-datos.md`](31-esquema-datos.md).
+**Fase 0 cerrada** (decisión 32). **F5 completo** ✅. **F4a** y **F3** construidos como
+utilitarios funcionales (F4a sin rediseño visual todavía, a propósito). **F1 ✅ completo,
+salvo Aerocivil** (2026-10-01): Operación, Flota & Equipo, Documentación y SMS — las 4
+secciones del sidebar — ya usan el mismo lenguaje visual (`SectionHero`/`StatCard`). Ver
+[`35-frontend.md §3.7-3.8`](35-frontend.md) para el detalle.
 
-1. **`32-migracion.md`** — ETL desde la base actual. Punto crítico: reglas de precedencia para
-   `people` donde `profiles`/`pilots` ya divergen en producción (P-ES-3).
-2. Levantar la **Fase 0** de infraestructura ([`50`](50-hoja-de-ruta.md) §1): rama `develop-v2`,
-   Supabase branch, proyecto Vercel de preview, `packages/ui`.
-3. Rehacer `33-arquitectura.md`, `34-seguridad.md`, `35-frontend.md`, `40-sms.md`,
-   `41-tiempos-servicio.md`, `43-aerocivil.md` — siguen 🔄, bajo la premisa superada.
+1. **Expediente Aerocivil (`/aerocivil`, F4a)** — único pendiente visual, excluido a
+   propósito del cierre de F1 por decisión del usuario. Sigue funcional con el estilo
+   mínimo de construcción original.
+2. `32-migracion.md` (ETL desde la base de producción, con las reglas de precedencia de
+   `people` donde `profiles`/`pilots` ya divergen, P-ES-3) sigue sin escribirse — no bloquea a
+   F1, pero es necesario antes de cualquier plan de merge real a `main`.
+3. Rehacer `33-arquitectura.md`/`34-seguridad.md` — siguen 🔄, bajo la premisa superada de
+   antes de Fase 0.
+4. **Backlog más amplio, fuera de F1** (detectado en auditoría 2026-10-01, no bloquea este
+   cierre): Replay GPS, Centro de Control, Auditoría de acciones, Vigencias consolidadas,
+   ficha de aeronave de 26 atributos, separación Libro de vuelo/Bitácora del piloto,
+   Auditoría interna SMS, Calibración/Inventario de existencias y C2 en vivo (⏸ omitido,
+   decisión 20) — ninguno estaba en el alcance de F1 (rediseño visual), son brechas de
+   contenido de `50-hoja-de-ruta.md §8` y del sitemap (`36-sitemap.md`), pendientes de
+   priorizar como frentes propios.
 
 ---
 
-*Actualizado: 2026-08-22*
+*Actualizado: 2026-10-01 (F1 completo salvo Aerocivil — las 4 secciones del sidebar en el mismo lenguaje visual)*

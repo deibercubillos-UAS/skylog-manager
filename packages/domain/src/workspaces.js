@@ -1,26 +1,16 @@
-// workspaces — los 4 espacios de trabajo por momento operacional
-// (35-frontend.md §3.2), reemplazando la navegación por entidad de datos. El
-// rol sigue filtrando qué se ve (sin cambios en los permisos existentes),
-// pero además decide el espacio por defecto. Lógica pura, con tests (Q2).
+// nav-sections — las 7 secciones de primer nivel del nav de Skylog V2.0,
+// reemplazando el modelo anterior de 4 "espacios por momento operacional"
+// (feedback del usuario: "es todo lo menos intuitiva posible"). Cada sección
+// es una página propia con su propio sub-nav/layout — el selector aquí solo
+// resuelve etiqueta/ícono/orden, nunca permisos (eso lo sigue haciendo
+// PERMISSIONS/roles.js en cada página).
 
-export const WORKSPACES = [
-  { key: 'operar', label: 'Operar', hint: 'Hoy / ahora / en campo' },
-  { key: 'planear', label: 'Planear', hint: 'Días antes' },
-  { key: 'registrar', label: 'Registrar', hint: 'Después / administrativo' },
-  { key: 'cumplir', label: 'Cumplir', hint: 'Auditoría / dirección' },
+export const NAV_SECTIONS = [
+  { key: 'operacion', label: 'Operación' },
+  { key: 'flota-tripulacion', label: 'Flota y Tripulación' },
+  { key: 'sms', label: 'SMS' },
+  { key: 'capacitacion', label: 'Capacitación' },
+  { key: 'reportes', label: 'Reportes' },
+  { key: 'control-documental', label: 'Control Documental' },
+  { key: 'organizacion', label: 'Organización' },
 ];
-
-// §3.2: piloto → OPERAR; jefe_pilotos → PLANEAR; gerente_sms → CUMPLIR;
-// admin/superadmin → panel ejecutivo transversal (se modela como 'operar'
-// por defecto — el admin ve los 4 espacios igual, solo cambia dónde aterriza).
-const ROLE_DEFAULT_WORKSPACE = {
-  piloto: 'operar',
-  jefe_pilotos: 'planear',
-  gerente_sms: 'cumplir',
-  admin: 'operar',
-  superadmin: 'operar',
-};
-
-export function resolveDefaultWorkspace(role) {
-  return ROLE_DEFAULT_WORKSPACE[role] || 'operar';
-}

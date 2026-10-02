@@ -7,7 +7,7 @@
 // nunca se confía en un valor mandado por el cliente (regla S2).
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
-import { classifyReportRoute } from '@skylog/domain';
+import { classifyReportRoute, redactReporterIdentity } from '@skylog/domain';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -59,7 +59,7 @@ export async function POST(request) {
   if (route.route === 'rac114') {
     return Response.json({
       report: data,
-      warning: 'Clasificado como accidente/incidente grave — no se radica por MOR/VOR. Sigue el procedimiento RAC 114 (rama pendiente de diseñar en Skylog V2.0).',
+      warning: 'Clasificado como accidente/incidente grave — no se radica por MOR/VOR. Sigue el procedimiento RAC 114 (rama pendiente de diseñar).',
     });
   }
 
@@ -96,5 +96,13 @@ export async function GET(request) {
 
   const { data, error } = await query;
   if (error) return Response.json({ error: error.message }, { status: 500 });
-  return Response.json({ reports: data });
+
+  // SMS-H (40-sms.md §5.9, RAC 219 §219.115-140) — RLS deja pasar la FILA a
+  // cualquier gestor, pero un reporte 'confidencial' solo expone la
+  // identidad del notificante al Gerente SMS (o a sí mismo). Redacción en la
+  // capa de API porque Postgres RLS filtra filas, no columnas.
+  const membership = (memberships || []).find((m) => m.organization_id === organizationId);
+  const reports = (data || []).map((r) => redactReporterIdentity(r, { viewerRole: membership?.role, viewerPersonId: personId, reporterFields: [] }));
+
+  return Response.json({ reports });
 }

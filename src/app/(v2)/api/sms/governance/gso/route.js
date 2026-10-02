@@ -6,7 +6,7 @@
 // previa antes de crear la nueva ("único cargo", §7.2.5.2).
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
-import { validateGsoProfile } from '@skylog/domain';
+import { validateGsoProfile, resolveOrganizationSmsProfile } from '@skylog/domain';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -88,5 +88,11 @@ export async function GET(request) {
     .is('ended_at', null)
     .maybeSingle();
   if (error) return Response.json({ error: error.message }, { status: 500 });
-  return Response.json({ designation: data });
+
+  // SMS-J (30-entidades.md §6, RAC 100 §100.545(a)) — el perfil se deriva en
+  // vivo, nunca se declara a mano ni se guarda como columna.
+  const { count: aircraftCount } = await supabase.from('aircraft').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId);
+  const profile = resolveOrganizationSmsProfile({ aircraftCount: aircraftCount || 0 });
+
+  return Response.json({ designation: data, profile });
 }

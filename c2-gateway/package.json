@@ -1,0 +1,20 @@
+{
+  "name": "c2-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Skylog V2.0 — F2 Comando y Control. Broker MQTT + ingesta de telemetría DJI Cloud API. Servicio Node siempre encendido, deploy aparte (Railway/Fly) — fuera de Vercel por no soportar MQTT persistente. Ver docs/skylog-v2/42-comando-control.md.",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.104.0",
+    "aedes": "^0.51.3",
+    "aedes-server-factory": "^0.8.0",
+    "fastify": "^4.28.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

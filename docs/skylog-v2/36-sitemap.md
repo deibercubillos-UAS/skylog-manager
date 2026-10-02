@@ -110,7 +110,7 @@ personalización de checklists, catálogos y formatos.
 | **Meteorología** | Consulta y archivo de condiciones | Incluido |
 | **Centro de control** | Panorama vivo de la jornada | Por plan |
 | **Análisis forense** | Ver §4 | **Pago aparte** |
-| **Comando y Control (C2)** | Telemetría y video en vivo | ⏸ **omitido por ahora** (decisión 20) |
+| **Comando y Control (C2)** | Telemetría y video en vivo | 🔄 **Reabierto (2026-10-01, decisión 156)** — esquema/servicio/página escritos, nada desplegado ni validado contra hardware real. Ver `42-comando-control.md` |
 
 > El **Centro de control** de este sitemap es un panorama de la operación del día construido con
 > datos que ya tenemos —misiones, tripulación, clima, estado de flota, pendientes—. **No es C2 en

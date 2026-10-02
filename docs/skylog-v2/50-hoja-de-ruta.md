@@ -112,9 +112,19 @@ Los cuatro que pidió el usuario, más uno que la norma impone.
 | **F3** — SMS fácil de integrar y aplicar | Usuario + B3 | Medio | Alto |
 | **F4** — Autorizaciones Aerocivil | Usuario + B9/B10 | Alto (dependencia externa) | Alto |
 | **F5** — Tiempos de servicio, vuelo y descanso | **Norma (B1/B2)** | Bajo | **Crítico — hoy incumplido** |
-| ~~**F2**~~ — Comando y Control | Usuario + B6/B7/B8 | — | ⏸ **Omitido por ahora** (decisión 20) |
+| **F2** — Comando y Control | Usuario + B6/B7/B8 | Alto (hardware + infra fuera de Vercel) | 🔄 **Reabierto 2026-10-01** (decisión 156, revierte decisión 20) |
 
-> ### F2 — Comando y Control: omitido por ahora (2026-08-22)
+> ### F2 — Comando y Control: reabierto (2026-10-01)
+>
+> *"yo quiero que el centro de comando y control, sea para visualizar que drone esta en linea
+> (prendido) y transmita la imagen en vivo de lo que ve la camara fpv o el gimbal o el payload"*
+>
+> Revierte la pausa de abajo. Construcción inicial sin hardware DJI ni deploy del gateway
+> disponibles en este entorno — ver `42-comando-control.md` para el detalle exacto de qué
+> existe y qué sigue pendiente. El texto que sigue documenta por qué se había pausado; sigue
+> siendo la referencia técnica válida (nada de eso cambió, solo el estado "activo/pausado").
+
+> ### F2 — Comando y Control: pausa histórica (2026-08-22, superada)
 >
 > *"Omite el C2, por el momento."*
 >

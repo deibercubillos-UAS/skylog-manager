@@ -58,7 +58,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 |---|---|---|---|
 | [`40-sms.md`](40-sms.md) | SMS orientado a evidencia — **F3 completo**: los 11 sub-frentes de §5.9 construidos (gobernanza, objetivos BSC, riesgo/SPI, GAP, SMS alimentado por eventos, reporte mensual, confidencialidad real, MSMS vivo, perfil escalable, mapas) — ver decisiones 137-148 en `51-bitacora.md` | 213 | ✅ |
 | [`41-tiempos-servicio.md`](41-tiempos-servicio.md) | Tiempos de servicio, vuelo y descanso (100.540) — **F5 construido y verificado** (motor + esquema/RLS + API + bloqueo real + certificación + planificación), ver decisiones 34-42 en `51-bitacora.md` | 50 | ✅ |
-| [`42-comando-control.md`](42-comando-control.md) | C2 en vivo — telemetría + video · **omitido por ahora** (decisión 20) | 307 | ⏸ |
+| [`42-comando-control.md`](42-comando-control.md) | C2 en vivo — telemetría + video · **reabierto 2026-10-01** (decisión 156): esquema + `c2-gateway/` + página H5 + panel "Drones en línea" escritos, **nada desplegado ni validado contra hardware real** | 307 | 🔄 |
 | [`43-aerocivil.md`](43-aerocivil.md) | Expediente y radicación de autorizaciones — **F4a en construcción**: dominio del análisis de riesgos (MAUT-5.0-12-055) + esquema/RLS + API, ver decisiones 44-45 en `51-bitacora.md` | 77 | 🔄 |
 
 ## 5 · Ejecución
@@ -66,7 +66,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
 | [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 289 | ✅ |
-| [`51-bitacora.md`](51-bitacora.md) | **155 decisiones cerradas**, correcciones propias y fuentes consultadas | 268 | ✅ |
+| [`51-bitacora.md`](51-bitacora.md) | **156 decisiones cerradas**, correcciones propias y fuentes consultadas | 268 | ✅ |
 
 **Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · ⏸ omitido por ahora
 

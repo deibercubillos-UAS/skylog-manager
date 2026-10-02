@@ -6,9 +6,35 @@
 
 ---
 
-> ## ⏸ Módulo omitido por ahora (2026-08-22)
+> ## 🔄 Reabierto (2026-10-01), construcción inicial sin hardware ni deploy
 >
-> Decisión del usuario: *"Omite el C2, por el momento."* **F2-a y F2-b salen del plan activo.**
+> Decisión del usuario: *"yo quiero que el centro de comando y control, sea para visualizar
+> que drone esta en linea (prendido) y transmita la imagen en vivo"*. Revierte la pausa de
+> 2026-08-22 (decisión 20) — ver decisión 156, `51-bitacora.md`.
+>
+> **Lo que existe hoy**: esquema de datos (`c2_sessions`/`c2_telemetry`/`c2_events`,
+> migración `20261001020000_c2_telemetry.sql`, sin aplicar — pendiente de aplicarse al branch
+> igual que `flights.replay_track`), el servicio `c2-gateway/` (broker MQTT + ingesta, **escrito
+> pero nunca desplegado**), la página H5 `/c2/pilot2` que Pilot 2 cargaría (**nunca abierta
+> dentro de Pilot 2 real**), y la sección "Drones en línea" en `/operacion/centro-de-control`
+> (lee datos reales si existen, estado honesto vacío si no). **Nada de esto se ha validado
+> contra hardware DJI real** — queda explícito en cada archivo.
+>
+> **Lo que sigue sin resolverse** (igual que antes de la pausa):
+>
+> 1. **Falta una directiva vinculante**: `MAUT-5.0-22-016 "01-23"` — ver detalle abajo, sin cambios.
+> 2. **Validar `platformVerifyLicense` contra un RC real** — sin cambios, sigue requiriendo hardware.
+> 3. **Nuevo**: el servicio `c2-gateway` nunca se desplegó (sin credenciales de Railway/Fly en el
+>    entorno de desarrollo) — pasos de deploy en `c2-gateway/README.md`, pendientes de que el
+>    usuario los ejecute con su propia cuenta.
+> 4. **Nuevo**: la autenticación MQTT del gateway es un MVP de un solo secreto compartido, NO
+>    credenciales por organización — no usar con un cliente real sin corregir esto primero.
+> 5. **Nuevo**: sin decisión de servidor de medios tomada todavía (§4.11) — la telemetría puede
+>    funcionar sin video; el campo `c2_sessions.video_url` queda listo para cuando se decida.
+>
+> ---
+> **Contexto histórico — por qué se había pausado el 2026-08-22** (sigue vigente en lo que no
+> se marcó "Nuevo" arriba):
 >
 > Este documento **no se archiva ni se borra**: el análisis técnico está hecho y verificado
 > contra la documentación oficial de DJI (repositorio `Cloud-API-Doc` clonado y leído), así que

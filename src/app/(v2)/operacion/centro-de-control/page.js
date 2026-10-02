@@ -61,6 +61,7 @@ export default function CentroDeControlPage() {
   const [fleet, setFleet] = useState([]);
   const [openCases, setOpenCases] = useState(null); // null = no cargado / no es gestor
   const [weatherByMission, setWeatherByMission] = useState({});
+  const [c2Sessions, setC2Sessions] = useState([]);
 
   const loadContext = useCallback(async () => {
     const res = await fetch('/api/duty/context');
@@ -83,6 +84,22 @@ export default function CentroDeControlPage() {
 
     setMissions(missionsData.missions || []);
     setFleet(fleetData.aircraft || []);
+
+    // Comando y Control (F2) — nunca falla el resto de la página si c2-gateway
+    // no está desplegado todavía: la tabla puede existir sin filas, o el
+    // fetch puede fallar si la migración no se aplicó; en cualquier caso se
+    // degrada a lista vacía, nunca a un error bloqueante.
+    try {
+      const c2Res = await fetch(`/api/c2/sessions?organizationId=${orgId}`);
+      if (c2Res.ok) {
+        const c2Data = await c2Res.json();
+        setC2Sessions(c2Data.sessions || []);
+      } else {
+        setC2Sessions([]);
+      }
+    } catch {
+      setC2Sessions([]);
+    }
 
     const { start: s } = todayRangeISO();
     const todayFlights = (flightsData.flights || []).filter((f) => f.takeoff_at >= s);
@@ -171,6 +188,7 @@ export default function CentroDeControlPage() {
   const activeMissions = missions.filter((m) => m.status === 'programada');
   const availableAircraft = fleet.filter((a) => a.operational_status === 'disponible').length;
   const maintenanceAircraft = fleet.filter((a) => a.operational_status === 'en_mantenimiento').length;
+  const onlineDrones = c2Sessions.filter((s) => s.status === 'online');
 
   // Pendiente por cerrar — heurística honesta: `missions` no tiene FK hacia
   // `flights` todavía (ver api/missions/route.js), así que no hay forma
@@ -204,7 +222,8 @@ export default function CentroDeControlPage() {
         }
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <StatCard icon="satellite_alt" color="red" label="Drones en línea" value={onlineDrones.length} />
         <StatCard icon="event_available" color="primary" label="Misiones hoy" value={activeMissions.length} />
         <StatCard icon="flight_takeoff" color="blue" label="Vuelos registrados hoy" value={flights.length} />
         <StatCard icon="flight" color="emerald" label="Aeronaves disponibles" value={`${availableAircraft}/${fleet.length}`} />
@@ -216,6 +235,62 @@ export default function CentroDeControlPage() {
       </div>
 
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>}
+
+      <SectionCard
+        icon="satellite_alt"
+        tile="bg-red-500 text-white"
+        wash="from-red-50 to-white"
+        title="Comando y Control — drones en línea"
+        description="Telemetría en vivo vía DJI Cloud API (F2). Nunca envía comandos de vuelo."
+      >
+        {onlineDrones.length === 0 ? (
+          <div className="rounded-xl border-2 border-dashed border-navy-200 p-6 text-center text-sm text-navy-400 space-y-1">
+            <span className="material-symbols-outlined text-3xl text-navy-300 block">satellite_alt</span>
+            <p className="font-bold">Sin dron conectado ahora mismo</p>
+            <p className="text-xs">
+              Requiere un RC con Pilot 2 apuntando a la página de enlace (<code className="bg-navy-50 px-1 rounded">/c2/pilot2</code>) y el
+              servicio <code className="bg-navy-50 px-1 rounded">c2-gateway</code> desplegado — ver <code className="bg-navy-50 px-1 rounded">c2-gateway/README.md</code>.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {onlineDrones.map((s) => (
+              <div key={s.id} className="bg-white rounded-xl border border-red-100 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-bold text-navy flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    {s.aircraft ? `${s.aircraft.model?.brand} ${s.aircraft.model?.model} — ${s.aircraft.serial_number}` : s.drone_sn}
+                  </p>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">EN LÍNEA</span>
+                </div>
+                {s.video_url ? (
+                  <video src={s.video_url} autoPlay muted playsInline className="w-full rounded-lg mt-2 bg-navy-900" />
+                ) : (
+                  <p className="text-[11px] text-navy-300 mt-1">Sin servidor de video configurado todavía — solo telemetría.</p>
+                )}
+                {s.latest ? (
+                  <div className="grid grid-cols-3 gap-1.5 mt-2 text-[11px]">
+                    <div className="bg-navy-50/60 rounded px-2 py-1">
+                      <p className="text-navy-300 text-[9px] uppercase font-bold">Altura</p>
+                      <p className="font-black text-navy">{s.latest.height_m != null ? `${s.latest.height_m} m` : '—'}</p>
+                    </div>
+                    <div className="bg-navy-50/60 rounded px-2 py-1">
+                      <p className="text-navy-300 text-[9px] uppercase font-bold">Vel. horiz.</p>
+                      <p className="font-black text-navy">{s.latest.horizontal_speed_ms != null ? `${s.latest.horizontal_speed_ms} m/s` : '—'}</p>
+                    </div>
+                    <div className="bg-navy-50/60 rounded px-2 py-1">
+                      <p className="text-navy-300 text-[9px] uppercase font-bold">Batería</p>
+                      <p className="font-black text-navy">{s.latest.battery_pct != null ? `${s.latest.battery_pct}%` : '—'}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-navy-300 mt-1">Sin muestra de telemetría todavía.</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
 
       {pendingMissions.length > 0 && (
         <SectionCard

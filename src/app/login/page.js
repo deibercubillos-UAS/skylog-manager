@@ -32,7 +32,10 @@ export default function LoginPage() {
       if (error) throw error;
       if (data.user) {
         router.refresh();
-        window.location.href = '/dashboard';
+        // develop-v2: el dashboard real ahora es /inicio (V2) — esta rama no
+        // tiene las tablas de v1 (profiles/organization_members) en su base
+        // de datos, así que /dashboard no aplica aquí. NO cambiar en main.
+        window.location.href = '/inicio';
       }
     } catch (err) {
       setError(

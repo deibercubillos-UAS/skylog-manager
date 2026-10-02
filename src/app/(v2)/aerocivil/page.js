@@ -293,7 +293,7 @@ export default function AerocivilPage() {
     <div style={{ padding: 24, maxWidth: 720, fontFamily: 'system-ui, sans-serif' }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: '#1A202C' }}>Expediente Aerocivil</h1>
       <p style={{ fontSize: 13, color: '#a3aab8', marginTop: 4 }}>
-        RAC 100 §100.805(a) · análisis de riesgos MAUT-5.0-12-055 — Skylog V2.0
+        RAC 100 §100.805(a) · análisis de riesgos MAUT-5.0-12-055 — BitaFly
       </p>
 
       {context.organizations?.length > 1 && (

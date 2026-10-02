@@ -54,7 +54,9 @@ export async function middleware(request) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
   if (isAuthPage && user) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    // develop-v2: /inicio es el dashboard real de V2 — esta rama no tiene
+    // las tablas de v1 en su base de datos. NO cambiar en main.
+    return NextResponse.redirect(new URL('/inicio', request.url));
   }
 
   return response;

@@ -14,6 +14,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { OnboardingTour } from './_components/OnboardingTour';
 
 const ROLE_LABELS = {
   admin: 'Gerente General',
@@ -24,9 +25,14 @@ const ROLE_LABELS = {
 };
 
 // group: solo agrupa visualmente el sidebar (mismos 3 grupos que v1:
-// Operación / Flota & Equipo / Documentación). roles: quién ve el enlace —
-// hoy todos los roles ven todo lo real de V2 (sin plan/rol granular todavía,
-// a diferencia de v1); se ajustará cuando V2 tenga esa lógica.
+// Operación / Flota & Equipo / Documentación). managerOnly: oculta el
+// enlace para rol `piloto` — mismo patrón `pilotHidden` de v1
+// (dashboard/layout.js), aplicado solo a los 3 módulos cuya página
+// completa ya bloquea a un no-gestor con "Solo un gestor puede..."
+// (Reportes, Proveedores, Reporte Mensual SMS — verificado en código,
+// no supuesto). El resto de módulos son de solo lectura para piloto
+// (sin botones de crear/editar) pero SÍ tienen contenido real que
+// mostrarle, así que permanecen visibles para todos los roles.
 const NAV_LINKS = [
   { name: 'Dashboard', icon: 'dashboard', href: '/inicio', group: 'Operación' },
   { name: 'Centro de Control', icon: 'hub', href: '/operacion/centro-de-control', group: 'Operación' },
@@ -56,7 +62,7 @@ const NAV_LINKS = [
   { name: 'Evaluación de Riesgo', icon: 'warning', href: '/sms/riesgos', group: 'SMS' },
   { name: 'Indicadores (SPI)', icon: 'monitoring', href: '/sms/indicadores', group: 'SMS' },
   { name: 'Mejora Continua', icon: 'fact_check', href: '/sms/mejora-continua', group: 'SMS' },
-  { name: 'Reporte Mensual SMS', icon: 'summarize', href: '/sms/reporte-mensual', group: 'SMS' },
+  { name: 'Reporte Mensual SMS', icon: 'summarize', href: '/sms/reporte-mensual', group: 'SMS', managerOnly: true },
   // { name: 'MSMS', icon: 'description', href: '/sms/msms', group: 'SMS' },
   { name: 'Reportes y casos', icon: 'report', href: '/sms/reportes', group: 'SMS' },
   // { name: 'Capacitación SMS', icon: 'event_repeat', href: '/sms/capacitacion', group: 'SMS' },
@@ -64,8 +70,8 @@ const NAV_LINKS = [
   { name: 'Mapas', icon: 'map', href: '/sms/mapas', group: 'SMS' },
   { name: 'Capacitación', icon: 'school', href: '/capacitacion', group: 'Documentación' },
   { name: 'Listas de Chequeo', icon: 'checklist', href: '/listas-de-chequeo', group: 'Documentación' },
-  { name: 'Proveedores', icon: 'storefront', href: '/proveedores', group: 'Documentación' },
-  { name: 'Reportes', icon: 'summarize', href: '/reportes', group: 'Documentación' },
+  { name: 'Proveedores', icon: 'storefront', href: '/proveedores', group: 'Documentación', managerOnly: true },
+  { name: 'Reportes', icon: 'summarize', href: '/reportes', group: 'Documentación', managerOnly: true },
   { name: 'Manuales', icon: 'library_books', href: '/manuales', group: 'Documentación' },
   // Expediente Aerocivil oculto a pedido del usuario (2026-09-30) — la página
   // /aerocivil sigue intacta, solo se quita el enlace del sidebar.
@@ -168,6 +174,7 @@ export default function V2Layout({ children }) {
   }
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
+  const isManager = !!currentOrg?.isDutyManager;
   const role = currentOrg?.role;
   const displayRole = ROLE_LABELS[role] || role || '—';
   const initials = (context?.fullName || context?.organizations?.[0]?.name || '?')
@@ -201,6 +208,7 @@ export default function V2Layout({ children }) {
 
   return (
     <div className="flex h-screen bg-[#f8f6f6] font-sans overflow-hidden text-left">
+      <OnboardingTour />
       {/* ── SIDEBAR ───────────────────────────────────────────────────── */}
       <aside
         className={`fixed inset-y-0 left-0 z-[150] w-64 bg-gradient-to-b from-navy via-navy to-[#0f1420] text-white flex flex-col transition-transform duration-300 ease-in-out border-r border-white/5 ${
@@ -228,7 +236,7 @@ export default function V2Layout({ children }) {
 
         <nav aria-label="Menú lateral" className="flex-1 p-3 space-y-3 mt-2 overflow-y-auto">
           {NAV_GROUPS.map((group) => {
-            const groupLinks = NAV_LINKS.filter((l) => l.group === group);
+            const groupLinks = NAV_LINKS.filter((l) => l.group === group && (!l.managerOnly || isManager));
             if (!groupLinks.length) return null;
             const isCollapsed = !!collapsedGroups[group];
             const groupColor = GROUP_COLORS[group] || GROUP_COLORS.Operación;

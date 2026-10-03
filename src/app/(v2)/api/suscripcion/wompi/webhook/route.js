@@ -94,7 +94,14 @@ export async function POST(request) {
       wompiPaymentSourceId: tx.payment_source_id ? String(tx.payment_source_id) : null,
     });
 
-    await admin.from('wompi_processed_refs').insert({ tx_id: txId }).then(() => {}, () => {});
+    // El error no se propaga (Wompi necesita un 200 rápido o reintenta), pero
+    // sí se registra: si el marcador no entra, la guarda de idempotencia de
+    // arriba —y la de /verify, que comparte este libro— deja de proteger esta
+    // transacción, y eso no puede pasar en silencio.
+    const { error: markError } = await admin.from('wompi_processed_refs').insert({ tx_id: txId });
+    if (markError) {
+      console.error('[wompi-v2] webhook: no se pudo marcar la tx como procesada:', txId, markError.message);
+    }
 
     console.log(`[wompi-v2] ✓ Suscripción activada: org=${organizationId} plan=${plan} billing=${billing}`);
     return Response.json({ success: true });

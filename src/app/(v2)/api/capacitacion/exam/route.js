@@ -9,8 +9,18 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { computeEvaluationCompliance, gradeAttempt, classifyReportRoute } from '@skylog/domain';
 
-async function loadEvaluationAndAttempts(admin, evaluationId, personId) {
-  const { data: evaluation } = await admin.from('capacitacion_evaluations').select('*').eq('id', evaluationId).maybeSingle();
+// ⚠️ `organizationIds` NO es opcional: al leer con service role (ver cabecera)
+// RLS no acota nada, así que el filtro por organización es el único límite
+// multi-tenant que queda. Va dentro de la consulta a propósito — una
+// evaluación de otra organización se comporta como inexistente (404) en vez
+// de 403, sin filtrar ni que el id exista.
+async function loadEvaluationAndAttempts(admin, evaluationId, personId, organizationIds) {
+  const { data: evaluation } = await admin
+    .from('capacitacion_evaluations')
+    .select('*')
+    .eq('id', evaluationId)
+    .in('organization_id', organizationIds)
+    .maybeSingle();
   if (!evaluation) return { evaluation: null, attempts: [] };
 
   const { data: attempts } = await admin
@@ -37,12 +47,12 @@ export async function GET(request) {
   const evaluationId = searchParams.get('evaluationId');
   if (!evaluationId) return Response.json({ error: 'evaluationId es requerido' }, { status: 400 });
 
-  const { error: resolveError, personId } = await resolveCurrentPerson(supabase, user.id);
+  const { error: resolveError, personId, organizationIds } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
 
   const admin = createAdminClient();
-  const { evaluation, attempts } = await loadEvaluationAndAttempts(admin, evaluationId, personId);
+  const { evaluation, attempts } = await loadEvaluationAndAttempts(admin, evaluationId, personId, organizationIds);
   if (!evaluation) return Response.json({ error: 'Evaluación no encontrada' }, { status: 404 });
 
   const compliance = computeEvaluationCompliance(evaluation, attempts);
@@ -73,12 +83,12 @@ export async function POST(request) {
     return Response.json({ error: 'evaluationId y answers (array) son requeridos' }, { status: 400 });
   }
 
-  const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
+  const { error: resolveError, personId, memberships, organizationIds } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
 
   const admin = createAdminClient();
-  const { evaluation, attempts, raw } = await loadEvaluationAndAttempts(admin, evaluationId, personId);
+  const { evaluation, attempts, raw } = await loadEvaluationAndAttempts(admin, evaluationId, personId, organizationIds);
   if (!evaluation) return Response.json({ error: 'Evaluación no encontrada' }, { status: 404 });
 
   // Elegibilidad recalculada server-side — nunca se confía en que el cliente

@@ -9,7 +9,7 @@
 // cálculo reutiliza packages/domain, nunca se reimplementa aquí.
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, getRecentFlights, isDutyManager } from '@/lib/v2/duty';
-import { checkMonthlyFlightHours, checkDailyFlightHours } from '@skylog/domain';
+import { checkMonthlyFlightHours, checkDailyFlightHours, dayKey, monthKey } from '@skylog/domain';
 
 const VISUAL_CONDITIONS = ['VLOS', 'EVLOS', 'BVLOS'];
 
@@ -53,14 +53,6 @@ export async function GET(request) {
   const slimFlights = flights.map(({ replay_track, ...f }) => ({ ...f, has_replay: !!replay_track }));
 
   return Response.json({ flights: slimFlights, isManager: isDutyManager(memberships, organizationId) });
-}
-
-function monthKey(date) {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
-}
-
-function dayKey(date) {
-  return date.toISOString().slice(0, 10);
 }
 
 export async function POST(request) {

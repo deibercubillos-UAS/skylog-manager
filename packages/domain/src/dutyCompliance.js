@@ -3,6 +3,12 @@
 // veredicto de cumplimiento por regla. No consulta Supabase ni conoce la forma
 // exacta de las tablas reales — solo los campos que cada función necesita.
 // Fuente: docs/skylog-v2/41-tiempos-servicio.md §1.1.
+//
+// `dayKey`/`monthKey` viven en operationCalendar.js: "mes calendario" y la
+// ventana de 24h de la norma son locales a la operación, no UTC (ver la
+// cabecera de ese módulo — era un bug real, no una preferencia de estilo).
+
+import { dayKey, monthKey } from './operationCalendar.js';
 
 export const DUTY_LIMITS = {
   monthlyFlightHours: 90,              // 100.540(c)(1)
@@ -17,15 +23,6 @@ export const DUTY_LIMITS = {
 
 function hoursBetween(startedAt, endedAt) {
   return (new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 3_600_000;
-}
-
-function monthKey(dateLike) {
-  const d = new Date(dateLike);
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-}
-
-function dayKey(dateLike) {
-  return new Date(dateLike).toISOString().slice(0, 10);
 }
 
 // 100.540(c)(1) — vuelo efectivo ≤ 90h por mes calendario.

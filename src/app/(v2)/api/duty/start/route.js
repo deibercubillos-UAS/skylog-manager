@@ -13,17 +13,9 @@ import {
   getLastClosedServicePeriod,
   getRecentFlights,
 } from '@/lib/v2/duty';
-import { checkMonthlyFlightHours, checkDailyFlightHours, checkRestPeriod, computeExamCompliance } from '@skylog/domain';
+import { checkMonthlyFlightHours, checkDailyFlightHours, checkRestPeriod, computeExamCompliance, dayKey, monthKey } from '@skylog/domain';
 
 const VALID_TYPES = ['servicio', 'descanso', 'disponibilidad', 'entrenamiento'];
-
-function monthKey(date) {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
-}
-
-function dayKey(date) {
-  return date.toISOString().slice(0, 10);
-}
 
 export async function POST(request) {
   const supabase = await createClientSSR();

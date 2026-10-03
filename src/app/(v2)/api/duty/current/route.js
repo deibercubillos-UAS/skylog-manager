@@ -4,15 +4,7 @@
 // en packages/domain/dutyCompliance.js — función pura, sin Supabase, con tests.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager, getOpenDutyPeriod, getRecentDutyPeriods, getRecentFlights } from '@/lib/v2/duty';
-import { evaluateDutyCompliance } from '@skylog/domain';
-
-function monthKey(date) {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
-}
-
-function dayKey(date) {
-  return date.toISOString().slice(0, 10);
-}
+import { evaluateDutyCompliance, dayKey, monthKey } from '@skylog/domain';
 
 // `personId`/`organizationId` opcionales — un gestor puede consultar el
 // estado de OTRO piloto de su organización (filtro por piloto en la UI,

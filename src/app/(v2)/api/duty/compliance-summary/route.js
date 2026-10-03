@@ -7,15 +7,7 @@
 // la organización en vez de solo la sesión actual.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager, getRecentDutyPeriods, getRecentFlights } from '@/lib/v2/duty';
-import { evaluateDutyCompliance } from '@skylog/domain';
-
-function monthKey(date) {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
-}
-
-function dayKey(date) {
-  return date.toISOString().slice(0, 10);
-}
+import { evaluateDutyCompliance, dayKey, monthKey } from '@skylog/domain';
 
 export async function GET(request) {
   const supabase = await createClientSSR();

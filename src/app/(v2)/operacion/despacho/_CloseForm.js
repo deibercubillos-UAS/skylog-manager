@@ -4,7 +4,8 @@
 // calcula el servidor a partir del despegue y el aterrizaje; aquí solo se piden y se muestran.
 import { useState } from 'react';
 import { Field, Button } from '@skylog/ui';
-import { validateFlightClose } from '@skylog/domain';
+import { validateFlightClose, enqueue } from '@skylog/domain';
+import { readQueue, saveQueueAndSync, isNetworkError } from '@/lib/v2/offlineStore';
 
 // <input type="datetime-local"> no trae zona: se interpreta como hora de Colombia (UTC−5, sin horario de verano).
 const toBogotaIso = (v) => (v ? new Date(`${v}:00-05:00`).toISOString() : '');
@@ -43,21 +44,40 @@ export default function CloseForm({ mission, dispatch, onCancel, onDone }) {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    const payload = { ...form, takeoffAt: toBogotaIso(form.takeoffAt), landingAt: toBogotaIso(form.landingAt) };
     try {
       const res = await fetch(`/api/despacho/${dispatch.id}/close`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, takeoffAt: toBogotaIso(form.takeoffAt), landingAt: toBogotaIso(form.landingAt) }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'No se pudo cerrar el vuelo');
       setResult(data);
       onDone?.(data);
     } catch (err) {
-      setError(err.message);
+      if (isNetworkError(err)) {
+        // Sin señal: el vuelo YA ocurrió, así que se guarda en este dispositivo y se envía solo al volver la
+        // conexión (el servidor es idempotente). El despacho, en cambio, nunca se encola: ver offlineQueue.js.
+        const ok = saveQueueAndSync(enqueue(readQueue(), { key: dispatch.id, dispatchId: dispatch.id, ownerId: dispatch.pilot_person_id, missionName: mission.name, queuedAt: new Date().toISOString(), body: payload }));
+        if (ok) setResult({ queued: true });
+        else setError('Sin conexión y no se pudo guardar en este dispositivo. Anota los datos del vuelo y regístralos cuando tengas señal.');
+      } else {
+        setError(err.message);
+      }
     } finally {
       setBusy(false);
     }
+  }
+
+  if (result?.queued) {
+    return (
+      <div className="bg-white rounded-2xl border border-amber-200 p-5 space-y-2">
+        <p className="text-sm font-semibold text-amber-800">Sin conexión — vuelo guardado en este dispositivo</p>
+        <p className="text-xs text-navy-500">Se enviará solo cuando vuelva la señal. Puedes cerrar la app; verás el aviso arriba hasta que quede registrado. No lo registres dos veces.</p>
+        <button type="button" onClick={onCancel} className="text-xs font-semibold px-3 py-2 rounded-full bg-navy-50 text-navy-600 min-h-[36px]">Volver</button>
+      </div>
+    );
   }
 
   if (result) {

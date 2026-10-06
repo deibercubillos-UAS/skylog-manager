@@ -107,12 +107,14 @@ Beneficio medible, vigente desde la propuesta original: el "cambiar N archivos p
 un grupo del sidebar" pasa a ser un cambio en un archivo (`NAV_LINKS`/`NAV_GROUPS` en
 `(v2)/layout.js`).
 
-### 3.5 Resiliencia en campo (propuesta, sin construir)
+### 3.5 Resiliencia en campo (✅ construida el 2026-10-06, decisión 175)
 
 Los checklists de despacho y el cierre de vuelo se diligencian **donde no hay señal**. Hoy si se
 cae la conexión a mitad del wizard, se pierde. Propuesta: cola de escritura local
 (IndexedDB) + sincronización al recuperar señal, aplicada a los flujos kiosko
 (`logbook/new`, `logbook/finalize`) y al registro de tiempos de servicio.
+
+**Lo construido** difiere de la propuesta a propósito: solo el **cierre de vuelo** se encola (algo que ya ocurrió); el **despacho** no, porque sus verificaciones son del servidor — solo conserva un borrador local. Sin IndexedDB (localStorage basta para este volumen) ni Service Worker. Ver decisión 175.
 
 ### 3.6 Command palette (propuesta, sin construir)
 

@@ -11,6 +11,7 @@
 // tablas (`notifications`, etc.) que no existen en esta rama.
 
 import { useState, useEffect, useRef } from 'react';
+import OfflineSync from './_components/OfflineSync';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -409,6 +410,7 @@ export default function V2Layout({ children }) {
           className="flex-1 overflow-y-auto min-h-0 p-3 md:p-4 lg:p-6 pb-[max(6rem,calc(3rem+env(safe-area-inset-bottom,8px)+1rem))] lg:pb-6"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
+          <OfflineSync />
           {children}
         </div>
       </main>

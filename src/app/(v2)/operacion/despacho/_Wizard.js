@@ -7,7 +7,8 @@
 // Pensado para usarse en campo, de pie y quizá con guantes: botones grandes, un solo tema por
 // pantalla, salto automático al siguiente paso sin responder y barra de acción fija abajo.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { evaluateDispatchRisk, buildChecklistItems } from '@skylog/domain';
+import { evaluateDispatchRisk, buildChecklistItems, isDraftFresh } from '@skylog/domain';
+import { readDraft, writeDraft, clearDraft, isNetworkError } from '@/lib/v2/offlineStore';
 
 const GATE_STYLE = {
   ok: { icon: 'check_circle', cls: 'text-emerald-600', row: 'bg-emerald-50/70 border-emerald-100' },
@@ -32,6 +33,8 @@ export default function Wizard({ mission, onCancel, onDone }) {
   const [busy, setBusy] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [setupNeeded, setSetupNeeded] = useState(false);
+  const [restored, setRestored] = useState(false); // se recuperó un borrador guardado en este dispositivo
+  const [draftReady, setDraftReady] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -41,10 +44,30 @@ export default function Wizard({ mission, onCancel, onDone }) {
         if (!res.ok) throw new Error(data.error || 'Error preparando el despacho');
         setPrep(data);
       } catch (e) {
-        setLoadError(e.message);
+        setLoadError(isNetworkError(e) ? 'Sin conexión. El despacho necesita verificar tiempos de servicio, capacitación y aeronave en el servidor, así que no se puede iniciar sin señal. Vuelve a intentarlo cuando tengas conexión.' : e.message);
       }
     })();
   }, [mission.id]);
+
+  // Borrador: lo respondido se guarda en este dispositivo para no perderlo si se cae la conexión o se recarga.
+  // Solo respuestas — las verificaciones y el despacho siempre los decide el servidor.
+  useEffect(() => {
+    if (!prep) return;
+    const draft = readDraft(mission.id);
+    if (isDraftFresh(draft, Date.now())) {
+      setAnswers(draft.answers || {});
+      if (draft.risk) setRisk(draft.risk);
+      // Si hoy hay una verificación que bloquea, se vuelve al inicio: el estado del servidor manda sobre el borrador.
+      setStepIndex(prep.canDispatch ? Math.min(draft.stepIndex || 0, prep.checklists.length + (prep.riskMatrix ? 2 : 1)) : 0);
+      setRestored(Object.keys(draft.answers || {}).length > 0);
+    }
+    setDraftReady(true);
+  }, [prep, mission.id]);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    writeDraft(mission.id, { answers, risk, stepIndex });
+  }, [draftReady, answers, risk, stepIndex, mission.id]);
 
   // Un paso por pantalla: verificaciones, cada lista, riesgos (si aplica) y confirmar.
   const steps = useMemo(() => {
@@ -97,9 +120,10 @@ export default function Wizard({ mission, onCancel, onDone }) {
         if (data.setup) setSetupNeeded(true);
         throw new Error(data.error || 'No se pudo despachar');
       }
+      clearDraft(mission.id);
       onDone(data);
     } catch (e) {
-      setSubmitError(e.message);
+      setSubmitError(isNetworkError(e) ? 'Sin conexión. Tus respuestas están guardadas en este dispositivo; vuelve a tocar «Despachar» cuando tengas señal. El despacho no se puede completar sin conexión porque el servidor debe verificar tiempos de servicio, capacitación y aeronave.' : e.message);
     } finally {
       setBusy(false);
     }
@@ -124,6 +148,12 @@ export default function Wizard({ mission, onCancel, onDone }) {
 
   return (
     <div className="space-y-4 pb-24">
+      {restored && (
+        <div className="flex items-center justify-between gap-3 rounded-xl bg-sky-50 text-sky-800 px-4 py-2.5 text-sm">
+          <span>Recuperamos tus respuestas guardadas en este dispositivo.</span>
+          <button type="button" onClick={() => { setAnswers({}); setRisk({ probabilityCode: '', severityCode: '', mitigation: '', residualProbabilityCode: '', residualSeverityCode: '' }); setStepIndex(0); clearDraft(mission.id); setRestored(false); }} className="text-xs font-semibold underline min-h-[36px] shrink-0">Empezar de cero</button>
+        </div>
+      )}
       {/* Encabezado: misión + dónde voy */}
       <div className="bg-white rounded-2xl border border-navy-100 p-4">
         <div className="flex items-start justify-between gap-3">

@@ -46,13 +46,16 @@ completo y validado:
   construye directo contra el catálogo de 24 peligros + matriz de probabilidad/severidad/
   tolerabilidad oficiales — sin derivarlo de la matriz SMS interna (regla C3, configurable),
   que es un instrumento distinto y no debe conflarse (`18-analisis-riesgos-vuelo.md` R1).
-- ✅ **Certificado de vigencia de póliza RCE** — ya vive en `insurance_policies`; se adjunta y se
-  valida que cubra la fecha de operación y el serial de la UA (`100.410(a)(2)(i)`).
+- ✅ **Certificado de vigencia de póliza RCE** — vive en `insurance_policies` (decisión 157) y el
+  checklist valida que cubra **todo el periodo** de la solicitud, aeronave por aeronave
+  (`100.410(a)(2)(i)`), y avisa si la póliza no tiene certificado adjunto (decisión 158).
 - ✅ **Validación previa de antelación** (B10): si faltan menos de 15 días hábiles y la zona es
   espacio aéreo controlado, se advierte antes de dejar programar. Mismo patrón del aviso de
   conflicto de agenda del PIC, que ya existe.
-- ✅ **Checklist de completitud**: CDO-U vigente, CIPU y adiciones del PIC vigentes para el tipo
-  de operación (`100.810(d)`), aeronave registrada, póliza vigente. Un solo semáforo.
+- 🔄 **Checklist de completitud** — **corrección 2026-10-05 (decisión 158)**: este punto figuraba ✅, pero
+  en V2 no existía ningún checklist. Hoy hay **un solo ítem real**: la póliza RCE (panel en `/aerocivil`,
+  `GET /api/aerocivil/readiness`). Siguen **sin construir**: CDO-U vigente, CIPU y adiciones del PIC
+  (`100.810(d)`), aeronave registrada. Es informativo, no bloquea firmar ni radicar.
 - ✅ Seguimiento de estado del trámite (radicado, en revisión, autorizada, negada) con el número
   de autorización — extendiendo `flight_authorizations.aerocivil_auth_number`, que ya existe.
 

@@ -30,8 +30,8 @@ Un séptimo bloque, **Complementos**, agrupa lo que se activa aparte o se cobra 
 | **Centro de control** | ✅ **Construido (2026-10-01)** — `/operacion/centro-de-control`: misiones de hoy (con clima por zona si tiene geometría), vuelos ya registrados, estado de la flota, y "qué falta por cerrar" (misiones de hoy cuya hora ya pasó sin vuelo del PIC ese día — heurística, sin FK misión↔vuelo todavía) | — |
 | **Programación de misiones** | Misión + PIC + aeronave + zona + **análisis de riesgos por operación** | 100.535(25) |
 | **Autorizaciones** | Expediente por solicitud: KMZ, análisis de riesgos, N.º de autorización | 100.535(24) |
-| **Despacho** | Checklists **por fase de vuelo** (11 fases), salud, inventario, briefing | 100.535(23) |
-| **Cierre de vuelo** | Horas reales, novedades, disparo de reporte si hubo suceso | — |
+| **Despacho** | ✅ **Construido (2026-10-05, decisión 160)** — `/operacion/despacho`: verificaciones automáticas (programación, tiempos de servicio, examen, aeronave; la póliza RCE es solo informativa y opcional) + listas de chequeo de **Prevuelo** + evaluación de riesgos. La checklist de Prevuelo (los puntos del ítem 30 de MAUT-5.0-12-095) **la crea cada organización** en Listas de Chequeo y el despacho la diligencia; no hay fases separadas durante el vuelo, y salud del piloto, inventario y briefing son listas opcionales que la organización crea si quiere (decisión 161) | 100.535(23) |
+| **Cierre de vuelo** | ✅ **Construido (2026-10-05, decisión 160)** — mismo `/operacion/despacho`: horas reales calculadas por el servidor, vuelo enlazado a la misión, novedades y reporte VOR/MOR si hubo suceso | — |
 | **Libro de vuelo** | **Uno por aeronave** | 100.535(4) |
 | **Bitácora del piloto** | **Una por piloto**, con certificación anual de horas | 100.535(4)(12) |
 | **Meteorología** | Condiciones consultadas al planear, al despachar y **archivadas con el vuelo** | evidencia |

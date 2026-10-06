@@ -35,19 +35,18 @@ lista de verificación, porque no describe un documento sino una conducta perman
 | 18 | Implementar y mantener el **SMS** (RAC 219) | Módulo completo | ⚠️ V2 tiene `/sms` (riesgos/indicadores/reportes/asistente) construido en F3, sin el rediseño visual completo todavía |
 | 19, 20 | Mantener actualizados **MO** y **MCM** | Repositorio con versiones y acuses | ❌ sin cambios — no existe repositorio de manuales en V2 |
 | 21, 22 | Registro ante Aerocivil al día (aeronaves, personal) | RUAS, RETA, personal | ✅ V2 — RUAS en `aircraft.ruas_number`, RETA en `eta_items.reta_number` (con reporte propio, decisión 129), personal en `people` |
-| 23 | Ejecutar según el MO y los manuales del fabricante | Checklists por fase de vuelo | ⚠️ V2 tiene Listas de Chequeo (decisiones 126-127, biblioteca + PDF imprimible), sin wiring todavía a un flujo de Despacho (que no existe en V2) |
+| 23 | Ejecutar según el MO y los manuales del fabricante | Checklists por fase de vuelo | ✅ V2 (decisiones 160-161) — cada organización crea su checklist de **Prevuelo** en Listas de Chequeo y el Despacho la diligencia, guardando cada paso (`dispatch_checklist_items`). Los puntos del ítem 30 de MAUT-5.0-12-095 son puntos a revisar **antes de iniciar**, no fases durante el vuelo |
 | 24 | Tramitar las autorizaciones de vuelo | Expediente por autorización | ✅ V2 (F4a) — `authorization_requests` (status/radicado/alcance), con reporte propio "Programación y Autorizaciones" (decisión 129) |
 | 25 | **Análisis de riesgos por cada operación** | `MAUT-5.0-12-055` por autorización | ✅ V2 (F4a) — `risk_analyses` real por autorización (peligros + firma), en el mismo reporte de Programación y Autorizaciones |
 | 26 | **Reporte mensual dentro de los 5 primeros días hábiles**: estadística, SPI y MOR | Paquete mensual con acuse | ❌ sin cambios — SPI y MOR no existen en V2 todavía |
-| 27 | Pólizas vigentes | Vigencias con alerta | ❌ V2 — no existe todavía una entidad de pólizas/vigencias en V2 (sí en v1) |
-| 29 | **Conservar los registros operacionales 5 años** | Retención + custodia por suceso | ❌ sin cambios |
+| 27 | Pólizas vigentes | Vigencias con alerta | ✅ V2 (2026-10-05, decisión 157) — `insurance_policies` + `insurance_policy_aircraft`, página `/polizas`, estado calculado en `insuranceCoverage.js`. Ya alimenta el checklist de F4a (decisión 158). Falta: alertar el vencimiento en Centro de Control |
+| 29 | **Conservar los registros operacionales 5 años** | Retención + custodia por suceso | ✅ V2 (2026-10-05, decisión 159) — triggers `BEFORE DELETE` en 14 tablas (5 años) + `legal_holds`/`legal_hold_flights`/`legal_hold_events`, página `/retencion`. Falta: la purga por cuota de plan (no existe aún) deberá consultar `v2_flight_under_hold()`; custodia de video/meteorología archivada (no existen como datos en V2) |
 
 **Lectura del cuadro (actualizada 2026-09-27, decisión 129 — antes reflejaba solo v1, ver
 `51-bitacora.md`)**: de las 20 obligaciones listadas, V2 hoy cubre bien **12**, a medias **5**
-y **no cubre 3** con datos propios (12, 26, 27, 29 — pólizas quedó documentada aparte). Las
+y **no cubre 3** con datos propios (12, 26 — pólizas y retención ya cubiertas, decisiones 157 y 159). Las
 ausencias reales que quedan son la **certificación anual de horas** (12), el **paquete mensual
-SPI/MOR** (26), las **pólizas** (27, existían en v1, no en V2) y la **retención de 5 años** (29)
-— ninguna se fabricó sin datos reales detrás.
+SPI/MOR** (26) — ninguna se fabricó sin datos reales detrás.
 
 ---
 

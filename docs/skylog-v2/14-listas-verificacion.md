@@ -164,9 +164,10 @@ válido definido** · almacenamiento.
 **Once fases**, y **por cada tipo de UAS**. Además deben incorporar *"instrucciones y
 recomendaciones que el fabricante considera en los manuales del usuario de cada UAS"*.
 
-> Es un modelo de checklist distinto al de "antes de despachar": son listas **durante** el vuelo,
-> ancladas a una fase. Cualquier diseño de checklists que asuma "una lista antes de volar" no
-> cubre este ítem.
+> ~~Es un modelo de checklist distinto al de "antes de despachar": son listas **durante** el vuelo, ancladas a una fase.~~
+> **Corrección del usuario (2026-10-05, decisión 161):** esa lectura era errónea. Esos once puntos **no son fases** con una lista cada una:
+> son puntos a chequear **antes de iniciar** y forman parte de la checklist de **Prevuelo**, y **cada organización crea la suya**.
+> No se precargan ni se construye una pantalla de checklists durante el vuelo.
 
 ### 4.6 Ítem 31 — Los 16 escenarios de emergencia mínimos
 
@@ -256,7 +257,7 @@ mandatoria · retroalimentación · confidencialidad y protección de datos · a
 | L3 | El Manual de Operaciones se **genera** en su mayor parte: flota, ETA, pilotos, observadores, organigrama e instalaciones son datos, no prosa. Los **procedimientos los escribe el cliente** — el sistema los estructura y los versiona, no los redacta por él. |
 | L4 | El estado debe ser **binario** (`Satisfactorio` / `No satisfactorio`) más `No aplicable`. Nada de porcentajes de avance por ítem. |
 | L5 | La evaluación **conjuntiva** de la casilla 10 obliga a modelar los sub-puntos de orientación, no solo la pregunta. Un ítem tiene N condiciones y falla con una. |
-| L6 | Las **once fases de vuelo** del ítem 30 y los **dieciséis escenarios de emergencia** del ítem 31 se precargan como plantilla y el cliente los ajusta: la norma dice *"como mínimo y sin limitarse a"*, así que quitar no se puede pero **agregar sí**, y la redacción de cada paso es suya. |
+| L6 | Las **once fases de vuelo** del ítem 30 y los **dieciséis escenarios de emergencia** del ítem 31 se precargan como plantilla y el cliente los ajusta: la norma dice *"como mínimo y sin limitarse a"*, así que quitar no se puede pero **agregar sí**, y la redacción de cada paso es suya. | **⚠️ Superada en lo de las once fases por la decisión 161: no se precargan, cada organización arma su lista; los 16 escenarios de emergencia siguen aparte.**
 
 ---
 

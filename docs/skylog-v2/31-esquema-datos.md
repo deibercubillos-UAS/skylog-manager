@@ -111,7 +111,13 @@ de `§100.540` (90 h/mes · 6 h BVLOS u 8 h VLOS/EVLOS por 24 h · 2 h continuas
 | `manuals` | ①④ | `organization_id`, `type` (MO/MCM/MSMS/MMP), `current_version_id` FK | Del cliente — nosotros lo custodiamos, no lo redactamos |
 | `manual_versions` | ④ | Historial inmutable, `effective_date`, `file_path` | Patrón ya probado, se conserva |
 | `authority_submissions` | ④ | `organization_id`, `period`, `type` (`mensual`/`spi`/`vor_mor`), `submitted_at`, `submitted_by`, `doc_id` | `100.535(26)` — paquete de tres, con acuse |
-| `legal_holds` | ④ | `case_id`, `opened_at`, `opened_by`, `released_at`, `released_by`, `scope jsonb` (qué vuelos/documentos) | Ver §6 |
+| `dispatches` | ④ | `mission_id` (único), `pilot_person_id`, `aircraft_id`, `gates jsonb` (qué verificó el sistema), riesgo inicial/residual (códigos de **texto**), `status` (`despachado`/`cerrado`), `flight_id`, `safety_report(_type)` | ✅ construida (decisión 160). Solo la escribe el servidor por RPC atómica; retención 5 años |
+| `dispatch_checklist_items` | ④ | `dispatch_id`, `checklist_id`, `step_text` (copia), `value` (`si`/`no`/`na`), `note` | ✅ Relacional a propósito: un paso en "no" repetido se puede consultar (cierra la queja de `21-auditoria-sms.md` sobre los `results_*` de v1) |
+| `legal_holds` | ④ | `organization_id`, `reason`, `sms_case_id` (opcional), `opened_by/at`, `released_by/at`, `release_reason` | Ver §6 · ✅ construida (decisión 159). Nunca se borra; solo transita activa→liberada, y solo una autoridad |
+| `legal_hold_flights` | ④ | `hold_id`, `flight_id` | ✅ Reemplaza el `scope jsonb` del diseño original: relacional, con FK `restrict` hacia `flights` (un vuelo custodiado alguna vez no se puede borrar jamás) |
+| `legal_hold_events` | ④ | `hold_id`, `event_type` (`opened`/`flights_added`/`released`/`accessed`), `actor_person_id`, `flight_id`, `detail` | ✅ Append-only; **solo el servidor la escribe** (sin política RLS de insert) |
+| `insurance_policies` | ③ | `policy_type` (`rce`/`casco`/`otra`), `insurer`, `policy_number`, `start_date`, `end_date`, `covers_all_fleet`, `covered_amount_cop`, `document_path`, `is_active` | `100.535(27)` · ✅ construida (decisión 157). Estado vigente/por vencer/vencida **calculado**, no columna |
+| `insurance_policy_aircraft` | ③ | `policy_id`, `aircraft_id` | Aeronaves cubiertas cuando `covers_all_fleet = false` · ✅ construida |
 
 ---
 
@@ -127,6 +133,14 @@ de `§100.540` (90 h/mes · 6 h BVLOS u 8 h VLOS/EVLOS por 24 h · 2 h continuas
   un `case` sobre un vuelo, el material asociado (replay, video, meteorología archivada,
   checklists) **queda fuera de la purga por cuota** hasta que alguien con autoridad lo libere.
   Cada acceso al material bajo custodia se audita.
+
+> **Construido (2026-10-05, decisión 159).** La retención la impone la base de datos con triggers
+> `BEFORE DELETE` sobre 14 tablas (lista en `retentionPolicy.js`, que debe coincidir con la
+> migración `20261005010000`): bloquea borrar un registro con menos de 5 años de su fecha propia,
+> también vía `ON DELETE CASCADE`. La custodia ancla **vuelos**; un vuelo bajo custodia activa no se
+> borra ni se le vacía/sobrescribe el replay (que es lo que haría una purga por cuota). Lo que sigue
+> sin existir en V2 es esa purga por cuota: hoy ningún proceso borra nada — `v2_flight_under_hold()`
+> es el punto que deberá consultar cuando se implemente.
 
 ---
 

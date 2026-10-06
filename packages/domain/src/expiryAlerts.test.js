@@ -27,17 +27,29 @@ describe('pólizas', () => {
   it('inactiva se ignora', () => expect(computeExpiryAlerts({ policies: [pol({ is_active: false, end_date: '2026-09-01' })] }, today)).toEqual([]));
 });
 
+describe('mercancías peligrosas', () => {
+  it('con CDO-U y sin declaración: aviso', () => {
+    const a = computeExpiryAlerts({ cert: { cdo_number: 'X', expires_at: '2027-06-01' } }, today);
+    expect(a).toHaveLength(1);
+    expect(a[0].key).toBe('dg');
+  });
+  it('declarada o sin CDO-U: nada', () => {
+    expect(computeExpiryAlerts({ cert: { cdo_number: 'X', expires_at: '2027-06-01', dangerous_goods_declaration: 'no_transporta' } }, today)).toEqual([]);
+    expect(computeExpiryAlerts({ cert: null }, today)).toEqual([]);
+  });
+});
+
 describe('CDO-U', () => {
   it('lejano: nada; sin fecha: nada', () => {
-    expect(computeExpiryAlerts({ cert: { cdo_number: 'X', expires_at: '2027-06-01' } }, today)).toEqual([]);
-    expect(computeExpiryAlerts({ cert: { cdo_number: 'X', expires_at: null } }, today)).toEqual([]);
+    expect(computeExpiryAlerts({ cert: { dangerous_goods_declaration: 'no_transporta', cdo_number: 'X', expires_at: '2027-06-01' } }, today)).toEqual([]);
+    expect(computeExpiryAlerts({ cert: { dangerous_goods_declaration: 'no_transporta', cdo_number: 'X', expires_at: null } }, today)).toEqual([]);
   });
   it('≤60 días: aviso; vencido: rojo', () => {
-    expect(computeExpiryAlerts({ cert: { cdo_number: 'X', expires_at: '2026-11-20' } }, today)[0].severity).toBe('warn');
-    expect(computeExpiryAlerts({ cert: { cdo_number: 'X', expires_at: '2026-10-01' } }, today)[0].severity).toBe('bad');
+    expect(computeExpiryAlerts({ cert: { dangerous_goods_declaration: 'no_transporta', cdo_number: 'X', expires_at: '2026-11-20' } }, today)[0].severity).toBe('warn');
+    expect(computeExpiryAlerts({ cert: { dangerous_goods_declaration: 'no_transporta', cdo_number: 'X', expires_at: '2026-10-01' } }, today)[0].severity).toBe('bad');
   });
   it('lo rojo va primero', () => {
-    const a = computeExpiryAlerts({ policies: [pol({ end_date: '2026-10-20' })], cert: { cdo_number: 'X', expires_at: '2026-10-01' } }, today);
+    const a = computeExpiryAlerts({ policies: [pol({ end_date: '2026-10-20' })], cert: { dangerous_goods_declaration: 'no_transporta', cdo_number: 'X', expires_at: '2026-10-01' } }, today);
     expect(a.map((x) => x.severity)).toEqual(['bad', 'warn']);
   });
 });

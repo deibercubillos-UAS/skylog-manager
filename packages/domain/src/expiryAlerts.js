@@ -33,5 +33,10 @@ export function computeExpiryAlerts({ policies, cert }, today) {
     else if (left <= CDO_WARNING_DAYS) alerts.push({ key: 'cdo', severity: 'warn', title: 'CDO-U por vencer', detail: `Vence el ${cert.expires_at} (en ${left} día${left === 1 ? '' : 's'}).`, href: '/organizacion' });
   }
 
+  // Una organización con CDO-U registrado debe haber declarado si transporta mercancías peligrosas (MAUT-5.0-12-174, ítem 7).
+  if (cert?.cdo_number && !cert.dangerous_goods_declaration) {
+    alerts.push({ key: 'dg', severity: 'warn', title: 'Falta la declaración de mercancías peligrosas', detail: 'Todo explotador debe declarar si transporta o no mercancías peligrosas, aunque no las transporte.', href: '/organizacion' });
+  }
+
   return alerts.sort((a, b) => (a.severity === b.severity ? 0 : a.severity === 'bad' ? -1 : 1));
 }

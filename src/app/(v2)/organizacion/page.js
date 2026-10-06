@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { SectionHero, StatCard } from '../_components/SectionHero';
 import { Field, Button } from '@skylog/ui';
 import Designations from './_Designations';
+import DangerousGoods from './_DangerousGoods';
 
 const ROLE_LABELS = {
   admin: 'Gerente General',
@@ -409,6 +410,8 @@ export default function OrganizacionPage() {
       </div>
 
       <Designations organizationId={organizationId} members={members} />
+
+      <DangerousGoods key={cert?.dangerous_goods_declared_at || 'none'} organizationId={organizationId} cert={cert} canSign={['admin', 'gerente_sms', 'superadmin'].includes(currentOrg?.role)} onSaved={() => loadCert(organizationId)} />
 
       {/* Miembros */}
       <div className="bg-white rounded-2xl border border-navy-100 overflow-hidden">

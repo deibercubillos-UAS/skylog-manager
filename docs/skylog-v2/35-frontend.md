@@ -159,8 +159,8 @@ Después de Flota & Equipo:
    construidas y con el mismo lenguaje visual) ya nacieron con el sistema nuevo. Se corrigió
    de paso `/operacion/page.js` (landing de la sección Operación), la última página del
    árbol que seguía en `PageHero`/`KPIStrip` plano de `@skylog/ui` en vez de `SectionHero`.
-   **Expediente Aerocivil (`/aerocivil`) sigue como utilitario, excluido a propósito** —
-   queda como el único pendiente real de este punto, ver `43-aerocivil.md`.
+   **Expediente Aerocivil (`/aerocivil`) ✅ rediseñado el 2026-10-06 (decisión 171)** —
+   era el último pendiente de este punto.
 2. §3.3/§3.5/§3.6 quedan como mejoras de producto pendientes, sin fecha — no bloquean el
    cierre de F1.
 
@@ -168,9 +168,9 @@ Después de Flota & Equipo:
 
 Con Operación, Flota & Equipo y Documentación (SMS incluido) en el mismo lenguaje visual
 (`SectionHero`/`StatCard` para encabezados y métricas, `Field`/`Button` de `@skylog/ui` para
-formularios), **F1 se da por completo** con una sola excepción deliberada: **Expediente
-Aerocivil (`/aerocivil`, F4a)** se excluyó explícitamente de este cierre a pedido del
-usuario — sigue en el estilo mínimo de construcción, sin rediseño visual todavía. No hay
-ninguna otra página del árbol V2 (fuera de Aerocivil) usando el shell plano viejo.
+formularios), **F1 se da por completo**. La única excepción, **Expediente Aerocivil
+(`/aerocivil`, F4a)**, se excluyó del cierre del 2026-10-01 a pedido del usuario y se
+rediseñó el 2026-10-06 (decisión 171). No queda ninguna página del árbol V2 usando el
+shell plano viejo.
 
 ---

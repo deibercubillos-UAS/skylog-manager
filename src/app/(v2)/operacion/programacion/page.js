@@ -10,6 +10,8 @@
 // muestra la RLS — las suyas).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PILOT_ADDITIONS, impliedAdditions } from '@skylog/domain';
+import PersonAdditions from '../../_components/PersonAdditions';
 import dynamic from 'next/dynamic';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
@@ -94,6 +96,7 @@ export default function ProgramacionPage() {
     date: '',
     time: '',
     lineOfSight: 'VLOS',
+    requiredAdditions: [],
     aircraftId: '',
     zone: '',
     notes: '',
@@ -200,13 +203,14 @@ export default function ProgramacionPage() {
           scheduledAt: `${form.date}T${form.time}`,
           notes: form.notes,
           lineOfSight: form.lineOfSight,
+          requiredAdditions: form.requiredAdditions,
           altitudeAglM: form.altitudeAgl ? Number(form.altitudeAgl) : null,
           zoneGeo: zoneGeo ? { geoType, points: zoneGeo.points, radius: zoneGeo.radius } : null,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error programando la misión');
-      setForm({ name: '', picPersonId: '', observerPersonId: '', aircraftId: '', date: '', time: '', lineOfSight: 'VLOS', zone: '', notes: '', altitudeAgl: '' });
+      setForm({ name: '', picPersonId: '', observerPersonId: '', aircraftId: '', date: '', time: '', lineOfSight: 'VLOS', requiredAdditions: [], zone: '', notes: '', altitudeAgl: '' });
       setShowObserver(false);
       setZoneGeo(null);
       setGeoType('polygon');
@@ -459,6 +463,32 @@ export default function ProgramacionPage() {
                 </button>
               ))}
             </div>
+
+            <span className="block text-xs font-medium text-navy-400 mt-4 mb-1.5">Adiciones que exige el PIC (opcional)</span>
+            <div className="flex flex-wrap gap-1.5">
+              {PILOT_ADDITIONS.filter((a) => !a.startsWith('INSTRUCTOR')).map((a) => {
+                const implied = impliedAdditions({ lineOfSight: form.lineOfSight }).includes(a);
+                const on = implied || form.requiredAdditions.includes(a);
+                return (
+                  <button
+                    key={a}
+                    type="button"
+                    disabled={implied}
+                    title={implied ? 'Lo exige el tipo de visión de la operación' : undefined}
+                    onClick={() => setForm((f) => ({ ...f, requiredAdditions: on ? f.requiredAdditions.filter((x) => x !== a) : [...f.requiredAdditions, a] }))}
+                    className={`px-2.5 h-7 rounded-full text-[10px] font-bold border transition-colors ${on ? 'border-primary bg-primary/10 text-primary-700' : 'border-navy-200 text-navy-400 hover:border-navy-300'}`}
+                  >
+                    {a}
+                  </button>
+                );
+              })}
+            </div>
+            {form.picPersonId && isManager && (
+              <details className="mt-3">
+                <summary className="text-xs font-semibold text-navy-400 cursor-pointer">Ver o registrar las adiciones del PIC</summary>
+                <PersonAdditions key={form.picPersonId} personId={form.picPersonId} />
+              </details>
+            )}
           </div>
 
           {/* Zona de operación */}
@@ -648,6 +678,11 @@ export default function ProgramacionPage() {
                               map
                             </span>
                           )}
+                          {!isCancelled && m.qualificationWarnings?.length > 0 && (
+                            <span className="material-symbols-outlined text-[13px] text-amber-600 shrink-0" title={m.qualificationWarnings.join(' ')}>
+                              warning
+                            </span>
+                          )}
                           <span className="truncate flex-1 font-medium">{m.name || 'Sin nombre'}</span>
                           <span className="material-symbols-outlined text-[14px] text-navy-300 shrink-0">
                             {isExpanded ? 'expand_less' : 'expand_more'}
@@ -696,6 +731,9 @@ export default function ProgramacionPage() {
                             <p className="truncate">
                               <span className="text-navy-300">PIC:</span> {m.pic?.full_name || '—'}
                             </p>
+                            {!isCancelled && m.qualificationWarnings?.map((w) => (
+                              <p key={w} className="text-amber-700 bg-amber-50 rounded px-1.5 py-1 my-0.5">⚠ {w}</p>
+                            ))}
                             {m.observer?.full_name && (
                               <p className="truncate text-navy-400">
                                 <span className="text-navy-300">Observador:</span> {m.observer.full_name}

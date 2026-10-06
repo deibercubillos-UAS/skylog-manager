@@ -30,3 +30,4 @@ export * from './flightLimits.js';
 export * from './colombianCalendar.js';
 export * from './smsTracking.js';
 export * from './authorizationReadiness.js';
+export * from './pilotQualifications.js';

@@ -55,8 +55,8 @@ completo y validado:
   Informativo: no impide programar.
 - ✅ **Checklist de completitud** (informativo, no bloquea firmar ni radicar; `GET /api/aerocivil/readiness`):
   póliza RCE (decisión 157/158) · **CDO-U vigente durante todo el periodo** · **antelación** · **aeronaves con número
-  de registro RUAS**. Sigue sin construir **CIPU y adiciones del PIC** (`100.810(d)`): la solicitud es una campaña
-  sin piloto asignado, así que el ítem pertenece a la misión programada, no a la solicitud.
+  de registro RUAS**. **CIPU y adiciones del PIC** (`100.810(d)`) viven en la **misión programada**, no aquí (la solicitud es una
+  campaña sin piloto asignado) — decisión 167.
 - ✅ Seguimiento de estado del trámite (radicado, en revisión, autorizada, negada) con el número
   de autorización — extendiendo `flight_authorizations.aerocivil_auth_number`, que ya existe.
 

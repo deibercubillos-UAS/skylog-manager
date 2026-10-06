@@ -9,6 +9,23 @@
 // a quien no sea gestor.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { bogotaDay } from '@/lib/v2/dispatchContext';
+import { normalizeRequiredAdditions, evaluatePicQualifications, qualificationMessages } from '@skylog/domain';
+
+const MISSION_SELECT = '*, pic:pic_person_id(full_name, license_number, person_additions!person_additions_person_id_fkey(addition, valid_until)), observer:observer_person_id(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model))';
+
+// CIPU y adiciones del PIC frente a lo que exige la misión (§100.810(d)). Informativo: nunca bloquea.
+// Se calcula al consultar (no se guarda) para que un vencimiento aparezca solo, y no se expone la lista de adiciones.
+function withQualification(mission) {
+  const { person_additions, license_number, ...picRest } = mission.pic || {};
+  const result = evaluatePicQualifications({
+    licenseNumber: license_number,
+    additions: person_additions || [],
+    required: mission.required_additions || [],
+    missionDay: bogotaDay(new Date(mission.scheduled_at)),
+  });
+  return { ...mission, pic: mission.pic ? picRest : mission.pic, qualificationWarnings: qualificationMessages(result) };
+}
 
 // GET — listado por organización y rango de fechas (vista de calendario
 // semanal en la UI, pero el backend solo pide un rango genérico `from`/`to`).
@@ -36,7 +53,7 @@ export async function GET(request) {
 
   let query = supabase
     .from('missions')
-    .select('*, pic:pic_person_id(full_name), observer:observer_person_id(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model))')
+    .select(MISSION_SELECT)
     .eq('organization_id', organizationId)
     .gte('scheduled_at', from)
     .lt('scheduled_at', to)
@@ -45,7 +62,7 @@ export async function GET(request) {
   const { data: missions, error } = await query;
   if (error) return Response.json({ error: 'Error consultando misiones' }, { status: 500 });
 
-  return Response.json({ missions, isManager: isDutyManager(memberships, organizationId) });
+  return Response.json({ missions: (missions || []).map(withQualification), isManager: isDutyManager(memberships, organizationId) });
 }
 
 // POST — programar una misión nueva. Solo gestores (RLS lo exige también,
@@ -58,7 +75,7 @@ export async function POST(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { organizationId, picPersonId, observerPersonId, aircraftId, name, zone, scheduledAt, notes, zoneGeo, lineOfSight, altitudeAglM } = body;
+  const { organizationId, picPersonId, observerPersonId, aircraftId, name, zone, scheduledAt, notes, zoneGeo, lineOfSight, altitudeAglM, requiredAdditions } = body;
 
   if (!organizationId || !picPersonId || !name || !zone || !scheduledAt) {
     return Response.json({ error: 'organizationId, picPersonId, name, zone y scheduledAt son requeridos' }, { status: 400 });
@@ -102,10 +119,11 @@ export async function POST(request) {
       zone_geo: zoneGeo || null,
       line_of_sight: lineOfSight || null,
       altitude_agl_m: altitudeAglM || null,
+      required_additions: normalizeRequiredAdditions(requiredAdditions, { lineOfSight }),
     })
-    .select('*, pic:pic_person_id(full_name), observer:observer_person_id(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model))')
+    .select(MISSION_SELECT)
     .single();
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
-  return Response.json({ mission: data });
+  return Response.json({ mission: withQualification(data) });
 }

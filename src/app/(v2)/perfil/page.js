@@ -14,6 +14,7 @@
 // que Proveedores/Listas de Chequeo) en vez de solo un título de texto, y
 // cada campo lleva un ícono guía (`_IconField.js`) — nunca `Field` genérico
 // suelto en una grilla vacía.
+import PersonAdditions from '../_components/PersonAdditions';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SectionHero, StatCard, SectionCard } from '../_components/SectionHero';
@@ -236,6 +237,7 @@ export default function PerfilPage() {
                 </Button>
               </div>
             </form>
+            <PersonAdditions />
           </SectionCard>
         </div>
 

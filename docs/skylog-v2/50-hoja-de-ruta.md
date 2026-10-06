@@ -277,7 +277,7 @@ De las 29 de `RAC 100 §100.535`, seis no tienen **ningún** soporte hoy:
 
 | # | Qué | Falta |
 |---|---|---|
-| R7 | Ficha de aeronave | **26 atributos**, hoy hay cuatro |
+| R7 | Ficha de aeronave | ✅ **Resuelto (2026-10-06)** — los 26 atributos del Apéndice 1 Parte B se capturan en `/flota` (decisión 172); queda la autorización de la ANE (adjunto) |
 | R8 | Libro de vuelo | ✅ **Resuelto (2026-10-01)** — `/operacion/bitacora` gana un toggle "Bitácora · por piloto" / "Libro de vuelo · por aeronave" (misma tabla `flights`, segunda vista agrupada por `aircraft_id`, con `aircraft.total_hours` real) — ver decisión 154, `51-bitacora.md` |
 | R9 | Programa de mantenimiento | Es **por modelo**, no por aeronave; faltan tolerancias y calibración de equipos |
 | R10 | Reporte mensual a la autoridad | Debe ser un paquete de **tres** (estadística + SPI + MOR), hoy solo estadística |

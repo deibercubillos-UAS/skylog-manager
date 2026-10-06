@@ -31,7 +31,7 @@ import {
 const REPORT_DEFS = [
   { key: 'vuelos', title: 'Libro de Vuelo', description: 'Vuelos registrados por rango de fechas.', icon: 'menu_book', tile: 'bg-blue-500 text-white', wash: 'from-blue-50 to-white', needsPeriod: true, needsAircraft: true },
   { key: 'mantenimiento', title: 'Mantenimiento', description: 'Eventos, eventos inesperados y programa por modelo.', icon: 'build', tile: 'bg-amber-500 text-white', wash: 'from-amber-50 to-white', needsPeriod: true, needsAircraft: true },
-  { key: 'flota', title: 'Flota', description: 'Inventario, propiedad y firmware — instantánea.', icon: 'flight', tile: 'bg-primary text-white', wash: 'from-primary-50 to-white', needsAircraft: true },
+  { key: 'flota', title: 'Flota', description: 'Inventario, propiedad, firmware y ficha técnica por modelo — instantánea.', icon: 'flight', tile: 'bg-primary text-white', wash: 'from-primary-50 to-white', needsAircraft: true },
   { key: 'baterias', title: 'Baterías y Componentes', description: 'Estado vigente de baterías y componentes activos.', icon: 'battery_full', tile: 'bg-emerald-500 text-white', wash: 'from-emerald-50 to-white' },
   { key: 'tripulacion', title: 'Expediente de Tripulación', description: 'Roster con licencia y vigencia médica.', icon: 'groups', tile: 'bg-violet-500 text-white', wash: 'from-violet-50 to-white' },
   { key: 'capacitacion', title: 'Capacitación', description: 'Evaluaciones y cumplimiento por pista.', icon: 'school', tile: 'bg-red-500 text-white', wash: 'from-red-50 to-white', needsTrainingType: true },
@@ -125,7 +125,7 @@ export default function ReportesPage() {
         const res = await fetch(`/api/reportes/flota?${qs}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error consultando la flota');
-        await generateFleetReportPdf(data.aircraft, { orgName, logoUrl });
+        await generateFleetReportPdf(data.aircraft, { orgName, logoUrl, models: data.models || [] });
       } else if (def.key === 'baterias') {
         const res = await fetch(`/api/reportes/baterias?organizationId=${organizationId}`);
         const data = await res.json();

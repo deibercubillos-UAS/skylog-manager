@@ -7,6 +7,7 @@
 // todavía, porque esas piezas no existen en V2 (documentado en la
 // bitácora, no fabricado aquí).
 import autoTable from 'jspdf-autotable';
+import { SPEC_FIELDS, computeSpecCompleteness, formatSpecValue } from '@skylog/domain';
 import { resolveLogo, fetchBitaflyLogo, drawReportHeader, drawFooterNote, slugify } from './pdfCommon';
 
 const TABLE_STYLES = { fontSize: 7, cellPadding: 1.3, lineColor: [220, 220, 220], lineWidth: 0.1 };
@@ -122,15 +123,16 @@ export async function generateMaintenanceReportPdf({ events, unexpected, program
   doc.save(`mantenimiento-${slugify(orgName)}.pdf`);
 }
 
-export async function generateFleetReportPdf(aircraft, { orgName, logoUrl }) {
+export async function generateFleetReportPdf(aircraft, { orgName, logoUrl, models = [] }) {
   const { doc, startY } = await baseDoc({ orgName, logoUrl, title: 'Flota', subtitle: 'Instantánea (sin rango de fechas)' });
   autoTable(doc, {
     startY,
-    head: [['SERIE', 'MODELO', 'RUAS', 'HORAS TOTALES', 'ESTADO', 'PROPIEDAD', 'REFERENCIA', 'FIRMWARE VIGENTE', 'FIRMWARE ANTERIOR', 'ACTUALIZADO']],
+    head: [['SERIE', 'MODELO', 'RUAS', 'PESO REAL', 'HORAS TOTALES', 'ESTADO', 'PROPIEDAD', 'REFERENCIA', 'FIRMWARE VIGENTE', 'FIRMWARE ANTERIOR', 'ACTUALIZADO']],
     body: (aircraft || []).map((a) => [
       a.serial_number || '—',
       a.model_label || '—',
       a.ruas_number || '—',
+      a.actual_weight_kg != null ? `${a.actual_weight_kg} kg` : '—',
       fmtHours(a.total_hours),
       a.operational_status || '—',
       a.ownership_type || '—',
@@ -143,6 +145,27 @@ export async function generateFleetReportPdf(aircraft, { orgName, logoUrl }) {
     headStyles: HEAD_STYLES,
     margin: { left: 10, right: 10 },
   });
+  // Ficha técnica por modelo (RAC 100 Apéndice 1, Parte B).
+  for (const m of models) {
+    const c = computeSpecCompleteness(m);
+    doc.addPage();
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(26, 32, 44);
+    doc.text(`FICHA TÉCNICA — ${m.brand} ${m.model}`, 10, 16);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(`Apéndice 1 Parte B · ${c.filled} de ${c.total} atributos registrados`, 10, 21);
+    autoTable(doc, {
+      startY: 25,
+      head: [['GRUPO', 'ATRIBUTO', 'VALOR']],
+      body: SPEC_FIELDS.map((f) => [f.group, f.label, formatSpecValue(f, m[f.key])]),
+      styles: TABLE_STYLES,
+      headStyles: HEAD_STYLES,
+      columnStyles: { 0: { cellWidth: 35 }, 1: { cellWidth: 75 } },
+      margin: { left: 10, right: 10 },
+    });
+  }
   drawFooterNote(doc, 'Instantánea (sin rango de fechas)');
   doc.save(`flota-${slugify(orgName)}.pdf`);
 }

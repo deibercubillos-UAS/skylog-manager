@@ -22,7 +22,7 @@ export async function GET(request) {
   let query = supabase
     .from('aircraft')
     .select(
-      'id, serial_number, ruas_number, total_hours, operational_status, ownership_type, ownership_reference, firmware_version, firmware_previous_version, firmware_updated_at, model:model_id(brand, model)'
+      'id, serial_number, ruas_number, total_hours, operational_status, ownership_type, ownership_reference, firmware_version, firmware_previous_version, firmware_updated_at, actual_weight_kg, model:model_id(*)'
     )
     .eq('organization_id', organizationId)
     .order('serial_number');
@@ -32,5 +32,7 @@ export async function GET(request) {
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
   const aircraft = (data || []).map((a) => ({ ...a, model_label: a.model ? `${a.model.brand} ${a.model.model}` : '—' }));
-  return Response.json({ aircraft });
+  // Ficha técnica (Apéndice 1 Parte B): una por modelo presente en el alcance del reporte, no una por unidad.
+  const models = [...new Map((data || []).filter((a) => a.model).map((a) => [a.model.id, a.model])).values()];
+  return Response.json({ aircraft, models });
 }

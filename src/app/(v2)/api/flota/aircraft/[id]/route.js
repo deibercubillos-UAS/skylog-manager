@@ -11,7 +11,7 @@ import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 
 const ALLOWED_FIELDS = [
   'operational_status', 'firmware_version', 'firmware_previous_version', 'firmware_backup_path',
-  'ruas_number', 'serial_number', 'ownership_type', 'ownership_reference',
+  'ruas_number', 'serial_number', 'ownership_type', 'ownership_reference', 'actual_weight_kg',
 ];
 const STATUSES = ['disponible', 'en_mantenimiento', 'fuera_de_servicio'];
 const OWNERSHIP_TYPES = ['propiedad', 'arrendamiento', 'comodato'];
@@ -40,6 +40,10 @@ export async function PATCH(request, { params }) {
   }
   if (body.ownership_type && !OWNERSHIP_TYPES.includes(body.ownership_type)) {
     return Response.json({ error: 'ownership_type debe ser uno de: ' + OWNERSHIP_TYPES.join(', ') }, { status: 400 });
+  }
+
+  if (body.actual_weight_kg !== undefined && body.actual_weight_kg !== null && !(Number(body.actual_weight_kg) > 0)) {
+    return Response.json({ error: 'El peso real debe ser un número mayor que cero' }, { status: 400 });
   }
 
   const patch = {};

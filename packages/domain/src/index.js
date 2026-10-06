@@ -34,3 +34,4 @@ export * from './pilotQualifications.js';
 export * from './changeManagement.js';
 export * from './designations.js';
 export * from './expiryAlerts.js';
+export * from './aircraftSpecSheet.js';

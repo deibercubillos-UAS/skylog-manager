@@ -27,7 +27,9 @@
 
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import { Field, Button } from '@skylog/ui';
-import { SectionHero, StatCard } from '../_components/SectionHero';
+import { SectionHero, SectionCard, StatCard } from '../_components/SectionHero';
+import { computeSpecCompleteness } from '@skylog/domain';
+import ModelSpecSheet from './_ModelSpecSheet';
 
 const CATEGORIES = [
   { key: 'ala_fija', label: 'Ala fija' },
@@ -74,6 +76,7 @@ export default function FlotaPage() {
   const [seedBusy, setSeedBusy] = useState(false);
   const [seedMessage, setSeedMessage] = useState(null);
 
+  const [specModelId, setSpecModelId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState(null);
 
@@ -222,6 +225,7 @@ export default function FlotaPage() {
       operationalStatus: a.operational_status,
       ownershipType: a.ownership_type || '',
       ownershipReference: a.ownership_reference || '',
+      actualWeightKg: a.actual_weight_kg ?? '',
     });
   }
 
@@ -239,6 +243,7 @@ export default function FlotaPage() {
           operational_status: editForm.operationalStatus,
           ownership_type: editForm.ownershipType || null,
           ownership_reference: editForm.ownershipReference || null,
+          actual_weight_kg: editForm.actualWeightKg === '' ? null : Number(editForm.actualWeightKg),
         }),
       });
       const data = await res.json();
@@ -481,10 +486,11 @@ export default function FlotaPage() {
                       {isEditing && (
                         <tr>
                           <td colSpan={6} className="px-6 py-4 bg-navy-50/30">
-                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-x-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-5 gap-x-4">
                               <Field label="Número de serie" value={editForm.serialNumber} onChange={(e) => setEditForm((f) => ({ ...f, serialNumber: e.target.value }))} />
                               <Field label="N.º RUAS" value={editForm.ruasNumber} onChange={(e) => setEditForm((f) => ({ ...f, ruasNumber: e.target.value }))} />
                               <Field label="Firmware" value={editForm.firmwareVersion} onChange={(e) => setEditForm((f) => ({ ...f, firmwareVersion: e.target.value }))} />
+                              <Field type="number" step="any" min="0" label="Peso real (kg)" value={editForm.actualWeightKg} onChange={(e) => setEditForm((f) => ({ ...f, actualWeightKg: e.target.value }))} />
                               <Field as="select" label="Estado" value={editForm.operationalStatus} onChange={(e) => setEditForm((f) => ({ ...f, operationalStatus: e.target.value }))}>
                                 {STATUSES.map((s) => (
                                   <option key={s.key} value={s.key}>{s.label}</option>
@@ -542,6 +548,48 @@ export default function FlotaPage() {
           </table>
         </div>
       </div>
+
+      <SectionCard icon="description" tile="bg-violet-500 text-white" wash="from-violet-50 to-white" title="Fichas técnicas de los modelos" description="Apéndice 1 Parte B del RAC 100: un dato por modelo, no por unidad">
+        {models.length === 0 ? (
+          <p className="text-sm text-navy-400">Aún no hay modelos. Se crean al registrar una aeronave.</p>
+        ) : (
+          <div className="space-y-2">
+            {models.map((m) => {
+              const c = computeSpecCompleteness(m);
+              const open = specModelId === m.id;
+              return (
+                <div key={m.id} className="rounded-xl border border-navy-100 bg-white">
+                  <button type="button" onClick={() => setSpecModelId(open ? null : m.id)} className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-navy">{m.brand} {m.model}</p>
+                      <p className="text-xs text-navy-400">{c.filled} de {c.total} atributos registrados</p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="w-24 h-1.5 rounded-full bg-navy-50 overflow-hidden"><div className={`h-full ${c.pct >= 80 ? 'bg-emerald-500' : c.pct >= 40 ? 'bg-amber-500' : 'bg-red-400'}`} style={{ width: `${c.pct}%` }} /></div>
+                      <span className="text-xs font-bold text-navy-500 tabular-nums w-9 text-right">{c.pct}%</span>
+                      <span className="material-symbols-outlined text-base text-navy-300">{open ? 'expand_less' : 'expand_more'}</span>
+                    </div>
+                  </button>
+                  {open && (
+                    <div className="px-4 pb-4 pt-1 border-t border-navy-50">
+                      <ModelSpecSheet
+                        key={m.id}
+                        model={m}
+                        readOnly={!isManager}
+                        onCancel={() => setSpecModelId(null)}
+                        onSaved={(saved) => {
+                          setModels((prev) => prev.map((x) => (x.id === saved.id ? saved : x)));
+                          setSpecModelId(null);
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </SectionCard>
     </div>
   );
 }

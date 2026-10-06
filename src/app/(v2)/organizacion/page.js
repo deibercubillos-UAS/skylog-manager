@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SectionHero, StatCard } from '../_components/SectionHero';
 import { Field, Button } from '@skylog/ui';
+import Designations from './_Designations';
 
 const ROLE_LABELS = {
   admin: 'Gerente General',
@@ -406,6 +407,8 @@ export default function OrganizacionPage() {
           )
         )}
       </div>
+
+      <Designations organizationId={organizationId} members={members} />
 
       {/* Miembros */}
       <div className="bg-white rounded-2xl border border-navy-100 overflow-hidden">

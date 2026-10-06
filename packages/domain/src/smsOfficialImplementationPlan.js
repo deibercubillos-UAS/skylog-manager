@@ -41,7 +41,7 @@ export const OFFICIAL_ELEMENTS = [
   // Fase 4 — Garantía de la Seguridad Operacional
   { key: 'compromiso_direccion_continuo', phase: 4, label: 'Compromiso de la dirección', autoKey: 'policySigned' },
   { key: 'observacion_rendimiento', phase: 4, label: 'Observación y medición del rendimiento', autoKey: 'spiWithHistory' },
-  { key: 'gestion_cambio', phase: 4, label: 'Gestión del cambio', autoKey: null },
+  { key: 'gestion_cambio', phase: 4, label: 'Gestión del cambio', autoKey: 'changeManagementInUse' },
   { key: 'mejora_continua', phase: 4, label: 'Mejora continua', autoKey: 'gapAssessmentCompleted' },
   { key: 'msms_actualizacion', phase: 4, label: 'Actualización del MSMS', autoKey: 'msmsPublished' },
   { key: 'instruccion_educacion', phase: 4, label: 'Instrucción y educación', autoKey: 'trainingWithAttendance' },
@@ -54,7 +54,8 @@ export const OFFICIAL_ELEMENTS = [
  * aquí): policySigned, gsoDesignated, hazardsRegistered, riskMatrixConfigured,
  * spiWithHistory (≥3 indicadores con ≥3 meses de datos), gapAssessmentCompleted
  * (siempre false hasta SMS-D), msmsPublished (siempre false hasta SMS-I),
- * trainingWithAttendance (≥1 sesión con asistencia real).
+ * trainingWithAttendance (≥1 sesión con asistencia real),
+ * changeManagementInUse (≥1 cambio ya evaluado o implementado — el proceso se usa de verdad).
  * `manualDone` es un Set/array de `element_key` que el Gerente SMS ya marcó a
  * mano (solo aplica a elementos con `autoKey: null`; se ignora si el elemento
  * es automático — el dato real siempre manda sobre una casilla manual).

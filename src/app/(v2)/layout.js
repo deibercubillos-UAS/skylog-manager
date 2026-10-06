@@ -61,6 +61,7 @@ const NAV_LINKS = [
   // { name: 'Gobernanza', icon: 'gavel', href: '/sms/gobernanza', group: 'SMS' },
   { name: 'Objetivos SMS', icon: 'flag', href: '/sms/objetivos', group: 'SMS' },
   { name: 'Evaluación de Riesgo', icon: 'warning', href: '/sms/riesgos', group: 'SMS' },
+  { name: 'Gestión del cambio', icon: 'published_with_changes', href: '/sms/cambios', group: 'SMS' },
   { name: 'Indicadores (SPI)', icon: 'monitoring', href: '/sms/indicadores', group: 'SMS' },
   { name: 'Mejora Continua', icon: 'fact_check', href: '/sms/mejora-continua', group: 'SMS' },
   { name: 'Reporte Mensual SMS', icon: 'summarize', href: '/sms/reporte-mensual', group: 'SMS', managerOnly: true },

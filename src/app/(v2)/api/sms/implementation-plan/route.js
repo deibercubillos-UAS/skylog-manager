@@ -24,7 +24,7 @@ export async function GET(request) {
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!organizationIds.includes(organizationId)) return Response.json({ error: 'Sin membresía activa en esa organización' }, { status: 403 });
 
-  const [gsoRes, policyRes, matrixRes, hazardsRes, indicatorsRes, sessionsRes, gapRes, msmsRes, planRes, tasksRes] = await Promise.all([
+  const [gsoRes, policyRes, matrixRes, hazardsRes, indicatorsRes, sessionsRes, gapRes, msmsRes, planRes, tasksRes, changesRes] = await Promise.all([
     supabase.from('designations').select('id').eq('organization_id', organizationId).eq('role_type', 'gerente_sms').is('ended_at', null).maybeSingle(),
     supabase.from('sms_policies').select('id').eq('organization_id', organizationId).not('signed_at', 'is', null).limit(1).maybeSingle(),
     supabase.from('risk_matrices').select('tolerability').eq('organization_id', organizationId).maybeSingle(),
@@ -35,9 +35,10 @@ export async function GET(request) {
     supabase.from('manuales').select('id').eq('organization_id', organizationId).eq('title', 'MSMS — Manual del Sistema de Gestión de Seguridad Operacional').maybeSingle(),
     supabase.from('sms_implementation_plan').select('*').eq('organization_id', organizationId).maybeSingle(),
     supabase.from('sms_implementation_tasks').select('*, responsible:responsible_person_id(full_name)').eq('organization_id', organizationId),
+    supabase.from('sms_changes').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId).in('status', ['evaluado', 'implementado']),
   ]);
 
-  const errors = [gsoRes, policyRes, matrixRes, hazardsRes, indicatorsRes, sessionsRes, gapRes, msmsRes, planRes, tasksRes].map((r) => r.error).filter(Boolean);
+  const errors = [gsoRes, policyRes, matrixRes, hazardsRes, indicatorsRes, sessionsRes, gapRes, msmsRes, planRes, tasksRes, changesRes].map((r) => r.error).filter(Boolean);
   if (errors.length) return Response.json({ error: errors[0].message }, { status: 500 });
 
   const monthsByIndicator = {};
@@ -60,6 +61,7 @@ export async function GET(request) {
       // MSMS ya existe (SMS-I) — publicado al menos una vez en Manuales.
       gapAssessmentCompleted: (gapRes.count || 0) > 0,
       msmsPublished: !!msmsRes.data,
+      changeManagementInUse: (changesRes.count || 0) > 0,
       trainingWithAttendance: new Set((sessionsRes.data || []).map((r) => r.session_id)).size > 0,
     },
     manualDone

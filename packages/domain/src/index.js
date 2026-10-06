@@ -31,3 +31,4 @@ export * from './colombianCalendar.js';
 export * from './smsTracking.js';
 export * from './authorizationReadiness.js';
 export * from './pilotQualifications.js';
+export * from './changeManagement.js';

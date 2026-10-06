@@ -9,6 +9,7 @@
 // cliente (mismo patrón ya usado en sms/page.js y dashboard/safety de v1),
 // ninguno pensado específicamente para esta vista.
 import { useCallback, useEffect, useState } from 'react';
+import { computeExpiryAlerts } from '@skylog/domain';
 import { SectionHero, SectionCard, StatCard } from '../../_components/SectionHero';
 
 const MISSION_STATUS_META = {
@@ -64,6 +65,7 @@ export default function CentroDeControlPage() {
   const [openCases, setOpenCases] = useState(null); // null = no cargado / no es gestor
   const [weatherByMission, setWeatherByMission] = useState({});
   const [c2Sessions, setC2Sessions] = useState([]);
+  const [expiryAlerts, setExpiryAlerts] = useState([]);
 
   const loadContext = useCallback(async () => {
     const res = await fetch('/api/duty/context');
@@ -113,8 +115,18 @@ export default function CentroDeControlPage() {
         const casesData = await casesRes.json();
         setOpenCases(casesData.restricted ? null : (casesData.cases || []).filter((c) => c.status !== 'cerrado').length);
       }
+      // Vencimientos de pólizas y CDO-U (solo gestores: las pólizas lo son). Nunca rompe la página.
+      try {
+        const [polRes, certRes] = await Promise.all([fetch(`/api/polizas?organizationId=${orgId}`), fetch(`/api/organizacion/certification?organizationId=${orgId}`)]);
+        const [polData, certData] = await Promise.all([polRes.ok ? polRes.json() : {}, certRes.ok ? certRes.json() : {}]);
+        const todayBogota = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+        setExpiryAlerts(computeExpiryAlerts({ policies: polData.policies || [], cert: certData.certification }, todayBogota));
+      } catch {
+        setExpiryAlerts([]);
+      }
     } else {
       setOpenCases(null);
+      setExpiryAlerts([]);
     }
 
     // Clima por misión — solo las que tienen geometría real con al menos un
@@ -234,6 +246,22 @@ export default function CentroDeControlPage() {
       </div>
 
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>}
+
+      {expiryAlerts.length > 0 && (
+        <SectionCard icon="event_busy" tile="bg-amber-500 text-white" wash="from-amber-50 to-white" title="Documentos por vencer" description="Pólizas y certificado de explotador que requieren atención">
+          <ul className="space-y-2">
+            {expiryAlerts.map((a) => (
+              <li key={a.key} className={`flex items-start justify-between gap-3 rounded-xl px-3 py-2 text-sm ${a.severity === 'bad' ? 'bg-red-50 text-red-800' : 'bg-amber-50 text-amber-800'}`}>
+                <div>
+                  <p className="font-semibold">{a.title}</p>
+                  <p className="text-xs opacity-80">{a.detail}</p>
+                </div>
+                <a href={a.href} className="text-xs font-semibold underline shrink-0">Revisar →</a>
+              </li>
+            ))}
+          </ul>
+        </SectionCard>
+      )}
 
       <SectionCard
         icon="satellite_alt"

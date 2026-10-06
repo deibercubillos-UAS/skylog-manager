@@ -49,13 +49,14 @@ completo y validado:
 - ✅ **Certificado de vigencia de póliza RCE** — vive en `insurance_policies` (decisión 157) y el
   checklist valida que cubra **todo el periodo** de la solicitud, aeronave por aeronave
   (`100.410(a)(2)(i)`), y avisa si la póliza no tiene certificado adjunto (decisión 158).
-- ✅ **Validación previa de antelación** (B10): si faltan menos de 15 días hábiles y la zona es
-  espacio aéreo controlado, se advierte antes de dejar programar. Mismo patrón del aviso de
-  conflicto de agenda del PIC, que ya existe.
-- 🔄 **Checklist de completitud** — **corrección 2026-10-05 (decisión 158)**: este punto figuraba ✅, pero
-  en V2 no existía ningún checklist. Hoy hay **un solo ítem real**: la póliza RCE (panel en `/aerocivil`,
-  `GET /api/aerocivil/readiness`). Siguen **sin construir**: CDO-U vigente, CIPU y adiciones del PIC
-  (`100.810(d)`), aeronave registrada. Es informativo, no bloquea firmar ni radicar.
+- ✅ **Antelación** (B10) — **corrección 2026-10-06 (decisión 166)**: figuraba ✅ pero en V2 no existía. Ahora el
+  checklist cuenta los **días hábiles colombianos** (con festivos) entre hoy y el inicio del periodo y compara con
+  15 (espacio aéreo controlado) y 10 (corredores BVLOS); como no se sabe el tipo de espacio, informa ambos umbrales.
+  Informativo: no impide programar.
+- ✅ **Checklist de completitud** (informativo, no bloquea firmar ni radicar; `GET /api/aerocivil/readiness`):
+  póliza RCE (decisión 157/158) · **CDO-U vigente durante todo el periodo** · **antelación** · **aeronaves con número
+  de registro RUAS**. Sigue sin construir **CIPU y adiciones del PIC** (`100.810(d)`): la solicitud es una campaña
+  sin piloto asignado, así que el ítem pertenece a la misión programada, no a la solicitud.
 - ✅ Seguimiento de estado del trámite (radicado, en revisión, autorizada, negada) con el número
   de autorización — extendiendo `flight_authorizations.aerocivil_auth_number`, que ya existe.
 

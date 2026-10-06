@@ -131,7 +131,7 @@ const RCE_REASONS = {
 
 // Ítem del checklist de preparación: póliza RCE (§100.805(a)(1)). Informativo,
 // no bloquea firmar ni radicar — avisa lo que falta antes de presentar.
-function RceChecklistItem({ rce }) {
+function RceChecklistItem({ rce, cdo, leadTime, registration }) {
   const meta = RCE_STATUS[rce.status];
   return (
     <div style={{ marginBottom: 16, padding: 12, border: '1px solid #e2e4e9', borderRadius: 8 }}>
@@ -160,7 +160,67 @@ function RceChecklistItem({ rce }) {
           </a>
         </p>
       ) : null}
+      <ExtraItems cdo={cdo} leadTime={leadTime} registration={registration} />
     </div>
+  );
+}
+
+const TONE = {
+  ok: { icon: '✓', color: '#1d6b3a', bg: '#eaf6ee' },
+  warn: { icon: '!', color: '#8a5a10', bg: '#fff6e0' },
+  bad: { icon: '✕', color: '#8a2f10', bg: '#fdeee8' },
+  na: { icon: '–', color: '#6b7280', bg: '#f3f4f6' },
+};
+
+function ExtraItems({ cdo, leadTime, registration }) {
+  const items = [];
+  if (cdo) {
+    const m = {
+      ok: ['ok', `Vigente hasta ${cdo.expiresAt}, cubre todo el periodo.`],
+      sin_cdo: ['bad', 'No hay un CDO-U registrado para la organización.'],
+      sin_vigencia: ['warn', 'El CDO-U no tiene fecha de vencimiento registrada.'],
+      vencido: ['bad', `Venció el ${cdo.expiresAt}.`],
+      no_cubre_periodo: ['warn', `Vence el ${cdo.expiresAt}, antes de terminar el periodo.`],
+    }[cdo.status];
+    items.push({ key: 'cdo', title: 'CDO-U vigente', tone: m[0], text: m[1], href: '/organizacion', link: 'Ir a Organización →' });
+  }
+  if (leadTime) {
+    const d = leadTime.businessDays;
+    const m = {
+      ok: ['ok', `Faltan ${d} días hábiles para iniciar: cumple los 15 del espacio aéreo controlado.`],
+      solo_corredor_bvlos: ['warn', `Faltan ${d} días hábiles: cumple los 10 de corredores BVLOS, pero no los 15 del espacio aéreo controlado.`],
+      insuficiente: ['bad', `Faltan solo ${d} días hábiles: no alcanza ni los 10 de corredores BVLOS ni los 15 del espacio aéreo controlado.`],
+      pasada: ['na', 'El periodo ya inició: la antelación no aplica.'],
+    }[leadTime.status];
+    items.push({ key: 'lead', title: 'Antelación de la solicitud', tone: m[0], text: m[1] });
+  }
+  if (registration) {
+    const m = {
+      ok: ['ok', 'Todas las aeronaves tienen número de registro (RUAS).'],
+      incompleta: ['warn', `Sin número de registro (RUAS): ${registration.missingLabels.join(', ')}.`],
+      no_aircraft: ['na', 'No hay aeronaves registradas.'],
+    }[registration.status];
+    items.push({ key: 'reg', title: 'Aeronaves registradas', tone: m[0], text: m[1], href: '/flota', link: 'Ir a Flota →' });
+  }
+  return (
+    <>
+      {items.map((it) => {
+        const t = TONE[it.tone];
+        return (
+          <div key={it.key} style={{ background: t.bg, borderRadius: 6, padding: 10, marginTop: 8 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: t.color }}>
+              {t.icon} {it.title}
+            </p>
+            <p style={{ fontSize: 12, color: t.color, marginTop: 2 }}>{it.text}</p>
+            {it.href && it.tone !== 'ok' && it.tone !== 'na' && (
+              <p style={{ fontSize: 12, marginTop: 4 }}>
+                <a href={it.href} style={{ color: '#ec5b13' }}>{it.link}</a>
+              </p>
+            )}
+          </div>
+        );
+      })}
+    </>
   );
 }
 
@@ -445,7 +505,7 @@ export default function AerocivilPage() {
         ))}
       </div>
 
-      {selectedRequestId && isManager && readiness && <RceChecklistItem rce={readiness.rce} />}
+      {selectedRequestId && isManager && readiness && <RceChecklistItem rce={readiness.rce} cdo={readiness.cdo} leadTime={readiness.leadTime} registration={readiness.registration} />}
 
       {selectedRequestId && (
         <div>

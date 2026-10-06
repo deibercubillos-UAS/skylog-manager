@@ -12,6 +12,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import OfflineSync from './_components/OfflineSync';
+import CommandPalette from './_components/CommandPalette';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -124,11 +125,24 @@ export default function V2Layout({ children }) {
   const [orgMenuOpen, setOrgMenuOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState({});
   const [switchingOrg, setSwitchingOrg] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const accountMenuRef = useRef(null);
   const orgMenuRef = useRef(null);
 
   useEffect(() => {
     setSidebarOpen(window.innerWidth >= 1024);
+  }, []);
+
+  // ⌘K / Ctrl+K abre la paleta de comandos desde cualquier pantalla.
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
   useEffect(() => {
@@ -395,6 +409,17 @@ export default function V2Layout({ children }) {
             )}
           </div>
 
+          <button
+            type="button"
+            onClick={() => setPaletteOpen(true)}
+            className="ml-auto mr-2 md:mr-3 h-10 lg:h-11 px-3 flex items-center gap-2 rounded-xl bg-navy-50 text-navy-400 hover:bg-navy-100 active:scale-95 transition-all shrink-0"
+            aria-label="Buscar y ejecutar comandos"
+          >
+            <span className="material-symbols-outlined text-xl leading-none">search</span>
+            <span className="hidden md:inline text-xs font-semibold">Buscar</span>
+            <kbd className="hidden lg:inline text-[10px] font-bold text-navy-300 border border-navy-200 rounded px-1.5 py-0.5">Ctrl K</kbd>
+          </button>
+
           <Link href="/perfil" className="flex items-center gap-2 md:gap-3 border-l border-navy-100 pl-2 md:pl-3 lg:pl-5 group hover:opacity-80 transition-all">
             <div className="hidden lg:block text-right">
               <p className="text-xs font-black text-navy leading-none group-hover:text-primary-600 transition-colors">{context?.fullName || 'Mi cuenta'}</p>
@@ -411,6 +436,13 @@ export default function V2Layout({ children }) {
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
           <OfflineSync />
+          <CommandPalette
+            open={paletteOpen}
+            onClose={() => setPaletteOpen(false)}
+            organizationId={organizationId}
+            isManager={isManager}
+            links={[...NAV_LINKS.filter((l) => !l.managerOnly || isManager), ...FOOTER_LINKS.map((l) => ({ ...l, group: 'Cuenta' }))]}
+          />
           {children}
         </div>
       </main>

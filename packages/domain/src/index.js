@@ -37,3 +37,4 @@ export * from './expiryAlerts.js';
 export * from './aircraftSpecSheet.js';
 export * from './dangerousGoods.js';
 export * from './offlineQueue.js';
+export * from './commandSearch.js';

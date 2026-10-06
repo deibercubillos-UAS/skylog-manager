@@ -116,7 +116,7 @@ cae la conexión a mitad del wizard, se pierde. Propuesta: cola de escritura loc
 
 **Lo construido** difiere de la propuesta a propósito: solo el **cierre de vuelo** se encola (algo que ya ocurrió); el **despacho** no, porque sus verificaciones son del servidor — solo conserva un borrador local. Sin IndexedDB (localStorage basta para este volumen) ni Service Worker. Ver decisión 175.
 
-### 3.6 Command palette (propuesta, sin construir)
+### 3.6 Command palette (✅ construida el 2026-10-06, decisión 176)
 
 `⌘K` / `Ctrl+K` con acciones, no solo búsqueda: "despachar vuelo", "registrar mantenimiento",
 "ver misión de mañana". Absorbe y amplía `GlobalSearch` actual.

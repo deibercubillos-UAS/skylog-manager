@@ -145,6 +145,7 @@ export default function V2Home() {
   const [flights, setFlights] = useState([]);
   const [nextMission, setNextMission] = useState(null);
   const [openCases, setOpenCases] = useState([]);
+  const [casesRestricted, setCasesRestricted] = useState(false); // el detalle de casos es solo del Gerente SMS
 
   useEffect(() => {
     (async () => {
@@ -185,7 +186,10 @@ export default function V2Home() {
 
     fetch(`/api/sms/cases?organizationId=${organizationId}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => setOpenCases((data?.cases || []).filter((c) => c.status !== 'cerrado')))
+      .then((data) => {
+        setCasesRestricted(!!data?.restricted);
+        setOpenCases((data?.cases || []).filter((c) => c.status !== 'cerrado'));
+      })
       .catch(() => setOpenCases([]));
   }, [organizationId]);
 
@@ -259,7 +263,7 @@ export default function V2Home() {
           <StatCard icon="schedule" color="primary" label="Horas de Vuelo" value={`${totalHours.toFixed(1)}h`} />
           <StatCard icon="flight_takeoff" color="blue" label="Vuelos del Mes" value={flightsThisMonth} sub={flightTrend !== null ? `${flightTrend >= 0 ? '+' : ''}${flightTrend}% vs. mes ant.` : null} />
           <StatCard icon="event_available" color="violet" label="Misiones (7 días)" value={nextMission ? 1 : 0} sub={nextMissionLabel || 'Sin misiones programadas'} />
-          <StatCard icon="health_and_safety" color={openCases.length > 0 ? 'red' : 'emerald'} label="Casos SMS Abiertos" value={openCases.length} />
+          <StatCard icon="health_and_safety" color={casesRestricted ? 'navy' : openCases.length > 0 ? 'red' : 'emerald'} label="Casos SMS Abiertos" value={casesRestricted ? '—' : openCases.length} sub={casesRestricted ? 'Solo el Gerente SMS' : null} />
         </div>
       </Section>
 
@@ -328,6 +332,11 @@ export default function V2Home() {
                   </div>
                 </div>
               ))
+            ) : casesRestricted ? (
+              <div className="h-full flex flex-col items-center justify-center opacity-40 text-center">
+                <span className="material-symbols-outlined text-3xl text-navy-300 mb-2">lock</span>
+                <p className="text-xs text-navy-300 font-medium">El detalle de los casos lo ve el Gerente SMS</p>
+              </div>
             ) : (
               <div className="h-full flex flex-col items-center justify-center opacity-40 text-center">
                 <span className="material-symbols-outlined text-3xl text-emerald-500 mb-2">verified</span>

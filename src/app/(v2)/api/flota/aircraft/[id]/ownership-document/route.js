@@ -10,7 +10,7 @@ import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 import { storagePut, storageSignedUrl } from '@/lib/storage';
 
 const BUCKET = 'documents';
-const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
+const MAX_BYTES = 4 * 1024 * 1024; // 4 MB: el cuerpo de una función de Vercel admite ~4,5 MB
 const ALLOWED_TYPES = new Set(['application/pdf', 'image/png', 'image/jpeg', 'image/webp']);
 
 async function authorize(supabase, userId, aircraftId) {
@@ -41,7 +41,7 @@ export async function POST(request, { params }) {
   const file = form.get('file');
   if (!file || typeof file === 'string') return Response.json({ error: 'file es requerido' }, { status: 400 });
   if (!ALLOWED_TYPES.has(file.type)) return Response.json({ error: 'Formato no soportado — usa PDF, PNG, JPEG o WEBP' }, { status: 400 });
-  if (file.size > MAX_BYTES) return Response.json({ error: 'El archivo supera el límite de 8 MB' }, { status: 413 });
+  if (file.size > MAX_BYTES) return Response.json({ error: 'El archivo supera el límite de 4 MB' }, { status: 413 });
 
   const ext = file.type === 'application/pdf' ? 'pdf' : file.type.split('/')[1];
   const key = `v2-orgs/${aircraft.organization_id}/aircraft/${id}/ownership-${Date.now()}.${ext}`;

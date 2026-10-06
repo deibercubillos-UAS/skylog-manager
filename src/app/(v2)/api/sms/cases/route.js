@@ -131,6 +131,12 @@ export async function GET(request) {
   const organizationId = searchParams.get('organizationId');
   if (!organizationId) return Response.json({ error: 'organizationId es requerido' }, { status: 400 });
 
+  // El detalle de los casos es solo del Gerente SMS (RLS): para el resto la lista llegaría vacía, y un
+  // «0 casos» sería engañoso — se avisa con `restricted` para que la pantalla muestre «—».
+  const { memberships } = await resolveCurrentPerson(supabase, user.id);
+  const isAnalyst = (memberships || []).some((m) => m.organization_id === organizationId && ['gerente_sms', 'superadmin'].includes(m.role));
+  if (!isAnalyst) return Response.json({ cases: [], restricted: true });
+
   const { data, error } = await supabase
     .from('sms_cases')
     .select('*, sms_reports(id, severity, route, description), sms_case_actions(*)')

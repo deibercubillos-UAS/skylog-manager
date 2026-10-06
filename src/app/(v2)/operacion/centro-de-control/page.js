@@ -111,7 +111,7 @@ export default function CentroDeControlPage() {
       const casesRes = await fetch(`/api/sms/cases?organizationId=${orgId}`);
       if (casesRes.ok) {
         const casesData = await casesRes.json();
-        setOpenCases((casesData.cases || []).filter((c) => c.status !== 'cerrado').length);
+        setOpenCases(casesData.restricted ? null : (casesData.cases || []).filter((c) => c.status !== 'cerrado').length);
       }
     } else {
       setOpenCases(null);

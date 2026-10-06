@@ -14,7 +14,7 @@ export async function POST(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { reportId } = body;
+  const { reportId, irisReference } = body;
   if (!reportId) return Response.json({ error: 'reportId es requerido' }, { status: 400 });
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
@@ -32,6 +32,7 @@ export async function POST(request) {
   if (!membership || membership.role !== 'gerente_sms') {
     return Response.json({ error: 'Solo el Gerente SMS designado puede radicar' }, { status: 403 });
   }
+  if (report.filed_at) return Response.json({ error: 'Este reporte ya fue radicado.' }, { status: 409 });
 
   const canFile = canFileReport({
     route: report.route,
@@ -47,7 +48,7 @@ export async function POST(request) {
 
   const { data, error } = await supabase
     .from('sms_reports')
-    .update({ filed_at: new Date().toISOString() })
+    .update({ filed_at: new Date().toISOString(), iris_reference: typeof irisReference === 'string' && irisReference.trim() ? irisReference.trim().slice(0, 100) : null })
     .eq('id', reportId)
     .select()
     .single();

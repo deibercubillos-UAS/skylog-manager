@@ -16,3 +16,12 @@ export function adminKeyProblem() {
   }
   return null;
 }
+
+// Almacenamiento (Cloudflare R2): mismo problema que la llave de servicio — `vercel env pull` NO baja las
+// variables sensibles, así que en local las credenciales de R2 faltan y TODA subida de archivos falla
+// (pólizas, evidencias de reportes, documentos). Devuelve un mensaje accionable o null.
+export function storageProblem() {
+  const missing = ['R2_ENDPOINT', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'].filter((k) => !process.env[k] || /sensitive/i.test(process.env[k]));
+  if (missing.length === 0) return null;
+  return `Falta configurar el almacenamiento de archivos (${missing.join(', ')}). Agrégalas a .env.development.local con las credenciales de Cloudflare R2 y reinicia el servidor.`;
+}

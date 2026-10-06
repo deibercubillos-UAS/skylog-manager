@@ -74,7 +74,7 @@ export default function CloseForm({ mission, dispatch, onCancel, onDone }) {
         )}
         {result.safetyReport && (
           <p className="text-sm text-navy">
-            Marcaste un reporte de seguridad ({result.safetyReportType}). <a href="/sms/reportes" className="text-primary-700 font-semibold underline">Radícalo ahora en Reportes y casos →</a>
+            Marcaste un reporte de seguridad ({result.safetyReportType}). <a href={`/sms/reportes?flightId=${result.flightId}`} className="text-primary-700 font-semibold underline">Diligéncialo ahora, ya prellenado con este vuelo →</a>
           </p>
         )}
         <p className="text-xs text-navy-300">Recuerda cerrar tu período de servicio en Tiempo de servicio cuando termines tu jornada.</p>

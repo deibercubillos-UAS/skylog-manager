@@ -27,6 +27,10 @@
     {
       "path": "/api/cron/wompi-recurring-charge-v2",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/sms-deadlines",
+      "schedule": "0 12 * * 1-5"
     }
   ]
 }

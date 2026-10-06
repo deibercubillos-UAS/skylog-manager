@@ -24,6 +24,7 @@ export const RETAINED_RECORD_TYPES = [
   { table: 'risk_analyses', label: 'Análisis de riesgos por autorización', dateColumn: 'created_at' },
   { table: 'sms_reports', label: 'Reportes SMS (MOR/VOR)', dateColumn: 'created_at' },
   { table: 'sms_cases', label: 'Casos SMS', dateColumn: 'created_at' },
+  { table: 'sms_report_attachments', label: 'Evidencias adjuntas de reportes SMS', dateColumn: 'created_at' },
   { table: 'sms_case_actions', label: 'Acciones correctivas de casos SMS', dateColumn: 'created_at' },
   { table: 'sms_case_events', label: 'Línea de tiempo de casos SMS', dateColumn: 'created_at' },
   { table: 'sms_monthly_reports', label: 'Constancias de reporte mensual', dateColumn: 'created_at' },

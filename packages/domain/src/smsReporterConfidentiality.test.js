@@ -43,6 +43,22 @@ describe('redactReporterIdentity', () => {
     expect(result.identity_redacted).toBe(false);
   });
 
+  it('el contacto de un reporte público confidencial se redacta igual que la identidad', () => {
+    const row = { ...baseRow, reported_by: null, reporter_contact: 'ana@contratista.co' };
+    expect(redactReporterIdentity(row, { viewerRole: 'jefe_pilotos', viewerPersonId: 'person-2' }).reporter_contact).toBeNull();
+    expect(redactReporterIdentity(row, { viewerRole: 'gerente_sms', viewerPersonId: 'person-2' }).reporter_contact).toBe('ana@contratista.co');
+  });
+
+  it('un reporte normal conserva el contacto para cualquier gestor', () => {
+    const row = { ...baseRow, confidentiality_level: 'normal', reporter_contact: 'ana@contratista.co' };
+    expect(redactReporterIdentity(row, { viewerRole: 'jefe_pilotos', viewerPersonId: 'person-2' }).reporter_contact).toBe('ana@contratista.co');
+  });
+
+  it('un reporte anónimo (reported_by nulo) no se confunde con el reportante cuando el visor no tiene persona', () => {
+    const row = { ...baseRow, reported_by: null, reporter_contact: 'x@y.co' };
+    expect(redactReporterIdentity(row, { viewerRole: 'jefe_pilotos', viewerPersonId: undefined }).identity_redacted).toBe(true);
+  });
+
   it('nunca muta la fila original', () => {
     const copy = { ...baseRow };
     redactReporterIdentity(baseRow, { viewerRole: 'jefe_pilotos', viewerPersonId: 'person-2' });

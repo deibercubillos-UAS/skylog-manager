@@ -3,6 +3,7 @@
 // analista asignado es un caso sin dueño" — assigned_to se exige al abrir.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { canCloseCase } from '@skylog/domain';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -64,7 +65,7 @@ export async function PATCH(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { caseId, status } = body;
+  const { caseId, status, confirmPendingActions } = body;
   if (!caseId || !['en_analisis', 'cerrado'].includes(status)) {
     return Response.json({ error: 'caseId y status (en_analisis/cerrado) son requeridos' }, { status: 400 });
   }
@@ -86,8 +87,24 @@ export async function PATCH(request) {
     return Response.json({ error: 'Solo el Gerente SMS asignado gestiona este caso' }, { status: 403 });
   }
 
+  if (caseRow.status === 'cerrado') return Response.json({ error: 'El caso ya está cerrado.' }, { status: 409 });
+
   const patch = { status };
-  if (status === 'cerrado') patch.closed_at = new Date().toISOString();
+  let pendingActions = 0;
+  if (status === 'cerrado') {
+    // Reglas de cierre (smsTracking.canCloseCase): resumen de la investigación y, si es MOR, radicado.
+    const [{ data: report }, { data: actions }] = await Promise.all([
+      supabase.from('sms_reports').select('route, filed_at').eq('id', caseRow.report_id).maybeSingle(),
+      supabase.from('sms_case_actions').select('done_at').eq('case_id', caseId),
+    ]);
+    const check = canCloseCase({ report, investigationSummary: caseRow.investigation_summary, actions });
+    if (!check.ok) return Response.json({ error: check.errors.join(' '), errors: check.errors }, { status: 409 });
+    pendingActions = check.pendingActions;
+    if (pendingActions > 0 && !confirmPendingActions) {
+      return Response.json({ error: `Quedan ${pendingActions} acción(es) correctiva(s) pendiente(s). Confirma para cerrar el caso igualmente.`, pendingActions, needsConfirmation: true }, { status: 409 });
+    }
+    patch.closed_at = new Date().toISOString();
+  }
 
   const { data, error } = await supabase.from('sms_cases').update(patch).eq('id', caseId).select().single();
   if (error) return Response.json({ error: error.message }, { status: 500 });
@@ -96,7 +113,7 @@ export async function PATCH(request) {
     case_id: caseId,
     organization_id: caseRow.organization_id,
     event_type: status === 'cerrado' ? 'caso_cerrado' : 'caso_en_analisis',
-    payload: {},
+    payload: status === 'cerrado' ? { pending_actions: pendingActions } : {},
     created_by: personId,
   });
 

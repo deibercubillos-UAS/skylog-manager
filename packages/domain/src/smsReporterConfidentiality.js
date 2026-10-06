@@ -30,7 +30,9 @@ export function redactReporterIdentity(row, { viewerRole, viewerPersonId, report
   const canView = canViewReporterIdentity({ confidentialityLevel: row.confidentiality_level, viewerRole, isReporter });
   if (canView) return { ...row, identity_redacted: false };
 
+  // `reporter_contact` (reporte público sin cuenta) ES identidad del notificante igual que `reported_by`.
   const redacted = { ...row, reported_by: null, identity_redacted: true };
+  if ('reporter_contact' in redacted) redacted.reporter_contact = null;
   for (const field of reporterFields) {
     if (field in redacted) redacted[field] = null;
   }

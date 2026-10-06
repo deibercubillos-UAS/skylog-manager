@@ -33,6 +33,13 @@ export function computeExpiryAlerts({ policies, cert }, today) {
     else if (left <= CDO_WARNING_DAYS) alerts.push({ key: 'cdo', severity: 'warn', title: 'CDO-U por vencer', detail: `Vence el ${cert.expires_at} (en ${left} día${left === 1 ? '' : 's'}).`, href: '/organizacion' });
   }
 
+  // Vigencia del registro ante la Aerocivil (N.° de explotador / operador UAS).
+  if (cert?.registration_expiry) {
+    const left = daysBetween(today, cert.registration_expiry);
+    if (left < 0) alerts.push({ key: 'reg', severity: 'bad', title: 'Registro ante la Aerocivil vencido', detail: `Venció el ${cert.registration_expiry}.`, href: '/organizacion' });
+    else if (left <= CDO_WARNING_DAYS) alerts.push({ key: 'reg', severity: 'warn', title: 'Registro ante la Aerocivil por vencer', detail: `Vence el ${cert.registration_expiry} (en ${left} día${left === 1 ? '' : 's'}).`, href: '/organizacion' });
+  }
+
   // Una organización con CDO-U registrado debe haber declarado si transporta mercancías peligrosas (MAUT-5.0-12-174, ítem 7).
   if (cert?.cdo_number && !cert.dangerous_goods_declaration) {
     alerts.push({ key: 'dg', severity: 'warn', title: 'Falta la declaración de mercancías peligrosas', detail: 'Todo explotador debe declarar si transporta o no mercancías peligrosas, aunque no las transporte.', href: '/organizacion' });

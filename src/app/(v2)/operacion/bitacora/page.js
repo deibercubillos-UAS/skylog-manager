@@ -61,7 +61,7 @@ export default function BitacoraPage() {
   const [viewMode, setViewMode] = useState('bitacora'); // 'bitacora' (por piloto) | 'libro' (por aeronave)
   const [logbookAircraftId, setLogbookAircraftId] = useState('');
   const [replayFlight, setReplayFlight] = useState(null);
-  const [form, setForm] = useState({ takeoffAt: '', landingAt: '', totalTime: '', visualCondition: 'VLOS', missionType: '', aircraftId: '' });
+  const [form, setForm] = useState({ takeoffAt: '', landingAt: '', totalTime: '', visualCondition: 'VLOS', missionType: '', aircraftId: '', location: '', notes: '' });
 
   // Importar vuelos — carga MANUAL de logs DJI .txt, la vía real para
   // controles RC / RC2 (sin app compañera que pueda sincronizar solos). Solo
@@ -139,13 +139,15 @@ export default function BitacoraPage() {
           visualCondition: form.visualCondition,
           missionType: form.missionType || null,
           aircraftId: form.aircraftId || null,
+          location: form.location || null,
+          notes: form.notes || null,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error registrando el vuelo');
       // El vuelo SIEMPRE se registra; si excede un límite de §100.540 se avisa, no se rechaza.
       setDutyNotice(data.dutyWarnings || []);
-      setForm({ takeoffAt: '', landingAt: '', totalTime: '', visualCondition: 'VLOS', missionType: '', aircraftId: '' });
+      setForm({ takeoffAt: '', landingAt: '', totalTime: '', visualCondition: 'VLOS', missionType: '', aircraftId: '', location: '', notes: '' });
       await loadFlights(organizationId);
     } catch (e) {
       setError(e.message);
@@ -545,7 +547,10 @@ export default function BitacoraPage() {
                       <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 whitespace-nowrap">
                         {f.aircraft ? `${f.aircraft.model?.brand} ${f.aircraft.model?.model} — ${f.aircraft.serial_number}` : '—'}
                       </td>
-                      <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 whitespace-nowrap">{f.mission_type || '—'}</td>
+                      <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 whitespace-nowrap" title={f.notes || undefined}>
+                        {f.mission_type || '—'}
+                        {f.location && <span className="block text-[11px] font-normal text-navy-400 max-w-[220px] truncate">{f.location}</span>}
+                      </td>
                       <td className="px-6 py-2.5 whitespace-nowrap">
                         {f.has_replay ? (
                           <button
@@ -627,6 +632,8 @@ export default function BitacoraPage() {
             value={form.missionType}
             onChange={(e) => setForm((f) => ({ ...f, missionType: e.target.value }))}
           />
+          <Field label="Lugar (opcional)" value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} />
+          <Field as="textarea" rows={2} label="Novedades (opcional)" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
           <Field as="select" label="Aeronave (opcional)" value={form.aircraftId} onChange={(e) => setForm((f) => ({ ...f, aircraftId: e.target.value }))}>
             <option value="">Sin asignar</option>
             {fleet.filter((a) => a.operational_status !== 'fuera_de_servicio').map((a) => (

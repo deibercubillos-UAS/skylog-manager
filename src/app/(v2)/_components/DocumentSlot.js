@@ -4,7 +4,7 @@
 // rutas hechas con `makeRowDocumentRoute` (lib/v2/rowDocument.js). Nunca recibe la ruta del archivo, solo `has`.
 import { useRef, useState } from 'react';
 
-export default function DocumentSlot({ label, endpoint, has, canUpload, canView = true, onChanged }) {
+export default function DocumentSlot({ label, endpoint, uploadEndpoint, extraFields, has, canUpload, canView = true, onChanged }) {
   const input = useRef(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -16,7 +16,8 @@ export default function DocumentSlot({ label, endpoint, has, canUpload, canView 
     setError(null);
     const fd = new FormData();
     fd.append('file', file);
-    const res = await fetch(endpoint, { method: 'POST', body: fd });
+    for (const [k, v] of Object.entries(extraFields || {})) if (v != null) fd.append(k, v);
+    const res = await fetch(uploadEndpoint || endpoint, { method: 'POST', body: fd });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
     if (input.current) input.current.value = '';

@@ -9,7 +9,7 @@
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 
-const ALLOWED_FIELDS = ['full_name', 'document_type', 'document_number', 'email', 'phone', 'license_number', 'medical_cert_expiry'];
+const ALLOWED_FIELDS = ['full_name', 'document_type', 'document_number', 'email', 'phone', 'license_number', 'medical_cert_expiry', 'emergency_contact_name', 'emergency_contact_phone'];
 const FIELD_MAP = {
   fullName: 'full_name',
   documentType: 'document_type',
@@ -18,6 +18,8 @@ const FIELD_MAP = {
   phone: 'phone',
   licenseNumber: 'license_number',
   medicalCertExpiry: 'medical_cert_expiry',
+  emergencyContactName: 'emergency_contact_name',
+  emergencyContactPhone: 'emergency_contact_phone',
 };
 
 export async function PATCH(request, { params }) {

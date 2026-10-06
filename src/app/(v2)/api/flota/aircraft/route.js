@@ -6,6 +6,9 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 
+// Nunca se expone la ruta de la foto: solo si hay una cargada.
+const publicAircraft = ({ image_path, ...a }) => ({ ...a, has_image: !!image_path });
+
 export async function GET(request) {
   const supabase = await createClientSSR();
   const {
@@ -30,7 +33,7 @@ export async function GET(request) {
     .order('created_at', { ascending: false });
   if (error) return Response.json({ error: 'Error consultando la flota' }, { status: 500 });
 
-  return Response.json({ aircraft, isManager: isDutyManager(memberships, organizationId) });
+  return Response.json({ aircraft: (aircraft || []).map(publicAircraft), isManager: isDutyManager(memberships, organizationId) });
 }
 
 export async function POST(request) {
@@ -68,5 +71,5 @@ export async function POST(request) {
     if (error.code === '23505') return Response.json({ error: 'Ya existe una aeronave con ese número de serie en esta organización' }, { status: 409 });
     return Response.json({ error: error.message }, { status: 500 });
   }
-  return Response.json({ aircraft: data });
+  return Response.json({ aircraft: publicAircraft(data) });
 }

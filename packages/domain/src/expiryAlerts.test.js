@@ -39,6 +39,18 @@ describe('mercancías peligrosas', () => {
   });
 });
 
+describe('registro ante la Aerocivil', () => {
+  const base = { cdo_number: 'X', expires_at: '2027-06-01', dangerous_goods_declaration: 'no_transporta' };
+  it('lejano o sin fecha: nada', () => {
+    expect(computeExpiryAlerts({ cert: { ...base, registration_expiry: '2027-06-01' } }, today)).toEqual([]);
+    expect(computeExpiryAlerts({ cert: { ...base, registration_expiry: null } }, today)).toEqual([]);
+  });
+  it('por vencer y vencido', () => {
+    expect(computeExpiryAlerts({ cert: { ...base, registration_expiry: '2026-11-20' } }, today)[0].severity).toBe('warn');
+    expect(computeExpiryAlerts({ cert: { ...base, registration_expiry: '2026-10-01' } }, today)[0].severity).toBe('bad');
+  });
+});
+
 describe('CDO-U', () => {
   it('lejano: nada; sin fecha: nada', () => {
     expect(computeExpiryAlerts({ cert: { dangerous_goods_declaration: 'no_transporta', cdo_number: 'X', expires_at: '2027-06-01' } }, today)).toEqual([]);

@@ -6,6 +6,9 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 
+// Nunca se expone la ruta del adjunto: solo si hay uno cargado.
+const publicEvent = ({ document_path, ...e }) => ({ ...e, has_document: !!document_path });
+
 const EVENT_TYPES = ['programado', 'correctivo', 'menor'];
 
 export async function GET(request) {
@@ -36,7 +39,7 @@ export async function GET(request) {
   const { data: events, error } = await query;
   if (error) return Response.json({ error: 'Error consultando eventos de mantenimiento' }, { status: 500 });
 
-  return Response.json({ events, isManager: isDutyManager(memberships, organizationId) });
+  return Response.json({ events: (events || []).map(publicEvent), isManager: isDutyManager(memberships, organizationId) });
 }
 
 export async function POST(request) {

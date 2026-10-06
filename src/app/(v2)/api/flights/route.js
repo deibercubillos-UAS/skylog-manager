@@ -65,13 +65,17 @@ export async function POST(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { organizationId, takeoffAt, landingAt, totalTime, visualCondition, missionType, aircraftId, batterySerial, batteryCycles, replayTrack } = body;
+  const { organizationId, takeoffAt, landingAt, totalTime, visualCondition, missionType, aircraftId, batterySerial, batteryCycles, replayTrack, location, notes, externalRef, flightRules, alerts } = body;
 
   if (!organizationId || !takeoffAt || !landingAt || !totalTime) {
     return Response.json({ error: 'organizationId, takeoffAt, landingAt y totalTime son requeridos' }, { status: 400 });
   }
   if (visualCondition && !VISUAL_CONDITIONS.includes(visualCondition)) {
     return Response.json({ error: 'visualCondition debe ser uno de: ' + VISUAL_CONDITIONS.join(', ') }, { status: 400 });
+  }
+  const FLIGHT_RULES = ['VMC', 'IMC', 'NIGHT'];
+  if (flightRules && !FLIGHT_RULES.includes(flightRules)) {
+    return Response.json({ error: 'flightRules debe ser uno de: ' + FLIGHT_RULES.join(', ') }, { status: 400 });
   }
   const takeoffDate = new Date(takeoffAt);
   if (new Date(landingAt) <= takeoffDate) {
@@ -126,6 +130,14 @@ export async function POST(request) {
       visual_condition: visualCondition || null,
       mission_type: missionType || null,
       replay_track: validReplayTrack,
+      location: typeof location === 'string' && location.trim() ? location.trim().slice(0, 300) : null,
+      notes: typeof notes === 'string' && notes.trim() ? notes.trim().slice(0, 2000) : null,
+      external_ref: typeof externalRef === 'string' && externalRef.trim() ? externalRef.trim().slice(0, 100) : null,
+      flight_rules: flightRules || null,
+      // Alertas del log DJI (solo llegan de una importación); forma mínima: lista, tamaño acotado.
+      alerts: Array.isArray(alerts) && alerts.length > 0 ? alerts.slice(0, 50) : null,
+      // Cómo entró el vuelo: un log DJI importado trae la serie de batería; si no, es captura manual.
+      source: batterySerial !== undefined && batterySerial !== null ? 'importado' : 'manual',
     })
     .select('*, aircraft:aircraft_id(serial_number, model:model_id(brand, model))')
     .single();

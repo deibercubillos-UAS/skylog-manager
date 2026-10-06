@@ -32,7 +32,7 @@ Todas van al branch. El día del merge se replican en orden, con respaldo previo
 **O2** · Ningún archivo que hoy sirva una pantalla en funcionamiento se **modifica**. Si v2
 necesita una variante, se crea un archivo nuevo.
 
-**O3** · El merge no se hace "de golpe": se activa por organización con un feature flag,
+**O3** · ⚠️ *Modificada por la decisión 179 (2026-10-06): con un proyecto de Supabase nuevo no hay activación gradual por organización en el mismo dominio; se sustituye por organizaciones piloto en la URL de Preview y un corte único — ver `32-migracion.md` §6.* Texto original: el merge no se hace "de golpe": se activa por organización con un feature flag,
 empezando por `BitaFly QA - Organización de Prueba`, que ya existe en producción.
 
 **Por qué una rama larga y no fases mergeadas.** El patrón habitual del proyecto (fase corta →

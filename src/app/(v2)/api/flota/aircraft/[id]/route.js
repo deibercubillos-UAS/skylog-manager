@@ -9,6 +9,8 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 
+const publicAircraft = ({ image_path, ...a }) => ({ ...a, has_image: !!image_path });
+
 const ALLOWED_FIELDS = [
   'operational_status', 'firmware_version', 'firmware_previous_version', 'firmware_backup_path',
   'ruas_number', 'serial_number', 'ownership_type', 'ownership_reference', 'actual_weight_kg',
@@ -64,5 +66,5 @@ export async function PATCH(request, { params }) {
     if (error.code === '23505') return Response.json({ error: 'Ya existe una aeronave con ese número de serie en esta organización' }, { status: 409 });
     return Response.json({ error: error.message }, { status: 500 });
   }
-  return Response.json({ aircraft: data });
+  return Response.json({ aircraft: publicAircraft(data) });
 }

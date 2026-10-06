@@ -57,7 +57,7 @@ const EVALUATION_RESULTS = [
   { key: 'fuera_de_servicio', label: 'Fuera de servicio' },
 ];
 const emptyTask = { name: '', systemCategory: '', intervalCycles: '', intervalHours: '', intervalCalendarDays: '', toleranceValue: '', toleranceUnit: 'pct' };
-const emptyEvent = { aircraftId: '', taskId: '', type: 'programado', performedAt: '', findings: '', returnToService: true };
+const emptyEvent = { aircraftId: '', taskId: '', type: 'programado', performedAt: '', findings: '', returnToService: true, file: null };
 const emptyIncident = { aircraftId: '', type: 'aterrizaje_fuerte', description: '' };
 
 function intervalSummary(t) {
@@ -198,6 +198,17 @@ export default function MantenimientoPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error registrando el mantenimiento');
+      // Adjunto opcional (orden de trabajo, informe, recibo): el evento ya quedó registrado; si el archivo
+      // falla, se avisa sin deshacer el mantenimiento.
+      if (eventForm.file) {
+        const fd = new FormData();
+        fd.append('file', eventForm.file);
+        const up = await fetch(`/api/flota/maintenance/events/${data.event.id}/document`, { method: 'POST', body: fd });
+        if (!up.ok) {
+          const upData = await up.json().catch(() => ({}));
+          setError(`El mantenimiento quedó registrado, pero el adjunto no se pudo subir: ${upData.error || 'error'}`);
+        }
+      }
       setEventForm(emptyEvent);
       setShowEventForm(false);
       await Promise.all([loadStatus(organizationId), loadFleet(organizationId)]);
@@ -411,6 +422,15 @@ export default function MantenimientoPage() {
               <Field label="Fecha (opcional, hoy por defecto)" type="date" value={eventForm.performedAt} onChange={(e) => setEventForm((f) => ({ ...f, performedAt: e.target.value }))} />
             </div>
             <Field as="textarea" rows={2} label="Hallazgos (opcional)" value={eventForm.findings} onChange={(e) => setEventForm((f) => ({ ...f, findings: e.target.value }))} />
+            <label className="block mb-3">
+              <span className="block text-xs font-medium text-navy-400 mb-1">Adjunto (opcional · PDF o imagen, máx. 4 MB)</span>
+              <input
+                type="file"
+                accept=".pdf,image/png,image/jpeg,image/webp"
+                onChange={(e) => setEventForm((f) => ({ ...f, file: e.target.files?.[0] || null }))}
+                className="block w-full text-sm text-navy-500 file:mr-3 file:min-h-[44px] file:rounded-lg file:border-0 file:bg-primary-50 file:px-4 file:text-sm file:font-semibold file:text-primary-700"
+              />
+            </label>
             <label className="flex items-center gap-2 text-xs font-medium text-navy-500 mb-3">
               <input type="checkbox" checked={eventForm.returnToService} onChange={(e) => setEventForm((f) => ({ ...f, returnToService: e.target.checked }))} />
               La aeronave vuelve al servicio (disponible) tras este mantenimiento

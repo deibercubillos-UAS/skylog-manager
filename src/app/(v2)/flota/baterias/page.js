@@ -45,7 +45,7 @@ export default function BateriasComponentesPage() {
 
   const [aircraftFilter, setAircraftFilter] = useState('');
   const [showComponentForm, setShowComponentForm] = useState(false);
-  const [componentForm, setComponentForm] = useState({ aircraftId: '', componentType: '', serialNumber: '' });
+  const [componentForm, setComponentForm] = useState({ aircraftId: '', componentType: '', serialNumber: '', name: '' });
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const isManager = !!currentOrg?.isDutyManager;
@@ -162,7 +162,7 @@ export default function BateriasComponentesPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error agregando el componente');
-      setComponentForm({ aircraftId: componentForm.aircraftId, componentType: '', serialNumber: '' });
+      setComponentForm({ aircraftId: componentForm.aircraftId, componentType: '', serialNumber: '', name: '' });
       setShowComponentForm(false);
       await loadComponents(organizationId, aircraftFilter);
     } catch (e) {
@@ -369,6 +369,12 @@ export default function BateriasComponentesPage() {
                 value={componentForm.serialNumber}
                 onChange={(e) => setComponentForm((f) => ({ ...f, serialNumber: e.target.value }))}
               />
+              <Field
+                label="Nombre (opcional)"
+                value={componentForm.name}
+                onChange={(e) => setComponentForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Ej. Hélice 9453 lado izquierdo"
+              />
             </div>
             <span className="block text-xs font-medium text-navy-400 mb-1.5">Tipo de componente</span>
             <div className="flex flex-wrap gap-1.5 mb-3">
@@ -425,7 +431,7 @@ export default function BateriasComponentesPage() {
                       {c.aircraft?.model?.brand} {c.aircraft?.model?.model} — {c.aircraft?.serial_number}
                     </td>
                     <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 whitespace-nowrap">{c.component_type}</td>
-                    <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 font-mono whitespace-nowrap">{c.serial_number || '—'}</td>
+                    <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 font-mono whitespace-nowrap">{c.serial_number || '—'}{c.name && <span className="block text-[11px] font-normal text-navy-400">{c.name}</span>}</td>
                     <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 whitespace-nowrap">{formatDate(c.installed_at)}</td>
                     <td className="px-6 py-2.5 text-xs font-black text-navy-700 tabular-nums whitespace-nowrap">{usedHours(c).toFixed(1)}h</td>
                     <td className="px-6 py-2.5 whitespace-nowrap">

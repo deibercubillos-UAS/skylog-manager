@@ -11,6 +11,7 @@ import { SectionHero, StatCard } from '../_components/SectionHero';
 import { Field, Button } from '@skylog/ui';
 import Designations from './_Designations';
 import DangerousGoods from './_DangerousGoods';
+import EmergencyContacts from './_EmergencyContacts';
 
 const ROLE_LABELS = {
   admin: 'Gerente General',
@@ -43,7 +44,7 @@ export default function OrganizacionPage() {
   const [error, setError] = useState(null);
 
   const [org, setOrg] = useState(null);
-  const [orgForm, setOrgForm] = useState({ companyName: '', nit: '', domicile: '' });
+  const [orgForm, setOrgForm] = useState({ companyName: '', nit: '', nitType: '', domicile: '', legalRep: '', phone: '', contactEmail: '' });
   const [orgBusy, setOrgBusy] = useState(false);
   const [orgError, setOrgError] = useState(null);
 
@@ -60,7 +61,7 @@ export default function OrganizacionPage() {
   // `allowed_operation_types` (la columna que en teoría bloquea Programación)
   // sin poblar jamás. `allowedVisualContact` queda como columna existente
   // sin consumidor todavía — no se fabricó un significado nuevo para ella.
-  const [certForm, setCertForm] = useState({ cdoNumber: '', cdoIssuedAt: '', expiresAt: '', allowedOperationTypes: [] });
+  const [certForm, setCertForm] = useState({ cdoNumber: '', cdoIssuedAt: '', expiresAt: '', allowedOperationTypes: [], danNumber: '', operatorNumber: '', registrationExpiry: '' });
   const [certBusy, setCertBusy] = useState(false);
   const [certError, setCertError] = useState(null);
 
@@ -80,7 +81,11 @@ export default function OrganizacionPage() {
       setOrgForm({
         companyName: data.organization?.company_name || '',
         nit: data.organization?.nit || '',
+        nitType: data.organization?.nit_type || '',
         domicile: data.organization?.domicile || '',
+        legalRep: data.organization?.legal_rep || '',
+        phone: data.organization?.phone || '',
+        contactEmail: data.organization?.contact_email || '',
       });
     }
   }, []);
@@ -96,6 +101,9 @@ export default function OrganizacionPage() {
         cdoIssuedAt: data.certification?.cdo_issued_at || '',
         expiresAt: data.certification?.expires_at || '',
         allowedOperationTypes: data.certification?.allowed_operation_types || [],
+        danNumber: data.certification?.dan_number || '',
+        operatorNumber: data.certification?.operator_number || '',
+        registrationExpiry: data.certification?.registration_expiry || '',
       });
     }
   }, []);
@@ -206,6 +214,9 @@ export default function OrganizacionPage() {
           cdoIssuedAt: certForm.cdoIssuedAt || null,
           expiresAt: certForm.expiresAt || null,
           allowedOperationTypes: certForm.allowedOperationTypes,
+          danNumber: certForm.danNumber || null,
+          operatorNumber: certForm.operatorNumber || null,
+          registrationExpiry: certForm.registrationExpiry || null,
         }),
       });
       const data = await res.json();
@@ -322,6 +333,10 @@ export default function OrganizacionPage() {
             />
             <Field label="NIT" value={orgForm.nit} onChange={(e) => setOrgForm((f) => ({ ...f, nit: e.target.value }))} />
             <Field label="Domicilio" value={orgForm.domicile} onChange={(e) => setOrgForm((f) => ({ ...f, domicile: e.target.value }))} />
+            <Field label="Tipo de identificación" value={orgForm.nitType} onChange={(e) => setOrgForm((f) => ({ ...f, nitType: e.target.value }))} placeholder="NIT, cédula…" />
+            <Field label="Representante legal" value={orgForm.legalRep} onChange={(e) => setOrgForm((f) => ({ ...f, legalRep: e.target.value }))} />
+            <Field label="Teléfono" value={orgForm.phone} onChange={(e) => setOrgForm((f) => ({ ...f, phone: e.target.value }))} />
+            <Field label="Correo de contacto" type="email" value={orgForm.contactEmail} onChange={(e) => setOrgForm((f) => ({ ...f, contactEmail: e.target.value }))} />
             {orgError && <p className="text-sm text-red-600 sm:col-span-2 mb-2">{orgError}</p>}
             <div className="sm:col-span-2">
               <Button type="submit" disabled={orgBusy}>
@@ -368,6 +383,9 @@ export default function OrganizacionPage() {
               value={certForm.expiresAt}
               onChange={(e) => setCertForm((f) => ({ ...f, expiresAt: e.target.value }))}
             />
+            <Field label="N.° de explotador (DAN)" value={certForm.danNumber} onChange={(e) => setCertForm((f) => ({ ...f, danNumber: e.target.value }))} />
+            <Field label="N.° de operador UAS" value={certForm.operatorNumber} onChange={(e) => setCertForm((f) => ({ ...f, operatorNumber: e.target.value }))} />
+            <Field label="Vigencia del registro" type="date" value={certForm.registrationExpiry} onChange={(e) => setCertForm((f) => ({ ...f, registrationExpiry: e.target.value }))} />
             <div className="sm:col-span-2 mb-3">
               <span className="block text-xs font-medium text-navy-400 mb-1.5">Tipos de operación autorizados</span>
               <div className="flex flex-wrap gap-1.5">
@@ -410,6 +428,8 @@ export default function OrganizacionPage() {
       </div>
 
       <Designations organizationId={organizationId} members={members} />
+
+      <EmergencyContacts organizationId={organizationId} />
 
       <DangerousGoods key={cert?.dangerous_goods_declared_at || 'none'} organizationId={organizationId} cert={cert} canSign={['admin', 'gerente_sms', 'superadmin'].includes(currentOrg?.role)} onSaved={() => loadCert(organizationId)} />
 

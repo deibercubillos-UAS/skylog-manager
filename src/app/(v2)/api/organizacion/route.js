@@ -31,7 +31,7 @@ export async function PATCH(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { organizationId, companyName, nit, domicile } = body;
+  const { organizationId, companyName, nit, domicile, legalRep, phone, contactEmail, nitType } = body;
   if (!organizationId) return Response.json({ error: 'organizationId es requerido' }, { status: 400 });
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
@@ -44,6 +44,10 @@ export async function PATCH(request) {
   if (companyName !== undefined) updates.company_name = companyName;
   if (nit !== undefined) updates.nit = nit;
   if (domicile !== undefined) updates.domicile = domicile;
+  if (legalRep !== undefined) updates.legal_rep = legalRep || null;
+  if (phone !== undefined) updates.phone = phone || null;
+  if (contactEmail !== undefined) updates.contact_email = contactEmail || null;
+  if (nitType !== undefined) updates.nit_type = nitType || null;
   if (Object.keys(updates).length === 0) {
     return Response.json({ error: 'Ningún campo editable en el cuerpo de la petición' }, { status: 400 });
   }

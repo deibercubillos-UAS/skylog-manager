@@ -15,6 +15,8 @@
 // cada campo lleva un ícono guía (`_IconField.js`) — nunca `Field` genérico
 // suelto en una grilla vacía.
 import PersonAdditions from '../_components/PersonAdditions';
+import PersonDocuments from '../_components/PersonDocuments';
+import AvatarUpload from '../_components/AvatarUpload';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SectionHero, StatCard, SectionCard } from '../_components/SectionHero';
@@ -65,7 +67,7 @@ export default function PerfilPage() {
   const [person, setPerson] = useState(null);
   const [authEmail, setAuthEmail] = useState(null);
   const [lastSignInAt, setLastSignInAt] = useState(null);
-  const [form, setForm] = useState({ fullName: '', documentType: '', documentNumber: '', phone: '', licenseNumber: '', medicalCertExpiry: '' });
+  const [form, setForm] = useState({ fullName: '', documentType: '', documentNumber: '', phone: '', licenseNumber: '', medicalCertExpiry: '', emergencyContactName: '', emergencyContactPhone: '' });
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [saved, setSaved] = useState(false);
@@ -94,6 +96,8 @@ export default function PerfilPage() {
         phone: perfilData.person?.phone || '',
         licenseNumber: perfilData.person?.license_number || '',
         medicalCertExpiry: perfilData.person?.medical_cert_expiry || '',
+        emergencyContactName: perfilData.person?.emergency_contact_name || '',
+        emergencyContactPhone: perfilData.person?.emergency_contact_phone || '',
       });
     } catch (e) {
       setError(e.message);
@@ -209,6 +213,8 @@ export default function PerfilPage() {
               <IconField icon="fingerprint" label="Tipo de documento" value={form.documentType} onChange={(e) => setForm((f) => ({ ...f, documentType: e.target.value }))} placeholder="Ej. CC, CE, Pasaporte" />
               <IconField icon="credit_card" label="Número de documento" value={form.documentNumber} onChange={(e) => setForm((f) => ({ ...f, documentNumber: e.target.value }))} />
               <IconField icon="call" label="Teléfono" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className="sm:col-span-2" />
+              <IconField icon="emergency" label="Contacto de emergencia" value={form.emergencyContactName} onChange={(e) => setForm((f) => ({ ...f, emergencyContactName: e.target.value }))} placeholder="Nombre y parentesco" />
+              <IconField icon="phone_in_talk" label="Teléfono de emergencia" value={form.emergencyContactPhone} onChange={(e) => setForm((f) => ({ ...f, emergencyContactPhone: e.target.value }))} />
               {saveError && <p className="text-sm text-red-600 sm:col-span-2 mb-2">{saveError}</p>}
               {saved && !saveError && <p className="text-sm text-emerald-600 sm:col-span-2 mb-2">Guardado.</p>}
               <div className="sm:col-span-2">
@@ -217,6 +223,12 @@ export default function PerfilPage() {
                 </Button>
               </div>
             </form>
+          </SectionCard>
+
+          {/* Foto y expediente */}
+          <SectionCard icon="folder_shared" tile="bg-emerald-500 text-white" wash="from-emerald-50 to-white" title="Foto y expediente" description="Foto de perfil y documentos de personal (máx. 4 MB cada uno)">
+            <AvatarUpload personId={context.personId} hasAvatar={!!person?.avatar_path} initials={(person?.full_name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()} onChanged={loadAll} />
+            <PersonDocuments />
           </SectionCard>
 
           {/* Licencia RPAS */}

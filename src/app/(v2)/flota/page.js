@@ -30,6 +30,7 @@ import { Field, Button } from '@skylog/ui';
 import { SectionHero, SectionCard, StatCard } from '../_components/SectionHero';
 import { computeSpecCompleteness } from '@skylog/domain';
 import ModelSpecSheet from './_ModelSpecSheet';
+import DocumentSlot from '../_components/DocumentSlot';
 
 const CATEGORIES = [
   { key: 'ala_fija', label: 'Ala fija' },
@@ -496,6 +497,10 @@ export default function FlotaPage() {
                                   <option key={s.key} value={s.key}>{s.label}</option>
                                 ))}
                               </Field>
+                            </div>
+
+                            <div className="mt-1 mb-2">
+                              <DocumentSlot label="Foto de la aeronave" endpoint={`/api/flota/aircraft/${a.id}/image`} has={a.has_image} canUpload={isManager} onChanged={() => loadAircraft(organizationId)} />
                             </div>
 
                             <p className="text-xs font-black uppercase text-navy-300 tracking-widest mt-2 mb-2">Documento de propiedad — 100.535(1)</p>

@@ -50,7 +50,7 @@ export async function POST(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { organizationId, aircraftId, componentType, serialNumber } = body;
+  const { organizationId, aircraftId, componentType, serialNumber, name } = body;
   if (!organizationId || !aircraftId || !componentType) {
     return Response.json({ error: 'organizationId, aircraftId y componentType son requeridos' }, { status: 400 });
   }
@@ -77,6 +77,7 @@ export async function POST(request) {
       aircraft_id: aircraftId,
       component_type: componentType,
       serial_number: serialNumber || null,
+      name: typeof name === 'string' && name.trim() ? name.trim().slice(0, 150) : null,
       installed_at_aircraft_hours: aircraft.total_hours,
       created_by: personId,
     })

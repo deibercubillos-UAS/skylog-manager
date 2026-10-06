@@ -2,7 +2,7 @@
 
 [← Índice maestro](00-INDICE.md) · [Reglas](01-reglas.md) · [Esquema v2](31-esquema-datos.md) · [Auditoría de datos v1](20-auditoria-datos.md)
 
-> **Estado: borrador de diseño (2026-10-06, decisión 178).** Se escribe ahora porque el esquema de V2
+> **Estado: borrador de diseño con las siete decisiones del usuario ya tomadas (2026-10-06, decisiones 178 y 179).** Se escribe ahora porque el esquema de V2
 > quedó cerrado (decisión 177) — la condición que puso el usuario para empezar. **Nada de esto se ha
 > ejecutado.** No se tocó la base de producción: este documento se apoya en la auditoría de
 > [`20-auditoria-datos.md`](20-auditoria-datos.md) y en el código/esquema de ambos lados. Todo lo
@@ -33,11 +33,16 @@
 
 ## 2 · Qué se migra, qué se transforma y qué no
 
+> **Verificación de cobertura (2026-10-06)**: [`32a-cobertura-migracion.md`](32a-cobertura-migracion.md) cruzó
+> columna por columna el esquema real de v1 contra el de V2, con el peso real de cada dato. Concluye que **hoy
+> no llega todo** (lugar y notas de casi todos los vuelos, nombre de componentes, documentos del expediente de
+> pilotos…) y propone cerrarlo con columnas aditivas y un esquema `legacy_v1` — pendiente de aprobación.
+
 ### 2.1 Mapa entidad por entidad
 
 | Entidad v1 (tabla) | Destino V2 | Transformación / regla | Riesgo |
 |---|---|---|---|
-| `auth.users` | `accounts` (+ `auth.users`) | Ver §6 (decisión abierta A) | **Alto** |
+| `auth.users` | `accounts` (+ `auth.users` del proyecto nuevo) | Importar con hash de contraseña (§6-A) | **Alto** |
 | `profiles` + `pilots` | `people` (+ `accounts`) | **Un humano = una persona.** Reglas §3 | **Alto** |
 | `organization_members` (fuente de verdad desde la Fase 7 multi-org) | `memberships` | `role` y estado de la membresía; **no** se lee `profiles.role` (legacy) | Medio |
 | `organizations` | `organizations` + `organization_certifications` | `company_name`, `nit`, `address`→`domicile`, `logo_url`; CDO-U/OpSpecs a certificaciones. Campos sin destino: §2.2 | Medio |
@@ -61,26 +66,26 @@
 | `safety_indicators*`, `safety_hazards`, `safety_risk_*` | `safety_indicators*`, `hazards`, `risk_matrices`… | Solo si tienen datos reales; **12 indicadores y 0 datos mensuales** según la auditoría: se migra la definición | Bajo |
 | `sms_gap_*`, `sms_training_*` | igual en V2 | Directa; el catálogo GAP oficial ya está sembrado en V2 (**no** se copia: se enlazan las respuestas por número de pregunta) | Medio |
 | `sora_assessments` | — | **Modelo distinto**: V2 usa el análisis de riesgos oficial MAUT-5.0-12-055 por autorización. No migra (se archiva); ver §2.2 | Bajo |
-| `epayco_*`, planes, `pending_*`, `billing_history` | `subscriptions` | Ver §6 (decisión abierta C) | **Alto** |
+| `epayco_*`, planes, `pending_*`, `billing_history` | `subscriptions` | Plan y vencimiento se conservan (§6-C); la recurrencia se re-crea en Wompi (§6-B) | **Alto** |
 | `audit_log`, `notifications` | — | No migran; `audit_log` se archiva (§7) | Bajo |
-| Programa de socios (`partners*`, `referrals`, `free_grants`, `addon_subscriptions`) | — | **Fuera de V2** (decisión abierta D) | **Alto** (negocio) |
+| Programa de socios (`partners*`, `referrals`, `free_grants`, `addon_subscriptions`) | **(por construir)** | Se construye en V2 antes del corte (§6-D); se migra con él | **Alto** (negocio) |
 | `invitations`, `partner_invitations` | — | Pendientes caducan: se **reemiten** tras el corte | Bajo |
 
 ### 2.2 Campos y funciones de v1 **sin destino** en V2 (lista explícita, `20` §16.9)
 
-Para que nadie los eche de menos sin saber por qué. Cada uno necesita una decisión: **archivar** (queda
-solo en el export congelado), **agregar columna a V2** o **descartar**.
+Para que nadie los eche de menos sin saber por qué. La decisión E ya los resolvió: lo marcado **→ V2**
+se agrega al esquema; el resto se **archiva** (solo en el export congelado) o se **descarta**.
 
 | Dato v1 | Dónde estaba | Propuesta |
 |---|---|---|
-| `dan_number`, `operator_number`, `registration_expiry`, `authorized_operations` | `organizations` | **Agregar a `organization_certifications`** (son del registro AeroCivil; hoy se perderían) |
+| `dan_number`, `operator_number`, `registration_expiry`, `authorized_operations` | `organizations` | **→ V2** (E): a `organization_certifications` |
 | `enable_health_check/preflight/briefing/inventory_checklist` | `organizations` | Descartar: en V2 cada organización define sus listas y no hay interruptores |
 | `form_code_master/batteries/pilots` | `organizations` | Descartar (los códigos de formato viven en el generador de reportes) |
-| `visual_condition` (VMC/IMC/NIGHT) | `flights` | **Sin destino**: en V2 `flights.visual_condition` guarda la línea de vista (VLOS/EVLOS/BVLOS). Ver §4 |
-| `mission_id` (N.° de misión, texto) | `flights` | Sin columna: **agregar `flights.external_ref`** o archivar |
+| `visual_condition` (VMC/IMC/NIGHT) | `flights` | **→ V2**: `flights.flight_rules` (la columna `visual_condition` de V2 es la línea de vista). Ver §4 |
+| `mission_id` (N.° de misión, texto) | `flights` | **→ V2** (E): `flights.external_ref` |
 | `aerocivil_auth_number` | `flight_authorizations` | → `authorization_requests.radicado_number` cuando exista la autorización |
 | `notes`, `alert_*`, `safety_report` | `flights` | Archivar; `safety_report` solo se refleja si hubo un `sms_report` real |
-| `avatar_url`, contacto de emergencia | `profiles`/`pilots` | **Decidir**: V2 no tiene esos campos en `people` |
+| `avatar_url`, contacto de emergencia | `profiles`/`pilots` | **→ V2** (E): a `people` (foto y contacto de emergencia) |
 | Documentos del piloto (cédula, diploma, médico, CIPU, `*_url`) | `pilots` | Archivar los archivos; el vencimiento médico sí migra (§3) |
 | `inventory_items`, `equipment_stock` | Flota/Inventario | Archivar (V2 no los tiene) |
 | Meteorología histórica, `replay_path` | `flights` | El replay (R2) **sí** puede migrar: se copia el objeto y se re-apunta `replay_path` — ver §5.3 |
@@ -135,11 +140,9 @@ descarta. Sin vigencia (v1 no la guardaba): `valid_until = null`.
 2. **`total_time`** (horas) se copia **tal cual**; no se recalcula (puede venir de la importación DJI).
 3. **`visual_condition`**: en v1 son reglas de vuelo (VMC/IMC/NIGHT) y la línea de vista vive en
    `line_of_sight`; en V2 `flights.visual_condition` **es la línea de vista**. Se migra `line_of_sight`
-   → `visual_condition`; el VMC/IMC/NIGHT original queda en el archivo congelado (propuesta: **no** forzar
-   el valor viejo en una columna que ahora significa otra cosa).
+   → `visual_condition`; el VMC/IMC/NIGHT original va a **`flights.flight_rules`** (columna nueva): no se fuerza el valor viejo en una columna que ahora significa otra cosa. Además se copian `location`→`location`, `notes`→`notes`, `mission_id`→`external_ref`, `alerts_json`→`alerts` y `imported`→`source`.
 4. **`pilot_id`** (→ `pilots.id`) se traduce a `pilot_person_id` por `etl_id_map`. Un vuelo con piloto
-   sin asignar o ya borrado: `pilot_person_id` es obligatorio en V2 → se reporta y **no se inserta
-   en silencio** (decisión: persona genérica «Sin asignar (migrado)» o descartar el vuelo).
+   sin asignar o ya borrado: `pilot_person_id` es obligatorio en V2 → se asigna a la persona genérica **«Sin asignar (migrado)»** (F) y se reporta; no se inserta en silencio.
 5. **Horas de la aeronave**: **no** se llama a `increment_aircraft_hours` por cada vuelo migrado (sumaría
    dos veces). Se carga `aircraft.total_hours` de v1 y se **compara** con la suma de los vuelos; la
    diferencia (vuelos importados antes de que existiera el seguimiento) se **informa**.
@@ -197,19 +200,23 @@ fila y se verifica por tamaño. Los objetos de v1 **no se borran** (§7). Bucket
 
 ---
 
-## 6 · Decisiones que son del usuario (bloquean el corte)
+## 6 · Decisiones del usuario (cerradas el 2026-10-06, decisión 179)
 
-> No se pueden resolver desde el código. Cada una trae mi recomendación.
-
-| # | Decisión | Opciones | Recomendación |
+| # | Decisión | Resolución | Consecuencia que ya queda escrita en este plan |
 |---|---|---|---|
-| **A** | **Cuentas y contraseñas**: ¿V2 sale en el **mismo proyecto de Supabase** (se promueve el branch) o en uno **nuevo**? | (1) mismo proyecto: se conservan `auth.users` y las contraseñas, pero el branch trae sus propias cuentas de prueba que habría que depurar; (2) proyecto nuevo: limpio, pero hay que **importar los usuarios con su hash de contraseña** (la API de administración lo permite) o pedir restablecer contraseña a todos | Verificar primero qué permite la promoción de un *branch* en este plan; si no es limpia, **proyecto nuevo + importación de hashes** (nadie pierde su contraseña) |
-| **B** | **Pagos**: v1 cobra con **ePayco** (suscripciones recurrentes reales); V2 tiene `subscriptions` con **Wompi**. Una suscripción recurrente de ePayco **no se transfiere** | (1) cada cliente de pago re-suscribe en Wompi con su tarjeta; (2) V2 sale primero solo para organizaciones sin cobro activo; (3) se deja ePayco hasta que venza cada ciclo | **(3) + aviso previo**: respetar el ciclo pagado y pedir la nueva suscripción antes de su vencimiento. Hay dinero real: se prueba con una organización propia primero |
-| **C** | **Fechas de vigencia**: migrar `subscription_expires_at` de cada membresía de pago a `subscriptions.expires_at` para no cortar el acceso en el corte | sí / no | **Sí**, y verificar una por una (son 22 organizaciones) |
-| **D** | **Programa de socios** (escuelas/asesores, comisiones, regalos): no existe en V2 | (1) se construye en V2 antes del corte; (2) sigue viviendo en v1 hasta que se construya; (3) se retira | Depende de cuántos socios activos haya — **contarlos** antes de decidir. No debe cortarse sin que ellos lo sepan |
-| **E** | **Campos sin destino de §2.2** (registro AeroCivil de la organización, N.° de misión, contacto de emergencia, avatar) | agregar a V2 / archivar | Agregar **registro AeroCivil** y **N.° de misión**; archivar el resto |
-| **F** | **Vuelos con piloto sin asignar** (§4.4) | persona «Sin asignar (migrado)» / descartar | Persona genérica: el vuelo ocurrió y las horas de la aeronave dependen de él |
-| **G** | **Ventana de corte** y cuánto tiempo queda v1 en solo lectura | — | Fin de semana de baja operación; v1 **solo lectura 12 meses** como mínimo |
+| **A** | Cuentas y contraseñas | **Proyecto de Supabase nuevo + importar los usuarios con su contraseña cifrada.** El usuario eligió primero «mismo proyecto», pero al mostrarle que V2 y la versión actual usan **tablas con el mismo nombre y columnas distintas** (`organizations`, `aircraft`, `flights`, `batteries`…) y que eso obligaba a un corte único sin v1 funcionando, **volvió a proyecto nuevo** | La versión actual **sigue viva y completa** en su proyecto hasta el corte; reversa fácil; v1 se queda accesible en solo lectura (G). Pendiente técnico: **verificar en un ensayo** que la API de administración de Supabase importa el hash (`password_hash`); si no, plan B = enviar a todos el enlace de restablecer contraseña |
+| **B** | Pagos ePayco → Wompi | **Re-suscribir a todos los clientes de pago el día del corte** (no se esperó a que venza el ciclo) | Se combina con C: **el acceso se conserva hasta el vencimiento ya pagado**, así nadie pierde días. En el corte: (1) cada organización de pago ve un aviso para suscribirse en Wompi, (2) **las suscripciones recurrentes de ePayco se cancelan** (panel Master, ya existe) para **no cobrar dos veces**. Riesgo asumido: abandono por la fricción de volver a ingresar la tarjeta → comunicación a T−14 y seguimiento uno por uno |
+| **C** | Vigencias de suscripción | **Sí**: migrar `subscription_expires_at` y el plan de cada membresía de pago, y verificarlas **una por una** (22 organizaciones) | Fila de `subscriptions` por organización con `plan`, `expires_at` y `billing`; el informe lista las 22 con su valor v1 y su valor V2 |
+| **D** | Programa de socios | **Construirlo en V2 antes del corte** | **Nuevo frente que bloquea el corte** (escuelas/asesores, códigos de venta, regalos, comisiones, panel `/socio`). Hay que **acotarlo primero** (contar socios activos, regalos y comisiones pendientes reales) para no construir de más. Hasta que exista, el corte no se agenda |
+| **E** | Campos sin destino | **Agregar a V2**: (1) **N.° de misión** de cada vuelo, (2) **foto de perfil y contacto de emergencia** de la persona, (3) **registro AeroCivil de la organización**. Tras la verificación de cobertura (`32a`), el usuario aprobó además agregar **todo lo que tenía datos reales**: lugar y notas de los vuelos, nombre de los componentes, expediente documental, contactos de emergencia de la organización, foto de aeronave y adjunto de mantenimiento | **Construido (decisión 180)**: migraciones `20261006080000` y `20261006090000` aplicadas en el branch, con su captura en pantalla. Lo demás se archiva en `legacy_v1` |
+| **F** | Vuelos sin piloto asignado | **Persona genérica «Sin asignar (migrado)»** | El ETL la crea (una por organización, sin cuenta) y la reporta; las horas de la aeronave siguen cuadrando con la bitácora |
+| **G** | Ventana de corte y conservación | **Fin de semana de baja operación** y **v1 en solo lectura ≥ 12 meses** | Como v1 vive en su propio proyecto (A), se despliega en un **subdominio de solo lectura** (escrituras bloqueadas) durante 12 meses y luego se archiva (§7.3) |
+
+> **Efecto sobre `50-hoja-de-ruta.md` §1 (O3)**: con dos proyectos de Supabase distintos **no hay
+> activación gradual por organización dentro del mismo dominio** (el login apunta a un solo
+> backend). Se reemplaza por **organizaciones piloto en la URL de Preview de V2** (que ya usa su
+> propio proyecto) *antes* del corte, y el corte es **único**, con reversa mientras V2 no acepte
+> escrituras.
 
 ---
 
@@ -222,7 +229,7 @@ fila y se verifica por tamaño. Los objetos de v1 **no se borran** (§7). Bucket
 | **T−14 días** | Aviso a clientes (fecha, ventana, qué cambia, qué deben re-hacer: pago §6-B, reinvitaciones) |
 | **T−7** | Ensayo final: dos corridas seguidas **sin diferencias**; V2 desplegado en una URL de prueba; recorrido de humo por rol |
 | **T−1** | Respaldo completo de v1 (base + R2). Se confirma que el respaldo **se puede restaurar** |
-| **T0** | v1 en **modo solo lectura** (bloqueo de escrituras) → ETL `--commit` → informe → **aprobación del usuario** → se apunta el dominio a V2 |
+| **T0** | v1 en **modo solo lectura** (bloqueo de escrituras) → ETL `--commit` hacia el proyecto nuevo (usuarios con su hash) → informe → **aprobación del usuario** → se apunta el dominio a V2 y v1 pasa a su subdominio de solo lectura → **se cancelan las recurrencias de ePayco** y se activa el aviso de suscripción en Wompi |
 | **T0 + horas** | Recorrido de humo con cuentas reales: ingreso, Despacho, Cierre, Tiempos de servicio, SMS, pagos |
 | **T+7** | Revisión: incidencias, datos reportados por clientes, informe final |
 
@@ -235,7 +242,7 @@ fila y se verifica por tamaño. Los objetos de v1 **no se borran** (§7). Bucket
 
 ### 7.3 Conservación (RAC 100 §100.535(29), 5 años)
 
-- v1 queda **solo lectura ≥ 12 meses**; después, un **export congelado** (base completa + objetos de R2 +
+- v1 queda **solo lectura ≥ 12 meses en su propio proyecto y subdominio**; después, un **export congelado** (base completa + objetos de R2 +
   `audit_log`, `results_*`, `sora_assessments`, plantillas y todo lo marcado «archivar») en un bucket de
   archivo con acceso restringido, con un índice de qué contiene.
 - Debe poder **entregarse a un inspector** un registro de v1 anterior al corte: se documenta cómo.
@@ -243,12 +250,26 @@ fila y se verifica por tamaño. Los objetos de v1 **no se borran** (§7). Bucket
 
 ---
 
-## 8 · Qué sigue
+### 6.1 Tres resoluciones adicionales (decisión 180)
 
-1. El usuario decide A–G de §6 (las que bloquean son A, B y D).
-2. Contar en producción (**solo lectura**): socios activos, organizaciones con cobro vigente, filas de las 20
-   tablas «vacías», vuelos con piloto sin asignar y los 4 vencimientos médicos divergentes.
-3. Agregar a V2 lo que salga de la decisión E (migración aditiva, antes del primer ensayo).
-4. Escribir `scripts/etl/` (primero `--dry-run`) y el primer ensayo sobre una copia.
+- **Credenciales del portal de la Aerocivil** (`aerocivil_credentials`, 1 organización): **no se migran**; el usuario de esa
+  organización las **vuelve a registrar** (la contraseña está cifrada con la llave de v1 y no debe copiarse).
+- **APK de Android** (`app_releases`): tabla creada en V2; `GET /api/app/version` sigue igual y apunta al proyecto nuevo por
+  variables de entorno; la fila vigente se copia en el ETL; nuevas versiones con `POST /api/app/releases` (llave de administración).
+- **Catálogo de municipios** (`colombia_geo`, 1122): copia directa en el ETL a la tabla `colombia_geo` de V2.
+
+## 8 · Qué sigue (en orden)
+
+1. **Acotar el programa de socios** (D): contar en producción —**solo lectura**— socios activos, regalos
+   vigentes y comisiones pendientes; con eso se decide el alcance mínimo y se construye en V2.
+2. **Migraciones aditivas de V2 por la decisión E**: `flights.external_ref`, foto y contacto de
+   emergencia en `people`, registro AeroCivil en `organization_certifications`, con su captura en pantalla.
+3. **Contar en producción** (solo lectura): organizaciones con cobro vigente y sus vencimientos, filas de las
+   20 tablas «vacías», vuelos con piloto sin asignar y los 4 vencimientos médicos divergentes.
+4. **Prueba técnica de importación de usuarios** con contraseña cifrada en un proyecto de Supabase de prueba
+   (decisión A) y, si falla, decidir el plan B (restablecer contraseña).
+5. **Flujo de suscripción en Wompi para clientes que vienen de ePayco** (decisión B): aviso, plazo y
+   cancelación de la recurrencia vieja.
+6. Escribir `scripts/etl/` (primero `--dry-run`) y el **primer ensayo** sobre una copia de producción.
 
 *Creado 2026-10-06 — borrador de diseño; ninguna parte se ha ejecutado.*

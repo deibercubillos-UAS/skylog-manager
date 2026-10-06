@@ -36,7 +36,7 @@ export async function POST(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { organizationId, cdoNumber, cdoIssuedAt, allowedOperationTypes, allowedVisualContact, expiresAt } = body;
+  const { organizationId, cdoNumber, cdoIssuedAt, allowedOperationTypes, allowedVisualContact, expiresAt, danNumber, operatorNumber, registrationExpiry } = body;
   if (!organizationId) return Response.json({ error: 'organizationId es requerido' }, { status: 400 });
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
@@ -56,6 +56,10 @@ export async function POST(request) {
         allowed_operation_types: allowedOperationTypes || [],
         allowed_visual_contact: allowedVisualContact || [],
         expires_at: expiresAt || null,
+        // Registro ante la Aerocivil (N.° de explotador, N.° de operador UAS, vigencia): solo se tocan si llegan.
+        ...(danNumber !== undefined ? { dan_number: danNumber || null } : {}),
+        ...(operatorNumber !== undefined ? { operator_number: operatorNumber || null } : {}),
+        ...(registrationExpiry !== undefined ? { registration_expiry: registrationExpiry || null } : {}),
       },
       { onConflict: 'organization_id' }
     )

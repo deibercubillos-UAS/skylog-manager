@@ -47,6 +47,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | [`30-entidades.md`](30-entidades.md) | **Mapa de entidades reales del negocio** — 7 separaciones estructurales · clasificación declarado/derivado/vigente/evento | 231 | ✅ |
 | [`31-esquema-datos.md`](31-esquema-datos.md) | **Esquema de datos** — tablas por entidad, sobre `30-entidades.md`. C2 dormido, sin tocar | 155 | ✅ |
 | [`32a-cobertura-migracion.md`](32a-cobertura-migracion.md) | ¿Llega TODO lo de v1 a V2? Cruce columna por columna con el peso real de cada dato, y qué se agregó (decisión 180) | 185 | ✅ |
+| [`44-alta-y-socios.md`](44-alta-y-socios.md) | Alta de usuarios, invitaciones y programa de socios en V2 (el bloqueante mayor antes del corte) — diseño (decisión 181) | 97 | 🔄 |
 | [`32-migracion.md`](32-migracion.md) | ETL desde la base actual, reglas de precedencia, corte y conservación — **borrador de diseño, sin ejecutar; decisiones A–G tomadas** (decisiones 178-179) | 263 | 🔄 |
 | [`33-arquitectura.md`](33-arquitectura.md) | Monorepo, servicios, capa de dominio, pruebas | 57 | 🔄 |
 | [`34-seguridad.md`](34-seguridad.md) | RLS, multi-tenant, C2 · **falta protección de datos SMS (RAC 219 §219.115-140)** | 89 | 🔄 |
@@ -67,7 +68,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
 | [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 289 | ✅ |
-| [`51-bitacora.md`](51-bitacora.md) | **180 decisiones cerradas**, correcciones propias y fuentes consultadas | 268 | ✅ |
+| [`51-bitacora.md`](51-bitacora.md) | **181 decisiones cerradas**, correcciones propias y fuentes consultadas | 268 | ✅ |
 
 **Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · ⏸ omitido por ahora
 

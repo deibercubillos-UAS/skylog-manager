@@ -250,6 +250,17 @@ fila y se verifica por tamaño. Los objetos de v1 **no se borran** (§7). Bucket
 
 ---
 
+### 6.0 Conteos reales en producción (2026-10-06, solo lectura, sin contenido de filas)
+
+Pedidos en §8 para acotar las decisiones B y D:
+
+| Qué | Hallazgo | Consecuencia |
+|---|---|---|
+| **Suscripciones recurrentes de ePayco activas** | **1** (una membresía de plan Escuadrilla, **con la fecha de vencimiento ya vencida**). **Ninguna** con Wompi | La decisión **B** («re-suscribir a todos el día del corte») afecta en la práctica a **una sola organización**; el riesgo de abandono es mínimo. El resto de las membresías de pago no tiene cobro recurrente (pagos manuales, planes sin cobro o de la casa) |
+| Membresías activas por plan | Piloto 18 · Flota 3 · Escuadrilla 5 · Enterprise 5 (entre ellas 1 superadmin) | Se migran los 22 planes con su vencimiento (C) |
+| **Con vencimiento ya pasado y estado «activa»** | **5** administradores (2 Enterprise, 3 Escuadrilla) | Hay que decidir **antes del corte** si esas organizaciones siguen o se degradan: V2 sí hace cumplir `expires_at`. Se confirma una por una (C) |
+| **Programa de socios** | **3** socios, **todos escuelas** (1 activo, 2 inactivos), **0 asesores**, 2 dueños, 4 códigos de venta; **0 referidos y 0 comisiones** (nunca se generó una); **11 regalos**: 4 canjeados, 5 vigentes hoy, 6 ya degradados; 20 invitaciones (4 aceptadas, 12 expiradas, 4 pendientes) | El uso real del programa es **regalar perfiles con vencimiento**. Las comisiones, los asesores y los reportes por período **nunca se han usado**: ver la propuesta de alcance mínimo de D |
+
 ### 6.1 Tres resoluciones adicionales (decisión 180)
 
 - **Credenciales del portal de la Aerocivil** (`aerocivil_credentials`, 1 organización): **no se migran**; el usuario de esa
@@ -258,10 +269,18 @@ fila y se verifica por tamaño. Los objetos de v1 **no se borran** (§7). Bucket
   variables de entorno; la fila vigente se copia en el ETL; nuevas versiones con `POST /api/app/releases` (llave de administración).
 - **Catálogo de municipios** (`colombia_geo`, 1122): copia directa en el ETL a la tabla `colombia_geo` de V2.
 
+### 6.2 Bloqueante nuevo descubierto: V2 no puede dar de alta usuarios
+
+Al acotar la decisión D se encontró que **V2 no tiene registro, ni alta de organizaciones, ni invitaciones**
+(las rutas de v1 escriben en `profiles`/`organization_members`, que V2 no tiene). Tras el corte, los usuarios
+migrados entrarían, pero **nadie nuevo podría registrarse** ni una organización invitar a su tripulación. Es
+**más grande que el propio ETL**. Diseño y orden en [`44-alta-y-socios.md`](44-alta-y-socios.md) (decisión 181).
+
 ## 8 · Qué sigue (en orden)
 
-1. **Acotar el programa de socios** (D): contar en producción —**solo lectura**— socios activos, regalos
-   vigentes y comisiones pendientes; con eso se decide el alcance mínimo y se construye en V2.
+0. **Alta de usuarios, invitaciones y programa de socios completo en V2** (`44-alta-y-socios.md`, etapas A–F):
+   es lo que más falta para poder cortar. Los conteos de §6.0 ya acotaron el programa de socios (el usuario eligió
+   construirlo **completo**).
 2. **Migraciones aditivas de V2 por la decisión E**: `flights.external_ref`, foto y contacto de
    emergencia en `people`, registro AeroCivil en `organization_certifications`, con su captura en pantalla.
 3. **Contar en producción** (solo lectura): organizaciones con cobro vigente y sus vencimientos, filas de las

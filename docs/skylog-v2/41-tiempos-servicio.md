@@ -40,6 +40,9 @@ cumplir el límite de vuelo no exime del límite de servicio (100.540(b)(2)).
   proyecto para el examen de capacitación reprobado y el mantenimiento menor vencido: pantalla
   de bloqueo dedicada, no un aviso ignorable. Con excepción documentada y firmada por el jefe de
   pilotos cuando la norma lo permita.
+  **Precisión (decisión 164):** el bloqueo es para INICIAR servicio o DESPACHAR. Registrar un vuelo que
+  ya ocurrió (carga manual, log DJI o cierre de vuelo) **nunca se rechaza**: se guarda y se avisa si
+  excede el límite, porque negarse dejaría el libro de vuelo sin un vuelo real.
 - **Alertas preventivas**: al 80% del límite mensual, y antes de programar una misión que
   llevaría al piloto a exceder.
 - **Certificación anual** (B2): documento por piloto con el tiempo acumulado del año calendario,

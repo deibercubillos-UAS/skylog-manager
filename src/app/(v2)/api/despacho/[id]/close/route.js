@@ -9,7 +9,7 @@
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, getRecentFlights } from '@/lib/v2/duty';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
-import { validateFlightClose, checkMonthlyFlightHours, checkDailyFlightHours, dayKey, monthKey } from '@skylog/domain';
+import { validateFlightClose, evaluateFlightLimits } from '@skylog/domain';
 
 const VISUAL_LINES = ['VLOS', 'EVLOS', 'BVLOS'];
 
@@ -52,18 +52,10 @@ export async function POST(request, { params }) {
   const mission = Array.isArray(dispatch.mission) ? dispatch.mission[0] : dispatch.mission;
   const lineOfSight = visualCondition || mission?.line_of_sight || null;
 
-  // Advertencia (no bloqueo) de límites §100.540 incluyendo este vuelo.
+  // Advertencia (no bloqueo) de límites §100.540 incluyendo este vuelo — misma regla que la Bitácora.
   const { data: recent } = await getRecentFlights(supabase, personId, 32);
-  const takeoffDate = new Date(takeoffAt);
-  const projected = [
-    ...recent.map((f) => ({ personId, date: f.takeoff_at, totalTimeHours: Number(f.total_time) })),
-    { personId, date: takeoffAt, totalTimeHours: check.totalTime },
-  ];
-  const monthly = checkMonthlyFlightHours(projected, { personId, month: monthKey(takeoffDate) });
-  const daily = checkDailyFlightHours(projected, { personId, day: dayKey(takeoffDate), lineOfSight: lineOfSight || 'VLOS' });
-  const dutyWarnings = [];
-  if (!monthly.compliant) dutyWarnings.push('Con este vuelo se excede el límite mensual de horas de vuelo (§100.540).');
-  if (!daily.compliant) dutyWarnings.push('Con este vuelo se excede el límite diario de horas de vuelo (§100.540).');
+  const limits = evaluateFlightLimits(recent, { personId, takeoffAt, totalTime: check.totalTime, lineOfSight: lineOfSight || 'VLOS' });
+  const dutyWarnings = limits.warnings;
 
   const { data: flightId, error } = await createAdminClient().rpc('v2_dispatch_close', {
     p: {

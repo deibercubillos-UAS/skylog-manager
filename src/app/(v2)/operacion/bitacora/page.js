@@ -55,7 +55,7 @@ export default function BitacoraPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [blocked, setBlocked] = useState(null);
+  const [dutyNotice, setDutyNotice] = useState([]); // avisos de §100.540 del último vuelo registrado
   const [pilotFilter, setPilotFilter] = useState('');
   const [fleet, setFleet] = useState([]);
   const [viewMode, setViewMode] = useState('bitacora'); // 'bitacora' (por piloto) | 'libro' (por aeronave)
@@ -126,7 +126,7 @@ export default function BitacoraPage() {
     if (!organizationId) return;
     setBusy(true);
     setError(null);
-    setBlocked(null);
+    setDutyNotice([]);
     try {
       const res = await fetch('/api/flights', {
         method: 'POST',
@@ -142,11 +142,9 @@ export default function BitacoraPage() {
         }),
       });
       const data = await res.json();
-      if (res.status === 409) {
-        setBlocked(data);
-        return;
-      }
       if (!res.ok) throw new Error(data.error || 'Error registrando el vuelo');
+      // El vuelo SIEMPRE se registra; si excede un límite de §100.540 se avisa, no se rechaza.
+      setDutyNotice(data.dutyWarnings || []);
       setForm({ takeoffAt: '', landingAt: '', totalTime: '', visualCondition: 'VLOS', missionType: '', aircraftId: '' });
       await loadFlights(organizationId);
     } catch (e) {
@@ -205,11 +203,8 @@ export default function BitacoraPage() {
         }),
       });
       const data = await res.json();
-      if (res.status === 409) {
-        updateImportRow(idx, { error: data.error });
-        return;
-      }
       if (!res.ok) throw new Error(data.error || 'Error importando este vuelo');
+      setDutyNotice(data.dutyWarnings || []);
       setImportRows((prev) => prev.filter((_, i) => i !== idx));
       await loadFlights(organizationId);
       await loadFleet(organizationId);
@@ -271,9 +266,14 @@ export default function BitacoraPage() {
       </div>
 
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>}
-      {blocked && (
-        <div className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
-          <p className="font-semibold">{blocked.error}</p>
+      {dutyNotice.length > 0 && (
+        <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+          <p className="font-semibold">El vuelo se registró, pero ten en cuenta:</p>
+          <ul className="mt-1 space-y-0.5">
+            {dutyNotice.map((w) => (
+              <li key={w}>• {w}</li>
+            ))}
+          </ul>
         </div>
       )}
 

@@ -3,13 +3,15 @@
 // libro de vuelo completo (eso es Programación/Despacho, fuera de alcance de
 // F5) — solo lo mínimo para que el motor de cumplimiento tenga datos reales.
 //
-// Bloqueo real (41-tiempos-servicio.md §7.2): si este vuelo llevaría al
-// piloto a exceder el límite mensual (90h) o diario (6-8h según línea de
-// vista), se **rechaza** con 409 — no se guarda y se avisa después. El
-// cálculo reutiliza packages/domain, nunca se reimplementa aquí.
+// Registra vuelos que YA ocurrieron (carga manual o log DJI importado). Si el vuelo lleva al
+// piloto a exceder el límite mensual (90h) o diario (6-8h según línea de vista) de §100.540,
+// se REGISTRA IGUAL y se devuelve `dutyWarnings`: rechazarlo dejaría el libro de vuelo sin un
+// vuelo real, que es peor evidencia que un vuelo con la advertencia visible. Es la misma regla que
+// el cierre de vuelo del Despacho (packages/domain/flightLimits.js). Lo que SÍ bloquea es iniciar
+// servicio o despachar cuando el piloto ya está en el límite (lib/v2/serviceGates.js).
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, getRecentFlights, isDutyManager } from '@/lib/v2/duty';
-import { checkMonthlyFlightHours, checkDailyFlightHours, dayKey, monthKey } from '@skylog/domain';
+import { evaluateFlightLimits } from '@skylog/domain';
 
 const VISUAL_CONDITIONS = ['VLOS', 'EVLOS', 'BVLOS'];
 
@@ -86,28 +88,7 @@ export async function POST(request) {
   const { data: recentFlights, error: recentError } = await getRecentFlights(supabase, personId, 32);
   if (recentError) return Response.json({ error: 'Error consultando vuelos previos' }, { status: 500 });
 
-  const candidate = { personId, date: takeoffAt, totalTimeHours: Number(totalTime) };
-  const projected = [
-    ...recentFlights.map((f) => ({ personId: f.pilot_person_id, date: f.takeoff_at, totalTimeHours: Number(f.total_time) })),
-    candidate,
-  ];
-
-  const monthly = checkMonthlyFlightHours(projected, { personId, month: monthKey(takeoffDate) });
-  const daily = checkDailyFlightHours(projected, {
-    personId,
-    day: dayKey(takeoffDate),
-    lineOfSight: visualCondition || 'VLOS',
-  });
-
-  if (!monthly.compliant || !daily.compliant) {
-    return Response.json(
-      {
-        error: 'Este vuelo excedería un límite de §100.540 y no se guardó',
-        checks: { monthly, daily },
-      },
-      { status: 409 }
-    );
-  }
+  const limits = evaluateFlightLimits(recentFlights, { personId, takeoffAt, totalTime: Number(totalTime), lineOfSight: visualCondition || 'VLOS' });
 
   if (aircraftId) {
     const { data: aircraftRow, error: aircraftError } = await supabase
@@ -210,5 +191,5 @@ export async function POST(request) {
     }
   }
 
-  return Response.json({ flight: data, checks: { monthly, daily } });
+  return Response.json({ flight: data, checks: { monthly: limits.monthly, daily: limits.daily }, dutyWarnings: limits.warnings });
 }

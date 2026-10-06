@@ -30,7 +30,7 @@ organización invitar a su tripulación, ni un socio regalar un perfil.** Los us
 
 ## 2 · Alcance, en el orden en que dependen entre sí
 
-### Etapa A — Alta de un explotador nuevo (registro)
+### Etapa A — Alta de un explotador nuevo (registro) — ✅ construida 2026-10-06 (decisión 182)
 `POST /api/auth/register-v2` + pantalla `/registro` reescrita sobre V2.
 - Crea: usuario de autenticación → `people` + `accounts` → `organizations` (+ certificación vacía) →
   `memberships` (rol `admin`) → `subscriptions` (plan **Piloto con prueba de 15 días**, igual que hoy).
@@ -52,6 +52,7 @@ ya tiene cuenta → membresía nueva (**sin migrar datos**, igual que la regla y
 el correo bloqueado. Reutiliza `rowDocument`/patrones de correo existentes.
 
 ### Etapa D — Sesión y contraseña
+Incluye el **inicio de sesión con Google** de `/login`: hoy un usuario de Google sin cuenta en V2 entra sin persona vinculada. Hay que decidir si se crea la cuenta al primer ingreso (con organización) o se pide completar el registro.
 Verificar `/reset-password`, `/update-password` y `POST /api/auth/reset-request` contra el proyecto de V2 (que no
 tengan `profiles` por dentro). Probable ajuste menor.
 

@@ -39,3 +39,4 @@ export * from './dangerousGoods.js';
 export * from './offlineQueue.js';
 export * from './commandSearch.js';
 export * from './registration.js';
+export * from './joinOrganization.js';

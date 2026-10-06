@@ -23,6 +23,7 @@ import { SectionHero, StatCard, SectionCard } from '../_components/SectionHero';
 import { Button } from '@skylog/ui';
 import { supabase } from '@/lib/supabase';
 import IconField from './_IconField';
+import JoinOrganization from './_JoinOrganization';
 
 const ROLE_LABELS = {
   admin: 'Gerente General',
@@ -264,6 +265,7 @@ export default function PerfilPage() {
                 </div>
               ))}
             </div>
+            <JoinOrganization onJoined={loadAll} />
           </SectionCard>
 
           {/* Seguridad de la cuenta */}

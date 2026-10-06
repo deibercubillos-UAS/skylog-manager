@@ -40,7 +40,7 @@ organización invitar a su tripulación, ni un socio regalar un perfil.** Los us
   se propone **crear la cuenta primero con la prueba** y pagar después desde `/suscripcion` (Wompi): elimina una
   tabla y un flujo con estados huérfanos.
 
-### Etapa B — Unirse a una organización existente
+### Etapa B — Unirse a una organización existente — ✅ construida 2026-10-06 (decisión 183)
 Por NIT + rol (`piloto`, `jefe_pilotos`, `gerente_sms`); roles únicos (Jefe de Pilotos y Gerente SMS solo uno
 por organización); respeta el **límite de pilotos del plan** (`planLimits` de V2 ya existe y cuenta «solo el
 Gerente General no cuenta»). Crea persona + cuenta + membresía; **no** crea organización.

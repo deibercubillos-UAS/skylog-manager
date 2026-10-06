@@ -5,6 +5,7 @@
 // la organización consulta el catálogo, solo un gestor lo administra.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { publicModel } from '@/lib/v2/publicModel';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -30,7 +31,7 @@ export async function GET(request) {
     .order('brand', { ascending: true });
   if (error) return Response.json({ error: 'Error consultando modelos' }, { status: 500 });
 
-  return Response.json({ models, isManager: isDutyManager(memberships, organizationId) });
+  return Response.json({ models: (models || []).map(publicModel), isManager: isDutyManager(memberships, organizationId) });
 }
 
 export async function POST(request) {
@@ -76,5 +77,5 @@ export async function POST(request) {
     .single();
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
-  return Response.json({ model: data });
+  return Response.json({ model: publicModel(data) });
 }

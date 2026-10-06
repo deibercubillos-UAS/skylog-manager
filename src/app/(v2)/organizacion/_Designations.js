@@ -4,11 +4,12 @@
 // desde cuándo y con qué acta; designar a otra persona cierra la vigente y conserva el historial.
 import { useCallback, useEffect, useState } from 'react';
 import { Field, Button } from '@skylog/ui';
+import DocumentSlot from '../_components/DocumentSlot';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
 export default function Designations({ organizationId, members }) {
-  const [data, setData] = useState({ designations: [], roles: [], canDesignate: false });
+  const [data, setData] = useState({ designations: [], roles: [], canDesignate: false, canView: false });
   const [editing, setEditing] = useState(null); // role key
   const [form, setForm] = useState({ personId: '', actReference: '', actDate: today() });
   const [busy, setBusy] = useState(false);
@@ -76,6 +77,12 @@ export default function Designations({ organizationId, members }) {
                   )
                 )}
               </div>
+              {d && !r.managedIn && data.canView && (
+                <div className="mt-2 space-y-0.5">
+                  <DocumentSlot label="Acta" endpoint={`/api/organizacion/designations/${d.id}/document?kind=act`} has={d.has_act_document} canUpload={data.canDesignate} onChanged={load} />
+                  <DocumentSlot label="Hoja de vida" endpoint={`/api/organizacion/designations/${d.id}/document?kind=resume`} has={d.has_resume_document} canUpload={data.canDesignate} onChanged={load} />
+                </div>
+              )}
               {editing === r.key && (
                 <form onSubmit={submit} className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-x-3">
                   <Field as="select" label="Persona" value={form.personId} onChange={(e) => setForm((f) => ({ ...f, personId: e.target.value }))} required>

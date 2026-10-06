@@ -577,6 +577,7 @@ export default function FlotaPage() {
                         model={m}
                         readOnly={!isManager}
                         onCancel={() => setSpecModelId(null)}
+                        onDocumentChanged={() => loadModels(organizationId)}
                         onSaved={(saved) => {
                           setModels((prev) => prev.map((x) => (x.id === saved.id ? saved : x)));
                           setSpecModelId(null);

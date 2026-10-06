@@ -28,12 +28,15 @@ export async function GET(request) {
   }
   const { data, error } = await s.supabase
     .from('designations')
-    .select('id, role_type, started_at, ended_at, act_reference, act_date, person:person_id(id, full_name)')
+    .select('id, role_type, started_at, ended_at, act_reference, act_date, act_document_path, resume_document_path, person:person_id(id, full_name)')
     .eq('organization_id', organizationId)
     .order('started_at', { ascending: false });
   if (error) return Response.json({ error: error.message }, { status: 500 });
   const canDesignate = (s.memberships || []).some((m) => m.organization_id === organizationId && AUTHORITY_ROLES.includes(m.role));
-  return Response.json({ designations: data || [], roles: DESIGNATION_ROLES, canDesignate });
+  // Las rutas de archivo no salen del servidor: solo si el acta y la hoja de vida están cargadas.
+  const designations = (data || []).map(({ act_document_path, resume_document_path, ...d }) => ({ ...d, has_act_document: !!act_document_path, has_resume_document: !!resume_document_path }));
+  const canView = (s.memberships || []).some((m) => m.organization_id === organizationId && ['admin', 'jefe_pilotos', 'gerente_sms', 'superadmin'].includes(m.role));
+  return Response.json({ designations, roles: DESIGNATION_ROLES, canDesignate, canView });
 }
 
 export async function POST(request) {

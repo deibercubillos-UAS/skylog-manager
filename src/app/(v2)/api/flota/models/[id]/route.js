@@ -3,6 +3,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 import { sanitizeSpecInput } from '@skylog/domain';
+import { publicModel } from '@/lib/v2/publicModel';
 
 export async function PATCH(request, { params }) {
   const supabase = await createClientSSR();
@@ -38,5 +39,5 @@ export async function PATCH(request, { params }) {
 
   const { data, error } = await supabase.from('aircraft_models').update(patch).eq('id', id).select().single();
   if (error) return Response.json({ error: error.message }, { status: 500 });
-  return Response.json({ model: data });
+  return Response.json({ model: publicModel(data) });
 }

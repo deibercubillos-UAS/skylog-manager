@@ -117,6 +117,53 @@ function HazardRow({ hazard, value, onChange }) {
   );
 }
 
+const RCE_STATUS = {
+  ok: { icon: '✓', color: '#1d6b3a', bg: '#eaf6ee', text: 'Toda la flota operativa tiene póliza RCE vigente durante el periodo.' },
+  partial: { icon: '!', color: '#8a5a10', bg: '#fff6e0', text: 'Solo parte de la flota queda cubierta durante todo el periodo.' },
+  none: { icon: '✕', color: '#8a2f10', bg: '#fdeee8', text: 'Ninguna aeronave tiene póliza RCE vigente durante todo el periodo.' },
+  no_aircraft: { icon: '–', color: '#6b7280', bg: '#f3f4f6', text: 'No hay aeronaves operativas registradas para evaluar.' },
+};
+const RCE_REASONS = {
+  sin_poliza_rce: 'No hay una póliza RCE registrada',
+  aeronave_sin_cobertura: 'Ninguna póliza RCE cubre esta aeronave',
+  vigencia_no_cubre_el_periodo: 'La vigencia no cubre todo el periodo',
+};
+
+// Ítem del checklist de preparación: póliza RCE (§100.805(a)(1)). Informativo,
+// no bloquea firmar ni radicar — avisa lo que falta antes de presentar.
+function RceChecklistItem({ rce }) {
+  const meta = RCE_STATUS[rce.status];
+  return (
+    <div style={{ marginBottom: 16, padding: 12, border: '1px solid #e2e4e9', borderRadius: 8 }}>
+      <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 6 }}>Checklist del expediente</p>
+      <div style={{ background: meta.bg, borderRadius: 6, padding: 10 }}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: meta.color }}>
+          {meta.icon} Póliza RCE vigente
+          {rce.total > 0 && ` — ${rce.coveredCount} de ${rce.total} aeronaves cubiertas`}
+        </p>
+        <p style={{ fontSize: 12, color: meta.color, marginTop: 2 }}>{meta.text}</p>
+      </div>
+      {rce.byAircraft.filter((x) => !x.covered).map((x) => (
+        <p key={x.aircraftId} style={{ fontSize: 12, color: '#8a2f10', marginTop: 4 }}>
+          {x.label}: {RCE_REASONS[x.reason] || x.reason}
+        </p>
+      ))}
+      {rce.missingDocumentLabels.length > 0 && (
+        <p style={{ fontSize: 12, color: '#8a5a10', marginTop: 6 }}>
+          Falta adjuntar el certificado de vigencia de: {rce.missingDocumentLabels.join(', ')} — la solicitud lo exige.
+        </p>
+      )}
+      {rce.status !== 'ok' || rce.missingDocumentLabels.length > 0 ? (
+        <p style={{ fontSize: 12, marginTop: 6 }}>
+          <a href="/polizas" style={{ color: '#ec5b13' }}>
+            Ir a Pólizas →
+          </a>
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export default function AerocivilPage() {
   const [context, setContext] = useState(null);
   const [organizationId, setOrganizationId] = useState('');
@@ -126,6 +173,7 @@ export default function AerocivilPage() {
   const [hazards, setHazards] = useState(emptyHazardState());
   const [analysis, setAnalysis] = useState(null);
   const [evaluation, setEvaluation] = useState(null);
+  const [readiness, setReadiness] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -193,6 +241,23 @@ export default function AerocivilPage() {
   useEffect(() => {
     loadRiskAnalysis();
   }, [loadRiskAnalysis]);
+
+  // Checklist de preparación (hoy: póliza RCE) — solo gestores; la API también lo exige.
+  const loadReadiness = useCallback(async () => {
+    setReadiness(null);
+    if (!selectedRequestId || !isManager) return;
+    try {
+      const res = await fetch('/api/aerocivil/readiness?authorizationId=' + selectedRequestId);
+      const data = await res.json();
+      if (res.ok) setReadiness(data);
+    } catch {
+      // silencioso — el checklist es informativo
+    }
+  }, [selectedRequestId, isManager]);
+
+  useEffect(() => {
+    loadReadiness();
+  }, [loadReadiness]);
 
   async function createRequest(e) {
     e.preventDefault();
@@ -379,6 +444,8 @@ export default function AerocivilPage() {
           </div>
         ))}
       </div>
+
+      {selectedRequestId && isManager && readiness && <RceChecklistItem rce={readiness.rce} />}
 
       {selectedRequestId && (
         <div>

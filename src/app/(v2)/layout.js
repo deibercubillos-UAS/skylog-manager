@@ -71,6 +71,7 @@ const NAV_LINKS = [
   { name: 'Capacitación', icon: 'school', href: '/capacitacion', group: 'Documentación' },
   { name: 'Listas de Chequeo', icon: 'checklist', href: '/listas-de-chequeo', group: 'Documentación' },
   { name: 'Proveedores', icon: 'storefront', href: '/proveedores', group: 'Documentación', managerOnly: true },
+  { name: 'Pólizas', icon: 'verified_user', href: '/polizas', group: 'Documentación', managerOnly: true },
   { name: 'Reportes', icon: 'summarize', href: '/reportes', group: 'Documentación', managerOnly: true },
   { name: 'Manuales', icon: 'library_books', href: '/manuales', group: 'Documentación' },
   // Expediente Aerocivil oculto a pedido del usuario (2026-09-30) — la página

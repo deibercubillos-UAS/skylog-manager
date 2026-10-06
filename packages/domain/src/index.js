@@ -23,3 +23,4 @@ export * from './smsReporterConfidentiality.js';
 export * from './organizationSmsProfile.js';
 export * from './smsImplementationProgress.js';
 export * from './workspaces.js';
+export * from './insuranceCoverage.js';

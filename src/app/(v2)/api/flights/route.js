@@ -42,7 +42,7 @@ export async function GET(request) {
 
   const { data: flights, error } = await supabase
     .from('flights')
-    .select('*, pilot:pilot_person_id(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model))')
+    .select('*, pilot:pilot_person_id(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model)), weather:weather_observation_id(observed_at, payload)')
     .eq('organization_id', organizationId)
     .order('takeoff_at', { ascending: false })
     .limit(200);

@@ -532,6 +532,15 @@ export default function BitacoraPage() {
                         <span className="px-2.5 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs font-black uppercase border border-blue-100">
                           {f.visual_condition || '—'}
                         </span>
+                        {f.weather?.payload?.current && (
+                          <span
+                            className="material-symbols-outlined text-base align-middle ml-1.5 text-sky-500"
+                            title={`Clima al despachar: ${f.weather.payload.current.temperature_2m} °C · viento ${f.weather.payload.current.wind_speed_10m} km/h · rachas ${f.weather.payload.current.wind_gusts_10m} km/h${f.weather.payload.visibility_m != null ? ` · visibilidad ${f.weather.payload.visibility_m} m` : ''}`}
+                            aria-label="Clima archivado con este vuelo"
+                          >
+                            cloud
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 whitespace-nowrap">
                         {f.aircraft ? `${f.aircraft.model?.brand} ${f.aircraft.model?.model} — ${f.aircraft.serial_number}` : '—'}

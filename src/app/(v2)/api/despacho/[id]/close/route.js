@@ -9,6 +9,7 @@
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, getRecentFlights } from '@/lib/v2/duty';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
+import { linkFlightWeather } from '@/lib/v2/weatherSnapshot';
 import { validateFlightClose, evaluateFlightLimits } from '@skylog/domain';
 
 const VISUAL_LINES = ['VLOS', 'EVLOS', 'BVLOS'];
@@ -57,7 +58,8 @@ export async function POST(request, { params }) {
   const limits = evaluateFlightLimits(recent, { personId, takeoffAt, totalTime: check.totalTime, lineOfSight: lineOfSight || 'VLOS' });
   const dutyWarnings = limits.warnings;
 
-  const { data: flightId, error } = await createAdminClient().rpc('v2_dispatch_close', {
+  const admin = createAdminClient();
+  const { data: flightId, error } = await admin.rpc('v2_dispatch_close', {
     p: {
       dispatch_id: id,
       pilot_person_id: personId,
@@ -77,5 +79,8 @@ export async function POST(request, { params }) {
     return Response.json({ error: known ? error.message : 'No se pudo registrar el cierre del vuelo' }, { status: known ? 409 : 500 });
   }
 
-  return Response.json({ flightId, totalTime: check.totalTime, dutyWarnings, safetyReport: !!safetyReport, safetyReportType: safetyReport ? safetyReportType : null });
+  // Enlaza el clima archivado al despachar con el vuelo (mejor esfuerzo).
+  const weatherLinked = await linkFlightWeather(admin, { dispatchId: id, flightId });
+
+  return Response.json({ flightId, weatherLinked, totalTime: check.totalTime, dutyWarnings, safetyReport: !!safetyReport, safetyReportType: safetyReport ? safetyReportType : null });
 }

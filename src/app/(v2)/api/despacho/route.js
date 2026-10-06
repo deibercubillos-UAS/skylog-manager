@@ -9,6 +9,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { loadDispatchContext, bogotaDay } from '@/lib/v2/dispatchContext';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
+import { archiveDispatchWeather } from '@/lib/v2/weatherSnapshot';
 import { buildChecklistItems, evaluateDispatchRisk } from '@skylog/domain';
 
 const one = (x) => (Array.isArray(x) ? x[0] : x) || null;
@@ -119,5 +120,8 @@ export async function POST(request) {
     return Response.json({ error: known ? error.message : 'No se pudo registrar el despacho' }, { status: known ? 409 : 500 });
   }
 
-  return Response.json({ dispatchId, warnings: ctx.gates.filter((g) => g.status === 'warn'), noCount: checklist.noCount });
+  // Constancia del clima con el que se decidió volar (mejor esfuerzo: nunca detiene un despacho ya registrado).
+  const weather = await archiveDispatchWeather(createAdminClient(), { organizationId: ctx.organizationId, dispatchId, missionId });
+
+  return Response.json({ dispatchId, warnings: ctx.gates.filter((g) => g.status === 'warn'), noCount: checklist.noCount, weatherArchived: weather.archived });
 }

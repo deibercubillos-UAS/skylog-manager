@@ -91,7 +91,7 @@ export default function PersonAdditions({ personId = null, readOnly = false }) {
       )}
       {!readOnly && (
         <div className="flex flex-wrap gap-2 items-end">
-          <select value={pick} onChange={(e) => setPick(e.target.value)} className="text-xs border border-navy-200 rounded-lg px-2 py-2 bg-white max-w-[260px]">
+          <select value={pick} onChange={(e) => setPick(e.target.value)} className="min-h-[44px] md:min-h-0 text-base md:text-xs border border-navy-200 rounded-lg px-2 py-2 bg-white max-w-[260px]">
             <option value="">Agregar adición…</option>
             {catalog.filter((c) => !taken.has(c)).map((c) => (
               <option key={c} value={c}>{c}</option>
@@ -99,7 +99,7 @@ export default function PersonAdditions({ personId = null, readOnly = false }) {
           </select>
           <label className="text-[11px] text-navy-400">
             Vigencia (opcional)
-            <input type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} className="block text-xs border border-navy-200 rounded-lg px-2 py-1.5 bg-white" />
+            <input type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} className="block min-h-[44px] md:min-h-0 text-base md:text-xs border border-navy-200 rounded-lg px-2 py-1.5 bg-white" />
           </label>
           <Button type="button" className="text-xs px-3 py-2" disabled={busy || !pick} onClick={add}>
             Agregar

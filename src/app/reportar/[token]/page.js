@@ -175,7 +175,7 @@ export default function ReportarPage() {
           <p className="text-xs font-semibold text-navy-500">
             Fotos o documentos (opcional) — {files.length}/{MAX_FILES} · {formatBytes(totalBytes)} de 4 MB
           </p>
-          <button type="button" onClick={() => fileInput.current?.click()} disabled={files.length >= MAX_FILES} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-primary-50 text-primary-700 hover:bg-primary-100 disabled:opacity-40">
+          <button type="button" onClick={() => fileInput.current?.click()} disabled={files.length >= MAX_FILES} className="text-xs font-semibold px-4 min-h-[44px] rounded-full bg-primary-50 text-primary-700 hover:bg-primary-100 disabled:opacity-40">
             Agregar
           </button>
         </div>
@@ -183,14 +183,14 @@ export default function ReportarPage() {
         {files.map((f, i) => (
           <div key={`${f.name}-${i}`} className="flex items-center justify-between text-xs text-navy-600 mt-1.5">
             <span className="truncate">{f.name}</span>
-            <button type="button" onClick={() => setFiles(files.filter((_, j) => j !== i))} className="text-red-500 font-semibold ml-2 shrink-0">Quitar</button>
+            <button type="button" onClick={() => setFiles(files.filter((_, j) => j !== i))} className="text-red-500 font-semibold ml-2 shrink-0 min-h-[44px] px-3">Quitar</button>
           </div>
         ))}
       </div>
 
       <Field label="Tu contacto (opcional)" value={form.contact} onChange={(e) => set({ contact: e.target.value })} placeholder="Teléfono o correo, por si hay que pedirte más información" />
-      <label className="flex items-start gap-2 text-xs text-navy-500 mb-3">
-        <input type="checkbox" className="mt-0.5" checked={form.confidential} onChange={(e) => set({ confidential: e.target.checked })} />
+      <label className="flex items-start gap-3 text-xs text-navy-500 mb-3 py-2">
+        <input type="checkbox" className="mt-0.5 w-5 h-5 shrink-0 accent-primary" checked={form.confidential} onChange={(e) => set({ confidential: e.target.checked })} />
         Mantener mi contacto confidencial: solo lo verá el Gerente SMS.
       </label>
 

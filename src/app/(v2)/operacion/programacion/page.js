@@ -476,7 +476,7 @@ export default function ProgramacionPage() {
                     disabled={implied}
                     title={implied ? 'Lo exige el tipo de visión de la operación' : undefined}
                     onClick={() => setForm((f) => ({ ...f, requiredAdditions: on ? f.requiredAdditions.filter((x) => x !== a) : [...f.requiredAdditions, a] }))}
-                    className={`px-2.5 h-7 rounded-full text-[10px] font-bold border transition-colors ${on ? 'border-primary bg-primary/10 text-primary-700' : 'border-navy-200 text-navy-400 hover:border-navy-300'}`}
+                    className={`px-3 min-h-[36px] rounded-full text-[11px] font-bold border transition-colors ${on ? 'border-primary bg-primary/10 text-primary-700' : 'border-navy-200 text-navy-400 hover:border-navy-300'}`}
                   >
                     {a}
                   </button>

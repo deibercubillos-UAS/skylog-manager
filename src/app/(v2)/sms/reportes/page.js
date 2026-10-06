@@ -114,7 +114,7 @@ function ReportCard({ report, isAnalyst, onAnalyze, onFile, onOpenCase, busy }) 
           </div>
           {filing && (
             <div className="flex gap-2 flex-wrap items-center">
-              <input value={irisRef} onChange={(e) => setIrisRef(e.target.value)} placeholder="Referencia de IRIS (opcional)" className="flex-1 min-w-[200px] text-xs border border-navy-200 rounded-lg px-3 py-2" />
+              <input value={irisRef} onChange={(e) => setIrisRef(e.target.value)} placeholder="Referencia de IRIS (opcional)" className="flex-1 min-w-[200px] min-h-[44px] md:min-h-0 text-base md:text-xs border border-navy-200 rounded-lg px-3 py-2" />
               <Button className="text-xs px-3 py-2" disabled={busy} onClick={async () => { await onFile(report.id, irisRef); setFiling(false); setIrisRef(''); }}>
                 Confirmar radicación
               </Button>
@@ -269,7 +269,7 @@ export default function SmsReportesPage() {
         cta={
           <div className="flex items-center gap-2 flex-wrap">
             {context.organizations?.length > 1 && (
-              <select value={organizationId} onChange={(e) => setOrganizationId(e.target.value)} className="rounded-xl bg-white/10 border border-white/20 text-white text-xs px-3 py-2 backdrop-blur-sm">
+              <select value={organizationId} onChange={(e) => setOrganizationId(e.target.value)} className="rounded-xl bg-white/10 border border-white/20 text-white min-h-[44px] md:min-h-0 text-base md:text-xs px-3 py-2 backdrop-blur-sm">
                 {context.organizations.map((o) => (
                   <option key={o.id} value={o.id} className="text-navy">
                     {o.name} ({o.role})

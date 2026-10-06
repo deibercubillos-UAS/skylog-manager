@@ -64,7 +64,7 @@ export default function PublicLink({ organizationId }) {
       ) : token ? (
         <div className="space-y-3">
           <div className="flex gap-2 items-center flex-wrap">
-            <input readOnly value={url} onFocus={(e) => e.target.select()} className="flex-1 min-w-[240px] text-xs font-mono border border-navy-200 rounded-lg px-3 py-2 bg-navy-50/50" />
+            <input readOnly value={url} onFocus={(e) => e.target.select()} className="flex-1 min-w-[240px] min-h-[44px] md:min-h-0 text-base md:text-xs font-mono border border-navy-200 rounded-lg px-3 py-2 bg-navy-50/50" />
             <Button className="text-xs px-3 py-2" onClick={copy}>{copied ? 'Copiado ✓' : 'Copiar enlace'}</Button>
           </div>
           <p className="text-[11px] text-navy-400">

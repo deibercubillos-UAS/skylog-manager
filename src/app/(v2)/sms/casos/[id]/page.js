@@ -195,7 +195,7 @@ export default function CasoPage() {
               </div>
             ) : canFile ? (
               <div className="flex gap-2 flex-wrap items-center">
-                <input value={irisRef} onChange={(e) => setIrisRef(e.target.value)} placeholder="Referencia de IRIS (opcional)" className="flex-1 min-w-[200px] text-sm border border-navy-200 rounded-xl px-3 py-2" />
+                <input value={irisRef} onChange={(e) => setIrisRef(e.target.value)} placeholder="Referencia de IRIS (opcional)" className="flex-1 min-w-[200px] min-h-[44px] md:min-h-0 text-base md:text-sm border border-navy-200 rounded-xl px-3 py-2" />
                 <Button disabled={busy} onClick={fileReport}>Marcar como radicado</Button>
               </div>
             ) : null}
@@ -205,15 +205,15 @@ export default function CasoPage() {
             <div className="space-y-3">
               <label className="block text-xs font-semibold text-navy-500">
                 Resumen de la investigación
-                <textarea value={analysis.investigationSummary} onChange={(e) => setAnalysis((a) => ({ ...a, investigationSummary: e.target.value }))} disabled={closed} rows={4} className="mt-1 w-full text-sm border border-navy-200 rounded-xl px-3 py-2.5 disabled:bg-navy-50" placeholder="Qué se investigó, qué se encontró y qué se concluyó." />
+                <textarea value={analysis.investigationSummary} onChange={(e) => setAnalysis((a) => ({ ...a, investigationSummary: e.target.value }))} disabled={closed} rows={4} className="mt-1 w-full text-base md:text-sm border border-navy-200 rounded-xl px-3 py-2.5 disabled:bg-navy-50" placeholder="Qué se investigó, qué se encontró y qué se concluyó." />
               </label>
               <label className="block text-xs font-semibold text-navy-500">
                 Factores contribuyentes
-                <textarea value={analysis.contributingFactors} onChange={(e) => setAnalysis((a) => ({ ...a, contributingFactors: e.target.value }))} disabled={closed} rows={3} className="mt-1 w-full text-sm border border-navy-200 rounded-xl px-3 py-2.5 disabled:bg-navy-50" placeholder="Humanos, técnicos, organizacionales, ambientales…" />
+                <textarea value={analysis.contributingFactors} onChange={(e) => setAnalysis((a) => ({ ...a, contributingFactors: e.target.value }))} disabled={closed} rows={3} className="mt-1 w-full text-base md:text-sm border border-navy-200 rounded-xl px-3 py-2.5 disabled:bg-navy-50" placeholder="Humanos, técnicos, organizacionales, ambientales…" />
               </label>
               <label className="block text-xs font-semibold text-navy-500">
                 Peligro asociado (catálogo de Evaluación de Riesgo)
-                <select value={analysis.hazardId} onChange={(e) => setAnalysis((a) => ({ ...a, hazardId: e.target.value }))} disabled={closed} className="mt-1 w-full text-sm border border-navy-200 rounded-xl px-3 py-2.5 bg-white disabled:bg-navy-50">
+                <select value={analysis.hazardId} onChange={(e) => setAnalysis((a) => ({ ...a, hazardId: e.target.value }))} disabled={closed} className="mt-1 w-full min-h-[44px] md:min-h-0 text-base md:text-sm border border-navy-200 rounded-xl px-3 py-2.5 bg-white disabled:bg-navy-50">
                   <option value="">— Ninguno / aún no identificado —</option>
                   {hazards.map((h) => (
                     <option key={h.id} value={h.id}>{h.description}</option>
@@ -247,14 +247,14 @@ export default function CasoPage() {
             </ul>
             {!closed && (
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-start">
-                <input value={newAction.description} onChange={(e) => setNewAction((n) => ({ ...n, description: e.target.value }))} placeholder="Nueva acción correctiva" className="text-sm border border-navy-200 rounded-xl px-3 py-2" />
-                <select value={newAction.responsibleId} onChange={(e) => setNewAction((n) => ({ ...n, responsibleId: e.target.value }))} className="text-sm border border-navy-200 rounded-xl px-2 py-2 bg-white">
+                <input value={newAction.description} onChange={(e) => setNewAction((n) => ({ ...n, description: e.target.value }))} placeholder="Nueva acción correctiva" className="min-h-[44px] md:min-h-0 text-base md:text-sm border border-navy-200 rounded-xl px-3 py-2" />
+                <select value={newAction.responsibleId} onChange={(e) => setNewAction((n) => ({ ...n, responsibleId: e.target.value }))} className="min-h-[44px] md:min-h-0 text-base md:text-sm border border-navy-200 rounded-xl px-2 py-2 bg-white">
                   <option value="">Responsable…</option>
                   {members.map((m) => (
                     <option key={m.personId} value={m.personId}>{m.fullName}</option>
                   ))}
                 </select>
-                <input type="date" value={newAction.dueDate} onChange={(e) => setNewAction((n) => ({ ...n, dueDate: e.target.value }))} className="text-sm border border-navy-200 rounded-xl px-2 py-2" />
+                <input type="date" value={newAction.dueDate} onChange={(e) => setNewAction((n) => ({ ...n, dueDate: e.target.value }))} className="min-h-[44px] md:min-h-0 text-base md:text-sm border border-navy-200 rounded-xl px-2 py-2" />
                 <Button className="text-xs px-4 py-2" disabled={busy || !newAction.description.trim()} onClick={addAction}>Agregar</Button>
               </div>
             )}

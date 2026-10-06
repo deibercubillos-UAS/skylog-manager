@@ -28,7 +28,7 @@ function emptyHazardState() {
   }, {});
 }
 
-const selectCls = 'px-2.5 py-1.5 rounded-lg border border-navy-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-primary-300';
+const selectCls = 'px-2.5 py-1.5 rounded-lg border border-navy-200 min-h-[44px] md:min-h-0 text-base md:text-xs bg-white focus:outline-none focus:ring-2 focus:ring-primary-300';
 
 function LevelSelects({ prob, sev, onProb, onSev }) {
   return (
@@ -385,7 +385,7 @@ export default function AerocivilPage() {
         description="Prepara la solicitud de autorización y el análisis de riesgos oficial MAUT-5.0-12-055 antes de radicar en la Plataforma UAS Colombia."
         cta={
           context.organizations?.length > 1 && (
-            <select className="bg-white/10 text-white text-sm rounded-xl px-3 py-2 border border-white/20" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}>
+            <select className="bg-white/10 text-white min-h-[44px] md:min-h-0 text-base md:text-sm rounded-xl px-3 py-2 border border-white/20" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}>
               {context.organizations.map((o) => (
                 <option key={o.id} value={o.id} className="text-navy">{o.name} ({o.role})</option>
               ))}

@@ -18,6 +18,8 @@ export const RETAINED_RECORD_TYPES = [
   { table: 'duty_exceptions', label: 'Excepciones a tiempos de servicio', dateColumn: 'created_at' },
   { table: 'duty_annual_certifications', label: 'Certificaciones anuales de horas', dateColumn: 'certified_at' },
   { table: 'missions', label: 'Misiones programadas', dateColumn: 'scheduled_at' },
+  { table: 'dispatches', label: 'Despachos de vuelo (verificaciones y riesgos)', dateColumn: 'dispatched_at' },
+  { table: 'dispatch_checklist_items', label: 'Listas de chequeo diligenciadas en el despacho', dateColumn: 'created_at' },
   { table: 'authorization_requests', label: 'Solicitudes de autorización de vuelo', dateColumn: 'created_at' },
   { table: 'risk_analyses', label: 'Análisis de riesgos por autorización', dateColumn: 'created_at' },
   { table: 'sms_reports', label: 'Reportes SMS (MOR/VOR)', dateColumn: 'created_at' },

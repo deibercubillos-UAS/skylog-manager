@@ -673,7 +673,7 @@ export default function ProgramacionPage() {
                                 </button>
                               </div>
                             ) : (
-                              isManager && (
+                              isManager && m.status === 'programada' && (
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -688,6 +688,11 @@ export default function ProgramacionPage() {
                               )
                             )}
 
+                            {(m.status === 'despachada' || m.status === 'cerrada') && (
+                              <p className={`font-semibold ${m.status === 'cerrada' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                {m.status === 'cerrada' ? 'Cerrada — vuelo registrado' : 'Despachada — falta registrar el vuelo'}
+                              </p>
+                            )}
                             <p className="truncate">
                               <span className="text-navy-300">PIC:</span> {m.pic?.full_name || '—'}
                             </p>
@@ -730,7 +735,7 @@ export default function ProgramacionPage() {
                                   <span className="material-symbols-outlined text-[15px]">map</span>
                                 </button>
                               )}
-                              {isManager && !isCancelled && (
+                              {isManager && m.status === 'programada' && (
                                 <button
                                   type="button"
                                   disabled={busy}

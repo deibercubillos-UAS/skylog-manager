@@ -38,9 +38,15 @@ export async function PATCH(request, { params }) {
     return Response.json({ error: 'Ningún campo editable en el cuerpo de la petición' }, { status: 400 });
   }
 
-  const { data: mission, error: findError } = await supabase.from('missions').select('organization_id').eq('id', params.id).maybeSingle();
+  const { data: mission, error: findError } = await supabase.from('missions').select('organization_id, status').eq('id', params.id).maybeSingle();
   if (findError) return Response.json({ error: 'Error consultando la misión' }, { status: 500 });
   if (!mission) return Response.json({ error: 'Misión no encontrada' }, { status: 404 });
+  // Una misión despachada o cerrada ya tiene constancia (verificaciones, listas, vuelo): cambiar su
+  // PIC, aeronave o estado la dejaría contradiciendo esa evidencia. El ciclo programada → despachada
+  // → cerrada solo lo mueven el Despacho y el Cierre de vuelo (/operacion/despacho).
+  if (mission.status === 'despachada' || mission.status === 'cerrada') {
+    return Response.json({ error: `Esta misión está ${mission.status} y ya no se puede modificar ni cancelar.` }, { status: 409 });
+  }
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });

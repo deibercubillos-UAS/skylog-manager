@@ -13,6 +13,8 @@ import { SectionHero, SectionCard, StatCard } from '../../_components/SectionHer
 
 const MISSION_STATUS_META = {
   programada: { label: 'Programada', soft: 'bg-blue-100 text-blue-700' },
+  despachada: { label: 'Despachada', soft: 'bg-amber-100 text-amber-700' },
+  cerrada: { label: 'Cerrada', soft: 'bg-emerald-100 text-emerald-700' },
   cancelada: { label: 'Cancelada', soft: 'bg-navy-100 text-navy-500' },
 };
 
@@ -185,19 +187,16 @@ export default function CentroDeControlPage() {
   }
 
   const { now } = todayRangeISO();
-  const activeMissions = missions.filter((m) => m.status === 'programada');
+  const activeMissions = missions.filter((m) => m.status !== 'cancelada');
   const availableAircraft = fleet.filter((a) => a.operational_status === 'disponible').length;
   const maintenanceAircraft = fleet.filter((a) => a.operational_status === 'en_mantenimiento').length;
   const onlineDrones = c2Sessions.filter((s) => s.status === 'online');
 
-  // Pendiente por cerrar — heurística honesta: `missions` no tiene FK hacia
-  // `flights` todavía (ver api/missions/route.js), así que no hay forma
-  // exacta de saber "ese vuelo cerró esa misión". Se aproxima por PIC: una
-  // misión de hoy cuya hora ya pasó se marca pendiente si ESE piloto no
-  // registró ningún vuelo hoy — deja de estarlo en cuanto registre uno,
-  // sea o no exactamente el de esa misión.
-  const pilotsWithFlightToday = new Set(flights.map((f) => f.pilot_person_id));
-  const pendingMissions = activeMissions.filter((m) => new Date(m.scheduled_at) <= now && !pilotsWithFlightToday.has(m.pic_person_id));
+  // Qué falta — ahora con datos exactos: la misión tiene estado propio (programada → despachada →
+  // cerrada) desde el Despacho, ya no hace falta adivinar por piloto.
+  //  · sin cerrar: despachada (el vuelo se despachó y falta registrarlo)
+  //  · sin despachar: programada cuya hora ya pasó
+  const pendingMissions = missions.filter((m) => m.status === 'despachada' || (m.status === 'programada' && new Date(m.scheduled_at) <= now));
 
   return (
     <div className="space-y-6">
@@ -298,16 +297,18 @@ export default function CentroDeControlPage() {
           tile="bg-amber-500 text-white"
           wash="from-amber-50 to-white"
           title="Qué falta por cerrar"
-          description={`${pendingMissions.length} misión(es) de hoy sin vuelo registrado todavía (por PIC — aproximado, sin enlace directo misión↔vuelo aún)`}
+          description={`${pendingMissions.length} misión(es) de hoy: despachadas sin vuelo registrado, o programadas cuya hora ya pasó sin despachar`}
         >
           <div className="space-y-2">
             {pendingMissions.map((m) => (
               <div key={m.id} className="flex items-center justify-between gap-3 text-xs bg-white rounded-lg border border-amber-100 px-3 py-2">
                 <div>
                   <p className="font-bold text-navy">{m.name}</p>
-                  <p className="text-navy-400">{m.pic?.full_name || '—'} · programada {formatTime24(m.scheduled_at)}</p>
+                  <p className="text-navy-400">
+                    {m.pic?.full_name || '—'} · {m.status === 'despachada' ? 'despachada — falta registrar el vuelo' : `programada ${formatTime24(m.scheduled_at)} — sin despachar`}
+                  </p>
                 </div>
-                <span className="material-symbols-outlined text-amber-500">schedule</span>
+                <span className="material-symbols-outlined text-amber-500">{m.status === 'despachada' ? 'flight_land' : 'schedule'}</span>
               </div>
             ))}
           </div>

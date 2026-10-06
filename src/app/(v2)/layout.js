@@ -38,6 +38,7 @@ const NAV_LINKS = [
   { name: 'Centro de Control', icon: 'hub', href: '/operacion/centro-de-control', group: 'Operación' },
   { name: 'Bitácora', icon: 'menu_book', href: '/operacion/bitacora', group: 'Operación' },
   { name: 'Programación', icon: 'event_available', href: '/operacion/programacion', group: 'Operación' },
+  { name: 'Despacho', icon: 'rocket_launch', href: '/operacion/despacho', group: 'Operación' },
   { name: 'Meteorología', icon: 'partly_cloudy_day', href: '/operacion/meteorologia', group: 'Operación' },
   { name: 'Tiempo de servicio', icon: 'schedule', href: '/operacion/duty', group: 'Operación' },
   { name: 'Aeronaves', icon: 'flight', href: '/flota', group: 'Flota & Equipo' },

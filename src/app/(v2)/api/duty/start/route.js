@@ -7,13 +7,8 @@
 // 'disponibilidad'/'entrenamiento' nunca se bloquean por estas reglas — son
 // justamente lo que resuelve la situación, no lo que la causa.
 import { createClientSSR } from '@/lib/supabaseServer';
-import {
-  resolveCurrentPerson,
-  getOpenDutyPeriod,
-  getLastClosedServicePeriod,
-  getRecentFlights,
-} from '@/lib/v2/duty';
-import { checkMonthlyFlightHours, checkDailyFlightHours, checkRestPeriod, computeExamCompliance, dayKey, monthKey } from '@skylog/domain';
+import { resolveCurrentPerson, getOpenDutyPeriod } from '@/lib/v2/duty';
+import { evaluateServiceGates } from '@/lib/v2/serviceGates';
 
 const VALID_TYPES = ['servicio', 'descanso', 'disponibilidad', 'entrenamiento'];
 
@@ -49,89 +44,26 @@ export async function POST(request) {
   }
 
   if (type === 'servicio') {
-    const now = new Date();
+    // Mismas verificaciones que el Despacho (lib/v2/serviceGates.js): una sola fuente de verdad.
+    // Orden de respuesta conservado: examen → descanso mínimo → límites de horas de vuelo.
+    const gates = await evaluateServiceGates(supabase, { organizationId, personId, now: new Date() });
+    if (gates.error) return Response.json({ error: gates.error }, { status: 500 });
 
-    const [{ data: lastService, error: lastServiceError }, { data: recentFlights, error: flightsError }] = await Promise.all([
-      getLastClosedServicePeriod(supabase, personId),
-      getRecentFlights(supabase, personId, 32),
-    ]);
-    if (lastServiceError || flightsError) {
-      return Response.json({ error: 'Error verificando cumplimiento previo' }, { status: 500 });
-    }
-
-    // Bloqueo real por incumplimiento del examen de Capacitación (área propia,
-    // /capacitacion) — un piloto que agotó sus intentos del ciclo vigente sin
-    // aprobar no puede iniciar servicio, igual que producción bloquea el
-    // despacho por examen reprobado/vencido. Nunca bloquea si la organización
-    // no configuró examen (`not_configured` es compliant=true por diseño).
-    const { data: examRow, error: examError } = await supabase
-      .from('training_exams')
-      .select('*')
-      .eq('organization_id', organizationId)
-      .maybeSingle();
-    if (examError) return Response.json({ error: 'Error verificando el examen de capacitación' }, { status: 500 });
-
-    if (examRow) {
-      const { data: attempts, error: attemptsError } = await supabase
-        .from('training_exam_attempts')
-        .select('cycle_start, passed')
-        .eq('organization_id', organizationId)
-        .eq('person_id', personId);
-      if (attemptsError) return Response.json({ error: 'Error verificando los intentos del examen' }, { status: 500 });
-
-      const examCompliance = computeExamCompliance(
-        {
-          recurrence: examRow.recurrence,
-          recurrenceDays: examRow.recurrence_days,
-          startDate: examRow.start_date,
-          maxAttempts: examRow.max_attempts,
-        },
-        (attempts || []).map((a) => ({ cycleStart: a.cycle_start, passed: a.passed })),
-        now
-      );
-      if (!examCompliance.compliant) {
-        return Response.json(
-          {
-            error: 'Examen de Capacitación reprobado sin intentos disponibles en el ciclo vigente — no se puede iniciar servicio',
-            examCompliance,
-          },
-          { status: 409 }
-        );
-      }
-    }
-
-    // Descanso mínimo desde el último servicio (§100.540(f)) — solo evaluable si
-    // ya hubo un servicio cerrado antes; el primero de la historia no tiene nada
-    // que comparar.
-    if (lastService) {
-      const serviceDurationHours =
-        (new Date(lastService.ended_at).getTime() - new Date(lastService.started_at).getTime()) / 3_600_000;
-      const restDurationHours = (now.getTime() - new Date(lastService.ended_at).getTime()) / 3_600_000;
-      const rest = checkRestPeriod({ serviceDurationHours, restDurationHours });
-      if (!rest.compliant) {
-        return Response.json(
-          { error: 'No ha pasado el descanso mínimo desde el último servicio (§100.540(f))', check: rest },
-          { status: 409 }
-        );
-      }
-    }
-
-    // Vuelo mensual/diario ya en el límite — no tiene sentido habilitar más
-    // servicio si el piloto ya no puede volar más este mes/día.
-    const domainFlights = recentFlights.map((f) => ({
-      personId,
-      date: f.takeoff_at,
-      totalTimeHours: Number(f.total_time),
-      lineOfSight: f.visual_condition,
-    }));
-    const today = dayKey(now);
-    const todayFlights = domainFlights.filter((f) => dayKey(new Date(f.date)) === today);
-    const lineOfSight = todayFlights.some((f) => f.lineOfSight === 'BVLOS') ? 'BVLOS' : 'VLOS';
-    const monthly = checkMonthlyFlightHours(domainFlights, { personId, month: monthKey(now) });
-    const daily = checkDailyFlightHours(domainFlights, { personId, day: today, lineOfSight });
-    if (!monthly.compliant || !daily.compliant) {
+    if (gates.examCompliance && !gates.examCompliance.compliant) {
       return Response.json(
-        { error: 'Ya se excedió un límite de horas de vuelo (§100.540) — no se puede iniciar más servicio', checks: { monthly, daily } },
+        {
+          error: 'Examen de Capacitación reprobado sin intentos disponibles en el ciclo vigente — no se puede iniciar servicio',
+          examCompliance: gates.examCompliance,
+        },
+        { status: 409 }
+      );
+    }
+    if (gates.rest && !gates.rest.compliant) {
+      return Response.json({ error: 'No ha pasado el descanso mínimo desde el último servicio (§100.540(f))', check: gates.rest }, { status: 409 });
+    }
+    if (!gates.monthly.compliant || !gates.daily.compliant) {
+      return Response.json(
+        { error: 'Ya se excedió un límite de horas de vuelo (§100.540) — no se puede iniciar más servicio', checks: { monthly: gates.monthly, daily: gates.daily } },
         { status: 409 }
       );
     }

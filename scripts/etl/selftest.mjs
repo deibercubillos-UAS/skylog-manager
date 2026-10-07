@@ -43,6 +43,22 @@ ok(plan.accounts.filter((a) => a.password_hash).length === 4 && r.warnings.some(
 ok(r.flags.some((f) => /vencida/.test(f.flag)) && r.flags.some((f) => /ePayco/.test(f.flag)), 'suscripciones por confirmar');
 // 10. La baja de una aeronave la deja fuera de servicio y los inactivos cierran su membresía.
 ok(plan.memberships.find((m) => m.source === 'pilots' && !m.active)?.ended_at, 'membresía cerrada sin fecha de fin');
+// 10b. Fase 2.
+ok(plan.maintenance.length === 1 && plan.maintenance[0].row.type === 'programado', 'mantenimiento');
+ok(r.omitted.some((o) => o.entity === 'maintenance_events' && /fecha/.test(o.reason)), 'mantenimiento sin fecha debe omitirse');
+ok(plan.maintenance[0].attachment.bucket === 'maintenance-docs' && plan.maintenance[0].receipt.key.endsWith('recibo.pdf'), 'archivos de mantenimiento');
+ok(plan.suppliers[0].row.contact === 'Luis · l@r.co · 300' && plan.suppliers[0].row.nit === '800.1-1', 'proveedor');
+ok(plan.audits[0].row.auditor_name === 'Sin registrar (migrada)', 'auditoría sin auditor');
+ok(plan.manuals.length === 1 && plan.manualVersions.length === 2 && plan.manualAcks.length === 1, 'manuales');
+const health = plan.checklists.find((c) => c.row.name === 'Salud del piloto');
+ok(health && health.row.steps.join('|') === 'Descansé 8 h|Sin alcohol', 'lista de salud ordenada y sin vacíos');
+ok(plan.checklists.some((c) => c.row.name === 'Pre-vuelo — JGJ') && plan.checklists.some((c) => c.row.name === 'Falla de enlace') && !plan.checklists.some((c) => /SORA/.test(c.row.name)), 'listas de chequeo');
+ok(plan.personDocs.some((d) => d.doc_type === 'cedula') && plan.personDocs.find((d) => d.doc_type === 'certificado_medico').ref.bucket === 'fleet-images', 'expediente con URL del CDN');
+ok(plan.aircraftImages.length === 1 && plan.archive.sora_assessments.length === 1 && !JSON.stringify(plan.archive.auth_users).includes('$2a$'), 'archivo de v1 sin contraseñas');
+// 10c. SMS.
+ok(plan.smsReports.length === 2 && plan.smsReports.find((x) => x.v1Id.startsWith('report:')).row.route === 'vor', 'reportes SMS y VOR/MOR');
+ok(plan.caseActions.length === 1 && plan.caseEvents.length === 2 && r.omitted.some((o) => o.entity === 'sms_case_actions'), 'acciones y eventos de casos (la huérfana se omite)');
+ok(plan.hazards.length === 2 && plan.hazards.filter((h) => h.assessment).length === 1 && plan.barriers.length === 1, 'peligros y barreras');
 // 11. Idempotencia del plan: dos construcciones iguales.
 ok(JSON.stringify(buildPlan(syntheticV1(), { today: new Date('2026-10-06T00:00:00Z') }).report.counts) === JSON.stringify(r.counts), 'plan no determinista');
 

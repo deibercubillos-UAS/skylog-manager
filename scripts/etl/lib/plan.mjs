@@ -5,6 +5,7 @@ import { DJI_MODELS_CATALOG } from '../../../src/lib/v2/djiModelsCatalog.js';
 import {
   mergePeople, transformFlight, transformMission, transformSubscription, mapBatteryHealth, mapBatteryStatus, mapAircraftStatus,
   resolveBrandModel, modelKey, roleFromPilotRole, mapMembershipRole, dateOnly,
+  transformMaintenance, transformSmsReport, transformVorMor, transformCaseAction, transformCaseEvent, transformHazard, transformBarrier, joinSupplierContact, mapManualStatus, groupChecklists, transformProtocol, v1ObjectRef, personDocuments,
 } from '../../../packages/domain/src/migration/index.js';
 
 const clean = (v) => (v === null || v === undefined ? '' : String(v).trim());
@@ -230,5 +231,119 @@ export function buildPlan(t, { today = new Date() } = {}) {
   const geo = tbl('colombia_geo').map((g) => ({ code: g['Código Municipio'] ?? g.code, department: g['Nombre Departamento'] ?? g.department, municipality: g['Nombre Municipio'] ?? g.municipality })).filter((g) => g.code && g.department && g.municipality);
   count('colombia_geo', tbl('colombia_geo').length, geo.length);
 
-  return { orgs, people, accounts, memberships: [...memberships.values()], additions, models: [...models.values()], aircraft, batteries, components, missions, flights, unassigned, insurance, subscriptions, partners, partnerCodes, partnerMembers, grants, referrals, release, geo, report };
+  // ── 6. Fase 2: mantenimiento, contactos, proveedores, manuales, listas de chequeo, archivos ───────────────────
+  const orgCtx = { organization: (id) => (orgIds.has(id) ? id : null), aircraft: (id) => (aircraftIds.has(id) ? id : null) };
+  const maintenance = [];
+  for (const m of tbl('maintenance_logs')) {
+    const r = transformMaintenance(m, orgCtx);
+    if (!r.ok) { omit('maintenance_events', m.id, r.reason); continue; }
+    r.warnings.forEach((w) => warn('maintenance_events', m.id, w));
+    if (r.hasChecklists) warn('maintenance_events', m.id, 'tenía lista de recibo/mantenimiento menor diligenciada: se conserva en el archivo de v1 (legacy_v1_rows)');
+    maintenance.push({ v1Id: m.id, v1Org: m.organization_id, v1Aircraft: m.aircraft_id, row: r.row, attachment: v1ObjectRef(r.attachment, 'maintenance-docs'), receipt: v1ObjectRef(r.receipt, 'maintenance-docs') });
+  }
+  count('maintenance_events', tbl('maintenance_logs').length, maintenance.length);
+
+  const emergencyContacts = tbl('emergency_contacts').filter((c) => orgIds.has(c.organization_id)).map((c) => ({ v1Id: c.id, v1Org: c.organization_id, row: { name: clean(c.name), role: clean(c.role) || null, phone: clean(c.phone) || null, email: clean(c.email).toLowerCase() || null, notes: clean(c.notes) || null, created_at: c.created_at || null } }));
+  count('emergency_contacts', tbl('emergency_contacts').length, emergencyContacts.length);
+
+  const suppliers = tbl('suppliers').filter((s) => orgIds.has(s.organization_id)).map((s) => ({ v1Id: s.id, v1Org: s.organization_id, row: { name: clean(s.name), category: clean(s.category) || null, nit: clean(s.tax_id) || null, contact: joinSupplierContact(s), is_active: s.status !== 'inactivo', notes: clean(s.notes) || null, created_at: s.created_at || null } }));
+  const supplierIds = new Set(suppliers.map((s) => s.v1Id));
+  const criteria = tbl('supplier_audit_criteria').filter((c) => orgIds.has(c.organization_id)).map((c) => ({ v1Id: c.id, v1Org: c.organization_id, row: { criterion: clean(c.criterion), category: clean(c.category) || null, order_index: Number(c.order_index) || 0, created_at: c.created_at || null } }));
+  const audits = tbl('supplier_audits').filter((a) => orgIds.has(a.organization_id) && supplierIds.has(a.supplier_id)).map((a) => ({ v1Id: a.id, v1Org: a.organization_id, v1Supplier: a.supplier_id, responsesV1: a.responses, row: { audit_date: dateOnly(a.audit_date), auditor_name: clean(a.auditor_name) || 'Sin registrar (migrada)', overall_notes: clean(a.overall_notes) || null, created_at: a.created_at || null } }));
+  count('suppliers', tbl('suppliers').length, suppliers.length);
+  count('supplier_audit_criteria', tbl('supplier_audit_criteria').length, criteria.length);
+  count('supplier_audits', tbl('supplier_audits').length, audits.length);
+
+  const manuals = tbl('company_manuals').filter((m) => orgIds.has(m.organization_id)).map((m) => ({ v1Id: m.id, v1Org: m.organization_id, v1CurrentVersion: m.current_version_id || null, row: { title: clean(m.title), category: m.category, status: mapManualStatus(m.status), current_version: m.current_version || null, current_effective_date: dateOnly(m.current_effective_date), created_at: m.created_at || null } }));
+  const manualIds = new Set(manuals.map((m) => m.v1Id));
+  const manualVersions = tbl('manual_versions').filter((v) => manualIds.has(v.manual_id)).map((v) => ({ v1Id: v.id, v1Org: v.organization_id, v1Manual: v.manual_id, file: v1ObjectRef(v.file_path, 'company-manuals'), row: { version: clean(v.version), effective_date: dateOnly(v.effective_date), comments: clean(v.comments) || null, created_at: v.created_at || null } }));
+  const versionIds = new Set(manualVersions.map((v) => v.v1Id));
+  const manualAcks = [];
+  for (const a of tbl('manual_acknowledgments')) {
+    const personKey = merged.profileToPerson.get(a.profile_id);
+    if (personKey === undefined || !versionIds.has(a.version_id) || !manualIds.has(a.manual_id)) { omit('manual_acknowledgments', a.id, 'persona, manual o versión no migrados'); continue; }
+    manualAcks.push({ v1Id: a.id, v1Org: a.organization_id, v1Manual: a.manual_id, v1Version: a.version_id, personKey, row: { acknowledged_at: a.acknowledged_at || null } });
+  }
+  count('company_manuals', tbl('company_manuals').length, manuals.length);
+  count('manual_versions', tbl('manual_versions').length, manualVersions.length);
+  count('manual_acknowledgments', tbl('manual_acknowledgments').length, manualAcks.length);
+
+  const grouped = groupChecklists(tbl('form_definitions'));
+  const checklists = grouped.lists.map((l) => ({ v1Id: `fd:${l.key}`, v1Org: l.v1Org, row: { name: l.name, category: l.category, description: l.description, steps: l.steps, version: l.version } }));
+  for (const p of tbl('protocols').filter((x) => orgIds.has(x.organization_id))) {
+    const t2 = transformProtocol(p);
+    if (t2.warning) warn('checklists', p.id, t2.warning);
+    checklists.push({ v1Id: `protocol:${p.id}`, v1Org: p.organization_id, row: { name: t2.name, category: t2.category, description: t2.description, icon: t2.icon, steps: t2.steps, version: t2.version } });
+  }
+  const formRows = tbl('form_definitions').length;
+  report.counts.checklists = { source: formRows + tbl('protocols').length, migrated: formRows + tbl('protocols').length, omitted: 0, note: `${checklists.length} listas a partir de ${formRows} ítems de formulario y ${tbl('protocols').length} protocolo(s); ${grouped.discardedEmpty} espacio(s) vacío(s) descartado(s); las preguntas de SORA quedan en el archivo de v1` };
+
+  // Archivos que viajan con una fila (expediente, fotos, logos): la clave nueva se calcula al escribir.
+  const personDocs = [];
+  people.forEach((p) => {
+    const pilotRows = tbl('pilots').filter((x) => p.pilotIds.includes(x.id));
+    personDocs.push(...personDocuments(pilotRows).map((d) => ({ personKey: p.key, ...d })));
+  });
+  const avatarRefs = people.map((p) => ({ personKey: p.key, ref: v1ObjectRef(p.avatarSource, 'documents') })).filter((a) => a.ref);
+  const aircraftImages = aircraft.map((a) => ({ v1Id: a.v1Id, v1Org: a.v1Org, ref: v1ObjectRef(a.sources.image, 'fleet-images') })).filter((a) => a.ref);
+  const orgLogos = orgs.map((o) => ({ v1Id: o.v1Id, ref: v1ObjectRef(o.logoSource, 'documents') })).filter((a) => a.ref);
+
+  // ── 7. SMS: reportes, VOR/MOR, casos, acciones, peligros y barreras ───────────────────────────────────────────
+  const smsCtx = {
+    organization: (id) => (orgIds.has(id) ? id : null),
+    personOfProfile: (profileId) => (merged.profileToPerson.has(profileId) ? merged.profileToPerson.get(profileId) : null),
+    roleOf: (personKey, v1Org) => memberships.get(mKey(personKey, v1Org))?.role || null,
+  };
+  const smsReports = [];
+  for (const r of tbl('sms_reports')) {
+    const t2 = transformSmsReport(r, smsCtx);
+    if (!t2.ok) { omit('sms_reports', r.id, t2.reason); continue; }
+    t2.warnings.forEach((w) => warn('sms_reports', r.id, w));
+    smsReports.push({ v1Id: `report:${r.id}`, v1Org: r.organization_id, reporterKey: t2.reporterKey, row: t2.row, flightV1: t2.flightV1, caseStatus: t2.caseStatus, caseClosedAt: t2.caseClosedAt, caseExtras: {} });
+  }
+  count('sms_reports', tbl('sms_reports').length, smsReports.length);
+  const vorMorCount = tbl('vor_mor_submissions').length;
+  let vorMorMigrated = 0;
+  for (const v of tbl('vor_mor_submissions')) {
+    const t2 = transformVorMor(v, smsCtx);
+    if (!t2.ok) { omit('vor_mor_submissions', v.id, t2.reason); continue; }
+    t2.warnings.forEach((w) => warn('vor_mor_submissions', v.id, w));
+    if (t2.internalNotes) warn('vor_mor_submissions', v.id, 'tenía notas internas: se conservan en el archivo de v1 (V2 no tiene ese campo en el caso)');
+    vorMorMigrated++;
+    smsReports.push({ v1Id: `vormor:${v.id}`, v1Org: v.organization_id, reporterKey: null, row: t2.row, flightV1: null, caseStatus: t2.caseStatus, caseClosedAt: t2.caseClosedAt, assignedKey: t2.assignedProfile ? smsCtx.personOfProfile(t2.assignedProfile) : null, caseExtras: { investigation_summary: t2.investigationSummary, contributing_factors: t2.contributingFactors } });
+  }
+  count('vor_mor_submissions', vorMorCount, vorMorMigrated);
+  const reportIds = new Set(smsReports.map((r) => r.v1Id));
+  const caseOf = (row) => (row.sms_report_id ? `report:${row.sms_report_id}` : row.vor_mor_id ? `vormor:${row.vor_mor_id}` : null);
+  const caseActions = [];
+  for (const a of tbl('sms_case_actions')) {
+    const k = caseOf(a);
+    if (!k || !reportIds.has(k)) { omit('sms_case_actions', a.id, 'caso no migrado'); continue; }
+    caseActions.push({ v1Id: a.id, v1Org: a.organization_id, v1Report: k, row: transformCaseAction(a) });
+  }
+  const caseEvents = [];
+  for (const e of tbl('sms_case_events')) {
+    const k = caseOf(e);
+    if (!k || !reportIds.has(k)) { omit('sms_case_events', e.id, 'caso no migrado'); continue; }
+    caseEvents.push({ v1Id: e.id, v1Org: e.organization_id, v1Report: k, actorKey: e.actor_id ? smsCtx.personOfProfile(e.actor_id) : null, row: transformCaseEvent(e) });
+  }
+  count('sms_case_actions', tbl('sms_case_actions').length, caseActions.length);
+  count('sms_case_events', tbl('sms_case_events').length, caseEvents.length);
+
+  const hazards = [];
+  for (const h of tbl('safety_hazards').filter((x) => orgIds.has(x.organization_id))) {
+    const t2 = transformHazard(h);
+    if (t2.warning) warn('hazards', h.id, t2.warning);
+    hazards.push({ v1Id: h.id, v1Org: h.organization_id, hazard: t2.hazard, assessment: t2.assessment });
+  }
+  const barriers = tbl('safety_barriers').filter((b) => orgIds.has(b.organization_id)).map((b) => ({ v1Id: b.id, v1Org: b.organization_id, row: transformBarrier(b) }));
+  count('safety_hazards', tbl('safety_hazards').length, hazards.length);
+  count('safety_barriers', tbl('safety_barriers').length, barriers.length);
+  report.notes.push('Indicadores SPI, respuestas GAP, escalas y tolerabilidad de riesgo, capacitación SMS y SORA NO se migran como datos operativos: eran plantillas por defecto o sin datos propios (0 datos mensuales); quedan íntegros en el archivo de v1');
+
+  const archive = t.__archive || Object.fromEntries(Object.entries(t).filter(([k]) => !k.startsWith('__')).map(([k, rows]) => [k, k === 'auth_users' ? rows.map(({ encrypted_password, ...rest }) => rest) : rows]));
+  const archivedRows = Object.values(archive).reduce((n, rows) => n + rows.length, 0);
+  report.notes.push(`Archivo de v1 (legacy_v1_rows): ${Object.keys(archive).length} tabla(s), ${archivedRows} fila(s) — sin contraseñas`);
+
+  return { orgs, people, accounts, memberships: [...memberships.values()], additions, models: [...models.values()], aircraft, batteries, components, missions, flights, unassigned, insurance, subscriptions, partners, partnerCodes, partnerMembers, grants, referrals, release, geo, maintenance, emergencyContacts, suppliers, criteria, audits, manuals, manualVersions, manualAcks, checklists, personDocs, avatarRefs, aircraftImages, orgLogos, smsReports, caseActions, caseEvents, hazards, barriers, archive, report };
 }

@@ -8,14 +8,25 @@ import path from 'node:path';
 export const V1_TABLES = [
   'organizations', 'organization_members', 'profiles', 'pilots', 'aircraft', 'batteries', 'aircraft_components', 'flight_authorizations',
   'flights', 'insurance_policies', 'partners', 'partner_codes', 'partner_members', 'free_grants', 'referrals', 'referral_commissions', 'app_releases', 'colombia_geo',
+  // fase 2
+  'maintenance_logs', 'emergency_contacts', 'suppliers', 'supplier_audit_criteria', 'supplier_audits', 'company_manuals', 'manual_versions',
+  'manual_acknowledgments', 'form_definitions', 'protocols',
+  // SMS
+  'sms_reports', 'vor_mor_submissions', 'sms_case_actions', 'sms_case_events', 'safety_hazards', 'safety_barriers',
 ];
+
+// El hash de contraseña NO se archiva (solo viaja a la cuenta nueva).
+const stripSecrets = (name, rows) => (name === 'auth_users' ? rows.map(({ encrypted_password, ...rest }) => rest) : rows);
 
 export async function loadFromDir(dir) {
   const tables = {};
-  for (const name of [...V1_TABLES, 'auth_users']) {
-    const file = path.join(dir, `${name}.json`);
-    tables[name] = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : [];
+  const archive = {};
+  for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.json'))) {
+    const name = file.replace(/\.json$/, '');
+    archive[name] = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
   }
+  for (const name of [...V1_TABLES, 'auth_users']) tables[name] = archive[name] || [];
+  tables.__archive = Object.fromEntries(Object.entries(archive).map(([n, rows]) => [n, stripSecrets(n, rows)]));
   return tables;
 }
 
@@ -26,8 +37,13 @@ export async function loadFromDatabase(url) {
   try {
     await client.query('set default_transaction_read_only = on'); // defensa en profundidad: aunque el usuario pudiera escribir, esta sesión no
     const tables = {};
-    for (const name of V1_TABLES) tables[name] = (await client.query(`select * from public.${name}`)).rows;
+    const all = (await client.query("select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE' order by 1")).rows.map((r) => r.table_name);
+    const archive = {};
+    for (const name of all) archive[name] = name in tables ? tables[name] : (await client.query(`select * from public."${name}"`)).rows;
+    for (const name of V1_TABLES) tables[name] = archive[name] ?? (await client.query(`select * from public.${name}`)).rows;
     tables.auth_users = (await client.query('select id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at from auth.users')).rows;
+    archive.auth_users = stripSecrets('auth_users', tables.auth_users);
+    tables.__archive = archive;
     return tables;
   } finally {
     await client.end();

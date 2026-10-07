@@ -36,7 +36,7 @@ export function syntheticV1() {
     ],
     pilots: [
       { id: pAdmin, owner_id: uAdmin, name: 'Gina G.', organization_id: orgA, profile_id: uAdmin, pilot_role: 'Gerente General', is_active: true, created_at: '2025-03-01T00:00:00Z', aerocivil_additions: ['BVLOS', 'ACROBACIA'] },
-      { id: pJefe, owner_id: uAdmin, name: 'Jorge Jefe', organization_id: orgA, profile_id: uJefe, pilot_role: 'Jefe de Pilotos', medical_expiry: '2026-11-15', license_number: 'L-2', updated_at: '2025-09-01T00:00:00Z', created_at: '2025-03-02T00:00:00Z', is_active: true },
+      { id: pJefe, owner_id: uAdmin, name: 'Jorge Jefe', organization_id: orgA, profile_id: uJefe, pilot_role: 'Jefe de Pilotos', id_doc_url: 'orgs/o1/docs/cedula.pdf', medical_cert_url: 'https://cdn.bitafly.com/orgs/o1/docs/medico.pdf', medical_expiry: '2026-11-15', license_number: 'L-2', updated_at: '2025-09-01T00:00:00Z', created_at: '2025-03-02T00:00:00Z', is_active: true },
       { id: pMultiA, owner_id: uAdmin, name: 'Marta Multi', organization_id: orgA, profile_id: uPilotoMulti, pilot_role: 'Piloto', is_active: true, created_at: '2025-03-03T00:00:00Z' },
       { id: pMultiB, owner_id: uAdmin, name: 'Marta Multi', organization_id: orgB, profile_id: uPilotoMulti, pilot_role: 'Piloto', is_active: true, created_at: '2025-04-03T00:00:00Z' },
       { id: pSinCuenta, owner_id: uAdmin, name: 'Invitado Sin Cuenta', organization_id: orgA, email: 'invitado@correo.co', pilot_role: 'Piloto', is_active: true, created_at: '2025-06-01T00:00:00Z', id_type: 'CC', id_number: '555' },
@@ -90,6 +90,38 @@ export function syntheticV1() {
     free_grants: [
       { id: U(103), partner_id: U(100), advisor_member_id: U(102), email: 'Regalo@Correo.co', status: 'enviado', token: 'tok-1', granted_at: '2026-09-01T00:00:00Z', expires_at: '2026-12-01T00:00:00Z', purge_after: '2027-03-01T00:00:00Z', plan: 'piloto' },
     ],
+    maintenance_logs: [
+      { id: U(130), organization_id: orgA, aircraft_id: aircraft1, maintenance_type: 'PREVENTIVO', description: 'Cambio de hélices', technician_name: 'Pedro Técnico', maintenance_date: '2026-02-03', hours_at_service: 1, attachment_path: 'orgs/o1/maint/a.pdf', return_doc_path: 'orgs/o1/maint/recibo.pdf', return_checklist: { 1: true }, created_at: '2026-02-03T15:00:00Z' },
+      { id: U(131), organization_id: orgA, aircraft_id: aircraft1, maintenance_type: 'MENOR', description: 'Revisión', maintenance_date: null },
+    ],
+    emergency_contacts: [{ id: U(132), organization_id: orgA, name: 'Bomberos', role: 'Emergencias', phone: '119', email: 'Bomberos@Ciudad.gov.co' }],
+    suppliers: [{ id: U(133), organization_id: orgA, name: 'Repuestos SAS', category: 'Repuestos', tax_id: '800.1-1', contact_name: 'Luis', contact_email: 'l@r.co', contact_phone: '300', status: 'activo', created_at: '2025-05-01T00:00:00Z' }],
+    supplier_audit_criteria: [
+      { id: U(134), organization_id: orgA, criterion: 'Certificado de calidad', category: 'Calidad', order_index: 1 },
+      { id: U(135), organization_id: orgA, criterion: 'Entrega a tiempo', category: 'Servicio', order_index: 2 },
+    ],
+    supplier_audits: [{ id: U(136), organization_id: orgA, supplier_id: U(133), audit_date: '2026-01-15', auditor_name: null, responses: { [U(134)]: { value: 'cumple' }, [U(135)]: { value: 'no_cumple', notes: 'tarde' }, [U(199)]: { value: 'cumple' } } }],
+    company_manuals: [{ id: U(137), organization_id: orgA, title: 'Manual de Operaciones', category: 'MO', status: 'active', current_version: '2.0', current_effective_date: '2026-01-01', current_version_id: U(139), created_at: '2025-06-01T00:00:00Z' }],
+    manual_versions: [
+      { id: U(138), manual_id: U(137), organization_id: orgA, version: '1.0', effective_date: '2025-06-01', file_path: 'orgs/o1/manuals/m1/100-manual.pdf' },
+      { id: U(139), manual_id: U(137), organization_id: orgA, version: '2.0', effective_date: '2026-01-01', file_path: 'orgs/o1/manuals/m1/200-manual.pdf' },
+    ],
+    manual_acknowledgments: [{ id: U(140), manual_id: U(137), version_id: U(139), organization_id: orgA, profile_id: uJefe, acknowledged_at: '2026-01-05T00:00:00Z' }],
+    form_definitions: [
+      { id: U(141), organization_id: orgA, form_type: 'health', aircraft_model: 'General', field_number: 2, label_text: 'Sin alcohol' },
+      { id: U(142), organization_id: orgA, form_type: 'health', aircraft_model: 'General', field_number: 1, label_text: 'Descansé 8 h' },
+      { id: U(143), organization_id: orgA, form_type: 'health', aircraft_model: 'General', field_number: 3, label_text: '' },
+      { id: U(144), organization_id: orgA, form_type: 'sora', aircraft_model: 'Técnico', field_number: 1, label_text: 'Pregunta SORA' },
+      { id: U(145), organization_id: orgA, form_type: 'preflight', aircraft_model: 'JGJ', field_number: 1, label_text: 'Hélices firmes' },
+    ],
+    protocols: [{ id: U(146), organization_id: orgA, name: 'Falla de enlace', category: 'Seguridad Operacional', description: 'Pasos', icon: 'warning', steps: ['Mantener calma', 'Activar RTH'] }],
+    sms_reports: [{ id: U(150), organization_id: orgA, owner_id: uJefe, severity: 'incidente', occurrence_date: '2026-02-01T15:00:00Z', location: 'Madrid', event_type: 'Pérdida de enlace', narrative: 'Se perdió el enlace 5 s', immediate_actions: 'RTH', status: 'cerrado', created_at: '2026-02-01T16:00:00Z', updated_at: '2026-02-10T00:00:00Z' }],
+    vor_mor_submissions: [{ id: U(151), organization_id: orgA, definition_id: U(152), type: 'VOR', status: 'recibido', description: 'Dron cerca de pista', occurrence_date: '2026-03-01', occurrence_time: '10:30:00', is_anonymous: false, reporter_name: 'Ana', reporter_email: 'a@x.co', created_at: '2026-03-01T16:00:00Z' }],
+    sms_case_actions: [{ id: U(153), organization_id: orgA, sms_report_id: U(150), label: 'Reentrenar', owner: 'Jorge', due_date: '2026-04-01', done: true, done_at: '2026-03-20T00:00:00Z', created_at: '2026-02-02T00:00:00Z' }, { id: U(154), organization_id: orgA, sms_report_id: U(199), label: 'huérfana', done: false }],
+    sms_case_events: [{ id: U(155), organization_id: orgA, sms_report_id: U(150), label: 'Caso abierto', actor_id: uAdmin, actor_name: 'Gina', created_at: '2026-02-01T16:00:00Z' }, { id: U(156), organization_id: orgA, vor_mor_id: U(151), label: 'Recibido', created_at: '2026-03-01T16:00:00Z' }],
+    safety_hazards: [{ id: U(157), organization_id: orgA, description: 'Torres de alta tensión', source: 'manual', initial_probability_code: '3', initial_severity_code: 'C', mitigation: 'Distancia segura', residual_probability_code: '2', residual_severity_code: 'C', status: 'abierto' }, { id: U(158), organization_id: orgA, description: 'Aves', source: 'manual', initial_probability_code: 'Alta', initial_severity_code: 'B' }],
+    safety_barriers: [{ id: U(159), organization_id: orgA, name: 'Doble batería', description: 'Siempre dos', category: 'Técnica', status: 'Activa' }],
+    sora_assessments: [{ id: U(147), organization_id: orgA, operation_name: 'Operación X', sail_level: 2 }],
     app_releases: [{ id: U(110), version_name: '1.1.0', version_code: 2, apk_url: 'https://releases/x.apk', is_current: true }],
     colombia_geo: [{ id: U(120), 'Código Municipio': '25430', 'Nombre Departamento': 'Cundinamarca', 'Nombre Municipio': 'Madrid' }],
   };

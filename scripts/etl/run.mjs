@@ -29,11 +29,14 @@ async function main() {
 
   const plan = buildPlan(tables);
   let extra = {};
+  let files = null;
   if (commit) {
     const { commitPlan } = await import('./lib/commit.mjs');
-    extra = await commitPlan(plan, { log: (m) => console.log(m) });
+    const result = await commitPlan(plan, { log: (m) => console.log(m) });
+    extra = result.stats;
+    files = result.files;
   }
-  const md = writeReport(outDir, plan, { mode: commit ? 'COMMIT' : 'DRY-RUN (no se escribió nada)', extra });
+  const md = writeReport(outDir, plan, { mode: commit ? 'COMMIT' : 'DRY-RUN (no se escribió nada)', extra, files });
   console.log(md);
   console.log(`\nInformes en ${outDir}/`);
 }

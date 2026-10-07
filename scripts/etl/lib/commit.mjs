@@ -1,6 +1,7 @@
 // scripts/etl/lib/commit.mjs — escribe el PLAN en el proyecto de V2. Idempotente (etl_id_map) y resiliente: una fila que
 // falla no tumba la corrida, se informa. Nunca corre contra el proyecto de v1 (guarda de abajo).
 import { createClient } from '@supabase/supabase-js';
+import { newFileKey } from '../../../packages/domain/src/migration/index.js';
 
 const V1_PROJECT_REF = 'ilozajejhecskmhwxkui';
 const CHUNK = 200;
@@ -158,5 +159,112 @@ export async function commitPlan(plan, { log = () => {} } = {}) {
     }
   }
 
-  return Object.fromEntries(Object.entries(stats).map(([k, v]) => [k, { inserted: v.inserted, existing: v.existing, failed: v.failed.length, failures: v.failed.slice(0, 20) }]));
+
+  // ── Fase 2 ─────────────────────────────────────────────────────────────────────────────────────────────────────
+  const files = []; // manifiesto de archivos a copiar en R2 (lo ejecuta scripts/etl/copy-files.mjs)
+  /** Registra la copia de un objeto y devuelve la clave nueva (o null si v1 solo guardó una URL antigua sin objeto). */
+  const fileTo = (entity, id1, ref, folder, orgV2, bucketTo = 'documents') => {
+    if (!ref) return null;
+    if (!ref.key) { files.push({ entity, id_v1: id1, from_bucket: ref.bucket, from_key: ref.legacyUrl, to_bucket: '', to_key: '', note: 'URL del almacenamiento anterior: no hay objeto en R2, volver a subir a mano' }); return null; }
+    const to = newFileKey(orgV2 || 'sin-org', folder, ref.key);
+    files.push({ entity, id_v1: id1, from_bucket: ref.bucket, from_key: ref.key, to_bucket: bucketTo, to_key: to, note: '' });
+    return to;
+  };
+  const setColumn = async (table, id, patch) => { const { error } = await db.from(table).update(patch).eq('id', id); if (error) stat(`${table}.archivo`).failed.push({ id, error: error.message }); };
+
+  log('Fase 2…');
+  await load('organization_emergency_contacts', 'organization_emergency_contacts', plan.emergencyContacts, (c) => clean({ ...c.row, organization_id: orgOf(c.v1Org) }), { each: true });
+
+  await load('maintenance_events', 'maintenance_events', plan.maintenance, (m) => clean({ ...m.row, organization_id: orgOf(m.v1Org), aircraft_id: get('aircraft', m.v1Aircraft) }), { each: true });
+  for (const m of plan.maintenance) {
+    const id = get('maintenance_events', m.v1Id);
+    if (!id) continue;
+    const doc = fileTo('maintenance_events', m.v1Id, m.attachment, `mantenimiento/${id}`, orgOf(m.v1Org));
+    if (doc) await setColumn('maintenance_events', id, { document_path: doc });
+    if (m.receipt) fileTo('maintenance_events.recibo', m.v1Id, m.receipt, `mantenimiento/${id}`, orgOf(m.v1Org)); // V2 guarda un solo adjunto: el recibo se copia y queda en el archivo de v1
+  }
+
+  await load('suppliers', 'suppliers', plan.suppliers, (s) => clean({ ...s.row, organization_id: orgOf(s.v1Org) }), { each: true });
+  await load('supplier_audit_criteria', 'supplier_audit_criteria', plan.criteria, (c) => clean({ ...c.row, organization_id: orgOf(c.v1Org) }), { each: true });
+  {
+    const { remapAuditResponses } = await import('../../../packages/domain/src/migration/index.js');
+    await load('supplier_audits', 'supplier_audits', plan.audits, (a) => {
+      const r = remapAuditResponses(a.responsesV1, (old) => get('supplier_audit_criteria', old));
+      return clean({ ...a.row, organization_id: orgOf(a.v1Org), supplier_id: get('suppliers', a.v1Supplier), responses: r.responses });
+    }, { each: true });
+  }
+
+  await load('manuales', 'manuales', plan.manuals, (m) => clean({ ...m.row, organization_id: orgOf(m.v1Org), current_file_path: null }), { each: true });
+  await load('manual_versions', 'manual_versions', plan.manualVersions, (v) => {
+    const manualId = get('manuales', v.v1Manual);
+    const to = v.file?.key ? newFileKey(orgOf(v.v1Org), `manuales/${manualId}/${v.v1Id}`, v.file.key) : `sin-archivo/${v.v1Id}`;
+    return clean({ ...v.row, organization_id: orgOf(v.v1Org), manual_id: manualId, file_path: to });
+  }, { each: true });
+  for (const v of plan.manualVersions) {
+    const id = get('manual_versions', v.v1Id);
+    if (!id) continue;
+    fileTo('manual_versions', v.v1Id, v.file, `manuales/${get('manuales', v.v1Manual)}/${v.v1Id}`, orgOf(v.v1Org));
+  }
+  for (const m of plan.manuals) {
+    const id = get('manuales', m.v1Id);
+    const versionId = m.v1CurrentVersion ? get('manual_versions', m.v1CurrentVersion) : null;
+    if (!id || !versionId) continue;
+    const { data: ver } = await db.from('manual_versions').select('file_path').eq('id', versionId).single();
+    await setColumn('manuales', id, { current_version_id: versionId, current_file_path: ver?.file_path || null });
+  }
+  await load('manual_acknowledgments', 'manual_acknowledgments', plan.manualAcks, (a) => clean({ ...a.row, organization_id: orgOf(a.v1Org), manual_id: get('manuales', a.v1Manual), version_id: get('manual_versions', a.v1Version), person_id: personId(a.personKey) }), { each: true });
+
+  await load('checklists', 'checklists', plan.checklists, (c) => clean({ ...c.row, organization_id: orgOf(c.v1Org) }), { each: true });
+
+  // SMS: reportes + su caso, acciones, línea de tiempo, peligros y barreras
+  log('SMS…');
+  await load('sms_reports', 'sms_reports', plan.smsReports, (r) => clean({ ...r.row, organization_id: orgOf(r.v1Org), reported_by: r.reporterKey !== null && r.reporterKey !== undefined ? personId(r.reporterKey) : null, flight_id: r.flightV1 ? get('flights', r.flightV1) : null }), { each: true });
+  await load('sms_cases', 'sms_cases', plan.smsReports, (r) => clean({ report_id: get('sms_reports', r.v1Id), organization_id: orgOf(r.v1Org), status: r.caseStatus, closed_at: r.caseClosedAt || undefined, assigned_to: r.assignedKey !== null && r.assignedKey !== undefined ? personId(r.assignedKey) : undefined, ...r.caseExtras }), { each: true });
+  await load('sms_case_actions', 'sms_case_actions', plan.caseActions, (a) => clean({ ...a.row, organization_id: orgOf(a.v1Org), case_id: get('sms_cases', a.v1Report) }), { each: true });
+  await load('sms_case_events', 'sms_case_events', plan.caseEvents, (e) => clean({ ...e.row, organization_id: orgOf(e.v1Org), case_id: get('sms_cases', e.v1Report), created_by: e.actorKey !== null && e.actorKey !== undefined ? personId(e.actorKey) : undefined }), { each: true });
+  await load('hazards', 'hazards', plan.hazards, (h) => clean({ ...h.hazard, organization_id: orgOf(h.v1Org) }), { each: true });
+  await load('risk_assessments', 'risk_assessments', plan.hazards.filter((h) => h.assessment).map((h) => ({ ...h, v1Id: `ra:${h.v1Id}` })), (h) => clean({ ...h.assessment, organization_id: orgOf(h.v1Org), hazard_id: get('hazards', h.v1Id.replace(/^ra:/, '')) }), { each: true });
+  await load('barriers', 'barriers', plan.barriers, (b) => clean({ ...b.row, organization_id: orgOf(b.v1Org) }), { each: true });
+
+  // Expediente, fotos y logos
+  const firstOrgOf = (personKey) => { const m = plan.memberships.find((x) => x.personKey === personKey); return m ? orgOf(m.v1Org) : null; };
+  for (const d of plan.personDocs) {
+    const pid = personId(d.personKey);
+    if (!pid || get('person_documents', `${d.personKey}|${d.doc_type}`)) continue;
+    const to = fileTo('person_documents', `${d.personKey}|${d.doc_type}`, d.ref, `personal/${pid}/${d.doc_type}`, firstOrgOf(d.personKey));
+    if (!to) continue;
+    const { data, error } = await db.from('person_documents').insert({ person_id: pid, doc_type: d.doc_type, document_path: to }).select('id').single();
+    if (error) stat('person_documents').failed.push({ id: `${d.personKey}|${d.doc_type}`, error: error.message });
+    else { await remember('person_documents', [[`${d.personKey}|${d.doc_type}`, data.id]]); stat('person_documents').inserted++; }
+  }
+  for (const a of plan.avatarRefs) {
+    const pid = personId(a.personKey);
+    const to = pid ? fileTo('people.avatar', String(a.personKey), a.ref, `personal/${pid}`, firstOrgOf(a.personKey)) : null;
+    if (to) await setColumn('people', pid, { avatar_path: to });
+  }
+  for (const a of plan.aircraftImages) {
+    const id = get('aircraft', a.v1Id);
+    const to = id ? fileTo('aircraft.image', a.v1Id, a.ref, `aeronaves/${id}`, orgOf(a.v1Org)) : null;
+    if (to) await setColumn('aircraft', id, { image_path: to });
+  }
+  for (const l of plan.orgLogos) {
+    const org = orgOf(l.v1Id);
+    const to = org ? fileTo('organizations.logo', l.v1Id, l.ref, 'logo', org, 'partner-logos') : null;
+    if (to && process.env.R2_LOGOS_BASE_URL) await setColumn('organizations', org, { logo_url: `${process.env.R2_LOGOS_BASE_URL.replace(/\/$/, '')}/${to}` });
+  }
+
+  // Archivo fiel de v1 (JSONB), sin contraseñas
+  {
+    const s = stat('legacy_v1_rows');
+    for (const [table, rows] of Object.entries(plan.archive || {})) {
+      for (let i = 0; i < rows.length; i += 200) {
+        const batch = rows.slice(i, i + 200).map((r, j) => ({ source_table: table, id_v1: String(r.id ?? `${table}#${i + j}`), data: r }));
+        const { error } = await db.from('legacy_v1_rows').upsert(batch, { onConflict: 'source_table,id_v1' });
+        if (error) s.failed.push({ id: `${table} ${i}`, error: error.message }); else s.inserted += batch.length;
+      }
+    }
+    log(`  legacy_v1_rows: ${s.inserted} fila(s) archivada(s) (fallaron ${s.failed.length})`);
+  }
+
+  return { files, stats: Object.fromEntries(Object.entries(stats).map(([k, v]) => [k, { inserted: v.inserted, existing: v.existing, failed: v.failed.length, failures: v.failed.slice(0, 20) }])) };
 }

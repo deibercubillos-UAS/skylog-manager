@@ -289,8 +289,9 @@ migrados entrarían, pero **nadie nuevo podría registrarse** ni una organizaci�
    el plan B (restablecer contraseña a todos) no hace falta.
 5. **Flujo de suscripción en Wompi para clientes que vienen de ePayco** (decisión B): aviso, plazo y
    cancelación de la recurrencia vieja.
-6. 🟡 `scripts/etl/` **fase 1 escrita y ensayada con datos sintéticos** (decisión 188; uso en `scripts/etl/README.md`).
-   Falta la **fase 2** (mantenimiento, SMS, proveedores, manuales, listas de chequeo, archivos de R2, `legacy_v1`) y el
-   **primer ensayo sobre una copia de producción**, que necesita un usuario de solo lectura de v1.
+6. 🟡 `scripts/etl/` **fases 1 y 2 escritas y ensayadas con datos sintéticos** (decisiones 188 y 189; uso en
+   `scripts/etl/README.md`): núcleo, mantenimiento, proveedores, manuales, listas de chequeo, SMS, archivo completo de v1
+   (`legacy_v1_rows`) y copia de archivos de R2. Falta el **primer ensayo sobre una copia de producción** (necesita un
+   usuario de solo lectura de v1) y ejecutar la copia de archivos con las credenciales de R2.
 
 *Creado 2026-10-06 — borrador de diseño; ninguna parte se ha ejecutado.*

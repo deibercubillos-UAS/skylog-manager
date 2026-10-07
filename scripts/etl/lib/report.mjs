@@ -12,7 +12,7 @@ const toCsv = (rows) => {
   return [cols.join(','), ...rows.map((r) => cols.map((c) => csvCell(r[c])).join(','))].join('\n') + '\n';
 };
 
-export function writeReport(dir, plan, { mode, extra = {} }) {
+export function writeReport(dir, plan, { mode, extra = {}, files = null }) {
   fs.mkdirSync(dir, { recursive: true });
   const r = plan.report;
   const write = (name, rows) => fs.writeFileSync(path.join(dir, name), toCsv(rows));
@@ -23,6 +23,7 @@ export function writeReport(dir, plan, { mode, extra = {} }) {
   write('revision-manual.csv', r.manual);
   write('suscripciones-a-confirmar.csv', r.flags);
   write('horas-aeronaves.csv', r.hoursCheck || []);
+  if (files) write('archivos-a-copiar.csv', files);
   const off = (r.hoursCheck || []).filter((h) => Math.abs(h.difference) > 0.01);
   const md = [
     `# Informe del ETL — ${mode}`, '',
@@ -34,6 +35,7 @@ export function writeReport(dir, plan, { mode, extra = {} }) {
     ...Object.entries(r.manual.reduce((a, m) => ((a[m.kind] = (a[m.kind] || 0) + 1), a), {})).map(([k, n]) => `- ${k}: ${n}`), '',
     `## Suscripciones a confirmar una por una (decisión C): ${r.flags.length}`, '',
     `## Avisos: ${r.warnings.length} · Omitidas: ${r.omitted.length}`, '',
+    ...(files ? [`## Archivos a copiar en R2: ${files.filter((f) => f.to_key).length} (y ${files.filter((f) => !f.to_key).length} sin objeto) — ejecutar scripts/etl/copy-files.mjs`, ''] : []),
     `## Horas: ${off.length} aeronave(s) con odómetro distinto de la suma de sus vuelos migrados`, '',
     ...r.notes.map((n) => `- ${n}`), '',
     ...(Object.keys(extra).length ? ['## Resultado de la escritura', '', '```json', JSON.stringify(extra, null, 2), '```', ''] : []),

@@ -285,10 +285,12 @@ migrados entrarían, pero **nadie nuevo podría registrarse** ni una organizaci�
    emergencia en `people`, registro AeroCivil en `organization_certifications`, con su captura en pantalla.
 3. **Contar en producción** (solo lectura): organizaciones con cobro vigente y sus vencimientos, filas de las
    20 tablas «vacías», vuelos con piloto sin asignar y los 4 vencimientos médicos divergentes.
-4. **Prueba técnica de importación de usuarios** con contraseña cifrada en un proyecto de Supabase de prueba
-   (decisión A) y, si falla, decidir el plan B (restablecer contraseña).
+4. ✅ **Prueba técnica de importación de usuarios** con contraseña cifrada (decisión A): **funciona** (decisión 188);
+   el plan B (restablecer contraseña a todos) no hace falta.
 5. **Flujo de suscripción en Wompi para clientes que vienen de ePayco** (decisión B): aviso, plazo y
    cancelación de la recurrencia vieja.
-6. Escribir `scripts/etl/` (primero `--dry-run`) y el **primer ensayo** sobre una copia de producción.
+6. 🟡 `scripts/etl/` **fase 1 escrita y ensayada con datos sintéticos** (decisión 188; uso en `scripts/etl/README.md`).
+   Falta la **fase 2** (mantenimiento, SMS, proveedores, manuales, listas de chequeo, archivos de R2, `legacy_v1`) y el
+   **primer ensayo sobre una copia de producción**, que necesita un usuario de solo lectura de v1.
 
 *Creado 2026-10-06 — borrador de diseño; ninguna parte se ha ejecutado.*

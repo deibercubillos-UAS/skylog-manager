@@ -72,3 +72,6 @@ android/keystore.properties
 .playwright-mcp/
 /*.png
 .impeccable/
+
+# salidas del ETL (contienen datos de clientes)
+/informes/

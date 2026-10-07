@@ -10,7 +10,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test:domain": "npm run test -w packages/domain"
+    "test:domain": "npm run test -w packages/domain",
+    "etl:selftest": "node scripts/etl/selftest.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1073.0",
@@ -47,6 +48,7 @@
     "autoprefixer": "^10.4.19",
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.35",
+    "pg": "^8.23.1",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3"
   },

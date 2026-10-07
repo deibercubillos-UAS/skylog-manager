@@ -2,7 +2,7 @@
 // docs/skylog-v2/44-alta-y-socios.md). La decisión de negocio es pura (`evaluateJoin`, en el dominio); aquí solo se
 // cargan los datos y se avisa a los gestores. Todo con service role: lo llaman rutas públicas o de una cuenta nueva.
 import { Resend } from 'resend';
-import { evaluateJoin, JOIN_ROLE_LABELS, normalizeNit } from '@skylog/domain';
+import { evaluateJoin, JOIN_ROLE_LABELS, INVITE_ROLE_LABELS, normalizeNit } from '@skylog/domain';
 import { PLAN_LIMITS, crewCountsForLimit } from '@/lib/v2/planLimits';
 import { escHtml, emailHeader, emailFooter } from '@/lib/emailHelpers';
 
@@ -13,7 +13,11 @@ export async function loadJoinContext(admin, rawNit) {
   const { data: found } = await admin.rpc('v2_org_by_nit', { p_nit: nit });
   const org = Array.isArray(found) ? found[0] : found;
   if (!org) return null;
+  return loadJoinContextByOrgId(admin, org);
+}
 
+/** Lo mismo a partir de una organización ya conocida ({ id, company_name }) — lo usan las invitaciones. */
+export async function loadJoinContextByOrgId(admin, org) {
   const [{ data: members }, { data: sub }] = await Promise.all([
     admin.from('memberships').select('role').eq('organization_id', org.id).eq('status', 'activa'),
     admin.from('subscriptions').select('plan').eq('organization_id', org.id).maybeSingle(),
@@ -43,7 +47,7 @@ export function joinErrorMessage(message) {
  * contrapartida de que entrar por NIT no requiera aprobación: los gestores se enteran de inmediato y pueden
  * cerrar la membresía desde Tripulación si no la reconocen.
  */
-export async function notifyJoin(admin, { organizationId, companyName, fullName, email, role }) {
+export async function notifyJoin(admin, { organizationId, companyName, fullName, email, role, via = 'nit' }) {
   try {
     if (!process.env.RESEND_API_KEY) return;
     const { data: managers } = await admin.from('memberships').select('person_id').eq('organization_id', organizationId).eq('status', 'activa').in('role', ['admin', 'jefe_pilotos', 'gerente_sms']);
@@ -59,8 +63,8 @@ export async function notifyJoin(admin, { organizationId, companyName, fullName,
     const base = process.env.NEXT_PUBLIC_APP_URL || 'https://bitafly.com';
     const html = `<table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:auto;font-family:Arial,sans-serif;">${emailHeader()}
       <tr><td style="padding:28px 40px;"><h2 style="margin:0 0 12px;font-size:18px;color:#1A202C;">Alguien se unió a ${escHtml(companyName)}</h2>
-      <p style="font-size:14px;color:#4a5568;margin:0 0 8px;"><b>${escHtml(fullName)}</b> (${escHtml(email)}) entró con el NIT de la organización como <b>${escHtml(JOIN_ROLE_LABELS[role] || role)}</b>.</p>
-      <p style="font-size:13px;color:#4a5568;margin:0;">Si no reconoces a esta persona, ciérrale la membresía desde Tripulación.</p>
+      <p style="font-size:14px;color:#4a5568;margin:0 0 8px;"><b>${escHtml(fullName)}</b> (${escHtml(email)}) ${via === 'invitacion' ? 'aceptó una invitación y entró' : 'entró con el NIT de la organización'} como <b>${escHtml(JOIN_ROLE_LABELS[role] || INVITE_ROLE_LABELS[role] || role)}</b>.</p>
+      <p style="font-size:13px;color:#4a5568;margin:0;">${via === 'invitacion' ? 'La invitación la envió un gestor de la organización.' : 'Si no reconoces a esta persona, ciérrale la membresía desde Tripulación.'}</p>
       <p style="margin-top:20px;"><a href="${escHtml(base)}/flota/tripulacion" style="background:#ec5b13;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Ver tripulación</a></p></td></tr>${emailFooter()}</table>`;
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { error } = await resend.emails.send({ from: 'Skylog <notificaciones@bitafly.com>', to, subject: `Nuevo miembro en ${companyName}`, html });

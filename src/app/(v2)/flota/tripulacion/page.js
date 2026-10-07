@@ -10,6 +10,7 @@
 // documenta como E1 en la plataforma actual.
 
 import { Fragment, useCallback, useEffect, useState } from 'react';
+import Invitations from './_Invitations';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 
@@ -41,6 +42,7 @@ export default function TripulacionPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [inviteDraft, setInviteDraft] = useState(null); // «Invitar» desde una fila
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -228,6 +230,10 @@ export default function TripulacionPage() {
 
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>}
 
+      {isManager && (
+        <Invitations organizationId={organizationId} isAdmin={currentOrg?.role === 'admin' || currentOrg?.role === 'superadmin'} draft={inviteDraft} onDraftUsed={() => setInviteDraft(null)} />
+      )}
+
       {showForm && isManager && (
         <form onSubmit={handleAddMember} className="bg-white rounded-[2rem] border border-navy-100 shadow-sm p-5">
           <p className="text-xs font-black uppercase text-navy-300 tracking-widest mb-4 flex items-center gap-2">
@@ -306,6 +312,11 @@ export default function TripulacionPage() {
                           {canEdit && (
                             <button type="button" onClick={() => (isEditing ? setEditingId(null) : startEdit(m))} className="text-xs font-bold text-primary-600 hover:text-primary-700">
                               {isEditing ? 'Cancelar' : 'Editar'}
+                            </button>
+                          )}
+                          {isManager && m.has_account === false && m.person.email && (
+                            <button type="button" onClick={() => { setInviteDraft({ email: m.person.email, name: m.person.full_name, role: m.role }); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="text-xs font-bold text-primary-600 hover:text-primary-700" title="Esta persona aún no tiene acceso a la plataforma">
+                              Invitar
                             </button>
                           )}
                           {isManager && (

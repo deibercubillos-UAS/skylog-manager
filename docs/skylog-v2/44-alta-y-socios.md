@@ -45,7 +45,7 @@ Por NIT + rol (`piloto`, `jefe_pilotos`, `gerente_sms`); roles únicos (Jefe de 
 por organización); respeta el **límite de pilotos del plan** (`planLimits` de V2 ya existe y cuenta «solo el
 Gerente General no cuenta»). Crea persona + cuenta + membresía; **no** crea organización.
 
-### Etapa C — Invitación de tripulantes
+### Etapa C — Invitación de tripulantes — ✅ construida 2026-10-06 (decisión 184)
 Tabla `invitations` en V2 (`token` único, correo, rol, `person_id` opcional, estado, vencimiento de 7 días).
 Se crea desde Tripulación; correo con Resend (con `escHtml` y revisando el `{ error }`); al aceptar: si el correo
 ya tiene cuenta → membresía nueva (**sin migrar datos**, igual que la regla ya establecida); si no → registro con

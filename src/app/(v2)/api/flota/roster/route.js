@@ -37,7 +37,17 @@ export async function GET(request) {
     .order('role', { ascending: true });
   if (error) return Response.json({ error: 'Error consultando la tripulación' }, { status: 500 });
 
-  return Response.json({ roster, isManager: isDutyManager(memberships, organizationId) });
+  // Para un gestor: quién ya tiene acceso (cuenta). Quien no lo tiene puede ser invitado por correo (Etapa C).
+  // Solo se expone el booleano, nunca los datos de la cuenta.
+  const isManager = isDutyManager(memberships, organizationId);
+  let withAccess = roster;
+  if (isManager && (roster || []).length) {
+    const { data: accounts } = await createAdminClient().from('accounts').select('person_id').in('person_id', roster.map((m) => m.person.id));
+    const have = new Set((accounts || []).map((a) => a.person_id));
+    withAccess = roster.map((m) => ({ ...m, has_account: have.has(m.person.id) }));
+  }
+
+  return Response.json({ roster: withAccess, isManager });
 }
 
 // POST — agregar un tripulante. Si ya existe una Persona con el mismo

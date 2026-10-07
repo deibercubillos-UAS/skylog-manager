@@ -1,181 +1,52 @@
-// GET /api/cron/free-grants — Vercel Cron (daily 13:30 UTC)
-// 1. Degrada grants expirados (expires_at <= now, status 'activado' O 'enviado')
-// 2. Purga datos operacionales 3 meses después (purge_after <= now, status='degradado')
+// GET /api/cron/free-grants — Vercel Cron (diario 13:30 UTC). V2 (Etapa E2): marca como `degradado` todo regalo de
+// socio vencido (canjeado o sin canjear) y avisa por correo al beneficiario. El plan no se «baja» aquí: la
+// suscripción de la organización ya quedó con el vencimiento del regalo al canjearse, así que el servicio se limita
+// solo (mismo gate que cualquier suscripción vencida).
 //
-// Secured con Authorization: Bearer CRON_SECRET
-
-import { NextResponse } from 'next/server';
-import { createClient }  from '@supabase/supabase-js';
-import { Resend }        from 'resend';
-import { createNotifications } from '@/lib/notify';
-import { escHtml } from '@/lib/emailHelpers';
-import { syncOrgMembership } from '@/lib/orgMembership';
+// DECISIÓN PENDIENTE — purga: la versión actual borraba los datos operacionales 90 días después. En V2 eso choca con la
+// retención obligatoria de 5 años (vuelos, mantenimiento, SMS) y con las retenciones legales, así que NO se borra nada
+// automáticamente: `purge_after` se conserva y la purga queda sin implementar hasta decidir qué se puede eliminar.
+//
+// Protegido con Authorization: Bearer CRON_SECRET.
+import { createAdminClient } from '@/lib/supabaseServer';
+import { sendGrantExpiredEmail } from '@/lib/v2/grantsServer';
 
 export const dynamic = 'force-dynamic';
-
-function makeAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-  );
-}
 
 function verifyAuth(request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
-  const auth = request.headers.get('authorization') || '';
-  return auth === `Bearer ${secret}`;
+  return (request.headers.get('authorization') || '') === `Bearer ${secret}`;
 }
 
 export async function GET(request) {
-  if (!verifyAuth(request)) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-  }
+  if (!verifyAuth(request)) return Response.json({ error: 'No autorizado' }, { status: 401 });
 
-  const admin  = makeAdmin();
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const now    = new Date().toISOString();
+  const admin = createAdminClient();
+  const now = new Date().toISOString();
+  const results = { degraded: 0, emailed: 0, errors: [] };
 
-  const results = { degraded: 0, purged: 0, errors: [] };
-
-  // ── 1. Degradar grants expirados (activado O enviado sin redimir) ─────────
-  const { data: expired } = await admin
+  const { data: expired, error } = await admin
     .from('free_grants')
-    .select('id, email, redeemed_org_id')
-    .in('status', ['activado', 'enviado'])   // incluye huérfanos sin redimir
+    .select('id, email, status, partner:partners(name)')
+    .in('status', ['activado', 'enviado'])
     .lte('expires_at', now);
+  if (error) return Response.json({ error: error.message }, { status: 500 });
 
   for (const grant of expired || []) {
     try {
-      // Solo notificar/degradar perfil si el grant fue redimido.
-      // Auditoría 2026-07-22: buscar al admin vía organization_members (membresía
-      // real), no profiles.organization_id (solo refleja la organización ACTIVA
-      // de la cuenta ahora mismo — si el admin ya cambió su activa a otra org,
-      // la búsqueda anterior devolvía null y el downgrade se saltaba en silencio).
-      if (grant.redeemed_org_id) {
-        const { data: orgAdminMembership } = await admin
-          .from('organization_members')
-          .select('user_id')
-          .eq('organization_id', grant.redeemed_org_id)
-          .eq('role', 'admin')
-          .eq('is_active', true)
-          .maybeSingle();
-
-        if (orgAdminMembership) {
-          const adminUserId = orgAdminMembership.user_id;
-
-          await syncOrgMembership(admin, {
-            userId: adminUserId,
-            organizationId: grant.redeemed_org_id,
-            subscriptionPlan: 'piloto',
-            subscriptionExpiresAt: null,
-          });
-
-          // profiles.subscription_plan solo refleja la organización ACTIVA —
-          // solo se toca si esta org sigue siendo esa (si no, escribir aquí
-          // pisaría el plan de la organización que sí tiene activa).
-          const { data: adminProfile } = await admin
-            .from('profiles')
-            .select('active_organization_id')
-            .eq('id', adminUserId)
-            .maybeSingle();
-          if (adminProfile?.active_organization_id === grant.redeemed_org_id) {
-            await admin.from('profiles').update({
-              subscription_plan:       'piloto',
-              subscription_expires_at: null,
-              updated_at:              now,
-            }).eq('id', adminUserId);
-          }
-
-          try {
-            await createNotifications({
-              orgId: grant.redeemed_org_id,
-              roles: ['admin'],
-              type:  'system',
-              title: 'Tu período gratuito ha vencido',
-              body:  'Tu acceso piloto gratuito expiró. Suscríbete para seguir usando BitaFly.',
-              link:  '/dashboard/subscription',
-            });
-          } catch { /* no crítico */ }
-
-          try {
-            await resend.emails.send({
-              from:    'BitaFly <no-reply@bitafly.com>',
-              to:      [escHtml(grant.email)],
-              subject: 'Tu período gratuito en BitaFly ha vencido',
-              html: `
-                <p>Hola,</p>
-                <p>Tu período gratuito en <strong>BitaFly</strong> ha expirado.</p>
-                <p>Tus datos estarán disponibles durante <strong>3 meses</strong> más, pero no podrás realizar nuevas operaciones hasta que te suscribas.</p>
-                <p><a href="https://bitafly.co/dashboard/subscription">Ver planes de suscripción</a></p>
-                <p>— Equipo BitaFly</p>
-              `,
-            });
-          } catch { /* no crítico */ }
-        }
+      // Solo se avisa a quien llegó a usar el regalo; el que nunca se registró no tiene nada que perder.
+      if (grant.status === 'activado') {
+        const mail = await sendGrantExpiredEmail({ to: grant.email, partnerName: grant.partner?.name });
+        if (mail.sent) results.emailed++;
       }
-
-      await admin.from('free_grants')
-        .update({ status: 'degradado', updated_at: now })
-        .eq('id', grant.id);
-
+      const { error: updateError } = await admin.from('free_grants').update({ status: 'degradado' }).eq('id', grant.id);
+      if (updateError) throw updateError;
       results.degraded++;
-      console.log(`[cron/free-grants] degradado grant=${grant.id} email=${grant.email}`);
-    } catch (err) {
-      results.errors.push(`grant ${grant.id}: ${err.message}`);
-      console.error(`[cron/free-grants] error degradando ${grant.id}:`, err.message);
+    } catch (e) {
+      results.errors.push(`grant ${grant.id}: ${e.message}`);
+      console.error(`[cron/free-grants] error con ${grant.id}:`, e.message);
     }
   }
-
-  // ── 2. Purgar grants con purge_after alcanzado ────────────────────────────
-  const { data: toPurge } = await admin
-    .from('free_grants')
-    .select('id, email, redeemed_org_id')
-    .eq('status', 'degradado')
-    .lte('purge_after', now);
-
-  for (const grant of toPurge || []) {
-    try {
-      if (grant.redeemed_org_id) {
-        const orgId = grant.redeemed_org_id;
-
-        // Eliminar datos operacionales en orden por FK
-        await admin.from('flights').delete().eq('organization_id', orgId);
-        await admin.from('maintenance_logs').delete().eq('organization_id', orgId);
-        await admin.from('batteries').delete().eq('organization_id', orgId);
-        await admin.from('aircraft').delete().eq('organization_id', orgId);
-        await admin.from('pilots').delete().eq('organization_id', orgId);
-        await admin.from('flight_authorizations').delete().eq('organization_id', orgId);
-        await admin.from('flight_plans').delete().eq('organization_id', orgId);
-
-        try {
-          await resend.emails.send({
-            from:    'BitaFly <no-reply@bitafly.com>',
-            to:      [escHtml(grant.email)],
-            subject: 'Tus datos de BitaFly han sido eliminados',
-            html: `
-              <p>Hola,</p>
-              <p>Han pasado 3 meses desde que venció tu período gratuito en <strong>BitaFly</strong>.</p>
-              <p>Conforme a nuestra política de retención, los datos operacionales de tu cuenta han sido eliminados.</p>
-              <p>Si deseas volver, puedes <a href="https://bitafly.co/registro">crear una nueva cuenta</a> en cualquier momento.</p>
-              <p>— Equipo BitaFly</p>
-            `,
-          });
-        } catch { /* no crítico */ }
-      }
-
-      await admin.from('free_grants')
-        .update({ status: 'purgado', updated_at: now })
-        .eq('id', grant.id);
-
-      results.purged++;
-      console.log(`[cron/free-grants] purgado grant=${grant.id} org=${grant.redeemed_org_id}`);
-    } catch (err) {
-      results.errors.push(`purge ${grant.id}: ${err.message}`);
-      console.error(`[cron/free-grants] error purgando ${grant.id}:`, err.message);
-    }
-  }
-
-  console.log('[cron/free-grants] done', results);
-  return NextResponse.json(results);
+  return Response.json(results);
 }

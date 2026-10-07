@@ -7,6 +7,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { PLAN_PRICING } from '@/lib/v2/planLimits';
 import { buildIntegritySignature } from '@/lib/wompi';
+import { findActiveCode } from '@/lib/v2/referrals';
 
 function isAdmin(memberships, organizationId) {
   return (memberships || []).some((m) => m.organization_id === organizationId && ['admin', 'superadmin'].includes(m.role));
@@ -38,12 +39,20 @@ export async function POST(request) {
   const reference = `bitafly_v2_${plan}_${billing}_${organizationId}_${Date.now()}`;
 
   const admin = createAdminClient();
+  // Código de un socio (opcional): se valida aquí para avisar al instante si está mal escrito.
+  let partnerCode = null;
+  if (body.partnerCode && String(body.partnerCode).trim()) {
+    const found = await findActiveCode(admin, body.partnerCode);
+    if (!found) return Response.json({ error: 'El código de socio no existe o está inactivo.' }, { status: 400 });
+    partnerCode = found.code;
+  }
   const { error } = await admin.from('pending_subscriptions').insert({
     reference,
     organization_id: organizationId,
     plan,
     billing,
     created_by: personId,
+    partner_code: partnerCode,
   });
   if (error) return Response.json({ error: error.message }, { status: 500 });
 

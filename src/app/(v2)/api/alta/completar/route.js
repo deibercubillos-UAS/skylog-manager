@@ -5,6 +5,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
 import { PLAN_PRICING } from '@/lib/v2/planLimits';
+import { applyOwnerBenefits } from '@/lib/v2/partnersServer';
 import { loadJoinContext, decideJoin, joinErrorMessage, notifyJoin } from '@/lib/v2/joinOrganization';
 import { validateRegistration, validateJoinRegistration } from '@skylog/domain';
 
@@ -77,5 +78,6 @@ export async function POST(request) {
       { status: known ? 409 : 500 }
     );
   }
+  await applyOwnerBenefits(admin, data.person_id);
   return Response.json({ ok: true, organizationId: data.organization_id, trialDays: PLAN_PRICING.piloto.monthly.trialDays });
 }

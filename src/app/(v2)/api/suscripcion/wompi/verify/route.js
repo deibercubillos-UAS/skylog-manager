@@ -74,6 +74,7 @@ export async function POST(request) {
     transactionId: tx.id,
     reference: tx.reference,
     wompiPaymentSourceId: tx.payment_source_id ? String(tx.payment_source_id) : null,
+    amountInCents: tx.amount_in_cents,
   });
 
   // Se marca DESPUÉS de activar con éxito, misma convención que el webhook y

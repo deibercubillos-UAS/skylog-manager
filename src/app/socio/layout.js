@@ -28,7 +28,7 @@ export default function SocioLayout({ children }) {
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center">
         <span className="material-symbols-outlined text-5xl text-slate-300">lock</span>
         <p className="text-sm font-black uppercase tracking-widest text-slate-500">Acceso solo para socios</p>
-        <a href="/dashboard" className="px-5 py-3 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-widest">Ir al panel principal</a>
+        <a href="/inicio" className="px-5 py-3 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-widest">Ir al panel principal</a>
       </div>
     );
   }
@@ -48,7 +48,7 @@ export default function SocioLayout({ children }) {
               </p>
             </div>
           </div>
-          <a href="/dashboard" className="text-xs font-bold text-slate-400 hover:text-slate-600">Salir del panel</a>
+          <a href="/inicio" className="text-xs font-bold text-slate-400 hover:text-slate-600">Salir del panel</a>
         </div>
       </header>
       <main className="max-w-6xl mx-auto px-5 py-8">{children}</main>

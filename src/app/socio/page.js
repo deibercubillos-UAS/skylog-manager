@@ -37,7 +37,7 @@ export default function SocioPanel() {
 
   const loadGrants = useCallback(() => {
     fetch('/api/socio/grants').then(r => r.ok ? r.json() : [])
-      .then(d => setGrants(Array.isArray(d) ? d : [])).catch(() => {});
+      .then(d => setGrants(Array.isArray(d) ? d : d?.grants || [])).catch(() => {});
   }, []);
 
   const loadReport = useCallback((months) => {

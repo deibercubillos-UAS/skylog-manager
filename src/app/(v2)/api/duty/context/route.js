@@ -38,5 +38,9 @@ export async function GET() {
     };
   });
 
-  return Response.json({ personId, fullName: person?.full_name || null, organizations });
+  // ¿Es miembro de un socio ACTIVO (escuela/asesor)? Habilita el acceso al panel /socio.
+  const { data: partnerRows } = await supabase.from('partner_members').select('partner:partners(status)').eq('person_id', personId);
+  const isPartner = (partnerRows || []).some((r) => r.partner?.status === 'activo');
+
+  return Response.json({ personId, fullName: person?.full_name || null, organizations, isPartner });
 }

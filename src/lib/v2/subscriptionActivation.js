@@ -3,11 +3,12 @@
 // pero sobre la entidad `subscriptions` (por organización) en vez de
 // `profiles` (por usuario) — coherente con el modelo people/accounts/
 // memberships/organizations de V2. Usado por checkout/verify/webhook/cron.
-import { PLANS } from './planLimits';
+import { PLANS, PLAN_PRICING } from './planLimits';
+import { attributeCommission } from './referrals';
 
 export async function activateSubscription(admin, {
   organizationId, plan, billing, transactionId = null, reference = null,
-  wompiPaymentSourceId = null,
+  wompiPaymentSourceId = null, amountInCents = null,
 }) {
   if (!organizationId) throw new Error('organizationId es requerido');
   if (!PLANS.includes(plan) || plan === 'enterprise') {
@@ -42,5 +43,18 @@ export async function activateSubscription(admin, {
     .select()
     .single();
   if (error) throw error;
+
+  // Comisión del socio por ESTE pago (Etapa E3). Nunca rompe la activación: se atrapa y se registra.
+  try {
+    const paymentReference = transactionId || reference;
+    if (paymentReference) {
+      const amount = amountInCents != null ? Number(amountInCents) / 100 : PLAN_PRICING[plan]?.[billing]?.amount;
+      const { data: pending } = reference ? await admin.from('pending_subscriptions').select('partner_code').eq('reference', reference).maybeSingle() : { data: null };
+      const r = await attributeCommission(admin, { organizationId, explicitCode: pending?.partner_code, plan, billing, amount, paymentReference });
+      if (r.error) console.error('[referrals] no se pudo atribuir la comisión:', r.error);
+    }
+  } catch (e) {
+    console.error('[referrals] error atribuyendo la comisión:', e.message);
+  }
   return data;
 }

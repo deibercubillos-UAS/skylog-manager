@@ -77,6 +77,7 @@ export default function SuscripcionPage() {
 
   const [payPlan, setPayPlan] = useState('piloto');
   const [payBilling, setPayBilling] = useState('monthly');
+  const [partnerCode, setPartnerCode] = useState('');
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState(null);
 
@@ -145,7 +146,7 @@ export default function SuscripcionPage() {
       const res = await fetch('/api/suscripcion/wompi/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organizationId, plan: payPlan, billing: payBilling }),
+        body: JSON.stringify({ organizationId, plan: payPlan, billing: payBilling, partnerCode: partnerCode.trim() || undefined }),
       });
       const json = await res.json();
       if (!json.widget) throw new Error(json.error || 'No se pudo iniciar el pago');
@@ -234,6 +235,10 @@ export default function SuscripcionPage() {
                 <option value="monthly">Mensual</option>
                 <option value="annual">Anual</option>
               </select>
+            </label>
+            <label className="block">
+              <span className="block text-xs font-medium text-navy-400 mb-1">Código de socio (opcional)</span>
+              <input value={partnerCode} onChange={(e) => setPartnerCode(e.target.value)} placeholder="ABC-1234" autoCapitalize="characters" className="w-36 min-h-[44px] md:min-h-0 px-3 py-2 rounded-lg border border-navy-200 text-base md:text-sm uppercase" />
             </label>
             <p className="text-lg font-bold text-navy pb-2">
               {PLAN_PRICING[payPlan]?.[payBilling] ? formatCOP(PLAN_PRICING[payPlan][payBilling].amount) : '—'}

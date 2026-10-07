@@ -164,6 +164,11 @@ export default function V2Layout({ children }) {
           window.location.href = '/registro/completar';
           return;
         }
+        // Cuenta solo de socio (sin organización): su casa es el panel de socio.
+        if ((data.organizations || []).length === 0 && data.isPartner) {
+          window.location.href = '/socio';
+          return;
+        }
         setContext(data);
         setOrganizationId((prev) => prev || data.organizations?.[0]?.id || '');
       })
@@ -199,6 +204,7 @@ export default function V2Layout({ children }) {
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const isManager = !!currentOrg?.isDutyManager;
+  const isSuperadmin = !!context?.organizations?.some((o) => o.role === 'superadmin');
   const role = currentOrg?.role;
   const displayRole = ROLE_LABELS[role] || role || '—';
   const initials = (context?.fullName || context?.organizations?.[0]?.name || '?')
@@ -307,7 +313,7 @@ export default function V2Layout({ children }) {
           <div ref={accountMenuRef} className="relative pt-1">
             {accountMenuOpen && (
               <div className="absolute left-0 right-0 bottom-full mb-2 bg-[#242c3a] border border-white/10 rounded-2xl p-2 shadow-2xl z-30 space-y-0.5">
-                {FOOTER_LINKS.map((link) => (
+                {[...FOOTER_LINKS, ...(context?.isPartner ? [{ name: 'Panel de socio', icon: 'storefront', href: '/socio' }] : []), ...(isSuperadmin ? [{ name: 'Plataforma', icon: 'admin_panel_settings', href: '/admin/plataforma' }, { name: 'Socios (plataforma)', icon: 'handshake', href: '/admin/socios' }] : [])].map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}

@@ -8,6 +8,9 @@ import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
 import { PLAN_PRICING } from '@/lib/v2/planLimits';
 import { validateRegistration } from '@skylog/domain';
+import { loadGrant, redeemGrant } from '@/lib/v2/grantsServer';
+import { applyOwnerBenefits } from '@/lib/v2/partnersServer';
+import { findActiveCode, linkReferral } from '@/lib/v2/referrals';
 
 const MAX_ATTRIBUTION_BYTES = 2000;
 
@@ -37,6 +40,24 @@ export async function POST(request) {
   }
 
   const admin = createAdminClient();
+
+  // Regalo de un socio: el correo debe ser el del regalo y el regalo, vigente y sin usar (se valida ANTES de crear nada).
+  let grant = null;
+  if (body.grant) {
+    const g = await loadGrant(admin, body.grant);
+    if (g.state !== 'usable') return Response.json({ error: g.state === 'vencido' ? 'Este regalo venció.' : g.state === 'usado' ? 'Este regalo ya fue activado.' : 'Este regalo no existe.' }, { status: g.state === 'inexistente' ? 404 : 410 });
+    if (g.grant.email.toLowerCase() !== clean.email) return Response.json({ error: 'Este regalo es para otro correo. Usa el correo al que llegó.' }, { status: 403 });
+    grant = g.grant;
+  }
+
+  // Código de un socio (opcional): si se escribe, debe existir y estar activo; se valida ANTES de crear nada.
+  let partnerCode = null;
+  if (body.partnerCode && String(body.partnerCode).trim()) {
+    const found = await findActiveCode(admin, body.partnerCode);
+    if (!found) return Response.json({ error: 'El código de socio no existe o está inactivo.' }, { status: 400 });
+    partnerCode = found.code;
+  }
+
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email: clean.email,
     password: body.password,
@@ -74,5 +95,8 @@ export async function POST(request) {
     );
   }
 
-  return Response.json({ ok: true, organizationId: data.organization_id, trialDays: PLAN_PRICING.piloto.monthly.trialDays });
+  if (grant) await redeemGrant(admin, { grantId: grant.id, organizationId: data.organization_id });
+  await applyOwnerBenefits(admin, data.person_id);
+  if (partnerCode) await linkReferral(admin, { organizationId: data.organization_id, rawCode: partnerCode, plan: 'piloto', billing: null });
+  return Response.json({ ok: true, organizationId: data.organization_id, trialDays: PLAN_PRICING.piloto.monthly.trialDays, gift: !!grant });
 }

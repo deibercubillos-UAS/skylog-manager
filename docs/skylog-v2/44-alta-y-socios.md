@@ -56,7 +56,7 @@ Incluye el **inicio de sesión con Google** de `/login`: hoy un usuario de Googl
 Verificar `/reset-password`, `/update-password` y `POST /api/auth/reset-request` contra el proyecto de V2 (que no
 tengan `profiles` por dentro). Probable ajuste menor.
 
-### Etapa E — Programa de socios **completo** (decisión D del usuario)
+### Etapa E — Programa de socios **completo** (decisión D del usuario) — ✅ construida 2026-10-06 (decisión 186)
 Alcance elegido: **igual al de la versión actual**. Datos reales hoy: 3 escuelas (1 activa), 0 asesores, 0
 comisiones, 11 regalos — se construye completo de todos modos, por decisión del usuario.
 1. **Esquema** (7 tablas): `partners`, `partner_codes`, `partner_members`, `partner_invitations`,
@@ -75,7 +75,7 @@ comisiones, 11 regalos — se construye completo de todos modos, por decisión d
 5. **Panel `/socio`** (Panel, Reportes por período, Perfil con logo y borrado de cuenta) y asesores.
 6. **Migración**: las 3 escuelas, 2 dueños, 4 códigos y 11 regalos pasan con sus fechas (ver `32` §2).
 
-### Etapa F — Superadmin mínimo para operar V2
+### Etapa F — Superadmin mínimo para operar V2 — ✅ construida 2026-10-06 (decisión 187)
 Lo imprescindible, además de socios: ver/editar el plan y el vencimiento de una organización, publicar
 versiones del APK (ya existe `POST /api/app/releases`), eliminar una cuenta/organización (con la limpieza
 multi-organización que hoy hace v1). Sin esto, el soporte quedaría sin herramientas el día del corte.

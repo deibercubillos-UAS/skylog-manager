@@ -94,6 +94,7 @@ export async function GET(request) {
           transactionId: tx.id,
           reference,
           wompiPaymentSourceId: sub.wompi_payment_source_id,
+          amountInCents: cfg.amount * 100,
         });
         results.renewed++;
       } else {

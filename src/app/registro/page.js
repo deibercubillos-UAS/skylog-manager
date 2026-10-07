@@ -17,7 +17,7 @@ import AuthSidePanel from '@/components/AuthSidePanel';
 const inputCls = 'w-full min-h-[48px] px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-base md:text-sm font-medium outline-none focus:border-primary focus:ring-2 focus:ring-orange-100 transition-all';
 const labelCls = 'text-xs font-black text-slate-500 uppercase tracking-widest';
 
-const EMPTY = { firstName: '', lastName: '', email: '', password: '', phone: '', companyName: '', nit: '', role: '', acceptedTerms: false, website: '' };
+const EMPTY = { firstName: '', lastName: '', email: '', password: '', phone: '', companyName: '', nit: '', role: '', partnerCode: '', acceptedTerms: false, website: '' };
 
 function Row({ label, children }) {
   return (
@@ -35,10 +35,25 @@ export default function RegistroPage() {
   const [errors, setErrors] = useState([]);
   const [mounted, setMounted] = useState(false);
   const [mode, setMode] = useState('crear'); // crear (mi empresa) | unirme (a una empresa existente)
+  const [gift, setGift] = useState(null); // regalo de un socio: { token, email, partnerName, daysLeft } | { error }
 
   useEffect(() => {
     setMounted(true);
-    if (new URLSearchParams(window.location.search).get('modo') === 'unirme') setMode('unirme');
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('modo') === 'unirme') setMode('unirme');
+    // Regalo de un socio (`?grant=`): el correo viene fijado por el regalo y solo se puede registrar una empresa propia.
+    const token = params.get('grant');
+    if (token) {
+      fetch(`/api/alta/regalo?token=${encodeURIComponent(token)}`)
+        .then(async (r) => ({ ok: r.ok, data: await r.json().catch(() => ({})) }))
+        .then(({ ok, data }) => {
+          if (!ok) return setGift({ error: data.message || 'Este regalo no es válido.' });
+          setGift({ token, email: data.email, partnerName: data.partnerName, daysLeft: data.daysLeft });
+          setMode('crear');
+          setForm((f) => ({ ...f, email: data.email }));
+        })
+        .catch(() => setGift({ error: 'No se pudo consultar el regalo. Revisa tu conexión.' }));
+    }
   }, []);
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
 
@@ -53,7 +68,7 @@ export default function RegistroPage() {
       const res = await fetch(joining ? '/api/alta/unirse' : '/api/alta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, attribution: getAttribution() }),
+        body: JSON.stringify({ ...form, grant: gift?.token, attribution: getAttribution() }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'No se pudo completar el registro.');
@@ -81,7 +96,13 @@ export default function RegistroPage() {
 
           <h1 className="text-3xl font-black text-navy uppercase tracking-tighter">Crear cuenta</h1>
 
-          <div role="tablist" aria-label="Tipo de registro" className="grid grid-cols-2 gap-2 mt-4 mb-6">
+          {gift && (
+            <div className={`mt-4 rounded-2xl px-4 py-3 text-sm ${gift.error ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-800'}`}>
+              {gift.error ? gift.error : <>🎁 <b>{gift.partnerName || 'Un socio de BitaFly'}</b> te regaló <b>{gift.daysLeft} días</b> de acceso gratis. Tu correo queda fijado al del regalo.</>}
+            </div>
+          )}
+
+          <div role="tablist" aria-label="Tipo de registro" className={`${gift && !gift.error ? 'hidden' : 'grid'} grid-cols-2 gap-2 mt-4 mb-6`}>
             {[['crear', 'Registrar mi empresa'], ['unirme', 'Unirme a una empresa']].map(([key, label]) => (
               <button key={key} type="button" role="tab" aria-selected={mode === key} onClick={() => { setMode(key); setErrors([]); }}
                 className={`min-h-[44px] rounded-xl text-xs font-black uppercase tracking-wide border transition-colors ${mode === key ? 'bg-primary text-white border-primary' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}>
@@ -107,7 +128,7 @@ export default function RegistroPage() {
               </Row>
             </div>
             <Row label="Correo electrónico">
-              <input className={inputCls} type="email" autoComplete="email" placeholder="correo@empresa.com" value={form.email} onChange={(e) => set({ email: e.target.value })} required />
+              <input className={`${inputCls} ${gift?.email ? 'bg-slate-100 text-slate-500' : ''}`} type="email" autoComplete="email" placeholder="correo@empresa.com" value={form.email} onChange={(e) => set({ email: e.target.value })} readOnly={!!gift?.email} required />
             </Row>
             <Row label="Contraseña">
               <div className="relative">
@@ -127,6 +148,9 @@ export default function RegistroPage() {
                 </Row>
                 <Row label="NIT o documento">
                   <input className={inputCls} inputMode="text" placeholder="900.123.456-7" value={form.nit} onChange={(e) => set({ nit: e.target.value })} required />
+                </Row>
+                <Row label="Código de socio (opcional)">
+                  <input className={`${inputCls} uppercase`} autoCapitalize="characters" placeholder="ABC-1234" value={form.partnerCode} onChange={(e) => set({ partnerCode: e.target.value })} />
                 </Row>
               </div>
             ) : (

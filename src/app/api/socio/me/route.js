@@ -1,133 +1,82 @@
-import { createClient, createAdminClient } from '@/lib/supabaseServer';
-import { NextResponse } from 'next/server';
+// GET /api/socio/me — contexto del socio para el panel /socio (V2, Etapa E3). 403 si no es miembro de un socio ACTIVO.
+import { socioContext } from '@/lib/v2/socioContext';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/socio/me — contexto del socio para el panel /socio.
-// Devuelve 403 si el usuario no es miembro de ningún socio.
 export async function GET() {
-  try {
-    const supabase = await createClient();
-    const admin = createAdminClient();
+  const c = await socioContext();
+  if (c.error) return c.error;
+  const { admin, primary, partner, memberships, personId, user } = c;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
-
-    // Membresías del usuario
-    const { data: allMemberships } = await admin
-      .from('partner_members')
-      .select('id, role, partner_id')
-      .eq('profile_id', user.id);
-
-    if (!allMemberships?.length) {
-      return NextResponse.json({ error: 'No es socio' }, { status: 403 });
-    }
-
-    // Desactivar un socio (Master → "Desactivar") solo marca partners.status
-    // = 'inactivo' — no borra las filas de partner_members. Sin este filtro,
-    // cualquier miembro de un socio ya desactivado seguía teniendo acceso
-    // completo al panel /socio (el guard solo miraba si existía la fila de
-    // membresía, nunca si el socio seguía activo).
-    const { data: partnerStatuses } = await admin
-      .from('partners')
-      .select('id, status')
-      .in('id', [...new Set(allMemberships.map(m => m.partner_id))]);
-    const activePartnerIds = new Set((partnerStatuses || []).filter(p => p.status === 'activo').map(p => p.id));
-    const memberships = allMemberships.filter(m => activePartnerIds.has(m.partner_id));
-
-    if (!memberships.length) {
-      return NextResponse.json({ error: 'Tu acceso de socio fue desactivado' }, { status: 403 });
-    }
-
-    // Socio principal = primera membresía activa (típicamente única)
-    const primary = memberships[0];
-
-    // IDs visibles: el propio + (si es owner) los asesores hijos
-    const visibleIds = new Set(memberships.map(m => m.partner_id));
-    const ownerOf = memberships.filter(m => m.role === 'owner').map(m => m.partner_id);
-    if (ownerOf.length) {
-      const { data: children } = await admin
-        .from('partners').select('id').in('parent_partner_id', ownerOf);
-      (children || []).forEach(c => visibleIds.add(c.id));
-    }
-    const ids = [...visibleIds];
-
-    // meProfile solo depende de user.id (ya disponible) — se corre en paralelo
-    // con las demás consultas de este bloque en vez de esperar hasta el final.
-    const [{ data: partner }, { data: codes }, { data: grants }, { data: refs }, { data: meProfile }] = await Promise.all([
-      admin.from('partners').select('*').eq('id', primary.partner_id).single(),
-      admin.from('partner_codes').select('code, active, partner_id').in('partner_id', ids),
-      admin.from('free_grants').select('id, status, partner_id').in('partner_id', ids),
-      admin.from('referrals').select('id, status, partner_id').in('partner_id', ids),
-      admin.from('profiles').select('email, full_name').eq('id', user.id).maybeSingle(),
-    ]);
-
-    // Comisiones pendientes/liquidadas de esos referidos
-    let commissionPending = 0, commissionPaid = 0;
-    const refIds = (refs || []).map(r => r.id);
-    if (refIds.length) {
-      const { data: coms } = await admin
-        .from('referral_commissions').select('commission_amount, status').in('referral_id', refIds);
-      (coms || []).forEach(c => {
-        const amt = Number(c.commission_amount) || 0;
-        if (c.status === 'liquidada') commissionPaid += amt;
-        else if (c.status === 'pendiente') commissionPending += amt;
-      });
-    }
-
-    // Asesores hijos (solo si es owner de una escuela)
-    let advisors = [];
-    if (primary.role === 'owner' && partner.type === 'escuela') {
-      const { data: childPartners } = await admin
-        .from('partners')
-        .select('id, name, status, commission_pct, free_seats_used')
-        .eq('parent_partner_id', partner.id)
-        .eq('type', 'asesor')
-        .order('created_at', { ascending: false });
-
-      if (childPartners?.length) {
-        const childIds = childPartners.map(c => c.id);
-        const [{ data: childCodes }, { data: childMembers }, { data: childRefs }] = await Promise.all([
-          admin.from('partner_codes').select('partner_id, code, active').in('partner_id', childIds),
-          admin.from('partner_members')
-            .select('partner_id, role, profiles:profile_id(email, full_name)')
-            .in('partner_id', childIds),
-          admin.from('referrals').select('partner_id, status').in('partner_id', childIds),
-        ]);
-        const cByP = {}, mByP = {}, rByP = {};
-        (childCodes   || []).forEach(c => { (cByP[c.partner_id] ||= []).push(c); });
-        (childMembers || []).forEach(m => { (mByP[m.partner_id] ||= []).push(m); });
-        (childRefs    || []).forEach(r => { (rByP[r.partner_id] ||= []).push(r); });
-        advisors = childPartners.map(a => ({
-          id: a.id, name: a.name, status: a.status,
-          codes:   cByP[a.id] || [],
-          members: (mByP[a.id] || []).map(m => ({ role: m.role, email: m.profiles?.email, name: m.profiles?.full_name })),
-          referrals_active: (rByP[a.id] || []).filter(r => r.status === 'activa').length,
-          referrals_total:  (rByP[a.id] || []).length,
-        }));
-      }
-    }
-
-    return NextResponse.json({
-      member: { role: primary.role, email: meProfile?.email || user.email, name: meProfile?.full_name || null },
-      partner: {
-        id: partner.id, name: partner.name, type: partner.type, status: partner.status,
-        commission_pct: partner.commission_pct,
-        free_seats_limit: partner.free_seats_limit, free_seats_used: partner.free_seats_used,
-        free_days: partner.free_days, logo_url: partner.logo_url || null,
-      },
-      codes: codes || [],
-      advisors,
-      stats: {
-        grants_total:    (grants || []).length,
-        grants_active:   (grants || []).filter(g => g.status === 'activado').length,
-        referrals_total: (refs || []).length,
-        referrals_active:(refs || []).filter(r => r.status === 'activa').length,
-        commission_pending: commissionPending,
-        commission_paid:    commissionPaid,
-      },
-    });
-  } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  // IDs visibles: el propio + (si es dueño de una escuela) los asesores que cuelgan de ella.
+  const ids = new Set(memberships.map((m) => m.partner_id));
+  const ownerOf = memberships.filter((m) => m.role === 'owner').map((m) => m.partner_id);
+  if (ownerOf.length) {
+    const { data: children } = await admin.from('partners').select('id').in('parent_partner_id', ownerOf);
+    (children || []).forEach((x) => ids.add(x.id));
   }
+  const all = [...ids];
+
+  const [{ data: codes }, { data: grants }, { data: refs }, { data: me }] = await Promise.all([
+    admin.from('partner_codes').select('code, active, partner_id').in('partner_id', all),
+    admin.from('free_grants').select('id, status, partner_id').in('partner_id', all),
+    admin.from('referrals').select('id, status, partner_id').in('partner_id', all),
+    admin.from('people').select('email, full_name').eq('id', personId).maybeSingle(),
+  ]);
+
+  let commissionPending = 0;
+  let commissionPaid = 0;
+  const refIds = (refs || []).map((r) => r.id);
+  if (refIds.length) {
+    const { data: coms } = await admin.from('referral_commissions').select('commission_amount, status').in('referral_id', refIds);
+    (coms || []).forEach((x) => {
+      const amount = Number(x.commission_amount) || 0;
+      if (x.status === 'liquidada') commissionPaid += amount;
+      else if (x.status === 'pendiente') commissionPending += amount;
+    });
+  }
+
+  let advisors = [];
+  if (primary.role === 'owner' && partner.type === 'escuela') {
+    const { data: childPartners } = await admin.from('partners').select('id, name, status, commission_pct, free_seats_used').eq('parent_partner_id', partner.id).eq('type', 'asesor').order('created_at', { ascending: false });
+    if (childPartners?.length) {
+      const childIds = childPartners.map((x) => x.id);
+      const [{ data: childCodes }, { data: childMembers }, { data: childRefs }, { data: childInvites }] = await Promise.all([
+        admin.from('partner_codes').select('partner_id, code, active').in('partner_id', childIds),
+        admin.from('partner_members').select('partner_id, role, person:people(email, full_name)').in('partner_id', childIds),
+        admin.from('referrals').select('partner_id, status').in('partner_id', childIds),
+        admin.from('partner_invitations').select('partner_id, email, status, expires_at').in('partner_id', childIds).eq('status', 'pendiente'),
+      ]);
+      const group = (rows) => (rows || []).reduce((acc, r) => ((acc[r.partner_id] ||= []).push(r), acc), {});
+      const cBy = group(childCodes), mBy = group(childMembers), rBy = group(childRefs), iBy = group(childInvites);
+      advisors = childPartners.map((a) => ({
+        id: a.id,
+        name: a.name,
+        status: a.status,
+        codes: cBy[a.id] || [],
+        members: (mBy[a.id] || []).map((m) => ({ role: m.role, email: m.person?.email, name: m.person?.full_name })),
+        pending_invitations: (iBy[a.id] || []).filter((i) => new Date(i.expires_at) > new Date()).map((i) => i.email),
+        referrals_active: (rBy[a.id] || []).filter((r) => r.status === 'activa').length,
+        referrals_total: (rBy[a.id] || []).length,
+      }));
+    }
+  }
+
+  return Response.json({
+    member: { role: primary.role, email: me?.email || user.email, name: me?.full_name || null },
+    partner: {
+      id: partner.id, name: partner.name, type: partner.type, status: partner.status, commission_pct: partner.commission_pct,
+      free_seats_limit: partner.free_seats_limit, free_seats_used: partner.free_seats_used, free_days: partner.free_days, logo_url: partner.logo_url || null,
+    },
+    codes: codes || [],
+    advisors,
+    stats: {
+      grants_total: (grants || []).length,
+      grants_active: (grants || []).filter((g) => g.status === 'activado').length,
+      referrals_total: (refs || []).length,
+      referrals_active: (refs || []).filter((r) => r.status === 'activa').length,
+      commission_pending: commissionPending,
+      commission_paid: commissionPaid,
+    },
+  });
 }

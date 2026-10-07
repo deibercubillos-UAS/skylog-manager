@@ -178,6 +178,8 @@ export function transformSubscription(adminMember, today = new Date()) {
     billing: 'monthly',
     payment_provider: wompi ? 'wompi' : null,
     wompi_payment_source_id: wompi ? adminMember.wompi_payment_source_id : null,
+    migrated_from_v1: true,
+    legacy_epayco_subscription_id: clean(adminMember.epayco_subscription_id) || null,
     notes: `Migrado de v1 (plan ${adminMember.subscription_plan || 's/d'}${expires_at ? `, vence ${expires_at}` : ', sin vencimiento'})`,
   };
   return { skip: false, row, flags };

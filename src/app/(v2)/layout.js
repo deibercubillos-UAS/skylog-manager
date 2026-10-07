@@ -126,6 +126,7 @@ export default function V2Layout({ children }) {
   const [collapsedGroups, setCollapsedGroups] = useState({});
   const [switchingOrg, setSwitchingOrg] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [billingNotice, setBillingNotice] = useState(null); // aviso de suscripción para el Gerente General
   const accountMenuRef = useRef(null);
   const orgMenuRef = useRef(null);
 
@@ -201,6 +202,17 @@ export default function V2Layout({ children }) {
       return next;
     });
   }
+
+  // Aviso de suscripción (vence pronto, venció o «activa tu pago con Wompi» si viene de ePayco). Solo lo ve quien administra la organización.
+  useEffect(() => {
+    if (!organizationId) return;
+    let alive = true;
+    fetch(`/api/suscripcion/aviso?organizationId=${organizationId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (alive) setBillingNotice(d && d.notice?.level !== 'none' ? d : null); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [organizationId]);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const isManager = !!currentOrg?.isDutyManager;
@@ -441,6 +453,18 @@ export default function V2Layout({ children }) {
             </div>
           </Link>
         </header>
+
+        {billingNotice && pathname !== '/suscripcion' && (
+          <div role="status" className={`shrink-0 px-3 md:px-6 lg:px-8 py-2.5 flex flex-wrap items-center justify-between gap-2 text-sm ${billingNotice.notice.level === 'expired' ? 'bg-red-50 text-red-800 border-b border-red-100' : 'bg-amber-50 text-amber-900 border-b border-amber-100'}`}>
+            <p className="min-w-0"><b>{billingNotice.notice.title}.</b> <span className="hidden sm:inline">{billingNotice.notice.message}</span></p>
+            <Link
+              href={`/suscripcion?${new URLSearchParams({ ...(billingNotice.plan && billingNotice.plan !== 'enterprise' ? { plan: billingNotice.plan } : {}), billing: billingNotice.billing || 'monthly', pagar: '1' })}`}
+              className="shrink-0 min-h-[44px] md:min-h-0 inline-flex items-center px-4 py-2 rounded-xl bg-primary text-white text-xs font-black uppercase tracking-wide hover:bg-primary-600"
+            >
+              {billingNotice.notice.cta}
+            </Link>
+          </div>
+        )}
 
         <div
           className="flex-1 overflow-y-auto min-h-0 p-3 md:p-4 lg:p-6 pb-[max(6rem,calc(3rem+env(safe-area-inset-bottom,8px)+1rem))] lg:pb-6"

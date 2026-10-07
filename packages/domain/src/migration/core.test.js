@@ -128,7 +128,7 @@ describe('roles y suscripciones', () => {
   });
   it('suscripción: plan, vencimiento en fecha de Colombia, sin recurrencia de ePayco', () => {
     const r = transformSubscription({ subscription_plan: 'escuadrilla', subscription_expires_at: '2026-08-01T03:00:00Z', epayco_subscription_id: 'sub1' }, new Date('2026-10-06'));
-    expect(r.row).toMatchObject({ plan: 'escuadrilla', expires_at: '2026-07-31', payment_provider: null, wompi_payment_source_id: null });
+    expect(r.row).toMatchObject({ plan: 'escuadrilla', expires_at: '2026-07-31', payment_provider: null, wompi_payment_source_id: null, migrated_from_v1: true, legacy_epayco_subscription_id: 'sub1' });
     expect(r.flags.join()).toMatch(/vencida/);
     expect(r.flags.join()).toMatch(/ePayco/);
   });

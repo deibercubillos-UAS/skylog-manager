@@ -40,5 +40,6 @@ export * from './offlineQueue.js';
 export * from './commandSearch.js';
 export * from './registration.js';
 export * from './partners.js';
+export * from './subscriptionNotice.js';
 export * from './joinOrganization.js';
 export * from './invitations.js';

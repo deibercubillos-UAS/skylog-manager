@@ -78,6 +78,22 @@ export default function SuscripcionPage() {
   const [payPlan, setPayPlan] = useState('piloto');
   const [payBilling, setPayBilling] = useState('monthly');
   const [partnerCode, setPartnerCode] = useState('');
+  const [notice, setNotice] = useState(null); // aviso de suscripción (p. ej. «activa tu pago» si viene de ePayco)
+  // Llegar desde el aviso del panel: el plan y el ciclo que ya tenía vienen preseleccionados.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (PLANS.includes(q.get('plan')) && q.get('plan') !== 'enterprise') setPayPlan(q.get('plan'));
+    if (['monthly', 'annual'].includes(q.get('billing'))) setPayBilling(q.get('billing'));
+  }, []);
+
+  useEffect(() => {
+    if (!organizationId) return;
+    fetch(`/api/suscripcion/aviso?organizationId=${organizationId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setNotice(d && d.notice?.level !== 'none' ? d.notice : null))
+      .catch(() => {});
+  }, [organizationId, subscription?.payment_provider]);
+
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState(null);
 
@@ -205,7 +221,14 @@ export default function SuscripcionPage() {
 
       {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
 
-      {subscription?.payment_provider !== 'wompi' && (
+      {notice && (
+        <div className={`rounded-xl px-4 py-3 border ${notice.level === 'expired' ? 'bg-red-50 border-red-100 text-red-800' : 'bg-amber-50 border-amber-100 text-amber-900'}`}>
+          <p className="text-sm font-bold">{notice.title}</p>
+          <p className="text-xs mt-1">{notice.message}</p>
+        </div>
+      )}
+
+      {subscription?.payment_provider !== 'wompi' && !notice && (
         <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 flex items-start gap-2.5">
           <span className="material-symbols-outlined text-amber-500 text-lg shrink-0">info</span>
           <p className="text-xs text-amber-700">

@@ -75,3 +75,5 @@ android/keystore.properties
 
 # salidas del ETL (contienen datos de clientes)
 /informes/
+/avisos-migracion.csv
+/epayco-pendientes.csv

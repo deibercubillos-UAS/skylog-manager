@@ -287,8 +287,9 @@ migrados entrarían, pero **nadie nuevo podría registrarse** ni una organizaci�
    20 tablas «vacías», vuelos con piloto sin asignar y los 4 vencimientos médicos divergentes.
 4. ✅ **Prueba técnica de importación de usuarios** con contraseña cifrada (decisión A): **funciona** (decisión 188);
    el plan B (restablecer contraseña a todos) no hace falta.
-5. **Flujo de suscripción en Wompi para clientes que vienen de ePayco** (decisión B): aviso, plazo y
-   cancelación de la recurrencia vieja.
+5. ✅ **Flujo de suscripción en Wompi para clientes que vienen de ePayco** (decisión B): construido y probado
+   (decisión 190) — aviso en el panel, correo T−14 (`aviso-migracion.mjs`) y cancelación de la recurrencia en T0
+   (`epayco-pendientes.mjs --cancelar`).
 6. 🟡 `scripts/etl/` **fases 1 y 2 escritas y ensayadas con datos sintéticos** (decisiones 188 y 189; uso en
    `scripts/etl/README.md`): núcleo, mantenimiento, proveedores, manuales, listas de chequeo, SMS, archivo completo de v1
    (`legacy_v1_rows`) y copia de archivos de R2. Falta el **primer ensayo sobre una copia de producción** (necesita un

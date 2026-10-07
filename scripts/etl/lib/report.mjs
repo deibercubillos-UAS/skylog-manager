@@ -24,6 +24,8 @@ export function writeReport(dir, plan, { mode, extra = {}, files = null }) {
   write('suscripciones-a-confirmar.csv', r.flags);
   write('horas-aeronaves.csv', r.hoursCheck || []);
   if (files) write('archivos-a-copiar.csv', files);
+  // Recurrencias de ePayco que se cancelan el día del corte (decisión B): una por organización con cobro automático.
+  write('epayco-a-cancelar.csv', (plan.subscriptions || []).filter((s) => s.row.legacy_epayco_subscription_id).map((s) => ({ organizacion: s.organization, id_v1_organizacion: s.v1Org, epayco_subscription_id: s.row.legacy_epayco_subscription_id, plan: s.row.plan, vence: s.row.expires_at, accion: 'cancelar el día del corte (T0): el acceso se conserva hasta el vencimiento ya pagado y el cliente registra su tarjeta con Wompi' })));
   const off = (r.hoursCheck || []).filter((h) => Math.abs(h.difference) > 0.01);
   const md = [
     `# Informe del ETL — ${mode}`, '',

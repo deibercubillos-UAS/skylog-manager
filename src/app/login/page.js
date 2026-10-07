@@ -18,6 +18,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     setMounted(true);
+    if (new URLSearchParams(window.location.search).get('error') === 'google') setError('No se pudo iniciar sesión con Google. Intenta de nuevo o usa tu correo y contraseña.');
   }, []);
 
   const handleLogin = async (e) => {
@@ -51,6 +52,8 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
+    const raw = new URLSearchParams(window.location.search).get('next');
+    const next = raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : null;
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/callback` },

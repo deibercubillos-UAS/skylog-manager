@@ -1,17 +1,43 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import AuthSidePanel from '@/components/AuthSidePanel';
 import { toast } from '@/lib/toast';
+import { passwordProblem } from '@skylog/domain';
 
 export default function UpdatePasswordPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  // El enlace del correo trae la sesión de recuperación en la URL: como tokens en el `#` (flujo implícito, el que
+  // genera /api/auth/reset-request) o como `?code=` (PKCE). El cliente del navegador usa PKCE y NO lee los tokens
+  // del `#` por su cuenta, así que se establecen aquí de forma explícita; si no, "Auth session missing".
+  useEffect(() => {
+    (async () => {
+      try {
+        const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const code = new URLSearchParams(window.location.search).get('code');
+        if (hash.get('access_token') && hash.get('refresh_token')) {
+          await supabase.auth.setSession({ access_token: hash.get('access_token'), refresh_token: hash.get('refresh_token') });
+        } else if (code) {
+          await supabase.auth.exchangeCodeForSession(code);
+        }
+        if (hash.get('access_token') || code) window.history.replaceState(null, '', window.location.pathname); // no dejar tokens en la barra
+      } catch {
+        // sin enlace válido: al enviar se mostrará el aviso de enlace expirado
+      } finally {
+        setChecking(false);
+      }
+    })();
+  }, []);
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+    const problem = passwordProblem(password);
+    if (problem) return toast.error(problem);
     setLoading(true);
-    
+
     const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
@@ -39,8 +65,8 @@ export default function UpdatePasswordPage() {
           <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tighter">Nueva Contraseña</h2>
           <p className="text-slate-500 mb-8 font-medium">Asegúrate de que sea una clave segura y difícil de adivinar.</p>
           <form onSubmit={handleUpdate} className="space-y-6">
-            <input required type="password" minLength="6" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#ec5b13]/20" placeholder="Nueva contraseña de 6+ caracteres" onChange={e => setPassword(e.target.value)} />
-            <button type="submit" disabled={loading} className="w-full py-4 bg-[#ec5b13] text-white font-black rounded-2xl shadow-lg uppercase text-xs tracking-widest transition-all">
+            <input required type="password" minLength="8" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#ec5b13]/20" placeholder="Mínimo 8, con letras y números" onChange={e => setPassword(e.target.value)} />
+            <button type="submit" disabled={loading || checking} className="w-full py-4 bg-[#ec5b13] text-white font-black rounded-2xl shadow-lg uppercase text-xs tracking-widest transition-all">
               {loading ? "Actualizando..." : "Confirmar nueva contraseña"}
             </button>
           </form>

@@ -51,7 +51,7 @@ Se crea desde Tripulación; correo con Resend (con `escHtml` y revisando el `{ e
 ya tiene cuenta → membresía nueva (**sin migrar datos**, igual que la regla ya establecida); si no → registro con
 el correo bloqueado. Reutiliza `rowDocument`/patrones de correo existentes.
 
-### Etapa D — Sesión y contraseña
+### Etapa D — Sesión y contraseña — ✅ construida 2026-10-06 (decisión 185)
 Incluye el **inicio de sesión con Google** de `/login`: hoy un usuario de Google sin cuenta en V2 entra sin persona vinculada. Hay que decidir si se crea la cuenta al primer ingreso (con organización) o se pide completar el registro.
 Verificar `/reset-password`, `/update-password` y `POST /api/auth/reset-request` contra el proyecto de V2 (que no
 tengan `profiles` por dentro). Probable ajuste menor.

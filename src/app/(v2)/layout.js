@@ -159,6 +159,11 @@ export default function V2Layout({ children }) {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data) return;
+        // Sesión sin persona (entró con Google y no completó el registro): se le pide completarlo.
+        if (data.personId === null) {
+          window.location.href = '/registro/completar';
+          return;
+        }
         setContext(data);
         setOrganizationId((prev) => prev || data.organizations?.[0]?.id || '');
       })

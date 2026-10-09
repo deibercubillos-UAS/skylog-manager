@@ -8,6 +8,7 @@
 // role: ninguna política RLS deja insertar ahí a un usuario, para que nadie
 // pueda falsear quién abrió, liberó o consultó el material.
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
+import { createNotifications } from '@/lib/v2/notify';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 import { canReleaseHold } from '@skylog/domain';
 
@@ -102,6 +103,15 @@ export async function POST(request) {
   }
 
   const warning = await logEvent({ holdId: hold.id, type: 'opened', personId: auth.personId, detail: reason.trim() });
+  await createNotifications({
+    organizationId,
+    roles: ['admin', 'gerente_sms'],
+    type: 'custodia_abierta',
+    title: 'Se abrió una custodia legal',
+    body: reason.trim().slice(0, 200),
+    link: '/retencion',
+    actorPersonId: auth.personId,
+  });
   return Response.json({ hold, warning });
 }
 

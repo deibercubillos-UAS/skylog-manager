@@ -31,6 +31,10 @@
     {
       "path": "/api/cron/sms-deadlines",
       "schedule": "0 12 * * 1-5"
+    },
+    {
+      "path": "/api/cron/notifications-daily",
+      "schedule": "0 11 * * *"
     }
   ]
 }

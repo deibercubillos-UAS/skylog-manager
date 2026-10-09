@@ -1,6 +1,7 @@
 // Skylog V2.0 — apoyo del servidor para «unirse a una organización por NIT» (Etapa B de
 // docs/skylog-v2/44-alta-y-socios.md). La decisión de negocio es pura (`evaluateJoin`, en el dominio); aquí solo se
 // cargan los datos y se avisa a los gestores. Todo con service role: lo llaman rutas públicas o de una cuenta nueva.
+import { createNotifications } from '@/lib/v2/notify';
 import { Resend } from 'resend';
 import { evaluateJoin, JOIN_ROLE_LABELS, INVITE_ROLE_LABELS, normalizeNit } from '@skylog/domain';
 import { PLAN_LIMITS, crewCountsForLimit } from '@/lib/v2/planLimits';
@@ -48,6 +49,14 @@ export function joinErrorMessage(message) {
  * cerrar la membresía desde Tripulación si no la reconocen.
  */
 export async function notifyJoin(admin, { organizationId, companyName, fullName, email, role, via = 'nit' }) {
+  await createNotifications({
+    organizationId,
+    roles: ['admin', 'jefe_pilotos', 'gerente_sms'],
+    type: 'miembro_nuevo',
+    title: `${fullName} se unió a ${companyName}`,
+    body: `Entró como ${JOIN_ROLE_LABELS[role] || INVITE_ROLE_LABELS[role] || role}${via === 'invitacion' ? ' por invitación' : ' con el NIT'}.`,
+    link: '/flota/tripulacion',
+  }, admin);
   try {
     if (!process.env.RESEND_API_KEY) return;
     const { data: managers } = await admin.from('memberships').select('person_id').eq('organization_id', organizationId).eq('status', 'activa').in('role', ['admin', 'jefe_pilotos', 'gerente_sms']);

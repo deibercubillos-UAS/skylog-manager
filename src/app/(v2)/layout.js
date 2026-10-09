@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { OnboardingTour } from './_components/OnboardingTour';
+import NotificationBell from './_components/NotificationBell';
 
 const ROLE_LABELS = {
   admin: 'Gerente General',
@@ -442,6 +443,8 @@ export default function V2Layout({ children }) {
             <span className="hidden md:inline text-xs font-semibold">Buscar</span>
             <kbd className="hidden lg:inline text-[10px] font-bold text-navy-300 border border-navy-200 rounded px-1.5 py-0.5">Ctrl K</kbd>
           </button>
+
+          {organizationId && context?.personId && <NotificationBell organizationId={organizationId} personId={context.personId} canAnnounce={isManager} />}
 
           <Link href="/perfil" className="flex items-center gap-2 md:gap-3 border-l border-navy-100 pl-2 md:pl-3 lg:pl-5 group hover:opacity-80 transition-all">
             <div className="hidden lg:block text-right">

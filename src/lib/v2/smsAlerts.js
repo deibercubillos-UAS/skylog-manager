@@ -1,5 +1,6 @@
 // Skylog V2.0 — avisos del seguimiento de sucesos (correo, mejor esfuerzo).
 // Nunca bloquea ni rompe la operación que los dispara: si falta RESEND_API_KEY o el envío falla, se registra y se sigue.
+import { createNotifications } from '@/lib/v2/notify';
 import { Resend } from 'resend';
 import { createAdminClient } from '@/lib/supabaseServer';
 import { escHtml, emailHeader, emailFooter } from '@/lib/emailHelpers';
@@ -53,10 +54,18 @@ export async function sendAnalystMail({ organizationId, subject, title, bodyHtml
 }
 
 /** Aviso al llegar un reporte nuevo (interno o público). No incluye identidad del reportante. */
-export function notifyNewReport({ organizationId, report }) {
+export async function notifyNewReport({ organizationId, report }) {
   const sev = { incidente: 'Incidente', incidente_grave: 'Incidente grave', accidente: 'Accidente' }[report.severity] || report.severity;
   const route = report.route === 'rac114' ? 'RAC 114' : (report.route || 'vor').toUpperCase();
   const body = `<p style="font-size:14px;color:#4a5568;margin:0 0 8px;"><b>${escHtml(report.event_label || 'Suceso')}</b> · ${escHtml(sev)} · ${escHtml(route)}${report.source === 'public' ? ' · enlace público' : ''}</p>
     <p style="font-size:13px;color:#4a5568;margin:0;">${escHtml(String(report.description || '').slice(0, 300))}</p>`;
+  await createNotifications({
+    organizationId,
+    roles: ['gerente_sms'],
+    type: 'sms_reporte',
+    title: `Nuevo reporte ${route}: ${report.event_label || 'suceso'}`,
+    body: sev,
+    link: '/sms/reportes',
+  });
   return sendAnalystMail({ organizationId, subject: `Nuevo reporte ${route}: ${report.event_label || 'suceso'}`, title: 'Llegó un reporte de seguridad', bodyHtml: body, path: '/sms/reportes', ctaLabel: 'Ver en Skylog' });
 }

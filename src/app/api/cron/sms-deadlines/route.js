@@ -3,6 +3,7 @@
 // (quedan 3, 1, 0 días hábiles, o recién venció) y (b) acciones correctivas vencidas o que vencen hoy.
 // Sin tabla de "ya avisado": los hitos son fechas exactas, así que cada aviso sale una sola vez por hito.
 // Un solo correo resumen por organización. Secured con Authorization: Bearer CRON_SECRET.
+import { createNotifications } from '@/lib/v2/notify';
 import { createAdminClient } from '@/lib/supabaseServer';
 import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { computeReportDeadline } from '@skylog/domain';
@@ -70,6 +71,15 @@ export async function GET(request) {
     if (acts.length) {
       parts.push(`<p style="font-size:14px;font-weight:700;color:#1A202C;margin:0 0 6px;">Acciones correctivas vencidas o que vencen hoy</p><ul style="margin:0;padding-left:18px;font-size:13px;color:#4a5568;">${acts.map((a) => `<li>${escHtml(a.description)} — ${escHtml(a.due)}</li>`).join('')}</ul>`);
     }
+    await createNotifications({
+      organizationId,
+      roles: ['gerente_sms'],
+      type: 'sms_plazo',
+      title: `Plazos SMS: ${mors.length} MOR por radicar, ${acts.length} acción(es) vencida(s)`,
+      body: null,
+      link: '/sms/reportes',
+      dedupeKey: `sms-plazo:${today}`,
+    });
     const out = await sendAnalystMail({
       organizationId,
       subject: `Seguimiento SMS: ${mors.length} MOR por radicar, ${acts.length} acción(es) vencida(s)`,

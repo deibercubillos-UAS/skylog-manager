@@ -9,6 +9,7 @@
 // a quien no sea gestor.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { createNotifications } from '@/lib/v2/notify';
 import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { normalizeRequiredAdditions, evaluatePicQualifications, qualificationMessages } from '@skylog/domain';
 
@@ -88,7 +89,7 @@ export async function POST(request) {
     return Response.json({ error: 'El observador no puede ser la misma persona que el PIC' }, { status: 400 });
   }
 
-  const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
+  const { error: resolveError, memberships, personId } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!isDutyManager(memberships, organizationId)) {
     return Response.json({ error: 'Solo un gestor (Jefe de Pilotos, Gerente SMS, admin) puede programar misiones' }, { status: 403 });
@@ -125,5 +126,14 @@ export async function POST(request) {
     .single();
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
+  await createNotifications({
+    organizationId,
+    personIds: [picPersonId, observerPersonId].filter(Boolean),
+    type: 'mision_programada',
+    title: `Nueva misión: ${name}`,
+    body: [zone, scheduledAt].filter(Boolean).join(' · ') || null,
+    link: '/operacion/programacion',
+    actorPersonId: personId,
+  });
   return Response.json({ mission: withQualification(data) });
 }

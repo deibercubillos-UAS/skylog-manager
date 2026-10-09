@@ -7,6 +7,7 @@
 // Ver 35-frontend.md.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { createNotifications } from '@/lib/v2/notify';
 import { storagePut } from '@/lib/storage';
 
 const BUCKET = 'documents';
@@ -139,5 +140,13 @@ export async function POST(request) {
     .single();
   if (updateError) return Response.json({ error: updateError.message }, { status: 500 });
 
+  await createNotifications({
+    organizationId,
+    type: 'manual_publicado',
+    title: `Nuevo manual: ${title.trim()}`,
+    body: 'Léelo y confirma tu lectura.',
+    link: '/manuales',
+    actorPersonId: personId,
+  });
   return Response.json({ manual: updated });
 }

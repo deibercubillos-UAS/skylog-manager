@@ -4,6 +4,7 @@
 // (no se migra ningún manual_acknowledgments viejo).
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { createNotifications } from '@/lib/v2/notify';
 import { storagePut } from '@/lib/storage';
 
 const BUCKET = 'documents';
@@ -81,5 +82,13 @@ export async function POST(request, { params }) {
     .single();
   if (updateError) return Response.json({ error: updateError.message }, { status: 500 });
 
+  await createNotifications({
+    organizationId: manual.organization_id,
+    type: 'manual_publicado',
+    title: `Nueva versión de ${manual.title}`,
+    body: `Versión ${version.trim()} — debes volver a confirmar tu lectura.`,
+    link: '/manuales',
+    actorPersonId: personId,
+  });
   return Response.json({ manual: updated, version: versionRow });
 }

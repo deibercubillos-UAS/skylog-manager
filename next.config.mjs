@@ -46,6 +46,16 @@ const nextConfig = {
     ],
   },
 
+  // Rutas de v1 retiradas (C2): los marcadores, la app instalada y los correos viejos siguen llegando a /dashboard.
+  async redirects() {
+    return [
+      { source: '/dashboard', destination: '/inicio', permanent: false },
+      { source: '/dashboard/:path*', destination: '/inicio', permanent: false },
+      { source: '/admin/master', destination: '/admin/plataforma', permanent: false },
+      { source: '/admin/master/:path*', destination: '/admin/plataforma', permanent: false },
+    ];
+  },
+
   // Headers personalizados — caché agresivo en assets que nunca cambian
   async headers() {
     // ⚠️ El caché `immutable` SOLO debe aplicarse en producción. En `next dev`

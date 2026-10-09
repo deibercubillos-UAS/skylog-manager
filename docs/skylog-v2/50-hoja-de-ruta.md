@@ -183,13 +183,14 @@ activos (F5, F4a, F3, F1) están construidos y la capa comercial y de migración
 | Script de importación v1 → V2 (`scripts/etl/`, fases 1 y 2, ensayo e idempotente, 59 comprobaciones) | ✅ — falta el primer ensayo real (usuario de solo lectura en v1) y credenciales de R2 para `copy-files.mjs` |
 | Auditoría del código de V2 ([`60-auditoria-codigo.md`](60-auditoria-codigo.md)) | ✅ — hallazgos C1–C3 y A1–A5 vigentes |
 | **Migración base reproducible (C1)** — esquema completo verificado contra la rama | ✅ (decisión 192) |
+| **Código de v1 retirado (C2)** — 365 archivos, crons rotos fuera, redirecciones a V2 | ✅ (decisión 193) |
 | **Notificaciones dentro de la app** (campana, tiempo real, anuncios, 6 fuentes de eventos y cron diario) | ✅ (decisión 191) |
 
 **Lo que falta, en orden:** (1) ~~migración base reproducible~~ ✅ hecha (`supabase/baseline/`, decisión 192);
 (2) paridad restante con v1 — bitácora de acciones (`audit_log`), onboarding por Excel,
 existencias de equipo, cancelar suscripción, historial de facturación, add-ons, eliminar mi
 cuenta (Ley 1581) y los recordatorios por cron de examen de capacitación, SPI anual y reporte
-mensual a la Aerocivil; (3) retirar el código de v1 y sus 4 crons rotos; (4) actualizar
+mensual a la Aerocivil; (3) ~~retirar el código de v1 y sus 4 crons rotos~~ ✅ hecho (decisión 193; quedan por reponer 3 recordatorios); (4) actualizar
 dependencias y agregar pruebas automáticas de integración/navegador, protección de rutas en el
 servidor y CSP; (5) F4b, replay multimarca/forense y C2 siguen diferidos.
 

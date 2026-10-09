@@ -8,6 +8,10 @@ export default function robots() {
         allow: ['/'],
         disallow: [
           '/dashboard/',
+          '/inicio',
+          '/operacion/',
+          '/flota/',
+          '/sms/',
           '/admin/',
           '/api/',
           '/reset-password',

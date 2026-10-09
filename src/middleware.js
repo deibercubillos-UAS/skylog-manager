@@ -40,7 +40,6 @@ export async function middleware(request) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const isDashboard = pathname.startsWith('/dashboard');
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
   // Rutas API sensibles que requieren sesión activa
   const isProtectedApi = pathname.startsWith('/api/admin') || pathname.startsWith('/api/user');
@@ -50,9 +49,6 @@ export async function middleware(request) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  if (isDashboard && !user) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
   if (isAuthPage && user) {
     // develop-v2: /inicio es el dashboard real de V2 — esta rama no tiene
     // las tablas de v1 en su base de datos. NO cambiar en main.
@@ -66,7 +62,6 @@ export const config = {
   // Solo corre middleware donde realmente importa: rutas protegidas + auth.
   // La landing, robots, sitemap, manifest, archivos estáticos NO pasan por aquí.
   matcher: [
-    '/dashboard/:path*',
     '/login',
     '/register',
     '/registro',

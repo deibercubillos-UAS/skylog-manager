@@ -8,7 +8,7 @@ export default function manifest() {
       'Plataforma SaaS para operadores de drones en Colombia. Bitácora RAC 100, mantenimiento, SMS aeronáutico y autorizaciones AeroCivil.',
 
     // Navigation
-    start_url: '/dashboard',
+    start_url: '/inicio',
     scope: '/',
 
     // Display — prefer standalone, fall back gracefully
@@ -63,28 +63,28 @@ export default function manifest() {
         name: 'Bitácora de Vuelo',
         short_name: 'Bitácora',
         description: 'Ver y registrar vuelos',
-        url: '/dashboard/logbook',
+        url: '/operacion/bitacora',
         icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
       },
       {
-        name: 'Autorizar Misión',
+        name: 'Programar misión',
         short_name: 'Misión',
-        description: 'Crear autorización de vuelo',
-        url: '/dashboard/plan-vuelo',
+        description: 'Programar una misión de vuelo',
+        url: '/operacion/programacion',
         icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
       },
       {
         name: 'Mantenimiento',
         short_name: 'Mantenimiento',
         description: 'Registrar intervención técnica',
-        url: '/dashboard/maintenance',
+        url: '/flota/mantenimiento',
         icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
       },
       {
         name: 'Importar DJI',
         short_name: 'DJI',
         description: 'Importar logs del control DJI',
-        url: '/dashboard/logbook',
+        url: '/operacion/bitacora',
         icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
       },
     ],

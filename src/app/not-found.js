@@ -106,7 +106,7 @@ export default function NotFound() {
             Inicio
           </Link>
           <Link
-            href="/dashboard"
+            href="/inicio"
             className="px-8 py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 flex items-center justify-center gap-2"
           >
             <span className="material-symbols-outlined text-sm">speed</span>

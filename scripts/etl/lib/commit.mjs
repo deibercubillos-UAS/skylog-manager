@@ -131,9 +131,9 @@ export async function commitPlan(plan, { log = () => {} } = {}) {
       const org = orgOf(sub.v1Org);
       if (!org) { s.failed.push({ id: sub.v1Org, error: 'organización no creada' }); continue; }
       const { error } = await db.from('subscriptions').upsert(clean({ ...sub.row, organization_id: org }), { onConflict: 'organization_id' });
-      if (error) s.failed.push({ id: sub.v1Org, error: error.message }); else s.inserted++;
+      if (error) s.failed.push({ id: sub.v1Org, error: error.message }); else s.upserted = (s.upserted || 0) + 1; // upsert: repetirlo reescribe, no duplica
     }
-    log(`  subscriptions: ${s.inserted} (fallaron ${s.failed.length})`);
+    log(`  subscriptions: ${s.upserted || 0} escrita(s) (fallaron ${s.failed.length})`);
   }
 
   // 8 · Programa de socios
@@ -260,10 +260,10 @@ export async function commitPlan(plan, { log = () => {} } = {}) {
       for (let i = 0; i < rows.length; i += 200) {
         const batch = rows.slice(i, i + 200).map((r, j) => ({ source_table: table, id_v1: String(r.id ?? `${table}#${i + j}`), data: r }));
         const { error } = await db.from('legacy_v1_rows').upsert(batch, { onConflict: 'source_table,id_v1' });
-        if (error) s.failed.push({ id: `${table} ${i}`, error: error.message }); else s.inserted += batch.length;
+        if (error) s.failed.push({ id: `${table} ${i}`, error: error.message }); else s.upserted = (s.upserted || 0) + batch.length;
       }
     }
-    log(`  legacy_v1_rows: ${s.inserted} fila(s) archivada(s) (fallaron ${s.failed.length})`);
+    log(`  legacy_v1_rows: ${s.upserted || 0} fila(s) archivada(s) (fallaron ${s.failed.length})`);
   }
 
   return { files, stats: Object.fromEntries(Object.entries(stats).map(([k, v]) => [k, { inserted: v.inserted, existing: v.existing, failed: v.failed.length, failures: v.failed.slice(0, 20) }])) };

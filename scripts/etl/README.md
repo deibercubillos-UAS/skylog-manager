@@ -36,6 +36,23 @@ vigente · municipios.
 modela (SORA, resultados de listas, bitácora de acciones, indicadores/GAP/escalas de ejemplo…) se conserve y pueda entregarse
 a un inspector.
 
+## Ensayo con la copia real de v1 (lo que falta para el primer ensayo)
+1. **Usuario de solo lectura en v1** — ejecutar en el SQL Editor del proyecto de v1 (`ilozajejhecskmhwxkui`), con una contraseña propia:
+   ```sql
+   create role etl_solo_lectura login password '<contraseña-larga-y-única>';
+   alter role etl_solo_lectura set default_transaction_read_only = on;
+   grant usage on schema public, auth to etl_solo_lectura;
+   grant select on all tables in schema public to etl_solo_lectura;
+   grant select (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at) on auth.users to etl_solo_lectura;
+   ```
+   Cadena de conexión: la del *pooler* de v1 con ese usuario → `V1_DATABASE_URL`. Después del corte: `drop owned by etl_solo_lectura; drop role etl_solo_lectura;`.
+2. `npm i -D pg --no-save` (solo para correr el ETL).
+3. Ensayo en seco contra v1: `V1_DATABASE_URL=… node scripts/etl/run.mjs --from-db` → revisar `INFORME.md` y los CSV.
+4. Destino: un proyecto de V2 **vacío y desechable** (no la rama de desarrollo): `--commit` dos veces seguidas; la segunda no debe agregar filas.
+5. Probar con 2-3 cuentas reales que el inicio de sesión funciona con la contraseña de siempre (hash migrado) y que cada cliente ve sus aeronaves y vuelos.
+
+**Nota sobre repetir `--commit`:** las filas se crean una sola vez (mapa `etl_id_map`), pero `subscriptions` y `legacy_v1_rows` se *reescriben* en cada corrida (upsert). Por eso `--commit` no debe volver a correrse **después** del corte: pisaría suscripciones ya re-contratadas en Wompi.
+
 ## Archivos de R2
 `--commit` deja `archivos-a-copiar.csv` (bucket y clave de v1 → bucket y clave nueva). Después:
 

@@ -5,6 +5,7 @@
 // en v1 (CLAUDE.md: "/dashboard/subscription usaba el permiso equivocado
 // — canManageFleet en vez de un permiso propio... canManageSubscription:
 // ['superadmin','admin']"), no se repite ese error aquí desde el inicio.
+import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { PLANS, PLAN_LIMITS, crewCountsForLimit } from '@/lib/v2/planLimits';
@@ -79,5 +80,6 @@ export async function PATCH(request) {
     .select()
     .single();
   if (error) return Response.json({ error: error.message }, { status: 500 });
+  await logAudit({ organizationId, action: 'update', module: 'Suscripción', entityLabel: `Plan ${plan}${expiresAt ? ` · vence ${expiresAt}` : ''}` });
   return Response.json({ subscription: data });
 }

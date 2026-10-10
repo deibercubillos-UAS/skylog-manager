@@ -3,6 +3,7 @@
 // que Proveedores) — RLS ya lo exige, y aquí también (gate de rol en la API,
 // no solo en la UI/RLS). El estado de vigencia NO se guarda ni se calcula
 // aquí: vive en packages/domain/src/insuranceCoverage.js.
+import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 import { storageRemove } from '@/lib/storage';
@@ -124,6 +125,7 @@ export async function POST(request) {
       return Response.json({ error: 'No se pudieron enlazar las aeronaves' }, { status: 500 });
     }
   }
+  await logAudit({ organizationId, action: 'create', module: 'Pólizas', entityLabel: `Póliza ${policy.policy_number} · ${policy.insurer}` });
   return Response.json({ policy: { ...policy, aircraft_ids: coversAllFleet ? [] : [...new Set(aircraftIds)] } });
 }
 
@@ -191,6 +193,7 @@ export async function PATCH(request) {
     const linkError = await replaceAircraft(supabase, id, finalAll ? [] : aircraftIds);
     if (linkError) return Response.json({ error: 'La póliza se actualizó, pero no las aeronaves enlazadas' }, { status: 500 });
   }
+  await logAudit({ organizationId: existing.organization_id, action: 'update', module: 'Pólizas', entityLabel: `Póliza ${policy.policy_number} · ${policy.insurer}` });
   return Response.json({ policy });
 }
 
@@ -213,5 +216,6 @@ export async function DELETE(request) {
   if (error) return Response.json({ error: error.message }, { status: 500 });
   // Mejor esfuerzo: el registro ya se borró; un archivo huérfano no debe devolver error.
   if (existing.document_path) await storageRemove({ bucket: 'documents', keys: [existing.document_path] });
+  await logAudit({ organizationId: existing.organization_id, action: 'delete', module: 'Pólizas', entityLabel: 'Póliza eliminada' });
   return Response.json({ ok: true });
 }

@@ -12,6 +12,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import OfflineSync from './_components/OfflineSync';
+import AppUpdateBanner from '@/components/AppUpdateBanner';
 import CommandPalette from './_components/CommandPalette';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -48,6 +49,7 @@ const NAV_LINKS = [
   { name: 'Baterías y Componentes', icon: 'battery_full', href: '/flota/baterias', group: 'Flota & Equipo' },
   { name: 'Tripulación', icon: 'groups', href: '/flota/tripulacion', group: 'Flota & Equipo' },
   { name: 'Mantenimiento', icon: 'build', href: '/flota/mantenimiento', group: 'Flota & Equipo' },
+  { name: 'Existencias de equipo', icon: 'inventory_2', href: '/flota/equipo', group: 'Flota & Equipo' },
   { name: 'ETA', icon: 'dns', href: '/flota/eta', group: 'Flota & Equipo' },
   // SMS lista cada módulo real como enlace directo en vez de un solo enlace
   // a /sms (hub con tarjetas) — mismo criterio ya aplicado a Operación
@@ -77,6 +79,8 @@ const NAV_LINKS = [
   { name: 'Listas de Chequeo', icon: 'checklist', href: '/listas-de-chequeo', group: 'Documentación' },
   { name: 'Proveedores', icon: 'storefront', href: '/proveedores', group: 'Documentación', managerOnly: true },
   { name: 'Pólizas', icon: 'verified_user', href: '/polizas', group: 'Documentación', managerOnly: true },
+  { name: 'Importar desde Excel', icon: 'upload_file', href: '/organizacion/importar', group: 'Documentación', managerOnly: true },
+  { name: 'Registro de acciones', icon: 'history', href: '/organizacion/registro', group: 'Documentación', managerOnly: true },
   { name: 'Retención y custodia', icon: 'lock_clock', href: '/retencion', group: 'Documentación', managerOnly: true },
   { name: 'Reportes', icon: 'summarize', href: '/reportes', group: 'Documentación', managerOnly: true },
   { name: 'Manuales', icon: 'library_books', href: '/manuales', group: 'Documentación' },
@@ -474,6 +478,7 @@ export default function V2Layout({ children }) {
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
           <OfflineSync />
+          <AppUpdateBanner />
           <CommandPalette
             open={paletteOpen}
             onClose={() => setPaletteOpen(false)}

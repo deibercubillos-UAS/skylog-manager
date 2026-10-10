@@ -7,6 +7,7 @@
 // decide visibilidad (el PIC ve las suyas, un gestor ve todas las de su
 // org); programar es función de gestión — la política de INSERT ya rechaza
 // a quien no sea gestor.
+import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 import { createNotifications } from '@/lib/v2/notify';
@@ -135,5 +136,6 @@ export async function POST(request) {
     link: '/operacion/programacion',
     actorPersonId: personId,
   });
+  await logAudit({ organizationId, action: 'create', module: 'Misiones', entityLabel: `Misión ${name}` });
   return Response.json({ mission: withQualification(data) });
 }

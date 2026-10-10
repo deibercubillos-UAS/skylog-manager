@@ -19,6 +19,8 @@ en la rama no tenían archivo y tablas núcleo no tenían `CREATE TABLE` en el r
 contraseñas filtradas, MFA del superadmin) y los buckets de R2.
 No aplicar sobre la rama ni sobre producción: ya tienen este esquema.
 
+**Migraciones posteriores a la base** (aplicar en orden, después de `00_` y `10_`): `supabase/migrations/20261009110000_v2_leads.sql` y todas las de fecha mayor (`…120000` cancelación, `…130000` envío anual SPI, `…140000` índice de deduplicación, `…150000` historial de pagos, `…160000` existencias de equipo, `…170000` registro de acciones).
+
 **Qué NO incluye (a propósito):** el esquema `auth`/`storage`/`realtime` (los pone Supabase),
 las filas de negocio (las trae el ETL, `scripts/etl/`) y `colombia_geo` (V2 no la usa; la copia el ETL
 si hace falta).

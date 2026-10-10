@@ -5,6 +5,7 @@
 // organización compartida cualquiera, a diferencia de editar los datos de
 // la Persona) puede tocar rol/estado de la membresía — es un dato de esa
 // organización, no de la persona.
+import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 
@@ -51,5 +52,6 @@ export async function PATCH(request, { params }) {
     .single();
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
+  await logAudit({ organizationId: existing.organization_id, action: 'update', module: 'Tripulación', entityLabel: `${data.person?.full_name || 'Integrante'} → ${data.role} (${data.status})` });
   return Response.json({ membership: data });
 }

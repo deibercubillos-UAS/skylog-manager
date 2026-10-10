@@ -4,6 +4,7 @@
 // misión (pedido explícito del usuario). Sin DELETE — se conserva el
 // registro (evidencia de qué se programó/canceló), mismo criterio que
 // cancelar en vez de borrar.
+import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 
@@ -63,5 +64,6 @@ export async function PATCH(request, { params }) {
     .single();
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
+  await logAudit({ organizationId: mission.organization_id, action: 'update', module: 'Misiones', entityLabel: `Misión ${data.name || ''} · ${data.status}`.trim() });
   return Response.json({ mission: data });
 }

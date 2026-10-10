@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SectionHero, StatCard } from '../_components/SectionHero';
 import { Button } from '@skylog/ui';
+import PaymentHistory from './_PaymentHistory';
 import { PLANS, PLAN_LABELS, PLAN_LIMITS, PLAN_PRICING } from '@/lib/v2/planLimits';
 
 // Carga el script del Widget de Wompi una sola vez (idempotente si ya está en
@@ -416,6 +417,8 @@ export default function SuscripcionPage() {
           </div>
         )}
       </div>
+
+      {isAdmin && <PaymentHistory organizationId={organizationId} />}
     </div>
   );
 }

@@ -3,6 +3,7 @@
 // política de UPDATE en la tabla (solo SELECT para miembros) — la escritura
 // pasa por `createAdminClient()` tras verificar `isDutyManager()` a mano,
 // mismo patrón ya usado en `/api/sms/*` y `/api/duty/*`.
+import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 
@@ -20,6 +21,7 @@ export async function GET(request) {
   const { data, error } = await supabase.from('organizations').select('*').eq('id', organizationId).maybeSingle();
   if (error) return Response.json({ error: error.message }, { status: 500 });
   if (!data) return Response.json({ error: 'Organización no encontrada' }, { status: 404 });
+  await logAudit({ organizationId, action: 'update', module: 'Organización', entityLabel: 'Datos de la organización' });
   return Response.json({ organization: data });
 }
 

@@ -1,6 +1,7 @@
 // POST /api/suscripcion/cancelar — el Gerente General retira el cobro automático (tarjeta tokenizada de Wompi).
 // No quita acceso: el plan sigue vigente hasta `expires_at`; después, queda sujeto a las reglas de vencimiento de siempre.
 // Volver a pagar desde /suscripcion lo reactiva (activateSubscription limpia `canceled_at`).
+import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { createNotifications } from '@/lib/v2/notify';
@@ -45,5 +46,6 @@ export async function POST(request) {
     includeActor: true,
   }, admin);
 
+  await logAudit({ organizationId, action: 'update', module: 'Suscripción', entityLabel: 'Renovación automática cancelada' });
   return Response.json({ ok: true, expires_at: sub.expires_at });
 }

@@ -6,6 +6,7 @@
 // mantenimiento, solo la saca de la flota activa (fuera del alcance de este
 // endpoint: los selectores de Programación/Bitácora/Mantenimiento y las
 // estadísticas de `/flota` filtran este estado del lado del cliente).
+import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 
@@ -67,5 +68,6 @@ export async function PATCH(request, { params }) {
     if (error.code === '23505') return Response.json({ error: 'Ya existe una aeronave con ese número de serie en esta organización' }, { status: 409 });
     return Response.json({ error: error.message }, { status: 500 });
   }
+  await logAudit({ organizationId: data.organization_id, action: 'update', module: 'Aeronaves', entityLabel: `Aeronave ${data.serial_number}` });
   return Response.json({ aircraft: publicAircraft(data) });
 }

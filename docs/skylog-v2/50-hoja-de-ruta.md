@@ -187,11 +187,11 @@ activos (F5, F4a, F3, F1) están construidos y la capa comercial y de migración
 | **Dependencias (C3)** — `npm audit` de producción en 0 (Next 15, React 19, jsPDF 4) | ✅ (decisión 194) |
 | **Eliminar mi cuenta, descargar mis datos y cancelar la renovación** (Ley 1581) | ✅ (decisión 195) |
 | **Recordatorios por cron** (evaluaciones, SPI anual, paquete mensual SMS) | ✅ (decisión 196) |
+| **Paridad con v1** — historial de pagos, registro de acciones, existencias de equipo, importación por Excel, banner del APK | ✅ (decisión 197) |
 | **Notificaciones dentro de la app** (campana, tiempo real, anuncios, 6 fuentes de eventos y cron diario) | ✅ (decisión 191) |
 
 **Lo que falta, en orden:** (1) ~~migración base reproducible~~ ✅ hecha (`supabase/baseline/`, decisión 192);
-(2) paridad restante con v1 — bitácora de acciones (`audit_log`), onboarding por Excel,
-existencias de equipo, historial de facturación, y add-ons (los recordatorios por cron ya están, decisión 196); (3) ~~retirar el código de v1 y sus 4 crons rotos~~ ✅ hecho (decisión 193); (4) ~~actualizar dependencias~~ ✅ hecho (decisión 194) y agregar pruebas automáticas de integración/navegador, protección de rutas en el
+(2) ~~paridad restante con v1~~ ✅ cerrada (decisión 197; los add-ons no se construyen mientras producción tenga 0); (3) ~~retirar el código de v1 y sus 4 crons rotos~~ ✅ hecho (decisión 193); (4) ~~actualizar dependencias~~ ✅ hecho (decisión 194) y agregar pruebas automáticas de integración/navegador, protección de rutas en el
 servidor y CSP; (5) F4b, replay multimarca/forense y C2 siguen diferidos.
 
 ---

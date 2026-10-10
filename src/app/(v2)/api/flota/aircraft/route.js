@@ -3,7 +3,9 @@
 // ② derivado: nunca se acepta del cliente en el POST, solo se toca vía
 // `increment_aircraft_hours()` (RPC, mismo patrón anti-drift de v1: "usar
 // RPC, nunca read-calculate-write").
-import { createClientSSR } from '@/lib/supabaseServer';
+import { logAudit } from '@/lib/v2/auditLog';
+import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
+import { orgCapacity, capacityMessage } from '@/lib/v2/planCapacity';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 
 // Nunca se expone la ruta de la foto: solo si hay una cargada.
@@ -55,6 +57,9 @@ export async function POST(request) {
     return Response.json({ error: 'Solo un gestor puede registrar aeronaves' }, { status: 403 });
   }
 
+  const capacity = await orgCapacity(createAdminClient(), organizationId, 'aircraft');
+  if (capacity.room < 1) return Response.json({ error: capacityMessage('aircraft', capacity), reason: 'limite_plan' }, { status: 409 });
+
   const { data, error } = await supabase
     .from('aircraft')
     .insert({
@@ -71,5 +76,6 @@ export async function POST(request) {
     if (error.code === '23505') return Response.json({ error: 'Ya existe una aeronave con ese número de serie en esta organización' }, { status: 409 });
     return Response.json({ error: error.message }, { status: 500 });
   }
+  await logAudit({ organizationId, action: 'create', module: 'Aeronaves', entityLabel: `Aeronave ${serialNumber}` });
   return Response.json({ aircraft: publicAircraft(data) });
 }

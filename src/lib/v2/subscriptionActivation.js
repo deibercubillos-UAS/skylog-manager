@@ -47,6 +47,21 @@ export async function activateSubscription(admin, {
     .single();
   if (error) throw error;
 
+  // Historial de pagos (informativo). Nunca rompe la activación; idempotente por transacción.
+  try {
+    if (transactionId) {
+      const amount = amountInCents != null ? Number(amountInCents) / 100 : PLAN_PRICING[plan]?.[billing]?.amount;
+      if (amount != null) {
+        const { error: historyError } = await admin
+          .from('billing_history')
+          .upsert({ organization_id: organizationId, provider: 'wompi', transaction_id: String(transactionId), reference: reference || null, plan, billing, amount_cop: amount, paid_at: now.toISOString() }, { onConflict: 'provider,transaction_id', ignoreDuplicates: true });
+        if (historyError) console.error('[billing_history] no se pudo registrar el pago:', historyError.message);
+      }
+    }
+  } catch (e) {
+    console.error('[billing_history] error registrando el pago:', e.message);
+  }
+
   // Comisión del socio por ESTE pago (Etapa E3). Nunca rompe la activación: se atrapa y se registra.
   try {
     const paymentReference = transactionId || reference;

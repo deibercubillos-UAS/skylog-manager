@@ -2,6 +2,7 @@
 // current_* del manual; mismo criterio de v1: el acuse de lectura se ata a
 // la versión, así que al publicar una nueva todos deben volver a confirmar
 // (no se migra ningún manual_acknowledgments viejo).
+import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 import { createNotifications } from '@/lib/v2/notify';
@@ -91,5 +92,6 @@ export async function POST(request, { params }) {
     link: '/manuales',
     actorPersonId: personId,
   });
+  await logAudit({ organizationId: manual.organization_id, action: 'update', module: 'Manuales', entityLabel: `${manual.title} — versión ${version.trim()}` });
   return Response.json({ manual: updated, version: versionRow });
 }

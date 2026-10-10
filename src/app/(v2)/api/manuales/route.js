@@ -5,6 +5,7 @@
 // miembro activo de la org (igual que v1 canViewManuals) — solo
 // crear/editar/versionar es de gestores (canManageManuals ≈ v2_is_duty_manager).
 // Ver 35-frontend.md.
+import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 import { createNotifications } from '@/lib/v2/notify';
@@ -148,5 +149,6 @@ export async function POST(request) {
     link: '/manuales',
     actorPersonId: personId,
   });
+  await logAudit({ organizationId, action: 'create', module: 'Manuales', entityLabel: `Manual ${title.trim()}` });
   return Response.json({ manual: updated });
 }

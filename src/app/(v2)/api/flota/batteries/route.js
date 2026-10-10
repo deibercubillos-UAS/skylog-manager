@@ -3,7 +3,9 @@
 // `aircraft_id` (una batería no pertenece a una aeronave, mismo criterio ya
 // documentado en producción). `cycles` es ② derivado: nunca se acepta del
 // cliente en el POST, solo se toca vía `increment_battery_cycles()`.
-import { createClientSSR } from '@/lib/supabaseServer';
+import { logAudit } from '@/lib/v2/auditLog';
+import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
+import { orgCapacity, capacityMessage } from '@/lib/v2/planCapacity';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 
 const HEALTH_STATUSES = ['buena', 'regular', 'mala'];
@@ -57,6 +59,9 @@ export async function POST(request) {
     return Response.json({ error: 'Solo un gestor puede registrar baterías' }, { status: 403 });
   }
 
+  const capacity = await orgCapacity(createAdminClient(), organizationId, 'batteries');
+  if (capacity.room < 1) return Response.json({ error: capacityMessage('batteries', capacity), reason: 'limite_plan' }, { status: 409 });
+
   const { data, error } = await supabase
     .from('batteries')
     .insert({
@@ -74,5 +79,6 @@ export async function POST(request) {
     if (error.code === '23505') return Response.json({ error: 'Ya existe una batería con ese número de serie en esta organización' }, { status: 409 });
     return Response.json({ error: error.message }, { status: 500 });
   }
+  await logAudit({ organizationId, action: 'create', module: 'Baterías', entityLabel: `Batería ${serialNumber}` });
   return Response.json({ battery: data });
 }

@@ -7,6 +7,7 @@
 // La bitácora (`legal_hold_events`) la escribe SOLO el servidor con service
 // role: ninguna política RLS deja insertar ahí a un usuario, para que nadie
 // pueda falsear quién abrió, liberó o consultó el material.
+import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { createNotifications } from '@/lib/v2/notify';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
@@ -112,6 +113,7 @@ export async function POST(request) {
     link: '/retencion',
     actorPersonId: auth.personId,
   });
+  await logAudit({ organizationId, action: 'create', module: 'Custodia legal', entityLabel: reason.trim().slice(0, 120) });
   return Response.json({ hold, warning });
 }
 

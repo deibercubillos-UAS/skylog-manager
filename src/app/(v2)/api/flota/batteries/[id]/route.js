@@ -1,6 +1,7 @@
 // Skylog V2.0 — Flota & Equipo, Fase 2. PATCH acotado: salud/estado/ciclos.
 // `cycles` se acepta aquí como incremento explícito (no valor absoluto) y se
 // aplica vía RPC — nunca un `update` directo de la columna derivada.
+import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 
@@ -53,5 +54,6 @@ export async function PATCH(request, { params }) {
     data = fresh;
   }
 
+  await logAudit({ organizationId: data.organization_id, action: 'update', module: 'Baterías', entityLabel: `Batería ${data.serial_number}` });
   return Response.json({ battery: data });
 }

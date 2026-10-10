@@ -41,7 +41,6 @@ const MODULE_HREF = {
   'reportes-auditoria':      '/reportes-auditoria',
   'sms-aeronautico':         '/sms-aeronautico',
   'gestion-pilotos':         '/gestion-pilotos',
-  'sora':                    '/sora',
 };
 const MODULE_LABEL = {
   'bitacora-digital':        'Bitácora Digital',

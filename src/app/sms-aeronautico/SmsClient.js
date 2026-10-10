@@ -251,9 +251,7 @@ export default function SmsClient({ faqItems }) {
             ))}
           </div>
           <p className="reveal-fade text-center text-xs text-navy-300 mt-8">
-            ¿Necesitas evaluar el riesgo de una misión específica antes de volar?{' '}
-            <a href="/sora" className="text-primary-300 font-bold hover:text-primary-200">Conoce el análisis SORA →</a>
-            {' '}· ¿Buscas el examen calificado que bloquea el despacho?{' '}
+            ¿Buscas el examen calificado que bloquea el despacho?{' '}
             <a href="/capacitacion-drones" className="text-primary-300 font-bold hover:text-primary-200">Ver Capacitación →</a>
           </p>
         </div>

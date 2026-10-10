@@ -33,7 +33,6 @@ const FOOTER_COLUMNS = [
       { href: '/tutoriales', label: 'Tutoriales en Video' },
       { href: '/documentacion', label: 'Documentación' },
       { href: '/reportes-auditoria', label: 'Reportes PDF' },
-      { href: '/sora', label: 'Análisis SORA' },
     ],
   },
 ];

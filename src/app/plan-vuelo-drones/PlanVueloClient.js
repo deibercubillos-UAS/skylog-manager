@@ -133,9 +133,6 @@ export default function PlanVueloClient({ faqItems }) {
                   Comenzar gratis
                 </Button>
               </a>
-              <a href="/sora" className="text-sm font-semibold text-white/90 hover:text-white underline underline-offset-4 px-2 py-3.5">
-                Ver análisis SORA →
-              </a>
             </div>
             <p className="pv-hero-note text-xs text-navy-200 mt-4">
               KML compatible con AeroCivil y Google Earth · Funciona en móvil

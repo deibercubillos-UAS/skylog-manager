@@ -1,4 +1,5 @@
-// GET /api/organizacion/importar/plantilla — descarga la plantilla de carga inicial (.xlsx). Solo gestores.
+// GET /api/organizacion/importar/plantilla — descarga la plantilla de carga inicial (.xlsx). Es una plantilla en blanco, sin datos de ninguna organización:
+// basta con tener sesión (la importación en sí sí es solo para gestores).
 import { createClientSSR } from '@/lib/supabaseServer';
 import { buildTemplate } from '@/lib/v2/onboardingServer';
 

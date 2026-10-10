@@ -1,0 +1,58 @@
+name: CI
+on:
+  push:
+    branches: [develop-v2]
+  pull_request:
+    branches: [develop-v2, main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Pruebas del dominio
+        run: npm run test:domain
+      - name: Vulnerabilidades en producción
+        run: npm audit --omit=dev --audit-level=high
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://bqimtkwzayewwubgsaji.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.DEV_SUPABASE_ANON_KEY }}
+
+  # Pruebas de integración contra la rama de DESARROLLO de Supabase (nunca producción). Se corre aparte porque necesita
+  # secretos: DEV_SUPABASE_ANON_KEY, DEV_SUPABASE_SERVICE_ROLE_KEY y DEV_CRON_SECRET. Sin ellos, el job se omite.
+  integration:
+    runs-on: ubuntu-latest
+    if: ${{ vars.RUN_INTEGRATION == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Levantar el servidor
+        run: |
+          npm run build
+          npm run start &
+          npx --yes wait-on http://localhost:3000/api/plans/public --timeout 120000
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://bqimtkwzayewwubgsaji.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.DEV_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}
+          CRON_SECRET: ${{ secrets.DEV_CRON_SECRET }}
+      - name: Pruebas de integración
+        run: npm run test:integration
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://bqimtkwzayewwubgsaji.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.DEV_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}
+          CRON_SECRET: ${{ secrets.DEV_CRON_SECRET }}

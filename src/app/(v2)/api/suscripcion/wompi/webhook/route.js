@@ -17,7 +17,8 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    const event = await request.json();
+    const event = await request.json().catch(() => null);
+    if (!event || typeof event !== 'object') return Response.json({ error: 'Cuerpo inválido' }, { status: 400 });
 
     console.log('[wompi-v2] webhook recibido:', JSON.stringify({
       event: event?.event,
@@ -26,7 +27,15 @@ export async function POST(request) {
       reference: event?.data?.transaction?.reference,
     }));
 
-    if (!verifyWebhookChecksum(event)) {
+    let checksumOk;
+    try {
+      checksumOk = verifyWebhookChecksum(event);
+    } catch (err) {
+      // Falta WOMPI_EVENTS_SECRET: es de configuración, no de la petición — 503 y no un 500 que parezca un fallo del código.
+      console.error('[wompi-v2] webhook: sin configuración para verificar la firma:', err.message);
+      return Response.json({ error: 'Servicio no disponible por ahora' }, { status: 503 });
+    }
+    if (!checksumOk) {
       console.error('[wompi-v2] webhook: checksum inválido');
       return Response.json({ error: 'Checksum inválido' }, { status: 401 });
     }

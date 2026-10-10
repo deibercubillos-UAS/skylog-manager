@@ -22,7 +22,7 @@ export async function analystEmails(organizationId) {
   return [...new Set(emails)];
 }
 
-function shell(title, bodyHtml, ctaUrl, ctaLabel) {
+export function shell(title, bodyHtml, ctaUrl, ctaLabel) {
   return `<table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:auto;font-family:Arial,sans-serif;">
     ${emailHeader()}
     <tr><td style="padding:28px 40px;">
@@ -68,4 +68,30 @@ export async function notifyNewReport({ organizationId, report }) {
     link: '/sms/reportes',
   });
   return sendAnalystMail({ organizationId, subject: `Nuevo reporte ${route}: ${report.event_label || 'suceso'}`, title: 'Llegó un reporte de seguridad', bodyHtml: body, path: '/sms/reportes', ctaLabel: 'Ver en Skylog' });
+}
+
+/**
+ * Correo a personas concretas (por su correo de contacto en `people`). Mismo formato y las mismas garantías que
+ * `sendAnalystMail`: nunca lanza, y sin RESEND_API_KEY solo lo registra. Devuelve { sent } con los destinatarios reales.
+ */
+export async function sendPeopleMail({ personIds, subject, title, bodyHtml, path, ctaLabel }) {
+  try {
+    if (!process.env.RESEND_API_KEY) return { sent: 0, skipped: 'sin_resend' };
+    if (!personIds?.length) return { sent: 0, skipped: 'sin_destinatarios' };
+    const admin = createAdminClient();
+    const { data: people } = await admin.from('people').select('email').in('id', personIds);
+    const to = [...new Set((people || []).map((p) => p.email).filter(Boolean))];
+    if (to.length === 0) return { sent: 0, skipped: 'sin_destinatarios' };
+    const base = process.env.NEXT_PUBLIC_APP_URL || 'https://bitafly.com';
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const { error } = await resend.emails.send({ from: FROM, to, subject, html: shell(title, bodyHtml, path ? `${base}${path}` : null, ctaLabel) });
+    if (error) {
+      console.error('[smsAlerts] Resend error (personas):', error);
+      return { sent: 0, error: true };
+    }
+    return { sent: to.length };
+  } catch (e) {
+    console.error('[smsAlerts] fallo al avisar a personas:', e);
+    return { sent: 0, error: true };
+  }
 }

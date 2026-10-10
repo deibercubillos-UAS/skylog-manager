@@ -49,9 +49,11 @@ export function joinErrorMessage(message) {
  * cerrar la membresía desde Tripulación si no la reconocen.
  */
 export async function notifyJoin(admin, { organizationId, companyName, fullName, email, role, via = 'nit' }) {
+  const { data: joiner } = email ? await admin.from('people').select('id').ilike('email', email).limit(1).maybeSingle() : { data: null };
   await createNotifications({
     organizationId,
     roles: ['admin', 'jefe_pilotos', 'gerente_sms'],
+    actorPersonId: joiner?.id, // quien se unió no recibe el aviso de su propia entrada
     type: 'miembro_nuevo',
     title: `${fullName} se unió a ${companyName}`,
     body: `Entró como ${JOIN_ROLE_LABELS[role] || INVITE_ROLE_LABELS[role] || role}${via === 'invitacion' ? ' por invitación' : ' con el NIT'}.`,

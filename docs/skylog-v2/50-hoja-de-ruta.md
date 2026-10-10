@@ -186,6 +186,7 @@ activos (F5, F4a, F3, F1) están construidos y la capa comercial y de migración
 | **Código de v1 retirado (C2)** — 365 archivos, crons rotos fuera, redirecciones a V2 | ✅ (decisión 193) |
 | **Dependencias (C3)** — `npm audit` de producción en 0 (Next 15, React 19, jsPDF 4) | ✅ (decisión 194) |
 | **Eliminar mi cuenta, descargar mis datos y cancelar la renovación** (Ley 1581) | ✅ (decisión 195) |
+| **Recordatorios por cron** (evaluaciones, SPI anual, paquete mensual SMS) | ✅ (decisión 196) |
 | **Notificaciones dentro de la app** (campana, tiempo real, anuncios, 6 fuentes de eventos y cron diario) | ✅ (decisión 191) |
 
 **Lo que falta, en orden:** (1) ~~migración base reproducible~~ ✅ hecha (`supabase/baseline/`, decisión 192);

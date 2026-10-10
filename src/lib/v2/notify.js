@@ -7,7 +7,7 @@ import { resolveRecipients, safeInternalLink, NOTIFICATION_TYPES } from '@skylog
 /**
  * @param {{organizationId: string, roles?: string[], personIds?: string[], type: string, title: string, body?: string,
  *   link?: string, actorPersonId?: string, includeActor?: boolean, dedupeKey?: string, metadata?: object}} n
- * @returns {Promise<{ created: number }>}
+ * @returns {Promise<{ created: number, personIds?: string[] }>} `personIds` = a quiénes se les creó de verdad (sin los duplicados ignorados)
  */
 export async function createNotifications(n, admin = null) {
   try {
@@ -29,13 +29,13 @@ export async function createNotifications(n, admin = null) {
     }));
     // Con clave de deduplicación, un aviso repetido simplemente se ignora (índice único parcial).
     const { data, error } = n.dedupeKey
-      ? await db.from('notifications').upsert(rows, { onConflict: 'person_id,dedupe_key', ignoreDuplicates: true }).select('id')
-      : await db.from('notifications').insert(rows).select('id');
+      ? await db.from('notifications').upsert(rows, { onConflict: 'person_id,dedupe_key', ignoreDuplicates: true }).select('id, person_id')
+      : await db.from('notifications').insert(rows).select('id, person_id');
     if (error) {
       console.error('[notify] no se pudieron crear las notificaciones:', error.message);
       return { created: 0 };
     }
-    return { created: (data || []).length };
+    return { created: (data || []).length, personIds: (data || []).map((r) => r.person_id) };
   } catch (e) {
     console.error('[notify] error creando notificaciones:', e.message);
     return { created: 0 };

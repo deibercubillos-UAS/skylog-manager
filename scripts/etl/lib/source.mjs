@@ -30,7 +30,7 @@ export async function loadFromDir(dir) {
   return tables;
 }
 
-export async function loadFromDatabase(url) {
+export async function loadFromDatabase(url, { schema = 'public' } = {}) {
   const { default: pg } = await import('pg'); // se instala solo para correr el ETL: `npm i -D pg`
   const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
   await client.connect();
@@ -38,8 +38,8 @@ export async function loadFromDatabase(url) {
     await client.query('set default_transaction_read_only = on'); // defensa en profundidad: aunque el usuario pudiera escribir, esta sesión no
     // La RLS oculta las filas a un rol común y Supabase no permite darle bypass: se lee con la función de solo lectura
     // `public.etl_leer_tabla(tabla)` (SECURITY DEFINER, solo ejecutable por el rol del ETL — README).
-    const read = async (name) => (await client.query('select r as row from public.etl_leer_tabla($1) r', [name])).rows.map((x) => x.row);
-    const all = (await client.query("select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE' order by 1")).rows.map((r) => r.table_name);
+    const read = async (name) => (await client.query(`select r as row from ${schema}.etl_leer_tabla($1) r`, [name])).rows.map((x) => x.row);
+    const all = (await client.query("select table_name from information_schema.tables where table_schema = $1 and table_type = 'BASE TABLE' and table_name <> 'cutover_estado' order by 1", [schema])).rows.map((r) => r.table_name);
     const tables = {};
     const archive = {};
     for (const name of all) archive[name] = await read(name);

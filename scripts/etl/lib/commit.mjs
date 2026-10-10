@@ -6,12 +6,20 @@ import { newFileKey } from '../../../packages/domain/src/migration/index.js';
 const V1_PROJECT_REF = 'ilozajejhecskmhwxkui';
 const CHUNK = 200;
 
-export async function commitPlan(plan, { log = () => {} } = {}) {
+export async function commitPlan(plan, { log = () => {}, inPlace = false } = {}) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error('Faltan NEXT_PUBLIC_SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY del proyecto de V2.');
-  if (url.includes(V1_PROJECT_REF)) throw new Error('El destino es el proyecto de v1 (producción actual): el ETL jamás escribe ahí.');
+  if (url.includes(V1_PROJECT_REF) && !inPlace) throw new Error('El destino es el proyecto de v1 (producción actual): el ETL jamás escribe ahí sin --in-place.');
   const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  if (inPlace) {
+    // Opción C: solo se escribe si la v1 YA está congelada en legacy_v1 y la V2 instalada en public. Tres comprobaciones.
+    if (process.env.ETL_IN_PLACE_CONFIRMO !== 'si') throw new Error('--in-place --commit exige ETL_IN_PLACE_CONFIRMO=si (confirmación explícita de que la v1 está congelada).');
+    const profiles = await db.from('profiles').select('id').limit(1);
+    if (!profiles.error) throw new Error('public.profiles existe: la v1 NO está congelada. Ejecuta supabase/cutover/01_congelar_v1.sql primero.');
+    const people = await db.from('people').select('id').limit(1);
+    if (people.error) throw new Error(`public.people no existe (${people.error.message}): instala la base V2 primero (scripts/cutover/build-sql.mjs).`);
+  }
 
   // ── mapa de identificadores ─────────────────────────────────────────────────────────────────────────────────
   const idMap = new Map();
@@ -87,10 +95,11 @@ export async function commitPlan(plan, { log = () => {} } = {}) {
       const person = plan.people[a.personKey];
       const payload = { email: a.email, email_confirm: a.email_confirmed || true, user_metadata: { full_name: person.full_name } };
       if (a.password_hash) payload.password_hash = a.password_hash;
-      const { data: made, error } = await db.auth.admin.createUser(payload);
+      // En el lugar el usuario ya existe en auth.users (mismo id, misma contraseña): solo se enlaza con su persona.
+      const { data: made, error } = inPlace ? await db.auth.admin.getUserById(a.v1AuthId) : await db.auth.admin.createUser(payload);
       if (error || !made?.user) { s.failed.push({ id: a.v1AuthId, error: error?.message || 'sin usuario' }); continue; }
       const { data: acc, error: accError } = await db.from('accounts').insert(clean({ person_id: pid, auth_user_id: made.user.id, signup_attribution: a.signup_attribution || undefined })).select('id').single();
-      if (accError) { await db.auth.admin.deleteUser(made.user.id); s.failed.push({ id: a.v1AuthId, error: accError.message }); continue; }
+      if (accError) { if (!inPlace) await db.auth.admin.deleteUser(made.user.id); s.failed.push({ id: a.v1AuthId, error: accError.message }); continue; }
       pairs.push([a.v1AuthId, acc.id]);
       s.inserted++;
     }
@@ -253,8 +262,8 @@ export async function commitPlan(plan, { log = () => {} } = {}) {
     if (to && process.env.R2_LOGOS_BASE_URL) await setColumn('organizations', org, { logo_url: `${process.env.R2_LOGOS_BASE_URL.replace(/\/$/, '')}/${to}` });
   }
 
-  // Archivo fiel de v1 (JSONB), sin contraseñas
-  {
+  // Archivo fiel de v1 (JSONB), sin contraseñas. En el lugar ya está completo en el esquema `legacy_v1`: no se duplica.
+  if (!inPlace) {
     const s = stat('legacy_v1_rows');
     for (const [table, rows] of Object.entries(plan.archive || {})) {
       for (let i = 0; i < rows.length; i += 200) {

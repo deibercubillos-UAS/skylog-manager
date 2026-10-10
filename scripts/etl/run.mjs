@@ -16,6 +16,8 @@ const flag = (name) => args.includes(name);
 const value = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : null; };
 
 const commit = flag('--commit');
+// --in-place: la V2 ya está instalada en el MISMO proyecto que tenía la v1 (opción C); la v1 está congelada en el esquema `legacy_v1`.
+const inPlace = flag('--in-place');
 const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
 const outDir = value('--out') || path.join('informes', `etl-${stamp}`);
 
@@ -24,15 +26,16 @@ async function main() {
   if (value('--source-dir')) tables = await loadFromDir(value('--source-dir'));
   else if (flag('--from-db')) {
     if (!process.env.V1_DATABASE_URL) throw new Error('Falta V1_DATABASE_URL (usuario de SOLO LECTURA sobre la copia de v1).');
-    tables = await loadFromDatabase(process.env.V1_DATABASE_URL);
+    tables = await loadFromDatabase(process.env.V1_DATABASE_URL, { schema: inPlace ? 'legacy_v1' : 'public' });
   } else throw new Error('Indica el origen: --source-dir <carpeta> o --from-db');
+  if (inPlace && !flag('--from-db')) throw new Error('--in-place solo se usa con --from-db (lee el esquema legacy_v1).');
 
   const plan = buildPlan(tables);
   let extra = {};
   let files = null;
   if (commit) {
     const { commitPlan } = await import('./lib/commit.mjs');
-    const result = await commitPlan(plan, { log: (m) => console.log(m) });
+    const result = await commitPlan(plan, { log: (m) => console.log(m), inPlace });
     extra = result.stats;
     files = result.files;
   }

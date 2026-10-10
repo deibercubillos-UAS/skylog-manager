@@ -24,6 +24,7 @@ import { Button } from '@skylog/ui';
 import { supabase } from '@/lib/supabase';
 import IconField from './_IconField';
 import JoinOrganization from './_JoinOrganization';
+import PrivacySection from './_PrivacySection';
 
 const ROLE_LABELS = {
   admin: 'Gerente General',
@@ -290,6 +291,11 @@ export default function PerfilPage() {
                 Cerrar sesión
               </Button>
             </div>
+          </SectionCard>
+
+          {/* Privacidad y datos (Ley 1581) */}
+          <SectionCard icon="shield_person" tile="bg-slate-600 text-white" wash="from-slate-50 to-white" title="Privacidad y datos" description="Descarga tus datos o elimina tu cuenta">
+            <PrivacySection authEmail={authEmail} />
           </SectionCard>
         </div>
       </div>

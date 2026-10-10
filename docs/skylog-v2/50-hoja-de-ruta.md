@@ -185,12 +185,12 @@ activos (F5, F4a, F3, F1) están construidos y la capa comercial y de migración
 | **Migración base reproducible (C1)** — esquema completo verificado contra la rama | ✅ (decisión 192) |
 | **Código de v1 retirado (C2)** — 365 archivos, crons rotos fuera, redirecciones a V2 | ✅ (decisión 193) |
 | **Dependencias (C3)** — `npm audit` de producción en 0 (Next 15, React 19, jsPDF 4) | ✅ (decisión 194) |
+| **Eliminar mi cuenta, descargar mis datos y cancelar la renovación** (Ley 1581) | ✅ (decisión 195) |
 | **Notificaciones dentro de la app** (campana, tiempo real, anuncios, 6 fuentes de eventos y cron diario) | ✅ (decisión 191) |
 
 **Lo que falta, en orden:** (1) ~~migración base reproducible~~ ✅ hecha (`supabase/baseline/`, decisión 192);
 (2) paridad restante con v1 — bitácora de acciones (`audit_log`), onboarding por Excel,
-existencias de equipo, cancelar suscripción, historial de facturación, add-ons, eliminar mi
-cuenta (Ley 1581) y los recordatorios por cron de examen de capacitación, SPI anual y reporte
+existencias de equipo, historial de facturación, add-ons y los recordatorios por cron de examen de capacitación, SPI anual y reporte
 mensual a la Aerocivil; (3) ~~retirar el código de v1 y sus 4 crons rotos~~ ✅ hecho (decisión 193; quedan por reponer 3 recordatorios); (4) ~~actualizar dependencias~~ ✅ hecho (decisión 194) y agregar pruebas automáticas de integración/navegador, protección de rutas en el
 servidor y CSP; (5) F4b, replay multimarca/forense y C2 siguen diferidos.
 

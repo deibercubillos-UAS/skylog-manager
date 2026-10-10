@@ -42,5 +42,6 @@ export * from './registration.js';
 export * from './partners.js';
 export * from './subscriptionNotice.js';
 export * from './notifications.js';
+export * from './accountDeletion.js';
 export * from './joinOrganization.js';
 export * from './invitations.js';

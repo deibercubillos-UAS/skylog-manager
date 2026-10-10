@@ -35,7 +35,10 @@ export async function activateSubscription(admin, {
   // incluyera `notes: null` sobrescribiría en silencio cualquier nota manual
   // que un admin ya hubiera dejado (ver /suscripcion, campo "Notas internas").
   if (reference) patch.notes = `Wompi tx=${transactionId || 's/d'} ref=${reference}`;
-  if (wompiPaymentSourceId) patch.wompi_payment_source_id = wompiPaymentSourceId;
+  if (wompiPaymentSourceId) {
+    patch.wompi_payment_source_id = wompiPaymentSourceId;
+    patch.canceled_at = null; // pagó de nuevo con tarjeta: la renovación automática vuelve a estar activa
+  }
 
   const { data, error } = await admin
     .from('subscriptions')

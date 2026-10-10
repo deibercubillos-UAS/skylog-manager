@@ -94,10 +94,30 @@ export default function SuscripcionPage() {
       .catch(() => {});
   }, [organizationId, subscription?.payment_provider]);
 
+  const [cancelConfirm, setCancelConfirm] = useState(false);
+  const [cancelBusy, setCancelBusy] = useState(false);
+  const [cancelError, setCancelError] = useState(null);
+
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState(null);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
+
+  const cancelAutoRenew = async () => {
+    setCancelBusy(true);
+    setCancelError(null);
+    try {
+      const res = await fetch('/api/suscripcion/cancelar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ organizationId }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo cancelar');
+      setCancelConfirm(false);
+      await load(organizationId);
+    } catch (e) {
+      setCancelError(e.message);
+    } finally {
+      setCancelBusy(false);
+    }
+  };
 
   const load = useCallback(async (orgId) => {
     if (!orgId) return;
@@ -292,13 +312,52 @@ export default function SuscripcionPage() {
               <p className="text-sm font-bold text-navy">Plan {PLAN_LABELS[plan]}</p>
               <p className="text-xs text-navy-400">
                 {subscription?.expires_at
-                  ? `${subscription.payment_provider === 'wompi' ? 'Renueva' : 'Vence'} el ${new Date(`${subscription.expires_at}T00:00:00`).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}`
+                  ? `${subscription.payment_provider === 'wompi' && subscription.wompi_payment_source_id ? 'Renueva' : 'Vence'} el ${new Date(`${subscription.expires_at}T00:00:00`).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}`
                   : 'Sin fecha de vencimiento'}
               </p>
             </div>
           </div>
           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${status.badge}`}>{status.label}</span>
         </div>
+
+        {isAdmin && subscription?.payment_provider === 'wompi' && (subscription?.wompi_payment_source_id || subscription?.canceled_at) && (
+          <div className="px-5 py-4 border-b border-navy-50">
+            {subscription.wompi_payment_source_id ? (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-navy">Renovación automática activa</p>
+                  <p className="text-xs text-navy-400">Se cobra la tarjeta guardada al vencer cada ciclo.</p>
+                </div>
+                {!cancelConfirm && (
+                  <button type="button" onClick={() => setCancelConfirm(true)} className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">
+                    Cancelar renovación
+                  </button>
+                )}
+                {cancelConfirm && (
+                  <div className="w-full rounded-xl border border-red-200 bg-red-50/60 p-3 space-y-2">
+                    <p className="text-sm text-navy">
+                      Dejaremos de cobrar tu tarjeta y borraremos su referencia. <b>Tu plan sigue activo hasta {subscription.expires_at ? new Date(`${subscription.expires_at}T00:00:00`).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' }) : 'su vencimiento'}</b>; después no se renueva. Puedes volver a pagar cuando quieras.
+                    </p>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={cancelAutoRenew} disabled={cancelBusy} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white disabled:opacity-50">
+                        {cancelBusy ? 'Cancelando…' : 'Sí, cancelar la renovación'}
+                      </button>
+                      <button type="button" onClick={() => setCancelConfirm(false)} className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-navy-200 text-navy">Volver</button>
+                    </div>
+                    {cancelError && <p className="text-xs text-red-600">{cancelError}</p>}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div>
+                <p className="text-sm font-medium text-navy">Renovación automática cancelada</p>
+                <p className="text-xs text-navy-400">
+                  No se volverá a cobrar. Tu plan sigue activo hasta {subscription.expires_at ? new Date(`${subscription.expires_at}T00:00:00`).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' }) : 'su vencimiento'}. Para reactivarla, paga de nuevo con tarjeta más abajo.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {isAdmin ? (
           <form onSubmit={handleSubmit} className="p-5 space-y-4">

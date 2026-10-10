@@ -9,7 +9,7 @@ const BOT_PROBE_REGEX = /\.(php|asp|aspx|jsp|cgi|env|git|sql|bak|sh)$|wp-(admin|
 // formularios públicos como /reportar o /invitacion— es público a propósito.
 const APP_PREFIXES = [
   '/inicio', '/flota', '/operacion', '/organizacion', '/perfil', '/polizas', '/proveedores', '/reportes', '/retencion',
-  '/sms', '/suscripcion', '/aerocivil', '/capacitacion', '/manuales', '/listas-de-chequeo', '/admin',
+  '/sms', '/suscripcion', '/aerocivil', '/capacitacion', '/manuales', '/listas-de-chequeo', '/admin', '/verificacion',
 ];
 
 export async function middleware(request) {
@@ -83,8 +83,8 @@ export const config = {
     '/register',
     '/registro',
     // Next exige un matcher literal: si cambia APP_PREFIXES, cambiar también esta lista.
-    '/(inicio|flota|operacion|organizacion|perfil|polizas|proveedores|reportes|retencion|sms|suscripcion|aerocivil|capacitacion|manuales|listas-de-chequeo|admin)/:path*',
-    '/(inicio|flota|operacion|organizacion|perfil|polizas|proveedores|reportes|retencion|sms|suscripcion|aerocivil|capacitacion|manuales|listas-de-chequeo|admin)',
+    '/(inicio|flota|operacion|organizacion|perfil|polizas|proveedores|reportes|retencion|sms|suscripcion|aerocivil|capacitacion|manuales|listas-de-chequeo|admin|verificacion)/:path*',
+    '/(inicio|flota|operacion|organizacion|perfil|polizas|proveedores|reportes|retencion|sms|suscripcion|aerocivil|capacitacion|manuales|listas-de-chequeo|admin|verificacion)',
     '/api/admin/:path*',
     '/api/user/:path*',
   ],

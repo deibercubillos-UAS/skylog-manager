@@ -68,7 +68,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
 | [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 289 | ✅ |
-| [`51-bitacora.md`](51-bitacora.md) | **198 decisiones cerradas**, correcciones propias y fuentes consultadas | 269 | ✅ |
+| [`51-bitacora.md`](51-bitacora.md) | **199 decisiones cerradas**, correcciones propias y fuentes consultadas | 269 | ✅ |
 | [`60-auditoria-codigo.md`](60-auditoria-codigo.md) | **Auditoría del código de V2** (2026-10-07) — qué está bien, qué no y qué falta, con evidencia | 150 | ✅ |
 
 **Leyenda**: ✅ completo · 🔄 migrado, pendiente de rehacer bajo el enfoque de reconstrucción · ⬜ no iniciado · ⏸ omitido por ahora

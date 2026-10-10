@@ -7,7 +7,7 @@ import { test, before, after, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { assertDevDatabase, BASE_URL, call, createOwner, joinAsPilot, deleteAccount, env, uniq } from './helpers.mjs';
+import { assertDevDatabase, BASE_URL, admin, signIn, cookieFromSession, totp, call, createOwner, joinAsPilot, deleteAccount, env, uniq } from './helpers.mjs';
 
 const ROOTS = ['src/app/(v2)/api', 'src/app/api'];
 const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
@@ -186,6 +186,56 @@ describe('organizaciones y roles', () => {
     const r = await call('GET', '/api/perfil/exportar', { cookie: B.cookie });
     assert.equal(r.status, 200);
     assert.ok(!r.text.includes(A.email), 'la exportación de B contiene datos de A');
+  });
+});
+
+describe('segundo factor del superadmin', () => {
+  let S;
+  before(async () => {
+    S = await createOwner('mfa');
+    const { error } = await admin().from('memberships').update({ role: 'superadmin' }).eq('person_id', S.personId);
+    if (error) throw error;
+  });
+  after(async () => {
+    // La base se niega a borrar a un superadmin: primero se le devuelve el rol de gerente.
+    await admin().from('memberships').update({ role: 'admin' }).eq('person_id', S.personId);
+    await deleteAccount(S).catch(() => {});
+  });
+
+  test('sin segundo factor la API de la plataforma responde 403 con mfa:true', async () => {
+    const r = await call('GET', '/api/admin/cuentas?q=prueba', { cookie: S.cookie });
+    assert.equal(r.status, 403);
+    assert.equal(r.json?.mfa, true);
+  });
+
+  test('sin segundo factor las pantallas de /admin llevan a /verificacion', async () => {
+    const res = await fetch(BASE_URL + '/admin/plataforma', { redirect: 'manual', headers: { cookie: S.cookie } });
+    assert.ok([302, 307].includes(res.status));
+    assert.match(res.headers.get('location') || '', /\/verificacion\?next=/);
+  });
+
+  test('con el autenticador configurado y verificado (aal2) entra', async () => {
+    const { client } = await signIn(S.email);
+    const enrolled = await client.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'prueba' });
+    assert.ok(!enrolled.error, enrolled.error?.message);
+    const v = await client.auth.mfa.challengeAndVerify({ factorId: enrolled.data.id, code: totp(enrolled.data.totp.secret) });
+    assert.ok(!v.error, v.error?.message);
+    const cookie = cookieFromSession(v.data);
+    const api = await call('GET', '/api/admin/cuentas?q=prueba', { cookie });
+    assert.equal(api.status, 200, api.text);
+    const page = await fetch(BASE_URL + '/admin/plataforma', { redirect: 'manual', headers: { cookie } });
+    assert.equal(page.status, 200);
+    // Y la sesión anterior (solo contraseña) sigue sin pasar.
+    const old = await call('GET', '/api/admin/cuentas?q=prueba', { cookie: S.cookie });
+    assert.ok([401, 403].includes(old.status), `la sesión sin segundo factor pasó: ${old.status}`);
+  });
+
+  test('un código incorrecto no da acceso', async () => {
+    const { client } = await signIn(S.email);
+    const factors = await client.auth.mfa.listFactors();
+    const f = factors.data.totp.find((x) => x.status === 'verified');
+    const v = await client.auth.mfa.challengeAndVerify({ factorId: f.id, code: '000000' });
+    assert.ok(v.error);
   });
 });
 

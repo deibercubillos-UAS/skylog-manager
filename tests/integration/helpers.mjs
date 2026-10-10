@@ -1,6 +1,7 @@
 // Pruebas de integración de Skylog V2 — utilidades. Corren contra un servidor ya levantado (BASE_URL, por defecto
 // http://localhost:3000) conectado a la rama de DESARROLLO de Supabase. Se niegan a correr contra cualquier otra base.
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 
@@ -48,13 +49,20 @@ export async function createAuthUser(email) {
 }
 
 /** Cookie de sesión equivalente a la que deja el navegador tras iniciar sesión. */
-export async function sessionCookie(email) {
+export const cookieFromSession = (session) => {
+  const ref = new URL(env.url).hostname.split('.')[0];
+  return `sb-${ref}-auth-token=base64-${Buffer.from(JSON.stringify(session)).toString('base64url')}`;
+};
+
+export async function signIn(email) {
   const c = createClient(env.url, env.anon, { auth: { persistSession: false } });
   const { data, error } = await c.auth.signInWithPassword({ email, password: PASSWORD });
   if (error) throw error;
-  const ref = new URL(env.url).hostname.split('.')[0];
-  const b64 = Buffer.from(JSON.stringify(data.session)).toString('base64url');
-  return `sb-${ref}-auth-token=base64-${b64}`;
+  return { client: c, session: data.session };
+}
+
+export async function sessionCookie(email) {
+  return cookieFromSession((await signIn(email)).session);
 }
 
 export async function call(method, url, { cookie, body, headers = {} } = {}) {
@@ -97,4 +105,18 @@ export async function joinAsPilot(owner, label) {
 export async function deleteAccount(who) {
   if (!who?.cookie) return;
   await call('DELETE', '/api/perfil/cuenta', { cookie: who.cookie, body: { confirmEmail: who.email } });
+}
+
+/** Código TOTP (RFC 6238: SHA-1, 6 dígitos, 30 s) para el secreto base32 que entrega Supabase al dar de alta el factor. */
+export function totp(secretBase32, now = Date.now()) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits = '';
+  for (const ch of secretBase32.replace(/=+$/, '').toUpperCase().replace(/\s/g, '')) bits += alphabet.indexOf(ch).toString(2).padStart(5, '0');
+  const key = Buffer.from(bits.match(/.{8}/g).map((b) => parseInt(b, 2)));
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(now / 30000)));
+  const h = crypto.createHmac('sha1', key).update(counter).digest();
+  const o = h[h.length - 1] & 0xf;
+  const n = ((h[o] & 0x7f) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3];
+  return String(n % 1_000_000).padStart(6, '0');
 }

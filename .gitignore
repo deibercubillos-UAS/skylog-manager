@@ -77,3 +77,6 @@ android/keystore.properties
 /informes/
 /avisos-migracion.csv
 /epayco-pendientes.csv
+
+# Respaldos de datos de clientes (scripts/cutover/respaldo-v1.mjs): nunca al repositorio
+respaldos/

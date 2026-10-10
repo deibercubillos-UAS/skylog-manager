@@ -6,7 +6,7 @@ bajar al plan gratuito (con respaldo diario a R2: `/api/cron/backup-r2`).
 
 ## Secuencia (fin de semana de corte)
 1. **v1 en solo lectura** (bloqueo de escrituras) y aviso a los clientes.
-2. **Respaldo previo**: con el plan Pro todavía activo, una copia de seguridad desde el panel (Database → Backups) y, si ya no hay Pro, un `pg_dump` completo.
+2. **Respaldo previo (sin depender del plan de Supabase)**: `V1_DATABASE_URL=… node scripts/cutover/respaldo-v1.mjs` deja en `respaldos/` un JSON comprimido por tabla y los usuarios con su contraseña cifrada (carpeta ignorada por git; copiarla además fuera de línea).
 3. SQL Editor: **`01_congelar_v1.sql`** (una transacción). Luego **`02_verificar_congelado.sql`**: todo en `true`.
 4. `node scripts/cutover/build-sql.mjs` → `informes/cutover-v2.sql` (base V2 + semilla + migraciones posteriores). Ejecutarlo en el SQL Editor.
 5. ETL en el lugar: `V1_DATABASE_URL=… ETL_IN_PLACE_CONFIRMO=si node --env-file=.env.local scripts/etl/run.mjs --from-db --in-place` (en seco) y luego con `--commit`.
@@ -22,6 +22,6 @@ la reversa es la **restauración del respaldo**.
 - La v1 **no sigue funcionando** en paralelo (sus tablas ya no están en `public`): no hay «v1 en solo lectura» como aplicación; sus datos quedan en `legacy_v1`.
 - No repetir `--commit` después de abrir al público (reescribe `subscriptions`).
 
-## Ensayo obligatorio antes del corte
+## Ensayo (si hay plan de pago)
 En una **restauración de la v1 a un proyecto nuevo** (Supabase → Database → Backups → *Restore to new project*, función de planes de pago): ejecutar los
 pasos 3-5 allí, probar el inicio de sesión de las cuentas `qa.*` y la reversa. Borrar ese proyecto al terminar.

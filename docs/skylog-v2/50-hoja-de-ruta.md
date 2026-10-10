@@ -191,8 +191,7 @@ activos (F5, F4a, F3, F1) están construidos y la capa comercial y de migración
 
 **Lo que falta, en orden:** (1) ~~migración base reproducible~~ ✅ hecha (`supabase/baseline/`, decisión 192);
 (2) paridad restante con v1 — bitácora de acciones (`audit_log`), onboarding por Excel,
-existencias de equipo, historial de facturación, add-ons y los recordatorios por cron de examen de capacitación, SPI anual y reporte
-mensual a la Aerocivil; (3) ~~retirar el código de v1 y sus 4 crons rotos~~ ✅ hecho (decisión 193; quedan por reponer 3 recordatorios); (4) ~~actualizar dependencias~~ ✅ hecho (decisión 194) y agregar pruebas automáticas de integración/navegador, protección de rutas en el
+existencias de equipo, historial de facturación, y add-ons (los recordatorios por cron ya están, decisión 196); (3) ~~retirar el código de v1 y sus 4 crons rotos~~ ✅ hecho (decisión 193); (4) ~~actualizar dependencias~~ ✅ hecho (decisión 194) y agregar pruebas automáticas de integración/navegador, protección de rutas en el
 servidor y CSP; (5) F4b, replay multimarca/forense y C2 siguen diferidos.
 
 ---

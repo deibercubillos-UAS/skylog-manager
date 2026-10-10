@@ -7,7 +7,7 @@ import { test, before, after, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { assertDevDatabase, call, createOwner, joinAsPilot, deleteAccount, env, uniq } from './helpers.mjs';
+import { assertDevDatabase, BASE_URL, call, createOwner, joinAsPilot, deleteAccount, env, uniq } from './helpers.mjs';
 
 const ROOTS = ['src/app/(v2)/api', 'src/app/api'];
 const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
@@ -60,6 +60,30 @@ describe('barrido sin sesión', () => {
   }
 });
 
+describe('páginas protegidas en el servidor', () => {
+  const pages = ['/inicio', '/flota', '/flota/equipo', '/operacion/despacho', '/organizacion', '/suscripcion', '/sms', '/admin/plataforma', '/admin/socios'];
+  for (const pg of pages) {
+    test(`${pg} sin sesión redirige a /login con ?next`, async () => {
+      const res = await fetch(BASE_URL + pg, { redirect: 'manual' });
+      assert.ok([302, 307].includes(res.status), `respondió ${res.status}`);
+      assert.match(res.headers.get('location') || '', new RegExp('/login\\?next=' + encodeURIComponent(pg).replace(/\//g, '%2F')));
+    });
+  }
+  test('las páginas públicas siguen abiertas', async () => {
+    for (const pg of ['/', '/login', '/precios', '/politica-privacidad']) {
+      const res = await fetch(BASE_URL + pg, { redirect: 'manual' });
+      assert.equal(res.status, 200, pg);
+    }
+  });
+  test('toda respuesta lleva CSP y anti-iframe', async () => {
+    const res = await fetch(BASE_URL + '/login');
+    const csp = res.headers.get('content-security-policy') || '';
+    assert.match(csp, /frame-ancestors 'self'/);
+    assert.match(csp, /object-src 'none'/);
+    assert.match(csp, /base-uri 'self'/);
+  });
+});
+
 describe('crons', () => {
   const crons = listRoutes().filter((r) => r.template.startsWith('/api/cron/'));
   for (const c of crons) {
@@ -84,6 +108,12 @@ describe('organizaciones y roles', () => {
   });
   after(async () => {
     for (const w of [pilotA, A, B]) await deleteAccount(w).catch(() => {});
+  });
+
+  test('un gestor (no superadmin) es llevado a /inicio al abrir /admin', async () => {
+    const res = await fetch(BASE_URL + '/admin/plataforma', { redirect: 'manual', headers: { cookie: A.cookie } });
+    assert.ok([302, 307].includes(res.status), `respondió ${res.status}`);
+    assert.match(res.headers.get('location') || '', /\/inicio$/);
   });
 
   test('el gestor crea una existencia de equipo en su organización', async () => {

@@ -1,4 +1,32 @@
 /** @type {import('next').NextConfig} */
+// Content-Security-Policy. Next inyecta scripts en línea para hidratar, por eso 'unsafe-inline' en script-src (un nonce
+// por petición obligaría a renderizar todo de forma dinámica). Lo que sí se restringe: de dónde se cargan scripts,
+// conexiones, marcos y formularios, y que nadie pueda incrustar la app (frame-ancestors).
+const isProdBuild = process.env.NODE_ENV === 'production';
+const CSP = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isProdBuild ? '' : " 'unsafe-eval'"} https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://scripts.clarity.ms https://va.vercel-scripts.com https://cdnjs.cloudflare.com https://snap.licdn.com`,
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https:",
+  "media-src 'self' blob: https:",
+  [
+    "connect-src 'self'",
+    'https://*.supabase.co wss://*.supabase.co',
+    'https://*.r2.cloudflarestorage.com https://*.bitafly.com',
+    'https://api.open-meteo.com https://archive-api.open-meteo.com https://services.swpc.noaa.gov',
+    'https://nominatim.openstreetmap.org https://server.arcgisonline.com https://*.tile.openstreetmap.org',
+    'https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.google.com https://stats.g.doubleclick.net https://px.ads.linkedin.com https://www.linkedin.com https://*.clarity.ms https://vitals.vercel-insights.com https://va.vercel-scripts.com',
+    'https://production.wompi.co https://checkout.wompi.co',
+  ].join(' '),
+  "frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com https://aerocivil.maps.arcgis.com https://www.openstreetmap.org https://checkout.wompi.co https://www.googletagmanager.com",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self' https://checkout.wompi.co",
+  "frame-ancestors 'self'",
+].join('; ');
+
 const nextConfig = {
   // dji-log-parser-js usa WASM — excluir del bundling de webpack
   experimental: {
@@ -95,6 +123,7 @@ const nextConfig = {
         // Headers de seguridad globales (suman puntos en Lighthouse Best Practices)
         source: '/(.*)',
         headers: [
+          { key: 'Content-Security-Policy', value: CSP },
           { key: 'X-Content-Type-Options',  value: 'nosniff' },
           { key: 'X-Frame-Options',         value: 'SAMEORIGIN' },
           { key: 'Referrer-Policy',         value: 'strict-origin-when-cross-origin' },

@@ -35,16 +35,16 @@ export async function loadFromDatabase(url) {
   const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
   await client.connect();
   try {
-    // La RLS oculta las filas a un rol común: se lee como `supabase_read_only_user` (solo lectura, sin RLS).
-    // Requiere `grant supabase_read_only_user to etl_solo_lectura;` (README).
-    await client.query('set role supabase_read_only_user');
     await client.query('set default_transaction_read_only = on'); // defensa en profundidad: aunque el usuario pudiera escribir, esta sesión no
-    const tables = {};
+    // La RLS oculta las filas a un rol común y Supabase no permite darle bypass: se lee con la función de solo lectura
+    // `public.etl_leer_tabla(tabla)` (SECURITY DEFINER, solo ejecutable por el rol del ETL — README).
+    const read = async (name) => (await client.query('select r as row from public.etl_leer_tabla($1) r', [name])).rows.map((x) => x.row);
     const all = (await client.query("select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE' order by 1")).rows.map((r) => r.table_name);
+    const tables = {};
     const archive = {};
-    for (const name of all) archive[name] = name in tables ? tables[name] : (await client.query(`select * from public."${name}"`)).rows;
-    for (const name of V1_TABLES) tables[name] = archive[name] ?? (await client.query(`select * from public.${name}`)).rows;
-    tables.auth_users = (await client.query('select id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at from auth.users')).rows;
+    for (const name of all) archive[name] = await read(name);
+    for (const name of V1_TABLES) tables[name] = archive[name] ?? (await read(name));
+    tables.auth_users = await read('auth_users');
     archive.auth_users = stripSecrets('auth_users', tables.auth_users);
     tables.__archive = archive;
     return tables;

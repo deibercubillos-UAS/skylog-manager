@@ -41,13 +41,28 @@ a un inspector.
    ```sql
    create role etl_solo_lectura login password '<contraseña-larga-y-única>';
    alter role etl_solo_lectura set default_transaction_read_only = on;
-   grant usage on schema public, auth to etl_solo_lectura;
+   grant usage on schema public to etl_solo_lectura;
    grant select on all tables in schema public to etl_solo_lectura;
-   grant select (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at) on auth.users to etl_solo_lectura;
-   -- la RLS oculta las filas a un rol común: el ETL lee como el rol de solo lectura de Supabase (bypass de RLS, sin escritura)
-   grant supabase_read_only_user to etl_solo_lectura;
+
+   -- La RLS oculta las filas a un rol común y Supabase no permite darle bypass (ni `grant supabase_read_only_user`).
+   -- Se lee con una función de solo lectura, dueña `postgres` (que sí atraviesa la RLS), ejecutable solo por este rol.
+   create or replace function public.etl_leer_tabla(p_tabla text)
+   returns setof jsonb language plpgsql stable security definer set search_path = public, pg_temp as $$
+   begin
+     if p_tabla = 'auth_users' then
+       return query select jsonb_build_object('id', u.id, 'email', u.email, 'encrypted_password', u.encrypted_password,
+         'email_confirmed_at', u.email_confirmed_at, 'raw_user_meta_data', u.raw_user_meta_data, 'created_at', u.created_at)
+         from auth.users u;
+     elsif exists (select 1 from pg_tables where schemaname = 'public' and tablename = p_tabla) then
+       return query execute format('select to_jsonb(t) from public.%I t', p_tabla);
+     else
+       raise exception 'tabla no permitida: %', p_tabla;
+     end if;
+   end $$;
+   revoke all on function public.etl_leer_tabla(text) from public, anon, authenticated;
+   grant execute on function public.etl_leer_tabla(text) to etl_solo_lectura;
    ```
-   Cadena de conexión: la del *pooler* de v1 con ese usuario → `V1_DATABASE_URL`. Después del corte: `drop owned by etl_solo_lectura; drop role etl_solo_lectura;`.
+   Cadena de conexión: la del *pooler* de v1 con ese usuario → `V1_DATABASE_URL`. Después del corte: `drop function public.etl_leer_tabla(text); drop owned by etl_solo_lectura; drop role etl_solo_lectura;`.
 2. `npm i -D pg --no-save` (solo para correr el ETL).
 3. Ensayo en seco contra v1: `V1_DATABASE_URL=… node scripts/etl/run.mjs --from-db` → revisar `INFORME.md` y los CSV.
 4. Destino: un proyecto de V2 **vacío y desechable** (no la rama de desarrollo): `--commit` dos veces seguidas; la segunda no debe agregar filas.

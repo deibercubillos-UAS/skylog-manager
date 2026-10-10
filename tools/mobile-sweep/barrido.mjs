@@ -26,7 +26,11 @@ for (const url of urls) {
   const slug = url.replace(/^https?:\/\/[^/]+/, '').replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '') || 'home';
   const dir = `${outDir}/${slug}`; fs.mkdirSync(dir, { recursive: true });
   try {
-    await driver.url(url); await driver.pause(4500);
+    await driver.url(url); await driver.execute(() => { try { localStorage.setItem('bitafly_cookie_consent', 'rejected'); } catch (e) {} });
+    await driver.url(url); await driver.pause(4500); // segunda carga: sin el aviso de cookies tapando contenido
+    // Safari restaura a veces el foco de un campo y hace zoom: se quita antes de medir (es del arnés de pruebas, no del sitio)
+    await driver.execute(() => { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); window.scrollTo(0, 0); });
+    await driver.pause(900);
     const m = await driver.execute(measure);
     const step = Math.max(300, m.vh - 110); // se descuenta la barra inferior de Safari
     let y = 0, i = 1;

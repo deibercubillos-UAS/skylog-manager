@@ -49,7 +49,7 @@ a un inspector.
 2. `npm i -D pg --no-save` (solo para correr el ETL).
 3. Ensayo en seco contra v1: `V1_DATABASE_URL=… node scripts/etl/run.mjs --from-db` → revisar `INFORME.md` y los CSV.
 4. Destino: un proyecto de V2 **vacío y desechable** (no la rama de desarrollo): `--commit` dos veces seguidas; la segunda no debe agregar filas.
-5. Probar con 2-3 cuentas reales que el inicio de sesión funciona con la contraseña de siempre (hash migrado) y que cada cliente ve sus aeronaves y vuelos.
+5. Probar el inicio de sesión con la contraseña de siempre (hash migrado) usando las cuentas de prueba que ya existen en v1 (`docs/plan-qa-completa-bitafly.md`): `qa.gerente@` (Gerente General, plan Flota), `qa.jefepilotos@`, `qa.sms@`, `qa.piloto@`, `qa.independiente@` (piloto independiente) y `qa.socio@` (socio/Enterprise), todas `@bitafly-test.local`. Cada una debe entrar y ver lo suyo (la organización QA tiene aeronave, batería, misión, vuelo, mantenimiento y manual).
 
 **Nota sobre repetir `--commit`:** las filas se crean una sola vez (mapa `etl_id_map`), pero `subscriptions` y `legacy_v1_rows` se *reescriben* en cada corrida (upsert). Por eso `--commit` no debe volver a correrse **después** del corte: pisaría suscripciones ya re-contratadas en Wompi.
 

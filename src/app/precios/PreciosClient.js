@@ -71,7 +71,7 @@ const PLANS_BASE = [
     cta: 'Comenzar ahora', ctaHref: '/registro', dark: true, popular: true,
     features: [
       { ok: true, text: 'Hasta 10 aeronaves' },
-      { ok: true, text: '10 usuarios · 5 roles RAC 100' },
+      { ok: true, text: '10 usuarios · 4 roles RAC 100' },
       { ok: true, text: 'Todos los reportes en PDF/Excel — cada código 100% personalizable' },
       { ok: true, text: 'SMS completo con trazabilidad' },
       { ok: true, text: 'Auditoría y trazabilidad completa' },

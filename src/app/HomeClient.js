@@ -76,7 +76,7 @@ const FEATURE_GROUPS = [
     group: 'Plataforma y Seguridad',
     icon: 'roles',
     items: [
-      { icon: 'roles', title: 'Roles y Multi-usuario', desc: 'Cinco roles predefinidos con aislamiento de datos por organización.' },
+      { icon: 'roles', title: 'Roles y Multi-usuario', desc: 'Cuatro roles predefinidos con aislamiento de datos por organización.' },
       { icon: 'nube', title: '100% en la Nube', desc: 'Sin instalación. Respaldos automáticos, disponible desde cualquier navegador.' },
       { icon: 'bolt', title: 'Recursos Adicionales', desc: 'Amplía pilotos o drones sobre tu plan actual, sin cambiar de suscripción.' },
       { icon: 'apps', title: 'App Android Nativa', desc: 'Compatible con controladores DJI RC Plus para registrar vuelos desde el campo.' },

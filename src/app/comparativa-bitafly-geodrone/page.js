@@ -84,7 +84,7 @@ const ROWS = [
   { feature: 'Reportes PDF RAC 100',                  bitafly: '✅ F-OPS-002, F-MNT-003, F-HUM-005',         competitor: '⚠️ Básicos' },
   { feature: 'Acceso web (sin instalación)',           bitafly: '✅ 100% web',                                 competitor: '⚠️ Requiere instalación' },
   { feature: 'Soporte en español',                    bitafly: '✅ Chat + email',                             competitor: '⚠️ Solo email' },
-  { feature: 'Multi-usuario y roles',                 bitafly: '✅ Hasta 5 roles',                            competitor: '⚠️ Limitado' },
+  { feature: 'Multi-usuario y roles',                 bitafly: '✅ Hasta 4 roles',                            competitor: '⚠️ Limitado' },
 ];
 
 const REASONS = [

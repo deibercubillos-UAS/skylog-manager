@@ -255,7 +255,7 @@ const FEATURES = [
     group: 'Plataforma y Seguridad',
     icon: 'admin_panel_settings',
     title: 'Roles y Multi-usuario',
-    desc: 'Cinco roles predefinidos: Administrador, Gerente SMS, Jefe de Pilotos, Piloto y Superadmin. Permisos granulares y aislamiento de datos por organización a nivel de base de datos.',
+    desc: 'Cuatro roles predefinidos: Administrador, Gerente SMS, Jefe de Pilotos y Piloto. Permisos granulares y aislamiento de datos por organización a nivel de base de datos.',
   },
   {
     group: 'Plataforma y Seguridad',

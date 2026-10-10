@@ -14,7 +14,7 @@ export const metadata = {
   alternates: { canonical: '/operadores-uas' },
   openGraph: {
     title: 'Software para Operadores UAS Certificados en Colombia | Bitafly',
-    description: 'Plataforma para operadores ESUAS. 5 roles RAC 100, todos los módulos, acceso al plan Escuadrilla sin costo en Fase 0 de certificación (máx. 6 meses).',
+    description: 'Plataforma para operadores ESUAS. 4 roles RAC 100, todos los módulos, acceso al plan Escuadrilla sin costo en Fase 0 de certificación (máx. 6 meses).',
     url: 'https://bitafly.com/operadores-uas',
   },
 };
@@ -24,7 +24,7 @@ const faqSchema = {
   "@type": "FAQPage",
   "mainEntity": [
     { "@type": "Question", "name": "¿Qué es un Explotador de Sistemas UAS (ESUAS)?", "acceptedAnswer": { "@type": "Answer", "text": "El ESUAS (Explotador de Sistema de Aeronave No Tripulada) es la figura jurídica establecida por la UAEAC en la RAC 100 para las empresas u operadores individuales que realizan operaciones comerciales con drones en Colombia. La certificación como ESUAS es obligatoria para operaciones de trabajo aéreo." } },
-    { "@type": "Question", "name": "¿Qué roles de usuario tiene Bitafly?", "acceptedAnswer": { "@type": "Answer", "text": "Bitafly tiene 5 roles: Superadmin (gestión global del SaaS), Administrador (gestión completa de la organización), Gerente SMS (gestión de seguridad operacional), Jefe de Pilotos (gestión de tripulación y programación) y Piloto (registro de vuelos y reportes de incidentes)." } },
+    { "@type": "Question", "name": "¿Qué roles de usuario tiene Bitafly?", "acceptedAnswer": { "@type": "Answer", "text": "Bitafly tiene 4 roles: Administrador (gestión completa de la organización), Gerente SMS (gestión de seguridad operacional), Jefe de Pilotos (gestión de tripulación y programación) y Piloto (registro de vuelos y reportes de incidentes)." } },
     { "@type": "Question", "name": "¿Bitafly sirve para un piloto individual o solo para empresas?", "acceptedAnswer": { "@type": "Answer", "text": "Bitafly sirve para ambos. El plan Piloto está diseñado para pilotos individuales con un dron, con período de prueba antes del primer cobro. Los planes Escuadrilla y Flota son para empresas con múltiples aeronaves y tripulantes. El plan Enterprise es para grandes operadores." } },
     { "@type": "Question", "name": "¿Bitafly ayuda durante el proceso de certificación ESUAS?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Si tu empresa está en Fase 0 del proceso de certificación como Explotador UAS ante la AeroCivil, Bitafly te da acceso sin costo al plan Escuadrilla durante esa etapa, hasta un máximo de 6 meses. Contáctanos con tu número de radicado para activarlo." } },
   ],
@@ -113,7 +113,7 @@ export default function OperadoresUASPage() {
             {[
               { plan:'Plan Piloto', planBg:'rgba(236,91,19,0.08)', planBorder:'rgba(236,91,19,0.2)', planColor:accent, icon:'person_check', title:'Piloto Autónomo', desc:'Un dron, un piloto. Bitácora digital ilimitada, mantenimiento con alertas, gestión de baterías y reporte F-OPS-002 en PDF. 15 días de prueba antes del primer cobro.', featured:false },
               { plan:'Plan Escuadrilla', planBg:'rgba(26,32,44,0.06)', planBorder:'rgba(26,32,44,0.1)', planColor:'#1A202C', icon:'groups', title:'Pequeña Empresa', desc:'Hasta 3 aeronaves y 5 usuarios con los 4 roles RAC 100. SMS completo, auditoría, protocolos personalizables y todos los reportes RAC 100 con tu propio código de formato.', featured:false },
-              { plan:'Plan Flota ★', planBg:accent, planBorder:accent, planColor:'white', icon:'admin_panel_settings', title:'Empresa Mediana / ESUAS', desc:'Hasta 10 aeronaves y 10 usuarios con los 5 roles RAC 100. SMS completo, auditoría, protocolos personalizables y todos los reportes RAC 100 con tu propio código de formato.', featured:true },
+              { plan:'Plan Flota ★', planBg:accent, planBorder:accent, planColor:'white', icon:'admin_panel_settings', title:'Empresa Mediana / ESUAS', desc:'Hasta 10 aeronaves y 10 usuarios con los 4 roles RAC 100. SMS completo, auditoría, protocolos personalizables y todos los reportes RAC 100 con tu propio código de formato.', featured:true },
             ].map(item => (
               <article key={item.icon} style={{background:'#fff',border:`1.5px solid ${item.featured?'rgba(236,91,19,0.3)':'#f1f5f9'}`,borderRadius:'28px',padding:'28px',boxShadow:item.featured?'0 8px 24px rgba(0,0,0,0.08)':'none'}}>
                 <div style={{display:'inline-flex',alignItems:'center',gap:'6px',background:item.planBg,border:`1px solid ${item.planBorder}`,borderRadius:'9999px',padding:'4px 10px',marginBottom:'14px'}}>
@@ -136,7 +136,7 @@ export default function OperadoresUASPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2" style={{maxWidth:'1100px',margin:'0 auto',gap:'56px',alignItems:'center'}}>
           <div>
             <div style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.3em',color:accent,marginBottom:'12px'}}>Estructura corporativa real</div>
-            <h2 style={{fontSize:'clamp(28px,3vw,44px)',fontWeight:900,textTransform:'uppercase',letterSpacing:'-0.04em',color:'#1A202C',marginBottom:'16px'}}>5 roles operacionales <span style={{color:accent}}>según la RAC 100</span></h2>
+            <h2 style={{fontSize:'clamp(28px,3vw,44px)',fontWeight:900,textTransform:'uppercase',letterSpacing:'-0.04em',color:'#1A202C',marginBottom:'16px'}}>4 roles operacionales <span style={{color:accent}}>según la RAC 100</span></h2>
             <p style={{fontSize:'14px',color:'#64748b',lineHeight:1.75,marginBottom:'24px'}}>Bitafly replica la jerarquía operacional exigida por la UAEAC para operadores certificados. Cada rol tiene acceso a los módulos que le corresponden según la normativa.</p>
             <ul style={{listStyle:'none',padding:0,margin:0,display:'flex',flexDirection:'column',gap:'10px'}}>
               {[
@@ -144,7 +144,6 @@ export default function OperadoresUASPage() {
                 { label:'Gerente SMS', desc:'Seguridad operacional y gestión de incidentes' },
                 { label:'Jefe de Pilotos', desc:'Tripulación, certificados y programación' },
                 { label:'Piloto', desc:'Registro de vuelos y reporte de incidentes' },
-                { label:'Superadmin', desc:'Gestión global del SaaS (solo Bitafly)' },
               ].map(role => (
                 <li key={role.label} style={{display:'flex',alignItems:'flex-start',gap:'10px',fontSize:'13px',fontWeight:500,color:'#475569',lineHeight:1.5}}>
                   <span className="material-symbols-outlined" style={{fontSize:'18px',color:accent,flexShrink:0,marginTop:'1px'}}>check_circle</span>

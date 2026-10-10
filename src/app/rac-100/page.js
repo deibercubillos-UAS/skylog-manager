@@ -3,7 +3,6 @@ import Image from 'next/image';
 import PublicHeader from '@/components/bitafly/PublicHeader';
 import PublicFooter from '@/components/bitafly/PublicFooter';
 import SEOBreadcrumb from '@/components/seo/SEOBreadcrumb';
-import SocialProofStrip from '@/components/seo/SocialProofStrip';
 import RelatedReading from '@/components/seo/RelatedReading';
 import Decor from '@/components/landing/Decor';
 import FeatureSpotlight from '@/components/landing/FeatureSpotlight';
@@ -160,7 +159,7 @@ export default function RAC100Page() {
             <article style={s.card}>
               <div style={s.cardIcon}><span className="material-symbols-outlined">verified_user</span></div>
               <h3 style={s.cardTitle}>Roles Operacionales</h3>
-              <p style={s.cardDesc}>Estructura de 5 roles según la RAC 100: Administrador, Gerente SMS, Jefe de Pilotos, Piloto y Superadmin con accesos granulares.</p>
+              <p style={s.cardDesc}>Estructura de 4 roles según la RAC 100: Administrador, Gerente SMS, Jefe de Pilotos y Piloto con accesos granulares.</p>
             </article>
           </div>
         </div>
@@ -221,7 +220,6 @@ export default function RAC100Page() {
         </div>
       </section>
 
-      <SocialProofStrip heading="Operadores que confían en Bitafly para su cumplimiento RAC 100" />
 
       {/* CTA */}
       <div style={{...s.ctaBand,position:'relative',overflow:'hidden',isolation:'isolate'}}>

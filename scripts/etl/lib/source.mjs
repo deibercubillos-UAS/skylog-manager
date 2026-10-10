@@ -35,6 +35,9 @@ export async function loadFromDatabase(url) {
   const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
   await client.connect();
   try {
+    // La RLS oculta las filas a un rol común: se lee como `supabase_read_only_user` (solo lectura, sin RLS).
+    // Requiere `grant supabase_read_only_user to etl_solo_lectura;` (README).
+    await client.query('set role supabase_read_only_user');
     await client.query('set default_transaction_read_only = on'); // defensa en profundidad: aunque el usuario pudiera escribir, esta sesión no
     const tables = {};
     const all = (await client.query("select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE' order by 1")).rows.map((r) => r.table_name);

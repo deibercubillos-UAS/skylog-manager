@@ -44,6 +44,8 @@ a un inspector.
    grant usage on schema public, auth to etl_solo_lectura;
    grant select on all tables in schema public to etl_solo_lectura;
    grant select (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at) on auth.users to etl_solo_lectura;
+   -- la RLS oculta las filas a un rol común: el ETL lee como el rol de solo lectura de Supabase (bypass de RLS, sin escritura)
+   grant supabase_read_only_user to etl_solo_lectura;
    ```
    Cadena de conexión: la del *pooler* de v1 con ese usuario → `V1_DATABASE_URL`. Después del corte: `drop owned by etl_solo_lectura; drop role etl_solo_lectura;`.
 2. `npm i -D pg --no-save` (solo para correr el ETL).

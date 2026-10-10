@@ -33,9 +33,7 @@ export default function LoginPage() {
       if (error) throw error;
       if (data.user) {
         router.refresh();
-        // develop-v2: el dashboard real ahora es /inicio (V2) — esta rama no
-        // tiene las tablas de v1 (profiles/organization_members) en su base
-        // de datos, así que /dashboard no aplica aquí. NO cambiar en main.
+        // El dashboard real es /inicio (V2); /dashboard ya no existe.
         // `?next=` permite volver a donde se venía (p. ej. a una invitación); solo rutas internas, nunca otro sitio.
         const next = new URLSearchParams(window.location.search).get('next');
         window.location.href = next && next.startsWith('/') && !next.startsWith('//') ? next : '/inicio';

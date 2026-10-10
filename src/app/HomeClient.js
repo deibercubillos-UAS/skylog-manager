@@ -24,6 +24,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@skylog/ui';
+import MobileNavPanel from '@/components/bitafly/MobileNavPanel';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -720,38 +721,7 @@ export default function HomeClient() {
           </div>
         </div>
 
-        {mobileNavOpen && (
-          <div id="menu-movil" className="lg:hidden absolute left-0 right-0 top-full bg-white border-b border-navy-100 shadow-xl max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain px-4 py-3">
-            <a href="/precios" onClick={() => setMobileNavOpen(false)} className="flex items-center min-h-[44px] px-3 rounded-xl text-sm font-bold text-navy hover:bg-navy-50">Precios</a>
-            <a href="/blog" onClick={() => setMobileNavOpen(false)} className="flex items-center gap-2 min-h-[44px] px-3 rounded-xl text-sm font-bold text-navy hover:bg-navy-50">
-              Blog
-              <span className="bg-primary text-white text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full leading-none">Nuevo</span>
-            </a>
-            {NAV_FUNCIONES_GROUPS.map((g) => (
-              <div key={g.group} className="mt-2">
-                <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-navy-300">{g.group}</p>
-                {g.items.map((item) => (
-                  <a key={item.href} href={item.href} onClick={() => setMobileNavOpen(false)} className="flex flex-col justify-center min-h-[44px] px-3 py-1.5 rounded-xl hover:bg-navy-50">
-                    <span className="text-sm font-semibold text-navy">{item.label}</span>
-                    <span className="text-[11px] text-navy-300">{item.desc}</span>
-                  </a>
-                ))}
-              </div>
-            ))}
-            <div className="mt-2">
-              <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-navy-300">Recursos</p>
-              {NAV_RECURSOS_ITEMS.map((item) => (
-                <a key={item.href} href={item.href} onClick={() => setMobileNavOpen(false)} className="flex flex-col justify-center min-h-[44px] px-3 py-1.5 rounded-xl hover:bg-navy-50">
-                  <span className="text-sm font-semibold text-navy">{item.label}</span>
-                  <span className="text-[11px] text-navy-300">{item.desc}</span>
-                </a>
-              ))}
-            </div>
-            <div className="mt-3 pt-3 border-t border-navy-100 grid grid-cols-1 gap-2">
-              <a href="/login" onClick={() => setMobileNavOpen(false)} className="flex items-center justify-center min-h-[44px] rounded-xl border border-navy-200 text-sm font-semibold text-navy hover:bg-navy-50">Iniciar sesión</a>
-            </div>
-          </div>
-        )}
+        {mobileNavOpen && <MobileNavPanel groups={NAV_FUNCIONES_GROUPS} recursos={NAV_RECURSOS_ITEMS} onClose={() => setMobileNavOpen(false)} />}
       </header>
 
       {/* Hero — full-bleed: la foto real ocupa TODO el ancho/alto del

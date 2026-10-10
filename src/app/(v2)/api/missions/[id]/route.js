@@ -16,6 +16,7 @@ const EDITABLE_FIELDS = {
 };
 
 export async function PATCH(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const {
     data: { user },

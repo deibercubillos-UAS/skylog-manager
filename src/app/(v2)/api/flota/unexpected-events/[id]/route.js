@@ -11,6 +11,7 @@ import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 const RESULTS = ['aeronavegable', 'requiere_mantenimiento', 'fuera_de_servicio'];
 
 export async function PATCH(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const {
     data: { user },

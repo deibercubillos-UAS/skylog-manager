@@ -23,6 +23,7 @@ const FIELD_MAP = {
 };
 
 export async function PATCH(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const {
     data: { user },

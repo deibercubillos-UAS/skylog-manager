@@ -16,6 +16,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
 
 export async function GET(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const {
     data: { user },

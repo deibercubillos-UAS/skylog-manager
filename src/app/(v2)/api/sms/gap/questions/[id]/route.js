@@ -5,6 +5,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 
 export async function PATCH(request, { params }) {
+  params = await params;
   const { id } = await params;
   const supabase = await createClientSSR();
   const {
@@ -35,6 +36,7 @@ export async function PATCH(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
+  params = await params;
   const { id } = await params;
   const supabase = await createClientSSR();
   const {

@@ -15,6 +15,7 @@ import { validateFlightClose, evaluateFlightLimits } from '@skylog/domain';
 const VISUAL_LINES = ['VLOS', 'EVLOS', 'BVLOS'];
 
 export async function POST(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const {
     data: { user },

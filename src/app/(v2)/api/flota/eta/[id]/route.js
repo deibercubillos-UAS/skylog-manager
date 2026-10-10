@@ -19,6 +19,7 @@ async function authorize(supabase, userId, id) {
 }
 
 export async function PATCH(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const {
     data: { user },
@@ -43,6 +44,7 @@ export async function PATCH(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const {
     data: { user },

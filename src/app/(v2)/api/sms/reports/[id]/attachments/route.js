@@ -7,6 +7,7 @@ import { adminKeyProblem, storageProblem } from '@/lib/v2/adminKey';
 import { storeReportAttachment } from '@/lib/v2/reportAttachments';
 
 export async function POST(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const {
     data: { user },
@@ -47,6 +48,7 @@ export async function POST(request, { params }) {
 }
 
 export async function GET(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const {
     data: { user },

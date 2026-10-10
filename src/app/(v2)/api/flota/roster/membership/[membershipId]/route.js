@@ -11,6 +11,7 @@ import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 const ASSIGNABLE_ROLES = ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'];
 
 export async function PATCH(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const {
     data: { user },

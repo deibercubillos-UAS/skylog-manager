@@ -8,6 +8,7 @@ async function loadManual(supabase, id) {
 }
 
 export async function POST(request, { params }) {
+  params = await params;
   const { id } = await params;
   const supabase = await createClientSSR();
   const {
@@ -42,6 +43,7 @@ export async function POST(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
+  params = await params;
   const { id } = await params;
   const supabase = await createClientSSR();
   const {

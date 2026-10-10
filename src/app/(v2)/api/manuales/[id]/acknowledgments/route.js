@@ -4,6 +4,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 
 export async function GET(request, { params }) {
+  params = await params;
   const { id } = await params;
   const supabase = await createClientSSR();
   const {

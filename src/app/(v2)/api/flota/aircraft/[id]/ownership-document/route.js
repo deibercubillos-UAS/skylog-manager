@@ -27,6 +27,7 @@ async function authorize(supabase, userId, aircraftId) {
 }
 
 export async function POST(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const {
     data: { user },
@@ -59,6 +60,7 @@ export async function POST(request, { params }) {
 // GET — sirve el documento vía redirect a una URL firmada (mismo patrón que
 // v1 para privados: valida membresía → 302, nunca expone el path directo).
 export async function GET(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const {
     data: { user },

@@ -8,6 +8,7 @@ import { storageSignedUrl } from '@/lib/storage';
 const BUCKET = 'documents';
 
 export async function GET(request, { params }) {
+  params = await params;
   const { id } = await params;
   const supabase = await createClientSSR();
   const {

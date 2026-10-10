@@ -8,6 +8,7 @@ const HEALTH_STATUSES = ['buena', 'regular', 'mala'];
 const STATUSES = ['operativo', 'baja'];
 
 export async function PATCH(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const {
     data: { user },

@@ -6,6 +6,7 @@ import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
 import { computeGapStats, compareGapAssessments } from '@skylog/domain';
 
 export async function GET(request, { params }) {
+  params = await params;
   const { id } = await params;
   const supabase = await createClientSSR();
   const {
@@ -53,6 +54,7 @@ export async function GET(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
+  params = await params;
   const { id } = await params;
   const supabase = await createClientSSR();
   const {

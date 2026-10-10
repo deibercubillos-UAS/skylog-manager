@@ -40,6 +40,7 @@ export function makeRowDocumentRoute({ table, resolve, canWrite, canRead, rowLab
   }
 
   async function POST(request, { params }) {
+    params = await params;
     const storageIssue = storageProblem();
     if (storageIssue) return Response.json({ error: storageIssue, setup: true }, { status: 503 });
     const supabase = await createClientSSR();
@@ -69,6 +70,7 @@ export function makeRowDocumentRoute({ table, resolve, canWrite, canRead, rowLab
   }
 
   async function GET(request, { params }) {
+    params = await params;
     const supabase = await createClientSSR();
     const { id } = await params;
     const loaded = await load(supabase, id, request, false);
@@ -81,6 +83,7 @@ export function makeRowDocumentRoute({ table, resolve, canWrite, canRead, rowLab
   }
 
   async function DELETE(request, { params }) {
+    params = await params;
     const supabase = await createClientSSR();
     const { id } = await params;
     const loaded = await load(supabase, id, request, true);

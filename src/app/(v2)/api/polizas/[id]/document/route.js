@@ -35,6 +35,7 @@ async function load(supabase, policyId) {
 }
 
 export async function POST(request, { params }) {
+  params = await params;
   const storageIssue = storageProblem();
   if (storageIssue) return Response.json({ error: storageIssue, setup: true }, { status: 503 });
   const supabase = await createClientSSR();
@@ -72,6 +73,7 @@ export async function POST(request, { params }) {
 }
 
 export async function GET(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const { id } = await params;
   const { error: loadError, policy } = await load(supabase, id);

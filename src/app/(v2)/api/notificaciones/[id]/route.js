@@ -2,6 +2,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 
 export async function DELETE(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const {
     data: { user },

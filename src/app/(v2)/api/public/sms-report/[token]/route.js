@@ -27,6 +27,7 @@ async function findOrg(admin, token) {
 const notFound = () => Response.json({ error: 'Este enlace de reporte no está disponible.' }, { status: 404 });
 
 export async function GET(request, { params }) {
+  params = await params;
   const { token } = await params;
   const ip = getClientIp(request);
   if (!checkRateLimit(`sms-public-get:${ip}`, { limit: 60, windowMs: 60_000 }).allowed) return Response.json({ error: 'Demasiadas solicitudes.' }, { status: 429 });
@@ -39,6 +40,7 @@ export async function GET(request, { params }) {
 }
 
 export async function POST(request, { params }) {
+  params = await params;
   const { token } = await params;
   const ip = getClientIp(request);
   if (!checkRateLimit(`sms-public:${ip}`, { limit: 10, windowMs: 3_600_000 }).allowed || !checkRateLimit(`sms-public-token:${token}`, { limit: 40, windowMs: 3_600_000 }).allowed) {

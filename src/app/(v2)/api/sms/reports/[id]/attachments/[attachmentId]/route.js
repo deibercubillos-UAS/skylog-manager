@@ -5,6 +5,7 @@ import { storageSignedUrl } from '@/lib/storage';
 import { REPORT_ATTACHMENT_BUCKET } from '@/lib/v2/reportAttachments';
 
 export async function GET(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const {
     data: { user },

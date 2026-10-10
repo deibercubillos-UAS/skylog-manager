@@ -12,7 +12,8 @@ export function generateStaticParams() {
   return getAllSlugs();
 }
 
-export function generateMetadata({ params }) {
+export async function generateMetadata({ params }) {
+  params = await params;
   const post = getPostBySlug(params.slug);
   if (!post) return {};
   return {
@@ -142,7 +143,8 @@ function ShareButtons({ title, url }) {
   );
 }
 
-export default function BlogPost({ params }) {
+export default async function BlogPost({ params }) {
+  params = await params;
   const post = getPostBySlug(params.slug);
   if (!post) notFound();
 

@@ -14,6 +14,7 @@ const REPORT_SELECT =
 const NOT_ANALYST = 'Solo el Gerente SMS puede ver el detalle de un caso.';
 
 export async function GET(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const {
     data: { user },
@@ -51,6 +52,7 @@ export async function GET(request, { params }) {
 
 // Edita el análisis: resumen de la investigación, factores contribuyentes y peligro asociado.
 export async function PATCH(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const {
     data: { user },

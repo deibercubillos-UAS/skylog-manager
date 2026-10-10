@@ -19,6 +19,7 @@ const STATUSES = ['disponible', 'en_mantenimiento', 'fuera_de_servicio'];
 const OWNERSHIP_TYPES = ['propiedad', 'arrendamiento', 'comodato'];
 
 export async function PATCH(request, { params }) {
+  params = await params;
   const supabase = await createClientSSR();
   const {
     data: { user },

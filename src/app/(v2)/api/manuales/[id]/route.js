@@ -12,6 +12,7 @@ async function loadManual(supabase, id) {
 }
 
 export async function GET(request, { params }) {
+  params = await params;
   const { id } = await params;
   const supabase = await createClientSSR();
   const {
@@ -38,6 +39,7 @@ export async function GET(request, { params }) {
 }
 
 export async function PATCH(request, { params }) {
+  params = await params;
   const { id } = await params;
   const supabase = await createClientSSR();
   const {
@@ -74,6 +76,7 @@ export async function PATCH(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
+  params = await params;
   const { id } = await params;
   const supabase = await createClientSSR();
   const {

@@ -18,6 +18,7 @@ const ALLOWED_TYPES = new Set([
 ]);
 
 export async function POST(request, { params }) {
+  params = await params;
   const { id } = await params;
   const supabase = await createClientSSR();
   const {

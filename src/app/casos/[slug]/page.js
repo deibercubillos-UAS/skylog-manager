@@ -10,7 +10,8 @@ export function generateStaticParams() {
   return getAllCaseSlugs();
 }
 
-export function generateMetadata({ params }) {
+export async function generateMetadata({ params }) {
+  params = await params;
   const c = getCaseBySlug(params.slug);
   if (!c) return {};
   return {
@@ -53,7 +54,8 @@ const MODULE_LABEL = {
   'sora':                    'Análisis SORA',
 };
 
-export default function CasoPage({ params }) {
+export default async function CasoPage({ params }) {
+  params = await params;
   const c = getCaseBySlug(params.slug);
   if (!c) notFound();
 

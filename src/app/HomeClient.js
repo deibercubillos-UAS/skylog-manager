@@ -49,7 +49,7 @@ const FEATURE_GROUPS = [
       { icon: 'riesgo', title: 'Despacho con Evaluación de Riesgos', desc: 'Evalúa Probabilidad × Gravedad antes de cada vuelo — exige mitigar si el riesgo es inaceptable.' },
       { icon: 'replay', title: 'Replay GPS de Vuelo', desc: 'Reproduce cada operación cuadro a cuadro: ruta, altitud, velocidad y batería.', href: '/replay-gps-drones' },
       { icon: 'clima', title: 'Clima y Meteorología UAV', desc: 'Verifica viento, ráfagas y visibilidad antes de cada vuelo con un score de aptitud 0-100.', href: '/clima-drones' },
-      { icon: 'radar', title: 'Evaluación SORA', desc: 'Análisis de riesgo (GRC/ARC/SAIL) obligatorio antes de autorizar cualquier misión.', href: '/sora' },
+      { icon: 'radar', title: 'Evaluación SORA', desc: 'Análisis de riesgo (GRC/ARC/SAIL) obligatorio antes de autorizar cualquier misión.'},
     ],
   },
   {
@@ -329,7 +329,6 @@ const NAV_FUNCIONES_GROUPS = [
     icon: 'operacion',
     items: [
       { icon: 'bitacora', href: '/bitacora-digital', label: 'Bitácora Digital', desc: 'Registro RAC 100 completo' },
-      { icon: 'radar', href: '/sora', label: 'SORA', desc: 'Espacio aéreo controlado' },
       { icon: 'replay', href: '/replay-gps-drones', label: 'Replay GPS', desc: 'Reproduce el vuelo' },
       { icon: 'mapa', href: '/plan-vuelo-drones', label: 'Plan de Vuelo', desc: 'KMZ y polígonos' },
       { icon: 'clima', href: '/clima-drones', label: 'Clima UAV', desc: 'Verificación pre-vuelo' },
@@ -394,7 +393,6 @@ const FOOTER_COLUMNS = [
       { href: '/tutoriales', label: 'Tutoriales en Video' },
       { href: '/documentacion', label: 'Documentación' },
       { href: '/reportes-auditoria', label: 'Reportes PDF' },
-      { href: '/sora', label: 'Análisis SORA' },
     ],
   },
 ];
@@ -515,6 +513,7 @@ export default function HomeClient() {
   const navRef = useRef(null);
   const [activeFeatureGroup, setActiveFeatureGroup] = useState(0);
   const [openNavMenu, setOpenNavMenu] = useState(null); // 'funciones' | 'recursos' | null
+  const [mobileNavOpen, setMobileNavOpen] = useState(false); // menú hamburguesa (bajo lg)
 
   // Formulario de contacto — mismo endpoint real ya usado en producción
   // (src/components/landing/Contact.js → POST /api/contact, envía por
@@ -644,7 +643,7 @@ export default function HomeClient() {
           fuera de esta pasada, a pedido del usuario de enfocarse en el
           contenido del centro primero. */}
       <header ref={navRef} className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-navy-100">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center gap-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3 sm:gap-6">
           <div className="flex items-center gap-2 shrink-0">
             <Image
               src="/logo.png"
@@ -700,14 +699,59 @@ export default function HomeClient() {
           </nav>
 
           <div className="flex items-center gap-2 shrink-0 ml-auto">
-            <a href="/login">
+            <a href="/login" className="hidden sm:block">
               <Button variant="ghost">Iniciar sesión</Button>
             </a>
             <a href="/registro">
-              <Button variant="primary">Comenzar gratis</Button>
+              <Button variant="primary" className="px-3 sm:px-4">Comenzar gratis</Button>
             </a>
+            <button
+              type="button"
+              className="lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-navy-200 text-navy hover:bg-navy-50 transition-colors"
+              aria-label={mobileNavOpen ? 'Cerrar menú' : 'Abrir menú'}
+              aria-expanded={mobileNavOpen}
+              aria-controls="menu-movil"
+              onClick={() => setMobileNavOpen((v) => !v)}
+            >
+              <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                {mobileNavOpen ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+              </svg>
+            </button>
           </div>
         </div>
+
+        {mobileNavOpen && (
+          <div id="menu-movil" className="lg:hidden absolute left-0 right-0 top-full bg-white border-b border-navy-100 shadow-xl max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain px-4 py-3">
+            <a href="/precios" onClick={() => setMobileNavOpen(false)} className="flex items-center min-h-[44px] px-3 rounded-xl text-sm font-bold text-navy hover:bg-navy-50">Precios</a>
+            <a href="/blog" onClick={() => setMobileNavOpen(false)} className="flex items-center gap-2 min-h-[44px] px-3 rounded-xl text-sm font-bold text-navy hover:bg-navy-50">
+              Blog
+              <span className="bg-primary text-white text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full leading-none">Nuevo</span>
+            </a>
+            {NAV_FUNCIONES_GROUPS.map((g) => (
+              <div key={g.group} className="mt-2">
+                <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-navy-300">{g.group}</p>
+                {g.items.map((item) => (
+                  <a key={item.href} href={item.href} onClick={() => setMobileNavOpen(false)} className="flex flex-col justify-center min-h-[44px] px-3 py-1.5 rounded-xl hover:bg-navy-50">
+                    <span className="text-sm font-semibold text-navy">{item.label}</span>
+                    <span className="text-[11px] text-navy-300">{item.desc}</span>
+                  </a>
+                ))}
+              </div>
+            ))}
+            <div className="mt-2">
+              <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-navy-300">Recursos</p>
+              {NAV_RECURSOS_ITEMS.map((item) => (
+                <a key={item.href} href={item.href} onClick={() => setMobileNavOpen(false)} className="flex flex-col justify-center min-h-[44px] px-3 py-1.5 rounded-xl hover:bg-navy-50">
+                  <span className="text-sm font-semibold text-navy">{item.label}</span>
+                  <span className="text-[11px] text-navy-300">{item.desc}</span>
+                </a>
+              ))}
+            </div>
+            <div className="mt-3 pt-3 border-t border-navy-100 grid grid-cols-1 gap-2">
+              <a href="/login" onClick={() => setMobileNavOpen(false)} className="flex items-center justify-center min-h-[44px] rounded-xl border border-navy-200 text-sm font-semibold text-navy hover:bg-navy-50">Iniciar sesión</a>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero — full-bleed: la foto real ocupa TODO el ancho/alto del

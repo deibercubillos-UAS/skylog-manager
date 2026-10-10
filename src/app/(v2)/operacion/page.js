@@ -8,6 +8,7 @@
 // src/app/(v2)/sms/page.js. Los 4 módulos ya están construidos (F5 +
 // Operación), no se fabrica ningún "próximamente".
 import { SectionHero } from '../_components/SectionHero';
+import { CENTRO_DE_CONTROL_ACTIVO } from '@/lib/v2/featureFlags';
 
 const CARDS = [
   {
@@ -58,7 +59,7 @@ export default function OperacionInicio() {
       <SectionHero eyebrow="Operación" title="Inicio" description="Accesos rápidos a los módulos de Operación." />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {CARDS.map((c) => (
+        {CARDS.filter((c) => CENTRO_DE_CONTROL_ACTIVO || c.key !== 'centro-de-control').map((c) => (
           <a
             key={c.key}
             href={c.href}

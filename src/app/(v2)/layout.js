@@ -19,6 +19,7 @@ import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { OnboardingTour } from './_components/OnboardingTour';
 import NotificationBell from './_components/NotificationBell';
+import { CENTRO_DE_CONTROL_ACTIVO } from '@/lib/v2/featureFlags';
 
 const ROLE_LABELS = {
   admin: 'Gerente General',
@@ -39,7 +40,7 @@ const ROLE_LABELS = {
 // mostrarle, así que permanecen visibles para todos los roles.
 const NAV_LINKS = [
   { name: 'Dashboard', icon: 'dashboard', href: '/inicio', group: 'Operación' },
-  { name: 'Centro de Control', icon: 'hub', href: '/operacion/centro-de-control', group: 'Operación' },
+  ...(CENTRO_DE_CONTROL_ACTIVO ? [{ name: 'Centro de Control', icon: 'hub', href: '/operacion/centro-de-control', group: 'Operación' }] : []),
   { name: 'Bitácora', icon: 'menu_book', href: '/operacion/bitacora', group: 'Operación' },
   { name: 'Programación', icon: 'event_available', href: '/operacion/programacion', group: 'Operación' },
   { name: 'Despacho', icon: 'rocket_launch', href: '/operacion/despacho', group: 'Operación' },

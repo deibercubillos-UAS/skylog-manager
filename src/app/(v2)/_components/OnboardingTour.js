@@ -15,7 +15,9 @@ const STORAGE_KEY = 'bitafly_v2_onboarding_seen';
 
 // Máximo 8 — refleja los 4 grupos reales del sidebar (V2Layout) más
 // bienvenida/cuenta, nunca un módulo que V2 no tenga construido.
-const STEPS = [
+import { CENTRO_DE_CONTROL_ACTIVO } from '@/lib/v2/featureFlags';
+
+const ALL_STEPS = [
   {
     icon: 'flight',
     title: '¡Bienvenido a BitaFly!',
@@ -57,6 +59,7 @@ const STEPS = [
     body: 'Puedes volver a explorar cada sección desde el menú lateral cuando quieras. ¡Buen vuelo!',
   },
 ];
+const STEPS = ALL_STEPS.filter((s) => CENTRO_DE_CONTROL_ACTIVO || s.title !== 'Centro de Control');
 
 export function OnboardingTour() {
   const [open, setOpen] = useState(false);

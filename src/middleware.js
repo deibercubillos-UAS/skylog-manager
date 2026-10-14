@@ -48,20 +48,24 @@ export async function middleware(request) {
     }
   );
 
-  // La verificación de sesión es una llamada de red a Supabase Auth. Si ese servicio se atrasa, no se deja la
+  // Si la verificación de sesión necesita la red (renovar token) y Supabase Auth se atrasa, no se deja la
   // petición colgada hasta que Vercel la corte a los 25 s (el usuario veía un 504): se espera un máximo y se decide.
   let user = null;
   let authTimedOut = false;
   let timer;
   try {
     const result = await Promise.race([
-      supabase.auth.getUser(),
+      supabase.auth.getClaims(),
       new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('auth-timeout')), AUTH_TIMEOUT_MS); }),
     ]);
-    user = result.data.user;
+    // getClaims verifica la firma del JWT en local con las claves públicas (JWKS, en caché): sin viaje a Supabase Auth
+    // en cada navegación. Solo llama a la red para renovar un token vencido. Una sesión revocada se nota al caducar
+    // el token (máx. 1 h); los datos siguen protegidos por cada API y por la RLS.
+    const claims = result.data?.claims;
+    user = claims?.sub ? { id: claims.sub } : null;
   } catch (err) {
     authTimedOut = true;
-    console.warn(`[middleware] getUser no respondió en ${AUTH_TIMEOUT_MS} ms (${pathname})`);
+    console.warn(`[middleware] la verificación de sesión no respondió en ${AUTH_TIMEOUT_MS} ms (${pathname})`);
   } finally {
     clearTimeout(timer);
   }

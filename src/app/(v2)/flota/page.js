@@ -31,6 +31,7 @@ import { SectionHero, SectionCard, StatCard } from '../_components/SectionHero';
 import { computeSpecCompleteness } from '@skylog/domain';
 import ModelSpecSheet from './_ModelSpecSheet';
 import DocumentSlot from '../_components/DocumentSlot';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const CATEGORIES = [
   { key: 'ala_fija', label: 'Ala fija' },
@@ -105,7 +106,7 @@ export default function FlotaPage() {
       setLoading(true);
       setError(null);
       try {
-        const ctxRes = await fetch('/api/duty/context');
+        const ctxRes = await fetchDutyContext();
         const ctx = await ctxRes.json();
         if (!ctxRes.ok) throw new Error(ctx.error || 'Error cargando contexto');
         setContext(ctx);

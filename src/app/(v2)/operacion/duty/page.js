@@ -13,6 +13,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const TYPE_LABELS = {
   servicio: 'Servicio',
@@ -46,7 +47,7 @@ export default function DutyOverviewPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/duty/context');
+      const res = await fetchDutyContext();
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
       setContext(data);

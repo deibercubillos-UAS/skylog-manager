@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 import { Button } from '@skylog/ui';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 function currentPeriod() {
   const now = new Date();
@@ -42,7 +43,7 @@ export default function SmsReporteMensualPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/duty/context');
+        const res = await fetchDutyContext();
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);

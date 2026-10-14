@@ -18,6 +18,7 @@ import { SectionHero, StatCard } from '../../_components/SectionHero';
 import { GEO_TYPES, getZoneSummary } from '@/lib/flightPlanDocs';
 import { parseKmzOrKml } from '@/lib/v2/kmzImport';
 import { downloadMissionPdf, downloadMissionKmz } from '@/lib/v2/missionDocs';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 // Mismo componente ya usado por v1 (Programación/Planeación de Vuelo) para
 // dibujar la zona sobre un mapa — reutilizado tal cual, sin duplicar lógica
@@ -158,7 +159,7 @@ export default function ProgramacionPage() {
       setLoading(true);
       setError(null);
       try {
-        const ctxRes = await fetch('/api/duty/context');
+        const ctxRes = await fetchDutyContext();
         const ctx = await ctxRes.json();
         if (!ctxRes.ok) throw new Error(ctx.error || 'Error cargando contexto');
         setContext(ctx);

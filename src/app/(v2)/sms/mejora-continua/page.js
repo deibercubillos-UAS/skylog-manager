@@ -11,6 +11,7 @@ import { SectionHero, StatCard } from '../../_components/SectionHero';
 import { Button } from '@skylog/ui';
 import AssessmentPanel from './_AssessmentPanel';
 import QuestionsConfigPanel from './_QuestionsConfigPanel';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 export default function SmsMejoraContinuaPage() {
   const [context, setContext] = useState(null);
@@ -37,7 +38,7 @@ export default function SmsMejoraContinuaPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('/api/duty/context');
+        const res = await fetchDutyContext();
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);

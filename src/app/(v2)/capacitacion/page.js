@@ -20,6 +20,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { SectionHero } from '../_components/SectionHero';
 import { Button } from '@skylog/ui';
 import { TRAINING_TYPES, TRAINING_TYPE_LABELS } from '@/lib/v2/training';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const TRACK_ICON = { operaciones: 'flight', mantenimiento: 'build', seguridad_operacional: 'shield' };
 const TRACK_TILE = {
@@ -218,7 +219,7 @@ export default function CapacitacionInicio() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('/api/duty/context');
+        const res = await fetchDutyContext();
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);

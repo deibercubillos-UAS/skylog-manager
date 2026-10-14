@@ -20,6 +20,7 @@ import { supabase } from '@/lib/supabase';
 import { OnboardingTour } from './_components/OnboardingTour';
 import NotificationBell from './_components/NotificationBell';
 import { CENTRO_DE_CONTROL_ACTIVO } from '@/lib/v2/featureFlags';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const ROLE_LABELS = {
   admin: 'Gerente General',
@@ -162,7 +163,7 @@ export default function V2Layout({ children }) {
   }, []);
 
   useEffect(() => {
-    fetch('/api/duty/context')
+    fetchDutyContext()
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data) return;

@@ -18,6 +18,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const MONTH_LABELS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const ROLE_LABELS = { admin: 'Gerente General', superadmin: 'Superadmin', jefe_pilotos: 'Jefe de Pilotos', gerente_sms: 'Gerente SMS', piloto: 'Piloto' };
@@ -152,7 +153,7 @@ export default function V2Home() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('/api/duty/context');
+        const res = await fetchDutyContext();
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);

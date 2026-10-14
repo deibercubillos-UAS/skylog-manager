@@ -15,6 +15,7 @@ import { Field, Button } from '@skylog/ui';
 import { TRAINING_TYPES, TRAINING_TYPE_LABELS } from '@/lib/v2/training';
 import ComplianceRoster from './_ComplianceRoster';
 import EvaluationManager from './_EvaluationManager';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const EMPTY_EVAL_FORM = { title: '', passingScore: 70, maxAttempts: 3, dueDate: '' };
 
@@ -75,7 +76,7 @@ export default function AdministracionPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('/api/duty/context');
+        const res = await fetchDutyContext();
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);

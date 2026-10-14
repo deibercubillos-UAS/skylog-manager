@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { SectionHero, StatCard } from '../_components/SectionHero';
 import { Field, Button } from '@skylog/ui';
 import { computePolicyStatus, summarizePolicies, POLICY_EXPIRY_WARNING_DAYS } from '@skylog/domain';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const TYPE_LABELS = { rce: 'RCE (responsabilidad civil)', casco: 'Casco', otra: 'Otra' };
 const STATUS_META = {
@@ -72,7 +73,7 @@ export default function PolizasPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('/api/duty/context');
+        const res = await fetchDutyContext();
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);

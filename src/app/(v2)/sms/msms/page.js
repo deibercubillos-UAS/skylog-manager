@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 import { Button } from '@skylog/ui';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const MSMS_TITLE = 'MSMS — Manual del Sistema de Gestión de Seguridad Operacional';
 
@@ -43,7 +44,7 @@ export default function SmsMsmsPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('/api/duty/context');
+        const res = await fetchDutyContext();
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);

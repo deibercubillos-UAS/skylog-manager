@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { applySyncResult, classifySyncResult, dueItems, pruneQueue } from '@skylog/domain';
 import { ENQUEUED_EVENT, QUEUE_EVENT, readQueue, writeQueue, isNetworkError } from '@/lib/v2/offlineStore';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 export default function OfflineSync() {
   const [queue, setQueue] = useState([]);
@@ -56,7 +57,7 @@ export default function OfflineSync() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/duty/context');
+        const res = await fetchDutyContext();
         const data = await res.json();
         if (res.ok) setOwnerId(data.personId || null);
       } catch {}

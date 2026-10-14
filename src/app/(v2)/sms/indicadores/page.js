@@ -18,6 +18,7 @@ import { SectionHero, StatCard } from '../../_components/SectionHero';
 import { Field, Button } from '@skylog/ui';
 import AnnualSubmission from './_AnnualSubmission';
 import { MONTH_LABELS, DEFENSE_TYPE_LABELS } from '@/lib/safetyIndicatorStats';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const now = new Date();
 const CURRENT_YEAR = now.getFullYear();
@@ -303,7 +304,7 @@ export default function IndicadoresPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('/api/duty/context');
+        const res = await fetchDutyContext();
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);

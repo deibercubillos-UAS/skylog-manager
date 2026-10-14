@@ -21,6 +21,7 @@ import {
   aircraftLabel,
   formatBytes,
 } from '../_components/tracking';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 function ReportCard({ report, isAnalyst, onAnalyze, onFile, onOpenCase, busy }) {
   const router = useRouter();
@@ -151,7 +152,7 @@ export default function SmsReportesPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/duty/context');
+      const res = await fetchDutyContext();
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
       setContext(data);

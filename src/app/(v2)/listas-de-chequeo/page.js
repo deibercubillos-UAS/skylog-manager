@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { SectionHero, StatCard } from '../_components/SectionHero';
 import { Field, Button } from '@skylog/ui';
 import { downloadChecklistPdf } from '@/lib/v2/checklistDocs';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const CATEGORIES = ['Prevuelo', 'Reportes', 'Seguridad Operacional', 'Mantenimiento'];
 
@@ -200,7 +201,7 @@ export default function ListasDeChequeoPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('/api/duty/context');
+        const res = await fetchDutyContext();
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);

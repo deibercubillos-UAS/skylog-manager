@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { computeExpiryAlerts } from '@skylog/domain';
 import { SectionHero, SectionCard, StatCard } from '../../_components/SectionHero';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const MISSION_STATUS_META = {
   programada: { label: 'Programada', soft: 'bg-blue-100 text-blue-700' },
@@ -68,7 +69,7 @@ export default function CentroDeControlPage() {
   const [expiryAlerts, setExpiryAlerts] = useState([]);
 
   const loadContext = useCallback(async () => {
-    const res = await fetch('/api/duty/context');
+    const res = await fetchDutyContext();
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
     return data;

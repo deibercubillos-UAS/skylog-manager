@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero } from '../../_components/SectionHero';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const LABELS = { aeronaves: 'Aeronaves', baterias: 'Baterías', tripulacion: 'Tripulación', contactos: 'Contactos de emergencia', polizas: 'Pólizas' };
 
@@ -24,7 +25,7 @@ export default function ImportarPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/duty/context');
+        const res = await fetchDutyContext();
         const ctx = await res.json();
         if (!res.ok) throw new Error(ctx.error || 'Error cargando contexto');
         setContext(ctx);

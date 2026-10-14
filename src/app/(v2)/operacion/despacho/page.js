@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 import Wizard from './_Wizard';
 import CloseForm from './_CloseForm';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const fmtTime = (ts) => new Date(ts).toLocaleString('es-CO', { timeZone: 'America/Bogota', dateStyle: 'medium', timeStyle: 'short' });
 const aircraftLabel = (a) => (a ? `${a.model?.brand || ''} ${a.model?.model || ''} · ${a.serial_number}`.trim() : 'Sin aeronave');
@@ -33,7 +34,7 @@ export default function DespachoPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/duty/context');
+        const res = await fetchDutyContext();
         const body = await res.json();
         if (!res.ok) throw new Error(body.error || 'Error cargando contexto');
         setContext(body);

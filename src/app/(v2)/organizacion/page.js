@@ -12,6 +12,7 @@ import { Field, Button } from '@skylog/ui';
 import Designations from './_Designations';
 import DangerousGoods from './_DangerousGoods';
 import EmergencyContacts from './_EmergencyContacts';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const ROLE_LABELS = {
   admin: 'Gerente General',
@@ -120,7 +121,7 @@ export default function OrganizacionPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('/api/duty/context');
+        const res = await fetchDutyContext();
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);

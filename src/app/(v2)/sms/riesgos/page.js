@@ -23,6 +23,7 @@ import {
   ZONE_STYLES,
   ZONE_CYCLE,
 } from '@/lib/v2/riskMatrixDefaults';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const ZONES = Object.entries(ZONE_STYLES).map(([value, s]) => ({ value, label: s.label, color: s.soft }));
 
@@ -508,7 +509,7 @@ export default function RiesgosPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('/api/duty/context');
+        const res = await fetchDutyContext();
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);

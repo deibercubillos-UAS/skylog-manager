@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const ACTION = {
   create: { label: 'Creación', cls: 'bg-emerald-50 text-emerald-700' },
@@ -40,7 +41,7 @@ export default function RegistroPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/duty/context');
+        const res = await fetchDutyContext();
         const ctx = await res.json();
         if (!res.ok) throw new Error(ctx.error || 'Error cargando contexto');
         setContext(ctx);

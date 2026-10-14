@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { CHANGE_TYPES } from '@skylog/domain';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 import { Button, Field } from '@skylog/ui';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const STATUS_META = {
   identificado: { label: 'Identificado', cls: 'bg-blue-50 text-blue-700' },
@@ -141,7 +142,7 @@ export default function SmsCambiosPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/duty/context');
+        const res = await fetchDutyContext();
         const d = await res.json();
         if (!res.ok) throw new Error(d.error || 'Error cargando contexto');
         setContext(d);

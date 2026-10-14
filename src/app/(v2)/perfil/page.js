@@ -25,6 +25,7 @@ import { supabase } from '@/lib/supabase';
 import IconField from './_IconField';
 import JoinOrganization from './_JoinOrganization';
 import PrivacySection from './_PrivacySection';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const ROLE_LABELS = {
   admin: 'Gerente General',
@@ -81,7 +82,7 @@ export default function PerfilPage() {
     setLoading(true);
     setError(null);
     try {
-      const [ctxRes, perfilRes] = await Promise.all([fetch('/api/duty/context'), fetch('/api/perfil')]);
+      const [ctxRes, perfilRes] = await Promise.all([fetchDutyContext(), fetch('/api/perfil')]);
       const ctxData = await ctxRes.json();
       const perfilData = await perfilRes.json();
       if (!ctxRes.ok) throw new Error(ctxData.error || 'Error cargando contexto');

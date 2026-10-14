@@ -11,6 +11,7 @@ import { SectionHero, StatCard } from '../_components/SectionHero';
 import { Field, Button } from '@skylog/ui';
 import CriteriaConfigPanel from './_CriteriaConfigPanel';
 import SupplierDetail from './_SupplierDetail';
+import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
 
 const EMPTY_SUPPLIER_FORM = { name: '', category: '', nit: '', contact: '', notes: '' };
 
@@ -62,7 +63,7 @@ export default function ProveedoresPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('/api/duty/context');
+        const res = await fetchDutyContext();
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);

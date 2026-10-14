@@ -469,8 +469,8 @@ export default function IndicadoresPage() {
 
       {/* Catálogo de indicadores */}
       <div className="rounded-2xl border border-navy-100 bg-gradient-to-br from-primary-50 to-white overflow-hidden">
-        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-navy-50">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-navy-50">
+          <div className="flex items-center gap-3 min-w-0">
             <span className="flex items-center justify-center w-10 h-10 rounded-xl shrink-0 shadow-sm bg-primary text-white">
               <span className="material-symbols-outlined text-xl">monitoring</span>
             </span>

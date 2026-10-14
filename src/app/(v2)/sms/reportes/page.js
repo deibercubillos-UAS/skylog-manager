@@ -240,7 +240,7 @@ export default function SmsReportesPage() {
 
   if (loading) {
     return (
-      <div className="p-6 max-w-5xl mx-auto">
+      <div className="md:p-3 max-w-5xl mx-auto">
         <div className="h-32 rounded-3xl bg-navy-50 animate-pulse" />
       </div>
     );
@@ -248,7 +248,7 @@ export default function SmsReportesPage() {
 
   if (!context?.personId) {
     return (
-      <div className="p-6 max-w-2xl mx-auto">
+      <div className="md:p-3 max-w-2xl mx-auto">
         <SectionHero eyebrow="SMS" title="Reportes y Casos" description="Reportes MOR/VOR y seguimiento de casos." />
         <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">Esta cuenta no tiene todavía un registro de Persona vinculado — no se puede reportar hasta que exista.</div>
       </div>
@@ -261,7 +261,7 @@ export default function SmsReportesPage() {
   const urgent = reports.filter((r) => r.deadline?.applicable && ['vencido', 'vence_hoy', 'por_vencer'].includes(r.deadline.status));
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-5">
+    <div className="md:p-3 max-w-5xl mx-auto space-y-5">
       <SectionHero
         eyebrow="SMS"
         title="Reportes y Casos"

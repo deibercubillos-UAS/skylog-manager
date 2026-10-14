@@ -104,10 +104,10 @@ export default function CasoPage() {
     }
   }
 
-  if (loading) return <div className="p-6 max-w-5xl mx-auto"><div className="h-32 rounded-3xl bg-navy-50 animate-pulse" /></div>;
+  if (loading) return <div className="md:p-3 max-w-5xl mx-auto"><div className="h-32 rounded-3xl bg-navy-50 animate-pulse" /></div>;
   if (!data) {
     return (
-      <div className="p-6 max-w-2xl mx-auto space-y-4">
+      <div className="md:p-3 max-w-2xl mx-auto space-y-4">
         <SectionHero eyebrow="SMS" title="Seguimiento del caso" description="Detalle de un reporte VOR/MOR." />
         <p className="text-sm text-red-700 bg-red-50 rounded-xl px-4 py-3">{error}</p>
         <a href="/sms/reportes" className="text-sm font-semibold text-primary-700 hover:underline">← Volver a Reportes y Casos</a>
@@ -123,7 +123,7 @@ export default function CasoPage() {
   const canFile = !report.filed_at && (report.route !== 'mor' || report.analyzed_at);
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-5">
+    <div className="md:p-3 max-w-6xl mx-auto space-y-5">
       <SectionHero
         eyebrow="SMS · Seguimiento de caso"
         title={report.event_label || 'Suceso reportado'}

@@ -304,7 +304,7 @@ export default function SuscripcionPage() {
       )}
 
       <div className="bg-white rounded-2xl border border-navy-100 overflow-hidden">
-        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-navy-50">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-navy-50">
           <div className="flex items-center gap-3">
             <span className={`flex items-center justify-center w-10 h-10 rounded-xl shrink-0 shadow-sm ${PLAN_TILE[plan]}`}>
               <span className="material-symbols-outlined text-xl">{PLAN_ICON[plan]}</span>

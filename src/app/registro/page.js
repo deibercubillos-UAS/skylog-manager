@@ -133,7 +133,7 @@ export default function RegistroPage() {
             <Row label="Contraseña">
               <div className="relative">
                 <input className={`${inputCls} pr-12`} type={showPass ? 'text' : 'password'} autoComplete="new-password" placeholder="Mínimo 8, con letras y números" value={form.password} onChange={(e) => set({ password: e.target.value })} required />
-                <button type="button" onClick={() => setShowPass((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 min-h-[44px] px-1" aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
+                <button type="button" onClick={() => setShowPass((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600 min-h-[44px] px-1" aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
                   <span className="material-symbols-outlined text-xl">{showPass ? 'visibility_off' : 'visibility'}</span>
                 </button>
               </div>
@@ -200,7 +200,7 @@ export default function RegistroPage() {
             </button>
           </form>
 
-          <p className="text-center text-xs font-bold text-slate-400 uppercase tracking-widest mt-8">
+          <p className="text-center text-xs font-bold text-slate-500 uppercase tracking-widest mt-8">
             ¿Ya tienes cuenta?{' '}
             <Link href="/login" className="text-primary hover:underline">
               Inicia sesión

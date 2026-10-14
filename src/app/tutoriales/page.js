@@ -152,7 +152,7 @@ export default function TutorialesPage() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       {v.youtubeId && (
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                           {isoDurationToMinSec(v.duration)}
                         </span>
                       )}

@@ -226,7 +226,7 @@ export default function ComparativaUavForecastPage() {
               <div className="size-12 bg-slate-100 rounded-2xl flex items-center justify-center mb-5">
                 <span className="material-symbols-outlined text-slate-500 text-2xl">cloud</span>
               </div>
-              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">UAV Forecast</p>
+              <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">UAV Forecast</p>
               <h3 className="font-lexend text-lg font-black text-navy mb-4 uppercase tracking-tight leading-snug">
                 Verificador de clima independiente
               </h3>
@@ -370,7 +370,7 @@ export default function ComparativaUavForecastPage() {
             ))}
           </div>
 
-          <p className="text-xs text-slate-400 text-center mt-4">
+          <p className="text-xs text-slate-500 text-center mt-4">
             Comparativa basada en funciones disponibles en junio de 2026.
           </p>
         </div>

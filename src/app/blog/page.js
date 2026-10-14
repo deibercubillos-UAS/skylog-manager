@@ -61,7 +61,7 @@ const CATEGORIES = ['Todos', 'Normativa', 'Operaciones', 'Trámites', 'Seguridad
 // Reading time visual
 function ReadingBadge({ minutes }) {
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+    <span className="inline-flex items-center gap-1 text-xs text-slate-500">
       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       {minutes} min
     </span>
@@ -155,7 +155,7 @@ export default function BlogIndex() {
                     Leer artículo
                     <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                   </span>
-                  <span className="text-xs text-slate-300">Bitafly</span>
+                  <span className="text-xs text-slate-500">Bitafly</span>
                 </div>
               </Link>
             </div>
@@ -164,7 +164,7 @@ export default function BlogIndex() {
           {/* ── 2×2 top grid ───────────────────────────────────────────────── */}
           {topGrid.length > 0 && (
             <div className="mb-10">
-              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-5">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-5">
                 Últimos artículos
               </p>
               <div className="grid md:grid-cols-2 gap-5">
@@ -190,7 +190,7 @@ export default function BlogIndex() {
                         {post.excerpt}
                       </p>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-slate-300">
+                        <span className="text-xs text-slate-500">
                           {new Date(post.publishedAt).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' })}
                         </span>
                         <span className="text-xs font-black uppercase text-orange-500 group-hover:text-orange-600 flex items-center gap-1 transition-colors">
@@ -208,7 +208,7 @@ export default function BlogIndex() {
           {/* ── Remaining posts — compact list ─────────────────────────────── */}
           {bottomList.length > 0 && (
             <div className="mb-12">
-              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-5">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-5">
                 Más artículos
               </p>
               <div className="space-y-3">
@@ -226,7 +226,7 @@ export default function BlogIndex() {
                           {post.category}
                         </span>
                         <ReadingBadge minutes={post.readingTime} />
-                        <span className="text-xs text-slate-300 hidden sm:inline">
+                        <span className="text-xs text-slate-500 hidden sm:inline">
                           {new Date(post.publishedAt).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' })}
                         </span>
                       </div>
@@ -234,7 +234,7 @@ export default function BlogIndex() {
                         {post.title}
                       </h2>
                     </div>
-                    <svg className="w-4 h-4 text-slate-300 group-hover:text-orange-500 flex-shrink-0 mt-0.5 transition-colors group-hover:translate-x-0.5 duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+                    <svg className="w-4 h-4 text-slate-500 group-hover:text-orange-500 flex-shrink-0 mt-0.5 transition-colors group-hover:translate-x-0.5 duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
                   </Link>
                 ))}
               </div>

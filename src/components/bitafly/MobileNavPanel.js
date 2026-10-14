@@ -48,7 +48,7 @@ export default function MobileNavPanel({ groups, recursos, onClose }) {
           {recursos.map((item) => (
             <a key={item.href} href={item.href} onClick={onClose} className="flex items-center justify-between min-h-[44px] px-3 rounded-lg bg-navy-50/60 hover:bg-primary-50">
               <span className="text-[13px] font-semibold text-navy">{item.label}</span>
-              <span className="text-[11px] text-navy-300">{item.desc}</span>
+              <span className="text-[11px] text-navy-500">{item.desc}</span>
             </a>
           ))}
         </div>

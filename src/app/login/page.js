@@ -84,7 +84,7 @@ export default function LoginPage() {
                 Correo electrónico
               </label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl pointer-events-none">
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xl pointer-events-none">
                   mail
                 </span>
                 <input
@@ -105,7 +105,7 @@ export default function LoginPage() {
                 Contraseña
               </label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl pointer-events-none">
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xl pointer-events-none">
                   lock
                 </span>
                 <input
@@ -120,7 +120,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPass((v) => !v)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600 transition-colors"
                   aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 >
                   <span className="material-symbols-outlined text-xl">
@@ -133,7 +133,7 @@ export default function LoginPage() {
             <div className="flex justify-end">
               <Link
                 href="/reset-password"
-                className="text-xs font-bold text-slate-400 hover:text-primary uppercase tracking-wide transition-colors"
+                className="text-xs font-bold text-slate-500 hover:text-primary uppercase tracking-wide transition-colors"
               >
                 ¿Olvidaste tu contraseña?
               </Link>
@@ -164,7 +164,7 @@ export default function LoginPage() {
           {/* Divisor */}
           <div className="relative flex items-center my-6">
             <div className="flex-grow border-t border-slate-100" />
-            <span className="mx-4 text-slate-300 text-xs font-bold uppercase">O continuar con</span>
+            <span className="mx-4 text-slate-500 text-xs font-bold uppercase">O continuar con</span>
             <div className="flex-grow border-t border-slate-100" />
           </div>
 
@@ -182,7 +182,7 @@ export default function LoginPage() {
             Continuar con Google
           </button>
 
-          <p className="text-center text-xs font-bold text-slate-400 uppercase tracking-widest mt-8">
+          <p className="text-center text-xs font-bold text-slate-500 uppercase tracking-widest mt-8">
             ¿No tienes cuenta?{' '}
             <Link href="/registro" className="text-primary hover:underline">
               Regístrate gratis

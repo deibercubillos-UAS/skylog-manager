@@ -156,7 +156,7 @@ export default function SmsClient({ faqItems }) {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-navy via-navy/85 to-navy/35 -z-10" />
 
-        <div className="relative max-w-6xl mx-auto px-6 w-full py-24">
+        <div className="relative max-w-6xl mx-auto px-6 w-full pt-24 pb-52 md:pb-36">
           <div className="max-w-2xl">
             <p className="sm-hero-eyebrow inline-flex items-center gap-2 bg-white/10 backdrop-blur text-primary-200 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border border-white/10">
               SMS · Seguridad Operacional RAC 100
@@ -205,7 +205,7 @@ export default function SmsClient({ faqItems }) {
             <h2 className="text-2xl md:text-3xl font-black text-navy mt-1">
               Clasifica cada <span className="text-primary-600">evento</span> de seguridad
             </h2>
-            <p className="text-sm text-navy-300 mt-2 max-w-lg mx-auto">
+            <p className="text-sm text-navy-500 mt-2 max-w-lg mx-auto">
               Registra incidentes, eventos graves y accidentes con su narrativa, acciones
               correctivas y seguimiento. El SMS queda documentado y listo para auditoría.
             </p>
@@ -276,7 +276,7 @@ export default function SmsClient({ faqItems }) {
                   <FeatureIcon name={item.icon} className="w-5 h-5" />
                 </div>
                 <p className="font-bold text-navy text-sm">{item.title}</p>
-                <p className="text-sm text-navy-300 mt-1.5 leading-relaxed">{item.desc}</p>
+                <p className="text-sm text-navy-500 mt-1.5 leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -301,7 +301,7 @@ export default function SmsClient({ faqItems }) {
                     <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </summary>
-                <div className="px-4 pb-4 text-sm text-navy-300 leading-relaxed">{item.acceptedAnswer.text}</div>
+                <div className="px-4 pb-4 text-sm text-navy-500 leading-relaxed">{item.acceptedAnswer.text}</div>
               </details>
             ))}
           </div>

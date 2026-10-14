@@ -157,7 +157,7 @@ export default function ComparativaPage() {
             ))}
           </div>
 
-          <p className="text-xs text-slate-400 text-center mt-4">
+          <p className="text-xs text-slate-500 text-center mt-4">
             Comparativa basada en funciones disponibles en junio de 2026. Precios AirData UAV convertidos con TRM referencial.
           </p>
         </div>

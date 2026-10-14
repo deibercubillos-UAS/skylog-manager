@@ -97,7 +97,7 @@ export default function ReportarPage() {
           <h1 className="text-2xl font-black text-navy mt-1">{org ? org.name : 'BitaFly'}</h1>
         </div>
         {children}
-        <p className="text-center text-[11px] text-navy-300">Con tecnología de BitaFly · Tu reporte llega directamente al Gerente de Seguridad Operacional (SMS) de la organización.</p>
+        <p className="text-center text-[11px] text-navy-500">Con tecnología de BitaFly · Tu reporte llega directamente al Gerente de Seguridad Operacional (SMS) de la organización.</p>
       </div>
     </main>
   );

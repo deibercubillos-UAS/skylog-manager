@@ -92,7 +92,7 @@ export default function VerificacionPage() {
             </button>
           </form>
         )}
-        <p className="mt-4 text-xs text-slate-400">Si pierdes tu autenticador, un administrador de Supabase puede quitar el factor desde el panel de Auth.</p>
+        <p className="mt-4 text-xs text-slate-500">Si pierdes tu autenticador, un administrador de Supabase puede quitar el factor desde el panel de Auth.</p>
       </div>
     </main>
   );

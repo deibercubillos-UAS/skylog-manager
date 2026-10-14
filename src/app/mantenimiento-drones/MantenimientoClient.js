@@ -110,7 +110,7 @@ export default function MantenimientoClient({ faqItems }) {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-navy via-navy/85 to-navy/35 -z-10" />
 
-        <div className="relative max-w-6xl mx-auto px-6 w-full py-24">
+        <div className="relative max-w-6xl mx-auto px-6 w-full pt-24 pb-52 md:pb-36">
           <div className="max-w-2xl">
             <p className="mt-hero-eyebrow inline-flex items-center gap-2 bg-white/10 backdrop-blur text-primary-200 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border border-white/10">
               Alertas automáticas · Código personalizable
@@ -159,7 +159,7 @@ export default function MantenimientoClient({ faqItems }) {
             <h2 className="text-2xl md:text-3xl font-black text-navy mt-1">
               Mantenimiento <span className="text-primary-600">predictivo</span> sin hojas de cálculo
             </h2>
-            <p className="text-sm text-navy-300 mt-2 max-w-lg mx-auto">
+            <p className="text-sm text-navy-500 mt-2 max-w-lg mx-auto">
               Bitafly cuenta los ciclos de cada batería LiPo y las horas de cada aeronave por ti.
               Cada tarea del programa te muestra si está al día o por vencer, antes de que sea un problema en operación.
             </p>
@@ -220,7 +220,7 @@ export default function MantenimientoClient({ faqItems }) {
                     <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </summary>
-                <div className="px-4 pb-4 text-sm text-navy-300 leading-relaxed">{item.acceptedAnswer.text}</div>
+                <div className="px-4 pb-4 text-sm text-navy-500 leading-relaxed">{item.acceptedAnswer.text}</div>
               </details>
             ))}
           </div>

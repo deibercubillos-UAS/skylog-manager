@@ -185,7 +185,7 @@ export default function ComparativaGeodronePage() {
             ))}
           </div>
 
-          <p className="text-xs text-slate-400 text-center mt-4">
+          <p className="text-xs text-slate-500 text-center mt-4">
             Comparativa basada en funciones disponibles públicamente en junio de 2026. GEODRONE es marca de Tecnidrones Colombia.
           </p>
         </div>

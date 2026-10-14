@@ -65,7 +65,7 @@ export default function CompletarRegistroPage() {
     }
   }
 
-  if (!ready) return <main className="min-h-screen flex items-center justify-center text-slate-400 text-sm">Cargando…</main>;
+  if (!ready) return <main className="min-h-screen flex items-center justify-center text-slate-500 text-sm">Cargando…</main>;
 
   return (
     <main className="min-h-screen bg-white flex flex-col justify-center px-6 py-10">
@@ -112,7 +112,7 @@ export default function CompletarRegistroPage() {
             {busy ? 'Guardando…' : mode === 'crear' ? 'Crear mi empresa (15 días gratis)' : 'Unirme'}
           </button>
         </form>
-        <p className="text-center text-xs font-bold text-slate-400 uppercase tracking-widest mt-8">
+        <p className="text-center text-xs font-bold text-slate-500 uppercase tracking-widest mt-8">
           <button type="button" onClick={async () => { await supabase.auth.signOut(); window.location.href = '/login'; }} className="text-primary hover:underline min-h-[44px]">Usar otra cuenta</button>
           {' · '}<Link href="/" className="hover:underline">Inicio</Link>
         </p>

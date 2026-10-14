@@ -68,7 +68,7 @@ export default function InvitacionSocioPage() {
         <p className="text-xs font-black uppercase tracking-widest text-primary text-center">Invitación de socio</p>
 
         {!info || sessionEmail === undefined ? (
-          <p className="text-sm text-slate-400 text-center mt-6">Verificando…</p>
+          <p className="text-sm text-slate-500 text-center mt-6">Verificando…</p>
         ) : info.state !== 'usable' ? (
           <div className="text-center mt-4 space-y-4">
             <h1 className="text-xl font-black text-navy">{info.message || info.error || 'No se pudo abrir la invitación'}</h1>

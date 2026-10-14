@@ -124,7 +124,7 @@ export default function ReplayClient({ faqItems }) {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-navy via-navy/85 to-navy/35 -z-10" />
 
-        <div className="relative max-w-6xl mx-auto px-6 w-full py-24">
+        <div className="relative max-w-6xl mx-auto px-6 w-full pt-24 pb-52 md:pb-36">
           <div className="max-w-2xl">
             <p className="rp-hero-eyebrow inline-flex items-center gap-2 bg-white/10 backdrop-blur text-primary-200 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border border-white/10">
               Replay GPS · Telemetría DJI
@@ -173,7 +173,7 @@ export default function ReplayClient({ faqItems }) {
             <h2 className="text-2xl md:text-3xl font-black text-navy mt-1">
               Reproduce cada vuelo <span className="text-primary-600">cuadro a cuadro</span>
             </h2>
-            <p className="text-sm text-navy-300 mt-2 max-w-lg mx-auto">
+            <p className="text-sm text-navy-500 mt-2 max-w-lg mx-auto">
               Importa el log de tu control DJI y revive la operación sobre el mapa: ruta GPS, altitud,
               velocidad y batería, segundo a segundo.
             </p>
@@ -230,7 +230,7 @@ export default function ReplayClient({ faqItems }) {
                   <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center font-black text-sm shrink-0">{step.n}</div>
                   <div>
                     <p className="font-bold text-navy text-sm">{step.t}</p>
-                    <p className="text-sm text-navy-300 mt-0.5 leading-relaxed">{step.d}</p>
+                    <p className="text-sm text-navy-500 mt-0.5 leading-relaxed">{step.d}</p>
                   </div>
                 </div>
               ))}
@@ -243,7 +243,7 @@ export default function ReplayClient({ faqItems }) {
                   <FeatureIcon name={uc.icon} className="w-5 h-5" />
                 </div>
                 <p className="font-bold text-navy text-sm">{uc.title}</p>
-                <p className="text-sm text-navy-300 mt-1.5 leading-relaxed">{uc.desc}</p>
+                <p className="text-sm text-navy-500 mt-1.5 leading-relaxed">{uc.desc}</p>
               </div>
             ))}
           </div>
@@ -268,7 +268,7 @@ export default function ReplayClient({ faqItems }) {
                     <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </summary>
-                <div className="px-4 pb-4 text-sm text-navy-300 leading-relaxed">{item.acceptedAnswer.text}</div>
+                <div className="px-4 pb-4 text-sm text-navy-500 leading-relaxed">{item.acceptedAnswer.text}</div>
               </details>
             ))}
           </div>

@@ -102,7 +102,7 @@ export default async function CasoPage({ params }) {
 
       <main className="max-w-3xl mx-auto px-6 py-12">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-xs text-slate-400 font-medium mb-8">
+        <nav className="flex items-center gap-2 text-xs text-slate-500 font-medium mb-8">
           <Link href="/" className="hover:text-orange-600 transition-colors">Inicio</Link>
           <span className="material-symbols-outlined text-sm">chevron_right</span>
           <Link href="/casos" className="hover:text-orange-600 transition-colors">Casos de Éxito</Link>
@@ -122,11 +122,11 @@ export default async function CasoPage({ params }) {
                 Ilustrativo
               </span>
             )}
-            <span className="text-xs text-slate-400">{c.ciudad}</span>
-            <span className="text-xs text-slate-300">· {c.tipo}</span>
+            <span className="text-xs text-slate-500">{c.ciudad}</span>
+            <span className="text-xs text-slate-500">· {c.tipo}</span>
           </div>
           {c.illustrative && (
-            <p className="text-xs text-slate-400 italic mb-4">
+            <p className="text-xs text-slate-500 italic mb-4">
               Este caso es un ejemplo ilustrativo de un flujo de trabajo típico, no un cliente
               real todavía — publicaremos casos reales apenas los tengamos.
             </p>
@@ -134,7 +134,7 @@ export default async function CasoPage({ params }) {
           <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight text-navy leading-tight mb-2">
             {c.empresa}
           </h1>
-          <p className="text-slate-400 text-sm font-medium mb-6">
+          <p className="text-slate-500 text-sm font-medium mb-6">
             {c.operador}, {c.cargo} · {c.flota} · Usando Bitafly desde {c.desde}
           </p>
           {/* Quote destacada */}
@@ -150,7 +150,7 @@ export default async function CasoPage({ params }) {
 
         {/* Módulos usados */}
         <section className="mb-10">
-          <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Módulos utilizados</p>
+          <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3">Módulos utilizados</p>
           <div className="flex flex-wrap gap-2">
             {c.modulos.map(m => (
               MODULE_HREF[m] ? (
@@ -216,7 +216,7 @@ export default async function CasoPage({ params }) {
         {/* Otros casos */}
         {related.length > 0 && (
           <section>
-            <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Más casos de éxito</p>
+            <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Más casos de éxito</p>
             <div className="grid sm:grid-cols-2 gap-4">
               {related.map(r => (
                 <Link
@@ -224,7 +224,7 @@ export default async function CasoPage({ params }) {
                   href={`/casos/${r.slug}`}
                   className="group border border-slate-100 rounded-2xl p-5 hover:border-orange-200 hover:shadow-sm transition-all bg-white"
                 >
-                  <p className="text-xs text-slate-400 mb-1">{r.ciudad}</p>
+                  <p className="text-xs text-slate-500 mb-1">{r.ciudad}</p>
                   <h3 className="text-sm font-black uppercase tracking-tight text-navy group-hover:text-orange-600 transition-colors">
                     {r.empresa}
                   </h3>
@@ -237,7 +237,7 @@ export default async function CasoPage({ params }) {
 
         {/* Back */}
         <div className="mt-10 pt-6 border-t border-slate-100">
-          <Link href="/casos" className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-orange-600 transition-colors">
+          <Link href="/casos" className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-orange-600 transition-colors">
             <span className="material-symbols-outlined text-sm">arrow_back</span>
             Todos los casos
           </Link>

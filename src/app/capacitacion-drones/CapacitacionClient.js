@@ -118,7 +118,7 @@ export default function CapacitacionClient({ faqItems }) {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-navy via-navy/85 to-navy/35 -z-10" />
 
-        <div className="relative max-w-6xl mx-auto px-6 w-full py-24">
+        <div className="relative max-w-6xl mx-auto px-6 w-full pt-24 pb-52 md:pb-36">
           <div className="max-w-2xl">
             <p className="cp-hero-eyebrow inline-flex items-center gap-2 bg-white/10 backdrop-blur text-primary-200 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border border-white/10">
               Capacitación y Evaluaciones · Cumplimiento por Persona
@@ -199,7 +199,7 @@ export default function CapacitacionClient({ faqItems }) {
               <div key={step.n} className="bg-white border border-navy-100 rounded-2xl p-6">
                 <p className="text-2xl font-black text-primary-600 mb-2">{step.n}</p>
                 <p className="font-bold text-navy text-sm mb-1.5">{step.t}</p>
-                <p className="text-sm text-navy-300 leading-relaxed">{step.d}</p>
+                <p className="text-sm text-navy-500 leading-relaxed">{step.d}</p>
               </div>
             ))}
           </div>
@@ -224,7 +224,7 @@ export default function CapacitacionClient({ faqItems }) {
                     <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </summary>
-                <div className="px-4 pb-4 text-sm text-navy-300 leading-relaxed">{item.acceptedAnswer.text}</div>
+                <div className="px-4 pb-4 text-sm text-navy-500 leading-relaxed">{item.acceptedAnswer.text}</div>
               </details>
             ))}
           </div>

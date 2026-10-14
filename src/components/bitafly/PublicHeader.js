@@ -77,12 +77,12 @@ function FuncionesMegaMenu({ onClose }) {
           >
             <FeatureIcon name={item.icon} className="w-5 h-5 text-primary-600" />
             <p className="text-xs font-bold text-navy group-hover:text-primary-700">{item.label}</p>
-            <p className="text-[11px] text-navy-300">{item.desc}</p>
+            <p className="text-[11px] text-navy-500">{item.desc}</p>
           </a>
         ))}
       </div>
       <div className="bg-navy-50 px-6 py-3 flex items-center justify-between border-t border-navy-100">
-        <p className="text-[11px] text-navy-300">
+        <p className="text-[11px] text-navy-500">
           <span className="font-bold text-navy">11 módulos</span> · Cumplimiento RAC 100 completo
         </p>
         <a href="/#funciones" onClick={onClose} className="text-[11px] font-bold text-primary-600 hover:text-primary-700">
@@ -108,7 +108,7 @@ function RecursosDropdown({ onClose }) {
           </span>
           <div className="min-w-0">
             <p className="text-sm font-bold text-navy group-hover:text-primary-700 truncate">{item.label}</p>
-            <p className="text-[11px] text-navy-300 truncate">{item.desc}</p>
+            <p className="text-[11px] text-navy-500 truncate">{item.desc}</p>
           </div>
         </a>
       ))}

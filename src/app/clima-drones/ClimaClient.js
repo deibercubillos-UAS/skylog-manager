@@ -127,7 +127,7 @@ export default function ClimaClient({ faqItems }) {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-navy via-navy/85 to-navy/35 -z-10" />
 
-        <div className="relative max-w-6xl mx-auto px-6 w-full py-24">
+        <div className="relative max-w-6xl mx-auto px-6 w-full pt-24 pb-52 md:pb-36">
           <div className="max-w-2xl">
             <p className="cl-hero-eyebrow inline-flex items-center gap-2 bg-white/10 backdrop-blur text-primary-200 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border border-white/10">
               Verificación pre-vuelo · RAC 100
@@ -176,7 +176,7 @@ export default function ClimaClient({ faqItems }) {
             <h2 className="text-2xl md:text-3xl font-black text-navy mt-1">
               El clima <span className="text-primary-600">donde tomas la decisión</span>
             </h2>
-            <p className="text-sm text-navy-300 mt-2 max-w-lg mx-auto">
+            <p className="text-sm text-navy-500 mt-2 max-w-lg mx-auto">
               No es un sitio web que abres aparte: la meteorología aparece dentro
               de Bitafly: ves el clima de las zonas que programaste, y al despachar queda archivado junto al vuelo.
             </p>
@@ -227,7 +227,7 @@ export default function ClimaClient({ faqItems }) {
             <h2 className="text-2xl md:text-3xl font-black text-navy mt-1">
               Una lectura clara, <span className="text-primary-600">tú decides</span>
             </h2>
-            <p className="text-sm text-navy-300 mt-3 leading-relaxed">
+            <p className="text-sm text-navy-500 mt-3 leading-relaxed">
               Bitafly compara cada variable con un umbral de referencia y te dice si está dentro
               de rango. La meteorología es un insumo: la decisión de volar sigue siendo del piloto.
             </p>
@@ -257,7 +257,7 @@ export default function ClimaClient({ faqItems }) {
             <h2 className="text-2xl md:text-3xl font-black text-navy mt-1">
               Bitafly Clima vs. una <span className="text-primary-600">app de clima</span>
             </h2>
-            <p className="text-sm text-navy-300 mt-2 max-w-lg mx-auto">
+            <p className="text-sm text-navy-500 mt-2 max-w-lg mx-auto">
               Las apps de meteorología para drones muestran buenas variables, pero viven
               aisladas. El clima de Bitafly nace dentro de la plataforma que ya gestiona tu
               operación y tu cumplimiento.
@@ -302,7 +302,7 @@ export default function ClimaClient({ faqItems }) {
                     <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </summary>
-                <div className="px-4 pb-4 text-sm text-navy-300 leading-relaxed">{item.acceptedAnswer.text}</div>
+                <div className="px-4 pb-4 text-sm text-navy-500 leading-relaxed">{item.acceptedAnswer.text}</div>
               </details>
             ))}
           </div>

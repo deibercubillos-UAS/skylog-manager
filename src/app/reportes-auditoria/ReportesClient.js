@@ -108,7 +108,7 @@ export default function ReportesClient({ faqItems }) {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-navy via-navy/85 to-navy/35 -z-10" />
 
-        <div className="relative max-w-6xl mx-auto px-6 w-full py-24">
+        <div className="relative max-w-6xl mx-auto px-6 w-full pt-24 pb-52 md:pb-36">
           <div className="max-w-2xl">
             <p className="rp-hero-eyebrow inline-flex items-center gap-2 bg-white/10 backdrop-blur text-primary-200 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border border-white/10">
               Reportes 100% personalizables
@@ -155,7 +155,7 @@ export default function ReportesClient({ faqItems }) {
             <h2 className="text-2xl md:text-3xl font-black text-navy mt-1">
               Exporta tus reportes <span className="text-primary-600">RAC 100</span> en un clic
             </h2>
-            <p className="text-sm text-navy-300 mt-2 max-w-lg mx-auto">
+            <p className="text-sm text-navy-500 mt-2 max-w-lg mx-auto">
               Libro de Vuelo, Mantenimiento, Flota, Baterías, Tripulación, Capacitación y más, en PDF con el logo, el código de formato y la versión de tu organización.
             </p>
           </div>
@@ -223,7 +223,7 @@ export default function ReportesClient({ faqItems }) {
                     <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </summary>
-                <div className="px-4 pb-4 text-sm text-navy-300 leading-relaxed">{item.acceptedAnswer.text}</div>
+                <div className="px-4 pb-4 text-sm text-navy-500 leading-relaxed">{item.acceptedAnswer.text}</div>
               </details>
             ))}
           </div>

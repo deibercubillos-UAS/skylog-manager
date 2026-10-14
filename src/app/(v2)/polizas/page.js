@@ -204,7 +204,7 @@ export default function PolizasPage() {
     return (
       <div>
         {hero}
-        <p className="text-sm text-navy-400 mt-4">Solo un gestor (Jefe de Pilotos, Gerente SMS, admin) puede ver las pólizas.</p>
+        <p className="text-sm text-navy-400 mt-4">Solo un gestor (Jefe de Pilotos, Gerente SMS, Gerente General) puede ver las pólizas.</p>
       </div>
     );
   }

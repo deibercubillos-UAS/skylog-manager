@@ -154,7 +154,7 @@ export default function RetencionPage() {
     return (
       <div>
         {hero}
-        <p className="text-sm text-navy-400 mt-4">Solo un gestor (Jefe de Pilotos, Gerente SMS, admin) puede ver Retención y custodia.</p>
+        <p className="text-sm text-navy-400 mt-4">Solo un gestor (Jefe de Pilotos, Gerente SMS, Gerente General) puede ver Retención y custodia.</p>
       </div>
     );
   }

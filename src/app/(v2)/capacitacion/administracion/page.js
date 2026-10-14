@@ -177,7 +177,7 @@ export default function AdministracionPage() {
     return (
       <div>
         <SectionHero eyebrow="Documentación" title="Administración" description="Crear evaluaciones, cargar material de apoyo y verificar el cumplimiento del equipo." />
-        <p className="text-sm text-navy-400 mt-4">Solo un gestor (Jefe de Pilotos, Gerente SMS, admin) puede administrar Capacitación.</p>
+        <p className="text-sm text-navy-400 mt-4">Solo un gestor (Jefe de Pilotos, Gerente SMS, Gerente General) puede administrar Capacitación.</p>
       </div>
     );
   }

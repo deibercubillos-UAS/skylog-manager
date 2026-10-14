@@ -22,7 +22,7 @@ export async function GET(request) {
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!isDutyManager(memberships, organizationId)) {
-    return Response.json({ error: 'Solo un gestor (Jefe de Pilotos, Gerente SMS, admin) puede ver la planificación' }, { status: 403 });
+    return Response.json({ error: 'Solo un gestor (Jefe de Pilotos, Gerente SMS, Gerente General) puede ver la planificación' }, { status: 403 });
   }
 
   const { data: orgMemberships, error: membersError } = await supabase

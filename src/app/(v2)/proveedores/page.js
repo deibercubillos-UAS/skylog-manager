@@ -145,7 +145,7 @@ export default function ProveedoresPage() {
     return (
       <div>
         <SectionHero eyebrow="Documentación" title="Proveedores" description="Listado de proveedores y checklist de auditoría." />
-        <p className="text-sm text-navy-400 mt-4">Solo un gestor (Jefe de Pilotos, Gerente SMS, admin) puede ver Proveedores.</p>
+        <p className="text-sm text-navy-400 mt-4">Solo un gestor (Jefe de Pilotos, Gerente SMS, Gerente General) puede ver Proveedores.</p>
       </div>
     );
   }

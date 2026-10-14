@@ -93,7 +93,7 @@ export async function POST(request) {
   const { error: resolveError, memberships, personId } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!isDutyManager(memberships, organizationId)) {
-    return Response.json({ error: 'Solo un gestor (Jefe de Pilotos, Gerente SMS, admin) puede programar misiones' }, { status: 403 });
+    return Response.json({ error: 'Solo un gestor (Jefe de Pilotos, Gerente SMS, Gerente General) puede programar misiones' }, { status: 403 });
   }
 
   if (aircraftId) {

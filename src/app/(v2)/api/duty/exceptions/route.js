@@ -22,7 +22,7 @@ export async function POST(request) {
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
   if (!isDutyManager(memberships, organizationId)) {
-    return Response.json({ error: 'Solo un gestor (Jefe de Pilotos, Gerente SMS, admin) puede autorizar una excepción' }, { status: 403 });
+    return Response.json({ error: 'Solo un gestor (Jefe de Pilotos, Gerente SMS, Gerente General) puede autorizar una excepción' }, { status: 403 });
   }
 
   // Verifica que el período referenciado pertenezca a la misma organización —

@@ -405,7 +405,7 @@ export default function AerocivilPage() {
 
       {!isManager && (
         <p className="text-sm text-amber-800 bg-amber-50 rounded-lg px-3 py-2">
-          Preparar y firmar el expediente Aerocivil es una función de gestión (Jefe de Pilotos, Gerente SMS, admin) — esta cuenta solo puede consultar.
+          Preparar y firmar el expediente Aerocivil es una función de gestión (Jefe de Pilotos, Gerente SMS, Gerente General) — esta cuenta solo puede consultar.
         </p>
       )}
 

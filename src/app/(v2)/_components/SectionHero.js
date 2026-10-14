@@ -68,7 +68,7 @@ export function StatCard({ icon, color, label, value, sub }) {
         </div>
         <div className="min-w-0">
           <p className="text-xs text-navy-500 font-medium leading-snug line-clamp-2">{label}</p>
-          <p className="text-2xl font-black text-navy leading-tight tracking-tight break-words">{value}</p>
+          <p className={`${typeof value === 'string' && value.length > 9 ? 'text-lg' : 'text-2xl'} font-black text-navy leading-tight tracking-tight break-words`}>{value}</p>
         </div>
       </div>
       {sub && <p className="text-[11px] text-navy-500 mt-2 leading-snug">{sub}</p>}

@@ -99,6 +99,7 @@ export default function SuscripcionPage() {
   const [cancelBusy, setCancelBusy] = useState(false);
   const [cancelError, setCancelError] = useState(null);
 
+  const [loadError, setLoadError] = useState(null); // la suscripción no cargó: nunca se muestra un plan inventado
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState(null);
 
@@ -122,8 +123,20 @@ export default function SuscripcionPage() {
 
   const load = useCallback(async (orgId) => {
     if (!orgId) return;
-    const res = await fetch(`/api/suscripcion?organizationId=${orgId}`);
-    const data = await res.json();
+    setLoadError(null);
+    let res;
+    let data;
+    try {
+      res = await fetch(`/api/suscripcion?organizationId=${orgId}`);
+      data = await res.json();
+    } catch {
+      setLoadError('No se pudo cargar la suscripción. Revisa tu conexión e intenta de nuevo.');
+      return;
+    }
+    if (!res.ok) {
+      setLoadError(data?.error || 'No se pudo cargar la suscripción. Intenta de nuevo.');
+      return;
+    }
     if (res.ok) {
       setSubscription(data.subscription);
       setUsage(data.usage);
@@ -224,6 +237,22 @@ export default function SuscripcionPage() {
       <div>
         <SectionHero eyebrow="Cuenta" title="Suscripción" description="Plan de la organización y uso frente a sus límites." />
         <p className="text-sm text-navy-400 mt-4">Esta cuenta no tiene todavía un registro de Persona vinculado.</p>
+      </div>
+    );
+  }
+
+  if (loadError || !subscription) {
+    return (
+      <div className="space-y-6">
+        <SectionHero eyebrow="Cuenta" title="Suscripción" description={`Plan de ${currentOrg?.name || 'la organización'} y uso frente a sus límites.`} />
+        <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+          <p className="text-sm text-red-700">{loadError || 'Cargando la suscripción…'}</p>
+          {loadError && (
+            <button type="button" onClick={() => load(organizationId)} className="mt-2 text-xs font-bold text-primary-600 hover:underline min-h-[44px] md:min-h-0">
+              Reintentar
+            </button>
+          )}
+        </div>
       </div>
     );
   }

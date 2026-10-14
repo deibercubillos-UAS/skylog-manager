@@ -13,7 +13,7 @@ const proseClasses = [
   '[&_li>strong]:text-[#1A202C]',
   '[&_strong]:text-[#1A202C] [&_strong]:font-bold',
   '[&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_a]:decoration-primary/40 hover:[&_a]:decoration-primary',
-  '[&_table]:w-full [&_table]:text-sm [&_table]:mb-5 [&_table]:border-collapse',
+  '[&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_table]:w-full [&_table]:text-sm [&_table]:mb-5 [&_table]:border-collapse',
   '[&_th]:text-left [&_th]:font-black [&_th]:text-[#1A202C] [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-[11px] [&_th]:py-2.5 [&_th]:pr-4 [&_th]:border-b-2 [&_th]:border-slate-200',
   '[&_td]:py-2.5 [&_td]:pr-4 [&_td]:border-b [&_td]:border-slate-100 [&_td]:text-slate-600 [&_td]:align-top [&_td]:text-[14px]',
   '[&_blockquote]:border-l-4 [&_blockquote]:border-primary/30 [&_blockquote]:pl-4 [&_blockquote]:py-1 [&_blockquote]:my-5 [&_blockquote]:text-slate-500 [&_blockquote]:text-sm [&_blockquote]:italic',

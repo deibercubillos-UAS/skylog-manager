@@ -282,7 +282,9 @@ export default function SuscripcionPage() {
         <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 flex items-start gap-2.5">
           <span className="material-symbols-outlined text-amber-500 text-lg shrink-0">info</span>
           <p className="text-xs text-amber-700">
-            Este plan se asignó manualmente desde el panel — no tiene un pago real detrás todavía. Para activar cobro automático, paga con tarjeta abajo.
+            {isAdmin
+              ? 'Este plan se asignó manualmente desde el panel — no tiene un pago real detrás todavía. Para activar cobro automático, paga con tarjeta abajo.'
+              : 'Este plan se asignó manualmente desde el panel — no tiene un pago real detrás todavía. El Gerente General puede activar el cobro automático.'}
           </p>
         </div>
       )}

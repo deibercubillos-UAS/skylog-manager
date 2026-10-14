@@ -455,7 +455,7 @@ export default function MantenimientoPage() {
             <tbody className="divide-y divide-navy-50">
               {statusRows.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center opacity-40">
+                  <td colSpan={5} className="py-10 text-center opacity-40 max-md:[&>*]:sticky max-md:[&>*]:left-0 max-md:[&>*]:w-[calc(100vw-5rem)] max-md:[&>*]:whitespace-normal">
                     <span className="material-symbols-outlined text-4xl text-navy-300 mb-2 block">build</span>
                     <p className="text-xs font-black uppercase tracking-widest text-navy-500">Sin tareas configuradas todavía en ningún modelo</p>
                   </td>
@@ -544,7 +544,7 @@ export default function MantenimientoPage() {
             <tbody className="divide-y divide-navy-50">
               {incidents.length === 0 ? (
                 <tr>
-                  <td colSpan={isManager ? 5 : 4} className="py-10 text-center opacity-40">
+                  <td colSpan={isManager ? 5 : 4} className="py-10 text-center opacity-40 max-md:[&>*]:sticky max-md:[&>*]:left-0 max-md:[&>*]:w-[calc(100vw-5rem)] max-md:[&>*]:whitespace-normal">
                     <span className="material-symbols-outlined text-4xl text-navy-300 mb-2 block">report</span>
                     <p className="text-xs font-black uppercase tracking-widest text-navy-500">Sin eventos inesperados reportados</p>
                   </td>
@@ -710,7 +710,7 @@ export default function MantenimientoPage() {
                     <tbody className="divide-y divide-navy-50">
                       {(selectedProgram.tasks || []).length === 0 ? (
                         <tr>
-                          <td colSpan={isManager ? 5 : 4} className="py-8 text-center opacity-40">
+                          <td colSpan={isManager ? 5 : 4} className="py-8 text-center opacity-40 max-md:[&>*]:sticky max-md:[&>*]:left-0 max-md:[&>*]:w-[calc(100vw-5rem)] max-md:[&>*]:whitespace-normal">
                             <p className="text-xs font-black uppercase tracking-widest text-navy-500">Sin tareas configuradas</p>
                           </td>
                         </tr>

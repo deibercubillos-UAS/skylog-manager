@@ -382,7 +382,7 @@ export default function V2Home() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center opacity-40">
+                  <td colSpan={5} className="py-12 text-center opacity-40 max-md:[&>*]:sticky max-md:[&>*]:left-0 max-md:[&>*]:w-[calc(100vw-5rem)] max-md:[&>*]:whitespace-normal">
                     <span className="material-symbols-outlined text-5xl text-navy-300 mb-3 block">flight_takeoff</span>
                     <p className="text-xs font-black uppercase tracking-widest text-navy-500">Sin actividad operativa</p>
                     <p className="text-xs text-navy-300 font-medium mt-1">Los vuelos registrados aparecerán aquí</p>

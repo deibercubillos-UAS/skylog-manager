@@ -13,7 +13,7 @@ export function SectionHero({ eyebrow, title, description, metric, cta }) {
           <h1 className="text-2xl md:text-3xl font-black tracking-tight mt-1 text-white">{title}</h1>
           {description && <p className="text-sm text-navy-300 mt-1.5 max-w-xl">{description}</p>}
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex flex-wrap items-center gap-3 max-w-full">
           {metric && (
             <div className="rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 px-5 py-3">
               <p className="text-[11px] font-bold uppercase tracking-wide text-navy-300">{metric.label}</p>

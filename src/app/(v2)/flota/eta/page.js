@@ -204,7 +204,7 @@ export default function EtaPage() {
             <tbody className="divide-y divide-navy-50">
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={isManager ? 4 : 3} className="py-12 text-center opacity-40">
+                  <td colSpan={isManager ? 4 : 3} className="py-12 text-center opacity-40 max-md:[&>*]:sticky max-md:[&>*]:left-0 max-md:[&>*]:w-[calc(100vw-5rem)] max-md:[&>*]:whitespace-normal">
                     <span className="material-symbols-outlined text-5xl text-navy-300 mb-3 block">dns</span>
                     <p className="text-xs font-black uppercase tracking-widest text-navy-500">Sin equipo tecnológico asociado registrado</p>
                   </td>

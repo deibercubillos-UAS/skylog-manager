@@ -282,7 +282,7 @@ export default function BateriasComponentesPage() {
             <tbody className="divide-y divide-navy-50">
               {batteries.length === 0 ? (
                 <tr>
-                  <td colSpan={isManager ? 6 : 5} className="py-10 text-center opacity-40">
+                  <td colSpan={isManager ? 6 : 5} className="py-10 text-center opacity-40 max-md:[&>*]:sticky max-md:[&>*]:left-0 max-md:[&>*]:w-[calc(100vw-5rem)] max-md:[&>*]:whitespace-normal">
                     <span className="material-symbols-outlined text-4xl text-navy-300 mb-2 block">battery_full</span>
                     <p className="text-xs font-black uppercase tracking-widest text-navy-500">Sin baterías registradas</p>
                   </td>
@@ -324,7 +324,7 @@ export default function BateriasComponentesPage() {
       <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
         <div className="px-6 py-3.5 border-b border-navy-50 bg-navy-50/30 flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest">Componentes</h3>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <select
               value={aircraftFilter}
               onChange={(e) => setAircraftFilter(e.target.value)}
@@ -344,7 +344,7 @@ export default function BateriasComponentesPage() {
                   setComponentForm((f) => ({ ...f, aircraftId: aircraftFilter || f.aircraftId }));
                   setShowComponentForm((s) => !s);
                 }}
-                className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1 whitespace-nowrap"
               >
                 <span className="material-symbols-outlined text-base">{showComponentForm ? 'close' : 'add'}</span>
                 {showComponentForm ? 'Cerrar' : 'Agregar componente'}
@@ -419,7 +419,7 @@ export default function BateriasComponentesPage() {
             <tbody className="divide-y divide-navy-50">
               {components.length === 0 ? (
                 <tr>
-                  <td colSpan={isManager ? 7 : 6} className="py-10 text-center opacity-40">
+                  <td colSpan={isManager ? 7 : 6} className="py-10 text-center opacity-40 max-md:[&>*]:sticky max-md:[&>*]:left-0 max-md:[&>*]:w-[calc(100vw-5rem)] max-md:[&>*]:whitespace-normal">
                     <span className="material-symbols-outlined text-4xl text-navy-300 mb-2 block">settings</span>
                     <p className="text-xs font-black uppercase tracking-widest text-navy-500">Sin componentes registrados</p>
                   </td>

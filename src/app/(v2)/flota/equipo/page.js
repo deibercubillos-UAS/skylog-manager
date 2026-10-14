@@ -159,7 +159,7 @@ export default function EquipoPage() {
             <tbody className="divide-y divide-navy-50">
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={isManager ? 5 : 4} className="py-12 text-center opacity-40">
+                  <td colSpan={isManager ? 5 : 4} className="py-12 text-center opacity-40 max-md:[&>*]:sticky max-md:[&>*]:left-0 max-md:[&>*]:w-[calc(100vw-5rem)] max-md:[&>*]:whitespace-normal">
                     <span className="material-symbols-outlined text-5xl text-navy-300 mb-3 block">inventory_2</span>
                     <p className="text-xs font-black uppercase tracking-widest text-navy-500">Sin equipo registrado</p>
                   </td>

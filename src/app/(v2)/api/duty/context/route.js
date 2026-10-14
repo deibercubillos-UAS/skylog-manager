@@ -5,13 +5,18 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 
 export async function GET() {
+  const t0 = Date.now();
+  const marks = [];
+  const mark = (n) => marks.push(`${n};dur=${Date.now() - t0}`);
   const supabase = await createClientSSR();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  mark('auth');
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { error, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
+  mark('persona');
   if (error) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) {
     return Response.json({ personId: null, organizations: [] });
@@ -28,6 +33,7 @@ export async function GET() {
     // ¿Es miembro de un socio ACTIVO (escuela/asesor)? Habilita el acceso al panel /socio.
     supabase.from('partner_members').select('partner:partners(status)').eq('person_id', personId),
   ]);
+  mark('resto');
   if (orgsError) return Response.json({ error: 'Error consultando organizaciones' }, { status: 500 });
 
   const organizations = memberships.map((m) => {
@@ -43,5 +49,8 @@ export async function GET() {
 
   const isPartner = (partnerRows || []).some((r) => r.partner?.status === 'activo');
 
-  return Response.json({ personId, fullName: person?.full_name || null, organizations, isPartner });
+  return Response.json(
+    { personId, fullName: person?.full_name || null, organizations, isPartner },
+    { headers: { 'Server-Timing': marks.join(', ') } }
+  );
 }

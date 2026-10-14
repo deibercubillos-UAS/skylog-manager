@@ -18,7 +18,7 @@ import { FeatureIcon } from '@/components/bitafly/icons';
 const TRUST_STATS = [
   { value: '10', label: 'Reportes en PDF' },
   { value: 'PDF', label: 'Con logo corporativo' },
-  { value: 'Por período', label: 'Filtra por fechas o aeronave' },
+  { value: '100%', label: 'Código de formato personalizable' },
   { value: '1 clic', label: 'Descarga inmediata' },
 ];
 
@@ -117,7 +117,7 @@ export default function ReportesClient({ faqItems }) {
               Reportes y Auditoría <span className="text-primary-300">AeroCivil</span> en Segundos
             </h1>
             <p className="rp-hero-sub text-base md:text-lg text-navy-100 max-w-xl mt-5">
-              Exporta tus reportes operativos en PDF con el logo de tu organización. Auditorías sin sorpresas, inspecciones sin papeles perdidos.
+              Exporta tus reportes operativos en PDF con el logo de tu organización y tu propio código de formato. Auditorías sin sorpresas, inspecciones sin papeles perdidos.
             </p>
             <div className="rp-hero-cta flex flex-col sm:flex-row items-center gap-3 mt-8">
               <a href="/registro">
@@ -156,7 +156,7 @@ export default function ReportesClient({ faqItems }) {
               Exporta tus reportes <span className="text-primary-600">RAC 100</span> en un clic
             </h2>
             <p className="text-sm text-navy-300 mt-2 max-w-lg mx-auto">
-              Libro de Vuelo, Mantenimiento, Flota, Baterías, Tripulación, Capacitación y más, en PDF con el logo de tu organización.
+              Libro de Vuelo, Mantenimiento, Flota, Baterías, Tripulación, Capacitación y más, en PDF con el logo, el código de formato y la versión de tu organización.
             </p>
           </div>
           <div className="reveal-fade relative aspect-[1568/718] rounded-3xl overflow-hidden border border-navy-100 shadow-xl bg-white p-3 sm:p-4">
@@ -180,7 +180,7 @@ export default function ReportesClient({ faqItems }) {
               Cada registro que exige <span className="text-primary-300">la AeroCivil</span>
             </h2>
             <p className="text-sm text-navy-200 mt-3 max-w-lg mx-auto">
-              Los formatos de reporte los define cada operador en su manual de operaciones. Bitafly genera el PDF a partir de los datos de tu operación.
+              Los códigos de formato no son oficiales de la AeroCivil: cada operador los define en su manual de operaciones. En Bitafly vienen por defecto y los personalizas desde Reportes.
             </p>
           </div>
           <div className="reveal-stagger grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto mt-10">
@@ -247,7 +247,7 @@ export default function ReportesClient({ faqItems }) {
         </div>
       </section>
 
-      <PublicFooter brandDesc="Reportes en PDF para operadores UAS en Colombia, con el logo de tu organización." />
+      <PublicFooter brandDesc="Reportes en PDF para operadores UAS en Colombia, con tu propio código de formato." />
     </div>
   );
 }

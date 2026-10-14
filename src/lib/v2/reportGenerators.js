@@ -13,11 +13,11 @@ import { resolveLogo, fetchBitaflyLogo, drawReportHeader, drawFooterNote, slugif
 const TABLE_STYLES = { fontSize: 7, cellPadding: 1.3, lineColor: [220, 220, 220], lineWidth: 0.1 };
 const HEAD_STYLES = { fillColor: [26, 32, 44], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'left' };
 
-async function baseDoc({ orgName, logoUrl, title, subtitle }) {
+async function baseDoc({ orgName, logoUrl, title, subtitle, format }) {
   const { jsPDF } = await import('jspdf');
   const logo = (await resolveLogo(logoUrl)) || (await fetchBitaflyLogo());
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  const startY = drawReportHeader(doc, { logo, orgName, title, subtitle });
+  const startY = drawReportHeader(doc, { logo, orgName, title, subtitle, format });
   return { doc, startY };
 }
 
@@ -33,8 +33,8 @@ function fmtHours(h) {
   return h == null ? '—' : Number(h).toFixed(1);
 }
 
-export async function generateFlightLogPdf(flights, { orgName, logoUrl, periodLabel }) {
-  const { doc, startY } = await baseDoc({ orgName, logoUrl, title: 'Libro de Vuelo', subtitle: periodLabel });
+export async function generateFlightLogPdf(flights, { orgName, logoUrl, periodLabel, format }) {
+  const { doc, startY } = await baseDoc({ orgName, logoUrl, format, title: 'Libro de Vuelo', subtitle: periodLabel });
   autoTable(doc, {
     startY,
     head: [['FECHA', 'DESPEGUE', 'ATERRIZAJE', 'DURACIÓN (H)', 'AERONAVE', 'PILOTO', 'TIPO DE MISIÓN', 'CONDICIÓN VISUAL']],
@@ -64,8 +64,8 @@ function intervalLabel(t) {
   return parts.join(' · ') || '—';
 }
 
-export async function generateMaintenanceReportPdf({ events, unexpected, programs }, { orgName, logoUrl, periodLabel }) {
-  const { doc, startY } = await baseDoc({ orgName, logoUrl, title: 'Mantenimiento', subtitle: periodLabel });
+export async function generateMaintenanceReportPdf({ events, unexpected, programs }, { orgName, logoUrl, periodLabel, format }) {
+  const { doc, startY } = await baseDoc({ orgName, logoUrl, format, title: 'Mantenimiento', subtitle: periodLabel });
   autoTable(doc, {
     startY,
     head: [['FECHA', 'AERONAVE', 'TIPO', 'HORAS AERONAVE', 'HALLAZGOS', 'VUELVE A SERVICIO']],
@@ -123,8 +123,8 @@ export async function generateMaintenanceReportPdf({ events, unexpected, program
   doc.save(`mantenimiento-${slugify(orgName)}.pdf`);
 }
 
-export async function generateFleetReportPdf(aircraft, { orgName, logoUrl, models = [] }) {
-  const { doc, startY } = await baseDoc({ orgName, logoUrl, title: 'Flota', subtitle: 'Instantánea (sin rango de fechas)' });
+export async function generateFleetReportPdf(aircraft, { orgName, logoUrl, models = [], format }) {
+  const { doc, startY } = await baseDoc({ orgName, logoUrl, format, title: 'Flota', subtitle: 'Instantánea (sin rango de fechas)' });
   autoTable(doc, {
     startY,
     head: [['SERIE', 'MODELO', 'RUAS', 'PESO REAL', 'HORAS TOTALES', 'ESTADO', 'PROPIEDAD', 'REFERENCIA', 'FIRMWARE VIGENTE', 'FIRMWARE ANTERIOR', 'ACTUALIZADO']],
@@ -170,8 +170,8 @@ export async function generateFleetReportPdf(aircraft, { orgName, logoUrl, model
   doc.save(`flota-${slugify(orgName)}.pdf`);
 }
 
-export async function generateBatteryReportPdf({ batteries, components }, { orgName, logoUrl }) {
-  const { doc, startY } = await baseDoc({ orgName, logoUrl, title: 'Baterías y Componentes', subtitle: 'Instantánea (sin rango de fechas)' });
+export async function generateBatteryReportPdf({ batteries, components }, { orgName, logoUrl, format }) {
+  const { doc, startY } = await baseDoc({ orgName, logoUrl, format, title: 'Baterías y Componentes', subtitle: 'Instantánea (sin rango de fechas)' });
   autoTable(doc, {
     startY,
     head: [['SERIE', 'MARCA', 'MODELO', 'CICLOS', 'SALUD', 'ESTADO']],
@@ -200,8 +200,8 @@ export async function generateBatteryReportPdf({ batteries, components }, { orgN
   doc.save(`baterias-componentes-${slugify(orgName)}.pdf`);
 }
 
-export async function generateCrewReportPdf(members, { orgName, logoUrl }) {
-  const { doc, startY } = await baseDoc({ orgName, logoUrl, title: 'Expediente de Tripulación', subtitle: 'Instantánea (sin rango de fechas)' });
+export async function generateCrewReportPdf(members, { orgName, logoUrl, format }) {
+  const { doc, startY } = await baseDoc({ orgName, logoUrl, format, title: 'Expediente de Tripulación', subtitle: 'Instantánea (sin rango de fechas)' });
   autoTable(doc, {
     startY,
     head: [['NOMBRE', 'DOCUMENTO', 'ROL', 'LICENCIA', 'VENCIMIENTO CERT. MÉDICO', 'CORREO']],
@@ -221,8 +221,8 @@ export async function generateCrewReportPdf(members, { orgName, logoUrl }) {
   doc.save(`tripulacion-${slugify(orgName)}.pdf`);
 }
 
-export async function generateTrainingReportPdf({ evaluations, roster }, { orgName, logoUrl, typeLabel }) {
-  const { doc, startY } = await baseDoc({ orgName, logoUrl, title: 'Capacitación', subtitle: typeLabel });
+export async function generateTrainingReportPdf({ evaluations, roster }, { orgName, logoUrl, typeLabel, format }) {
+  const { doc, startY } = await baseDoc({ orgName, logoUrl, format, title: 'Capacitación', subtitle: typeLabel });
   autoTable(doc, {
     startY,
     head: [['EVALUACIÓN', 'FECHA LÍMITE', 'NOTA MÍNIMA', 'INTENTOS PERMITIDOS']],
@@ -252,8 +252,8 @@ export async function generateTrainingReportPdf({ evaluations, roster }, { orgNa
   doc.save(`capacitacion-${slugify(orgName)}.pdf`);
 }
 
-export async function generateSupplierAuditReportPdf(rows, { orgName, logoUrl, scopeLabel, periodLabel }) {
-  const { doc, startY } = await baseDoc({ orgName, logoUrl, title: 'Auditoría de Proveedores', subtitle: `${scopeLabel} — ${periodLabel}` });
+export async function generateSupplierAuditReportPdf(rows, { orgName, logoUrl, scopeLabel, periodLabel, format }) {
+  const { doc, startY } = await baseDoc({ orgName, logoUrl, format, title: 'Auditoría de Proveedores', subtitle: `${scopeLabel} — ${periodLabel}` });
   autoTable(doc, {
     startY,
     head: [['PROVEEDOR', 'CATEGORÍA', 'FECHA', 'AUDITOR', '% CUMPLIMIENTO', 'OBSERVACIONES']],
@@ -268,8 +268,8 @@ export async function generateSupplierAuditReportPdf(rows, { orgName, logoUrl, s
 
 // RAC 100 §100.540 — registro diario de tiempos de servicio/descanso/
 // disponibilidad/entrenamiento por piloto (obligación 100.535(10)-(11)).
-export async function generateDutyReportPdf(periods, { orgName, logoUrl, periodLabel }) {
-  const { doc, startY } = await baseDoc({ orgName, logoUrl, title: 'Tiempos de Servicio', subtitle: periodLabel });
+export async function generateDutyReportPdf(periods, { orgName, logoUrl, periodLabel, format }) {
+  const { doc, startY } = await baseDoc({ orgName, logoUrl, format, title: 'Tiempos de Servicio', subtitle: periodLabel });
   const TYPE_LABELS = { servicio: 'Servicio', descanso: 'Descanso', disponibilidad: 'Disponibilidad', entrenamiento: 'Entrenamiento' };
   autoTable(doc, {
     startY,
@@ -288,8 +288,8 @@ export async function generateDutyReportPdf(periods, { orgName, logoUrl, periodL
 
 // RAC 100 §100.535(24)-(25) — expediente por autorización + análisis de
 // riesgos (MAUT-5.0-12-055) asociado a cada una.
-export async function generateMissionsReportPdf(missions, { orgName, logoUrl, periodLabel }) {
-  const { doc, startY } = await baseDoc({ orgName, logoUrl, title: 'Programación y Autorizaciones', subtitle: periodLabel });
+export async function generateMissionsReportPdf(missions, { orgName, logoUrl, periodLabel, format }) {
+  const { doc, startY } = await baseDoc({ orgName, logoUrl, format, title: 'Programación y Autorizaciones', subtitle: periodLabel });
   autoTable(doc, {
     startY,
     head: [['MISIÓN', 'FECHA PROGRAMADA', 'PIC', 'AERONAVE', 'ZONA', 'LÍNEA DE VISTA', 'RADICADO', 'ESTADO AUTORIZACIÓN', 'ANÁLISIS DE RIESGOS']],
@@ -313,8 +313,8 @@ export async function generateMissionsReportPdf(missions, { orgName, logoUrl, pe
 }
 
 // RAC 100 Apéndice 1 §2.1 — Equipo Tecnológico Asociado, con número RETA.
-export async function generateEtaReportPdf(items, { orgName, logoUrl }) {
-  const { doc, startY } = await baseDoc({ orgName, logoUrl, title: 'Equipo Tecnológico Asociado (ETA)', subtitle: 'Instantánea (sin rango de fechas)' });
+export async function generateEtaReportPdf(items, { orgName, logoUrl, format }) {
+  const { doc, startY } = await baseDoc({ orgName, logoUrl, format, title: 'Equipo Tecnológico Asociado (ETA)', subtitle: 'Instantánea (sin rango de fechas)' });
   autoTable(doc, {
     startY,
     head: [['MARCA', 'MODELO', 'N.º RETA', 'DESCRIPCIÓN FUNCIONAL']],

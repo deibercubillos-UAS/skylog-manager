@@ -15,6 +15,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { SectionHero } from '../_components/SectionHero';
 import { Button } from '@skylog/ui';
 import { TRAINING_TYPES, TRAINING_TYPE_LABELS } from '@/lib/v2/training';
+import { resolveReportFormat } from '@skylog/domain';
 import {
   generateFlightLogPdf,
   generateMaintenanceReportPdf,
@@ -66,6 +67,12 @@ export default function ReportesPage() {
   const [busy, setBusy] = useState(false);
   const [reportError, setReportError] = useState(null);
 
+  // Código y versión de formato: los define la organización (manual de operaciones), no la RAC 100.
+  const [formats, setFormats] = useState({});
+  const [fmtDraft, setFmtDraft] = useState({ code: '', version: '1.0' });
+  const [fmtSaving, setFmtSaving] = useState(false);
+  const [fmtMsg, setFmtMsg] = useState(null);
+
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const isManager = !!currentOrg?.isDutyManager;
 
@@ -100,6 +107,44 @@ export default function ReportesPage() {
     if (organizationId && isManager) loadFilters(organizationId);
   }, [organizationId, isManager, loadFilters]);
 
+  useEffect(() => {
+    if (!organizationId || !isManager) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/reportes/formatos?organizationId=${organizationId}`);
+        const data = await res.json();
+        if (res.ok) setFormats(data.formats || {});
+      } catch {
+        // sin formatos guardados: se usan los valores por defecto
+      }
+    })();
+  }, [organizationId, isManager]);
+
+  useEffect(() => {
+    if (selectedKey) setFmtDraft(resolveReportFormat(formats, selectedKey));
+    setFmtMsg(null);
+  }, [selectedKey, formats]);
+
+  async function saveFormat(key) {
+    setFmtSaving(true);
+    setFmtMsg(null);
+    try {
+      const res = await fetch('/api/reportes/formatos', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organizationId, formats: { ...formats, [key]: { code: fmtDraft.code, version: fmtDraft.version } } }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo guardar');
+      setFormats(data.formats || {});
+      setFmtMsg({ ok: true, text: 'Guardado como predeterminado de tu organización' });
+    } catch (e) {
+      setFmtMsg({ ok: false, text: e.message });
+    } finally {
+      setFmtSaving(false);
+    }
+  }
+
   async function handleGenerate(def) {
     setBusy(true);
     setReportError(null);
@@ -107,64 +152,65 @@ export default function ReportesPage() {
       const orgName = currentOrg?.name;
       const logoUrl = currentOrg?.logoUrl;
       const periodLabel = `${from} a ${to}`;
+      const fmt = { code: fmtDraft.code, version: fmtDraft.version };
 
       if (def.key === 'vuelos') {
         const qs = new URLSearchParams({ organizationId, from, to, ...(aircraftId && { aircraftId }) });
         const res = await fetch(`/api/reportes/vuelos?${qs}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error consultando vuelos');
-        await generateFlightLogPdf(data.flights, { orgName, logoUrl, periodLabel });
+        await generateFlightLogPdf(data.flights, { orgName, logoUrl, format: fmt, periodLabel });
       } else if (def.key === 'mantenimiento') {
         const qs = new URLSearchParams({ organizationId, from, to, ...(aircraftId && { aircraftId }) });
         const res = await fetch(`/api/reportes/mantenimiento?${qs}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error consultando mantenimiento');
-        await generateMaintenanceReportPdf(data, { orgName, logoUrl, periodLabel });
+        await generateMaintenanceReportPdf(data, { orgName, logoUrl, format: fmt, periodLabel });
       } else if (def.key === 'flota') {
         const qs = new URLSearchParams({ organizationId, ...(aircraftId && { aircraftId }) });
         const res = await fetch(`/api/reportes/flota?${qs}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error consultando la flota');
-        await generateFleetReportPdf(data.aircraft, { orgName, logoUrl, models: data.models || [] });
+        await generateFleetReportPdf(data.aircraft, { orgName, logoUrl, format: fmt, models: data.models || [] });
       } else if (def.key === 'baterias') {
         const res = await fetch(`/api/reportes/baterias?organizationId=${organizationId}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error consultando baterías');
-        await generateBatteryReportPdf(data, { orgName, logoUrl });
+        await generateBatteryReportPdf(data, { orgName, logoUrl, format: fmt });
       } else if (def.key === 'tripulacion') {
         const res = await fetch(`/api/reportes/tripulacion?organizationId=${organizationId}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error consultando la tripulación');
-        await generateCrewReportPdf(data.members, { orgName, logoUrl });
+        await generateCrewReportPdf(data.members, { orgName, logoUrl, format: fmt });
       } else if (def.key === 'capacitacion') {
         const res = await fetch(`/api/capacitacion/compliance?organizationId=${organizationId}&type=${trainingType}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error consultando capacitación');
-        await generateTrainingReportPdf(data, { orgName, logoUrl, typeLabel: TRAINING_TYPE_LABELS[trainingType] });
+        await generateTrainingReportPdf(data, { orgName, logoUrl, format: fmt, typeLabel: TRAINING_TYPE_LABELS[trainingType] });
       } else if (def.key === 'proveedores') {
         const qs = new URLSearchParams({ organizationId, from, to, ...(supplierId && { supplierId }) });
         const res = await fetch(`/api/reportes/proveedores?${qs}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error consultando auditorías');
         const scopeLabel = supplierId ? supplierList.find((s) => s.id === supplierId)?.name || 'Un proveedor' : 'Todos los proveedores';
-        await generateSupplierAuditReportPdf(data.audits, { orgName, logoUrl, scopeLabel, periodLabel });
+        await generateSupplierAuditReportPdf(data.audits, { orgName, logoUrl, format: fmt, scopeLabel, periodLabel });
       } else if (def.key === 'duty') {
         const qs = new URLSearchParams({ organizationId, from, to });
         const res = await fetch(`/api/reportes/duty?${qs}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error consultando tiempos de servicio');
-        await generateDutyReportPdf(data.periods, { orgName, logoUrl, periodLabel });
+        await generateDutyReportPdf(data.periods, { orgName, logoUrl, format: fmt, periodLabel });
       } else if (def.key === 'programacion') {
         const qs = new URLSearchParams({ organizationId, from, to });
         const res = await fetch(`/api/reportes/programacion?${qs}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error consultando programación');
-        await generateMissionsReportPdf(data.missions, { orgName, logoUrl, periodLabel });
+        await generateMissionsReportPdf(data.missions, { orgName, logoUrl, format: fmt, periodLabel });
       } else if (def.key === 'eta') {
         const res = await fetch(`/api/reportes/eta?organizationId=${organizationId}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error consultando ETA');
-        await generateEtaReportPdf(data.items, { orgName, logoUrl });
+        await generateEtaReportPdf(data.items, { orgName, logoUrl, format: fmt });
       }
     } catch (e) {
       setReportError(e.message);
@@ -280,6 +326,36 @@ export default function ReportesPage() {
                   </select>
                 </div>
               )}
+            </div>
+
+
+            <div className="flex flex-wrap items-end gap-3 mb-4 border-t border-navy-100 pt-3">
+              <div>
+                <label className="text-xs font-medium text-navy-400 block mb-1">Código de formato</label>
+                <input
+                  value={fmtDraft.code}
+                  maxLength={24}
+                  onChange={(e) => setFmtDraft((d) => ({ ...d, code: e.target.value }))}
+                  placeholder="Ej. F-OPS-002"
+                  className="text-sm border border-navy-200 rounded-lg px-2 py-1.5 w-40"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-navy-400 block mb-1">Versión</label>
+                <input
+                  value={fmtDraft.version}
+                  maxLength={12}
+                  onChange={(e) => setFmtDraft((d) => ({ ...d, version: e.target.value }))}
+                  className="text-sm border border-navy-200 rounded-lg px-2 py-1.5 w-24"
+                />
+              </div>
+              <Button variant="ghost" onClick={() => saveFormat(def.key)} disabled={fmtSaving}>
+                {fmtSaving ? 'Guardando…' : 'Guardar como predeterminado'}
+              </Button>
+              <p className="text-[11px] text-navy-300 basis-full">
+                Usa el código de tu manual de operaciones: la RAC 100 no define códigos oficiales. Aparece en el encabezado del PDF.
+              </p>
+              {fmtMsg && <p className={`text-xs basis-full ${fmtMsg.ok ? 'text-emerald-600' : 'text-red-600'}`}>{fmtMsg.text}</p>}
             </div>
 
             {reportError && <p className="text-sm text-red-600 mb-3">{reportError}</p>}

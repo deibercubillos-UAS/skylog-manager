@@ -57,7 +57,7 @@ export function addLogo(doc, logo, x, y, w, h) {
 }
 
 /** Dibuja la caja de encabezado estándar y devuelve el Y donde empieza el contenido. */
-export function drawReportHeader(doc, { logo, orgName, title, subtitle }) {
+export function drawReportHeader(doc, { logo, orgName, title, subtitle, format }) {
   const reportDate = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
   doc.setDrawColor(0);
@@ -82,9 +82,19 @@ export function drawReportHeader(doc, { logo, orgName, title, subtitle }) {
 
   doc.setFontSize(6.5);
   doc.setFont('helvetica', 'normal');
-  doc.line(160, 15.5, 190, 15.5);
-  doc.text(`VERSIÓN: 1.0`, 162, 13);
-  doc.text(`FECHA: ${reportDate}`, 162, 19);
+  const version = format?.version || '1.0';
+  if (format?.code) {
+    // Tres filas: código, versión y fecha (la organización define el código en su manual de operaciones).
+    doc.line(160, 17.3, 200, 17.3);
+    doc.line(160, 24.6, 200, 24.6);
+    doc.text(`CÓDIGO: ${format.code}`, 162, 14.4);
+    doc.text(`VERSIÓN: ${version}`, 162, 21.7);
+    doc.text(`FECHA: ${reportDate}`, 162, 29);
+  } else {
+    doc.line(160, 21, 200, 21);
+    doc.text(`VERSIÓN: ${version}`, 162, 16.5);
+    doc.text(`FECHA: ${reportDate}`, 162, 27);
+  }
 
   return 40;
 }

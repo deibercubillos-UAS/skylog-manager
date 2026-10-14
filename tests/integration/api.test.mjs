@@ -129,6 +129,30 @@ describe('organizaciones y roles', () => {
     assert.equal(r.json.isManager, false);
   });
 
+  test('formatos de reportes: sin sesión 401, piloto 403, otra organización 403', async () => {
+    const q = `?organizationId=${A.organizationId}`;
+    assert.equal((await call('GET', `/api/reportes/formatos${q}`)).status, 401);
+    assert.equal((await call('GET', `/api/reportes/formatos${q}`, { cookie: pilotA.cookie })).status, 403);
+    assert.equal((await call('GET', `/api/reportes/formatos${q}`, { cookie: B.cookie })).status, 403);
+    assert.equal((await call('PUT', '/api/reportes/formatos', { cookie: pilotA.cookie, body: { organizationId: A.organizationId, formats: { vuelos: { code: 'X-1' } } } })).status, 403);
+  });
+
+  test('formatos de reportes: el gestor guarda código y versión, y se leen de vuelta', async () => {
+    const put = await call('PUT', '/api/reportes/formatos', { cookie: A.cookie, body: { organizationId: A.organizationId, formats: { vuelos: { code: 'MO-LV-01', version: '2' }, baterias: { code: '' } } } });
+    assert.equal(put.status, 200, put.text);
+    const get = await call('GET', `/api/reportes/formatos?organizationId=${A.organizationId}`, { cookie: A.cookie });
+    assert.equal(get.status, 200);
+    assert.deepEqual(get.json.formats.vuelos, { code: 'MO-LV-01', version: '2' });
+    assert.equal(get.json.formats.baterias.code, '');
+  });
+
+  test('formatos de reportes: rechaza reportes desconocidos y texto inválido', async () => {
+    const bad = await call('PUT', '/api/reportes/formatos', { cookie: A.cookie, body: { organizationId: A.organizationId, formats: { inventado: { code: 'X' } } } });
+    assert.equal(bad.status, 400);
+    const bad2 = await call('PUT', '/api/reportes/formatos', { cookie: A.cookie, body: { organizationId: A.organizationId, formats: { vuelos: { code: '<script>' } } } });
+    assert.equal(bad2.status, 400);
+  });
+
   test('otra organización no puede listarla', async () => {
     const r = await call('GET', `/api/flota/equipo?organizationId=${A.organizationId}`, { cookie: B.cookie });
     assert.equal(r.status, 400);

@@ -19,28 +19,61 @@ const measure = () => {
     if ((el.tagName === 'A' || el.tagName === 'BUTTON' || el.tagName === 'INPUT' || el.tagName === 'SELECT') && (r.height < 40 || r.width < 40) && r.width > 0) out.small++;
     if (cs.fontSize && parseFloat(cs.fontSize) < 11 && (el.childNodes.length === 1 && el.firstChild.nodeType === 3)) out.tiny++;
   });
+  // Pantallas de la aplicación: el contenido desliza dentro de un contenedor, no en la página
+  let best = null;
+  document.querySelectorAll('*').forEach((el) => { const o = getComputedStyle(el).overflowY; if ((o === 'auto' || o === 'scroll') && el.scrollHeight > el.clientHeight + 20 && el.clientHeight > 300 && !el.closest('aside, nav') && (!best || el.scrollHeight > best.scrollHeight)) best = el; });
+  if (best) { best.setAttribute('data-sweep-scroller', '1'); out.sh = best.scrollHeight; out.sch = best.clientHeight; }
   return out;
 };
+const WAIT = Number(process.env.WAIT_MS || 4500);
+// Inicio de sesión opcional (cuentas de prueba): QA_EMAIL y QA_PASS
+if (process.env.QA_EMAIL) {
+  const base = new URL(urls[0]).origin;
+  await driver.url(base + '/login');
+  await driver.execute(() => { try { localStorage.setItem('bitafly_cookie_consent', 'rejected'); } catch (e) {} });
+  await driver.url(base + '/login'); await driver.pause(3000);
+  const email = await driver.$('input[type=email]');
+  if (await email.isExisting()) { // si Safari ya conserva la sesión, no hace falta iniciar
+    await email.setValue(process.env.QA_EMAIL);
+    const pass = await driver.$('input[type=password]'); await pass.setValue(process.env.QA_PASS);
+    await driver.execute(() => { const b = document.querySelector('button[type=submit]'); if (b) b.click(); });
+    for (let k = 0; k < 40; k++) { await driver.pause(1500); const u = await driver.getUrl(); if (!u.includes('/login')) break; }
+  }
+  console.log('sesión en', await driver.getUrl());
+}
 const results = [];
 for (const url of urls) {
   const slug = url.replace(/^https?:\/\/[^/]+/, '').replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '') || 'home';
   const dir = `${outDir}/${slug}`; fs.mkdirSync(dir, { recursive: true });
   try {
     await driver.url(url); await driver.execute(() => { try { localStorage.setItem('bitafly_cookie_consent', 'rejected'); } catch (e) {} });
-    await driver.url(url); await driver.pause(4500); // segunda carga: sin el aviso de cookies tapando contenido
+    await driver.url(url); await driver.pause(WAIT); // segunda carga: sin el aviso de cookies tapando contenido
     // Safari restaura a veces el foco de un campo y hace zoom: se quita antes de medir (es del arnés de pruebas, no del sitio)
     await driver.execute(() => { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); window.scrollTo(0, 0); });
-    await driver.pause(900);
+    // Recorrido de bienvenida: se salta para ver la pantalla real
+    await driver.execute(() => { const b = [...document.querySelectorAll('button')].find((x) => /Saltar tutorial/i.test(x.textContent)); if (b) b.click(); });
+    // Si la pantalla quedó cargando, en blanco o con error del servidor, se reintenta (hasta 3 veces)
+    let retries = 0;
+    for (let a = 0; a < 3; a++) {
+      const bad = await driver.execute(() => { const t = (document.body && document.body.innerText || '').trim(); return !t || /Gateway time-out|Cargando|Error code 5/i.test(t.slice(0, 600)); });
+      if (!bad) break;
+      retries++; await driver.url(url); await driver.pause(WAIT);
+      await driver.execute(() => { const b = [...document.querySelectorAll('button')].find((x) => /Saltar tutorial/i.test(x.textContent)); if (b) b.click(); });
+    }
+    // Espera a que el contenido deje de crecer (las tarjetas cargan de a poco)
+    let last = -1;
+    for (let k = 0; k < 8; k++) { await driver.pause(1500); const h = await driver.execute(() => Math.max(document.documentElement.scrollHeight, ...[...document.querySelectorAll('main div')].map((e) => e.scrollHeight))); if (h === last) break; last = h; }
     const m = await driver.execute(measure);
-    const step = Math.max(300, m.vh - 110); // se descuenta la barra inferior de Safari
+    const total = m.sh || m.h;
+    const step = Math.max(300, (m.sch || m.vh) - 110); // se descuenta la barra inferior de Safari
     let y = 0, i = 1;
-    while (y < m.h && i <= 40) {
-      await driver.execute((yy) => window.scrollTo(0, yy), y); await driver.pause(700);
+    while (y < total && i <= 40) {
+      await driver.execute((yy) => { const sc = document.querySelector('[data-sweep-scroller]'); if (sc) sc.scrollTo(0, yy); else window.scrollTo(0, yy); }, y); await driver.pause(700);
       await driver.saveScreenshot(`${dir}/parte-${String(i).padStart(2, '0')}.png`);
       y += step; i++;
     }
     await driver.execute(() => window.scrollTo(0, 0));
-    results.push({ url, ...m, partes: i - 1 });
+    results.push({ url, ...m, partes: i - 1, retries });
   } catch (e) { results.push({ url, error: String(e.message).slice(0, 160) }); }
 }
 await driver.deleteSession();

@@ -61,15 +61,17 @@ export function StatCard({ icon, color, label, value, sub }) {
     red: { wash: 'from-red-50 to-white', tile: 'bg-red-500 text-white' },
   }[color] || { wash: 'from-navy-50 to-white', tile: 'bg-navy text-white' };
   return (
-    <div className={`bg-gradient-to-br ${palette.wash} border border-navy-100 rounded-2xl p-4 flex items-center gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200`}>
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${palette.tile}`}>
-        <span className="material-symbols-outlined text-xl">{icon}</span>
+    <div className={`bg-gradient-to-br ${palette.wash} border border-navy-100 rounded-2xl p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200`}>
+      <div className="flex items-center gap-3">
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${palette.tile}`}>
+          <span className="material-symbols-outlined text-xl">{icon}</span>
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs text-navy-500 font-medium leading-snug line-clamp-2">{label}</p>
+          <p className="text-2xl font-black text-navy leading-tight tracking-tight break-words">{value}</p>
+        </div>
       </div>
-      <div className="min-w-0">
-        <p className="text-xs text-navy-400 font-medium truncate">{label}</p>
-        <p className="text-2xl font-black text-navy leading-tight tracking-tight">{value}</p>
-      </div>
-      {sub && <p className="text-[11px] text-navy-300 mt-2">{sub}</p>}
+      {sub && <p className="text-[11px] text-navy-500 mt-2 leading-snug">{sub}</p>}
     </div>
   );
 }

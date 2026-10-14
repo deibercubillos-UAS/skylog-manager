@@ -184,8 +184,8 @@ export default function DutyOverviewPage() {
   let heroMetric;
   if (isManager && !pilotFilter && summary) {
     heroMetric = {
-      value: <span className={alertCount > 0 ? 'text-red-300' : 'text-emerald-300'}>{alertCount}</span>,
-      label: alertCount > 0 ? 'Pilotos con alerta' : 'Toda la tripulación cumple',
+      value: <span className={alertCount > 0 ? 'text-red-300' : 'text-emerald-300'}>{alertCount > 0 ? alertCount : summary.length}</span>,
+      label: alertCount > 0 ? 'Pilotos con alerta' : 'Pilotos que cumplen',
     };
   } else if (checks) {
     heroMetric = {

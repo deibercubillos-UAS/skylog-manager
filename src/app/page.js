@@ -155,7 +155,7 @@ const FEATURES = [
     group: 'Operación',
     icon: 'my_location',
     title: 'Replay GPS de Vuelo',
-    desc: 'Reproduce cada operación cuadro a cuadro sobre el mapa: ruta GPS, altitud, velocidad, batería y joysticks del control. Importa el log del DJI RC/RC 2 y analiza el vuelo como si estuvieras ahí.',
+    desc: 'Reproduce cada operación cuadro a cuadro sobre el mapa: ruta GPS, altitud, velocidad y batería. Importa el log de tu control DJI y analiza el vuelo como si estuvieras ahí.',
     href: '/replay-gps-drones',
     badge: 'Destacado',
   },
@@ -163,7 +163,7 @@ const FEATURES = [
     group: 'Operación',
     icon: 'partly_cloudy_day',
     title: 'Clima y Meteorología UAV',
-    desc: 'Verifica viento, ráfagas, visibilidad, lluvia e índice Kp del GPS antes de cada vuelo. Score de aptitud 0-100 integrado en la programación, el despacho y el replay.',
+    desc: 'Verifica viento, ráfagas, visibilidad, lluvia e índice Kp del GPS antes de cada vuelo. Pronóstico por hora y clima de tus zonas de operación, archivado junto a cada vuelo.',
     href: '/clima-drones',
   },
   {
@@ -227,8 +227,8 @@ const FEATURES = [
   {
     group: 'Documentación & Cumplimiento',
     icon: 'school',
-    title: 'Capacitación con Examen Calificado',
-    desc: 'Cronograma de capacitación con recurrencia y examen interno calificado. Si un piloto no lo aprueba o vence su plazo, el sistema bloquea su despacho hasta que quede al día.',
+    title: 'Capacitación con Evaluaciones Calificadas',
+    desc: 'Evaluaciones internas calificadas por pista (Operacional, Mantenimiento y Seguridad Operacional) con fecha límite, recordatorios automáticos y seguimiento de cumplimiento por persona.',
   },
   {
     group: 'Documentación & Cumplimiento',

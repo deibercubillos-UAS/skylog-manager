@@ -18,25 +18,25 @@ import PublicFooter from '@/components/bitafly/PublicFooter';
 import { FeatureIcon } from '@/components/bitafly/icons';
 
 const TRUST_STATS = [
-  { value: '2', label: 'Programas: Operaciones y Mantenimiento' },
-  { value: '100%', label: 'Nota mínima e intentos configurables' },
-  { value: 'Auto', label: 'Bloqueo de despacho' },
-  { value: '3/5/7', label: 'Días de recordatorio antes de vencer' },
+  { value: '3', label: 'Pistas: Operacional, Mantenimiento y Seguridad Operacional' },
+  { value: 'Con fecha', label: 'Cada evaluación tiene su fecha límite' },
+  { value: '70%', label: 'Nota mínima por defecto, configurable' },
+  { value: '7/3/1', label: 'Días de recordatorio antes de vencer' },
 ];
 
 const FEATURES = [
-  { icon: 'reportes', title: 'Examen con Banco de Preguntas', desc: 'Crea tu banco de preguntas de opción múltiple por programa (Operaciones o Mantenimiento). El piloto nunca ve la respuesta correcta mientras responde.' },
-  { icon: 'lock', title: 'Nota Mínima e Intentos', desc: 'Define el puntaje mínimo para aprobar y cuántos intentos se permiten por ciclo. Se agotan los intentos, se agota el ciclo — sin excepciones manuales.' },
-  { icon: 'riesgo', title: 'Bloqueo Real de Despacho', desc: 'Si el piloto no aprueba a tiempo, el wizard de despacho se reemplaza por una pantalla de bloqueo con enlace directo a presentar el examen. Aplica también al piloto independiente.' },
-  { icon: 'clima', title: 'Cronograma con Recurrencia', desc: 'Programa sesiones y ciclos de examen semanales, quincenales, mensuales o personalizados — sin recalcular fechas a mano cada vez.' },
-  { icon: 'bitacora', title: 'Queda en el Expediente', desc: 'Cada intento calificado se registra automáticamente en el expediente del tripulante (evaluador "Examen interno") — visible en Tripulación y en el PDF del expediente.' },
-  { icon: 'sms', title: 'Capacitación SMS Integrada', desc: 'Un tercer tab reutiliza el mismo cronograma para la capacitación de seguridad operacional, con registro de asistencia de todo el personal, no solo pilotos.' },
+  { icon: 'reportes', title: 'Evaluaciones con Banco de Preguntas', desc: 'Crea varias evaluaciones a lo largo del tiempo, cada una con su propio banco de preguntas de opción múltiple y su material de apoyo. El piloto nunca ve la respuesta correcta mientras responde.' },
+  { icon: 'lock', title: 'Nota Mínima e Intentos', desc: 'Define el puntaje mínimo para aprobar y cuántos intentos se permiten en cada evaluación. Al agotar los intentos sin aprobar, queda registrado.' },
+  { icon: 'clima', title: 'Fecha Límite por Evaluación', desc: 'Cada evaluación tiene su fecha de vencimiento. Los gestores ven en un solo tablero quién está al día, quién está pendiente y quién venció.' },
+  { icon: 'riesgo', title: 'Recordatorios Automáticos', desc: 'Bitafly avisa al piloto 7, 3 y 1 días antes de vencer, el día del vencimiento y cuando vence, y avisa a los gestores si queda alguien pendiente.' },
+  { icon: 'bitacora', title: 'Tres Pistas', desc: 'Operacional, Mantenimiento y Seguridad Operacional: cada pista tiene sus propias evaluaciones y su propio seguimiento de cumplimiento.' },
+  { icon: 'sms', title: 'Capacitación SMS con Asistencia', desc: 'Un cronograma recurrente (semanal, quincenal, mensual o personalizado) con registro de asistencia de todo el personal, no solo pilotos.' },
 ];
 
 const STEPS = [
-  { n: '1', t: 'Configura el programa', d: 'Define el banco de preguntas, la nota mínima y los intentos permitidos por ciclo — uno para Operaciones y otro para Mantenimiento.' },
-  { n: '2', t: 'El piloto presenta el examen', d: 'Antes de vencer el plazo, el piloto responde el banco de preguntas del ciclo vigente desde su propio dashboard.' },
-  { n: '3', t: 'Se califica y queda registrado', d: 'Si aprueba, el despacho queda habilitado y el resultado se suma automáticamente a su expediente. Si no, el sistema bloquea sus próximos vuelos hasta que esté al día.' },
+  { n: '1', t: 'Crea la evaluación', d: 'Elige la pista, la fecha límite, la nota mínima y los intentos, y arma el banco de preguntas con su material de apoyo.' },
+  { n: '2', t: 'El piloto presenta el examen', d: 'Antes de vencer el plazo, el piloto estudia el material y responde la evaluación desde su cuenta.' },
+  { n: '3', t: 'Se califica y queda registrado', d: 'El resultado se califica al instante y queda en el seguimiento de cumplimiento, visible para los gestores y en el reporte de Capacitación.' },
 ];
 
 export default function CapacitacionClient({ faqItems }) {
@@ -121,15 +121,15 @@ export default function CapacitacionClient({ faqItems }) {
         <div className="relative max-w-6xl mx-auto px-6 w-full py-24">
           <div className="max-w-2xl">
             <p className="cp-hero-eyebrow inline-flex items-center gap-2 bg-white/10 backdrop-blur text-primary-200 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border border-white/10">
-              Capacitación y Examen · Bloqueo Real de Despacho
+              Capacitación y Evaluaciones · Cumplimiento por Persona
             </p>
             <h1 className="cp-hero-title text-4xl md:text-6xl font-black text-white leading-[1.05] tracking-tight mt-5">
               Capacitación con <span className="text-primary-300">Examen Calificado</span> para tu Tripulación
             </h1>
             <p className="cp-hero-sub text-base md:text-lg text-navy-100 max-w-xl mt-5">
-              No es un registro manual de asistencia: es un examen interno real, con banco de
-              preguntas, nota mínima e intentos configurables. Si un piloto no está al día, el
-              sistema bloquea su despacho — sin excepciones de palabra.
+              No es un registro manual de asistencia: son evaluaciones internas reales, con banco
+              de preguntas, nota mínima, intentos y fecha límite. Ves quién está al día y a
+              quién avisar, sin perseguir a nadie.
             </p>
             <div className="cp-hero-cta flex flex-col sm:flex-row items-center gap-3 mt-8">
               <a href="/registro">
@@ -191,7 +191,7 @@ export default function CapacitacionClient({ faqItems }) {
           <div className="reveal-fade text-center mb-10">
             <p className="text-xs font-bold uppercase tracking-widest text-primary-600">En 3 pasos</p>
             <h2 className="text-2xl md:text-3xl font-black text-navy mt-1">
-              Del banco de preguntas <span className="text-primary-600">al despacho habilitado</span>
+              Del banco de preguntas <span className="text-primary-600">al cumplimiento al día</span>
             </h2>
           </div>
           <div className="reveal-stagger grid sm:grid-cols-3 gap-5">
@@ -238,7 +238,7 @@ export default function CapacitacionClient({ faqItems }) {
             Tripulación <span className="text-primary-300">certificada, no solo registrada</span>
           </h2>
           <p className="text-sm text-navy-100 mt-3">
-            Configura el banco de preguntas de tu organización y deja que Bitafly bloquee el despacho automáticamente.
+            Crea las evaluaciones de tu organización y deja que Bitafly califique, registre y avise a quien esté por vencer.
           </p>
           <a href="/registro" className="inline-block mt-6">
             <Button variant="primary" className="px-8 py-3.5 text-sm">
@@ -248,7 +248,7 @@ export default function CapacitacionClient({ faqItems }) {
         </div>
       </section>
 
-      <PublicFooter brandDesc="Capacitación y examen calificado para pilotos UAS en Colombia, con bloqueo automático de despacho." />
+      <PublicFooter brandDesc="Capacitación y evaluaciones calificadas para pilotos UAS en Colombia, con recordatorios automáticos." />
     </div>
   );
 }

@@ -16,17 +16,17 @@ import PublicFooter from '@/components/bitafly/PublicFooter';
 import { FeatureIcon } from '@/components/bitafly/icons';
 
 const TRUST_STATS = [
-  { value: '4', label: 'Reportes RAC 100' },
-  { value: '<5s', label: 'Tiempo de generación' },
+  { value: '10', label: 'Reportes en PDF' },
   { value: 'PDF', label: 'Con logo corporativo' },
-  { value: '100%', label: 'Código personalizable' },
+  { value: 'Por período', label: 'Filtra por fechas o aeronave' },
+  { value: '1 clic', label: 'Descarga inmediata' },
 ];
 
 const REPORTS = [
-  { icon: 'bitacora', title: 'Maestro de Vuelo', desc: 'Registro cronológico de todos los vuelos del período: aeronave, tripulación, misión, tiempos y horas acumuladas. El reporte principal de la bitácora digital.', features: ['Filtro por período, aeronave o piloto', 'Total de horas por aeronave', 'Logo corporativo y tu código de formato'] },
-  { icon: 'bateria', title: 'Registro de Baterías', desc: 'Estado de cada batería con número de serie, ciclos acumulados, historial de intervenciones y estado actual. Esencial para inspecciones técnicas.', features: ['Ciclos por batería con historial', 'Estado: Operativa / Retirada', 'Eventos de inflamiento registrados'] },
-  { icon: 'persona', title: 'Bitácora de Piloto', desc: 'Libro de vuelo individual por tripulante con todas las operaciones realizadas, horas totales y validez de certificados médico y de piloto.', features: ['Horas totales por piloto', 'Vigencia de médico aeronáutico', 'Misiones por aeronave'] },
-  { icon: 'riesgo', title: 'Solicitud de Autorización', desc: 'Formato de autorización de vuelo con datos de aeronave, tripulación certificada, zona de operación, póliza vigente y firma digital.', features: ['Coordenadas del polígono', 'Póliza RC vinculada', 'Listo para radicar ante UAEAC'] },
+  { icon: 'bitacora', title: 'Libro de Vuelo', desc: 'Registro cronológico de los vuelos del período: aeronave, tripulación, misión, tiempos y horas acumuladas. El reporte principal de la bitácora digital.', features: ['Filtro por rango de fechas', 'Horas por vuelo y acumuladas', 'Logo corporativo de tu organización'] },
+  { icon: 'mantenimiento', title: 'Mantenimiento', desc: 'Eventos de mantenimiento, eventos inesperados y el programa de mantenimiento por modelo, con responsable e histórico.', features: ['Eventos y eventos inesperados', 'Programa por modelo', 'Histórico con responsable'] },
+  { icon: 'bateria', title: 'Baterías y Componentes', desc: 'Estado vigente de cada batería y de los componentes activos de la flota, con ciclos acumulados. Esencial para inspecciones técnicas.', features: ['Ciclos por batería', 'Componentes activos', 'Estado vigente'] },
+  { icon: 'persona', title: 'Expediente de Tripulación', desc: 'Roster de la tripulación con licencia y vigencia del certificado médico de cada persona, listo para una inspección.', features: ['Licencia por persona', 'Vigencia médica', 'Listo para auditoría'] },
 ];
 
 export default function ReportesClient({ faqItems }) {
@@ -117,8 +117,7 @@ export default function ReportesClient({ faqItems }) {
               Reportes y Auditoría <span className="text-primary-300">AeroCivil</span> en Segundos
             </h1>
             <p className="rp-hero-sub text-base md:text-lg text-navy-100 max-w-xl mt-5">
-              Exporta los reportes que exige la RAC 100 con logo corporativo y tu propio código
-              de formato. Auditorías sin sorpresas, inspecciones sin papeles perdidos.
+              Exporta tus reportes operativos en PDF con el logo de tu organización. Auditorías sin sorpresas, inspecciones sin papeles perdidos.
             </p>
             <div className="rp-hero-cta flex flex-col sm:flex-row items-center gap-3 mt-8">
               <a href="/registro">
@@ -157,8 +156,7 @@ export default function ReportesClient({ faqItems }) {
               Exporta tus reportes <span className="text-primary-600">RAC 100</span> en un clic
             </h2>
             <p className="text-sm text-navy-300 mt-2 max-w-lg mx-auto">
-              Maestro de Vuelo, Registro de Baterías y Bitácora de Piloto en PDF con tu logo,
-              tu código de formato y versión.
+              Libro de Vuelo, Mantenimiento, Flota, Baterías, Tripulación, Capacitación y más, en PDF con el logo de tu organización.
             </p>
           </div>
           <div className="reveal-fade relative aspect-[1568/718] rounded-3xl overflow-hidden border border-navy-100 shadow-xl bg-white p-3 sm:p-4">
@@ -182,8 +180,7 @@ export default function ReportesClient({ faqItems }) {
               Cada registro que exige <span className="text-primary-300">la AeroCivil</span>
             </h2>
             <p className="text-sm text-navy-200 mt-3 max-w-lg mx-auto">
-              Los códigos de formato no son oficiales de la AeroCivil: cada operador los define
-              en su manual de operaciones. En Bitafly vienen por defecto y los personalizas.
+              Los formatos de reporte los define cada operador en su manual de operaciones. Bitafly genera el PDF a partir de los datos de tu operación.
             </p>
           </div>
           <div className="reveal-stagger grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto mt-10">
@@ -237,10 +234,10 @@ export default function ReportesClient({ faqItems }) {
       <section className="relative isolate overflow-hidden py-24 px-6 bg-navy text-center">
         <div className="reveal-fade max-w-xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-black text-white">
-            Auditoría lista en <span className="text-primary-300">menos de 60 segundos</span>
+            Auditoría lista con <span className="text-primary-300">un par de clics</span>
           </h2>
           <p className="text-sm text-navy-100 mt-3">
-            Todos los reportes que exige la RAC 100 generados automáticamente desde tus datos de operación.
+            Tus reportes generados automáticamente desde los datos de tu operación.
           </p>
           <a href="/registro" className="inline-block mt-6">
             <Button variant="primary" className="px-8 py-3.5 text-sm">
@@ -250,7 +247,7 @@ export default function ReportesClient({ faqItems }) {
         </div>
       </section>
 
-      <PublicFooter brandDesc="Reportes RAC 100 para operadores UAS en Colombia, con tu propio código de formato." />
+      <PublicFooter brandDesc="Reportes en PDF para operadores UAS en Colombia, con el logo de tu organización." />
     </div>
   );
 }

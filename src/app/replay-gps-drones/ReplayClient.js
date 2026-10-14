@@ -18,39 +18,32 @@ import { FeatureIcon } from '@/components/bitafly/icons';
 
 const TRUST_STATS = [
   { value: 'GPS', label: 'Ruta cuadro a cuadro' },
-  { value: '5+', label: 'Variables de telemetría' },
+  { value: '4', label: 'Métricas en pantalla' },
   { value: 'DJI', label: 'RC / RC 2 compatible' },
   { value: '0', label: 'Software a instalar' },
 ];
 
 const FEATURES = [
   { icon: 'mapa', title: 'Ruta GPS Animada', desc: 'La trayectoria completa del vuelo dibujada sobre el mapa, con punto de despegue y la posición del dron avanzando cuadro a cuadro.' },
-  { icon: 'timer', title: 'Telemetría Sincronizada', desc: 'Altitud, velocidad, distancia recorrida y tiempo de vuelo actualizados en cada instante del replay.' },
-  { icon: 'roles', title: 'Joysticks del Control', desc: 'Reproducción de los movimientos de los sticks del DJI RC/RC 2 en tiempo real. Ideal para capacitación.' },
-  { icon: 'bateria', title: 'Curva de Batería', desc: 'El nivel de batería a lo largo del vuelo, sincronizado con la ruta. Detecta consumos anómalos.' },
-  { icon: 'nube', title: 'Importación DJI Automática', desc: 'Sube el .txt del control DJI RC o RC 2 y Bitafly reconstruye todo en segundos, sin software de escritorio.' },
-  { icon: 'sms', title: 'Evidencia para SMS y Auditoría', desc: 'Adjunta el replay a un reporte de incidente o a una inspección de la AeroCivil.' },
+  { icon: 'timer', title: 'Telemetría Sincronizada', desc: 'Altitud, velocidad, nivel de batería y tiempo de vuelo actualizados en cada instante del replay, con control de velocidad de reproducción.' },
+  { icon: 'bateria', title: 'Nivel de batería', desc: 'El porcentaje de batería en cada instante del vuelo, sincronizado con la ruta.' },
+  { icon: 'nube', title: 'Importación de logs DJI', desc: 'Sube el .txt del vuelo desde la bitácora y Bitafly reconstruye la ruta en segundos, sin instalar software.' },
+  { icon: 'sms', title: 'Evidencia para SMS y Auditoría', desc: 'El replay queda guardado junto al vuelo en la bitácora, listo para revisar un evento de seguridad o una inspección.' },
 ];
 
 const USE_CASES = [
-  { icon: 'riesgo', title: 'Investigación de incidentes', desc: 'Reconstruye qué pasó antes de un evento: altura, velocidad, batería y maniobras del piloto.' },
+  { icon: 'riesgo', title: 'Investigación de incidentes', desc: 'Reconstruye qué pasó antes de un evento: ruta, altura, velocidad y batería.' },
   { icon: 'capacitacion', title: 'Capacitación de pilotos', desc: 'Revisa los vuelos con tu equipo y corrige técnica sobre evidencia real, no sobre recuerdos.' },
-  { icon: 'lock', title: 'Verificación de cumplimiento', desc: 'Comprueba que la operación se mantuvo dentro de la zona y la altitud autorizadas.' },
+  { icon: 'lock', title: 'Verificación de cumplimiento', desc: 'Revisa la ruta y la altitud que realmente voló el dron.' },
   { icon: 'sparkle', title: 'Reporte al cliente', desc: 'Demuestra el área cubierta y la ejecución del trabajo con una reproducción visual del vuelo.' },
 ];
 
 const STEPS = [
-  { n: '1', t: 'Copia el registro del control', d: 'Conecta tu DJI RC o RC 2 y copia la carpeta FlightRecord al computador (o usa el .txt del vuelo).' },
-  { n: '2', t: 'Súbelo desde la bitácora', d: 'En el vuelo registrado pulsa Replay y arrastra el archivo .txt. Bitafly lo procesa en el navegador en segundos.' },
-  { n: '3', t: 'Reproduce y analiza', d: 'Avanza, pausa y retrocede el vuelo cuadro a cuadro. Revisa ruta, altitud, velocidad, batería y joysticks.' },
+  { n: '1', t: 'Copia el registro del control', d: 'Copia la carpeta FlightRecord de tu control DJI al computador o celular (o usa el .txt del vuelo).' },
+  { n: '2', t: 'Súbelo desde la bitácora', d: 'En Bitácora elige «Importar vuelos» y selecciona los archivos .txt. Bitafly los procesa y crea el vuelo con su replay.' },
+  { n: '3', t: 'Reproduce y analiza', d: 'Avanza, pausa y retrocede el vuelo cuadro a cuadro. Revisa ruta, altitud, velocidad y batería.' },
 ];
 
-const PLANS = [
-  { plan: 'Piloto', flights: '10 replays', retention: '30 días', featured: false },
-  { plan: 'Escuadrilla', flights: '50 replays', retention: '90 días', featured: false },
-  { plan: 'Flota', flights: '200 replays', retention: '180 días', featured: true },
-  { plan: 'Enterprise', flights: 'Ilimitados', retention: 'Permanente', featured: false },
-];
 
 export default function ReplayClient({ faqItems }) {
   const heroRef = useRef(null);
@@ -141,7 +134,7 @@ export default function ReplayClient({ faqItems }) {
             </h1>
             <p className="rp-hero-sub text-base md:text-lg text-navy-100 max-w-xl mt-5">
               Vuelve a ver cada operación dibujada sobre el mapa: ruta GPS, altitud, velocidad,
-              batería y joysticks del control en tiempo real. Importa el log del DJI RC/RC 2 y
+              batería y tiempo de vuelo en tiempo real. Importa el log de tu control DJI y
               analiza el vuelo como si estuvieras ahí.
             </p>
             <div className="rp-hero-cta flex flex-col sm:flex-row items-center gap-3 mt-8">
@@ -181,8 +174,8 @@ export default function ReplayClient({ faqItems }) {
               Reproduce cada vuelo <span className="text-primary-600">cuadro a cuadro</span>
             </h2>
             <p className="text-sm text-navy-300 mt-2 max-w-lg mx-auto">
-              Importa el log del DJI RC y revive la operación sobre el mapa: ruta GPS, altitud,
-              velocidad, batería y los joysticks del control, segundo a segundo.
+              Importa el log de tu control DJI y revive la operación sobre el mapa: ruta GPS, altitud,
+              velocidad y batería, segundo a segundo.
             </p>
           </div>
           <div className="reveal-fade relative aspect-[1568/718] rounded-3xl overflow-hidden border border-navy-100 shadow-xl bg-white p-3 sm:p-4">
@@ -257,45 +250,6 @@ export default function ReplayClient({ faqItems }) {
         </div>
       </section>
 
-      {/* RETENCIÓN POR PLAN */}
-      <section className="py-16 md:py-20 px-6 bg-navy-50">
-        <div className="max-w-5xl mx-auto">
-          <div className="reveal-fade text-center mb-10">
-            <p className="text-xs font-bold uppercase tracking-widest text-primary-600">Almacenamiento en la nube</p>
-            <h2 className="text-2xl md:text-3xl font-black text-navy mt-1">
-              Replays guardados <span className="text-primary-600">según tu plan</span>
-            </h2>
-            <p className="text-sm text-navy-300 mt-2 max-w-lg mx-auto">
-              Los replays se almacenan cifrados y se sirven con enlaces firmados temporales. La
-              cantidad y el tiempo de retención crecen con tu plan.
-            </p>
-          </div>
-          <div className="reveal-stagger grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {PLANS.map((p) => (
-              <div
-                key={p.plan}
-                className={`relative rounded-2xl p-6 border ${p.featured ? 'bg-navy border-primary' : 'bg-white border-navy-100'}`}
-              >
-                {p.featured && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-[9px] font-bold uppercase tracking-wide px-3 py-1 rounded-full whitespace-nowrap">
-                    Más popular
-                  </span>
-                )}
-                <p className={`text-xs font-bold uppercase tracking-wide mb-3 ${p.featured ? 'text-primary-300' : 'text-navy-300'}`}>{p.plan}</p>
-                <p className={`text-2xl font-black mb-1 ${p.featured ? 'text-white' : 'text-navy'}`}>{p.flights}</p>
-                <p className={`text-xs ${p.featured ? 'text-navy-200' : 'text-navy-400'}`}>
-                  Retención: <strong className={p.featured ? 'text-white' : 'text-navy'}>{p.retention}</strong>
-                </p>
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-xs text-navy-300 mt-6">
-            La limpieza de replays vencidos es automática. Consulta los detalles en{' '}
-            <a href="/precios" className="text-primary-600 font-bold">planes y precios →</a>
-          </p>
-        </div>
-      </section>
-
       {/* FAQ */}
       <section className="py-16 md:py-20 px-6 bg-white">
         <div className="max-w-3xl mx-auto">
@@ -338,7 +292,7 @@ export default function ReplayClient({ faqItems }) {
         </div>
       </section>
 
-      <PublicFooter brandDesc="Replay GPS de vuelo para operadores UAS en Colombia. Reproduce la ruta, la telemetría y los joysticks desde el log del DJI RC/RC 2." />
+      <PublicFooter brandDesc="Replay GPS de vuelo para operadores UAS en Colombia. Reproduce la ruta y la telemetría desde el log de tu control DJI." />
     </div>
   );
 }

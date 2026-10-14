@@ -46,7 +46,7 @@ const faqSchema = {
       acceptedAnswer: {
         '@type': 'Answer',
         text:
-          'Bitafly evalúa 6 variables con pesos diferenciados: velocidad del viento (30%), ráfagas (22%), visibilidad (22%), precipitación (16%), probabilidad de lluvia (5%) e índice Kp de actividad geomagnética (5%). El resultado es un score de aptitud de 0 a 100. Fuentes: Open-Meteo y NOAA SWPC.',
+          'Bitafly muestra viento, ráfagas, visibilidad y precipitación, más el índice Kp de actividad geomagnética, con pronóstico por hora. Cada lectura se compara con un umbral de referencia y se marca como dentro de rango o para verificar. Fuentes: Open-Meteo y NOAA SWPC.',
       },
     },
     {
@@ -64,7 +64,7 @@ const faqSchema = {
       acceptedAnswer: {
         '@type': 'Answer',
         text:
-          'El índice Kp mide la actividad geomagnética global (escala 0–9). Valores de 5 o más indican tormentas que pueden degradar la señal GPS y causar derivas peligrosas en drones que dependen del posicionamiento satelital. Bitafly incluye el Kp en tiempo real de NOAA en su score de aptitud.',
+          'El índice Kp mide la actividad geomagnética global (escala 0–9). Valores de 5 o más indican tormentas que pueden degradar la señal GPS y causar derivas peligrosas en drones que dependen del posicionamiento satelital. Bitafly muestra el Kp en tiempo real de NOAA y avisa cuando hay actividad solar alta.',
       },
     },
     {
@@ -83,7 +83,7 @@ const accent = '#22c55e';
 
 const ROWS = [
   {
-    feature: 'Score de aptitud de vuelo (0–100)',
+    feature: 'Viento, ráfagas, visibilidad y lluvia con umbrales',
     bitafly: '✅ Incluido',
     uavf: '✅ Incluido',
   },
@@ -94,17 +94,17 @@ const ROWS = [
   },
   {
     feature: 'Integración con programación de misiones',
-    bitafly: '✅ Clima en el form de autorización',
+    bitafly: '✅ Clima de las zonas programadas para hoy',
     uavf: '❌ App independiente',
   },
   {
     feature: 'Integración con despacho / bitácora',
-    bitafly: '✅ Badge APTO/NO APTO al despachar',
+    bitafly: '✅ Clima archivado al despachar',
     uavf: '❌ No disponible',
   },
   {
-    feature: 'Clima histórico por vuelo (auditoría)',
-    bitafly: '✅ Replay GPS + condiciones al momento del vuelo',
+    feature: 'Clima por vuelo (auditoría)',
+    bitafly: '✅ Condiciones al despachar, en la bitácora',
     uavf: '❌ No disponible',
   },
   {
@@ -149,13 +149,13 @@ const REASONS = [
     icon: 'cloud_done',
     title: 'Clima integrado, no una app aparte',
     description:
-      'En Bitafly el score meteorológico aparece donde lo necesitas: al programar la misión ves el clima del municipio elegido, y al despachar ves un badge APTO/NO APTO junto a la orden de vuelo. Sin cambiar de app ni copiar datos manualmente.',
+      'En Bitafly la meteorología aparece donde la necesitas: ves el clima de las zonas de las misiones que programaste, y al despachar queda archivado junto al vuelo. Sin cambiar de app ni copiar datos manualmente.',
   },
   {
     icon: 'history',
-    title: 'Historial climático por vuelo',
+    title: 'Clima archivado por vuelo',
     description:
-      'Cada vuelo en la bitácora lleva consigo las condiciones meteorológicas del momento. Al abrir el Replay GPS de cualquier vuelo pasado, ves el clima exacto de esa misión — viento, visibilidad, lluvia e índice Kp. Evidencia real para auditorías SMS.',
+      'Al despachar una misión con zona marcada, el clima de ese punto (temperatura, viento, ráfagas y condiciones) queda archivado y se ve en la bitácora junto al vuelo. Evidencia para auditorías SMS.',
   },
   {
     icon: 'gavel',
@@ -189,7 +189,7 @@ export default function ComparativaUavForecastPage() {
             <span style={{ color: accent }}>verificar el clima no es suficiente</span>
           </h1>
           <p className="text-slate-300 text-lg max-w-2xl mx-auto leading-relaxed mb-8">
-            UAV Forecast te dice si el clima es apto para volar. Bitafly integra ese dato en
+            UAV Forecast te muestra el clima para volar. Bitafly integra ese dato en
             tu <strong className="text-white">programación de misiones, el despacho y la bitácora RAC 100</strong> —
             sin cambiar de app, sin pérdida de contexto.
           </p>
@@ -233,7 +233,7 @@ export default function ComparativaUavForecastPage() {
               <ul className="space-y-3 text-sm text-slate-600">
                 <li className="flex gap-2">
                   <span className="text-green-600 font-bold flex-shrink-0">✅</span>
-                  Score de vuelo con viento, ráfagas, visibilidad y Kp
+                  Viento, ráfagas, visibilidad y Kp
                 </li>
                 <li className="flex gap-2">
                   <span className="text-green-600 font-bold flex-shrink-0">✅</span>
@@ -286,19 +286,19 @@ export default function ComparativaUavForecastPage() {
               <ul className="space-y-3 text-sm text-slate-700">
                 <li className="flex gap-2">
                   <span style={{ color: accent }} className="font-bold flex-shrink-0">✅</span>
-                  Score de vuelo (viento, ráfagas, visibilidad, lluvia, Kp) — igual que UAV Forecast
+                  Viento, ráfagas, visibilidad, lluvia y Kp, con pronóstico por hora
                 </li>
                 <li className="flex gap-2">
                   <span style={{ color: accent }} className="font-bold flex-shrink-0">✅</span>
-                  Aparece al programar misiones — sin cambiar de app
+                  Clima de tus zonas programadas — sin cambiar de app
                 </li>
                 <li className="flex gap-2">
                   <span style={{ color: accent }} className="font-bold flex-shrink-0">✅</span>
-                  Badge APTO/NO APTO al despachar cada vuelo
+                  Clima archivado al despachar cada vuelo
                 </li>
                 <li className="flex gap-2">
                   <span style={{ color: accent }} className="font-bold flex-shrink-0">✅</span>
-                  Condiciones históricas en el Replay GPS de cada vuelo
+                  Condiciones del despacho visibles en la bitácora
                 </li>
                 <li className="flex gap-2">
                   <span style={{ color: accent }} className="font-bold flex-shrink-0">✅</span>
@@ -398,19 +398,19 @@ export default function ComparativaUavForecastPage() {
                 step: '01',
                 icon: 'edit_calendar',
                 title: 'Al programar la misión',
-                desc: 'Seleccionas el municipio donde vas a operar → Bitafly geocodifica la ubicación → aparece el widget de clima completo con score de aptitud, las 6 métricas y el índice Kp. Decides si continuar antes de asignar recursos.',
+                desc: 'Marcas la zona de operación al programar la misión. Ese punto queda como referencia para ver su clima en la sección de Meteorología, junto con el de las demás misiones de hoy.',
               },
               {
                 step: '02',
                 icon: 'flight_takeoff',
                 title: 'Al despachar el vuelo',
-                desc: 'Seleccionas la orden de vuelo autorizada → aparece un badge compacto APTO / NO APTO con viento actual y temperatura. Si las condiciones cambiaron desde la programación, lo ves antes de armar la aeronave.',
+                desc: 'Al despachar una misión con zona marcada, Bitafly archiva el clima del punto de operación (temperatura, viento, ráfagas y condiciones) como constancia de las condiciones con las que se decidió volar.',
               },
               {
                 step: '03',
                 icon: 'replay',
-                title: 'Al revisar vuelos pasados',
-                desc: 'Abres el Replay GPS de cualquier vuelo → panel colapsable con las condiciones meteorológicas históricas al momento exacto del vuelo. Evidencia real para auditorías SMS y análisis de incidentes.',
+                title: 'Al revisar la bitácora',
+                desc: 'Cada vuelo muestra el clima con el que se despachó. Evidencia para auditorías SMS y análisis de incidentes.',
               },
             ].map(s => (
               <div

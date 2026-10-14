@@ -49,7 +49,7 @@ const FEATURE_GROUPS = [
       { icon: 'bitacora', title: 'Bitácora Digital RAC 100', desc: 'Registra cada vuelo con todos los campos que exige la AeroCivil, sumando horas automáticamente.', href: '/bitacora-digital' },
       { icon: 'riesgo', title: 'Despacho con Evaluación de Riesgos', desc: 'Evalúa Probabilidad × Gravedad antes de cada vuelo — exige mitigar si el riesgo es inaceptable.' },
       { icon: 'replay', title: 'Replay GPS de Vuelo', desc: 'Reproduce cada operación cuadro a cuadro: ruta, altitud, velocidad y batería.', href: '/replay-gps-drones' },
-      { icon: 'clima', title: 'Clima y Meteorología UAV', desc: 'Verifica viento, ráfagas y visibilidad antes de cada vuelo con un score de aptitud 0-100.', href: '/clima-drones' },
+      { icon: 'clima', title: 'Clima y Meteorología UAV', desc: 'Verifica viento, ráfagas y visibilidad antes de cada vuelo, con pronóstico por hora y clima de tus zonas.', href: '/clima-drones' },
       { icon: 'radar', title: 'Análisis de riesgos AeroCivil', desc: 'Análisis de riesgos oficial (MAUT-5.0-12-055) para cada solicitud de autorización.'},
     ],
   },
@@ -68,7 +68,7 @@ const FEATURE_GROUPS = [
     icon: 'sms',
     items: [
       { icon: 'sms', title: 'SMS Aeronáutico', desc: 'Matriz de riesgo, indicadores SPI con alertas, GAP y acciones correctivas.', href: '/sms-aeronautico' },
-      { icon: 'capacitacion', title: 'Capacitación con Examen', desc: 'Cronograma recurrente con examen calificado — bloquea el despacho si no se aprueba.', href: '/capacitacion-drones' },
+      { icon: 'capacitacion', title: 'Capacitación con Examen', desc: 'Evaluaciones calificadas con fecha límite, recordatorios y seguimiento de cumplimiento por persona.', href: '/capacitacion-drones' },
       { icon: 'reportes', title: 'Reportes RAC 100', desc: 'Más de 20 formatos en PDF/Excel, listos para una auditoría.', href: '/reportes-auditoria' },
       { icon: 'roles', title: 'Expediente de Pilotos', desc: 'Licencias, certificaciones y vencimientos de toda la tripulación en un solo lugar.', href: '/gestion-pilotos' },
     ],
@@ -349,7 +349,7 @@ const NAV_FUNCIONES_GROUPS = [
     items: [
       { icon: 'sms', href: '/sms-aeronautico', label: 'SMS Aeronáutico', desc: 'Seguridad operacional' },
       { icon: 'roles', href: '/gestion-pilotos', label: 'Pilotos', desc: 'Expediente y licencias' },
-      { icon: 'capacitacion', href: '/capacitacion-drones', label: 'Capacitación', desc: 'Examen y bloqueo de despacho' },
+      { icon: 'capacitacion', href: '/capacitacion-drones', label: 'Capacitación', desc: 'Evaluaciones y recordatorios' },
       { icon: 'reportes', href: '/reportes-auditoria', label: 'Reportes', desc: 'PDFs RAC 100' },
     ],
   },

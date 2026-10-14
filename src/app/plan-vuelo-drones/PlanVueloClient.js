@@ -20,19 +20,19 @@ import PublicFooter from '@/components/bitafly/PublicFooter';
 import { FeatureIcon } from '@/components/bitafly/icons';
 
 const TRUST_STATS = [
-  { value: 'KML/KMZ', label: 'Exportación compatible' },
+  { value: 'KML/KMZ', label: 'Importar y exportar' },
   { value: '3', label: 'Geometrías de zona' },
-  { value: 'WGS-84', label: 'Formato AeroCivil' },
+  { value: 'WGS-84', label: 'Sistema de coordenadas' },
   { value: '0', label: 'Software externo' },
 ];
 
 const CAMPOS = [
-  { icon: 'mapa', title: 'Mapa interactivo', desc: 'Dibuja el área de operación directamente sobre el mapa al programar una misión. Cambia entre satélite y mapa según necesites.' },
+  { icon: 'mapa', title: 'Mapa interactivo', desc: 'Dibuja el área de operación directamente sobre el mapa al programar una misión, o carga un archivo KML/KMZ que ya tengas.' },
   { icon: 'riesgo', title: 'Polígono, línea y círculo', desc: 'Tres geometrías para cualquier tipo de operación. El área se cierra automáticamente al completar el polígono.' },
-  { icon: 'nube', title: 'Exportar KML y KMZ', desc: 'Descarga el archivo en el formato que necesites. Compatible con el portal AeroCivil y Google Earth.' },
-  { icon: 'radar', title: 'Coordenadas precisas', desc: 'Visualiza latitud y longitud de cada punto. Cumple los requisitos de precisión de la AeroCivil.' },
-  { icon: 'bitacora', title: 'Vinculado a autorizaciones', desc: 'El área de operación se adjunta directamente a tu solicitud de autorización dentro de Bitafly.' },
-  { icon: 'reportes', title: 'Cálculo de área y perímetro', desc: 'Bitafly calcula automáticamente el área en m²/ha y el perímetro en km del área definida.' },
+  { icon: 'nube', title: 'Descargar KMZ y PDF', desc: 'Descarga el KMZ de la misión, compatible con Google Earth, y el PDF con el resumen de la zona.' },
+  { icon: 'radar', title: 'Coordenadas precisas', desc: 'Visualiza latitud y longitud de cada punto de la zona, en WGS-84.' },
+  { icon: 'bitacora', title: 'Guardada con la misión', desc: 'La zona queda guardada con la misión programada, y su clima se puede consultar en Meteorología.' },
+  { icon: 'reportes', title: 'Cálculo de área y perímetro', desc: 'Bitafly calcula automáticamente el área y el perímetro de un polígono, la longitud de un tramo y el radio y el área de un círculo.' },
 ];
 
 export default function PlanVueloClient({ faqItems }) {
@@ -120,12 +120,12 @@ export default function PlanVueloClient({ faqItems }) {
               Zona de operación · KML · AeroCivil
             </p>
             <h1 className="pv-hero-title text-4xl md:text-6xl font-black text-white leading-[1.05] tracking-tight mt-5">
-              Define la Zona y Genera el <span className="text-primary-300">KML para la AeroCivil</span>
+              Define la Zona y Genera el <span className="text-primary-300">KMZ de tu misión</span>
             </h1>
             <p className="pv-hero-sub text-base md:text-lg text-navy-100 max-w-xl mt-5">
               Al programar tu misión, dibuja el área de operación en un mapa interactivo y
-              genera el archivo KML o KMZ compatible con la AeroCivil — listo para adjuntar
-              a tu solicitud de autorización en segundos.
+              genera el KMZ de la misión, compatible con Google Earth — listo para
+              adjuntar donde lo necesites en segundos.
             </p>
             <div className="pv-hero-cta flex flex-col sm:flex-row items-center gap-3 mt-8">
               <a href="/registro">

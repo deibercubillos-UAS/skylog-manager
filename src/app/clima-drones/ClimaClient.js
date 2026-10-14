@@ -14,37 +14,28 @@ import PublicFooter from '@/components/bitafly/PublicFooter';
 import { FeatureIcon } from '@/components/bitafly/icons';
 
 const TRUST_STATS = [
-  { value: '0-100', label: 'Score de aptitud' },
-  { value: '6', label: 'Variables evaluadas' },
+  { value: 'Por hora', label: 'Pronóstico horario' },
+  { value: '5', label: 'Variables con umbral' },
   { value: 'Kp', label: 'Fiabilidad del GPS' },
   { value: '0', label: 'Apps que instalar' },
 ];
 
 const MEASURES = [
-  { icon: 'clima', title: 'Viento a 10 m', desc: 'Velocidad del viento en superficie. Umbral por defecto de 25 km/h; por encima, el vuelo se marca como no apto.' },
-  { icon: 'bolt', title: 'Ráfagas', desc: 'Las ráfagas, no el viento medio, son las que desestabilizan al dron. Umbral por defecto de 35 km/h.' },
-  { icon: 'radar', title: 'Visibilidad', desc: 'Distancia visual horizontal. Crítica para mantener la línea de vista (VLOS). Umbral por defecto de 5 km.' },
-  { icon: 'clima', title: 'Lluvia y probabilidad', desc: 'Precipitación actual y probabilidad de lluvia en la hora del vuelo. La mayoría de UAS no son resistentes al agua.' },
-  { icon: 'nube', title: 'Índice Kp · GPS', desc: 'Actividad geomagnética (NOAA). Un Kp alto degrada la señal GPS. Se clasifica como óptimo, degradado o no confiable.' },
-  { icon: 'replay', title: 'Histórico del vuelo', desc: 'Condiciones exactas al momento de un vuelo ya realizado, visibles en el replay para análisis post-operación.' },
+  { icon: 'clima', title: 'Viento a 10 m', desc: 'Velocidad del viento en superficie. Umbral de referencia de 25 km/h; por encima, la lectura se marca en ámbar para que verifiques tu entorno.' },
+  { icon: 'bolt', title: 'Ráfagas', desc: 'Las ráfagas, no el viento medio, son las que desestabilizan al dron. Umbral de referencia de 35 km/h.' },
+  { icon: 'radar', title: 'Visibilidad', desc: 'Distancia visual horizontal. Crítica para mantener la línea de vista (VLOS). Umbral de referencia de 5 km.' },
+  { icon: 'clima', title: 'Lluvia', desc: 'Precipitación en la hora actual y en las próximas horas. La mayoría de UAS no son resistentes al agua.' },
+  { icon: 'nube', title: 'Índice Kp · GPS', desc: 'Actividad geomagnética (NOAA). Un Kp alto degrada la señal GPS. Se muestra como normal o como actividad solar alta.' },
+  { icon: 'replay', title: 'Clima archivado al despachar', desc: 'Al despachar una misión con zona marcada queda archivado el clima del punto de operación, visible en la bitácora junto al vuelo.' },
 ];
 
-const WEIGHTS = [
-  { label: 'Viento a 10 m', pct: 30 },
-  { label: 'Ráfagas', pct: 22 },
-  { label: 'Visibilidad', pct: 22 },
-  { label: 'Precipitación', pct: 16 },
-  { label: 'Probabilidad de lluvia', pct: 5 },
-  { label: 'Índice Kp (GPS)', pct: 5 },
-];
 
 const COMPARE = [
-  { feature: 'Score de aptitud de vuelo 0-100', bitafly: true, rival: true },
   { feature: 'Viento, ráfagas, visibilidad y lluvia', bitafly: true, rival: true },
   { feature: 'Índice Kp / fiabilidad del GPS', bitafly: true, rival: true },
-  { feature: 'Integrado en la programación de la misión', bitafly: true, rival: false },
-  { feature: 'Badge APTO / NO APTO al despachar el vuelo', bitafly: true, rival: false },
-  { feature: 'Queda registrado junto al vuelo (replay y bitácora)', bitafly: true, rival: false },
+  { feature: 'Clima de las zonas programadas para hoy', bitafly: true, rival: false },
+  { feature: 'Pronóstico horario con lectura favorable / verificar', bitafly: true, rival: true },
+  { feature: 'Queda archivado junto al vuelo en la bitácora', bitafly: true, rival: false },
   { feature: 'Umbrales y enfoque RAC 100 · Colombia', bitafly: true, rival: false },
   { feature: 'Sin instalar una app aparte', bitafly: true, rival: false },
 ];
@@ -145,9 +136,9 @@ export default function ClimaClient({ faqItems }) {
               Clima y Meteorología para <span className="text-primary-300">Drones</span> antes de cada vuelo
             </h1>
             <p className="cl-hero-sub text-base md:text-lg text-navy-100 max-w-xl mt-5">
-              Viento, ráfagas, visibilidad, lluvia e índice Kp para la fiabilidad del GPS,
-              resumidos en un score de aptitud de 0 a 100. Integrado en tu operación, no una
-              app aparte.
+              Viento, ráfagas, visibilidad, lluvia e índice Kp para la fiabilidad del GPS, con
+              pronóstico por hora y el clima de tus zonas de operación. Integrado en tu
+              operación, no una app aparte.
             </p>
             <div className="cl-hero-cta flex flex-col sm:flex-row items-center gap-3 mt-8">
               <a href="/registro">
@@ -186,8 +177,8 @@ export default function ClimaClient({ faqItems }) {
               El clima <span className="text-primary-600">donde tomas la decisión</span>
             </h2>
             <p className="text-sm text-navy-300 mt-2 max-w-lg mx-auto">
-              No es un sitio web que abres aparte: la verificación meteorológica aparece dentro
-              de Bitafly, justo cuando programas, despachas y revisas el vuelo.
+              No es un sitio web que abres aparte: la meteorología aparece dentro
+              de Bitafly: ves el clima de las zonas que programaste, y al despachar queda archivado junto al vuelo.
             </p>
           </div>
           <div className="reveal-fade relative aspect-[1568/718] rounded-3xl overflow-hidden border border-navy-100 shadow-xl bg-white p-3 sm:p-4">
@@ -228,32 +219,21 @@ export default function ClimaClient({ faqItems }) {
         </div>
       </section>
 
-      {/* CÓMO SE CALCULA */}
+      {/* UMBRALES */}
       <section className="py-16 md:py-20 px-6 bg-white">
-        <div className="max-w-5xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
-          <div className="reveal-fade">
-            <p className="text-xs font-bold uppercase tracking-widest text-primary-600">Cómo se calcula</p>
+        <div className="max-w-xl mx-auto">
+          <div className="reveal-fade text-center mb-8">
+            <p className="text-xs font-bold uppercase tracking-widest text-primary-600">Umbrales de referencia</p>
             <h2 className="text-2xl md:text-3xl font-black text-navy mt-1">
-              Un <span className="text-primary-600">score</span>, no veinte cifras sueltas
+              Una lectura clara, <span className="text-primary-600">tú decides</span>
             </h2>
             <p className="text-sm text-navy-300 mt-3 leading-relaxed">
-              Bitafly pondera cada variable según su impacto real en el vuelo y devuelve un solo
-              número de 0 a 100 con su semáforo.
+              Bitafly compara cada variable con un umbral de referencia y te dice si está dentro
+              de rango. La meteorología es un insumo: la decisión de volar sigue siendo del piloto.
             </p>
-            <div className="flex flex-col gap-3 mt-5">
-              {WEIGHTS.map((w) => (
-                <div key={w.label} className="flex items-center gap-3">
-                  <span className="w-36 text-xs font-bold text-navy-400 shrink-0">{w.label}</span>
-                  <div className="flex-1 h-2.5 bg-navy-50 rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full" style={{ width: `${w.pct * 3.3}%` }} />
-                  </div>
-                  <span className="w-10 text-right text-xs font-black text-navy">{w.pct}%</span>
-                </div>
-              ))}
-            </div>
           </div>
-          <div className="bg-navy rounded-3xl p-8 text-white">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-primary-300 mb-4">Umbrales por defecto</p>
+          <div className="reveal-fade bg-navy rounded-3xl p-8 text-white">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-primary-300 mb-4">Umbrales de referencia</p>
             {[
               { k: 'Viento', v: '25 km/h' },
               { k: 'Ráfagas', v: '35 km/h' },
@@ -265,10 +245,6 @@ export default function ClimaClient({ faqItems }) {
                 <span className="text-sm font-black font-mono text-white">{t.v}</span>
               </div>
             ))}
-            <div className="mt-4 p-4 bg-primary/10 border border-primary/20 rounded-2xl">
-              <p className="text-xs font-bold text-primary-300 mb-1">Configurables por organización</p>
-              <p className="text-xs text-navy-200 leading-relaxed">Ajusta los límites según tu manual de operaciones y el tipo de aeronave.</p>
-            </div>
           </div>
         </div>
       </section>

@@ -37,7 +37,7 @@ const NAV_FUNCIONES_GROUPS = [
     items: [
       { icon: 'sms', href: '/sms-aeronautico', label: 'SMS Aeronáutico', desc: 'Seguridad operacional' },
       { icon: 'roles', href: '/gestion-pilotos', label: 'Pilotos', desc: 'Expediente y licencias' },
-      { icon: 'capacitacion', href: '/capacitacion-drones', label: 'Capacitación', desc: 'Examen y bloqueo de despacho' },
+      { icon: 'capacitacion', href: '/capacitacion-drones', label: 'Capacitación', desc: 'Evaluaciones y recordatorios' },
       { icon: 'reportes', href: '/reportes-auditoria', label: 'Reportes', desc: 'PDFs RAC 100' },
     ],
   },

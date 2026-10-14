@@ -251,7 +251,7 @@ export default function SmsClient({ faqItems }) {
             ))}
           </div>
           <p className="reveal-fade text-center text-xs text-navy-300 mt-8">
-            ¿Buscas el examen calificado que bloquea el despacho?{' '}
+            ¿Buscas las evaluaciones calificadas con fecha límite?{' '}
             <a href="/capacitacion-drones" className="text-primary-300 font-bold hover:text-primary-200">Ver Capacitación →</a>
           </p>
         </div>

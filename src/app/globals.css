@@ -351,3 +351,16 @@ summary .faq-chevron {
 details[open] summary .faq-chevron {
   transform: rotate(180deg);
 }
+
+/* Campos de fecha y hora: en iOS Safari traen un ancho propio y fondo gris que se salían de la tarjeta.
+   Aplica a cualquier <input type="date|datetime-local|time"> aunque no use el componente Field. */
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: #fff;
+  min-width: 0;
+  max-width: 100%;
+  text-align: left;
+}

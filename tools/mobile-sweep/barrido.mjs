@@ -75,9 +75,11 @@ for (const url of urls) {
       y += step; i++;
     }
     await driver.execute(() => window.scrollTo(0, 0));
-    results.push({ url, ...m, partes: i - 1, retries });
+    const finalUrl = await driver.getUrl();
+    const bodyStart = await driver.execute(() => ((document.querySelector('main') || document.body).innerText || '').replace(/\s+/g, ' ').slice(0, 260));
+    results.push({ url, finalUrl, bodyStart, ...m, partes: i - 1, retries });
   } catch (e) { results.push({ url, error: String(e.message).slice(0, 160) }); }
 }
 await driver.deleteSession();
 fs.writeFileSync(`${outDir}/resultados.json`, JSON.stringify(results, null, 1));
-console.log(JSON.stringify(results.map((r) => r.error ? r : { url: r.url, alto: r.h, desbordeDoc: r.sw > r.w, sobresalen: r.over.length, pequeños: r.small, partes: r.partes }), null, 1));
+console.log(JSON.stringify(results.map((r) => r.error ? r : { url: r.url, final: r.finalUrl.replace(/^https?:\/\/[^/]+/, ''), alto: r.h, desbordeDoc: r.sw > r.w, sobresalen: r.over.length, pequeños: r.small, partes: r.partes }), null, 1));

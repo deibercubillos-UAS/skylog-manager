@@ -363,4 +363,8 @@ input[type="time"] {
   min-width: 0;
   max-width: 100%;
   text-align: left;
+  min-height: 2.75rem; /* vacío, iOS lo colapsa a una franja */
+}
+@media (min-width: 768px) {
+  input[type="date"], input[type="datetime-local"], input[type="time"] { min-height: 0; }
 }

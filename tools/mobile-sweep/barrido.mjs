@@ -30,6 +30,8 @@ const WAIT = Number(process.env.WAIT_MS || 4500);
 if (process.env.QA_EMAIL) {
   const base = new URL(urls[0]).origin;
   await driver.url(base + '/login');
+  try { await driver.deleteAllCookies(); } catch (e) {}
+  await driver.execute(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) {} });
   await driver.execute(() => { try { localStorage.setItem('bitafly_cookie_consent', 'rejected'); } catch (e) {} });
   await driver.url(base + '/login'); await driver.pause(3000);
   const email = await driver.$('input[type=email]');

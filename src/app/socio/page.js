@@ -266,10 +266,10 @@ export default function SocioPanel() {
           {/* Asesores (solo escuela owner) */}
           {isSchoolOwner && (
             <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0 flex-1 basis-48">
                   <h2 className="text-sm font-black uppercase tracking-widest text-slate-700">Mis asesores</h2>
-                  <p className="text-xs text-slate-400 font-medium mt-0.5">
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
                     Cada asesor tiene su propio código de ventas y genera comisiones bajo tu cuenta.
                   </p>
                 </div>

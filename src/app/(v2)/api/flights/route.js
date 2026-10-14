@@ -40,19 +40,21 @@ export async function GET(request) {
     return Response.json({ error: 'organizationId requerido y con membresía activa' }, { status: 400 });
   }
 
-  const { data: flights, error } = await supabase
-    .from('flights')
-    .select('*, pilot:pilot_person_id(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model)), weather:weather_observation_id(observed_at, payload)')
-    .eq('organization_id', organizationId)
-    .order('takeoff_at', { ascending: false })
-    .limit(200);
+  // Se piden las columnas una por una, SIN `replay_track`: es la traza completa (hasta 400 puntos por vuelo) y
+  // traerla para descartarla multiplicaba el peso de la consulta por 200 filas. Solo se pregunta cuáles la tienen.
+  const [{ data: flights, error }, { data: withReplay }] = await Promise.all([
+    supabase
+      .from('flights')
+      .select('id, organization_id, pilot_person_id, aircraft_id, mission_id, takeoff_at, landing_at, total_time, visual_condition, mission_type, weather_observation_id, replay_path, created_at, location, notes, external_ref, alerts, source, flight_rules, pilot:pilot_person_id(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model)), weather:weather_observation_id(observed_at, payload)')
+      .eq('organization_id', organizationId)
+      .order('takeoff_at', { ascending: false })
+      .limit(200),
+    supabase.from('flights').select('id').eq('organization_id', organizationId).not('replay_track', 'is', null).limit(200),
+  ]);
   if (error) return Response.json({ error: 'Error consultando vuelos' }, { status: 500 });
 
-  // El listado nunca manda la traza completa del replay al navegador (hasta
-  // 400 puntos por vuelo — pesado multiplicado por 200 filas); solo un
-  // booleano. El visor pide la traza puntual vía
-  // GET /api/flights/[id]/replay cuando el usuario de verdad abre el replay.
-  const slimFlights = flights.map(({ replay_track, ...f }) => ({ ...f, has_replay: !!replay_track }));
+  const replayIds = new Set((withReplay || []).map((r) => r.id));
+  const slimFlights = flights.map((f) => ({ ...f, has_replay: replayIds.has(f.id) }));
 
   return Response.json({ flights: slimFlights, isManager: isDutyManager(memberships, organizationId) });
 }

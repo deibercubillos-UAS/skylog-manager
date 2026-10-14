@@ -16,6 +16,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 |---|---|---|---|
 | [`01-reglas.md`](01-reglas.md) | Reglas de trabajo: producción intocable, documentación, veracidad, datos, SMS, **configurabilidad (C1–C5)**, verificación, nombres, reestructuración | 165 | ✅ |
 | `02-glosario.md` | Vocabulario común (entidades, siglas normativas) | — | ⬜ |
+| [`../legacy-v1/`](../legacy-v1/README.md) | Archivo histórico: la guía `CLAUDE.md` de la v1 (no describe el código actual) | — | 📦 |
 
 ## 1 · Normativa
 

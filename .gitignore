@@ -80,3 +80,4 @@ android/keystore.properties
 
 # Respaldos de datos de clientes (scripts/cutover/respaldo-v1.mjs): nunca al repositorio
 respaldos/
+!.env.example

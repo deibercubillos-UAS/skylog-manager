@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# BitaFly (Skylog V2.0)
 
-## Getting Started
+Plataforma SaaS de operaciones con drones para Colombia: bitácora y despacho, flota y mantenimiento, tiempos de servicio (RAC 100),
+Sistema de Gestión de Seguridad Operacional (RAC 219), capacitación, reportes y expediente Aerocivil. Producción: <https://bitafly.com>.
 
-First, run the development server:
+## Empezar
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # completa las variables (ver CLAUDE.md)
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Comando | Qué hace |
+|---|---|
+| `npm run build` | build de producción |
+| `npm run lint` | ESLint |
+| `npm run test:domain` | pruebas de las reglas de negocio (`packages/domain`) |
+| `npm run test:integration` | pruebas de API (requiere servidor local y base de desarrollo) |
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Documentación
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Guía del proyecto y convenciones**: [`CLAUDE.md`](CLAUDE.md)
+- **Índice maestro** (normativa, diseño, decisiones, permisos): [`docs/skylog-v2/00-INDICE.md`](docs/skylog-v2/00-INDICE.md)
+- Archivo histórico de la v1: [`docs/legacy-v1/`](docs/legacy-v1/)
 
-## Learn More
+## Estructura
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/app/(v2)/   aplicación autenticada y sus APIs
+src/app/        sitio público, legales, blog, login/registro, APIs de socios y cron
+src/lib/v2/     lógica del servidor
+packages/       domain (reglas puras) y ui (componentes base)
+supabase/       migraciones y baseline
+tools/          barrido móvil y utilidades de CI
+```

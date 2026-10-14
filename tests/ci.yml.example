@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [develop-v2]
+    branches: [develop-v2, main]
   pull_request:
     branches: [develop-v2, main]
 
@@ -25,7 +25,8 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://bqimtkwzayewwubgsaji.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.DEV_SUPABASE_ANON_KEY }}
+          # El build solo necesita que existan; con el secreto ausente se usa un marcador (no se conecta a nada).
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.DEV_SUPABASE_ANON_KEY || 'marcador-ci' }}
 
   # Pruebas de integración contra la rama de DESARROLLO de Supabase (nunca producción). Se corre aparte porque necesita
   # secretos: DEV_SUPABASE_ANON_KEY, DEV_SUPABASE_SERVICE_ROLE_KEY y DEV_CRON_SECRET. Sin ellos, el job se omite.

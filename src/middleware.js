@@ -12,6 +12,9 @@ const APP_PREFIXES = [
   '/sms', '/suscripcion', '/aerocivil', '/capacitacion', '/manuales', '/listas-de-chequeo', '/admin', '/verificacion',
 ];
 
+// Tiempo máximo de espera de la verificación de sesión antes de decidir sin ella.
+const AUTH_TIMEOUT_MS = 8000;
+
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
@@ -45,13 +48,37 @@ export async function middleware(request) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // La verificación de sesión es una llamada de red a Supabase Auth. Si ese servicio se atrasa, no se deja la
+  // petición colgada hasta que Vercel la corte a los 25 s (el usuario veía un 504): se espera un máximo y se decide.
+  let user = null;
+  let authTimedOut = false;
+  let timer;
+  try {
+    const result = await Promise.race([
+      supabase.auth.getUser(),
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('auth-timeout')), AUTH_TIMEOUT_MS); }),
+    ]);
+    user = result.data.user;
+  } catch (err) {
+    authTimedOut = true;
+    console.warn(`[middleware] getUser no respondió en ${AUTH_TIMEOUT_MS} ms (${pathname})`);
+  } finally {
+    clearTimeout(timer);
+  }
 
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
   // Rutas API sensibles que requieren sesión activa
   const isProtectedApi = pathname.startsWith('/api/admin') || pathname.startsWith('/api/user');
 
   const isAppPage = APP_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'));
+
+  // Supabase Auth no respondió a tiempo: nunca se concede acceso por esto, y tampoco se manda a iniciar sesión
+  // (la sesión puede ser válida). APIs protegidas: 503 inmediato. Páginas: se sirve el cascarón y la seguridad
+  // real sigue en cada API y en la RLS (mismo criterio ya documentado abajo); /admin tiene su propia guardia en el servidor.
+  if (authTimedOut) {
+    if (isProtectedApi) return NextResponse.json({ error: 'Servicio de autenticación lento, intenta de nuevo' }, { status: 503 });
+    return response;
+  }
 
   // API routes: responder 401 JSON, nunca redirigir
   if (isProtectedApi && !user) {

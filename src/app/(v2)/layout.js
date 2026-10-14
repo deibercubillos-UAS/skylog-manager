@@ -263,7 +263,7 @@ export default function V2Layout({ children }) {
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <Link href="/inicio" className="flex items-center gap-3 px-5 py-4 border-b border-white/5 shrink-0 hover:bg-white/5 transition-colors group">
+        <Link prefetch={false} href="/inicio" className="flex items-center gap-3 px-5 py-4 border-b border-white/5 shrink-0 hover:bg-white/5 transition-colors group">
           {currentOrg?.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -311,6 +311,7 @@ export default function V2Layout({ children }) {
                     const isActive = pathname === link.href;
                     return (
                       <Link
+                        prefetch={false}
                         key={link.href}
                         href={link.href}
                         className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all active:scale-95 ${
@@ -333,6 +334,7 @@ export default function V2Layout({ children }) {
               <div className="absolute left-0 right-0 bottom-full mb-2 bg-[#242c3a] border border-white/10 rounded-2xl p-2 shadow-2xl z-30 space-y-0.5">
                 {[...FOOTER_LINKS, ...(context?.isPartner ? [{ name: 'Panel de socio', icon: 'storefront', href: '/socio' }] : []), ...(isSuperadmin ? [{ name: 'Plataforma', icon: 'admin_panel_settings', href: '/admin/plataforma' }, { name: 'Socios (plataforma)', icon: 'handshake', href: '/admin/socios' }] : [])].map((link) => (
                   <Link
+                    prefetch={false}
                     key={link.href}
                     href={link.href}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
@@ -451,7 +453,7 @@ export default function V2Layout({ children }) {
 
           {organizationId && context?.personId && <NotificationBell organizationId={organizationId} personId={context.personId} canAnnounce={isManager} />}
 
-          <Link href="/perfil" className="flex items-center gap-2 md:gap-3 border-l border-navy-100 pl-2 md:pl-3 lg:pl-5 group hover:opacity-80 transition-all">
+          <Link prefetch={false} href="/perfil" className="flex items-center gap-2 md:gap-3 border-l border-navy-100 pl-2 md:pl-3 lg:pl-5 group hover:opacity-80 transition-all">
             <div className="hidden lg:block text-right">
               <p className="text-xs font-black text-navy leading-none group-hover:text-primary-600 transition-colors">{context?.fullName || 'Mi cuenta'}</p>
               <p className="text-xs font-bold text-primary-500 uppercase mt-0.5">{displayRole}</p>
@@ -466,6 +468,7 @@ export default function V2Layout({ children }) {
           <div role="status" className={`shrink-0 px-3 md:px-6 lg:px-8 py-2.5 flex flex-wrap items-center justify-between gap-2 text-sm ${billingNotice.notice.level === 'expired' ? 'bg-red-50 text-red-800 border-b border-red-100' : 'bg-amber-50 text-amber-900 border-b border-amber-100'}`}>
             <p className="min-w-0"><b>{billingNotice.notice.title}.</b> <span className="hidden sm:inline">{billingNotice.notice.message}</span></p>
             <Link
+              prefetch={false}
               href={`/suscripcion?${new URLSearchParams({ ...(billingNotice.plan && billingNotice.plan !== 'enterprise' ? { plan: billingNotice.plan } : {}), billing: billingNotice.billing || 'monthly', pagar: '1' })}`}
               className="shrink-0 min-h-[44px] md:min-h-0 inline-flex items-center px-4 py-2 rounded-xl bg-primary text-white text-xs font-black uppercase tracking-wide hover:bg-primary-600"
             >
@@ -510,6 +513,7 @@ export default function V2Layout({ children }) {
 function BottomNavItem({ href, icon, label, active }) {
   return (
     <Link
+      prefetch={false}
       href={href}
       className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 transition-all active:scale-90 ${active ? 'text-primary' : 'text-navy-300'}`}
     >

@@ -352,7 +352,7 @@ export default function V2Home() {
       <section aria-label="Actividad reciente de vuelo" className="hidden md:block bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
         <div className="px-6 py-3.5 border-b border-navy-50 flex justify-between items-center bg-navy-50/30">
           <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest">Actividad Reciente</h3>
-          <Link href="/operacion/bitacora" className="text-xs font-black text-primary-600 uppercase hover:underline">
+          <Link prefetch={false} href="/operacion/bitacora" className="text-xs font-black text-primary-600 uppercase hover:underline">
             Ver Historial
           </Link>
         </div>
@@ -398,7 +398,7 @@ export default function V2Home() {
       <section aria-label="Actividad reciente de vuelo" className="md:hidden bg-white rounded-[2rem] border border-navy-100 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-navy-50 flex justify-between items-center bg-navy-50/30">
           <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest">Actividad Reciente</h3>
-          <Link href="/operacion/bitacora" className="text-xs font-black text-primary-600 uppercase hover:underline">
+          <Link prefetch={false} href="/operacion/bitacora" className="text-xs font-black text-primary-600 uppercase hover:underline">
             Ver todo
           </Link>
         </div>

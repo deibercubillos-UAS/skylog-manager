@@ -54,7 +54,7 @@ const ECOSYSTEM = [
   {
     icon: 'lock',
     title: 'Barreras de Seguridad',
-    desc: 'Catálogo real de mitigaciones y controles: categoría, riesgo que atiende, responsable y estado — vinculable a una evaluación SORA o a un caso abierto.',
+    desc: 'Catálogo real de mitigaciones y controles: categoría, riesgo que atiende, responsable y estado — vinculable a un peligro identificado o a un caso abierto.',
   },
   {
     icon: 'capacitacion',

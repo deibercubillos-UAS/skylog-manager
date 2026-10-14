@@ -26,7 +26,7 @@ const TRUST_STATS = [
 const CAMPOS = [
   { icon: 'flota', title: 'Registro de Aeronaves', desc: 'Modelo, fabricante, número de serie, matrícula UAEAC, fecha de adquisición y foto. Perfil completo de cada aeronave de la flota.' },
   { icon: 'timer', title: 'Horas Totales en Tiempo Real', desc: 'Cada vuelo registrado suma automáticamente al totalizador de la aeronave. Visualiza las horas en el panel de flota sin cálculos manuales.' },
-  { icon: 'mantenimiento', title: 'Estado de Mantenimiento', desc: 'Indicador visual del estado: Operativa, En Mantenimiento, Inactiva. Alerta cuando se acerca a 200 horas o 6 meses del último servicio.' },
+  { icon: 'mantenimiento', title: 'Estado de Mantenimiento', desc: 'Indicador visual del estado: Operativa, En Mantenimiento, Inactiva. Cada tarea del programa de mantenimiento muestra si está al día o por vencer.' },
   { icon: 'bateria', title: 'Baterías Asignadas', desc: 'Gestión de las baterías LiPo asociadas a cada aeronave con control de ciclos individual. Registro automático en cada vuelo.' },
   { icon: 'persona', title: 'Tripulación Certificada', desc: 'Asignación de pilotos habilitados por aeronave. Verificación automática de certificados vigentes antes de permitir el registro de un vuelo.' },
   { icon: 'reportes', title: 'Análisis de Utilización', desc: 'Reportes de horas voladas por aeronave en el período seleccionado. Identifica aeronaves subutilizadas o sobrecargadas de operación.' },

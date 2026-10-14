@@ -73,7 +73,7 @@ const FAQS = [
   {
     group: 'Cumplimiento RAC 100',
     q: '¿Cómo se gestionan las autorizaciones de vuelo ante AeroCivil?',
-    a: 'Bitafly genera tu solicitud de autorización (formato F-OPS-001 por defecto, personalizable) con todos los datos exigidos por AeroCivil: zona de operación, coordenadas, fecha, tripulación, aeronave matriculada, póliza vigente, misión y evaluación SORA asociada. Estamos integrando la radicación automática en el portal de AeroCivil.',
+    a: 'Bitafly genera tu solicitud de autorización (formato F-OPS-001 por defecto, personalizable) con todos los datos exigidos por AeroCivil: zona de operación, coordenadas, fecha, tripulación, aeronave matriculada, póliza vigente, misión y el análisis de riesgos oficial (MAUT-5.0-12-055) asociado. Estamos integrando la radicación automática en el portal de AeroCivil.',
   },
   {
     group: 'Cumplimiento RAC 100',
@@ -103,7 +103,7 @@ const FAQS = [
   {
     group: 'Módulos avanzados',
     q: '¿El sistema evalúa el riesgo de cada vuelo antes de despachar?',
-    a: 'Sí. Además de la evaluación SORA por misión, el wizard de despacho incluye un paso de Evaluación de Riesgos: el piloto clasifica Probabilidad y Gravedad contra la matriz configurada por el Gerente SMS de la organización, y si el resultado es "Inaceptable" debe documentar barreras de mitigación antes de poder continuar.',
+    a: 'Sí. El wizard de despacho incluye un paso de Evaluación de Riesgos: el piloto clasifica Probabilidad y Gravedad contra la matriz configurada por el Gerente SMS de la organización, y si el resultado es "Inaceptable" debe documentar barreras de mitigación antes de poder continuar.',
   },
   {
     group: 'Datos y seguridad',
@@ -142,7 +142,7 @@ const FEATURES = [
     group: 'Operación',
     icon: 'event_available',
     title: 'Programación de Misiones',
-    desc: 'Crea órdenes de vuelo con PIC, aeronave, zona y horario. Toda misión nueva exige una evaluación SORA (GRC/ARC/SAIL) completa antes de poder autorizarse. Exporta KMZ y PDF con un clic.',
+    desc: 'Crea órdenes de vuelo con PIC, aeronave, zona y horario. El Expediente Aerocivil prepara la solicitud de autorización con el análisis de riesgos oficial MAUT-5.0-12-055. Exporta KMZ y PDF con un clic.',
     href: '/autorizaciones-aerocivil',
   },
   {

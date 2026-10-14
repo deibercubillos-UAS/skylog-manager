@@ -26,7 +26,7 @@ const TRUST_STATS = [
 const FEATURES = [
   { icon: 'reportes', title: 'Certificados CPR', desc: 'Almacena número, fecha de emisión y vencimiento de cada piloto. Alertas automáticas 30 y 7 días antes del vencimiento.' },
   { icon: 'timer', title: 'Horas de vuelo', desc: 'Contador acumulado por piloto, actualizado automáticamente con cada vuelo registrado en la bitácora.' },
-  { icon: 'roles', title: 'Roles diferenciados', desc: 'Jefe de Pilotos, Piloto Remoto y Observador. Cada rol tiene permisos y vistas específicas según la RAC 100.' },
+  { icon: 'roles', title: 'Roles diferenciados', desc: 'Gerente General, Jefe de Pilotos, Gerente SMS y Piloto. Cada rol tiene permisos y vistas específicas según la RAC 100.' },
   { icon: 'bitacora', title: 'Historial de misiones', desc: 'Registro completo de todos los vuelos en que participó cada piloto, con fecha, aeronave y resultado.' },
   { icon: 'lock', title: 'Documentos digitales', desc: 'Adjunta CPR, antecedentes médicos y certificados adicionales. Siempre disponibles para auditoría.' },
   { icon: 'persona', title: 'Invitaciones por email', desc: 'Agrega pilotos a tu organización enviando una invitación. Ellos crean su perfil y se vinculan automáticamente.' },

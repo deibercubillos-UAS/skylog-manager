@@ -128,7 +128,7 @@ const ROWS = [
     uavf: '❌ No disponible',
   },
   {
-    feature: 'Análisis SORA',
+    feature: 'Análisis de riesgos',
     bitafly: '✅ Incluido',
     uavf: '❌ No disponible',
   },
@@ -161,7 +161,7 @@ const REASONS = [
     icon: 'gavel',
     title: 'RAC 100 desde el primer día',
     description:
-      'El clima es solo uno de los módulos. Bitafly también cubre bitácora digital, SMS aeronáutico, autorizaciones AeroCivil, análisis SORA, gestión de pilotos y replay GPS — todo integrado, todo en español, con soporte en Colombia.',
+      'El clima es solo uno de los módulos. Bitafly también cubre bitácora digital, SMS aeronáutico, autorizaciones AeroCivil, análisis de riesgos, gestión de pilotos y replay GPS — todo integrado, todo en español, con soporte en Colombia.',
   },
 ];
 
@@ -253,7 +253,7 @@ export default function ComparativaUavForecastPage() {
                 </li>
                 <li className="flex gap-2">
                   <span className="text-red-500 font-bold flex-shrink-0">❌</span>
-                  Sin bitácora, SMS, autorizaciones ni SORA
+                  Sin bitácora, SMS, autorizaciones ni análisis de riesgos
                 </li>
               </ul>
             </div>
@@ -302,7 +302,7 @@ export default function ComparativaUavForecastPage() {
                 </li>
                 <li className="flex gap-2">
                   <span style={{ color: accent }} className="font-bold flex-shrink-0">✅</span>
-                  Bitácora F-OPS-002, SMS, autorizaciones y SORA incluidos
+                  Bitácora F-OPS-002, SMS, autorizaciones y análisis de riesgos incluidos
                 </li>
                 <li className="flex gap-2">
                   <span style={{ color: accent }} className="font-bold flex-shrink-0">✅</span>

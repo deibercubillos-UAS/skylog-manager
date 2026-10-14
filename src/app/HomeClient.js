@@ -50,7 +50,7 @@ const FEATURE_GROUPS = [
       { icon: 'riesgo', title: 'Despacho con Evaluación de Riesgos', desc: 'Evalúa Probabilidad × Gravedad antes de cada vuelo — exige mitigar si el riesgo es inaceptable.' },
       { icon: 'replay', title: 'Replay GPS de Vuelo', desc: 'Reproduce cada operación cuadro a cuadro: ruta, altitud, velocidad y batería.', href: '/replay-gps-drones' },
       { icon: 'clima', title: 'Clima y Meteorología UAV', desc: 'Verifica viento, ráfagas y visibilidad antes de cada vuelo con un score de aptitud 0-100.', href: '/clima-drones' },
-      { icon: 'radar', title: 'Evaluación SORA', desc: 'Análisis de riesgo (GRC/ARC/SAIL) obligatorio antes de autorizar cualquier misión.'},
+      { icon: 'radar', title: 'Análisis de riesgos AeroCivil', desc: 'Análisis de riesgos oficial (MAUT-5.0-12-055) para cada solicitud de autorización.'},
     ],
   },
   {
@@ -269,7 +269,7 @@ const FAQ_GROUPS = [
       },
       {
         q: '¿El sistema evalúa el riesgo de cada vuelo antes de despachar?',
-        a: 'Sí. Además de la evaluación SORA por misión, el wizard de despacho incluye un paso de Evaluación de Riesgos: el piloto clasifica Probabilidad y Gravedad contra la matriz configurada por el Gerente SMS, y si el resultado es "Inaceptable" debe documentar barreras de mitigación antes de continuar.',
+        a: 'Sí. El wizard de despacho incluye un paso de Evaluación de Riesgos: el piloto clasifica Probabilidad y Gravedad contra la matriz configurada por el Gerente SMS, y si el resultado es "Inaceptable" debe documentar barreras de mitigación antes de continuar.',
       },
     ],
   },

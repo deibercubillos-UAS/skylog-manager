@@ -298,7 +298,7 @@ export default async function BlogPost({ params }) {
                     Aplica todo esto desde hoy
                   </h2>
                   <p className="text-slate-300 text-sm mb-6 leading-relaxed max-w-sm mx-auto">
-                    Bitácora RAC 100, SMS, SORA, autorizaciones AeroCivil y gestión de flota.
+                    Bitácora RAC 100, SMS, autorizaciones AeroCivil y gestión de flota.
                     Plan gratuito sin tarjeta de crédito.
                   </p>
                   <Link

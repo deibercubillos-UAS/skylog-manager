@@ -75,7 +75,7 @@ export default function LoginPage() {
           </Link>
 
           <h1 className="text-3xl font-black text-navy uppercase tracking-tighter">Iniciar sesión</h1>
-          <p className="text-slate-500 text-sm mt-1 mb-8">Ingresa a tu centro de control aeronáutico.</p>
+          <p className="text-slate-500 text-sm mt-1 mb-8">Ingresa a tu cuenta de Bitafly.</p>
 
           <form onSubmit={handleLogin} className="space-y-4">
             {/* Email */}

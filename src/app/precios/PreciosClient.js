@@ -18,7 +18,7 @@ const faqItems = [
   { q: '¿El plan Piloto requiere tarjeta de crédito para empezar?', a: 'No. El plan Piloto incluye 15 días de prueba sin necesidad de tarjeta de crédito; al finalizar, se realiza el primer cobro. Si tu empresa está en Fase 0 del proceso de certificación como Explotador UAS, puedes acceder sin costo al plan Escuadrilla durante esa etapa (hasta 6 meses) contactando a nuestro equipo.' },
   { q: '¿Puedo cambiar de plan en cualquier momento?', a: 'Sí. Puedes actualizar o degradar tu plan en cualquier momento desde el panel de suscripción. Los cambios aplican al siguiente período de facturación. Si actualizas, el acceso a las nuevas funciones es inmediato.' },
   { q: '¿Hay descuento por pago anual?', a: 'Sí. El pago anual tiene un descuento del 10%. El plan Escuadrilla pasa de $200.000/mes a $180.000/mes (equivalente, + IVA). El plan Flota pasa de $400.000/mes a $360.000/mes (equivalente, + IVA). Selecciona "Anual" en el toggle de precios para ver los valores exactos.' },
-  { q: '¿Los pagos son en pesos colombianos o dólares?', a: 'Todos los precios son en pesos colombianos (COP). El cobro se realiza a través de ePayco. Aceptamos tarjetas Visa, Mastercard, débito y PSE.' },
+  { q: '¿Los pagos son en pesos colombianos o dólares?', a: 'Todos los precios son en pesos colombianos (COP). El cobro se realiza a través de Wompi con tarjeta de crédito o débito.' },
   { q: '¿Qué pasa con mis datos si cancelo?', a: 'Tus datos se conservan durante 90 días después de la cancelación, período durante el cual puedes exportar tus bitácoras, reportes y datos de flota en PDF o Excel. Transcurrido ese período, los datos son eliminados de forma permanente.' },
 ];
 

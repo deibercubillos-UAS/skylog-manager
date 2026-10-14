@@ -52,7 +52,7 @@ const faqSchema = {
       name: '¿En qué es fuerte Dronedesk frente a Bitafly?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Dronedesk tiene una planificación de vuelo y verificación de espacio aéreo muy maduras, además de gestión de clientes y trabajos (CRM) orientada al mercado europeo. Bitafly se enfoca en el cumplimiento normativo colombiano: bitácora RAC 100, autorizaciones AeroCivil, SMS, SORA, sincronización DJI y replay GPS. Si tu prioridad es operar legalmente en Colombia, Bitafly encaja mejor.',
+        text: 'Dronedesk tiene una planificación de vuelo y verificación de espacio aéreo muy maduras, además de gestión de clientes y trabajos (CRM) orientada al mercado europeo. Bitafly se enfoca en el cumplimiento normativo colombiano: bitácora RAC 100, autorizaciones AeroCivil, SMS, análisis de riesgos, sincronización DJI y replay GPS. Si tu prioridad es operar legalmente en Colombia, Bitafly encaja mejor.',
       },
     },
   ],
@@ -78,7 +78,7 @@ const ROWS = [
   { feature: 'Idioma español',                          bitafly: '✅ 100% en español',                   competitor: '❌ Solo inglés' },
   { feature: 'Precios en pesos colombianos (COP)',      bitafly: '✅ Desde $20.000 COP/mes',             competitor: '❌ En libras (GBP)' },
   { feature: 'SMS aeronáutico completo',                bitafly: '✅ Con trazabilidad',                  competitor: '⚠️ Enfoque europeo' },
-  { feature: 'Análisis SORA',                           bitafly: '✅ Incluido',                          competitor: '⚠️ Marco JARUS europeo' },
+  { feature: 'Análisis de riesgos',                           bitafly: '✅ Incluido',                          competitor: '⚠️ Marco JARUS europeo' },
   { feature: 'Sincronización DJI automática',           bitafly: '✅ Sí',                                competitor: '⚠️ Importación manual' },
   { feature: 'Replay GPS de vuelos',                    bitafly: '✅ Incluido',                          competitor: '❌ No disponible' },
   { feature: 'Planificación de vuelo y espacio aéreo',  bitafly: '✅ Mapa + zonas + KMZ',                competitor: '✅ Mapa aéreo (Reino Unido)' },

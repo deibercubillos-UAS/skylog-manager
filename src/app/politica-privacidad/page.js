@@ -61,8 +61,8 @@ export default function PoliticaPrivacidadPage() {
         <li><strong>Datos de cuenta:</strong> nombre, correo electrónico, teléfono, ciudad y contraseña (almacenada de forma cifrada por nuestro proveedor de autenticación).</li>
         <li><strong>Datos de organización:</strong> razón social, NIT, dirección, representante legal y datos de registro ante la Aeronáutica Civil (N.º de explotador, N.º de operador UAS) de la empresa que usted representa o a la que pertenece.</li>
         <li><strong>Expediente de tripulante:</strong> número de cédula, licencia/CIPU, certificado médico y su vigencia, diploma UAS, examen teórico y contacto de emergencia, cuando usted o su organización los cargan para llevar el expediente de piloto exigido por la RAC 100.</li>
-        <li><strong>Datos operativos de vuelo:</strong> bitácora de vuelos, ubicación de las operaciones, evaluaciones de riesgo (SORA), reportes de seguridad operacional (SMS, VOR/MOR) y demás información propia de la operación de aeronaves no tripuladas.</li>
-        <li><strong>Datos de facturación:</strong> los pagos de suscripción se procesan a través de nuestra pasarela de pagos ePayco. <strong>Bitafly no almacena números de tarjeta ni datos financieros sensibles</strong> — esa información es tratada directamente por ePayco bajo su propia política de privacidad.</li>
+        <li><strong>Datos operativos de vuelo:</strong> bitácora de vuelos, ubicación de las operaciones, análisis y evaluaciones de riesgo, reportes de seguridad operacional (SMS, VOR/MOR) y demás información propia de la operación de aeronaves no tripuladas.</li>
+        <li><strong>Datos de facturación:</strong> los pagos de suscripción se procesan a través de nuestra pasarela de pagos Wompi. <strong>Bitafly no almacena números de tarjeta ni datos financieros sensibles</strong> — esa información es tratada directamente por Wompi bajo su propia política de privacidad.</li>
         <li><strong>Datos técnicos:</strong> dirección IP, tipo de navegador y de dispositivo, y datos de uso del Sitio recolectados mediante cookies y tecnologías similares (ver <a href="/politica-cookies">Política de Cookies</a>).</li>
       </ul>
 
@@ -71,7 +71,7 @@ export default function PoliticaPrivacidadPage() {
       <ul>
         <li>Crear y administrar su cuenta y la de su organización en la Plataforma.</li>
         <li>Prestar el servicio contratado: bitácora digital, gestión de flota y tripulación, planeación y autorización de misiones, mantenimiento, SMS y generación de reportes/formatos regulatorios.</li>
-        <li>Procesar pagos y gestionar suscripciones a través de ePayco.</li>
+        <li>Procesar pagos y gestionar suscripciones a través de Wompi.</li>
         <li>Enviar comunicaciones operativas (notificaciones de vuelo, mantenimiento, vencimiento de certificaciones, invitaciones a la organización) y, cuando aplique, comunicaciones comerciales.</li>
         <li>Cumplir obligaciones legales y regulatorias, incluidas las derivadas de la normativa aeronáutica colombiana (RAC 100 / UAEAC) que exige llevar registros de bitácora, mantenimiento y seguridad operacional.</li>
         <li>Prevenir el fraude, garantizar la seguridad de la Plataforma y atender requerimientos de autoridades competentes.</li>
@@ -87,7 +87,7 @@ export default function PoliticaPrivacidadPage() {
         <li><strong>Supabase</strong> — base de datos y autenticación de usuarios.</li>
         <li><strong>Vercel</strong> — alojamiento (hosting) del sitio y de la aplicación.</li>
         <li><strong>Cloudflare (R2)</strong> — almacenamiento de archivos y documentos adjuntos (fotos, certificados, adjuntos de mantenimiento, replays de vuelo).</li>
-        <li><strong>ePayco</strong> — procesamiento de pagos y suscripciones.</li>
+        <li><strong>Wompi</strong> — procesamiento de pagos y suscripciones.</li>
         <li><strong>Resend</strong> — envío de correos electrónicos transaccionales y de notificación.</li>
       </ul>
       <p>

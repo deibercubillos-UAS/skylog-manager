@@ -115,7 +115,7 @@ export default function Rac100CompliancePage() {
               { need: 'F-HUM-005 pilot logbook',     solution: 'Individual flight hours per pilot. CPR expiry alerts.', href: '/gestion-pilotos' },
               { need: 'F-OPS-001 flight authorization',solution: 'Interactive map with KML export for AeroCivil portal.', href: '/plan-vuelo-drones' },
               { need: 'SMS documentation',           solution: 'Incident forms, hazard reporting, corrective actions.', href: '/sms-aeronautico' },
-              { need: 'SORA risk assessment',        solution: 'Step-by-step GRC/ARC/SAIL calculator with PDF output.', href: '/sora' },
+              { need: 'Risk analysis (MAUT-5.0-12-055)', solution: 'Official risk analysis prepared with each authorization request.', href: '/sms-aeronautico' },
             ].map((r, i) => (
               <Link key={i} href={r.href} style={{ background: '#f8f6f6', border: '1.5px solid #f1f5f9', borderRadius: '16px', padding: '20px', textDecoration: 'none', display: 'block' }}>
                 <div style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: accent, marginBottom: '6px' }}>{r.need}</div>

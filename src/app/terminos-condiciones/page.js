@@ -88,7 +88,7 @@ export default function TerminosCondicionesPage() {
         vigentes se publican en <a href="/precios">bitafly.com/precios</a>. Algunos planes
         incluyen un período de prueba gratuito antes del primer cobro, cuya duración se indica en
         el momento de la contratación. Los pagos se procesan a través de la pasarela{' '}
-        <strong>ePayco</strong>; Bitafly no almacena datos de tarjetas ni información financiera
+        <strong>Wompi</strong>; Bitafly no almacena datos de tarjetas ni información financiera
         sensible.
       </p>
       <p>

@@ -257,7 +257,7 @@ export default function BlogIndex() {
                 Todo lo que lees aquí,<br className="hidden md:block"/> automatizado en Bitafly
               </h2>
               <p className="text-slate-300 text-sm mb-6 max-w-lg mx-auto leading-relaxed">
-                Bitácora digital, SMS, SORA, capacitación con examen y gestión de flota
+                Bitácora digital, SMS, capacitación con examen y gestión de flota
                 en una sola plataforma diseñada para la RAC 100.
               </p>
               <Link

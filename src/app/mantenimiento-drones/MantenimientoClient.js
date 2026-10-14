@@ -16,18 +16,18 @@ import PublicFooter from '@/components/bitafly/PublicFooter';
 import { FeatureIcon } from '@/components/bitafly/icons';
 
 const TRUST_STATS = [
-  { value: '200h', label: 'Umbral mantenimiento' },
-  { value: '200', label: 'Ciclos batería por defecto' },
+  { value: '3', label: 'Tipos de intervalo' },
+  { value: 'Por modelo', label: 'Programa de mantenimiento' },
   { value: '100%', label: 'Código personalizable' },
   { value: '∞', label: 'Baterías registrables' },
 ];
 
 const CAMPOS = [
-  { icon: 'timer', title: 'Alertas por Horas de Vuelo', desc: 'Alerta automática cuando la aeronave alcanza 200 horas de vuelo acumuladas. Umbral configurable según las recomendaciones del fabricante.' },
-  { icon: 'clima', title: 'Alertas por Calendario', desc: 'Recordatorio automático cada 6 meses calendario desde la última intervención técnica, independiente de las horas de vuelo acumuladas.' },
-  { icon: 'bateria', title: 'Control de Ciclos LiPo', desc: 'Registro de ciclos por batería con umbral configurable. Detecta inflamiento, registra eventos anómalos y previene fallos en operación crítica.' },
+  { icon: 'timer', title: 'Programa por modelo', desc: 'Define las tareas de mantenimiento de cada modelo de aeronave, con los intervalos que indique el fabricante o tu manual de operaciones.' },
+  { icon: 'clima', title: 'Horas, ciclos o calendario', desc: 'Cada tarea puede vencer por horas de vuelo, por ciclos o por días calendario, con una tolerancia que tú configuras.' },
+  { icon: 'bateria', title: 'Control de Ciclos LiPo', desc: 'Registro de ciclos acumulados por batería para decidir a tiempo cuándo retirarla.' },
   { icon: 'mantenimiento', title: 'Historial de Intervenciones', desc: 'Trazabilidad completa de cada cambio de hélice, calibración de sensores, revisión de motores y reparación. Con fecha, técnico responsable y horas al momento.' },
-  { icon: 'riesgo', title: 'Bloqueo Preventivo', desc: 'Opción de bloquear el registro de nuevos vuelos en aeronaves con mantenimiento vencido, evitando operaciones fuera de cumplimiento.' },
+  { icon: 'riesgo', title: 'Bloqueo Preventivo', desc: 'El despacho valida la aeronave: una aeronave con mantenimiento vencido no se despacha, evitando operaciones fuera de cumplimiento.' },
   { icon: 'reportes', title: 'Registro de Baterías en PDF', desc: 'Exporta el registro con número de serie, ciclos, estado de cada batería e historial de intervenciones, con tu propio código de formato. Listo para auditorías.' },
 ];
 
@@ -119,8 +119,8 @@ export default function MantenimientoClient({ faqItems }) {
               Mantenimiento de <span className="text-primary-300">Drones y Baterías LiPo</span>
             </h1>
             <p className="mt-hero-sub text-base md:text-lg text-navy-100 max-w-xl mt-5">
-              Alertas automáticas a 200 horas de vuelo o 6 meses. Control de ciclos de baterías
-              LiPo. Historial completo de intervenciones. Registro de Baterías en PDF con tu
+              Programa de mantenimiento por modelo de aeronave, con intervalos por horas, ciclos o
+              calendario. Control de ciclos de baterías LiPo. Historial completo de intervenciones. Registro de Baterías en PDF con tu
               propio código de formato.
             </p>
             <div className="mt-hero-cta flex flex-col sm:flex-row items-center gap-3 mt-8">
@@ -161,7 +161,7 @@ export default function MantenimientoClient({ faqItems }) {
             </h2>
             <p className="text-sm text-navy-300 mt-2 max-w-lg mx-auto">
               Bitafly cuenta los ciclos de cada batería LiPo y las horas de cada aeronave por ti.
-              Cuando se acerca un umbral, dispara la alerta antes de que sea un problema en operación.
+              Cada tarea del programa te muestra si está al día o por vencer, antes de que sea un problema en operación.
             </p>
           </div>
           <div className="reveal-fade relative aspect-[1568/718] rounded-3xl overflow-hidden border border-navy-100 shadow-xl bg-white p-3 sm:p-4">

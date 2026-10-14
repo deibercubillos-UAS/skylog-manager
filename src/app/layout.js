@@ -240,7 +240,7 @@ export default function RootLayout({ children }) {
                 "SMS aeronáutico RPAS",
                 "Gestión de flotas de drones",
                 "Autorizaciones de vuelo AeroCivil",
-                "Análisis de riesgo SORA JARUS"
+                "Análisis de riesgos MAUT-5.0-12-055"
               ],
               "sameAs": [
                 "https://www.linkedin.com/company/bitafly",

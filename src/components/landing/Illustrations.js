@@ -216,7 +216,7 @@ export function BatteryMaintScene({ className }) {
         {/* llave inglesa */}
         <path d="M50 36 a8 8 0 1 0 -2 11 l-12 12 a3 3 0 0 0 4 4 l12 -12 a8 8 0 0 0 -2 -15 z" fill={ORANGE} />
         <text x="78" y="40" fontFamily="system-ui, sans-serif" fontSize="13" fontWeight="800" fill={NAVY}>MANTENIMIENTO PROGRAMADO</text>
-        <text x="78" y="60" fontFamily="system-ui, sans-serif" fontSize="12" fill="#64748b">Aeronave a 200 h o 6 meses · revisión requerida</text>
+        <text x="78" y="60" fontFamily="system-ui, sans-serif" fontSize="12" fill="#64748b">Tarea de mantenimiento por vencer · revisión requerida</text>
         <g transform="translate(330 34)"><rect x="0" y="0" width="34" height="24" rx="12" fill="rgba(236,91,19,0.12)" /><text x="17" y="16" textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="10" fontWeight="800" fill={ORANGE}>!</text></g>
       </g>
     </svg>

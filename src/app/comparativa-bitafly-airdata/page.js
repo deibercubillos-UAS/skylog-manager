@@ -29,7 +29,7 @@ const faqSchema = {
       name: '¿Bitafly reemplaza completamente a AirData UAV para operadores en Colombia?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Para operadores que deben cumplir con la RAC 100 (Aerocivil / UAEAC), Bitafly ofrece funcionalidades que AirData no tiene: bitácora en formato F-OPS-002, autorizaciones de vuelo F-OPS-001, SMS aeronáutico y análisis SORA. Ambas plataformas sincronizan vuelos DJI y tienen replay GPS, pero solo Bitafly está adaptado a la normativa colombiana.',
+        text: 'Para operadores que deben cumplir con la RAC 100 (Aerocivil / UAEAC), Bitafly ofrece funcionalidades que AirData no tiene: bitácora en formato F-OPS-002, autorizaciones de vuelo F-OPS-001, SMS aeronáutico y análisis de riesgos. Ambas plataformas sincronizan vuelos DJI y tienen replay GPS, pero solo Bitafly está adaptado a la normativa colombiana.',
       },
     },
     {
@@ -58,7 +58,7 @@ const ROWS = [
   { feature: 'Autorizaciones AeroCivil (F-OPS-001)',   bitafly: '✅ Incluido',                    airdata: '❌ No disponible' },
   { feature: 'SMS aeronáutico',                        bitafly: '✅ Completo',                    airdata: '❌ No disponible' },
   { feature: 'Reportes RAC 100 configurables',         bitafly: '✅ F-OPS-002, F-MNT-003, F-HUM-005', airdata: '❌ No' },
-  { feature: 'Análisis SORA',                          bitafly: '✅ Incluido',                    airdata: '❌ No' },
+  { feature: 'Análisis de riesgos',                          bitafly: '✅ Incluido',                    airdata: '❌ No' },
   { feature: 'Idioma',                                 bitafly: '✅ Español',                     airdata: '⚠️ Inglés' },
   { feature: 'Precios en COP',                         bitafly: '✅ Sí',                          airdata: '❌ USD solamente' },
   { feature: 'Soporte en español',                     bitafly: '✅ 24h',                         airdata: '❌ No' },

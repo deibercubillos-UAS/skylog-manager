@@ -1,6 +1,6 @@
 /**
  * DJI TXT flight log parser — server-side, accepts a Buffer directly.
- * Adapted from dji-parser/parsers/txt-encrypted.js
+ * Adapted from docs/legacy-v1/dji-parser/parsers/txt-encrypted.js
  *
  * Requires: DJI_API_KEY in environment variables.
  */

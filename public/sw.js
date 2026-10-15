@@ -6,13 +6,13 @@
  *
  * Cache layers:
  *   STATIC_CACHE  — assets /_next/static/* (inmutables, content-hashed)
- *   PAGES_CACHE   — páginas del dashboard (stale-while-revalidate)
+ *   PAGES_CACHE   — páginas navegadas (network-first, respaldo offline)
  *   API_CACHE     — NUNCA se cachea — siempre network-only
  *
  * Offline fallback: /offline.html si la red falla y la página no está en caché.
  */
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const STATIC_CACHE  = `bitafly-static-${CACHE_VERSION}`;
 const PAGES_CACHE   = `bitafly-pages-${CACHE_VERSION}`;
 const OFFLINE_URL   = '/offline.html';
@@ -20,7 +20,6 @@ const OFFLINE_URL   = '/offline.html';
 // Assets del shell que se pre-cachean en el install
 const PRECACHE_URLS = [
   OFFLINE_URL,
-  '/dashboard',
   '/fonts/material-symbols-outlined.woff2',
 ];
 
@@ -95,15 +94,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. Páginas del dashboard — network-first
+  // 4. Navegaciones (páginas HTML de la app V2) — network-first
   //    Siempre intenta la red primero para que tras un deploy el HTML (y sus chunks)
   //    estén frescos → evita ChunkLoadError por HTML cacheado viejo. La caché solo
   //    es respaldo offline. El app nativo (Capacitor) así siempre refleja la web.
-  if (url.pathname.startsWith('/dashboard') || url.pathname === '/') {
+  //    No se cachean páginas de autenticación ni el panel master.
+  const NO_CACHE = ['/login', '/registro', '/register', '/reset-password', '/update-password', '/admin'];
+  if (request.mode === 'navigate') {
+    const cacheable = !NO_CACHE.some(p => url.pathname === p || url.pathname.startsWith(p + '/'));
     event.respondWith(
       fetch(request)
         .then(response => {
-          if (response.ok) {
+          if (cacheable && response.ok && !response.redirected) {
             const copy = response.clone();
             caches.open(PAGES_CACHE).then(cache => cache.put(request, copy));
           }
@@ -129,7 +131,7 @@ self.addEventListener('push', (event) => {
         body:  data.body  || '',
         icon:  '/icons/icon-192.png',
         badge: '/icons/icon-192.png',
-        data:  { url: data.url || '/dashboard' },
+        data:  { url: data.url || '/inicio' },
       })
     );
   } catch {
@@ -139,7 +141,7 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = event.notification.data?.url || '/dashboard';
+  const target = event.notification.data?.url || '/inicio';
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
       const existing = windowClients.find(c => c.url.includes(target) && 'focus' in c);

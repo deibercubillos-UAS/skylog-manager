@@ -1,6 +1,6 @@
 // Skylog V2.0 — F2 Comando y Control. Lectura de sesiones C2 para el
 // panel "Dron en línea" del Centro de Control. Solo lee — la escritura es
-// exclusiva de c2-gateway vía service role (ver c2-gateway/src/index.js,
+// exclusiva de c2-gateway vía service role (ver apps/c2-gateway/src/index.js,
 // nunca desde el navegador). RLS de `c2_sessions`/`c2_telemetry` ya acota a
 // miembros de la organización; este endpoint solo agrega la última muestra
 // de telemetría por sesión (join manual, N pequeño — C2 "no es broadcast",

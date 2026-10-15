@@ -277,7 +277,7 @@ export default function CentroDeControlPage() {
             <p className="font-bold">Sin dron conectado ahora mismo</p>
             <p className="text-xs">
               Requiere un RC con Pilot 2 apuntando a la página de enlace (<code className="bg-navy-50 px-1 rounded">/c2/pilot2</code>) y el
-              servicio <code className="bg-navy-50 px-1 rounded">c2-gateway</code> desplegado — ver <code className="bg-navy-50 px-1 rounded">c2-gateway/README.md</code>.
+              servicio <code className="bg-navy-50 px-1 rounded">c2-gateway</code> desplegado — ver <code className="bg-navy-50 px-1 rounded">apps/c2-gateway/README.md</code>.
             </p>
           </div>
         ) : (

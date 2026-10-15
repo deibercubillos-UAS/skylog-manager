@@ -28,7 +28,7 @@ exista un segundo servicio real (`aerocivil-agent` en F4b, o si se retoma F2/`c2
 apps/
   railway-robot/     ← ✅ movido (2026-08-22)
   web/               ← ⬜ pendiente — el Next.js actual, movido sin cambios funcionales
-  c2-gateway/        ← ⬜ pendiente, nuevo, siempre encendido (Railway/Fly) — condicional a retomar F2
+  apps/c2-gateway/   ← (movido 2026-10-14) ⬜ pendiente, nuevo, siempre encendido (Railway/Fly) — condicional a retomar F2
   aerocivil-agent/   ← ⬜ pendiente, nuevo — condicional a F4b
 demo-enterprise/     ← se queda en la raíz, a propósito (Root Directory de Vercel apunta ahí)
 packages/

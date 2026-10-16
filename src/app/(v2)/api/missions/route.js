@@ -11,7 +11,7 @@ import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { createNotifications } from '@/lib/v2/notify';
-import { bogotaDay } from '@/lib/v2/dispatchContext';
+import { bogotaDay, asBogotaInstant } from '@/lib/v2/dispatchContext';
 import { normalizeRequiredAdditions, evaluatePicQualifications, qualificationMessages } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
@@ -129,7 +129,7 @@ export async function POST(request) {
       aircraft_id: aircraftId || null,
       name,
       zone,
-      scheduled_at: scheduledAt,
+      scheduled_at: asBogotaInstant(scheduledAt),
       notes: notes || null,
       zone_geo: zoneGeo || null,
       line_of_sight: lineOfSight || null,

@@ -101,3 +101,15 @@ export async function loadDispatchContext(supabase, { userId, missionId, now = n
     ...verdict,
   };
 }
+
+/**
+ * Una fecha-hora sin zona («2026-10-16T09:30») es hora de Colombia (UTC−5 todo el año). Sin esto, Postgres la
+ * interpreta como UTC y la misión sale 5 horas antes. Con zona explícita («…Z», «…-05:00») se respeta tal cual.
+ */
+export function asBogotaInstant(value) {
+  if (typeof value !== 'string') return value;
+  const v = value.trim();
+  if (/(Z|[+-]\d{2}:?\d{2})$/.test(v)) return v;
+  const withSeconds = /T\d{2}:\d{2}$/.test(v) ? `${v}:00` : v;
+  return `${withSeconds}-05:00`;
+}

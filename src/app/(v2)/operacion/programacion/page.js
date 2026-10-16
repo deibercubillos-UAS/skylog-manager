@@ -201,7 +201,7 @@ export default function ProgramacionPage() {
           observerPersonId: form.observerPersonId || null,
           aircraftId: form.aircraftId || null,
           zone: form.zone,
-          scheduledAt: `${form.date}T${form.time}`,
+          scheduledAt: new Date(`${form.date}T${form.time}:00-05:00`).toISOString(), // hora de Colombia (UTC−5)
           notes: form.notes,
           lineOfSight: form.lineOfSight,
           requiredAdditions: form.requiredAdditions,

@@ -264,6 +264,12 @@ describe('matriz de permisos por rol (70-matriz-de-permisos.md)', () => {
     assert.equal(r.status, 403, r.text);
   });
 
+  test('una misión programada con hora sin zona se guarda como hora de Colombia (UTC−5)', async () => {
+    const r = await call('POST', '/api/missions', { cookie: A.cookie, body: body({ picPersonId: A.personId, name: uniq('Misión'), zone: 'Zona de prueba', scheduledAt: '2026-12-01T09:30' }) });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(new Date(r.json.mission.scheduled_at).toISOString(), '2026-12-01T14:30:00.000Z', r.text);
+  });
+
   test('los reportes de Tiempos de servicio y de Programación responden (sin embeds de relaciones inexistentes)', async () => {
     for (const r of ['duty', 'programacion']) {
       const res = await call('GET', `/api/reportes/${r}?organizationId=${A.organizationId}`, { cookie: A.cookie });

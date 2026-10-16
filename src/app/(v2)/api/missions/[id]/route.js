@@ -4,6 +4,7 @@
 // misión (pedido explícito del usuario). Sin DELETE — se conserva el
 // registro (evidencia de qué se programó/canceló), mismo criterio que
 // cancelar en vez de borrar.
+import { asBogotaInstant } from '@/lib/v2/dispatchContext';
 import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
@@ -34,7 +35,7 @@ export async function PATCH(request, { params }) {
 
   const updates = {};
   for (const [key, column] of Object.entries(EDITABLE_FIELDS)) {
-    if (body[key] !== undefined) updates[column] = body[key];
+    if (body[key] !== undefined) updates[column] = key === 'scheduledAt' ? asBogotaInstant(body[key]) : body[key];
   }
   if (Object.keys(updates).length === 0) {
     return Response.json({ error: 'Ningún campo editable en el cuerpo de la petición' }, { status: 400 });

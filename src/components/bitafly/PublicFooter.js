@@ -3,6 +3,7 @@
 // reutilizable en cualquier landing rediseñada.
 
 import Image from 'next/image';
+import { LEGAL_PAGES } from '@/lib/legalPages';
 
 const FOOTER_COLUMNS = [
   {
@@ -114,7 +115,14 @@ export default function PublicFooter({ brandDesc = 'Bitácora digital RAC 100 pa
           </div>
         ))}
       </div>
-      <div className="max-w-5xl mx-auto border-t border-white/10 mt-10 pt-6 flex flex-col sm:flex-row justify-between gap-3 text-xs text-navy-300">
+      <div className="max-w-5xl mx-auto border-t border-white/10 mt-10 pt-6 flex flex-wrap gap-x-4 gap-y-2 text-xs text-navy-300">
+        {LEGAL_PAGES.map((l) => (
+          <a key={l.href} href={l.href} className="hover:text-primary-300 transition-colors">
+            {l.label}
+          </a>
+        ))}
+      </div>
+      <div className="max-w-5xl mx-auto mt-4 flex flex-col sm:flex-row justify-between gap-3 text-xs text-navy-300">
         <span>© {new Date().getFullYear()} BitaFly S.A.S.</span>
         <a href="mailto:soporte@bitafly.com" className="hover:text-primary-300 transition-colors">
           soporte@bitafly.com

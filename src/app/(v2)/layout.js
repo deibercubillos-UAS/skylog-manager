@@ -224,6 +224,10 @@ export default function V2Layout({ children }) {
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const permissions = currentOrg?.permissions || {};
   const isManager = permissions['C6'] === 'edit'; // enviar anuncios
+  // Pantalla actual según el menú (la coincidencia más larga): si el rol no tiene ni el permiso de verla, no se muestra
+  // el contenido aunque se escriba la dirección a mano (el menú solo oculta el enlace).
+  const currentLink = NAV_LINKS.filter((l) => pathname === l.href || pathname.startsWith(l.href + '/')).sort((a, b) => b.href.length - a.href.length)[0];
+  const screenBlocked = !!currentOrg && !!currentLink?.perm && (permissions[currentLink.perm] || 'none') === 'none';
   const linkVisible = (l) => !l.perm || (permissions[l.perm] || 'none') !== 'none';
   const isSuperadmin = !!context?.organizations?.some((o) => o.role === 'superadmin');
   const role = currentOrg?.role;
@@ -515,7 +519,14 @@ export default function V2Layout({ children }) {
             permissions={permissions}
             links={[...NAV_LINKS.filter(linkVisible), ...FOOTER_LINKS.map((l) => ({ ...l, group: 'Cuenta' }))]}
           />
-          {children}
+          {screenBlocked ? (
+            <div className="bg-white rounded-2xl border border-navy-100 p-6 text-center space-y-2">
+              <p className="text-sm font-semibold text-navy">Esta sección no está disponible para tu rol.</p>
+              <p className="text-xs text-navy-400">Si crees que debería estarlo, pídele al Gerente General de tu organización que revise tus permisos.</p>
+            </div>
+          ) : (
+            children
+          )}
         </div>
       </main>
 

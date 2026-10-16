@@ -4,7 +4,8 @@
 // es obligatorio (constraint `maintenance_tasks_has_interval` en la base —
 // esta validación en la API solo da un mensaje claro antes del 500 crudo).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const TOLERANCE_UNITS = ['pct', 'hours', 'days', 'cycles'];
 
@@ -29,7 +30,7 @@ export async function POST(request) {
 
   const { error: resolveError, memberships, personId } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'L4')) {
     return Response.json({ error: 'Solo un gestor puede configurar tareas de mantenimiento' }, { status: 403 });
   }
 

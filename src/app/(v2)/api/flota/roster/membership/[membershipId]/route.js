@@ -7,7 +7,8 @@
 // organización, no de la persona.
 import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const ASSIGNABLE_ROLES = ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'];
 
@@ -28,7 +29,7 @@ export async function PATCH(request, { params }) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, existing.organization_id)) {
+  if (!membershipsCanEdit(memberships, existing.organization_id, 'K6')) {
     return Response.json({ error: 'Solo un gestor de esta organización puede editar la membresía' }, { status: 403 });
   }
 
@@ -36,6 +37,10 @@ export async function PATCH(request, { params }) {
   const patch = {};
   if (body.role !== undefined) {
     if (!ASSIGNABLE_ROLES.includes(body.role)) return Response.json({ error: 'role debe ser uno de: ' + ASSIGNABLE_ROLES.join(', ') }, { status: 400 });
+    // K5: cambiar el rol de un miembro es del Gerente General (también cubre ascender a Gerente General).
+    if (!membershipsCanEdit(memberships, existing.organization_id, 'K5')) {
+      return Response.json({ error: 'Solo un Gerente General puede cambiar roles' }, { status: 403 });
+    }
     patch.role = body.role;
   }
   if (body.close) {

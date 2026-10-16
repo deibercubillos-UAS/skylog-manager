@@ -52,7 +52,8 @@ export default function TripulacionPage() {
   const [editForm, setEditForm] = useState(null);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['K2'] === 'edit';
+  const canRoles = currentOrg?.permissions?.['K5'] === 'edit';
 
   const loadRoster = useCallback(async (orgId) => {
     if (!orgId) return;
@@ -140,7 +141,7 @@ export default function TripulacionPage() {
       const personData = await personRes.json();
       if (!personRes.ok) throw new Error(personData.error || 'Error actualizando la persona');
 
-      if (isManager && editForm.role !== m.role) {
+      if (canRoles && editForm.role !== m.role) {
         const roleRes = await fetch(`/api/flota/roster/membership/${m.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -337,7 +338,7 @@ export default function TripulacionPage() {
                                 ))}
                               </Field>
                               <Field label="Número de documento" value={editForm.documentNumber} onChange={(e) => setEditForm((f) => ({ ...f, documentNumber: e.target.value }))} />
-                              {isManager ? (
+                              {canRoles ? (
                                 <Field as="select" label="Rol" value={editForm.role} onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value }))}>
                                   {ASSIGNABLE_ROLES.map((r) => (
                                     <option key={r} value={r}>{ROLE_LABELS[r]}</option>

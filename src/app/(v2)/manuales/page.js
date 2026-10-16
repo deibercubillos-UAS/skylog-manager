@@ -55,7 +55,7 @@ export default function ManualesPage() {
   const [ackBusyId, setAckBusyId] = useState(null);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['AA4'] === 'edit';
 
   const loadManuales = useCallback(async (orgId) => {
     if (!orgId) return;

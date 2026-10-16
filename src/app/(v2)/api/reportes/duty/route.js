@@ -1,7 +1,8 @@
 // Skylog V2.0 — Reportes: Tiempos de Servicio (RAC 100 §100.540) —
 // registro diario por piloto (100.535(10)-(11)). Solo gestores.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanView } from '@/lib/v2/permissions';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -19,7 +20,7 @@ export async function GET(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) return Response.json({ error: 'Solo un gestor puede ver reportes' }, { status: 403 });
+  if (!membershipsCanView(memberships, organizationId, 'AC1')) return Response.json({ error: 'Solo un gestor puede ver reportes' }, { status: 403 });
 
   let query = supabase
     .from('duty_periods')

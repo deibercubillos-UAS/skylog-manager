@@ -31,8 +31,8 @@ const ROLE_LABELS = {
 };
 
 // group: solo agrupa visualmente el sidebar (mismos 3 grupos que v1:
-// Operación / Flota & Equipo / Documentación). managerOnly: oculta el
-// enlace para rol `piloto` — mismo patrón `pilotHidden` de v1
+// Operación / Flota & Equipo / Documentación). perm: id de la matriz de permisos (docs/skylog-v2/70); oculta el
+// enlace si el rol no tiene ese permiso — antes `managerOnly` para rol `piloto` — mismo patrón `pilotHidden` de v1
 // (dashboard/layout.js), aplicado solo a los 3 módulos cuya página
 // completa ya bloquea a un no-gestor con "Solo un gestor puede..."
 // (Reportes, Proveedores, Reporte Mensual SMS — verificado en código,
@@ -49,7 +49,7 @@ const NAV_LINKS = [
   { name: 'Tiempo de servicio', icon: 'schedule', href: '/operacion/duty', group: 'Operación' },
   { name: 'Aeronaves', icon: 'flight', href: '/flota', group: 'Flota & Equipo' },
   { name: 'Baterías y Componentes', icon: 'battery_full', href: '/flota/baterias', group: 'Flota & Equipo' },
-  { name: 'Tripulación', icon: 'groups', href: '/flota/tripulacion', group: 'Flota & Equipo' },
+  { name: 'Tripulación', icon: 'groups', href: '/flota/tripulacion', group: 'Flota & Equipo', perm: 'K1' },
   { name: 'Mantenimiento', icon: 'build', href: '/flota/mantenimiento', group: 'Flota & Equipo' },
   { name: 'Existencias de equipo', icon: 'inventory_2', href: '/flota/equipo', group: 'Flota & Equipo' },
   { name: 'ETA', icon: 'dns', href: '/flota/eta', group: 'Flota & Equipo' },
@@ -71,7 +71,7 @@ const NAV_LINKS = [
   { name: 'Gestión del cambio', icon: 'published_with_changes', href: '/sms/cambios', group: 'SMS' },
   { name: 'Indicadores (SPI)', icon: 'monitoring', href: '/sms/indicadores', group: 'SMS' },
   { name: 'Mejora Continua', icon: 'fact_check', href: '/sms/mejora-continua', group: 'SMS' },
-  { name: 'Reporte Mensual SMS', icon: 'summarize', href: '/sms/reporte-mensual', group: 'SMS', managerOnly: true },
+  { name: 'Reporte Mensual SMS', icon: 'summarize', href: '/sms/reporte-mensual', group: 'SMS', perm: 'T1' },
   // { name: 'MSMS', icon: 'description', href: '/sms/msms', group: 'SMS' },
   { name: 'Reportes y casos', icon: 'report', href: '/sms/reportes', group: 'SMS' },
   // { name: 'Capacitación SMS', icon: 'event_repeat', href: '/sms/capacitacion', group: 'SMS' },
@@ -79,12 +79,12 @@ const NAV_LINKS = [
   { name: 'Mapas', icon: 'map', href: '/sms/mapas', group: 'SMS' },
   { name: 'Capacitación', icon: 'school', href: '/capacitacion', group: 'Documentación' },
   { name: 'Listas de Chequeo', icon: 'checklist', href: '/listas-de-chequeo', group: 'Documentación' },
-  { name: 'Proveedores', icon: 'storefront', href: '/proveedores', group: 'Documentación', managerOnly: true },
-  { name: 'Pólizas', icon: 'verified_user', href: '/polizas', group: 'Documentación', managerOnly: true },
-  { name: 'Importar desde Excel', icon: 'upload_file', href: '/organizacion/importar', group: 'Documentación', managerOnly: true },
-  { name: 'Registro de acciones', icon: 'history', href: '/organizacion/registro', group: 'Documentación', managerOnly: true },
-  { name: 'Retención y custodia', icon: 'lock_clock', href: '/retencion', group: 'Documentación', managerOnly: true },
-  { name: 'Reportes', icon: 'summarize', href: '/reportes', group: 'Documentación', managerOnly: true },
+  { name: 'Proveedores', icon: 'storefront', href: '/proveedores', group: 'Documentación', perm: 'Y1' },
+  { name: 'Pólizas', icon: 'verified_user', href: '/polizas', group: 'Documentación', perm: 'Z1' },
+  { name: 'Importar desde Excel', icon: 'upload_file', href: '/organizacion/importar', group: 'Documentación', perm: 'AB2' },
+  { name: 'Registro de acciones', icon: 'history', href: '/organizacion/registro', group: 'Documentación', perm: 'AB3' },
+  { name: 'Retención y custodia', icon: 'lock_clock', href: '/retencion', group: 'Documentación', perm: 'AB4' },
+  { name: 'Reportes', icon: 'summarize', href: '/reportes', group: 'Documentación', perm: 'AC1' },
   { name: 'Manuales', icon: 'library_books', href: '/manuales', group: 'Documentación' },
   // Expediente Aerocivil oculto a pedido del usuario (2026-09-30) — la página
   // /aerocivil sigue intacta, solo se quita el enlace del sidebar.
@@ -222,7 +222,9 @@ export default function V2Layout({ children }) {
   }, [organizationId]);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const permissions = currentOrg?.permissions || {};
+  const isManager = permissions['C6'] === 'edit'; // enviar anuncios
+  const linkVisible = (l) => !l.perm || (permissions[l.perm] || 'none') !== 'none';
   const isSuperadmin = !!context?.organizations?.some((o) => o.role === 'superadmin');
   const role = currentOrg?.role;
   const displayRole = ROLE_LABELS[role] || role || '—';
@@ -285,7 +287,7 @@ export default function V2Layout({ children }) {
 
         <nav aria-label="Menú lateral" className="flex-1 p-3 space-y-3 mt-2 overflow-y-auto">
           {NAV_GROUPS.map((group) => {
-            const groupLinks = NAV_LINKS.filter((l) => l.group === group && (!l.managerOnly || isManager));
+            const groupLinks = NAV_LINKS.filter((l) => l.group === group && linkVisible(l));
             if (!groupLinks.length) return null;
             const isCollapsed = !!collapsedGroups[group];
             const groupColor = GROUP_COLORS[group] || GROUP_COLORS.Operación;
@@ -488,8 +490,8 @@ export default function V2Layout({ children }) {
             open={paletteOpen}
             onClose={() => setPaletteOpen(false)}
             organizationId={organizationId}
-            isManager={isManager}
-            links={[...NAV_LINKS.filter((l) => !l.managerOnly || isManager), ...FOOTER_LINKS.map((l) => ({ ...l, group: 'Cuenta' }))]}
+            permissions={permissions}
+            links={[...NAV_LINKS.filter(linkVisible), ...FOOTER_LINKS.map((l) => ({ ...l, group: 'Cuenta' }))]}
           />
           {children}
         </div>

@@ -481,7 +481,7 @@ export default function RiesgosPage() {
   const [hazardError, setHazardError] = useState(null);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['P2'] === 'edit';
 
   const loadMatrix = useCallback(async (orgId) => {
     if (!orgId) return;

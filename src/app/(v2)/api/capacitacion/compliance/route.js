@@ -11,9 +11,10 @@
 // decisión 121 (antes un gestor nunca veía su propio cumplimiento, solo el
 // roster). `_ComplianceRoster.js` sigue consumiendo `roster` sin cambios.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { TRAINING_TYPES } from '@/lib/v2/training';
 import { computeEvaluationCompliance, personEvaluationStatus } from '@skylog/domain';
+import { membershipsCanView } from '@/lib/v2/permissions';
 
 function toDomainEvaluation(row) {
   return { id: row.id, dueDate: row.due_date, maxAttempts: row.max_attempts };
@@ -61,7 +62,7 @@ export async function GET(request) {
     compliances[evaluation.id] = computeEvaluationCompliance(evaluation, attempts);
   }
 
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanView(memberships, organizationId, 'W4')) {
     return Response.json({ evaluations: evaluationRows, compliances });
   }
 

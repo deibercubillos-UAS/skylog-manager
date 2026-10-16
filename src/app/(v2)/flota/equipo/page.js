@@ -23,7 +23,7 @@ export default function EquipoPage() {
   const [editForm, setEditForm] = useState(null);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['M2'] === 'edit';
 
   const load = useCallback(async (orgId) => {
     if (!orgId) return;

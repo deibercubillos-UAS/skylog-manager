@@ -3,10 +3,11 @@
 // historial. El Gerente SMS se designa en /sms/gobernanza (validación de perfil propia), aquí solo se lista.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanView } from '@/lib/v2/permissions';
 import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { validateDesignationInput, DESIGNATION_ROLES } from '@skylog/domain';
 
-const AUTHORITY_ROLES = ['admin', 'gerente_sms', 'superadmin']; // mismo criterio que levantar una custodia
+const AUTHORITY_ROLES = ['admin', 'superadmin']; // AD9: solo el Gerente General designa cargos
 
 async function session() {
   const supabase = await createClientSSR();
@@ -35,7 +36,7 @@ export async function GET(request) {
   const canDesignate = (s.memberships || []).some((m) => m.organization_id === organizationId && AUTHORITY_ROLES.includes(m.role));
   // Las rutas de archivo no salen del servidor: solo si el acta y la hoja de vida están cargadas.
   const designations = (data || []).map(({ act_document_path, resume_document_path, ...d }) => ({ ...d, has_act_document: !!act_document_path, has_resume_document: !!resume_document_path }));
-  const canView = (s.memberships || []).some((m) => m.organization_id === organizationId && ['admin', 'jefe_pilotos', 'gerente_sms', 'superadmin'].includes(m.role));
+  const canView = membershipsCanView(s.memberships, organizationId, 'AD8');
   return Response.json({ designations, roles: DESIGNATION_ROLES, canDesignate, canView });
 }
 

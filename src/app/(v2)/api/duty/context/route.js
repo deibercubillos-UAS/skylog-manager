@@ -3,6 +3,7 @@
 // en cada una. Evita que el cliente consulte `memberships`/`accounts` directo.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { permissionsForRole } from '@skylog/domain';
 
 export async function GET() {
   const t0 = Date.now();
@@ -42,6 +43,8 @@ export async function GET() {
       id: m.organization_id,
       role: m.role,
       isDutyManager: ['admin', 'jefe_pilotos', 'gerente_sms', 'superadmin'].includes(m.role),
+      // Nivel ('edit' | 'view' | 'none') de cada función de la matriz de permisos para este rol.
+      permissions: permissionsForRole(m.role),
       name: org?.company_name || m.organization_id,
       logoUrl: org?.logo_url || null,
     };

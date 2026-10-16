@@ -1,7 +1,8 @@
 // Skylog V2.0 — Manuales: roster de la versión vigente para gestores —
 // todos los miembros activos de la org con leído/pendiente + fecha.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanView } from '@/lib/v2/permissions';
 
 export async function GET(request, { params }) {
   params = await params;
@@ -18,7 +19,7 @@ export async function GET(request, { params }) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, manual.organization_id)) {
+  if (!membershipsCanView(memberships, manual.organization_id, 'AA3')) {
     return Response.json({ error: 'Solo un gestor puede ver el seguimiento de lectura' }, { status: 403 });
   }
 

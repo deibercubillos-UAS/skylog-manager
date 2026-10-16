@@ -3,10 +3,11 @@
 // participa; nadie más. Mismo almacenamiento que el resto de adjuntos (bucket privado `documents`, 4 MB, URL
 // firmada de 1 h) y la ruta del archivo nunca sale del servidor: el listado solo dice qué tipos hay cargados.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storageProblem } from '@/lib/v2/adminKey';
 import { storagePut, storageSignedUrl, storageRemove } from '@/lib/storage';
 import { DOCUMENT_MAX_BYTES } from '@/lib/v2/rowDocument';
+import { membershipsCanView } from '@/lib/v2/permissions';
 
 const BUCKET = 'documents';
 const TYPES = ['cedula', 'curso_piloto', 'examen_teorico', 'certificado_medico', 'otro'];
@@ -28,7 +29,7 @@ async function session(request) {
 async function canAccess(s, targetId) {
   if (targetId === s.personId) return true;
   const { data } = await s.supabase.from('memberships').select('organization_id').eq('person_id', targetId).eq('status', 'activa');
-  return (data || []).some((m) => isDutyManager(s.memberships, m.organization_id));
+  return (data || []).some((m) => membershipsCanView(s.memberships, m.organization_id, 'K10'));
 }
 
 export async function GET(request) {

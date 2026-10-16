@@ -20,7 +20,8 @@ export default function ImportarPage() {
   const input = useRef(null);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['AB2'] === 'edit';
+  const canSee = (currentOrg?.permissions?.['AB2'] || 'none') !== 'none';
 
   useEffect(() => {
     (async () => {
@@ -66,7 +67,7 @@ export default function ImportarPage() {
   }
 
   if (loading) return <div className="py-24 flex justify-center"><div className="size-10 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
-  if (!isManager) {
+  if (!canSee) {
     return (
       <div className="space-y-4">
         <SectionHero eyebrow="Organización" title="Importar desde Excel" description="Carga inicial de tu operación." />

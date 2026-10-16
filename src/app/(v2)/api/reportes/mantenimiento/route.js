@@ -1,7 +1,8 @@
 // Skylog V2.0 — Reportes: Mantenimiento (eventos de mantenimiento +
 // eventos inesperados). Solo gestores.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanView } from '@/lib/v2/permissions';
 
 function aircraftLabel(a) {
   if (!a) return '—';
@@ -24,7 +25,7 @@ export async function GET(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) return Response.json({ error: 'Solo un gestor puede ver reportes' }, { status: 403 });
+  if (!membershipsCanView(memberships, organizationId, 'AC1')) return Response.json({ error: 'Solo un gestor puede ver reportes' }, { status: 403 });
 
   let eventsQuery = supabase
     .from('maintenance_events')

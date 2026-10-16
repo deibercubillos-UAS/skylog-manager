@@ -10,8 +10,9 @@
 import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { createNotifications } from '@/lib/v2/notify';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { canReleaseHold } from '@skylog/domain';
+import { membershipsCanEdit, membershipsCanView } from '@/lib/v2/permissions';
 
 const HOLD_SELECT = `
   *,
@@ -60,7 +61,7 @@ export async function GET(request) {
 
   const organizationId = new URL(request.url).searchParams.get('organizationId');
   if (!organizationId) return Response.json({ error: 'organizationId es requerido' }, { status: 400 });
-  if (!isDutyManager(auth.memberships, organizationId)) {
+  if (!membershipsCanView(auth.memberships, organizationId, 'AB4')) {
     return Response.json({ error: 'Solo un gestor puede ver las custodias legales' }, { status: 403 });
   }
 
@@ -79,7 +80,7 @@ export async function POST(request) {
   if (!organizationId || !reason?.trim() || !Array.isArray(flightIds) || flightIds.length === 0) {
     return Response.json({ error: 'organizationId, reason y al menos un vuelo (flightIds) son requeridos' }, { status: 400 });
   }
-  if (!isDutyManager(auth.memberships, organizationId)) {
+  if (!membershipsCanEdit(auth.memberships, organizationId, 'AB5')) {
     return Response.json({ error: 'Solo un gestor puede abrir una custodia legal' }, { status: 403 });
   }
   const flightError = await validateFlights(supabase, organizationId, flightIds);
@@ -134,7 +135,7 @@ export async function PATCH(request) {
   if (hold.released_at) return Response.json({ error: 'Esta custodia ya fue liberada y no admite cambios' }, { status: 409 });
 
   const membership = (auth.memberships || []).find((m) => m.organization_id === hold.organization_id);
-  if (!isDutyManager(auth.memberships, hold.organization_id)) {
+  if (!membershipsCanEdit(auth.memberships, hold.organization_id, action === 'release' ? 'AB6' : 'AB5')) {
     return Response.json({ error: 'Solo un gestor puede modificar una custodia' }, { status: 403 });
   }
 

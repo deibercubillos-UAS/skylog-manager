@@ -71,8 +71,8 @@ export default function OrganizacionPage() {
   const [roleError, setRoleError] = useState(null);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
-  const isGG = ['admin', 'superadmin'].includes(currentOrg?.role);
+  const isManager = currentOrg?.permissions?.['AD2'] === 'edit';
+  const canChangeRoles = currentOrg?.permissions?.['K5'] === 'edit';
 
   const loadOrg = useCallback(async (orgId) => {
     if (!orgId) return;
@@ -433,7 +433,7 @@ export default function OrganizacionPage() {
 
       <EmergencyContacts organizationId={organizationId} />
 
-      <DangerousGoods key={cert?.dangerous_goods_declared_at || 'none'} organizationId={organizationId} cert={cert} canSign={['admin', 'gerente_sms', 'superadmin'].includes(currentOrg?.role)} onSaved={() => loadCert(organizationId)} />
+      <DangerousGoods key={cert?.dangerous_goods_declared_at || 'none'} organizationId={organizationId} cert={cert} canSign={currentOrg?.permissions?.['AD10'] === 'edit'} onSaved={() => loadCert(organizationId)} />
 
       {/* Miembros */}
       <div className="bg-white rounded-2xl border border-navy-100 overflow-hidden">
@@ -449,19 +449,19 @@ export default function OrganizacionPage() {
             members.map((m) => (
               <div key={m.person_id} className="flex items-center justify-between px-4 py-2.5 text-sm gap-3">
                 <span className="font-medium text-navy truncate">{m.people?.full_name || m.person_id}</span>
-                {isManager ? (
+                {canChangeRoles ? (
                   <select
                     value={m.role}
-                    disabled={roleBusyId === m.person_id || m.role === 'superadmin' || (!isGG && m.role === 'admin')}
+                    disabled={roleBusyId === m.person_id || m.role === 'superadmin'}
                     onChange={(e) => handleRoleChange(m.person_id, e.target.value)}
                     className="text-xs border border-navy-200 rounded-lg px-2 py-1 shrink-0 disabled:opacity-60"
                   >
-                    {(!ASSIGNABLE_ROLES.includes(m.role) || (!isGG && m.role === 'admin')) && (
+                    {!ASSIGNABLE_ROLES.includes(m.role) && (
                       <option value={m.role} disabled>
                         {ROLE_LABELS[m.role] || m.role}
                       </option>
                     )}
-                    {ASSIGNABLE_ROLES.filter((r) => isGG || r !== 'admin').map((r) => (
+                    {ASSIGNABLE_ROLES.map((r) => (
                       <option key={r} value={r}>
                         {ROLE_LABELS[r]}
                       </option>

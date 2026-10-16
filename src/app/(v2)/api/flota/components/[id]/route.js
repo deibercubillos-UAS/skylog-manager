@@ -2,7 +2,8 @@
 // `retired_at_aircraft_hours` congela el reloj de uso en las horas reales de
 // la aeronave al momento de la acción — nunca se acepta del cliente.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function PATCH(request, { params }) {
   params = await params;
@@ -24,7 +25,7 @@ export async function PATCH(request, { params }) {
 
   const { error: resolveError, memberships, personId } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, existing.organization_id)) {
+  if (!membershipsCanEdit(memberships, existing.organization_id, 'J4')) {
     return Response.json({ error: 'Solo un gestor puede retirar o reemplazar componentes' }, { status: 403 });
   }
 

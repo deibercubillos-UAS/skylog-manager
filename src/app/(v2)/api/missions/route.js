@@ -9,10 +9,11 @@
 // a quien no sea gestor.
 import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { createNotifications } from '@/lib/v2/notify';
 import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { normalizeRequiredAdditions, evaluatePicQualifications, qualificationMessages } from '@skylog/domain';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const MISSION_SELECT = '*, pic:pic_person_id(full_name, license_number, person_additions!person_additions_person_id_fkey(addition, valid_until)), observer:observer_person_id(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model))';
 
@@ -64,7 +65,7 @@ export async function GET(request) {
   const { data: missions, error } = await query;
   if (error) return Response.json({ error: 'Error consultando misiones' }, { status: 500 });
 
-  return Response.json({ missions: (missions || []).map(withQualification), isManager: isDutyManager(memberships, organizationId) });
+  return Response.json({ missions: (missions || []).map(withQualification), isManager: membershipsCanEdit(memberships, organizationId, 'E2') });
 }
 
 // POST — programar una misión nueva. Solo gestores (RLS lo exige también,
@@ -92,7 +93,7 @@ export async function POST(request) {
 
   const { error: resolveError, memberships, personId } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'E2')) {
     return Response.json({ error: 'Solo un gestor (Jefe de Pilotos, Gerente SMS, Gerente General) puede programar misiones' }, { status: 403 });
   }
 

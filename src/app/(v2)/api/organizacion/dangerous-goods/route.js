@@ -6,7 +6,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateDangerousGoodsDeclaration } from '@skylog/domain';
 
-const AUTHORITY_ROLES = ['admin', 'gerente_sms', 'superadmin'];
+const AUTHORITY_ROLES = ['admin', 'jefe_pilotos', 'gerente_sms', 'superadmin']; // AD10
 
 export async function POST(request) {
   const supabase = await createClientSSR();

@@ -3,8 +3,9 @@
 // nunca se acepta como valor del cliente (regla S2) — depende de los ciclos
 // ya capturados en organization_monthly_cycles para ese mismo periodo.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { monthlyRate } from '@skylog/domain';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -30,7 +31,7 @@ export async function POST(request) {
     .maybeSingle();
   if (indicatorError) return Response.json({ error: 'Error verificando el indicador' }, { status: 500 });
   if (!indicator) return Response.json({ error: 'Indicador no encontrado' }, { status: 404 });
-  if (!isDutyManager(memberships, indicator.organization_id)) {
+  if (!membershipsCanEdit(memberships, indicator.organization_id, 'R3')) {
     return Response.json({ error: 'Solo un gestor puede capturar datos mensuales' }, { status: 403 });
   }
 

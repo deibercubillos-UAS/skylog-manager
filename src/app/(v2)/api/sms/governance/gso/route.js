@@ -5,8 +5,9 @@
 // modelo de identidad); cierra cualquier designación gerente_sms activa
 // previa antes de crear la nueva ("único cargo", §7.2.5.2).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateGsoProfile, resolveOrganizationSmsProfile } from '@skylog/domain';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -32,7 +33,7 @@ export async function POST(request) {
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'V3')) {
     return Response.json({ error: 'Solo un gestor puede designar al Gerente de Seguridad Operacional' }, { status: 403 });
   }
 

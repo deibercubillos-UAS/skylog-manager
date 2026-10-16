@@ -2,8 +2,9 @@
 // (endpoint /seed-official, precargados con su taxonomía, no editables) + los
 // propios (validados contra §5 — qué NO es un SPI — antes de guardarse).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateIndicatorDefinition, OFFICIAL_INDICATORS } from '@skylog/domain';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -19,7 +20,7 @@ export async function POST(request) {
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'R2')) {
     return Response.json({ error: 'Solo un gestor puede definir indicadores' }, { status: 403 });
   }
 

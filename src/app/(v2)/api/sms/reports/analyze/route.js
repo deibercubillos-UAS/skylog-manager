@@ -32,7 +32,7 @@ export async function POST(request) {
   // como el rol nominal, más estricto que v2_is_duty_manager (RLS, más amplio
   // por defensa en profundidad).
   const membership = (memberships || []).find((m) => m.organization_id === report.organization_id);
-  if (!membership || membership.role !== 'gerente_sms') {
+  if (!membership || !['gerente_sms', 'superadmin'].includes(membership.role)) {
     return Response.json({ error: 'Solo el Gerente SMS designado puede analizar este reporte' }, { status: 403 });
   }
   if (report.route !== 'mor') {

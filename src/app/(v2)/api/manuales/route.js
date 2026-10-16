@@ -7,9 +7,10 @@
 // Ver 35-frontend.md.
 import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { createNotifications } from '@/lib/v2/notify';
 import { storagePut } from '@/lib/storage';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const BUCKET = 'documents';
 const MAX_BYTES = 25 * 1024 * 1024; // 25 MB, mismo límite que v1
@@ -88,7 +89,7 @@ export async function POST(request) {
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'AA4')) {
     return Response.json({ error: 'Solo un gestor puede cargar manuales' }, { status: 403 });
   }
 

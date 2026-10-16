@@ -6,7 +6,8 @@
 // (Fase 4, depende de `maintenance_events` — regla E5: sin función sin uso
 // real detrás).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -36,7 +37,7 @@ export async function GET(request) {
   const { data: components, error } = await query;
   if (error) return Response.json({ error: 'Error consultando componentes' }, { status: 500 });
 
-  return Response.json({ components, isManager: isDutyManager(memberships, organizationId) });
+  return Response.json({ components, isManager: membershipsCanEdit(memberships, organizationId, 'J4') });
 }
 
 // POST — instalar un componente nuevo. `installed_at_aircraft_hours` se
@@ -57,7 +58,7 @@ export async function POST(request) {
 
   const { error: resolveError, memberships, personId } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'J4')) {
     return Response.json({ error: 'Solo un gestor puede agregar componentes' }, { status: 403 });
   }
 

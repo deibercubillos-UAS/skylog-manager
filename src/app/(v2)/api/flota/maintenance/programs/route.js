@@ -5,7 +5,8 @@
 // (idempotente: si ya existe, simplemente lo devuelve — evita que dos
 // clics accidentales dupliquen el programa).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -30,7 +31,7 @@ export async function GET(request) {
     .eq('organization_id', organizationId);
   if (error) return Response.json({ error: 'Error consultando programas de mantenimiento' }, { status: 500 });
 
-  return Response.json({ programs, isManager: isDutyManager(memberships, organizationId) });
+  return Response.json({ programs, isManager: membershipsCanEdit(memberships, organizationId, 'L3') });
 }
 
 export async function POST(request) {
@@ -48,7 +49,7 @@ export async function POST(request) {
 
   const { error: resolveError, memberships, personId } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'L3')) {
     return Response.json({ error: 'Solo un gestor puede crear un programa de mantenimiento' }, { status: 403 });
   }
 

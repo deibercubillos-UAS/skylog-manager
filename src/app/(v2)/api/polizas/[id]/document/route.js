@@ -4,9 +4,10 @@
 // (todavía no hay tabla `documents` genérica en V2), descarga por redirect a
 // una URL firmada tras validar membresía — nunca se expone el path.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storageProblem } from '@/lib/v2/adminKey';
 import { storagePut, storageSignedUrl, storageRemove } from '@/lib/storage';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const BUCKET = 'documents';
 const MAX_BYTES = 4 * 1024 * 1024; // 4 MB: el cuerpo de una función en Vercel se corta en ~4,5 MB
@@ -28,7 +29,7 @@ async function load(supabase, policyId) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return { error: Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 }) };
-  if (!isDutyManager(memberships, policy.organization_id)) {
+  if (!membershipsCanEdit(memberships, policy.organization_id, 'Z3')) {
     return { error: Response.json({ error: 'Solo un gestor puede gestionar el documento de una póliza' }, { status: 403 }) };
   }
   return { policy };

@@ -2,8 +2,9 @@
 // otro rol de gestión) a un límite de §100.540, cuando la norma lo permite. Ver
 // docs/skylog-v2/41-tiempos-servicio.md §1.2 · 31-esquema-datos.md §3.1.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { classifyReportRoute } from '@skylog/domain';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -21,7 +22,7 @@ export async function POST(request) {
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'H7')) {
     return Response.json({ error: 'Solo un gestor (Jefe de Pilotos, Gerente SMS, Gerente General) puede autorizar una excepción' }, { status: 403 });
   }
 

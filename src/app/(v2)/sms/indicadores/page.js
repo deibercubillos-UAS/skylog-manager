@@ -283,7 +283,7 @@ export default function IndicadoresPage() {
   const [cycleError, setCycleError] = useState(null);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['R2'] === 'edit';
 
   const loadIndicators = useCallback(async (orgId) => {
     if (!orgId) return;

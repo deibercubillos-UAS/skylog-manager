@@ -4,8 +4,9 @@
 // una flota de N unidades idénticas. RLS decide todo: cualquier miembro de
 // la organización consulta el catálogo, solo un gestor lo administra.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { publicModel } from '@/lib/v2/publicModel';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -31,7 +32,7 @@ export async function GET(request) {
     .order('brand', { ascending: true });
   if (error) return Response.json({ error: 'Error consultando modelos' }, { status: 500 });
 
-  return Response.json({ models: (models || []).map(publicModel), isManager: isDutyManager(memberships, organizationId) });
+  return Response.json({ models: (models || []).map(publicModel), isManager: membershipsCanEdit(memberships, organizationId, 'I8') });
 }
 
 export async function POST(request) {
@@ -53,7 +54,7 @@ export async function POST(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'I8')) {
     return Response.json({ error: 'Solo un gestor puede registrar modelos de aeronave' }, { status: 403 });
   }
 

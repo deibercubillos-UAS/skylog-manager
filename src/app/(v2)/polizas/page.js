@@ -51,7 +51,8 @@ export default function PolizasPage() {
 
   const today = todayBogota();
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['Z2'] === 'edit';
+  const canSee = (currentOrg?.permissions?.['Z1'] || 'none') !== 'none';
 
   const loadPolicies = useCallback(async (orgId) => {
     if (!orgId) return;
@@ -87,10 +88,10 @@ export default function PolizasPage() {
   }, []);
 
   useEffect(() => {
-    if (!organizationId || !isManager) return;
+    if (!organizationId || !canSee) return;
     loadPolicies(organizationId);
     loadAircraft(organizationId);
-  }, [organizationId, isManager, loadPolicies, loadAircraft]);
+  }, [organizationId, canSee, loadPolicies, loadAircraft]);
 
   function openNew() {
     setEditingId(null);
@@ -201,7 +202,7 @@ export default function PolizasPage() {
       </div>
     );
   }
-  if (!isManager) {
+  if (!canSee) {
     return (
       <div>
         {hero}
@@ -225,10 +226,12 @@ export default function PolizasPage() {
         description="Pólizas con vigencia y cobertura por aeronave — la RCE es requisito para autorizar operaciones."
         metric={{ value: summary.total, label: 'Pólizas activas' }}
         cta={
+          isManager && (
           <Button onClick={() => (showForm ? setShowForm(false) : openNew())}>
             <span className="material-symbols-outlined text-base align-middle mr-1">{showForm ? 'close' : 'add'}</span>
             {showForm ? 'Cerrar' : 'Nueva póliza'}
           </Button>
+          )
         }
       />
 
@@ -250,7 +253,7 @@ export default function PolizasPage() {
         <StatCard icon="event_upcoming" color="blue" label="Aún no inician" value={summary.futura} />
       </div>
 
-      {showForm && (
+      {showForm && isManager && (
         <div className="bg-white rounded-2xl border border-navy-100 p-4">
           <p className="text-sm font-semibold text-navy mb-3">{editingId ? 'Editar póliza' : 'Nueva póliza'}</p>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
@@ -340,6 +343,8 @@ export default function PolizasPage() {
                         Ver certificado
                       </a>
                     ) : null}
+                    {isManager && (
+                      <>
                     <button type="button" onClick={() => pickCertificate(p.id)} disabled={uploadingId === p.id} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary-50 text-primary-700 hover:bg-primary-100 disabled:opacity-50">
                       {uploadingId === p.id ? 'Subiendo…' : p.document_path ? 'Reemplazar certificado' : 'Adjuntar certificado'}
                     </button>
@@ -352,6 +357,8 @@ export default function PolizasPage() {
                     <button type="button" onClick={() => handleDelete(p)} title="Eliminar" className="w-8 h-8 flex items-center justify-center rounded-full text-red-500 hover:bg-red-50">
                       <span className="material-symbols-outlined text-lg">delete</span>
                     </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

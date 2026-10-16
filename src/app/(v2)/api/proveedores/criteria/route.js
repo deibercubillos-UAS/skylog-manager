@@ -3,7 +3,8 @@
 // mismo criterio que v1: no hay una taxonomía oficial de proveedores en
 // RAC 100 que forzar).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -18,7 +19,7 @@ export async function GET(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'Y4')) {
     return Response.json({ error: 'Solo un gestor puede ver el checklist de auditoría' }, { status: 403 });
   }
 
@@ -40,7 +41,7 @@ export async function POST(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'Y4')) {
     return Response.json({ error: 'Solo un gestor puede administrar el checklist de auditoría' }, { status: 403 });
   }
 
@@ -70,7 +71,7 @@ export async function DELETE(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, existing.organization_id)) {
+  if (!membershipsCanEdit(memberships, existing.organization_id, 'Y4')) {
     return Response.json({ error: 'Solo un gestor puede administrar el checklist de auditoría' }, { status: 403 });
   }
 

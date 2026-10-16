@@ -226,7 +226,7 @@ export default function AerocivilPage() {
   }, [loadContext]);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['AD11'] === 'edit';
 
   const loadRequests = useCallback(async () => {
     if (!organizationId) return;

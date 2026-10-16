@@ -5,7 +5,8 @@
 // pista del modelo anterior (decisión 55). RLS exige gestor incluso para
 // SELECT — `correct_index` nunca debe llegar a quien presenta el examen.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 async function loadEvaluationOrg(supabase, evaluationId) {
   return supabase.from('capacitacion_evaluations').select('organization_id').eq('id', evaluationId).maybeSingle();
@@ -34,7 +35,7 @@ export async function POST(request) {
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
-  if (!isDutyManager(memberships, evaluation.organization_id)) {
+  if (!membershipsCanEdit(memberships, evaluation.organization_id, 'W6')) {
     return Response.json({ error: 'Solo un gestor puede administrar el banco de preguntas' }, { status: 403 });
   }
 
@@ -93,7 +94,7 @@ export async function DELETE(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, existing.capacitacion_evaluations?.organization_id)) {
+  if (!membershipsCanEdit(memberships, existing.capacitacion_evaluations?.organization_id, 'W6')) {
     return Response.json({ error: 'Solo un gestor puede administrar el banco de preguntas' }, { status: 403 });
   }
 

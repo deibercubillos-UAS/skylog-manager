@@ -3,8 +3,9 @@
 // (horas mensuales/diarias de vuelo + operación continua). El cálculo en sí vive
 // en packages/domain/dutyCompliance.js — función pura, sin Supabase, con tests.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager, getOpenDutyPeriod, getRecentDutyPeriods, getRecentFlights } from '@/lib/v2/duty';
+import { resolveCurrentPerson, getOpenDutyPeriod, getRecentDutyPeriods, getRecentFlights } from '@/lib/v2/duty';
 import { evaluateDutyCompliance, dayKey, monthKey } from '@skylog/domain';
+import { membershipsCanView } from '@/lib/v2/permissions';
 
 // `personId`/`organizationId` opcionales — un gestor puede consultar el
 // estado de OTRO piloto de su organización (filtro por piloto en la UI,
@@ -27,7 +28,7 @@ export async function GET(request) {
 
   let personId = selfPersonId;
   if (requestedPersonId && requestedPersonId !== selfPersonId) {
-    if (!organizationId || !isDutyManager(memberships, organizationId)) {
+    if (!organizationId || !membershipsCanView(memberships, organizationId, 'H3')) {
       return Response.json({ error: 'Solo un gestor puede consultar el estado de otro piloto' }, { status: 403 });
     }
     personId = requestedPersonId;

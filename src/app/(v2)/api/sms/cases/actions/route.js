@@ -25,7 +25,7 @@ export async function POST(request) {
   if (!caseRow) return Response.json({ error: 'Caso no encontrado' }, { status: 404 });
 
   const membership = (memberships || []).find((m) => m.organization_id === caseRow.organization_id);
-  if (!membership || membership.role !== 'gerente_sms') {
+  if (!membership || !['gerente_sms', 'superadmin'].includes(membership.role)) {
     return Response.json({ error: 'Solo el Gerente SMS asignado agrega acciones correctivas' }, { status: 403 });
   }
 
@@ -71,7 +71,7 @@ export async function PATCH(request) {
   if (!actionRow) return Response.json({ error: 'Acción no encontrada' }, { status: 404 });
 
   const membership = (memberships || []).find((m) => m.organization_id === actionRow.organization_id);
-  if (!membership || membership.role !== 'gerente_sms') {
+  if (!membership || !['gerente_sms', 'superadmin'].includes(membership.role)) {
     return Response.json({ error: 'Solo el Gerente SMS asignado marca acciones hechas' }, { status: 403 });
   }
 

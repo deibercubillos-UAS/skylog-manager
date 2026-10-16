@@ -29,7 +29,7 @@ export async function POST(request) {
   if (!report) return Response.json({ error: 'Reporte no encontrado' }, { status: 404 });
 
   const membership = (memberships || []).find((m) => m.organization_id === report.organization_id);
-  if (!membership || membership.role !== 'gerente_sms') {
+  if (!membership || !['gerente_sms', 'superadmin'].includes(membership.role)) {
     return Response.json({ error: 'Solo el Gerente SMS designado puede radicar' }, { status: 403 });
   }
   if (report.filed_at) return Response.json({ error: 'Este reporte ya fue radicado.' }, { status: 409 });

@@ -3,8 +3,9 @@
 // agregado en vivo (nunca persistido como snapshot) + el estado de envío
 // ya registrado si existe. Ver 40-sms.md §5.9 sub-frente SMS-G.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { redactReporterIdentity } from '@skylog/domain';
+import { membershipsCanView } from '@/lib/v2/permissions';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -22,7 +23,7 @@ export async function GET(request) {
 
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanView(memberships, organizationId, 'T1')) {
     return Response.json({ error: 'Solo un gestor puede ver el paquete mensual' }, { status: 403 });
   }
 

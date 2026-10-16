@@ -1,7 +1,8 @@
 // GET /api/audit?organizationId=&module=&action=&limit= — registro de acciones. Solo gestores (la RLS de `audit_log`
 // repite la regla). Los más recientes primero; tope de 500.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanView } from '@/lib/v2/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,7 @@ export async function GET(request) {
   if (!organizationId) return Response.json({ error: 'organizationId es requerido' }, { status: 400 });
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) return Response.json({ error: 'Solo un gestor puede ver el registro de acciones' }, { status: 403 });
+  if (!membershipsCanView(memberships, organizationId, 'AB3')) return Response.json({ error: 'Solo un gestor puede ver el registro de acciones' }, { status: 403 });
 
   const limit = Math.min(Math.max(parseInt(sp.get('limit') || '200', 10) || 200, 1), 500);
   let q = supabase.from('audit_log').select('id, actor_name, action, module, entity_label, created_at').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(limit);

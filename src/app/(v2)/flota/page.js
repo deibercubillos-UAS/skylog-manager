@@ -83,7 +83,7 @@ export default function FlotaPage() {
   const [editForm, setEditForm] = useState(null);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['I2'] === 'edit';
 
   const loadAircraft = useCallback(async (orgId) => {
     if (!orgId) return;

@@ -2,7 +2,8 @@
 // Roster = cualquier persona con membresía activa en la organización, no
 // solo pilotos (40-sms.md §5.2 fase 4).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -28,7 +29,7 @@ export async function POST(request) {
     .maybeSingle();
   if (sessionError) return Response.json({ error: 'Error verificando la sesión' }, { status: 500 });
   if (!session) return Response.json({ error: 'Sesión no encontrada' }, { status: 404 });
-  if (!isDutyManager(memberships, session.organization_id)) {
+  if (!membershipsCanEdit(memberships, session.organization_id, 'V5')) {
     return Response.json({ error: 'Solo un gestor puede registrar asistencia' }, { status: 403 });
   }
 

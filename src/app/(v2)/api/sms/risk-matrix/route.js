@@ -2,8 +2,9 @@
 // organización (regla C3, distinta de la matriz fija de F4a). Solo gestores
 // configuran; cualquier miembro lee (transparencia del SMS).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateMatrixCompleteness } from '@skylog/domain';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -41,7 +42,7 @@ export async function POST(request) {
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'P4')) {
     return Response.json({ error: 'Solo un gestor puede configurar la matriz de riesgo del SMS' }, { status: 403 });
   }
 

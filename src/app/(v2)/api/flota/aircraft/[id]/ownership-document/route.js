@@ -6,8 +6,9 @@
 // `documents` genérica todavía en V2 — la ruta se guarda directo en
 // `aircraft.ownership_document_path`, no como Documento polimórfico.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storagePut, storageSignedUrl } from '@/lib/storage';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const BUCKET = 'documents';
 const MAX_BYTES = 4 * 1024 * 1024; // 4 MB: el cuerpo de una función de Vercel admite ~4,5 MB
@@ -20,7 +21,7 @@ async function authorize(supabase, userId, aircraftId) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, userId);
   if (resolveError) return { error: Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 }) };
-  if (!isDutyManager(memberships, aircraft.organization_id)) {
+  if (!membershipsCanEdit(memberships, aircraft.organization_id, 'I6')) {
     return { error: Response.json({ error: 'Solo un gestor puede subir el documento de propiedad' }, { status: 403 }) };
   }
   return { aircraft };

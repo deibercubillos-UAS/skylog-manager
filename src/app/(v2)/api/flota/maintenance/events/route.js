@@ -4,7 +4,8 @@
 // `aircraft.total_hours` — nunca se acepta del cliente (regla S2, mismo
 // criterio que `installed_at_aircraft_hours` en Componentes, Fase 2).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 // Nunca se expone la ruta del adjunto: solo si hay uno cargado.
 const publicEvent = ({ document_path, ...e }) => ({ ...e, has_document: !!document_path });
@@ -39,7 +40,7 @@ export async function GET(request) {
   const { data: events, error } = await query;
   if (error) return Response.json({ error: 'Error consultando eventos de mantenimiento' }, { status: 500 });
 
-  return Response.json({ events: (events || []).map(publicEvent), isManager: isDutyManager(memberships, organizationId) });
+  return Response.json({ events: (events || []).map(publicEvent), isManager: membershipsCanEdit(memberships, organizationId, 'L2') });
 }
 
 export async function POST(request) {
@@ -60,7 +61,7 @@ export async function POST(request) {
 
   const { error: resolveError, memberships, personId } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'L2')) {
     return Response.json({ error: 'Solo un gestor puede registrar mantenimiento' }, { status: 403 });
   }
 

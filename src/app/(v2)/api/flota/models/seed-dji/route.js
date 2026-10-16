@@ -5,8 +5,9 @@
 // ("Matrice 350 RTK" vs "M350rtk"). Idempotente por (brand, model) — nunca
 // duplica si ya existe, ni sobrescribe uno que la organización ya editó.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { DJI_MODELS_CATALOG } from '@/lib/v2/djiModelsCatalog';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -21,7 +22,7 @@ export async function POST(request) {
 
   const { error: resolveError, memberships, personId } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'I9')) {
     return Response.json({ error: 'Solo un gestor puede precargar el catálogo DJI' }, { status: 403 });
   }
 

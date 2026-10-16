@@ -2,8 +2,9 @@
 // respuestas + la evaluación inmediatamente anterior (si existe) para el
 // comparativo automático (compareGapAssessments).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { computeGapStats, compareGapAssessments } from '@skylog/domain';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function GET(request, { params }) {
   params = await params;
@@ -68,7 +69,7 @@ export async function DELETE(request, { params }) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, assessment.organization_id)) {
+  if (!membershipsCanEdit(memberships, assessment.organization_id, 'S2')) {
     return Response.json({ error: 'Solo un gestor puede eliminar una autoevaluación GAP' }, { status: 403 });
   }
 

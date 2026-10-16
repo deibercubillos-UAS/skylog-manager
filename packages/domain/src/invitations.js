@@ -7,11 +7,11 @@ export const INVITATION_TTL_DAYS = 7;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-/** Solo un Gerente General (o el superadmin) puede invitar a otro Gerente General; los demás gestores, el resto. */
+/** Solo un Gerente General (o el superadmin) invita a otro Gerente General; el Jefe de Pilotos invita al resto (K7); el Gerente SMS no invita. */
 export function canInviteRole(inviterRoles, role) {
   if (!INVITE_ROLES.includes(role)) return false;
   if (role === 'admin') return (inviterRoles || []).some((r) => r === 'admin' || r === 'superadmin');
-  return (inviterRoles || []).some((r) => ['admin', 'superadmin', 'jefe_pilotos', 'gerente_sms'].includes(r));
+  return (inviterRoles || []).some((r) => ['admin', 'superadmin', 'jefe_pilotos'].includes(r));
 }
 
 export function validateInvitation({ email, role, name }) {

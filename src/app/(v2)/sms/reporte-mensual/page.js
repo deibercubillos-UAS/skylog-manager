@@ -27,7 +27,8 @@ export default function SmsReporteMensualPage() {
   const [busy, setBusy] = useState(false);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['T2'] === 'edit';
+  const canSee = (currentOrg?.permissions?.['T1'] || 'none') !== 'none';
 
   const loadReport = useCallback(async (orgId, p) => {
     if (!orgId || !p) return;
@@ -106,7 +107,7 @@ export default function SmsReporteMensualPage() {
 
       {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
 
-      {!isManager ? (
+      {!canSee ? (
         <p className="text-sm text-navy-400">Solo un gestor puede ver el reporte mensual SMS.</p>
       ) : loading || !report ? (
         <p className="text-sm text-navy-400">Cargando…</p>
@@ -125,12 +126,14 @@ export default function SmsReporteMensualPage() {
             ) : (
               <>
                 <p className="text-sm text-amber-800">Este período aún no se ha marcado como enviado a la Aerocivil.</p>
+                {isManager && (
                 <div className="flex items-center gap-2">
                   <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notas (opcional)" className="text-sm border border-amber-300 rounded-lg px-3 py-1.5" />
                   <Button onClick={handleMarkSent} disabled={busy}>
                     {busy ? 'Guardando…' : 'Marcar como enviado'}
                   </Button>
                 </div>
+                )}
               </>
             )}
           </div>

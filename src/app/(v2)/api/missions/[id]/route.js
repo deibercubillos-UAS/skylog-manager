@@ -6,7 +6,8 @@
 // cancelar en vez de borrar.
 import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const EDITABLE_FIELDS = {
   name: 'name',
@@ -52,7 +53,7 @@ export async function PATCH(request, { params }) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, mission.organization_id)) {
+  if (!membershipsCanEdit(memberships, mission.organization_id, 'E3')) {
     return Response.json({ error: 'Solo un gestor puede modificar una misión programada' }, { status: 403 });
   }
 

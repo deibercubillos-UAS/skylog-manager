@@ -8,7 +8,8 @@
 // solo tienen SELECT hoy, sin política de escritura (decisión 57: deliberado
 // hasta que un flujo de alta real las necesitara).
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const ASSIGNABLE_ROLES = ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'];
 
@@ -39,7 +40,7 @@ export async function GET(request) {
 
   // Para un gestor: quién ya tiene acceso (cuenta). Quien no lo tiene puede ser invitado por correo (Etapa C).
   // Solo se expone el booleano, nunca los datos de la cuenta.
-  const isManager = isDutyManager(memberships, organizationId);
+  const isManager = membershipsCanEdit(memberships, organizationId, 'K2');
   let withAccess = roster;
   if (isManager && (roster || []).length) {
     const { data: accounts } = await createAdminClient().from('accounts').select('person_id').in('person_id', roster.map((m) => m.person.id));
@@ -72,8 +73,11 @@ export async function POST(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'K2')) {
     return Response.json({ error: 'Solo un gestor puede agregar tripulantes' }, { status: 403 });
+  }
+  if (role === 'admin' && !membershipsCanEdit(memberships, organizationId, 'K5')) {
+    return Response.json({ error: 'Solo un Gerente General puede asignar el rol de Gerente General' }, { status: 403 });
   }
 
   const admin = createAdminClient();

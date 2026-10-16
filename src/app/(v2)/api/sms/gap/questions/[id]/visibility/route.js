@@ -2,7 +2,8 @@
 // para esta organización — nunca borra el catálogo global, upsert por
 // (organization_id, question_id).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function PATCH(request, { params }) {
   params = await params;
@@ -26,7 +27,7 @@ export async function PATCH(request, { params }) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'S3')) {
     return Response.json({ error: 'Solo un gestor puede ocultar/mostrar preguntas' }, { status: 403 });
   }
 

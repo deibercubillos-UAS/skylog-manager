@@ -5,9 +5,10 @@
 // agenda. La evaluación vive en packages/domain (evaluateRceForAuthorization);
 // aquí solo se cargan los datos. Solo gestores, porque las pólizas lo son.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { evaluateRceForAuthorization, evaluateCdoForAuthorization, evaluateLeadTime, evaluateAircraftRegistration } from '@skylog/domain';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -29,7 +30,7 @@ export async function GET(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, authRequest.organization_id)) {
+  if (!membershipsCanEdit(memberships, authRequest.organization_id, 'AD11')) {
     return Response.json({ error: 'Solo un gestor puede ver la preparación del expediente' }, { status: 403 });
   }
 

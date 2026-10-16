@@ -1,6 +1,7 @@
 // Skylog V2.0 — Flota & Equipo, Fase 3. Editar o eliminar un ítem de ETA.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const ALLOWED_FIELDS = ['brand', 'model', 'reta_number', 'description'];
 const FIELD_MAP = { brand: 'brand', model: 'model', retaNumber: 'reta_number', description: 'description' };
@@ -12,7 +13,7 @@ async function authorize(supabase, userId, id) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, userId);
   if (resolveError) return { error: Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 }) };
-  if (!isDutyManager(memberships, existing.organization_id)) {
+  if (!membershipsCanEdit(memberships, existing.organization_id, 'N2')) {
     return { error: Response.json({ error: 'Solo un gestor puede editar equipo tecnológico asociado' }, { status: 403 }) };
   }
   return { existing };

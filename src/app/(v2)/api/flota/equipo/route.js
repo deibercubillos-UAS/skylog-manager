@@ -2,8 +2,9 @@
 // cualquier miembro; alta solo para gestores. La RLS de `equipment_stock` repite estas mismas reglas.
 import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateStockItem } from '@skylog/domain';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +20,7 @@ export async function GET(request) {
   }
   const { data, error } = await supabase.from('equipment_stock').select('*').eq('organization_id', organizationId).order('name');
   if (error) return Response.json({ error: 'Error consultando las existencias' }, { status: 500 });
-  return Response.json({ items: data || [], isManager: isDutyManager(memberships, organizationId) });
+  return Response.json({ items: data || [], isManager: membershipsCanEdit(memberships, organizationId, 'M2') });
 }
 
 export async function POST(request) {
@@ -31,7 +32,7 @@ export async function POST(request) {
   if (!organizationId) return Response.json({ error: 'organizationId es requerido' }, { status: 400 });
   const { error: resolveError, memberships, personId } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) return Response.json({ error: 'Solo un gestor puede registrar existencias' }, { status: 403 });
+  if (!membershipsCanEdit(memberships, organizationId, 'M2')) return Response.json({ error: 'Solo un gestor puede registrar existencias' }, { status: 403 });
   const check = validateStockItem(body);
   if (!check.ok) return Response.json({ error: check.errors.join(' ') }, { status: 400 });
   const { data, error } = await supabase.from('equipment_stock').insert({ organization_id: organizationId, ...check.clean, created_by: personId }).select().single();

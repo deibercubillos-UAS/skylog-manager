@@ -4,7 +4,8 @@
 // `computeSupplierAuditScore` (dominio puro), nunca se guarda como columna
 // derivada (mismo criterio ya usado en Indicadores SPI/zonas de riesgo).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -20,7 +21,7 @@ export async function GET(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'Y3')) {
     return Response.json({ error: 'Solo un gestor puede ver auditorías de proveedores' }, { status: 403 });
   }
 
@@ -48,7 +49,7 @@ export async function POST(request) {
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'Y3')) {
     return Response.json({ error: 'Solo un gestor puede registrar auditorías' }, { status: 403 });
   }
 
@@ -86,7 +87,7 @@ export async function PATCH(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, existing.organization_id)) {
+  if (!membershipsCanEdit(memberships, existing.organization_id, 'Y3')) {
     return Response.json({ error: 'Solo un gestor puede editar auditorías' }, { status: 403 });
   }
 
@@ -118,7 +119,7 @@ export async function DELETE(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, existing.organization_id)) {
+  if (!membershipsCanEdit(memberships, existing.organization_id, 'Y3')) {
     return Response.json({ error: 'Solo un gestor puede eliminar auditorías' }, { status: 403 });
   }
 

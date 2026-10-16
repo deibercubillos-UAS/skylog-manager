@@ -1,7 +1,8 @@
 // Skylog V2.0 — Flota & Equipo, Fase 4a. Editar o eliminar una tarea de
 // mantenimiento.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const ALLOWED_FIELDS = ['name', 'system_category', 'interval_cycles', 'interval_hours', 'interval_calendar_days', 'tolerance_value', 'tolerance_unit'];
 const FIELD_MAP = {
@@ -22,7 +23,7 @@ async function authorize(supabase, userId, id) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, userId);
   if (resolveError) return { error: Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 }) };
-  if (!isDutyManager(memberships, existing.organization_id)) {
+  if (!membershipsCanEdit(memberships, existing.organization_id, 'L4')) {
     return { error: Response.json({ error: 'Solo un gestor puede editar tareas de mantenimiento' }, { status: 403 }) };
   }
   return { existing };

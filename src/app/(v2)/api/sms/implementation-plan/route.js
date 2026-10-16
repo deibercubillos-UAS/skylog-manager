@@ -6,8 +6,9 @@
 // + el plan y las tareas tipo Gantt ya guardadas. POST crea/actualiza la
 // fecha de inicio + horizonte del plan (12-24 meses, §7.3.5).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { computeOfficialProgress, validatePlanHorizon } from '@skylog/domain';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -86,7 +87,7 @@ export async function POST(request) {
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'V2')) {
     return Response.json({ error: 'Solo un gestor puede definir el plan de implementación' }, { status: 403 });
   }
 

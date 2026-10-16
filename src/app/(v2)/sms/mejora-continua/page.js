@@ -24,7 +24,7 @@ export default function SmsMejoraContinuaPage() {
   const [creating, setCreating] = useState(false);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['S2'] === 'edit';
 
   const loadAssessments = useCallback(async (orgId) => {
     if (!orgId) return;

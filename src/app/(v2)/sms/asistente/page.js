@@ -44,7 +44,7 @@ export default function SmsAsistentePage() {
   const [panelTarget, setPanelTarget] = useState(null); // { phase, element, existingTask }
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['V2'] === 'edit';
 
   const loadAll = useCallback(async (orgId) => {
     if (!orgId) return;

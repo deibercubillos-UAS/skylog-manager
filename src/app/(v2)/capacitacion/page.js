@@ -212,7 +212,7 @@ export default function CapacitacionInicio() {
   const [error, setError] = useState(null);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['W5'] === 'edit';
 
   useEffect(() => {
     (async () => {

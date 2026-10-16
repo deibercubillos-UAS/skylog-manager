@@ -7,7 +7,8 @@
 // la organización desde la que se abrió la pantalla, porque el dato es
 // compartido entre organizaciones por diseño.
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const ALLOWED_FIELDS = ['full_name', 'document_type', 'document_number', 'email', 'phone', 'license_number', 'medical_cert_expiry', 'emergency_contact_name', 'emergency_contact_phone'];
 const FIELD_MAP = {
@@ -45,7 +46,7 @@ export async function PATCH(request, { params }) {
       .eq('status', 'activa');
     if (targetError) return Response.json({ error: 'Error verificando la membresía' }, { status: 500 });
 
-    const sharesManagedOrg = (targetMemberships || []).some((m) => isDutyManager(memberships, m.organization_id));
+    const sharesManagedOrg = (targetMemberships || []).some((m) => membershipsCanEdit(memberships, m.organization_id, 'K4'));
     if (!sharesManagedOrg) {
       return Response.json({ error: 'Solo la propia persona o un gestor de una organización compartida puede editar este perfil' }, { status: 403 });
     }

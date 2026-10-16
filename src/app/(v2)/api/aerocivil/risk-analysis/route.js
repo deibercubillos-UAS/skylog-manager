@@ -5,8 +5,9 @@
 // evaluateRiskAnalysis() (packages/domain) — nunca se confía en `canSign` del
 // cliente (regla S2, mismo criterio que total_hours en la certificación F5).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { evaluateRiskAnalysis } from '@skylog/domain';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 async function loadAuthorizationOrg(supabase, authorizationId) {
   const { data, error } = await supabase
@@ -36,7 +37,7 @@ export async function POST(request) {
   const { data: authRequest, error: authError } = await loadAuthorizationOrg(supabase, authorizationId);
   if (authError) return Response.json({ error: 'Error verificando la solicitud' }, { status: 500 });
   if (!authRequest) return Response.json({ error: 'Solicitud de autorización no encontrada' }, { status: 404 });
-  if (!isDutyManager(memberships, authRequest.organization_id)) {
+  if (!membershipsCanEdit(memberships, authRequest.organization_id, 'AD11')) {
     return Response.json({ error: 'Solo un gestor puede diligenciar el análisis de riesgos' }, { status: 403 });
   }
 
@@ -75,7 +76,7 @@ export async function PATCH(request) {
   const { data: authRequest, error: authError } = await loadAuthorizationOrg(supabase, authorizationId);
   if (authError) return Response.json({ error: 'Error verificando la solicitud' }, { status: 500 });
   if (!authRequest) return Response.json({ error: 'Solicitud de autorización no encontrada' }, { status: 404 });
-  if (!isDutyManager(memberships, authRequest.organization_id)) {
+  if (!membershipsCanEdit(memberships, authRequest.organization_id, 'AD11')) {
     return Response.json({ error: 'Solo un gestor (Jefe de Pilotos) puede firmar el análisis de riesgos' }, { status: 403 });
   }
 

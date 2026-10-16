@@ -1,11 +1,12 @@
 // POST /api/organizacion/importar — carga inicial desde Excel (multipart: file, organizationId, dryRun). Solo gestores.
 // `dryRun=true` devuelve el informe sin escribir nada; sin él, aplica lo válido y devuelve el mismo informe.
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { checkRateLimit } from '@/lib/rateLimiter';
 import { logAudit } from '@/lib/v2/auditLog';
 import { readWorkbook, runImport } from '@/lib/v2/onboardingServer';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -34,7 +35,7 @@ export async function POST(request) {
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
-  if (!isDutyManager(memberships, organizationId)) return Response.json({ error: 'Solo un gestor puede importar datos' }, { status: 403 });
+  if (!membershipsCanEdit(memberships, organizationId, 'AB2')) return Response.json({ error: 'Solo un gestor puede importar datos' }, { status: 403 });
 
   let sheets;
   try {

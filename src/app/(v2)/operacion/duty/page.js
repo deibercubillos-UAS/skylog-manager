@@ -72,7 +72,7 @@ export default function DutyOverviewPage() {
   }, []);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const canSee = (currentOrg?.permissions?.['H4'] || 'none') !== 'none';
 
   const loadSummary = useCallback(async (orgId) => {
     if (!orgId) return;
@@ -95,14 +95,14 @@ export default function DutyOverviewPage() {
   // estado detallado si elige verse a sí mismo en el filtro.
   useEffect(() => {
     if (!context?.personId) return;
-    if (!isManager) {
+    if (!canSee) {
       loadStatus();
       return;
     }
     if (organizationId) loadSummary(organizationId);
     if (pilotFilter) loadStatus(pilotFilter, organizationId);
     else setStatus(null);
-  }, [context, isManager, organizationId, pilotFilter, loadStatus, loadSummary]);
+  }, [context, canSee, organizationId, pilotFilter, loadStatus, loadSummary]);
 
   const loadCertifications = useCallback(async () => {
     if (!organizationId) return;
@@ -116,8 +116,8 @@ export default function DutyOverviewPage() {
   }, [organizationId]);
 
   useEffect(() => {
-    if (isManager) loadCertifications();
-  }, [isManager, loadCertifications]);
+    if (canSee) loadCertifications();
+  }, [canSee, loadCertifications]);
 
   const loadRoster = useCallback(async () => {
     if (!organizationId) return;
@@ -131,8 +131,8 @@ export default function DutyOverviewPage() {
   }, [organizationId]);
 
   useEffect(() => {
-    if (isManager) loadRoster();
-  }, [isManager, loadRoster]);
+    if (canSee) loadRoster();
+  }, [canSee, loadRoster]);
 
   async function certifyPilot(e) {
     e.preventDefault();
@@ -183,7 +183,7 @@ export default function DutyOverviewPage() {
   const alertCount = summary ? summary.filter((s) => s.compliance?.blocksDispatch).length : 0;
 
   let heroMetric;
-  if (isManager && !pilotFilter && summary) {
+  if (canSee && !pilotFilter && summary) {
     heroMetric = {
       value: <span className={alertCount > 0 ? 'text-red-300' : 'text-emerald-300'}>{alertCount > 0 ? alertCount : summary.length}</span>,
       label: alertCount > 0 ? 'Pilotos con alerta' : 'Pilotos que cumplen',
@@ -204,7 +204,7 @@ export default function DutyOverviewPage() {
         metric={heroMetric}
       />
 
-      {(context.organizations.length > 1 || isManager) && (
+      {(context.organizations.length > 1 || canSee) && (
         <div className="bg-white rounded-2xl border border-navy-100 p-4 flex flex-wrap gap-4">
           {context.organizations.length > 1 && (
             <Field as="select" label="Organización" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)} className="mb-0">
@@ -215,7 +215,7 @@ export default function DutyOverviewPage() {
               ))}
             </Field>
           )}
-          {isManager && (
+          {canSee && (
             <Field as="select" label="Piloto" value={pilotFilter} onChange={(e) => setPilotFilter(e.target.value)} className="mb-0">
               <option value="">Toda la empresa</option>
               {(summary || []).map((s) => (
@@ -230,7 +230,7 @@ export default function DutyOverviewPage() {
 
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>}
 
-      {isManager && !pilotFilter ? (
+      {canSee && !pilotFilter ? (
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <StatCard icon="groups" color="primary" label="Pilotos monitoreados" value={summary?.length ?? '—'} />
@@ -295,7 +295,7 @@ export default function DutyOverviewPage() {
         </div>
       ) : (
         <>
-          {isManager && (
+          {canSee && (
             <button
               type="button"
               onClick={() => setPilotFilter('')}
@@ -364,7 +364,7 @@ export default function DutyOverviewPage() {
         </>
       )}
 
-      {isManager && (
+      {canSee && (
         <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
           <div className="px-6 py-3.5 border-b border-navy-50 bg-navy-50/30">
             <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest">Disponibilidad de la tripulación</h3>
@@ -399,7 +399,7 @@ export default function DutyOverviewPage() {
         </div>
       )}
 
-      {isManager && (
+      {canSee && (
         <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow p-5">
           <p className="text-xs font-black uppercase text-navy-300 tracking-widest mb-1 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-primary" />

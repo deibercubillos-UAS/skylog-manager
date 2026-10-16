@@ -2,7 +2,8 @@
 // (componente 5). Nunca una oficial — un intento sobre una fila con
 // organization_id null responde 404, mismo criterio ya usado en v1.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function PATCH(request, { params }) {
   params = await params;
@@ -19,7 +20,7 @@ export async function PATCH(request, { params }) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, question.organization_id)) {
+  if (!membershipsCanEdit(memberships, question.organization_id, 'S3')) {
     return Response.json({ error: 'Solo un gestor puede editar preguntas propias' }, { status: 403 });
   }
 
@@ -50,7 +51,7 @@ export async function DELETE(request, { params }) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, question.organization_id)) {
+  if (!membershipsCanEdit(memberships, question.organization_id, 'S3')) {
     return Response.json({ error: 'Solo un gestor puede eliminar preguntas propias' }, { status: 403 });
   }
 

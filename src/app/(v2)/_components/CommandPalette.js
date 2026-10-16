@@ -10,14 +10,14 @@ import { rankItems } from '@skylog/domain';
 
 const ACTIONS = [
   { id: 'a-dispatch', title: 'Despachar un vuelo', subtitle: 'Verificaciones, listas de chequeo y riesgos', href: '/operacion/despacho', icon: 'rocket_launch', keywords: 'iniciar volar misión' },
-  { id: 'a-mission', title: 'Programar una misión', subtitle: 'Piloto, aeronave, zona y fecha', href: '/operacion/programacion', icon: 'event_available', keywords: 'agendar planear nueva', managerOnly: true },
+  { id: 'a-mission', title: 'Programar una misión', subtitle: 'Piloto, aeronave, zona y fecha', href: '/operacion/programacion', icon: 'event_available', keywords: 'agendar planear nueva', perm: 'E2' },
   { id: 'a-flight', title: 'Registrar un vuelo en la bitácora', href: '/operacion/bitacora', icon: 'menu_book', keywords: 'cargar manual importar log dji' },
   { id: 'a-report', title: 'Reportar un suceso', subtitle: 'VOR o MOR', href: '/sms/reportes', icon: 'report', keywords: 'incidente accidente novedad' },
   { id: 'a-maint', title: 'Registrar un mantenimiento', href: '/flota/mantenimiento', icon: 'build', keywords: 'evento servicio reparación' },
   { id: 'a-duty', title: 'Ver mi tiempo de servicio', subtitle: 'Límites de §100.540', href: '/operacion/duty', icon: 'schedule', keywords: 'horas descanso jornada' },
-  { id: 'a-change', title: 'Registrar un cambio (gestión del cambio)', href: '/sms/cambios', icon: 'published_with_changes', keywords: 'nuevo cambio sms', managerOnly: true },
-  { id: 'a-policy', title: 'Agregar una póliza', href: '/polizas', icon: 'verified_user', keywords: 'seguro rce', managerOnly: true },
-  { id: 'a-aerocivil', title: 'Preparar una solicitud de autorización', subtitle: 'Expediente Aerocivil', href: '/aerocivil', icon: 'flight_takeoff', keywords: 'radicar aerocivil expediente', managerOnly: true },
+  { id: 'a-change', title: 'Registrar un cambio (gestión del cambio)', href: '/sms/cambios', icon: 'published_with_changes', keywords: 'nuevo cambio sms', perm: 'Q2' },
+  { id: 'a-policy', title: 'Agregar una póliza', href: '/polizas', icon: 'verified_user', keywords: 'seguro rce', perm: 'Z2' },
+  { id: 'a-aerocivil', title: 'Preparar una solicitud de autorización', subtitle: 'Expediente Aerocivil', href: '/aerocivil', icon: 'flight_takeoff', keywords: 'radicar aerocivil expediente', perm: 'AD11' },
 ];
 
 const GROUP_LABEL = { actions: 'Acciones', pages: 'Ir a', data: 'Datos' };
@@ -26,7 +26,7 @@ function iso(d) {
   return d.toISOString();
 }
 
-export default function CommandPalette({ open, onClose, links, organizationId, isManager }) {
+export default function CommandPalette({ open, onClose, links, organizationId, permissions = {} }) {
   const router = useRouter();
   const inputRef = useRef(null);
   const [query, setQuery] = useState('');
@@ -69,7 +69,7 @@ export default function CommandPalette({ open, onClose, links, organizationId, i
   }, [open]);
 
   const groups = useMemo(() => {
-    const actionItems = ACTIONS.filter((a) => !a.managerOnly || isManager).map((a) => ({ ...a, group: 'actions' }));
+    const actionItems = ACTIONS.filter((a) => !a.perm || permissions[a.perm] === 'edit').map((a) => ({ ...a, group: 'actions' }));
     const pageItems = (links || []).map((l) => ({ id: `p-${l.href}`, title: l.name, subtitle: l.group, href: l.href, icon: l.icon, group: 'pages' }));
     const dataItems = [
       ...data.aircraft.map((a) => ({ id: `ac-${a.id}`, title: `${a.model?.brand || ''} ${a.model?.model || ''}`.trim() || 'Aeronave', subtitle: `Aeronave · serie ${a.serial_number}`, keywords: a.ruas_number, href: '/flota', icon: 'flight', group: 'data' })),
@@ -83,7 +83,7 @@ export default function CommandPalette({ open, onClose, links, organizationId, i
       pages: rankItems(pageItems, q, q ? 6 : 5),
       data: q ? rankItems(dataItems, q, 6) : [],
     };
-  }, [links, isManager, data, query]);
+  }, [links, permissions, data, query]);
 
   const flat = useMemo(() => ['actions', 'pages', 'data'].flatMap((g) => groups[g]), [groups]);
 

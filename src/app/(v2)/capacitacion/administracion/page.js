@@ -44,7 +44,7 @@ export default function AdministracionPage() {
   const [rosterLoading, setRosterLoading] = useState(false);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['W5'] === 'edit';
 
   const loadEvaluations = useCallback(async (orgId, t) => {
     if (!orgId || !t) return;

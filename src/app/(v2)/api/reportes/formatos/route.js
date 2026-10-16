@@ -4,8 +4,9 @@
 // escritura pasa por el cliente admin tras verificar el rol (la tabla no tiene política de UPDATE).
 import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { sanitizeReportFormats } from '@skylog/domain';
+import { membershipsCanView } from '@/lib/v2/permissions';
 
 async function requireManager(organizationId) {
   const supabase = await createClientSSR();
@@ -16,7 +17,7 @@ async function requireManager(organizationId) {
   if (!organizationId) return { response: Response.json({ error: 'organizationId es requerido' }, { status: 400 }) };
   const { error, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (error) return { response: Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 }) };
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanView(memberships, organizationId, 'AC1')) {
     return { response: Response.json({ error: 'Solo un gestor puede ver o editar los formatos de los reportes' }, { status: 403 }) };
   }
   return { supabase };

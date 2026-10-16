@@ -2,7 +2,8 @@
 // §219.105(a)(4)): a quién llamar. Los ve cualquier miembro (en una emergencia los necesita el piloto); los
 // edita un gestor. La RLS de `organization_emergency_contacts` es la barrera; aquí se validan y acotan los campos.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 async function session() {
   const supabase = await createClientSSR();
@@ -26,7 +27,7 @@ export async function GET(request) {
   }
   const { data, error } = await s.supabase.from('organization_emergency_contacts').select('*').eq('organization_id', organizationId).order('created_at');
   if (error) return Response.json({ error: error.message }, { status: 500 });
-  return Response.json({ contacts: data || [], canEdit: isDutyManager(s.memberships, organizationId) });
+  return Response.json({ contacts: data || [], canEdit: membershipsCanEdit(s.memberships, organizationId, 'AD5') });
 }
 
 export async function POST(request) {
@@ -34,7 +35,7 @@ export async function POST(request) {
   if (s.error) return s.error;
   const body = await request.json().catch(() => ({}));
   const { organizationId } = body;
-  if (!organizationId || !isDutyManager(s.memberships, organizationId)) return Response.json({ error: 'Solo un gestor puede editar los contactos de emergencia' }, { status: 403 });
+  if (!organizationId || !membershipsCanEdit(s.memberships, organizationId, 'AD5')) return Response.json({ error: 'Solo un gestor puede editar los contactos de emergencia' }, { status: 403 });
   const name = clean(body.name, 150);
   if (!name) return Response.json({ error: 'El nombre es obligatorio' }, { status: 400 });
   const phone = clean(body.phone, 60);

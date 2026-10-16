@@ -2,7 +2,8 @@
 // bloque (el usuario va marcando Sí/No ítem por ítem, sin exigir responder
 // el 100% para guardar — mismo criterio que la autoevaluación GAP de v1).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -23,7 +24,7 @@ export async function POST(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, assessment.organization_id)) {
+  if (!membershipsCanEdit(memberships, assessment.organization_id, 'S2')) {
     return Response.json({ error: 'Solo un gestor puede diligenciar la autoevaluación GAP' }, { status: 403 });
   }
 

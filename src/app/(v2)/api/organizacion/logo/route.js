@@ -8,8 +8,9 @@
 // `partner-logos` ya existente, bajo un prefijo propio (`v2-orgs/`) para no
 // chocar con las llaves de logos de socios de v1.
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storagePut, storagePublicUrl } from '@/lib/storage';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const BUCKET = 'partner-logos';
 const MAX_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -37,7 +38,7 @@ export async function POST(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'AD3')) {
     return Response.json({ error: 'Solo un gestor puede cambiar el logo de la organización' }, { status: 403 });
   }
 

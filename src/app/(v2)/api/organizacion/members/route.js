@@ -4,7 +4,8 @@
 // posterior"). Nunca permite dejar una organización sin ningún `admin`
 // activo (mismo resguardo real que v1: "no degradar al último Admin").
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const ASSIGNABLE_ROLES = ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'];
 
@@ -43,15 +44,9 @@ export async function PATCH(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
-    return Response.json({ error: 'Solo un gestor puede cambiar roles' }, { status: 403 });
+  if (!membershipsCanEdit(memberships, organizationId, 'K5')) {
+    return Response.json({ error: 'Solo un Gerente General puede cambiar roles' }, { status: 403 });
   }
-
-  // Solo un Gerente General asigna o quita el rol `admin` (70-matriz-de-permisos §4):
-  // JP y GSMS cambian únicamente entre piloto, jefe_pilotos y gerente_sms.
-  const callerIsGG = (memberships || []).some(
-    (m) => m.organization_id === organizationId && ['admin', 'superadmin'].includes(m.role)
-  );
 
   const admin = createAdminClient();
 
@@ -64,10 +59,6 @@ export async function PATCH(request) {
     .maybeSingle();
   if (targetError) return Response.json({ error: targetError.message }, { status: 500 });
   if (!target) return Response.json({ error: 'Membresía no encontrada' }, { status: 404 });
-
-  if (!callerIsGG && (role === 'admin' || target.role === 'admin')) {
-    return Response.json({ error: 'Solo un Gerente General puede asignar o quitar el rol de Gerente General' }, { status: 403 });
-  }
 
   if (target.role === 'admin' && role !== 'admin') {
     const { data: admins, error: adminsError } = await admin

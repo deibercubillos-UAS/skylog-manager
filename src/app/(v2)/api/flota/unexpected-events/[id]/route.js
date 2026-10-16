@@ -6,7 +6,8 @@
 // construido a pedido del usuario). Un evento ya evaluado no se reabre —
 // es evidencia, no un borrador.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const RESULTS = ['aeronavegable', 'requiere_mantenimiento', 'fuera_de_servicio'];
 
@@ -30,7 +31,7 @@ export async function PATCH(request, { params }) {
 
   const { error: resolveError, memberships, personId } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, existing.organization_id)) {
+  if (!membershipsCanEdit(memberships, existing.organization_id, 'I12')) {
     return Response.json({ error: 'Solo un gestor puede evaluar un evento inesperado' }, { status: 403 });
   }
 

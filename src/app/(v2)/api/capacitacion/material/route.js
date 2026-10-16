@@ -5,8 +5,9 @@
 // documento de propiedad de aeronave: privado `documents`, prefijo
 // `v2-orgs/`, GET redirige a una URL firmada.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storagePut, storageSignedUrl, storageRemove } from '@/lib/storage';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const BUCKET = 'documents';
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB
@@ -38,7 +39,7 @@ export async function POST(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, evaluation.organization_id)) {
+  if (!membershipsCanEdit(memberships, evaluation.organization_id, 'W7')) {
     return Response.json({ error: 'Solo un gestor puede administrar el material de apoyo' }, { status: 403 });
   }
 
@@ -90,7 +91,7 @@ export async function DELETE(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, evaluation.organization_id)) {
+  if (!membershipsCanEdit(memberships, evaluation.organization_id, 'W7')) {
     return Response.json({ error: 'Solo un gestor puede administrar el material de apoyo' }, { status: 403 });
   }
 

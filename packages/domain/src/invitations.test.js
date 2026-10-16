@@ -5,6 +5,7 @@ describe('canInviteRole', () => {
   it('un Jefe de Pilotos invita pilotos, jefes y gerentes SMS, no gerentes generales', () => {
     expect(canInviteRole(['jefe_pilotos'], 'piloto')).toBe(true);
     expect(canInviteRole(['jefe_pilotos'], 'gerente_sms')).toBe(true);
+    expect(canInviteRole(['gerente_sms'], 'piloto')).toBe(false); // K7: el Gerente SMS no invita
     expect(canInviteRole(['jefe_pilotos'], 'admin')).toBe(false);
   });
   it('solo el Gerente General (o superadmin) invita a otro Gerente General', () => {

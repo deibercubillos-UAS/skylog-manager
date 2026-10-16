@@ -44,7 +44,8 @@ export default function RetencionPage() {
   const [addSelection, setAddSelection] = useState([]);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['AB5'] === 'edit';
+  const canSee = (currentOrg?.permissions?.['AB4'] || 'none') !== 'none';
   const canRelease = canReleaseHold(currentOrg?.role);
 
   const loadHolds = useCallback(async (orgId) => {
@@ -80,10 +81,10 @@ export default function RetencionPage() {
   }, []);
 
   useEffect(() => {
-    if (!organizationId || !isManager) return;
+    if (!organizationId || !canSee) return;
     loadHolds(organizationId);
     loadFlights(organizationId);
-  }, [organizationId, isManager, loadHolds, loadFlights]);
+  }, [organizationId, canSee, loadHolds, loadFlights]);
 
   const toggle = (list, setList, id) => setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
 
@@ -151,7 +152,7 @@ export default function RetencionPage() {
       </div>
     );
   }
-  if (!isManager) {
+  if (!canSee) {
     return (
       <div>
         {hero}

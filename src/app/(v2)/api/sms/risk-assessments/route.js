@@ -4,8 +4,9 @@
 // server-side con evaluateInternalHazard() — nunca se confía en el valor que
 // mande el cliente (regla S2).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { evaluateInternalHazard } from '@skylog/domain';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -31,7 +32,7 @@ export async function POST(request) {
     .maybeSingle();
   if (hazardError) return Response.json({ error: 'Error verificando el peligro' }, { status: 500 });
   if (!hazard) return Response.json({ error: 'Peligro no encontrado' }, { status: 404 });
-  if (!isDutyManager(memberships, hazard.organization_id)) {
+  if (!membershipsCanEdit(memberships, hazard.organization_id, 'P3')) {
     return Response.json({ error: 'Solo un gestor puede evaluar un peligro' }, { status: 403 });
   }
 

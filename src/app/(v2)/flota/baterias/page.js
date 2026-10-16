@@ -49,7 +49,7 @@ export default function BateriasComponentesPage() {
   const [componentForm, setComponentForm] = useState({ aircraftId: '', componentType: '', serialNumber: '', name: '' });
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['J2'] === 'edit';
 
   const loadBatteries = useCallback(async (orgId) => {
     if (!orgId) return;

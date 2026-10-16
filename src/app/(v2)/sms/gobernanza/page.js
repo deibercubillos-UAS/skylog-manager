@@ -42,7 +42,7 @@ export default function SmsGobernanzaPage() {
   const [gsoMissing, setGsoMissing] = useState([]);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['V3'] === 'edit';
 
   const loadAll = useCallback(async (orgId) => {
     if (!orgId) return;

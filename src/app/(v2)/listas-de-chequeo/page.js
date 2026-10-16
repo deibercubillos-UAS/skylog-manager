@@ -187,7 +187,7 @@ export default function ListasDeChequeoPage() {
   const [formError, setFormError] = useState(null);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['X2'] === 'edit';
 
   const load = useCallback(async (orgId) => {
     if (!orgId) return;

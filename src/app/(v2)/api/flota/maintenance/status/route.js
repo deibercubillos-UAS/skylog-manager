@@ -11,7 +11,8 @@
 // ciclos/vuelos por aeronave (solo horas totales), así que no hay con qué
 // evaluarla. Horas y días calendario sí se evalúan siempre que el dato exista.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 function evaluateTask(task, aircraft, lastEvent) {
   const hoursSince = aircraft.total_hours - (lastEvent ? Number(lastEvent.performed_at_aircraft_hours) : 0);
@@ -118,5 +119,5 @@ export async function GET(request) {
     return order[a.status] - order[b.status];
   });
 
-  return Response.json({ status: rows, isManager: isDutyManager(memberships, organizationId) });
+  return Response.json({ status: rows, isManager: membershipsCanEdit(memberships, organizationId, 'L2') });
 }

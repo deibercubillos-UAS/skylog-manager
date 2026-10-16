@@ -30,7 +30,7 @@ export default function SmsMsmsPage() {
   const [generating, setGenerating] = useState(false);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['V3'] === 'edit';
 
   const loadManual = useCallback(async (orgId) => {
     if (!orgId) return;

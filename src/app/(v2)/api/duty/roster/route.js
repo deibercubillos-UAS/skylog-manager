@@ -5,8 +5,9 @@
 // reimplementa el cálculo. Convierte la obligación de registrar en una
 // herramienta útil de planificación (única pieza de diseño de F5 que faltaba).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager, getLastClosedServicePeriod } from '@/lib/v2/duty';
+import { resolveCurrentPerson, getLastClosedServicePeriod } from '@/lib/v2/duty';
 import { checkRestPeriod } from '@skylog/domain';
+import { membershipsCanView } from '@/lib/v2/permissions';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -21,7 +22,7 @@ export async function GET(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanView(memberships, organizationId, 'H3')) {
     return Response.json({ error: 'Solo un gestor (Jefe de Pilotos, Gerente SMS, Gerente General) puede ver la planificación' }, { status: 403 });
   }
 

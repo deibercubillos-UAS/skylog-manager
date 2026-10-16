@@ -90,16 +90,19 @@ export async function createOwner(label) {
   return { email, user, nit, organizationId: data.organization_id, personId: data.person_id, cookie: await sessionCookie(email) };
 }
 
-/** Piloto que se une a la organización por la función atómica del registro. */
-export async function joinAsPilot(owner, label) {
+/** Miembro con un rol dado que se une a la organización por la función atómica del registro. */
+export async function joinAsRole(owner, role, label) {
   const email = `${uniq(label)}@skylog-test.local`;
   const user = await createAuthUser(email);
   const { error } = await admin().rpc('v2_join_organization', {
-    p: { auth_user_id: user.id, organization_id: owner.organizationId, role: 'piloto', full_name: `Piloto ${label}`, email, phone: '3002223344', attribution: null },
+    p: { auth_user_id: user.id, organization_id: owner.organizationId, role, full_name: `${role} ${label}`, email, phone: '3002223344', attribution: null },
   });
   if (error) throw error;
   return { email, user, organizationId: owner.organizationId, cookie: await sessionCookie(email) };
 }
+
+/** Piloto que se une a la organización por la función atómica del registro. */
+export const joinAsPilot = (owner, label) => joinAsRole(owner, 'piloto', label);
 
 /** Borra la cuenta con el propio endpoint de «eliminar mi cuenta» (borra también la organización si queda sola). */
 export async function deleteAccount(who) {

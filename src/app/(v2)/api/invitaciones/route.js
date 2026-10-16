@@ -8,6 +8,7 @@ import { adminKeyProblem } from '@/lib/v2/adminKey';
 import { loadJoinContextByOrgId, decideJoin } from '@/lib/v2/joinOrganization';
 import { newInvitationToken, sendInvitationEmail, invitationLink, likeExact } from '@/lib/v2/invitationsServer';
 import { canInviteRole, validateInvitation, invitationState, invitationExpiresAt } from '@skylog/domain';
+import { membershipsCanView } from '@/lib/v2/permissions';
 
 async function session() {
   const supabase = await createClientSSR();
@@ -26,7 +27,7 @@ export async function GET(request) {
   const s = await session();
   if (s.error) return s.error;
   const organizationId = new URL(request.url).searchParams.get('organizationId');
-  if (!organizationId || !canInviteRole(rolesIn(s.memberships, organizationId), 'piloto')) {
+  if (!organizationId || !membershipsCanView(s.memberships, organizationId, 'K9')) {
     return Response.json({ error: 'Solo un gestor puede ver las invitaciones' }, { status: 403 });
   }
   const { data, error } = await s.supabase.from('invitations').select('id, email, name, role, status, expires_at, created_at, token').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(50);

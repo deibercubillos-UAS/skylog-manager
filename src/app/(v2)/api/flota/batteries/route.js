@@ -6,7 +6,8 @@
 import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { orgCapacity, capacityMessage } from '@/lib/v2/planCapacity';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const HEALTH_STATUSES = ['buena', 'regular', 'mala'];
 
@@ -34,7 +35,7 @@ export async function GET(request) {
     .order('created_at', { ascending: false });
   if (error) return Response.json({ error: 'Error consultando baterías' }, { status: 500 });
 
-  return Response.json({ batteries, isManager: isDutyManager(memberships, organizationId) });
+  return Response.json({ batteries, isManager: membershipsCanEdit(memberships, organizationId, 'J2') });
 }
 
 export async function POST(request) {
@@ -55,7 +56,7 @@ export async function POST(request) {
 
   const { error: resolveError, memberships, personId } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'J2')) {
     return Response.json({ error: 'Solo un gestor puede registrar baterías' }, { status: 403 });
   }
 

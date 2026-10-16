@@ -2,7 +2,8 @@
 // 30-entidades.md §3.2) — se registra ante AeroCivil igual que una
 // aeronave, entidad independiente (no cuelga de ninguna aeronave puntual).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -28,7 +29,7 @@ export async function GET(request) {
     .order('brand', { ascending: true });
   if (error) return Response.json({ error: 'Error consultando equipo tecnológico asociado' }, { status: 500 });
 
-  return Response.json({ items, isManager: isDutyManager(memberships, organizationId) });
+  return Response.json({ items, isManager: membershipsCanEdit(memberships, organizationId, 'N2') });
 }
 
 export async function POST(request) {
@@ -46,7 +47,7 @@ export async function POST(request) {
 
   const { error: resolveError, memberships, personId } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'N2')) {
     return Response.json({ error: 'Solo un gestor puede registrar equipo tecnológico asociado' }, { status: 403 });
   }
 

@@ -2,7 +2,8 @@
 // GET: vigencias ya marcadas (cualquier miembro). POST: un gestor marca la vigencia como enviada (upsert por
 // organización + año). Apaga el recordatorio de /api/cron/regulatory-reminders.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +35,7 @@ export async function POST(request) {
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
-  if (!isDutyManager(memberships, organizationId)) return Response.json({ error: 'Solo un gestor puede marcar el envío de los indicadores' }, { status: 403 });
+  if (!membershipsCanEdit(memberships, organizationId, 'R5')) return Response.json({ error: 'Solo un gestor puede marcar el envío de los indicadores' }, { status: 403 });
 
   const { data, error } = await supabase
     .from('sms_indicator_submissions')

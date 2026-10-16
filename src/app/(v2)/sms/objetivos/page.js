@@ -24,7 +24,7 @@ export default function SmsObjetivosPage() {
   const [editTarget, setEditTarget] = useState(null);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['O2'] === 'edit';
 
   const loadAll = useCallback(async (orgId) => {
     if (!orgId) return;

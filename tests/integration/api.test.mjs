@@ -7,7 +7,7 @@ import { test, before, after, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { assertDevDatabase, BASE_URL, admin, signIn, cookieFromSession, totp, call, createOwner, joinAsPilot, deleteAccount, env, uniq } from './helpers.mjs';
+import { assertDevDatabase, BASE_URL, admin, signIn, cookieFromSession, totp, call, createOwner, joinAsPilot, joinAsRole, deleteAccount, env, uniq } from './helpers.mjs';
 
 const ROOTS = ['src/app/(v2)/api', 'src/app/api'];
 const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
@@ -210,6 +210,75 @@ describe('organizaciones y roles', () => {
     const r = await call('GET', '/api/perfil/exportar', { cookie: B.cookie });
     assert.equal(r.status, 200);
     assert.ok(!r.text.includes(A.email), 'la exportación de B contiene datos de A');
+  });
+});
+
+describe('matriz de permisos por rol (70-matriz-de-permisos.md)', () => {
+  let A, jp, gs, pil;
+  before(async () => {
+    A = await createOwner('matA');
+    jp = await joinAsRole(A, 'jefe_pilotos', 'matJP');
+    gs = await joinAsRole(A, 'gerente_sms', 'matGS');
+    pil = await joinAsPilot(A, 'matPil');
+  });
+  after(async () => {
+    for (const w of [pil, gs, jp, A]) await deleteAccount(w).catch(() => {});
+  });
+  const body = (extra = {}) => ({ organizationId: A.organizationId, ...extra });
+
+  test('el Jefe de Pilotos escribe en flota; el Gerente SMS solo la ve (M2)', async () => {
+    const ok = await call('POST', '/api/flota/equipo', { cookie: jp.cookie, body: body({ name: uniq('Extintor'), quantity: 1 }) });
+    assert.equal(ok.status, 200, ok.text);
+    const no = await call('POST', '/api/flota/equipo', { cookie: gs.cookie, body: body({ name: uniq('Extintor'), quantity: 1 }) });
+    assert.equal(no.status, 403, no.text);
+    const view = await call('GET', `/api/flota/equipo?organizationId=${A.organizationId}`, { cookie: gs.cookie });
+    assert.equal(view.status, 200);
+    assert.equal(view.json.isManager, false);
+  });
+
+  test('el Gerente SMS escribe en SMS; el Jefe de Pilotos solo lo ve (O2)', async () => {
+    const no = await call('POST', '/api/sms/objectives', { cookie: jp.cookie, body: body({ title: uniq('Objetivo') }) });
+    assert.equal(no.status, 403, no.text);
+    const gsr = await call('POST', '/api/sms/objectives', { cookie: gs.cookie, body: body({ title: uniq('Objetivo') }) });
+    assert.notEqual(gsr.status, 403, gsr.text);
+  });
+
+  test('solo el Gerente General cambia roles (K5)', async () => {
+    const jpPerson = await call('GET', `/api/organizacion/members?organizationId=${A.organizationId}`, { cookie: A.cookie });
+    assert.equal(jpPerson.status, 200);
+    const pilotMember = jpPerson.json.members.find((m) => m.role === 'piloto');
+    for (const who of [jp, gs, pil]) {
+      const r = await call('PATCH', '/api/organizacion/members', { cookie: who.cookie, body: body({ personId: pilotMember.person_id, role: 'admin' }) });
+      assert.equal(r.status, 403, `${who.email}: ${r.text}`);
+    }
+    const viaMembership = await call('GET', `/api/flota/roster?organizationId=${A.organizationId}`, { cookie: A.cookie });
+    const target = viaMembership.json.roster.find((m) => m.role === 'piloto');
+    const sneaky = await call('PATCH', `/api/flota/roster/membership/${target.id}`, { cookie: jp.cookie, body: { role: 'admin' } });
+    assert.equal(sneaky.status, 403, sneaky.text);
+    const ok = await call('PATCH', '/api/organizacion/members', { cookie: A.cookie, body: body({ personId: pilotMember.person_id, role: 'piloto' }) });
+    assert.equal(ok.status, 200, ok.text);
+  });
+
+  test('un Jefe de Pilotos no agrega un tripulante como Gerente General', async () => {
+    const r = await call('POST', '/api/flota/roster', { cookie: jp.cookie, body: body({ fullName: uniq('Nuevo'), role: 'admin' }) });
+    assert.equal(r.status, 403, r.text);
+  });
+
+  test('el Gerente SMS no invita (K7) y el Jefe de Pilotos sí', async () => {
+    const no = await call('POST', '/api/invitaciones', { cookie: gs.cookie, body: body({ email: uniq('inv') + '@skylog-test.local', role: 'piloto' }) });
+    assert.equal(no.status, 403, no.text);
+  });
+
+  test('el Piloto no entra a lo exclusivo de gestores', async () => {
+    const roster = await call('GET', `/api/flota/roster?organizationId=${A.organizationId}`, { cookie: pil.cookie });
+    assert.ok([200, 403].includes(roster.status));
+    const ctx = await call('GET', '/api/duty/context', { cookie: jp.cookie });
+    assert.equal(ctx.status, 200);
+    const org = ctx.json.organizations.find((o) => o.id === A.organizationId);
+    assert.equal(org.permissions.E2, 'edit');
+    assert.equal(org.permissions.O2, 'view');
+    const gctx = await call('GET', '/api/duty/context', { cookie: gs.cookie });
+    assert.equal(gctx.json.organizations[0].permissions.E2, 'view');
   });
 });
 

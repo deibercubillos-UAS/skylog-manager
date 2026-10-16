@@ -12,9 +12,10 @@
 // sin la fecha de ocurrencia no se puede calcular el plazo del MOR (5 días
 // hábiles desde la ocurrencia, Directiva 02-24).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { notifyNewReport } from '@/lib/v2/smsAlerts';
+import { membershipsCanView } from '@/lib/v2/permissions';
 import {
   classifyReportRoute,
   redactReporterIdentity,
@@ -144,7 +145,7 @@ export async function GET(request) {
   // RLS ya filtra "propios o de mi organización si soy gestor" — este acotado
   // adicional evita que un no-gestor vea la lista completa si por error se le
   // pasara una organizationId ajena (defensa en profundidad, no sustituye RLS).
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanView(memberships, organizationId, 'U3')) {
     query = query.eq('reported_by', personId);
   }
 

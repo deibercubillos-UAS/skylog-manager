@@ -7,8 +7,9 @@
 // mantenimiento de inmediato (grounded) hasta que se evalúe — nunca sigue
 // disponible con un suceso de este tipo sin resolver.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { classifyReportRoute } from '@skylog/domain';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const EVENT_TYPES = ['aterrizaje_fuerte', 'impacto_aves', 'fod', 'perdida_helice'];
 
@@ -56,7 +57,7 @@ export async function GET(request) {
     .order('reported_at', { ascending: false });
   if (error) return Response.json({ error: 'Error consultando eventos inesperados' }, { status: 500 });
 
-  return Response.json({ events, isManager: isDutyManager(memberships, organizationId) });
+  return Response.json({ events, isManager: membershipsCanEdit(memberships, organizationId, 'I12') });
 }
 
 export async function POST(request) {

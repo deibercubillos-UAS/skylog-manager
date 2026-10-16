@@ -5,9 +5,10 @@
 // aquí: vive en packages/domain/src/insuranceCoverage.js.
 import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storageRemove } from '@/lib/storage';
 import { POLICY_TYPES } from '@skylog/domain';
+import { membershipsCanEdit, membershipsCanView } from '@/lib/v2/permissions';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -62,7 +63,7 @@ export async function GET(request) {
 
   const organizationId = new URL(request.url).searchParams.get('organizationId');
   if (!organizationId) return Response.json({ error: 'organizationId es requerido' }, { status: 400 });
-  if (!isDutyManager(auth.memberships, organizationId)) {
+  if (!membershipsCanView(auth.memberships, organizationId, 'Z1')) {
     return Response.json({ error: 'Solo un gestor puede ver las pólizas' }, { status: 403 });
   }
 
@@ -88,7 +89,7 @@ export async function POST(request) {
   const fieldError = validatePolicyFields({ policyType, startDate, endDate, coveredAmountCop });
   if (fieldError) return Response.json({ error: fieldError }, { status: 400 });
   if (!auth.personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
-  if (!isDutyManager(auth.memberships, organizationId)) {
+  if (!membershipsCanEdit(auth.memberships, organizationId, 'Z2')) {
     return Response.json({ error: 'Solo un gestor puede registrar pólizas' }, { status: 403 });
   }
   if (!coversAllFleet && aircraftIds.length === 0) {
@@ -145,7 +146,7 @@ export async function PATCH(request) {
     .maybeSingle();
   if (fetchError) return Response.json({ error: fetchError.message }, { status: 500 });
   if (!existing) return Response.json({ error: 'Póliza no encontrada' }, { status: 404 });
-  if (!isDutyManager(auth.memberships, existing.organization_id)) {
+  if (!membershipsCanEdit(auth.memberships, existing.organization_id, 'Z2')) {
     return Response.json({ error: 'Solo un gestor puede editar pólizas' }, { status: 403 });
   }
 
@@ -208,7 +209,7 @@ export async function DELETE(request) {
   const { data: existing, error: fetchError } = await supabase.from('insurance_policies').select('organization_id, document_path').eq('id', id).maybeSingle();
   if (fetchError) return Response.json({ error: fetchError.message }, { status: 500 });
   if (!existing) return Response.json({ error: 'Póliza no encontrada' }, { status: 404 });
-  if (!isDutyManager(auth.memberships, existing.organization_id)) {
+  if (!membershipsCanEdit(auth.memberships, existing.organization_id, 'Z2')) {
     return Response.json({ error: 'Solo un gestor puede eliminar pólizas' }, { status: 403 });
   }
 

@@ -1,8 +1,9 @@
 // Skylog V2.0 — editar / eliminar una existencia de equipo (solo gestores; la RLS lo repite).
 import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateStockItem } from '@skylog/domain';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +14,7 @@ async function guard(supabase, id) {
   if (!row) return { error: Response.json({ error: 'No encontrado' }, { status: 404 }) };
   const { error, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (error) return { error: Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 }) };
-  if (!isDutyManager(memberships, row.organization_id)) return { error: Response.json({ error: 'Solo un gestor puede modificar las existencias' }, { status: 403 }) };
+  if (!membershipsCanEdit(memberships, row.organization_id, 'M2')) return { error: Response.json({ error: 'Solo un gestor puede modificar las existencias' }, { status: 403 }) };
   return { row };
 }
 

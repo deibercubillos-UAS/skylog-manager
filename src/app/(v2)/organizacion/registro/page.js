@@ -29,7 +29,8 @@ export default function RegistroPage() {
   const [search, setSearch] = useState('');
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['AB3'] === 'edit';
+  const canSee = (currentOrg?.permissions?.['AB3'] || 'none') !== 'none';
 
   const load = useCallback(async (orgId) => {
     const res = await fetch(`/api/audit?organizationId=${orgId}&limit=500`);
@@ -55,8 +56,8 @@ export default function RegistroPage() {
   }, []);
 
   useEffect(() => {
-    if (organizationId && isManager) load(organizationId).catch((e) => setError(e.message));
-  }, [organizationId, isManager, load]);
+    if (organizationId && canSee) load(organizationId).catch((e) => setError(e.message));
+  }, [organizationId, canSee, load]);
 
   const modules = useMemo(() => [...new Set(entries.map((e) => e.module))].sort(), [entries]);
   const shown = useMemo(() => {
@@ -77,7 +78,7 @@ export default function RegistroPage() {
   if (loading) {
     return <div className="py-24 flex justify-center"><div className="size-10 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
   }
-  if (!isManager) {
+  if (!canSee) {
     return (
       <div className="space-y-4">
         <SectionHero eyebrow="Organización" title="Registro de acciones" description="Quién hizo qué y cuándo." />

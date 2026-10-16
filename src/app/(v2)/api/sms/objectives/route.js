@@ -6,7 +6,8 @@
 // — no hay un flag de sentido por indicador en el esquema, mostrarlo sería
 // fabricar una lectura que el dato no respalda).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 async function syncIndicatorLinks(supabase, objectiveId, indicatorIds) {
   await supabase.from('sms_objective_indicators').delete().eq('objective_id', objectiveId);
@@ -74,7 +75,7 @@ export async function POST(request) {
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'O2')) {
     return Response.json({ error: 'Solo un gestor puede crear objetivos SMS' }, { status: 403 });
   }
 

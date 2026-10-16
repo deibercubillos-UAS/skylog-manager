@@ -3,8 +3,9 @@
 // prohibidos como "verificar/auditar/examinar/supervisar" disfrazados de
 // plan) antes de guardarse.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateActionPlan } from '@skylog/domain';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -33,7 +34,7 @@ export async function POST(request) {
     .maybeSingle();
   if (indicatorError) return Response.json({ error: 'Error verificando el indicador' }, { status: 500 });
   if (!indicator) return Response.json({ error: 'Indicador no encontrado' }, { status: 404 });
-  if (!isDutyManager(memberships, indicator.organization_id)) {
+  if (!membershipsCanEdit(memberships, indicator.organization_id, 'R4')) {
     return Response.json({ error: 'Solo un gestor puede registrar planes de acción' }, { status: 403 });
   }
 

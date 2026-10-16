@@ -6,7 +6,8 @@
 import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { orgCapacity, capacityMessage } from '@/lib/v2/planCapacity';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 // Nunca se expone la ruta de la foto: solo si hay una cargada.
 const publicAircraft = ({ image_path, ...a }) => ({ ...a, has_image: !!image_path });
@@ -35,7 +36,7 @@ export async function GET(request) {
     .order('created_at', { ascending: false });
   if (error) return Response.json({ error: 'Error consultando la flota' }, { status: 500 });
 
-  return Response.json({ aircraft: (aircraft || []).map(publicAircraft), isManager: isDutyManager(memberships, organizationId) });
+  return Response.json({ aircraft: (aircraft || []).map(publicAircraft), isManager: membershipsCanEdit(memberships, organizationId, 'I2') });
 }
 
 export async function POST(request) {
@@ -53,7 +54,7 @@ export async function POST(request) {
 
   const { error: resolveError, memberships, personId } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'I2')) {
     return Response.json({ error: 'Solo un gestor puede registrar aeronaves' }, { status: 403 });
   }
 

@@ -10,8 +10,9 @@
 // el cierre de vuelo del Despacho (packages/domain/flightLimits.js). Lo que SÍ bloquea es iniciar
 // servicio o despachar cuando el piloto ya está en el límite (lib/v2/serviceGates.js).
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, getRecentFlights, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson, getRecentFlights } from '@/lib/v2/duty';
 import { evaluateFlightLimits } from '@skylog/domain';
+import { membershipsCanView } from '@/lib/v2/permissions';
 
 const VISUAL_CONDITIONS = ['VLOS', 'EVLOS', 'BVLOS'];
 
@@ -56,7 +57,7 @@ export async function GET(request) {
   const replayIds = new Set((withReplay || []).map((r) => r.id));
   const slimFlights = flights.map((f) => ({ ...f, has_replay: replayIds.has(f.id) }));
 
-  return Response.json({ flights: slimFlights, isManager: isDutyManager(memberships, organizationId) });
+  return Response.json({ flights: slimFlights, isManager: membershipsCanView(memberships, organizationId, 'D1') });
 }
 
 export async function POST(request) {

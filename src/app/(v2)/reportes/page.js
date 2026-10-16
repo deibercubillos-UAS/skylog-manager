@@ -75,7 +75,8 @@ export default function ReportesPage() {
   const [fmtMsg, setFmtMsg] = useState(null);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['AC1'] === 'edit';
+  const canSee = (currentOrg?.permissions?.['AC1'] || 'none') !== 'none';
 
   useEffect(() => {
     (async () => {
@@ -105,11 +106,11 @@ export default function ReportesPage() {
   }, []);
 
   useEffect(() => {
-    if (organizationId && isManager) loadFilters(organizationId);
-  }, [organizationId, isManager, loadFilters]);
+    if (organizationId && canSee) loadFilters(organizationId);
+  }, [organizationId, canSee, loadFilters]);
 
   useEffect(() => {
-    if (!organizationId || !isManager) return;
+    if (!organizationId || !canSee) return;
     (async () => {
       try {
         const res = await fetch(`/api/reportes/formatos?organizationId=${organizationId}`);
@@ -119,7 +120,7 @@ export default function ReportesPage() {
         // sin formatos guardados: se usan los valores por defecto
       }
     })();
-  }, [organizationId, isManager]);
+  }, [organizationId, canSee]);
 
   useEffect(() => {
     if (selectedKey) setFmtDraft(resolveReportFormat(formats, selectedKey));
@@ -231,7 +232,7 @@ export default function ReportesPage() {
     );
   }
 
-  if (!isManager) {
+  if (!canSee) {
     return (
       <div>
         <SectionHero eyebrow="Documentación" title="Reportes" description="Descarga en PDF de los formatos operativos disponibles." />

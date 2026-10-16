@@ -2,8 +2,9 @@
 // avanza. El servidor revalida cada paso de estado con `evaluateTransition` (no confía en la pantalla) y
 // la RLS de `sms_changes` es la última barrera.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateChangeInput, evaluateTransition, CHANGE_STATUSES, SAFETY_IMPACTS } from '@skylog/domain';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const SELECT = '*, hazard:hazard_id(id, description), responsible:responsible_id(full_name)';
 const EDITABLE = ['title', 'description', 'change_type', 'planned_date', 'safety_impact', 'impact_justification', 'human_factors_notes', 'hazard_id', 'responsible_id', 'decision_notes'];
@@ -36,7 +37,7 @@ export async function GET(request) {
     changes: changes.data || [],
     hazards: hazards.data || [],
     members: (members.data || []).map((m) => ({ id: m.person_id, name: m.person?.full_name })).filter((m) => m.name),
-    isManager: isDutyManager(s.memberships, organizationId),
+    isManager: membershipsCanEdit(s.memberships, organizationId, 'Q2'),
   });
 }
 
@@ -45,7 +46,7 @@ export async function POST(request) {
   if (s.error) return s.error;
   const body = await request.json().catch(() => ({}));
   const { organizationId } = body;
-  if (!organizationId || !isDutyManager(s.memberships, organizationId)) {
+  if (!organizationId || !membershipsCanEdit(s.memberships, organizationId, 'Q2')) {
     return Response.json({ error: 'Solo un gestor puede registrar un cambio' }, { status: 403 });
   }
   const check = validateChangeInput({ title: body.title, changeType: body.change_type });
@@ -70,7 +71,7 @@ export async function PATCH(request) {
   const { data: current, error: findError } = await s.supabase.from('sms_changes').select('*').eq('id', body.id).maybeSingle();
   if (findError) return Response.json({ error: findError.message }, { status: 500 });
   if (!current) return Response.json({ error: 'Cambio no encontrado' }, { status: 404 });
-  if (!isDutyManager(s.memberships, current.organization_id)) return Response.json({ error: 'Solo un gestor puede modificar un cambio' }, { status: 403 });
+  if (!membershipsCanEdit(s.memberships, current.organization_id, 'Q2')) return Response.json({ error: 'Solo un gestor puede modificar un cambio' }, { status: 403 });
   if (current.status === 'implementado' || current.status === 'descartado') return Response.json({ error: 'Este cambio ya está cerrado.' }, { status: 409 });
 
   const patch = {};

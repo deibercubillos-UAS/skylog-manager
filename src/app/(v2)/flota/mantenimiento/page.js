@@ -98,7 +98,7 @@ export default function MantenimientoPage() {
   const [evalForm, setEvalForm] = useState({ evaluationResult: 'aeronavegable', evaluationNotes: '' });
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['L2'] === 'edit';
 
   const loadModels = useCallback(async (orgId) => {
     if (!orgId) return;

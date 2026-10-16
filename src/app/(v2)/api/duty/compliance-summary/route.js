@@ -6,8 +6,9 @@
 // packages/domain), solo que aquí corre una vez por cada miembro activo de
 // la organización en vez de solo la sesión actual.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager, getRecentDutyPeriods, getRecentFlights } from '@/lib/v2/duty';
+import { resolveCurrentPerson, getRecentDutyPeriods, getRecentFlights } from '@/lib/v2/duty';
 import { evaluateDutyCompliance, dayKey, monthKey } from '@skylog/domain';
+import { membershipsCanView } from '@/lib/v2/permissions';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -22,7 +23,7 @@ export async function GET(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanView(memberships, organizationId, 'H4')) {
     return Response.json({ error: 'Solo un gestor (Jefe de Pilotos, Gerente SMS, Gerente General) puede ver el resumen de la empresa' }, { status: 403 });
   }
 

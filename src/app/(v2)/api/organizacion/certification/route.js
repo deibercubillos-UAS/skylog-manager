@@ -6,7 +6,8 @@
 // pipeline de storage — se deja fuera en vez de fabricar una subida que no
 // funciona. Una fila por organización (upsert por organization_id).
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -41,7 +42,7 @@ export async function POST(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) {
+  if (!membershipsCanEdit(memberships, organizationId, 'AD7')) {
     return Response.json({ error: 'Solo un gestor puede editar la certificación AeroCivil' }, { status: 403 });
   }
 

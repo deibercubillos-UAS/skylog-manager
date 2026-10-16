@@ -1,7 +1,8 @@
 // Skylog V2.0 — Reportes: Expediente de Tripulación (roster con membresía
 // activa, instantánea). Solo gestores.
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { membershipsCanView } from '@/lib/v2/permissions';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -16,7 +17,7 @@ export async function GET(request) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, organizationId)) return Response.json({ error: 'Solo un gestor puede ver reportes' }, { status: 403 });
+  if (!membershipsCanView(memberships, organizationId, 'AC2')) return Response.json({ error: 'Solo un gestor puede ver reportes' }, { status: 403 });
 
   const { data, error } = await supabase
     .from('memberships')

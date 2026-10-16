@@ -35,7 +35,8 @@ export default function ProveedoresPage() {
   const [search, setSearch] = useState('');
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
-  const isManager = !!currentOrg?.isDutyManager;
+  const isManager = currentOrg?.permissions?.['Y2'] === 'edit';
+  const canSee = (currentOrg?.permissions?.['Y1'] || 'none') !== 'none';
 
   const loadSuppliers = useCallback(async (orgId) => {
     if (!orgId) return;
@@ -77,11 +78,11 @@ export default function ProveedoresPage() {
   }, []);
 
   useEffect(() => {
-    if (!organizationId || !isManager) return;
+    if (!organizationId || !canSee) return;
     loadSuppliers(organizationId);
     loadCriteria(organizationId);
     loadAudits(organizationId);
-  }, [organizationId, isManager, loadSuppliers, loadCriteria, loadAudits]);
+  }, [organizationId, canSee, loadSuppliers, loadCriteria, loadAudits]);
 
   async function handleSupplierSubmit(e) {
     e.preventDefault();
@@ -142,7 +143,7 @@ export default function ProveedoresPage() {
     );
   }
 
-  if (!isManager) {
+  if (!canSee) {
     return (
       <div>
         <SectionHero eyebrow="Documentación" title="Proveedores" description="Listado de proveedores y checklist de auditoría." />

@@ -1,8 +1,9 @@
 // Skylog V2.0 — Manuales: detalle + historial de versiones (GET, cualquier
 // miembro activo de la org), edición de metadatos y borrado (gestores).
 import { createClientSSR } from '@/lib/supabaseServer';
-import { resolveCurrentPerson, isDutyManager } from '@/lib/v2/duty';
+import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storageRemove } from '@/lib/storage';
+import { membershipsCanEdit } from '@/lib/v2/permissions';
 
 const BUCKET = 'documents';
 const CATEGORIES = new Set(['MO', 'SMS', 'MANTENIMIENTO', 'ORGANIZACION', 'SOP', 'OTRO']);
@@ -53,7 +54,7 @@ export async function PATCH(request, { params }) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, manual.organization_id)) {
+  if (!membershipsCanEdit(memberships, manual.organization_id, 'AA4')) {
     return Response.json({ error: 'Solo un gestor puede editar manuales' }, { status: 403 });
   }
 
@@ -90,7 +91,7 @@ export async function DELETE(request, { params }) {
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!isDutyManager(memberships, manual.organization_id)) {
+  if (!membershipsCanEdit(memberships, manual.organization_id, 'AA4')) {
     return Response.json({ error: 'Solo un gestor puede eliminar manuales' }, { status: 403 });
   }
 

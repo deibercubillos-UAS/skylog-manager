@@ -65,6 +65,8 @@ export async function PATCH(request) {
     .maybeSingle();
   if (targetError) return Response.json({ error: targetError.message }, { status: 500 });
   if (!target) return Response.json({ error: 'Membresía no encontrada' }, { status: 404 });
+  // El superadmin es de la plataforma: su rol no se cambia desde una organización (auditoría 2026-10-16).
+  if (target.role === 'superadmin') return Response.json({ error: 'Esta membresía es de la plataforma y no se edita aquí' }, { status: 403 });
 
   if (target.role === 'admin' && role !== 'admin') {
     const { data: admins, error: adminsError } = await admin

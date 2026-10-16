@@ -1,11 +1,12 @@
 import { socioContext } from '@/lib/v2/socioContext';
 import { storagePut, storagePublicUrl } from '@/lib/storage';
+import { detectImageType, imageExtension } from '@/lib/v2/imageType';
 
 export const dynamic = 'force-dynamic';
 
 const BUCKET = 'partner-logos';
 const MAX_BYTES = 2 * 1024 * 1024; // 2 MB
-const ALLOWED = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
+const ALLOWED = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
 
 async function ownerContext() {
   const c = await socioContext();
@@ -27,14 +28,17 @@ export async function POST(request) {
     const file = formData.get('file');
     if (!file || typeof file === 'string') return Response.json({ error: 'Archivo requerido' }, { status: 400 });
     if (file.size > MAX_BYTES) return Response.json({ error: 'El logo no puede superar 2 MB.' }, { status: 400 });
-    if (!ALLOWED.includes(file.type)) return Response.json({ error: 'Formato no permitido (usa PNG, JPG, WEBP o SVG).' }, { status: 400 });
+    if (!ALLOWED.includes(file.type)) return Response.json({ error: 'Formato no permitido (usa PNG, JPG o WEBP).' }, { status: 400 });
 
-    const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const path = `${membership.partner_id}/logo_${Date.now()}.${ext}`;
+    // Bucket público: tipo y extensión del contenido real (antes la extensión salía del nombre del archivo y se
+    // aceptaba SVG, que puede llevar scripts — auditoría 2026-10-16).
     const buffer = Buffer.from(await file.arrayBuffer());
+    const realType = detectImageType(buffer);
+    if (!realType) return Response.json({ error: 'El archivo no es una imagen PNG, JPG o WEBP válida.' }, { status: 400 });
+    const path = `${membership.partner_id}/logo_${Date.now()}.${imageExtension(realType)}`;
 
     const { error: upErr } = await storagePut({
-      bucket: BUCKET, key: path, body: buffer, contentType: file.type, upsert: true,
+      bucket: BUCKET, key: path, body: buffer, contentType: realType, upsert: true,
     });
     if (upErr) throw upErr;
 

@@ -52,6 +52,22 @@ export async function POST(request) {
   const seats = grantSeatsCheck(partner);
   if (!seats.ok) return Response.json({ error: seats.message, reason: seats.reason }, { status: seats.reason === 'sin_cupo' ? 409 : 403 });
 
+  // El cupo de la escuela es compartido con sus asesores: cada asesor nace con su propio contador, así que el dueño podía
+  // multiplicar el cupo creando asesores (auditoría 2026-10-16). Se suma lo usado por la escuela y todos sus asesores.
+  const schoolId = partner.parent_partner_id || (partner.type === 'escuela' ? partner.id : null);
+  if (schoolId) {
+    const { data: family, error: familyError } = await s.admin
+      .from('partners')
+      .select('id, free_seats_limit, free_seats_used')
+      .or(`id.eq.${schoolId},parent_partner_id.eq.${schoolId}`);
+    if (familyError) return Response.json({ error: 'No se pudo verificar el cupo de la escuela' }, { status: 500 });
+    const school = (family || []).find((x) => x.id === schoolId);
+    const used = (family || []).reduce((sum, x) => sum + (x.free_seats_used || 0), 0);
+    if (school?.free_seats_limit != null && used >= school.free_seats_limit) {
+      return Response.json({ error: 'Se agotaron los cupos de perfiles gratis de la escuela.', reason: 'sin_cupo' }, { status: 409 });
+    }
+  }
+
   // El perfil gratis es solo para usuarios nuevos: una persona que ya tiene cuenta no puede recibirlo.
   const { data: person } = await s.admin.from('people').select('id').ilike('email', likeExact(email)).limit(1).maybeSingle();
   if (person) {

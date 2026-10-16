@@ -1,7 +1,10 @@
 // GET /api/cron/backup-r2 — Vercel Cron (diario). Volcado completo de las tablas de `public` y de los usuarios de `auth`
 // (con sus contraseñas cifradas) a un solo archivo comprimido `AAAA-MM-DD.json.gz` en el bucket privado de respaldos de R2.
-// Guarda 35 días: cada corrida borra el de hace 35 días. Pensado para el plan gratuito de Supabase, que no trae copias.
+// Guarda 35 días: cada corrida borra los de hace 35 a 42 días. Pensado para el plan gratuito de Supabase, que no trae copias.
 // Formato: { generado_en, tablas: { <tabla>: [filas…] } }. Secured con Authorization: Bearer CRON_SECRET.
+// Cifrado (auditoría 2026-10-16): con BACKUP_ENCRYPTION_KEY el archivo se cifra con AES-256-GCM (`.json.gz.enc`;
+// descifrar con `node scripts/backup-decrypt.mjs`). Sin la variable se sigue respaldando sin cifrar y se avisa.
+import crypto from 'node:crypto';
 import zlib from 'node:zlib';
 import { promisify } from 'node:util';
 import { createAdminClient } from '@/lib/supabaseServer';
@@ -20,6 +23,15 @@ function verifyAuth(request) {
 }
 
 const dayMinus = (day, n) => new Date(new Date(`${day}T12:00:00Z`).getTime() - n * 86_400_000).toISOString().slice(0, 10);
+
+// BFENC1 + iv (12) + etiqueta (16) + datos cifrados. La llave es el SHA-256 de BACKUP_ENCRYPTION_KEY.
+function encrypt(buffer, secret) {
+  const key = crypto.createHash('sha256').update(secret).digest();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const data = Buffer.concat([cipher.update(buffer), cipher.final()]);
+  return Buffer.concat([Buffer.from('BFENC1'), iv, cipher.getAuthTag(), data]);
+}
 
 export async function GET(request) {
   if (!verifyAuth(request)) return Response.json({ error: 'No autorizado' }, { status: 401 });
@@ -41,13 +53,20 @@ export async function GET(request) {
   if (failed.length) return Response.json({ error: 'Respaldo incompleto: no se subió.', failed }, { status: 500 });
 
   const today = bogotaDay();
-  const body = await gzip(Buffer.from(JSON.stringify({ generado_en: new Date().toISOString(), tablas })));
-  const key = `${today}.json.gz`;
-  const put = await storagePut({ bucket, key, body, contentType: 'application/gzip' });
+  const compressed = await gzip(Buffer.from(JSON.stringify({ generado_en: new Date().toISOString(), tablas })));
+  const secret = process.env.BACKUP_ENCRYPTION_KEY;
+  const body = secret ? encrypt(compressed, secret) : compressed;
+  const key = secret ? `${today}.json.gz.enc` : `${today}.json.gz`;
+  const put = await storagePut({ bucket, key, body, contentType: 'application/octet-stream' });
   if (put.error) return Response.json({ error: `No se pudo subir a R2: ${put.error.message || put.error}` }, { status: 502 });
 
-  const old = `${dayMinus(today, KEEP_DAYS)}.json.gz`;
-  await storageRemove({ bucket, keys: [old] }).catch(() => {});
+  // Se borra una ventana (días 35 a 42), no un solo día: si una corrida falló, su copia vieja no queda para siempre.
+  const old = [];
+  for (let n = KEEP_DAYS; n <= KEEP_DAYS + 7; n += 1) old.push(`${dayMinus(today, n)}.json.gz`, `${dayMinus(today, n)}.json.gz.enc`);
+  await storageRemove({ bucket, keys: old }).catch(() => {});
   const rows = Object.values(tablas).reduce((n, t) => n + (t?.length || 0), 0);
-  return Response.json({ ok: true, key, tables: Object.keys(tablas).length, rows, bytes: body.length });
+  return Response.json({
+    ok: true, key, tables: Object.keys(tablas).length, rows, bytes: body.length, encrypted: !!secret,
+    ...(secret ? {} : { warning: 'Respaldo SIN cifrar: configura BACKUP_ENCRYPTION_KEY en Vercel.' }),
+  });
 }

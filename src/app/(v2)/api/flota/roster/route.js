@@ -10,6 +10,7 @@
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit, membershipsCanView } from '@/lib/v2/permissions';
+import { loadJoinContextByOrgId, decideJoin } from '@/lib/v2/joinOrganization';
 
 const ASSIGNABLE_ROLES = ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'];
 
@@ -84,6 +85,13 @@ export async function POST(request) {
   }
 
   const admin = createAdminClient();
+
+  // Cupo de tripulantes del plan y cargo único (un Jefe de Pilotos y un Gerente SMS por empresa): la misma regla que ya
+  // aplican la invitación y la unión por NIT; agregar directamente se la saltaba (auditoría 2026-10-16).
+  if (role !== 'admin') {
+    const decision = decideJoin(await loadJoinContextByOrgId(admin, { id: organizationId }), role);
+    if (!decision.ok) return Response.json({ error: decision.message, reason: decision.reason }, { status: 409 });
+  }
 
   let personId = null;
   if (documentNumber) {

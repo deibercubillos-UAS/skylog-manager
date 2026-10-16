@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { getAttribution } from '@/lib/attribution';
 import { validateRegistration, validateJoinRegistration } from '@skylog/domain';
 import JoinByNit from '../../(v2)/_components/JoinByNit';
+import { safeNextPath } from '@/lib/v2/safeNext';
 
 const inputCls = 'w-full min-h-[48px] px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-base md:text-sm font-medium outline-none focus:border-primary focus:ring-2 focus:ring-orange-100 transition-all';
 const labelCls = 'text-xs font-black text-slate-500 uppercase tracking-widest';
@@ -58,7 +59,7 @@ export default function CompletarRegistroPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'No se pudo completar el registro.');
       const next = new URLSearchParams(window.location.search).get('next');
-      window.location.href = next && next.startsWith('/') && !next.startsWith('//') ? next : '/inicio';
+      window.location.href = safeNextPath(next) || '/inicio';
     } catch (err) {
       setErrors([err.message]);
       setBusy(false);

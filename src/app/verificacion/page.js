@@ -5,10 +5,11 @@
 // confirma con el primer código. El servidor (`requireSuperadmin` y el layout de /admin) exige que la sesión sea aal2.
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { safeNextPath } from '@/lib/v2/safeNext';
 
 const safeNext = () => {
   const n = new URLSearchParams(window.location.search).get('next');
-  return n && n.startsWith('/') && !n.startsWith('//') ? n : '/admin/plataforma';
+  return safeNextPath(n) || '/admin/plataforma';
 };
 
 export default function VerificacionPage() {

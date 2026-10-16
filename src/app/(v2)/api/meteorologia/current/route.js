@@ -88,7 +88,10 @@ export async function GET(request) {
     const wd = await weatherRes.json();
 
     const now = new Date();
-    const hours = (wd.hourly?.time ?? []).map((t) => new Date(t));
+    // Open-Meteo devuelve la hora local de Bogotá SIN zona («2026-10-16T10:00»); en el servidor (UTC) `new Date(t)` la leía
+    // como UTC y elegía una hora 5 h adelantada (auditoría 2026-10-16). Se aplica el desfase que trae la propia respuesta.
+    const offsetMs = (wd.utc_offset_seconds ?? -18000) * 1000;
+    const hours = (wd.hourly?.time ?? []).map((t) => new Date(Date.parse(`${t}Z`) - offsetMs));
     const futureIdx = hours.findIndex((h) => h > now);
     const idx = futureIdx > 0 ? futureIdx - 1 : Math.max(0, hours.length - 1);
 

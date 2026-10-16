@@ -71,7 +71,7 @@ export async function GET(request) {
     if (acts.length) {
       parts.push(`<p style="font-size:14px;font-weight:700;color:#1A202C;margin:0 0 6px;">Acciones correctivas vencidas o que vencen hoy</p><ul style="margin:0;padding-left:18px;font-size:13px;color:#4a5568;">${acts.map((a) => `<li>${escHtml(a.description)} — ${escHtml(a.due)}</li>`).join('')}</ul>`);
     }
-    await createNotifications({
+    const notified = await createNotifications({
       organizationId,
       roles: ['gerente_sms'],
       type: 'sms_plazo',
@@ -80,6 +80,8 @@ export async function GET(request) {
       link: '/sms/reportes',
       dedupeKey: `sms-plazo:${today}`,
     });
+    // Si el aviso de hoy ya existía, el cron ya corrió hoy: no se repite el correo (llega a los mismos Gerentes SMS).
+    if (!notified.created) continue;
     const out = await sendAnalystMail({
       organizationId,
       subject: `Seguimiento SMS: ${mors.length} MOR por radicar, ${acts.length} acción(es) vencida(s)`,

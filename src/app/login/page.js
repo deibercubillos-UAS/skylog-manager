@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import Image from 'next/image';
 import AuthSidePanel from '@/components/AuthSidePanel';
+import { safeNextPath } from '@/lib/v2/safeNext';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -36,7 +37,7 @@ export default function LoginPage() {
         // El dashboard real es /inicio (V2); /dashboard ya no existe.
         // `?next=` permite volver a donde se venía (p. ej. a una invitación); solo rutas internas, nunca otro sitio.
         const next = new URLSearchParams(window.location.search).get('next');
-        window.location.href = next && next.startsWith('/') && !next.startsWith('//') ? next : '/inicio';
+        window.location.href = safeNextPath(next) || '/inicio';
       }
     } catch (err) {
       setError(
@@ -50,8 +51,6 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
-    const raw = new URLSearchParams(window.location.search).get('next');
-    const next = raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : null;
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/callback` },

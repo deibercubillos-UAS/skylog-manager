@@ -66,7 +66,7 @@ Planes: piloto, escuadrilla, flota, enterprise (`lib/v2/planLimits.js`). El Gere
 
 Públicas: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_GA_ID`, `NEXT_PUBLIC_CLARITY_ID`.
 Servidor: `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `CRON_SECRET`, `ADMIN_SECRET`, `DJI_API_KEY`, `WOMPI_API_BASE`, `WOMPI_PUBLIC_KEY`, `WOMPI_PRIVATE_KEY`, `WOMPI_EVENTS_SECRET`, `WOMPI_INTEGRITY_SECRET`,
-`R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PUBLIC_BASE_URL`, `R2_LOGOS_BASE_URL`, `R2_RELEASES_BASE_URL`, `R2_BUCKET_*`.
+`R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PUBLIC_BASE_URL`, `R2_LOGOS_BASE_URL`, `R2_RELEASES_BASE_URL`, `R2_BUCKET_*`, `BACKUP_ENCRYPTION_KEY` (cifra el respaldo diario; sin ella el respaldo sale sin cifrar).
 Plantilla en `.env.example`. Nunca se comitean valores (`.env*` está ignorado).
 
 ## Pruebas y verificación

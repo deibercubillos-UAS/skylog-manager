@@ -9,7 +9,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, getOpenDutyPeriod } from '@/lib/v2/duty';
 import { evaluateServiceGates } from '@/lib/v2/serviceGates';
-import { readOnlyBlock } from '@/lib/v2/permissions';
+import { readOnlyBlock, membershipsCanEdit } from '@/lib/v2/permissions';
 
 const VALID_TYPES = ['servicio', 'descanso', 'disponibilidad', 'entrenamiento'];
 
@@ -31,6 +31,10 @@ export async function POST(request) {
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
   if (!organizationIds.includes(organizationId)) {
     return Response.json({ error: 'Sin membresía activa en esa organización' }, { status: 403 });
+  }
+  // H1 (matriz): GG, JP, Piloto y piloto independiente abren su propio período; el Gerente SMS solo lo ve.
+  if (!membershipsCanEdit(memberships, organizationId, 'H1')) {
+    return Response.json({ error: 'Tu rol no registra períodos de servicio' }, { status: 403 });
   }
   const readOnly = readOnlyBlock(memberships, organizationId);
   if (readOnly) return readOnly;

@@ -108,6 +108,21 @@ export async function POST(request) {
     if (!aircraftRow) return Response.json({ error: 'La aeronave no pertenece a esta organización' }, { status: 400 });
   }
 
+  // PIC y observador deben ser miembros activos de la organización: la misión (zona, notas) es visible para su PIC,
+  // así que asignar a alguien de otra empresa le mostraba la operación (auditoría 2026-10-16).
+  const crewIds = [picPersonId, observerPersonId].filter(Boolean);
+  const { data: crewRows, error: crewError } = await supabase
+    .from('memberships')
+    .select('person_id')
+    .eq('organization_id', organizationId)
+    .eq('status', 'activa')
+    .in('person_id', crewIds);
+  if (crewError) return Response.json({ error: 'Error verificando la tripulación' }, { status: 500 });
+  const crewSet = new Set((crewRows || []).map((r) => r.person_id));
+  if (!crewIds.every((id) => crewSet.has(id))) {
+    return Response.json({ error: 'El PIC y el observador deben ser miembros activos de esta organización' }, { status: 400 });
+  }
+
   const { data, error } = await supabase
     .from('missions')
     .insert({

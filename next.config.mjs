@@ -60,18 +60,9 @@ const nextConfig = {
     minimumCacheTTL: 60 * 60 * 24 * 30,
     // Reducir calidad por defecto: 80 sigue siendo imperceptible y pesa ~30% menos
     qualities: [50, 75, 85, 90],
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**.supabase.co',
-        port: '',
-        pathname: '/storage/v1/object/public/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-    ],
+    // Sin imágenes remotas: todas las <Image> del sitio son locales. Antes se permitía `**.supabase.co`, que dejaba al
+    // optimizador descargar imágenes de CUALQUIER proyecto de Supabase (auditoría 2026-10-16).
+    remotePatterns: [],
   },
 
   // Rutas de v1 retiradas (C2): los marcadores, la app instalada y los correos viejos siguen llegando a /dashboard.

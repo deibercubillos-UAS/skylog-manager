@@ -547,7 +547,7 @@ export default function SocioPanel() {
                   <label className={`px-4 py-2 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-widest cursor-pointer inline-flex items-center gap-1.5 ${uploadingLogo ? 'opacity-60 pointer-events-none' : ''}`}>
                     <span className="material-symbols-outlined text-sm">upload</span>
                     {uploadingLogo ? 'Subiendo...' : (ctx.partner?.logo_url ? 'Cambiar logo' : 'Subir logo')}
-                    <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={uploadLogo} className="hidden" />
+                    <input type="file" accept="image/png,image/jpeg,image/webp" onChange={uploadLogo} className="hidden" />
                   </label>
                   {ctx.partner?.logo_url && (
                     <button onClick={removeLogo} className="text-xs font-bold text-slate-400 hover:text-red-500 cursor-pointer">Quitar logo</button>

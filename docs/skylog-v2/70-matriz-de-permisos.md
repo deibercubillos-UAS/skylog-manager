@@ -83,7 +83,7 @@ Este documento se genera a partir de ese archivo; si cambian, cambian juntos. Vi
 ### Operación · Tiempo de servicio
 | | Función | SA | GG | JP | GS | P | PI |
 |---|---|---|---|---|---|---|---|
-| H1 | Iniciar y cerrar mi período de servicio | ✅ | ✅ | ✅ | 👁 | 👁 | ✅ |
+| H1 | Iniciar y cerrar mi período de servicio | ✅ | ✅ | ✅ | 👁 | ✅ | ✅ |
 | H2 | Ver mi estado de servicio y descanso | ✅ | ✅ | ✅ | 👁 | 👁 | ✅ |
 | H3 | Ver el estado de otro piloto | ✅ | ✅ | ✅ | 👁 | ❌ | ✅ |
 | H4 | Ver la planificación y el resumen de cumplimiento de toda la empresa | ✅ | ✅ | ✅ | 👁 | ❌ | ✅ |
@@ -283,7 +283,7 @@ Este documento se genera a partir de ese archivo; si cambian, cambian juntos. Vi
 | AD6 | Ver la certificación Aerocivil de la organización | ✅ | ✅ | 👁 | 👁 | ✅ | ❌ |
 | AD7 | Editar la certificación Aerocivil | ✅ | ✅ | 👁 | 👁 | ❌ | ❌ |
 | AD8 | Ver los cargos designados (GSO, Jefe de Pilotos, ejecutivo responsable) | ✅ | ✅ | 👁 | 👁 | 👁 | ❌ |
-| AD9 | Designar cargos y subir sus actas | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| AD9 | Designar cargos y subir sus actas | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
 | AD10 | Firmar la declaración de mercancías peligrosas | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
 | AD11 | Preparar el expediente Aerocivil y diligenciar el análisis de riesgos | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
 | AD12 | Firmar el análisis de riesgos | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
@@ -318,3 +318,4 @@ Este documento se genera a partir de ese archivo; si cambian, cambian juntos. Vi
 - **Piloto de organización aplicado (2026-10-15):** no ve tripulación (K1), componentes (J3) ni datos de la organización (AD1) —403 en la API y pantalla oculta—, y no registra vuelos a mano (D5; importar el log del control sí). La bitácora de la organización (D1) ya la limita la RLS de `flights` a sus propios vuelos. Límite conocido: D5 distingue «manual» de «importado» por la presencia del número de serie de batería en la petición, que el cliente controla; es una barrera de interfaz y de buena fe, no una frontera fuerte. La plantilla de Excel (AB1) no se bloquea en la API: es un archivo vacío genérico; la pantalla de importación sí está oculta.
 - **Columna PI aplicada (2026-10-15):** «piloto independiente» = Gerente General + plan «piloto» + único integrante activo de su organización (`independent` en cada membresía, calculado en `resolveCurrentPerson`; el contexto entrega `independentPilot`). Advertencia: toda cuenta nueva nace en plan «piloto» (prueba de 15 días), así que una empresa recién registrada que aún no ha invitado a nadie se comporta como piloto independiente hasta que sume un integrante o pague un plan mayor.
 - **Inconsistencia a decidir:** AB6 deja a GSMS liberar una custodia legal, pero AB4/AB5 le niegan verlas y abrirlas; en la práctica no podría hacerlo desde la pantalla.
+- **Ajustes del usuario (2026-10-16, auditoría):** H1 — el Piloto sí inicia y cierra su propio período de servicio (antes 👁); AD9 — el Gerente SMS también designa cargos (antes ❌). Las rutas `/api/duty/start`, `/api/duty/end` y `/api/organizacion/designations` validan ahora esas funciones de la matriz en vez de listas de roles propias.

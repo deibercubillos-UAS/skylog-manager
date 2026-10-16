@@ -15,7 +15,7 @@ const ALLOWED_TYPES = new Set(['application/pdf', 'image/png', 'image/jpeg', 'im
  * Crea { POST, GET, DELETE } para una tabla.
  *  - table / orgColumn: tabla con la columna de organización (por defecto organization_id).
  *  - resolve(request, row): { pathColumn, folder, label } — qué columna y carpeta usar (p. ej. según ?kind=).
- *  - canWrite / canRead: (memberships, organizationId) => boolean.
+ *  - canWrite / canRead: (memberships, organizationId, target) => boolean (`target` = lo que devolvió resolve).
  *  - rowLabel: texto para mensajes ("la designación").
  */
 export function makeRowDocumentRoute({ table, resolve, canWrite, canRead, rowLabel = 'el registro', select = '*' }) {
@@ -34,7 +34,7 @@ export function makeRowDocumentRoute({ table, resolve, canWrite, canRead, rowLab
 
     const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
     if (resolveError) return { error: Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 }) };
-    const allowed = needWrite ? canWrite(memberships, row.organization_id) : canRead(memberships, row.organization_id);
+    const allowed = needWrite ? canWrite(memberships, row.organization_id, target) : canRead(memberships, row.organization_id, target);
     if (!allowed) return { error: Response.json({ error: needWrite ? 'No tienes permiso para adjuntar este documento' : 'No tienes permiso para ver este documento' }, { status: 403 }) };
     return { row, target };
   }

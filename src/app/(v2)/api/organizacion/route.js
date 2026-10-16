@@ -28,7 +28,7 @@ export async function GET(request) {
   const { data, error } = await supabase.from('organizations').select('*').eq('id', organizationId).maybeSingle();
   if (error) return Response.json({ error: error.message }, { status: 500 });
   if (!data) return Response.json({ error: 'Organización no encontrada' }, { status: 404 });
-  await logAudit({ organizationId, action: 'update', module: 'Organización', entityLabel: 'Datos de la organización' });
+  // Leer no es una acción del registro (antes cada lectura dejaba una «actualización» falsa — auditoría 2026-10-16).
   return Response.json({ organization: data });
 }
 
@@ -64,5 +64,6 @@ export async function PATCH(request) {
   const admin = createAdminClient();
   const { data, error } = await admin.from('organizations').update(updates).eq('id', organizationId).select().single();
   if (error) return Response.json({ error: error.message }, { status: 500 });
+  await logAudit({ organizationId, action: 'update', module: 'Organización', entityLabel: `Datos de la organización (${Object.keys(updates).join(', ')})` });
   return Response.json({ organization: data });
 }

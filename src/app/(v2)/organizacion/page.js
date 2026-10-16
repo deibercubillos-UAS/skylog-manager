@@ -28,7 +28,7 @@ const OPERATION_TYPE_OPTIONS = ['VLOS', 'EVLOS', 'BVLOS'];
 // Mismo límite/formatos que valida `/api/organizacion/logo` — se repite
 // aquí para poder rechazar en el cliente antes de disparar la petición.
 const LOGO_MAX_BYTES = 2 * 1024 * 1024;
-const LOGO_ALLOWED_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']);
+const LOGO_ALLOWED_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 
 function certStatus(expiresAt) {
   if (!expiresAt) return { label: 'Sin vigencia registrada', badge: 'bg-navy-50 text-navy-400' };
@@ -323,7 +323,7 @@ export default function OrganizacionPage() {
           )}
           {isManager && (
             <div>
-              <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden onChange={handleLogoChange} />
+              <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={handleLogoChange} />
               <Button type="button" variant="ghost" onClick={() => logoInputRef.current?.click()} disabled={logoBusy} className="text-xs px-3 py-1.5">
                 {logoBusy ? 'Subiendo…' : org?.logo_url ? 'Cambiar logo' : 'Subir logo'}
               </Button>

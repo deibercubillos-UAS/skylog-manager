@@ -3,12 +3,12 @@
 // historial. El Gerente SMS se designa en /sms/gobernanza (validación de perfil propia), aquí solo se lista.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
-import { membershipsCanView } from '@/lib/v2/permissions';
+import { membershipsCanView, membershipsCanEdit } from '@/lib/v2/permissions';
 import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { validateDesignationInput, DESIGNATION_ROLES } from '@skylog/domain';
 import { readOnlyBlock } from '@/lib/v2/permissions';
 
-const AUTHORITY_ROLES = ['admin', 'superadmin']; // AD9: solo el Gerente General designa cargos
+// AD9 (matriz de permisos): designan cargos el Gerente General y el Gerente SMS (decisión del usuario 2026-10-16).
 
 async function session() {
   const supabase = await createClientSSR();
@@ -34,7 +34,7 @@ export async function GET(request) {
     .eq('organization_id', organizationId)
     .order('started_at', { ascending: false });
   if (error) return Response.json({ error: error.message }, { status: 500 });
-  const canDesignate = (s.memberships || []).some((m) => m.organization_id === organizationId && AUTHORITY_ROLES.includes(m.role));
+  const canDesignate = membershipsCanEdit(s.memberships, organizationId, 'AD9');
   // Las rutas de archivo no salen del servidor: solo si el acta y la hoja de vida están cargadas.
   const designations = (data || []).map(({ act_document_path, resume_document_path, ...d }) => ({ ...d, has_act_document: !!act_document_path, has_resume_document: !!resume_document_path }));
   const canView = membershipsCanView(s.memberships, organizationId, 'AD8');
@@ -46,7 +46,7 @@ export async function POST(request) {
   if (s.error) return s.error;
   const body = await request.json().catch(() => ({}));
   const { organizationId, roleType, personId, actReference, actDate } = body;
-  if (!organizationId || !(s.memberships || []).some((m) => m.organization_id === organizationId && AUTHORITY_ROLES.includes(m.role))) {
+  if (!organizationId || !membershipsCanEdit(s.memberships, organizationId, 'AD9')) {
     return Response.json({ error: 'Solo el Gerente General o el Gerente SMS pueden designar cargos' }, { status: 403 });
   }
   const readOnly = readOnlyBlock(s.memberships, organizationId);

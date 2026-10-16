@@ -22,7 +22,7 @@ export async function PATCH(request, { params }) {
 
   const { membershipId } = await params;
   const admin = createAdminClient();
-  const { data: existing, error: fetchError } = await admin.from('memberships').select('organization_id, status').eq('id', membershipId).maybeSingle();
+  const { data: existing, error: fetchError } = await admin.from('memberships').select('organization_id, status, role').eq('id', membershipId).maybeSingle();
   if (fetchError) return Response.json({ error: 'Error consultando la membresía' }, { status: 500 });
   if (!existing) return Response.json({ error: 'Membresía no encontrada' }, { status: 404 });
   if (existing.status === 'cerrada') return Response.json({ error: 'Esta membresía ya está cerrada' }, { status: 400 });
@@ -48,6 +48,26 @@ export async function PATCH(request, { params }) {
     patch.ended_at = new Date().toISOString();
   }
   if (Object.keys(patch).length === 0) return Response.json({ error: 'Nada para actualizar' }, { status: 400 });
+
+  // El superadmin es de la plataforma, no de la organización: no se toca desde la tripulación.
+  if (existing.role === 'superadmin') return Response.json({ error: 'Esta membresía es de la plataforma y no se edita aquí' }, { status: 403 });
+  // Cerrar o cambiar el rol de un Gerente General es decisión de un Gerente General (K5), y la organización nunca se queda
+  // sin uno: antes un Jefe de Pilotos o un Gerente SMS podían cerrar la membresía del último (auditoría 2026-10-16).
+  const removesAdmin = existing.role === 'admin' && (patch.status === 'cerrada' || (patch.role && patch.role !== 'admin'));
+  if (removesAdmin) {
+    if (!membershipsCanEdit(memberships, existing.organization_id, 'K5')) {
+      return Response.json({ error: 'Solo un Gerente General puede retirar a otro Gerente General' }, { status: 403 });
+    }
+    const { data: admins, error: adminsError } = await admin
+      .from('memberships')
+      .select('id')
+      .eq('organization_id', existing.organization_id)
+      .eq('role', 'admin')
+      .eq('status', 'activa')
+      .neq('id', membershipId);
+    if (adminsError) return Response.json({ error: 'Error verificando los Gerentes Generales' }, { status: 500 });
+    if (!admins?.length) return Response.json({ error: 'La organización no puede quedarse sin Gerente General. Asigna otro antes.' }, { status: 409 });
+  }
 
   const { data, error } = await admin
     .from('memberships')

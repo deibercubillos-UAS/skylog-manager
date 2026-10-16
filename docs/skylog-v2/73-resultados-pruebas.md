@@ -8,7 +8,7 @@ Escritorio 1366×768 · celular Pixel 7 emulado (412×915, táctil) y barrido en
 |---|---|---|---|---|
 | F-001 | Media | Pie de las páginas públicas | No enlazaba Aviso Legal, Privacidad, Cookies ni Términos | ✅ corregido `53fd1fa1` |
 | F-002 | Media | `/api/duty/context` | Un 500 aislado (coincidió con un despliegue); no se reprodujo en 50 llamadas | ➖ vigilar |
-| F-003 | **Alta** | Supabase (instancia) | Latencia muy variable bajo carga ligera (login 0,4–45 s, 504/522; persona 0,2–17 s) y, al cierre de la prueba, **la base de datos no aceptaba conexiones** (`/api/health` > 60 s, login 522) con el estado público «operativo». Compatible con instancia sin holgura de CPU. | ⬜ decisión del usuario (tamaño de la instancia; plan vence 31-oct) |
+| F-003 | **Alta** | Supabase (instancia; reiniciada y respondiendo 2026-10-16) | Latencia muy variable bajo carga ligera (login 0,4–45 s, 504/522; persona 0,2–17 s) y, al cierre de la prueba, **la base de datos no aceptaba conexiones** (`/api/health` > 60 s, login 522) con el estado público «operativo». Compatible con instancia sin holgura de CPU. | ⬜ decisión del usuario (tamaño de la instancia; plan vence 31-oct) |
 | F-004 | Baja | `/sms/mapas` | Excepción del visor ArcGIS y 404 de una fuente | ⬜ |
 | F-006 | Info | Mantenimiento | Tras «Registrar mantenimiento» no hay confirmación ni historial visible de los eventos | ⬜ mejora |
 | F-007 | **Alta** | Selector de organización del encabezado | Cambiaba el título pero las 39 pantallas seguían cargando y **escribiendo en la primera organización** | ✅ `84217a0b` |
@@ -61,7 +61,7 @@ Escritorio 1366×768 · celular Pixel 7 emulado (412×915, táctil) y barrido en
 | Prueba | Resultado |
 |---|---|
 | E1 · Barrido de 39 páginas públicas × 360/390/430 y 44 pantallas del panel × 360/390/430 (+ Piloto en 390) | ✅ **0 desbordes horizontales, 0 excepciones** |
-| E2 · Flujos de crear/editar/borrar en Pixel 7 | ⬜ **interrumpida**: la sesión caducó y el inicio de sesión dejó de responder (F-003); hay que repetirla cuando la base vuelva |
+| E2 · Flujos de crear/editar/borrar en Pixel 7 (base recuperada tras reinicio) | ✅ Existencias y ETA, tripulación, pólizas, proveedores, manuales, listas, SMS (objetivos, riesgos, cambios), retención, organización, capacitación, bitácora, aeronaves, 10 reportes PDF, aislamiento y sin conexión pasan, sin respuestas ≥ 400 inesperadas. En celular el avatar abre `/perfil` (ahí está «Cerrar sesión») y la campana abre su panel. Las marcas ❌ del script (acciones del manual) eran selectores ambiguos, no de la app: el flujo equivalente pasa. |
 | E3 · iPhone real (Appium) | ⬜ pendiente |
 | E4 · Orientación horizontal | ⬜ pendiente |
 

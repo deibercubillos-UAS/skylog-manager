@@ -10,7 +10,7 @@
 // todavía. Notificaciones y búsqueda global (v1) se omiten: dependen de
 // tablas (`notifications`, etc.) que no existen en esta rama.
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import OfflineSync from './_components/OfflineSync';
 import AppUpdateBanner from '@/components/AppUpdateBanner';
 import CommandPalette from './_components/CommandPalette';
@@ -20,7 +20,7 @@ import { supabase } from '@/lib/supabase';
 import { OnboardingTour } from './_components/OnboardingTour';
 import NotificationBell from './_components/NotificationBell';
 import { CENTRO_DE_CONTROL_ACTIVO } from '@/lib/v2/featureFlags';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId, setSelectedOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const ROLE_LABELS = {
   admin: 'Gerente General',
@@ -178,7 +178,7 @@ export default function V2Layout({ children }) {
           return;
         }
         setContext(data);
-        setOrganizationId((prev) => prev || data.organizations?.[0]?.id || '');
+        setOrganizationId((prev) => prev || pickOrganizationId(data));
       })
       .catch(() => {});
   }, []);
@@ -249,6 +249,7 @@ export default function V2Layout({ children }) {
       return;
     }
     setSwitchingOrg(true);
+    setSelectedOrganizationId(orgId);
     setOrganizationId(orgId);
     setAccountMenuOpen(false);
     setOrgMenuOpen(false);
@@ -525,7 +526,8 @@ export default function V2Layout({ children }) {
               <p className="text-xs text-navy-400">Si crees que debería estarlo, pídele al Gerente General de tu organización que revise tus permisos.</p>
             </div>
           ) : (
-            children
+            // `key`: al cambiar de organización la pantalla se vuelve a montar y carga los datos de la elegida.
+            <Fragment key={organizationId}>{children}</Fragment>
           )}
         </div>
       </main>

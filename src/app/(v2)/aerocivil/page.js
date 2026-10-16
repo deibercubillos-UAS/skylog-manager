@@ -9,7 +9,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { HAZARD_CATALOG, MITIGATION_STRATEGIES, PROBABILITY_LEVELS, SEVERITY_LEVELS } from '@skylog/domain';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, SectionCard, StatCard } from '../_components/SectionHero';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const PROB_OPTIONS = Object.keys(PROBABILITY_LEVELS).sort((a, b) => b - a);
 const SEV_OPTIONS = Object.keys(SEVERITY_LEVELS);
@@ -212,7 +212,7 @@ export default function AerocivilPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
       setContext(data);
-      if (data.organizations?.length && !organizationId) setOrganizationId(data.organizations[0].id);
+      if (data.organizations?.length && !organizationId) setOrganizationId(pickOrganizationId(data));
     } catch (e) {
       setError(e.message);
     } finally {

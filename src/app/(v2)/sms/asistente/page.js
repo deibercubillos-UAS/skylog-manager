@@ -12,7 +12,7 @@ import { SectionHero, StatCard } from '../../_components/SectionHero';
 import { Button } from '@skylog/ui';
 import { OFFICIAL_PHASES } from '@skylog/domain';
 import TaskPanel from './_TaskPanel';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 function fmtDate(d) {
   if (!d) return null;
@@ -71,7 +71,7 @@ export default function SmsAsistentePage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);
-        setOrganizationId(data.organizations?.[0]?.id || '');
+        setOrganizationId(pickOrganizationId(data));
       } catch (e) {
         setError(e.message);
       } finally {

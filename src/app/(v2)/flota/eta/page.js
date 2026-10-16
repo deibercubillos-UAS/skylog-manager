@@ -9,7 +9,7 @@
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const emptyForm = { brand: '', model: '', retaNumber: '', description: '' };
 
@@ -46,7 +46,7 @@ export default function EtaPage() {
         const ctx = await ctxRes.json();
         if (!ctxRes.ok) throw new Error(ctx.error || 'Error cargando contexto');
         setContext(ctx);
-        const firstOrgId = ctx.organizations?.[0]?.id || '';
+        const firstOrgId = pickOrganizationId(ctx);
         setOrganizationId(firstOrgId);
       } catch (e) {
         setError(e.message);

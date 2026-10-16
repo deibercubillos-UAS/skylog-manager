@@ -5,7 +5,7 @@
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const CATEGORIES = ['Seguridad', 'Señalización', 'Comunicaciones', 'Energía', 'Herramientas', 'Otro'];
 const emptyForm = { name: '', category: '', quantity: '1', notes: '' };
@@ -41,7 +41,7 @@ export default function EquipoPage() {
         const ctx = await res.json();
         if (!res.ok) throw new Error(ctx.error || 'Error cargando contexto');
         setContext(ctx);
-        setOrganizationId(ctx.organizations?.[0]?.id || '');
+        setOrganizationId(pickOrganizationId(ctx));
       } catch (e) {
         setError(e.message);
       } finally {

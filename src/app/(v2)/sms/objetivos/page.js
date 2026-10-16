@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 import { Button } from '@skylog/ui';
 import ObjectiveFormPanel from './_ObjectiveFormPanel';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const MONTH_LABEL = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
@@ -46,7 +46,7 @@ export default function SmsObjetivosPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);
-        setOrganizationId(data.organizations?.[0]?.id || '');
+        setOrganizationId(pickOrganizationId(data));
       } catch (e) {
         setError(e.message);
       } finally {

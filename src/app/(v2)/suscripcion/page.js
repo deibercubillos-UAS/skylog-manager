@@ -11,7 +11,7 @@ import { SectionHero, StatCard } from '../_components/SectionHero';
 import { Button } from '@skylog/ui';
 import PaymentHistory from './_PaymentHistory';
 import { PLANS, PLAN_LABELS, PLAN_LIMITS, PLAN_PRICING } from '@/lib/v2/planLimits';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 // Carga el script del Widget de Wompi una sola vez (idempotente si ya está en
 // el DOM) — mismo patrón portado de v1 (`dashboard/subscription/page.js`,
@@ -157,7 +157,7 @@ export default function SuscripcionPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);
-        setOrganizationId(data.organizations?.[0]?.id || '');
+        setOrganizationId(pickOrganizationId(data));
       } catch (e) {
         setError(e.message);
       } finally {

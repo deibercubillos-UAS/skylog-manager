@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { SectionHero, StatCard } from '../_components/SectionHero';
 import { Field, Button } from '@skylog/ui';
 import { computePolicyStatus, summarizePolicies, POLICY_EXPIRY_WARNING_DAYS } from '@skylog/domain';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const TYPE_LABELS = { rce: 'RCE (responsabilidad civil)', casco: 'Casco', otra: 'Otra' };
 const STATUS_META = {
@@ -78,7 +78,7 @@ export default function PolizasPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);
-        setOrganizationId(data.organizations?.[0]?.id || '');
+        setOrganizationId(pickOrganizationId(data));
       } catch (e) {
         setError(e.message);
       } finally {

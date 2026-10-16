@@ -21,7 +21,7 @@ import {
   aircraftLabel,
   formatBytes,
 } from '../_components/tracking';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 function ReportCard({ report, isAnalyst, onAnalyze, onFile, onOpenCase, busy }) {
   const router = useRouter();
@@ -156,7 +156,7 @@ export default function SmsReportesPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
       setContext(data);
-      if (data.organizations?.length && !organizationId) setOrganizationId(data.organizations[0].id);
+      if (data.organizations?.length && !organizationId) setOrganizationId(pickOrganizationId(data));
     } catch (e) {
       setError(e.message);
     } finally {

@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { computeExpiryAlerts } from '@skylog/domain';
 import { SectionHero, SectionCard, StatCard } from '../../_components/SectionHero';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const MISSION_STATUS_META = {
   programada: { label: 'Programada', soft: 'bg-blue-100 text-blue-700' },
@@ -153,7 +153,7 @@ export default function CentroDeControlPage() {
       try {
         const ctx = await loadContext();
         setContext(ctx);
-        const firstOrg = ctx.organizations?.[0];
+        const firstOrg = ctx.organizations?.find((o) => o.id === pickOrganizationId(ctx));
         if (firstOrg) {
           setOrganizationId(firstOrg.id);
           await loadAll(firstOrg.id, firstOrg.role !== 'piloto');

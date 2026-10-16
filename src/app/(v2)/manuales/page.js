@@ -17,7 +17,7 @@ import { Button } from '@skylog/ui';
 import ManualFormPanel from './_ManualFormPanel';
 import AckRosterPanel from './_AckRosterPanel';
 import { CATEGORIES } from './_categoryMeta';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 function ActionButton({ icon, label, onClick, tone = 'default', disabled, className = '' }) {
   const toneCls =
@@ -73,7 +73,7 @@ export default function ManualesPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);
-        setOrganizationId(data.organizations?.[0]?.id || '');
+        setOrganizationId(pickOrganizationId(data));
       } catch (e) {
         setError(e.message);
       } finally {

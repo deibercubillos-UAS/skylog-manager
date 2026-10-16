@@ -23,7 +23,7 @@ import {
   ZONE_STYLES,
   ZONE_CYCLE,
 } from '@/lib/v2/riskMatrixDefaults';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const ZONES = Object.entries(ZONE_STYLES).map(([value, s]) => ({ value, label: s.label, color: s.soft }));
 
@@ -513,7 +513,7 @@ export default function RiesgosPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);
-        const firstOrgId = data.organizations?.[0]?.id || '';
+        const firstOrgId = pickOrganizationId(data);
         setOrganizationId(firstOrgId);
       } catch (e) {
         setError(e.message);

@@ -11,7 +11,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 import { Button } from '@skylog/ui';
 import AttendancePanel from './_AttendancePanel';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const RECURRENCE_LABEL = { semanal: 'Semanal', quincenal: 'Quincenal', mensual: 'Mensual', personalizado: 'Personalizada' };
 
@@ -64,7 +64,7 @@ export default function SmsCapacitacionPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);
-        setOrganizationId(data.organizations?.[0]?.id || '');
+        setOrganizationId(pickOrganizationId(data));
       } catch (e) {
         setError(e.message);
       } finally {

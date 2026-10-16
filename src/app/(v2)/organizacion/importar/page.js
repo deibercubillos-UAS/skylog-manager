@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero } from '../../_components/SectionHero';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const LABELS = { aeronaves: 'Aeronaves', baterias: 'Baterías', tripulacion: 'Tripulación', contactos: 'Contactos de emergencia', polizas: 'Pólizas' };
 
@@ -30,7 +30,7 @@ export default function ImportarPage() {
         const ctx = await res.json();
         if (!res.ok) throw new Error(ctx.error || 'Error cargando contexto');
         setContext(ctx);
-        setOrganizationId(ctx.organizations?.[0]?.id || '');
+        setOrganizationId(pickOrganizationId(ctx));
       } catch (e) {
         setError(e.message);
       } finally {

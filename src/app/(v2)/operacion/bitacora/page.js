@@ -31,7 +31,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 import FlightReplayViewer from '../../_components/FlightReplayViewer';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const VISUAL_CONDITIONS = ['VLOS', 'EVLOS', 'BVLOS'];
 
@@ -107,7 +107,7 @@ export default function BitacoraPage() {
         const ctx = await ctxRes.json();
         if (!ctxRes.ok) throw new Error(ctx.error || 'Error cargando contexto');
         setContext(ctx);
-        const firstOrgId = ctx.organizations?.[0]?.id || '';
+        const firstOrgId = pickOrganizationId(ctx);
         setOrganizationId(firstOrgId);
         await loadFlights(firstOrgId);
       } catch (e) {

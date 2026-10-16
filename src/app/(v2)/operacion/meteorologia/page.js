@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const THR = { windSpeed: 25, windGusts: 35, visibility: 5000, precipitation: 0.1 };
 const BOGOTA = { lat: 4.711, lon: -74.0721 };
@@ -88,7 +88,7 @@ export default function MeteorologiaPage() {
       try {
         const ctxRes = await fetchDutyContext();
         const ctx = await ctxRes.json();
-        const orgId = ctx.organizations?.[0]?.id;
+        const orgId = pickOrganizationId(ctx) || undefined;
         if (!orgId) return;
 
         const from = startOfDay(new Date());

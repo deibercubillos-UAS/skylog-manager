@@ -28,7 +28,7 @@ import {
   generateMissionsReportPdf,
   generateEtaReportPdf,
 } from '@/lib/v2/reportGenerators';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const REPORT_DEFS = [
   { key: 'vuelos', title: 'Libro de Vuelo', description: 'Vuelos registrados por rango de fechas.', icon: 'menu_book', tile: 'bg-blue-500 text-white', wash: 'from-blue-50 to-white', needsPeriod: true, needsAircraft: true },
@@ -87,7 +87,7 @@ export default function ReportesPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);
-        setOrganizationId(data.organizations?.[0]?.id || '');
+        setOrganizationId(pickOrganizationId(data));
       } catch (e) {
         setError(e.message);
       } finally {

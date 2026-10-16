@@ -31,7 +31,7 @@ import { SectionHero, SectionCard, StatCard } from '../_components/SectionHero';
 import { computeSpecCompleteness } from '@skylog/domain';
 import ModelSpecSheet from './_ModelSpecSheet';
 import DocumentSlot from '../_components/DocumentSlot';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const CATEGORIES = [
   { key: 'ala_fija', label: 'Ala fija' },
@@ -110,7 +110,7 @@ export default function FlotaPage() {
         const ctx = await ctxRes.json();
         if (!ctxRes.ok) throw new Error(ctx.error || 'Error cargando contexto');
         setContext(ctx);
-        const firstOrgId = ctx.organizations?.[0]?.id || '';
+        const firstOrgId = pickOrganizationId(ctx);
         setOrganizationId(firstOrgId);
       } catch (e) {
         setError(e.message);

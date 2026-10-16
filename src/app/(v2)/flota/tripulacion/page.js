@@ -13,7 +13,7 @@ import { Fragment, useCallback, useEffect, useState } from 'react';
 import Invitations from './_Invitations';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const ROLE_LABELS = { admin: 'Gerente General', jefe_pilotos: 'Jefe de Pilotos', gerente_sms: 'Gerente SMS', piloto: 'Piloto', superadmin: 'Superadmin' };
 const ASSIGNABLE_ROLES = ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'];
@@ -72,7 +72,7 @@ export default function TripulacionPage() {
         const ctx = await ctxRes.json();
         if (!ctxRes.ok) throw new Error(ctx.error || 'Error cargando contexto');
         setContext(ctx);
-        const firstOrgId = ctx.organizations?.[0]?.id || '';
+        const firstOrgId = pickOrganizationId(ctx);
         setOrganizationId(firstOrgId);
       } catch (e) {
         setError(e.message);

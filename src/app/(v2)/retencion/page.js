@@ -8,7 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { SectionHero, StatCard } from '../_components/SectionHero';
 import { Button } from '@skylog/ui';
 import { RETENTION_YEARS, RETAINED_RECORD_TYPES, canReleaseHold, holdStatus } from '@skylog/domain';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const EVENT_LABELS = { opened: 'Custodia abierta', flights_added: 'Vuelos agregados', released: 'Custodia liberada', accessed: 'Acceso al material' };
 
@@ -71,7 +71,7 @@ export default function RetencionPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
         setContext(data);
-        setOrganizationId(data.organizations?.[0]?.id || '');
+        setOrganizationId(pickOrganizationId(data));
       } catch (e) {
         setError(e.message);
       } finally {

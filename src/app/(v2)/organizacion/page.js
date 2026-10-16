@@ -72,6 +72,7 @@ export default function OrganizacionPage() {
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const isManager = !!currentOrg?.isDutyManager;
+  const isGG = ['admin', 'superadmin'].includes(currentOrg?.role);
 
   const loadOrg = useCallback(async (orgId) => {
     if (!orgId) return;
@@ -451,16 +452,16 @@ export default function OrganizacionPage() {
                 {isManager ? (
                   <select
                     value={m.role}
-                    disabled={roleBusyId === m.person_id || m.role === 'superadmin'}
+                    disabled={roleBusyId === m.person_id || m.role === 'superadmin' || (!isGG && m.role === 'admin')}
                     onChange={(e) => handleRoleChange(m.person_id, e.target.value)}
                     className="text-xs border border-navy-200 rounded-lg px-2 py-1 shrink-0 disabled:opacity-60"
                   >
-                    {!ASSIGNABLE_ROLES.includes(m.role) && (
+                    {(!ASSIGNABLE_ROLES.includes(m.role) || (!isGG && m.role === 'admin')) && (
                       <option value={m.role} disabled>
                         {ROLE_LABELS[m.role] || m.role}
                       </option>
                     )}
-                    {ASSIGNABLE_ROLES.map((r) => (
+                    {ASSIGNABLE_ROLES.filter((r) => isGG || r !== 'admin').map((r) => (
                       <option key={r} value={r}>
                         {ROLE_LABELS[r]}
                       </option>

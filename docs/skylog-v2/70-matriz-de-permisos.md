@@ -8,7 +8,7 @@ Extraída del código de la API (cada ruta) y verificada en producción con las 
 | Acción | GG | JP | GSMS | Piloto |
 |---|---|---|---|---|
 | Ver/cambiar plan, pagar, cancelar la renovación, ver historial de pagos | ✅ | ❌ | ❌ | ❌ |
-| Invitar a otro Gerente General | ✅ | ❌ | ❌ | ❌ |
+| Invitar a otro Gerente General · asignar o quitar el rol de Gerente General | ✅ | ❌ | ❌ | ❌ |
 | Declaración de mercancías peligrosas · designar cargos (GSO, Jefe de Pilotos, ejecutivo responsable) | ✅ | ❌ | ✅ | ❌ |
 | Liberar una custodia legal | ✅ | ❌ | ✅ | ❌ |
 | Recibir el aviso de custodia legal | ✅ | ❌ | ✅ | ❌ |
@@ -31,13 +31,13 @@ Aerocivil: preparar el expediente, diligenciar y firmar el análisis de riesgos.
 ✅ Despachar y cerrar sus vuelos, cargar vuelos (bitácora/DJI), iniciar y cerrar su tiempo de servicio, reportar sucesos (VOR/MOR), reportar eventos inesperados, editar su propio perfil y documentos, exportar o eliminar su propia cuenta.
 ❌ Todo lo demás de la sección 2.
 
-## 4 · Hallazgo de seguridad (a corregir)
+## 4 · Hallazgo de seguridad (corregido 2026-10-15)
 `PATCH /api/organizacion/members` (cambiar roles) solo exige ser «gestor»: **un Jefe de Pilotos o un Gerente SMS puede ascender a cualquiera —o a sí mismo— a Gerente General, o degradar a un Gerente General** si hay más de uno. La invitación sí lo impide («Solo un Gerente General puede invitar a otro Gerente General»); el cambio de rol no.
-**Corrección propuesta:** solo un GG asigna o quita el rol `admin`; JP y GSMS podrían cambiar únicamente entre `piloto`, `jefe_pilotos` y `gerente_sms` (o ninguno, según la decisión 2).
+**Corrección aplicada:** solo un GG asigna o quita el rol `admin`; JP y GSMS podrían cambiar únicamente entre `piloto`, `jefe_pilotos` y `gerente_sms` (o ninguno, según la decisión 2).
 
 ## 5 · Decisiones por tomar
 1. ¿Se separan JP y GSMS? En la v1 el SMS (objetivos, riesgos, indicadores, política, plan de implantación…) era solo del GG y el GSMS; el JP no. Hoy el JP puede todo el SMS y el GSMS puede programar misiones y registrar mantenimiento.
-2. ¿Quién cambia roles? (solo GG / GG + los demás para roles no administrativos).
+2. ~~¿Quién cambia roles?~~ **Resuelto**: GG cambia cualquier rol; JP y GSMS solo entre piloto, jefe_pilotos y gerente_sms.
 3. ¿El Jefe de Pilotos y el Gerente SMS ven Suscripción (plan y vencimiento, solo lectura) o solo el GG?
 4. ¿El Piloto ve los vuelos de todos los pilotos de la empresa o solo los suyos?
 5. ¿Quién libera una custodia legal y quién firma declaraciones? (hoy GG + GSMS).

@@ -47,6 +47,12 @@ export async function PATCH(request) {
     return Response.json({ error: 'Solo un gestor puede cambiar roles' }, { status: 403 });
   }
 
+  // Solo un Gerente General asigna o quita el rol `admin` (70-matriz-de-permisos §4):
+  // JP y GSMS cambian únicamente entre piloto, jefe_pilotos y gerente_sms.
+  const callerIsGG = (memberships || []).some(
+    (m) => m.organization_id === organizationId && ['admin', 'superadmin'].includes(m.role)
+  );
+
   const admin = createAdminClient();
 
   const { data: target, error: targetError } = await admin
@@ -58,6 +64,10 @@ export async function PATCH(request) {
     .maybeSingle();
   if (targetError) return Response.json({ error: targetError.message }, { status: 500 });
   if (!target) return Response.json({ error: 'Membresía no encontrada' }, { status: 404 });
+
+  if (!callerIsGG && (role === 'admin' || target.role === 'admin')) {
+    return Response.json({ error: 'Solo un Gerente General puede asignar o quitar el rol de Gerente General' }, { status: 403 });
+  }
 
   if (target.role === 'admin' && role !== 'admin') {
     const { data: admins, error: adminsError } = await admin

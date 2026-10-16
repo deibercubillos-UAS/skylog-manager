@@ -7,14 +7,13 @@ import { membershipsCanView, membershipsCanEdit } from '@/lib/v2/permissions';
 import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { validateDesignationInput, DESIGNATION_ROLES } from '@skylog/domain';
 import { readOnlyBlock } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 // AD9 (matriz de permisos): designan cargos el Gerente General y el Gerente SMS (decisión del usuario 2026-10-16).
 
 async function session() {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return { error: Response.json({ error: 'No autenticado' }, { status: 401 }) };
   const { error, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (error) return { error: Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 }) };

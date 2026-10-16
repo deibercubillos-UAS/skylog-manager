@@ -8,6 +8,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storagePut, storageSignedUrl, storageRemove } from '@/lib/storage';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const BUCKET = 'documents';
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB
@@ -19,9 +20,7 @@ async function loadEvaluation(supabase, evaluationId) {
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const form = await request.formData();
@@ -76,9 +75,7 @@ export async function POST(request) {
 
 export async function DELETE(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
@@ -111,9 +108,7 @@ export async function DELETE(request) {
 // activo de la organización puede descargarlo, no solo gestores.
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { searchParams } = new URL(request.url);

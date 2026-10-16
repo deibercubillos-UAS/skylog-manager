@@ -8,12 +8,11 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { DJI_MODELS_CATALOG } from '@/lib/v2/djiModelsCatalog';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));

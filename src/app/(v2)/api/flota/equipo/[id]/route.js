@@ -4,11 +4,12 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateStockItem } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export const dynamic = 'force-dynamic';
 
 async function guard(supabase, id) {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return { error: Response.json({ error: 'No autenticado' }, { status: 401 }) };
   const { data: row } = await supabase.from('equipment_stock').select('id, organization_id').eq('id', id).maybeSingle();
   if (!row) return { error: Response.json({ error: 'No encontrado' }, { status: 404 }) };

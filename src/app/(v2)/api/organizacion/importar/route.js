@@ -7,6 +7,7 @@ import { logAudit } from '@/lib/v2/auditLog';
 import { readWorkbook, runImport } from '@/lib/v2/onboardingServer';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -15,7 +16,7 @@ const XLSX_TYPES = new Set(['application/vnd.openxmlformats-officedocument.sprea
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
   const keyProblem = adminKeyProblem();
   if (keyProblem) return Response.json({ error: keyProblem, setup: true }, { status: 503 });

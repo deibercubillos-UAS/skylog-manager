@@ -9,12 +9,11 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { evaluateRceForAuthorization, evaluateCdoForAuthorization, evaluateLeadTime, evaluateAircraftRegistration } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const authorizationId = new URL(request.url).searchParams.get('authorizationId');

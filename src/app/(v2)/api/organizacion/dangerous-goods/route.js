@@ -6,14 +6,13 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateDangerousGoodsDeclaration } from '@skylog/domain';
 import { readOnlyBlock } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const AUTHORITY_ROLES = ['admin', 'jefe_pilotos', 'gerente_sms', 'superadmin']; // AD10
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));

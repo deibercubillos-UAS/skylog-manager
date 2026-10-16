@@ -3,14 +3,13 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export async function GET(request, { params }) {
   params = await params;
   const { id } = await params;
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { data: manual, error } = await supabase.from('manuales').select('id, organization_id, current_version_id, title').eq('id', id).maybeSingle();

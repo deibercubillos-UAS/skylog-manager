@@ -7,12 +7,11 @@ import { createNotifications } from '@/lib/v2/notify';
 import { checkRateLimit } from '@/lib/rateLimiter';
 import { canSendAnnouncement, validateAnnouncement, MANAGER_ROLES, ANNOUNCEMENT_AUDIENCES } from '@skylog/domain';
 import { readOnlyBlock } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
   const keyProblem = adminKeyProblem();
   if (keyProblem) return Response.json({ error: keyProblem, setup: true }, { status: 503 });

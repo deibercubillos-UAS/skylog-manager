@@ -4,12 +4,11 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 async function session() {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return { error: Response.json({ error: 'No autenticado' }, { status: 401 }) };
   const { error, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (error) return { error: Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 }) };

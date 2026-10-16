@@ -11,14 +11,13 @@ import { loadDispatchContext, bogotaDay } from '@/lib/v2/dispatchContext';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
 import { archiveDispatchWeather } from '@/lib/v2/weatherSnapshot';
 import { buildChecklistItems, evaluateDispatchRisk } from '@skylog/domain';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const one = (x) => (Array.isArray(x) ? x[0] : x) || null;
 
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const organizationId = new URL(request.url).searchParams.get('organizationId');
@@ -55,9 +54,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));

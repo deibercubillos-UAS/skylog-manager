@@ -8,15 +8,14 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storageProblem } from '@/lib/v2/adminKey';
 import { storagePut, storageSignedUrl, storageRemove } from '@/lib/storage';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const BUCKET = 'documents';
 const MAX_BYTES = 4 * 1024 * 1024; // 4 MB: el cuerpo de una función en Vercel se corta en ~4,5 MB
 const ALLOWED_TYPES = new Set(['application/pdf', 'image/png', 'image/jpeg', 'image/webp']);
 
 async function load(supabase, policyId) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return { error: Response.json({ error: 'No autenticado' }, { status: 401 }) };
 
   const { data: policy, error: fetchError } = await supabase

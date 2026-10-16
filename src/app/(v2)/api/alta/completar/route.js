@@ -8,14 +8,13 @@ import { PLAN_PRICING } from '@/lib/v2/planLimits';
 import { applyOwnerBenefits } from '@/lib/v2/partnersServer';
 import { loadJoinContext, decideJoin, joinErrorMessage, notifyJoin } from '@/lib/v2/joinOrganization';
 import { validateRegistration, validateJoinRegistration } from '@skylog/domain';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const PLACEHOLDER_PASSWORD = 'Aa1' + 'x'.repeat(12); // solo para reutilizar la validación: no se guarda ni se usa
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user?.email) return Response.json({ error: 'No autenticado' }, { status: 401 });
   if (!checkRateLimit(`completar:${user.id}:${getClientIp(request)}`, { limit: 10, windowMs: 3_600_000 }).allowed) {
     return Response.json({ error: 'Demasiados intentos. Intenta más tarde.' }, { status: 429 });

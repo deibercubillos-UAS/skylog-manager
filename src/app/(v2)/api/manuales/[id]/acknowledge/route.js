@@ -2,6 +2,7 @@
 // Idempotente (upsert por version_id+person_id, UNIQUE en BD).
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 async function loadManual(supabase, id) {
   return supabase.from('manuales').select('id, organization_id, current_version_id').eq('id', id).maybeSingle();
@@ -11,9 +12,7 @@ export async function POST(request, { params }) {
   params = await params;
   const { id } = await params;
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { data: manual, error } = await loadManual(supabase, id);
@@ -46,9 +45,7 @@ export async function DELETE(request, { params }) {
   params = await params;
   const { id } = await params;
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { data: manual, error } = await loadManual(supabase, id);

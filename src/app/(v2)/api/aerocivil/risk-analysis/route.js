@@ -8,6 +8,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { evaluateRiskAnalysis } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 async function loadAuthorizationOrg(supabase, authorizationId) {
   const { data, error } = await supabase
@@ -20,9 +21,7 @@ async function loadAuthorizationOrg(supabase, authorizationId) {
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
@@ -66,9 +65,7 @@ export async function POST(request) {
  * hazards ya guardados (nunca sobre lo que mande el cliente en esta llamada). */
 export async function PATCH(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
@@ -112,9 +109,7 @@ export async function PATCH(request) {
 
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { searchParams } = new URL(request.url);

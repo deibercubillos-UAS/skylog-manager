@@ -15,6 +15,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { TRAINING_TYPES } from '@/lib/v2/training';
 import { computeEvaluationCompliance, personEvaluationStatus } from '@skylog/domain';
 import { membershipsCanView } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 function toDomainEvaluation(row) {
   return { id: row.id, dueDate: row.due_date, maxAttempts: row.max_attempts };
@@ -22,9 +23,7 @@ function toDomainEvaluation(row) {
 
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { searchParams } = new URL(request.url);

@@ -6,6 +6,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, getOpenDutyPeriod, getRecentDutyPeriods, getRecentFlights } from '@/lib/v2/duty';
 import { evaluateDutyCompliance, dayKey, monthKey } from '@skylog/domain';
 import { membershipsCanView } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 // `personId`/`organizationId` opcionales — un gestor puede consultar el
 // estado de OTRO piloto de su organización (filtro por piloto en la UI,
@@ -13,9 +14,7 @@ import { membershipsCanView } from '@/lib/v2/permissions';
 // (comportamiento original, sin cambios para un piloto viendo lo suyo).
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { error: resolveError, personId: selfPersonId, memberships } = await resolveCurrentPerson(supabase, user.id);

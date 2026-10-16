@@ -8,15 +8,14 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { orgCapacity, capacityMessage } from '@/lib/v2/planCapacity';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 // Nunca se expone la ruta de la foto: solo si hay una cargada.
 const publicAircraft = ({ image_path, ...a }) => ({ ...a, has_image: !!image_path });
 
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
@@ -41,9 +40,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));

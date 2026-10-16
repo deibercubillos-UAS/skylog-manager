@@ -5,13 +5,12 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { sanitizeSpecInput } from '@skylog/domain';
 import { publicModel } from '@/lib/v2/publicModel';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export async function PATCH(request, { params }) {
   params = await params;
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { id } = await params;

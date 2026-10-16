@@ -9,6 +9,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storagePut, storageSignedUrl } from '@/lib/storage';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const BUCKET = 'documents';
 const MAX_BYTES = 4 * 1024 * 1024; // 4 MB: el cuerpo de una función de Vercel admite ~4,5 MB
@@ -30,9 +31,7 @@ async function authorize(supabase, userId, aircraftId) {
 export async function POST(request, { params }) {
   params = await params;
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { id } = await params;
@@ -63,9 +62,7 @@ export async function POST(request, { params }) {
 export async function GET(request, { params }) {
   params = await params;
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { id } = await params;

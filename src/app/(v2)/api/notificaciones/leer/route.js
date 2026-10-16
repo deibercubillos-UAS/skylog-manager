@@ -1,12 +1,11 @@
 // Skylog V2.0 — POST /api/notificaciones/leer — { id } marca una como leída; { all: true, organizationId } marca todas
 // las de esa organización. Solo toca `read_at` (el permiso de columna de la base no deja cambiar nada más).
 import { createClientSSR } from '@/lib/supabaseServer';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
   const { id, all, organizationId } = await request.json().catch(() => ({}));
   const now = new Date().toISOString();

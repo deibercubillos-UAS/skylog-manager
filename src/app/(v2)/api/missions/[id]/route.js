@@ -8,6 +8,7 @@ import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const EDITABLE_FIELDS = {
   name: 'name',
@@ -20,9 +21,7 @@ const EDITABLE_FIELDS = {
 export async function PATCH(request, { params }) {
   params = await params;
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));

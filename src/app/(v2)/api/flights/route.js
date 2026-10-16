@@ -14,6 +14,7 @@ import { resolveCurrentPerson, getRecentFlights } from '@/lib/v2/duty';
 import { evaluateFlightLimits } from '@skylog/domain';
 import { membershipsCanView, membershipsCanEdit } from '@/lib/v2/permissions';
 import { verifyFlightImport } from '@/lib/v2/flightImportToken';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const VISUAL_CONDITIONS = ['VLOS', 'EVLOS', 'BVLOS'];
 
@@ -26,9 +27,7 @@ const VISUAL_CONDITIONS = ['VLOS', 'EVLOS', 'BVLOS'];
 // filtre filas; nunca se asume el rol en el cliente.
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
@@ -63,9 +62,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));

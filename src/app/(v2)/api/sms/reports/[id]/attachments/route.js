@@ -5,13 +5,12 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { adminKeyProblem, storageProblem } from '@/lib/v2/adminKey';
 import { storeReportAttachment } from '@/lib/v2/reportAttachments';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export async function POST(request, { params }) {
   params = await params;
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const keyProblem = adminKeyProblem() || storageProblem();
@@ -50,9 +49,7 @@ export async function POST(request, { params }) {
 export async function GET(request, { params }) {
   params = await params;
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { id } = await params;

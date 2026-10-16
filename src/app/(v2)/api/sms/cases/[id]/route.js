@@ -7,6 +7,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { computeReportDeadline, buildCaseTimeline } from '@skylog/domain';
 import { readOnlyBlock } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const CASE_SELECT = '*, analyst:assigned_to(full_name), sms_case_actions(*, responsible:responsible_id(full_name)), sms_case_events(id, event_type, payload, created_at, actor:created_by(full_name))';
 const REPORT_SELECT =
@@ -17,9 +18,7 @@ const NOT_ANALYST = 'Solo el Gerente SMS puede ver el detalle de un caso.';
 export async function GET(request, { params }) {
   params = await params;
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { id } = await params;
@@ -55,9 +54,7 @@ export async function GET(request, { params }) {
 export async function PATCH(request, { params }) {
   params = await params;
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { id } = await params;

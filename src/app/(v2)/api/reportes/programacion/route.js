@@ -4,14 +4,13 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const STATUS_LABELS = { borrador: 'Borrador', radicado: 'Radicado', en_revision: 'En revisión', autorizado: 'Autorizado', negado: 'Negado' };
 
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { searchParams } = new URL(request.url);

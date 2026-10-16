@@ -6,6 +6,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { isPlatformSuperadmin, sessionIsAal2 } from '@/lib/v2/platformAdmin';
 import { PLANS, PLAN_LIMITS, crewCountsForLimit } from '@/lib/v2/planLimits';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 function isAdmin(memberships, organizationId) {
   return (memberships || []).some((m) => m.organization_id === organizationId && ['admin', 'superadmin'].includes(m.role));
@@ -13,9 +14,7 @@ function isAdmin(memberships, organizationId) {
 
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
@@ -55,9 +54,7 @@ export async function GET(request) {
 
 export async function PATCH(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));

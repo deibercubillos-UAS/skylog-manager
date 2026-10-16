@@ -13,6 +13,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 function evaluateTask(task, aircraft, lastEvent) {
   const hoursSince = aircraft.total_hours - (lastEvent ? Number(lastEvent.performed_at_aircraft_hours) : 0);
@@ -51,9 +52,7 @@ function evaluateTask(task, aircraft, lastEvent) {
 
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);

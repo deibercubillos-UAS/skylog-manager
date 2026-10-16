@@ -10,14 +10,13 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, getOpenDutyPeriod } from '@/lib/v2/duty';
 import { evaluateServiceGates } from '@/lib/v2/serviceGates';
 import { readOnlyBlock, membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const VALID_TYPES = ['servicio', 'descanso', 'disponibilidad', 'entrenamiento'];
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));

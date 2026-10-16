@@ -14,6 +14,7 @@
 // permite dos route.js resolviendo el mismo path.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { NextResponse } from 'next/server';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,9 +54,7 @@ function calcScore(windspeed, gusts, visibility, precipitation, precipProb, kpVa
 export async function GET(request) {
   try {
     const supabase = await createClientSSR();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getAuthUser(supabase);
     if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const { searchParams } = new URL(request.url);

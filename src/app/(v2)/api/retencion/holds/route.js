@@ -13,6 +13,7 @@ import { createNotifications } from '@/lib/v2/notify';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { canReleaseHold } from '@skylog/domain';
 import { membershipsCanEdit, membershipsCanView } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const HOLD_SELECT = `
   *,
@@ -23,9 +24,7 @@ const HOLD_SELECT = `
 `;
 
 async function authenticate(supabase) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return { error: Response.json({ error: 'No autenticado' }, { status: 401 }) };
   const { error, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (error) return { error: Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 }) };

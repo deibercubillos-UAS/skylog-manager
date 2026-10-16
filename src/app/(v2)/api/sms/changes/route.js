@@ -5,15 +5,14 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateChangeInput, evaluateTransition, CHANGE_STATUSES, SAFETY_IMPACTS } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const SELECT = '*, hazard:hazard_id(id, description), responsible:responsible_id(full_name)';
 const EDITABLE = ['title', 'description', 'change_type', 'planned_date', 'safety_impact', 'impact_justification', 'human_factors_notes', 'hazard_id', 'responsible_id', 'decision_notes'];
 
 async function session(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return { error: Response.json({ error: 'No autenticado' }, { status: 401 }) };
   const { error, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (error) return { error: Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 }) };

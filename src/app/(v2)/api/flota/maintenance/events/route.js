@@ -6,6 +6,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 // Nunca se expone la ruta del adjunto: solo si hay uno cargado.
 const publicEvent = ({ document_path, ...e }) => ({ ...e, has_document: !!document_path });
@@ -14,9 +15,7 @@ const EVENT_TYPES = ['programado', 'correctivo', 'menor'];
 
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
@@ -45,9 +44,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));

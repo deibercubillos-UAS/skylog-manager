@@ -7,12 +7,11 @@
 // lectura/cálculo, siempre sobre el año anterior más reciente disponible.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { computeAlertLines, computeTarget, evaluateAlertActivation } from '@skylog/domain';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { searchParams } = new URL(request.url);

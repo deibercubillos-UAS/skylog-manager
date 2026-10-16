@@ -9,6 +9,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storageRemove } from '@/lib/storage';
 import { POLICY_TYPES } from '@skylog/domain';
 import { membershipsCanEdit, membershipsCanView } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -18,9 +19,7 @@ function withAircraftIds(row) {
 }
 
 async function authenticate(supabase) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return { error: Response.json({ error: 'No autenticado' }, { status: 401 }) };
   const { error, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (error) return { error: Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 }) };

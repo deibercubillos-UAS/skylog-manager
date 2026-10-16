@@ -5,12 +5,11 @@ import { adminKeyProblem } from '@/lib/v2/adminKey';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 import { loadJoinContext, decideJoin, joinErrorMessage, notifyJoin } from '@/lib/v2/joinOrganization';
 import { JOINABLE_ROLES, normalizeNit } from '@skylog/domain';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
   if (!checkRateLimit(`unirse-cuenta:${user.id}:${getClientIp(request)}`, { limit: 10, windowMs: 3_600_000 }).allowed) {
     return Response.json({ error: 'Demasiados intentos. Intenta más tarde.' }, { status: 429 });

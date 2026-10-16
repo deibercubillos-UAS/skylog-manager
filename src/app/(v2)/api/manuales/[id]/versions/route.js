@@ -8,6 +8,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { createNotifications } from '@/lib/v2/notify';
 import { storagePut } from '@/lib/storage';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const BUCKET = 'documents';
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -23,9 +24,7 @@ export async function POST(request, { params }) {
   params = await params;
   const { id } = await params;
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { data: manual, error: fetchError } = await supabase.from('manuales').select('*').eq('id', id).maybeSingle();

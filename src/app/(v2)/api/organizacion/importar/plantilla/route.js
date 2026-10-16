@@ -2,12 +2,13 @@
 // basta con tener sesión (la importación en sí sí es solo para gestores).
 import { createClientSSR } from '@/lib/supabaseServer';
 import { buildTemplate } from '@/lib/v2/onboardingServer';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const supabase = await createClientSSR();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
   const buffer = await buildTemplate();
   return new Response(buffer, {

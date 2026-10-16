@@ -3,12 +3,11 @@
 // nada — POST /api/despacho vuelve a evaluar todo antes de escribir.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { loadDispatchContext } from '@/lib/v2/dispatchContext';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const missionId = new URL(request.url).searchParams.get('missionId');

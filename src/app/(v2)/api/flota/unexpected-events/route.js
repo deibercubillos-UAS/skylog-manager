@@ -10,6 +10,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { classifyReportRoute } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const EVENT_TYPES = ['aterrizaje_fuerte', 'impacto_aves', 'fod', 'perdida_helice'];
 
@@ -33,9 +34,7 @@ const EVENT_LABEL_BY_TYPE = {
 
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
@@ -62,9 +61,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));

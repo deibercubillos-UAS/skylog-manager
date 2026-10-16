@@ -3,12 +3,13 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
   const sp = new URL(request.url).searchParams;
   const organizationId = sp.get('organizationId');

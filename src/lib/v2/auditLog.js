@@ -2,6 +2,7 @@
 // (un fallo se registra en consola). Resuelve al autor desde la sesión de la petición, así los puntos de uso solo dicen
 // qué pasó. La tabla es solo-agregar (ver migración 20261009170000).
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export const AUDIT_ACTIONS = ['create', 'update', 'delete'];
 
@@ -12,7 +13,7 @@ export async function logAudit({ organizationId, action, module, entityLabel = n
   try {
     if (!organizationId || !AUDIT_ACTIONS.includes(action) || !module) return;
     const supabase = await createClientSSR();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getAuthUser(supabase);
     const admin = createAdminClient();
     let actorPersonId = null;
     let actorName = null;

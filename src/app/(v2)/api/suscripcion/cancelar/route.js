@@ -5,12 +5,13 @@ import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { createNotifications } from '@/lib/v2/notify';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { organizationId } = await request.json().catch(() => ({}));

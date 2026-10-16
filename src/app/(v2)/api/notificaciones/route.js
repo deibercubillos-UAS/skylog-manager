@@ -2,14 +2,13 @@
 // (más recientes primero) y cuántas no ha leído. La RLS de la tabla ya limita a las propias; el filtro por organización
 // es para que la campana siga a la organización activa.
 import { createClientSSR } from '@/lib/supabaseServer';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
   const { searchParams } = new URL(request.url);
   const organizationId = searchParams.get('organizationId');

@@ -7,12 +7,11 @@
 // 1-3 drones simultáneos por organización, ver 42-comando-control.md §4.11).
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { error: resolveError, personId, organizationIds } = await resolveCurrentPerson(supabase, user.id);

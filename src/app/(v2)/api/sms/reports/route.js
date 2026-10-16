@@ -25,12 +25,11 @@ import {
   UAS_EVENT_OPTIONS,
   OTHER_EVENT_ID,
 } from '@skylog/domain';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
@@ -122,9 +121,7 @@ export async function POST(request) {
 
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);

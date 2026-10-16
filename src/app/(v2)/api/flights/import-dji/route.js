@@ -26,6 +26,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { parseDjiTxtBuffer } from '@/lib/djiParser';
 import { signFlightImport } from '@/lib/v2/flightImportToken';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 // Replay GPS — decima `parsed._frames` (ya disponibles server-side, antes se
 // descartaban tras extraer los campos resumen) a como máximo ~400 puntos con
@@ -74,9 +75,7 @@ function combineDateTime(fecha, hora) {
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { error: resolveError, personId } = await resolveCurrentPerson(supabase, user.id);

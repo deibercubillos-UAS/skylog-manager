@@ -11,12 +11,11 @@ import { loadJoinContextByOrgId, decideJoin } from '@/lib/v2/joinOrganization';
 import { newInvitationToken, sendInvitationEmail, likeExact } from '@/lib/v2/invitationsServer';
 import { canInviteRole, validateInvitation, invitationState, invitationExpiresAt } from '@skylog/domain';
 import { membershipsCanView, readOnlyBlock } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 async function session() {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return { error: Response.json({ error: 'No autenticado' }, { status: 401 }) };
   const { error, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (error || !personId) return { error: Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 }) };

@@ -3,12 +3,11 @@
 // 30-entidades.md §1): eso se corrige con un nuevo período, no con un UPDATE libre.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, getOpenDutyPeriod } from '@/lib/v2/duty';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export async function POST() {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { error: resolveError, personId } = await resolveCurrentPerson(supabase, user.id);

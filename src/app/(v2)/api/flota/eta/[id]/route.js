@@ -2,6 +2,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const ALLOWED_FIELDS = ['brand', 'model', 'reta_number', 'description'];
 const FIELD_MAP = { brand: 'brand', model: 'model', retaNumber: 'reta_number', description: 'description' };
@@ -22,9 +23,7 @@ async function authorize(supabase, userId, id) {
 export async function PATCH(request, { params }) {
   params = await params;
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { id } = await params;
@@ -47,9 +46,7 @@ export async function PATCH(request, { params }) {
 export async function DELETE(request, { params }) {
   params = await params;
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { id } = await params;

@@ -6,6 +6,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storageProblem } from '@/lib/v2/adminKey';
 import { storagePut, storageSignedUrl, storageRemove } from '@/lib/storage';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const BUCKET = 'documents';
 export const DOCUMENT_MAX_BYTES = 4 * 1024 * 1024; // el cuerpo de una función de Vercel se corta en ~4,5 MB
@@ -20,9 +21,7 @@ const ALLOWED_TYPES = new Set(['application/pdf', 'image/png', 'image/jpeg', 'im
  */
 export function makeRowDocumentRoute({ table, resolve, canWrite, canRead, rowLabel = 'el registro', select = '*' }) {
   async function load(supabase, id, request, needWrite) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getAuthUser(supabase);
     if (!user) return { error: Response.json({ error: 'No autenticado' }, { status: 401 }) };
 
     const target = resolve(request);

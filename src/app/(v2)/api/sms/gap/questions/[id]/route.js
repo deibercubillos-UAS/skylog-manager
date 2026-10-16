@@ -4,14 +4,13 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export async function PATCH(request, { params }) {
   params = await params;
   const { id } = await params;
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { data: question, error: fetchError } = await supabase.from('sms_gap_questions').select('organization_id').eq('id', id).maybeSingle();
@@ -40,9 +39,7 @@ export async function DELETE(request, { params }) {
   params = await params;
   const { id } = await params;
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { data: question, error: fetchError } = await supabase.from('sms_gap_questions').select('organization_id').eq('id', id).maybeSingle();

@@ -11,15 +11,14 @@ import { resolveCurrentPerson, getRecentFlights } from '@/lib/v2/duty';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
 import { linkFlightWeather } from '@/lib/v2/weatherSnapshot';
 import { validateFlightClose, evaluateFlightLimits } from '@skylog/domain';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const VISUAL_LINES = ['VLOS', 'EVLOS', 'BVLOS'];
 
 export async function POST(request, { params }) {
   params = await params;
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const keyProblem = adminKeyProblem();

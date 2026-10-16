@@ -4,15 +4,14 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { permissionsForRole } from '@skylog/domain';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 export async function GET() {
   const t0 = Date.now();
   const marks = [];
   const mark = (n) => marks.push(`${n};dur=${Date.now() - t0}`);
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   mark('auth');
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 

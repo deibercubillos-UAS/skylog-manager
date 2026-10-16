@@ -14,6 +14,7 @@ import { createNotifications } from '@/lib/v2/notify';
 import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { normalizeRequiredAdditions, evaluatePicQualifications, qualificationMessages } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const MISSION_SELECT = '*, pic:pic_person_id(full_name, license_number, person_additions!person_additions_person_id_fkey(addition, valid_until)), observer:observer_person_id(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model))';
 
@@ -34,9 +35,7 @@ function withQualification(mission) {
 // semanal en la UI, pero el backend solo pide un rango genérico `from`/`to`).
 export async function GET(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
@@ -72,9 +71,7 @@ export async function GET(request) {
 // esto es solo para devolver un mensaje claro en vez del 403 crudo de PostgREST).
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));

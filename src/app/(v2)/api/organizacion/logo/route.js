@@ -12,6 +12,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storagePut, storagePublicUrl } from '@/lib/storage';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 import { detectImageType, imageExtension } from '@/lib/v2/imageType';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const BUCKET = 'partner-logos';
 const MAX_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -19,9 +20,7 @@ const ALLOWED_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 
 export async function POST(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const form = await request.formData();

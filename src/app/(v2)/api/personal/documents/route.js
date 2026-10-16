@@ -8,6 +8,7 @@ import { storageProblem } from '@/lib/v2/adminKey';
 import { storagePut, storageSignedUrl, storageRemove } from '@/lib/storage';
 import { DOCUMENT_MAX_BYTES } from '@/lib/v2/rowDocument';
 import { membershipsCanEdit, membershipsCanView } from '@/lib/v2/permissions';
+import { getAuthUser } from '@/lib/v2/authUser';
 
 const BUCKET = 'documents';
 const TYPES = ['cedula', 'curso_piloto', 'examen_teorico', 'certificado_medico', 'otro'];
@@ -15,9 +16,7 @@ const ALLOWED = new Set(['application/pdf', 'image/png', 'image/jpeg', 'image/we
 
 async function session(request) {
   const supabase = await createClientSSR();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) return { error: Response.json({ error: 'No autenticado' }, { status: 401 }) };
   const { error, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (error) return { error: Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 }) };

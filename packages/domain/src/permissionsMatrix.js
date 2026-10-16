@@ -199,11 +199,11 @@ export const canEdit = (role, id, opts) => permissionLevel(role, id, opts) === '
 export const canView = (role, id, opts) => permissionLevel(role, id, opts) !== 'none';
 
 /** ¿Alguna de las membresías de la organización puede editar / ver esta función? */
-export function membershipsCanEdit(memberships, organizationId, id, opts) {
-  return (memberships || []).some((m) => m.organization_id === organizationId && canEdit(m.role, id, opts));
+export function membershipsCanEdit(memberships, organizationId, id) {
+  return (memberships || []).some((m) => m.organization_id === organizationId && canEdit(m.role, id, { independentPilot: !!m.independent }));
 }
-export function membershipsCanView(memberships, organizationId, id, opts) {
-  return (memberships || []).some((m) => m.organization_id === organizationId && canView(m.role, id, opts));
+export function membershipsCanView(memberships, organizationId, id) {
+  return (memberships || []).some((m) => m.organization_id === organizationId && canView(m.role, id, { independentPilot: !!m.independent }));
 }
 
 /** { id: 'edit' | 'view' | 'none' } para un rol de membresía (lo que el cliente usa para mostrar u ocultar). */

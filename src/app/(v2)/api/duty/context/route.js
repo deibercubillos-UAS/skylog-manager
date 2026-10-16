@@ -44,7 +44,8 @@ export async function GET() {
       role: m.role,
       isDutyManager: ['admin', 'jefe_pilotos', 'gerente_sms', 'superadmin'].includes(m.role),
       // Nivel ('edit' | 'view' | 'none') de cada función de la matriz de permisos para este rol.
-      permissions: permissionsForRole(m.role),
+      permissions: permissionsForRole(m.role, { independentPilot: !!m.independent }),
+      independentPilot: !!m.independent,
       name: org?.company_name || m.organization_id,
       logoUrl: org?.logo_url || null,
     };

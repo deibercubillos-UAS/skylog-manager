@@ -51,8 +51,8 @@ const NAV_LINKS = [
   { name: 'Baterías y Componentes', icon: 'battery_full', href: '/flota/baterias', group: 'Flota & Equipo' },
   { name: 'Tripulación', icon: 'groups', href: '/flota/tripulacion', group: 'Flota & Equipo', perm: 'K1' },
   { name: 'Mantenimiento', icon: 'build', href: '/flota/mantenimiento', group: 'Flota & Equipo' },
-  { name: 'Existencias de equipo', icon: 'inventory_2', href: '/flota/equipo', group: 'Flota & Equipo' },
-  { name: 'ETA', icon: 'dns', href: '/flota/eta', group: 'Flota & Equipo' },
+  { name: 'Existencias de equipo', icon: 'inventory_2', href: '/flota/equipo', group: 'Flota & Equipo', perm: 'M1' },
+  { name: 'ETA', icon: 'dns', href: '/flota/eta', group: 'Flota & Equipo', perm: 'N1' },
   // SMS lista cada módulo real como enlace directo en vez de un solo enlace
   // a /sms (hub con tarjetas) — mismo criterio ya aplicado a Operación
   // (ver comentario en `operacion/layout.js`): el sidebar permanente ya
@@ -66,26 +66,26 @@ const NAV_LINKS = [
   // "Manuales" (publica ahí, decisión 135/146). Capacitación SMS: ya existe
   // "Capacitación" en Documentación (decisión 149, mismo tipo de duplicidad).
   // { name: 'Gobernanza', icon: 'gavel', href: '/sms/gobernanza', group: 'SMS' },
-  { name: 'Objetivos SMS', icon: 'flag', href: '/sms/objetivos', group: 'SMS' },
-  { name: 'Evaluación de Riesgo', icon: 'warning', href: '/sms/riesgos', group: 'SMS' },
-  { name: 'Gestión del cambio', icon: 'published_with_changes', href: '/sms/cambios', group: 'SMS' },
-  { name: 'Indicadores (SPI)', icon: 'monitoring', href: '/sms/indicadores', group: 'SMS' },
-  { name: 'Mejora Continua', icon: 'fact_check', href: '/sms/mejora-continua', group: 'SMS' },
+  { name: 'Objetivos SMS', icon: 'flag', href: '/sms/objetivos', group: 'SMS', perm: 'O1' },
+  { name: 'Evaluación de Riesgo', icon: 'warning', href: '/sms/riesgos', group: 'SMS', perm: 'P1' },
+  { name: 'Gestión del cambio', icon: 'published_with_changes', href: '/sms/cambios', group: 'SMS', perm: 'Q1' },
+  { name: 'Indicadores (SPI)', icon: 'monitoring', href: '/sms/indicadores', group: 'SMS', perm: 'R1' },
+  { name: 'Mejora Continua', icon: 'fact_check', href: '/sms/mejora-continua', group: 'SMS', perm: 'S1' },
   { name: 'Reporte Mensual SMS', icon: 'summarize', href: '/sms/reporte-mensual', group: 'SMS', perm: 'T1' },
   // { name: 'MSMS', icon: 'description', href: '/sms/msms', group: 'SMS' },
-  { name: 'Reportes y casos', icon: 'report', href: '/sms/reportes', group: 'SMS' },
+  { name: 'Reportes y casos', icon: 'report', href: '/sms/reportes', group: 'SMS', perm: 'U2' },
   // { name: 'Capacitación SMS', icon: 'event_repeat', href: '/sms/capacitacion', group: 'SMS' },
-  { name: 'Asistente de implantación', icon: 'checklist', href: '/sms/asistente', group: 'SMS' },
-  { name: 'Mapas', icon: 'map', href: '/sms/mapas', group: 'SMS' },
-  { name: 'Capacitación', icon: 'school', href: '/capacitacion', group: 'Documentación' },
-  { name: 'Listas de Chequeo', icon: 'checklist', href: '/listas-de-chequeo', group: 'Documentación' },
+  { name: 'Asistente de implantación', icon: 'checklist', href: '/sms/asistente', group: 'SMS', perm: 'V1' },
+  { name: 'Mapas', icon: 'map', href: '/sms/mapas', group: 'SMS', perm: 'V6' },
+  { name: 'Capacitación', icon: 'school', href: '/capacitacion', group: 'Documentación', perm: 'W1' },
+  { name: 'Listas de Chequeo', icon: 'checklist', href: '/listas-de-chequeo', group: 'Documentación', perm: 'X1' },
   { name: 'Proveedores', icon: 'storefront', href: '/proveedores', group: 'Documentación', perm: 'Y1' },
   { name: 'Pólizas', icon: 'verified_user', href: '/polizas', group: 'Documentación', perm: 'Z1' },
   { name: 'Importar desde Excel', icon: 'upload_file', href: '/organizacion/importar', group: 'Documentación', perm: 'AB2' },
   { name: 'Registro de acciones', icon: 'history', href: '/organizacion/registro', group: 'Documentación', perm: 'AB3' },
   { name: 'Retención y custodia', icon: 'lock_clock', href: '/retencion', group: 'Documentación', perm: 'AB4' },
   { name: 'Reportes', icon: 'summarize', href: '/reportes', group: 'Documentación', perm: 'AC1' },
-  { name: 'Manuales', icon: 'library_books', href: '/manuales', group: 'Documentación' },
+  { name: 'Manuales', icon: 'library_books', href: '/manuales', group: 'Documentación', perm: 'AA1' },
   // Expediente Aerocivil oculto a pedido del usuario (2026-09-30) — la página
   // /aerocivil sigue intacta, solo se quita el enlace del sidebar.
   // { name: 'Expediente Aerocivil', icon: 'flight_takeoff', href: '/aerocivil', group: 'Documentación' },

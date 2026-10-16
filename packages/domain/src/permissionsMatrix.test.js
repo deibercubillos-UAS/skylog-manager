@@ -50,3 +50,20 @@ describe('matriz de permisos (decisión del usuario 2026-10-15)', () => {
     expect(membershipsCanEdit(ms, 'b', 'E2')).toBe(true);
   });
 });
+
+describe('piloto independiente (columna PI)', () => {
+  it('el Gerente General de plan «piloto» no tiene SMS, proveedores ni manuales; conserva su flota', () => {
+    const ms = [{ organization_id: 'o', role: 'admin', independent: true }];
+    expect(membershipsCanEdit(ms, 'o', 'O2')).toBe(false); // objetivos SMS
+    expect(membershipsCanEdit(ms, 'o', 'Y2')).toBe(false); // proveedores
+    expect(membershipsCanEdit(ms, 'o', 'AA4')).toBe(false); // manuales
+    expect(membershipsCanEdit(ms, 'o', 'I2')).toBe(true); // registrar aeronave
+    expect(membershipsCanEdit(ms, 'o', 'E2')).toBe(true); // programar misión
+  });
+
+  it('el mismo Gerente General en un plan de empresa sí ve todo', () => {
+    const ms = [{ organization_id: 'o', role: 'admin', independent: false }];
+    expect(membershipsCanEdit(ms, 'o', 'O2')).toBe(true);
+    expect(membershipsCanEdit(ms, 'o', 'Y2')).toBe(true);
+  });
+});

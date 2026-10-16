@@ -269,6 +269,24 @@ describe('matriz de permisos por rol (70-matriz-de-permisos.md)', () => {
     assert.equal(no.status, 403, no.text);
   });
 
+  test('piloto independiente (plan piloto, una sola persona): sin SMS ni proveedores, con su flota', async () => {
+    const solo = await createOwner('matSolo');
+    try {
+      const ctx = await call('GET', '/api/duty/context', { cookie: solo.cookie });
+      const org = ctx.json.organizations.find((o) => o.id === solo.organizationId);
+      assert.equal(org.independentPilot, true);
+      assert.equal(org.permissions.O2, 'none');
+      assert.equal(org.permissions.I2, 'edit');
+      const sms = await call('POST', '/api/sms/objectives', { cookie: solo.cookie, body: { organizationId: solo.organizationId, title: uniq('Objetivo') } });
+      assert.equal(sms.status, 403, sms.text);
+      // La organización con más integrantes (A) no es «independiente», aunque tenga el mismo plan.
+      const ctxA = await call('GET', '/api/duty/context', { cookie: A.cookie });
+      assert.equal(ctxA.json.organizations.find((o) => o.id === A.organizationId).independentPilot, false);
+    } finally {
+      await deleteAccount(solo).catch(() => {});
+    }
+  });
+
   test('el Piloto no entra a lo exclusivo de gestores', async () => {
     const roster = await call('GET', `/api/flota/roster?organizationId=${A.organizationId}`, { cookie: pil.cookie });
     assert.ok([200, 403].includes(roster.status));

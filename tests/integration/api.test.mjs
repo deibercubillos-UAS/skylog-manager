@@ -264,6 +264,13 @@ describe('matriz de permisos por rol (70-matriz-de-permisos.md)', () => {
     assert.equal(r.status, 403, r.text);
   });
 
+  test('los reportes de Tiempos de servicio y de Programación responden (sin embeds de relaciones inexistentes)', async () => {
+    for (const r of ['duty', 'programacion']) {
+      const res = await call('GET', `/api/reportes/${r}?organizationId=${A.organizationId}`, { cookie: A.cookie });
+      assert.equal(res.status, 200, `${r}: ${res.text}`);
+    }
+  });
+
   test('el Gerente SMS no invita (K7) y el Jefe de Pilotos sí', async () => {
     const no = await call('POST', '/api/invitaciones', { cookie: gs.cookie, body: body({ email: uniq('inv') + '@skylog-test.local', role: 'piloto' }) });
     assert.equal(no.status, 403, no.text);

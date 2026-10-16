@@ -23,7 +23,7 @@ export async function GET(request) {
 
   let query = supabase
     .from('duty_periods')
-    .select('id, type, started_at, ended_at, person:person_id(full_name)')
+    .select('id, type, started_at, ended_at, person_id')
     .eq('organization_id', organizationId)
     .order('started_at', { ascending: false });
   if (from) query = query.gte('started_at', from);
@@ -33,6 +33,11 @@ export async function GET(request) {
   const { data, error } = await query;
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  const periods = (data || []).map((p) => ({ ...p, person_name: p.person?.full_name || '—' }));
+  // `duty_periods` no tiene llave foránea hacia `people` (el historial se conserva aunque la persona se elimine), así que
+  // el embed de PostgREST no existe: los nombres se piden aparte.
+  const ids = [...new Set((data || []).map((p) => p.person_id).filter(Boolean))];
+  const { data: people } = ids.length ? await supabase.from('people').select('id, full_name').in('id', ids) : { data: [] };
+  const names = Object.fromEntries((people || []).map((x) => [x.id, x.full_name]));
+  const periods = (data || []).map(({ person_id, ...p }) => ({ ...p, person_name: names[person_id] || '—' }));
   return Response.json({ periods });
 }

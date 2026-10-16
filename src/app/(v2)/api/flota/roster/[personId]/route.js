@@ -10,6 +10,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 
+const IDENTITY_FIELDS = ['full_name', 'document_type', 'document_number', 'email'];
 const ALLOWED_FIELDS = ['full_name', 'document_type', 'document_number', 'email', 'phone', 'license_number', 'medical_cert_expiry', 'emergency_contact_name', 'emergency_contact_phone'];
 const FIELD_MAP = {
   fullName: 'full_name',
@@ -58,6 +59,20 @@ export async function PATCH(request, { params }) {
     if (body[key] !== undefined && ALLOWED_FIELDS.includes(column)) patch[column] = body[key] || null;
   }
   if (Object.keys(patch).length === 0) return Response.json({ error: 'Nada para actualizar' }, { status: 400 });
+
+  // Los datos de identidad (correo, documento, nombre) solo los cambia la propia persona, o un gestor cuando esa
+  // persona existe únicamente en organizaciones que él gestiona y no tiene cuenta. Cambiar el correo de alguien de otra
+  // empresa permitía invitarse a sí mismo y quedarse con su identidad (auditoría 2026-10-16 C3).
+  if (!isSelf && IDENTITY_FIELDS.some((c) => c in patch)) {
+    const [{ data: history }, { data: account }] = await Promise.all([
+      admin.from('memberships').select('organization_id').eq('person_id', personId),
+      admin.from('accounts').select('id').eq('person_id', personId).maybeSingle(),
+    ]);
+    const onlyManagedOrgs = (history || []).every((m) => membershipsCanEdit(memberships, m.organization_id, 'K4'));
+    if (account || !onlyManagedOrgs) {
+      return Response.json({ error: 'Solo la propia persona puede cambiar su correo, documento o nombre.' }, { status: 403 });
+    }
+  }
 
   const { data, error } = await admin.from('people').update(patch).eq('id', personId).select().single();
   if (error) return Response.json({ error: error.message }, { status: 500 });

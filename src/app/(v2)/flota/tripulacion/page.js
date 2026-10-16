@@ -98,6 +98,15 @@ export default function TripulacionPage() {
         body: JSON.stringify({ organizationId, ...form }),
       });
       const data = await res.json();
+      // Ya registrada en BitaFly: se une aceptando una invitación (con su consentimiento), no agregándola directamente.
+      if (res.status === 409 && data.reason === 'requiere_invitacion') {
+        if (!form.email) throw new Error(`${data.error} Escribe su correo para poder invitarla.`);
+        setInviteDraft({ email: form.email, name: form.fullName, role: form.role });
+        setForm(emptyForm);
+        setShowForm(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
       if (!res.ok) throw new Error(data.error || 'Error agregando el tripulante');
       setForm(emptyForm);
       setShowForm(false);

@@ -1,7 +1,7 @@
 'use client';
 
 // Skylog V2.0 — invitar tripulantes por correo y ver las invitaciones pendientes (Etapa C). La invitación lleva un
-// enlace personal que vence en 7 días; si el correo no sale, el gestor puede copiar el enlace y enviarlo por otro medio.
+// enlace personal que vence en 7 días y que solo llega al correo del invitado; si no le llegó, el gestor la reenvía.
 import { useCallback, useEffect, useState } from 'react';
 import { INVITE_ROLES, INVITE_ROLE_LABELS } from '@skylog/domain';
 import { Field, Button } from '@skylog/ui';
@@ -16,7 +16,7 @@ export default function Invitations({ organizationId, isAdmin, draft, onDraftUse
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
-  const [copied, setCopied] = useState(null);
+  const [resending, setResending] = useState(null);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/invitaciones?organizationId=${organizationId}`);
@@ -48,7 +48,7 @@ export default function Invitations({ organizationId, isAdmin, draft, onDraftUse
     const data = await res.json();
     setBusy(false);
     if (!res.ok) return setError(data.error);
-    setNotice(data.emailSent ? `Invitación enviada a ${data.invitation.email}.` : `Se creó la invitación, pero el correo no salió. Copia el enlace y envíaselo a ${data.invitation.email}.`);
+    setNotice(data.emailSent ? `Invitación enviada a ${data.invitation.email}.` : `Se creó la invitación, pero el correo no salió. Intenta reenviarla en unos minutos.`);
     setForm({ email: '', name: '', role: 'piloto' });
     setOpen(false);
     await load();
@@ -62,14 +62,17 @@ export default function Invitations({ organizationId, isAdmin, draft, onDraftUse
     await load();
   }
 
-  async function copy(link, id) {
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopied(id);
-      setTimeout(() => setCopied(null), 2000);
-    } catch {
-      setError('No se pudo copiar: selecciona el enlace a mano.');
-    }
+  // Reenviar = invitar de nuevo al mismo correo: el enlace anterior deja de funcionar y llega uno nuevo por correo.
+  async function resend(i) {
+    setResending(i.id);
+    setError(null);
+    setNotice(null);
+    const res = await fetch('/api/invitaciones', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ organizationId, email: i.email, name: i.name || '', role: i.role }) });
+    const data = await res.json();
+    setResending(null);
+    if (!res.ok) return setError(data.error);
+    setNotice(data.emailSent ? `Invitación reenviada a ${i.email}.` : 'No se pudo enviar el correo. Intenta de nuevo en unos minutos.');
+    await load();
   }
 
   const pending = list.filter((i) => i.state === 'usable');
@@ -111,7 +114,7 @@ export default function Invitations({ organizationId, isAdmin, draft, onDraftUse
                 <p className="text-xs text-navy-400">{INVITE_ROLE_LABELS[i.role]} · vence {i.expires_at.slice(0, 10)}</p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                <button type="button" onClick={() => copy(i.link, i.id)} className="text-xs font-semibold text-primary-700 hover:underline min-h-[44px]">{copied === i.id ? 'Copiado ✓' : 'Copiar enlace'}</button>
+                <button type="button" onClick={() => resend(i)} disabled={resending === i.id} className="text-xs font-semibold text-primary-700 hover:underline min-h-[44px] disabled:opacity-50">{resending === i.id ? 'Reenviando…' : 'Reenviar'}</button>
                 <button type="button" onClick={() => revoke(i.id)} className="text-xs font-semibold text-red-600 hover:underline min-h-[44px]">Cancelar</button>
               </div>
             </li>

@@ -1,12 +1,14 @@
 // Skylog V2.0 — invitaciones de tripulantes (Etapa C). Un gestor invita por correo a alguien con un rol; reinvitar
-// al mismo correo cancela la invitación pendiente anterior. Si ya existe una persona con ese correo (p. ej. la que
+// al mismo correo cancela la invitación pendiente anterior. El enlace SOLO viaja por correo: abrirlo prueba que el
+// correo es de quien lo abre. Nunca se le devuelve al gestor (con él podía crear la cuenta del invitado y suplantarlo
+// — auditoría 2026-10-16 C3). Si ya existe una persona con ese correo (p. ej. la que
 // el gestor agregó en Tripulación sin acceso), la invitación queda ligada a ella y, al aceptar, recibe la cuenta.
 // La tabla solo se escribe aquí (service role) después de validar permisos con las reglas del dominio.
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
 import { loadJoinContextByOrgId, decideJoin } from '@/lib/v2/joinOrganization';
-import { newInvitationToken, sendInvitationEmail, invitationLink, likeExact } from '@/lib/v2/invitationsServer';
+import { newInvitationToken, sendInvitationEmail, likeExact } from '@/lib/v2/invitationsServer';
 import { canInviteRole, validateInvitation, invitationState, invitationExpiresAt } from '@skylog/domain';
 import { membershipsCanView } from '@/lib/v2/permissions';
 
@@ -30,11 +32,11 @@ export async function GET(request) {
   if (!organizationId || !membershipsCanView(s.memberships, organizationId, 'K9')) {
     return Response.json({ error: 'Solo un gestor puede ver las invitaciones' }, { status: 403 });
   }
-  const { data, error } = await s.supabase.from('invitations').select('id, email, name, role, status, expires_at, created_at, token').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(50);
+  const { data, error } = await s.supabase.from('invitations').select('id, email, name, role, status, expires_at, created_at').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(50);
   if (error) return Response.json({ error: error.message }, { status: 500 });
   const now = Date.now();
   return Response.json({
-    invitations: (data || []).map(({ token, ...i }) => ({ ...i, state: invitationState(i, now), link: i.status === 'pendiente' ? invitationLink(token) : null })),
+    invitations: (data || []).map((i) => ({ ...i, state: invitationState(i, now) })),
   });
 }
 
@@ -82,7 +84,7 @@ export async function POST(request) {
 
   const { data: inviter } = await admin.from('people').select('full_name').eq('id', s.personId).maybeSingle();
   const email = await sendInvitationEmail({ to: clean.email, name: clean.name, role: clean.role, organizationName: org.company_name, inviterName: inviter?.full_name, token });
-  return Response.json({ invitation: { ...inv, state: 'usable', link: invitationLink(token) }, emailSent: email.sent });
+  return Response.json({ invitation: { ...inv, state: 'usable' }, emailSent: email.sent });
 }
 
 export async function DELETE(request) {

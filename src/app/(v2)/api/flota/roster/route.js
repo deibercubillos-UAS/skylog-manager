@@ -95,6 +95,24 @@ export async function POST(request) {
     if (existing) personId = existing.id;
   }
 
+  // Una persona que ya pertenece a otra empresa, o que tiene su propia cuenta sin haber estado nunca en esta, no se
+  // vincula sin su consentimiento: debe aceptar una invitación (auditoría 2026-10-16 C3 — antes cualquier gestor la
+  // agregaba con solo su cédula y recibía sus datos personales). No se devuelve ningún dato suyo.
+  if (personId) {
+    const [{ data: history }, { data: account }] = await Promise.all([
+      admin.from('memberships').select('organization_id').eq('person_id', personId),
+      admin.from('accounts').select('id').eq('person_id', personId).maybeSingle(),
+    ]);
+    const orgs = new Set((history || []).map((m) => m.organization_id));
+    const belongsElsewhere = [...orgs].some((id) => id !== organizationId);
+    if (belongsElsewhere || (account && !orgs.has(organizationId))) {
+      return Response.json(
+        { error: 'Esta persona ya está registrada en BitaFly. Invítala por correo para que acepte unirse a tu organización.', reason: 'requiere_invitacion' },
+        { status: 409 }
+      );
+    }
+  }
+
   if (!personId) {
     const { data: newPerson, error: personError } = await admin
       .from('people')

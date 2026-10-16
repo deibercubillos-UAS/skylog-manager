@@ -268,6 +268,15 @@ export default function OrganizacionPage() {
     );
   }
 
+  if (currentOrg && (currentOrg.permissions?.['AD1'] || 'none') === 'none') {
+    return (
+      <div className="space-y-4">
+        <SectionHero eyebrow="Documentación" title="Organización" description="Tu rol no tiene acceso a esta pantalla." />
+        <p className="text-sm text-navy-400">Esta sección no está disponible para tu rol.</p>
+      </div>
+    );
+  }
+
   const status = certStatus(cert?.expires_at);
 
   return (

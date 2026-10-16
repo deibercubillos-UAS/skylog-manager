@@ -12,7 +12,7 @@
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, getRecentFlights } from '@/lib/v2/duty';
 import { evaluateFlightLimits } from '@skylog/domain';
-import { membershipsCanView } from '@/lib/v2/permissions';
+import { membershipsCanView, membershipsCanEdit } from '@/lib/v2/permissions';
 
 const VISUAL_CONDITIONS = ['VLOS', 'EVLOS', 'BVLOS'];
 
@@ -85,11 +85,15 @@ export async function POST(request) {
     return Response.json({ error: 'landingAt debe ser posterior a takeoffAt' }, { status: 400 });
   }
 
-  const { error: resolveError, personId, organizationIds } = await resolveCurrentPerson(supabase, user.id);
+  const { error: resolveError, personId, organizationIds, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
   if (!organizationIds.includes(organizationId)) {
     return Response.json({ error: 'Sin membresía activa en esa organización' }, { status: 403 });
+  }
+  // D5: la carga manual (sin log importado) no es del Piloto; importar el log del control (D4) sí.
+  if ((batterySerial === undefined || batterySerial === null) && !membershipsCanEdit(memberships, organizationId, 'D5')) {
+    return Response.json({ error: 'Tu rol no puede registrar un vuelo a mano; importa el registro del control' }, { status: 403 });
   }
 
   const { data: recentFlights, error: recentError } = await getRecentFlights(supabase, personId, 32);

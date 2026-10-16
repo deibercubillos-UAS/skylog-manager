@@ -287,6 +287,21 @@ describe('matriz de permisos por rol (70-matriz-de-permisos.md)', () => {
     }
   });
 
+  test('el Piloto no ve tripulación, componentes ni datos de la organización, ni registra vuelos a mano', async () => {
+    const q = `?organizationId=${A.organizationId}`;
+    for (const url of [`/api/flota/roster${q}`, `/api/flota/components${q}`, `/api/organizacion${q}`, `/api/organizacion/members${q}`]) {
+      const r = await call('GET', url, { cookie: pil.cookie });
+      assert.equal(r.status, 403, `${url} respondió ${r.status} al piloto`);
+    }
+    const manual = await call('POST', '/api/flights', { cookie: pil.cookie, body: body({ takeoffAt: '2026-10-01T10:00:00-05:00', landingAt: '2026-10-01T10:20:00-05:00', totalTime: 0.33 }) });
+    assert.equal(manual.status, 403, manual.text);
+    // Un Jefe de Pilotos sí ve la tripulación y la organización.
+    for (const url of [`/api/flota/roster${q}`, `/api/organizacion${q}`]) {
+      const r = await call('GET', url, { cookie: jp.cookie });
+      assert.equal(r.status, 200, `${url} respondió ${r.status} al Jefe de Pilotos`);
+    }
+  });
+
   test('el Piloto no entra a lo exclusivo de gestores', async () => {
     const roster = await call('GET', `/api/flota/roster?organizationId=${A.organizationId}`, { cookie: pil.cookie });
     assert.ok([200, 403].includes(roster.status));

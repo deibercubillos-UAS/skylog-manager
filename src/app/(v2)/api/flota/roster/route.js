@@ -9,7 +9,7 @@
 // hasta que un flujo de alta real las necesitara).
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
-import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { membershipsCanEdit, membershipsCanView } from '@/lib/v2/permissions';
 
 const ASSIGNABLE_ROLES = ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'];
 
@@ -28,6 +28,9 @@ export async function GET(request) {
   const orgIds = (memberships || []).map((m) => m.organization_id);
   if (!organizationId || !orgIds.includes(organizationId)) {
     return Response.json({ error: 'organizationId requerido y con membresía activa' }, { status: 400 });
+  }
+  if (!membershipsCanView(memberships, organizationId, 'K1')) {
+    return Response.json({ error: 'Tu rol no puede ver la tripulación' }, { status: 403 });
   }
 
   const { data: roster, error } = await supabase

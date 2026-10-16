@@ -199,6 +199,15 @@ export default function TripulacionPage() {
     );
   }
 
+  if (currentOrg && (currentOrg.permissions?.['K1'] || 'none') === 'none') {
+    return (
+      <div className="space-y-4">
+        <SectionHero eyebrow="Flota & Equipo" title="Tripulación" description="Tu rol no tiene acceso a esta pantalla." />
+        <p className="text-sm text-navy-400">Esta sección no está disponible para tu rol.</p>
+      </div>
+    );
+  }
+
   const roleCount = new Set(roster.map((m) => m.role)).size;
   const expiringSoon = roster.filter((m) => {
     const s = certStatus(m.person.medical_cert_expiry);

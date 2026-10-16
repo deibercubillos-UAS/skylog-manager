@@ -62,6 +62,7 @@ export default function BitacoraPage() {
   const [viewMode, setViewMode] = useState('bitacora'); // 'bitacora' (por piloto) | 'libro' (por aeronave)
   const [logbookAircraftId, setLogbookAircraftId] = useState('');
   const [replayFlight, setReplayFlight] = useState(null);
+  const canManualFlight = context?.organizations?.find((o) => o.id === organizationId)?.permissions?.D5 === 'edit';
   const [form, setForm] = useState({ takeoffAt: '', landingAt: '', totalTime: '', visualCondition: 'VLOS', missionType: '', aircraftId: '', location: '', notes: '' });
 
   // Importar vuelos — carga MANUAL de logs DJI .txt, la vía real para
@@ -582,6 +583,7 @@ export default function BitacoraPage() {
           />
         )}
 
+        {canManualFlight && (
         <form onSubmit={handleSubmit} className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow p-5 h-fit">
           <p className="text-xs font-black uppercase text-navy-300 tracking-widest mb-4 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-primary" />
@@ -648,6 +650,7 @@ export default function BitacoraPage() {
             {busy ? 'Guardando…' : 'Registrar vuelo'}
           </Button>
         </form>
+        )}
       </div>
 
       {replayFlight && (

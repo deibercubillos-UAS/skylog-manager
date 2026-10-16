@@ -7,7 +7,7 @@
 // real detrás).
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
-import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { membershipsCanEdit, membershipsCanView } from '@/lib/v2/permissions';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -25,6 +25,10 @@ export async function GET(request) {
   const orgIds = (memberships || []).map((m) => m.organization_id);
   if (!organizationId || !orgIds.includes(organizationId)) {
     return Response.json({ error: 'organizationId requerido y con membresía activa' }, { status: 400 });
+  }
+
+  if (!membershipsCanView(memberships, organizationId, 'J3')) {
+    return Response.json({ error: 'Tu rol no puede ver los componentes' }, { status: 403 });
   }
 
   let query = supabase

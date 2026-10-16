@@ -50,6 +50,7 @@ export default function BateriasComponentesPage() {
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const isManager = currentOrg?.permissions?.['J2'] === 'edit';
+  const canSeeComponents = (currentOrg?.permissions?.['J3'] || 'none') !== 'none';
 
   const loadBatteries = useCallback(async (orgId) => {
     if (!orgId) return;
@@ -63,6 +64,7 @@ export default function BateriasComponentesPage() {
     if (!orgId) return;
     const qs = aircraftId ? `&aircraftId=${aircraftId}` : '';
     const res = await fetch(`/api/flota/components?organizationId=${orgId}${qs}`);
+    if (res.status === 403) { setComponents([]); return; } // sin permiso para ver componentes (el piloto): no es un error
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error cargando componentes');
     setComponents(data.components || []);
@@ -228,7 +230,7 @@ export default function BateriasComponentesPage() {
         <StatCard icon="battery_full" color="primary" label="Baterías" value={batteries.length} />
         <StatCard icon="check_circle" color="emerald" label="Operativas" value={operativeBatteries} />
         <StatCard icon="battery_alert" color={operativeBatteries < batteries.length ? 'amber' : 'emerald'} label="De baja" value={batteries.length - operativeBatteries} />
-        <StatCard icon="settings" color="blue" label="Componentes activos" value={activeComponents} />
+        {canSeeComponents && <StatCard icon="settings" color="blue" label="Componentes activos" value={activeComponents} />}
       </div>
 
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>}
@@ -322,6 +324,7 @@ export default function BateriasComponentesPage() {
       </div>
 
       {/* Componentes */}
+      {canSeeComponents && (
       <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
         <div className="px-6 py-3.5 border-b border-navy-50 bg-navy-50/30 flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest">Componentes</h3>
@@ -465,6 +468,7 @@ export default function BateriasComponentesPage() {
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 }

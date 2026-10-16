@@ -5,7 +5,7 @@
 // activo (mismo resguardo real que v1: "no degradar al último Admin").
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
-import { membershipsCanEdit } from '@/lib/v2/permissions';
+import { membershipsCanEdit, membershipsCanView } from '@/lib/v2/permissions';
 
 const ASSIGNABLE_ROLES = ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'];
 
@@ -19,6 +19,12 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const organizationId = searchParams.get('organizationId');
   if (!organizationId) return Response.json({ error: 'organizationId es requerido' }, { status: 400 });
+
+  const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
+  if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
+  if (!membershipsCanView(memberships, organizationId, 'AD1')) {
+    return Response.json({ error: 'Tu rol no puede ver los datos de la organización' }, { status: 403 });
+  }
 
   const { data, error } = await supabase
     .from('memberships')

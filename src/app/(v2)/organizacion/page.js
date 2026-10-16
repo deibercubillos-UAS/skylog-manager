@@ -372,7 +372,7 @@ export default function OrganizacionPage() {
         <div className="flex items-center justify-between gap-3 mb-3">
           <div>
             <p className="text-sm font-semibold text-navy">Certificación AeroCivil (CDO-U)</p>
-            <p className="text-xs text-navy-400">Gobierna qué se puede programar — sin OpSpecs en PDF todavía (V2 no tiene carga de archivos aquí).</p>
+            <p className="text-xs text-navy-400">Gobierna qué se puede programar. La carga del PDF de las OpSpecs llegará más adelante.</p>
           </div>
           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${status.badge}`}>{status.label}</span>
         </div>

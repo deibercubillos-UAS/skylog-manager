@@ -334,7 +334,7 @@ export default function BitacoraPage() {
                 </p>
                 <p className="text-xs text-navy-400 mt-1.5">
                   Para el resto de controles (RC Pro, RC-N3, celular) los vuelos se cargarán solos desde el control o el
-                  celular en cuanto se instale la app — todavía no está construida en V2.
+                  celular en cuanto se instale la app — próximamente.
                 </p>
                 <span className="inline-block mt-3 text-[11px] font-bold uppercase tracking-wide text-navy-400 bg-navy-100 rounded-full px-3 py-1.5">
                   Próximamente

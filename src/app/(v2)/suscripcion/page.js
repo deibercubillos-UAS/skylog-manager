@@ -71,6 +71,7 @@ export default function SuscripcionPage() {
   const [subscription, setSubscription] = useState(null);
   const [usage, setUsage] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [canSetPlanManually, setCanSetPlanManually] = useState(false);
 
   const [form, setForm] = useState({ plan: 'piloto', expiresAt: '', notes: '' });
   const [busy, setBusy] = useState(false);
@@ -142,6 +143,7 @@ export default function SuscripcionPage() {
       setSubscription(data.subscription);
       setUsage(data.usage);
       setIsAdmin(data.isAdmin);
+      setCanSetPlanManually(!!data.canSetPlanManually);
       setForm({ plan: data.subscription?.plan || 'piloto', expiresAt: data.subscription?.expires_at || '', notes: data.subscription?.notes || '' });
     }
   }, []);
@@ -392,7 +394,7 @@ export default function SuscripcionPage() {
           </div>
         )}
 
-        {isAdmin ? (
+        {canSetPlanManually ? (
           <form onSubmit={handleSubmit} className="p-5 space-y-4">
             <div>
               <p className="text-xs font-medium text-navy-400 mb-2">Elegir plan</p>
@@ -445,7 +447,11 @@ export default function SuscripcionPage() {
           </form>
         ) : (
           <div className="p-5">
-            <p className="text-sm text-navy-400">Solo el Gerente General puede cambiar el plan de la organización.</p>
+            <p className="text-sm text-navy-400">
+              {isAdmin
+                ? 'Para cambiar de plan, elige el plan y paga con tarjeta en «Pagar con tarjeta (Wompi)». Si necesitas un ajuste especial, escríbenos a soporte@bitafly.com.'
+                : 'Solo el Gerente General puede cambiar el plan de la organización.'}
+            </p>
           </div>
         )}
       </div>

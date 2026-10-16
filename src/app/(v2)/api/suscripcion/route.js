@@ -1,13 +1,10 @@
-// Skylog V2.0 — Suscripción: panel informativo + gestión manual del plan
-// (sin checkout, sin ePayco — confirmado con el usuario). Deliberadamente
-// más restrictivo que el resto de V2: solo `admin`/`superadmin` gestionan
-// (nunca `jefe_pilotos`/`gerente_sms`) — replica un bug real ya corregido
-// en v1 (CLAUDE.md: "/dashboard/subscription usaba el permiso equivocado
-// — canManageFleet en vez de un permiso propio... canManageSubscription:
-// ['superadmin','admin']"), no se repite ese error aquí desde el inicio.
+// Skylog V2.0 — Suscripción: panel informativo del plan. El cliente cambia de plan pagando con Wompi
+// (/api/suscripcion/wompi/*); fijar un plan a mano (sin pago) es solo del superadmin con segundo factor —
+// antes cualquier Gerente General podía ponerse Enterprise sin vencimiento (auditoría 2026-10-16).
 import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { isPlatformSuperadmin, sessionIsAal2 } from '@/lib/v2/platformAdmin';
 import { PLANS, PLAN_LIMITS, crewCountsForLimit } from '@/lib/v2/planLimits';
 
 function isAdmin(memberships, organizationId) {
@@ -48,7 +45,12 @@ export async function GET(request) {
     batteries: { count: (batteries || []).length, limit: PLAN_LIMITS[plan].batteries },
   };
 
-  return Response.json({ subscription: subscription || { organization_id: organizationId, plan: 'piloto', expires_at: null, notes: null }, usage, isAdmin: isAdmin(memberships, organizationId) });
+  return Response.json({
+    subscription: subscription || { organization_id: organizationId, plan: 'piloto', expires_at: null, notes: null },
+    usage,
+    isAdmin: isAdmin(memberships, organizationId),
+    canSetPlanManually: isPlatformSuperadmin(memberships),
+  });
 }
 
 export async function PATCH(request) {
@@ -66,8 +68,11 @@ export async function PATCH(request) {
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
-  if (!isAdmin(memberships, organizationId)) {
-    return Response.json({ error: 'Solo el Gerente General puede cambiar el plan de la organización' }, { status: 403 });
+  if (!isPlatformSuperadmin(memberships)) {
+    return Response.json({ error: 'El plan se cambia pagando con Wompi. Los ajustes manuales los hace el equipo de BitaFly.' }, { status: 403 });
+  }
+  if (!(await sessionIsAal2(supabase))) {
+    return Response.json({ error: 'Verifica tu segundo factor para cambiar planes manualmente.', mfa: true }, { status: 403 });
   }
 
   const admin = createAdminClient();

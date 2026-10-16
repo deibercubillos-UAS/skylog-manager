@@ -67,3 +67,19 @@ Escritorio 1366×768 · celular Pixel 7 emulado (412×915, táctil) y barrido en
 
 ## 7 · Datos de prueba que quedan en la organización QA
 Mantenimiento: 4 eventos (no se pueden borrar: retención 5 años) · 2 vuelos y 1 despacho · 1 custodia legal sin liberar · 2 reportes SMS y 1 caso · 1 evaluación con 1 pregunta · 2 misiones (1 cancelada, 1 cerrada) · 1 batería de baja · 1 peligro · 1 acción correctiva. Todo con prefijo `PRUEBA-20261016`.
+
+## 8 · Segunda pasada completa por perfil (2026-10-16, base ya recuperada)
+Rastreo de 44 pantallas × 6 perfiles (Gerente, Jefe de Pilotos, Gerente SMS, Piloto, Piloto independiente, Socio) × escritorio y Pixel 7; matriz de permisos (23 pantallas por rol) y barrido de API.
+| Prueba | Resultado |
+|---|---|
+| Carga de las 44 pantallas por perfil y dispositivo (12 combinaciones) | ✅ ninguna con 5xx; desbordes horizontales: **0** |
+| Matriz de permisos (Gerente, Jefe, SMS, Piloto, Independiente) | ✅ 0 discrepancias de 23 en cada rol (una primera corrida mostró 1–2 por tiempos de carga y no se repitió) |
+| Barrido de API (88 GET) | ✅ 0 respuestas 5xx, 0 lentas > 5 s |
+| `/admin/*` para roles de organización | ✅ redirige a `/inicio` |
+
+Observaciones nuevas (todas de baja gravedad):
+| # | Dónde | Qué pasa | Estado |
+|---|---|---|---|
+| F-016 | Piloto e Independiente | Pantallas que sí pueden ver (Baterías, Asistente SMS, Gobernanza, Capacitación SMS, Organización) piden datos que su rol no puede leer (`/api/flota/components`, `/api/flota/roster`, `/api/organizacion*`) y reciben 403 en consola. No se ve en pantalla, pero son peticiones inútiles | ⬜ mejora: no pedirlos si el permiso es «ninguno» |
+| F-017 | `/perfil`, `/suscripcion`, `/sms` | Cargas ocasionales de 9–18 s (Jefe de Pilotos, Piloto, Independiente); compatible con la latencia de la instancia (F-003) | ⬜ vigilar tras decidir el tamaño de la instancia |
+| F-004 | `/sms/mapas` | Sigue la excepción del visor ArcGIS y el 404 de una fuente de letras (`static.arcgis.com`); en celular interrumpe la navegación del rastreo | ⬜ |

@@ -5,6 +5,7 @@
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { validateDangerousGoodsDeclaration } from '@skylog/domain';
+import { readOnlyBlock } from '@/lib/v2/permissions';
 
 const AUTHORITY_ROLES = ['admin', 'jefe_pilotos', 'gerente_sms', 'superadmin']; // AD10
 
@@ -24,6 +25,8 @@ export async function POST(request) {
   if (!(memberships || []).some((m) => m.organization_id === organizationId && AUTHORITY_ROLES.includes(m.role))) {
     return Response.json({ error: 'Solo el Gerente General o el Gerente SMS pueden firmar esta declaración' }, { status: 403 });
   }
+  const readOnly = readOnlyBlock(memberships, organizationId);
+  if (readOnly) return readOnly;
 
   const check = validateDangerousGoodsDeclaration({ declaration, notes });
   if (!check.ok) return Response.json({ error: check.errors.join(' '), errors: check.errors }, { status: 400 });

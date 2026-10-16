@@ -4,6 +4,8 @@
 // S = puede (usa y modifica) · V = solo ve · N = no. Orden: superadmin, Gerente General (admin),
 // Jefe de Pilotos, Gerente SMS, Piloto, Piloto independiente (plan «piloto»: una sola persona con su empresa).
 
+import { READ_ONLY_ALLOWED } from './subscriptionAccess.js';
+
 export const MATRIX_ROLES = ['SA', 'GG', 'JP', 'GS', 'P', 'PI'];
 
 // Rol de membresía en base de datos → columna de la matriz.
@@ -199,15 +201,23 @@ export const canEdit = (role, id, opts) => permissionLevel(role, id, opts) === '
 export const canView = (role, id, opts) => permissionLevel(role, id, opts) !== 'none';
 
 /** ¿Alguna de las membresías de la organización puede editar / ver esta función? */
+// Con la organización en solo lectura (plan vencido, ver subscriptionAccess.js) solo se edita lo de READ_ONLY_ALLOWED.
 export function membershipsCanEdit(memberships, organizationId, id) {
-  return (memberships || []).some((m) => m.organization_id === organizationId && canEdit(m.role, id, { independentPilot: !!m.independent }));
+  return (memberships || []).some(
+    (m) => m.organization_id === organizationId && canEdit(m.role, id, { independentPilot: !!m.independent }) && !(m.readOnly && !READ_ONLY_ALLOWED.has(id))
+  );
 }
 export function membershipsCanView(memberships, organizationId, id) {
   return (memberships || []).some((m) => m.organization_id === organizationId && canView(m.role, id, { independentPilot: !!m.independent }));
 }
 
 /** { id: 'edit' | 'view' | 'none' } para un rol de membresía (lo que el cliente usa para mostrar u ocultar). */
-export function permissionsForRole(role, { independentPilot = false } = {}) {
+export function permissionsForRole(role, { independentPilot = false, readOnly = false } = {}) {
   const col = independentPilot ? 'PI' : ROLE_COLUMN[role];
-  return Object.fromEntries(PERMISSION_MATRIX.map((p) => [p.id, col ? p.levels[col] : 'none']));
+  return Object.fromEntries(
+    PERMISSION_MATRIX.map((p) => {
+      const level = col ? p.levels[col] : 'none';
+      return [p.id, readOnly && level === 'edit' && !READ_ONLY_ALLOWED.has(p.id) ? 'view' : level];
+    })
+  );
 }

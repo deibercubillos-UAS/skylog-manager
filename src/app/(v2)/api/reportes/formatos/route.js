@@ -6,9 +6,9 @@ import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { sanitizeReportFormats } from '@skylog/domain';
-import { membershipsCanView } from '@/lib/v2/permissions';
+import { membershipsCanView, membershipsCanEdit } from '@/lib/v2/permissions';
 
-async function requireManager(organizationId) {
+async function requireManager(organizationId, mode = 'view') {
   const supabase = await createClientSSR();
   const {
     data: { user },
@@ -17,7 +17,7 @@ async function requireManager(organizationId) {
   if (!organizationId) return { response: Response.json({ error: 'organizationId es requerido' }, { status: 400 }) };
   const { error, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (error) return { response: Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 }) };
-  if (!membershipsCanView(memberships, organizationId, 'AC1')) {
+  if (!(mode === 'edit' ? membershipsCanEdit(memberships, organizationId, 'AC1') : membershipsCanView(memberships, organizationId, 'AC1'))) {
     return { response: Response.json({ error: 'Solo un gestor puede ver o editar los formatos de los reportes' }, { status: 403 }) };
   }
   return { supabase };
@@ -38,7 +38,7 @@ export async function GET(request) {
 export async function PUT(request) {
   const body = await request.json().catch(() => ({}));
   const organizationId = body.organizationId;
-  const guard = await requireManager(organizationId);
+  const guard = await requireManager(organizationId, 'edit');
   if (guard.response) return guard.response;
 
   const clean = sanitizeReportFormats(body.formats);

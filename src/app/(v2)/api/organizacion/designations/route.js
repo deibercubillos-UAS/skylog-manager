@@ -6,6 +6,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView } from '@/lib/v2/permissions';
 import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { validateDesignationInput, DESIGNATION_ROLES } from '@skylog/domain';
+import { readOnlyBlock } from '@/lib/v2/permissions';
 
 const AUTHORITY_ROLES = ['admin', 'superadmin']; // AD9: solo el Gerente General designa cargos
 
@@ -48,6 +49,8 @@ export async function POST(request) {
   if (!organizationId || !(s.memberships || []).some((m) => m.organization_id === organizationId && AUTHORITY_ROLES.includes(m.role))) {
     return Response.json({ error: 'Solo el Gerente General o el Gerente SMS pueden designar cargos' }, { status: 403 });
   }
+  const readOnly = readOnlyBlock(s.memberships, organizationId);
+  if (readOnly) return readOnly;
   const check = validateDesignationInput({ roleType, personId, actReference, actDate, today: bogotaDay(new Date()) });
   if (!check.ok) return Response.json({ error: check.errors.join(' '), errors: check.errors }, { status: 400 });
 

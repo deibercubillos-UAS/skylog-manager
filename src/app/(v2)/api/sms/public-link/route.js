@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
+import { readOnlyBlock } from '@/lib/v2/permissions';
 
 const ALLOWED_ROLES = ['gerente_sms', 'admin', 'superadmin'];
 
@@ -20,7 +21,7 @@ async function authorize(supabase, organizationId) {
   if (!membership || !ALLOWED_ROLES.includes(membership.role)) {
     return { error: Response.json({ error: 'Solo el Gerente SMS o el Gerente General administran el enlace público' }, { status: 403 }) };
   }
-  return { ok: true };
+  return { ok: true, memberships };
 }
 
 export async function GET(request) {
@@ -44,6 +45,8 @@ export async function POST(request) {
   }
   const auth = await authorize(supabase, organizationId);
   if (auth.error) return auth.error;
+  const readOnly = readOnlyBlock(auth.memberships, organizationId);
+  if (readOnly) return readOnly;
 
   const keyProblem = adminKeyProblem();
   if (keyProblem) return Response.json({ error: keyProblem, setup: true }, { status: 503 });

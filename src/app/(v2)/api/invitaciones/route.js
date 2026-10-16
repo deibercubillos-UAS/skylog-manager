@@ -10,7 +10,7 @@ import { adminKeyProblem } from '@/lib/v2/adminKey';
 import { loadJoinContextByOrgId, decideJoin } from '@/lib/v2/joinOrganization';
 import { newInvitationToken, sendInvitationEmail, likeExact } from '@/lib/v2/invitationsServer';
 import { canInviteRole, validateInvitation, invitationState, invitationExpiresAt } from '@skylog/domain';
-import { membershipsCanView } from '@/lib/v2/permissions';
+import { membershipsCanView, readOnlyBlock } from '@/lib/v2/permissions';
 
 async function session() {
   const supabase = await createClientSSR();
@@ -54,6 +54,8 @@ export async function POST(request) {
   if (!canInviteRole(rolesIn(s.memberships, organizationId), clean.role)) {
     return Response.json({ error: clean.role === 'admin' ? 'Solo un Gerente General puede invitar a otro Gerente General' : 'Solo un gestor puede invitar tripulantes' }, { status: 403 });
   }
+  const readOnly = readOnlyBlock(s.memberships, organizationId);
+  if (readOnly) return readOnly;
 
   const admin = createAdminClient();
   const { data: org } = await admin.from('organizations').select('id, company_name').eq('id', organizationId).maybeSingle();
@@ -96,6 +98,8 @@ export async function DELETE(request) {
   const { data: inv } = await admin.from('invitations').select('organization_id, status').eq('id', id).maybeSingle();
   if (!inv) return Response.json({ error: 'Invitación no encontrada' }, { status: 404 });
   if (!canInviteRole(rolesIn(s.memberships, inv.organization_id), 'piloto')) return Response.json({ error: 'Solo un gestor puede cancelar invitaciones' }, { status: 403 });
+  const readOnly = readOnlyBlock(s.memberships, inv.organization_id);
+  if (readOnly) return readOnly;
   if (inv.status !== 'pendiente') return Response.json({ error: 'Solo se cancelan las invitaciones pendientes' }, { status: 409 });
   const { error } = await admin.from('invitations').update({ status: 'revocada' }).eq('id', id);
   if (error) return Response.json({ error: error.message }, { status: 500 });

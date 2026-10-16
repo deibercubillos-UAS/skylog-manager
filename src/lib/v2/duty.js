@@ -3,6 +3,8 @@
 // normativo en sí vive en packages/domain (dutyCompliance.js), sin Supabase.
 // Ver docs/skylog-v2/41-tiempos-servicio.md · 31-esquema-datos.md §1, §3.1.
 
+import { isOrgReadOnly } from '@skylog/domain';
+
 /**
  * Resuelve { personId, organizationIds } de la sesión autenticada actual vía
  * accounts.auth_user_id → memberships activas. Ninguna de las dos tablas
@@ -21,15 +23,26 @@ export async function resolveCurrentPerson(supabase, userId) {
   // Una sola consulta (RPC): rol de cada membresía y si la persona es «piloto independiente» (Gerente General, plan
   // «piloto» y único integrante activo de su organización — columna PI de la matriz de permisos). Antes eran tres
   // consultas y encarecía cada petición de la API.
-  const { data: memberships, error: membershipError } = await supabase.rpc('v2_my_memberships', { p_person_id: account.person_id });
+  // En paralelo, el plan y vencimiento de sus organizaciones (la RLS de `subscriptions` ya limita a las suyas): marca
+  // `readOnly` si el plan venció hace más de 7 días (subscriptionAccess.js). Si esa lectura falla no se marca nada.
+  const [{ data: memberships, error: membershipError }, { data: subs, error: subsError }] = await Promise.all([
+    supabase.rpc('v2_my_memberships', { p_person_id: account.person_id }),
+    supabase.from('subscriptions').select('organization_id, plan, expires_at'),
+  ]);
 
   if (membershipError) return { error: membershipError };
+
+  const subByOrg = subsError ? null : Object.fromEntries((subs || []).map((x) => [x.organization_id, x]));
+  const marked = (memberships || []).map((m) => {
+    const sub = subByOrg?.[m.organization_id];
+    return { ...m, readOnly: !!subByOrg && m.role !== 'superadmin' && isOrgReadOnly({ plan: sub?.plan || 'piloto', expiresAt: sub?.expires_at || null }) };
+  });
 
   return {
     error: null,
     personId: account.person_id,
-    organizationIds: (memberships || []).map((m) => m.organization_id),
-    memberships: memberships || [],
+    organizationIds: marked.map((m) => m.organization_id),
+    memberships: marked,
   };
 }
 

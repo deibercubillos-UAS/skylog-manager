@@ -9,6 +9,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, getOpenDutyPeriod } from '@/lib/v2/duty';
 import { evaluateServiceGates } from '@/lib/v2/serviceGates';
+import { readOnlyBlock } from '@/lib/v2/permissions';
 
 const VALID_TYPES = ['servicio', 'descanso', 'disponibilidad', 'entrenamiento'];
 
@@ -25,12 +26,14 @@ export async function POST(request) {
     return Response.json({ error: 'organizationId y type (uno de: ' + VALID_TYPES.join(', ') + ') son requeridos' }, { status: 400 });
   }
 
-  const { error: resolveError, personId, organizationIds } = await resolveCurrentPerson(supabase, user.id);
+  const { error: resolveError, personId, organizationIds, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
   if (!organizationIds.includes(organizationId)) {
     return Response.json({ error: 'Sin membresía activa en esa organización' }, { status: 403 });
   }
+  const readOnly = readOnlyBlock(memberships, organizationId);
+  if (readOnly) return readOnly;
 
   // 100.540(f)(2)(iv) — el descanso no se fracciona; en general un solo período
   // abierto por persona a la vez evita solapamientos que no tendrían sentido físico.

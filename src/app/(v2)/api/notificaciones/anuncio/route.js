@@ -6,6 +6,7 @@ import { adminKeyProblem } from '@/lib/v2/adminKey';
 import { createNotifications } from '@/lib/v2/notify';
 import { checkRateLimit } from '@/lib/rateLimiter';
 import { canSendAnnouncement, validateAnnouncement, MANAGER_ROLES, ANNOUNCEMENT_AUDIENCES } from '@skylog/domain';
+import { readOnlyBlock } from '@/lib/v2/permissions';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -23,6 +24,8 @@ export async function POST(request) {
   if (resolveError || !personId) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   const myRoles = (memberships || []).filter((m) => m.organization_id === organizationId).map((m) => m.role);
   if (!canSendAnnouncement(myRoles)) return Response.json({ error: 'Solo un gestor puede enviar anuncios' }, { status: 403 });
+  const readOnly = readOnlyBlock(memberships, organizationId);
+  if (readOnly) return readOnly;
   if (!checkRateLimit(`anuncio:${personId}`, { limit: 10, windowMs: 3_600_000 }).allowed) return Response.json({ error: 'Demasiados anuncios en poco tiempo. Intenta más tarde.' }, { status: 429 });
 
   const check = validateAnnouncement(body);

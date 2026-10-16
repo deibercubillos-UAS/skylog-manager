@@ -4,6 +4,7 @@
 // Un VOR nunca pasa por aquí — canFileReport() ya lo permite sin este paso.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { readOnlyBlock } from '@/lib/v2/permissions';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -35,6 +36,8 @@ export async function POST(request) {
   if (!membership || !['gerente_sms', 'superadmin'].includes(membership.role)) {
     return Response.json({ error: 'Solo el Gerente SMS designado puede analizar este reporte' }, { status: 403 });
   }
+  const readOnly = readOnlyBlock(memberships, report.organization_id);
+  if (readOnly) return readOnly;
   if (report.route !== 'mor') {
     return Response.json({ error: 'Solo un reporte MOR exige este análisis previo' }, { status: 400 });
   }

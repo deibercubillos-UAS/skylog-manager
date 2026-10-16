@@ -9,6 +9,7 @@ import { createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, getOpenDutyPeriod } from '@/lib/v2/duty';
 import { evaluateServiceGates } from '@/lib/v2/serviceGates';
 import { buildDispatchGates, findRceCoverage, validateMatrixCompleteness } from '@skylog/domain';
+import { membershipIsReadOnly } from '@skylog/domain';
 
 /** 'YYYY-MM-DD' en hora de Colombia — a las 8 p. m. en Bogotá ya es "mañana" en UTC. */
 export function bogotaDay(date) {
@@ -30,6 +31,7 @@ export async function loadDispatchContext(supabase, { userId, missionId, now = n
   if (missionError) return fail(500, 'Error consultando la misión');
   if (!mission) return fail(404, 'Misión no encontrada');
   if (!(memberships || []).some((m) => m.organization_id === mission.organization_id)) return fail(403, 'Sin membresía activa en la organización de esta misión');
+  if (membershipIsReadOnly(memberships, mission.organization_id)) return fail(403, 'La organización está en solo lectura porque el plan venció. Renueva el pago para volver a despachar.');
 
   const organizationId = mission.organization_id;
   const today = bogotaDay(now);

@@ -1,6 +1,7 @@
 // Skylog V2.0 — F3. Acciones correctivas de un caso SMS.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
+import { readOnlyBlock } from '@/lib/v2/permissions';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -28,6 +29,8 @@ export async function POST(request) {
   if (!membership || !['gerente_sms', 'superadmin'].includes(membership.role)) {
     return Response.json({ error: 'Solo el Gerente SMS asignado agrega acciones correctivas' }, { status: 403 });
   }
+  const readOnly = readOnlyBlock(memberships, caseRow.organization_id);
+  if (readOnly) return readOnly;
 
   if (caseRow.status === 'cerrado') return Response.json({ error: 'El caso está cerrado: no se agregan más acciones.' }, { status: 409 });
 
@@ -74,6 +77,8 @@ export async function PATCH(request) {
   if (!membership || !['gerente_sms', 'superadmin'].includes(membership.role)) {
     return Response.json({ error: 'Solo el Gerente SMS asignado marca acciones hechas' }, { status: 403 });
   }
+  const readOnly = readOnlyBlock(memberships, actionRow.organization_id);
+  if (readOnly) return readOnly;
 
   if (actionRow.done_at) return Response.json({ error: 'Esta acción ya estaba completada.' }, { status: 409 });
 

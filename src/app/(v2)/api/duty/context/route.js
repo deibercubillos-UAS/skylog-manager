@@ -44,8 +44,10 @@ export async function GET() {
       role: m.role,
       isDutyManager: ['admin', 'jefe_pilotos', 'gerente_sms', 'superadmin'].includes(m.role),
       // Nivel ('edit' | 'view' | 'none') de cada función de la matriz de permisos para este rol.
-      permissions: permissionsForRole(m.role, { independentPilot: !!m.independent }),
+      permissions: permissionsForRole(m.role, { independentPilot: !!m.independent, readOnly: !!m.readOnly }),
       independentPilot: !!m.independent,
+      // Plan vencido hace más de 7 días: la organización está en solo lectura hasta que pague (subscriptionAccess.js).
+      readOnly: !!m.readOnly,
       name: org?.company_name || m.organization_id,
       logoUrl: org?.logo_url || null,
     };

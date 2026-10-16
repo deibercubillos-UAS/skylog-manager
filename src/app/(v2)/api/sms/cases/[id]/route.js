@@ -6,6 +6,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { computeReportDeadline, buildCaseTimeline } from '@skylog/domain';
+import { readOnlyBlock } from '@/lib/v2/permissions';
 
 const CASE_SELECT = '*, analyst:assigned_to(full_name), sms_case_actions(*, responsible:responsible_id(full_name)), sms_case_events(id, event_type, payload, created_at, actor:created_by(full_name))';
 const REPORT_SELECT =
@@ -73,6 +74,8 @@ export async function PATCH(request, { params }) {
 
   const membership = (memberships || []).find((m) => m.organization_id === caseRow.organization_id);
   if (!membership || !['gerente_sms', 'superadmin'].includes(membership.role)) return Response.json({ error: NOT_ANALYST }, { status: 403 });
+  const readOnly = readOnlyBlock(memberships, caseRow.organization_id);
+  if (readOnly) return readOnly;
   if (caseRow.status === 'cerrado') return Response.json({ error: 'El caso está cerrado y no se puede modificar.' }, { status: 409 });
 
   const patch = {};

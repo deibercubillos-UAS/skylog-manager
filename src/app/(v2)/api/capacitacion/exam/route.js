@@ -8,6 +8,7 @@
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { computeEvaluationCompliance, gradeAttempt, classifyReportRoute } from '@skylog/domain';
+import { readOnlyBlock } from '@/lib/v2/permissions';
 
 // ⚠️ `organizationIds` NO es opcional: al leer con service role (ver cabecera)
 // RLS no acota nada, así que el filtro por organización es el único límite
@@ -90,6 +91,8 @@ export async function POST(request) {
   const admin = createAdminClient();
   const { evaluation, attempts, raw } = await loadEvaluationAndAttempts(admin, evaluationId, personId, organizationIds);
   if (!evaluation) return Response.json({ error: 'Evaluación no encontrada' }, { status: 404 });
+  const readOnly = readOnlyBlock(memberships, raw.organization_id);
+  if (readOnly) return readOnly;
 
   // Elegibilidad recalculada server-side — nunca se confía en que el cliente
   // "sepa" que le quedan intentos.

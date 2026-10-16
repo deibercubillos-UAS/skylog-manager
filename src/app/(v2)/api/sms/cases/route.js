@@ -4,6 +4,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { canCloseCase } from '@skylog/domain';
+import { readOnlyBlock } from '@/lib/v2/permissions';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -35,6 +36,8 @@ export async function POST(request) {
   if (!membership || !['gerente_sms', 'superadmin'].includes(membership.role)) {
     return Response.json({ error: 'Solo el Gerente SMS designado abre y asume el caso' }, { status: 403 });
   }
+  const readOnly = readOnlyBlock(memberships, report.organization_id);
+  if (readOnly) return readOnly;
 
   const { data: caseRow, error } = await supabase
     .from('sms_cases')
@@ -86,6 +89,8 @@ export async function PATCH(request) {
   if (!membership || !['gerente_sms', 'superadmin'].includes(membership.role)) {
     return Response.json({ error: 'Solo el Gerente SMS asignado gestiona este caso' }, { status: 403 });
   }
+  const readOnly = readOnlyBlock(memberships, caseRow.organization_id);
+  if (readOnly) return readOnly;
 
   if (caseRow.status === 'cerrado') return Response.json({ error: 'El caso ya está cerrado.' }, { status: 409 });
 

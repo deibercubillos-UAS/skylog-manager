@@ -5,7 +5,7 @@
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { getTransaction } from '@/lib/wompi';
-import { activateSubscription } from '@/lib/v2/subscriptionActivation';
+import { activateFromWompiTransaction } from '@/lib/v2/subscriptionActivation';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -31,61 +31,15 @@ export async function POST(request) {
     return Response.json({ status: tx.status, message: 'El pago aún no se ha confirmado.' });
   }
 
-  const refParts = String(tx.reference || '').split('_');
-  // reference = bitafly_v2_{plan}_{billing}_{organizationId}_{timestamp}
-  if (refParts[0] !== 'bitafly' || refParts[1] !== 'v2') {
-    return Response.json({ error: 'Esta transacción no corresponde a Skylog V2' }, { status: 400 });
-  }
-  const [, , plan, billing, organizationId] = refParts;
-  if (!(organizationIds || []).includes(organizationId)) {
-    return Response.json({ error: 'Esta transacción no corresponde a tu organización' }, { status: 403 });
-  }
-
   const admin = createAdminClient();
-
-  // Idempotencia — comparte el mismo libro `wompi_processed_refs` que el
-  // webhook a propósito: son dos puertas a la MISMA activación, así que una
-  // transacción ya procesada por el webhook no debe volver a activarse aquí.
-  // Sin esta guarda, `activateSubscription` recalcula
-  // `expires_at = now + 1 periodo` en cada llamada, y cualquier miembro podía
-  // reenviar un transactionId aprobado una vez al mes para renovar
-  // indefinidamente sin volver a pagar.
-  const { data: already } = await admin
-    .from('wompi_processed_refs')
-    .select('tx_id')
-    .eq('tx_id', tx.id)
-    .maybeSingle();
-  if (already) {
-    // No es un error: el caso legítimo es que el webhook ya activó y el
-    // usuario pega el id porque no lo ve reflejado. Se le devuelve el estado
-    // real en vez de reactivar.
-    const { data: subscription } = await admin
-      .from('subscriptions')
-      .select('*')
-      .eq('organization_id', organizationId)
-      .maybeSingle();
+  // Misma activación que el webhook: valida referencia, organización y monto, y no activa dos veces el mismo pago.
+  const result = await activateFromWompiTransaction(admin, tx, { allowedOrganizationIds: organizationIds || [] });
+  if (result.status === 'unknown_reference') return Response.json({ error: 'Esta transacción no corresponde a BitaFly' }, { status: 400 });
+  if (result.status === 'forbidden') return Response.json({ error: 'Esta transacción no corresponde a tu organización' }, { status: 403 });
+  if (result.status === 'amount_mismatch') return Response.json({ error: 'El monto pagado no corresponde al plan. Escríbenos a soporte@bitafly.com.' }, { status: 400 });
+  if (result.status === 'already_processed') {
+    const { data: subscription } = await admin.from('subscriptions').select('*').eq('organization_id', result.resolved.organizationId).maybeSingle();
     return Response.json({ status: 'completed', subscription, alreadyProcessed: true });
   }
-
-  const subscription = await activateSubscription(admin, {
-    organizationId,
-    plan,
-    billing,
-    transactionId: tx.id,
-    reference: tx.reference,
-    wompiPaymentSourceId: tx.payment_source_id ? String(tx.payment_source_id) : null,
-    amountInCents: tx.amount_in_cents,
-  });
-
-  // Se marca DESPUÉS de activar con éxito, misma convención que el webhook y
-  // que v1 (`processed_webhook_refs`): marcarlo antes bloquearía un reintento
-  // legítimo si la activación falla.
-  const { error: markError } = await admin.from('wompi_processed_refs').insert({ tx_id: tx.id });
-  if (markError) {
-    // No se le falla al usuario: su suscripción ya quedó activa. Pero queda en
-    // logs, porque sin el marcador la guarda de arriba no protege esta tx.
-    console.error('[wompi-v2] verify: no se pudo marcar la tx como procesada:', tx.id, markError.message);
-  }
-
-  return Response.json({ status: 'completed', subscription });
+  return Response.json({ status: 'completed', subscription: result.subscription });
 }

@@ -5,6 +5,7 @@
 // memberships/organizations de V2. Usado por checkout/verify/webhook/cron.
 import { PLANS, PLAN_PRICING } from './planLimits';
 import { attributeCommission } from './referrals';
+import { parseWompiReference, isExpectedAmount, renewalBaseDate, addBillingPeriod } from '@skylog/domain';
 
 export async function activateSubscription(admin, {
   organizationId, plan, billing, transactionId = null, reference = null,
@@ -19,16 +20,16 @@ export async function activateSubscription(admin, {
   }
 
   const now = new Date();
-  const expiresAt = new Date(now);
-  if (billing === 'annual') expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-  else expiresAt.setMonth(expiresAt.getMonth() + 1);
+  // Se extiende desde el vencimiento vigente si aún no llega (quien paga antes no pierde días); si ya venció, desde hoy.
+  const { data: current } = await admin.from('subscriptions').select('expires_at').eq('organization_id', organizationId).maybeSingle();
+  const expiresAt = addBillingPeriod(renewalBaseDate(current?.expires_at, now), billing);
 
   const patch = {
     organization_id: organizationId,
     plan,
     billing,
     payment_provider: 'wompi',
-    expires_at: expiresAt.toISOString().slice(0, 10),
+    expires_at: expiresAt,
     updated_at: now.toISOString(),
   };
   // `notes` solo se toca si hay algo real que registrar — un upsert que
@@ -75,4 +76,52 @@ export async function activateSubscription(admin, {
     console.error('[referrals] error atribuyendo la comisión:', e.message);
   }
   return data;
+}
+
+/** Plan, ciclo y organización de una referencia de Wompi: primero el registro que guardó el servidor, si no, la propia referencia. */
+export async function resolveWompiReference(admin, reference) {
+  if (!reference) return null;
+  const { data: pending } = await admin.from('pending_subscriptions').select('organization_id, plan, billing').eq('reference', reference).maybeSingle();
+  if (pending) return { organizationId: pending.organization_id, plan: pending.plan, billing: pending.billing };
+  const parsed = parseWompiReference(reference);
+  return parsed ? { organizationId: parsed.organizationId, plan: parsed.plan, billing: parsed.billing } : null;
+}
+
+/**
+ * Activa una transacción APROBADA de Wompi una sola vez. Comparten esta función el webhook, /verify y el cron: la
+ * transacción se reclama en `wompi_processed_refs` ANTES de activar (así dos de ellos no activan el mismo pago dos
+ * veces) y se libera si la activación falla (así un reintento legítimo sigue siendo posible).
+ * @returns {Promise<{status: 'activated'|'already_processed'|'unknown_reference'|'forbidden'|'amount_mismatch', resolved?: object, subscription?: object}>}
+ */
+export async function activateFromWompiTransaction(admin, tx, { allowedOrganizationIds = null } = {}) {
+  const resolved = await resolveWompiReference(admin, tx?.reference);
+  if (!resolved) return { status: 'unknown_reference' };
+  if (allowedOrganizationIds && !allowedOrganizationIds.includes(resolved.organizationId)) return { status: 'forbidden', resolved };
+  if (!isExpectedAmount({ plan: resolved.plan, billing: resolved.billing, amountInCents: tx.amount_in_cents, pricing: PLAN_PRICING })) {
+    return { status: 'amount_mismatch', resolved };
+  }
+
+  const txId = String(tx.id);
+  const { error: claimError } = await admin.from('wompi_processed_refs').insert({ tx_id: txId });
+  if (claimError) {
+    if (claimError.code === '23505') return { status: 'already_processed', resolved };
+    throw claimError;
+  }
+
+  try {
+    const subscription = await activateSubscription(admin, {
+      organizationId: resolved.organizationId,
+      plan: resolved.plan,
+      billing: resolved.billing,
+      transactionId: txId,
+      reference: tx.reference,
+      wompiPaymentSourceId: tx.payment_source_id ? String(tx.payment_source_id) : null,
+      amountInCents: tx.amount_in_cents,
+    });
+    return { status: 'activated', resolved, subscription };
+  } catch (err) {
+    const { error: releaseError } = await admin.from('wompi_processed_refs').delete().eq('tx_id', txId);
+    if (releaseError) console.error('[wompi] no se pudo liberar la tx tras un fallo; requiere revisión manual:', txId, releaseError.message);
+    throw err;
+  }
 }

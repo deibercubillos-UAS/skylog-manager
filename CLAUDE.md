@@ -79,7 +79,7 @@ Plantilla en `.env.example`. Nunca se comitean valores (`.env*` está ignorado).
 ## Rendimiento (lo que ya se hizo y por qué)
 
 El cuello de botella es la latencia, no la base (consultas < 6 ms). Medidas vigentes: JWT verificado en local en el middleware, contexto de sesión
-compartido y cacheado, consultas independientes en paralelo, `prefetch={false}` en enlaces del shell, índices en llaves foráneas de uso frecuente,
+compartido y cacheado, consultas independientes en paralelo, el Dashboard en una sola petición liviana (`/api/inicio/resumen`), `prefetch={false}` en enlaces del shell, índices en llaves foráneas de uso frecuente,
 ping de mantenimiento cada 5 min (`tools/ci/keepalive.yml`, hay que copiarlo a `.github/workflows/`) contra `/api/health`.
 Instancia de Supabase pequeña: revisar su tamaño antes del 31 de octubre (vence el plan de pago).
 

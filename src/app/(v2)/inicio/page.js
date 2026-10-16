@@ -18,7 +18,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId, getSelectedOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const MONTH_LABELS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const ROLE_LABELS = { admin: 'Gerente General', superadmin: 'Superadmin', jefe_pilotos: 'Jefe de Pilotos', gerente_sms: 'Gerente SMS', piloto: 'Piloto' };
@@ -137,18 +137,25 @@ function StatCard({ icon, color, label, value, sub }) {
   );
 }
 
+// Resumen del panel en una sola petición (/api/inicio/resumen). Se lanza en cuanto se conoce la organización — si ya
+// estaba elegida en esta pestaña, en paralelo con el contexto de sesión en vez de esperarlo.
+function fetchSummary(organizationId) {
+  return fetch(`/api/inicio/resumen?organizationId=${organizationId}`)
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null);
+}
+
 export default function V2Home() {
   const [context, setContext] = useState(null);
   const [organizationId, setOrganizationId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const [flights, setFlights] = useState([]);
-  const [nextMission, setNextMission] = useState(null);
-  const [openCases, setOpenCases] = useState([]);
-  const [casesRestricted, setCasesRestricted] = useState(false); // el detalle de casos es solo del Gerente SMS
+  const [summary, setSummary] = useState(null);
 
   useEffect(() => {
+    let alive = true;
+    const early = getSelectedOrganizationId();
+    const earlySummary = early ? fetchSummary(early) : null;
     (async () => {
       setLoading(true);
       setError(null);
@@ -156,43 +163,25 @@ export default function V2Home() {
         const res = await fetchDutyContext();
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error cargando contexto');
+        if (!alive) return;
         setContext(data);
-        const firstOrgId = pickOrganizationId(data);
-        setOrganizationId(firstOrgId);
+        const orgId = pickOrganizationId(data);
+        setOrganizationId(orgId);
+        const s = await (orgId && orgId === early ? earlySummary : orgId ? fetchSummary(orgId) : null);
+        if (alive) setSummary(s);
       } catch (e) {
-        setError(e.message);
+        if (alive) setError(e.message);
       } finally {
-        setLoading(false);
+        if (alive) setLoading(false);
       }
     })();
+    return () => { alive = false; };
   }, []);
 
-  useEffect(() => {
-    if (!organizationId) return;
-
-    fetch(`/api/flights?organizationId=${organizationId}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => setFlights(data?.flights || []))
-      .catch(() => setFlights([]));
-
-    const now = new Date();
-    const weekAhead = new Date(now.getTime() + 7 * 86_400_000);
-    fetch(`/api/missions?organizationId=${organizationId}&from=${now.toISOString()}&to=${weekAhead.toISOString()}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        const upcoming = (data?.missions || []).filter((m) => m.status !== 'cancelada');
-        setNextMission(upcoming[0] || null);
-      })
-      .catch(() => setNextMission(null));
-
-    fetch(`/api/sms/cases?organizationId=${organizationId}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        setCasesRestricted(!!data?.restricted);
-        setOpenCases((data?.cases || []).filter((c) => c.status !== 'cerrado'));
-      })
-      .catch(() => setOpenCases([]));
-  }, [organizationId]);
+  const flights = (summary?.recentTakeoffs || []).map((takeoff_at) => ({ takeoff_at }));
+  const openCases = summary?.openCases || [];
+  const openCasesCount = summary?.openCasesCount || 0;
+  const casesRestricted = !!summary?.casesRestricted;
 
   if (loading) {
     return (
@@ -223,16 +212,17 @@ export default function V2Home() {
   const lastTwo = counts.slice(-2);
   const flightTrend = lastTwo.length === 2 && lastTwo[0] > 0 ? Math.round(((lastTwo[1] - lastTwo[0]) / lastTwo[0]) * 100) : null;
 
-  const totalHours = flights.reduce((sum, f) => sum + Number(f.total_time || 0), 0);
+  const totalHours = Number(summary?.totalHours || 0);
   const flightsThisMonth = chart[chart.length - 1]?.count || 0;
-  const recentActivity = [...flights].slice(0, 8);
+  const recentActivity = summary?.recentFlights || [];
+  const nextMissionAt = summary?.nextMissionAt || null;
 
   let nextMissionLabel = null;
-  if (nextMission) {
-    const d = new Date(nextMission.scheduled_at);
+  if (nextMissionAt) {
+    const d = new Date(nextMissionAt);
     const today = new Date();
     const isToday = d.toDateString() === today.toDateString();
-    nextMissionLabel = `${isToday ? 'Hoy' : d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })} · ${formatTime24(nextMission.scheduled_at)}`;
+    nextMissionLabel = `${isToday ? 'Hoy' : d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })} · ${formatTime24(nextMissionAt)}`;
   }
 
   const chartLabel = `Actividad de vuelo — últimos 6 meses. ${chart.map((m) => `${m.label}: ${m.count} vuelo${m.count !== 1 ? 's' : ''}`).join(', ')}.`;
@@ -263,8 +253,8 @@ export default function V2Home() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard icon="schedule" color="primary" label="Horas de Vuelo" value={`${totalHours.toFixed(1)}h`} />
           <StatCard icon="flight_takeoff" color="blue" label="Vuelos del Mes" value={flightsThisMonth} sub={flightTrend !== null ? `${flightTrend >= 0 ? '+' : ''}${flightTrend}% vs. mes ant.` : null} />
-          <StatCard icon="event_available" color="violet" label="Misiones (7 días)" value={nextMission ? 1 : 0} sub={nextMissionLabel || 'Sin misiones programadas'} />
-          <StatCard icon="health_and_safety" color={casesRestricted ? 'navy' : openCases.length > 0 ? 'red' : 'emerald'} label="Casos SMS Abiertos" value={casesRestricted ? '—' : openCases.length} sub={casesRestricted ? 'Solo el Gerente SMS' : null} />
+          <StatCard icon="event_available" color="violet" label="Misiones (7 días)" value={summary?.missionsThisWeek || 0} sub={nextMissionLabel || 'Sin misiones programadas'} />
+          <StatCard icon="health_and_safety" color={casesRestricted ? 'navy' : openCasesCount > 0 ? 'red' : 'emerald'} label="Casos SMS Abiertos" value={casesRestricted ? '—' : openCasesCount} sub={casesRestricted ? 'Solo el Gerente SMS' : null} />
         </div>
       </Section>
 
@@ -320,7 +310,7 @@ export default function V2Home() {
         <section aria-label="Casos SMS abiertos" className="lg:flex-1 p-5 md:p-6 flex flex-col h-[220px] md:h-[240px]">
           <h3 className="text-xs font-black uppercase text-navy-300 tracking-[0.15em] mb-4 flex items-center gap-2">
             Casos SMS Abiertos
-            {openCases.length > 0 && <span className="text-[10px] font-black text-white bg-primary rounded-full px-2 py-0.5">{openCases.length}</span>}
+            {openCasesCount > 0 && <span className="text-[10px] font-black text-white bg-primary rounded-full px-2 py-0.5">{openCasesCount}</span>}
           </h3>
           <div className="space-y-1.5 overflow-y-auto pr-1 flex-1">
             {openCases.length > 0 ? (

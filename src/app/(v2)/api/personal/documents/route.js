@@ -7,7 +7,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storageProblem } from '@/lib/v2/adminKey';
 import { storagePut, storageSignedUrl, storageRemove } from '@/lib/storage';
 import { DOCUMENT_MAX_BYTES } from '@/lib/v2/rowDocument';
-import { membershipsCanView } from '@/lib/v2/permissions';
+import { membershipsCanEdit, membershipsCanView } from '@/lib/v2/permissions';
 
 const BUCKET = 'documents';
 const TYPES = ['cedula', 'curso_piloto', 'examen_teorico', 'certificado_medico', 'otro'];
@@ -25,11 +25,13 @@ async function session(request) {
   return { supabase, personId, memberships };
 }
 
-// ¿Puede esta sesión tocar el expediente de `targetId`? Ella misma, o un gestor de una organización compartida.
-async function canAccess(s, targetId) {
+// ¿Puede esta sesión ver (K10) o cambiar (K4) el expediente de `targetId`? Ella misma siempre; un gestor de una
+// organización compartida según su rol. Antes subir/borrar usaba K10 (solo ver), así que el Gerente SMS podía reemplazar
+// el certificado médico de otro tripulante (auditoría 2026-10-16).
+async function canAccess(s, targetId, mode = 'view') {
   if (targetId === s.personId) return true;
   const { data } = await s.supabase.from('memberships').select('organization_id').eq('person_id', targetId).eq('status', 'activa');
-  return (data || []).some((m) => membershipsCanView(s.memberships, m.organization_id, 'K10'));
+  return (data || []).some((m) => (mode === 'edit' ? membershipsCanEdit(s.memberships, m.organization_id, 'K4') : membershipsCanView(s.memberships, m.organization_id, 'K10')));
 }
 
 export async function GET(request) {
@@ -66,7 +68,7 @@ export async function POST(request) {
   if (!file || typeof file === 'string') return Response.json({ error: 'file es requerido' }, { status: 400 });
   if (!ALLOWED.has(file.type)) return Response.json({ error: 'Formato no soportado — usa PDF, PNG, JPEG o WEBP' }, { status: 400 });
   if (file.size > DOCUMENT_MAX_BYTES) return Response.json({ error: 'El archivo supera el límite de 4 MB' }, { status: 413 });
-  if (!(await canAccess(s, targetId))) return Response.json({ error: 'No tienes acceso al expediente de esta persona' }, { status: 403 });
+  if (!(await canAccess(s, targetId, 'edit'))) return Response.json({ error: 'Tu rol no puede cambiar el expediente de otra persona' }, { status: 403 });
 
   const { data: previous } = await s.supabase.from('person_documents').select('document_path').eq('person_id', targetId).eq('doc_type', docType).maybeSingle();
   const ext = file.type === 'application/pdf' ? 'pdf' : file.type.split('/')[1];
@@ -90,7 +92,7 @@ export async function DELETE(request) {
   const targetId = url.searchParams.get('personId') || s.personId;
   const type = url.searchParams.get('type');
   if (!TYPES.includes(type)) return Response.json({ error: 'Tipo de documento inválido' }, { status: 400 });
-  if (!(await canAccess(s, targetId))) return Response.json({ error: 'No tienes acceso al expediente de esta persona' }, { status: 403 });
+  if (!(await canAccess(s, targetId, 'edit'))) return Response.json({ error: 'Tu rol no puede cambiar el expediente de otra persona' }, { status: 403 });
   const { data: row } = await s.supabase.from('person_documents').select('id, document_path').eq('person_id', targetId).eq('doc_type', type).maybeSingle();
   if (!row) return Response.json({ ok: true });
   const { error } = await s.supabase.from('person_documents').delete().eq('id', row.id);

@@ -41,6 +41,12 @@ export async function POST(request) {
     return Response.json({ error: 'Solo un gestor puede diligenciar el análisis de riesgos' }, { status: 403 });
   }
 
+  // Un análisis firmado es el que se radica ante la Aerocivil: ya no se modifica (antes se podían cambiar los peligros
+  // y la firma seguía ahí — auditoría 2026-10-16).
+  const { data: current, error: currentError } = await supabase.from('risk_analyses').select('signed_at').eq('authorization_id', authorizationId).maybeSingle();
+  if (currentError) return Response.json({ error: 'Error leyendo el análisis' }, { status: 500 });
+  if (current?.signed_at) return Response.json({ error: 'El análisis de riesgos ya está firmado y no se puede modificar.' }, { status: 409 });
+
   const evaluation = evaluateRiskAnalysis(hazards);
 
   const { data, error } = await supabase
@@ -76,7 +82,7 @@ export async function PATCH(request) {
   const { data: authRequest, error: authError } = await loadAuthorizationOrg(supabase, authorizationId);
   if (authError) return Response.json({ error: 'Error verificando la solicitud' }, { status: 500 });
   if (!authRequest) return Response.json({ error: 'Solicitud de autorización no encontrada' }, { status: 404 });
-  if (!membershipsCanEdit(memberships, authRequest.organization_id, 'AD11')) {
+  if (!membershipsCanEdit(memberships, authRequest.organization_id, 'AD12')) {
     return Response.json({ error: 'Solo un gestor (Jefe de Pilotos) puede firmar el análisis de riesgos' }, { status: 403 });
   }
 

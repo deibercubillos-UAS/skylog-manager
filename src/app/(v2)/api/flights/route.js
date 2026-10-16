@@ -13,6 +13,7 @@ import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson, getRecentFlights } from '@/lib/v2/duty';
 import { evaluateFlightLimits } from '@skylog/domain';
 import { membershipsCanView, membershipsCanEdit } from '@/lib/v2/permissions';
+import { verifyFlightImport } from '@/lib/v2/flightImportToken';
 
 const VISUAL_CONDITIONS = ['VLOS', 'EVLOS', 'BVLOS'];
 
@@ -68,7 +69,7 @@ export async function POST(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { organizationId, takeoffAt, landingAt, totalTime, visualCondition, missionType, aircraftId, batterySerial, batteryCycles, replayTrack, location, notes, externalRef, flightRules, alerts } = body;
+  const { organizationId, takeoffAt, landingAt, totalTime, visualCondition, missionType, aircraftId, batterySerial, batteryCycles, replayTrack, location, notes, externalRef, flightRules, alerts, importToken } = body;
 
   if (!organizationId || !takeoffAt || !landingAt || !totalTime) {
     return Response.json({ error: 'organizationId, takeoffAt, landingAt y totalTime son requeridos' }, { status: 400 });
@@ -84,6 +85,12 @@ export async function POST(request) {
   if (new Date(landingAt) <= takeoffDate) {
     return Response.json({ error: 'landingAt debe ser posterior a takeoffAt' }, { status: 400 });
   }
+  // La duración se suma a las horas de la aeronave y a los límites de §100.540: no puede pasar del tiempo entre
+  // despegue y aterrizaje (6 min de margen por redondeo del log). Antes se aceptaba cualquier valor positivo.
+  const windowHours = (new Date(landingAt) - takeoffDate) / 3600000;
+  if (!(Number(totalTime) > 0) || Number(totalTime) > windowHours + 0.1) {
+    return Response.json({ error: 'La duración del vuelo no puede ser mayor que el tiempo entre despegue y aterrizaje' }, { status: 400 });
+  }
 
   const { error: resolveError, personId, organizationIds, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
@@ -91,10 +98,22 @@ export async function POST(request) {
   if (!organizationIds.includes(organizationId)) {
     return Response.json({ error: 'Sin membresía activa en esa organización' }, { status: 403 });
   }
-  // D5: la carga manual (sin log importado) no es del Piloto; importar el log del control (D4) sí.
-  if ((batterySerial === undefined || batterySerial === null) && !membershipsCanEdit(memberships, organizationId, 'D5')) {
-    return Response.json({ error: 'Tu rol no puede registrar un vuelo a mano; importa el registro del control' }, { status: 403 });
+  // D4/D5: «importado» solo si los datos vienen firmados por /api/flights/import-dji para esta persona (no basta mandar
+  // una serie de batería); todo lo demás es carga manual, que el Piloto no tiene (auditoría 2026-10-16).
+  const imported = verifyFlightImport(importToken, { personId, takeoffAt, landingAt, totalTime, batterySerial, batteryCycles });
+  if (!membershipsCanEdit(memberships, organizationId, imported ? 'D4' : 'D5')) {
+    return Response.json({ error: imported ? 'Tu rol no puede importar vuelos' : 'Tu rol no puede registrar un vuelo a mano; importa el registro del control' }, { status: 403 });
   }
+
+  // El mismo vuelo (piloto + despegue) no se registra dos veces: duplicaría horas de la aeronave y del piloto.
+  const { data: duplicate } = await supabase
+    .from('flights')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('pilot_person_id', personId)
+    .eq('takeoff_at', takeoffAt)
+    .limit(1);
+  if (duplicate?.length) return Response.json({ error: 'Este vuelo ya está registrado en la bitácora' }, { status: 409 });
 
   const { data: recentFlights, error: recentError } = await getRecentFlights(supabase, personId, 32);
   if (recentError) return Response.json({ error: 'Error consultando vuelos previos' }, { status: 500 });
@@ -144,7 +163,7 @@ export async function POST(request) {
       // Alertas del log DJI (solo llegan de una importación); forma mínima: lista, tamaño acotado.
       alerts: Array.isArray(alerts) && alerts.length > 0 ? alerts.slice(0, 50) : null,
       // Cómo entró el vuelo: un log DJI importado trae la serie de batería; si no, es captura manual.
-      source: batterySerial !== undefined && batterySerial !== null ? 'importado' : 'manual',
+      source: imported ? 'importado' : 'manual',
     })
     .select('*, aircraft:aircraft_id(serial_number, model:model_id(brand, model))')
     .single();
@@ -175,7 +194,7 @@ export async function POST(request) {
   // (el caso más común de "Carga manual RC/RC2" — un operador independiente
   // importando sus propios logs) no podría crear la fila aunque el dato sea
   // legítimo.
-  if (batterySerial) {
+  if (imported && batterySerial) {
     const admin = createAdminClient();
     let batteryId = null;
     const { data: existingBattery, error: batteryLookupError } = await admin

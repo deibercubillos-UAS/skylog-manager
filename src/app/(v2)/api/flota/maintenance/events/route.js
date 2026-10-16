@@ -67,7 +67,7 @@ export async function POST(request) {
 
   const { data: aircraft, error: aircraftError } = await supabase
     .from('aircraft')
-    .select('id, total_hours')
+    .select('id, total_hours, operational_status')
     .eq('id', aircraftId)
     .eq('organization_id', organizationId)
     .maybeSingle();
@@ -101,10 +101,25 @@ export async function POST(request) {
   // `operational_status` (Fase 1, hasta ahora solo manual) se sincroniza
   // con el evento real: sin retorno al servicio, la aeronave queda en
   // mantenimiento; con retorno, vuelve a disponible.
-  await supabase
-    .from('aircraft')
-    .update({ operational_status: returnToService === false ? 'en_mantenimiento' : 'disponible' })
-    .eq('id', aircraftId);
+  // Salvo dos casos (auditoría 2026-10-16): no vuelve a disponible si tiene eventos inesperados sin evaluar (registrar
+  // un mantenimiento no reemplaza la evaluación del GG/GSMS), y una aeronave fuera de servicio no cambia de estado aquí.
+  let nextStatus = returnToService === false ? 'en_mantenimiento' : 'disponible';
+  let warning = null;
+  if (aircraft.operational_status === 'fuera_de_servicio') {
+    return Response.json({ event: data, warning: 'La aeronave sigue fuera de servicio: cámbiala de estado desde su ficha si corresponde.' });
+  }
+  if (nextStatus === 'disponible') {
+    const { data: open } = await supabase.from('unexpected_events').select('id').eq('aircraft_id', aircraftId).eq('evaluated', false).limit(1);
+    if (open?.length) {
+      nextStatus = 'en_mantenimiento';
+      warning = 'La aeronave sigue en mantenimiento: tiene un evento inesperado pendiente de evaluar.';
+    }
+  }
+  const { error: statusError } = await supabase.from('aircraft').update({ operational_status: nextStatus }).eq('id', aircraftId);
+  if (statusError) {
+    console.error('[maintenance-events] no se pudo cambiar el estado de la aeronave:', aircraftId, statusError.message);
+    warning = 'El mantenimiento quedó registrado, pero no se pudo cambiar el estado de la aeronave.';
+  }
 
-  return Response.json({ event: data });
+  return Response.json({ event: data, ...(warning ? { warning } : {}) });
 }

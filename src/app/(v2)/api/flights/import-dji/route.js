@@ -25,6 +25,7 @@
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { parseDjiTxtBuffer } from '@/lib/djiParser';
+import { signFlightImport } from '@/lib/v2/flightImportToken';
 
 // Replay GPS — decima `parsed._frames` (ya disponibles server-side, antes se
 // descartaban tras extraer los campos resumen) a como máximo ~400 puntos con
@@ -107,6 +108,9 @@ export async function POST(request) {
         : null;
       const totalTime = parsed._meta?.duracion_s ? Number((parsed._meta.duracion_s / 3600).toFixed(2)) : null;
       const replayTrack = buildReplayTrack(parsed._frames);
+      const batterySerial = parsed._meta?.serial_bateria || null;
+      const batteryCycles = parsed._meta?.ciclos_bateria ?? null;
+      const complete = !!(landingAt && totalTime);
 
       results.push({
         fileName: file.name,
@@ -114,10 +118,12 @@ export async function POST(request) {
         landingAt,
         totalTime,
         aircraftModel: parsed._meta?.modelo_aeronave || null,
-        batterySerial: parsed._meta?.serial_bateria || null,
-        batteryCycles: parsed._meta?.ciclos_bateria ?? null,
+        batterySerial,
+        batteryCycles,
         replayTrack,
-        error: !landingAt || !totalTime ? 'Log incompleto — revisa despegue/aterrizaje antes de confirmar' : null,
+        // Firma de lo leído del log: /api/flights solo trata el vuelo como importado si estos datos no cambiaron.
+        importToken: complete ? signFlightImport({ personId, takeoffAt, landingAt, totalTime, batterySerial, batteryCycles }) : null,
+        error: complete ? null : 'Log incompleto — revisa despegue/aterrizaje antes de confirmar',
       });
     } catch (e) {
       results.push({ fileName: file.name, error: e.message || 'No se pudo leer este log' });

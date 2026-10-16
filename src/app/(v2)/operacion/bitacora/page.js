@@ -204,6 +204,7 @@ export default function BitacoraPage() {
           batterySerial: row.batterySerial || null,
           batteryCycles: row.batteryCycles ?? null,
           replayTrack: row.replayTrack || null,
+          importToken: row.importToken || null,
         }),
       });
       const data = await res.json();

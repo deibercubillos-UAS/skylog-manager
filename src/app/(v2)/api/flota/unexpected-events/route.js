@@ -6,7 +6,7 @@
 // (`.../[id]` PATCH). Reportar un evento inesperado deja la aeronave en
 // mantenimiento de inmediato (grounded) hasta que se evalúe — nunca sigue
 // disponible con un suceso de este tipo sin resolver.
-import { createClientSSR } from '@/lib/supabaseServer';
+import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { classifyReportRoute } from '@skylog/domain';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
@@ -79,7 +79,7 @@ export async function POST(request) {
   const { error: resolveError, personId, organizationIds, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
-  if (!organizationIds.includes(organizationId)) {
+  if (!organizationIds.includes(organizationId) || !membershipsCanEdit(memberships, organizationId, 'I11')) {
     return Response.json({ error: 'Sin membresía activa en esa organización' }, { status: 403 });
   }
 
@@ -98,7 +98,11 @@ export async function POST(request) {
     if (!flight) return Response.json({ error: 'El vuelo no pertenece a esta organización' }, { status: 400 });
   }
 
-  const { data, error } = await supabase
+  // Reportar es de cualquier miembro (matriz I11), pero la tabla y la aeronave tienen puertas de rol en la base (solo
+  // gestores escriben): ya validados permiso, organización, aeronave y vuelo, se escribe con la llave de servicio.
+  // Antes un piloto recibía error al reportar y la aeronave seguía disponible (auditoría 2026-10-16).
+  const admin = createAdminClient();
+  const { data, error } = await admin
     .from('unexpected_events')
     .insert({
       organization_id: organizationId,
@@ -117,7 +121,15 @@ export async function POST(request) {
   // sigue "disponible" con un suceso de este tipo sin resolver. Si ya
   // estaba fuera de servicio, se respeta ese estado (no se reactiva sola).
   if (aircraft.operational_status !== 'fuera_de_servicio') {
-    await supabase.from('aircraft').update({ operational_status: 'en_mantenimiento' }).eq('id', aircraftId);
+    const { error: groundError } = await admin
+      .from('aircraft')
+      .update({ operational_status: 'en_mantenimiento' })
+      .eq('id', aircraftId)
+      .eq('organization_id', organizationId);
+    if (groundError) {
+      console.error('[unexpected-events] no se pudo dejar la aeronave en tierra:', aircraftId, groundError.message);
+      return Response.json({ event: data, warning: 'El evento quedó registrado, pero no se pudo cambiar el estado de la aeronave. Márcala en mantenimiento manualmente.' });
+    }
   }
 
   // SMS-E — "SMS alimentado por la operación" (40-sms.md §5.4/§5.9): un

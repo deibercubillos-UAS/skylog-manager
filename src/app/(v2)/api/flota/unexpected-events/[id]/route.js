@@ -5,7 +5,7 @@
 // `fuera_de_servicio` la saca de la flota activa (mismo estado ya
 // construido a pedido del usuario). Un evento ya evaluado no se reabre —
 // es evidencia, no un borrador.
-import { createClientSSR } from '@/lib/supabaseServer';
+import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit } from '@/lib/v2/permissions';
 
@@ -54,8 +54,29 @@ export async function PATCH(request, { params }) {
     .single();
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  const nextAircraftStatus = { aeronavegable: 'disponible', requiere_mantenimiento: 'en_mantenimiento', fuera_de_servicio: 'fuera_de_servicio' }[body.evaluationResult];
-  await supabase.from('aircraft').update({ operational_status: nextAircraftStatus }).eq('id', existing.aircraft_id);
+  // El Gerente SMS evalúa (matriz I12) pero la puerta de rol de `aircraft` solo deja escribir a GG/JP: ya validado el
+  // permiso, el estado de la aeronave se cambia con la llave de servicio y su error ya no se ignora (auditoría 2026-10-16).
+  let nextAircraftStatus = { aeronavegable: 'disponible', requiere_mantenimiento: 'en_mantenimiento', fuera_de_servicio: 'fuera_de_servicio' }[body.evaluationResult];
+  const admin = createAdminClient();
+  if (nextAircraftStatus === 'disponible') {
+    // No vuelve a servicio mientras tenga otro evento inesperado sin evaluar.
+    const { data: open } = await admin.from('unexpected_events').select('id').eq('aircraft_id', existing.aircraft_id).eq('evaluated', false).limit(1);
+    if (open?.length) nextAircraftStatus = 'en_mantenimiento';
+  }
+  const { data: current } = await admin.from('aircraft').select('operational_status').eq('id', existing.aircraft_id).maybeSingle();
+  // Una aeronave fuera de servicio solo vuelve por una decisión de gestión explícita, nunca por evaluar otro evento.
+  if (current?.operational_status === 'fuera_de_servicio' && nextAircraftStatus !== 'fuera_de_servicio') {
+    return Response.json({ event: data, aircraftStatus: current.operational_status });
+  }
+  const { error: statusError } = await admin
+    .from('aircraft')
+    .update({ operational_status: nextAircraftStatus })
+    .eq('id', existing.aircraft_id)
+    .eq('organization_id', existing.organization_id);
+  if (statusError) {
+    console.error('[unexpected-events] no se pudo cambiar el estado de la aeronave:', existing.aircraft_id, statusError.message);
+    return Response.json({ event: data, warning: 'La evaluación quedó registrada, pero no se pudo cambiar el estado de la aeronave.' });
+  }
 
-  return Response.json({ event: data });
+  return Response.json({ event: data, aircraftStatus: nextAircraftStatus });
 }

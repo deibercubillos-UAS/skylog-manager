@@ -199,6 +199,7 @@ export default function MantenimientoPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error registrando el mantenimiento');
+      if (data.warning) setError(data.warning);
       // Adjunto opcional (orden de trabajo, informe, recibo): el evento ya quedó registrado; si el archivo
       // falla, se avisa sin deshacer el mantenimiento.
       if (eventForm.file) {
@@ -233,6 +234,7 @@ export default function MantenimientoPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error reportando el evento');
+      if (data.warning) setError(data.warning);
       setIncidentForm(emptyIncident);
       setShowIncidentForm(false);
       await Promise.all([loadIncidents(organizationId), loadFleet(organizationId), loadStatus(organizationId)]);
@@ -254,6 +256,7 @@ export default function MantenimientoPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error evaluando el evento');
+      if (data.warning) setError(data.warning);
       setEvaluatingId(null);
       await Promise.all([loadIncidents(organizationId), loadFleet(organizationId), loadStatus(organizationId)]);
     } catch (e) {

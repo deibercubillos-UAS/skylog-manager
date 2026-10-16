@@ -3,8 +3,6 @@
 // normativo en sí vive en packages/domain (dutyCompliance.js), sin Supabase.
 // Ver docs/skylog-v2/41-tiempos-servicio.md · 31-esquema-datos.md §1, §3.1.
 
-import { createAdminClient } from '@/lib/supabaseServer';
-
 /**
  * Resuelve { personId, organizationIds } de la sesión autenticada actual vía
  * accounts.auth_user_id → memberships activas. Ninguna de las dos tablas
@@ -20,39 +18,18 @@ export async function resolveCurrentPerson(supabase, userId) {
   if (accountError) return { error: accountError };
   if (!account) return { error: null, personId: null, organizationIds: [] };
 
-  const { data: memberships, error: membershipError } = await supabase
-    .from('memberships')
-    .select('organization_id, role')
-    .eq('person_id', account.person_id)
-    .eq('status', 'activa');
+  // Una sola consulta (RPC): rol de cada membresía y si la persona es «piloto independiente» (Gerente General, plan
+  // «piloto» y único integrante activo de su organización — columna PI de la matriz de permisos). Antes eran tres
+  // consultas y encarecía cada petición de la API.
+  const { data: memberships, error: membershipError } = await supabase.rpc('v2_my_memberships', { p_person_id: account.person_id });
 
   if (membershipError) return { error: membershipError };
-
-  // Piloto independiente (matriz de permisos, columna PI): Gerente General, plan «piloto», único integrante de su organización.
-  // Se marca en cada membresía para que los helpers de permisos (`membershipsCanEdit/View`) lo respeten solos.
-  const orgIds = (memberships || []).filter((m) => m.role === 'admin').map((m) => m.organization_id);
-  let planByOrg = {};
-  const membersByOrg = {};
-  if (orgIds.length) {
-    const admin = createAdminClient();
-    const [{ data: subs }, { data: allMembers }] = await Promise.all([
-      admin.from('subscriptions').select('organization_id, plan').in('organization_id', orgIds),
-      admin.from('memberships').select('organization_id').in('organization_id', orgIds).eq('status', 'activa'),
-    ]);
-    planByOrg = Object.fromEntries((subs || []).map((x) => [x.organization_id, x.plan]));
-    for (const r of allMembers || []) membersByOrg[r.organization_id] = (membersByOrg[r.organization_id] || 0) + 1;
-  }
-  // «Una sola persona con su propia empresa»: plan piloto y ningún otro integrante activo.
-  const withFlag = (memberships || []).map((m) => ({
-    ...m,
-    independent: m.role === 'admin' && (planByOrg[m.organization_id] || 'piloto') === 'piloto' && (membersByOrg[m.organization_id] || 0) <= 1,
-  }));
 
   return {
     error: null,
     personId: account.person_id,
-    organizationIds: withFlag.map((m) => m.organization_id),
-    memberships: withFlag,
+    organizationIds: (memberships || []).map((m) => m.organization_id),
+    memberships: memberships || [],
   };
 }
 

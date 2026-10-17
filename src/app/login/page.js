@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [mounted, setMounted] = useState(false);
+  const [slow, setSlow] = useState(false);
 
   const router = useRouter();
 
@@ -26,11 +27,21 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
+    setSlow(false);
+    const slowTimer = setTimeout(() => setSlow(true), 6000);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+      // Si el servicio de acceso tarda (instancia ocupada), se corta a los 12 s y se reintenta hasta 3 veces:
+      // antes la pantalla quedaba colgada más de 45 s y solo el reintento manual entraba en 1–3 s.
+      let result = null;
+      for (let attempt = 0; attempt < 3 && !result; attempt++) {
+        const r = await Promise.race([
+          supabase.auth.signInWithPassword({ email: email.trim(), password }),
+          new Promise((resolve) => setTimeout(() => resolve('timeout'), 12000)),
+        ]);
+        if (r !== 'timeout') result = r;
+      }
+      if (!result) throw new Error('El servicio de acceso está lento. Intenta de nuevo en unos segundos.');
+      const { data, error } = result;
       if (error) throw error;
       if (data.user) {
         router.refresh();
@@ -46,6 +57,8 @@ export default function LoginPage() {
           : err.message
       );
     } finally {
+      clearTimeout(slowTimer);
+      setSlow(false);
       setLoading(false);
     }
   };
@@ -154,7 +167,7 @@ export default function LoginPage() {
               {loading ? (
                 <>
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Validando...
+                  {slow ? 'Conectando, tarda más de lo normal...' : 'Validando...'}
                 </>
               ) : 'Iniciar sesión'}
             </button>

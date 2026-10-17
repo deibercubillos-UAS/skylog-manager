@@ -8,7 +8,7 @@ Escritorio 1366×768 · celular Pixel 7 emulado (412×915, táctil) y barrido en
 |---|---|---|---|---|
 | F-001 | Media | Pie de las páginas públicas | No enlazaba Aviso Legal, Privacidad, Cookies ni Términos | ✅ corregido `53fd1fa1` |
 | F-002 | Media | `/api/duty/context` | Un 500 aislado (coincidió con un despliegue); no se reprodujo en 50 llamadas | ➖ vigilar |
-| F-003 | **Alta** | Supabase (instancia) | Latencia muy variable bajo carga ligera (login 0,4–45 s, 504/522; persona 0,2–17 s) y, al cierre de la prueba, **la base de datos no aceptaba conexiones** (`/api/health` > 60 s, login 522) con el estado público «operativo». Compatible con instancia sin holgura de CPU. | ⬜ decisión del usuario (tamaño de la instancia; plan vence 31-oct) |
+| F-003 | **Alta** | Supabase (instancia; reiniciada y respondiendo 2026-10-16) | Latencia muy variable bajo carga ligera (login 0,4–45 s, 504/522; persona 0,2–17 s) y, al cierre de la prueba, **la base de datos no aceptaba conexiones** (`/api/health` > 60 s, login 522) con el estado público «operativo». Compatible con instancia sin holgura de CPU. | ⬜ decisión del usuario (tamaño de la instancia; plan vence 31-oct) |
 | F-004 | Baja | `/sms/mapas` | Excepción del visor ArcGIS y 404 de una fuente | ⬜ |
 | F-006 | Info | Mantenimiento | Tras «Registrar mantenimiento» no hay confirmación ni historial visible de los eventos | ⬜ mejora |
 | F-007 | **Alta** | Selector de organización del encabezado | Cambiaba el título pero las 39 pantallas seguían cargando y **escribiendo en la primera organización** | ✅ `84217a0b` |
@@ -61,9 +61,44 @@ Escritorio 1366×768 · celular Pixel 7 emulado (412×915, táctil) y barrido en
 | Prueba | Resultado |
 |---|---|
 | E1 · Barrido de 39 páginas públicas × 360/390/430 y 44 pantallas del panel × 360/390/430 (+ Piloto en 390) | ✅ **0 desbordes horizontales, 0 excepciones** |
-| E2 · Flujos de crear/editar/borrar en Pixel 7 | ⬜ **interrumpida**: la sesión caducó y el inicio de sesión dejó de responder (F-003); hay que repetirla cuando la base vuelva |
+| E2 · Flujos de crear/editar/borrar en Pixel 7 (base recuperada tras reinicio) | ✅ Existencias y ETA, tripulación, pólizas, proveedores, manuales, listas, SMS (objetivos, riesgos, cambios), retención, organización, capacitación, bitácora, aeronaves, 10 reportes PDF, aislamiento y sin conexión pasan, sin respuestas ≥ 400 inesperadas. En celular el avatar abre `/perfil` (ahí está «Cerrar sesión») y la campana abre su panel. Las marcas ❌ del script (acciones del manual) eran selectores ambiguos, no de la app: el flujo equivalente pasa. |
 | E3 · iPhone real (Appium) | ⬜ pendiente |
 | E4 · Orientación horizontal | ⬜ pendiente |
 
 ## 7 · Datos de prueba que quedan en la organización QA
 Mantenimiento: 4 eventos (no se pueden borrar: retención 5 años) · 2 vuelos y 1 despacho · 1 custodia legal sin liberar · 2 reportes SMS y 1 caso · 1 evaluación con 1 pregunta · 2 misiones (1 cancelada, 1 cerrada) · 1 batería de baja · 1 peligro · 1 acción correctiva. Todo con prefijo `PRUEBA-20261016`.
+
+## 8 · Segunda pasada completa por perfil (2026-10-16, base ya recuperada)
+Rastreo de 44 pantallas × 6 perfiles (Gerente, Jefe de Pilotos, Gerente SMS, Piloto, Piloto independiente, Socio) × escritorio y Pixel 7; matriz de permisos (23 pantallas por rol) y barrido de API.
+| Prueba | Resultado |
+|---|---|
+| Carga de las 44 pantallas por perfil y dispositivo (12 combinaciones) | ✅ ninguna con 5xx; desbordes horizontales: **0** |
+| Matriz de permisos (Gerente, Jefe, SMS, Piloto, Independiente) | ✅ 0 discrepancias de 23 en cada rol (una primera corrida mostró 1–2 por tiempos de carga y no se repitió) |
+| Barrido de API (88 GET) | ✅ 0 respuestas 5xx, 0 lentas > 5 s |
+| `/admin/*` para roles de organización | ✅ redirige a `/inicio` |
+
+Observaciones nuevas (todas de baja gravedad):
+| # | Dónde | Qué pasa | Estado |
+|---|---|---|---|
+| F-016 | Piloto e Independiente | Pantallas que sí pueden ver (Baterías, Asistente SMS, Gobernanza, Capacitación SMS, Organización) piden datos que su rol no puede leer (`/api/flota/components`, `/api/flota/roster`, `/api/organizacion*`) y reciben 403 en consola. No se ve en pantalla, pero son peticiones inútiles | ⬜ mejora: no pedirlos si el permiso es «ninguno» |
+| F-017 | `/perfil`, `/suscripcion`, `/sms` | Cargas ocasionales de 9–18 s (Jefe de Pilotos, Piloto, Independiente); compatible con la latencia de la instancia (F-003) | ⬜ vigilar tras decidir el tamaño de la instancia |
+| F-004 | `/sms/mapas` | Sigue la excepción del visor ArcGIS y el 404 de una fuente de letras (`static.arcgis.com`); en celular interrumpe la navegación del rastreo | ⬜ |
+
+## 9 · Recorrido funcional cronometrado por perfil (2026-10-16, un perfil a la vez)
+Escritorio 1366×768, Chrome real, login por pantalla. «Tiempo» = hasta que la pantalla termina de cargar datos (red en reposo y sin «Cargando»). Guía de uso: [`74-guia-paso-a-paso.md`](74-guia-paso-a-paso.md).
+| Perfil | Pantallas | Mediana | Máx. | Redirigidas | Con errores ≥400 | Desborde |
+|---|---|---|---|---|---|---|
+| Gerente General | 37 | 1,5 s | 4,6 s (`/retencion`) | 0 | 0 | 0 |
+| Jefe de Pilotos | 37 | 1,5 s | 15,6 s (`/perfil`) | 0 | 0 | 0 |
+| Gerente SMS | 37 | 1,4 s | 3,8 s | 0 | 0 | 0 |
+| Piloto | 37 | 1,4 s | 7,7 s (`/perfil`) | 0 | 5 (403 conocidos, F-016) | 0 |
+| Piloto independiente | 37 | 1,5 s | 3,6 s | 0 | 5 (403 conocidos, F-016) | 0 |
+| Socio | `/socio` | 4,5 s | — | 0 | 0 | 0 |
+
+Botones principales verificados por pantalla en el Gerente (Nueva misión, Nueva aeronave, Agregar tripulante, Registrar mantenimiento, Nuevo objetivo, Evaluar, Marcar como enviado, Presentar examen, Cargar manual, Nueva custodia, Guardar datos, Pagar ahora…): todos presentes.
+
+| # | Hallazgo | Estado |
+|---|---|---|
+| F-018 | **Primer inicio de sesión de una sesión nueva se cuelga > 45 s** en 4 de 6 perfiles; el reintento entra en 1–3 s. Tres inicios simultáneos tampoco entraron en 90 s. Misma familia que F-003 (instancia de Supabase sin holgura). | ⬜ decisión de instancia; mitigar con aviso/reintento en el login |
+| F-017 | `/perfil` 7,7–15,6 s en dos perfiles (el resto < 4,6 s) | ⬜ vigilar |
+Con la instancia en reposo `/api/health` responde en 0,3–0,5 s.

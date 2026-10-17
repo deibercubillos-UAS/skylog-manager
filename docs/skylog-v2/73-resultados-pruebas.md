@@ -83,3 +83,22 @@ Observaciones nuevas (todas de baja gravedad):
 | F-016 | Piloto e Independiente | Pantallas que sí pueden ver (Baterías, Asistente SMS, Gobernanza, Capacitación SMS, Organización) piden datos que su rol no puede leer (`/api/flota/components`, `/api/flota/roster`, `/api/organizacion*`) y reciben 403 en consola. No se ve en pantalla, pero son peticiones inútiles | ⬜ mejora: no pedirlos si el permiso es «ninguno» |
 | F-017 | `/perfil`, `/suscripcion`, `/sms` | Cargas ocasionales de 9–18 s (Jefe de Pilotos, Piloto, Independiente); compatible con la latencia de la instancia (F-003) | ⬜ vigilar tras decidir el tamaño de la instancia |
 | F-004 | `/sms/mapas` | Sigue la excepción del visor ArcGIS y el 404 de una fuente de letras (`static.arcgis.com`); en celular interrumpe la navegación del rastreo | ⬜ |
+
+## 9 · Recorrido funcional cronometrado por perfil (2026-10-16, un perfil a la vez)
+Escritorio 1366×768, Chrome real, login por pantalla. «Tiempo» = hasta que la pantalla termina de cargar datos (red en reposo y sin «Cargando»). Guía de uso: [`74-guia-paso-a-paso.md`](74-guia-paso-a-paso.md).
+| Perfil | Pantallas | Mediana | Máx. | Redirigidas | Con errores ≥400 | Desborde |
+|---|---|---|---|---|---|---|
+| Gerente General | 37 | 1,5 s | 4,6 s (`/retencion`) | 0 | 0 | 0 |
+| Jefe de Pilotos | 37 | 1,5 s | 15,6 s (`/perfil`) | 0 | 0 | 0 |
+| Gerente SMS | 37 | 1,4 s | 3,8 s | 0 | 0 | 0 |
+| Piloto | 37 | 1,4 s | 7,7 s (`/perfil`) | 0 | 5 (403 conocidos, F-016) | 0 |
+| Piloto independiente | 37 | 1,5 s | 3,6 s | 0 | 5 (403 conocidos, F-016) | 0 |
+| Socio | `/socio` | 4,5 s | — | 0 | 0 | 0 |
+
+Botones principales verificados por pantalla en el Gerente (Nueva misión, Nueva aeronave, Agregar tripulante, Registrar mantenimiento, Nuevo objetivo, Evaluar, Marcar como enviado, Presentar examen, Cargar manual, Nueva custodia, Guardar datos, Pagar ahora…): todos presentes.
+
+| # | Hallazgo | Estado |
+|---|---|---|
+| F-018 | **Primer inicio de sesión de una sesión nueva se cuelga > 45 s** en 4 de 6 perfiles; el reintento entra en 1–3 s. Tres inicios simultáneos tampoco entraron en 90 s. Misma familia que F-003 (instancia de Supabase sin holgura). | ⬜ decisión de instancia; mitigar con aviso/reintento en el login |
+| F-017 | `/perfil` 7,7–15,6 s en dos perfiles (el resto < 4,6 s) | ⬜ vigilar |
+Con la instancia en reposo `/api/health` responde en 0,3–0,5 s.

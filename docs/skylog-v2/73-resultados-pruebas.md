@@ -99,6 +99,17 @@ Botones principales verificados por pantalla en el Gerente (Nueva misión, Nueva
 
 | # | Hallazgo | Estado |
 |---|---|---|
-| F-018 | **Primer inicio de sesión de una sesión nueva se cuelga > 45 s** en 4 de 6 perfiles; el reintento entra en 1–3 s. Tres inicios simultáneos tampoco entraron en 90 s. Misma familia que F-003 (instancia de Supabase sin holgura). | ⬜ decisión de instancia; mitigar con aviso/reintento en el login |
+| F-018 | ~~Primer inicio de sesión se cuelga > 45 s~~ **Corregido / era artefacto de la prueba:** el clic llegaba antes de que la página terminara de activarse y se perdía (el servicio de Auth respondía en 0,15–0,65 s). Ahora el botón queda deshabilitado hasta estar listo, el formulario nunca viaja por URL y el login tiene tiempo límite de 12 s con 3 reintentos. Login medido después: 1,8–4,6 s en los 6 perfiles, sin intentos fallidos. | ✅ `c445be57`, fix `82e4737f` en `main` |
 | F-017 | `/perfil` 7,7–15,6 s en dos perfiles (el resto < 4,6 s) | ⬜ vigilar |
 Con la instancia en reposo `/api/health` responde en 0,3–0,5 s.
+
+### 9.1 · Segunda medición tras el despliegue (`main` 82e4737f)
+| Perfil | Login | Mediana (antes → después) | `/perfil` (antes → después) |
+|---|---|---|---|
+| Gerente General | 1,8 s | 1,5 → 3,8 s | 2,1 → 4,5 s |
+| Jefe de Pilotos | 4,0 s | 1,5 → 2,7 s | **15,6 → 1,6 s** |
+| Gerente SMS | 4,6 s | 1,4 → 1,5 s | 2,0 → 2,2 s |
+| Piloto | 2,1 s | 1,4 → 2,1 s | **7,7 → 5,3 s** |
+| Piloto independiente | 3,4 s | 1,5 → 3,6 s | 2,1 → 10,5 s |
+| Socio | 2,6 s | 4,5 → 2,9 s | — |
+Lectura: el login quedó resuelto. Las pantallas muestran **variación fuerte entre corridas** (la misma pantalla pasa de 1,3 s a 8–24 s con `/api/health` sano a 0,5 s), lo que apunta a la instancia de Supabase (F-003), no al código; con esa variación no se puede atribuir mejora ni empeoramiento a `/api/perfil`. Se necesita decidir el tamaño de la instancia y volver a medir.

@@ -89,7 +89,7 @@ export default function LoginPage() {
           <h1 className="text-3xl font-black text-navy uppercase tracking-tighter">Iniciar sesión</h1>
           <p className="text-slate-500 text-sm mt-1 mb-8">Ingresa a tu cuenta de Bitafly.</p>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} method="post" action="/login" className="space-y-4">
             {/* Email */}
             <div className="space-y-1.5">
               <label className="text-xs font-black text-slate-500 uppercase tracking-widest">
@@ -161,7 +161,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !mounted}
               className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-600 hover:shadow-orange-500/30 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2"
             >
               {loading ? (

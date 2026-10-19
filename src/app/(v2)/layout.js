@@ -110,6 +110,16 @@ const GROUP_COLORS = {
   Documentación: { active: 'bg-violet-500 shadow-violet-900/20', dot: 'bg-violet-400' },
 };
 
+// Pantallas que existen pero no tienen enlace en el menú: igual se protegen con su permiso de la matriz, para que
+// escribir la dirección a mano no abra algo que el rol no puede ver (hallazgo H-6 del plan de pruebas 75).
+const HIDDEN_SCREEN_GATES = [
+  { href: '/sms/gobernanza', perm: 'V1' },
+  { href: '/sms/msms', perm: 'V1' },
+  { href: '/sms/capacitacion', perm: 'V4' },
+  { href: '/sms/casos', perm: 'U2' },
+  { href: '/aerocivil', perm: 'AD6' },
+];
+
 const FOOTER_LINKS = [
   { name: 'Organización', icon: 'apartment', href: '/organizacion' },
   { name: 'Suscripción', icon: 'workspace_premium', href: '/suscripcion' },
@@ -119,7 +129,7 @@ const FOOTER_LINKS = [
 const BOTTOM_NAV_LINKS = [
   { name: 'Inicio', icon: 'dashboard', href: '/inicio' },
   { name: 'Bitácora', icon: 'menu_book', href: '/operacion/bitacora' },
-  { name: 'SMS', icon: 'health_and_safety', href: '/sms/reportes' },
+  { name: 'SMS', icon: 'health_and_safety', href: '/sms/reportes', perm: 'U2' },
   { name: 'Ajustes', icon: 'apartment', href: '/organizacion' },
 ];
 
@@ -227,7 +237,9 @@ export default function V2Layout({ children }) {
   // Pantalla actual según el menú (la coincidencia más larga): si el rol no tiene ni el permiso de verla, no se muestra
   // el contenido aunque se escriba la dirección a mano (el menú solo oculta el enlace).
   const currentLink = NAV_LINKS.filter((l) => pathname === l.href || pathname.startsWith(l.href + '/')).sort((a, b) => b.href.length - a.href.length)[0];
-  const screenBlocked = !!currentOrg && !!currentLink?.perm && (permissions[currentLink.perm] || 'none') === 'none';
+  const hiddenGate = pathname === '/sms' ? { perm: 'V1' } : HIDDEN_SCREEN_GATES.find((g) => pathname === g.href || pathname.startsWith(g.href + '/'));
+  const gatePerm = currentLink?.perm || hiddenGate?.perm;
+  const screenBlocked = !!currentOrg && !!gatePerm && (permissions[gatePerm] || 'none') === 'none';
   const linkVisible = (l) => !l.perm || (permissions[l.perm] || 'none') !== 'none';
   const isSuperadmin = !!context?.organizations?.some((o) => o.role === 'superadmin');
   const role = currentOrg?.role;
@@ -539,7 +551,7 @@ export default function V2Layout({ children }) {
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}
       >
         <div className="flex items-stretch h-14">
-          {BOTTOM_NAV_LINKS.map((l) => (
+          {BOTTOM_NAV_LINKS.filter(linkVisible).map((l) => (
             <BottomNavItem key={l.href} href={l.href} icon={l.icon} label={l.name} active={l.href === '/inicio' ? pathname === '/inicio' : pathname.startsWith(l.href)} />
           ))}
         </div>

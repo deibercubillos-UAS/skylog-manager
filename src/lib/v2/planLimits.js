@@ -11,7 +11,7 @@ export const PLAN_LABELS = {
 };
 
 export const PLAN_LIMITS = {
-  piloto: { aircraft: 1, pilots: 1, batteries: 3 },
+  piloto: { aircraft: null, pilots: 1, batteries: null }, // piloto independiente: aeronaves y baterías sin límite (2026-10-19)
   escuadrilla: { aircraft: 3, pilots: 5, batteries: null },
   flota: { aircraft: 10, pilots: 10, batteries: null },
   enterprise: { aircraft: null, pilots: null, batteries: null },

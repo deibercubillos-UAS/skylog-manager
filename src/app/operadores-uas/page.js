@@ -89,7 +89,7 @@ export default function OperadoresUASPage() {
           'Flota completa con horas y mantenimientos',
           'Tripulación con certificados y vencimientos',
           'Bitácora, SMS y autorizaciones integradas',
-          'Escala de 1 dron a flotas de decenas',
+          'Escala de un dron a flotas de decenas',
         ]}
       >
         <Image

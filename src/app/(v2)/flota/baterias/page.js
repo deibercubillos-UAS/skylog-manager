@@ -62,13 +62,14 @@ export default function BateriasComponentesPage() {
 
   const loadComponents = useCallback(async (orgId, aircraftId) => {
     if (!orgId) return;
+    if (!canSeeComponents) { setComponents([]); return; } // sin J3 no se pide (evita 403)
     const qs = aircraftId ? `&aircraftId=${aircraftId}` : '';
     const res = await fetch(`/api/flota/components?organizationId=${orgId}${qs}`);
     if (res.status === 403) { setComponents([]); return; } // sin permiso para ver componentes (el piloto): no es un error
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error cargando componentes');
     setComponents(data.components || []);
-  }, []);
+  }, [canSeeComponents]);
 
   const loadFleet = useCallback(async (orgId) => {
     if (!orgId) return;

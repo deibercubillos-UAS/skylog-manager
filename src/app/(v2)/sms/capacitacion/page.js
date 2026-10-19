@@ -31,13 +31,15 @@ export default function SmsCapacitacionPage() {
   const [formError, setFormError] = useState(null);
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
+  // K1: sin permiso de ver la tripulación (piloto, independiente) no se pide el roster (evita 403)
+  const canViewRoster = (currentOrg?.permissions?.['K1'] || 'none') !== 'none';
   const isManager = currentOrg?.permissions?.['V5'] === 'edit';
 
   const loadAll = useCallback(async (orgId) => {
     if (!orgId) return;
     const [sessionsRes, rosterRes] = await Promise.all([
       fetch(`/api/sms/training/sessions?organizationId=${orgId}`),
-      fetch(`/api/flota/roster?organizationId=${orgId}`),
+      canViewRoster ? fetch(`/api/flota/roster?organizationId=${orgId}`) : Promise.resolve({ ok: false, json: async () => ({}) }),
     ]);
     const [sessionsData, rosterData] = await Promise.all([sessionsRes.json(), rosterRes.json()]);
     if (sessionsRes.ok) {
@@ -53,7 +55,7 @@ export default function SmsCapacitacionPage() {
       setAttendanceCount(counts);
     }
     if (rosterRes.ok) setRoster(rosterData.roster || []);
-  }, []);
+  }, [canViewRoster]);
 
   useEffect(() => {
     (async () => {

@@ -44,13 +44,15 @@ export default function SmsAsistentePage() {
   const [panelTarget, setPanelTarget] = useState(null); // { phase, element, existingTask }
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
+  // K1: sin permiso de ver la tripulación (piloto, independiente) no se pide el roster (evita 403)
+  const canViewRoster = (currentOrg?.permissions?.['K1'] || 'none') !== 'none';
   const isManager = currentOrg?.permissions?.['V2'] === 'edit';
 
   const loadAll = useCallback(async (orgId) => {
     if (!orgId) return;
     const [planRes, rosterRes] = await Promise.all([
       fetch(`/api/sms/implementation-plan?organizationId=${orgId}`),
-      fetch(`/api/flota/roster?organizationId=${orgId}`),
+      canViewRoster ? fetch(`/api/flota/roster?organizationId=${orgId}`) : Promise.resolve({ ok: false, json: async () => ({}) }),
     ]);
     const [planData, rosterData] = await Promise.all([planRes.json(), rosterRes.json()]);
     if (planRes.ok) {
@@ -60,7 +62,7 @@ export default function SmsAsistentePage() {
       if (planData.plan) setPlanForm({ planStartDate: planData.plan.plan_start_date, horizonMonths: planData.plan.horizon_months });
     }
     if (rosterRes.ok) setRoster(rosterData.roster || []);
-  }, []);
+  }, [canViewRoster]);
 
   useEffect(() => {
     (async () => {

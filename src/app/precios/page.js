@@ -42,7 +42,7 @@ const softwareSchema = {
     {
       "@type": "Offer",
       "name": "Plan Piloto",
-      "description": "Para operadores individuales. 1 aeronave, bitácora ilimitada, reportes PDF. 15 días de prueba al iniciar.",
+      "description": "Para operadores individuales. Aeronaves y baterías ilimitadas, bitácora ilimitada, reportes PDF. 15 días de prueba al iniciar.",
       "price": "20000",
       "priceCurrency": "COP",
       "priceValidUntil": "2026-12-31",

@@ -36,13 +36,13 @@ const CROSS = () => (
 const PLANS_BASE = [
   {
     key: 'piloto',     monthlyAmount: 20000,  annualAmount: 200000,  trialDays: 15,
-    name: 'Piloto',    sub: 'Para el piloto autónomo',  tag: '1 aeronave · 1 usuario',
+    name: 'Piloto',    sub: 'Para el piloto autónomo',  tag: 'Aeronaves ilimitadas · 1 usuario',
     cta: 'Comenzar gratis', ctaHref: '/registro', dark: false,
     features: [
-      { ok: true,  text: '1 aeronave registrada' },
+      { ok: true,  text: 'Aeronaves ilimitadas' },
       { ok: true,  text: 'Bitácora RAC 100 ilimitada' },
       { ok: true,  text: 'Alertas de mantenimiento' },
-      { ok: true,  text: 'Hasta 3 baterías' },
+      { ok: true,  text: 'Baterías ilimitadas' },
       { ok: true,  text: 'Reporte PDF (código personalizable)' },
       { ok: false, text: 'Autorizaciones (código personalizable)' },
       { ok: false, text: 'SMS aeronáutico' },

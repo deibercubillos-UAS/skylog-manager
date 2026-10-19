@@ -58,7 +58,7 @@ const ROWS = [
   ["H6", "Operación · Tiempo de servicio", "Certificar las horas anuales de un piloto", "SSSVNS"],
   ["H7", "Operación · Tiempo de servicio", "Autorizar una excepción de descanso", "SSSVNS"],
   ["I1", "Flota · Aeronaves", "Ver las aeronaves", "SSSVVS"],
-  ["I2", "Flota · Aeronaves", "Registrar una aeronave", "SSSVNS", "Limitado por el cupo de aeronaves del plan."],
+  ["I2", "Flota · Aeronaves", "Registrar una aeronave", "SSSVNS", "Limitado por el cupo de aeronaves del plan (el plan Piloto no tiene límite)."],
   ["I3", "Flota · Aeronaves", "Editar una aeronave", "SSSVNS"],
   ["I4", "Flota · Aeronaves", "Subir o cambiar la foto de la aeronave", "SSSVNS"],
   ["I5", "Flota · Aeronaves", "Ver el documento de propiedad", "SSSVVS"],

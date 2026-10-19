@@ -80,7 +80,7 @@ Rastreo de 44 pantallas × 6 perfiles (Gerente, Jefe de Pilotos, Gerente SMS, Pi
 Observaciones nuevas (todas de baja gravedad):
 | # | Dónde | Qué pasa | Estado |
 |---|---|---|---|
-| F-016 | Piloto e Independiente | Pantallas que sí pueden ver (Baterías, Asistente SMS, Gobernanza, Capacitación SMS, Organización) piden datos que su rol no puede leer (`/api/flota/components`, `/api/flota/roster`, `/api/organizacion*`) y reciben 403 en consola. No se ve en pantalla, pero son peticiones inútiles | ⬜ mejora: no pedirlos si el permiso es «ninguno» |
+| F-016 | Piloto e Independiente | Pantallas que sí pueden ver (Baterías, Asistente SMS, Gobernanza, Capacitación SMS, Organización) piden datos que su rol no puede leer (`/api/flota/components`, `/api/flota/roster`, `/api/organizacion*`) y reciben 403 en consola. No se ve en pantalla, pero son peticiones inútiles | ✅ corregido (2026-10-18): las pantallas no piden `roster`/`components`/`organizacion*` si el permiso (K1/J3/AD1) es «ninguno». Pendiente verificar en producción tras el despliegue |
 | F-017 | `/perfil`, `/suscripcion`, `/sms` | Cargas ocasionales de 9–18 s (Jefe de Pilotos, Piloto, Independiente); compatible con la latencia de la instancia (F-003) | ⬜ vigilar tras decidir el tamaño de la instancia |
 | F-004 | `/sms/mapas` | Sigue la excepción del visor ArcGIS y el 404 de una fuente de letras (`static.arcgis.com`); en celular interrumpe la navegación del rastreo | ⬜ |
 

@@ -72,6 +72,7 @@ export default function OrganizacionPage() {
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const isManager = currentOrg?.permissions?.['AD2'] === 'edit';
+  const canViewOrg = (currentOrg?.permissions?.['AD1'] || 'none') !== 'none';
   const canChangeRoles = currentOrg?.permissions?.['K5'] === 'edit';
 
   const loadOrg = useCallback(async (orgId) => {
@@ -136,11 +137,11 @@ export default function OrganizacionPage() {
   }, []);
 
   useEffect(() => {
-    if (!organizationId) return;
+    if (!organizationId || !canViewOrg) return; // sin AD1 (piloto, independiente) no se piden datos que dan 403
     loadOrg(organizationId);
     loadCert(organizationId);
     loadMembers(organizationId);
-  }, [organizationId, loadOrg, loadCert, loadMembers]);
+  }, [organizationId, canViewOrg, loadOrg, loadCert, loadMembers]);
 
   async function handleOrgSubmit(e) {
     e.preventDefault();

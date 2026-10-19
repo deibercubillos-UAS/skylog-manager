@@ -241,11 +241,12 @@ Formato: **ID · acción · resultado esperado**. Debajo, la tabla de acceso: GG
 
 | # | Hallazgo | Severidad | Acción |
 |---|---|---|---|
-| H-1 | La cuenta `qa.independiente` **no se comporta como piloto independiente real**: muestra la organización «BitaFly QA – Organización de Prueba» en el encabezado, no tiene ningún botón de creación (Nueva aeronave, Nueva misión, Registrar vuelo) y sí ve SMS y Existencias de equipo, contrario a la matriz (PI: ✏️ en flota/programación, ❌ en SMS y existencias). Parece una cuenta de organización con plan «piloto», no una creada con registro «solo». | Alta para la prueba | Crear un PI real con registro «solo» y repetir PRG, FLO, BAT, MAN, DES, BIT con esa cuenta antes de dar por probado el perfil. Si el real también ve SMS, es un fallo de permisos. |
+| H-1 | **Explicado (2026-10-19):** en V2 «piloto independiente» = Gerente General + plan «piloto» + único integrante activo de su organización. `qa.independiente` está dentro de la organización de prueba (con más integrantes), por eso no cuenta como independiente. Para probar el perfil se creó una cuenta real con el registro público: `qa.pi.real@bitafly-test.local` / `BitaflyQA2026!` (organización «QA Piloto Independiente Real», prueba de 15 días). | Resuelto | Usar `qa.pi.real` para todos los casos PI. Nota: una empresa recién registrada se comporta como PI hasta que invita a alguien o paga un plan mayor. |
 | H-2 | `/perfil → Agregar` (adiciones de licencia) no abrió campo en ninguna cuenta en el sondeo automático. | Por confirmar | Probar a mano (PIL-04); si no hay formulario, es defecto. |
 | H-3 | **Activar enlace público** no abre ventana: aparentemente actúa directo. | Baja | Confirmar que pide confirmación antes de publicar un enlace (SMS-08). |
 | H-4 | Pantallas sin acceso devuelven título vacío (p. ej. `/retencion`, `/proveedores` para P/PI) en lugar de un mensaje «sin permiso». | Baja (UX) | Mostrar «No tiene acceso a esta sección». |
 | H-5 | `CommandPalette` (Ctrl K) aún pide `/api/organizacion/members` sin verificar permiso (posible 403 silencioso). | Baja | Poner la condición AD1 como en F-016. |
+| H-6 | Con el PI real, 5 pantallas **sin enlace en el menú** se abrían aunque la matriz dice ❌: `/sms` (inicio), `/sms/gobernanza`, `/sms/msms`, `/sms/capacitacion` y `/aerocivil`. El bloqueo se calculaba solo desde el menú. Además, el botón «SMS» de la barra inferior móvil llevaba al PI a una pantalla bloqueada. | Media (permisos) | Corregido en `src/app/(v2)/layout.js` (lista `HIDDEN_SCREEN_GATES` + barra inferior filtrada por permiso). Pendiente desplegar y repetir `walk.mjs pireal`. |
 
 ---
 
@@ -253,4 +254,4 @@ Formato: **ID · acción · resultado esperado**. Debajo, la tabla de acceso: GG
 
 Copiar por cada ejecución: **Fecha · Ejecutor · Navegador/Dispositivo · Cuenta · ID del caso · Resultado (✔/✖/n/a) · Evidencia (captura) · Observaciones**. Los ✖ se abren como hallazgo con el mismo formato de `73-resultados-pruebas.md` (F-0NN).
 
-Condición de salida para considerar la plataforma lista para clientes: 0 casos ✖ en Partes I, II y V; 0 respuestas ≥ 400 en TRV-02; H-1 resuelto con un piloto independiente real.
+Condición de salida para considerar la plataforma lista para clientes: 0 casos ✖ en Partes I, II y V; 0 respuestas ≥ 400 en TRV-02; H-6 desplegado y verificado con `qa.pi.real`.

@@ -4,7 +4,7 @@
 import { createNotifications } from '@/lib/v2/notify';
 import { Resend } from 'resend';
 import { evaluateJoin, JOIN_ROLE_LABELS, INVITE_ROLE_LABELS, normalizeNit } from '@skylog/domain';
-import { PLAN_LIMITS, crewCountsForLimit } from '@/lib/v2/planLimits';
+import { crewCountsForLimit, limitsForSubscription } from '@/lib/v2/planLimits';
 import { escHtml, emailHeader, emailFooter } from '@/lib/emailHelpers';
 
 /** Organización (y lo necesario para decidir) a partir de un NIT; null si no existe. */
@@ -21,15 +21,15 @@ export async function loadJoinContext(admin, rawNit) {
 export async function loadJoinContextByOrgId(admin, org) {
   const [{ data: members }, { data: sub }] = await Promise.all([
     admin.from('memberships').select('role').eq('organization_id', org.id).eq('status', 'activa'),
-    admin.from('subscriptions').select('plan').eq('organization_id', org.id).maybeSingle(),
+    admin.from('subscriptions').select('*').eq('organization_id', org.id).maybeSingle(),
   ]);
-  const plan = sub?.plan && PLAN_LIMITS[sub.plan] ? sub.plan : 'piloto';
+  const { plan, limits } = limitsForSubscription(sub);
   return {
     organizationId: org.id,
     companyName: org.company_name,
     members: members || [],
     plan,
-    crewLimit: PLAN_LIMITS[plan].pilots,
+    crewLimit: limits.pilots,
     crewCount: (members || []).filter((m) => crewCountsForLimit(m.role)).length,
   };
 }

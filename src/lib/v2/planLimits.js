@@ -1,6 +1,8 @@
 // Skylog V2.0 — Suscripción: límites reales por plan — mismos 4 planes y
 // mismos límites ya en producción (v1, `lib/planLimits.js`), reutilizados
 // tal cual para no inventar una tabla de precios nueva. `null` = ilimitado.
+import { effectiveLimits } from '@skylog/domain';
+
 export const PLANS = ['piloto', 'escuadrilla', 'flota', 'enterprise'];
 
 export const PLAN_LABELS = {
@@ -16,6 +18,15 @@ export const PLAN_LIMITS = {
   flota: { aircraft: 10, pilots: 10, batteries: null },
   enterprise: { aircraft: null, pilots: null, batteries: null },
 };
+
+/**
+ * Plan y límites efectivos de una fila de `subscriptions`: los del plan con el ajuste por organización que haya puesto
+ * el superadmin (`limits_override`). Sin suscripción, rige el plan Piloto.
+ */
+export function limitsForSubscription(sub) {
+  const plan = sub?.plan && PLAN_LIMITS[sub.plan] ? sub.plan : 'piloto';
+  return { plan, limits: effectiveLimits(PLAN_LIMITS[plan], sub?.limits_override), customized: !!sub?.limits_override };
+}
 
 // Mismo criterio real de v1: el Gerente General (admin) NO cuenta contra
 // el límite de "Pilotos" — es el dueño/representante legal, no tripulación

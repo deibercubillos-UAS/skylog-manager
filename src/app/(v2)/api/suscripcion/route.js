@@ -5,7 +5,7 @@ import { logAudit } from '@/lib/v2/auditLog';
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { isPlatformSuperadmin, sessionIsAal2 } from '@/lib/v2/platformAdmin';
-import { PLANS, PLAN_LIMITS, crewCountsForLimit } from '@/lib/v2/planLimits';
+import { PLANS, crewCountsForLimit, limitsForSubscription } from '@/lib/v2/planLimits';
 import { getAuthUser } from '@/lib/v2/authUser';
 
 function isAdmin(memberships, organizationId) {
@@ -37,11 +37,11 @@ export async function GET(request) {
   if (crewError) return Response.json({ error: crewError.message }, { status: 500 });
   if (batteriesError) return Response.json({ error: batteriesError.message }, { status: 500 });
 
-  const plan = subscription?.plan || 'piloto';
+  const { limits } = limitsForSubscription(subscription);
   const usage = {
-    aircraft: { count: (aircraft || []).length, limit: PLAN_LIMITS[plan].aircraft },
-    pilots: { count: (crew || []).filter((m) => crewCountsForLimit(m.role)).length, limit: PLAN_LIMITS[plan].pilots },
-    batteries: { count: (batteries || []).length, limit: PLAN_LIMITS[plan].batteries },
+    aircraft: { count: (aircraft || []).length, limit: limits.aircraft },
+    pilots: { count: (crew || []).filter((m) => crewCountsForLimit(m.role)).length, limit: limits.pilots },
+    batteries: { count: (batteries || []).length, limit: limits.batteries },
   };
 
   return Response.json({

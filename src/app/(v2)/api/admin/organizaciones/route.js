@@ -4,12 +4,15 @@
 import { requireSuperadmin } from '@/lib/v2/platformAdmin';
 import { PLANS, PLAN_LABELS } from '@/lib/v2/planLimits';
 import { logAudit } from '@/lib/v2/auditLog';
+import { loadOrgPlans } from '@/lib/v2/adminOrgPlans';
+import { normalizeLimitsOverride } from '@skylog/domain';
 
 export const dynamic = 'force-dynamic';
 const bad = (message, status = 400) => Response.json({ error: message }, { status });
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const BILLINGS = ['monthly', 'annual'];
 const BILLING_LABELS = { monthly: 'mensual', annual: 'anual' };
+const LIMIT_LABELS = { pilots: 'pilotos', aircraft: 'aeronaves', batteries: 'baterías' };
 
 export async function GET(request) {
   const g = await requireSuperadmin();
@@ -21,19 +24,8 @@ export async function GET(request) {
   if (error) return bad(error.message, 500);
   if (!orgs?.length) return Response.json({ organizations: [] });
 
-  const ids = orgs.map((o) => o.id);
-  const [subs, members, aircraft] = await Promise.all([
-    g.admin.from('subscriptions').select('organization_id, plan, expires_at, billing, payment_provider, notes').in('organization_id', ids),
-    g.admin.from('memberships').select('organization_id').in('organization_id', ids).eq('status', 'activa'),
-    g.admin.from('aircraft').select('organization_id').in('organization_id', ids),
-  ]);
-  const count = (rows) => (rows || []).reduce((a, r) => ((a[r.organization_id] = (a[r.organization_id] || 0) + 1), a), {});
-  const subBy = Object.fromEntries((subs.data || []).map((s) => [s.organization_id, s]));
-  const mBy = count(members.data);
-  const aBy = count(aircraft.data);
-  return Response.json({
-    organizations: orgs.map((o) => ({ ...o, subscription: subBy[o.id] || null, members: mBy[o.id] || 0, aircraft: aBy[o.id] || 0 })),
-  });
+  const plans = await loadOrgPlans(g.admin, orgs.map((o) => o.id));
+  return Response.json({ organizations: orgs.map((o) => ({ ...o, ...plans[o.id] })) });
 }
 
 // PATCH — el superadmin cambia el plan, el periodo de cobro (mensual/anual) y el vencimiento de una organización
@@ -43,14 +35,17 @@ export async function GET(request) {
 export async function PATCH(request) {
   const g = await requireSuperadmin();
   if (g.error) return g.error;
-  const { organization_id, plan, billing, expires_at, notes } = await request.json().catch(() => ({}));
+  const { organization_id, plan, billing, expires_at, notes, limits_override } = await request.json().catch(() => ({}));
   if (!organization_id) return bad('organization_id requerido');
   if (!PLANS.includes(plan)) return bad('Plan inválido.');
   if (billing !== undefined && !BILLINGS.includes(billing)) return bad('El periodo de cobro debe ser mensual o anual.');
   if (expires_at !== null && expires_at !== '' && expires_at !== undefined && !DATE_RE.test(expires_at)) return bad('El vencimiento debe ser una fecha (AAAA-MM-DD) o quedar vacío.');
+  // Límites ajustados para esta organización (opcional): número, ilimitado (null) o, si no se envía la llave, el del plan.
+  const limits = limits_override === undefined ? null : normalizeLimitsOverride(limits_override);
+  if (limits?.error) return bad(limits.error);
   const { data: org } = await g.admin.from('organizations').select('id, company_name').eq('id', organization_id).maybeSingle();
   if (!org) return bad('Organización no encontrada', 404);
-  const { data: before } = await g.admin.from('subscriptions').select('plan, billing, expires_at').eq('organization_id', organization_id).maybeSingle();
+  const { data: before } = await g.admin.from('subscriptions').select('*').eq('organization_id', organization_id).maybeSingle();
 
   const row = {
     organization_id,
@@ -61,16 +56,24 @@ export async function PATCH(request) {
     updated_by: g.personId,
     updated_at: new Date().toISOString(),
   };
+  if (limits) row.limits_override = limits.value;
   const { data, error } = await g.admin.from('subscriptions').upsert(row, { onConflict: 'organization_id' }).select().single();
-  if (error) return bad('No se pudo guardar el plan.', 500);
+  if (error) {
+    if (/limits_override/.test(error.message)) return bad('Falta aplicar en la base la migración 20261022120000 (límites por organización).', 503);
+    return bad('No se pudo guardar el plan.', 500);
+  }
 
-  const describe = (s) => (s ? `${PLAN_LABELS[s.plan] || s.plan} ${BILLING_LABELS[s.billing] || ''} · ${s.expires_at ? `vence ${String(s.expires_at).slice(0, 10)}` : 'sin vencimiento'}` : 'sin plan');
+  const limitsText = (o) => (o ? ` · límites ${Object.entries(o).map(([k, v]) => `${LIMIT_LABELS[k]} ${v ?? '∞'}`).join(', ')}` : '');
+  const describe = (s) => (s ? `${PLAN_LABELS[s.plan] || s.plan} ${BILLING_LABELS[s.billing] || ''} · ${s.expires_at ? `vence ${String(s.expires_at).slice(0, 10)}` : 'sin vencimiento'}${limitsText(s.limits_override)}` : 'sin plan');
   await logAudit({
     organizationId: organization_id,
     action: 'update',
     module: 'Suscripción (plataforma)',
     entityLabel: `${describe(before)} → ${describe(data)}`,
-    metadata: { before: before || null, after: { plan: data.plan, billing: data.billing, expires_at: data.expires_at } },
+    metadata: {
+      before: before ? { plan: before.plan, billing: before.billing, expires_at: before.expires_at, limits_override: before.limits_override ?? null } : null,
+      after: { plan: data.plan, billing: data.billing, expires_at: data.expires_at, limits_override: data.limits_override ?? null },
+    },
   });
   return Response.json({ subscription: data });
 }
@@ -80,6 +83,9 @@ export async function DELETE(request) {
   if (g.error) return g.error;
   const { organization_id, confirmName } = await request.json().catch(() => ({}));
   if (!organization_id) return bad('organization_id requerido');
+  // Límites ajustados para esta organización (opcional): número, ilimitado (null) o, si no se envía la llave, el del plan.
+  const limits = limits_override === undefined ? null : normalizeLimitsOverride(limits_override);
+  if (limits?.error) return bad(limits.error);
   const { data: org } = await g.admin.from('organizations').select('id, company_name').eq('id', organization_id).maybeSingle();
   if (!org) return bad('Organización no encontrada', 404);
   if (String(confirmName || '').trim() !== org.company_name) return bad('Escribe el nombre exacto de la organización para confirmar.');

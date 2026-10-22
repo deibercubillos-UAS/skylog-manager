@@ -4,6 +4,7 @@
 // después se elimina el usuario de autenticación.
 import { requireSuperadmin } from '@/lib/v2/platformAdmin';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
+import { loadOrgPlans } from '@/lib/v2/adminOrgPlans';
 
 export const dynamic = 'force-dynamic';
 const bad = (message, status = 400) => Response.json({ error: message }, { status });
@@ -19,18 +20,20 @@ export async function GET(request) {
   const ids = people.map((p) => p.id);
   const [accounts, memberships, partners] = await Promise.all([
     g.admin.from('accounts').select('person_id').in('person_id', ids),
-    g.admin.from('memberships').select('person_id, role, status, organization:organizations(company_name)').in('person_id', ids).eq('status', 'activa'),
+    g.admin.from('memberships').select('person_id, role, status, organization_id, organization:organizations(company_name)').in('person_id', ids).eq('status', 'activa'),
     g.admin.from('partner_members').select('person_id, role, partner:partners(name)').in('person_id', ids),
   ]);
   const hasAccount = new Set((accounts.data || []).map((a) => a.person_id));
   const group = (rows) => (rows || []).reduce((a, r) => ((a[r.person_id] ||= []).push(r), a), {});
   const mBy = group(memberships.data);
   const pBy = group(partners.data);
+  // Plan, límites y uso de cada organización de estas personas: el panel los edita desde aquí (Cuentas).
+  const plans = await loadOrgPlans(g.admin, [...new Set((memberships.data || []).map((m) => m.organization_id))]);
   return Response.json({
     people: people.map((p) => ({
       ...p,
       has_account: hasAccount.has(p.id),
-      memberships: (mBy[p.id] || []).map((m) => ({ role: m.role, organization: m.organization?.company_name })),
+      memberships: (mBy[p.id] || []).map((m) => ({ role: m.role, organization: m.organization?.company_name, organization_id: m.organization_id, ...plans[m.organization_id] })),
       partners: (pBy[p.id] || []).map((m) => ({ role: m.role, name: m.partner?.name })),
     })),
   });

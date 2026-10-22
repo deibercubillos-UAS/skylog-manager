@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SectionHero } from '../../_components/SectionHero';
 import { Field, Button } from '@skylog/ui';
-import { PLANS, PLAN_LABELS } from '@/lib/v2/planLimits';
+import { PLANS, PLAN_LABELS, PLAN_LIMITS } from '@/lib/v2/planLimits';
 import { addBillingPeriod, isOrgReadOnly } from '@skylog/domain';
 
 const TABS = [['organizaciones', 'Organizaciones'], ['cuentas', 'Cuentas'], ['regalos', 'Regalos'], ['app', 'App Android']];
@@ -41,24 +41,140 @@ function subscriptionStatus(sub) {
   return { label: `Vigente · ${days} d`, tone: 'bg-emerald-50 text-emerald-700' };
 }
 
-function OrgRow({ org, onChange, onError, onNotice }) {
-  const [open, setOpen] = useState(false);
-  const sub = org.subscription;
-  const [form, setForm] = useState({ plan: sub?.plan || 'piloto', billing: sub?.billing || 'monthly', expires_at: sub?.expires_at ? String(sub.expires_at).slice(0, 10) : '', notes: sub?.notes || '' });
+const LIMIT_ROWS = [['pilots', 'Pilotos'], ['aircraft', 'Aeronaves'], ['batteries', 'Baterías']];
+const limitText = (v) => (v == null ? 'ilimitado' : String(v));
+
+// Estado inicial de cada límite a partir del ajuste guardado: llave ausente = el del plan, null = ilimitado.
+function limitsFormFrom(override) {
+  return Object.fromEntries(LIMIT_ROWS.map(([k]) => {
+    if (!override || !(k in override)) return [k, { mode: 'plan', value: '' }];
+    if (override[k] === null) return [k, { mode: 'unlimited', value: '' }];
+    return [k, { mode: 'custom', value: String(override[k]) }];
+  }));
+}
+
+function limitsOverrideFrom(form) {
+  const out = {};
+  for (const [k] of LIMIT_ROWS) {
+    const f = form[k];
+    if (f.mode === 'unlimited') out[k] = null;
+    if (f.mode === 'custom') out[k] = Number(f.value);
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+function PlanChips({ sub }) {
   const status = subscriptionStatus(sub);
+  return (
+    <span className="flex flex-col items-end gap-1 shrink-0">
+      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-navy-50 text-navy-500">
+        {sub ? `${PLAN_LABELS[sub.plan] || sub.plan}${sub.billing ? ` · ${BILLING_LABELS[sub.billing] || sub.billing}` : ''}${sub.expires_at ? ` · ${String(sub.expires_at).slice(0, 10)}` : ''}${sub.limits_override ? ' · límites a medida' : ''}` : 'sin plan'}
+      </span>
+      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${status.tone}`}>{status.label}</span>
+    </span>
+  );
+}
+
+// Editor del plan de UNA organización: plan, periodo, vencimiento, límites (pilotos/aeronaves/baterías) y notas.
+// Lo usan las pestañas Organizaciones y Cuentas.
+function PlanEditor({ organizationId, sub, usage, onSaved, onError, onNotice, children }) {
+  const initialLimits = limitsFormFrom(sub?.limits_override);
+  const [form, setForm] = useState({ plan: sub?.plan || 'piloto', billing: sub?.billing || 'monthly', expires_at: sub?.expires_at ? String(sub.expires_at).slice(0, 10) : '', notes: sub?.notes || '' });
+  const [limits, setLimits] = useState(initialLimits);
+  const [busy, setBusy] = useState(false);
+  const setLimit = (k, patch) => setLimits((l) => ({ ...l, [k]: { ...l[k], ...patch } }));
   // Extender: desde el vencimiento actual si aún no ha pasado; si ya venció (o no tiene), desde hoy.
   const extend = (billing) => setForm((f) => {
     const base = f.expires_at && f.expires_at > todayIso() ? f.expires_at : todayIso();
     return { ...f, expires_at: addBillingPeriod(base, billing) };
   });
-  const [busy, setBusy] = useState(false);
 
-  async function run(fn, ok) {
+  async function save() {
     setBusy(true);
     onError(null);
     try {
-      await fn();
-      onNotice(ok);
+      const body = { organization_id: organizationId, ...form };
+      // Los límites solo viajan si cambiaron: así el plan y la fecha se pueden editar aunque falte la migración.
+      if (JSON.stringify(limits) !== JSON.stringify(initialLimits)) {
+        const bad = LIMIT_ROWS.find(([k]) => limits[k].mode === 'custom' && !/^\d+$/.test(limits[k].value));
+        if (bad) throw new Error(`Escribe un número entero para el límite de ${bad[1].toLowerCase()}, o elige «Del plan» o «Ilimitado».`);
+        body.limits_override = limitsOverrideFrom(limits);
+      }
+      await api('PATCH', '/api/admin/organizaciones', body);
+      onNotice('Plan guardado. El cliente lo verá en su próxima carga (máx. 1 minuto).');
+      await onSaved();
+    } catch (e) {
+      onError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-3">
+        <Field as="select" label="Plan" value={form.plan} onChange={(e) => setForm((f) => ({ ...f, plan: e.target.value }))}>
+          {PLANS.map((p) => <option key={p} value={p}>{PLAN_LABELS[p] || p}</option>)}
+        </Field>
+        <Field as="select" label="Periodo de cobro" value={form.billing} onChange={(e) => setForm((f) => ({ ...f, billing: e.target.value }))}>
+          {Object.entries(BILLING_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+        </Field>
+        <Field label="Vence (vacío = sin vencimiento)" type="date" value={form.expires_at} onChange={(e) => setForm((f) => ({ ...f, expires_at: e.target.value }))} />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {[['+1 mes', 'monthly'], ['+1 año', 'annual']].map(([label, b]) => (
+          <button key={b} type="button" onClick={() => extend(b)} className="min-h-[40px] px-3 rounded-xl text-xs font-bold border border-navy-100 text-navy-500 bg-white">{label}</button>
+        ))}
+        <button type="button" onClick={() => setForm((f) => ({ ...f, expires_at: '' }))} className="min-h-[40px] px-3 rounded-xl text-xs font-bold border border-navy-100 text-navy-500 bg-white">Sin vencimiento</button>
+      </div>
+
+      <div className="rounded-xl border border-navy-100 p-3 space-y-2">
+        <p className="text-xs font-black uppercase tracking-widest text-navy-300">Límites del plan</p>
+        {LIMIT_ROWS.map(([k, label]) => {
+          const planDefault = PLAN_LIMITS[form.plan]?.[k];
+          const l = limits[k];
+          return (
+            <div key={k} className="grid grid-cols-[90px_1fr] sm:grid-cols-[110px_220px_110px_1fr] gap-2 items-center">
+              <span className="text-sm font-bold text-navy">{label}</span>
+              <select value={l.mode} onChange={(e) => setLimit(k, { mode: e.target.value })} className="min-h-[40px] px-2 text-sm border border-navy-100 rounded-xl bg-white">
+                <option value="plan">Del plan ({limitText(planDefault)})</option>
+                <option value="custom">A medida</option>
+                <option value="unlimited">Ilimitado</option>
+              </select>
+              {l.mode === 'custom' ? (
+                <input type="number" min="0" max="10000" step="1" value={l.value} onChange={(e) => setLimit(k, { value: e.target.value })} aria-label={`Límite de ${label}`} className="min-h-[40px] px-3 text-sm border border-navy-100 rounded-xl bg-white col-start-2 sm:col-start-auto" />
+              ) : <span className="hidden sm:block" />}
+              {usage?.[k] && <span className="text-xs text-navy-400 col-start-2 sm:col-start-auto">En uso: {usage[k].count} de {limitText(usage[k].limit)}</span>}
+            </div>
+          );
+        })}
+        <p className="text-[11px] text-navy-400">Bajar un límite no borra nada: solo impide agregar más mientras estén por encima.</p>
+      </div>
+
+      <Field label="Notas internas" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
+      {sub?.payment_provider === 'wompi' && (
+        <p className="text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2">Este cliente paga con Wompi: el cobro automático usará el plan y el periodo que guardes, a partir de la nueva fecha de vencimiento.</p>
+      )}
+      <div className="flex flex-wrap gap-3 items-center">
+        <Button disabled={busy} onClick={save}>{busy ? 'Guardando…' : 'Guardar plan'}</Button>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function OrgRow({ org, onChange, onError, onNotice }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function remove() {
+    const name = prompt(`Para ELIMINAR esta organización y todo lo suyo, escribe su nombre exacto:\n${org.company_name}`);
+    if (!name) return;
+    setBusy(true);
+    onError(null);
+    try {
+      await api('DELETE', '/api/admin/organizaciones', { organization_id: org.id, confirmName: name });
+      onNotice('Organización eliminada.');
       await onChange();
     } catch (e) {
       onError(e.message);
@@ -72,42 +188,15 @@ function OrgRow({ org, onChange, onError, onNotice }) {
       <button type="button" onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between gap-3 p-4 text-left min-h-[56px]">
         <div className="min-w-0">
           <p className="text-sm font-bold text-navy truncate">{org.company_name}</p>
-          <p className="text-xs text-navy-400">NIT {org.nit || '—'} · {org.members} miembro(s) · {org.aircraft} aeronave(s)</p>
+          <p className="text-xs text-navy-400">NIT {org.nit || '—'} · {org.members} miembro(s) · {org.usage?.aircraft.count ?? 0} aeronave(s)</p>
         </div>
-        <span className="flex flex-col items-end gap-1 shrink-0">
-          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-navy-50 text-navy-500">{sub ? `${PLAN_LABELS[sub.plan] || sub.plan}${sub.billing ? ` · ${BILLING_LABELS[sub.billing] || sub.billing}` : ''}${sub.expires_at ? ` · ${String(sub.expires_at).slice(0, 10)}` : ''}` : 'sin plan'}</span>
-          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${status.tone}`}>{status.label}</span>
-        </span>
+        <PlanChips sub={org.subscription} />
       </button>
       {open && (
-        <div className="px-4 pb-4 pt-3 border-t border-navy-50 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-3">
-            <Field as="select" label="Plan" value={form.plan} onChange={(e) => setForm((f) => ({ ...f, plan: e.target.value }))}>
-              {PLANS.map((p) => <option key={p} value={p}>{PLAN_LABELS[p] || p}</option>)}
-            </Field>
-            <Field as="select" label="Periodo de cobro" value={form.billing} onChange={(e) => setForm((f) => ({ ...f, billing: e.target.value }))}>
-              {Object.entries(BILLING_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-            </Field>
-            <Field label="Vence (vacío = sin vencimiento)" type="date" value={form.expires_at} onChange={(e) => setForm((f) => ({ ...f, expires_at: e.target.value }))} />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {[['+1 mes', 'monthly'], ['+1 año', 'annual']].map(([label, b]) => (
-              <button key={b} type="button" onClick={() => extend(b)} className="min-h-[40px] px-3 rounded-xl text-xs font-bold border border-navy-100 text-navy-500 bg-white">{label}</button>
-            ))}
-            <button type="button" onClick={() => setForm((f) => ({ ...f, expires_at: '' }))} className="min-h-[40px] px-3 rounded-xl text-xs font-bold border border-navy-100 text-navy-500 bg-white">Sin vencimiento</button>
-          </div>
-          <Field label="Notas internas" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
-          {sub?.payment_provider === 'wompi' && (
-            <p className="text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2">Este cliente paga con Wompi: el cobro automático usará el plan y el periodo que guardes, a partir de la nueva fecha de vencimiento.</p>
-          )}
-          <div className="flex flex-wrap gap-3 items-center">
-            <Button disabled={busy} onClick={() => run(() => api('PATCH', '/api/admin/organizaciones', { organization_id: org.id, ...form }), 'Plan guardado. El cliente lo verá en su próxima carga (máx. 1 minuto).')}>Guardar plan</Button>
-            <button type="button" disabled={busy} className="text-xs font-bold text-red-600 min-h-[44px] px-2"
-              onClick={() => {
-                const name = prompt(`Para ELIMINAR esta organización y todo lo suyo, escribe su nombre exacto:\n${org.company_name}`);
-                if (name) run(() => api('DELETE', '/api/admin/organizaciones', { organization_id: org.id, confirmName: name }), 'Organización eliminada.');
-              }}>Eliminar organización</button>
-          </div>
+        <div className="px-4 pb-4 pt-3 border-t border-navy-50">
+          <PlanEditor key={JSON.stringify(org.subscription)} organizationId={org.id} sub={org.subscription} usage={org.usage} onSaved={onChange} onError={onError} onNotice={onNotice}>
+            <button type="button" disabled={busy} className="text-xs font-bold text-red-600 min-h-[44px] px-2" onClick={remove}>Eliminar organización</button>
+          </PlanEditor>
         </div>
       )}
     </div>
@@ -132,9 +221,12 @@ function Organizaciones({ onError, onNotice }) {
   );
 }
 
+const ROLE_LABELS = { admin: 'Gerente General', jefe_pilotos: 'Jefe de Pilotos', gerente_sms: 'Gerente SMS', piloto: 'Piloto', superadmin: 'Superadmin' };
+
 function Cuentas({ onError, onNotice }) {
   const [q, setQ] = useState('');
   const [people, setPeople] = useState([]);
+  const [openKey, setOpenKey] = useState(null); // organización abierta para editar su plan (persona:organización)
   const load = useCallback(async () => {
     if (q.trim().length < 3) return setPeople([]);
     try { setPeople((await api('GET', `/api/admin/cuentas?q=${encodeURIComponent(q)}`)).people); } catch (e) { onError(e.message); }
@@ -155,12 +247,36 @@ function Cuentas({ onError, onNotice }) {
     <div className="space-y-3">
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Correo o nombre (mínimo 3 letras)" className="w-full min-h-[44px] px-3 text-base md:text-sm border border-navy-100 rounded-xl bg-white" />
       {people.map((p) => (
-        <div key={p.id} className="bg-white rounded-2xl border border-navy-100 p-4 flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 text-sm">
-            <p className="font-bold text-navy truncate">{p.full_name} <span className="font-normal text-navy-400">· {p.email || 'sin correo'}</span></p>
-            <p className="text-xs text-navy-400">{p.has_account ? 'Con cuenta' : 'Sin cuenta'} · {p.memberships.map((m) => `${m.role} en ${m.organization}`).join(', ') || 'sin organizaciones'}{p.partners.length ? ` · socio: ${p.partners.map((x) => x.name).join(', ')}` : ''}</p>
+        <div key={p.id} className="bg-white rounded-2xl border border-navy-100 p-4 space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 text-sm">
+              <p className="font-bold text-navy truncate">{p.full_name} <span className="font-normal text-navy-400">· {p.email || 'sin correo'}</span></p>
+              <p className="text-xs text-navy-400">{p.has_account ? 'Con cuenta' : 'Sin cuenta'}{p.memberships.length ? '' : ' · sin organizaciones'}{p.partners.length ? ` · socio: ${p.partners.map((x) => x.name).join(', ')}` : ''}</p>
+            </div>
+            {p.email && <button type="button" onClick={() => remove(p)} className="text-xs font-bold text-red-600 min-h-[44px] px-2">Eliminar cuenta</button>}
           </div>
-          {p.email && <button type="button" onClick={() => remove(p)} className="text-xs font-bold text-red-600 min-h-[44px] px-2">Eliminar cuenta</button>}
+          {p.memberships.map((m) => {
+            const key = `${p.id}:${m.organization_id}`;
+            return (
+              <div key={key} className="rounded-xl border border-navy-100">
+                <button type="button" onClick={() => setOpenKey((k) => (k === key ? null : key))} className="w-full flex items-center justify-between gap-3 p-3 text-left min-h-[52px]">
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold text-navy truncate">{m.organization}</span>
+                    <span className="block text-xs text-navy-400">{ROLE_LABELS[m.role] || m.role}{m.usage ? ` · ${m.usage.pilots.count} piloto(s) · ${m.usage.aircraft.count} aeronave(s)` : ''}</span>
+                  </span>
+                  <span className="flex items-center gap-2 shrink-0">
+                    <PlanChips sub={m.subscription} />
+                    <span className="material-symbols-outlined text-base text-navy-300">{openKey === key ? 'expand_less' : 'edit'}</span>
+                  </span>
+                </button>
+                {openKey === key && (
+                  <div className="px-3 pb-3 pt-3 border-t border-navy-50">
+                    <PlanEditor key={JSON.stringify(m.subscription)} organizationId={m.organization_id} sub={m.subscription} usage={m.usage} onSaved={load} onError={onError} onNotice={onNotice} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       ))}
     </div>

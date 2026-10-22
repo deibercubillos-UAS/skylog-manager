@@ -365,6 +365,26 @@ export default function V2Layout({ children }) {
                     {link.name}
                   </Link>
                 ))}
+                {context?.organizations?.length > 1 && (
+                  <>
+                    <div className="h-px bg-white/10 my-1 mx-1" />
+                    <p className="px-3 pt-1 pb-1 text-[9.5px] font-black uppercase tracking-widest text-navy-300">Cambiar de organización</p>
+                    {context.organizations.map((o) => (
+                      <button
+                        key={o.id}
+                        type="button"
+                        onClick={() => handleSwitchOrg(o.id)}
+                        disabled={switchingOrg}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50 ${
+                          o.id === organizationId ? 'text-primary-300 bg-white/5' : 'text-navy-200 hover:text-white hover:bg-white/5'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-base shrink-0">{o.id === organizationId ? 'radio_button_checked' : 'radio_button_unchecked'}</span>
+                        <span className="truncate flex-1 text-left">{o.name}</span>
+                      </button>
+                    ))}
+                  </>
+                )}
                 <div className="h-px bg-white/10 my-1 mx-1" />
                 <button
                   type="button"
@@ -424,13 +444,17 @@ export default function V2Layout({ children }) {
                   type="button"
                   onClick={() => setOrgMenuOpen((v) => !v)}
                   disabled={switchingOrg}
-                  className="flex items-center gap-1.5 text-left truncate rounded-lg px-1.5 -mx-1.5 py-1 hover:bg-navy-50 transition-colors disabled:opacity-60"
+                  aria-haspopup="menu"
+                  aria-expanded={orgMenuOpen}
+                  title="Cambiar de organización"
+                  className="flex items-center gap-2 text-left truncate rounded-xl border border-primary-100 bg-primary-50/60 pl-2 pr-2.5 py-1 min-h-[40px] hover:bg-primary-50 active:scale-[0.98] transition-all disabled:opacity-60"
                 >
+                  <span className="material-symbols-outlined text-lg text-primary-600 shrink-0">swap_horiz</span>
                   <div className="truncate">
-                    <p className="hidden lg:block text-xs font-black text-navy-300 uppercase leading-none tracking-widest">Organización</p>
-                    <h2 className="text-sm font-black text-navy uppercase truncate max-w-[140px] sm:max-w-xs">{currentOrg?.name || 'Individual'}</h2>
+                    <p className="hidden lg:block text-[10px] font-black text-primary-500 uppercase leading-none tracking-widest">Cambiar organización · {context.organizations.length}</p>
+                    <h2 className="text-sm font-black text-navy uppercase truncate max-w-[120px] sm:max-w-xs">{currentOrg?.name || 'Individual'}</h2>
                   </div>
-                  <span className="material-symbols-outlined text-base text-navy-300 shrink-0">{orgMenuOpen ? 'expand_less' : 'expand_more'}</span>
+                  <span className="material-symbols-outlined text-base text-primary-400 shrink-0">{orgMenuOpen ? 'expand_less' : 'expand_more'}</span>
                 </button>
                 {orgMenuOpen && (
                   <div className="absolute left-0 top-full mt-2 w-64 bg-white border border-navy-100 rounded-2xl p-2 shadow-2xl z-30 space-y-0.5">
@@ -446,7 +470,10 @@ export default function V2Layout({ children }) {
                         }`}
                       >
                         <span className="material-symbols-outlined text-base shrink-0">{o.id === organizationId ? 'radio_button_checked' : 'radio_button_unchecked'}</span>
-                        <span className="truncate flex-1 text-left">{o.name}</span>
+                        <span className="flex-1 min-w-0 text-left">
+                          <span className="block truncate">{o.name}</span>
+                          <span className="block text-[11px] font-semibold text-navy-400 truncate">{ROLE_LABELS[o.role] || o.role}</span>
+                        </span>
                       </button>
                     ))}
                   </div>

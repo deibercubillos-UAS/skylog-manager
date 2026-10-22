@@ -6,7 +6,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SectionHero } from '../../_components/SectionHero';
 import { Field, Button } from '@skylog/ui';
-import { PLANS } from '@/lib/v2/planLimits';
+import { PLANS, PLAN_LABELS } from '@/lib/v2/planLimits';
+import { addBillingPeriod, isOrgReadOnly } from '@skylog/domain';
 
 const TABS = [['organizaciones', 'Organizaciones'], ['cuentas', 'Cuentas'], ['regalos', 'Regalos'], ['app', 'App Android']];
 
@@ -26,9 +27,30 @@ function Msg({ error, notice }) {
   );
 }
 
+const BILLING_LABELS = { monthly: 'Mensual', annual: 'Anual' };
+const todayIso = () => new Date().toISOString().slice(0, 10);
+
+// Estado de la suscripción tal como lo vive el cliente: vigente, vencida (7 días de gracia) o en solo lectura.
+function subscriptionStatus(sub) {
+  if (!sub) return { label: 'Sin plan', tone: 'bg-navy-50 text-navy-500' };
+  if (!sub.expires_at) return { label: 'Sin vencimiento', tone: 'bg-emerald-50 text-emerald-700' };
+  const days = Math.round((Date.parse(`${sub.expires_at}T00:00:00Z`) - Date.parse(`${todayIso()}T00:00:00Z`)) / 86400000);
+  if (isOrgReadOnly({ plan: sub.plan, expiresAt: sub.expires_at })) return { label: `Solo lectura · venció hace ${-days} d`, tone: 'bg-red-50 text-red-700' };
+  if (days < 0) return { label: `Vencida hace ${-days} d (en gracia)`, tone: 'bg-amber-50 text-amber-700' };
+  if (days <= 7) return { label: `Vence en ${days} d`, tone: 'bg-amber-50 text-amber-700' };
+  return { label: `Vigente · ${days} d`, tone: 'bg-emerald-50 text-emerald-700' };
+}
+
 function OrgRow({ org, onChange, onError, onNotice }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ plan: org.subscription?.plan || 'piloto', expires_at: org.subscription?.expires_at || '', notes: org.subscription?.notes || '' });
+  const sub = org.subscription;
+  const [form, setForm] = useState({ plan: sub?.plan || 'piloto', billing: sub?.billing || 'monthly', expires_at: sub?.expires_at ? String(sub.expires_at).slice(0, 10) : '', notes: sub?.notes || '' });
+  const status = subscriptionStatus(sub);
+  // Extender: desde el vencimiento actual si aún no ha pasado; si ya venció (o no tiene), desde hoy.
+  const extend = (billing) => setForm((f) => {
+    const base = f.expires_at && f.expires_at > todayIso() ? f.expires_at : todayIso();
+    return { ...f, expires_at: addBillingPeriod(base, billing) };
+  });
   const [busy, setBusy] = useState(false);
 
   async function run(fn, ok) {
@@ -52,19 +74,34 @@ function OrgRow({ org, onChange, onError, onNotice }) {
           <p className="text-sm font-bold text-navy truncate">{org.company_name}</p>
           <p className="text-xs text-navy-400">NIT {org.nit || '—'} · {org.members} miembro(s) · {org.aircraft} aeronave(s)</p>
         </div>
-        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-navy-50 text-navy-500 shrink-0">{org.subscription?.plan || 'sin plan'}{org.subscription?.expires_at ? ` · ${org.subscription.expires_at}` : ''}</span>
+        <span className="flex flex-col items-end gap-1 shrink-0">
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-navy-50 text-navy-500">{sub ? `${PLAN_LABELS[sub.plan] || sub.plan}${sub.billing ? ` · ${BILLING_LABELS[sub.billing] || sub.billing}` : ''}${sub.expires_at ? ` · ${String(sub.expires_at).slice(0, 10)}` : ''}` : 'sin plan'}</span>
+          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${status.tone}`}>{status.label}</span>
+        </span>
       </button>
       {open && (
         <div className="px-4 pb-4 pt-3 border-t border-navy-50 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-3">
             <Field as="select" label="Plan" value={form.plan} onChange={(e) => setForm((f) => ({ ...f, plan: e.target.value }))}>
-              {PLANS.map((p) => <option key={p} value={p}>{p}</option>)}
+              {PLANS.map((p) => <option key={p} value={p}>{PLAN_LABELS[p] || p}</option>)}
+            </Field>
+            <Field as="select" label="Periodo de cobro" value={form.billing} onChange={(e) => setForm((f) => ({ ...f, billing: e.target.value }))}>
+              {Object.entries(BILLING_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
             </Field>
             <Field label="Vence (vacío = sin vencimiento)" type="date" value={form.expires_at} onChange={(e) => setForm((f) => ({ ...f, expires_at: e.target.value }))} />
-            <Field label="Notas internas" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
           </div>
+          <div className="flex flex-wrap gap-2">
+            {[['+1 mes', 'monthly'], ['+1 año', 'annual']].map(([label, b]) => (
+              <button key={b} type="button" onClick={() => extend(b)} className="min-h-[40px] px-3 rounded-xl text-xs font-bold border border-navy-100 text-navy-500 bg-white">{label}</button>
+            ))}
+            <button type="button" onClick={() => setForm((f) => ({ ...f, expires_at: '' }))} className="min-h-[40px] px-3 rounded-xl text-xs font-bold border border-navy-100 text-navy-500 bg-white">Sin vencimiento</button>
+          </div>
+          <Field label="Notas internas" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
+          {sub?.payment_provider === 'wompi' && (
+            <p className="text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2">Este cliente paga con Wompi: el cobro automático usará el plan y el periodo que guardes, a partir de la nueva fecha de vencimiento.</p>
+          )}
           <div className="flex flex-wrap gap-3 items-center">
-            <Button disabled={busy} onClick={() => run(() => api('PATCH', '/api/admin/organizaciones', { organization_id: org.id, ...form }), 'Plan guardado.')}>Guardar plan</Button>
+            <Button disabled={busy} onClick={() => run(() => api('PATCH', '/api/admin/organizaciones', { organization_id: org.id, ...form }), 'Plan guardado. El cliente lo verá en su próxima carga (máx. 1 minuto).')}>Guardar plan</Button>
             <button type="button" disabled={busy} className="text-xs font-bold text-red-600 min-h-[44px] px-2"
               onClick={() => {
                 const name = prompt(`Para ELIMINAR esta organización y todo lo suyo, escribe su nombre exacto:\n${org.company_name}`);

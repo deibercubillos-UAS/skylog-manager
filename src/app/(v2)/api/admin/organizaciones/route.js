@@ -2,11 +2,14 @@
 // Eliminar una organización lo decide la BASE: si tiene registros operacionales bajo retención de 5 años (RAC 100
 // §100.535(29)) o una custodia legal activa, el trigger lo impide y no se borra nada — se explica por qué.
 import { requireSuperadmin } from '@/lib/v2/platformAdmin';
-import { PLANS } from '@/lib/v2/planLimits';
+import { PLANS, PLAN_LABELS } from '@/lib/v2/planLimits';
+import { logAudit } from '@/lib/v2/auditLog';
 
 export const dynamic = 'force-dynamic';
 const bad = (message, status = 400) => Response.json({ error: message }, { status });
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const BILLINGS = ['monthly', 'annual'];
+const BILLING_LABELS = { monthly: 'mensual', annual: 'anual' };
 
 export async function GET(request) {
   const g = await requireSuperadmin();
@@ -33,22 +36,42 @@ export async function GET(request) {
   });
 }
 
+// PATCH — el superadmin cambia el plan, el periodo de cobro (mensual/anual) y el vencimiento de una organización
+// (cortesías, acuerdos por fuera de la pasarela, corrección de errores). Queda en la auditoría de la organización con
+// el antes y el después. Si la organización tiene tarjeta inscrita en Wompi, el cobro automático usará el plan y el
+// periodo que queden aquí, a partir de la nueva fecha de vencimiento.
 export async function PATCH(request) {
   const g = await requireSuperadmin();
   if (g.error) return g.error;
-  const { organization_id, plan, expires_at, notes } = await request.json().catch(() => ({}));
+  const { organization_id, plan, billing, expires_at, notes } = await request.json().catch(() => ({}));
   if (!organization_id) return bad('organization_id requerido');
   if (!PLANS.includes(plan)) return bad('Plan inválido.');
+  if (billing !== undefined && !BILLINGS.includes(billing)) return bad('El periodo de cobro debe ser mensual o anual.');
   if (expires_at !== null && expires_at !== '' && expires_at !== undefined && !DATE_RE.test(expires_at)) return bad('El vencimiento debe ser una fecha (AAAA-MM-DD) o quedar vacío.');
-  const { data: org } = await g.admin.from('organizations').select('id').eq('id', organization_id).maybeSingle();
+  const { data: org } = await g.admin.from('organizations').select('id, company_name').eq('id', organization_id).maybeSingle();
   if (!org) return bad('Organización no encontrada', 404);
+  const { data: before } = await g.admin.from('subscriptions').select('plan, billing, expires_at').eq('organization_id', organization_id).maybeSingle();
 
-  const { data, error } = await g.admin
-    .from('subscriptions')
-    .upsert({ organization_id, plan, expires_at: expires_at || null, notes: String(notes || '').trim() || null, updated_by: g.personId, updated_at: new Date().toISOString() }, { onConflict: 'organization_id' })
-    .select()
-    .single();
-  if (error) return bad(error.message, 500);
+  const row = {
+    organization_id,
+    plan,
+    billing: billing || before?.billing || 'monthly',
+    expires_at: expires_at || null,
+    notes: String(notes || '').trim() || null,
+    updated_by: g.personId,
+    updated_at: new Date().toISOString(),
+  };
+  const { data, error } = await g.admin.from('subscriptions').upsert(row, { onConflict: 'organization_id' }).select().single();
+  if (error) return bad('No se pudo guardar el plan.', 500);
+
+  const describe = (s) => (s ? `${PLAN_LABELS[s.plan] || s.plan} ${BILLING_LABELS[s.billing] || ''} · ${s.expires_at ? `vence ${String(s.expires_at).slice(0, 10)}` : 'sin vencimiento'}` : 'sin plan');
+  await logAudit({
+    organizationId: organization_id,
+    action: 'update',
+    module: 'Suscripción (plataforma)',
+    entityLabel: `${describe(before)} → ${describe(data)}`,
+    metadata: { before: before || null, after: { plan: data.plan, billing: data.billing, expires_at: data.expires_at } },
+  });
   return Response.json({ subscription: data });
 }
 

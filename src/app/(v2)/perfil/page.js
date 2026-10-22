@@ -25,7 +25,7 @@ import { supabase } from '@/lib/supabase';
 import IconField from './_IconField';
 import JoinOrganization from './_JoinOrganization';
 import PrivacySection from './_PrivacySection';
-import { fetchDutyContext } from '@/lib/v2/dutyContextClient';
+import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const ROLE_LABELS = {
   admin: 'Gerente General',
@@ -167,7 +167,8 @@ export default function PerfilPage() {
   }
 
   const status = medicalStatus(person?.medical_cert_expiry);
-  const primaryRole = context.organizations?.[0]?.role;
+  // Rol en la organización elegida en el menú (no en la primera de la lista).
+  const primaryRole = context.organizations?.find((o) => o.id === pickOrganizationId(context))?.role;
 
   return (
     <div className="space-y-6">

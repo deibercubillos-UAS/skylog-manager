@@ -204,17 +204,8 @@ export default function DutyOverviewPage() {
         metric={heroMetric}
       />
 
-      {(context.organizations.length > 1 || canSee) && (
+      {canSee && (
         <div className="bg-white rounded-2xl border border-navy-100 p-4 flex flex-wrap gap-4">
-          {context.organizations.length > 1 && (
-            <Field as="select" label="Organización" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)} className="mb-0">
-              {context.organizations.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
-                </option>
-              ))}
-            </Field>
-          )}
           {canSee && (
             <Field as="select" label="Piloto" value={pilotFilter} onChange={(e) => setPilotFilter(e.target.value)} className="mb-0">
               <option value="">Toda la empresa</option>

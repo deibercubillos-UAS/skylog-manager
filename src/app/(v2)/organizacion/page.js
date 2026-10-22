@@ -289,16 +289,6 @@ export default function OrganizacionPage() {
         metric={{ value: members.length, label: 'Miembros' }}
       />
 
-      {context.organizations.length > 1 && (
-        <Field as="select" label="Organización" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}>
-          {context.organizations.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.name}
-            </option>
-          ))}
-        </Field>
-      )}
-
       {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

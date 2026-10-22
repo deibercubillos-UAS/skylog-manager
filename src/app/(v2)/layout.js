@@ -139,13 +139,11 @@ export default function V2Layout({ children }) {
   const [organizationId, setOrganizationId] = useState('');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const [orgMenuOpen, setOrgMenuOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState({});
   const [switchingOrg, setSwitchingOrg] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [billingNotice, setBillingNotice] = useState(null); // aviso de suscripción para el Gerente General
   const accountMenuRef = useRef(null);
-  const orgMenuRef = useRef(null);
 
   useEffect(() => {
     setSidebarOpen(window.innerWidth >= 1024);
@@ -196,13 +194,11 @@ export default function V2Layout({ children }) {
   useEffect(() => {
     setSidebarOpen(false);
     setAccountMenuOpen(false);
-    setOrgMenuOpen(false);
   }, [pathname]);
 
   useEffect(() => {
     function handler(e) {
       if (accountMenuRef.current && !accountMenuRef.current.contains(e.target)) setAccountMenuOpen(false);
-      if (orgMenuRef.current && !orgMenuRef.current.contains(e.target)) setOrgMenuOpen(false);
     }
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -257,14 +253,12 @@ export default function V2Layout({ children }) {
   async function handleSwitchOrg(orgId) {
     if (switchingOrg || orgId === organizationId) {
       setAccountMenuOpen(false);
-      setOrgMenuOpen(false);
-      return;
+        return;
     }
     setSwitchingOrg(true);
     setSelectedOrganizationId(orgId);
     setOrganizationId(orgId);
     setAccountMenuOpen(false);
-    setOrgMenuOpen(false);
     setSwitchingOrg(false);
   }
 
@@ -279,7 +273,7 @@ export default function V2Layout({ children }) {
       <OnboardingTour />
       {/* ── SIDEBAR ───────────────────────────────────────────────────── */}
       <aside
-        className={`fixed inset-y-0 left-0 z-[150] w-64 bg-gradient-to-b from-navy via-navy to-[#0f1420] text-white flex flex-col transition-transform duration-300 ease-in-out border-r border-white/5 ${
+        className={`fixed inset-y-0 left-0 z-[250] w-64 bg-gradient-to-b from-navy via-navy to-[#0f1420] text-white flex flex-col transition-transform duration-300 ease-in-out border-r border-white/5 ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -419,7 +413,7 @@ export default function V2Layout({ children }) {
           role="button"
           aria-label="Cerrar menú"
           tabIndex={0}
-          className="fixed inset-0 bg-black/60 z-[140] lg:hidden cursor-pointer"
+          className="fixed inset-0 bg-black/60 z-[240] lg:hidden cursor-pointer"
           onClick={() => setSidebarOpen(false)}
           onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setSidebarOpen(false)}
         />
@@ -438,53 +432,10 @@ export default function V2Layout({ children }) {
               <span className="material-symbols-outlined text-xl leading-none">{isSidebarOpen ? 'menu_open' : 'menu'}</span>
             </button>
 
-            {context?.organizations?.length > 1 ? (
-              <div ref={orgMenuRef} className="relative">
-                <button
-                  type="button"
-                  onClick={() => setOrgMenuOpen((v) => !v)}
-                  disabled={switchingOrg}
-                  aria-haspopup="menu"
-                  aria-expanded={orgMenuOpen}
-                  title="Cambiar de organización"
-                  className="flex items-center gap-2 text-left truncate rounded-xl border border-primary-100 bg-primary-50/60 pl-2 pr-2.5 py-1 min-h-[40px] hover:bg-primary-50 active:scale-[0.98] transition-all disabled:opacity-60"
-                >
-                  <span className="material-symbols-outlined text-lg text-primary-600 shrink-0">swap_horiz</span>
-                  <div className="truncate">
-                    <p className="hidden lg:block text-[10px] font-black text-primary-500 uppercase leading-none tracking-widest">Cambiar organización · {context.organizations.length}</p>
-                    <h2 className="text-sm font-black text-navy uppercase truncate max-w-[120px] sm:max-w-xs">{currentOrg?.name || 'Individual'}</h2>
-                  </div>
-                  <span className="material-symbols-outlined text-base text-primary-400 shrink-0">{orgMenuOpen ? 'expand_less' : 'expand_more'}</span>
-                </button>
-                {orgMenuOpen && (
-                  <div className="absolute left-0 top-full mt-2 w-64 bg-white border border-navy-100 rounded-2xl p-2 shadow-2xl z-30 space-y-0.5">
-                    <p className="px-3 pt-1 pb-1.5 text-[9.5px] font-black uppercase tracking-widest text-navy-300">Cambiar de organización</p>
-                    {context.organizations.map((o) => (
-                      <button
-                        key={o.id}
-                        type="button"
-                        onClick={() => handleSwitchOrg(o.id)}
-                        disabled={switchingOrg}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50 ${
-                          o.id === organizationId ? 'text-primary-700 bg-primary-50' : 'text-navy-600 hover:bg-navy-50'
-                        }`}
-                      >
-                        <span className="material-symbols-outlined text-base shrink-0">{o.id === organizationId ? 'radio_button_checked' : 'radio_button_unchecked'}</span>
-                        <span className="flex-1 min-w-0 text-left">
-                          <span className="block truncate">{o.name}</span>
-                          <span className="block text-[11px] font-semibold text-navy-400 truncate">{ROLE_LABELS[o.role] || o.role}</span>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-left truncate">
-                <p className="hidden lg:block text-xs font-black text-navy-300 uppercase leading-none tracking-widest">Organización</p>
-                <h2 className="text-sm font-black text-navy uppercase truncate max-w-[140px] sm:max-w-xs">{currentOrg?.name || 'Individual'}</h2>
-              </div>
-            )}
+            <div className="text-left truncate">
+              <p className="hidden lg:block text-xs font-black text-navy-300 uppercase leading-none tracking-widest">Organización</p>
+              <h2 className="text-sm font-black text-navy uppercase truncate max-w-[140px] sm:max-w-xs">{currentOrg?.name || 'Individual'}</h2>
+            </div>
           </div>
 
           <button

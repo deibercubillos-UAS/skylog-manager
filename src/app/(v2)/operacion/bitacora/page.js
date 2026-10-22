@@ -591,16 +591,6 @@ export default function BitacoraPage() {
             Nuevo vuelo
           </p>
 
-          {context.organizations.length > 1 && (
-            <Field as="select" label="Organización" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}>
-              {context.organizations.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
-                </option>
-              ))}
-            </Field>
-          )}
-
           <Field
             label="Despegue"
             type="datetime-local"

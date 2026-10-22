@@ -384,15 +384,6 @@ export default function AerocivilPage() {
         eyebrow="RAC 100 §100.805(a)"
         title="Expediente Aerocivil"
         description="Prepara la solicitud de autorización y el análisis de riesgos oficial MAUT-5.0-12-055 antes de radicar en la Plataforma UAS Colombia."
-        cta={
-          context.organizations?.length > 1 && (
-            <select className="bg-white/10 text-white min-h-[44px] md:min-h-0 text-base md:text-sm rounded-xl px-3 py-2 border border-white/20" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}>
-              {context.organizations.map((o) => (
-                <option key={o.id} value={o.id} className="text-navy">{o.name} ({o.role})</option>
-              ))}
-            </select>
-          )
-        }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -497,7 +488,7 @@ export default function AerocivilPage() {
                   if (!isManager) return;
                   setHazards((prev) => ({ ...prev, [h.number]: v }));
                 }}
-              />
+      />
             ))}
           </div>
           {isManager && (

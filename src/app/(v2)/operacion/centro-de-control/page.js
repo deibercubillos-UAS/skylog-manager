@@ -166,19 +166,6 @@ export default function CentroDeControlPage() {
     })();
   }, [loadContext, loadAll]);
 
-  async function handleOrgChange(orgId) {
-    setOrganizationId(orgId);
-    const org = context.organizations.find((o) => o.id === orgId);
-    setLoading(true);
-    try {
-      await loadAll(orgId, org?.role !== 'piloto');
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   if (loading && !context) {
     return (
       <div className="h-full flex items-center justify-center py-24">
@@ -217,21 +204,6 @@ export default function CentroDeControlPage() {
         eyebrow="Operación"
         title="Centro de Control"
         description={`Panorama de la jornada — ${now.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}.`}
-        cta={
-          context.organizations?.length > 1 && (
-            <select
-              value={organizationId}
-              onChange={(e) => handleOrgChange(e.target.value)}
-              className="rounded-xl bg-white/10 border border-white/20 text-white text-xs px-3 py-2 backdrop-blur-sm"
-            >
-              {context.organizations.map((o) => (
-                <option key={o.id} value={o.id} className="text-navy">
-                  {o.name} ({o.role})
-                </option>
-              ))}
-            </select>
-          )
-        }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">

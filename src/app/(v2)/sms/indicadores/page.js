@@ -408,16 +408,6 @@ export default function IndicadoresPage() {
         description="Indicadores de Desempeño en Seguridad Operacional — líneas de alerta, meta y planes de acción sobre datos mensuales reales."
       />
 
-      {context.organizations.length > 1 && (
-        <Field as="select" label="Organización" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}>
-          {context.organizations.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.name}
-            </option>
-          ))}
-        </Field>
-      )}
-
       {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">

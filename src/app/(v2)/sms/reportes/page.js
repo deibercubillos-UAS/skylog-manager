@@ -269,15 +269,6 @@ export default function SmsReportesPage() {
         description="Reportes MOR/VOR (MAUT-1.0-22-004) y seguimiento de casos con acciones correctivas."
         cta={
           <div className="flex items-center gap-2 flex-wrap">
-            {context.organizations?.length > 1 && (
-              <select value={organizationId} onChange={(e) => setOrganizationId(e.target.value)} className="rounded-xl bg-white/10 border border-white/20 text-white min-h-[44px] md:min-h-0 text-base md:text-xs px-3 py-2 backdrop-blur-sm">
-                {context.organizations.map((o) => (
-                  <option key={o.id} value={o.id} className="text-navy">
-                    {o.name} ({o.role})
-                  </option>
-                ))}
-              </select>
-            )}
             <Button onClick={() => setShowForm((v) => !v)}>
               <span className="material-symbols-outlined text-base align-middle mr-1">{showForm ? 'close' : 'add'}</span>
               {showForm ? 'Cerrar' : 'Nuevo reporte'}

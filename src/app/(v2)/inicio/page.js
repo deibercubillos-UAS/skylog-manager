@@ -235,20 +235,6 @@ export default function V2Home() {
         highlight={{ label: 'Vuelos este mes', value: flightsThisMonth }}
       />
 
-      {context.organizations.length > 1 && (
-        <select
-          className="block w-full sm:w-auto px-3 py-2 rounded-lg border border-navy-200 text-sm bg-white"
-          value={organizationId}
-          onChange={(e) => setOrganizationId(e.target.value)}
-        >
-          {context.organizations.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.name} ({o.role})
-            </option>
-          ))}
-        </select>
-      )}
-
       <Section title="Cumplimiento" hint="Vuelos, misiones y SMS — en vivo">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard icon="schedule" color="primary" label="Horas de Vuelo" value={`${totalHours.toFixed(1)}h`} />

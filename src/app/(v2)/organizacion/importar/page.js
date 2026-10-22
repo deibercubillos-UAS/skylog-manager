@@ -84,12 +84,6 @@ export default function ImportarPage() {
     <div className="space-y-6">
       <SectionHero eyebrow="Organización" title="Importar desde Excel" description="Carga tus aeronaves, baterías, tripulación, contactos de emergencia y pólizas de una sola vez. Primero revisas el informe; recién entonces se guarda." />
 
-      {context.organizations.length > 1 && (
-        <Field as="select" label="Organización" value={organizationId} onChange={(e) => { setOrganizationId(e.target.value); reset(); }}>
-          {context.organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-        </Field>
-      )}
-
       <div className="rounded-2xl border border-navy-100 bg-white p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>

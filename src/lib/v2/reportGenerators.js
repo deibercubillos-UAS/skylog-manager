@@ -8,10 +8,9 @@
 // bitácora, no fabricado aquí).
 import autoTable from 'jspdf-autotable';
 import { SPEC_FIELDS, computeSpecCompleteness, formatSpecValue } from '@skylog/domain';
-import { resolveLogo, fetchBitaflyLogo, addLogo, drawReportHeader, drawFooterNote, slugify, dominantLogoColor, formPalette } from './pdfCommon';
+import { HEAD_STYLES, resolveLogo, fetchBitaflyLogo, addLogo, drawReportHeader, drawFooterNote, slugify, dominantLogoColor, formPalette } from './pdfCommon';
 
 const TABLE_STYLES = { fontSize: 7, cellPadding: 1.3, lineColor: [220, 220, 220], lineWidth: 0.1 };
-const HEAD_STYLES = { fillColor: [26, 32, 44], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'left' };
 
 async function baseDoc({ orgName, logoUrl, title, subtitle, format }) {
   const { jsPDF } = await import('jspdf');

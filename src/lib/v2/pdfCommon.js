@@ -4,7 +4,16 @@
 // extrae a un módulo común porque Reportes necesita el mismo helper 7
 // veces; los dos archivos anteriores quedan con su propia copia (no se
 // refactorizaron, fuera de alcance de este pedido — ver decisión 127).
+// Estilo de cabecera de las tablas: lo recolorea drawReportHeader con la paleta del logo de cada reporte.
+export const HEAD_STYLES = { fillColor: [71, 85, 105], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'left' };
+
 export async function resolveLogo(logoUrl) {
+  const logo = await loadLogo(logoUrl);
+  if (logo) logo.palette = formPalette(await dominantLogoColor(logo));
+  return logo;
+}
+
+async function loadLogo(logoUrl) {
   if (!logoUrl) return null;
   try {
     // Primero directo (sin caché: el <img> del sidebar pudo dejarla guardada sin cabeceras CORS); si falla, por el servidor.
@@ -78,12 +87,19 @@ export function addLogo(doc, logo, x, y, w, h) {
 export function drawReportHeader(doc, { logo, orgName, title, subtitle, format }) {
   const reportDate = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-  doc.setDrawColor(0);
+  const { accent, ink, tint, line } = logo?.palette || formPalette(null);
+  Object.assign(HEAD_STYLES, { fillColor: accent });
+  doc.setDrawColor(...line);
+  doc.setTextColor(...ink);
   doc.setLineWidth(0.4);
+  doc.setFillColor(...tint);
+  doc.rect(160, 10, 40, 22, 'FD');
   doc.rect(10, 10, 190, 22);
   doc.line(45, 10, 45, 32);
   doc.line(160, 10, 160, 32);
   doc.line(45, 21, 160, 21);
+  doc.setFillColor(...accent);
+  doc.rect(10, 32, 190, 1, 'F');
 
   addLogo(doc, logo, 12, 12, 30, 18);
 
@@ -102,7 +118,6 @@ export function drawReportHeader(doc, { logo, orgName, title, subtitle, format }
   doc.setFont('helvetica', 'normal');
   const version = format?.version || '1.0';
   if (format?.code) {
-    // Tres filas: código, versión y fecha (la organización define el código en su manual de operaciones).
     doc.line(160, 17.3, 200, 17.3);
     doc.line(160, 24.6, 200, 24.6);
     doc.text(`CÓDIGO: ${format.code}`, 162, 14.4);
@@ -113,6 +128,7 @@ export function drawReportHeader(doc, { logo, orgName, title, subtitle, format }
     doc.text(`VERSIÓN: ${version}`, 162, 16.5);
     doc.text(`FECHA: ${reportDate}`, 162, 27);
   }
+  doc.setTextColor(0);
 
   return 40;
 }

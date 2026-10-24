@@ -1,168 +1,128 @@
-// Skylog V2.0 — Listas de Chequeo. Descarga de PDF imprimible — a pedido
-// explícito del usuario: "quisiera poder imprimir las listas de chequeo
-// para que tengan acceso si no hay internet, o como contingencia... deben
-// contar con el encabezado, incluyendo nombre, version, nombre de la
-// empresa y logo". Cada paso se dibuja con una casilla real (rect) para
-// marcar a mano en papel — no un checklist de solo lectura.
-//
-// Misma plantilla de encabezado que `missionDocs.js` (caja con borde,
-// logo a la izquierda, título centrado, VERSIÓN/FECHA a la derecha, nota
-// de trazabilidad al pie) — pero a diferencia de ese archivo (escrito
-// cuando `organizations` todavía no tenía `logo_url`), aquí SÍ se usa el
-// logo real de la organización cuando existe (`api/organizacion/logo`, ya
-// construido) — con el logo de BitaFly como respaldo honesto solo si la
-// organización no ha subido el suyo.
-import { resolveLogo } from './pdfCommon';
+// Skylog V2.0 — Listas de Chequeo. Descarga de PDF imprimible para diligenciar a mano (opción B cuando no hay
+// internet o como contingencia). Cada paso lleva casillas Sí / No / N/A y arriba van los datos de la operación
+// (fecha, piloto, aeronave, misión) para completar a mano. Acepta una lista o varias en un solo PDF.
+// Encabezado y paleta: los mismos de los demás reportes (logo y color de la organización).
+import { resolveLogo, fetchBitaflyLogo, drawReportHeader, formPalette, slugify } from './pdfCommon';
 
-function slugify(text) {
-  return (text || 'lista-de-chequeo')
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '');
+const PAGE_BOTTOM = 276;
+const LEFT = 10;
+const WIDTH = 190;
+const COL_YES = 150;
+const COL_W = 16.6; // Sí · No · N/A
+
+function drawInfoFields(doc, y, palette) {
+  const fields = [['Fecha', 40], ['Piloto', 62], ['Aeronave', 45], ['Misión', 43]];
+  let x = LEFT;
+  doc.setDrawColor(...palette.line);
+  doc.setLineWidth(0.3);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...palette.accent);
+  fields.forEach(([label, w]) => {
+    doc.text(label, x + 1, y);
+    doc.line(x, y + 7, x + w - 3, y + 7);
+    x += w;
+  });
+  doc.setTextColor(...palette.ink);
+  return y + 13;
 }
 
-const urlToLogo = resolveLogo;
-
-let cachedBitaflyLogo;
-async function fetchBitaflyLogo() {
-  if (cachedBitaflyLogo !== undefined) return cachedBitaflyLogo;
-  cachedBitaflyLogo = await urlToLogo('/logo.png');
-  return cachedBitaflyLogo;
-}
-
-// Inserta el logo dentro de la caja (x,y,w,h) preservando su relación de
-// aspecto ("contain", centrado) — idéntico a addLogo() en missionDocs.js.
-function addLogo(doc, logo, x, y, w, h) {
-  if (!logo?.dataUrl) return;
-  try {
-    let drawW = w,
-      drawH = h,
-      drawX = x,
-      drawY = y;
-    if (logo.width && logo.height) {
-      const scale = Math.min(w / logo.width, h / logo.height);
-      drawW = logo.width * scale;
-      drawH = logo.height * scale;
-      drawX = x + (w - drawW) / 2;
-      drawY = y + (h - drawH) / 2;
-    }
-    doc.addImage(logo.dataUrl, logo.format || 'PNG', drawX, drawY, drawW, drawH);
-  } catch {
-    // logo inválido — se omite sin romper el PDF
-  }
-}
-
-const PAGE_BOTTOM = 280;
-
-function drawHeader(doc, logo, orgName, checklist) {
-  const reportDate = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
-
-  doc.setDrawColor(0);
-  doc.setLineWidth(0.4);
-  doc.rect(10, 10, 190, 22);
-  doc.line(45, 10, 45, 32);
-  doc.line(160, 10, 160, 32);
-  doc.line(45, 21, 160, 21);
-
-  addLogo(doc, logo, 12, 12, 30, 18);
-
+function drawTableHead(doc, y, palette) {
+  doc.setFillColor(...palette.tint);
+  doc.setDrawColor(...palette.line);
+  doc.rect(LEFT, y, WIDTH, 7, 'FD');
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text(orgName ? orgName.toUpperCase() : 'BITAFLY UAS', 102.5, 17, { align: 'center' });
-  doc.setFontSize(12);
-  doc.text(checklist.name.toUpperCase(), 102.5, 28, { align: 'center' });
-
-  doc.setFontSize(6.5);
-  doc.line(160, 15.5, 190, 15.5);
-  doc.text(`VERSIÓN: ${checklist.version || '1.0'}`, 162, 13);
-  doc.text(`FECHA: ${reportDate}`, 162, 19);
-
-  return 40;
-}
-
-export async function downloadChecklistPdf(checklist, { orgName, logoUrl } = {}) {
-  const { jsPDF } = await import('jspdf');
-  const logo = (await urlToLogo(logoUrl)) || (await fetchBitaflyLogo());
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-  let y = drawHeader(doc, logo, orgName, checklist);
-
   doc.setFontSize(8);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(100, 116, 139);
-  doc.text(`Categoría: ${checklist.category}`, 12, y);
-  y += 6;
+  doc.setTextColor(...palette.accent);
+  doc.text('PASO A VERIFICAR', LEFT + 2, y + 4.8);
+  ['SÍ', 'NO', 'N/A'].forEach((t, i) => doc.text(t, COL_YES + COL_W * i + COL_W / 2, y + 4.8, { align: 'center' }));
+  doc.setTextColor(...palette.ink);
+  return y + 7;
+}
 
-  if (checklist.description?.trim()) {
+function drawChecklist(doc, logo, orgName, list, { first, palette }) {
+  if (!first) doc.addPage();
+  let y = drawReportHeader(doc, { logo, orgName, title: list.name, subtitle: list.category || '', format: { version: list.version || '1.0' } }) + 2;
+  if (list.description?.trim()) {
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(26, 32, 44);
-    doc.setFontSize(9);
-    const lines = doc.splitTextToSize(checklist.description.trim(), 186);
-    doc.text(lines, 12, y);
-    y += lines.length * 5 + 4;
+    doc.setFontSize(8.5);
+    const lines = doc.splitTextToSize(list.description.trim(), WIDTH);
+    doc.text(lines, LEFT, y + 3);
+    y += lines.length * 4 + 4;
   }
+  y = drawInfoFields(doc, y + 2, palette);
+  y = drawTableHead(doc, y, palette);
 
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(26, 32, 44);
-  doc.setFontSize(9);
-  doc.text('PASOS A VERIFICAR', 12, y);
-  doc.setDrawColor(234, 88, 12);
-  doc.setLineWidth(0.6);
-  doc.line(12, y + 2, 198, y + 2);
-  y += 9;
-
-  const steps = checklist.steps || [];
-  doc.setFontSize(10);
-  for (let i = 0; i < steps.length; i += 1) {
-    const lines = doc.splitTextToSize(steps[i], 168);
-    const blockHeight = Math.max(6, lines.length * 5.5);
-    if (y + blockHeight > PAGE_BOTTOM) {
+  const steps = list.steps || [];
+  doc.setFontSize(9.5);
+  steps.forEach((text, i) => {
+    const lines = doc.splitTextToSize(`${i + 1}. ${text}`, COL_YES - LEFT - 4);
+    const h = Math.max(9, lines.length * 4.6 + 4);
+    if (y + h > PAGE_BOTTOM) {
       doc.addPage();
-      y = 20;
+      y = drawTableHead(doc, 15, palette);
     }
-    doc.setDrawColor(26, 32, 44);
-    doc.setLineWidth(0.35);
-    doc.rect(12, y - 3.8, 4.2, 4.2);
+    doc.setDrawColor(...palette.line);
+    doc.setLineWidth(0.3);
+    doc.rect(LEFT, y, WIDTH, h);
+    doc.line(COL_YES, y, COL_YES, y + h);
+    doc.line(COL_YES + COL_W, y, COL_YES + COL_W, y + h);
+    doc.line(COL_YES + COL_W * 2, y, COL_YES + COL_W * 2, y + h);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(26, 32, 44);
-    doc.text(lines, 20, y);
-    y += blockHeight + 3;
-  }
+    doc.setTextColor(...palette.ink);
+    doc.text(lines, LEFT + 2, y + 5.6);
+    for (let c = 0; c < 3; c += 1) doc.rect(COL_YES + COL_W * c + COL_W / 2 - 2.5, y + h / 2 - 2.5, 5, 5);
+    y += h;
+  });
 
   if (steps.length === 0) {
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(9);
-    doc.setTextColor(100, 116, 139);
-    doc.text('Esta lista todavía no tiene pasos configurados.', 12, y);
-    y += 6;
+    doc.text('Esta lista todavía no tiene pasos configurados.', LEFT + 2, y + 6);
+    y += 10;
   }
 
-  // Firma / evidencia de ejecución — para uso en papel.
-  if (y + 24 > PAGE_BOTTOM) {
+  // Observaciones + firma para uso en papel.
+  if (y + 40 > PAGE_BOTTOM) {
     doc.addPage();
     y = 20;
   }
   y += 6;
-  doc.setDrawColor(180, 180, 180);
-  doc.setLineWidth(0.3);
-  doc.line(12, y, 90, y);
-  doc.line(120, y, 198, y);
-  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(...palette.accent);
+  doc.text('OBSERVACIONES', LEFT, y);
+  doc.setDrawColor(...palette.line);
+  doc.rect(LEFT, y + 2, WIDTH, 18);
+  y += 30;
+  doc.line(LEFT, y, LEFT + 78, y);
+  doc.line(LEFT + 112, y, LEFT + WIDTH, y);
   doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
   doc.setTextColor(100, 116, 139);
-  doc.text('Nombre y firma de quien verifica', 12, y + 4);
-  doc.text('Fecha y hora', 120, y + 4);
+  doc.text('Nombre y firma de quien verifica', LEFT, y + 4);
+  doc.text('Fecha y hora', LEFT + 112, y + 4);
+  doc.setTextColor(0);
+}
 
-  const downloadedAt = new Date().toLocaleString('es-CO');
-  const pageCount = doc.internal.getNumberOfPages();
-  for (let p = 1; p <= pageCount; p += 1) {
+/** Descarga una lista de chequeo (objeto) o varias (arreglo) en un solo PDF para llenar a mano. */
+export async function downloadChecklistPdf(checklists, { orgName, logoUrl, fileName } = {}) {
+  const lists = (Array.isArray(checklists) ? checklists : [checklists]).filter(Boolean);
+  if (!lists.length) throw new Error('No hay listas de chequeo para descargar');
+  const { jsPDF } = await import('jspdf');
+  const logo = (await resolveLogo(logoUrl)) || (await fetchBitaflyLogo());
+  const palette = logo?.palette || formPalette(null);
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  lists.forEach((list, i) => drawChecklist(doc, logo, orgName, list, { first: i === 0, palette }));
+  const pages = doc.internal.getNumberOfPages();
+  const printed = new Date().toLocaleString('es-CO');
+  for (let p = 1; p <= pages; p += 1) {
     doc.setPage(p);
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(7.5);
     doc.setTextColor(90, 90, 90);
-    doc.text(`Descargado el: ${downloadedAt} — página ${p}/${pageCount}`, 12, 290);
-    doc.text('BitaFly · bitafly.com', 198, 290, { align: 'right' });
+    doc.text(`Formato para diligenciar a mano · Descargado el ${printed} · Creado con BITAFLY · página ${p}/${pages}`, 12, 290);
   }
-
-  doc.save(`${slugify(checklist.name)}-v${(checklist.version || '1.0').replace(/\s+/g, '')}.pdf`);
+  const name = fileName || (lists.length === 1 ? `${slugify(lists[0].name)}-v${String(lists[0].version || '1.0').replace(/\s+/g, '')}` : `listas-de-chequeo-${slugify(orgName)}`);
+  doc.save(`${name}.pdf`);
 }

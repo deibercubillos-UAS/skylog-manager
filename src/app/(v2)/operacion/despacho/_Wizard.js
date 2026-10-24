@@ -8,6 +8,7 @@
 // pantalla, salto automático al siguiente paso sin responder y barra de acción fija abajo.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { evaluateDispatchRisk, buildChecklistItems, isDraftFresh } from '@skylog/domain';
+import { downloadChecklistPdf } from '@/lib/v2/checklistDocs';
 import { readDraft, writeDraft, clearDraft, isNetworkError } from '@/lib/v2/offlineStore';
 
 const GATE_STYLE = {
@@ -24,7 +25,7 @@ const OPTIONS = [
   { value: 'na', label: 'N/A', on: 'bg-navy text-white border-navy shadow-sm' },
 ];
 
-export default function Wizard({ mission, onCancel, onDone }) {
+export default function Wizard({ mission, orgName, logoUrl, onCancel, onDone }) {
   const [prep, setPrep] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [stepIndex, setStepIndex] = useState(0);
@@ -35,6 +36,19 @@ export default function Wizard({ mission, onCancel, onDone }) {
   const [setupNeeded, setSetupNeeded] = useState(false);
   const [restored, setRestored] = useState(false); // se recuperó un borrador guardado en este dispositivo
   const [draftReady, setDraftReady] = useState(false);
+  const [printing, setPrinting] = useState(false);
+
+  // Opción B: las listas de esta misión en papel, para diligenciarlas a mano si no hay señal o pantalla.
+  async function printLists() {
+    setPrinting(true);
+    try {
+      await downloadChecklistPdf(prep.checklists, { orgName, logoUrl, fileName: `listas-de-chequeo-${mission.name || 'mision'}`.toLowerCase().replace(/[^a-z0-9]+/g, '-') });
+    } catch (e) {
+      setSubmitError(e.message);
+    } finally {
+      setPrinting(false);
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -164,9 +178,17 @@ export default function Wizard({ mission, onCancel, onDone }) {
               {prep.mission.name} · {prep.mission.zone} · {aircraft}
             </p>
           </div>
-          <button type="button" onClick={onCancel} className="shrink-0 text-xs font-semibold px-3 py-2 rounded-full bg-navy-50 text-navy-600 hover:bg-navy-100">
-            Salir
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {prep.checklists.length > 0 && (
+              <button type="button" onClick={printLists} disabled={printing} title="Descargar las listas para diligenciarlas a mano" className="text-xs font-semibold px-3 py-2 rounded-full bg-navy-50 text-navy-600 hover:bg-navy-100 disabled:opacity-60">
+                <span className="material-symbols-outlined text-sm align-middle mr-1">print</span>
+                {printing ? 'Generando…' : 'Listas en papel'}
+              </button>
+            )}
+            <button type="button" onClick={onCancel} className="text-xs font-semibold px-3 py-2 rounded-full bg-navy-50 text-navy-600 hover:bg-navy-100">
+              Salir
+            </button>
+          </div>
         </div>
         <div className="mt-3 h-1.5 rounded-full bg-navy-50 overflow-hidden">
           <div className="h-full bg-primary transition-all duration-300" style={{ width: `${pct}%` }} />

@@ -188,6 +188,18 @@ export default function ListasDeChequeoPage() {
 
   const currentOrg = context?.organizations?.find((o) => o.id === organizationId);
   const isManager = currentOrg?.permissions?.['X2'] === 'edit';
+  const [downloadingAll, setDownloadingAll] = useState(false);
+
+  async function downloadAll() {
+    setDownloadingAll(true);
+    try {
+      await downloadChecklistPdf(checklists, { orgName: currentOrg?.name, logoUrl: currentOrg?.logoUrl });
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setDownloadingAll(false);
+    }
+  }
 
   const load = useCallback(async (orgId) => {
     if (!orgId) return;
@@ -290,7 +302,14 @@ export default function ListasDeChequeoPage() {
         description="Biblioteca de checklists y procedimientos — cada organización redacta los suyos."
         metric={{ value: checklists.length, label: 'Listas' }}
         cta={
-          isManager && (
+          <div className="flex gap-2 flex-wrap">
+            {checklists.length > 0 && (
+              <Button variant="ghost" disabled={downloadingAll} onClick={downloadAll}>
+                <span className="material-symbols-outlined text-base align-middle mr-1">print</span>
+                {downloadingAll ? 'Generando…' : 'Descargar todas (PDF)'}
+              </Button>
+            )}
+            {isManager && (
             <Button
               onClick={() => {
                 if (showForm) cancelForm();
@@ -300,7 +319,8 @@ export default function ListasDeChequeoPage() {
               <span className="material-symbols-outlined text-base align-middle mr-1">{showForm ? 'close' : 'add'}</span>
               {showForm ? 'Cerrar' : 'Nueva lista'}
             </Button>
-          )
+            )}
+          </div>
         }
       />
 

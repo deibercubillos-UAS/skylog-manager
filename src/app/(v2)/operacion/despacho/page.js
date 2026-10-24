@@ -75,6 +75,8 @@ export default function DespachoPage() {
         {hero}
         <Wizard
           mission={view.mission}
+          orgName={context.organizations?.find((o) => o.id === organizationId)?.name}
+          logoUrl={context.organizations?.find((o) => o.id === organizationId)?.logoUrl}
           onCancel={backToList}
           onDone={async (result) => {
             setNotice(`Misión despachada${result.noCount ? ` — ${result.noCount} paso(s) marcado(s) "No" quedaron registrados` : ''}. Ya puedes volar; al aterrizar, registra el vuelo.`);

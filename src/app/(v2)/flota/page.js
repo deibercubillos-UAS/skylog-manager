@@ -29,6 +29,7 @@ import { Fragment, useCallback, useEffect, useState } from 'react';
 import { Field, Button } from '@skylog/ui';
 import { SectionHero, SectionCard, StatCard } from '../_components/SectionHero';
 import { computeSpecCompleteness } from '@skylog/domain';
+import { DJI_MODELS_CATALOG } from '@/lib/v2/djiModelsCatalog';
 import ModelSpecSheet from './_ModelSpecSheet';
 import DocumentSlot from '../_components/DocumentSlot';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
@@ -77,6 +78,8 @@ export default function FlotaPage() {
   const [modelBusy, setModelBusy] = useState(false);
   const [seedBusy, setSeedBusy] = useState(false);
   const [seedMessage, setSeedMessage] = useState(null);
+  const [showDjiPicker, setShowDjiPicker] = useState(false);
+  const [djiPicked, setDjiPicked] = useState([]);
 
   const [specModelId, setSpecModelId] = useState(null);
   const [editingId, setEditingId] = useState(null);
@@ -158,11 +161,13 @@ export default function FlotaPage() {
       const res = await fetch('/api/flota/models/seed-dji', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organizationId }),
+        body: JSON.stringify({ organizationId, keys: djiPicked }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error precargando el catálogo DJI');
       await loadModels(organizationId);
+      setShowDjiPicker(false);
+      setDjiPicked([]);
       const createdCount = data.created?.length || 0;
       setSeedMessage(
         createdCount > 0
@@ -174,6 +179,16 @@ export default function FlotaPage() {
     } finally {
       setSeedBusy(false);
     }
+  }
+
+  async function handleDeleteModel(m) {
+    if (!window.confirm(`¿Quitar el modelo ${m.brand} ${m.model}? Solo se puede si no tiene aeronaves.`)) return;
+    setError(null);
+    const res = await fetch(`/api/flota/models/${m.id}`, { method: 'DELETE' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return setError(data.error || 'No se pudo quitar el modelo');
+    setSpecModelId(null);
+    await loadModels(organizationId);
   }
 
   async function handleCreateAircraft(e) {
@@ -358,14 +373,33 @@ export default function FlotaPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={handleSeedDjiModels}
+                    onClick={() => setShowDjiPicker((v) => !v)}
                     disabled={seedBusy}
                     className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 disabled:opacity-50"
                   >
                     <span className="material-symbols-outlined text-base">{seedBusy ? 'progress_activity' : 'download_done'}</span>
-                    {seedBusy ? 'Cargando…' : 'Cargar catálogo DJI'}
+                    {seedBusy ? 'Cargando…' : 'Elegir modelos DJI'}
                   </button>
                   {seedMessage && <p className="text-xs text-navy-400 w-full">{seedMessage}</p>}
+                  {showDjiPicker && (
+                    <div className="w-full rounded-xl border border-navy-100 bg-navy-50/40 p-3 space-y-2">
+                      <p className="text-xs font-bold text-navy">Marca solo los modelos que usa tu operación</p>
+                      <div className="max-h-48 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1">
+                        {DJI_MODELS_CATALOG.filter((m) => !models.some((x) => x.brand.toLowerCase() === m.brand.toLowerCase() && x.model.toLowerCase() === m.model.toLowerCase())).map((m) => {
+                          const key = `${m.brand}::${m.model}`;
+                          return (
+                            <label key={key} className="flex items-center gap-2 text-xs text-navy cursor-pointer min-h-[32px]">
+                              <input type="checkbox" checked={djiPicked.includes(key)} onChange={(e) => setDjiPicked((p) => (e.target.checked ? [...p, key] : p.filter((k) => k !== key)))} />
+                              {m.brand} {m.model}
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <Button type="button" onClick={handleSeedDjiModels} disabled={seedBusy || djiPicked.length === 0} className="text-xs px-3 py-1.5">
+                        {seedBusy ? 'Agregando…' : `Agregar ${djiPicked.length || ''} seleccionado(s)`}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="rounded-2xl border border-navy-100 bg-navy-50/30 p-3 mb-3">
@@ -578,6 +612,11 @@ export default function FlotaPage() {
                   </button>
                   {open && (
                     <div className="px-4 pb-4 pt-1 border-t border-navy-50">
+                      {isManager && (
+                        <button type="button" onClick={() => handleDeleteModel(m)} className="text-xs font-bold text-red-600 hover:text-red-700 mb-2">
+                          Quitar este modelo (solo si no tiene aeronaves)
+                        </button>
+                      )}
                       <ModelSpecSheet
                         key={m.id}
                         model={m}

@@ -42,3 +42,29 @@ export async function PATCH(request, { params }) {
   if (error) return Response.json({ error: error.message }, { status: 500 });
   return Response.json({ model: publicModel(data) });
 }
+
+// Quita un modelo que no se usa (p. ej. uno agregado por error desde el catálogo DJI). Si alguna aeronave lo usa, no se borra.
+export async function DELETE(request, { params }) {
+  params = await params;
+  const supabase = await createClientSSR();
+  const user = await getAuthUser(supabase);
+  if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
+
+  const { id } = params;
+  const { data: existing, error: fetchError } = await supabase.from('aircraft_models').select('organization_id').eq('id', id).maybeSingle();
+  if (fetchError) return Response.json({ error: 'Error consultando el modelo' }, { status: 500 });
+  if (!existing) return Response.json({ error: 'Modelo no encontrado' }, { status: 404 });
+
+  const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
+  if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
+  if (!membershipsCanEdit(memberships, existing.organization_id, 'I8')) {
+    return Response.json({ error: 'Solo un gestor puede quitar un modelo' }, { status: 403 });
+  }
+
+  const { data: used } = await supabase.from('aircraft').select('id').eq('model_id', id).limit(1);
+  if (used && used.length > 0) return Response.json({ error: 'Hay aeronaves de este modelo; no se puede quitar.' }, { status: 409 });
+
+  const { error } = await supabase.from('aircraft_models').delete().eq('id', id);
+  if (error) return Response.json({ error: 'No se pudo quitar el modelo' }, { status: 500 });
+  return Response.json({ ok: true });
+}

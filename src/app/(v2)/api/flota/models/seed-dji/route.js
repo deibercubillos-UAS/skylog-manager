@@ -16,7 +16,7 @@ export async function POST(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { organizationId } = body;
+  const { organizationId, keys } = body;
   if (!organizationId) return Response.json({ error: 'organizationId es requerido' }, { status: 400 });
 
   const { error: resolveError, memberships, personId } = await resolveCurrentPerson(supabase, user.id);
@@ -32,7 +32,12 @@ export async function POST(request) {
   if (existingError) return Response.json({ error: 'Error consultando modelos existentes' }, { status: 500 });
 
   const existingKeys = new Set((existing || []).map((m) => `${m.brand.toLowerCase()}::${m.model.toLowerCase()}`));
-  const toInsert = DJI_MODELS_CATALOG.filter((m) => !existingKeys.has(`${m.brand.toLowerCase()}::${m.model.toLowerCase()}`));
+  // `keys` (opcional): solo los modelos elegidos, como "brand::model". Sin `keys` se agregan todos (compatibilidad).
+  const chosen = Array.isArray(keys) ? new Set(keys.map((k) => String(k).toLowerCase())) : null;
+  if (chosen && chosen.size === 0) return Response.json({ error: 'Elige al menos un modelo' }, { status: 400 });
+  const toInsert = DJI_MODELS_CATALOG
+    .filter((m) => !chosen || chosen.has(`${m.brand.toLowerCase()}::${m.model.toLowerCase()}`))
+    .filter((m) => !existingKeys.has(`${m.brand.toLowerCase()}::${m.model.toLowerCase()}`));
 
   if (toInsert.length === 0) {
     return Response.json({ created: [], skipped: DJI_MODELS_CATALOG.length });

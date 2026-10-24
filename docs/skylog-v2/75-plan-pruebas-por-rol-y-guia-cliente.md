@@ -245,7 +245,7 @@ Formato: **ID · acción · resultado esperado**. Debajo, la tabla de acceso: GG
 | H-2 | `/perfil → Agregar` (adiciones de licencia) no abrió campo en ninguna cuenta en el sondeo automático. | Por confirmar | Probar a mano (PIL-04); si no hay formulario, es defecto. |
 | H-3 | **Activar enlace público** no abre ventana: aparentemente actúa directo. | Baja | ✅ Confirmado que NO pedía confirmación; ahora pregunta antes de activar (`_PublicLink.js`). |
 | H-4 | Pantallas sin acceso devuelven título vacío (p. ej. `/retencion`, `/proveedores` para P/PI) en lugar de un mensaje «sin permiso». | Baja (UX) | ✅ Ya resuelto con H-6: verificado en producción con `qa.pi.real` en `/retencion`, `/proveedores`, `/sms/gobernanza`, `/aerocivil` (muestra «Esta sección no está disponible para tu rol»). |
-| H-5 | `CommandPalette` (Ctrl K) aún pide `/api/organizacion/members` sin verificar permiso (posible 403 silencioso). | Baja | Poner la condición AD1 como en F-016. |
+| H-5 | `CommandPalette` (Ctrl K) aún pide `/api/organizacion/members` sin verificar permiso (posible 403 silencioso). | Baja | ✅ Corregido: Ctrl K solo pide la lista de miembros si el rol tiene AD1 (`CommandPalette.js`). |
 | H-6 | Con el PI real, 5 pantallas **sin enlace en el menú** se abrían aunque la matriz dice ❌: `/sms` (inicio), `/sms/gobernanza`, `/sms/msms`, `/sms/capacitacion` y `/aerocivil`. El bloqueo se calculaba solo desde el menú. Además, el botón «SMS» de la barra inferior móvil llevaba al PI a una pantalla bloqueada. | Media (permisos) | Corregido en `src/app/(v2)/layout.js` (lista `HIDDEN_SCREEN_GATES` + barra inferior filtrada por permiso). Pendiente desplegar y repetir `walk.mjs pireal`. |
 
 ---

@@ -50,7 +50,8 @@ export default function CommandPalette({ open, onClose, links, organizationId, p
       };
       const [a, m, ms] = await Promise.all([
         get(`/api/flota/aircraft?organizationId=${organizationId}`),
-        get(`/api/organizacion/members?organizationId=${organizationId}`),
+        // Solo quien puede ver a los miembros (AD1): sin ese permiso la API responde 403 y no hay nada que buscar.
+        (permissions.AD1 || 'none') !== 'none' ? get(`/api/organizacion/members?organizationId=${organizationId}`) : Promise.resolve({}),
         get(`/api/missions?organizationId=${organizationId}&from=${iso(from)}&to=${iso(to)}`),
       ]);
       if (!cancelled) setData({ aircraft: a.aircraft || [], members: m.members || [], missions: (ms.missions || []).filter((x) => x.status !== 'cancelada'), loadedFor: organizationId });
@@ -58,7 +59,7 @@ export default function CommandPalette({ open, onClose, links, organizationId, p
     return () => {
       cancelled = true;
     };
-  }, [open, organizationId, data.loadedFor]);
+  }, [open, organizationId, data.loadedFor, permissions.AD1]);
 
   useEffect(() => {
     if (open) {

@@ -12,6 +12,7 @@ export default function PersonAdditions({ personId = null, readOnly = false }) {
   const [validUntil, setValidUntil] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [okMsg, setOkMsg] = useState(null);
   const qs = personId ? `?personId=${personId}` : '';
 
   const load = useCallback(async () => {
@@ -34,6 +35,7 @@ export default function PersonAdditions({ personId = null, readOnly = false }) {
     if (!pick) return;
     setBusy(true);
     setError(null);
+    setOkMsg(null);
     try {
       const res = await fetch('/api/personal/additions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ personId, addition: pick, validUntil: validUntil || null }) });
       const data = await res.json();
@@ -41,6 +43,7 @@ export default function PersonAdditions({ personId = null, readOnly = false }) {
       setPick('');
       setValidUntil('');
       await load();
+      setOkMsg('Adición agregada');
     } catch (e) {
       setError(e.message);
     } finally {
@@ -107,6 +110,7 @@ export default function PersonAdditions({ personId = null, readOnly = false }) {
         </div>
       )}
       {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
+      {okMsg && !error && <p className="text-xs text-emerald-600 mt-2" role="status">{okMsg}</p>}
     </div>
   );
 }

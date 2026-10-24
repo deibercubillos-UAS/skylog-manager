@@ -134,8 +134,9 @@ Cuenta nueva real (GG + plan Piloto + único integrante), en producción, con ac
 | # | Hallazgo | Estado |
 |---|---|---|
 | F-019 | La fecha de un mantenimiento se guardaba **un día antes** (medianoche UTC = tarde del día anterior en Bogotá): se eligió 23/10 y quedó 22/10. | ✅ corregido en `3dfad1f4` (se fija al mediodía de Bogotá); pendiente de desplegar |
-| F-020 | Cierre de vuelo: el botón «Registrar vuelo» queda deshabilitado sin explicar por qué cuando el aterrizaje está en el futuro. | ⬜ UX menor, mostrar el motivo |
-| F-021 | Perfil → «Agregar adición» no muestra aviso de éxito (sí guarda). | ⬜ UX menor |
-| F-022 | Meteorología: el pronóstico horario «hoy» arranca a las 02:00 estando a las 21:40 (parece hora UTC o pasada). | ⬜ revisar |
+| F-020 | Cierre de vuelo: el botón queda deshabilitado con aterrizaje en el futuro. | ✅ descartado: el formulario ya lista los motivos en rojo debajo; era una prueba con hora futura |
+| F-021 | Perfil → «Agregar adición» no mostraba aviso de éxito (sí guardaba). | ✅ ahora muestra «Adición agregada» |
+| F-022 | Meteorología: el pronóstico horario «hoy» arrancaba a las 02:00 estando a las 21:40: la hora se imprimía en UTC. | ✅ ahora en hora de Bogotá |
+| F-023 | Urbansa (pago directo, acceso manual 1 año) seguía viendo «Activa tu pago con Wompi». Causa: marca `migrated_from_v1` sin tarjeta. | ✅ dato limpiado y la edición manual desde Master ahora quita la marca; las otras 19 migradas son migraciones reales y no se tocaron |
 
 **No ejecutado a propósito:** Pagar ahora (cobro real), Cambiar contraseña (envía correo real), Eliminar cuenta, Agregar tripulante/Invitar (dejaría de ser independiente), «Unirme a otra organización».

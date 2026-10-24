@@ -38,39 +38,56 @@ function fmtHours(h) {
 // sistema no registra queda en blanco para diligenciarlo a mano.
 const FORM_L = 10;
 const FORM_W = 277;
+// Colores de marca BitaFly para los formatos tipo formulario.
+const NAVY = [26, 32, 44];
+const ORANGE = [236, 91, 19];
+const TINT = [255, 244, 237];
+const LINE = [148, 163, 184];
 
 function createFormKit(doc, { logo, nit, title, format }) {
   const today = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const kit = { y: 10 };
-  doc.setDrawColor(0);
+  doc.setDrawColor(...LINE);
   doc.setLineWidth(0.3);
+  doc.setTextColor(...NAVY);
 
   kit.header = () => {
     const y = kit.y;
     doc.rect(FORM_L, y, 100, 24);
-    doc.rect(FORM_L + 100, y, 120, 24);
+    doc.setFillColor(...NAVY);
+    doc.rect(FORM_L + 100, y, 120, 24, 'FD');
+    doc.setFillColor(...TINT);
     const version = format?.version || '1.0';
     const boxes = format?.code ? [`CÓDIGO: ${format.code}`, `VERSIÓN: ${version}`, `FECHA: ${today}`] : [`VERSIÓN: ${version}`, `FECHA: ${today}`];
     const bh = 24 / boxes.length;
-    boxes.forEach((_, i) => doc.rect(FORM_L + 220, y + i * bh, 57, bh));
+    boxes.forEach((_, i) => doc.rect(FORM_L + 220, y + i * bh, 57, bh, 'FD'));
     addLogo(doc, logo, FORM_L + 3, y + 2, 94, 17);
     doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
     if (nit) doc.text(nit, FORM_L + 50, y + 22.5, { align: 'center' });
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
     doc.text(title, FORM_L + 160, y + 13.5, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...NAVY);
     doc.setFontSize(9);
     boxes.forEach((t, i) => doc.text(t, FORM_L + 248.5, y + i * bh + bh / 2 + 1.2, { align: 'center', maxWidth: 55 }));
-    kit.y += 24;
+    doc.setFillColor(...ORANGE);
+    doc.rect(FORM_L, y + 24, FORM_W, 1.4, 'F');
+    kit.y += 25.4;
   };
 
   kit.section = (name) => {
-    doc.setFillColor(238, 238, 232);
+    doc.setFillColor(...NAVY);
     doc.rect(FORM_L, kit.y, FORM_W, 6, 'FD');
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
     doc.text(name, FORM_L + FORM_W / 2, kit.y + 4.3, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...NAVY);
     kit.y += 6;
   };
 
@@ -80,7 +97,8 @@ function createFormKit(doc, { logo, nit, title, format }) {
     const valueH = 6;
     let x = FORM_L;
     cols.forEach((c, i) => {
-      doc.rect(x, kit.y, c.w, labelH);
+      doc.setFillColor(...TINT);
+      doc.rect(x, kit.y, c.w, labelH, 'FD');
       doc.rect(x, kit.y + labelH, c.w, valueH);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
@@ -105,7 +123,7 @@ function createFormKit(doc, { logo, nit, title, format }) {
     doc.setFontSize(6.5);
     doc.setTextColor(110);
     doc.text(text, FORM_L, kit.y + 5);
-    doc.setTextColor(0);
+    doc.setTextColor(...NAVY);
   };
   return kit;
 }
@@ -167,7 +185,7 @@ export async function generateFlightLogPdf(flights, { orgName, logoUrl, periodLa
 
     kit.section('OBSERVACIONES');
     kit.box(f.notes);
-    kit.footnote(`${periodLabel ? `Periodo: ${periodLabel} · ` : ''}Generado el ${new Date().toLocaleString('es-CO')} · ${orgName || ''}`);
+    kit.footnote(`${periodLabel ? `Periodo: ${periodLabel} · ` : ''}Generado el ${new Date().toLocaleString('es-CO')} · Creado con BITAFLY`);
   });
 
   doc.save(`libro-de-vuelo-${slugify(orgName)}.pdf`);
@@ -215,7 +233,7 @@ export async function generateUasBookPdf(units, { orgName, logoUrl, format, org 
 
     kit.section('OBSERVACIONES');
     kit.box('');
-    kit.footnote(`Totales acumulados a la fecha · Generado el ${new Date().toLocaleString('es-CO')} · ${orgName || ''}`);
+    kit.footnote(`Totales acumulados a la fecha · Generado el ${new Date().toLocaleString('es-CO')} · Creado con BITAFLY`);
   });
 
   doc.save(`libro-de-uas-${slugify(orgName)}.pdf`);

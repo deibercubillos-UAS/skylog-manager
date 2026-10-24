@@ -28,8 +28,8 @@ en la misma migración). Las tablas de la v1 quedaron en el esquema `legacy_v1` 
 
 ## Despliegue
 
-Vercel despliega **solo desde `main`**. Se trabaja en `develop-v2` y se publica con
-`git push origin develop-v2 && git push origin develop-v2:main`. Antes de publicar: `npm run lint`, `npm run build` y `npm run test:domain`.
+Vercel despliega **solo desde `main`**. Desde 2026-10-24 se trabaja y se sube **directo a `main`** (ya no se usa `develop-v2`):
+`git push origin main`. Antes de publicar: `npm run lint`, `npm run build` y `npm run test:domain`.
 Trabaja en `~/dev/skylog-manager` (no en la carpeta de Google Drive).
 
 ## Estructura de `src/`

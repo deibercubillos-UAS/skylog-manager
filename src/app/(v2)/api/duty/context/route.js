@@ -28,7 +28,7 @@ export async function GET() {
     // fullName — el shell de nav lo necesita para el menú de cuenta (avatar/nombre).
     supabase.from('people').select('full_name').eq('id', personId).maybeSingle(),
     orgIds.length
-      ? supabase.from('organizations').select('id, company_name, logo_url').in('id', orgIds)
+      ? supabase.from('organizations').select('id, company_name, logo_url, nit').in('id', orgIds)
       : Promise.resolve({ data: [], error: null }),
     // ¿Es miembro de un socio ACTIVO (escuela/asesor)? Habilita el acceso al panel /socio.
     supabase.from('partner_members').select('partner:partners(status)').eq('person_id', personId),
@@ -49,6 +49,7 @@ export async function GET() {
       readOnly: !!m.readOnly,
       name: org?.company_name || m.organization_id,
       logoUrl: org?.logo_url || null,
+      nit: org?.nit || null,
     };
   });
 

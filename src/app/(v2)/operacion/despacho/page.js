@@ -76,6 +76,7 @@ export default function DespachoPage() {
         <Wizard
           mission={view.mission}
           orgName={context.organizations?.find((o) => o.id === organizationId)?.name}
+          nit={context.organizations?.find((o) => o.id === organizationId)?.nit}
           logoUrl={context.organizations?.find((o) => o.id === organizationId)?.logoUrl}
           onCancel={backToList}
           onDone={async (result) => {

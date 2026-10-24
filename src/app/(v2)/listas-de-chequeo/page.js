@@ -108,7 +108,7 @@ function ChecklistForm({ form, setForm, onSubmit, onCancel, busy, error, editing
   );
 }
 
-function ChecklistCard({ checklist, isManager, orgName, logoUrl, onEdit, onDelete }) {
+function ChecklistCard({ checklist, isManager, orgName, nit, logoUrl, onEdit, onDelete }) {
   const [expanded, setExpanded] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const style = CATEGORY_STYLE[checklist.category];
@@ -117,7 +117,7 @@ function ChecklistCard({ checklist, isManager, orgName, logoUrl, onEdit, onDelet
   async function handleDownload() {
     setDownloading(true);
     try {
-      await downloadChecklistPdf(checklist, { orgName, logoUrl });
+      await downloadChecklistPdf(checklist, { orgName, nit, logoUrl });
     } finally {
       setDownloading(false);
     }
@@ -193,7 +193,7 @@ export default function ListasDeChequeoPage() {
   async function downloadAll() {
     setDownloadingAll(true);
     try {
-      await downloadChecklistPdf(checklists, { orgName: currentOrg?.name, logoUrl: currentOrg?.logoUrl });
+      await downloadChecklistPdf(checklists, { orgName: currentOrg?.name, nit: currentOrg?.nit, logoUrl: currentOrg?.logoUrl });
     } catch (e) {
       setError(e.message);
     } finally {
@@ -346,7 +346,7 @@ export default function ListasDeChequeoPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {items.map((c) => (
-                  <ChecklistCard key={c.id} checklist={c} isManager={isManager} orgName={currentOrg?.name} logoUrl={currentOrg?.logoUrl} onEdit={startEdit} onDelete={handleDelete} />
+                  <ChecklistCard key={c.id} checklist={c} isManager={isManager} orgName={currentOrg?.name} nit={currentOrg?.nit} logoUrl={currentOrg?.logoUrl} onEdit={startEdit} onDelete={handleDelete} />
                 ))}
               </div>
             )}

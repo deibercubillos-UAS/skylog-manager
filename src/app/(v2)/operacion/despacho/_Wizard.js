@@ -25,7 +25,7 @@ const OPTIONS = [
   { value: 'na', label: 'N/A', on: 'bg-navy text-white border-navy shadow-sm' },
 ];
 
-export default function Wizard({ mission, orgName, logoUrl, onCancel, onDone }) {
+export default function Wizard({ mission, orgName, nit, logoUrl, onCancel, onDone }) {
   const [prep, setPrep] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [stepIndex, setStepIndex] = useState(0);
@@ -42,7 +42,7 @@ export default function Wizard({ mission, orgName, logoUrl, onCancel, onDone }) 
   async function printLists() {
     setPrinting(true);
     try {
-      await downloadChecklistPdf(prep.checklists, { orgName, logoUrl, fileName: `listas-de-chequeo-${mission.name || 'mision'}`.toLowerCase().replace(/[^a-z0-9]+/g, '-') });
+      await downloadChecklistPdf(prep.checklists, { orgName, nit, logoUrl, fileName: `listas-de-chequeo-${mission.name || 'mision'}`.toLowerCase().replace(/[^a-z0-9]+/g, '-') });
     } catch (e) {
       setSubmitError(e.message);
     } finally {

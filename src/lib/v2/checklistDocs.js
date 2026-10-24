@@ -40,7 +40,7 @@ function drawTableHead(doc, y, palette) {
   return y + 7;
 }
 
-function drawChecklist(doc, logo, orgName, list, { first, palette }) {
+function drawChecklist(doc, logo, headerName, list, { first, palette }) {
   if (!first) doc.addPage();
   let y = drawReportHeader(doc, { logo, orgName, title: list.name, subtitle: list.category || '', format: { version: list.version || '1.0' } }) + 2;
   if (list.description?.trim()) {
@@ -106,7 +106,8 @@ function drawChecklist(doc, logo, orgName, list, { first, palette }) {
 }
 
 /** Descarga una lista de chequeo (objeto) o varias (arreglo) en un solo PDF para llenar a mano. */
-export async function downloadChecklistPdf(checklists, { orgName, logoUrl, fileName } = {}) {
+export async function downloadChecklistPdf(checklists, { orgName, nit, logoUrl, fileName } = {}) {
+  const headerName = nit ? `${orgName || ''} · NIT ${nit}`.trim() : orgName;
   const lists = (Array.isArray(checklists) ? checklists : [checklists]).filter(Boolean);
   if (!lists.length) throw new Error('No hay listas de chequeo para descargar');
   const { jsPDF } = await import('jspdf');

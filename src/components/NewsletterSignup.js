@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { getAttribution } from '@/lib/attribution';
-import { trackEvent } from '@/lib/analytics';
+import { pushDataLayer } from '@/lib/analytics';
 
 /**
  * Captura de correo para lista de marketing.
@@ -30,7 +30,7 @@ export default function NewsletterSignup({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'No se pudo registrar.');
-      trackEvent('generate_lead', { lead_source: source });
+      pushDataLayer('generate_lead', { lead_source: source });
       setStatus('done');
       setMsg('¡Listo! Revisa tu correo pronto.');
       setEmail('');

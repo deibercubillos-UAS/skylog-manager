@@ -1,21 +1,10 @@
 /**
- * analytics.js — helpers para Google Analytics 4
+ * analytics.js — eventos de medición vía Google Tag Manager
  *
- * @next/third-parties/google inyecta window.gtag automáticamente cuando
- * NEXT_PUBLIC_GA_ID está definido. Esta función es un wrapper seguro que:
- *  - No hace nada en SSR (typeof window === 'undefined')
- *  - No falla si gtag aún no cargó (typeof window.gtag !== 'function')
- *  - Acepta cualquier nombre de evento y parámetros opcionales
- *
- * Uso:
- *   import { trackEvent } from '@/lib/analytics';
- *   trackEvent('sign_up', { method: 'email', plan: 'piloto' });
+ * Todo evento se emite con pushDataLayer; GTM (cargado solo tras aceptar cookies)
+ * los reenvía a GA4 y a LinkedIn. GA4 ya no se carga desde el código: un
+ * <GoogleAnalytics> adicional duplicaba cada visita.
  */
-export function trackEvent(eventName, params = {}) {
-  if (typeof window === 'undefined') return;
-  if (typeof window.gtag !== 'function') return;
-  window.gtag('event', eventName, params);
-}
 
 /**
  * Empuja un evento al dataLayer de Google Tag Manager.

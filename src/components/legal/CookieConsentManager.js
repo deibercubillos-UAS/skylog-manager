@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
-import { GoogleAnalytics } from '@next/third-parties/google';
 
 const CONSENT_KEY = 'bitafly_cookie_consent';
 
@@ -46,7 +45,7 @@ export default function CookieConsentManager() {
             'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
             })(window,document,'script','dataLayer','GTM-TTT98NMJ');
           `}</Script>
-          {process.env.NEXT_PUBLIC_GA_ID && <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />}
+          {/* GA4 se carga solo desde GTM (etiqueta de Google G-016X1CMBS4). Cargarlo también aquí duplicaba cada visita. */}
           {process.env.NEXT_PUBLIC_CLARITY_ID && (
             <Script id="ms-clarity" strategy="lazyOnload">{`
               (function(c,l,a,r,i,t,y){

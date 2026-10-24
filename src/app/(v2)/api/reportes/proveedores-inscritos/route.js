@@ -21,10 +21,10 @@ export async function GET(request) {
 
   let query = supabase
     .from('suppliers')
-    .select('id, name, category, tax_id, contact_name, contact_email, contact_phone, address, notes')
+    .select('id, name, category, nit, contact, notes')
     .eq('organization_id', organizationId)
     .order('name');
-  query = supplierId ? query.eq('id', supplierId) : query.eq('status', 'activo');
+  query = supplierId ? query.eq('id', supplierId) : query.eq('is_active', true);
 
   const [{ data: suppliers, error }, { data: org }] = await Promise.all([query, supabase.from('organizations').select('nit').eq('id', organizationId).maybeSingle()]);
   if (error) return Response.json({ error: error.message }, { status: 500 });

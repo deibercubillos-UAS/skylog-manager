@@ -6,10 +6,9 @@
 // (decisión 135), que ya da versionado + acuses de lectura gratis.
 // Ver 40-sms.md §5.9 sub-frente SMS-I.
 import autoTable from 'jspdf-autotable';
-import { resolveLogo, fetchBitaflyLogo, drawReportHeader, drawFooterNote } from './pdfCommon';
+import { HEAD_STYLES, resolveLogo, fetchBitaflyLogo, drawReportHeader, drawFooterNote } from './pdfCommon';
 
 const TABLE_STYLES = { fontSize: 8, cellPadding: 1.6, lineColor: [220, 220, 220], lineWidth: 0.1 };
-const HEAD_STYLES = { fillColor: [26, 32, 44], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'left' };
 
 function fmtDate(d) {
   if (!d) return '—';

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { getAttribution } from '@/lib/attribution';
+import { pushDataLayer } from '@/lib/analytics';
 import { validateRegistration, validateJoinRegistration } from '@skylog/domain';
 import JoinByNit from '../../(v2)/_components/JoinByNit';
 import { safeNextPath } from '@/lib/v2/safeNext';
@@ -58,6 +59,7 @@ export default function CompletarRegistroPage() {
       const res = await fetch('/api/alta/completar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, mode, attribution: getAttribution() }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'No se pudo completar el registro.');
+      pushDataLayer('sign_up', { method: mode === 'unirme' ? 'join_org' : 'google' });
       const next = new URLSearchParams(window.location.search).get('next');
       window.location.href = safeNextPath(next) || '/inicio';
     } catch (err) {

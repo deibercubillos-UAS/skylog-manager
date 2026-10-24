@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { pushDataLayer } from '@/lib/analytics';
 import { validateRegistration } from '@skylog/domain';
 
 const inputCls = 'w-full min-h-[48px] px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-base md:text-sm font-medium outline-none focus:border-primary focus:ring-2 focus:ring-orange-100';
@@ -49,6 +50,7 @@ export default function InvitacionPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'No se pudo aceptar la invitación.');
       if (sessionEmail === null) {
+        pushDataLayer('sign_up', { method: 'invitation' }); // solo si se creó cuenta nueva
         const { error } = await supabase.auth.signInWithPassword({ email: info.email, password: form.password });
         if (error) return void (window.location.href = '/login');
       }

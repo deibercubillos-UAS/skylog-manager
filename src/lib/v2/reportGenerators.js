@@ -36,7 +36,12 @@ function fmtHours(h) {
 // sistema no registra queda en blanco para diligenciarlo a mano.
 const FORM_L = 10;
 const FORM_W = 277;
-function createFormKit(doc, { logo, nit, title, format, palette }) {
+function createFormKit(doc, { logo, nit, title, format, palette, width }) {
+  const W = width || FORM_W;
+  const wide = W === FORM_W;
+  const logoW = wide ? 100 : 62;
+  const boxW = wide ? 57 : 48;
+  const titleW = W - logoW - boxW;
   const { accent, ink, tint, line } = palette;
   const today = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const kit = { y: 10 };
@@ -46,36 +51,36 @@ function createFormKit(doc, { logo, nit, title, format, palette }) {
 
   kit.header = () => {
     const y = kit.y;
-    doc.rect(FORM_L, y, 100, 24);
-    doc.rect(FORM_L + 100, y, 120, 24);
+    doc.rect(FORM_L, y, logoW, 24);
+    doc.rect(FORM_L + logoW, y, titleW, 24);
     doc.setFillColor(...tint);
     const version = format?.version || '1.0';
     const boxes = format?.code ? [`CÓDIGO: ${format.code}`, `VERSIÓN: ${version}`, `FECHA: ${today}`] : [`VERSIÓN: ${version}`, `FECHA: ${today}`];
     const bh = 24 / boxes.length;
-    boxes.forEach((_, i) => doc.rect(FORM_L + 220, y + i * bh, 57, bh, 'FD'));
-    addLogo(doc, logo, FORM_L + 3, y + 2, 94, 17);
+    boxes.forEach((_, i) => doc.rect(FORM_L + logoW + titleW, y + i * bh, boxW, bh, 'FD'));
+    addLogo(doc, logo, FORM_L + 3, y + 2, logoW - 6, 17);
     doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
-    if (nit) doc.text(nit, FORM_L + 50, y + 22.5, { align: 'center' });
+    if (nit) doc.text(nit, FORM_L + logoW / 2, y + 22.5, { align: 'center' });
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(14);
+    doc.setFontSize(wide ? 14 : 11);
     doc.setFont('helvetica', 'bold');
-    doc.text(title, FORM_L + 160, y + 13.5, { align: 'center' });
+    doc.text(title, FORM_L + logoW + titleW / 2, y + 13.5, { align: 'center', maxWidth: titleW - 4 });
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    boxes.forEach((t, i) => doc.text(t, FORM_L + 248.5, y + i * bh + bh / 2 + 1.2, { align: 'center', maxWidth: 55 }));
+    boxes.forEach((t, i) => doc.text(t, FORM_L + logoW + titleW + boxW / 2, y + i * bh + bh / 2 + 1.2, { align: 'center', maxWidth: boxW - 2 }));
     doc.setFillColor(...accent);
-    doc.rect(FORM_L, y + 24, FORM_W, 1, 'F');
+    doc.rect(FORM_L, y + 24, W, 1, 'F');
     kit.y += 25;
   };
 
   kit.section = (name) => {
     doc.setFillColor(...tint);
-    doc.rect(FORM_L, kit.y, FORM_W, 6, 'FD');
+    doc.rect(FORM_L, kit.y, W, 6, 'FD');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(...accent);
-    doc.text(name, FORM_L + FORM_W / 2, kit.y + 4.3, { align: 'center' });
+    doc.text(name, FORM_L + W / 2, kit.y + 4.3, { align: 'center' });
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...ink);
     kit.y += 6;
@@ -101,10 +106,10 @@ function createFormKit(doc, { logo, nit, title, format, palette }) {
   };
 
   kit.box = (text, h = 28) => {
-    doc.rect(FORM_L, kit.y, FORM_W, h);
+    doc.rect(FORM_L, kit.y, W, h);
     if (text) {
       doc.setFontSize(8);
-      doc.text(String(text), FORM_L + 2, kit.y + 5, { maxWidth: FORM_W - 4 });
+      doc.text(String(text), FORM_L + 2, kit.y + 5, { maxWidth: W - 4 });
     }
     kit.y += h;
   };
@@ -441,7 +446,7 @@ const AUDIT_BASE_GROUPS = ['Documentos', 'Herramientas', 'Infraestructura'];
 export async function generateSupplierAuditFormPdf({ suppliers, criteria, org }, { orgName, logoUrl, format }) {
   const { jsPDF } = await import('jspdf');
   const logo = (await resolveLogo(logoUrl)) || (await fetchBitaflyLogo());
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const nit = org?.nit ? `NIT: ${org.nit}` : '';
   const palette = formPalette(await dominantLogoColor(logo));
   const footer = `Formato de auditoría · Generado el ${new Date().toLocaleString('es-CO')} · Creado con BITAFLY`;
@@ -461,31 +466,31 @@ export async function generateSupplierAuditFormPdf({ suppliers, criteria, org },
   }
   if (!groups.size) AUDIT_BASE_GROUPS.forEach((g) => groups.set(g, []));
   const layoutOf = (name) => {
-    if (/herramient/i.test(name)) return { kind: 'tools', minRows: 8, cols: [{ w: 117, label: name }, { w: 30, label: 'Cantidad' }, { w: 30, label: 'Estado' }, { w: 50, label: 'Aprobado' }, { w: 50, label: 'No aprobado' }] };
-    if (/document/i.test(name)) return { kind: 'docs', minRows: 3, cols: [{ w: 157, label: name }, { w: 30, label: 'Adjunto' }, { w: 45, label: 'Aprobado' }, { w: 45, label: 'No aprobado' }] };
-    return { kind: 'plain', minRows: 3, cols: [{ w: 187, label: name }, { w: 45, label: 'Aprobado' }, { w: 45, label: 'No aprobado' }] };
+    if (/herramient/i.test(name)) return { kind: 'tools', minRows: 8, cols: [{ w: 80, label: name }, { w: 20, label: 'Cantidad' }, { w: 20, label: 'Estado' }, { w: 35, label: 'Aprobado' }, { w: 35, label: 'No aprobado' }] };
+    if (/document/i.test(name)) return { kind: 'docs', minRows: 3, cols: [{ w: 100, label: name }, { w: 20, label: 'Adjunto' }, { w: 35, label: 'Aprobado' }, { w: 35, label: 'No aprobado' }] };
+    return { kind: 'plain', minRows: 3, cols: [{ w: 120, label: name }, { w: 35, label: 'Aprobado' }, { w: 35, label: 'No aprobado' }] };
   };
 
   list.forEach((sp, idx) => {
     if (idx > 0) doc.addPage();
-    let kit = createFormKit(doc, { logo, nit, title: 'AUDITORÍA AL PROVEEDOR', format, palette });
+    let kit = createFormKit(doc, { logo, nit, title: 'AUDITORÍA AL PROVEEDOR', format, palette, width: 190 });
     kit.header();
     const newPage = () => {
       kit.footnote(footer);
       doc.addPage();
-      kit = createFormKit(doc, { logo, nit, title: 'AUDITORÍA AL PROVEEDOR', format, palette });
+      kit = createFormKit(doc, { logo, nit, title: 'AUDITORÍA AL PROVEEDOR', format, palette, width: 190 });
       kit.header();
       kit.section('ÍTEMS A EVALUAR (continuación)');
     };
     const ensure = (h, cols) => {
-      if (kit.y + h <= 196) return;
+      if (kit.y + h <= 270) return;
       newPage();
       if (cols) kit.tableHead(cols);
     };
 
     kit.section('PROVEEDOR');
-    kit.row([{ w: 90, label: 'Nombre del proveedor' }, { w: 45, label: 'NIT' }, { w: 87, label: 'Correo electrónico' }, { w: 55, label: 'Dirección' }], [sp.name, sp.nit, sp.email, sp.address]);
-    kit.row([{ w: 90, label: 'Nombre del contacto' }, { w: 87, label: 'Número de contacto' }, { w: 100, label: 'Tipo de servicio / mantenimiento' }], [sp.contact, sp.phone, sp.category]);
+    kit.row([{ w: 55, label: 'Nombre del proveedor' }, { w: 30, label: 'NIT' }, { w: 55, label: 'Correo electrónico' }, { w: 50, label: 'Dirección' }], [sp.name, sp.nit, sp.email, sp.address]);
+    kit.row([{ w: 60, label: 'Nombre del contacto' }, { w: 55, label: 'Número de contacto' }, { w: 75, label: 'Tipo de servicio / mantenimiento' }], [sp.contact, sp.phone, sp.category]);
     kit.section('ÍTEMS A EVALUAR');
 
     groups.forEach((items, name) => {
@@ -503,13 +508,13 @@ export async function generateSupplierAuditFormPdf({ suppliers, criteria, org },
       }
     });
 
-    ensure(62, null);
+    ensure(72, null);
     kit.section('OBSERVACIONES');
-    kit.box('', 20);
+    kit.box('', 24);
     kit.section('RESPONSABLE DEL PROVEEDOR');
-    kit.row([{ w: 140, label: 'Nombre completo' }, { w: 67, label: 'Firma' }, { w: 70, label: 'Tipo y número de identificación' }], []);
+    kit.row([{ w: 80, label: 'Nombre completo' }, { w: 50, label: 'Firma' }, { w: 60, label: 'Tipo y número de identificación' }], []);
     kit.section(`RESPONSABLE DE ${(orgName || 'LA ORGANIZACIÓN').toUpperCase()}`);
-    kit.row([{ w: 110, label: 'Nombre y firma' }, { w: 67, label: 'CIPU' }, { w: 50, label: 'Aprobado' }, { w: 50, label: 'No aprobado' }], []);
+    kit.row([{ w: 80, label: 'Nombre y firma' }, { w: 45, label: 'CIPU' }, { w: 30, label: 'Aprobado' }, { w: 35, label: 'No aprobado' }], []);
     kit.footnote(footer);
   });
 
@@ -593,20 +598,6 @@ export async function generateTrainingReportPdf({ evaluations, roster }, { orgNa
 
   drawFooterNote(doc, typeLabel);
   doc.save(`capacitacion-${slugify(orgName)}.pdf`);
-}
-
-export async function generateSupplierAuditReportPdf(rows, { orgName, logoUrl, scopeLabel, periodLabel, format }) {
-  const { doc, startY } = await baseDoc({ orgName, logoUrl, format, title: 'Auditoría de Proveedores', subtitle: `${scopeLabel} — ${periodLabel}` });
-  autoTable(doc, {
-    startY,
-    head: [['PROVEEDOR', 'CATEGORÍA', 'FECHA', 'AUDITOR', '% CUMPLIMIENTO', 'OBSERVACIONES']],
-    body: (rows || []).map((r) => [r.supplier_name || '—', r.supplier_category || '—', fmtDate(r.audit_date), r.auditor_name || '—', r.percentage == null ? '—' : `${r.percentage}%`, r.overall_notes || '—']),
-    styles: TABLE_STYLES,
-    headStyles: HEAD_STYLES,
-    margin: { left: 10, right: 10 },
-  });
-  drawFooterNote(doc, periodLabel);
-  doc.save(`auditoria-proveedores-${slugify(orgName)}.pdf`);
 }
 
 // RAC 100 §100.540 — registro diario de tiempos de servicio/descanso/

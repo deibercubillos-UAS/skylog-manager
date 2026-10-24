@@ -76,7 +76,7 @@ export async function PATCH(request) {
   const { data, error } = await admin
     .from('subscriptions')
     .upsert(
-      { organization_id: organizationId, plan, expires_at: expiresAt || null, notes: notes?.trim() || null, updated_by: personId, updated_at: new Date().toISOString() },
+      { organization_id: organizationId, plan, expires_at: expiresAt || null, notes: notes?.trim() || null, updated_by: personId, updated_at: new Date().toISOString(), migrated_from_v1: false },
       { onConflict: 'organization_id' }
     )
     .select()

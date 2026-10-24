@@ -55,6 +55,7 @@ export async function PATCH(request) {
     notes: String(notes || '').trim() || null,
     updated_by: g.personId,
     updated_at: new Date().toISOString(),
+    migrated_from_v1: false, // acceso fijado a mano (pago directo): ya no se le pide «activar pago con Wompi»
   };
   if (limits) row.limits_override = limits.value;
   const { data, error } = await g.admin.from('subscriptions').upsert(row, { onConflict: 'organization_id' }).select().single();

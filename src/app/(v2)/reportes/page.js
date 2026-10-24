@@ -113,7 +113,7 @@ export default function ReportesPage() {
         const res = await fetch(`/api/reportes/vuelos?${qs}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error consultando vuelos');
-        await generateFlightLogPdf(data.flights, { orgName, logoUrl, periodLabel });
+        await generateFlightLogPdf(data.flights, { orgName, logoUrl, periodLabel, extra: data });
       } else if (def.key === 'mantenimiento') {
         const qs = new URLSearchParams({ organizationId, from, to, ...(aircraftId && { aircraftId }) });
         const res = await fetch(`/api/reportes/mantenimiento?${qs}`);

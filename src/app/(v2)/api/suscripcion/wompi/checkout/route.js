@@ -9,12 +9,14 @@ import { PLAN_PRICING } from '@/lib/v2/planLimits';
 import { buildIntegritySignature } from '@/lib/wompi';
 import { findActiveCode } from '@/lib/v2/referrals';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { isPlayAppRequest } from '@/lib/v2/playApp';
 
 function isAdmin(memberships, organizationId) {
   return (memberships || []).some((m) => m.organization_id === organizationId && ['admin', 'superadmin'].includes(m.role));
 }
 
 export async function POST(request) {
+  if (isPlayAppRequest(request)) return Response.json({ error: 'Los pagos no están disponibles en esta aplicación' }, { status: 403 });
   const supabase = await createClientSSR();
   const user = await getAuthUser(supabase);
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });

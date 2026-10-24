@@ -342,6 +342,12 @@ merge `mobile-app`→`main` + deploy (activa el flujo nativo en producción) y l
 - Comandos: `./gradlew assembleDirectRelease` (APK) · `./gradlew bundlePlayRelease` (AAB para Play).
 - ⚠️ No se pudo compilar en el equipo donde se escribió (sin Android SDK): compilar y probar ambas variantes antes de subir.
 
+### F3.11 — Sin pagos dentro de la app de Google Play ✅ código (2026-10-23, sin compilar la parte Android)
+- La variante `play` agrega ` BitaFlyPlay` al user-agent del WebView (`MainActivity`). Web: `src/lib/v2/playApp.js`.
+- En esa app: `/suscripcion` solo informa (sin «Pagar con tarjeta»), los avisos de vencimiento no traen botón «Pagar ahora»
+  ni textos que inviten a pagar, y `/api/suscripcion/wompi/checkout` y `/verify` responden 403 (defensa en el servidor).
+- Riesgo que sigue: las páginas públicas (landing, `/precios`) siguen accesibles por URL dentro del WebView.
+
 <!-- Plantilla para próximas fases:
 ### Fx.y — Título ✅/🔄 (fecha)
 - Qué se hizo:

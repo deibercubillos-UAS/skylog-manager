@@ -11,6 +11,7 @@ import { SectionHero, StatCard } from '../_components/SectionHero';
 import { Button } from '@skylog/ui';
 import PaymentHistory from './_PaymentHistory';
 import { PLANS, PLAN_LABELS, PLAN_LIMITS, PLAN_PRICING } from '@/lib/v2/planLimits';
+import { isPlayApp } from '@/lib/v2/playApp';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 // Carga el script del Widget de Wompi una sola vez (idempotente si ya está en
@@ -68,6 +69,8 @@ export default function SuscripcionPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const [playApp, setPlayApp] = useState(false); // app de Google Play: la página solo informa, sin pagos
+  useEffect(() => setPlayApp(isPlayApp()), []);
   const [subscription, setSubscription] = useState(null);
   const [usage, setUsage] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -277,11 +280,11 @@ export default function SuscripcionPage() {
       {notice && (
         <div className={`rounded-xl px-4 py-3 border ${notice.level === 'expired' ? 'bg-red-50 border-red-100 text-red-800' : 'bg-amber-50 border-amber-100 text-amber-900'}`}>
           <p className="text-sm font-bold">{notice.title}</p>
-          <p className="text-xs mt-1">{notice.message}</p>
+          {!playApp && <p className="text-xs mt-1">{notice.message}</p>}
         </div>
       )}
 
-      {subscription?.payment_provider !== 'wompi' && !subscription?.expires_at && !notice && (
+      {!playApp && subscription?.payment_provider !== 'wompi' && !subscription?.expires_at && !notice && (
         <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 flex items-start gap-2.5">
           <span className="material-symbols-outlined text-amber-500 text-lg shrink-0">info</span>
           <p className="text-xs text-amber-700">
@@ -292,7 +295,7 @@ export default function SuscripcionPage() {
         </div>
       )}
 
-      {isAdmin && plan !== 'enterprise' && (
+      {!playApp && isAdmin && plan !== 'enterprise' && (
         <div className="bg-white rounded-2xl border border-navy-100 p-5 space-y-3">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-lg">credit_card</span>
@@ -448,7 +451,9 @@ export default function SuscripcionPage() {
         ) : (
           <div className="p-5">
             <p className="text-sm text-navy-400">
-              {isAdmin
+              {playApp
+                ? 'El plan de la organización lo administra el Gerente General.'
+                : isAdmin
                 ? 'Para cambiar de plan, elige el plan y paga con tarjeta en «Pagar con tarjeta (Wompi)». Si necesitas un ajuste especial, escríbenos a soporte@bitafly.com.'
                 : 'Solo el Gerente General puede cambiar el plan de la organización.'}
             </p>

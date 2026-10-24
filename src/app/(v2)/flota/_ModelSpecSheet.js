@@ -5,7 +5,6 @@
 import { useState } from 'react';
 import { SPEC_FIELDS, SPEC_GROUPS, C2_FIELDS } from '@skylog/domain';
 import { Field, Button } from '@skylog/ui';
-import DocumentSlot from '../_components/DocumentSlot';
 
 function initialValue(f, model) {
   const v = model[f.key];
@@ -81,12 +80,6 @@ export default function ModelSpecSheet({ model, readOnly, onSaved, onCancel, onD
           </div>
         </div>
       ))}
-
-      <div>
-        <p className="text-xs font-black uppercase text-navy-300 tracking-widest mb-2">Autorización de la ANE</p>
-        <p className="text-xs text-navy-400 mb-1">Solo si el enlace usa una banda de frecuencias licenciada.</p>
-        <DocumentSlot label="Autorización" endpoint={`/api/flota/models/${model.id}/ane-document`} has={model.has_ane_document} canUpload={!readOnly} onChanged={onDocumentChanged} />
-      </div>
 
       {error && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
       {!readOnly && (

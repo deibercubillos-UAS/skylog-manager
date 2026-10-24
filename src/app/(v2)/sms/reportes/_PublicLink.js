@@ -29,6 +29,7 @@ export default function PublicLink({ organizationId }) {
   }, [load]);
 
   async function act(action) {
+    if (action === 'enable' && !confirm('Cualquier persona con el enlace podrá enviar reportes sin tener cuenta. ¿Activar el enlace público?')) return;
     if (action === 'regenerate' && !confirm('El enlace actual dejará de funcionar para quienes ya lo tienen. ¿Generar uno nuevo?')) return;
     if (action === 'disable' && !confirm('Nadie podrá reportar con el enlace actual. ¿Desactivarlo?')) return;
     setBusy(true);

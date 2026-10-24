@@ -1,14 +1,10 @@
-// Skylog V2.0 — Reportes: Mantenimiento (eventos de mantenimiento +
-// eventos inesperados). Solo gestores.
+// Skylog V2.0 — Reportes: Libro de Mantenimiento. Por aeronave (o toda la flota): sus datos y los registros del
+// periodo — eventos inesperados (parte 1: información de falla) y eventos de mantenimiento (parte 2: solución).
+// Solo gestores.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
-
-function aircraftLabel(a) {
-  if (!a) return '—';
-  return [a.serial_number, a.model && `${a.model.brand} ${a.model.model}`].filter(Boolean).join(' — ');
-}
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -26,44 +22,31 @@ export async function GET(request) {
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!membershipsCanView(memberships, organizationId, 'AC1')) return Response.json({ error: 'Solo un gestor puede ver reportes' }, { status: 403 });
 
+  let aircraftQuery = supabase.from('aircraft').select('id, serial_number, ruas_number, operational_status, model:model_id(brand, model)').eq('organization_id', organizationId).order('serial_number');
+  if (aircraftId) aircraftQuery = aircraftQuery.eq('id', aircraftId);
+
   let eventsQuery = supabase
     .from('maintenance_events')
-    .select('id, performed_at, performed_at_aircraft_hours, type, findings, return_to_service, aircraft:aircraft_id(serial_number, model:model_id(brand, model))')
+    .select('id, aircraft_id, performed_at, performed_at_aircraft_hours, type, findings, return_to_service, performer:performed_by(full_name, license_number)')
     .eq('organization_id', organizationId)
-    .order('performed_at', { ascending: false });
+    .order('performed_at');
   if (from) eventsQuery = eventsQuery.gte('performed_at', from);
   if (to) eventsQuery = eventsQuery.lte('performed_at', `${to}T23:59:59`);
   if (aircraftId) eventsQuery = eventsQuery.eq('aircraft_id', aircraftId);
 
-  let unexpectedQuery = supabase
-    .from('unexpected_events')
-    .select('id, reported_at, type, description, evaluated, evaluation_result, aircraft:aircraft_id(serial_number, model:model_id(brand, model))')
-    .eq('organization_id', organizationId)
-    .order('reported_at', { ascending: false });
+  let unexpectedQuery = supabase.from('unexpected_events').select('id, aircraft_id, reported_at, type, description').eq('organization_id', organizationId).order('reported_at');
   if (from) unexpectedQuery = unexpectedQuery.gte('reported_at', from);
   if (to) unexpectedQuery = unexpectedQuery.lte('reported_at', `${to}T23:59:59`);
   if (aircraftId) unexpectedQuery = unexpectedQuery.eq('aircraft_id', aircraftId);
 
-  // Programa de mantenimiento configurado por modelo (100.535(3)) — snapshot de la
-  // configuración vigente, no un evento con fecha, así que no se filtra por from/to.
-  const programsQuery = supabase
-    .from('maintenance_tasks')
-    .select('name, system_category, interval_cycles, interval_hours, interval_calendar_days, tolerance_value, tolerance_unit, program:program_id(model:model_id(brand, model))')
-    .eq('organization_id', organizationId)
-    .order('system_category');
-
-  const [{ data: eventsData, error: eventsError }, { data: unexpectedData, error: unexpectedError }, { data: programsData, error: programsError }] = await Promise.all([
+  const [{ data: aircraft, error: aircraftError }, { data: events, error: eventsError }, { data: unexpected, error: unexpectedError }, { data: org }] = await Promise.all([
+    aircraftQuery,
     eventsQuery,
     unexpectedQuery,
-    programsQuery,
+    supabase.from('organizations').select('nit').eq('id', organizationId).maybeSingle(),
   ]);
-  if (eventsError) return Response.json({ error: eventsError.message }, { status: 500 });
-  if (unexpectedError) return Response.json({ error: unexpectedError.message }, { status: 500 });
-  if (programsError) return Response.json({ error: programsError.message }, { status: 500 });
+  const failure = aircraftError || eventsError || unexpectedError;
+  if (failure) return Response.json({ error: failure.message }, { status: 500 });
 
-  return Response.json({
-    events: (eventsData || []).map((e) => ({ ...e, aircraft_label: aircraftLabel(e.aircraft) })),
-    unexpected: (unexpectedData || []).map((u) => ({ ...u, aircraft_label: aircraftLabel(u.aircraft) })),
-    programs: (programsData || []).map((t) => ({ ...t, model_label: t.program?.model ? `${t.program.model.brand} ${t.program.model.model}` : '—' })),
-  });
+  return Response.json({ aircraft: aircraft || [], events: events || [], unexpected: unexpected || [], org: org ? { nit: org.nit } : null });
 }

@@ -44,7 +44,7 @@ function createFormKit(doc, { logo, nit, title, format, palette, width }) {
   const titleW = W - logoW - boxW;
   const { accent, ink, tint, line } = palette;
   const today = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const kit = { y: 10 };
+  const kit = { y: 10, x: FORM_L, w: W }; // x/w: media hoja izquierda o derecha en formatos de dos columnas
   doc.setDrawColor(...line);
   doc.setLineWidth(0.3);
   doc.setTextColor(...ink);
@@ -76,11 +76,11 @@ function createFormKit(doc, { logo, nit, title, format, palette, width }) {
 
   kit.section = (name) => {
     doc.setFillColor(...tint);
-    doc.rect(FORM_L, kit.y, W, 6, 'FD');
+    doc.rect(kit.x, kit.y, kit.w, 6, 'FD');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(...accent);
-    doc.text(name, FORM_L + W / 2, kit.y + 4.3, { align: 'center' });
+    doc.text(name, kit.x + kit.w / 2, kit.y + 4.3, { align: 'center' });
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...ink);
     kit.y += 6;
@@ -90,7 +90,7 @@ function createFormKit(doc, { logo, nit, title, format, palette, width }) {
   kit.row = (cols, values) => {
     const labelH = 6;
     const valueH = 6;
-    let x = FORM_L;
+    let x = kit.x;
     cols.forEach((c, i) => {
       doc.setFillColor(...tint);
       doc.rect(x, kit.y, c.w, labelH, 'FD');
@@ -106,10 +106,10 @@ function createFormKit(doc, { logo, nit, title, format, palette, width }) {
   };
 
   kit.box = (text, h = 28) => {
-    doc.rect(FORM_L, kit.y, W, h);
+    doc.rect(kit.x, kit.y, kit.w, h);
     if (text) {
       doc.setFontSize(8);
-      doc.text(String(text), FORM_L + 2, kit.y + 5, { maxWidth: W - 4 });
+      doc.text(String(text), kit.x + 2, kit.y + 5, { maxWidth: kit.w - 4 });
     }
     kit.y += h;
   };
@@ -339,71 +339,67 @@ export async function generateUasBookPdf(units, { orgName, logoUrl, format, org 
   doc.save(`libro-de-uas-${slugify(orgName)}.pdf`);
 }
 
-function intervalLabel(t) {
-  const parts = [];
-  if (t.interval_cycles != null) parts.push(`${t.interval_cycles} ciclos`);
-  if (t.interval_hours != null) parts.push(`${t.interval_hours} h`);
-  if (t.interval_calendar_days != null) parts.push(`${t.interval_calendar_days} días`);
-  return parts.join(' · ') || '—';
-}
+const bogotaTime = (d) => (d ? new Date(d).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' }) : '');
 
-export async function generateMaintenanceReportPdf({ events, unexpected, programs }, { orgName, logoUrl, periodLabel, format }) {
-  const { doc, startY } = await baseDoc({ orgName, logoUrl, format, title: 'Mantenimiento', subtitle: periodLabel });
-  autoTable(doc, {
-    startY,
-    head: [['FECHA', 'AERONAVE', 'TIPO', 'HORAS AERONAVE', 'HALLAZGOS', 'VUELVE A SERVICIO']],
-    body: (events || []).map((e) => [
-      fmtDate(e.performed_at),
-      e.aircraft_label || '—',
-      e.type || '—',
-      fmtHours(e.performed_at_aircraft_hours),
-      e.findings || '—',
-      e.return_to_service ? 'Sí' : 'No',
-    ]),
-    styles: TABLE_STYLES,
-    headStyles: HEAD_STYLES,
-    margin: { left: 10, right: 10 },
+// Libro de Mantenimiento: una hoja por registro de la aeronave. Evento inesperado → PARTE 1 (información de falla);
+// evento de mantenimiento → PARTE 2 (solución). Lo que el sistema no registra (ATA, ID de mantenimiento, empresa/taller,
+// horas TT de la falla) queda en blanco. Una aeronave sin
+// registros en el periodo sale en una hoja en blanco con sus datos.
+export async function generateMaintenanceBookPdf({ aircraft, events, unexpected, org }, { orgName, logoUrl, format }) {
+  const { jsPDF } = await import('jspdf');
+  const logo = (await resolveLogo(logoUrl)) || (await fetchBitaflyLogo());
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const nit = org?.nit ? `NIT: ${org.nit}` : '';
+  const palette = formPalette(await dominantLogoColor(logo));
+  const footer = `Libro de Mantenimiento · Generado el ${new Date().toLocaleString('es-CO')} · Creado con BITAFLY`;
+  const HALF = FORM_W / 2;
+  const sheets = [];
+  const ordered = aircraft && aircraft.length ? aircraft : [{}];
+  ordered.forEach((ac) => {
+    const rows = [
+      ...(unexpected || []).filter((u) => u.aircraft_id === ac.id).map((u) => ({ at: new Date(u.reported_at), part: 1, u })),
+      ...(events || []).filter((e) => e.aircraft_id === ac.id).map((e) => ({ at: new Date(e.performed_at), part: 2, e })),
+    ].sort((p, q) => p.at - q.at);
+    if (!rows.length) sheets.push({ ac });
+    rows.forEach((r) => sheets.push({ ac, ...r }));
   });
 
-  let y = doc.lastAutoTable.finalY + 8;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(26, 32, 44);
-  doc.text('EVENTOS INESPERADOS', 10, y);
-  y += 3;
-  autoTable(doc, {
-    startY: y,
-    head: [['FECHA REPORTE', 'AERONAVE', 'TIPO', 'DESCRIPCIÓN', 'EVALUADO', 'RESULTADO']],
-    body: (unexpected || []).map((u) => [
-      fmtDate(u.reported_at),
-      u.aircraft_label || '—',
-      u.type || '—',
-      u.description || '—',
-      u.evaluated ? 'Sí' : 'No',
-      u.evaluation_result || '—',
-    ]),
-    styles: TABLE_STYLES,
-    headStyles: HEAD_STYLES,
-    margin: { left: 10, right: 10 },
+  sheets.forEach((sh, idx) => {
+    if (idx > 0) doc.addPage();
+    const kit = createFormKit(doc, { logo, nit, title: 'LIBRO DE MANTENIMIENTO', format, palette });
+    kit.header();
+    const m = sh.ac.model || {};
+    kit.section('AERONAVE');
+    kit.row([{ w: 45, label: 'Marca' }, { w: 55, label: 'Modelo' }, { w: 60, label: 'Número de serie' }, { w: 60, label: 'RUAS' }, { w: 57, label: 'Estado del UA' }], [m.brand, m.model, sh.ac.serial_number, sh.ac.ruas_number, statusLabel(sh.ac.operational_status)]);
+
+    const left = sh.part === 1 ? { at: sh.at, text: [sh.u.type, sh.u.description].filter(Boolean).join(': ') } : null;
+    const right = sh.part === 2 ? { at: sh.at, hours: sh.e.performed_at_aircraft_hours, type: sh.e.type, text: sh.e.findings, who: [sh.e.performer?.full_name, sh.e.performer?.license_number].filter(Boolean).join(' · ') } : null;
+    const top = kit.y;
+    let bottom = top;
+    [[0, 'PARTE 1: Información de falla', left, 'Fallos / observaciones'], [1, 'PARTE 2: Solución de falla', right, 'Solución']].forEach(([side, title, d, boxLabel]) => {
+      kit.x = FORM_L + side * HALF;
+      kit.w = HALF;
+      kit.y = top;
+      kit.section(title);
+      kit.row(
+        [{ w: 26, label: 'Fecha' }, { w: 18, label: 'Hora' }, { w: 28, label: 'Horas TT UA' }, { w: 20, label: 'ATA' }, { w: 46.5, label: 'ID Mantenimiento' }],
+        d ? [fmtDate(d.at), bogotaTime(d.at), d.hours != null ? Number(d.hours).toFixed(1) : '', '', ''] : []
+      );
+      kit.section(boxLabel);
+      kit.box(d?.text || '', 46);
+      kit.row([{ w: 92, label: 'Tipo de mantenimiento' }, { w: 46.5, label: 'Empresa / Taller' }], d ? [d.type, ''] : []);
+      kit.row([{ w: HALF, label: 'Nombre del responsable y CIPU (si aplica)' }], d ? [d.who] : []);
+      bottom = Math.max(bottom, kit.y);
+    });
+    kit.x = FORM_L;
+    kit.w = FORM_W;
+    kit.y = bottom;
+    kit.section('OBSERVACIONES');
+    kit.box(sh.part === 2 ? `Vuelve a servicio: ${sh.e.return_to_service ? 'Sí' : 'No'}` : '', 20);
+    kit.footnote(footer);
   });
 
-  y = doc.lastAutoTable.finalY + 8;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(26, 32, 44);
-  doc.text('PROGRAMA DE MANTENIMIENTO POR MODELO (100.535(3))', 10, y);
-  y += 3;
-  autoTable(doc, {
-    startY: y,
-    head: [['MODELO', 'TAREA', 'SISTEMA', 'INTERVALO', 'TOLERANCIA']],
-    body: (programs || []).map((t) => [t.model_label, t.name, t.system_category || '—', intervalLabel(t), t.tolerance_value != null ? `${t.tolerance_value} ${t.tolerance_unit || ''}`.trim() : '—']),
-    styles: TABLE_STYLES,
-    headStyles: HEAD_STYLES,
-    margin: { left: 10, right: 10 },
-  });
-
-  drawFooterNote(doc, periodLabel);
-  doc.save(`mantenimiento-${slugify(orgName)}.pdf`);
+  doc.save(`libro-de-mantenimiento-${slugify(orgName)}.pdf`);
 }
 
 // Listado de Proveedores inscritos: una hoja por proveedor con los datos registrados (nombre, NIT, dirección, correo,

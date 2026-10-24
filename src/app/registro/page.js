@@ -10,6 +10,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { getAttribution } from '@/lib/attribution';
+import { pushDataLayer } from '@/lib/analytics';
 import { validateRegistration, validateJoinRegistration } from '@skylog/domain';
 import JoinByNit from '../(v2)/_components/JoinByNit';
 import AuthSidePanel from '@/components/AuthSidePanel';
@@ -72,6 +73,7 @@ export default function RegistroPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'No se pudo completar el registro.');
+      pushDataLayer('sign_up', { method: joining ? 'join_org' : 'email' });
       // Cuenta creada y confirmada: se inicia sesión de una vez y se entra al panel.
       const { error } = await supabase.auth.signInWithPassword({ email: form.email.trim().toLowerCase(), password: form.password });
       if (error) {

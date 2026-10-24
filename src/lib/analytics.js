@@ -39,8 +39,9 @@ export function pushDataLayer(eventName, params = {}) {
  * Eventos estándar de GA4 usados en BitaFly
  * ─────────────────────────────────────────
  *
- * sign_up      → nuevo usuario registrado (gratis, pago o unirse a org)
- *   params: { method: 'email' | 'join_org', plan: 'piloto' | 'escuadrilla' | 'flota' }
+ * sign_up      → cuenta nueva creada (/registro, /registro/completar, /invitacion/[token]). Se emite con
+ *                pushDataLayer; GTM lo escucha por nombre de evento, no por URL.
+ *   params: { method: 'email' | 'google' | 'join_org' | 'invitation' }
  *
  * purchase     → pago Wompi confirmado (plan pago activado). Se emite con
  *                pushDataLayer desde (v2)/suscripcion/page.js.

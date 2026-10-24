@@ -113,3 +113,29 @@ Con la instancia en reposo `/api/health` responde en 0,3–0,5 s.
 | Piloto independiente | 3,4 s | 1,5 → 3,6 s | 2,1 → 10,5 s |
 | Socio | 2,6 s | 4,5 → 2,9 s | — |
 Lectura: el login quedó resuelto. Las pantallas muestran **variación fuerte entre corridas** (la misma pantalla pasa de 1,3 s a 8–24 s con `/api/health` sano a 0,5 s), lo que apunta a la instancia de Supabase (F-003), no al código; con esa variación no se puede atribuir mejora ni empeoramiento a `/api/perfil`. Se necesita decidir el tamaño de la instancia y volver a medir.
+
+## 10 · Ejecución completa con acciones reales — `qa.pi.real` (piloto independiente, 2026-10-23)
+Cuenta nueva real (GG + plan Piloto + único integrante), en producción, con acciones que escriben datos. 0 respuestas ≥ 400 en todo el recorrido.
+
+| Caso | Resultado |
+|---|---|
+| Flota: elegir 2 modelos DJI del catálogo, crear 2 aeronaves | ✔ |
+| Baterías: crear 4 (plan Piloto sin límite de aeronaves ni baterías) | ✔ |
+| Programación: crear 2 misiones | ✔ |
+| Despacho: Verificaciones → Revisar y confirmar → Despachar misión | ✔ pasa a «En curso» |
+| Cierre de vuelo: Registrar vuelo (0,05 h) | ✔ enlaza a la misión y suma horas; aparece en Bitácora |
+| Tiempos de servicio: Certificar | ✔ (ver nota: se certificó el año «1» por error de la prueba, no de la app) |
+| Mantenimiento: reportar evento → evaluar (aeronavegable) → crear programa → agregar tarea → registrar mantenimiento | ✔ |
+| Perfil: Guardar datos, Guardar licencia, Agregar adición (H-2) | ✔ persisten tras recargar; H-2 queda **confirmado** |
+| Organización: Agregar contacto de emergencia | ✔ persiste |
+| Búsqueda Ctrl K | ✔ encuentra las aeronaves |
+| Meteorología | ✔ carga |
+
+| # | Hallazgo | Estado |
+|---|---|---|
+| F-019 | La fecha de un mantenimiento se guardaba **un día antes** (medianoche UTC = tarde del día anterior en Bogotá): se eligió 23/10 y quedó 22/10. | ✅ corregido en `3dfad1f4` (se fija al mediodía de Bogotá); pendiente de desplegar |
+| F-020 | Cierre de vuelo: el botón «Registrar vuelo» queda deshabilitado sin explicar por qué cuando el aterrizaje está en el futuro. | ⬜ UX menor, mostrar el motivo |
+| F-021 | Perfil → «Agregar adición» no muestra aviso de éxito (sí guarda). | ⬜ UX menor |
+| F-022 | Meteorología: el pronóstico horario «hoy» arranca a las 02:00 estando a las 21:40 (parece hora UTC o pasada). | ⬜ revisar |
+
+**No ejecutado a propósito:** Pagar ahora (cobro real), Cambiar contraseña (envía correo real), Eliminar cuenta, Agregar tripulante/Invitar (dejaría de ser independiente), «Unirme a otra organización».

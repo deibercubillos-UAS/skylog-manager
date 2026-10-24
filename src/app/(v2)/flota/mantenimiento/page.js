@@ -192,7 +192,7 @@ export default function MantenimientoPage() {
           aircraftId: eventForm.aircraftId,
           taskId: eventForm.taskId || null,
           type: eventForm.type,
-          performedAt: eventForm.performedAt ? new Date(eventForm.performedAt).toISOString() : undefined,
+          performedAt: eventForm.performedAt ? new Date(`${eventForm.performedAt}T12:00:00-05:00`).toISOString() : undefined,
           findings: eventForm.findings || null,
           returnToService: eventForm.returnToService,
         }),

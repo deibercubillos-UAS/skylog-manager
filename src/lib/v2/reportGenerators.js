@@ -44,11 +44,9 @@ export async function generateFlightLogPdf(flights, { orgName, logoUrl, periodLa
   const W = 277;
   const nit = extra.org?.nit ? `NIT: ${extra.org.nit}` : '';
   const today = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const list = flights && flights.length ? flights : [];
-  if (!list.length) {
-    doc.setFontSize(10);
-    doc.text('No hay vuelos en el periodo seleccionado.', L, 20);
-  }
+  // Sin vuelos el formato sale igual, en blanco y con los totales en 0.
+  const empty = !flights || !flights.length;
+  const list = empty ? [{}] : flights;
 
   list.slice().reverse().forEach((f, idx) => {
     if (idx > 0) doc.addPage();
@@ -67,7 +65,7 @@ export async function generateFlightLogPdf(flights, { orgName, logoUrl, periodLa
         doc.text(c.label, x + c.w / 2, y + labelH / 2 + 1.1, { align: 'center', maxWidth: c.w - 2 });
         doc.setFontSize(valueSize);
         const v = values[i];
-        if (v) doc.text(String(v), x + c.w / 2, y + labelH + valueH / 2 + 1.2, { align: 'center', maxWidth: c.w - 2 });
+        if (v !== undefined && v !== null && v !== '') doc.text(String(v), x + c.w / 2, y + labelH + valueH / 2 + 1.2, { align: 'center', maxWidth: c.w - 2 });
         x += c.w;
       });
       y += labelH + valueH;
@@ -113,12 +111,12 @@ export async function generateFlightLogPdf(flights, { orgName, logoUrl, periodLa
     const minor = events.find((e) => e.type === 'menor');
     const hourOfDay = tk ? Number(tk.toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/Bogota' })) % 24 : null;
     const schedule = hourOfDay == null ? '' : hourOfDay >= 6 && hourOfDay < 18 ? 'Diurno' : 'Nocturno';
-    const dur = f.total_time != null ? `${Number(f.total_time).toFixed(2)} h` : '';
+    const dur = empty ? '0 h' : f.total_time != null ? `${Number(f.total_time).toFixed(2)} h` : '';
     const status = ac.operational_status === 'disponible' || ac.operational_status === 'operativa' ? 'Activa' : ac.operational_status ? 'Inactiva' : '';
 
     section('AERONAVE');
     row([{ w: 55, label: 'Marca' }, { w: 55, label: 'Modelo' }, { w: 55, label: 'Fabricante' }, { w: 56, label: 'Número de serie' }, { w: 56, label: 'RUAS' }], [model.brand, model.model, model.brand, ac.serial_number, ac.ruas_number]);
-    row([{ w: 55, label: 'Ciclos/Aterrizajes' }, { w: 55, label: 'Horas de inicio del UA' }, { w: 55, label: 'Estado actual de la aeronave' }, { w: 56, label: 'Tiempo total del UA' }, { w: 56, label: 'Horas TT motores' }], [cycles || '', '', status, ac.total_hours != null ? `${Number(ac.total_hours).toFixed(1)} h` : '', '']);
+    row([{ w: 55, label: 'Ciclos/Aterrizajes' }, { w: 55, label: 'Horas de inicio del UA' }, { w: 55, label: 'Estado actual de la aeronave' }, { w: 56, label: 'Tiempo total del UA' }, { w: 56, label: 'Horas TT motores' }], [empty ? 0 : cycles || '', '', status, empty ? '0 h' : ac.total_hours != null ? `${Number(ac.total_hours).toFixed(1)} h` : '', empty ? '0 h' : '']);
 
     section('OPERACIÓN');
     row([{ w: 92, label: 'Lugar de la operación' }, { w: 92, label: 'Tipo de operación' }, { w: 93, label: 'Tipo de condición visual' }], [f.location, f.mission_type, f.visual_condition]);

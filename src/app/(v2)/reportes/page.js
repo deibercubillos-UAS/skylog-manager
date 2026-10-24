@@ -24,6 +24,7 @@ import {
   generateTrainingReportPdf,
   generateSupplierAuditReportPdf,
   generateSupplierListPdf,
+  generateSupplierAuditFormPdf,
   generateDutyReportPdf,
   generateMissionsReportPdf,
   generateEtaReportPdf,
@@ -38,6 +39,7 @@ const REPORT_DEFS = [
   { key: 'tripulacion', title: 'Expediente de Tripulación', description: 'Roster con licencia y vigencia médica.', icon: 'groups', tile: 'bg-violet-500 text-white', wash: 'from-violet-50 to-white' },
   { key: 'capacitacion', title: 'Capacitación', description: 'Evaluaciones y cumplimiento por pista.', icon: 'school', tile: 'bg-red-500 text-white', wash: 'from-red-50 to-white', needsTrainingType: true },
   { key: 'proveedores_lista', title: 'Listado de Proveedores', description: 'Proveedores inscritos: una hoja por proveedor con sus datos, certificaciones y aprobación.', icon: 'contacts', tile: 'bg-sky-600 text-white', wash: 'from-sky-50 to-white', needsSupplier: true },
+  { key: 'proveedores_auditoria', title: 'Formato de Auditoría al Proveedor', description: 'Formato imprimible por proveedor con el checklist que configuró la organización (documentos, herramientas, infraestructura…).', icon: 'fact_check', tile: 'bg-sky-700 text-white', wash: 'from-sky-50 to-white', needsSupplier: true },
   { key: 'proveedores', title: 'Auditoría de Proveedores', description: 'Auditorías con % de cumplimiento.', icon: 'storefront', tile: 'bg-sky-500 text-white', wash: 'from-sky-50 to-white', needsPeriod: true, needsSupplier: true },
   { key: 'duty', title: 'Tiempos de Servicio', description: 'Registro diario por piloto — §100.540.', icon: 'schedule', tile: 'bg-indigo-500 text-white', wash: 'from-indigo-50 to-white', needsPeriod: true },
   { key: 'programacion', title: 'Programación y Autorizaciones', description: 'Expediente por autorización + análisis de riesgos.', icon: 'event_available', tile: 'bg-teal-500 text-white', wash: 'from-teal-50 to-white', needsPeriod: true },
@@ -201,6 +203,11 @@ export default function ReportesPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error consultando los proveedores');
         await generateSupplierListPdf(data, { orgName, logoUrl, format: fmt });
+      } else if (def.key === 'proveedores_auditoria') {
+        const res = await fetch(`/api/reportes/proveedores-auditoria?${new URLSearchParams({ organizationId, ...(supplierId && { supplierId }) })}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error consultando el formato de auditoría');
+        await generateSupplierAuditFormPdf(data, { orgName, logoUrl, format: fmt });
       } else if (def.key === 'proveedores') {
         const qs = new URLSearchParams({ organizationId, from, to, ...(supplierId && { supplierId }) });
         const res = await fetch(`/api/reportes/proveedores?${qs}`);

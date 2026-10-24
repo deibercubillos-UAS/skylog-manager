@@ -120,6 +120,36 @@ function createFormKit(doc, { logo, nit, title, format, palette }) {
     kit.y += h;
   };
 
+  // Tabla de criterios: cabecera tintada (rótulos) y filas con borde; la primera columna es texto a la izquierda.
+  kit.tableHead = (cols) => {
+    let x = FORM_L;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    cols.forEach((c) => {
+      doc.setFillColor(...tint);
+      doc.rect(x, kit.y, c.w, 6, 'FD');
+      doc.setTextColor(...accent);
+      doc.text(c.label, x + c.w / 2, kit.y + 4.2, { align: 'center', maxWidth: c.w - 2 });
+      x += c.w;
+    });
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...ink);
+    kit.y += 6;
+  };
+  kit.tableRow = (cols, first, h = 6) => {
+    doc.setFontSize(8);
+    const lines = first ? doc.splitTextToSize(String(first), cols[0].w - 4) : [];
+    const rowH = Math.max(h, lines.length * 3.8 + 2.4);
+    let x = FORM_L;
+    cols.forEach((c) => {
+      doc.rect(x, kit.y, c.w, rowH);
+      x += c.w;
+    });
+    if (lines.length) doc.text(lines, FORM_L + 2, kit.y + 4);
+    kit.y += rowH;
+    return rowH;
+  };
+
   kit.footnote = (text) => {
     doc.setFontSize(6.5);
     doc.setTextColor(110);
@@ -401,6 +431,89 @@ export async function generateSupplierListPdf({ suppliers, org }, { orgName, log
   });
 
   doc.save(`listado-de-proveedores-${slugify(orgName)}.pdf`);
+}
+
+// Formato de Auditoría al Proveedor: una hoja (o más) por proveedor con sus datos y el checklist de la organización
+// agrupado por categoría (Documentos, Herramientas, Infraestructura, …). Las marcas de Adjunto/Aprobado/No aprobado,
+// la firma y los responsables quedan en blanco para diligenciarlos a mano. Sin criterios configurados salen las tres
+// secciones base con renglones vacíos.
+const AUDIT_BASE_GROUPS = ['Documentos', 'Herramientas', 'Infraestructura'];
+export async function generateSupplierAuditFormPdf({ suppliers, criteria, org }, { orgName, logoUrl, format }) {
+  const { jsPDF } = await import('jspdf');
+  const logo = (await resolveLogo(logoUrl)) || (await fetchBitaflyLogo());
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const nit = org?.nit ? `NIT: ${org.nit}` : '';
+  const palette = formPalette(await dominantLogoColor(logo));
+  const footer = `Formato de auditoría · Generado el ${new Date().toLocaleString('es-CO')} · Creado con BITAFLY`;
+  const list = suppliers && suppliers.length ? suppliers : [{}];
+
+  // Criterios por categoría, en el orden configurado; sin categoría al final.
+  const groups = new Map();
+  (criteria || []).forEach((c) => {
+    const key = c.category?.trim() || 'Otros criterios';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(c.criterion);
+  });
+  if (groups.has('Otros criterios')) {
+    const rest = groups.get('Otros criterios');
+    groups.delete('Otros criterios');
+    groups.set('Otros criterios', rest);
+  }
+  if (!groups.size) AUDIT_BASE_GROUPS.forEach((g) => groups.set(g, []));
+  const layoutOf = (name) => {
+    if (/herramient/i.test(name)) return { kind: 'tools', minRows: 8, cols: [{ w: 117, label: name }, { w: 30, label: 'Cantidad' }, { w: 30, label: 'Estado' }, { w: 50, label: 'Aprobado' }, { w: 50, label: 'No aprobado' }] };
+    if (/document/i.test(name)) return { kind: 'docs', minRows: 3, cols: [{ w: 157, label: name }, { w: 30, label: 'Adjunto' }, { w: 45, label: 'Aprobado' }, { w: 45, label: 'No aprobado' }] };
+    return { kind: 'plain', minRows: 3, cols: [{ w: 187, label: name }, { w: 45, label: 'Aprobado' }, { w: 45, label: 'No aprobado' }] };
+  };
+
+  list.forEach((sp, idx) => {
+    if (idx > 0) doc.addPage();
+    let kit = createFormKit(doc, { logo, nit, title: 'AUDITORÍA AL PROVEEDOR', format, palette });
+    kit.header();
+    const newPage = () => {
+      kit.footnote(footer);
+      doc.addPage();
+      kit = createFormKit(doc, { logo, nit, title: 'AUDITORÍA AL PROVEEDOR', format, palette });
+      kit.header();
+      kit.section('ÍTEMS A EVALUAR (continuación)');
+    };
+    const ensure = (h, cols) => {
+      if (kit.y + h <= 196) return;
+      newPage();
+      if (cols) kit.tableHead(cols);
+    };
+
+    kit.section('PROVEEDOR');
+    kit.row([{ w: 90, label: 'Nombre del proveedor' }, { w: 45, label: 'NIT' }, { w: 87, label: 'Correo electrónico' }, { w: 55, label: 'Dirección' }], [sp.name, sp.nit, sp.email, sp.address]);
+    kit.row([{ w: 90, label: 'Nombre del contacto' }, { w: 87, label: 'Número de contacto' }, { w: 100, label: 'Tipo de servicio / mantenimiento' }], [sp.contact, sp.phone, sp.category]);
+    kit.section('ÍTEMS A EVALUAR');
+
+    groups.forEach((items, name) => {
+      const lay = layoutOf(name);
+      ensure(6 + 6 * Math.min(3, lay.minRows), null);
+      kit.tableHead(lay.cols);
+      const blanks = Math.max(0, lay.minRows - items.length);
+      items.forEach((text) => {
+        ensure(10, lay.cols);
+        kit.tableRow(lay.cols, text);
+      });
+      for (let i = 0; i < blanks; i += 1) {
+        ensure(6, lay.cols);
+        kit.tableRow(lay.cols, '');
+      }
+    });
+
+    ensure(62, null);
+    kit.section('OBSERVACIONES');
+    kit.box('', 20);
+    kit.section('RESPONSABLE DEL PROVEEDOR');
+    kit.row([{ w: 140, label: 'Nombre completo' }, { w: 67, label: 'Firma' }, { w: 70, label: 'Tipo y número de identificación' }], []);
+    kit.section(`RESPONSABLE DE ${(orgName || 'LA ORGANIZACIÓN').toUpperCase()}`);
+    kit.row([{ w: 110, label: 'Nombre y firma' }, { w: 67, label: 'CIPU' }, { w: 50, label: 'Aprobado' }, { w: 50, label: 'No aprobado' }], []);
+    kit.footnote(footer);
+  });
+
+  doc.save(`auditoria-proveedores-formato-${slugify(orgName)}.pdf`);
 }
 
 // Control de Baterías: una hoja por batería (serie, marca, modelo) con el estado vigente en la primera fila del registro

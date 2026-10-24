@@ -74,7 +74,7 @@ export default function CriteriaConfigPanel({ organizationId, criteria, onClose,
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
         <Field label="Criterio" value={form.criterion} onChange={(e) => setForm((f) => ({ ...f, criterion: e.target.value }))} placeholder="Ej. Cuenta con póliza de responsabilidad civil vigente" required />
-        <Field label="Categoría (opcional)" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} placeholder="Ej. Documentación legal" />
+        <Field label="Categoría (opcional)" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} placeholder="Ej. Documentos, Herramientas, Infraestructura" />
         {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
         <div className="sm:col-span-2">
           <Button type="submit" disabled={busy}>

@@ -12,7 +12,6 @@ const PLATFORM_ITEMS = [
   { href: '/gestion-flota-drones',   icon: 'flight',           label: 'Gestión de Flota',    desc: 'Drones y baterías' },
   { href: '/sms-aeronautico',        icon: 'health_and_safety',label: 'SMS Aeronáutico',     desc: 'Seguridad operacional' },
   { href: '/autorizaciones-aerocivil',icon:'approval',         label: 'Autorizaciones',      desc: 'F-OPS-001 AeroCivil' },
-  { href: '/sora',                   icon: 'radar',            label: 'SORA',                desc: 'Espacio aéreo controlado' },
   { href: '/replay-gps-drones',      icon: 'my_location',      label: 'Replay GPS',          desc: 'Reproduce el vuelo', badge: 'Nuevo' },
   { href: '/reportes-auditoria',     icon: 'assessment',       label: 'Reportes',            desc: 'PDFs RAC 100' },
   { href: '/gestion-pilotos',        icon: 'group',            label: 'Pilotos',             desc: 'Expediente y licencias' },

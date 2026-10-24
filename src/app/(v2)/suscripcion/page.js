@@ -13,6 +13,7 @@ import PaymentHistory from './_PaymentHistory';
 import { PLANS, PLAN_LABELS, PLAN_LIMITS, PLAN_PRICING } from '@/lib/v2/planLimits';
 import { isPlayApp } from '@/lib/v2/playApp';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
+import { pushDataLayer } from '@/lib/analytics';
 
 // Carga el script del Widget de Wompi una sola vez (idempotente si ya está en
 // el DOM) — mismo patrón portado de v1 (`dashboard/subscription/page.js`,
@@ -220,6 +221,23 @@ export default function SuscripcionPage() {
           });
           const verifyJson = await verifyRes.json();
           if (verifyJson.status === 'completed') {
+            // Conversión medible: solo la primera confirmación de ese pago
+            // (alreadyProcessed = el webhook o un reintento ya lo activó).
+            if (!verifyJson.alreadyProcessed) {
+              const value = tx.amount_in_cents != null ? Number(tx.amount_in_cents) / 100 : PLAN_PRICING[payPlan]?.[payBilling]?.amount;
+              // Se limpia el objeto ecommerce anterior (práctica estándar de GA4/GTM)
+              // y se envía el nuevo bajo `ecommerce`, que la etiqueta GA4 lee sola.
+              pushDataLayer(undefined, { ecommerce: null });
+              pushDataLayer('purchase', {
+                event_id: String(tx.id),
+                ecommerce: {
+                  transaction_id: String(tx.id),
+                  currency: 'COP',
+                  value,
+                  items: [{ item_id: payPlan, item_name: PLAN_LABELS[payPlan] || payPlan, price: value, quantity: 1 }],
+                },
+              });
+            }
             await load(organizationId);
           } else {
             setPayError(verifyJson.message || 'El pago no se confirmó todavía.');

@@ -757,7 +757,7 @@ export default function ProgramacionPage() {
                             <div className="flex items-center gap-2 mt-1.5">
                               <button
                                 type="button"
-                                onClick={() => downloadMissionPdf(m, { orgName: currentOrg?.name })}
+                                onClick={() => downloadMissionPdf(m, { orgName: currentOrg?.name, logoUrl: currentOrg?.logoUrl })}
                                 className="text-navy-400 hover:text-navy-600"
                                 title="Descargar PDF"
                               >

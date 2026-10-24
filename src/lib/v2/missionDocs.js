@@ -13,12 +13,11 @@
 // generateKML/downloadKMZ (mismas utilidades, mismo vocabulario de
 // geometría) para no duplicar esa lógica.
 //
-// Logo: las organizaciones de V2 (tabla `organizations` de este esquema
-// mínimo) todavía no tienen columna `logo_url` — no hay logo propio que
-// resolver. Se usa el logo de BitaFly (`/logo.png`, el mismo del nav) como
-// membrete, honesto con lo que existe hoy.
+// Logo: el de la organización (`organizations.logo_url`) cuando lo subió; el
+// de BitaFly (`/logo.png`) solo como respaldo.
 import { GEO_TYPES, getZoneSummary } from '@/lib/flightPlanDocs';
 import { generateKML, downloadKMZ } from '@/lib/kmlGenerator';
+import { resolveLogo } from './pdfCommon';
 
 function slugify(text) {
   return (text || 'mision')
@@ -78,9 +77,10 @@ function addLogo(doc, logo, x, y, w, h) {
   }
 }
 
-export async function downloadMissionPdf(mission, { orgName } = {}) {
+export async function downloadMissionPdf(mission, { orgName, logoUrl } = {}) {
   const { jsPDF } = await import('jspdf');
-  const logo = await fetchBitaflyLogo();
+  // Logo de la organización; el de BitaFly solo si no subió uno o no se pudo descargar.
+  const logo = (await resolveLogo(logoUrl)) || (await fetchBitaflyLogo());
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
   const reportDate = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });

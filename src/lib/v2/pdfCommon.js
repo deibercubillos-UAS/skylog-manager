@@ -7,8 +7,10 @@
 export async function resolveLogo(logoUrl) {
   if (!logoUrl) return null;
   try {
-    const res = await fetch(logoUrl);
-    if (!res.ok) return null;
+    // Primero directo (sin caché: el <img> del sidebar pudo dejarla guardada sin cabeceras CORS); si falla, por el servidor.
+    let res = await fetch(logoUrl, { cache: 'no-store' }).catch(() => null);
+    if ((!res || !res.ok) && /^https?:/.test(logoUrl)) res = await fetch(`/api/organizacion/logo/image?url=${encodeURIComponent(logoUrl)}`).catch(() => null);
+    if (!res || !res.ok) return null;
     const blob = await res.blob();
     const dataUrl = await new Promise((resolve, reject) => {
       const reader = new FileReader();

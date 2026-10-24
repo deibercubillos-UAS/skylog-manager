@@ -59,6 +59,7 @@ public class FlightFilesPlugin extends Plugin {
     };
 
     private boolean hasAllFilesAccess() {
+        if (BuildConfig.PLAY_BUILD) return false; // Play: solo carpeta elegida con el selector del sistema (SAF)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             return Environment.isExternalStorageManager();
         }
@@ -81,7 +82,7 @@ public class FlightFilesPlugin extends Plugin {
 
     @PluginMethod
     public void requestPermission(PluginCall call) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
+        if (!BuildConfig.PLAY_BUILD && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
             try {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
                 intent.setData(Uri.parse("package:" + getContext().getPackageName()));

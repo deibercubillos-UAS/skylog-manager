@@ -43,6 +43,11 @@ public class AppUpdatePlugin extends Plugin {
 
     @PluginMethod
     public void checkForUpdate(PluginCall call) {
+        // Google Play no permite actualizarse instalando APK por fuera de la tienda: en esa variante nunca hay OTA.
+        if (BuildConfig.PLAY_BUILD) {
+            call.resolve(new JSObject().put("hasUpdate", false));
+            return;
+        }
         new Thread(() -> {
             try {
                 URL url = new URL(API_BASE + "/api/app/version");
@@ -97,6 +102,10 @@ public class AppUpdatePlugin extends Plugin {
 
     @PluginMethod(returnType = PluginMethod.RETURN_CALLBACK)
     public void downloadAndInstall(PluginCall call) {
+        if (BuildConfig.PLAY_BUILD) {
+            call.reject("NOT_SUPPORTED");
+            return;
+        }
         call.setKeepAlive(true);
         String apkUrl = call.getString("apkUrl");
         if (apkUrl == null || apkUrl.isEmpty()) {

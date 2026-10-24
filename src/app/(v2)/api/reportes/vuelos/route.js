@@ -23,7 +23,7 @@ export async function GET(request) {
 
   let query = supabase
     .from('flights')
-    .select('id, takeoff_at, landing_at, total_time, visual_condition, mission_type, aircraft:aircraft_id(serial_number, model:model_id(brand, model)), pilot:pilot_person_id(full_name)')
+    .select('id, takeoff_at, landing_at, total_time, visual_condition, mission_type, location, notes, aircraft_id, aircraft:aircraft_id(serial_number, ruas_number, total_hours, operational_status, model:model_id(brand, model)), pilot:pilot_person_id(full_name, document_type, document_number, license_number)')
     .eq('organization_id', organizationId)
     .order('takeoff_at', { ascending: false });
   if (from) query = query.gte('takeoff_at', from);
@@ -39,5 +39,15 @@ export async function GET(request) {
     pilot_name: f.pilot?.full_name || '—',
   }));
 
-  return Response.json({ flights });
+  // Datos para el formato por vuelo: ciclos acumulados, último mantenimiento mayor/menor y NIT de la organización.
+  const aircraftIds = [...new Set(flights.map((f) => f.aircraft_id).filter(Boolean))];
+  const [{ data: allFlights }, { data: events }, { data: org }] = await Promise.all([
+    aircraftIds.length ? supabase.from('flights').select('aircraft_id, takeoff_at').eq('organization_id', organizationId).in('aircraft_id', aircraftIds) : Promise.resolve({ data: [] }),
+    aircraftIds.length
+      ? supabase.from('maintenance_events').select('aircraft_id, type, performed_at, performed_at_aircraft_hours, performer:performed_by(full_name, license_number)').eq('organization_id', organizationId).in('aircraft_id', aircraftIds).order('performed_at', { ascending: false })
+      : Promise.resolve({ data: [] }),
+    supabase.from('organizations').select('nit, nit_type').eq('id', organizationId).maybeSingle(),
+  ]);
+
+  return Response.json({ flights, cycles: allFlights || [], maintenance: events || [], org: org || null });
 }

@@ -28,6 +28,18 @@ export default function CloseForm({ mission, dispatch, onCancel, onDone }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
+  const [bookBusy, setBookBusy] = useState(false);
+  async function downloadBook() {
+    setBookBusy(true);
+    try {
+      const { downloadFlightBook } = await import('@/lib/v2/flightBook');
+      await downloadFlightBook({ organizationId: dispatch.organization_id || mission.organization_id, flightId: result.flightId });
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBookBusy(false);
+    }
+  }
 
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
   // Mismas reglas que el servidor, solo para avisar antes de enviar.
@@ -85,6 +97,12 @@ export default function CloseForm({ mission, dispatch, onCancel, onDone }) {
       <div className="bg-white rounded-2xl border border-emerald-200 p-5 space-y-3">
         <p className="text-sm font-semibold text-emerald-700">Vuelo registrado — {result.totalTime} h</p>
         <p className="text-xs text-navy-400">Quedó enlazado a la misión y las horas se sumaron a la aeronave.</p>
+        {result.flightId && (
+          <button type="button" onClick={downloadBook} disabled={bookBusy} className="text-xs font-semibold px-3 py-2 rounded-full bg-primary text-white min-h-[36px] disabled:opacity-50">
+            {bookBusy ? 'Generando…' : 'Descargar Libro de Vuelo (PDF)'}
+          </button>
+        )}
+        {error && <p className="text-xs text-red-600">{error}</p>}
         {result.dutyWarnings?.length > 0 && (
           <ul className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 space-y-0.5">
             {result.dutyWarnings.map((w) => (

@@ -17,7 +17,7 @@ import { Button } from '@skylog/ui';
 import { TRAINING_TYPES, TRAINING_TYPE_LABELS } from '@/lib/v2/training';
 import { resolveReportFormat } from '@skylog/domain';
 import {
-  generateFlightLogPdf,
+  generateUasBookPdf,
   generateMaintenanceReportPdf,
   generateFleetReportPdf,
   generateBatteryReportPdf,
@@ -31,7 +31,7 @@ import {
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const REPORT_DEFS = [
-  { key: 'vuelos', title: 'Libro de Vuelo', description: 'Vuelos registrados por rango de fechas.', icon: 'menu_book', tile: 'bg-blue-500 text-white', wash: 'from-blue-50 to-white', needsPeriod: true, needsAircraft: true },
+  { key: 'uas', title: 'Libro de UAS', description: 'Totales acumulados de cada aeronave: vuelos, horas, ciclos y mantenimiento. Una hoja por drone.', icon: 'menu_book', tile: 'bg-blue-500 text-white', wash: 'from-blue-50 to-white', needsAircraft: true },
   { key: 'mantenimiento', title: 'Mantenimiento', description: 'Eventos, eventos inesperados y programa por modelo.', icon: 'build', tile: 'bg-amber-500 text-white', wash: 'from-amber-50 to-white', needsPeriod: true, needsAircraft: true },
   { key: 'flota', title: 'Flota', description: 'Inventario, propiedad, firmware y ficha técnica por modelo — instantánea.', icon: 'flight', tile: 'bg-primary text-white', wash: 'from-primary-50 to-white', needsAircraft: true },
   { key: 'baterias', title: 'Baterías y Componentes', description: 'Estado vigente de baterías y componentes activos.', icon: 'battery_full', tile: 'bg-emerald-500 text-white', wash: 'from-emerald-50 to-white' },
@@ -156,12 +156,12 @@ export default function ReportesPage() {
       const periodLabel = `${from} a ${to}`;
       const fmt = { code: fmtDraft.code, version: fmtDraft.version };
 
-      if (def.key === 'vuelos') {
-        const qs = new URLSearchParams({ organizationId, from, to, ...(aircraftId && { aircraftId }) });
-        const res = await fetch(`/api/reportes/vuelos?${qs}`);
+      if (def.key === 'uas') {
+        const qs = new URLSearchParams({ organizationId, ...(aircraftId && { aircraftId }) });
+        const res = await fetch(`/api/reportes/uas?${qs}`);
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Error consultando vuelos');
-        await generateFlightLogPdf(data.flights, { orgName, logoUrl, format: fmt, periodLabel, extra: data });
+        if (!res.ok) throw new Error(data.error || 'Error consultando aeronaves');
+        await generateUasBookPdf(data.units, { orgName, logoUrl, format: fmt, org: data.org });
       } else if (def.key === 'mantenimiento') {
         const qs = new URLSearchParams({ organizationId, from, to, ...(aircraftId && { aircraftId }) });
         const res = await fetch(`/api/reportes/mantenimiento?${qs}`);

@@ -53,6 +53,18 @@ export default function BitacoraPage() {
   const [context, setContext] = useState(null);
   const [organizationId, setOrganizationId] = useState('');
   const [flights, setFlights] = useState([]);
+  const [bookBusy, setBookBusy] = useState(null);
+  async function downloadBook(flightId) {
+    setBookBusy(flightId);
+    try {
+      const { downloadFlightBook } = await import('@/lib/v2/flightBook');
+      await downloadFlightBook({ organizationId, flightId });
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setBookBusy(null);
+    }
+  }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -515,12 +527,13 @@ export default function BitacoraPage() {
                     <th className="px-6 py-2.5">Aeronave</th>
                     <th className="px-6 py-2.5">Tipo de misión</th>
                     <th className="px-6 py-2.5">Replay</th>
+                    <th className="px-6 py-2.5">Libro de Vuelo</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-navy-50">
                   {visibleFlights.length === 0 && (
                     <tr>
-                      <td colSpan={9} className="py-12 text-center opacity-40 max-md:[&>*]:sticky max-md:[&>*]:left-0 max-md:[&>*]:w-[calc(100vw-5rem)] max-md:[&>*]:whitespace-normal">
+                      <td colSpan={10} className="py-12 text-center opacity-40 max-md:[&>*]:sticky max-md:[&>*]:left-0 max-md:[&>*]:w-[calc(100vw-5rem)] max-md:[&>*]:whitespace-normal">
                         <span className="material-symbols-outlined text-5xl text-navy-300 mb-3 block">flight_takeoff</span>
                         <p className="text-xs font-black uppercase tracking-widest text-navy-500">Sin vuelos registrados todavía</p>
                       </td>
@@ -567,6 +580,17 @@ export default function BitacoraPage() {
                         ) : (
                           <span className="text-navy-300 text-xs">—</span>
                         )}
+                      </td>
+                      <td className="px-6 py-2.5 whitespace-nowrap">
+                        <button
+                          type="button"
+                          disabled={bookBusy === f.id}
+                          onClick={() => downloadBook(f.id)}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-navy-600 bg-navy-50 border border-navy-100 rounded-full px-2.5 py-1 hover:bg-navy-100 transition-colors disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                          {bookBusy === f.id ? '…' : 'PDF'}
+                        </button>
                       </td>
                     </tr>
                   ))}

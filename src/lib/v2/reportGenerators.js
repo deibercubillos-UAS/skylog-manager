@@ -7,7 +7,6 @@
 // todavía, porque esas piezas no existen en V2 (documentado en la
 // bitácora, no fabricado aquí).
 import autoTable from 'jspdf-autotable';
-import { SPEC_FIELDS, computeSpecCompleteness, formatSpecValue } from '@skylog/domain';
 import { HEAD_STYLES, resolveLogo, fetchBitaflyLogo, addLogo, drawReportHeader, drawFooterNote, slugify, dominantLogoColor, formPalette } from './pdfCommon';
 
 const TABLE_STYLES = { fontSize: 7, cellPadding: 1.3, lineColor: [220, 220, 220], lineWidth: 0.1 };
@@ -372,63 +371,49 @@ export async function generateMaintenanceReportPdf({ events, unexpected, program
   doc.save(`mantenimiento-${slugify(orgName)}.pdf`);
 }
 
-export async function generateFleetReportPdf(aircraft, { orgName, logoUrl, models = [], format, org }) {
+export async function generateFleetReportPdf(aircraft, { orgName, logoUrl, format, org }) {
   const { jsPDF } = await import('jspdf');
   const logo = (await resolveLogo(logoUrl)) || (await fetchBitaflyLogo());
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const nit = org?.nit ? `NIT: ${org.nit}` : '';
   const palette = formPalette(await dominantLogoColor(logo));
   const footer = `Instantánea a la fecha · Generado el ${new Date().toLocaleString('es-CO')} · Creado con BITAFLY`;
-  const list = aircraft && aircraft.length ? aircraft : [{}];
   const ownership = { propiedad: 'Propiedad', arrendamiento: 'Arrendamiento', comodato: 'Comodato' };
+  const list = aircraft || [];
+  const cols = [
+    { w: 10, label: 'N.º' }, { w: 24, label: 'Marca' }, { w: 30, label: 'Modelo' }, { w: 32, label: 'Serie' }, { w: 26, label: 'RUAS' },
+    { w: 20, label: 'Peso real' }, { w: 22, label: 'Estado' }, { w: 22, label: 'Horas totales' }, { w: 27, label: 'Propiedad' }, { w: 30, label: 'Referencia' }, { w: 34, label: 'Firmware vigente' },
+  ];
+  const widths = cols.map((c) => c.w);
 
-  // Una hoja por aeronave: identificación, estado y propiedad, firmware.
-  list.forEach((a, idx) => {
-    if (idx > 0) doc.addPage();
-    const kit = createFormKit(doc, { logo, nit, title: 'FICHA DE FLOTA', format, palette });
-    kit.header();
-    const m = a.model || {};
-    kit.section('AERONAVE');
-    kit.row([{ w: 55, label: 'Marca' }, { w: 55, label: 'Modelo' }, { w: 55, label: 'Número de serie' }, { w: 56, label: 'RUAS' }, { w: 56, label: 'Peso real' }], [m.brand, m.model, a.serial_number, a.ruas_number, a.actual_weight_kg != null ? `${a.actual_weight_kg} kg` : '']);
-    kit.section('ESTADO Y PROPIEDAD');
-    kit.row(
-      [{ w: 69, label: 'Estado actual de la aeronave' }, { w: 69, label: 'Tiempo total del UA' }, { w: 69, label: 'Tipo de propiedad' }, { w: 70, label: 'Referencia' }],
-      [statusLabel(a.operational_status), a.serial_number ? hoursLabel(a.total_hours) || '0 h' : '', ownership[a.ownership_type] || a.ownership_type, a.ownership_reference]
-    );
-    kit.section('FIRMWARE');
-    kit.row([{ w: 92, label: 'Versión vigente' }, { w: 92, label: 'Versión anterior' }, { w: 93, label: 'Fecha de actualización' }], [a.firmware_version, a.firmware_previous_version, a.firmware_updated_at ? fmtDate(a.firmware_updated_at) : '']);
-    kit.section('OBSERVACIONES');
-    kit.box('', 40);
-    kit.footnote(footer);
+  let kit = createFormKit(doc, { logo, nit, title: 'INVENTARIO DE FLOTA', format, palette });
+  kit.header();
+  kit.section('AERONAVES');
+  let needHead = true;
+  const totalHours = list.reduce((sum, a) => sum + (Number(a.total_hours) || 0), 0);
+  const rows = list.length ? list : Array.from({ length: 8 }, () => null);
+  rows.forEach((a, i) => {
+    if (kit.y + 8 > 195) {
+      kit.footnote(footer);
+      doc.addPage();
+      kit = createFormKit(doc, { logo, nit, title: 'INVENTARIO DE FLOTA', format, palette });
+      kit.header();
+      kit.section('AERONAVES (continuación)');
+      needHead = true;
+    }
+    const m = a?.model || {};
+    const values = a ? [i + 1, m.brand, m.model, a.serial_number, a.ruas_number, a.actual_weight_kg != null ? `${a.actual_weight_kg} kg` : '', statusLabel(a.operational_status), hoursLabel(a.total_hours) || '0 h', ownership[a.ownership_type] || a.ownership_type, a.ownership_reference, a.firmware_version] : [];
+    if (needHead) {
+      kit.row(cols, values); // la primera fila de datos va bajo los rótulos
+      needHead = false;
+    } else {
+      kit.valueRow(widths, values, 6);
+    }
   });
-
-  // Ficha técnica por modelo (RAC 100 Apéndice 1, Parte B), agrupada en secciones.
-  const clip = (t) => (t && t.length > 110 ? `${t.slice(0, 107)}…` : t);
-  for (const model of models) {
-    const c = computeSpecCompleteness(model);
-    doc.addPage();
-    const kit = createFormKit(doc, { logo, nit, title: 'FICHA TÉCNICA DEL MODELO', format, palette });
-    kit.header();
-    kit.section(`${model.brand} ${model.model} · Apéndice 1 Parte B · ${c.filled} de ${c.total} atributos registrados`);
-    const groups = [...new Set(SPEC_FIELDS.map((f) => f.group))];
-    groups.forEach((g) => {
-      const fields = SPEC_FIELDS.filter((f) => f.group === g);
-      const perRow = ['Peso y dimensiones', 'Desempeño'].includes(g) ? 3 : 2;
-      kit.section(g.toUpperCase());
-      for (let i = 0; i < fields.length; i += perRow) {
-        const chunk = fields.slice(i, i + perRow);
-        const w = FORM_W / perRow;
-        kit.row(
-          chunk.map((f) => ({ w, label: f.label })),
-          chunk.map((f) => {
-            const v = formatSpecValue(f, model[f.key]);
-            return v === '—' ? '' : clip(v);
-          })
-        );
-      }
-    });
-    kit.footnote(footer);
+  if (list.length) {
+    kit.section(`TOTAL: ${list.length} aeronave${list.length === 1 ? '' : 's'} · ${totalHours.toFixed(1)} h de vuelo acumuladas`);
   }
+  kit.footnote(footer);
 
   doc.save(`flota-${slugify(orgName)}.pdf`);
 }

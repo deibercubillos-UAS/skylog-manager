@@ -32,7 +32,5 @@ export async function GET(request) {
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
   const aircraft = (data || []).map((a) => ({ ...a, model_label: a.model ? `${a.model.brand} ${a.model.model}` : '—' }));
-  // Ficha técnica (Apéndice 1 Parte B): una por modelo presente en el alcance del reporte, no una por unidad.
-  const models = [...new Map((data || []).filter((a) => a.model).map((a) => [a.model.id, a.model])).values()];
-  return Response.json({ aircraft, models, org: org ? { nit: org.nit } : null });
+  return Response.json({ aircraft, org: org ? { nit: org.nit } : null });
 }

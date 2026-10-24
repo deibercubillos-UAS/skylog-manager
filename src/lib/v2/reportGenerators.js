@@ -96,14 +96,16 @@ export async function generateFlightLogPdf(flights, { orgName, logoUrl, periodLa
     doc.text(`FECHA: ${today}`, L + 248.5, y + 19.5, { align: 'center' });
     y += 24;
 
-    const ac = f.aircraft || {};
+    // Sin vuelos pero con una aeronave elegida: el formato sale con los datos de esa aeronave.
+    const ac = f.aircraft || extra.aircraft || {};
+    const acId = f.aircraft_id || extra.aircraft?.id;
     const model = ac.model || {};
     const pilot = f.pilot || {};
     const tk = f.takeoff_at ? new Date(f.takeoff_at) : null;
     const ld = f.landing_at ? new Date(f.landing_at) : null;
     const hm = (d) => (d ? d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Bogota' }) : '');
-    const cycles = (extra.cycles || []).filter((c) => c.aircraft_id === f.aircraft_id && (!tk || new Date(c.takeoff_at) <= tk)).length;
-    const events = (extra.maintenance || []).filter((e) => e.aircraft_id === f.aircraft_id && (!tk || new Date(e.performed_at) <= tk));
+    const cycles = (extra.cycles || []).filter((c) => c.aircraft_id === acId && (!tk || new Date(c.takeoff_at) <= tk)).length;
+    const events = (extra.maintenance || []).filter((e) => e.aircraft_id === acId && (!tk || new Date(e.performed_at) <= tk));
     const major = events.find((e) => e.type !== 'menor');
     const minor = events.find((e) => e.type === 'menor');
     const hourOfDay = tk ? Number(tk.toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/Bogota' })) % 24 : null;
@@ -113,7 +115,7 @@ export async function generateFlightLogPdf(flights, { orgName, logoUrl, periodLa
 
     section('AERONAVE');
     row([{ w: 55, label: 'Marca' }, { w: 55, label: 'Modelo' }, { w: 55, label: 'Fabricante' }, { w: 56, label: 'Número de serie' }, { w: 56, label: 'RUAS' }], [model.brand, model.model, model.brand, ac.serial_number, ac.ruas_number]);
-    row([{ w: 55, label: 'Ciclos/Aterrizajes' }, { w: 55, label: 'Horas de inicio del UA' }, { w: 55, label: 'Estado actual de la aeronave' }, { w: 56, label: 'Tiempo total del UA' }, { w: 56, label: 'Horas TT motores' }], [empty ? 0 : cycles || '', '', status, empty ? '0 h' : ac.total_hours != null ? `${Number(ac.total_hours).toFixed(1)} h` : '', empty ? '0 h' : '']);
+    row([{ w: 55, label: 'Ciclos/Aterrizajes' }, { w: 55, label: 'Horas de inicio del UA' }, { w: 55, label: 'Estado actual de la aeronave' }, { w: 56, label: 'Tiempo total del UA' }, { w: 56, label: 'Horas TT motores' }], [empty && !acId ? 0 : cycles, '', status, ac.total_hours != null ? `${Number(ac.total_hours).toFixed(1)} h` : empty ? '0 h' : '', empty ? '0 h' : '']);
 
     section('OPERACIÓN');
     row([{ w: 92, label: 'Lugar de la operación' }, { w: 92, label: 'Tipo de operación' }, { w: 93, label: 'Tipo de condición visual' }], [f.location, f.mission_type, f.visual_condition]);

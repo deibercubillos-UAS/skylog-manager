@@ -140,3 +140,14 @@ Cuenta nueva real (GG + plan Piloto + único integrante), en producción, con ac
 | F-023 | Urbansa (pago directo, acceso manual 1 año) seguía viendo «Activa tu pago con Wompi». Causa: marca `migrated_from_v1` sin tarjeta. | ✅ dato limpiado y la edición manual desde Master ahora quita la marca; las otras 19 migradas son migraciones reales y no se tocaron |
 
 **No ejecutado a propósito:** Pagar ahora (cobro real), Cambiar contraseña (envía correo real), Eliminar cuenta, Agregar tripulante/Invitar (dejaría de ser independiente), «Unirme a otra organización».
+
+### 10.1 · Verificación en producción de las correcciones (`main` b6870661, 2026-10-23)
+| Corrección | Verificado con | Resultado |
+|---|---|---|
+| F-019 fecha de mantenimiento | `qa.pi.real` | ✔ queda 23/10 12:00 Bogotá (antes 22/10 19:00) |
+| F-021 aviso al agregar adición | `qa.pi.real` | ✔ «Adición agregada» |
+| F-022 hora del pronóstico | `qa.pi.real` | ✔ 21:00 a las 21:50 de Bogotá |
+| H-3 confirmación del enlace público | `qa.gerente` | ✔ pregunta antes de activar; al cancelar sigue desactivado; al aceptar queda activo |
+| H-5 Ctrl K sin AD1 | `qa.piloto` / `qa.gerente` | ✔ piloto: 0 llamadas a members, 0 errores; gerente: 200 |
+| F-023 aviso Wompi en acceso manual | dato + código | ✔ Urbansa limpiado |
+Quedan 0 respuestas ≥ 400 en todas las pruebas. Nota: el enlace público de la organización QA se desactivó y reactivó durante la prueba (token nuevo).

@@ -2,7 +2,7 @@
 // patrón de pólizas y propiedad de aeronave, así que se extrae aquí: bucket PRIVADO `documents` bajo
 // `v2-orgs/{org}/…`, la ruta se guarda en la propia fila, la descarga redirige a una URL firmada de 1 h tras
 // validar membresía y nunca se expone el path. Las rutas existentes (pólizas, propiedad) no se tocaron.
-import { createClientSSR } from '@/lib/supabaseServer';
+import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { storageProblem } from '@/lib/v2/adminKey';
 import { storagePut, storageSignedUrl, storageRemove } from '@/lib/storage';
@@ -18,8 +18,10 @@ const ALLOWED_TYPES = new Set(['application/pdf', 'image/png', 'image/jpeg', 'im
  *  - resolve(request, row): { pathColumn, folder, label } — qué columna y carpeta usar (p. ej. según ?kind=).
  *  - canWrite / canRead: (memberships, organizationId, target) => boolean (`target` = lo que devolvió resolve).
  *  - rowLabel: texto para mensajes ("la designación").
+ *  - adminWrites: la tabla no tiene política de UPDATE para el usuario (p. ej. mantenimiento, inmutable): tras validar sesión,
+ *    rol y organización con el cliente del usuario, solo la columna del documento se escribe con la llave de servicio.
  */
-export function makeRowDocumentRoute({ table, resolve, canWrite, canRead, rowLabel = 'el registro', select = '*' }) {
+export function makeRowDocumentRoute({ table, resolve, canWrite, canRead, rowLabel = 'el registro', select = '*', adminWrites = false }) {
   async function load(supabase, id, request, needWrite) {
     const user = await getAuthUser(supabase);
     if (!user) return { error: Response.json({ error: 'No autenticado' }, { status: 401 }) };
@@ -59,7 +61,8 @@ export function makeRowDocumentRoute({ table, resolve, canWrite, canRead, rowLab
     const { error: putError } = await storagePut({ bucket: BUCKET, key, body: Buffer.from(await file.arrayBuffer()), contentType: file.type });
     if (putError) return Response.json({ error: 'No se pudo subir el documento' }, { status: 500 });
 
-    const { data, error } = await supabase.from(table).update({ [target.pathColumn]: key }).eq('id', id).select(`id, ${target.pathColumn}`).single();
+    const writer = adminWrites ? createAdminClient() : supabase;
+    const { data, error } = await writer.from(table).update({ [target.pathColumn]: key }).eq('organization_id', row.organization_id).eq('id', id).select(`id, ${target.pathColumn}`).single();
     if (error) {
       await storageRemove({ bucket: BUCKET, keys: [key] });
       return Response.json({ error: error.message }, { status: 500 });
@@ -89,7 +92,8 @@ export function makeRowDocumentRoute({ table, resolve, canWrite, canRead, rowLab
     if (loaded.error) return loaded.error;
     const path = loaded.row[loaded.target.pathColumn];
     if (!path) return Response.json({ ok: true });
-    const { error } = await supabase.from(table).update({ [loaded.target.pathColumn]: null }).eq('id', id);
+    const writer = adminWrites ? createAdminClient() : supabase;
+    const { error } = await writer.from(table).update({ [loaded.target.pathColumn]: null }).eq('id', id).eq('organization_id', loaded.row.organization_id);
     if (error) return Response.json({ error: error.message }, { status: 500 });
     await storageRemove({ bucket: BUCKET, keys: [path] });
     return Response.json({ ok: true });

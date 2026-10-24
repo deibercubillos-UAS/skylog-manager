@@ -40,14 +40,15 @@ export async function GET(request) {
   }));
 
   // Datos para el formato por vuelo: ciclos acumulados, último mantenimiento mayor/menor y NIT de la organización.
-  const aircraftIds = [...new Set(flights.map((f) => f.aircraft_id).filter(Boolean))];
-  const [{ data: allFlights }, { data: events }, { data: org }] = await Promise.all([
+  const aircraftIds = [...new Set([...flights.map((f) => f.aircraft_id), aircraftId].filter(Boolean))];
+  const [{ data: allFlights }, { data: events }, { data: org }, { data: aircraftRow }] = await Promise.all([
     aircraftIds.length ? supabase.from('flights').select('aircraft_id, takeoff_at').eq('organization_id', organizationId).in('aircraft_id', aircraftIds) : Promise.resolve({ data: [] }),
     aircraftIds.length
       ? supabase.from('maintenance_events').select('aircraft_id, type, performed_at, performed_at_aircraft_hours, performer:performed_by(full_name, license_number)').eq('organization_id', organizationId).in('aircraft_id', aircraftIds).order('performed_at', { ascending: false })
       : Promise.resolve({ data: [] }),
     supabase.from('organizations').select('nit, nit_type').eq('id', organizationId).maybeSingle(),
+    aircraftId ? supabase.from('aircraft').select('id, serial_number, ruas_number, total_hours, operational_status, model:model_id(brand, model)').eq('organization_id', organizationId).eq('id', aircraftId).maybeSingle() : Promise.resolve({ data: null }),
   ]);
 
-  return Response.json({ flights, cycles: allFlights || [], maintenance: events || [], org: org || null });
+  return Response.json({ flights, cycles: allFlights || [], maintenance: events || [], org: org || null, aircraft: aircraftRow || null });
 }

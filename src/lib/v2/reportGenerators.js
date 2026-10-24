@@ -371,6 +371,38 @@ export async function generateMaintenanceReportPdf({ events, unexpected, program
   doc.save(`mantenimiento-${slugify(orgName)}.pdf`);
 }
 
+// Listado de Proveedores inscritos: una hoja por proveedor con los datos registrados (nombre, NIT, dirección, correo,
+// contacto, observaciones). Certificaciones, personal técnico, aprobación e instalaciones el sistema no los registra:
+// quedan en blanco para diligenciarlos a mano. Sin proveedores sale una hoja en blanco.
+export async function generateSupplierListPdf({ suppliers, org }, { orgName, logoUrl, format }) {
+  const { jsPDF } = await import('jspdf');
+  const logo = (await resolveLogo(logoUrl)) || (await fetchBitaflyLogo());
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const nit = org?.nit ? `NIT: ${org.nit}` : '';
+  const palette = formPalette(await dominantLogoColor(logo));
+  const list = suppliers && suppliers.length ? suppliers : [{}];
+
+  list.forEach((sp, idx) => {
+    if (idx > 0) doc.addPage();
+    const kit = createFormKit(doc, { logo, nit, title: 'LISTADO DE PROVEEDORES', format, palette });
+    kit.header();
+    kit.section('PROVEEDOR');
+    kit.row([{ w: 90, label: 'Nombre del proveedor' }, { w: 45, label: 'NIT' }, { w: 87, label: 'Dirección' }, { w: 55, label: 'Correo electrónico' }], [sp.name, sp.tax_id, sp.address, sp.contact_email]);
+    kit.row([{ w: 90, label: 'Nombre del contacto' }, { w: 87, label: 'Número de contacto' }, { w: 100, label: 'Tipo de servicio / mantenimiento' }], [sp.contact_name, sp.contact_phone, sp.category]);
+    kit.section('CERTIFICACIONES');
+    kit.box('', 14);
+    kit.row([{ w: 70, label: 'Personal técnico' }, { w: 30, label: 'Sí' }, { w: 30, label: 'No' }, { w: 147, label: 'Cantidad / observación' }], []);
+    kit.row([{ w: 70, label: 'Aprobación' }, { w: 35, label: 'Aprobado' }, { w: 35, label: 'No aprobado' }, { w: 60, label: 'Fecha' }, { w: 77, label: 'Responsable' }], []);
+    kit.section('DESCRIPCIÓN DE LAS INSTALACIONES');
+    kit.box('', 28);
+    kit.section('OBSERVACIONES');
+    kit.box(sp.notes || '', 24);
+    kit.footnote(`Proveedores inscritos a la fecha de descarga · Generado el ${new Date().toLocaleString('es-CO')} · Creado con BITAFLY`);
+  });
+
+  doc.save(`listado-de-proveedores-${slugify(orgName)}.pdf`);
+}
+
 // Control de Baterías: una hoja por batería (serie, marca, modelo) con el estado vigente en la primera fila del registro
 // de uso (ciclos y condición reales) y filas en blanco para anotar cada uso. Sin baterías sale una hoja en blanco.
 export async function generateBatteryReportPdf({ batteries, org }, { orgName, logoUrl, format }) {

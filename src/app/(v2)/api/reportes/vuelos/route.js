@@ -1,9 +1,10 @@
-// Skylog V2.0 — Reportes: Libro de Vuelo. Solo gestores (mismo criterio de
-// v1: canViewAudit ≈ isDutyManager).
+// Skylog V2.0 — Libro de Vuelo (formato de un vuelo). Con `flightId` lo baja cualquier miembro que vea ese vuelo
+// (la RLS de `flights` decide); sin él, solo gestores.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { resolveReportFormat } from '@skylog/domain';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -15,17 +16,20 @@ export async function GET(request) {
   const from = searchParams.get('from');
   const to = searchParams.get('to');
   const aircraftId = searchParams.get('aircraftId');
+  const flightId = searchParams.get('flightId'); // el formato de un solo vuelo lo puede bajar quien lo ve (la RLS decide)
   if (!organizationId) return Response.json({ error: 'organizationId es requerido' }, { status: 400 });
 
   const { error: resolveError, memberships } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
-  if (!membershipsCanView(memberships, organizationId, 'AC1')) return Response.json({ error: 'Solo un gestor puede ver reportes' }, { status: 403 });
+  const isMember = (memberships || []).some((m) => m.organization_id === organizationId);
+  if (flightId ? !isMember : !membershipsCanView(memberships, organizationId, 'AC1')) return Response.json({ error: 'Solo un gestor puede ver reportes' }, { status: 403 });
 
   let query = supabase
     .from('flights')
     .select('id, takeoff_at, landing_at, total_time, visual_condition, mission_type, location, notes, aircraft_id, aircraft:aircraft_id(serial_number, ruas_number, total_hours, operational_status, model:model_id(brand, model)), pilot:pilot_person_id(full_name, document_type, document_number, license_number)')
     .eq('organization_id', organizationId)
     .order('takeoff_at', { ascending: false });
+  if (flightId) query = query.eq('id', flightId);
   if (from) query = query.gte('takeoff_at', from);
   if (to) query = query.lte('takeoff_at', `${to}T23:59:59`);
   if (aircraftId) query = query.eq('aircraft_id', aircraftId);
@@ -46,9 +50,9 @@ export async function GET(request) {
     aircraftIds.length
       ? supabase.from('maintenance_events').select('aircraft_id, type, performed_at, performed_at_aircraft_hours, performer:performed_by(full_name, license_number)').eq('organization_id', organizationId).in('aircraft_id', aircraftIds).order('performed_at', { ascending: false })
       : Promise.resolve({ data: [] }),
-    supabase.from('organizations').select('nit, nit_type').eq('id', organizationId).maybeSingle(),
+    supabase.from('organizations').select('nit, nit_type, report_formats').eq('id', organizationId).maybeSingle(),
     aircraftId ? supabase.from('aircraft').select('id, serial_number, ruas_number, total_hours, operational_status, model:model_id(brand, model)').eq('organization_id', organizationId).eq('id', aircraftId).maybeSingle() : Promise.resolve({ data: null }),
   ]);
 
-  return Response.json({ flights, cycles: allFlights || [], maintenance: events || [], org: org || null, aircraft: aircraftRow || null });
+  return Response.json({ flights, cycles: allFlights || [], maintenance: events || [], org: org ? { nit: org.nit, nit_type: org.nit_type } : null, format: resolveReportFormat(org?.report_formats || {}, 'vuelos'), aircraft: aircraftRow || null });
 }

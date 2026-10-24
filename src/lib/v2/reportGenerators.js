@@ -33,71 +33,101 @@ function fmtHours(h) {
   return h == null ? '—' : Number(h).toFixed(1);
 }
 
-// Libro de Vuelo: un formato por vuelo (una hoja horizontal), con las casillas del formato oficial de la
-// organización. Lo que el sistema no registra (horas de cada motor, horas de inicio del UA, próximo mantenimiento)
-// queda como casilla en blanco para diligenciar a mano.
+// ── Formato por casillas (Libro de Vuelo y Libro de UAS) ─────────────────────────────────────────────────────────
+// Hoja horizontal con encabezado (logo + NIT | título | código/versión/fecha) y secciones de casillas. Lo que el
+// sistema no registra queda en blanco para diligenciarlo a mano.
+const FORM_L = 10;
+const FORM_W = 277;
+
+function createFormKit(doc, { logo, nit, title, format }) {
+  const today = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const kit = { y: 10 };
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.3);
+
+  kit.header = () => {
+    const y = kit.y;
+    doc.rect(FORM_L, y, 100, 24);
+    doc.rect(FORM_L + 100, y, 120, 24);
+    const version = format?.version || '1.0';
+    const boxes = format?.code ? [`CÓDIGO: ${format.code}`, `VERSIÓN: ${version}`, `FECHA: ${today}`] : [`VERSIÓN: ${version}`, `FECHA: ${today}`];
+    const bh = 24 / boxes.length;
+    boxes.forEach((_, i) => doc.rect(FORM_L + 220, y + i * bh, 57, bh));
+    addLogo(doc, logo, FORM_L + 3, y + 2, 94, 17);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    if (nit) doc.text(nit, FORM_L + 50, y + 22.5, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(14);
+    doc.text(title, FORM_L + 160, y + 13.5, { align: 'center' });
+    doc.setFontSize(9);
+    boxes.forEach((t, i) => doc.text(t, FORM_L + 248.5, y + i * bh + bh / 2 + 1.2, { align: 'center', maxWidth: 55 }));
+    kit.y += 24;
+  };
+
+  kit.section = (name) => {
+    doc.setFillColor(238, 238, 232);
+    doc.rect(FORM_L, kit.y, FORM_W, 6, 'FD');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(name, FORM_L + FORM_W / 2, kit.y + 4.3, { align: 'center' });
+    kit.y += 6;
+  };
+
+  // cols = [{ w, label }]; values = textos de la fila de abajo (0 se dibuja, vacío no).
+  kit.row = (cols, values) => {
+    const labelH = 6;
+    const valueH = 6;
+    let x = FORM_L;
+    cols.forEach((c, i) => {
+      doc.rect(x, kit.y, c.w, labelH);
+      doc.rect(x, kit.y + labelH, c.w, valueH);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(c.label, x + c.w / 2, kit.y + labelH / 2 + 1.1, { align: 'center', maxWidth: c.w - 2 });
+      const v = values[i];
+      if (v !== undefined && v !== null && v !== '') doc.text(String(v), x + c.w / 2, kit.y + labelH + valueH / 2 + 1.2, { align: 'center', maxWidth: c.w - 2 });
+      x += c.w;
+    });
+    kit.y += labelH + valueH;
+  };
+
+  kit.box = (text, h = 28) => {
+    doc.rect(FORM_L, kit.y, FORM_W, h);
+    if (text) {
+      doc.setFontSize(8);
+      doc.text(String(text), FORM_L + 2, kit.y + 5, { maxWidth: FORM_W - 4 });
+    }
+    kit.y += h;
+  };
+
+  kit.footnote = (text) => {
+    doc.setFontSize(6.5);
+    doc.setTextColor(110);
+    doc.text(text, FORM_L, kit.y + 5);
+    doc.setTextColor(0);
+  };
+  return kit;
+}
+
+const hoursLabel = (h, digits = 1) => (h != null && h !== '' ? `${Number(h).toFixed(digits)} h` : '');
+const statusLabel = (st) => (st === 'disponible' || st === 'operativa' ? 'Activa' : st ? 'Inactiva' : '');
+
+// Libro de Vuelo: un formato por vuelo (una hoja). Sin vuelos sale en blanco con los totales en 0 (con los datos de
+// la aeronave si `extra.aircraft` viene).
 export async function generateFlightLogPdf(flights, { orgName, logoUrl, periodLabel, format, extra = {} }) {
   const { jsPDF } = await import('jspdf');
   const logo = (await resolveLogo(logoUrl)) || (await fetchBitaflyLogo());
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  const L = 10;
-  const W = 277;
   const nit = extra.org?.nit ? `NIT: ${extra.org.nit}` : '';
-  const today = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  // Sin vuelos el formato sale igual, en blanco y con los totales en 0.
+  const fmt = format || extra.format;
   const empty = !flights || !flights.length;
   const list = empty ? [{}] : flights;
 
   list.slice().reverse().forEach((f, idx) => {
     if (idx > 0) doc.addPage();
-    let y = 10;
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.3);
-
-    // Dibuja una fila de casillas: cols = [{ w, label }] y valores en la fila de abajo.
-    const row = (cols, values, { labelH = 6, valueH = 6, labelSize = 8, valueSize = 8 } = {}) => {
-      let x = L;
-      cols.forEach((c, i) => {
-        doc.rect(x, y, c.w, labelH);
-        doc.rect(x, y + labelH, c.w, valueH);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(labelSize);
-        doc.text(c.label, x + c.w / 2, y + labelH / 2 + 1.1, { align: 'center', maxWidth: c.w - 2 });
-        doc.setFontSize(valueSize);
-        const v = values[i];
-        if (v !== undefined && v !== null && v !== '') doc.text(String(v), x + c.w / 2, y + labelH + valueH / 2 + 1.2, { align: 'center', maxWidth: c.w - 2 });
-        x += c.w;
-      });
-      y += labelH + valueH;
-    };
-    const section = (title) => {
-      doc.setFillColor(238, 238, 232);
-      doc.rect(L, y, W, 6, 'FD');
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.text(title, L + W / 2, y + 4.3, { align: 'center' });
-      y += 6;
-    };
-
-    // Encabezado: logo + NIT | título | versión / fecha
-    doc.rect(L, y, 100, 24);
-    doc.rect(L + 100, y, 120, 24);
-    const version = format?.version || '1.0';
-    const boxes = format?.code ? [`CÓDIGO: ${format.code}`, `VERSIÓN: ${version}`, `FECHA: ${today}`] : [`VERSIÓN: ${version}`, `FECHA: ${today}`];
-    const bh = 24 / boxes.length;
-    boxes.forEach((t, i) => {
-      doc.rect(L + 220, y + i * bh, 57, bh);
-    });
-    addLogo(doc, logo, L + 3, y + 2, 94, 17);
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'bold');
-    if (nit) doc.text(nit, L + 50, y + 22.5, { align: 'center' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(14);
-    doc.text('LIBRO DE VUELO', L + 160, y + 13.5, { align: 'center' });
-    doc.setFontSize(9);
-    boxes.forEach((t, i) => doc.text(t, L + 248.5, y + i * bh + bh / 2 + 1.2, { align: 'center', maxWidth: 55 }));
-    y += 24;
+    const kit = createFormKit(doc, { logo, nit, title: 'LIBRO DE VUELO', format: fmt });
+    kit.header();
 
     // Sin vuelos pero con una aeronave elegida: el formato sale con los datos de esa aeronave.
     const ac = f.aircraft || extra.aircraft || {};
@@ -113,41 +143,82 @@ export async function generateFlightLogPdf(flights, { orgName, logoUrl, periodLa
     const minor = events.find((e) => e.type === 'menor');
     const hourOfDay = tk ? Number(tk.toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/Bogota' })) % 24 : null;
     const schedule = hourOfDay == null ? '' : hourOfDay >= 6 && hourOfDay < 18 ? 'Diurno' : 'Nocturno';
-    const dur = empty ? '0 h' : f.total_time != null ? `${Number(f.total_time).toFixed(2)} h` : '';
-    const status = ac.operational_status === 'disponible' || ac.operational_status === 'operativa' ? 'Activa' : ac.operational_status ? 'Inactiva' : '';
+    const dur = empty ? '0 h' : hoursLabel(f.total_time, 2);
 
-    section('AERONAVE');
-    row([{ w: 55, label: 'Marca' }, { w: 55, label: 'Modelo' }, { w: 55, label: 'Fabricante' }, { w: 56, label: 'Número de serie' }, { w: 56, label: 'RUAS' }], [model.brand, model.model, model.brand, ac.serial_number, ac.ruas_number]);
-    row([{ w: 55, label: 'Ciclos/Aterrizajes' }, { w: 55, label: 'Horas de inicio del UA' }, { w: 55, label: 'Estado actual de la aeronave' }, { w: 56, label: 'Tiempo total del UA' }, { w: 56, label: 'Horas TT motores' }], [empty && !acId ? 0 : cycles, '', status, ac.total_hours != null ? `${Number(ac.total_hours).toFixed(1)} h` : empty ? '0 h' : '', empty ? '0 h' : '']);
+    kit.section('AERONAVE');
+    kit.row([{ w: 55, label: 'Marca' }, { w: 55, label: 'Modelo' }, { w: 55, label: 'Fabricante' }, { w: 56, label: 'Número de serie' }, { w: 56, label: 'RUAS' }], [model.brand, model.model, model.brand, ac.serial_number, ac.ruas_number]);
+    kit.row(
+      [{ w: 55, label: 'Ciclos/Aterrizajes' }, { w: 55, label: 'Horas de inicio del UA' }, { w: 55, label: 'Estado actual de la aeronave' }, { w: 56, label: 'Tiempo total del UA' }, { w: 56, label: 'Horas TT motores' }],
+      [empty && !acId ? 0 : cycles, '', statusLabel(ac.operational_status), hoursLabel(ac.total_hours) || (empty ? '0 h' : ''), empty ? '0 h' : '']
+    );
 
-    section('OPERACIÓN');
-    row([{ w: 92, label: 'Lugar de la operación' }, { w: 92, label: 'Tipo de operación' }, { w: 93, label: 'Tipo de condición visual' }], [f.location, f.mission_type, f.visual_condition]);
-    row([{ w: 69, label: 'Horario' }, { w: 69, label: 'Hora de despegue / inicio op' }, { w: 69, label: 'Hora de aterrizaje / fin op' }, { w: 70, label: 'Tiempo total de la operación' }], [schedule, hm(tk), hm(ld), dur]);
+    kit.section('OPERACIÓN');
+    kit.row([{ w: 92, label: 'Lugar de la operación' }, { w: 92, label: 'Tipo de operación' }, { w: 93, label: 'Tipo de condición visual' }], [f.location, f.mission_type, f.visual_condition]);
+    kit.row([{ w: 69, label: 'Horario' }, { w: 69, label: 'Hora de despegue / inicio op' }, { w: 69, label: 'Hora de aterrizaje / fin op' }, { w: 70, label: 'Tiempo total de la operación' }], [schedule, hm(tk), hm(ld), dur]);
 
-    section('PILOTO UAS');
-    row([{ w: 110, label: 'Nombre' }, { w: 60, label: 'Tipo de documento' }, { w: 60, label: 'Número de documento' }, { w: 47, label: 'CIPU' }], [pilot.full_name, pilot.document_type, pilot.document_number, pilot.license_number]);
+    kit.section('PILOTO UAS');
+    kit.row([{ w: 110, label: 'Nombre' }, { w: 60, label: 'Tipo de documento' }, { w: 60, label: 'Número de documento' }, { w: 47, label: 'CIPU' }], [pilot.full_name, pilot.document_type, pilot.document_number, pilot.license_number]);
 
-    section('MANTENIMIENTO MAYOR');
-    row([{ w: 69, label: 'Fecha del último mantenimiento' }, { w: 69, label: 'Nombre del proveedor de mantenimiento' }, { w: 69, label: 'Horas TT del UA' }, { w: 70, label: 'Fecha del próximo mantenimiento' }], [major ? fmtDate(major.performed_at) : '', major?.performer?.full_name, major?.performed_at_aircraft_hours != null ? `${major.performed_at_aircraft_hours} h` : '', '']);
+    kit.section('MANTENIMIENTO MAYOR');
+    kit.row([{ w: 69, label: 'Fecha del último mantenimiento' }, { w: 69, label: 'Nombre del proveedor de mantenimiento' }, { w: 69, label: 'Horas TT del UA' }, { w: 70, label: 'Fecha del próximo mantenimiento' }], [major ? fmtDate(major.performed_at) : '', major?.performer?.full_name, major?.performed_at_aircraft_hours != null ? `${major.performed_at_aircraft_hours} h` : '', '']);
 
-    section('MANTENIMIENTO MENOR REALIZADO');
-    row([{ w: 69, label: 'Fecha del último mantenimiento' }, { w: 138, label: 'Nombre Piloto UAS' }, { w: 70, label: 'CIPU' }], [minor ? fmtDate(minor.performed_at) : '', minor?.performer?.full_name, minor?.performer?.license_number]);
+    kit.section('MANTENIMIENTO MENOR REALIZADO');
+    kit.row([{ w: 69, label: 'Fecha del último mantenimiento' }, { w: 138, label: 'Nombre Piloto UAS' }, { w: 70, label: 'CIPU' }], [minor ? fmtDate(minor.performed_at) : '', minor?.performer?.full_name, minor?.performer?.license_number]);
 
-    section('OBSERVACIONES');
-    doc.rect(L, y, W, 28);
-    if (f.notes) {
-      doc.setFontSize(8);
-      doc.text(String(f.notes), L + 2, y + 5, { maxWidth: W - 4 });
-    }
-    y += 28;
-
-    doc.setFontSize(6.5);
-    doc.setTextColor(110);
-    doc.text(`Periodo: ${periodLabel} · Generado el ${new Date().toLocaleString('es-CO')} · ${orgName || ''}`, L, y + 5);
-    doc.setTextColor(0);
+    kit.section('OBSERVACIONES');
+    kit.box(f.notes);
+    kit.footnote(`${periodLabel ? `Periodo: ${periodLabel} · ` : ''}Generado el ${new Date().toLocaleString('es-CO')} · ${orgName || ''}`);
   });
 
   doc.save(`libro-de-vuelo-${slugify(orgName)}.pdf`);
+}
+
+// Libro de UAS: una hoja por aeronave con los totales acumulados (vuelos, horas, ciclos) y el estado de mantenimiento.
+// `units` = [{ aircraft, flights: { count, hours, first, last }, major, minor }] — lo arma /api/reportes/uas.
+export async function generateUasBookPdf(units, { orgName, logoUrl, format, org }) {
+  const { jsPDF } = await import('jspdf');
+  const logo = (await resolveLogo(logoUrl)) || (await fetchBitaflyLogo());
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const nit = org?.nit ? `NIT: ${org.nit}` : '';
+  const list = units && units.length ? units : [{ aircraft: {}, flights: {}, major: null, minor: null }];
+
+  list.forEach((u, idx) => {
+    if (idx > 0) doc.addPage();
+    const kit = createFormKit(doc, { logo, nit, title: 'LIBRO DE UAS', format });
+    kit.header();
+    const ac = u.aircraft || {};
+    const model = ac.model || {};
+    const fl = u.flights || {};
+
+    kit.section('AERONAVE');
+    kit.row([{ w: 55, label: 'Marca' }, { w: 55, label: 'Modelo' }, { w: 55, label: 'Fabricante' }, { w: 56, label: 'Número de serie' }, { w: 56, label: 'RUAS' }], [model.brand, model.model, model.brand, ac.serial_number, ac.ruas_number]);
+    kit.row(
+      [{ w: 69, label: 'Estado actual de la aeronave' }, { w: 69, label: 'Horas de inicio del UA' }, { w: 69, label: 'Tiempo total del UA' }, { w: 70, label: 'Horas TT motores' }],
+      [statusLabel(ac.operational_status), '', hoursLabel(ac.total_hours) || '0 h', '']
+    );
+
+    kit.section('TOTALES DE OPERACIÓN');
+    kit.row(
+      [{ w: 69, label: 'Vuelos registrados' }, { w: 69, label: 'Ciclos/Aterrizajes' }, { w: 69, label: 'Horas de vuelo registradas' }, { w: 70, label: 'Último vuelo' }],
+      [fl.count || 0, fl.count || 0, hoursLabel(fl.hours, 2) || '0 h', fl.last ? fmtDate(fl.last) : '']
+    );
+    kit.row([{ w: 92, label: 'Primer vuelo registrado' }, { w: 92, label: 'Último piloto' }, { w: 93, label: 'Última condición visual' }], [fl.first ? fmtDate(fl.first) : '', fl.lastPilot, fl.lastCondition]);
+
+    kit.section('MANTENIMIENTO MAYOR');
+    kit.row(
+      [{ w: 69, label: 'Fecha del último mantenimiento' }, { w: 69, label: 'Nombre del proveedor de mantenimiento' }, { w: 69, label: 'Horas TT del UA' }, { w: 70, label: 'Fecha del próximo mantenimiento' }],
+      [u.major ? fmtDate(u.major.performed_at) : '', u.major?.performer?.full_name, u.major?.performed_at_aircraft_hours != null ? `${u.major.performed_at_aircraft_hours} h` : '', '']
+    );
+
+    kit.section('MANTENIMIENTO MENOR REALIZADO');
+    kit.row([{ w: 69, label: 'Fecha del último mantenimiento' }, { w: 138, label: 'Nombre Piloto UAS' }, { w: 70, label: 'CIPU' }], [u.minor ? fmtDate(u.minor.performed_at) : '', u.minor?.performer?.full_name, u.minor?.performer?.license_number]);
+
+    kit.section('OBSERVACIONES');
+    kit.box('');
+    kit.footnote(`Totales acumulados a la fecha · Generado el ${new Date().toLocaleString('es-CO')} · ${orgName || ''}`);
+  });
+
+  doc.save(`libro-de-uas-${slugify(orgName)}.pdf`);
 }
 
 function intervalLabel(t) {

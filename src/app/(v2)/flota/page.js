@@ -152,7 +152,7 @@ export default function FlotaPage() {
     }
   }
 
-  async function handleSeedDjiModels() {
+  async function handleSeedDjiModels(keysOverride) {
     if (!organizationId) return;
     setSeedBusy(true);
     setSeedMessage(null);
@@ -161,7 +161,7 @@ export default function FlotaPage() {
       const res = await fetch('/api/flota/models/seed-dji', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organizationId, keys: djiPicked }),
+        body: JSON.stringify({ organizationId, keys: Array.isArray(keysOverride) ? keysOverride : djiPicked }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error precargando el catálogo DJI');
@@ -169,10 +169,12 @@ export default function FlotaPage() {
       setShowDjiPicker(false);
       setDjiPicked([]);
       const createdCount = data.created?.length || 0;
+      const completedCount = data.completed || 0;
       setSeedMessage(
-        createdCount > 0
-          ? `Se agregaron ${createdCount} modelos DJI nuevos${data.skipped > 0 ? ` (${data.skipped} ya existían)` : ''}.`
-          : 'El catálogo DJI ya estaba completo — no había modelos nuevos por agregar.'
+        [
+          createdCount > 0 ? `Se agregaron ${createdCount} modelos DJI nuevos con su ficha técnica.` : null,
+          completedCount > 0 ? `Se completaron los campos vacíos de la ficha de ${completedCount} modelo(s) que ya tenías.` : null,
+        ].filter(Boolean).join(' ') || 'No había nada por agregar ni por completar.'
       );
     } catch (e) {
       setError(e.message);
@@ -395,9 +397,19 @@ export default function FlotaPage() {
                           );
                         })}
                       </div>
-                      <Button type="button" onClick={handleSeedDjiModels} disabled={seedBusy || djiPicked.length === 0} className="text-xs px-3 py-1.5">
-                        {seedBusy ? 'Agregando…' : `Agregar ${djiPicked.length || ''} seleccionado(s)`}
-                      </Button>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Button type="button" onClick={() => handleSeedDjiModels()} disabled={seedBusy || djiPicked.length === 0} className="text-xs px-3 py-1.5">
+                          {seedBusy ? 'Agregando…' : `Agregar ${djiPicked.length || ''} seleccionado(s)`}
+                        </Button>
+                        <button
+                          type="button"
+                          disabled={seedBusy}
+                          onClick={() => handleSeedDjiModels(DJI_MODELS_CATALOG.filter((m) => models.some((x) => x.brand.toLowerCase() === m.brand.toLowerCase() && x.model.toLowerCase() === m.model.toLowerCase())).map((m) => `${m.brand}::${m.model}`))}
+                          className="text-xs font-semibold text-blue-600 hover:underline disabled:opacity-50"
+                        >
+                          Completar la ficha de mis modelos DJI
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

@@ -34,7 +34,7 @@ const REPORT_DEFS = [
   { key: 'bitacora_piloto', title: 'Bitácora de Vuelo del Piloto UAS', description: 'Resumen por piloto: horas totales, por aeronave y por tipo de visión (VLOS, EVLOS, BVLOS).', icon: 'assignment_ind', tile: 'bg-cyan-500 text-white', wash: 'from-cyan-50 to-white', needsPeriod: true, needsPilot: true },
   { key: 'uas', title: 'Libro de UAS', description: 'Totales acumulados de cada aeronave: vuelos, horas, ciclos y mantenimiento. Una hoja por drone.', icon: 'menu_book', tile: 'bg-blue-500 text-white', wash: 'from-blue-50 to-white', needsAircraft: true },
   { key: 'mantenimiento', title: 'Mantenimiento', description: 'Eventos, eventos inesperados y programa por modelo.', icon: 'build', tile: 'bg-amber-500 text-white', wash: 'from-amber-50 to-white', needsPeriod: true, needsAircraft: true },
-  { key: 'flota', title: 'Flota', description: 'Inventario, propiedad, firmware y ficha técnica por modelo — instantánea.', icon: 'flight', tile: 'bg-primary text-white', wash: 'from-primary-50 to-white', needsAircraft: true },
+  { key: 'flota', title: 'Flota', description: 'Una hoja por aeronave (estado, propiedad, firmware) y la ficha técnica de cada modelo — instantánea.', icon: 'flight', tile: 'bg-primary text-white', wash: 'from-primary-50 to-white', needsAircraft: true },
   { key: 'baterias', title: 'Control de Baterías', description: 'Una hoja por batería: ciclos, condición y registro de uso.', icon: 'battery_full', tile: 'bg-emerald-500 text-white', wash: 'from-emerald-50 to-white', needsBattery: true },
   { key: 'tripulacion', title: 'Expediente de Tripulación', description: 'Roster con licencia y vigencia médica.', icon: 'groups', tile: 'bg-violet-500 text-white', wash: 'from-violet-50 to-white' },
   { key: 'capacitacion', title: 'Capacitación', description: 'Evaluaciones y cumplimiento por pista.', icon: 'school', tile: 'bg-red-500 text-white', wash: 'from-red-50 to-white', needsTrainingType: true },
@@ -186,7 +186,7 @@ export default function ReportesPage() {
         const res = await fetch(`/api/reportes/flota?${qs}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error consultando la flota');
-        await generateFleetReportPdf(data.aircraft, { orgName, logoUrl, format: fmt, models: data.models || [] });
+        await generateFleetReportPdf(data.aircraft, { orgName, logoUrl, format: fmt, models: data.models || [], org: data.org });
       } else if (def.key === 'baterias') {
         const res = await fetch(`/api/reportes/baterias?${new URLSearchParams({ organizationId, ...(batteryId && { batteryId }) })}`);
         const data = await res.json();

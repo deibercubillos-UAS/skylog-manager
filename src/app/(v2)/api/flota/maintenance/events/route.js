@@ -31,7 +31,7 @@ export async function GET(request) {
 
   let query = supabase
     .from('maintenance_events')
-    .select('*, aircraft:aircraft_id(serial_number, model:model_id(brand, model)), task:task_id(name), performer:performed_by(full_name)')
+    .select('*, aircraft:aircraft_id(serial_number, model:model_id(brand, model)), task:task_id(name), performer:performed_by(full_name), supplier:supplier_id(name)')
     .eq('organization_id', organizationId)
     .order('performed_at', { ascending: false });
   if (aircraftId) query = query.eq('aircraft_id', aircraftId);
@@ -48,7 +48,7 @@ export async function POST(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { organizationId, aircraftId, taskId, type, performedAt, findings, returnToService } = body;
+  const { organizationId, aircraftId, taskId, type, performedAt, findings, returnToService, supplierId, documentUrl } = body;
   if (!organizationId || !aircraftId || !type) {
     return Response.json({ error: 'organizationId, aircraftId y type son requeridos' }, { status: 400 });
   }
@@ -77,6 +77,16 @@ export async function POST(request) {
     if (!task) return Response.json({ error: 'La tarea no pertenece a esta organización' }, { status: 400 });
   }
 
+  if (supplierId) {
+    const { data: supplier, error: supplierError } = await supabase.from('suppliers').select('id').eq('id', supplierId).eq('organization_id', organizationId).maybeSingle();
+    if (supplierError) return Response.json({ error: 'Error verificando el proveedor' }, { status: 500 });
+    if (!supplier) return Response.json({ error: 'El proveedor no pertenece a esta organización' }, { status: 400 });
+  }
+  const link = typeof documentUrl === 'string' ? documentUrl.trim() : '';
+  if (link && (link.length > 500 || !/^https?:\/\/\S+$/i.test(link))) {
+    return Response.json({ error: 'El enlace al informe debe empezar por http:// o https:// (máx. 500 caracteres)' }, { status: 400 });
+  }
+
   const { data, error } = await supabase
     .from('maintenance_events')
     .insert({
@@ -89,8 +99,10 @@ export async function POST(request) {
       performed_by: personId,
       findings: findings || null,
       return_to_service: returnToService !== false,
+      supplier_id: supplierId || null,
+      document_url: link || null,
     })
-    .select('*, aircraft:aircraft_id(serial_number, model:model_id(brand, model)), task:task_id(name), performer:performed_by(full_name)')
+    .select('*, aircraft:aircraft_id(serial_number, model:model_id(brand, model)), task:task_id(name), performer:performed_by(full_name), supplier:supplier_id(name)')
     .single();
 
   if (error) return Response.json({ error: error.message }, { status: 500 });

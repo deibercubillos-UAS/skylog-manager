@@ -27,7 +27,7 @@ export async function GET(request) {
 
   let eventsQuery = supabase
     .from('maintenance_events')
-    .select('id, aircraft_id, performed_at, performed_at_aircraft_hours, type, findings, return_to_service, performer:performed_by(full_name, license_number)')
+    .select('id, aircraft_id, sequence_number, performed_at, performed_at_aircraft_hours, type, findings, return_to_service, document_url, document_path, performer:performed_by(full_name, license_number), supplier:supplier_id(name)')
     .eq('organization_id', organizationId)
     .order('performed_at');
   if (from) eventsQuery = eventsQuery.gte('performed_at', from);
@@ -48,5 +48,5 @@ export async function GET(request) {
   const failure = aircraftError || eventsError || unexpectedError;
   if (failure) return Response.json({ error: failure.message }, { status: 500 });
 
-  return Response.json({ aircraft: aircraft || [], events: events || [], unexpected: unexpected || [], org: org ? { nit: org.nit } : null });
+  return Response.json({ aircraft: aircraft || [], events: (events || []).map(({ document_path, ...e }) => ({ ...e, has_document: !!document_path })), unexpected: unexpected || [], org: org ? { nit: org.nit } : null });
 }

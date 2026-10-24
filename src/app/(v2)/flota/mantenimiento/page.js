@@ -58,7 +58,7 @@ const EVALUATION_RESULTS = [
   { key: 'fuera_de_servicio', label: 'Fuera de servicio' },
 ];
 const emptyTask = { name: '', systemCategory: '', intervalCycles: '', intervalHours: '', intervalCalendarDays: '', toleranceValue: '', toleranceUnit: 'pct' };
-const emptyEvent = { aircraftId: '', taskId: '', type: 'programado', performedAt: '', findings: '', returnToService: true, file: null };
+const emptyEvent = { aircraftId: '', taskId: '', type: 'programado', performedAt: '', findings: '', returnToService: true, supplierId: '', documentUrl: '', file: null };
 const emptyIncident = { aircraftId: '', type: 'aterrizaje_fuerte', description: '' };
 
 function intervalSummary(t) {
@@ -87,6 +87,7 @@ export default function MantenimientoPage() {
   const [taskForm, setTaskForm] = useState(emptyTask);
 
   const [fleet, setFleet] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [statusRows, setStatusRows] = useState([]);
   const [showEventForm, setShowEventForm] = useState(false);
   const [eventForm, setEventForm] = useState(emptyEvent);
@@ -122,6 +123,14 @@ export default function MantenimientoPage() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error cargando la flota');
     setFleet(data.aircraft || []);
+  }, []);
+
+  // Proveedores inscritos (activos) para elegir quién hizo el mantenimiento; si el rol no los puede ver, queda sin opciones.
+  const loadSuppliers = useCallback(async (orgId) => {
+    if (!orgId) return;
+    const res = await fetch(`/api/proveedores/suppliers?organizationId=${orgId}`);
+    const data = await res.json().catch(() => ({}));
+    setSuppliers(res.ok ? (data.suppliers || []).filter((s) => s.is_active !== false) : []);
   }, []);
 
   const loadStatus = useCallback(async (orgId) => {
@@ -167,10 +176,11 @@ export default function MantenimientoPage() {
       loadFleet(organizationId),
       loadStatus(organizationId),
       loadIncidents(organizationId),
+      loadSuppliers(organizationId),
     ]).catch((e) =>
       setError(e.message)
     );
-  }, [organizationId, loadModels, loadPrograms, loadFleet, loadStatus, loadIncidents]);
+  }, [organizationId, loadModels, loadPrograms, loadFleet, loadStatus, loadIncidents, loadSuppliers]);
 
   const selectedModel = models.find((m) => m.id === selectedModelId);
   const selectedProgram = programs.find((p) => p.model_id === selectedModelId);
@@ -195,6 +205,8 @@ export default function MantenimientoPage() {
           performedAt: eventForm.performedAt ? new Date(`${eventForm.performedAt}T12:00:00-05:00`).toISOString() : undefined,
           findings: eventForm.findings || null,
           returnToService: eventForm.returnToService,
+          supplierId: eventForm.supplierId || null,
+          documentUrl: eventForm.documentUrl || null,
         }),
       });
       const data = await res.json();
@@ -424,10 +436,17 @@ export default function MantenimientoPage() {
                 ))}
               </Field>
               <Field label="Fecha (opcional, hoy por defecto)" type="date" value={eventForm.performedAt} onChange={(e) => setEventForm((f) => ({ ...f, performedAt: e.target.value }))} />
+              <Field as="select" label="Proveedor que realizó el mantenimiento (opcional)" value={eventForm.supplierId} onChange={(e) => setEventForm((f) => ({ ...f, supplierId: e.target.value }))}>
+                <option value="">Personal propio / sin proveedor</option>
+                {suppliers.map((sp) => (
+                  <option key={sp.id} value={sp.id}>{sp.name}</option>
+                ))}
+              </Field>
+              <Field label="Enlace al informe del proveedor (opcional)" type="url" placeholder="https://…" value={eventForm.documentUrl} onChange={(e) => setEventForm((f) => ({ ...f, documentUrl: e.target.value }))} />
             </div>
             <Field as="textarea" rows={2} label="Hallazgos (opcional)" value={eventForm.findings} onChange={(e) => setEventForm((f) => ({ ...f, findings: e.target.value }))} />
             <label className="block mb-3">
-              <span className="block text-xs font-medium text-navy-400 mb-1">Adjunto (opcional · PDF o imagen, máx. 4 MB)</span>
+              <span className="block text-xs font-medium text-navy-400 mb-1">Informe del proveedor en PDF (opcional · PDF o imagen, máx. 4 MB)</span>
               <input
                 type="file"
                 accept=".pdf,image/png,image/jpeg,image/webp"

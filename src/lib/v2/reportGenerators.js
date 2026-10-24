@@ -342,8 +342,7 @@ export async function generateUasBookPdf(units, { orgName, logoUrl, format, org 
 const bogotaTime = (d) => (d ? new Date(d).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' }) : '');
 
 // Libro de Mantenimiento: una hoja por registro de la aeronave. Evento inesperado → PARTE 1 (información de falla);
-// evento de mantenimiento → PARTE 2 (solución). Lo que el sistema no registra (ATA, ID de mantenimiento, empresa/taller,
-// horas TT de la falla) queda en blanco. Una aeronave sin
+// evento de mantenimiento → PARTE 2 (solución). Lo que el sistema no registra (ATA y las horas TT de la falla) queda en blanco. Una aeronave sin
 // registros en el periodo sale en una hoja en blanco con sus datos.
 export async function generateMaintenanceBookPdf({ aircraft, events, unexpected, org }, { orgName, logoUrl, format }) {
   const { jsPDF } = await import('jspdf');
@@ -373,7 +372,7 @@ export async function generateMaintenanceBookPdf({ aircraft, events, unexpected,
     kit.row([{ w: 45, label: 'Marca' }, { w: 55, label: 'Modelo' }, { w: 60, label: 'Número de serie' }, { w: 60, label: 'RUAS' }, { w: 57, label: 'Estado del UA' }], [m.brand, m.model, sh.ac.serial_number, sh.ac.ruas_number, statusLabel(sh.ac.operational_status)]);
 
     const left = sh.part === 1 ? { at: sh.at, text: [sh.u.type, sh.u.description].filter(Boolean).join(': ') } : null;
-    const right = sh.part === 2 ? { at: sh.at, hours: sh.e.performed_at_aircraft_hours, type: sh.e.type, text: sh.e.findings, who: [sh.e.performer?.full_name, sh.e.performer?.license_number].filter(Boolean).join(' · ') } : null;
+    const right = sh.part === 2 ? { at: sh.at, hours: sh.e.performed_at_aircraft_hours, type: sh.e.type, text: sh.e.findings, who: [sh.e.performer?.full_name, sh.e.performer?.license_number].filter(Boolean).join(' · '), code: sh.e.sequence_number != null ? `MNT-${String(sh.e.sequence_number).padStart(4, '0')}` : '', company: sh.e.supplier?.name } : null;
     const top = kit.y;
     let bottom = top;
     [[0, 'PARTE 1: Información de falla', left, 'Fallos / observaciones'], [1, 'PARTE 2: Solución de falla', right, 'Solución']].forEach(([side, title, d, boxLabel]) => {
@@ -383,11 +382,11 @@ export async function generateMaintenanceBookPdf({ aircraft, events, unexpected,
       kit.section(title);
       kit.row(
         [{ w: 26, label: 'Fecha' }, { w: 18, label: 'Hora' }, { w: 28, label: 'Horas TT UA' }, { w: 20, label: 'ATA' }, { w: 46.5, label: 'ID Mantenimiento' }],
-        d ? [fmtDate(d.at), bogotaTime(d.at), d.hours != null ? Number(d.hours).toFixed(1) : '', '', ''] : []
+        d ? [fmtDate(d.at), bogotaTime(d.at), d.hours != null ? Number(d.hours).toFixed(1) : '', '', d.code || ''] : []
       );
       kit.section(boxLabel);
       kit.box(d?.text || '', 46);
-      kit.row([{ w: 92, label: 'Tipo de mantenimiento' }, { w: 46.5, label: 'Empresa / Taller' }], d ? [d.type, ''] : []);
+      kit.row([{ w: 92, label: 'Tipo de mantenimiento' }, { w: 46.5, label: 'Empresa / Taller' }], d ? [d.type, d.company] : []);
       kit.row([{ w: HALF, label: 'Nombre del responsable y CIPU (si aplica)' }], d ? [d.who] : []);
       bottom = Math.max(bottom, kit.y);
     });
@@ -395,7 +394,13 @@ export async function generateMaintenanceBookPdf({ aircraft, events, unexpected,
     kit.w = FORM_W;
     kit.y = bottom;
     kit.section('OBSERVACIONES');
-    kit.box(sh.part === 2 ? `Vuelve a servicio: ${sh.e.return_to_service ? 'Sí' : 'No'}` : '', 20);
+    const notes = [];
+    if (sh.part === 2) {
+      notes.push(`Vuelve a servicio: ${sh.e.return_to_service ? 'Sí' : 'No'}`);
+      if (sh.e.document_url) notes.push(`Informe del proveedor: ${sh.e.document_url}`);
+      if (sh.e.has_document) notes.push('Informe del proveedor adjunto en BitaFly.');
+    }
+    kit.box(notes.join('\n'), 20);
     kit.footnote(footer);
   });
 

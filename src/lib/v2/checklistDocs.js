@@ -12,6 +12,8 @@
 // logo real de la organización cuando existe (`api/organizacion/logo`, ya
 // construido) — con el logo de BitaFly como respaldo honesto solo si la
 // organización no ha subido el suyo.
+import { resolveLogo } from './pdfCommon';
+
 function slugify(text) {
   return (text || 'lista-de-chequeo')
     .toLowerCase()
@@ -19,46 +21,7 @@ function slugify(text) {
     .replace(/[^a-z0-9-]/g, '');
 }
 
-async function urlToLogo(url) {
-  if (!url) return null;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    const dataUrl = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject(new Error('No se pudo leer el logo'));
-      reader.readAsDataURL(blob);
-    });
-    const { width, height } = await new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
-      img.onerror = () => resolve({ width: 0, height: 0 });
-      img.src = dataUrl;
-    });
-    if (blob.type.includes('svg')) {
-      // jsPDF no dibuja SVG: se rasteriza a PNG.
-      const w = width || 400;
-      const h = height || 200;
-      const canvas = document.createElement('canvas');
-      canvas.width = w * 2;
-      canvas.height = h * 2;
-      const img = await new Promise((resolve, reject) => {
-        const i = new Image();
-        i.onload = () => resolve(i);
-        i.onerror = reject;
-        i.src = dataUrl;
-      });
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      return { dataUrl: canvas.toDataURL('image/png'), format: 'PNG', width: w, height: h };
-    }
-    const format = blob.type.includes('png') ? 'PNG' : blob.type.includes('webp') ? 'WEBP' : 'JPEG';
-    return { dataUrl, format, width, height };
-  } catch {
-    return null;
-  }
-}
+const urlToLogo = resolveLogo;
 
 let cachedBitaflyLogo;
 async function fetchBitaflyLogo() {

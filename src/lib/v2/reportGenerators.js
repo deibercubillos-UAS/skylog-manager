@@ -110,6 +110,17 @@ function createFormKit(doc, { logo, nit, title, format, palette }) {
     kit.y += h;
   };
 
+  // Fila de captura (solo casillas de valor) para llenar a mano.
+  kit.valueRow = (widths, values, h = 8) => {
+    let x = FORM_L;
+    widths.forEach((w, i) => {
+      doc.rect(x, kit.y, w, h);
+      if (values[i] !== undefined && values[i] !== null && values[i] !== '') doc.text(String(values[i]), x + w / 2, kit.y + h / 2 + 1.2, { align: 'center', maxWidth: w - 2 });
+      x += w;
+    });
+    kit.y += h;
+  };
+
   kit.footnote = (text) => {
     doc.setFontSize(6.5);
     doc.setTextColor(110);
@@ -408,34 +419,31 @@ export async function generateFleetReportPdf(aircraft, { orgName, logoUrl, model
   doc.save(`flota-${slugify(orgName)}.pdf`);
 }
 
-export async function generateBatteryReportPdf({ batteries, components }, { orgName, logoUrl, format }) {
-  const { doc, startY } = await baseDoc({ orgName, logoUrl, format, title: 'Baterías y Componentes', subtitle: 'Instantánea (sin rango de fechas)' });
-  autoTable(doc, {
-    startY,
-    head: [['SERIE', 'MARCA', 'MODELO', 'CICLOS', 'SALUD', 'ESTADO']],
-    body: (batteries || []).map((b) => [b.serial_number || '—', b.brand || '—', b.model || '—', b.cycles ?? '—', b.health_status || '—', b.status || '—']),
-    styles: TABLE_STYLES,
-    headStyles: HEAD_STYLES,
-    margin: { left: 10, right: 10 },
+// Control de Baterías: una hoja por batería (serie, marca, modelo) con el estado vigente en la primera fila del registro
+// de uso (ciclos y condición reales) y filas en blanco para anotar cada uso. Sin baterías sale una hoja en blanco.
+export async function generateBatteryReportPdf({ batteries, org }, { orgName, logoUrl, format }) {
+  const { jsPDF } = await import('jspdf');
+  const logo = (await resolveLogo(logoUrl)) || (await fetchBitaflyLogo());
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const nit = org?.nit ? `NIT: ${org.nit}` : '';
+  const palette = formPalette(await dominantLogoColor(logo));
+  const list = batteries && batteries.length ? batteries : [{}];
+  const today = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  list.forEach((b, idx) => {
+    if (idx > 0) doc.addPage();
+    const kit = createFormKit(doc, { logo, nit, title: 'CONTROL DE BATERÍAS', format, palette });
+    kit.header();
+    kit.row([{ w: 40, label: 'BATERÍA' }, { w: 60, label: 'MARCA' }, { w: 70, label: 'MODELO' }, { w: 107, label: 'NÚMERO DE SERIE' }], [b.serial_number ? idx + 1 : '', b.brand, b.model, b.serial_number]);
+    const cols = [{ w: 45, label: 'Fecha' }, { w: 40, label: 'Ciclos' }, { w: 40, label: 'Carga' }, { w: 45, label: 'Condición' }, { w: 60, label: 'Piloto UAS' }, { w: 47, label: 'CIPU' }];
+    kit.row(cols, b.serial_number ? [today, b.cycles ?? '', '', b.health_status, '', ''] : []);
+    for (let i = 0; i < 6; i += 1) kit.valueRow(cols.map((c) => c.w), []);
+    kit.section('OBSERVACIONES');
+    kit.box(b.status ? `Estado de la batería: ${b.status}` : '', 22);
+    kit.footnote(`Estado a la fecha de descarga · Generado el ${new Date().toLocaleString('es-CO')} · Creado con BITAFLY`);
   });
 
-  let y = doc.lastAutoTable.finalY + 8;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(26, 32, 44);
-  doc.text('COMPONENTES ACTIVOS', 10, y);
-  y += 3;
-  autoTable(doc, {
-    startY: y,
-    head: [['AERONAVE', 'TIPO', 'SERIE', 'INSTALADO', 'HORAS DE USO', 'ESTADO']],
-    body: (components || []).map((c) => [c.aircraft_label || '—', c.component_type || '—', c.serial_number || '—', fmtDate(c.installed_at), fmtHours(c.used_hours), c.status || '—']),
-    styles: TABLE_STYLES,
-    headStyles: HEAD_STYLES,
-    margin: { left: 10, right: 10 },
-  });
-
-  drawFooterNote(doc, 'Instantánea (sin rango de fechas)');
-  doc.save(`baterias-componentes-${slugify(orgName)}.pdf`);
+  doc.save(`control-de-baterias-${slugify(orgName)}.pdf`);
 }
 
 export async function generateCrewReportPdf(members, { orgName, logoUrl, format }) {

@@ -88,6 +88,9 @@ export default function MantenimientoPage() {
 
   const [fleet, setFleet] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [editingEventId, setEditingEventId] = useState(null);
+  const [editEvent, setEditEvent] = useState({ supplierId: '', documentUrl: '' });
   const [statusRows, setStatusRows] = useState([]);
   const [showEventForm, setShowEventForm] = useState(false);
   const [eventForm, setEventForm] = useState(emptyEvent);
@@ -131,6 +134,14 @@ export default function MantenimientoPage() {
     const res = await fetch(`/api/proveedores/suppliers?organizationId=${orgId}`);
     const data = await res.json().catch(() => ({}));
     setSuppliers(res.ok ? (data.suppliers || []).filter((s) => s.is_active !== false) : []);
+  }, []);
+
+  const loadEvents = useCallback(async (orgId) => {
+    if (!orgId) return;
+    const res = await fetch(`/api/flota/maintenance/events?organizationId=${orgId}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error cargando los mantenimientos');
+    setEvents(data.events || []);
   }, []);
 
   const loadStatus = useCallback(async (orgId) => {
@@ -177,10 +188,11 @@ export default function MantenimientoPage() {
       loadStatus(organizationId),
       loadIncidents(organizationId),
       loadSuppliers(organizationId),
+      loadEvents(organizationId),
     ]).catch((e) =>
       setError(e.message)
     );
-  }, [organizationId, loadModels, loadPrograms, loadFleet, loadStatus, loadIncidents, loadSuppliers]);
+  }, [organizationId, loadModels, loadPrograms, loadFleet, loadStatus, loadIncidents, loadSuppliers, loadEvents]);
 
   const selectedModel = models.find((m) => m.id === selectedModelId);
   const selectedProgram = programs.find((p) => p.model_id === selectedModelId);
@@ -225,7 +237,27 @@ export default function MantenimientoPage() {
       }
       setEventForm(emptyEvent);
       setShowEventForm(false);
-      await Promise.all([loadStatus(organizationId), loadFleet(organizationId)]);
+      await Promise.all([loadStatus(organizationId), loadFleet(organizationId), loadEvents(organizationId)]);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleSaveEvent(id) {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/flota/maintenance/events/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ supplierId: editEvent.supplierId || null, documentUrl: editEvent.documentUrl || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error guardando el mantenimiento');
+      setEditingEventId(null);
+      await loadEvents(organizationId);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -500,6 +532,85 @@ export default function MantenimientoPage() {
                     </td>
                   </tr>
                 ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-3.5 border-b border-navy-50 bg-navy-50/30">
+          <h3 className="font-black text-xs uppercase text-navy-300 tracking-widest">Mantenimientos registrados</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-navy-50/50 text-xs font-black text-navy-300 uppercase tracking-widest">
+                <th className="px-6 py-2.5">ID</th>
+                <th className="px-6 py-2.5">Fecha</th>
+                <th className="px-6 py-2.5">Aeronave</th>
+                <th className="px-6 py-2.5">Tipo</th>
+                <th className="px-6 py-2.5">Proveedor</th>
+                <th className="px-6 py-2.5">Informe</th>
+                {isManager && <th className="px-6 py-2.5" />}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-navy-50">
+              {events.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-xs font-semibold text-navy-400">Todavía no hay mantenimientos registrados</td>
+                </tr>
+              ) : (
+                events.map((ev) =>
+                  editingEventId === ev.id ? (
+                    <tr key={ev.id} className="bg-primary-50/30">
+                      <td className="px-6 py-2.5 text-xs font-black text-navy whitespace-nowrap">{ev.sequence_number != null ? `MNT-${String(ev.sequence_number).padStart(4, '0')}` : '—'}</td>
+                      <td colSpan={3} className="px-6 py-2.5 text-xs font-semibold text-navy-500">Editando proveedor y enlace</td>
+                      <td className="px-3 py-2.5">
+                        <select value={editEvent.supplierId} onChange={(e) => setEditEvent((f) => ({ ...f, supplierId: e.target.value }))} className="text-sm border border-navy-200 rounded-lg px-2 py-1.5 w-full min-w-[180px]">
+                          <option value="">Personal propio / sin proveedor</option>
+                          {suppliers.map((sp) => (
+                            <option key={sp.id} value={sp.id}>{sp.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <input type="url" placeholder="https://…" value={editEvent.documentUrl} onChange={(e) => setEditEvent((f) => ({ ...f, documentUrl: e.target.value }))} className="text-sm border border-navy-200 rounded-lg px-2 py-1.5 w-full min-w-[200px]" />
+                      </td>
+                      <td className="px-6 py-2.5 whitespace-nowrap">
+                        <button type="button" disabled={busy} onClick={() => handleSaveEvent(ev.id)} className="text-xs font-bold text-primary-600 mr-3 min-h-[44px] md:min-h-0">Guardar</button>
+                        <button type="button" onClick={() => setEditingEventId(null)} className="text-xs font-semibold text-navy-400 min-h-[44px] md:min-h-0">Cancelar</button>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr key={ev.id} className="hover:bg-navy-50/40 transition-colors">
+                      <td className="px-6 py-2.5 text-xs font-black text-navy whitespace-nowrap">{ev.sequence_number != null ? `MNT-${String(ev.sequence_number).padStart(4, '0')}` : '—'}</td>
+                      <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 whitespace-nowrap">{formatDate(ev.performed_at)}</td>
+                      <td className="px-6 py-2.5 text-xs font-bold text-navy whitespace-nowrap">{ev.aircraft?.model?.brand} {ev.aircraft?.model?.model} — {ev.aircraft?.serial_number}</td>
+                      <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 whitespace-nowrap">{EVENT_TYPES.find((t) => t.key === ev.type)?.label || ev.type}</td>
+                      <td className="px-6 py-2.5 text-xs font-semibold text-navy-500 whitespace-nowrap">{ev.supplier?.name || '—'}</td>
+                      <td className="px-6 py-2.5 text-xs font-semibold whitespace-nowrap">
+                        {ev.document_url && <a href={ev.document_url} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline mr-3">Enlace</a>}
+                        {ev.has_document && <a href={`/api/flota/maintenance/events/${ev.id}/document`} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">Adjunto</a>}
+                        {!ev.document_url && !ev.has_document && <span className="text-navy-300">—</span>}
+                      </td>
+                      {isManager && (
+                        <td className="px-6 py-2.5 whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingEventId(ev.id);
+                              setEditEvent({ supplierId: ev.supplier_id || '', documentUrl: ev.document_url || '' });
+                            }}
+                            className="text-xs font-bold text-primary-600 min-h-[44px] md:min-h-0"
+                          >
+                            Editar
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  )
+                )
               )}
             </tbody>
           </table>

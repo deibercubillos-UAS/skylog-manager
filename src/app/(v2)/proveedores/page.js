@@ -13,7 +13,7 @@ import CriteriaConfigPanel from './_CriteriaConfigPanel';
 import SupplierDetail from './_SupplierDetail';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
-const EMPTY_SUPPLIER_FORM = { name: '', category: '', nit: '', contact: '', notes: '' };
+const EMPTY_SUPPLIER_FORM = { name: '', category: '', nit: '', contact: '', address: '', email: '', phone: '', notes: '' };
 
 export default function ProveedoresPage() {
   const [context, setContext] = useState(null);
@@ -198,7 +198,10 @@ export default function ProveedoresPage() {
             <Field label="Nombre" value={supplierForm.name} onChange={(e) => setSupplierForm((f) => ({ ...f, name: e.target.value }))} required />
             <Field label="Categoría (opcional)" value={supplierForm.category} onChange={(e) => setSupplierForm((f) => ({ ...f, category: e.target.value }))} placeholder="Ej. Mantenimiento, Logística" />
             <Field label="NIT (opcional)" value={supplierForm.nit} onChange={(e) => setSupplierForm((f) => ({ ...f, nit: e.target.value }))} />
-            <Field label="Contacto (opcional)" value={supplierForm.contact} onChange={(e) => setSupplierForm((f) => ({ ...f, contact: e.target.value }))} />
+            <Field label="Nombre del contacto (opcional)" value={supplierForm.contact} onChange={(e) => setSupplierForm((f) => ({ ...f, contact: e.target.value }))} />
+            <Field label="Teléfono (opcional)" type="tel" value={supplierForm.phone} onChange={(e) => setSupplierForm((f) => ({ ...f, phone: e.target.value }))} />
+            <Field label="Correo electrónico (opcional)" type="email" value={supplierForm.email} onChange={(e) => setSupplierForm((f) => ({ ...f, email: e.target.value }))} />
+            <Field label="Dirección (opcional)" value={supplierForm.address} onChange={(e) => setSupplierForm((f) => ({ ...f, address: e.target.value }))} />
             <div className="sm:col-span-2">
               <Field label="Notas (opcional)" value={supplierForm.notes} onChange={(e) => setSupplierForm((f) => ({ ...f, notes: e.target.value }))} />
             </div>
@@ -233,7 +236,7 @@ export default function ProveedoresPage() {
                   <div>
                     <p className="text-sm font-semibold text-navy">{s.name}</p>
                     <p className="text-xs text-navy-400 mt-0.5">
-                      {[s.category, s.nit && `NIT ${s.nit}`, s.contact].filter(Boolean).join(' · ') || 'Sin datos adicionales'}
+                      {[s.category, s.nit && `NIT ${s.nit}`, s.contact, s.phone, s.email].filter(Boolean).join(' · ') || 'Sin datos adicionales'}
                     </p>
                   </div>
                 </div>

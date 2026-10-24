@@ -34,7 +34,7 @@ export async function POST(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { organizationId, name, category, nit, contact, notes, isActive } = body;
+  const { organizationId, name, category, nit, contact, address, email, phone, notes, isActive } = body;
   if (!organizationId || !name?.trim()) return Response.json({ error: 'organizationId y name son requeridos' }, { status: 400 });
 
   const { error: resolveError, personId, memberships } = await resolveCurrentPerson(supabase, user.id);
@@ -52,6 +52,9 @@ export async function POST(request) {
       category: category?.trim() || null,
       nit: nit?.trim() || null,
       contact: contact?.trim() || null,
+      address: address?.trim() || null,
+      email: email?.trim() || null,
+      phone: phone?.trim() || null,
       notes: notes?.trim() || null,
       is_active: isActive ?? true,
       created_by: personId,
@@ -68,7 +71,7 @@ export async function PATCH(request) {
   if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { id, name, category, nit, contact, notes, isActive } = body;
+  const { id, name, category, nit, contact, address, email, phone, notes, isActive } = body;
   if (!id) return Response.json({ error: 'id es requerido' }, { status: 400 });
 
   const { data: existing, error: fetchError } = await supabase.from('suppliers').select('organization_id').eq('id', id).maybeSingle();
@@ -86,6 +89,9 @@ export async function PATCH(request) {
   if (category !== undefined) patch.category = category?.trim() || null;
   if (nit !== undefined) patch.nit = nit?.trim() || null;
   if (contact !== undefined) patch.contact = contact?.trim() || null;
+  if (address !== undefined) patch.address = address?.trim() || null;
+  if (email !== undefined) patch.email = email?.trim() || null;
+  if (phone !== undefined) patch.phone = phone?.trim() || null;
   if (notes !== undefined) patch.notes = notes?.trim() || null;
   if (isActive != null) patch.is_active = isActive;
 

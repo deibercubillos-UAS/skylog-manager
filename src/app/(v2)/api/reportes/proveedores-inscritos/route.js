@@ -21,7 +21,7 @@ export async function GET(request) {
 
   let query = supabase
     .from('suppliers')
-    .select('id, name, category, nit, contact, notes')
+    .select('id, name, category, nit, contact, address, email, phone, notes')
     .eq('organization_id', organizationId)
     .order('name');
   query = supplierId ? query.eq('id', supplierId) : query.eq('is_active', true);

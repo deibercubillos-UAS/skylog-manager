@@ -17,7 +17,7 @@ import { Button } from '@skylog/ui';
 import { TRAINING_TYPES, TRAINING_TYPE_LABELS } from '@/lib/v2/training';
 import { resolveReportFormat } from '@skylog/domain';
 import {
-  generateUasBookPdf,
+  generateUasBookPdf, generatePilotLogPdf,
   generateMaintenanceReportPdf,
   generateFleetReportPdf,
   generateBatteryReportPdf,
@@ -31,6 +31,7 @@ import {
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const REPORT_DEFS = [
+  { key: 'bitacora_piloto', title: 'Bitácora de Vuelo del Piloto UAS', description: 'Un formato por vuelo: piloto, operación y aeronave.', icon: 'assignment_ind', tile: 'bg-cyan-500 text-white', wash: 'from-cyan-50 to-white', needsPeriod: true, needsAircraft: true },
   { key: 'uas', title: 'Libro de UAS', description: 'Totales acumulados de cada aeronave: vuelos, horas, ciclos y mantenimiento. Una hoja por drone.', icon: 'menu_book', tile: 'bg-blue-500 text-white', wash: 'from-blue-50 to-white', needsAircraft: true },
   { key: 'mantenimiento', title: 'Mantenimiento', description: 'Eventos, eventos inesperados y programa por modelo.', icon: 'build', tile: 'bg-amber-500 text-white', wash: 'from-amber-50 to-white', needsPeriod: true, needsAircraft: true },
   { key: 'flota', title: 'Flota', description: 'Inventario, propiedad, firmware y ficha técnica por modelo — instantánea.', icon: 'flight', tile: 'bg-primary text-white', wash: 'from-primary-50 to-white', needsAircraft: true },
@@ -156,7 +157,13 @@ export default function ReportesPage() {
       const periodLabel = `${from} a ${to}`;
       const fmt = { code: fmtDraft.code, version: fmtDraft.version };
 
-      if (def.key === 'uas') {
+      if (def.key === 'bitacora_piloto') {
+        const qs = new URLSearchParams({ organizationId, from, to, ...(aircraftId && { aircraftId }) });
+        const res = await fetch(`/api/reportes/vuelos?${qs}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error consultando vuelos');
+        await generatePilotLogPdf(data.flights, { orgName, logoUrl, format: fmt, periodLabel, extra: data });
+      } else if (def.key === 'uas') {
         const qs = new URLSearchParams({ organizationId, ...(aircraftId && { aircraftId }) });
         const res = await fetch(`/api/reportes/uas?${qs}`);
         const data = await res.json();

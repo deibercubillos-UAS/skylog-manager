@@ -183,6 +183,55 @@ export async function generateFlightLogPdf(flights, { orgName, logoUrl, periodLa
   doc.save(`libro-de-vuelo-${slugify(orgName)}.pdf`);
 }
 
+// Bitácora de Vuelo del Piloto UAS: un formato por vuelo (una hoja), con los datos del piloto, la operación y la aeronave.
+// Sin vuelos sale en blanco.
+export async function generatePilotLogPdf(flights, { orgName, logoUrl, periodLabel, format, extra = {} }) {
+  const { jsPDF } = await import('jspdf');
+  const logo = (await resolveLogo(logoUrl)) || (await fetchBitaflyLogo());
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const nit = extra.org?.nit ? `NIT: ${extra.org.nit}` : '';
+  const fmt = format || extra.format;
+  const empty = !flights || !flights.length;
+  const list = empty ? [{}] : flights;
+  const palette = formPalette(await dominantLogoColor(logo));
+
+  list.slice().reverse().forEach((f, idx) => {
+    if (idx > 0) doc.addPage();
+    const kit = createFormKit(doc, { logo, nit, title: 'BITÁCORA DE VUELO DEL PILOTO UAS', format: fmt, palette });
+    kit.header();
+    const ac = f.aircraft || extra.aircraft || {};
+    const model = ac.model || {};
+    const pilot = f.pilot || {};
+    const tk = f.takeoff_at ? new Date(f.takeoff_at) : null;
+    const ld = f.landing_at ? new Date(f.landing_at) : null;
+    const hm = (d) => (d ? d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Bogota' }) : '');
+    const hourOfDay = tk ? Number(tk.toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/Bogota' })) % 24 : null;
+    const schedule = hourOfDay == null ? '' : hourOfDay >= 6 && hourOfDay < 18 ? 'Diurno' : 'Nocturno';
+    const docType = String(pilot.document_type || '').toUpperCase();
+    const mark = (re) => (re.test(docType) ? 'X' : '');
+
+    kit.section('INFORMACIÓN DEL PILOTO UAS');
+    kit.row(
+      [{ w: 100, label: 'Nombre' }, { w: 25, label: 'CC' }, { w: 25, label: 'CE' }, { w: 30, label: 'PASAPORTE' }, { w: 50, label: 'Número de documento' }, { w: 47, label: 'CIPU' }],
+      [pilot.full_name, mark(/^(CC|CEDULA|CÉDULA)/), mark(/^(CE|EXTRANJER)/), mark(/PASAPORTE|^PA$/), pilot.document_number, pilot.license_number]
+    );
+
+    kit.section('DATOS DE LA OPERACIÓN');
+    kit.row([{ w: 92, label: 'Lugar' }, { w: 92, label: 'Tipo de operación' }, { w: 93, label: 'Tipo de condición visual' }], [f.location, f.mission_type, f.visual_condition]);
+    kit.row([{ w: 92, label: 'Horario' }, { w: 92, label: 'Tiempo total de la operación' }, { w: 93, label: 'Fecha del vuelo' }], [schedule, empty ? '0 h' : hoursLabel(f.total_time, 2), tk ? fmtDate(f.takeoff_at) : '']);
+
+    kit.section('AERONAVE');
+    kit.row([{ w: 55, label: 'Marca' }, { w: 55, label: 'Modelo' }, { w: 55, label: 'Fabricante' }, { w: 56, label: 'Número de serie' }, { w: 56, label: 'RUAS' }], [model.brand, model.model, model.brand, ac.serial_number, ac.ruas_number]);
+    kit.row([{ w: 92, label: 'Hora de despegue' }, { w: 92, label: 'Hora de aterrizaje' }, { w: 93, label: 'Tiempo total del UA' }], [hm(tk), hm(ld), hoursLabel(ac.total_hours) || (empty ? '0 h' : '')]);
+
+    kit.section('OBSERVACIONES');
+    kit.box(f.notes, 40);
+    kit.footnote(`${periodLabel ? `Periodo: ${periodLabel} · ` : ''}Generado el ${new Date().toLocaleString('es-CO')} · Creado con BITAFLY`);
+  });
+
+  doc.save(`bitacora-de-vuelo-piloto-${slugify(orgName)}.pdf`);
+}
+
 // Libro de UAS: una hoja por aeronave con los totales acumulados (vuelos, horas, ciclos) y el estado de mantenimiento.
 // `units` = [{ aircraft, flights: { count, hours, first, last }, major, minor }] — lo arma /api/reportes/uas.
 export async function generateUasBookPdf(units, { orgName, logoUrl, format, org }) {

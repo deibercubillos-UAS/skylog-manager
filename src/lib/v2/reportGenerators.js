@@ -371,53 +371,6 @@ export async function generateMaintenanceReportPdf({ events, unexpected, program
   doc.save(`mantenimiento-${slugify(orgName)}.pdf`);
 }
 
-export async function generateFleetReportPdf(aircraft, { orgName, logoUrl, format, org }) {
-  const { jsPDF } = await import('jspdf');
-  const logo = (await resolveLogo(logoUrl)) || (await fetchBitaflyLogo());
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  const nit = org?.nit ? `NIT: ${org.nit}` : '';
-  const palette = formPalette(await dominantLogoColor(logo));
-  const footer = `Instantánea a la fecha · Generado el ${new Date().toLocaleString('es-CO')} · Creado con BITAFLY`;
-  const ownership = { propiedad: 'Propiedad', arrendamiento: 'Arrendamiento', comodato: 'Comodato' };
-  const list = aircraft || [];
-  const cols = [
-    { w: 10, label: 'N.º' }, { w: 24, label: 'Marca' }, { w: 30, label: 'Modelo' }, { w: 32, label: 'Serie' }, { w: 26, label: 'RUAS' },
-    { w: 20, label: 'Peso real' }, { w: 22, label: 'Estado' }, { w: 22, label: 'Horas totales' }, { w: 27, label: 'Propiedad' }, { w: 30, label: 'Referencia' }, { w: 34, label: 'Firmware vigente' },
-  ];
-  const widths = cols.map((c) => c.w);
-
-  let kit = createFormKit(doc, { logo, nit, title: 'INVENTARIO DE FLOTA', format, palette });
-  kit.header();
-  kit.section('AERONAVES');
-  let needHead = true;
-  const totalHours = list.reduce((sum, a) => sum + (Number(a.total_hours) || 0), 0);
-  const rows = list.length ? list : Array.from({ length: 8 }, () => null);
-  rows.forEach((a, i) => {
-    if (kit.y + 8 > 195) {
-      kit.footnote(footer);
-      doc.addPage();
-      kit = createFormKit(doc, { logo, nit, title: 'INVENTARIO DE FLOTA', format, palette });
-      kit.header();
-      kit.section('AERONAVES (continuación)');
-      needHead = true;
-    }
-    const m = a?.model || {};
-    const values = a ? [i + 1, m.brand, m.model, a.serial_number, a.ruas_number, a.actual_weight_kg != null ? `${a.actual_weight_kg} kg` : '', statusLabel(a.operational_status), hoursLabel(a.total_hours) || '0 h', ownership[a.ownership_type] || a.ownership_type, a.ownership_reference, a.firmware_version] : [];
-    if (needHead) {
-      kit.row(cols, values); // la primera fila de datos va bajo los rótulos
-      needHead = false;
-    } else {
-      kit.valueRow(widths, values, 6);
-    }
-  });
-  if (list.length) {
-    kit.section(`TOTAL: ${list.length} aeronave${list.length === 1 ? '' : 's'} · ${totalHours.toFixed(1)} h de vuelo acumuladas`);
-  }
-  kit.footnote(footer);
-
-  doc.save(`flota-${slugify(orgName)}.pdf`);
-}
-
 // Control de Baterías: una hoja por batería (serie, marca, modelo) con el estado vigente en la primera fila del registro
 // de uso (ciclos y condición reales) y filas en blanco para anotar cada uso. Sin baterías sale una hoja en blanco.
 export async function generateBatteryReportPdf({ batteries, org }, { orgName, logoUrl, format }) {

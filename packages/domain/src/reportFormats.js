@@ -2,7 +2,7 @@
 // manual de operaciones (la RAC 100 no impone códigos oficiales). Puro: sin Supabase ni React.
 // Se guarda como jsonb en `organizations.report_formats`: { [reportKey]: { code, version } }.
 
-export const REPORT_FORMAT_KEYS = ['vuelos', 'uas', 'bitacora_piloto', 'mantenimiento', 'flota', 'baterias', 'tripulacion', 'capacitacion', 'proveedores', 'duty', 'programacion', 'eta'];
+export const REPORT_FORMAT_KEYS = ['vuelos', 'uas', 'bitacora_piloto', 'mantenimiento', 'baterias', 'tripulacion', 'capacitacion', 'proveedores', 'duty', 'programacion', 'eta'];
 
 /** Código sugerido cuando la organización no definió uno. Vacío = el PDF sale sin código. */
 export const REPORT_FORMAT_DEFAULTS = {
@@ -10,7 +10,6 @@ export const REPORT_FORMAT_DEFAULTS = {
   uas: '',
   bitacora_piloto: '',
   mantenimiento: 'F-MNT-006',
-  flota: 'F-FLT-007',
   baterias: 'F-MNT-003',
   tripulacion: 'F-HUM-005',
   capacitacion: 'F-CAP-008',

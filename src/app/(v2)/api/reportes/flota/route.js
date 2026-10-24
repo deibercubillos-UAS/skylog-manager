@@ -1,5 +1,5 @@
-// Skylog V2.0 — Reportes: Flota (inventario de aeronaves, instantánea sin
-// rango de fechas). Solo gestores.
+// Skylog V2.0 — Reportes: lista de aeronaves de la organización (alimenta el selector de aeronave de Reportes).
+// Solo gestores.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanView } from '@/lib/v2/permissions';

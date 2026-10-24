@@ -29,11 +29,11 @@ export default function CloseForm({ mission, dispatch, onCancel, onDone }) {
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
   const [bookBusy, setBookBusy] = useState(false);
-  async function downloadBook() {
+  async function downloadBook(kind = 'libro') {
     setBookBusy(true);
     try {
       const { downloadFlightBook } = await import('@/lib/v2/flightBook');
-      await downloadFlightBook({ organizationId: dispatch.organization_id || mission.organization_id, flightId: result.flightId });
+      await downloadFlightBook({ organizationId: dispatch.organization_id || mission.organization_id, flightId: result.flightId, kind });
     } catch (e) {
       setError(e.message);
     } finally {
@@ -98,9 +98,14 @@ export default function CloseForm({ mission, dispatch, onCancel, onDone }) {
         <p className="text-sm font-semibold text-emerald-700">Vuelo registrado — {result.totalTime} h</p>
         <p className="text-xs text-navy-400">Quedó enlazado a la misión y las horas se sumaron a la aeronave.</p>
         {result.flightId && (
-          <button type="button" onClick={downloadBook} disabled={bookBusy} className="text-xs font-semibold px-3 py-2 rounded-full bg-primary text-white min-h-[36px] disabled:opacity-50">
-            {bookBusy ? 'Generando…' : 'Descargar Libro de Vuelo (PDF)'}
-          </button>
+          <div className="flex gap-2 flex-wrap">
+            <button type="button" onClick={() => downloadBook('libro')} disabled={bookBusy} className="text-xs font-semibold px-3 py-2 rounded-full bg-primary text-white min-h-[36px] disabled:opacity-50">
+              {bookBusy ? 'Generando…' : 'Descargar Libro de Vuelo (PDF)'}
+            </button>
+            <button type="button" onClick={() => downloadBook('piloto')} disabled={bookBusy} className="text-xs font-semibold px-3 py-2 rounded-full bg-primary text-white min-h-[36px] disabled:opacity-50">
+              Bitácora de Vuelo del Piloto (PDF)
+            </button>
+          </div>
         )}
         {error && <p className="text-xs text-red-600">{error}</p>}
         {result.dutyWarnings?.length > 0 && (

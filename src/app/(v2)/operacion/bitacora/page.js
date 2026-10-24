@@ -54,11 +54,11 @@ export default function BitacoraPage() {
   const [organizationId, setOrganizationId] = useState('');
   const [flights, setFlights] = useState([]);
   const [bookBusy, setBookBusy] = useState(null);
-  async function downloadBook(flightId) {
-    setBookBusy(flightId);
+  async function downloadBook(flightId, kind = 'libro') {
+    setBookBusy(`${kind}-${flightId}`);
     try {
       const { downloadFlightBook } = await import('@/lib/v2/flightBook');
-      await downloadFlightBook({ organizationId, flightId });
+      await downloadFlightBook({ organizationId, flightId, kind });
     } catch (e) {
       alert(e.message);
     } finally {
@@ -527,7 +527,7 @@ export default function BitacoraPage() {
                     <th className="px-6 py-2.5">Aeronave</th>
                     <th className="px-6 py-2.5">Tipo de misión</th>
                     <th className="px-6 py-2.5">Replay</th>
-                    <th className="px-6 py-2.5">Libro de Vuelo</th>
+                    <th className="px-6 py-2.5">Formatos PDF</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-navy-50">
@@ -584,12 +584,21 @@ export default function BitacoraPage() {
                       <td className="px-6 py-2.5 whitespace-nowrap">
                         <button
                           type="button"
-                          disabled={bookBusy === f.id}
+                          disabled={bookBusy === `libro-${f.id}`}
                           onClick={() => downloadBook(f.id)}
                           className="inline-flex items-center gap-1 text-xs font-bold text-navy-600 bg-navy-50 border border-navy-100 rounded-full px-2.5 py-1 hover:bg-navy-100 transition-colors disabled:opacity-50"
                         >
                           <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
-                          {bookBusy === f.id ? '…' : 'PDF'}
+                          {bookBusy === `libro-${f.id}` ? '…' : 'Libro'}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={bookBusy === `piloto-${f.id}`}
+                          onClick={() => downloadBook(f.id, 'piloto')}
+                          className="ml-1 inline-flex items-center gap-1 text-xs font-bold text-navy-600 bg-navy-50 border border-navy-100 rounded-full px-2.5 py-1 hover:bg-navy-100 transition-colors disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                          {bookBusy === `piloto-${f.id}` ? '…' : 'Piloto'}
                         </button>
                       </td>
                     </tr>

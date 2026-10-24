@@ -35,7 +35,7 @@ const REPORT_DEFS = [
   { key: 'uas', title: 'Libro de UAS', description: 'Totales acumulados de cada aeronave: vuelos, horas, ciclos y mantenimiento. Una hoja por drone.', icon: 'menu_book', tile: 'bg-blue-500 text-white', wash: 'from-blue-50 to-white', needsAircraft: true },
   { key: 'mantenimiento', title: 'Mantenimiento', description: 'Eventos, eventos inesperados y programa por modelo.', icon: 'build', tile: 'bg-amber-500 text-white', wash: 'from-amber-50 to-white', needsPeriod: true, needsAircraft: true },
   { key: 'flota', title: 'Flota', description: 'Inventario, propiedad, firmware y ficha técnica por modelo — instantánea.', icon: 'flight', tile: 'bg-primary text-white', wash: 'from-primary-50 to-white', needsAircraft: true },
-  { key: 'baterias', title: 'Control de Baterías', description: 'Una hoja por batería: ciclos, condición y registro de uso.', icon: 'battery_full', tile: 'bg-emerald-500 text-white', wash: 'from-emerald-50 to-white' },
+  { key: 'baterias', title: 'Control de Baterías', description: 'Una hoja por batería: ciclos, condición y registro de uso.', icon: 'battery_full', tile: 'bg-emerald-500 text-white', wash: 'from-emerald-50 to-white', needsBattery: true },
   { key: 'tripulacion', title: 'Expediente de Tripulación', description: 'Roster con licencia y vigencia médica.', icon: 'groups', tile: 'bg-violet-500 text-white', wash: 'from-violet-50 to-white' },
   { key: 'capacitacion', title: 'Capacitación', description: 'Evaluaciones y cumplimiento por pista.', icon: 'school', tile: 'bg-red-500 text-white', wash: 'from-red-50 to-white', needsTrainingType: true },
   { key: 'proveedores', title: 'Auditoría de Proveedores', description: 'Auditorías con % de cumplimiento.', icon: 'storefront', tile: 'bg-sky-500 text-white', wash: 'from-sky-50 to-white', needsPeriod: true, needsSupplier: true },
@@ -66,6 +66,8 @@ export default function ReportesPage() {
   const [aircraftId, setAircraftId] = useState('');
   const [pilotList, setPilotList] = useState([]);
   const [pilotId, setPilotId] = useState('');
+  const [batteryList, setBatteryList] = useState([]);
+  const [batteryId, setBatteryId] = useState('');
   const [supplierId, setSupplierId] = useState('');
   const [trainingType, setTrainingType] = useState(TRAINING_TYPES[0]);
   const [busy, setBusy] = useState(false);
@@ -101,11 +103,12 @@ export default function ReportesPage() {
 
   const loadFilters = useCallback(async (orgId) => {
     if (!orgId) return;
-    const [aRes, sRes, pRes] = await Promise.all([fetch(`/api/reportes/flota?organizationId=${orgId}`), fetch(`/api/proveedores/suppliers?organizationId=${orgId}`), fetch(`/api/reportes/bitacora-piloto?organizationId=${orgId}&list=1`)]);
+    const [aRes, sRes, pRes, bRes] = await Promise.all([fetch(`/api/reportes/flota?organizationId=${orgId}`), fetch(`/api/proveedores/suppliers?organizationId=${orgId}`), fetch(`/api/reportes/bitacora-piloto?organizationId=${orgId}&list=1`), fetch(`/api/reportes/baterias?organizationId=${orgId}`)]);
     const aData = await aRes.json();
     const sData = await sRes.json();
     if (aRes.ok) setAircraftList(aData.aircraft || []);
     if (sRes.ok) setSupplierList(sData.suppliers || []);
+    if (bRes.ok) setBatteryList((await bRes.json()).batteries || []);
     if (pRes.ok) setPilotList((await pRes.json()).pilots || []);
   }, []);
 
@@ -185,7 +188,7 @@ export default function ReportesPage() {
         if (!res.ok) throw new Error(data.error || 'Error consultando la flota');
         await generateFleetReportPdf(data.aircraft, { orgName, logoUrl, format: fmt, models: data.models || [] });
       } else if (def.key === 'baterias') {
-        const res = await fetch(`/api/reportes/baterias?organizationId=${organizationId}`);
+        const res = await fetch(`/api/reportes/baterias?${new URLSearchParams({ organizationId, ...(batteryId && { batteryId }) })}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error consultando baterías');
         await generateBatteryReportPdf(data, { orgName, logoUrl, format: fmt });
@@ -299,6 +302,20 @@ export default function ReportesPage() {
                     <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="text-sm border border-navy-200 rounded-lg px-2 py-1.5" />
                   </div>
                 </>
+              )}
+              {def.needsBattery && (
+                <div>
+                  <label className="text-xs font-medium text-navy-400 block mb-1">Batería (vacío = todas las baterías)</label>
+                  <select value={batteryId} onChange={(e) => setBatteryId(e.target.value)} className="text-sm border border-navy-200 rounded-lg px-2 py-1.5 min-w-[220px]">
+                    <option value="">Todas las baterías</option>
+                    {batteryList.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.serial_number}
+                        {b.model ? ` — ${b.model}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               )}
               {def.needsPilot && (
                 <div>

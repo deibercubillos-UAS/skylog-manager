@@ -18,8 +18,11 @@ export async function GET(request) {
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!membershipsCanView(memberships, organizationId, 'AC1')) return Response.json({ error: 'Solo un gestor puede ver reportes' }, { status: 403 });
 
+  const batteryId = searchParams.get('batteryId');
+  let batteriesQuery = supabase.from('batteries').select('*').eq('organization_id', organizationId).order('serial_number');
+  if (batteryId) batteriesQuery = batteriesQuery.eq('id', batteryId);
   const [{ data: batteries, error: batteriesError }, { data: org }] = await Promise.all([
-    supabase.from('batteries').select('*').eq('organization_id', organizationId).order('serial_number'),
+    batteriesQuery,
     supabase.from('organizations').select('nit').eq('id', organizationId).maybeSingle(),
   ]);
   if (batteriesError) return Response.json({ error: batteriesError.message }, { status: 500 });

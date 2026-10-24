@@ -332,6 +332,16 @@ Google Play). Antes de uso real con vuelos: merge mobile-app → main + deploy.
 **ETAPA 3 (Android) COMPLETA a nivel de build (F3.1–F3.9).** Lo que resta es operativo del usuario:
 merge `mobile-app`→`main` + deploy (activa el flujo nativo en producción) y la subida a Play Console.
 
+### F3.10 — Variantes `direct` y `play` para Google Play ✅ código (2026-10-23, sin compilar)
+- `android/app/build.gradle`: dos *product flavors*. `direct` = APK repartido fuera de la tienda (controles DJI), conserva
+  OTA por APK y acceso a todos los archivos. `play` = AAB para Google Play, con `BuildConfig.PLAY_BUILD = true`.
+- `android/app/src/play/AndroidManifest.xml` quita `REQUEST_INSTALL_PACKAGES` y `MANAGE_EXTERNAL_STORAGE`.
+- Java: en `play`, `AppUpdatePlugin` nunca ofrece ni descarga APK; `FlightFilesPlugin`/`FlightSyncWorker` no usan
+  acceso a todos los archivos (solo la carpeta elegida con el selector del sistema, SAF).
+- `versionCode 3` / `versionName 1.2.0`.
+- Comandos: `./gradlew assembleDirectRelease` (APK) · `./gradlew bundlePlayRelease` (AAB para Play).
+- ⚠️ No se pudo compilar en el equipo donde se escribió (sin Android SDK): compilar y probar ambas variantes antes de subir.
+
 <!-- Plantilla para próximas fases:
 ### Fx.y — Título ✅/🔄 (fecha)
 - Qué se hizo:

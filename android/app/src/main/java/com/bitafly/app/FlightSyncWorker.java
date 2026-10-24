@@ -114,7 +114,7 @@ public class FlightSyncWorker extends Worker {
         }
 
         // 2) Respaldo: acceso directo a File si hay all-files-access
-        boolean allFiles = Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Environment.isExternalStorageManager();
+        boolean allFiles = !BuildConfig.PLAY_BUILD && (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Environment.isExternalStorageManager());
         if (out.isEmpty() && allFiles) {
             File root = Environment.getExternalStorageDirectory();
             List<File> raw = new ArrayList<>();

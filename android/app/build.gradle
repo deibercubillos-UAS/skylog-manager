@@ -12,6 +12,26 @@ if (hasKeystore) {
 android {
     namespace = "com.bitafly.app"
     compileSdk = rootProject.ext.compileSdkVersion
+    buildFeatures {
+        buildConfig true
+    }
+    // Dos distribuciones del mismo código:
+    //  - direct: APK repartido por fuera de la tienda (controles DJI). Conserva la actualización OTA por APK y el
+    //            acceso a todos los archivos.
+    //  - play:   AAB para Google Play. Sin REQUEST_INSTALL_PACKAGES ni MANAGE_EXTERNAL_STORAGE (Play los prohíbe /
+    //            restringe); los logs DJI se leen con la carpeta elegida por el selector del sistema (SAF).
+    // Compilar: assembleDirectRelease (APK) · bundlePlayRelease (AAB para Play).
+    flavorDimensions "distribution"
+    productFlavors {
+        direct {
+            dimension "distribution"
+            buildConfigField "boolean", "PLAY_BUILD", "false"
+        }
+        play {
+            dimension "distribution"
+            buildConfigField "boolean", "PLAY_BUILD", "true"
+        }
+    }
     signingConfigs {
         release {
             if (hasKeystore) {
@@ -26,8 +46,8 @@ android {
         applicationId "com.bitafly.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
-        versionName "1.1.0"
+        versionCode 3
+        versionName "1.2.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

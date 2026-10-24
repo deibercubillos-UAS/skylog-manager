@@ -137,3 +137,75 @@ export function slugify(text) {
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-]/g, '');
 }
+
+function rgbToHsl([r, g, b]) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
+  const d = max - min;
+  if (!d) return [0, 0, l];
+  const s = d / (1 - Math.abs(2 * l - 1));
+  let h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  h = (h * 60 + 360) % 360;
+  return [h, s, l];
+}
+
+function hslToRgb([h, s, l]) {
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return [r, g, b].map((v) => Math.round((v + m) * 255));
+}
+
+/** Color dominante del logo (ignora fondo transparente, blancos y grises); null si no hay uno claro. */
+export async function dominantLogoColor(logo) {
+  if (!logo?.dataUrl || typeof document === 'undefined') return null;
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = logo.dataUrl;
+    });
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, size, size);
+    const { data } = ctx.getImageData(0, 0, size, size);
+    const buckets = new Map();
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 128) continue;
+      const [h, s, l] = rgbToHsl([data[i], data[i + 1], data[i + 2]]);
+      if (l > 0.92 || l < 0.08 || s < 0.25) continue;
+      const key = Math.round(h / 20) % 18;
+      const b = buckets.get(key) || { w: 0, h: 0, s: 0 };
+      b.w += s;
+      b.h += h * s;
+      b.s += s * s;
+      buckets.set(key, b);
+    }
+    let best = null;
+    buckets.forEach((b) => {
+      if (!best || b.w > best.w) best = b;
+    });
+    if (!best) return null;
+    return { h: best.h / best.w, s: best.s / best.w };
+  } catch {
+    return null;
+  }
+}
+
+/** Paleta sobria para formatos impresos a partir del color de la organización (o gris pizarra si no hay). */
+export function formPalette(brand) {
+  if (!brand) return { accent: [71, 85, 105], ink: [30, 41, 59], tint: [241, 245, 249], line: [203, 213, 225] };
+  const h = brand.h;
+  const s = Math.min(brand.s, 0.55);
+  return {
+    accent: hslToRgb([h, s, 0.38]),
+    ink: hslToRgb([h, Math.min(s, 0.4), 0.18]),
+    tint: hslToRgb([h, Math.min(s, 0.45), 0.95]),
+    line: hslToRgb([h, Math.min(s, 0.2), 0.75]),
+  };
+}

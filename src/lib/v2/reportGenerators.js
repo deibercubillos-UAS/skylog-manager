@@ -8,7 +8,7 @@
 // bitácora, no fabricado aquí).
 import autoTable from 'jspdf-autotable';
 import { SPEC_FIELDS, computeSpecCompleteness, formatSpecValue } from '@skylog/domain';
-import { resolveLogo, fetchBitaflyLogo, addLogo, drawReportHeader, drawFooterNote, slugify } from './pdfCommon';
+import { resolveLogo, fetchBitaflyLogo, addLogo, drawReportHeader, drawFooterNote, slugify, dominantLogoColor, formPalette } from './pdfCommon';
 
 const TABLE_STYLES = { fontSize: 7, cellPadding: 1.3, lineColor: [220, 220, 220], lineWidth: 0.1 };
 const HEAD_STYLES = { fillColor: [26, 32, 44], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'left' };
@@ -38,25 +38,19 @@ function fmtHours(h) {
 // sistema no registra queda en blanco para diligenciarlo a mano.
 const FORM_L = 10;
 const FORM_W = 277;
-// Colores de marca BitaFly para los formatos tipo formulario.
-const NAVY = [26, 32, 44];
-const ORANGE = [236, 91, 19];
-const TINT = [255, 244, 237];
-const LINE = [148, 163, 184];
-
-function createFormKit(doc, { logo, nit, title, format }) {
+function createFormKit(doc, { logo, nit, title, format, palette }) {
+  const { accent, ink, tint, line } = palette;
   const today = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const kit = { y: 10 };
-  doc.setDrawColor(...LINE);
+  doc.setDrawColor(...line);
   doc.setLineWidth(0.3);
-  doc.setTextColor(...NAVY);
+  doc.setTextColor(...ink);
 
   kit.header = () => {
     const y = kit.y;
     doc.rect(FORM_L, y, 100, 24);
-    doc.setFillColor(...NAVY);
-    doc.rect(FORM_L + 100, y, 120, 24, 'FD');
-    doc.setFillColor(...TINT);
+    doc.rect(FORM_L + 100, y, 120, 24);
+    doc.setFillColor(...tint);
     const version = format?.version || '1.0';
     const boxes = format?.code ? [`CÓDIGO: ${format.code}`, `VERSIÓN: ${version}`, `FECHA: ${today}`] : [`VERSIÓN: ${version}`, `FECHA: ${today}`];
     const bh = 24 / boxes.length;
@@ -68,26 +62,24 @@ function createFormKit(doc, { logo, nit, title, format }) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255, 255, 255);
     doc.text(title, FORM_L + 160, y + 13.5, { align: 'center' });
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...NAVY);
     doc.setFontSize(9);
     boxes.forEach((t, i) => doc.text(t, FORM_L + 248.5, y + i * bh + bh / 2 + 1.2, { align: 'center', maxWidth: 55 }));
-    doc.setFillColor(...ORANGE);
-    doc.rect(FORM_L, y + 24, FORM_W, 1.4, 'F');
-    kit.y += 25.4;
+    doc.setFillColor(...accent);
+    doc.rect(FORM_L, y + 24, FORM_W, 1, 'F');
+    kit.y += 25;
   };
 
   kit.section = (name) => {
-    doc.setFillColor(...NAVY);
+    doc.setFillColor(...tint);
     doc.rect(FORM_L, kit.y, FORM_W, 6, 'FD');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(...accent);
     doc.text(name, FORM_L + FORM_W / 2, kit.y + 4.3, { align: 'center' });
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...NAVY);
+    doc.setTextColor(...ink);
     kit.y += 6;
   };
 
@@ -97,7 +89,7 @@ function createFormKit(doc, { logo, nit, title, format }) {
     const valueH = 6;
     let x = FORM_L;
     cols.forEach((c, i) => {
-      doc.setFillColor(...TINT);
+      doc.setFillColor(...tint);
       doc.rect(x, kit.y, c.w, labelH, 'FD');
       doc.rect(x, kit.y + labelH, c.w, valueH);
       doc.setFont('helvetica', 'normal');
@@ -123,7 +115,7 @@ function createFormKit(doc, { logo, nit, title, format }) {
     doc.setFontSize(6.5);
     doc.setTextColor(110);
     doc.text(text, FORM_L, kit.y + 5);
-    doc.setTextColor(...NAVY);
+    doc.setTextColor(...ink);
   };
   return kit;
 }
@@ -141,10 +133,11 @@ export async function generateFlightLogPdf(flights, { orgName, logoUrl, periodLa
   const fmt = format || extra.format;
   const empty = !flights || !flights.length;
   const list = empty ? [{}] : flights;
+  const palette = formPalette(await dominantLogoColor(logo));
 
   list.slice().reverse().forEach((f, idx) => {
     if (idx > 0) doc.addPage();
-    const kit = createFormKit(doc, { logo, nit, title: 'LIBRO DE VUELO', format: fmt });
+    const kit = createFormKit(doc, { logo, nit, title: 'LIBRO DE VUELO', format: fmt, palette });
     kit.header();
 
     // Sin vuelos pero con una aeronave elegida: el formato sale con los datos de esa aeronave.
@@ -200,9 +193,10 @@ export async function generateUasBookPdf(units, { orgName, logoUrl, format, org 
   const nit = org?.nit ? `NIT: ${org.nit}` : '';
   const list = units && units.length ? units : [{ aircraft: {}, flights: {}, major: null, minor: null }];
 
+  const palette = formPalette(await dominantLogoColor(logo));
   list.forEach((u, idx) => {
     if (idx > 0) doc.addPage();
-    const kit = createFormKit(doc, { logo, nit, title: 'LIBRO DE UAS', format });
+    const kit = createFormKit(doc, { logo, nit, title: 'LIBRO DE UAS', format, palette });
     kit.header();
     const ac = u.aircraft || {};
     const model = ac.model || {};

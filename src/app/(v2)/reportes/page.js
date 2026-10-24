@@ -17,7 +17,7 @@ import { Button } from '@skylog/ui';
 import { TRAINING_TYPES, TRAINING_TYPE_LABELS } from '@/lib/v2/training';
 import { resolveReportFormat } from '@skylog/domain';
 import {
-  generateUasBookPdf, generatePilotLogPdf,
+  generateUasBookPdf, generatePilotSummaryPdf,
   generateMaintenanceReportPdf,
   generateFleetReportPdf,
   generateBatteryReportPdf,
@@ -31,7 +31,7 @@ import {
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const REPORT_DEFS = [
-  { key: 'bitacora_piloto', title: 'Bitácora de Vuelo del Piloto UAS', description: 'Un formato por vuelo: piloto, operación y aeronave.', icon: 'assignment_ind', tile: 'bg-cyan-500 text-white', wash: 'from-cyan-50 to-white', needsPeriod: true, needsAircraft: true },
+  { key: 'bitacora_piloto', title: 'Bitácora de Vuelo del Piloto UAS', description: 'Resumen por piloto: horas totales, por aeronave y por tipo de visión (VLOS, EVLOS, BVLOS).', icon: 'assignment_ind', tile: 'bg-cyan-500 text-white', wash: 'from-cyan-50 to-white', needsPeriod: true, needsPilot: true },
   { key: 'uas', title: 'Libro de UAS', description: 'Totales acumulados de cada aeronave: vuelos, horas, ciclos y mantenimiento. Una hoja por drone.', icon: 'menu_book', tile: 'bg-blue-500 text-white', wash: 'from-blue-50 to-white', needsAircraft: true },
   { key: 'mantenimiento', title: 'Mantenimiento', description: 'Eventos, eventos inesperados y programa por modelo.', icon: 'build', tile: 'bg-amber-500 text-white', wash: 'from-amber-50 to-white', needsPeriod: true, needsAircraft: true },
   { key: 'flota', title: 'Flota', description: 'Inventario, propiedad, firmware y ficha técnica por modelo — instantánea.', icon: 'flight', tile: 'bg-primary text-white', wash: 'from-primary-50 to-white', needsAircraft: true },
@@ -64,6 +64,8 @@ export default function ReportesPage() {
   const [from, setFrom] = useState(monthAgoStr());
   const [to, setTo] = useState(todayStr());
   const [aircraftId, setAircraftId] = useState('');
+  const [pilotList, setPilotList] = useState([]);
+  const [pilotId, setPilotId] = useState('');
   const [supplierId, setSupplierId] = useState('');
   const [trainingType, setTrainingType] = useState(TRAINING_TYPES[0]);
   const [busy, setBusy] = useState(false);
@@ -99,11 +101,12 @@ export default function ReportesPage() {
 
   const loadFilters = useCallback(async (orgId) => {
     if (!orgId) return;
-    const [aRes, sRes] = await Promise.all([fetch(`/api/reportes/flota?organizationId=${orgId}`), fetch(`/api/proveedores/suppliers?organizationId=${orgId}`)]);
+    const [aRes, sRes, pRes] = await Promise.all([fetch(`/api/reportes/flota?organizationId=${orgId}`), fetch(`/api/proveedores/suppliers?organizationId=${orgId}`), fetch(`/api/reportes/bitacora-piloto?organizationId=${orgId}&list=1`)]);
     const aData = await aRes.json();
     const sData = await sRes.json();
     if (aRes.ok) setAircraftList(aData.aircraft || []);
     if (sRes.ok) setSupplierList(sData.suppliers || []);
+    if (pRes.ok) setPilotList((await pRes.json()).pilots || []);
   }, []);
 
   useEffect(() => {
@@ -158,11 +161,11 @@ export default function ReportesPage() {
       const fmt = { code: fmtDraft.code, version: fmtDraft.version };
 
       if (def.key === 'bitacora_piloto') {
-        const qs = new URLSearchParams({ organizationId, from, to, ...(aircraftId && { aircraftId }) });
-        const res = await fetch(`/api/reportes/vuelos?${qs}`);
+        const qs = new URLSearchParams({ organizationId, from, to, ...(pilotId && { pilotId }) });
+        const res = await fetch(`/api/reportes/bitacora-piloto?${qs}`);
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Error consultando vuelos');
-        await generatePilotLogPdf(data.flights, { orgName, logoUrl, format: fmt, periodLabel, extra: data });
+        if (!res.ok) throw new Error(data.error || 'Error consultando pilotos');
+        await generatePilotSummaryPdf(data.pilots, { orgName, logoUrl, format: fmt, periodLabel, org: data.org });
       } else if (def.key === 'uas') {
         const qs = new URLSearchParams({ organizationId, ...(aircraftId && { aircraftId }) });
         const res = await fetch(`/api/reportes/uas?${qs}`);
@@ -296,6 +299,19 @@ export default function ReportesPage() {
                     <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="text-sm border border-navy-200 rounded-lg px-2 py-1.5" />
                   </div>
                 </>
+              )}
+              {def.needsPilot && (
+                <div>
+                  <label className="text-xs font-medium text-navy-400 block mb-1">Piloto (vacío = todos los pilotos)</label>
+                  <select value={pilotId} onChange={(e) => setPilotId(e.target.value)} className="text-sm border border-navy-200 rounded-lg px-2 py-1.5 min-w-[220px]">
+                    <option value="">Todos los pilotos</option>
+                    {pilotList.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.full_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               )}
               {def.needsAircraft && (
                 <div>

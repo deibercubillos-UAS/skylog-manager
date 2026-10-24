@@ -183,50 +183,63 @@ export async function generateFlightLogPdf(flights, { orgName, logoUrl, periodLa
   doc.save(`libro-de-vuelo-${slugify(orgName)}.pdf`);
 }
 
-// Bitácora de Vuelo del Piloto UAS: un formato por vuelo (una hoja), con los datos del piloto, la operación y la aeronave.
-// Sin vuelos sale en blanco.
-export async function generatePilotLogPdf(flights, { orgName, logoUrl, periodLabel, format, extra = {} }) {
+// Bitácora de Vuelo del Piloto UAS (resumen): una hoja por piloto con sus horas totales, por aeronave y por línea de vista.
+// `pilots` lo arma /api/reportes/bitacora-piloto. Sin pilotos sale una hoja en blanco con los totales en 0.
+export async function generatePilotSummaryPdf(pilots, { orgName, logoUrl, periodLabel, format, org }) {
   const { jsPDF } = await import('jspdf');
   const logo = (await resolveLogo(logoUrl)) || (await fetchBitaflyLogo());
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  const nit = extra.org?.nit ? `NIT: ${extra.org.nit}` : '';
-  const fmt = format || extra.format;
-  const empty = !flights || !flights.length;
-  const list = empty ? [{}] : flights;
+  const nit = org?.nit ? `NIT: ${org.nit}` : '';
+  const list = pilots && pilots.length ? pilots : [{ person: {}, flights: 0, hours: 0, los: {}, aircraft: [] }];
   const palette = formPalette(await dominantLogoColor(logo));
+  const h2 = (h) => hoursLabel(h || 0, 2);
 
-  list.slice().reverse().forEach((f, idx) => {
+  list.forEach((p, idx) => {
     if (idx > 0) doc.addPage();
-    const kit = createFormKit(doc, { logo, nit, title: 'BITÁCORA DE VUELO DEL PILOTO UAS', format: fmt, palette });
+    const kit = createFormKit(doc, { logo, nit, title: 'BITÁCORA DE VUELO DEL PILOTO UAS', format, palette });
     kit.header();
-    const ac = f.aircraft || extra.aircraft || {};
-    const model = ac.model || {};
-    const pilot = f.pilot || {};
-    const tk = f.takeoff_at ? new Date(f.takeoff_at) : null;
-    const ld = f.landing_at ? new Date(f.landing_at) : null;
-    const hm = (d) => (d ? d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Bogota' }) : '');
-    const hourOfDay = tk ? Number(tk.toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/Bogota' })) % 24 : null;
-    const schedule = hourOfDay == null ? '' : hourOfDay >= 6 && hourOfDay < 18 ? 'Diurno' : 'Nocturno';
-    const docType = String(pilot.document_type || '').toUpperCase();
+    const person = p.person || {};
+    const docType = String(person.document_type || '').toUpperCase();
     const mark = (re) => (re.test(docType) ? 'X' : '');
+    const los = p.los || {};
 
     kit.section('INFORMACIÓN DEL PILOTO UAS');
     kit.row(
       [{ w: 100, label: 'Nombre' }, { w: 25, label: 'CC' }, { w: 25, label: 'CE' }, { w: 30, label: 'PASAPORTE' }, { w: 50, label: 'Número de documento' }, { w: 47, label: 'CIPU' }],
-      [pilot.full_name, mark(/^(CC|CEDULA|CÉDULA)/), mark(/^(CE|EXTRANJER)/), mark(/PASAPORTE|^PA$/), pilot.document_number, pilot.license_number]
+      [person.full_name, mark(/^(CC|CEDULA|CÉDULA)/), mark(/^(CE|EXTRANJER)/), mark(/PASAPORTE|^PA$/), person.document_number, person.license_number]
     );
 
-    kit.section('DATOS DE LA OPERACIÓN');
-    kit.row([{ w: 92, label: 'Lugar' }, { w: 92, label: 'Tipo de operación' }, { w: 93, label: 'Tipo de condición visual' }], [f.location, f.mission_type, f.visual_condition]);
-    kit.row([{ w: 92, label: 'Horario' }, { w: 92, label: 'Tiempo total de la operación' }, { w: 93, label: 'Fecha del vuelo' }], [schedule, empty ? '0 h' : hoursLabel(f.total_time, 2), tk ? fmtDate(f.takeoff_at) : '']);
+    kit.section('RESUMEN DE HORAS VOLADAS');
+    kit.row(
+      [{ w: 69, label: 'Horas totales voladas' }, { w: 69, label: 'Vuelos realizados' }, { w: 139, label: 'Periodo' }],
+      [h2(p.hours), p.flights || 0, periodLabel || 'Todo el historial']
+    );
 
-    kit.section('AERONAVE');
-    kit.row([{ w: 55, label: 'Marca' }, { w: 55, label: 'Modelo' }, { w: 55, label: 'Fabricante' }, { w: 56, label: 'Número de serie' }, { w: 56, label: 'RUAS' }], [model.brand, model.model, model.brand, ac.serial_number, ac.ruas_number]);
-    kit.row([{ w: 92, label: 'Hora de despegue' }, { w: 92, label: 'Hora de aterrizaje' }, { w: 93, label: 'Tiempo total del UA' }], [hm(tk), hm(ld), hoursLabel(ac.total_hours) || (empty ? '0 h' : '')]);
+    kit.section('HORAS POR TIPO DE VISIÓN');
+    kit.row(
+      [{ w: 69, label: 'VLOS (línea de vista visual)' }, { w: 69, label: 'EVLOS (línea de vista extendida)' }, { w: 69, label: 'BVLOS (más allá de la línea de vista)' }, { w: 70, label: 'Sin clasificar' }],
+      [h2(los.VLOS), h2(los.EVLOS), h2(los.BVLOS), h2(los.other)]
+    );
 
-    kit.section('OBSERVACIONES');
-    kit.box(f.notes, 40);
-    kit.footnote(`${periodLabel ? `Periodo: ${periodLabel} · ` : ''}Generado el ${new Date().toLocaleString('es-CO')} · Creado con BITAFLY`);
+    kit.section('HORAS POR AERONAVE (UAS)');
+    const body = (p.aircraft || []).map((a) => [a.serial, a.ruas || '', a.model || '', a.flights, h2(a.hours)]);
+    autoTable(doc, {
+      startY: kit.y,
+      margin: { left: FORM_L, right: 297 - FORM_L - FORM_W, top: 10, bottom: 14 },
+      head: [['Número de serie', 'RUAS', 'Marca y modelo', 'Vuelos', 'Horas voladas']],
+      body: body.length ? body : [['', '', '', '0', '0.00 h']],
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 1.8, lineColor: palette.line, lineWidth: 0.3, textColor: palette.ink },
+      headStyles: { fillColor: palette.tint, textColor: palette.accent, fontStyle: 'bold', halign: 'center' },
+      bodyStyles: { halign: 'center' },
+      foot: body.length ? [['', '', 'Total', p.flights || 0, h2(p.hours)]] : undefined,
+      footStyles: { fillColor: palette.tint, textColor: palette.ink, fontStyle: 'bold', halign: 'center' },
+    });
+    const y = (doc.lastAutoTable?.finalY || kit.y) + 6;
+    doc.setFontSize(6.5);
+    doc.setTextColor(110);
+    doc.text(`${periodLabel ? `Periodo: ${periodLabel} · ` : ''}Generado el ${new Date().toLocaleString('es-CO')} · Creado con BITAFLY`, FORM_L, Math.min(y, 205));
+    doc.setTextColor(...palette.ink);
   });
 
   doc.save(`bitacora-de-vuelo-piloto-${slugify(orgName)}.pdf`);

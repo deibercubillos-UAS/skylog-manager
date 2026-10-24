@@ -54,5 +54,5 @@ export async function GET(request) {
     aircraftId ? supabase.from('aircraft').select('id, serial_number, ruas_number, total_hours, operational_status, model:model_id(brand, model)').eq('organization_id', organizationId).eq('id', aircraftId).maybeSingle() : Promise.resolve({ data: null }),
   ]);
 
-  return Response.json({ flights, cycles: allFlights || [], maintenance: events || [], org: org ? { nit: org.nit, nit_type: org.nit_type } : null, format: resolveReportFormat(org?.report_formats || {}, searchParams.get('formatKey') === 'bitacora_piloto' ? 'bitacora_piloto' : 'vuelos'), aircraft: aircraftRow || null });
+  return Response.json({ flights, cycles: allFlights || [], maintenance: events || [], org: org ? { nit: org.nit, nit_type: org.nit_type } : null, format: resolveReportFormat(org?.report_formats || {}, 'vuelos'), aircraft: aircraftRow || null });
 }

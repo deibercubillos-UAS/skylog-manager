@@ -142,7 +142,7 @@ export async function GET(request) {
       const hScore = calcScore(hWs, hGusts, hVis, hPrecip, h.precipitation_probability?.[j] ?? 0, kpVal);
       const hWmo = WMO[hCode] ?? { label: `Código ${hCode}`, icon: 'question_mark' };
       return {
-        time: d.toISOString().slice(11, 16),
+        time: new Date(d.getTime() + offsetMs).toISOString().slice(11, 16), // hora de Bogotá, no UTC
         temperature: h.temperature_2m?.[j] ?? null,
         windspeed: hWs,
         icon: hWmo.icon,

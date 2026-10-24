@@ -121,7 +121,7 @@ Evaluar poner `bitafly.com` en modo **solo DNS** (nube gris), **manteniendo Clou
 los tres subdominios CDN**, que sí aportan valor real y gratuito. No se puede confirmar desde
 este entorno (la política de red bloquea `bitafly.com`) → **pendiente P3**.
 
-#### H3 — `demo-bitafly-enterprise` duplica el tiempo de CI
+#### H3 — `demo-bitafly-enterprise` duplica el tiempo de CI (RESUELTO 2026-10-24: carpeta `demo-enterprise/` eliminada del repositorio)
 
 Cada push construye **dos** proyectos de Vercel, incluso cuando el cambio es solo documentación
 (visible en este mismo PR). Si el demo no cambia, sacarlo del repositorio o desactivar sus

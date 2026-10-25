@@ -42,7 +42,7 @@ function drawTableHead(doc, y, palette) {
 
 function drawChecklist(doc, logo, headerName, list, { first, palette }) {
   if (!first) doc.addPage();
-  let y = drawReportHeader(doc, { logo, orgName, title: list.name, subtitle: list.category || '', format: { version: list.version || '1.0' } }) + 2;
+  let y = drawReportHeader(doc, { logo, orgName: headerName, title: list.name, subtitle: list.category || '', format: { version: list.version || '1.0' } }) + 2;
   if (list.description?.trim()) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
@@ -114,7 +114,7 @@ export async function downloadChecklistPdf(checklists, { orgName, nit, logoUrl, 
   const logo = (await resolveLogo(logoUrl)) || (await fetchBitaflyLogo());
   const palette = logo?.palette || formPalette(null);
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  lists.forEach((list, i) => drawChecklist(doc, logo, orgName, list, { first: i === 0, palette }));
+  lists.forEach((list, i) => drawChecklist(doc, logo, headerName, list, { first: i === 0, palette }));
   const pages = doc.internal.getNumberOfPages();
   const printed = new Date().toLocaleString('es-CO');
   for (let p = 1; p <= pages; p += 1) {

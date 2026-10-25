@@ -40,6 +40,16 @@ Leyenda: ✅ pasa · ❌ falla · ⬜ pendiente · ➖ no aplica / no ejecutable
 |---|---|---|---|---|---|
 | iPhone 17 (402 px) | Gerente General nuevo | 5,0 s | 1,7–2,4 s | 0 | no medido (Safari) |
 | Android (411 px, dpr 2,6) | Gerente General nuevo | 41 s (arranque del emulador) | 5–10 s; `/proveedores` 41 s una vez | 0 | 0 |
+**Segunda tanda (2026-10-25): los otros 5 perfiles en celular.**
+| Perfil | iPhone 17 (Safari real) | Android (Chrome 145 real) |
+|---|---|---|
+| Jefe de Pilotos | login 5,7 s · 8 pantallas 1,8–6,7 s · desborde 0 | login 8,8 s · 10 pantallas 2,2–4,7 s · desborde 0 · 0 errores ≥ 400 |
+| Gerente SMS | login 4,4 s · 1,7–4,3 s · 0 | login 18 s · 2,7–7,2 s · 0 · 0 errores |
+| Piloto | login 4,4 s · 1,9–2,9 s · 0 | login 9,9 s · 2,0–4,1 s · 0 · 0 errores (confirma F-026) |
+| Piloto independiente | login 4,5 s · 1,9–2,4 s · 0 | login 8,6 s · 2,0–3,7 s · 0 · 0 errores |
+| Socio | login 4,3 s · `/socio` 3,5 s · 0 | login 8,7 s · `/socio` 2,5 s · 0 · 0 errores |
+Objetivos táctiles < 32 px por pantalla: iPhone 6–14, Android 2–12 (el máximo, 12–14, en Proveedores del Jefe de Pilotos); es el F-014 ya conocido. El Jefe de Pilotos en Android falló una primera vez por una carrera de mi script y pasó al repetir. El emulador Android se colgó una vez (sistema sin respuesta) y hubo que reiniciarlo en frío; no es de la app. Su pantalla de «Sin conexión» de BitaFly se mostró correctamente mientras el emulador no tenía red.
+
 El emulador Android corre con GPU por software: sus tiempos no representan un teléfono real (se declara). Primer ingreso en iPhone: el aviso de cookies tapaba la parte baja del tutorial (F-027).
 
 **F2 ✅ (interfaz, PC, clics reales).** Mantenimiento: la tabla «Mantenimientos registrados» muestra los IDs `MNT-0001/0002`; «Editar» → cambiar proveedor y enlace → «Guardar» envía el PATCH (200) y el cambio persiste. 11 de 11 PDF de Reportes se generan y descargan (360–410 KB, 0,4–1,4 s cada uno); revisados a ojo el Libro de Mantenimiento (ID, taller, enlace, responsable), el Formato de Auditoría (grupos Documentos/Herramientas/Infraestructura, tomados del checklist de la organización) y el Listado de Proveedores. Listas en papel: «Descargar todas (PDF)» genera el PDF con NIT en el encabezado (tras F-029). Jefe de Pilotos en la org A: crea proveedor (200), registra mantenimiento (200), edita el enlace (200), lee el reporte (200) y ve «Editar» (coincide con la matriz: JP gestiona L2/Y2).
@@ -59,7 +69,7 @@ Cada perfil tiene una o dos pantallas con un pico aislado de 5–11 s (distinta 
 | Fase | Estado |
 |---|---|
 | F0 cuentas desde cero · F2 funciones nuevas · F3 seguridad · F4 rendimiento PC | ✅ |
-| F5 iPhone y Android | ✅ parcial: solo el Gerente General nuevo, 8–10 pantallas, sin desbordes. No se recorrieron JP, GS, Piloto, Independiente ni Socio en celular real (sí en Pixel 7 emulado: sin desbordes). iPhone: no se midieron respuestas ≥ 400 (Safari no las expone); Android: 0. |
+| F5 iPhone y Android | ✅ **los 6 perfiles** (Gerente General, Jefe de Pilotos, Gerente SMS, Piloto, Piloto independiente, Socio), ver tabla de abajo |
 | F6 consolidación | ✅ este documento |
 No ejecutado a propósito: pago real (Wompi), envío de correos a terceros, borrar cuentas. No ejecutable: `test:integration` (la base de desarrollo no responde) y el segundo factor del superadmin. **Datos que quedan en producción** (prefijo `QA-20261025`): 3 organizaciones de prueba con 6 cuentas, 1–3 aeronaves, 3 proveedores (uno con texto hostil a propósito), 3 criterios de auditoría, 1–2 listas de chequeo, 3–4 mantenimientos (no se pueden borrar: retención de 5 años).
 

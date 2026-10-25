@@ -35,10 +35,21 @@ Leyenda: ✅ pasa · ❌ falla · ⬜ pendiente · ➖ no aplica / no ejecutable
 
 **F3 ✅ Seguridad: todas las comprobaciones pasan.** Sin sesión: 12 GET, 4 escrituras → 401; 5 páginas → `/login?next=`. Piloto (org C), Gerente SMS (org B) y GG de otra organización contra la org A: lectura/escritura de aeronaves, proveedores, criterios, mantenimientos, reportes, miembros, PATCH y adjunto ajeno → 400/403/404, **0 fugas**. Cabeceras HSTS, X-Frame-Options, nosniff, Referrer-Policy, CSP y Permissions-Policy presentes. XSS almacenado (`<script>`, `onerror`, `onload` en nombre/contacto de proveedor) no se ejecuta en Proveedores, Mantenimiento ni Reportes. Roles dentro de su propia organización: Piloto no crea proveedores (403, correcto), Gerente SMS sí (200, correcto: matriz Y2).
 
+**F5 (parcial) · iPhone 17 (Safari real, simulador, Appium) y Android (Chrome 145 real en emulador, CDP).**
+| Plataforma | Perfil | Login | Pantallas (8–10) | Desborde horizontal | Respuestas ≥ 400 |
+|---|---|---|---|---|---|
+| iPhone 17 (402 px) | Gerente General nuevo | 5,0 s | 1,7–2,4 s | 0 | no medido (Safari) |
+| Android (411 px, dpr 2,6) | Gerente General nuevo | 41 s (arranque del emulador) | 5–10 s; `/proveedores` 41 s una vez | 0 | 0 |
+El emulador Android corre con GPU por software: sus tiempos no representan un teléfono real (se declara). Primer ingreso en iPhone: el aviso de cookies tapaba la parte baja del tutorial (F-027).
+
+**F4 · Rendimiento PC, un perfil a la vez** — ver tabla al final de esta sección (se completa al terminar la corrida secuencial). Una primera corrida con 4 procesos simultáneos dio medianas de 1,6–4,3 s y logins de 3–14 s; se descarta porque mi propia concurrencia sobre la instancia pequeña de Supabase (F-003) la distorsiona.
+
 ## 3 · Hallazgos
 
 | # | Sev. | Dónde | Qué pasa | Estado |
 |---|---|---|---|---|
 | F-024 | Media | `POST /api/flota/models/seed-dji` (Flota → catálogo DJI) | Elegir **varios** modelos a la vez daba 500 `null value in column "gnss_supported"` (insert en lote con fichas de distinto conjunto de campos). Un solo modelo funcionaba. | ✅ inserta uno por uno (pendiente de desplegar) |
 | F-025 | Baja | `/admin` con sesión de gerente | Mostraba un listado de archivos del servidor («Index of /admin/ plataforma, socios…»). Sin sesión sí redirige a login. | ✅ `admin/page.js` redirige; la guardia devuelve a `/inicio` (pendiente de desplegar) |
+| F-027 | Baja | Tutorial de bienvenida en iPhone | El aviso de cookies (z-999) quedaba sobre el tutorial (z-400) y tapaba parte de «Saltar tutorial / Siguiente». | ✅ el aviso baja a z-350 (pendiente de desplegar) |
+| F-028 | Baja | PDF: Formato de Auditoría / Listado de Proveedores | Un nombre de proveedor o de contacto largo saltaba de línea dentro de una celda de altura fija y se cortaba. | ✅ el texto se achica (mín. 5,5 pt) y, si no cabe, termina en «…» (pendiente de desplegar) |
 | F-026 | Baja | `/flota/mantenimiento` como Piloto | Pedía `/api/proveedores/suppliers` y recibía 403 (mi pantalla nueva; mismo caso que F-016). | ✅ no se pide sin permiso Y1 (pendiente de desplegar) |

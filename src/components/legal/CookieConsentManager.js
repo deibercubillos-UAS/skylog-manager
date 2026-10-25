@@ -62,7 +62,7 @@ export default function CookieConsentManager() {
         <div
           role="dialog"
           aria-label="Aviso de cookies"
-          className="fixed inset-x-0 bottom-0 z-[999] px-4 pb-4 sm:px-6 sm:pb-6"
+          className="fixed inset-x-0 bottom-0 z-[350] px-4 pb-4 sm:px-6 sm:pb-6"
         >
           <div className="max-w-3xl mx-auto bg-[#1A202C] text-slate-200 rounded-2xl shadow-2xl border border-white/10 p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <p className="text-[13px] leading-relaxed flex-1">

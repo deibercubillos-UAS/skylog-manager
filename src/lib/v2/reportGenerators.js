@@ -86,6 +86,22 @@ function createFormKit(doc, { logo, nit, title, format, palette, width }) {
     kit.y += 6;
   };
 
+  // Texto de UNA línea dentro de una celda de altura fija: si no cabe baja la letra (hasta 5,5 pt) y, si aún no cabe, corta con «…».
+  const fitText = (text, maxW, size = 8) => {
+    let t = String(text);
+    let fs = size;
+    doc.setFontSize(fs);
+    while (doc.getTextWidth(t) > maxW && fs > 5.5) {
+      fs -= 0.5;
+      doc.setFontSize(fs);
+    }
+    if (doc.getTextWidth(t) > maxW) {
+      while (t.length > 1 && doc.getTextWidth(`${t}…`) > maxW) t = t.slice(0, -1);
+      t = `${t}…`;
+    }
+    return t;
+  };
+
   // cols = [{ w, label }]; values = textos de la fila de abajo (0 se dibuja, vacío no).
   kit.row = (cols, values) => {
     const labelH = 6;
@@ -99,7 +115,10 @@ function createFormKit(doc, { logo, nit, title, format, palette, width }) {
       doc.setFontSize(8);
       doc.text(c.label, x + c.w / 2, kit.y + labelH / 2 + 1.1, { align: 'center', maxWidth: c.w - 2 });
       const v = values[i];
-      if (v !== undefined && v !== null && v !== '') doc.text(String(v), x + c.w / 2, kit.y + labelH + valueH / 2 + 1.2, { align: 'center', maxWidth: c.w - 2 });
+      if (v !== undefined && v !== null && v !== '') {
+        doc.text(fitText(v, c.w - 2), x + c.w / 2, kit.y + labelH + valueH / 2 + 1.2, { align: 'center' });
+        doc.setFontSize(8);
+      }
       x += c.w;
     });
     kit.y += labelH + valueH;
@@ -119,7 +138,10 @@ function createFormKit(doc, { logo, nit, title, format, palette, width }) {
     let x = FORM_L;
     widths.forEach((w, i) => {
       doc.rect(x, kit.y, w, h);
-      if (values[i] !== undefined && values[i] !== null && values[i] !== '') doc.text(String(values[i]), x + w / 2, kit.y + h / 2 + 1.2, { align: 'center', maxWidth: w - 2 });
+      if (values[i] !== undefined && values[i] !== null && values[i] !== '') {
+        doc.text(fitText(values[i], w - 2), x + w / 2, kit.y + h / 2 + 1.2, { align: 'center' });
+        doc.setFontSize(8);
+      }
       x += w;
     });
     kit.y += h;

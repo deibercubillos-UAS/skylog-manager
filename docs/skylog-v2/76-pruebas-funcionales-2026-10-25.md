@@ -42,7 +42,26 @@ Leyenda: ✅ pasa · ❌ falla · ⬜ pendiente · ➖ no aplica / no ejecutable
 | Android (411 px, dpr 2,6) | Gerente General nuevo | 41 s (arranque del emulador) | 5–10 s; `/proveedores` 41 s una vez | 0 | 0 |
 El emulador Android corre con GPU por software: sus tiempos no representan un teléfono real (se declara). Primer ingreso en iPhone: el aviso de cookies tapaba la parte baja del tutorial (F-027).
 
-**F4 · Rendimiento PC, un perfil a la vez** — ver tabla al final de esta sección (se completa al terminar la corrida secuencial). Una primera corrida con 4 procesos simultáneos dio medianas de 1,6–4,3 s y logins de 3–14 s; se descarta porque mi propia concurrencia sobre la instancia pequeña de Supabase (F-003) la distorsiona.
+**F2 ✅ (interfaz, PC, clics reales).** Mantenimiento: la tabla «Mantenimientos registrados» muestra los IDs `MNT-0001/0002`; «Editar» → cambiar proveedor y enlace → «Guardar» envía el PATCH (200) y el cambio persiste. 11 de 11 PDF de Reportes se generan y descargan (360–410 KB, 0,4–1,4 s cada uno); revisados a ojo el Libro de Mantenimiento (ID, taller, enlace, responsable), el Formato de Auditoría (grupos Documentos/Herramientas/Infraestructura, tomados del checklist de la organización) y el Listado de Proveedores. Listas en papel: «Descargar todas (PDF)» genera el PDF con NIT en el encabezado (tras F-029). Jefe de Pilotos en la org A: crea proveedor (200), registra mantenimiento (200), edita el enlace (200), lee el reporte (200) y ve «Editar» (coincide con la matriz: JP gestiona L2/Y2).
+
+**F4 ✅ Rendimiento PC, un perfil a la vez (sin otra carga), 25 pantallas cada uno.**
+| Perfil | Login | Mediana | Más lenta | Respuestas ≥ 400 | Desborde | `/admin` |
+|---|---|---|---|---|---|---|
+| Gerente General | 3,4 s | 1,5 s | 8,1 s (`/perfil`) | 0 | 0 | → `/inicio` |
+| Jefe de Pilotos | 2,7 s | 1,5 s | 7,1 s | 0 | 0 | → `/inicio` |
+| Gerente SMS | 4,7 s | 1,5 s | 5,8 s | 0 | 0 | → `/inicio` |
+| Piloto | 2,8 s | 1,5 s | 6,3 s | 0 | 0 | → `/inicio` |
+| Piloto independiente | 2,8 s | 1,4 s | 11,2 s | 0 | 0 | → `/inicio` |
+| Socio | 2,9 s | 1,6 s | 5,4 s | 0 | 0 | → `/inicio` |
+Cada perfil tiene una o dos pantallas con un pico aislado de 5–11 s (distinta en cada corrida): es la variación de la instancia de Supabase (F-003/F-017), no una pantalla concreta. Con una prueba a la vez la mediana es 1,4–1,6 s; con 4 simultáneas subía a 1,6–4,3 s y los logins a 10–14 s.
+
+## 2.1 · Estado de las fases y lo que NO se hizo
+| Fase | Estado |
+|---|---|
+| F0 cuentas desde cero · F2 funciones nuevas · F3 seguridad · F4 rendimiento PC | ✅ |
+| F5 iPhone y Android | ✅ parcial: solo el Gerente General nuevo, 8–10 pantallas, sin desbordes. No se recorrieron JP, GS, Piloto, Independiente ni Socio en celular real (sí en Pixel 7 emulado: sin desbordes). iPhone: no se midieron respuestas ≥ 400 (Safari no las expone); Android: 0. |
+| F6 consolidación | ✅ este documento |
+No ejecutado a propósito: pago real (Wompi), envío de correos a terceros, borrar cuentas. No ejecutable: `test:integration` (la base de desarrollo no responde) y el segundo factor del superadmin. **Datos que quedan en producción** (prefijo `QA-20261025`): 3 organizaciones de prueba con 6 cuentas, 1–3 aeronaves, 3 proveedores (uno con texto hostil a propósito), 3 criterios de auditoría, 1–2 listas de chequeo, 3–4 mantenimientos (no se pueden borrar: retención de 5 años).
 
 ## 3 · Hallazgos
 

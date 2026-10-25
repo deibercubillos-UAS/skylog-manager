@@ -121,4 +121,6 @@ secciones del sidebar — ya usan el mismo lenguaje visual (`SectionHero`/`StatC
 
 ---
 
+| 76 | [`76-pruebas-funcionales-2026-10-25.md`](76-pruebas-funcionales-2026-10-25.md) | Pruebas funcionales por perfil y plataforma (plan y registro de avance) |
+
 *Actualizado: 2026-10-01 (F1 completo salvo Aerocivil — las 4 secciones del sidebar en el mismo lenguaje visual)*

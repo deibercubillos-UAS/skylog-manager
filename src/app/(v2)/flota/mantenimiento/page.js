@@ -129,12 +129,13 @@ export default function MantenimientoPage() {
   }, []);
 
   // Proveedores inscritos (activos) para elegir quién hizo el mantenimiento; si el rol no los puede ver, queda sin opciones.
+  const canSeeSuppliers = (currentOrg?.permissions?.['Y1'] || 'none') !== 'none';
   const loadSuppliers = useCallback(async (orgId) => {
-    if (!orgId) return;
+    if (!orgId || !canSeeSuppliers) return; // sin permiso (Y1) la API responde 403: no se pide
     const res = await fetch(`/api/proveedores/suppliers?organizationId=${orgId}`);
     const data = await res.json().catch(() => ({}));
     setSuppliers(res.ok ? (data.suppliers || []).filter((s) => s.is_active !== false) : []);
-  }, []);
+  }, [canSeeSuppliers]);
 
   const loadEvents = useCallback(async (orgId) => {
     if (!orgId) return;

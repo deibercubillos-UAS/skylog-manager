@@ -59,11 +59,18 @@ export async function POST(request) {
     return Response.json({ created: [], completed, skipped: selected.length });
   }
 
-  const { data: created, error } = await supabase
-    .from('aircraft_models')
-    .insert(toInsert.map((m) => ({ brand: m.brand, model: m.model, category: m.category, ...specOf(m), organization_id: organizationId, created_by: personId })))
-    .select();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  // Uno por uno: en un insert en lote PostgREST rellena con null las columnas que no traen todas las filas, y las
+  // fichas del catálogo no tienen los mismos campos (p. ej. gnss_supported NOT NULL) → 500 al elegir varios modelos.
+  const created = [];
+  for (const m of toInsert) {
+    const { data, error } = await supabase
+      .from('aircraft_models')
+      .insert({ brand: m.brand, model: m.model, category: m.category, ...specOf(m), organization_id: organizationId, created_by: personId })
+      .select()
+      .single();
+    if (error) return Response.json({ error: error.message, created }, { status: 500 });
+    created.push(data);
+  }
 
   return Response.json({ created, completed, skipped: selected.length - toInsert.length });
 }

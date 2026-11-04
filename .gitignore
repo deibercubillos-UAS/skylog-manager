@@ -42,10 +42,13 @@ yarn-error.log*
 next-env.d.ts
 .env.local
 
-# claude / local tooling — .claude/skills/ SÍ se versiona (skills instaladas para el
-# proyecto, ej. ui-ux-pro-max); el resto de .claude/ (config/permisos locales) sigue ignorado.
+# claude / local tooling — .claude/skills/ y .claude/settings.json SÍ se versionan
+# (skills instaladas para el proyecto, ej. ui-ux-pro-max, y los plugins/marketplaces
+# compartidos por el equipo); el resto de .claude/ (permisos locales, settings.local.json)
+# sigue ignorado.
 .claude/*
 !.claude/skills
+!.claude/settings.json
 .clone/
 __pycache__/
 *.pyc

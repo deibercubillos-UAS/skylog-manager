@@ -63,14 +63,14 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | [`41-tiempos-servicio.md`](41-tiempos-servicio.md) | Tiempos de servicio, vuelo y descanso (100.540) — **F5 construido y verificado** (motor + esquema/RLS + API + bloqueo real + certificación + planificación), ver decisiones 34-42 en `51-bitacora.md` | 50 | ✅ |
 | [`42-comando-control.md`](42-comando-control.md) | C2 en vivo — telemetría + video · **reabierto 2026-10-01** (decisión 156): esquema + `c2-gateway/` + página H5 + panel "Drones en línea" escritos, **nada desplegado ni validado contra hardware real** | 307 | 🔄 |
 | [`43-aerocivil.md`](43-aerocivil.md) | Expediente y radicación de autorizaciones — **F4a en construcción**: dominio del análisis de riesgos (MAUT-5.0-12-055) + esquema/RLS + API, ver decisiones 44-45 en `51-bitacora.md` | 77 | 🔄 |
-| [`45-simulador-3d-plan.md`](45-simulador-3d-plan.md) · [`45a-simulador-3d-investigacion.md`](45a-simulador-3d-investigacion.md) | **Simulador 3D de capacitación** (celular y control enterprise) — plan por fases F0–F8 con puertas de verificación + investigación y análisis (pedagogía, modelo de vuelo, plataforma, hardware). **Solo planeación, nada construido**; datos externos marcados ⚠️ VERIFICAR (decisión 205) | 302 + 265 | ⬜ |
+| [`45-simulador-3d-plan.md`](45-simulador-3d-plan.md) · [`45a-simulador-3d-investigacion.md`](45a-simulador-3d-investigacion.md) | **Simulador 3D de capacitación** (celular y control enterprise) — plan por fases F0–F8 con puertas de verificación + investigación y análisis (pedagogía, modelo de vuelo, plataforma, hardware). **Fase 0 en curso** (RC Plus 2 · jefe de pilotos · Mini 5 Pro y Matrice 4): prototipo de prueba de equipo en `/capacitacion/simulador/prueba`; datos externos ⚠️ VERIFICAR (decisiones 205-206) | 347 + 267 | 🔄 |
 
 ## 5 · Ejecución
 
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
 | [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 289 | ✅ |
-| [`51-bitacora.md`](51-bitacora.md) | **205 decisiones cerradas**, correcciones propias y fuentes consultadas | 340 | ✅ |
+| [`51-bitacora.md`](51-bitacora.md) | **206 decisiones cerradas**, correcciones propias y fuentes consultadas | 341 | ✅ |
 | [`72-plan-pruebas-completas.md`](72-plan-pruebas-completas.md) · [`73-resultados-pruebas.md`](73-resultados-pruebas.md) | **Pruebas completas desde la página** (web y celular) con las cuentas QA — plan por fases y resultados (2026-10-16) | 80 + 90 | 🔄 |
 | [`60-auditoria-codigo.md`](60-auditoria-codigo.md) | **Auditoría del código de V2** (2026-10-07) — qué está bien, qué no y qué falta, con evidencia | 150 | ✅ |
 

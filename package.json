@@ -21,6 +21,7 @@
     "@capacitor/android": "^8.4.0",
     "@capacitor/core": "^8.4.0",
     "@next/third-parties": "^16.2.4",
+    "@react-three/fiber": "9.8.2",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.104.0",
     "@tmcw/togeojson": "^7.1.2",
@@ -40,7 +41,8 @@
     "react-hook-form": "^7.51.3",
     "react-leaflet": "^5.0.0",
     "resend": "^6.12.2",
-    "sharp": "^0.35.5"
+    "sharp": "^0.35.5",
+    "three": "0.186.0"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",

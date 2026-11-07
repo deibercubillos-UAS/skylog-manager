@@ -16,7 +16,11 @@
 | D-SIM-1 | Simulador **3D** |
 | D-SIM-2 | Enfoque: **capacitación del personal** (no demostración comercial) |
 | D-SIM-3 | Se usa desde el **celular** y desde el **control enterprise** |
-| D-SIM-4 | Por ahora **solo el plan**; no se construye nada hasta aprobarlo |
+| D-SIM-4 | Plan aprobado; **Fase 0 iniciada el 2026-11-07** (ver §9) |
+| D-SIM-5 | Control enterprise de referencia: **DJI RC Plus 2** (respuesta a P-SIM-1) |
+| D-SIM-6 | Valida la parte pedagógica: **el jefe de pilotos** (P-SIM-2) |
+| D-SIM-7 | Primeros perfiles de aeronave: **DJI Mini 5 Pro** y **DJI Matrice 4** (P-SIM-3) |
+| D-SIM-8 | Se trabaja solo en la rama `main` (`develop-v2` queda en desuso) |
 
 ## 1 · Resumen
 
@@ -295,8 +299,49 @@ Capacitación). La de mayor valor para la seguridad operacional: **al cerrar F5*
 
 | # | Pregunta | Cuándo |
 |---|---|---|
-| P-SIM-1 | ¿Qué controles enterprise tiene para la prueba de la Fase 0 (RC Plus, RC Pro u otro)? | Antes de F0 |
-| P-SIM-2 | ¿Quién valida la parte pedagógica (jefe de pilotos, instructor externo, escuela socia)? | Antes de F0 |
-| P-SIM-3 | ¿Qué modelos de aeronave usan sus clientes, para los primeros perfiles? | F0 |
+| ~~P-SIM-1~~ | ~~Controles enterprise para la prueba~~ → **RC Plus 2** (D-SIM-5) | ✅ |
+| ~~P-SIM-2~~ | ~~Quién valida la pedagogía~~ → **jefe de pilotos** (D-SIM-6) | ✅ |
+| ~~P-SIM-3~~ | ~~Modelos de aeronave~~ → **Mini 5 Pro y Matrice 4** (D-SIM-7) | ✅ |
 | P-SIM-4 | ¿Se ofrece en todos los planes, solo en algunos o como servicio adicional? | F8 (se puede adelantar) |
 | P-SIM-5 | ¿Se ofrece a las escuelas socias para el curso de piloto (Apéndice 4)? | F8 |
+
+---
+
+## 9 · Estado de la Fase 0 (iniciada 2026-11-07)
+
+| Entregable | Estado | Detalle |
+|---|---|---|
+| 0.1 Verificaciones externas | ⏳ Pendiente de red | Esta sesión no puede salir a internet. Se creó el entorno de nube **`skylog-manager`** con acceso a 12 sitios (DJI, GitHub, Three.js, OACI, Aerocivil, Zephyr, bitafly.com); las verificaciones se hacen en una sesión abierta sobre ese entorno |
+| 0.2 Palancas del RC Plus 2 | 🔄 Primera prueba lista | La página de prueba (abajo) detecta si el control entrega palancas o botones al navegador (gamepad o teclas). Si no los entrega, sigue el prototipo nativo con MSDK v5 (requiere registro de app DJI y la verificación 0.1) |
+| 0.3 Rendimiento 3D | 🔄 Prototipo publicado | `/capacitacion/simulador/prueba` — escena de prueba (terreno 400 × 400 m, 400 árboles, edificios, torre, dron), prueba automática de 40 s en calidades alta/media/baja e informe para copiar. Three.js 0.186.0 + React Three Fiber 9.8.2, carga diferida: la página pesa 110 kB y la parte 3D **≈ 234 KB comprimida** (objetivo ≤ 15 MB ✅). Probado en Chromium sin GPU (renderizado por software): funciona de punta a punta; las cifras de rendimiento válidas son las de los equipos reales |
+| 0.4 Validación pedagógica | 🔄 Guía lista | Guía para el jefe de pilotos en §10 |
+| 0.5 Consulta normativa | ⬜ | Depende de 0.1 |
+
+**Equipos a medir con la página de prueba** (cada uno pega su informe en el chat): un celular de
+gama media, un celular de gama baja y el **RC Plus 2**. En el RC Plus 2 hay que confirmar primero
+cómo se abre una página web: con un navegador instalado o con la app de BitaFly (APK). Si el control
+no permite ninguna de las dos, ese hallazgo también cierra parte de la 0.2.
+
+**Perfiles de aeronave (D-SIM-7)**: el **Mini 5 Pro** es un equipo de consumo y el **Matrice 4**
+uno enterprise; ambos sirven como perfiles del simulador porque el perfil solo usa sus fichas
+técnicas (velocidades, autonomía, resistencia al viento, peso), no un SDK. El control de referencia
+del Matrice 4 es el RC Plus 2; el del Mini 5 Pro es un control de consumo ⚠️ VERIFICAR modelo. Los
+valores de ambos perfiles se toman de las fichas oficiales en la verificación 0.1.
+
+## 10 · Guía de validación con el jefe de pilotos (entregable 0.4)
+
+Sesión de 60–90 min. Se lleva este documento y el de investigación. Por cada punto se anota:
+**de acuerdo / cambiar (qué) / quitar**.
+
+1. **Competencias** (`45a` §4.2): ¿faltan, sobran o cambiarían de nombre? ¿Cuáles son críticas para su operación?
+2. **Niveles** (`45a` §4.3): ¿el orden es el de su programa de entrenamiento? ¿Quién debe hacer cada nivel?
+3. **Escenarios** (§4): por cada uno, ¿es realista? ¿Qué umbral de aprobado usaría? ¿Cuáles son eliminatorios?
+4. **Emergencias**: ¿qué procedimiento exige su MO ante batería crítica, pérdida C2, pérdida GNSS, viento, tránsito y persona en el área? (Se usará como respuesta esperada.)
+5. **Límites de su organización**: altura máxima, viento máximo, batería mínima de aterrizaje, distancia VLOS.
+6. **Recurrencia**: ¿cada cuánto debe repetir un piloto cada nivel?
+7. **Controles**: ¿sus pilotos vuelan en modo 2? ¿Qué botones del RC Plus 2 usan en emergencias?
+8. **Debriefing**: ¿qué necesita ver al revisar el vuelo de un piloto?
+9. **Prueba en vivo**: vuela 5 min en `/capacitacion/simulador/prueba` (calidad media) y opina sobre la sensación.
+
+El resultado se registra en `51-bitacora.md` y ajusta §4 antes de la Fase 1.
+

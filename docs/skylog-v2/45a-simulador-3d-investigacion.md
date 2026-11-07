@@ -212,6 +212,8 @@ diseño propio de BitaFly.
 
 ### 7.2 Control enterprise (RC Plus / RC Pro y equivalentes)
 
+> **Equipo de referencia elegido: DJI RC Plus 2** (control del Matrice 4) — decisión D-SIM-5 del plan.
+
 Supuestos a comprobar con hardware real en Fase 0 (todos ⚠️ VERIFICAR):
 
 1. Estos controles corren **Android** y permiten **instalar aplicaciones de terceros**: la app de

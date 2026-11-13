@@ -77,7 +77,7 @@ const ROWS = [
   ["K2", "Flota · Tripulación", "Agregar un tripulante", "SSSVNS", "Limitado por el cupo de pilotos del plan."],
   ["K3", "Flota · Tripulación", "Editar mi propio perfil de tripulante", "SSSSSS"],
   ["K4", "Flota · Tripulación", "Editar el perfil de otro tripulante", "SSSNNS"],
-  ["K5", "Flota · Tripulación", "Cambiar el rol de un miembro", "SSVVNS", "Hallazgo: hoy un Jefe de Pilotos o Gerente SMS puede ascender a alguien (o a sí mismo) a Gerente General."],
+  ["K5", "Flota · Tripulación", "Cambiar el rol de un miembro", "SSVVNS"],
   ["K6", "Flota · Tripulación", "Editar la membresía de alguien (fechas, dar de baja)", "SSSSNS"],
   ["K7", "Flota · Tripulación", "Invitar por correo a un piloto, Jefe de Pilotos o Gerente SMS", "SSSNNS"],
   ["K8", "Flota · Tripulación", "Invitar por correo a otro Gerente General", "SSNNNS"],

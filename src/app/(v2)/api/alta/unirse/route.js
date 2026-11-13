@@ -49,7 +49,7 @@ export async function POST(request) {
   }
 
   const { error } = await admin.rpc('v2_join_organization', {
-    p: { auth_user_id: created.user.id, organization_id: ctx.organizationId, role: clean.role, full_name: clean.fullName, email: clean.email, phone: clean.phone, attribution },
+    p: { auth_user_id: created.user.id, organization_id: ctx.organizationId, role: clean.role, full_name: clean.fullName, email: clean.email, phone: clean.phone, attribution, email_verified: false },
   });
   if (error) {
     await admin.auth.admin.deleteUser(created.user.id); // sin cuentas a medias

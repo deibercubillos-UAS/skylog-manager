@@ -53,3 +53,12 @@ export function validateRegistration(input) {
 export function trialEndsAt(nowIso, days) {
   return new Date(Date.parse(nowIso) + days * 86_400_000).toISOString();
 }
+
+// Proveedores de identidad que verifican el correo antes de entregar la sesión. El registro con contraseña (`email`)
+// NO está aquí: el servidor crea ese usuario ya «confirmado» sin que nadie pruebe que el correo es suyo.
+const EMAIL_VERIFYING_PROVIDERS = ['google'];
+
+/** ¿El correo de esta sesión lo verificó el proveedor de identidad? Solo entonces puede reclamar una persona existente. */
+export function emailVerifiedByProvider(appMetadata) {
+  return EMAIL_VERIFYING_PROVIDERS.includes(String(appMetadata?.provider || '').toLowerCase());
+}

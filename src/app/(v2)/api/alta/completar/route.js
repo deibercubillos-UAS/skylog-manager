@@ -7,7 +7,7 @@ import { adminKeyProblem } from '@/lib/v2/adminKey';
 import { PLAN_PRICING } from '@/lib/v2/planLimits';
 import { applyOwnerBenefits } from '@/lib/v2/partnersServer';
 import { loadJoinContext, decideJoin, joinErrorMessage, notifyJoin } from '@/lib/v2/joinOrganization';
-import { validateRegistration, validateJoinRegistration } from '@skylog/domain';
+import { validateRegistration, validateJoinRegistration, emailVerifiedByProvider } from '@skylog/domain';
 import { getAuthUser } from '@/lib/v2/authUser';
 
 const PLACEHOLDER_PASSWORD = 'Aa1' + 'x'.repeat(12); // solo para reutilizar la validación: no se guarda ni se usa
@@ -35,6 +35,9 @@ export async function POST(request) {
   if (!check.ok) return Response.json({ error: check.errors.join(' '), errors: check.errors }, { status: 400 });
   const { clean } = check;
 
+  // Solo si el proveedor (Google) verificó el correo puede adoptar a una persona que un gestor ya creó con él.
+  const emailVerified = emailVerifiedByProvider(user.app_metadata);
+
   let attribution = null;
   const first = body.attribution?.first;
   if (first && typeof first === 'object' && JSON.stringify(first).length <= 2000) attribution = first;
@@ -45,7 +48,7 @@ export async function POST(request) {
     const decision = decideJoin(ctx, clean.role);
     if (!decision.ok) return Response.json({ error: decision.message, reason: decision.reason }, { status: 409 });
     const { error } = await admin.rpc('v2_join_organization', {
-      p: { auth_user_id: user.id, organization_id: ctx.organizationId, role: clean.role, full_name: clean.fullName, email: clean.email, phone: clean.phone, attribution },
+      p: { auth_user_id: user.id, organization_id: ctx.organizationId, role: clean.role, full_name: clean.fullName, email: clean.email, phone: clean.phone, attribution, email_verified: emailVerified },
     });
     if (error) {
       const known = joinErrorMessage(error.message);
@@ -67,6 +70,7 @@ export async function POST(request) {
       nit_type: clean.nitType,
       trial_days: PLAN_PRICING.piloto.monthly.trialDays,
       attribution,
+      email_verified: emailVerified,
     },
   });
   if (error) {

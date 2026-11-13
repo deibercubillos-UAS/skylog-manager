@@ -60,6 +60,15 @@ export async function GET(request) {
   return Response.json({ flights: slimFlights, isManager: membershipsCanView(memberships, organizationId, 'D1') });
 }
 
+// Contadores (horas de aeronave, ciclos de batería): con la llave de servicio; si la base todavía tiene la versión
+// anterior de la función (que solo reconocía la sesión de un miembro), se reintenta con la sesión para no perder la suma
+// mientras se aplica la migración 20261112130000. Quitar el reintento cuando esa migración esté aplicada en producción.
+async function callCounter(admin, supabase, fn, args) {
+  const first = await admin.rpc(fn, args);
+  if (!first.error) return first;
+  return supabase.rpc(fn, args);
+}
+
 export async function POST(request) {
   const supabase = await createClientSSR();
   const user = await getAuthUser(supabase);
@@ -141,7 +150,12 @@ export async function POST(request) {
       ? replayTrack
       : null;
 
-  const { data, error } = await supabase
+  // El vuelo se escribe con la llave de servicio, no con la sesión: aquí ya se verificó la persona, la membresía y el rol
+  // (D4/D5), el token de importación, la ventana de duración y que la aeronave sea de la organización. Con la sesión, la RLS
+  // dejaba a cualquier piloto insertar vuelos directo por PostgREST saltándose todo eso (auditoría 2026-11-12); la
+  // política restrictiva de `flights` (supabase/pending/20261112140000) deja el insert solo a los gestores.
+  const admin = createAdminClient();
+  const { data, error } = await admin
     .from('flights')
     .insert({
       organization_id: organizationId,
@@ -170,7 +184,7 @@ export async function POST(request) {
   // ② derivado — nunca read-calculate-write: el total de horas de la
   // aeronave se actualiza vía RPC, mismo patrón ya probado en v1.
   if (aircraftId) {
-    const { error: rpcError } = await supabase.rpc('increment_aircraft_hours', { p_id: aircraftId, p_hours: Number(totalTime) });
+    const { error: rpcError } = await callCounter(admin, supabase, 'increment_aircraft_hours', { p_id: aircraftId, p_hours: Number(totalTime) });
     if (rpcError) console.error('[flights] increment_aircraft_hours falló:', rpcError.message);
   }
 
@@ -192,7 +206,6 @@ export async function POST(request) {
   // importando sus propios logs) no podría crear la fila aunque el dato sea
   // legítimo.
   if (imported && batterySerial) {
-    const admin = createAdminClient();
     let batteryId = null;
     const { data: existingBattery, error: batteryLookupError } = await admin
       .from('batteries')
@@ -215,13 +228,10 @@ export async function POST(request) {
     }
 
     if (batteryId && batteryCycles != null) {
-      // Con el cliente de sesión, no el admin: `set_battery_cycles_if_greater`
-      // verifica membresía leyendo `auth.uid()` (decisión 107/109) — bajo el
-      // cliente admin no hay usuario autenticado y el guard siempre fallaría.
-      // Es SECURITY DEFINER, así que de todas formas bypassa la RLS
-      // manager-only de `batteries` al escribir; solo exige que quien llama
-      // sea un miembro real de la organización, que el propio piloto ya es.
-      const { error: cyclesError } = await supabase.rpc('set_battery_cycles_if_greater', { p_id: batteryId, p_cycles: Number(batteryCycles) });
+      // Con la llave de servicio: las funciones de contadores aceptan al servidor además de a un miembro (la ruta ya
+      // verificó persona y organización). Antes se llamaban con la sesión del piloto, y cualquier miembro podía
+      // invocarlas directo; la migración pendiente 20261112140000 las deja solo para gestores y el servidor.
+      const { error: cyclesError } = await callCounter(admin, supabase, 'set_battery_cycles_if_greater', { p_id: batteryId, p_cycles: Number(batteryCycles) });
       if (cyclesError) console.error('[flights] set_battery_cycles_if_greater falló:', cyclesError.message);
     }
   }

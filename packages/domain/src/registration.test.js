@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeNit, passwordProblem, validateRegistration, trialEndsAt } from './registration.js';
+import { normalizeNit, passwordProblem, validateRegistration, trialEndsAt, emailVerifiedByProvider } from './registration.js';
 
 const ok = { firstName: 'Ana', lastName: 'Pérez', email: ' Ana@Empresa.CO ', password: 'clave1234', companyName: 'Drones SAS', nit: '900.123.456-7', phone: '+57 300 123 4567', acceptedTerms: true };
 
@@ -38,4 +38,21 @@ describe('validateRegistration', () => {
 
 describe('trialEndsAt', () => {
   it('suma días', () => expect(trialEndsAt('2026-10-06T12:00:00.000Z', 15)).toBe('2026-10-21T12:00:00.000Z'));
+});
+
+describe('emailVerifiedByProvider', () => {
+  it('Google verifica el correo', () => {
+    expect(emailVerifiedByProvider({ provider: 'google' })).toBe(true);
+    expect(emailVerifiedByProvider({ provider: 'Google' })).toBe(true);
+  });
+  it('correo con contraseña, sin dato o proveedor desconocido: no está verificado', () => {
+    expect(emailVerifiedByProvider({ provider: 'email' })).toBe(false);
+    expect(emailVerifiedByProvider({ provider: 'github' })).toBe(false);
+    expect(emailVerifiedByProvider({})).toBe(false);
+    expect(emailVerifiedByProvider(null)).toBe(false);
+    expect(emailVerifiedByProvider(undefined)).toBe(false);
+  });
+  it('providers (lista) no basta: cuenta el proveedor con que se creó la sesión', () => {
+    expect(emailVerifiedByProvider({ provider: 'email', providers: ['email', 'google'] })).toBe(false);
+  });
 });

@@ -83,6 +83,7 @@ export async function POST(request) {
       nit_type: clean.nitType,
       trial_days: PLAN_PRICING.piloto.monthly.trialDays,
       attribution,
+      email_verified: false, // el usuario se crea «confirmado» sin probar el correo: no puede reclamar a una persona existente
     },
   });
   if (error) {

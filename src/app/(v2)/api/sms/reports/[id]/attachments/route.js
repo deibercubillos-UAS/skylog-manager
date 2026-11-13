@@ -6,6 +6,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { adminKeyProblem, storageProblem } from '@/lib/v2/adminKey';
 import { storeReportAttachment } from '@/lib/v2/reportAttachments';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { reporterIdOf } from '@/lib/v2/smsReporterIdentity';
 
 export async function POST(request, { params }) {
   params = await params;
@@ -22,12 +23,12 @@ export async function POST(request, { params }) {
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
 
   // La RLS de sms_reports ya limita a "mi reporte o soy gestor"; además solo el autor o el Gerente SMS adjuntan.
-  const { data: report, error: reportError } = await supabase.from('sms_reports').select('id, organization_id, reported_by').eq('id', id).maybeSingle();
+  const { data: report, error: reportError } = await supabase.from('sms_reports').select('id, organization_id').eq('id', id).maybeSingle();
   if (reportError) return Response.json({ error: 'Error consultando el reporte' }, { status: 500 });
   if (!report) return Response.json({ error: 'Reporte no encontrado' }, { status: 404 });
 
   const membership = (memberships || []).find((m) => m.organization_id === report.organization_id);
-  const isAuthor = report.reported_by === personId;
+  const isAuthor = (await reporterIdOf(id)) === personId;
   const isAnalyst = membership?.role === 'gerente_sms' || membership?.role === 'superadmin';
   if (!isAuthor && !isAnalyst) return Response.json({ error: 'Solo quien reportó o el Gerente SMS pueden adjuntar evidencias' }, { status: 403 });
 

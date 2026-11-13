@@ -7,6 +7,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { redactReporterIdentity } from '@skylog/domain';
 import { membershipsCanView } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { attachReporterIdentity } from '@/lib/v2/smsReporterIdentity';
 
 export async function GET(request) {
   const supabase = await createClientSSR();
@@ -36,7 +37,7 @@ export async function GET(request) {
     supabase.from('safety_indicator_monthly').select('events, rate, indicator:indicator_id(name)').eq('organization_id', organizationId).eq('year', year).eq('month', month),
     supabase
       .from('sms_reports')
-      .select('id, event_code, description, severity, filed_at, created_at, reported_by, confidentiality_level, reporter:reported_by(full_name)')
+      .select('id, event_code, description, severity, filed_at, created_at, confidentiality_level')
       .eq('organization_id', organizationId)
       .eq('route', 'mor')
       .gte('created_at', from)
@@ -63,7 +64,13 @@ export async function GET(request) {
   // este paquete mensual circula más ampliamente que el caso individual, así
   // que la redacción importa aún más aquí.
   const viewerRole = memberships.find((m) => m.organization_id === organizationId)?.role;
-  const morReports = (morRes.data || []).map((r) => redactReporterIdentity(r, { viewerRole, viewerPersonId: personId }));
+  let morWithIdentity;
+  try {
+    morWithIdentity = await attachReporterIdentity(morRes.data || []);
+  } catch (e) {
+    return Response.json({ error: e.message }, { status: 500 });
+  }
+  const morReports = morWithIdentity.map((r) => redactReporterIdentity(r, { viewerRole, viewerPersonId: personId }));
 
   return Response.json({
     period,

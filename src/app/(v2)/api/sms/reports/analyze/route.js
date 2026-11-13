@@ -6,6 +6,7 @@ import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { readOnlyBlock } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { SMS_REPORT_COLUMNS } from '@/lib/v2/smsReporterIdentity';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -22,7 +23,7 @@ export async function POST(request) {
 
   const { data: report, error: reportError } = await supabase
     .from('sms_reports')
-    .select('*')
+    .select(SMS_REPORT_COLUMNS)
     .eq('id', reportId)
     .maybeSingle();
   if (reportError) return Response.json({ error: 'Error verificando el reporte' }, { status: 500 });
@@ -45,7 +46,7 @@ export async function POST(request) {
     .from('sms_reports')
     .update({ analyzed_by: personId, analyzed_at: new Date().toISOString() })
     .eq('id', reportId)
-    .select()
+    .select(SMS_REPORT_COLUMNS)
     .single();
 
   if (error) return Response.json({ error: error.message }, { status: 500 });

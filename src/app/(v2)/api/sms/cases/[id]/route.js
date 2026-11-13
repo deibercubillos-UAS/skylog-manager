@@ -8,10 +8,11 @@ import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { computeReportDeadline, buildCaseTimeline } from '@skylog/domain';
 import { readOnlyBlock } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { SMS_REPORT_COLUMNS, attachReporterIdentity } from '@/lib/v2/smsReporterIdentity';
 
 const CASE_SELECT = '*, analyst:assigned_to(full_name), sms_case_actions(*, responsible:responsible_id(full_name)), sms_case_events(id, event_type, payload, created_at, actor:created_by(full_name))';
 const REPORT_SELECT =
-  '*, reporter:reported_by(full_name), analyzer:analyzed_by(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model)), flight:flight_id(takeoff_at, landing_at), sms_report_attachments(id, file_name, content_type, size_bytes, created_at)';
+  `${SMS_REPORT_COLUMNS}, analyzer:analyzed_by(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model)), flight:flight_id(takeoff_at, landing_at), sms_report_attachments(id, file_name, content_type, size_bytes, created_at)`;
 
 const NOT_ANALYST = 'Solo el Gerente SMS puede ver el detalle de un caso.';
 
@@ -26,8 +27,15 @@ export async function GET(request, { params }) {
   if (error) return Response.json({ error: 'Error consultando el caso' }, { status: 500 });
   if (!caseRow) return Response.json({ error: `Caso no encontrado. ${NOT_ANALYST}` }, { status: 404 });
 
-  const { data: report, error: reportError } = await supabase.from('sms_reports').select(REPORT_SELECT).eq('id', caseRow.report_id).maybeSingle();
-  if (reportError || !report) return Response.json({ error: 'Error consultando el reporte del caso' }, { status: 500 });
+  const { data: reportRow, error: reportError } = await supabase.from('sms_reports').select(REPORT_SELECT).eq('id', caseRow.report_id).maybeSingle();
+  if (reportError || !reportRow) return Response.json({ error: 'Error consultando el reporte del caso' }, { status: 500 });
+  // Solo el Gerente SMS llega aquí (RLS de sms_cases): es quien puede ver la identidad del notificante.
+  let report;
+  try {
+    [report] = await attachReporterIdentity([reportRow]);
+  } catch {
+    return Response.json({ error: 'Error consultando el reporte del caso' }, { status: 500 });
+  }
 
   const { data: hazards } = await supabase.from('hazards').select('id, description').eq('organization_id', caseRow.organization_id).order('description');
   const { data: memberRows } = await supabase.from('memberships').select('person_id, role, people(full_name)').eq('organization_id', caseRow.organization_id).eq('status', 'activa');

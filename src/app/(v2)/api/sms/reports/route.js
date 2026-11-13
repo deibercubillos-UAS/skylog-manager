@@ -26,6 +26,7 @@ import {
   OTHER_EVENT_ID,
 } from '@skylog/domain';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { SMS_REPORT_COLUMNS, attachReporterIdentity, ownReportIds } from '@/lib/v2/smsReporterIdentity';
 
 export async function POST(request) {
   const supabase = await createClientSSR();
@@ -98,7 +99,7 @@ export async function POST(request) {
       flight_id: flightId || null,
       confidentiality_level: confidentialityLevel === 'confidencial' ? 'confidencial' : 'normal',
     })
-    .select()
+    .select(SMS_REPORT_COLUMNS)
     .single();
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
@@ -135,19 +136,33 @@ export async function GET(request) {
   // `sms_cases` solo lo ve el Gerente SMS (RLS): para cualquier otro rol el embed llega vacío.
   let query = supabase
     .from('sms_reports')
-    .select('*, sms_cases(id, status, assigned_to), sms_report_attachments(id), aircraft:aircraft_id(serial_number, model:model_id(brand, model))')
+    .select(`${SMS_REPORT_COLUMNS}, sms_cases(id, status, assigned_to), sms_report_attachments(id), aircraft:aircraft_id(serial_number, model:model_id(brand, model))`)
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: false });
 
   // RLS ya filtra "propios o de mi organización si soy gestor" — este acotado
   // adicional evita que un no-gestor vea la lista completa si por error se le
   // pasara una organizationId ajena (defensa en profundidad, no sustituye RLS).
+  // `reported_by` no es legible con la sesión del usuario (ver smsReporterIdentity.js): «solo los míos» se acota por id.
   if (!membershipsCanView(memberships, organizationId, 'U3')) {
-    query = query.eq('reported_by', personId);
+    let ownIds;
+    try {
+      ownIds = await ownReportIds(organizationId, personId);
+    } catch (e) {
+      return Response.json({ error: e.message }, { status: 500 });
+    }
+    if (ownIds.length === 0) return Response.json({ reports: [], today: bogotaDay(new Date()) });
+    query = query.in('id', ownIds);
   }
 
-  const { data, error } = await query;
+  const { data: rawData, error } = await query;
   if (error) return Response.json({ error: error.message }, { status: 500 });
+  let data;
+  try {
+    data = await attachReporterIdentity(rawData);
+  } catch (e) {
+    return Response.json({ error: e.message }, { status: 500 });
+  }
 
   // SMS-H (40-sms.md §5.9, RAC 219 §219.115-140) — RLS deja pasar la FILA a
   // cualquier gestor, pero un reporte 'confidencial' solo expone la

@@ -4,6 +4,7 @@
 // Formato: { generado_en, tablas: { <tabla>: [filas…] } }. Secured con Authorization: Bearer CRON_SECRET.
 // Cifrado (auditoría 2026-10-16): con BACKUP_ENCRYPTION_KEY el archivo se cifra con AES-256-GCM (`.json.gz.enc`;
 // descifrar con `node scripts/backup-decrypt.mjs`). Sin la variable se sigue respaldando sin cifrar y se avisa.
+import { isCronAuthorized } from '@/lib/safeEqual';
 import crypto from 'node:crypto';
 import zlib from 'node:zlib';
 import { promisify } from 'node:util';
@@ -16,11 +17,7 @@ export const maxDuration = 300;
 const gzip = promisify(zlib.gzip);
 const KEEP_DAYS = 35;
 
-function verifyAuth(request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return (request.headers.get('authorization') || '') === `Bearer ${secret}`;
-}
+const verifyAuth = isCronAuthorized;
 
 const dayMinus = (day, n) => new Date(new Date(`${day}T12:00:00Z`).getTime() - n * 86_400_000).toISOString().slice(0, 10);
 

@@ -3,6 +3,7 @@
 //     por alerta (la clave de deduplicación incluye la semana).
 // (b) Limpieza: borra notificaciones leídas de más de 60 días y cualquiera de más de 180.
 // Secured con Authorization: Bearer CRON_SECRET.
+import { isCronAuthorized } from '@/lib/safeEqual';
 import { createAdminClient } from '@/lib/supabaseServer';
 import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { createNotifications } from '@/lib/v2/notify';
@@ -10,11 +11,7 @@ import { computeExpiryAlerts, expiryAlertToNotification, NOTIFICATION_MAX_AGE_DA
 
 export const dynamic = 'force-dynamic';
 
-function verifyAuth(request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return (request.headers.get('authorization') || '') === `Bearer ${secret}`;
-}
+const verifyAuth = isCronAuthorized;
 
 const daysAgo = (n) => new Date(Date.now() - n * 86_400_000).toISOString();
 

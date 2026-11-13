@@ -3,6 +3,7 @@
 // (quedan 3, 1, 0 días hábiles, o recién venció) y (b) acciones correctivas vencidas o que vencen hoy.
 // Sin tabla de "ya avisado": los hitos son fechas exactas, así que cada aviso sale una sola vez por hito.
 // Un solo correo resumen por organización. Secured con Authorization: Bearer CRON_SECRET.
+import { isCronAuthorized } from '@/lib/safeEqual';
 import { createNotifications } from '@/lib/v2/notify';
 import { createAdminClient } from '@/lib/supabaseServer';
 import { bogotaDay } from '@/lib/v2/dispatchContext';
@@ -14,11 +15,7 @@ export const dynamic = 'force-dynamic';
 
 const MILESTONES = [3, 1, 0, -1]; // días hábiles restantes en los que se avisa
 
-function verifyAuth(request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return (request.headers.get('authorization') || '') === `Bearer ${secret}`;
-}
+const verifyAuth = isCronAuthorized;
 
 const when = (n) => (n < 0 ? 'VENCIDO' : n === 0 ? 'vence HOY' : `quedan ${n} día${n === 1 ? '' : 's'} hábil${n === 1 ? '' : 'es'}`);
 

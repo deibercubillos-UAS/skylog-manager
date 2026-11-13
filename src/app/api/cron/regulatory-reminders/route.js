@@ -4,6 +4,7 @@
 //  3. Paquete mensual SMS a la Aerocivil (primeros 5 días hábiles del mes vencido) → Gerente SMS + Gerente General.
 // Cada hito se avisa UNA vez (clave de deduplicación por persona) y, si el cron falla un día, sale al siguiente.
 // Las reglas viven en @skylog/domain (regulatoryReminders.js, con pruebas). Secured con Authorization: Bearer CRON_SECRET.
+import { isCronAuthorized } from '@/lib/safeEqual';
 import { createAdminClient } from '@/lib/supabaseServer';
 import { bogotaDay } from '@/lib/v2/dispatchContext';
 import { createNotifications } from '@/lib/v2/notify';
@@ -13,11 +14,7 @@ import { computeEvaluationCompliance, evaluationReminder, spiAnnualReminder, mon
 
 export const dynamic = 'force-dynamic';
 
-function verifyAuth(request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return (request.headers.get('authorization') || '') === `Bearer ${secret}`;
-}
+const verifyAuth = isCronAuthorized;
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const shiftDay = (day, delta) => new Date(Date.parse(`${day}T00:00:00Z`) + delta * 86_400_000).toISOString().slice(0, 10);

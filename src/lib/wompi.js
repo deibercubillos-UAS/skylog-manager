@@ -15,6 +15,7 @@
 //   WOMPI_PUBLIC_KEY, WOMPI_PRIVATE_KEY, WOMPI_EVENTS_SECRET,
 //   WOMPI_INTEGRITY_SECRET, WOMPI_API_BASE (default producción)
 import crypto from 'crypto';
+import { safeEqual } from '@/lib/safeEqual';
 
 const API_BASE = process.env.WOMPI_API_BASE || 'https://production.wompi.co/v1';
 
@@ -94,7 +95,7 @@ export function verifyWebhookChecksum(eventBody) {
 
   const raw = `${concatenated}${timestamp}${secret}`;
   const expected = crypto.createHash('sha256').update(raw).digest('hex');
-  return expected === String(signature.checksum).toLowerCase();
+  return safeEqual(expected, String(signature.checksum).toLowerCase());
 }
 
 /**

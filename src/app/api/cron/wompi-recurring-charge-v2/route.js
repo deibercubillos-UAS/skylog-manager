@@ -9,6 +9,7 @@
 //   Pendiente → lo termina el webhook. Rechazado → se avisa al Gerente General y se reintenta según la política.
 //
 // Protegido con Authorization: Bearer CRON_SECRET.
+import { isCronAuthorized } from '@/lib/safeEqual';
 import { createAdminClient } from '@/lib/supabaseServer';
 import { createRecurringTransaction } from '@/lib/wompi';
 import { activateFromWompiTransaction } from '@/lib/v2/subscriptionActivation';
@@ -18,11 +19,7 @@ import { RENEWAL_POLICY, buildRenewalReference, isRenewalOfCycle, nextRenewalAtt
 
 export const dynamic = 'force-dynamic';
 
-function verifyAuth(request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return (request.headers.get('authorization') || '') === `Bearer ${secret}`;
-}
+const verifyAuth = isCronAuthorized;
 
 export async function GET(request) {
   if (!verifyAuth(request)) {
@@ -41,7 +38,7 @@ export async function GET(request) {
 
   if (error) {
     console.error('[wompi-cron-v2] error consultando subscriptions:', error.message);
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ error: 'Error consultando las suscripciones' }, { status: 500 });
   }
 
   const results = { attempted: 0, renewed: 0, pending: 0, declined: 0, skipped: 0, errors: [] };
@@ -104,9 +101,21 @@ export async function GET(request) {
       });
 
       if (tx?.status === 'APPROVED') {
-        const r = await activateFromWompiTransaction(admin, tx);
-        if (r.status === 'activated' || r.status === 'already_processed') results.renewed++;
-        else results.errors.push({ organizationId: sub.organization_id, message: `aprobado pero no activado: ${r.status}` });
+        // El cobro YA se hizo. Si activar falla no es un rechazo: no se avisa «el banco rechazó» ni se vuelve a cobrar
+        // en el siguiente intento (antes el error caía en el catch de abajo y a los 3 días se cobraba otra vez). Se
+        // cierran los intentos restantes del ciclo y queda para revisión; el webhook de Wompi también lo activa.
+        try {
+          const r = await activateFromWompiTransaction(admin, tx);
+          if (r.status === 'activated' || r.status === 'already_processed') results.renewed++;
+          else {
+            results.errors.push({ organizationId: sub.organization_id, message: `aprobado pero no activado: ${r.status}` });
+            await closeRemainingAttempts(admin, sub, decision.attempt);
+          }
+        } catch (activationErr) {
+          results.errors.push({ organizationId: sub.organization_id, message: `cobrado y no activado, revisar tx ${tx.id}` });
+          console.error(`[wompi-cron-v2] COBRADO pero no activado: org=${sub.organization_id} tx=${tx.id}:`, activationErr.message);
+          await closeRemainingAttempts(admin, sub, decision.attempt);
+        }
       } else if (tx?.status === 'PENDING') {
         results.pending++; // el webhook lo activa o avisa del rechazo
       } else {
@@ -139,4 +148,18 @@ async function notifyDeclined(admin, organizationId, reference, attempt) {
     link: '/suscripcion',
     dedupeKey: `renovacion-fallida:${reference}`,
   }, admin);
+}
+
+/** Marca como usados los intentos que quedan del ciclo para que el cron no vuelva a cobrar un ciclo ya cobrado. */
+async function closeRemainingAttempts(admin, sub, doneAttempt) {
+  const rows = [];
+  for (let attempt = doneAttempt + 1; attempt <= RENEWAL_POLICY.maxAttempts; attempt++) {
+    rows.push({
+      reference: buildRenewalReference({ plan: sub.plan, billing: sub.billing, organizationId: sub.organization_id, expiresAt: sub.expires_at, attempt }),
+      organization_id: sub.organization_id, plan: sub.plan, billing: sub.billing,
+    });
+  }
+  if (!rows.length) return;
+  const { error } = await admin.from('pending_subscriptions').upsert(rows, { onConflict: 'reference', ignoreDuplicates: true });
+  if (error) console.error('[wompi-cron-v2] no se pudieron cerrar los intentos restantes; riesgo de doble cobro:', sub.organization_id, error.message);
 }

@@ -97,6 +97,8 @@ export async function activateFromWompiTransaction(admin, tx, { allowedOrganizat
   const resolved = await resolveWompiReference(admin, tx?.reference);
   if (!resolved) return { status: 'unknown_reference' };
   if (allowedOrganizationIds && !allowedOrganizationIds.includes(resolved.organizationId)) return { status: 'forbidden', resolved };
+  // El monto se compara en centavos del plan (COP): una transacción en otra moneda con el mismo número no es el pago.
+  if (tx.currency && tx.currency !== 'COP') return { status: 'amount_mismatch', resolved };
   if (!isExpectedAmount({ plan: resolved.plan, billing: resolved.billing, amountInCents: tx.amount_in_cents, pricing: PLAN_PRICING })) {
     return { status: 'amount_mismatch', resolved };
   }

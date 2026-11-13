@@ -1,17 +1,14 @@
 // GET /api/cron/grant-expiring-reminder — Vercel Cron (diario 10:00 UTC). V2 (Etapa E2): avisa por correo 5 días o
 // menos antes de que venza un regalo de socio ya activado. `reminder_sent_at` evita repetir el aviso.
 // Protegido con Authorization: Bearer CRON_SECRET.
+import { isCronAuthorized } from '@/lib/safeEqual';
 import { createAdminClient } from '@/lib/supabaseServer';
 import { sendGrantReminderEmail } from '@/lib/v2/grantsServer';
 import { grantDaysLeft, GRANT_REMINDER_DAYS } from '@skylog/domain';
 
 export const dynamic = 'force-dynamic';
 
-function verifyAuth(request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return (request.headers.get('authorization') || '') === `Bearer ${secret}`;
-}
+const verifyAuth = isCronAuthorized;
 
 export async function GET(request) {
   if (!verifyAuth(request)) return Response.json({ error: 'No autorizado' }, { status: 401 });

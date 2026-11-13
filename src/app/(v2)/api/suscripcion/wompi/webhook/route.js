@@ -4,7 +4,7 @@
 // Debe responder 200 rápido; Wompi reintenta 3 veces en 24h si no.
 // La activación (referencia, monto, una sola vez) vive en activateFromWompiTransaction, compartida con /verify y el cron.
 import { createAdminClient } from '@/lib/supabaseServer';
-import { verifyWebhookChecksum } from '@/lib/wompi';
+import { verifyWebhookChecksum, getTransaction } from '@/lib/wompi';
 import { activateFromWompiTransaction, resolveWompiReference } from '@/lib/v2/subscriptionActivation';
 import { createNotifications } from '@/lib/v2/notify';
 import { parseWompiReference } from '@skylog/domain';
@@ -42,15 +42,36 @@ export async function POST(request) {
       return Response.json({ received: true });
     }
 
-    const tx = event.data.transaction;
+    const eventTx = event.data?.transaction;
+    if (!eventTx?.id) return Response.json({ error: 'Cuerpo inválido' }, { status: 400 });
     const admin = createAdminClient();
 
-    if (tx.status !== 'APPROVED') {
+    if (eventTx.status !== 'APPROVED') {
       // Un cobro recurrente que Wompi termina rechazando (PENDING → DECLINED) se le avisa al Gerente General.
-      if (['DECLINED', 'ERROR', 'VOIDED'].includes(tx.status) && parseWompiReference(tx.reference)?.kind === 'renewal') {
-        await notifyRenewalFailed(admin, tx.reference);
+      if (['DECLINED', 'ERROR', 'VOIDED'].includes(eventTx.status) && parseWompiReference(eventTx.reference)?.kind === 'renewal') {
+        await notifyRenewalFailed(admin, eventTx.reference);
       }
       return Response.json({ received: true });
+    }
+
+    // La firma prueba que el evento es de Wompi, pero lo que activa un plan es lo que Wompi dice AHORA de esa
+    // transacción: se vuelve a consultar por su id y se usa esa respuesta (no el cuerpo del evento). Si Wompi no
+    // responde, 503: Wompi reintenta y el pago no se pierde.
+    let tx;
+    try {
+      tx = await getTransaction(eventTx.id);
+    } catch (err) {
+      console.error('[wompi-v2] webhook: no se pudo reconsultar la transacción', eventTx.id, err.message);
+      return Response.json({ error: 'No se pudo confirmar la transacción' }, { status: 503 });
+    }
+    if (String(tx?.id) !== String(eventTx.id) || tx.reference !== eventTx.reference) {
+      console.error('[wompi-v2] webhook: la transacción consultada no coincide con el evento. tx:', eventTx.id);
+      return Response.json({ received: true, status: 'not_confirmed' });
+    }
+    if (tx.status !== 'APPROVED') {
+      // El evento dice aprobada y Wompi aún no: se pide el reintento en vez de perder el pago.
+      console.error('[wompi-v2] webhook: el evento dice APPROVED pero la consulta dice', tx.status, 'tx:', eventTx.id);
+      return Response.json({ error: 'Transacción aún no confirmada' }, { status: 503 });
     }
 
     const result = await activateFromWompiTransaction(admin, tx);
@@ -67,7 +88,7 @@ export async function POST(request) {
     return Response.json({ received: true, status: result.status });
   } catch (err) {
     console.error('[wompi-v2] webhook error:', err.message);
-    return Response.json({ error: err.message }, { status: 500 });
+    return Response.json({ error: 'Error procesando el evento' }, { status: 500 });
   }
 }
 

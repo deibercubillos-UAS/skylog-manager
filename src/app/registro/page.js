@@ -80,7 +80,7 @@ export default function RegistroPage() {
         window.location.href = '/login';
         return;
       }
-      window.location.href = '/inicio';
+      window.location.href = data.pending ? '/solicitud-pendiente' : '/inicio';
     } catch (err) {
       setErrors([err.message]);
       setBusy(false);

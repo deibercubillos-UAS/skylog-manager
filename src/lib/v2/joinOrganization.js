@@ -40,6 +40,8 @@ export const decideJoin = (ctx, role) => evaluateJoin({ role, members: ctx.membe
 export function joinErrorMessage(message) {
   if (/ya eres miembro/i.test(message)) return { status: 409, error: 'Ya eres miembro de esta organización.' };
   if (/ya está ocupado/i.test(message)) return { status: 409, error: 'Ese cargo acaba de ocuparse en la organización. Elige otro rol.' };
+  if (/solicitud pendiente/i.test(message)) return { status: 409, error: 'Ya tienes una solicitud pendiente en esta organización.' };
+  if (/demasiadas solicitudes/i.test(message)) return { status: 429, error: 'La organización tiene demasiadas solicitudes pendientes. Pídele a su gerente que las revise.' };
   return null;
 }
 
@@ -52,16 +54,18 @@ export async function notifyJoin(admin, { organizationId, companyName, fullName,
   const { data: joiner } = email ? await admin.from('people').select('id').ilike('email', email).limit(1).maybeSingle() : { data: null };
   await createNotifications({
     organizationId,
-    roles: ['admin', 'jefe_pilotos', 'gerente_sms'],
+    roles: via === 'solicitud' ? ['admin', 'jefe_pilotos'] : ['admin', 'jefe_pilotos', 'gerente_sms'],
     actorPersonId: joiner?.id, // quien se unió no recibe el aviso de su propia entrada
     type: 'miembro_nuevo',
-    title: `${fullName} se unió a ${companyName}`,
-    body: `Entró como ${JOIN_ROLE_LABELS[role] || INVITE_ROLE_LABELS[role] || role}${via === 'invitacion' ? ' por invitación' : ' con el NIT'}.`,
+    title: via === 'solicitud' ? `${fullName} pidió unirse a ${companyName}` : `${fullName} se unió a ${companyName}`,
+    body: via === 'solicitud'
+      ? `Pide entrar como ${JOIN_ROLE_LABELS[role] || role} con el NIT. Apruébala o recházala en Tripulación.`
+      : `Entró como ${JOIN_ROLE_LABELS[role] || INVITE_ROLE_LABELS[role] || role}${via === 'invitacion' ? ' por invitación' : ' con el NIT'}.`,
     link: '/flota/tripulacion',
   }, admin);
   try {
     if (!process.env.RESEND_API_KEY) return;
-    const { data: managers } = await admin.from('memberships').select('person_id').eq('organization_id', organizationId).eq('status', 'activa').in('role', ['admin', 'jefe_pilotos', 'gerente_sms']);
+    const { data: managers } = await admin.from('memberships').select('person_id').eq('organization_id', organizationId).eq('status', 'activa').in('role', via === 'solicitud' ? ['admin', 'jefe_pilotos'] : ['admin', 'jefe_pilotos', 'gerente_sms']);
     const ids = (managers || []).map((m) => m.person_id);
     if (ids.length === 0) return;
     const { data: accounts } = await admin.from('accounts').select('auth_user_id').in('person_id', ids);
@@ -73,14 +77,39 @@ export async function notifyJoin(admin, { organizationId, companyName, fullName,
     if (to.length === 0) return;
     const base = process.env.NEXT_PUBLIC_APP_URL || 'https://bitafly.com';
     const html = `<table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:auto;font-family:Arial,sans-serif;">${emailHeader()}
-      <tr><td style="padding:28px 40px;"><h2 style="margin:0 0 12px;font-size:18px;color:#1A202C;">Alguien se unió a ${escHtml(companyName)}</h2>
-      <p style="font-size:14px;color:#4a5568;margin:0 0 8px;"><b>${escHtml(fullName)}</b> (${escHtml(email)}) ${via === 'invitacion' ? 'aceptó una invitación y entró' : 'entró con el NIT de la organización'} como <b>${escHtml(JOIN_ROLE_LABELS[role] || INVITE_ROLE_LABELS[role] || role)}</b>.</p>
-      <p style="font-size:13px;color:#4a5568;margin:0;">${via === 'invitacion' ? 'La invitación la envió un gestor de la organización.' : 'Si no reconoces a esta persona, ciérrale la membresía desde Tripulación.'}</p>
+      <tr><td style="padding:28px 40px;"><h2 style="margin:0 0 12px;font-size:18px;color:#1A202C;">${via === 'solicitud' ? `Solicitud para unirse a ${escHtml(companyName)}` : `Alguien se unió a ${escHtml(companyName)}`}</h2>
+      <p style="font-size:14px;color:#4a5568;margin:0 0 8px;"><b>${escHtml(fullName)}</b> (${escHtml(email)}) ${via === 'solicitud' ? 'pidió entrar con el NIT de la organización' : via === 'invitacion' ? 'aceptó una invitación y entró' : 'entró con el NIT de la organización'} como <b>${escHtml(JOIN_ROLE_LABELS[role] || INVITE_ROLE_LABELS[role] || role)}</b>.</p>
+      <p style="font-size:13px;color:#4a5568;margin:0;">${via === 'solicitud' ? 'No tendrá acceso hasta que la apruebes. Si no reconoces a esta persona, recházala desde Tripulación.' : via === 'invitacion' ? 'La invitación la envió un gestor de la organización.' : 'Si no reconoces a esta persona, ciérrale la membresía desde Tripulación.'}</p>
       <p style="margin-top:20px;"><a href="${escHtml(base)}/flota/tripulacion" style="background:#ec5b13;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Ver tripulación</a></p></td></tr>${emailFooter()}</table>`;
     const resend = new Resend(process.env.RESEND_API_KEY);
-    const { error } = await resend.emails.send({ from: 'Skylog <notificaciones@bitafly.com>', to, subject: `Nuevo miembro en ${companyName}`, html });
+    const { error } = await resend.emails.send({ from: 'Skylog <notificaciones@bitafly.com>', to, subject: via === 'solicitud' ? `Solicitud para unirse a ${companyName}` : `Nuevo miembro en ${companyName}`, html });
     if (error) console.error('[joinOrganization] Resend error:', error);
   } catch (e) {
     console.error('[joinOrganization] no se pudo avisar a los gestores:', e);
+  }
+}
+
+/** Avisa por correo (mejor esfuerzo) a quien pidió unirse que su solicitud fue aprobada o rechazada. */
+export async function notifyJoinDecision(admin, { personId, companyName, role, approved }) {
+  try {
+    if (!process.env.RESEND_API_KEY) return;
+    const { data: person } = await admin.from('people').select('email, full_name').eq('id', personId).maybeSingle();
+    let to = person?.email;
+    if (!to) {
+      const { data: account } = await admin.from('accounts').select('auth_user_id').eq('person_id', personId).maybeSingle();
+      if (account) to = (await admin.auth.admin.getUserById(account.auth_user_id)).data?.user?.email;
+    }
+    if (!to) return;
+    const base = process.env.NEXT_PUBLIC_APP_URL || 'https://bitafly.com';
+    const roleLabel = JOIN_ROLE_LABELS[role] || role;
+    const html = `<table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:auto;font-family:Arial,sans-serif;">${emailHeader()}
+      <tr><td style="padding:28px 40px;"><h2 style="margin:0 0 12px;font-size:18px;color:#1A202C;">${approved ? 'Ya eres parte de' : 'No se aprobó tu solicitud para'} ${escHtml(companyName)}</h2>
+      <p style="font-size:14px;color:#4a5568;margin:0 0 8px;">${approved ? `Un gestor aprobó tu solicitud como <b>${escHtml(roleLabel)}</b>. Ya puedes entrar.` : 'Un gestor de la organización no aprobó tu solicitud. Si crees que es un error, habla con ellos.'}</p>
+      ${approved ? `<p style="margin-top:20px;"><a href="${escHtml(base)}/inicio" style="background:#ec5b13;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Entrar a BitaFly</a></p>` : ''}</td></tr>${emailFooter()}</table>`;
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const { error } = await resend.emails.send({ from: 'Skylog <notificaciones@bitafly.com>', to, subject: approved ? `Tu solicitud en ${companyName} fue aprobada` : `Tu solicitud en ${companyName} no fue aprobada`, html });
+    if (error) console.error('[joinOrganization] Resend error (decisión):', error);
+  } catch (e) {
+    console.error('[joinOrganization] no se pudo avisar al solicitante:', e);
   }
 }

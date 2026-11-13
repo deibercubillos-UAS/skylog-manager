@@ -1,7 +1,8 @@
 // Skylog V2.0 — registro de una cuenta NUEVA que se une a una organización existente por NIT (Etapa B). Gratis: no
 // crea organización ni suscripción (el plan lo tiene la organización). Endpoint PÚBLICO: mismas defensas que
 // /api/alta (límite por conexión y por correo, campo trampa) y mismo orden: usuario → función atómica → si falla,
-// se borra el usuario. Al terminar avisa por correo a los gestores de la organización.
+// se borra el usuario. Unirse por NIT NO da acceso: crea una SOLICITUD que aprueba un gestor (auditoría 2026-11-12:
+// el NIT no es secreto y quien se une elige su rol). Al terminar avisa a los gestores que pueden aprobarla.
 import { createAdminClient } from '@/lib/supabaseServer';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
@@ -48,16 +49,16 @@ export async function POST(request) {
     return Response.json({ error: exists ? 'Ya existe una cuenta con ese correo. Inicia sesión y únete desde tu perfil.' : 'No se pudo crear la cuenta. Intenta de nuevo.' }, { status: exists ? 409 : 500 });
   }
 
-  const { error } = await admin.rpc('v2_join_organization', {
+  const { error } = await admin.rpc('v2_request_join', {
     p: { auth_user_id: created.user.id, organization_id: ctx.organizationId, role: clean.role, full_name: clean.fullName, email: clean.email, phone: clean.phone, attribution, email_verified: false },
   });
   if (error) {
     await admin.auth.admin.deleteUser(created.user.id); // sin cuentas a medias
     const known = joinErrorMessage(error.message);
-    if (!known) console.error('[unirse] v2_join_organization falló:', error.message);
+    if (!known) console.error('[unirse] v2_request_join falló:', error.message);
     return Response.json({ error: known?.error || 'No se pudo completar el registro. Intenta de nuevo.' }, { status: known?.status || 500 });
   }
 
-  await notifyJoin(admin, { organizationId: ctx.organizationId, companyName: ctx.companyName, fullName: clean.fullName, email: clean.email, role: clean.role });
-  return Response.json({ ok: true, organizationName: ctx.companyName });
+  await notifyJoin(admin, { organizationId: ctx.organizationId, companyName: ctx.companyName, fullName: clean.fullName, email: clean.email, role: clean.role, via: 'solicitud' });
+  return Response.json({ ok: true, pending: true, organizationName: ctx.companyName });
 }

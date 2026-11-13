@@ -188,6 +188,11 @@ export default function V2Layout({ children }) {
           window.location.href = '/socio';
           return;
         }
+        // Sin organización activa (p. ej. pidió unirse por NIT y un gestor aún no la aprueba): pantalla de espera.
+        if ((data.organizations || []).length === 0) {
+          window.location.href = '/solicitud-pendiente';
+          return;
+        }
         setContext(data);
         setOrganizationId((prev) => prev || pickOrganizationId(data));
       })

@@ -1,5 +1,6 @@
-// Skylog V2.0 — una persona que YA tiene cuenta se une a otra organización por NIT (Etapa B). Solo agrega una
-// membresía: no migra datos ni cambia la organización activa (misma regla que la versión actual). Requiere sesión.
+// Skylog V2.0 — una persona que YA tiene cuenta pide unirse a otra organización por NIT (Etapa B). Crea una SOLICITUD
+// que aprueba un gestor (no da acceso por sí sola); al aprobarla solo se agrega una membresía: no migra datos ni cambia
+// la organización activa. Requiere sesión.
 import { createClientSSR, createAdminClient } from '@/lib/supabaseServer';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
@@ -31,14 +32,14 @@ export async function POST(request) {
   const decision = decideJoin(ctx, role);
   if (!decision.ok) return Response.json({ error: decision.message, reason: decision.reason }, { status: 409 });
 
-  const { error } = await admin.rpc('v2_join_organization', { p: { auth_user_id: user.id, organization_id: ctx.organizationId, role } });
+  const { error } = await admin.rpc('v2_request_join', { p: { auth_user_id: user.id, organization_id: ctx.organizationId, role } });
   if (error) {
     const known = joinErrorMessage(error.message);
-    if (!known) console.error('[unirse-cuenta] v2_join_organization falló:', error.message);
+    if (!known) console.error('[unirse-cuenta] v2_request_join falló:', error.message);
     return Response.json({ error: known?.error || 'No se pudo completar. Intenta de nuevo.' }, { status: known?.status || 500 });
   }
 
   const { data: person } = await admin.from('people').select('full_name, email').eq('id', account.person_id).maybeSingle();
-  await notifyJoin(admin, { organizationId: ctx.organizationId, companyName: ctx.companyName, fullName: person?.full_name || 'Un usuario', email: person?.email || user.email, role });
-  return Response.json({ ok: true, organizationName: ctx.companyName, organizationId: ctx.organizationId });
+  await notifyJoin(admin, { organizationId: ctx.organizationId, companyName: ctx.companyName, fullName: person?.full_name || 'Un usuario', email: person?.email || user.email, role, via: 'solicitud' });
+  return Response.json({ ok: true, pending: true, organizationName: ctx.companyName, organizationId: ctx.organizationId });
 }

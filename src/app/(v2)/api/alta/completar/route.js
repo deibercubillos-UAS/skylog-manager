@@ -47,16 +47,16 @@ export async function POST(request) {
     if (!ctx) return Response.json({ error: 'No se encontró ninguna organización con ese NIT. Verifica con tu gerente.' }, { status: 404 });
     const decision = decideJoin(ctx, clean.role);
     if (!decision.ok) return Response.json({ error: decision.message, reason: decision.reason }, { status: 409 });
-    const { error } = await admin.rpc('v2_join_organization', {
+    const { error } = await admin.rpc('v2_request_join', {
       p: { auth_user_id: user.id, organization_id: ctx.organizationId, role: clean.role, full_name: clean.fullName, email: clean.email, phone: clean.phone, attribution, email_verified: emailVerified },
     });
     if (error) {
       const known = joinErrorMessage(error.message);
-      if (!known) console.error('[completar] v2_join_organization falló:', error.message);
+      if (!known) console.error('[completar] v2_request_join falló:', error.message);
       return Response.json({ error: known?.error || 'No se pudo completar el registro. Intenta de nuevo.' }, { status: known?.status || 500 });
     }
-    await notifyJoin(admin, { organizationId: ctx.organizationId, companyName: ctx.companyName, fullName: clean.fullName, email: clean.email, role: clean.role });
-    return Response.json({ ok: true, organizationName: ctx.companyName });
+    await notifyJoin(admin, { organizationId: ctx.organizationId, companyName: ctx.companyName, fullName: clean.fullName, email: clean.email, role: clean.role, via: 'solicitud' });
+    return Response.json({ ok: true, pending: true, organizationName: ctx.companyName });
   }
 
   const { data, error } = await admin.rpc('v2_register_explotador', {

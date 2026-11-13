@@ -1,7 +1,8 @@
 'use client';
 
-// Skylog V2.0 — «Unirme a otra organización» desde Mi Perfil (Etapa B, cuenta existente). Solo agrega una membresía;
-// no cambia la organización activa ni mueve datos. Para cambiar de organización se usa el selector del encabezado.
+// Skylog V2.0 — «Unirme a otra organización» desde Mi Perfil (Etapa B, cuenta existente). Envía una SOLICITUD que un
+// gestor de esa organización aprueba; al aprobarla solo se agrega una membresía (no cambia la organización activa ni
+// mueve datos). Para cambiar de organización se usa el selector del encabezado.
 import { useState } from 'react';
 import { Button } from '@skylog/ui';
 import JoinByNit from '../_components/JoinByNit';
@@ -33,7 +34,7 @@ export default function JoinOrganization({ onJoined }) {
 
   return (
     <div className="mt-3">
-      {done && <p className="text-xs text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2 mb-2">Te uniste a {done}. Cámbiate de organización desde el encabezado.</p>}
+      {done && <p className="text-xs text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2 mb-2">Solicitud enviada a {done}. Un gestor debe aprobarla; te avisaremos por correo.</p>}
       {!open ? (
         <button type="button" onClick={() => setOpen(true)} className="text-xs font-semibold text-primary-700 hover:underline min-h-[44px]">+ Unirme a otra organización</button>
       ) : (
@@ -41,7 +42,7 @@ export default function JoinOrganization({ onJoined }) {
           <JoinByNit nit={nit} role={role} onNit={setNit} onRole={setRole} inputClass={inputCls} labelClass="text-xs font-medium text-navy-400" />
           {error && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
           <div className="flex gap-2">
-            <Button type="submit" disabled={busy || !nit || !role}>{busy ? 'Uniéndome…' : 'Unirme'}</Button>
+            <Button type="submit" disabled={busy || !nit || !role}>{busy ? 'Enviando…' : 'Pedir unirme'}</Button>
             <button type="button" onClick={() => { setOpen(false); setError(null); }} className="text-xs font-semibold text-navy-400 px-2 min-h-[44px]">Cancelar</button>
           </div>
         </form>

@@ -61,7 +61,7 @@ export default function CompletarRegistroPage() {
       if (!res.ok) throw new Error(data.error || 'No se pudo completar el registro.');
       pushDataLayer('sign_up', { method: mode === 'unirme' ? 'join_org' : 'google' });
       const next = new URLSearchParams(window.location.search).get('next');
-      window.location.href = safeNextPath(next) || '/inicio';
+      window.location.href = data.pending ? '/solicitud-pendiente' : safeNextPath(next) || '/inicio';
     } catch (err) {
       setErrors([err.message]);
       setBusy(false);

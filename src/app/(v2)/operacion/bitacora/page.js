@@ -176,15 +176,18 @@ export default function BitacoraPage() {
     setAnalyzing(true);
     setImportError(null);
     try {
-      const fd = new FormData();
-      files.forEach((f) => fd.append('files', f));
-      const res = await fetch('/api/flights/import-dji', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error analizando los logs');
-      setImportRows((prev) => [
-        ...prev,
-        ...data.results.map((r) => ({ ...r, visualCondition: 'VLOS', missionType: '', aircraftId: '', confirmed: false })),
-      ]);
+      // El servidor acepta hasta 10 logs por petición (djiImportLimits): se envían por tandas, una tras otra.
+      for (let i = 0; i < files.length; i += 10) {
+        const fd = new FormData();
+        files.slice(i, i + 10).forEach((f) => fd.append('files', f));
+        const res = await fetch('/api/flights/import-dji', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error analizando los logs');
+        setImportRows((prev) => [
+          ...prev,
+          ...data.results.map((r) => ({ ...r, visualCondition: 'VLOS', missionType: '', aircraftId: '', confirmed: false })),
+        ]);
+      }
     } catch (e) {
       setImportError(e.message);
     } finally {

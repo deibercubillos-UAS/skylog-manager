@@ -27,6 +27,8 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { parseDjiTxtBuffer } from '@/lib/djiParser';
 import { signFlightImport } from '@/lib/v2/flightImportToken';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { checkRateLimit } from '@/lib/rateLimiter';
+import { checkDjiImportBatch, DJI_IMPORT_LIMITS } from '@skylog/domain';
 
 // Replay GPS — decima `parsed._frames` (ya disponibles server-side, antes se
 // descartaban tras extraer los campos resumen) a como máximo ~400 puntos con
@@ -82,9 +84,23 @@ export async function POST(request) {
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
 
+  // Topes (ver djiImportLimits.js): se rechaza por el encabezado ANTES de leer el cuerpo, y de nuevo con los tamaños reales.
+  const declared = Number(request.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > DJI_IMPORT_LIMITS.maxBytesPerRequest + 1024 * 1024) {
+    return Response.json({ error: 'Los archivos juntos pesan demasiado. Sube menos logs por vez.' }, { status: 413 });
+  }
   const form = await request.formData();
   const files = form.getAll('files').filter((f) => f && typeof f !== 'string');
-  if (!files.length) return Response.json({ error: 'Sube al menos un archivo .txt de log DJI' }, { status: 400 });
+  const batch = checkDjiImportBatch(files.map((f) => f.size));
+  if (!batch.ok) return Response.json({ error: batch.error }, { status: batch.status });
+
+  // Cada log gasta una llamada a DJI con la llave compartida: el ritmo se cuenta por archivo y por persona
+  // (en memoria, por instancia: frena la ráfaga; el tope por petición de arriba es el que no depende de la instancia).
+  for (let i = 0; i < files.length; i++) {
+    if (!checkRateLimit(`dji-import:${personId}`, { limit: DJI_IMPORT_LIMITS.filesPerWindow, windowMs: DJI_IMPORT_LIMITS.windowMs }).allowed) {
+      return Response.json({ error: 'Importaste muchos logs en poco tiempo. Espera unos minutos e inténtalo de nuevo.' }, { status: 429 });
+    }
+  }
 
   const results = [];
   for (const file of files) {

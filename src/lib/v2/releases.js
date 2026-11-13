@@ -1,5 +1,5 @@
-// Skylog V2.0 — publicación de versiones del APK (actualización OTA). Lógica compartida por la ruta con llave de
-// administración (`/api/app/releases`) y por la pantalla del superadmin (`/api/admin/releases`).
+// Skylog V2.0 — publicación de versiones del APK (actualización OTA). Solo la usa `/api/admin/releases`
+// (superadmin con segundo factor); la ruta con `ADMIN_SECRET` se eliminó (auditoría 2026-11-12: se saltaba el MFA).
 export async function listReleases(admin) {
   const { data, error } = await admin.from('app_releases').select('*').order('version_code', { ascending: false });
   if (error) return { status: 500, json: { error: error.message } };

@@ -17,7 +17,7 @@ const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
 const PUBLIC = new Set([
   'GET /api/alta/organizacion', 'GET /api/alta/regalo', 'POST /api/alta/unirse', 'GET /api/alta/unirse',
   'GET /api/public/sms-report/:token', 'POST /api/public/sms-report/:token',
-  'GET /api/app/version', 'GET /api/app/releases', 'GET /api/plans/public', 'POST /api/contact', 'POST /api/leads',
+  'GET /api/app/version', 'GET /api/plans/public', 'POST /api/contact', 'POST /api/leads',
   'POST /api/auth/reset-request', 'GET /api/socio/invite-info', 'GET /api/suscripcion/wompi/webhook', 'POST /api/suscripcion/wompi/webhook',
   'GET /api/invitaciones/:token', 'GET /api/health',
 ]);

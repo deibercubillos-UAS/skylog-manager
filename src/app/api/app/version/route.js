@@ -12,7 +12,7 @@ export async function GET() {
         );
         const { data, error } = await supabase
             .from('app_releases')
-            .select('version_name, version_code, apk_url, release_notes, force_update')
+            .select('version_name, version_code, apk_url, apk_sha256, release_notes, force_update')
             .eq('is_current', true)
             .order('version_code', { ascending: false })
             .limit(1)

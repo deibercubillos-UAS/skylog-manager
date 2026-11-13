@@ -181,6 +181,13 @@ public class FlightFilesPlugin extends Plugin {
         call.resolve(ret);
     }
 
+    // Tope de lectura: un log DJI pesa unos MB; evita leer archivos enormes a memoria.
+    private static final long MAX_LOG_BYTES = 64L * 1024 * 1024;
+
+    /**
+     * Solo lee lo que este plugin listó: un .txt dentro de la carpeta SAF elegida o de una carpeta FlightRecord. Un
+     * script inyectado en el origen remoto no puede usar este método para leer otras rutas del almacenamiento.
+     */
     @PluginMethod
     public void readFlightFile(PluginCall call) {
         String path = call.getString("path");
@@ -189,11 +196,18 @@ public class FlightFilesPlugin extends Plugin {
             InputStream in;
             String name;
             if (path.startsWith("content://")) {
+                String tree = prefs().getTreeUri();
+                if (tree == null || !path.startsWith(tree + "/document/")) { call.reject("FORBIDDEN"); return; }
+                DocumentFile doc = DocumentFile.fromSingleUri(getContext(), Uri.parse(path));
+                name = doc != null ? doc.getName() : null;
+                if (doc == null || !doc.isFile() || name == null || !name.toLowerCase().endsWith(".txt") || doc.length() > MAX_LOG_BYTES) {
+                    call.reject("FORBIDDEN");
+                    return;
+                }
                 in = getContext().getContentResolver().openInputStream(Uri.parse(path));
-                name = call.getString("name", "flight.txt");
             } else {
-                File f = new File(path);
-                if (!f.isFile()) { call.reject("NOT_FOUND"); return; }
+                File f = new File(path).getCanonicalFile(); // resuelve «..» y enlaces antes de comprobar la ruta
+                if (!isFlightRecordLog(f) || f.length() > MAX_LOG_BYTES) { call.reject("FORBIDDEN"); return; }
                 in = new FileInputStream(f);
                 name = f.getName();
             }
@@ -210,6 +224,19 @@ public class FlightFilesPlugin extends Plugin {
         } catch (Exception e) {
             call.reject("READ_ERROR", e);
         }
+    }
+
+    /** ¿Es un .txt regular dentro de un directorio «FlightRecord» del almacenamiento externo (y con permiso de todos los archivos)? */
+    private boolean isFlightRecordLog(File f) {
+        if (!hasAllFilesAccess() || !f.isFile() || !f.getName().toLowerCase().endsWith(".txt")) return false;
+        try {
+            String root = Environment.getExternalStorageDirectory().getCanonicalPath() + File.separator;
+            if (!f.getPath().startsWith(root)) return false;
+            for (File p = f.getParentFile(); p != null; p = p.getParentFile()) {
+                if (p.getName().equalsIgnoreCase("FlightRecord")) return true;
+            }
+        } catch (Exception ignored) {}
+        return false;
     }
 
     private DocumentFile getTree() {

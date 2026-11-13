@@ -322,7 +322,7 @@ function Regalos({ onError, onNotice }) {
 
 function App({ onError, onNotice }) {
   const [releases, setReleases] = useState([]);
-  const [form, setForm] = useState({ versionName: '', versionCode: '', apkUrl: '', releaseNotes: '', forceUpdate: false });
+  const [form, setForm] = useState({ versionName: '', versionCode: '', apkUrl: '', apkSha256: '', releaseNotes: '', forceUpdate: false });
   const [busy, setBusy] = useState(false);
   const load = useCallback(async () => { try { setReleases((await api('GET', '/api/admin/releases')).releases); } catch (e) { onError(e.message); } }, [onError]);
   useEffect(() => { load(); }, [load]);
@@ -333,7 +333,7 @@ function App({ onError, onNotice }) {
     try {
       await api('POST', '/api/admin/releases', form);
       onNotice('Versión publicada: las apps instaladas la ofrecerán al abrirse.');
-      setForm({ versionName: '', versionCode: '', apkUrl: '', releaseNotes: '', forceUpdate: false });
+      setForm({ versionName: '', versionCode: '', apkUrl: '', apkSha256: '', releaseNotes: '', forceUpdate: false });
       await load();
     } catch (err) { onError(err.message); } finally { setBusy(false); }
   }
@@ -342,7 +342,8 @@ function App({ onError, onNotice }) {
       <form onSubmit={publish} className="bg-white rounded-2xl border border-navy-100 p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-3">
         <Field label="Versión (ej. 2.0.0)" value={form.versionName} onChange={(e) => setForm((f) => ({ ...f, versionName: e.target.value }))} required />
         <Field label="Código de versión (entero, creciente)" type="number" min="1" value={form.versionCode} onChange={(e) => setForm((f) => ({ ...f, versionCode: e.target.value }))} required />
-        <div className="sm:col-span-2"><Field label="URL del APK (https)" value={form.apkUrl} onChange={(e) => setForm((f) => ({ ...f, apkUrl: e.target.value }))} required /></div>
+        <div className="sm:col-span-2"><Field label="URL del APK (https://releases.bitafly.com/…)" value={form.apkUrl} onChange={(e) => setForm((f) => ({ ...f, apkUrl: e.target.value }))} required /></div>
+        <div className="sm:col-span-2"><Field label="Huella SHA-256 del APK (64 caracteres; en la Mac: shasum -a 256 archivo.apk)" value={form.apkSha256} onChange={(e) => setForm((f) => ({ ...f, apkSha256: e.target.value }))} required /></div>
         <div className="sm:col-span-2"><Field label="Notas de la versión" value={form.releaseNotes} onChange={(e) => setForm((f) => ({ ...f, releaseNotes: e.target.value }))} /></div>
         <label className="sm:col-span-2 flex items-center gap-3 text-sm text-navy-500 min-h-[44px]">
           <input type="checkbox" className="w-5 h-5 accent-primary" checked={form.forceUpdate} onChange={(e) => setForm((f) => ({ ...f, forceUpdate: e.target.checked }))} />

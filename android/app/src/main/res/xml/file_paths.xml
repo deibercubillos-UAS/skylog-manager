@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Solo el APK descargado para las actualizaciones OTA (AppUpdatePlugin). No se expone el resto del almacenamiento. -->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <external-path name="my_images" path="." />
-    <cache-path name="my_cache_images" path="." />
-    <!-- APK descargado para OTA updates -->
     <external-files-path name="app_updates" path="." />
 </paths>

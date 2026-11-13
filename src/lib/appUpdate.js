@@ -18,15 +18,15 @@ export async function checkForUpdate() {
 }
 
 /**
- * Descarga el APK desde apkUrl e inicia la instalación del sistema.
- * onProgress(0-100) se llama durante la descarga.
+ * Descarga e instala la versión vigente. La app nativa vuelve a pedirla al servidor y verifica su huella SHA-256:
+ * la URL que se pase aquí NO decide qué se instala. onProgress(0-100) se llama durante la descarga.
  */
-export async function downloadAndInstall(apkUrl, onProgress) {
+export async function downloadAndInstall(_apkUrl, onProgress) {
     if (!AppUpdate) return;
     if (onProgress) {
         await AppUpdate.addListener('downloadProgress', ({ progress }) => {
             onProgress(progress);
         });
     }
-    return AppUpdate.downloadAndInstall({ apkUrl });
+    return AppUpdate.downloadAndInstall({});
 }

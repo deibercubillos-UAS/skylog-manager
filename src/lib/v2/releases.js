@@ -1,3 +1,5 @@
+import { validateApkRelease } from '@skylog/domain';
+
 // Skylog V2.0 — publicación de versiones del APK (actualización OTA). Solo la usa `/api/admin/releases`
 // (superadmin con segundo factor); la ruta con `ADMIN_SECRET` se eliminó (auditoría 2026-11-12: se saltaba el MFA).
 export async function listReleases(admin) {
@@ -7,12 +9,14 @@ export async function listReleases(admin) {
 }
 
 /** Publica una versión y la deja como vigente. La app compara `version_code`: una menor o igual nunca se ofrecería. */
-export async function publishRelease(admin, { versionName, versionCode, apkUrl, releaseNotes, forceUpdate }) {
+export async function publishRelease(admin, { versionName, versionCode, apkUrl, apkSha256, releaseNotes, forceUpdate }) {
   const code = Number(versionCode);
   if (!String(versionName || '').trim() || !Number.isInteger(code) || code <= 0 || !String(apkUrl || '').trim()) {
     return { status: 400, json: { error: 'versionName, versionCode (entero positivo) y apkUrl son requeridos' } };
   }
-  if (!/^https:\/\//.test(String(apkUrl).trim())) return { status: 400, json: { error: 'apkUrl debe ser una URL https' } };
+  // La app instala lo que apunte apk_url: solo del host de releases y con la huella SHA-256 que la app comprueba al descargar.
+  const apk = validateApkRelease({ apkUrl, apkSha256 });
+  if (!apk.ok) return { status: 400, json: { error: apk.error } };
 
   const { data: current } = await admin.from('app_releases').select('version_code').eq('is_current', true).order('version_code', { ascending: false }).limit(1).maybeSingle();
   if (current && code <= current.version_code) {
@@ -21,7 +25,7 @@ export async function publishRelease(admin, { versionName, versionCode, apkUrl, 
   await admin.from('app_releases').update({ is_current: false }).eq('is_current', true);
   const { data, error } = await admin
     .from('app_releases')
-    .insert({ version_name: String(versionName).trim(), version_code: code, apk_url: String(apkUrl).trim(), release_notes: String(releaseNotes || '').trim() || null, force_update: !!forceUpdate, is_current: true })
+    .insert({ version_name: String(versionName).trim(), version_code: code, apk_url: apk.apkUrl, apk_sha256: apk.apkSha256, release_notes: String(releaseNotes || '').trim() || null, force_update: !!forceUpdate, is_current: true })
     .select()
     .single();
   if (error) return { status: 500, json: { error: error.message } };

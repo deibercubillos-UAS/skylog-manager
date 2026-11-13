@@ -12,6 +12,7 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { membershipsCanEdit, membershipsCanView } from '@/lib/v2/permissions';
 import { loadJoinContextByOrgId, decideJoin } from '@/lib/v2/joinOrganization';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { pickReusablePerson } from '@skylog/domain';
 
 const ASSIGNABLE_ROLES = ['admin', 'jefe_pilotos', 'gerente_sms', 'piloto'];
 
@@ -54,10 +55,9 @@ export async function GET(request) {
   return Response.json({ roster: withAccess, isManager });
 }
 
-// POST — agregar un tripulante. Si ya existe una Persona con el mismo
-// documento o correo (en CUALQUIER organización — regla del diseño, nunca
-// duplicar una Persona, 30-entidades.md §2/E1), se reutiliza y solo se crea
-// la Membresía nueva; si no existe, se crea la Persona también.
+// POST — agregar un tripulante. Si ya existe una Persona con el mismo documento o correo y es segura de reutilizar
+// (solo ha estado en ESTA organización, 30-entidades.md §2/E1), se reutiliza y solo se crea la Membresía nueva; si
+// no, se crea la Persona también. Una coincidencia con alguien de otra empresa no se revela ni se vincula (ver abajo).
 export async function POST(request) {
   const supabase = await createClientSSR();
   const user = await getAuthUser(supabase);
@@ -90,32 +90,29 @@ export async function POST(request) {
     if (!decision.ok) return Response.json({ error: decision.message, reason: decision.reason }, { status: 409 });
   }
 
-  let personId = null;
+  // Reutilizar una Persona existente (E1) solo cuando es segura: todas sus membresías son de ESTA organización y, si
+  // tiene cuenta, ya estuvo aquí. Si el documento o el correo coinciden con alguien de otra empresa (o con una cuenta que
+  // nunca estuvo aquí) NO se vincula y NO se avisa: se crea una ficha propia, con lo que el gestor escribió, y la
+  // respuesta es la misma que para cualquier alta. Antes respondía «ya está registrada en BitaFly», y cualquier
+  // gestor (registrar una empresa es gratis) podía comprobar si una cédula o un correo existen en la plataforma
+  // (auditoría 2026-11-12, oráculo del roster). Quien ya tiene cuenta se vincula invitándolo por correo, donde acepta él.
+  const candidateIds = new Set();
   if (documentNumber) {
-    const { data: existing } = await admin.from('people').select('id').eq('document_number', documentNumber).maybeSingle();
-    if (existing) personId = existing.id;
+    const { data } = await admin.from('people').select('id').eq('document_number', documentNumber).limit(10);
+    for (const r of data || []) candidateIds.add(r.id);
   }
-  if (!personId && email) {
-    const { data: existing } = await admin.from('people').select('id').eq('email', email).maybeSingle();
-    if (existing) personId = existing.id;
+  if (email) {
+    const { data } = await admin.from('people').select('id').eq('email', email).limit(10);
+    for (const r of data || []) candidateIds.add(r.id);
   }
-
-  // Una persona que ya pertenece a otra empresa, o que tiene su propia cuenta sin haber estado nunca en esta, no se
-  // vincula sin su consentimiento: debe aceptar una invitación (auditoría 2026-10-16 C3 — antes cualquier gestor la
-  // agregaba con solo su cédula y recibía sus datos personales). No se devuelve ningún dato suyo.
-  if (personId) {
-    const [{ data: history }, { data: account }] = await Promise.all([
-      admin.from('memberships').select('organization_id').eq('person_id', personId),
-      admin.from('accounts').select('id').eq('person_id', personId).maybeSingle(),
+  let personId = null;
+  if (candidateIds.size) {
+    const ids = [...candidateIds];
+    const [{ data: history }, { data: accounts }] = await Promise.all([
+      admin.from('memberships').select('person_id, organization_id').in('person_id', ids),
+      admin.from('accounts').select('person_id').in('person_id', ids),
     ]);
-    const orgs = new Set((history || []).map((m) => m.organization_id));
-    const belongsElsewhere = [...orgs].some((id) => id !== organizationId);
-    if (belongsElsewhere || (account && !orgs.has(organizationId))) {
-      return Response.json(
-        { error: 'Esta persona ya está registrada en BitaFly. Invítala por correo para que acepte unirse a tu organización.', reason: 'requiere_invitacion' },
-        { status: 409 }
-      );
-    }
+    personId = pickReusablePerson(ids, history, (accounts || []).map((a) => a.person_id), organizationId);
   }
 
   if (!personId) {
@@ -132,7 +129,10 @@ export async function POST(request) {
       })
       .select('id')
       .single();
-    if (personError) return Response.json({ error: personError.message }, { status: 500 });
+    if (personError) {
+      console.error('[roster] alta de persona falló:', personError.message);
+      return Response.json({ error: 'No se pudo agregar al tripulante' }, { status: 500 });
+    }
     personId = newPerson.id;
   }
 
@@ -146,7 +146,8 @@ export async function POST(request) {
     if (membershipError.code === '23505') {
       return Response.json({ error: 'Esta persona ya es miembro activo de esta organización' }, { status: 409 });
     }
-    return Response.json({ error: membershipError.message }, { status: 500 });
+    console.error('[roster] alta de membresía falló:', membershipError.message);
+    return Response.json({ error: 'No se pudo agregar al tripulante' }, { status: 500 });
   }
 
   return Response.json({ membership });

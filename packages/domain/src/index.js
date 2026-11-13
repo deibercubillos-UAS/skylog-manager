@@ -49,6 +49,7 @@ export * from './regulatoryReminders.js';
 export * from './equipmentStock.js';
 export * from './onboardingImport.js';
 export * from './joinOrganization.js';
+export * from './rosterPerson.js';
 export * from './invitations.js';
 export * from './reportFormats.js';
 export * from './permissionsMatrix.js';

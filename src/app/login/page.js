@@ -54,7 +54,9 @@ export default function LoginPage() {
       setError(
         err.message.includes('Invalid login')
           ? 'Correo o contraseña incorrectos.'
-          : err.message
+          : err.message.includes('not confirmed')
+            ? 'Aún no confirmaste tu correo. Abre el enlace que te enviamos al registrarte (puedes pedir otro en «Crear cuenta»).'
+            : err.message
       );
     } finally {
       clearTimeout(slowTimer);

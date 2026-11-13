@@ -1,6 +1,6 @@
 // joinOrganization — unirse a una organización existente por NIT (Etapa B de `44-alta-y-socios.md`). Lógica pura,
 // con tests (regla Q2): la misma decisión la usan la consulta previa, el alta y el servidor.
-import { normalizeNit, passwordProblem } from './registration.js';
+import { normalizeNit } from './registration.js';
 
 export const JOINABLE_ROLES = ['piloto', 'jefe_pilotos', 'gerente_sms'];
 // Cargos de uno solo por organización (el Gerente General no se pide al unirse: es quien creó la organización).
@@ -38,8 +38,6 @@ export function validateJoinRegistration(input) {
   if (firstName.length < 2) errors.push('Escribe tu nombre.');
   if (lastName.length < 2) errors.push('Escribe tus apellidos.');
   if (!EMAIL_RE.test(email)) errors.push('Escribe un correo válido.');
-  const pw = passwordProblem(input?.password);
-  if (pw) errors.push(pw);
   if (!/^[A-Z0-9]{5,20}$/.test(nit)) errors.push('Escribe el NIT de la organización a la que te unes.');
   if (!JOINABLE_ROLES.includes(role)) errors.push('Elige tu rol.');
   if (phone && !/^[0-9+()\s-]{7,20}$/.test(phone)) errors.push('El teléfono no es válido.');

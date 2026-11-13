@@ -34,8 +34,6 @@ export function validateRegistration(input) {
   if (firstName.length < 2) errors.push('Escribe tu nombre.');
   if (lastName.length < 2) errors.push('Escribe tus apellidos.');
   if (!EMAIL_RE.test(email)) errors.push('Escribe un correo válido.');
-  const pw = passwordProblem(input?.password);
-  if (pw) errors.push(pw);
   if (companyName.length < 2) errors.push('Escribe el nombre de la empresa u organización.');
   if (companyName.length > 150) errors.push('El nombre de la empresa es demasiado largo (máximo 150 caracteres).');
   if (!/^[A-Z0-9]{5,20}$/.test(nit)) errors.push('Escribe un NIT o documento válido (entre 5 y 20 caracteres).');
@@ -54,8 +52,9 @@ export function trialEndsAt(nowIso, days) {
   return new Date(Date.parse(nowIso) + days * 86_400_000).toISOString();
 }
 
-// Proveedores de identidad que verifican el correo antes de entregar la sesión. El registro con contraseña (`email`)
-// NO está aquí: el servidor crea ese usuario ya «confirmado» sin que nadie pruebe que el correo es suyo.
+// Proveedores de identidad que verifican el correo antes de entregar la sesión. El registro con correo (`email`) NO
+// está aquí: aunque el usuario se confirma al abrir el enlace que se le envía, el reclamo de una persona existente
+// solo se hace con la invitación por token o con Google.
 const EMAIL_VERIFYING_PROVIDERS = ['google'];
 
 /** ¿El correo de esta sesión lo verificó el proveedor de identidad? Solo entonces puede reclamar una persona existente. */

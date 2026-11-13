@@ -10,8 +10,6 @@ import { loadJoinContext, decideJoin, joinErrorMessage, notifyJoin } from '@/lib
 import { validateRegistration, validateJoinRegistration, emailVerifiedByProvider } from '@skylog/domain';
 import { getAuthUser } from '@/lib/v2/authUser';
 
-const PLACEHOLDER_PASSWORD = 'Aa1' + 'x'.repeat(12); // solo para reutilizar la validación: no se guarda ni se usa
-
 export async function POST(request) {
   const supabase = await createClientSSR();
   const user = await getAuthUser(supabase);
@@ -29,7 +27,7 @@ export async function POST(request) {
   if (existing) return Response.json({ error: 'Tu cuenta ya está registrada.' }, { status: 409 });
 
   // El correo es el de la sesión (verificado por Google): nunca el que mande el cliente.
-  const input = { ...body, email: user.email, password: PLACEHOLDER_PASSWORD };
+  const input = { ...body, email: user.email };
   const joining = body.mode === 'unirme';
   const check = joining ? validateJoinRegistration(input) : validateRegistration(input);
   if (!check.ok) return Response.json({ error: check.errors.join(' '), errors: check.errors }, { status: 400 });

@@ -6,6 +6,7 @@
 import { createAdminClient } from '@/lib/supabaseServer';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
+import { unknowablePassword, sendSignupConfirmation } from '@/lib/v2/signupVerification';
 import { PLAN_PRICING } from '@/lib/v2/planLimits';
 import { validateRegistration } from '@skylog/domain';
 import { loadGrant, redeemGrant } from '@/lib/v2/grantsServer';
@@ -60,14 +61,14 @@ export async function POST(request) {
 
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email: clean.email,
-    password: body.password,
-    email_confirm: true,
+    password: unknowablePassword(), // la define el usuario al confirmar el correo (lib/v2/signupVerification.js)
+    email_confirm: false,
     user_metadata: { full_name: clean.fullName },
   });
   if (createError || !created?.user) {
     const exists = /already|registered|exists/i.test(createError?.message || '');
     return Response.json(
-      { error: exists ? 'Ya existe una cuenta con ese correo. Inicia sesión.' : 'No se pudo crear la cuenta. Intenta de nuevo.' },
+      { error: exists ? 'Ya existe una cuenta con ese correo. Inicia sesión o, si aún no confirmaste tu correo, pide el reenvío desde esta pantalla.' : 'No se pudo crear la cuenta. Intenta de nuevo.' },
       { status: exists ? 409 : 500 }
     );
   }
@@ -83,7 +84,7 @@ export async function POST(request) {
       nit_type: clean.nitType,
       trial_days: PLAN_PRICING.piloto.monthly.trialDays,
       attribution,
-      email_verified: false, // el usuario se crea «confirmado» sin probar el correo: no puede reclamar a una persona existente
+      email_verified: false, // el correo aún no está probado: no puede reclamar a una persona existente
     },
   });
   if (error) {
@@ -99,5 +100,6 @@ export async function POST(request) {
   if (grant) await redeemGrant(admin, { grantId: grant.id, organizationId: data.organization_id });
   await applyOwnerBenefits(admin, data.person_id);
   if (partnerCode) await linkReferral(admin, { organizationId: data.organization_id, rawCode: partnerCode, plan: 'piloto', billing: null });
-  return Response.json({ ok: true, organizationId: data.organization_id, trialDays: PLAN_PRICING.piloto.monthly.trialDays, gift: !!grant });
+  const confirmation = await sendSignupConfirmation(admin, { email: clean.email, fullName: clean.fullName });
+  return Response.json({ ok: true, verify: true, emailSent: confirmation.sent, organizationId: data.organization_id, trialDays: PLAN_PRICING.piloto.monthly.trialDays, gift: !!grant });
 }

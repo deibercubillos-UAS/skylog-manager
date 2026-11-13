@@ -13,7 +13,6 @@ import { safeNextPath } from '@/lib/v2/safeNext';
 
 const inputCls = 'w-full min-h-[48px] px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-base md:text-sm font-medium outline-none focus:border-primary focus:ring-2 focus:ring-orange-100 transition-all';
 const labelCls = 'text-xs font-black text-slate-500 uppercase tracking-widest';
-const PLACEHOLDER = 'Aa1' + 'x'.repeat(12); // solo satisface la validación compartida; el servidor ignora la contraseña
 
 function Row({ label, children }) {
   return (
@@ -50,7 +49,7 @@ export default function CompletarRegistroPage() {
 
   async function submit(e) {
     e.preventDefault();
-    const input = { ...form, email, password: PLACEHOLDER };
+    const input = { ...form, email };
     const check = mode === 'unirme' ? validateJoinRegistration(input) : validateRegistration(input);
     if (!check.ok) return setErrors(check.errors);
     setBusy(true);

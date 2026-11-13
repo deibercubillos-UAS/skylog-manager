@@ -26,7 +26,6 @@ describe('validateRegistration', () => {
   it.each([
     [{ firstName: 'A' }, 'nombre'],
     [{ email: 'sin-arroba' }, 'correo'],
-    [{ password: 'corta1' }, 'contraseña'],
     [{ companyName: '' }, 'empresa'],
     [{ nit: '12' }, 'NIT'],
     [{ phone: 'abc' }, 'teléfono'],

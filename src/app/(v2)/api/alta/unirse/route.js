@@ -6,6 +6,7 @@
 import { createAdminClient } from '@/lib/supabaseServer';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimiter';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
+import { unknowablePassword, sendSignupConfirmation } from '@/lib/v2/signupVerification';
 import { loadJoinContext, decideJoin, joinErrorMessage, notifyJoin } from '@/lib/v2/joinOrganization';
 import { validateJoinRegistration } from '@skylog/domain';
 
@@ -40,13 +41,13 @@ export async function POST(request) {
 
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email: clean.email,
-    password: body.password,
-    email_confirm: true,
+    password: unknowablePassword(), // la define el usuario al confirmar el correo (lib/v2/signupVerification.js)
+    email_confirm: false,
     user_metadata: { full_name: clean.fullName },
   });
   if (createError || !created?.user) {
     const exists = /already|registered|exists/i.test(createError?.message || '');
-    return Response.json({ error: exists ? 'Ya existe una cuenta con ese correo. Inicia sesión y únete desde tu perfil.' : 'No se pudo crear la cuenta. Intenta de nuevo.' }, { status: exists ? 409 : 500 });
+    return Response.json({ error: exists ? 'Ya existe una cuenta con ese correo. Inicia sesión y únete desde tu perfil o, si aún no confirmaste tu correo, pide el reenvío desde esta pantalla.' : 'No se pudo crear la cuenta. Intenta de nuevo.' }, { status: exists ? 409 : 500 });
   }
 
   const { error } = await admin.rpc('v2_request_join', {
@@ -60,5 +61,6 @@ export async function POST(request) {
   }
 
   await notifyJoin(admin, { organizationId: ctx.organizationId, companyName: ctx.companyName, fullName: clean.fullName, email: clean.email, role: clean.role, via: 'solicitud' });
-  return Response.json({ ok: true, pending: true, organizationName: ctx.companyName });
+  const confirmation = await sendSignupConfirmation(admin, { email: clean.email, fullName: clean.fullName });
+  return Response.json({ ok: true, pending: true, verify: true, emailSent: confirmation.sent, organizationName: ctx.companyName });
 }

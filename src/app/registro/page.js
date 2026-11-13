@@ -18,7 +18,7 @@ import AuthSidePanel from '@/components/AuthSidePanel';
 const inputCls = 'w-full min-h-[48px] px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-base md:text-sm font-medium outline-none focus:border-primary focus:ring-2 focus:ring-orange-100 transition-all';
 const labelCls = 'text-xs font-black text-slate-500 uppercase tracking-widest';
 
-const EMPTY = { firstName: '', lastName: '', email: '', password: '', phone: '', companyName: '', nit: '', role: '', partnerCode: '', acceptedTerms: false, website: '' };
+const EMPTY = { firstName: '', lastName: '', email: '', phone: '', companyName: '', nit: '', role: '', partnerCode: '', acceptedTerms: false, website: '' };
 
 function Row({ label, children }) {
   return (
@@ -31,7 +31,7 @@ function Row({ label, children }) {
 
 export default function RegistroPage() {
   const [form, setForm] = useState(EMPTY);
-  const [showPass, setShowPass] = useState(false);
+  const [sent, setSent] = useState(null); // tras registrarse: { email, emailSent, resent } — falta confirmar el correo
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState([]);
   const [mounted, setMounted] = useState(false);
@@ -42,6 +42,7 @@ export default function RegistroPage() {
     setMounted(true);
     const params = new URLSearchParams(window.location.search);
     if (params.get('modo') === 'unirme') setMode('unirme');
+    if (params.get('confirmar') === 'vencido') setSent({ email: '', emailSent: false, resent: false, ask: true }); // pide el correo para reenviar el enlace
     // Regalo de un socio (`?grant=`): el correo viene fijado por el regalo y solo se puede registrar una empresa propia.
     const token = params.get('grant');
     if (token) {
@@ -74,17 +75,51 @@ export default function RegistroPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'No se pudo completar el registro.');
       pushDataLayer('sign_up', { method: joining ? 'join_org' : 'email' });
-      // Cuenta creada y confirmada: se inicia sesión de una vez y se entra al panel.
-      const { error } = await supabase.auth.signInWithPassword({ email: form.email.trim().toLowerCase(), password: form.password });
-      if (error) {
-        window.location.href = '/login';
-        return;
-      }
-      window.location.href = data.pending ? '/solicitud-pendiente' : '/inicio';
+      // Cuenta creada SIN confirmar: el enlace del correo la confirma y pide definir la contraseña.
+      setSent({ email: form.email.trim().toLowerCase(), emailSent: data.emailSent !== false, resent: false });
+      setBusy(false);
     } catch (err) {
       setErrors([err.message]);
       setBusy(false);
     }
+  }
+
+  async function resend() {
+    setBusy(true);
+    const res = await fetch('/api/alta/reenviar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: sent.email.trim() }) });
+    const data = await res.json().catch(() => ({}));
+    setSent((x) => ({ ...x, resent: res.ok, emailSent: res.ok ? true : x.emailSent, error: res.ok ? null : data.error || 'No se pudo reenviar.' }));
+    setBusy(false);
+  }
+
+  if (sent) {
+    return (
+      <div className="flex min-h-screen bg-white">
+        <main className="flex-1 flex flex-col justify-center px-6 md:px-16 lg:px-24 py-10">
+          <div className="max-w-lg w-full mx-auto space-y-4">
+            <h1 className="text-3xl font-black text-navy uppercase tracking-tighter">{sent.ask ? 'Enlace vencido' : 'Revisa tu correo'}</h1>
+            {sent.ask && (
+              <>
+                <p className="text-slate-600 text-sm">El enlace venció o ya se usó. Escribe tu correo y te enviamos otro (solo funciona si aún no confirmaste tu cuenta; si ya definiste tu contraseña, <Link href="/login" className="text-primary font-bold underline">inicia sesión</Link>).</p>
+                <input className={inputCls} type="email" autoComplete="email" placeholder="correo@empresa.com" value={sent.email} onChange={(e) => setSent((x) => ({ ...x, email: e.target.value }))} />
+              </>
+            )}
+            <p className="text-slate-600 text-sm">
+              {sent.ask ? null : sent.emailSent
+                ? <>Te enviamos un enlace a <b>{sent.email}</b>. Ábrelo para confirmar tu correo y definir tu contraseña. Vence en 1 hora.</>
+                : <>Creamos tu cuenta, pero no pudimos enviar el correo a <b>{sent.email}</b>. Pide el reenvío aquí abajo.</>}
+            </p>
+            {!sent.ask && <p className="text-slate-500 text-xs">¿No llega? Revisa la carpeta de spam.</p>}
+            {sent.error && <p className="text-red-600 text-xs font-bold" role="alert">{sent.error}</p>}
+            {sent.resent && <p className="text-emerald-700 text-xs font-bold">Listo, te lo enviamos de nuevo.</p>}
+            <button type="button" onClick={resend} disabled={busy || !sent.email.trim()} className="min-h-[44px] px-5 rounded-xl border border-slate-200 text-xs font-black uppercase tracking-wide text-slate-600 hover:border-slate-300 disabled:opacity-60">
+              Reenviar correo
+            </button>
+          </div>
+        </main>
+        <AuthSidePanel title="Un último paso: confirma tu correo." />
+      </div>
+    );
   }
 
   return (
@@ -131,14 +166,6 @@ export default function RegistroPage() {
             </div>
             <Row label="Correo electrónico">
               <input className={`${inputCls} ${gift?.email ? 'bg-slate-100 text-slate-500' : ''}`} type="email" autoComplete="email" placeholder="correo@empresa.com" value={form.email} onChange={(e) => set({ email: e.target.value })} readOnly={!!gift?.email} required />
-            </Row>
-            <Row label="Contraseña">
-              <div className="relative">
-                <input className={`${inputCls} pr-12`} type={showPass ? 'text' : 'password'} autoComplete="new-password" placeholder="Mínimo 8, con letras y números" value={form.password} onChange={(e) => set({ password: e.target.value })} required />
-                <button type="button" onClick={() => setShowPass((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600 min-h-[44px] px-1" aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
-                  <span className="material-symbols-outlined text-xl">{showPass ? 'visibility_off' : 'visibility'}</span>
-                </button>
-              </div>
             </Row>
             <Row label="Teléfono (opcional)">
               <input className={inputCls} type="tel" autoComplete="tel" value={form.phone} onChange={(e) => set({ phone: e.target.value })} />

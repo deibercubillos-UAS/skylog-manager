@@ -30,7 +30,7 @@ describe('validateJoinRegistration', () => {
     expect(r.ok).toBe(true);
     expect(r.clean).toMatchObject({ email: 'luis@x.co', nit: '9001234567', role: 'piloto', fullName: 'Luis Gómez' });
   });
-  it.each([[{ role: 'admin' }], [{ nit: '1' }], [{ password: 'corta' }], [{ acceptedTerms: false }], [{ email: 'mal' }]])('rechaza %j', (patch) => {
+  it.each([[{ role: 'admin' }], [{ nit: '1' }], [{ acceptedTerms: false }], [{ email: 'mal' }]])('rechaza %j', (patch) => {
     expect(validateJoinRegistration({ ...ok, ...patch }).ok).toBe(false);
   });
 });

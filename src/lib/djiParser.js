@@ -16,7 +16,15 @@ export async function parseDjiTxtBuffer(buf) {
 
   // Dynamic import to avoid webpack bundling the WASM module
   const { DJILog } = await import('dji-log-parser-js');
-  const parser = new DJILog(buf);
+
+  // La librería (WASM) lanza TEXTO, no un Error: sin esto, el motivo real se perdía y la pantalla solo decía
+  // «No se pudo leer este log». Cada etapa se traduce a un mensaje claro y conserva la causa técnica para el registro.
+  let parser;
+  try {
+    parser = new DJILog(buf);
+  } catch (e) {
+    throw stageError('El archivo no es un registro de vuelo DJI (carpeta FlightRecord) o está dañado.', e);
+  }
 
   if (parser.version === 0) {
     throw new Error('El archivo no es un log DJI válido o el formato no está soportado.');
@@ -25,9 +33,27 @@ export async function parseDjiTxtBuffer(buf) {
   let details = {};
   try { details = parser.details ?? {}; } catch { /* ignorar */ }
 
-  const keychains = await parser.fetchKeychains(DJI_API_KEY);
-  const frames    = parser.frames(keychains)  ?? [];
-  const records   = parser.records(keychains) ?? [];
+  let keychains;
+  try {
+    keychains = await parser.fetchKeychains(DJI_API_KEY);
+  } catch (e) {
+    const text = errorText(e);
+    const msg = /api.?key|unauthori|forbidden|401|403/i.test(text)
+      ? 'DJI rechazó la llave de la plataforma para descifrar este log. Avisa a soporte: soporte@bitafly.com'
+      : /network|fetch|timeout|connect|dns|5\d\d/i.test(text)
+        ? 'No hubo respuesta del servicio de DJI para descifrar este log. Intenta de nuevo en unos minutos.'
+        : `DJI no entregó la llave para descifrar este log (versión ${parser.version}).`;
+    throw stageError(msg, e);
+  }
+
+  let frames;
+  let records;
+  try {
+    frames  = parser.frames(keychains)  ?? [];
+    records = parser.records(keychains) ?? [];
+  } catch (e) {
+    throw stageError(`No se pudo descifrar el contenido del log (versión ${parser.version}).`, e);
+  }
 
   // ── Tiempo ──────────────────────────────────────────────────────
   const { fecha, hora_despegue } = parseDatetime(details.startTime);
@@ -274,3 +300,17 @@ function parseTimeOnly(raw) {
   const col = new Date(date.getTime() - 5 * 60 * 60 * 1000);
   return col.toISOString().slice(11, 16);
 }
+
+/** Texto legible de lo que lance la librería (string, Error u objeto), sin códigos de color de la terminal. */
+export function errorText(e) {
+  const raw = e instanceof Error ? e.message : typeof e === 'string' ? e : (() => { try { return JSON.stringify(e); } catch { return String(e); } })();
+  // eslint-disable-next-line no-control-regex
+  return String(raw ?? '').replace(/\u001b\[[0-9;]*m/g, '').replace(/\s+/g, ' ').trim().slice(0, 300);
+}
+
+function stageError(message, cause) {
+  const err = new Error(message);
+  err.detail = errorText(cause);
+  return err;
+}
+

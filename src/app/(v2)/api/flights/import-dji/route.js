@@ -24,7 +24,7 @@
 // `installed_at_aircraft_hours` — no hace falta ninguna pieza nueva.
 import { createClientSSR } from '@/lib/supabaseServer';
 import { resolveCurrentPerson } from '@/lib/v2/duty';
-import { parseDjiTxtBuffer } from '@/lib/djiParser';
+import { parseDjiTxtBuffer, errorText } from '@/lib/djiParser';
 import { signFlightImport } from '@/lib/v2/flightImportToken';
 import { getAuthUser } from '@/lib/v2/authUser';
 import { checkRateLimit } from '@/lib/rateLimiter';
@@ -146,8 +146,8 @@ export async function POST(request) {
       });
     } catch (e) {
       // Queda en los registros de Vercel para diagnosticar (sin datos del vuelo: solo tamaño y causa).
-      console.error('[import-dji] no se pudo leer un log:', { bytes: file.size, error: e?.message });
-      results.push({ fileName: file.name, error: e.message || 'No se pudo leer este log' });
+      console.error('[import-dji] no se pudo leer un log:', { bytes: file.size, error: e?.message, detail: e?.detail || errorText(e) });
+      results.push({ fileName: file.name, error: (e instanceof Error && e.message) || 'No se pudo leer este log' });
     }
   }
 

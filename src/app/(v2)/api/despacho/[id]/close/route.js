@@ -31,7 +31,7 @@ export async function POST(request, { params }) {
     return Response.json({ error: 'visualCondition debe ser uno de: ' + VISUAL_LINES.join(', ') }, { status: 400 });
   }
 
-  const { error: resolveError, personId } = await resolveCurrentPerson(supabase, user.id);
+  const { error: resolveError, personId, organizationIds } = await resolveCurrentPerson(supabase, user.id);
   if (resolveError) return Response.json({ error: 'No se pudo resolver la persona' }, { status: 500 });
   if (!personId) return Response.json({ error: 'Esta cuenta no tiene un registro de Persona vinculado todavía' }, { status: 404 });
 
@@ -45,6 +45,12 @@ export async function POST(request, { params }) {
   if (!dispatch) return Response.json({ error: 'Despacho no encontrado' }, { status: 404 });
   if (dispatch.pilot_person_id !== personId) return Response.json({ error: 'Solo el piloto que despachó puede cerrar el vuelo' }, { status: 403 });
   if (dispatch.status !== 'despachado') return Response.json({ error: 'Este despacho ya fue cerrado' }, { status: 409 });
+  // Escribe un vuelo y suma horas a una aeronave de ESA organización: exige una membresía activa en ella. La RLS deja
+  // ver el despacho por ser del piloto aunque su membresía ya esté cerrada (auditoría 2026-11-12): sin esta comprobación
+  // una persona dada de baja seguía escribiendo vuelos y horas en la flota de la que salió.
+  if (!(organizationIds || []).includes(dispatch.organization_id)) {
+    return Response.json({ error: 'Ya no tienes una membresía activa en esta organización. Pide a un gestor que cierre el vuelo.' }, { status: 403 });
+  }
 
   const now = new Date();
   const check = validateFlightClose({ dispatchedAt: dispatch.dispatched_at, takeoffAt, landingAt, now: now.toISOString(), safetyReport: !!safetyReport, safetyReportType });

@@ -22,7 +22,7 @@ Este documento se genera a partir de ese archivo; si cambian, cambian juntos. Vi
 | A1 | Iniciar sesión con correo y contraseña | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | A2 | Iniciar sesión con Google | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | A3 | Registrarse creando una empresa (prueba de 15 días) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| A4 | Registrarse uniéndose a una empresa por NIT y rol | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| A4 | Registrarse uniéndose a una empresa por NIT y rol (crea una solicitud; la aprueba GG/JP, ver bitácora 214) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | A5 | Aceptar una invitación por enlace | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | A6 | Segundo factor de verificación (app autenticadora) — *opciónal para el cliente, prerero recomendado por seguridad* | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | A7 | Cambiar de organización activa | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |

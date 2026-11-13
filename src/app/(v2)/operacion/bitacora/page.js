@@ -32,6 +32,7 @@ import { Field, Button } from '@skylog/ui';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 import FlightReplayViewer from '../../_components/FlightReplayViewer';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
+import { DJI_IMPORT_LIMITS } from '@skylog/domain';
 
 const VISUAL_CONDITIONS = ['VLOS', 'EVLOS', 'BVLOS'];
 
@@ -86,6 +87,7 @@ export default function BitacoraPage() {
   const [showImport, setShowImport] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [importError, setImportError] = useState(null);
+  const [analyzeProgress, setAnalyzeProgress] = useState(null); // { current, total } mientras se analizan los logs
   const [importRows, setImportRows] = useState([]);
   const [confirmingIdx, setConfirmingIdx] = useState(null);
 
@@ -175,24 +177,42 @@ export default function BitacoraPage() {
     if (!files.length) return;
     setAnalyzing(true);
     setImportError(null);
-    try {
-      // El servidor acepta hasta 10 logs por petición (djiImportLimits): se envían por tandas, una tras otra.
-      for (let i = 0; i < files.length; i += 10) {
-        const fd = new FormData();
-        files.slice(i, i + 10).forEach((f) => fd.append('files', f));
-        const res = await fetch('/api/flights/import-dji', { method: 'POST', body: fd });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Error analizando los logs');
-        setImportRows((prev) => [
-          ...prev,
-          ...data.results.map((r) => ({ ...r, visualCondition: 'VLOS', missionType: '', aircraftId: '', confirmed: false })),
-        ]);
+    const pending = (r) => ({ ...r, visualCondition: 'VLOS', missionType: '', aircraftId: '', confirmed: false });
+    const mb = (n) => (n / 1024 / 1024).toFixed(1).replace('.', ',');
+    // Un log por petición: Vercel rechaza peticiones de más de 4,5 MB antes de que lleguen al servidor, y un lote grande
+    // también puede pasar del tiempo máximo. Así, si un log falla, los demás siguen y cada fila dice qué pasó con el suyo.
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setAnalyzeProgress({ current: i + 1, total: files.length });
+      if (file.size > DJI_IMPORT_LIMITS.maxBytesPerFile) {
+        setImportRows((prev) => [...prev, { fileName: file.name, error: `Este log pesa ${mb(file.size)} MB; por ahora el máximo es ${mb(DJI_IMPORT_LIMITS.maxBytesPerFile)} MB por archivo.` }]);
+        continue;
       }
-    } catch (e) {
-      setImportError(e.message);
-    } finally {
-      setAnalyzing(false);
+      try {
+        const fd = new FormData();
+        fd.append('files', file);
+        const res = await fetch('/api/flights/import-dji', { method: 'POST', body: fd });
+        // Si Vercel corta la petición (tamaño o tiempo) responde texto, no JSON: se traduce a un mensaje claro.
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data) {
+          const reason = data?.error
+            || (res.status === 413 ? 'El archivo es demasiado pesado para subirlo.'
+              : res.status === 504 ? 'El análisis tardó demasiado. Intenta de nuevo con este log.'
+              : `El servidor no pudo analizar este log (error ${res.status}).`);
+          if (res.status === 429) {
+            setImportError(reason);
+            break;
+          }
+          setImportRows((prev) => [...prev, { fileName: file.name, error: reason }]);
+          continue;
+        }
+        setImportRows((prev) => [...prev, ...data.results.map(pending)]);
+      } catch {
+        setImportRows((prev) => [...prev, { fileName: file.name, error: 'Sin conexión con el servidor. Revisa tu internet e intenta de nuevo.' }]);
+      }
     }
+    setAnalyzeProgress(null);
+    setAnalyzing(false);
   }
 
   function updateImportRow(idx, patch) {
@@ -326,7 +346,7 @@ export default function BitacoraPage() {
                 </p>
                 <label className="mt-3 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wide text-primary-700 bg-primary-50 border border-primary-100 rounded-xl px-3 py-2.5 cursor-pointer hover:bg-primary-100 transition-colors">
                   <span className="material-symbols-outlined text-base">{analyzing ? 'progress_activity' : 'file_upload'}</span>
-                  {analyzing ? 'Analizando…' : 'Elegir logs .txt'}
+                  {analyzing ? `Analizando${analyzeProgress ? ` ${analyzeProgress.current} de ${analyzeProgress.total}` : ''}…` : 'Elegir logs .txt'}
                   <input
                     type="file"
                     accept=".txt"

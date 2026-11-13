@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkDjiImportBatch, DJI_IMPORT_LIMITS } from './djiImportLimits.js';
+import { checkDjiImportBatch, DJI_IMPORT_LIMITS, VERCEL_MAX_BODY_BYTES } from './djiImportLimits.js';
 
 const MB = 1024 * 1024;
 
@@ -14,5 +14,11 @@ describe('checkDjiImportBatch', () => {
     expect(checkDjiImportBatch([6 * MB])).toMatchObject({ ok: false, status: 413 });
     expect(checkDjiImportBatch([NaN])).toMatchObject({ ok: false, status: 413 });
     expect(checkDjiImportBatch(Array(5).fill(5 * MB))).toMatchObject({ ok: false, status: 413 });
+  });
+  it('se queda por debajo del techo de Vercel (4,5 MB por petición)', () => {
+    expect(DJI_IMPORT_LIMITS.maxBytesPerRequest).toBeLessThan(VERCEL_MAX_BODY_BYTES);
+    expect(checkDjiImportBatch([4 * MB]).ok).toBe(true);
+    expect(checkDjiImportBatch([4.2 * MB])).toMatchObject({ ok: false, status: 413 });
+    expect(checkDjiImportBatch([2.5 * MB, 2.5 * MB])).toMatchObject({ ok: false, status: 413 });
   });
 });

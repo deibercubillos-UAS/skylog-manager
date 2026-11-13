@@ -30,6 +30,10 @@ import { getAuthUser } from '@/lib/v2/authUser';
 import { checkRateLimit } from '@/lib/rateLimiter';
 import { checkDjiImportBatch, DJI_IMPORT_LIMITS } from '@skylog/domain';
 
+// Cada log se descifra (WASM) y, si es reciente, pide sus llaves a DJI: puede tardar varios segundos. La pantalla envía un
+// log por petición; este margen evita que Vercel corte el análisis a mitad.
+export const maxDuration = 60;
+
 // Replay GPS — decima `parsed._frames` (ya disponibles server-side, antes se
 // descartaban tras extraer los campos resumen) a como máximo ~400 puntos con
 // GPS válido, con el mismo shape de campo que ya usa el visor de v1
@@ -141,6 +145,8 @@ export async function POST(request) {
         error: complete ? null : 'Log incompleto — revisa despegue/aterrizaje antes de confirmar',
       });
     } catch (e) {
+      // Queda en los registros de Vercel para diagnosticar (sin datos del vuelo: solo tamaño y causa).
+      console.error('[import-dji] no se pudo leer un log:', { bytes: file.size, error: e?.message });
       results.push({ fileName: file.name, error: e.message || 'No se pudo leer este log' });
     }
   }

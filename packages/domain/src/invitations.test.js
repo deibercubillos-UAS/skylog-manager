@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canInviteRole, validateInvitation, invitationState, invitationExpiresAt, INVITE_ROLES } from './invitations.js';
+import { canInviteRole, validateInvitation, invitationState, invitationExpiresAt, checkInvitationQuota, INVITE_ROLES } from './invitations.js';
 
 describe('canInviteRole', () => {
   it('un Jefe de Pilotos invita pilotos, jefes y gerentes SMS, no gerentes generales', () => {
@@ -38,3 +38,15 @@ describe('invitationState', () => {
 });
 
 describe('invitationExpiresAt', () => it('7 días por defecto', () => expect(invitationExpiresAt('2026-10-06T12:00:00.000Z')).toBe('2026-10-13T12:00:00.000Z')));
+
+describe('checkInvitationQuota', () => {
+  it('deja pasar por debajo de los topes', () => {
+    expect(checkInvitationQuota({ byInviterLastHour: 19, byOrganizationLastDay: 49, byRecipientLastDay: 4 }).ok).toBe(true);
+    expect(checkInvitationQuota().ok).toBe(true);
+  });
+  it('bloquea al llegar a cada tope, diciendo cuál', () => {
+    expect(checkInvitationQuota({ byRecipientLastDay: 5 })).toMatchObject({ ok: false, reason: 'recipient' });
+    expect(checkInvitationQuota({ byInviterLastHour: 20 })).toMatchObject({ ok: false, reason: 'inviter' });
+    expect(checkInvitationQuota({ byOrganizationLastDay: 50 })).toMatchObject({ ok: false, reason: 'organization' });
+  });
+});

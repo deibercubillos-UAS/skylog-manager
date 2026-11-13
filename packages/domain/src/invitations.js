@@ -42,3 +42,29 @@ export const INVITATION_STATE_MESSAGES = {
 export function invitationExpiresAt(nowIso, days = INVITATION_TTL_DAYS) {
   return new Date(Date.parse(nowIso) + days * 86_400_000).toISOString();
 }
+
+// Límites de envío (auditoría 2026-11-12): `POST /api/invitaciones` manda un correo desde el dominio de Skylog a una
+// dirección ajena; sin tope servía para spam y para dañar la reputación del remitente. Se cuentan las invitaciones ya
+// guardadas (incluidas las revocadas por reinvitar), así que el límite vale entre instancias del servidor.
+export const INVITATION_LIMITS = {
+  perInviterPerHour: 20,
+  perOrganizationPerDay: 50,
+  perRecipientPerDay: 5, // a un mismo correo, desde cualquier organización
+};
+
+/**
+ * `counts`: invitaciones creadas en la ventana — por quien invita (última hora), por la organización (últimas 24 h) y
+ * hacia ese correo (últimas 24 h). Devuelve { ok: true } o { ok: false, reason, message }.
+ */
+export function checkInvitationQuota({ byInviterLastHour = 0, byOrganizationLastDay = 0, byRecipientLastDay = 0 } = {}, limits = INVITATION_LIMITS) {
+  if (byRecipientLastDay >= limits.perRecipientPerDay) {
+    return { ok: false, reason: 'recipient', message: 'Ya se enviaron varias invitaciones a ese correo en las últimas 24 horas. Espera antes de reenviar.' };
+  }
+  if (byInviterLastHour >= limits.perInviterPerHour) {
+    return { ok: false, reason: 'inviter', message: 'Enviaste demasiadas invitaciones en la última hora. Intenta de nuevo más tarde.' };
+  }
+  if (byOrganizationLastDay >= limits.perOrganizationPerDay) {
+    return { ok: false, reason: 'organization', message: 'Tu organización alcanzó el máximo de invitaciones por día. Intenta de nuevo mañana.' };
+  }
+  return { ok: true };
+}

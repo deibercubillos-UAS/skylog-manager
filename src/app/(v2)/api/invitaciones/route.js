@@ -9,7 +9,8 @@ import { resolveCurrentPerson } from '@/lib/v2/duty';
 import { adminKeyProblem } from '@/lib/v2/adminKey';
 import { loadJoinContextByOrgId, decideJoin } from '@/lib/v2/joinOrganization';
 import { newInvitationToken, sendInvitationEmail, likeExact } from '@/lib/v2/invitationsServer';
-import { canInviteRole, validateInvitation, invitationState, invitationExpiresAt } from '@skylog/domain';
+import { canInviteRole, validateInvitation, invitationState, invitationExpiresAt, checkInvitationQuota } from '@skylog/domain';
+import { checkRateLimit } from '@/lib/rateLimiter';
 import { membershipsCanView, readOnlyBlock } from '@/lib/v2/permissions';
 import { getAuthUser } from '@/lib/v2/authUser';
 
@@ -56,9 +57,26 @@ export async function POST(request) {
   const readOnly = readOnlyBlock(s.memberships, organizationId);
   if (readOnly) return readOnly;
 
+  // Freno de ráfaga (en memoria, por instancia) y tope duradero contado sobre las invitaciones ya guardadas.
+  if (!checkRateLimit(`invitar:${s.personId}`, { limit: 10, windowMs: 60_000 }).allowed) {
+    return Response.json({ error: 'Demasiadas invitaciones seguidas. Espera un minuto.' }, { status: 429 });
+  }
+
   const admin = createAdminClient();
   const { data: org } = await admin.from('organizations').select('id, company_name').eq('id', organizationId).maybeSingle();
   if (!org) return Response.json({ error: 'Organización no encontrada' }, { status: 404 });
+
+  const hourAgo = new Date(Date.now() - 3600_000).toISOString();
+  const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
+  const countSince = (q, since) => q.gte('created_at', since).then((r) => r.count ?? 0);
+  const invitationsHead = () => admin.from('invitations').select('id', { count: 'exact', head: true });
+  const [byInviterLastHour, byOrganizationLastDay, byRecipientLastDay] = await Promise.all([
+    countSince(invitationsHead().eq('invited_by', s.personId), hourAgo),
+    countSince(invitationsHead().eq('organization_id', organizationId), dayAgo),
+    countSince(invitationsHead().ilike('email', likeExact(clean.email)), dayAgo),
+  ]);
+  const quota = checkInvitationQuota({ byInviterLastHour, byOrganizationLastDay, byRecipientLastDay });
+  if (!quota.ok) return Response.json({ error: quota.message, reason: quota.reason }, { status: 429 });
 
   // ¿Ya existe esa persona? Si ya es miembro activo, no tiene sentido invitarla.
   const { data: existing } = await admin.from('people').select('id').ilike('email', likeExact(clean.email)).limit(1).maybeSingle();

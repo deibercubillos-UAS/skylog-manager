@@ -7,12 +7,10 @@
 
 const DJI_API_KEY = process.env.DJI_API_KEY ?? null;
 
+// Desde esta versión los registros de vuelo DJI vienen cifrados (AES) y se descifran con llaves que entrega la API de DJI.
+export const ENCRYPTED_FROM_VERSION = 13;
+
 export async function parseDjiTxtBuffer(buf) {
-  if (!DJI_API_KEY) {
-    throw new Error(
-      'La importación DJI no está disponible en este momento. Contacta al soporte: soporte@bitafly.com'
-    );
-  }
 
   // Dynamic import to avoid webpack bundling the WASM module
   const { DJILog } = await import('dji-log-parser-js');
@@ -33,17 +31,25 @@ export async function parseDjiTxtBuffer(buf) {
   let details = {};
   try { details = parser.details ?? {}; } catch { /* ignorar */ }
 
+  // Solo los logs de versión 13 en adelante vienen cifrados y necesitan la llave de DJI. Pedirla para uno anterior hace que
+  // DJI responda «invalid version» y el log, que se puede leer sin llave, se rechazaba (caso real: log versión 8, 2026-11-14).
   let keychains;
-  try {
-    keychains = await parser.fetchKeychains(DJI_API_KEY);
-  } catch (e) {
-    const text = errorText(e);
-    const msg = /api.?key|unauthori|forbidden|401|403/i.test(text)
-      ? 'DJI rechazó la llave de la plataforma para descifrar este log. Avisa a soporte: soporte@bitafly.com'
-      : /network|fetch|timeout|connect|dns|5\d\d/i.test(text)
-        ? 'No hubo respuesta del servicio de DJI para descifrar este log. Intenta de nuevo en unos minutos.'
-        : `DJI no entregó la llave para descifrar este log (versión ${parser.version}).`;
-    throw stageError(msg, e);
+  if (parser.version >= ENCRYPTED_FROM_VERSION) {
+    // Sin la llave de la plataforma solo se pueden leer los logs anteriores a la versión 13.
+    if (!DJI_API_KEY) {
+      throw new Error('La importación de logs cifrados de DJI no está disponible en este momento. Contacta al soporte: soporte@bitafly.com');
+    }
+    try {
+      keychains = await parser.fetchKeychains(DJI_API_KEY);
+    } catch (e) {
+      const text = errorText(e);
+      const msg = /api.?key|unauthori|forbidden|401|403/i.test(text)
+        ? 'DJI rechazó la llave de la plataforma para descifrar este log. Avisa a soporte: soporte@bitafly.com'
+        : /network|fetch|timeout|connect|dns|5\d\d/i.test(text)
+          ? 'No hubo respuesta del servicio de DJI para descifrar este log. Intenta de nuevo en unos minutos.'
+          : `DJI no entregó la llave para descifrar este log (versión ${parser.version}).`;
+      throw stageError(msg, e);
+    }
   }
 
   let frames;

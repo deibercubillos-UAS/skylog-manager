@@ -52,13 +52,22 @@ export async function parseDjiTxtBuffer(buf) {
     }
   }
 
+  // `frames` (normalizados) trae lo esencial: horas, GPS, altura, velocidad, batería en %. Sin ellos no hay vuelo.
   let frames;
-  let records;
   try {
-    frames  = parser.frames(keychains)  ?? [];
+    frames = parser.frames(keychains) ?? [];
+  } catch (e) {
+    throw stageError(`No se pudo leer el contenido del log (versión ${parser.version}).`, e);
+  }
+
+  // `records` (crudos) solo aporta datos complementarios: serie y ciclos de la batería, firmware, seriales de respaldo.
+  // La librería falla al pasar a JavaScript algunos campos de 64 bits de ciertos logs («… can't be represented as a
+  // JavaScript number», caso real: log versión 8, 2026-11-14): el vuelo se importa igual, sin esos complementos.
+  let records = [];
+  try {
     records = parser.records(keychains) ?? [];
   } catch (e) {
-    throw stageError(`No se pudo descifrar el contenido del log (versión ${parser.version}).`, e);
+    console.warn('[djiParser] registros crudos no disponibles; se importa sin datos complementarios:', errorText(e));
   }
 
   // ── Tiempo ──────────────────────────────────────────────────────

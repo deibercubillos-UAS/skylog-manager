@@ -380,7 +380,23 @@ export default function BitacoraPage() {
             {importError && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{importError}</p>}
 
             {importRows.length > 0 && (
-              <div className="rounded-2xl border border-navy-100 overflow-hidden">
+              <div className="md:hidden space-y-3">
+                {importRows.map((row, idx) => (
+                  <ImportRowCard
+                    key={row.fileName + idx}
+                    row={row}
+                    fleet={fleet}
+                    confirming={confirmingIdx === idx}
+                    onChange={(patch) => updateImportRow(idx, patch)}
+                    onConfirm={() => handleConfirmImportRow(idx)}
+                    onDiscard={() => setImportRows((prev) => prev.filter((_, i) => i !== idx))}
+                  />
+                ))}
+              </div>
+            )}
+
+            {importRows.length > 0 && (
+              <div className="hidden md:block rounded-2xl border border-navy-100 overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
                     <tr className="bg-navy-50/50 text-xs font-black text-navy-300 uppercase tracking-widest">
@@ -809,6 +825,73 @@ function LibroDeVueloPanel({ fleet, flights, aircraftId, onAircraftChange, onOpe
               </tbody>
             </table>
           </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Vuelo leído de un log, en tarjeta para el celular: en la tabla de 10 columnas el botón Confirmar quedaba fuera de la
+// pantalla y el recuadro no dejaba desplazar. Mismos campos y acciones que la fila de la tabla de escritorio.
+function ImportRowCard({ row, fleet, confirming, onChange, onConfirm, onDiscard }) {
+  const fmt = (v) => v?.slice(0, 16).replace('T', ' ');
+  const inputCls = 'w-full min-h-[44px] text-base border border-navy-200 rounded-xl px-3 bg-white';
+  return (
+    <div className="rounded-2xl border border-navy-100 bg-white p-4 space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-xs font-semibold text-navy-500 break-all">{row.fileName}</p>
+        <button type="button" onClick={onDiscard} className="shrink-0 size-9 flex items-center justify-center rounded-lg text-navy-300 hover:text-red-500" aria-label="Descartar">
+          <span className="material-symbols-outlined text-lg">close</span>
+        </button>
+      </div>
+      {row.error ? (
+        <p className="text-sm text-red-600">{row.error}</p>
+      ) : (
+        <>
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+            <div><dt className="text-navy-300 font-bold uppercase">Despegue</dt><dd className="font-mono text-navy-700">{fmt(row.takeoffAt)}</dd></div>
+            <div><dt className="text-navy-300 font-bold uppercase">Aterrizaje</dt><dd className="font-mono text-navy-700">{fmt(row.landingAt)}</dd></div>
+            <div><dt className="text-navy-300 font-bold uppercase">Duración</dt><dd className="font-black text-navy-700">{row.totalTime}h</dd></div>
+            <div>
+              <dt className="text-navy-300 font-bold uppercase">Replay</dt>
+              <dd className={row.replayTrack ? 'text-primary-700' : 'text-navy-300'}>{row.replayTrack ? `${row.replayTrack.length} puntos GPS` : 'Sin GPS'}</dd>
+            </div>
+            <div className="col-span-2">
+              <dt className="text-navy-300 font-bold uppercase">Batería</dt>
+              <dd className={row.batterySerial ? 'text-emerald-700' : 'text-navy-300'}>
+                {row.batterySerial ? `${row.batterySerial}${row.batteryCycles != null ? ` · ${row.batteryCycles} ciclos` : ''}` : 'Sin dato en el log'}
+              </dd>
+            </div>
+          </dl>
+          <label className="block text-xs font-bold text-navy-400">
+            Condición
+            <select value={row.visualCondition} onChange={(e) => onChange({ visualCondition: e.target.value })} className={`mt-1 ${inputCls}`}>
+              {VISUAL_CONDITIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </label>
+          <label className="block text-xs font-bold text-navy-400">
+            Tipo de misión
+            <input value={row.missionType} onChange={(e) => onChange({ missionType: e.target.value })} placeholder="Opcional" className={`mt-1 ${inputCls}`} />
+          </label>
+          <label className="block text-xs font-bold text-navy-400">
+            Aeronave
+            <select value={row.aircraftId} onChange={(e) => onChange({ aircraftId: e.target.value })} className={`mt-1 ${inputCls}`}>
+              <option value="">Sin asignar</option>
+              {fleet
+                .filter((a) => a.operational_status !== 'fuera_de_servicio')
+                .map((a) => (
+                  <option key={a.id} value={a.id}>{a.model?.brand} {a.model?.model} — {a.serial_number}</option>
+                ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            disabled={confirming}
+            onClick={onConfirm}
+            className="w-full min-h-[48px] rounded-xl bg-primary text-white text-sm font-black uppercase tracking-wide disabled:opacity-50"
+          >
+            {confirming ? 'Guardando…' : 'Confirmar vuelo'}
+          </button>
         </>
       )}
     </div>

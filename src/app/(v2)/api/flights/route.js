@@ -15,6 +15,7 @@ import { evaluateFlightLimits } from '@skylog/domain';
 import { membershipsCanView, membershipsCanEdit } from '@/lib/v2/permissions';
 import { verifyFlightImport } from '@/lib/v2/flightImportToken';
 import { getAuthUser } from '@/lib/v2/authUser';
+import { asBogotaInstant } from '@/lib/v2/dispatchContext';
 
 const VISUAL_CONDITIONS = ['VLOS', 'EVLOS', 'BVLOS'];
 
@@ -102,20 +103,27 @@ export async function POST(request) {
     return Response.json({ error: imported ? 'Tu rol no puede importar vuelos' : 'Tu rol no puede registrar un vuelo a mano; importa el registro del control' }, { status: 403 });
   }
 
+  // La Bitácora (formulario y logs DJI) manda la hora de Colombia SIN zona («2026-11-12T10:00:00»). Guardada así, Postgres
+  // la toma como UTC y el vuelo queda 5 horas antes (se veía a las 05:00, podía caer en el día anterior y salir como
+  // nocturno en el reporte mensual). Desde aquí se usa el instante real; la firma de importación ya se verificó arriba
+  // con el texto original. El Despacho ya enviaba la hora con zona.
+  const takeoffInstant = asBogotaInstant(takeoffAt);
+  const landingInstant = asBogotaInstant(landingAt);
+
   // El mismo vuelo (piloto + despegue) no se registra dos veces: duplicaría horas de la aeronave y del piloto.
   const { data: duplicate } = await supabase
     .from('flights')
     .select('id')
     .eq('organization_id', organizationId)
     .eq('pilot_person_id', personId)
-    .eq('takeoff_at', takeoffAt)
+    .eq('takeoff_at', takeoffInstant)
     .limit(1);
   if (duplicate?.length) return Response.json({ error: 'Este vuelo ya está registrado en la bitácora' }, { status: 409 });
 
   const { data: recentFlights, error: recentError } = await getRecentFlights(supabase, personId, 32);
   if (recentError) return Response.json({ error: 'Error consultando vuelos previos' }, { status: 500 });
 
-  const limits = evaluateFlightLimits(recentFlights, { personId, takeoffAt, totalTime: Number(totalTime), lineOfSight: visualCondition || 'VLOS' });
+  const limits = evaluateFlightLimits(recentFlights, { personId, takeoffAt: takeoffInstant, totalTime: Number(totalTime), lineOfSight: visualCondition || 'VLOS' });
 
   if (aircraftId) {
     const { data: aircraftRow, error: aircraftError } = await supabase
@@ -152,8 +160,8 @@ export async function POST(request) {
       organization_id: organizationId,
       pilot_person_id: personId,
       aircraft_id: aircraftId || null,
-      takeoff_at: takeoffAt,
-      landing_at: landingAt,
+      takeoff_at: takeoffInstant,
+      landing_at: landingInstant,
       total_time: totalTime,
       visual_condition: visualCondition || null,
       mission_type: missionType || null,

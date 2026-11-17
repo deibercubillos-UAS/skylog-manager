@@ -70,7 +70,7 @@ Punto de entrada único del proyecto. **Todo documento nuevo se registra aquí.*
 | Doc | Contenido | Líneas | Estado |
 |---|---|---|---|
 | [`50-hoja-de-ruta.md`](50-hoja-de-ruta.md) | **Ciclo de trabajo de seis etapas**, aislamiento, frentes y orden, decisiones cerradas, no-objetivos | 289 | ✅ |
-| [`51-bitacora.md`](51-bitacora.md) | **206 decisiones cerradas**, correcciones propias y fuentes consultadas | 341 | ✅ |
+| [`51-bitacora.md`](51-bitacora.md) | **220 decisiones cerradas**, correcciones propias y fuentes consultadas | 341 | ✅ |
 | [`72-plan-pruebas-completas.md`](72-plan-pruebas-completas.md) · [`73-resultados-pruebas.md`](73-resultados-pruebas.md) | **Pruebas completas desde la página** (web y celular) con las cuentas QA — plan por fases y resultados (2026-10-16) | 80 + 90 | 🔄 |
 | [`60-auditoria-codigo.md`](60-auditoria-codigo.md) | **Auditoría del código de V2** (2026-10-07) — qué está bien, qué no y qué falta, con evidencia | 150 | ✅ |
 

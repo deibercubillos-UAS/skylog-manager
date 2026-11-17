@@ -13,12 +13,14 @@ const CSP = [
   [
     "connect-src 'self'",
     'https://*.supabase.co wss://*.supabase.co',
+    // Solo en desarrollo: Supabase local en Docker (`http://127.0.0.1:54321`). Nunca en el build de producción.
+    isProdBuild ? '' : 'http://127.0.0.1:54321 ws://127.0.0.1:54321',
     'https://*.r2.cloudflarestorage.com https://*.bitafly.com',
     'https://api.open-meteo.com https://archive-api.open-meteo.com https://services.swpc.noaa.gov',
     'https://nominatim.openstreetmap.org https://server.arcgisonline.com https://*.tile.openstreetmap.org',
     'https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.google.com https://stats.g.doubleclick.net https://px.ads.linkedin.com https://www.linkedin.com https://*.clarity.ms https://vitals.vercel-insights.com https://va.vercel-scripts.com',
     'https://production.wompi.co https://checkout.wompi.co',
-  ].join(' '),
+  ].filter(Boolean).join(' '),
   "frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com https://aerocivil.maps.arcgis.com https://www.openstreetmap.org https://checkout.wompi.co https://www.googletagmanager.com",
   "worker-src 'self' blob:",
   "object-src 'none'",

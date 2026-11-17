@@ -40,7 +40,7 @@ export async function GET(request) {
   if (!canInviteRole(rolesIn(s.memberships, organizationId), 'piloto')) {
     return Response.json({ error: 'Solo un gestor puede ver las solicitudes de ingreso' }, { status: 403 });
   }
-  const { data, error } = await admin.from('join_requests').select('id, role, status, created_at, person:people(full_name, email, phone)').eq('organization_id', organizationId).eq('status', 'pendiente').order('created_at', { ascending: true });
+  const { data, error } = await admin.from('join_requests').select('id, role, status, created_at, person:people!join_requests_person_id_fkey(full_name, email, phone)').eq('organization_id', organizationId).eq('status', 'pendiente').order('created_at', { ascending: true });
   if (error) return Response.json({ error: 'No se pudieron consultar las solicitudes' }, { status: 500 });
   return Response.json({ requests: (data || []).map((r) => ({ id: r.id, role: r.role, created_at: r.created_at, fullName: r.person?.full_name || '—', email: r.person?.email || null, phone: r.person?.phone || null })) });
 }

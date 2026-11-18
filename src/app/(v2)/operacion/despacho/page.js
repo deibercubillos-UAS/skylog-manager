@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { SectionHero, StatCard } from '../../_components/SectionHero';
 import Wizard from './_Wizard';
 import CloseForm from './_CloseForm';
+import ManagerCloseDialog from './_ManagerCloseDialog';
 import { fetchDutyContext, pickOrganizationId } from '@/lib/v2/dutyContextClient';
 
 const fmtTime = (ts) => new Date(ts).toLocaleString('es-CO', { timeZone: 'America/Bogota', dateStyle: 'medium', timeStyle: 'short' });
@@ -19,9 +20,10 @@ export default function DespachoPage() {
   const [organizationId, setOrganizationId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [data, setData] = useState({ missions: [], inProgress: [], dispatches: [] });
+  const [data, setData] = useState({ missions: [], inProgress: [], dispatches: [], openDispatches: [] });
   const [view, setView] = useState({ kind: 'list' }); // list | wizard | close
   const [notice, setNotice] = useState(null);
+  const [managerClose, setManagerClose] = useState(null); // despacho abierto que un gestor va a cerrar
 
   const load = useCallback(async (orgId) => {
     if (!orgId) return;
@@ -129,6 +131,33 @@ export default function DespachoPage() {
         </section>
       )}
 
+      {isManager && data.openDispatches.length > 0 && (
+        <section className="space-y-2">
+          <p className="text-sm font-semibold text-navy">Despachos abiertos de la organización</p>
+          <p className="text-xs text-navy-400">Si el piloto se retiró o no cerró el vuelo, puedes cerrarlo tú indicando el motivo.</p>
+          <div className="bg-white rounded-2xl border border-navy-100 divide-y divide-navy-50">
+            {data.openDispatches.map((d) => {
+              const days = Math.floor((Date.now() - Date.parse(d.dispatched_at)) / 86_400_000);
+              return (
+                <div key={d.id} className="px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <p className="text-sm font-semibold text-navy">{d.mission?.name || 'Misión'}</p>
+                    <p className="text-xs text-navy-400">
+                      {fmtTime(d.dispatched_at)} · {d.pilot?.full_name || '—'} · {aircraftLabel(d.aircraft)}
+                      {days >= 1 && <span className="ml-1 font-semibold text-amber-700">· abierto hace {days} día{days === 1 ? '' : 's'}</span>}
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => setManagerClose(d)} className="inline-flex items-center gap-1 text-sm font-semibold px-3 py-2 rounded-xl border border-navy-200 text-navy-600 hover:bg-navy-50">
+                    <span className="material-symbols-outlined text-base">lock</span>
+                    Cerrar como gestor
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       <section className="space-y-2">
         <p className="text-sm font-semibold text-navy">Para despachar hoy</p>
         {data.missions.length === 0 ? (
@@ -156,13 +185,24 @@ export default function DespachoPage() {
                   {d.risk_initial_zone && <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${ZONE_STYLE[d.risk_initial_zone]}`}>riesgo {d.risk_initial_zone}</span>}
                   {d.items_no > 0 && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700">{d.items_no} paso(s) “No”</span>}
                   {d.safety_report && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-violet-50 text-violet-700">reporte {d.safety_report_type}</span>}
-                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${d.status === 'cerrado' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{d.status === 'cerrado' ? 'Cerrado' : 'En curso'}</span>
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${d.status === 'cerrado' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{d.status === 'cerrado' ? (d.close_mode === 'sin_vuelo' ? 'Cerrado sin vuelo' : d.close_mode === 'gestor' ? 'Cerrado por gestor' : 'Cerrado') : 'En curso'}</span>
                 </div>
               </div>
             ))}
           </div>
         )}
       </section>
+      {managerClose && (
+        <ManagerCloseDialog
+          dispatch={managerClose}
+          onClose={() => setManagerClose(null)}
+          onDone={async (msg) => {
+            setManagerClose(null);
+            setNotice(msg);
+            await load(organizationId);
+          }}
+        />
+      )}
     </div>
   );
 }

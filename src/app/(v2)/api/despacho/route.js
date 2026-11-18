@@ -47,9 +47,24 @@ export async function GET(request) {
   ]);
   if (todaysError || openError || historyError) return Response.json({ error: 'Error consultando el despacho' }, { status: 500 });
 
+  // Despachos abiertos de la organización (sin tope de 30): un gestor los ve todos para cerrar los «huérfanos» (matriz F5). La RLS
+  // limita a un piloto a los suyos. Y cómo se cerraron los recientes (`close_mode`, columna nueva): si la migración aún no está
+  // aplicada la consulta falla y simplemente no se muestra la etiqueta.
+  const ids = (history || []).filter((d) => d.status === 'cerrado').map((d) => d.id);
+  const [{ data: openAll }, { data: modes }] = await Promise.all([
+    supabase
+      .from('dispatches')
+      .select('id, dispatched_at, mission:mission_id(name, zone), pilot:pilot_person_id(full_name), aircraft:aircraft_id(serial_number, model:model_id(brand, model))')
+      .eq('organization_id', organizationId)
+      .eq('status', 'despachado')
+      .order('dispatched_at'),
+    ids.length ? supabase.from('dispatches').select('id, close_mode').in('id', ids) : Promise.resolve({ data: [] }),
+  ]);
+  const closeModes = Object.fromEntries((modes || []).map((r) => [r.id, r.close_mode]));
+
   const normalize = (m) => ({ ...m, dispatch: one(m.dispatch) });
-  const dispatches = (history || []).map(({ items, ...d }) => ({ ...d, items_total: (items || []).length, items_no: (items || []).filter((i) => i.value === 'no').length }));
-  return Response.json({ today, missions: (todays || []).map(normalize), inProgress: (open || []).map(normalize), dispatches });
+  const dispatches = (history || []).map(({ items, ...d }) => ({ ...d, close_mode: closeModes[d.id] || null, items_total: (items || []).length, items_no: (items || []).filter((i) => i.value === 'no').length }));
+  return Response.json({ today, missions: (todays || []).map(normalize), inProgress: (open || []).map(normalize), dispatches, openDispatches: openAll || [] });
 }
 
 export async function POST(request) {

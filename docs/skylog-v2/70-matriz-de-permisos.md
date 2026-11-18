@@ -74,6 +74,7 @@ Este documento se genera a partir de ese archivo; si cambian, cambian juntos. Vi
 | F2 | Ver el historial de despachos de toda la organización | ✅ | ✅ | ✅ | 👁 | ❌ | ✅ |
 | F3 | Despachar un vuelo (verificaciones, listas de chequeo, riesgo) | ✅ | ✅ | ✅ | 👁 | ✅ | ✅ |
 | F4 | Cerrar un vuelo despachado | ✅ | ✅ | ✅ | 👁 | ✅ | ✅ |
+| F5 | Cerrar el despacho de otro piloto (con las horas que se indiquen, o sin vuelo) | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
 
 ### Operación · Meteorología
 | | Función | SA | GG | JP | GS | P | PI |

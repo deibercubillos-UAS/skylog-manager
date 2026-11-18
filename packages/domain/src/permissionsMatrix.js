@@ -49,6 +49,7 @@ const ROWS = [
   ["F2", "Operación · Despacho", "Ver el historial de despachos de toda la organización", "SSSVNS"],
   ["F3", "Operación · Despacho", "Despachar un vuelo (verificaciones, listas de chequeo, riesgo)", "SSSVSS", "El sistema valida que la persona sea el PIC, que no esté en descanso y que la aeronave sea de la organización."],
   ["F4", "Operación · Despacho", "Cerrar un vuelo despachado", "SSSVSS", "Solo puede cerrarlo quien lo despachó."],
+  ["F5", "Operación · Despacho", "Cerrar el despacho de otro piloto (con las horas que se indiquen, o sin vuelo)", "SSSNNN", "Para despachos abiertos que el piloto no puede o no cerró. Motivo obligatorio; queda en el registro de acciones."],
   ["G1", "Operación · Meteorología", "Ver el clima y la aptitud de vuelo de una ubicación", "SSSVSS"],
   ["H1", "Operación · Tiempo de servicio", "Iniciar y cerrar mi período de servicio", "SSSVSS", "Decisión del usuario 2026-10-16: el Piloto sí inicia y cierra su propio período (lo exige el despacho y los límites de §100.540)."],
   ["H2", "Operación · Tiempo de servicio", "Ver mi estado de servicio y descanso", "SSSVVS"],
